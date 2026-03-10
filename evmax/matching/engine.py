@@ -1,0 +1,157 @@
+"""Matching engine: links prediction market events to sharp odds events.
+
+Matching priority:
+  1. Exact canonical key match
+  2. Date-windowed fuzzy match (rapidfuzz, threshold=88)
+  3. Manual override JSON
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Optional
+
+import structlog
+
+from evmax.matching.fuzzy import fuzzy_match_event_keys
+from evmax.matching.normalizer import NameNormalizer
+from evmax.models.market import MarketType, PredictionMarket
+from evmax.models.odds import SharpOdds
+from evmax.settings import get_settings
+
+logger = structlog.get_logger(__name__)
+
+OVERRIDES_PATH = Path(__file__).parent / "overrides.json"
+
+
+class MatchingEngine:
+    """
+    Links prediction markets to their corresponding sharp odds events.
+
+    Usage:
+        engine = MatchingEngine()
+        result = engine.match(market, sharp_odds_list)
+        if result:
+            sharp_odds, confidence = result
+    """
+
+    def __init__(self) -> None:
+        self._settings = get_settings()
+        self._overrides = self._load_overrides()
+        self._normalizers: dict[str, NameNormalizer] = {}
+
+    def _load_overrides(self) -> dict[str, str]:
+        """Load manual market_id → event_id overrides."""
+        if OVERRIDES_PATH.exists():
+            with open(OVERRIDES_PATH) as f:
+                return json.load(f)
+        return {}
+
+    def _get_normalizer(self, sector: str) -> NameNormalizer:
+        if sector not in self._normalizers:
+            self._normalizers[sector] = NameNormalizer(sector)
+        return self._normalizers[sector]
+
+    def build_market_key(self, market: PredictionMarket) -> Optional[str]:
+        """Build canonical event key from a prediction market."""
+        if not market.team_home or not market.team_away:
+            return None
+        if not market.event_date:
+            return None
+
+        normalizer = self._get_normalizer(market.sector)
+        date_str = market.event_date.strftime("%Y-%m-%d")
+        base_key = normalizer.normalize_event_key(
+            market.team_home,
+            market.team_away,
+            date_str,
+            market.sector,
+        )
+
+        # Spread markets match at game level — the line is handled by SpreadDistributionModel
+        if market.market_type == MarketType.spread:
+            return f"{base_key}::spread"
+
+        return base_key
+
+    def match(
+        self,
+        market: PredictionMarket,
+        sharp_odds_list: list[SharpOdds],
+    ) -> Optional[tuple[SharpOdds, float]]:
+        """
+        Match a prediction market to the best sharp odds.
+
+        Args:
+            market: PredictionMarket to match.
+            sharp_odds_list: Available sharp odds (for this sector).
+
+        Returns:
+            (SharpOdds, confidence_score) or None if no match found.
+        """
+        if not sharp_odds_list:
+            return None
+
+        # Check manual override first
+        override_event_id = self._overrides.get(market.id)
+        if override_event_id:
+            for so in sharp_odds_list:
+                if so.event_id == override_event_id:
+                    logger.info("match_override", market_id=market.id, event_id=override_event_id)
+                    return so, 100.0
+
+        # Build canonical key for the market
+        market_key = self.build_market_key(market)
+        if not market_key:
+            logger.debug("match_no_key", market_id=market.id, reason="missing teams/date")
+            return None
+
+        sharp_keys = [so.event_id for so in sharp_odds_list]
+
+        # 1. Exact match
+        for so in sharp_odds_list:
+            if so.event_id == market_key:
+                logger.debug("match_exact", market_id=market.id, event_id=so.event_id)
+                return so, 100.0
+
+        # 2. Fuzzy match — disabled for spread markets (line must match exactly)
+        if market.market_type != MarketType.spread:
+            fuzzy_result = fuzzy_match_event_keys(
+                market_key,
+                sharp_keys,
+                threshold=self._settings.fuzzy_threshold,
+            )
+            if fuzzy_result:
+                matched_key, score = fuzzy_result
+                for so in sharp_odds_list:
+                    if so.event_id == matched_key:
+                        logger.debug(
+                            "match_fuzzy",
+                            market_id=market.id,
+                            event_id=matched_key,
+                            score=score,
+                        )
+                        return so, score
+
+        logger.debug("match_failed", market_id=market.id, market_key=market_key)
+        return None
+
+    def match_all(
+        self,
+        markets: list[PredictionMarket],
+        sharp_odds_list: list[SharpOdds],
+    ) -> list[tuple[PredictionMarket, SharpOdds, float]]:
+        """
+        Match a list of markets to sharp odds.
+
+        Returns:
+            List of (market, sharp_odds, confidence) tuples.
+        """
+        results = []
+        for market in markets:
+            match = self.match(market, sharp_odds_list)
+            if match:
+                so, confidence = match
+                results.append((market, so, confidence))
+        return results

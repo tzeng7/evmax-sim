@@ -1,0 +1,3 @@
+{
+  "_comment": "Manual market_id -> event_id overrides for edge cases. Add entries as: \"market_id\": \"event_id\""
+}

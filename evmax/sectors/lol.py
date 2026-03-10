@@ -1,0 +1,29 @@
+"""League of Legends sector handler.
+
+Sharp source: Pinnacle via TheOddsAPI (esports_lol sport key).
+Market types include match winner, map handicap, series winner.
+"""
+
+from evmax.models.market import MarketType, PredictionMarket
+from evmax.sectors.base import SectorHandler
+
+
+class LoLHandler(SectorHandler):
+    name = "lol"
+    sharp_source = "pinnacle"
+
+    def enrich_market(self, market: PredictionMarket) -> PredictionMarket:
+        """Normalize LoL team names."""
+        updates = {}
+        if market.team_home:
+            updates["team_home"] = self.normalize_team(market.team_home)
+        if market.team_away:
+            updates["team_away"] = self.normalize_team(market.team_away)
+        return market.model_copy(update=updates) if updates else market
+
+    def market_types_supported(self) -> list[str]:
+        return [
+            MarketType.moneyline,
+            MarketType.map_handicap,
+            MarketType.series_winner,
+        ]
