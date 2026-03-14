@@ -7,6 +7,7 @@ from evmax.sectors.ncaab import NCAABHandler
 from evmax.sectors.soccer import SoccerHandler
 from evmax.sectors.lol import LoLHandler
 from evmax.sectors.cs2 import CS2Handler
+from evmax.sectors.valorant import ValorantHandler
 
 _REGISTRY: dict[str, SectorHandler] = {
     "nfl": NFLHandler(),
@@ -15,6 +16,7 @@ _REGISTRY: dict[str, SectorHandler] = {
     "soccer": SoccerHandler(),
     "lol": LoLHandler(),
     "cs2": CS2Handler(),
+    "valorant": ValorantHandler(),
 }
 
 ALL_SECTORS = list(_REGISTRY.keys())

@@ -1,0 +1,314 @@
+"""Pinnacle odds via the guest Arcadia API — covers all sectors.
+
+No credentials required. Replaces TheOddsAPI for Pinnacle sharp lines.
+
+Sport IDs:
+  4  = Basketball (NBA id=487, NCAA id=493)
+  12 = E Sports   (CS2, LoL, Valorant)
+  15 = Football   (NFL id=258)
+  29 = Soccer     (EPL id=1980, La Liga id=2196, Bundesliga id=1842,
+                   Serie A id=2436, Ligue 1 id=2036, UCL id=2186)
+
+Odds are American format; we convert via american_to_decimal() + devig_two_way().
+Soccer three-way (draw) odds use devig_three_way().
+"""
+
+from __future__ import annotations
+
+import asyncio
+from datetime import datetime
+from typing import Any, Optional
+
+import structlog
+
+from evmax.clients.base import BaseAPIClient
+from evmax.ev.devig import devig_two_way, devig_three_way, american_to_decimal
+from evmax.models.odds import SharpBook, SharpOdds
+
+logger = structlog.get_logger(__name__)
+
+GUEST_API_BASE = "https://guest.api.arcadia.pinnacle.com/0.1"
+
+# sport_id → list of league_ids we care about
+SECTOR_SPORT_LEAGUES: dict[str, tuple[int, list[int]]] = {
+    "nba":      (4,  [487]),
+    "ncaab":    (4,  [493]),
+    "nfl":      (15, [258]),
+    "soccer":   (29, [1980, 2196, 1842, 2436, 2036, 2186]),  # EPL, La Liga, Bundesliga, Serie A, Ligue1, UCL
+    "cs2":      (12, []),   # all esports leagues matched by name
+    "lol":      (12, []),
+    "valorant": (12, []),
+}
+
+# Esports: league name substrings → sector
+ESPORTS_LEAGUE_MAP: list[tuple[str, str]] = [
+    ("CS2", "cs2"),
+    ("Counter-Strike", "cs2"),
+    ("League of Legends", "lol"),
+    ("Valorant", "valorant"),
+]
+
+# All sectors this client can handle
+ALL_SECTORS = set(SECTOR_SPORT_LEAGUES.keys())
+ESPORTS_SECTORS = {"cs2", "lol", "valorant"}
+
+# Soccer leagues that have draws (all of them)
+SOCCER_DRAW_LEAGUES = {1980, 2196, 1842, 2436, 2036, 2186}
+
+
+def _esports_league_sector(league_name: str) -> Optional[str]:
+    for keyword, sector in ESPORTS_LEAGUE_MAP:
+        if keyword.lower() in league_name.lower():
+            return sector
+    return None
+
+
+class PinnacleGuestClient(BaseAPIClient):
+    """
+    Fetches sharp Pinnacle odds from the public guest Arcadia API.
+    Covers NBA, NCAAB, NFL, Soccer, CS2, LoL, Valorant.
+    No API key or account required.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            base_url=GUEST_API_BASE,
+            concurrency=8,
+            timeout=20.0,
+            headers={
+                "Accept": "application/json",
+                "X-Api-Key": "CmX2KcMrXuFmNg6YFbmTxE0y9CIrOi0R",
+            },
+        )
+
+    async def get_odds(self, sector: str) -> list[SharpOdds]:
+        """Fetch devigged Pinnacle moneyline odds for a sector."""
+        sector = sector.lower()
+        if sector not in ALL_SECTORS:
+            return []
+
+        sport_id, league_ids = SECTOR_SPORT_LEAGUES[sector]
+
+        try:
+            all_matchups = await self._get(
+                f"/sports/{sport_id}/matchups",
+                params={"withSpecials": "false"},
+            )
+        except Exception as e:
+            logger.warning("pinnacle_guest_matchups_failed", sector=sector, error=str(e))
+            return []
+
+        if not isinstance(all_matchups, list):
+            return []
+
+        # Filter to parent matchups for this sector
+        if sector in ESPORTS_SECTORS:
+            matchups = [
+                m for m in all_matchups
+                if m.get("parentId") is None
+                and m.get("type") == "matchup"
+                and _esports_league_sector(m.get("league", {}).get("name", "")) == sector
+            ]
+        else:
+            matchups = [
+                m for m in all_matchups
+                if m.get("parentId") is None
+                and m.get("type") == "matchup"
+                and m.get("league", {}).get("id") in league_ids
+            ]
+
+        if not matchups:
+            logger.info("pinnacle_guest_no_matchups", sector=sector)
+            return []
+
+        results = await asyncio.gather(
+            *(self._fetch_matchup_odds(m, sector) for m in matchups),
+            return_exceptions=True,
+        )
+
+        odds: list[SharpOdds] = []
+        for r in results:
+            if isinstance(r, SharpOdds):
+                odds.append(r)
+            elif isinstance(r, list):
+                odds.extend(r)
+            elif isinstance(r, Exception):
+                logger.warning("pinnacle_guest_odds_error", error=str(r))
+
+        logger.info("sharp_fetched", sector=sector, count=len(odds),
+                    avg_margin=round(sum(o.margin for o in odds) / len(odds), 4) if odds else 0.0)
+        return odds
+
+    async def _fetch_matchup_odds(self, matchup: dict, sector: str) -> Optional[SharpOdds] | list[SharpOdds]:
+        """Fetch moneyline (and spread for non-soccer) for one matchup."""
+        matchup_id = matchup.get("id")
+        if not matchup_id:
+            return None
+
+        participants = matchup.get("participants", [])
+        home = next((p["name"] for p in participants if p.get("alignment") == "home"), None)
+        away = next((p["name"] for p in participants if p.get("alignment") == "away"), None)
+        if not home or not away:
+            return None
+
+        start_time = matchup.get("startTime", "")
+        event_date: Optional[datetime] = None
+        if start_time:
+            try:
+                event_date = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+            except ValueError:
+                pass
+
+        date_str = event_date.strftime("%Y-%m-%d") if event_date else "unknown"
+        home_norm = self._normalize(home, sector)
+        away_norm = self._normalize(away, sector)
+        base_event_id = f"{sector}::{date_str}::{home_norm}_vs_{away_norm}"
+
+        try:
+            markets_data = await self._get(f"/matchups/{matchup_id}/markets/related/straight")
+        except Exception as e:
+            logger.debug("pinnacle_guest_markets_failed", matchup_id=matchup_id, error=str(e))
+            return None
+
+        if not isinstance(markets_data, list):
+            return None
+
+        results: list[SharpOdds] = []
+
+        # --- Moneyline ---
+        ml_market = next(
+            (m for m in markets_data
+             if m.get("matchupId") == matchup_id
+             and m.get("type") == "moneyline"
+             and m.get("period") == 0
+             and not m.get("isAlternate", False)
+             and m.get("status") == "open"),
+            None,
+        )
+        if ml_market:
+            ml_odds = self._parse_moneyline(ml_market, base_event_id, sector, home, away, event_date)
+            if ml_odds:
+                results.append(ml_odds)
+
+        # --- Spread (non-soccer, non-esports) ---
+        if sector not in ESPORTS_SECTORS and sector != "soccer":
+            spread_market = next(
+                (m for m in markets_data
+                 if m.get("matchupId") == matchup_id
+                 and m.get("type") == "spread"
+                 and m.get("period") == 0
+                 and not m.get("isAlternate", False)
+                 and m.get("status") == "open"),
+                None,
+            )
+            if spread_market:
+                spread_odds = self._parse_spread(spread_market, base_event_id, sector, home, away, event_date)
+                if spread_odds:
+                    results.append(spread_odds)
+
+        return results if results else None
+
+    def _parse_moneyline(
+        self, market: dict, base_event_id: str, sector: str,
+        home: str, away: str, event_date: Optional[datetime],
+    ) -> Optional[SharpOdds]:
+        prices = market.get("prices", [])
+
+        home_price = next((p["price"] for p in prices if p.get("designation") == "home"), None)
+        away_price = next((p["price"] for p in prices if p.get("designation") == "away"), None)
+        draw_price = next((p["price"] for p in prices if p.get("designation") == "draw"), None)
+
+        if home_price is None or away_price is None:
+            return None
+
+        try:
+            home_dec = american_to_decimal(int(home_price))
+            away_dec = american_to_decimal(int(away_price))
+
+            if draw_price is not None:
+                draw_dec = american_to_decimal(int(draw_price))
+                prob_a, prob_b, prob_draw, margin = devig_three_way(home_dec, away_dec, draw_dec)
+            else:
+                draw_dec = None
+                prob_draw = None
+                prob_a, prob_b, margin = devig_two_way(home_dec, away_dec)
+        except Exception as e:
+            logger.debug("pinnacle_guest_devig_failed", error=str(e))
+            return None
+
+        return SharpOdds(
+            event_id=base_event_id,
+            book=SharpBook.pinnacle,
+            sector=sector,
+            outcome_a_label=home,
+            outcome_b_label=away,
+            outcome_a_decimal=home_dec,
+            outcome_b_decimal=away_dec,
+            outcome_draw_decimal=draw_dec,
+            true_prob_a=prob_a,
+            true_prob_b=prob_b,
+            true_prob_draw=prob_draw,
+            margin=margin,
+            event_date=event_date,
+        )
+
+    def _parse_spread(
+        self, market: dict, base_event_id: str, sector: str,
+        home: str, away: str, event_date: Optional[datetime],
+    ) -> Optional[SharpOdds]:
+        prices = market.get("prices", [])
+        if len(prices) < 2:
+            return None
+
+        home_entry = next((p for p in prices if p.get("designation") == "home"), None)
+        away_entry = next((p for p in prices if p.get("designation") == "away"), None)
+        if not home_entry or not away_entry:
+            return None
+
+        home_hdp = home_entry.get("handicap", 0.0)
+        away_hdp = away_entry.get("handicap", 0.0)
+
+        # Covering team = negative handicap (favorite)
+        if home_hdp < 0:
+            covering_team, other_team = home, away
+            cover_price, other_price = home_entry["price"], away_entry["price"]
+            cover_point = float(home_hdp)
+        elif away_hdp < 0:
+            covering_team, other_team = away, home
+            cover_price, other_price = away_entry["price"], home_entry["price"]
+            cover_point = float(away_hdp)
+        else:
+            return None
+
+        try:
+            cover_dec = american_to_decimal(int(cover_price))
+            other_dec = american_to_decimal(int(other_price))
+            prob_cover, prob_other, margin = devig_two_way(cover_dec, other_dec)
+        except Exception as e:
+            logger.debug("pinnacle_guest_spread_devig_failed", error=str(e))
+            return None
+
+        return SharpOdds(
+            event_id=f"{base_event_id}::spread",
+            book=SharpBook.pinnacle,
+            sector=sector,
+            outcome_a_label=covering_team,
+            outcome_b_label=other_team,
+            outcome_a_decimal=cover_dec,
+            outcome_b_decimal=other_dec,
+            true_prob_a=prob_cover,
+            true_prob_b=prob_other,
+            spread_line=cover_point,
+            margin=margin,
+            event_date=event_date,
+        )
+
+    @staticmethod
+    def _normalize(name: str, sector: str) -> str:
+        from evmax.matching.normalizer import NameNormalizer
+        normalized = NameNormalizer(sector).normalize(name)
+        return normalized.replace(" ", "_").replace(".", "")
+
+
+# Keep old name as alias for backward compatibility
+EsportsPinnacleClient = PinnacleGuestClient

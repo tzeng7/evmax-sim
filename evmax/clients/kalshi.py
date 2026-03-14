@@ -170,23 +170,44 @@ class KalshiClient(BaseAPIClient):
             return None
 
     def _parse_market(self, raw: dict[str, Any], sector: str) -> Optional[PredictionMarket]:
-        """Parse a raw Kalshi market dict into a PredictionMarket."""
+        """Parse a raw Kalshi market dict into a PredictionMarket.
+
+        The API uses '_dollars' suffix fields (values already in 0.0–1.0 decimal
+        form) with '_fp' suffix for volume/open_interest counts.  Falls back to
+        legacy integer cent fields ('yes_bid', 'yes_ask') if present.
+        """
         try:
             ticker = raw.get("ticker", "")
-            yes_bid = raw.get("yes_bid", 0) / 100.0
-            yes_ask = raw.get("yes_ask", 0) / 100.0
-            no_bid = raw.get("no_bid", 0) / 100.0
-            no_ask = raw.get("no_ask", 0) / 100.0
+
+            # New API: _dollars fields are already 0.0–1.0 decimals
+            if raw.get("yes_bid_dollars") is not None:
+                yes_bid = float(raw.get("yes_bid_dollars") or 0)
+                yes_ask = float(raw.get("yes_ask_dollars") or 0)
+                no_bid = float(raw.get("no_bid_dollars") or 0)
+                no_ask = float(raw.get("no_ask_dollars") or 0)
+                volume = float(raw.get("volume_fp") or raw.get("volume_24h_fp") or 0)
+                open_interest = float(raw.get("open_interest_fp") or 0)
+            else:
+                # Legacy API: integer cents → divide by 100
+                yes_bid = (raw.get("yes_bid") or 0) / 100.0
+                yes_ask = (raw.get("yes_ask") or 0) / 100.0
+                no_bid = (raw.get("no_bid") or 0) / 100.0
+                no_ask = (raw.get("no_ask") or 0) / 100.0
+                volume = float(raw.get("volume") or 0)
+                open_interest = float(raw.get("open_interest") or 0)
 
             yes_price = (yes_bid + yes_ask) / 2.0 if yes_ask > 0 else yes_bid
             no_price = (no_bid + no_ask) / 2.0 if no_ask > 0 else no_bid
+
+            # Fallback: use last_price_dollars if mid not available
+            if yes_price <= 0 and raw.get("last_price_dollars"):
+                yes_price = float(raw["last_price_dollars"])
+                no_price = 1.0 - yes_price
 
             if yes_price <= 0 or yes_price >= 1.0:
                 return None
 
             title = raw.get("title", "")
-            volume = raw.get("volume", 0) or 0
-            open_interest = raw.get("open_interest", 0) or 0
 
             # --- Game date: parse from ticker (YYMONDD), not close_time ---
             # close_time is the market resolution deadline (~2wks after game)

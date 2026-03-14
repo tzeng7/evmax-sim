@@ -1,0 +1,518 @@
+"""Tests for the agent framework."""
+
+from __future__ import annotations
+
+import asyncio
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from evmax.agents.base import Agent, AgentBus, AgentMessage, AgentRequest, AgentResponse, AgentStatus
+from evmax.agents.odds.ev_gap_agent import EVGapAgent, EVGap
+from evmax.agents.models.elo_agent import EloModelAgent
+from evmax.agents.models.form_agent import FormModelAgent
+from evmax.agents.models.poisson_agent import PoissonModelAgent, _poisson_pmf, _score_matrix, _win_draw_probs
+from evmax.agents.models.ensemble_agent import EnsembleModelAgent
+from evmax.models.market import PredictionMarket, MarketSource, MarketType
+from evmax.models.odds import SharpOdds, SharpBook
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+def make_market(
+    yes_price: float = 0.45,
+    team_home: str = "lakers",
+    team_away: str = "celtics",
+    yes_team: str = "lakers",
+    sector: str = "nba",
+    market_type: MarketType = MarketType.moneyline,
+    volume: float = 10_000.0,
+) -> PredictionMarket:
+    return PredictionMarket(
+        id=f"kalshi:{team_home}_vs_{team_away}",
+        source=MarketSource.kalshi,
+        sector=sector,
+        market_type=market_type,
+        title=f"{team_home} vs {team_away}",
+        ticker=f"KXNBAGAME-TEST-{team_home.upper()}",
+        yes_price=yes_price,
+        no_price=1.0 - yes_price,
+        volume_usd=volume,
+        open_interest_usd=5_000.0,
+        team_home=team_home,
+        team_away=team_away,
+        yes_team=yes_team,
+        event_date=datetime(2026, 3, 15, 20, 0, tzinfo=timezone.utc),
+    )
+
+
+def make_sharp(
+    event_id: str = "nba::2026-03-15::lakers_vs_celtics",
+    prob_a: float = 0.58,
+    prob_b: float = 0.42,
+    team_a: str = "lakers",
+    team_b: str = "celtics",
+    sector: str = "nba",
+) -> SharpOdds:
+    return SharpOdds(
+        event_id=event_id,
+        book=SharpBook.pinnacle,
+        sector=sector,
+        outcome_a_label=team_a,
+        outcome_b_label=team_b,
+        outcome_a_decimal=1.0 / prob_a,
+        outcome_b_decimal=1.0 / prob_b,
+        true_prob_a=prob_a,
+        true_prob_b=prob_b,
+        margin=0.04,
+        event_date=datetime(2026, 3, 15, 20, 0, tzinfo=timezone.utc),
+    )
+
+
+# ---------------------------------------------------------------------------
+# AgentBus
+# ---------------------------------------------------------------------------
+
+class TestAgentBus:
+    @pytest.mark.asyncio
+    async def test_publish_and_subscribe(self):
+        bus = AgentBus()
+        received = []
+
+        async def handler(msg: AgentMessage):
+            received.append(msg)
+
+        bus.subscribe("odds.kalshi.nba", handler)
+        await bus.publish(AgentMessage(topic="odds.kalshi.nba", payload=[1, 2], sender="test"))
+        assert len(received) == 1
+        assert received[0].payload == [1, 2]
+
+    @pytest.mark.asyncio
+    async def test_wildcard_subscribe(self):
+        bus = AgentBus()
+        received = []
+
+        async def handler(msg):
+            received.append(msg.topic)
+
+        bus.subscribe("*", handler)
+        await bus.publish(AgentMessage(topic="a.b.c", payload=None, sender="x"))
+        await bus.publish(AgentMessage(topic="d.e.f", payload=None, sender="y"))
+        assert "a.b.c" in received
+        assert "d.e.f" in received
+
+    @pytest.mark.asyncio
+    async def test_no_subscribers_no_error(self):
+        bus = AgentBus()
+        # should not raise
+        await bus.publish(AgentMessage(topic="unknown", payload={}, sender="x"))
+
+    @pytest.mark.asyncio
+    async def test_handler_exception_does_not_propagate(self):
+        bus = AgentBus()
+
+        async def bad_handler(msg):
+            raise ValueError("oops")
+
+        bus.subscribe("topic", bad_handler)
+        # should not raise
+        await bus.publish(AgentMessage(topic="topic", payload=None, sender="x"))
+
+
+# ---------------------------------------------------------------------------
+# Agent base
+# ---------------------------------------------------------------------------
+
+class ConcreteAgent(Agent):
+    name = "test_agent"
+    description = "A test agent"
+
+    def __init__(self, raise_on_run: bool = False):
+        super().__init__()
+        self._raise = raise_on_run
+
+    async def run(self, request: AgentRequest) -> AgentResponse:
+        if self._raise:
+            raise RuntimeError("deliberate error")
+        return AgentResponse(agent_name=self.name, sector=request.sector, data={"ok": True})
+
+
+class TestAgent:
+    @pytest.mark.asyncio
+    async def test_successful_run(self):
+        agent = ConcreteAgent()
+        resp = await agent(AgentRequest(sector="nba"))
+        assert resp.status == "ok"
+        assert resp.data == {"ok": True}
+        assert resp.latency_ms >= 0
+
+    @pytest.mark.asyncio
+    async def test_error_captured(self):
+        agent = ConcreteAgent(raise_on_run=True)
+        resp = await agent(AgentRequest(sector="nba"))
+        assert resp.status == "error"
+        assert "deliberate error" in resp.error
+
+    @pytest.mark.asyncio
+    async def test_status_transitions(self):
+        agent = ConcreteAgent()
+        assert agent.status == AgentStatus.IDLE
+        await agent(AgentRequest(sector="nba"))
+        assert agent.status == AgentStatus.IDLE
+
+    @pytest.mark.asyncio
+    async def test_publish_requires_bus(self):
+        agent = ConcreteAgent()
+        # No bus attached — should be a no-op
+        await agent.publish("some.topic", {"x": 1})
+
+    @pytest.mark.asyncio
+    async def test_publish_with_bus(self):
+        bus = AgentBus()
+        received = []
+
+        async def handler(msg):
+            received.append(msg)
+
+        bus.subscribe("test.topic", handler)
+        agent = ConcreteAgent()
+        agent.attach_bus(bus)
+        await agent.publish("test.topic", 42)
+        assert received[0].payload == 42
+        assert received[0].sender == "test_agent"
+
+
+# ---------------------------------------------------------------------------
+# EVGapAgent
+# ---------------------------------------------------------------------------
+
+class TestEVGapAgent:
+    @pytest.mark.asyncio
+    async def test_finds_positive_ev(self):
+        agent = EVGapAgent()
+        market = make_market(yes_price=0.45, yes_team="lakers")
+        sharp = make_sharp(prob_a=0.58, team_a="lakers")
+
+        # Bypass matching engine — inject pre-matched data
+        with patch.object(agent._matching, "match_all", return_value=[(market, sharp, 95.0)]):
+            req = AgentRequest(
+                sector="nba",
+                params={"kalshi_markets": [market], "sharp_odds": [sharp]},
+            )
+            resp = await agent(req)
+
+        assert resp.status == "ok"
+        assert len(resp.data) >= 1
+        gap: EVGap = resp.data[0]
+        assert gap.ev_pct > 0.02
+        assert gap.kelly_fraction > 0
+        assert gap.blended_true_prob == pytest.approx(0.58, abs=0.001)
+
+    @pytest.mark.asyncio
+    async def test_negative_ev_filtered(self):
+        agent = EVGapAgent()
+        # Kalshi price higher than true prob → negative EV
+        market = make_market(yes_price=0.70, yes_team="lakers")
+        sharp = make_sharp(prob_a=0.58, team_a="lakers")
+
+        with patch.object(agent._matching, "match_all", return_value=[(market, sharp, 95.0)]):
+            req = AgentRequest(
+                sector="nba",
+                params={"kalshi_markets": [market], "sharp_odds": [sharp]},
+            )
+            resp = await agent(req)
+
+        assert len(resp.data) == 0
+
+    @pytest.mark.asyncio
+    async def test_model_prob_override(self):
+        from evmax.agents.models.ensemble_agent import BlendedPrediction
+        agent = EVGapAgent()
+        market = make_market(yes_price=0.45, yes_team="lakers")
+        sharp = make_sharp(prob_a=0.50, prob_b=0.50, team_a="lakers")  # borderline with sharp only
+
+        # Model gives a higher true prob → pushes into +EV
+        blended_preds = {
+            sharp.event_id: BlendedPrediction(
+                event_id=sharp.event_id,
+                true_prob_a=0.62,
+                true_prob_b=0.38,
+                true_prob_draw=None,
+                confidence=0.80,
+                model_sources="elo+sharp",
+                per_model={},
+            )
+        }
+
+        with patch.object(agent._matching, "match_all", return_value=[(market, sharp, 95.0)]):
+            req = AgentRequest(
+                sector="nba",
+                params={
+                    "kalshi_markets": [market],
+                    "sharp_odds": [sharp],
+                    "blended_preds": blended_preds,
+                },
+            )
+            resp = await agent(req)
+
+        assert len(resp.data) >= 1
+        gap = resp.data[0]
+        assert gap.blended_true_prob == pytest.approx(0.62, abs=0.001)
+
+    @pytest.mark.asyncio
+    async def test_publishes_to_bus(self):
+        bus = AgentBus()
+        received = []
+
+        async def handler(msg):
+            received.append(msg)
+
+        bus.subscribe("ev.gaps.nba", handler)
+        agent = EVGapAgent()
+        agent.attach_bus(bus)
+
+        market = make_market(yes_price=0.45)
+        sharp = make_sharp(prob_a=0.58)
+
+        with patch.object(agent._matching, "match_all", return_value=[(market, sharp, 95.0)]):
+            await agent(AgentRequest(sector="nba", params={"kalshi_markets": [market], "sharp_odds": [sharp]}))
+
+        assert len(received) == 1
+        assert received[0].topic == "ev.gaps.nba"
+
+
+# ---------------------------------------------------------------------------
+# EloModelAgent
+# ---------------------------------------------------------------------------
+
+class TestEloModelAgent:
+    def test_default_rating(self):
+        agent = EloModelAgent()
+        assert agent.get_rating("nba", "unknown_team") == 1500.0
+
+    def test_seed_ratings(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "evmax.agents.models.base.STATE_DIR", tmp_path
+        )
+        agent = EloModelAgent()
+        agent._state_path = tmp_path / "elo_state.json"
+        agent.seed_ratings("nba", {"lakers": 1600.0, "celtics": 1550.0})
+        assert agent.get_rating("nba", "lakers") == 1600.0
+
+    def test_update_winner_gains_elo(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = EloModelAgent()
+        agent._state_path = tmp_path / "elo_state.json"
+
+        # Equal teams — winner should gain points
+        agent.update("lakers", "celtics", score_a=110, score_b=100, sector="nba")
+        assert agent.get_rating("nba", "lakers") > 1500.0
+        assert agent.get_rating("nba", "celtics") < 1500.0
+
+    def test_update_loser_loses_elo(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = EloModelAgent()
+        agent._state_path = tmp_path / "elo_state.json"
+
+        agent.update("lakers", "celtics", score_a=90, score_b=110, sector="nba")
+        assert agent.get_rating("nba", "lakers") < 1500.0
+        assert agent.get_rating("nba", "celtics") > 1500.0
+
+    def test_zero_sum_ratings(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = EloModelAgent()
+        agent._state_path = tmp_path / "elo_state.json"
+
+        for _ in range(20):
+            agent.update("lakers", "celtics", 110, 100, "nba")
+            agent.update("celtics", "lakers", 110, 100, "nba")
+
+        # Sum of ratings stays close to 3000 (two teams, each started at 1500)
+        total = agent.get_rating("nba", "lakers") + agent.get_rating("nba", "celtics")
+        assert abs(total - 3000.0) < 5.0
+
+    @pytest.mark.asyncio
+    async def test_predict_pair_returns_prediction(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = EloModelAgent()
+        agent._state_path = tmp_path / "elo_state.json"
+
+        market = make_market()
+        sharp = make_sharp()
+
+        pred = await agent.predict_pair(market, sharp)
+        assert pred is not None
+        assert abs(pred.true_prob_a + pred.true_prob_b - 1.0) < 0.01
+
+    @pytest.mark.asyncio
+    async def test_predict_pair_probs_sum_to_one(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = EloModelAgent()
+        agent._state_path = tmp_path / "elo_state.json"
+
+        market = make_market(sector="soccer")
+        market = market.model_copy(update={"sector": "soccer"})
+        sharp = make_sharp(sector="soccer")
+        sharp = sharp.model_copy(update={"sector": "soccer", "true_prob_draw": 0.25, "true_prob_a": 0.45, "true_prob_b": 0.30})
+
+        pred = await agent.predict_pair(market, sharp)
+        assert pred is not None
+        total = pred.true_prob_a + pred.true_prob_b + (pred.true_prob_draw or 0.0)
+        assert abs(total - 1.0) < 0.01
+
+
+# ---------------------------------------------------------------------------
+# FormModelAgent
+# ---------------------------------------------------------------------------
+
+class TestFormModelAgent:
+    @pytest.mark.asyncio
+    async def test_insufficient_data_returns_none(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = FormModelAgent()
+        agent._state_path = tmp_path / "form_state.json"
+
+        market = make_market()
+        sharp = make_sharp()
+        pred = await agent.predict_pair(market, sharp)
+        assert pred is None  # no game records
+
+    @pytest.mark.asyncio
+    async def test_prediction_after_seeding(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = FormModelAgent()
+        agent._state_path = tmp_path / "form_state.json"
+
+        results = [
+            {"date": f"2026-01-{i:02d}", "home": "lakers", "away": "celtics", "score_home": 110, "score_away": 100}
+            for i in range(1, 8)
+        ]
+        agent.seed_results("nba", results)
+
+        market = make_market()
+        sharp = make_sharp()
+        pred = await agent.predict_pair(market, sharp)
+        assert pred is not None
+        assert pred.true_prob_a > 0.5   # lakers won all seeded games
+
+    def test_update_adds_records(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = FormModelAgent()
+        agent._state_path = tmp_path / "form_state.json"
+
+        agent.update("lakers", "celtics", 112, 108, "nba", "2026-01-15")
+        recs = agent._team_records("nba", "lakers")
+        assert len(recs) == 1
+        assert recs[0].won is True
+
+
+# ---------------------------------------------------------------------------
+# PoissonModelAgent
+# ---------------------------------------------------------------------------
+
+class TestPoissonModelAgent:
+    def test_poisson_pmf(self):
+        # P(X=0 | λ=1.5) ≈ 0.2231
+        import math
+        expected = math.exp(-1.5)
+        assert abs(_poisson_pmf(1.5, 0) - expected) < 1e-6
+
+    def test_score_matrix_sums_to_one(self):
+        matrix = _score_matrix(1.5, 1.2, max_g=8, rho=0.0)
+        total = sum(p for row in matrix for p in row)
+        assert abs(total - 1.0) < 0.05  # DC correction changes total slightly
+
+    def test_win_draw_probs_sum_to_one(self):
+        matrix = _score_matrix(1.5, 1.2, max_g=8)
+        h, d, a = _win_draw_probs(matrix)
+        assert abs(h + d + a - 1.0) < 1e-6
+
+    def test_stronger_team_has_higher_win_prob(self):
+        matrix_even = _score_matrix(1.5, 1.5, max_g=8)
+        h_even, _, _ = _win_draw_probs(matrix_even)
+
+        matrix_home_strong = _score_matrix(2.5, 1.0, max_g=8)
+        h_strong, _, _ = _win_draw_probs(matrix_home_strong)
+
+        assert h_strong > h_even
+
+    @pytest.mark.asyncio
+    async def test_predict_without_data(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = PoissonModelAgent()
+        agent._state_path = tmp_path / "poisson_state.json"
+
+        market = make_market(sector="soccer")
+        market = market.model_copy(update={"sector": "soccer"})
+        sharp = make_sharp(sector="soccer")
+
+        pred = await agent.predict_pair(market, sharp)
+        # Should still return something (league-average fallback)
+        assert pred is not None
+        assert pred.confidence < 0.5  # low confidence without data
+
+    @pytest.mark.asyncio
+    async def test_predict_with_seeded_data(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = PoissonModelAgent()
+        agent._state_path = tmp_path / "poisson_state.json"
+
+        agent.seed_team_stats(
+            sector="soccer",
+            team_stats={
+                "manchester city": {"attack": 1.8, "defense": 0.6, "games": 20},
+                "bournemouth": {"attack": 0.7, "defense": 1.4, "games": 20},
+            },
+            league_avg={"home": 1.55, "away": 1.15},
+        )
+
+        market = make_market(sector="soccer", team_home="manchester city", team_away="bournemouth")
+        market = market.model_copy(update={"sector": "soccer"})
+        sharp = make_sharp(team_a="manchester city", team_b="bournemouth", sector="soccer")
+
+        pred = await agent.predict_pair(market, sharp)
+        assert pred is not None
+        assert pred.true_prob_a > 0.5   # Man City strong attack vs weak Bournemouth defense
+
+
+# ---------------------------------------------------------------------------
+# EnsembleModelAgent
+# ---------------------------------------------------------------------------
+
+class TestEnsembleModelAgent:
+    @pytest.mark.asyncio
+    async def test_blends_models(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        elo = EloModelAgent()
+        elo._state_path = tmp_path / "elo_state.json"
+        form = FormModelAgent()
+        form._state_path = tmp_path / "form_state.json"
+        poisson = PoissonModelAgent()
+        poisson._state_path = tmp_path / "poisson_state.json"
+
+        ensemble = EnsembleModelAgent(models=[elo, form, poisson], sharp_weight=0.40)
+
+        market = make_market()
+        sharp = make_sharp()
+
+        req = AgentRequest(
+            sector="nba",
+            params={"pairs": [{"market": market, "sharp": sharp}]},
+        )
+        resp = await ensemble(req)
+        assert resp.status == "ok"
+        # Even without model data, falls back to sharp probs
+        blended = resp.data
+        assert sharp.event_id in blended
+        blend = blended[sharp.event_id]
+        assert abs(blend.true_prob_a + blend.true_prob_b - 1.0) < 0.01
+
+    @pytest.mark.asyncio
+    async def test_empty_pairs_returns_empty(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        ensemble = EnsembleModelAgent(models=[], sharp_weight=0.40)
+        resp = await ensemble(AgentRequest(sector="nba", params={"pairs": []}))
+        assert resp.data == {}

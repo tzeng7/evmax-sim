@@ -37,8 +37,7 @@ SECTOR_SPORT_KEYS: dict[str, list[str]] = {
         "soccer_uefa_champs_league",
         "soccer_france_ligue_one",
     ],
-    "lol": ["esports_lol"],
-    "cs2": ["esports_csgo"],
+    # lol / cs2 / valorant use EsportsPinnacleClient (Pinnacle guest API) — not TheOddsAPI
 }
 
 
