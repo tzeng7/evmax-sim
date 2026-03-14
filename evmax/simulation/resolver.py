@@ -2,21 +2,65 @@
 
 For Phase 1 (simulation only), resolution is done by checking if a
 Kalshi/Polymarket market has been resolved (yes_price → 1.0 or 0.0).
+
+When a market settles, the resolver also records a GameResult so that
+model calibration and future training data accumulates automatically.
 """
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from typing import Optional
 
 import structlog
 from sqlalchemy import select
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from evmax.db import AsyncSessionLocal
+from evmax.models.game_result import GameResult, GameResultORM
 from evmax.models.simulated_bet import BetStatus, SimulatedBet, SimulatedBetORM
 
 logger = structlog.get_logger(__name__)
+
+# Match Kalshi ticker outcome code: last segment after '-', strip trailing digits
+_TICKER_OUTCOME_RE = re.compile(r"-([A-Z0-9]+)$", re.IGNORECASE)
+_TRAILING_DIGITS_RE = re.compile(r"\d+$")
+
+
+def _extract_yes_team_from_market_id(market_id: str, sector: str) -> Optional[str]:
+    """
+    Extract and normalize the YES-side team name from a Kalshi market_id.
+
+    e.g. "kalshi:KXNCAAMBGAME-26MAR13KANDU-DUK" → normalizes "DUK" → "duke"
+    """
+    ticker = market_id.removeprefix("kalshi:").removeprefix("polymarket:")
+    m = _TICKER_OUTCOME_RE.search(ticker.upper())
+    if not m:
+        return None
+    outcome_code = _TRAILING_DIGITS_RE.sub("", m.group(1)).lower()
+    if not outcome_code:
+        return None
+    from evmax.matching.normalizer import NameNormalizer
+    return NameNormalizer(sector).normalize(outcome_code)
+
+
+def _parse_teams_from_event_id(event_id: str) -> tuple[Optional[str], Optional[str]]:
+    """
+    Parse team_home and team_away from a canonical event_id.
+
+    Format: "{sector}::{date}::{team_home}_vs_{team_away}"
+    Returns (team_home, team_away) or (None, None) if not parseable.
+    """
+    parts = event_id.split("::")
+    if len(parts) < 3:
+        return None, None
+    matchup = parts[2]
+    vs_parts = matchup.split("_vs_", 1)
+    if len(vs_parts) != 2:
+        return None, None
+    return vs_parts[0].replace("_", " "), vs_parts[1].replace("_", " ")
 
 
 class BetResolver:
@@ -85,6 +129,9 @@ class BetResolver:
         """
         Auto-resolve bets for a market based on current yes price.
 
+        Also records a GameResult when the market has definitively settled
+        (yes_price >= 0.99 or <= 0.01).
+
         Args:
             market_id: Market identifier.
             current_yes_price: Current YES price (0.0–1.0).
@@ -106,21 +153,94 @@ class BetResolver:
 
         # Determine resolution
         if current_yes_price >= 0.99:
-            # YES resolved
-            resolved = []
-            for bet in open_bets:
-                won = bet.outcome.lower() == "yes"
-                resolved.append(await self.resolve_bet(bet, won, session))
-            return resolved
+            yes_won = True
         elif current_yes_price <= 0.01:
-            # NO resolved
-            resolved = []
-            for bet in open_bets:
-                won = bet.outcome.lower() == "no"
-                resolved.append(await self.resolve_bet(bet, won, session))
-            return resolved
+            yes_won = False
+        else:
+            return []  # Market not yet resolved
 
-        return []  # Market not yet resolved
+        resolved = []
+        for bet in open_bets:
+            won = (bet.outcome.lower() == "yes") == yes_won
+            resolved.append(await self.resolve_bet(bet, won, session))
+
+        # Record game result using the first resolved bet's event data
+        if resolved:
+            first_bet = open_bets[0]
+            await self._try_record_game_result(
+                market_id=market_id,
+                event_id=first_bet.event_id,
+                sector=first_bet.sector,
+                yes_won=yes_won,
+                event_date=first_bet.event_date,
+                session=session,
+            )
+
+        return resolved
+
+    async def _try_record_game_result(
+        self,
+        market_id: str,
+        event_id: str,
+        sector: str,
+        yes_won: bool,
+        event_date: Optional[datetime],
+        session: AsyncSession,
+    ) -> None:
+        """
+        Record a GameResult row when a market settles.
+
+        Silently skips if:
+        - Teams cannot be parsed from event_id
+        - YES team cannot be extracted from market_id
+        - A result for this event_id already exists (idempotent)
+        """
+        team_home, team_away = _parse_teams_from_event_id(event_id)
+        if not team_home or not team_away:
+            logger.debug("game_result_skip_no_teams", event_id=event_id)
+            return
+
+        yes_team = _extract_yes_team_from_market_id(market_id, sector)
+        if not yes_team:
+            logger.debug("game_result_skip_no_yes_team", market_id=market_id)
+            return
+
+        # Determine winner
+        if yes_won:
+            winner = "home" if yes_team == team_home else "away"
+        else:
+            # YES side lost → the other team won
+            winner = "away" if yes_team == team_home else "home"
+
+        game_result = GameResult(
+            event_id=event_id,
+            sector=sector,
+            team_home=team_home,
+            team_away=team_away,
+            winner=winner,
+            game_date=event_date,
+            source="kalshi_resolved",
+        )
+
+        try:
+            # INSERT OR IGNORE so duplicate settlements don't error
+            stmt = (
+                sqlite_insert(GameResultORM)
+                .values(**game_result.model_dump(exclude={"id"}))
+                .on_conflict_do_nothing(index_elements=["event_id"])
+            )
+            await session.execute(stmt)
+            await session.commit()
+            logger.info(
+                "game_result_recorded",
+                event_id=event_id,
+                sector=sector,
+                winner=winner,
+                home=team_home,
+                away=team_away,
+            )
+        except Exception as e:
+            logger.warning("game_result_record_failed", event_id=event_id, error=str(e))
 
     async def resolve_all_settled(
         self,

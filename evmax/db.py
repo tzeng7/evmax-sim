@@ -36,7 +36,7 @@ async def get_session() -> AsyncSession:
 
 async def init_db() -> None:
     """Create all tables."""
-    from evmax.models import market, odds, ev_bet, simulated_bet, bankroll  # noqa: F401
+    from evmax.models import market, odds, ev_bet, simulated_bet, bankroll, game_result  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

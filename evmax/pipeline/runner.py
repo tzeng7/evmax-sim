@@ -40,6 +40,8 @@ from evmax.models.odds import SharpOdds
 from evmax.models.market import MarketType
 from evmax.models_ml.sharp_only import SharpBooksModel
 from evmax.models_ml.spread_distribution import SpreadDistributionModel
+from evmax.models_ml.ncaab_efficiency import NCAABEfficiencyModel
+from evmax.models_ml.base import blend_predictions
 from evmax.sectors.registry import ALL_SECTORS, get_handler
 from evmax.settings import get_settings
 from evmax.simulation.engine import SimulationEngine
@@ -77,6 +79,7 @@ class PipelineRunner:
         self._matching_engine = MatchingEngine()
         self._model = SharpBooksModel()
         self._spread_model = SpreadDistributionModel()
+        self._ncaab_eff_model = NCAABEfficiencyModel()
         self._sim_engine = SimulationEngine()
 
     async def run_cycle(self) -> CycleResult:
@@ -266,7 +269,17 @@ class PipelineRunner:
                     }
                 )
             else:
-                prediction = await self._model.predict(market, sharp_odds)
+                # For NCAAB moneylines, blend SharpBooksModel (60%) with
+                # the efficiency model (40%) for an independent probability check.
+                if sector == "ncaab" and market.market_type == MarketType.moneyline:
+                    sharp_pred = await self._model.predict(market, sharp_odds)
+                    eff_pred = await self._ncaab_eff_model.predict(market, sharp_odds)
+                    if sharp_pred and eff_pred:
+                        prediction = blend_predictions([(sharp_pred, 0.6), (eff_pred, 0.4)])
+                    else:
+                        prediction = sharp_pred or eff_pred
+                else:
+                    prediction = await self._model.predict(market, sharp_odds)
                 if not prediction:
                     continue
                 blended_odds = sharp_odds.model_copy(
