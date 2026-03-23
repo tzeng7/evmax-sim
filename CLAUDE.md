@@ -26,4 +26,13 @@ You are an expert in acquiring expected value for specific predictions found on 
 
 ### Key Goals
 
-The key goal is to be able to compile a list of +ev plays (cognizant of liquidity) when they drop on Polymarket or Kalshi and to place kelly-fractioned bets on these plays to make money in the long run. 
+The key goal is to be able to compile a list of +ev plays (cognizant of liquidity) when they drop on Polymarket or Kalshi and to place kelly-fractioned bets on these plays to make money in the long run.
+
+### CLI Output Requirements
+
+Every table produced by any CLI command (scan, verify, pick, show, etc.) MUST include both of these columns:
+
+- **Event** — the full matchup title (e.g. "Dallas Mavericks vs LA Clippers"). Never truncate to fewer than 24 characters. Use `no_wrap=False` so long names wrap within the cell rather than being cut off.
+- **Outcome** — the specific bet being made (e.g. "Clippers ML", "Hawks -4.5", "O/U 224.5"). Always show market type and line where applicable.
+
+These two columns must appear before any odds/probability/EV columns. No table may omit either field — they are the primary identifiers that let the user know exactly what they are looking at before reading any numbers.
