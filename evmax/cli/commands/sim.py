@@ -79,10 +79,36 @@ def sim_resolve(
         "--yes-price",
         help="Final YES price for resolution (0.0 or 1.0).",
     ),
+    game_date: Optional[str] = typer.Option(
+        None,
+        "--date",
+        "-d",
+        help="Resolve bets for games on this date via ESPN scores (YYYY-MM-DD). "
+             "Defaults to yesterday when --date is passed without a value.",
+    ),
 ) -> None:
-    """Resolve open simulated bets. Without args, auto-fetches results from Kalshi."""
+    """Resolve open simulated bets.
+
+    \b
+    Usage patterns:
+      evmax sim resolve --date              # ESPN scores for yesterday (recommended)
+      evmax sim resolve --date 2026-03-21   # ESPN scores for a specific date
+      evmax sim resolve                     # Kalshi market price check (fallback)
+      evmax sim resolve --market <id> --yes-price 1.0  # Manual resolution
+    """
     if market_id and yes_price is not None:
         asyncio.run(_resolve_market(market_id, yes_price))
+    elif game_date is not None:
+        from datetime import date, timedelta
+        if game_date == "":
+            target = date.today() - timedelta(days=1)
+        else:
+            try:
+                target = date.fromisoformat(game_date)
+            except ValueError:
+                console.print(f"[red]Invalid date: {game_date!r} — use YYYY-MM-DD[/red]")
+                raise typer.Exit(1)
+        asyncio.run(_espn_resolve(target))
     else:
         asyncio.run(_auto_resolve())
 
@@ -210,6 +236,52 @@ def montecarlo(
                 f"[{mid_style}]{bar:<32}[/{mid_style}]  "
                 f"[dim]${hi:>8,.0f}[/dim]"
             )
+
+
+async def _espn_resolve(target_date) -> None:
+    """Resolve open bets using ESPN final scores for target_date."""
+    from datetime import timedelta
+    console.print(f"[cyan]Resolving bets via ESPN scores for {target_date}...[/cyan]")
+
+    resolver = BetResolver()
+    result = await resolver.resolve_from_espn_date(target_date)
+
+    resolved = result["resolved"]
+    unmatched = result["unmatched"]
+    skipped = result["skipped"]
+
+    if resolved == 0 and unmatched == 0 and skipped == 0:
+        console.print("[yellow]No open bets for this date.[/yellow]")
+        return
+
+    console.print(
+        f"  [green]Resolved:[/green] {resolved}  "
+        f"[yellow]Unmatched:[/yellow] {unmatched}  "
+        f"[dim]Skipped (no ESPN coverage):[/dim] {skipped}"
+    )
+
+    unmatched_ids = result.get("unmatched_ids", [])
+    if unmatched_ids:
+        console.print(f"\n  [yellow]Unmatched events ({len(unmatched_ids)}):[/yellow]")
+        for eid in unmatched_ids[:20]:
+            console.print(f"    [dim]{eid}[/dim]")
+        if len(unmatched_ids) > 20:
+            console.print(f"    [dim]... and {len(unmatched_ids) - 20} more[/dim]")
+
+    if resolved > 0:
+        # Update bankroll snapshot after resolution
+        from evmax.simulation.engine import SimulationEngine
+        engine = SimulationEngine()
+        async with AsyncSessionLocal() as session:
+            await engine._save_snapshot(session)
+            await session.commit()
+        console.print(f"\n  [dim]Bankroll snapshot updated.[/dim]")
+
+    if unmatched > 0:
+        console.print(
+            f"\n  [dim]Tip: unmatched bets may resolve tomorrow once Kalshi settles."
+            f" Run [bold]evmax sim resolve[/bold] (no --date) to check Kalshi prices.[/dim]"
+        )
 
 
 async def _auto_resolve() -> None:

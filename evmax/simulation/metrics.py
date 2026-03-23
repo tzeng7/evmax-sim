@@ -16,6 +16,7 @@ class PerformanceMetrics:
     won_bets: int
     lost_bets: int
     open_bets: int
+    void_bets: int
     win_rate: float  # 0.0–1.0
 
     total_wagered_usd: float
@@ -29,6 +30,10 @@ class PerformanceMetrics:
     avg_edge_pct: Optional[float]
     best_win_usd: float
     worst_loss_usd: float
+
+    # Model calibration (requires true_prob from ev_bets join)
+    avg_true_prob: Optional[float] = None   # avg predicted win prob at placement
+    calibration_error: Optional[float] = None  # |avg_true_prob - actual_win_rate|
 
 
 def calculate_metrics(
@@ -49,6 +54,7 @@ def calculate_metrics(
     won = [b for b in settled if b.status == BetStatus.won]
     lost = [b for b in settled if b.status == BetStatus.lost]
     open_bets = [b for b in bets if b.status == BetStatus.open]
+    void_bets = [b for b in bets if b.status == BetStatus.void]
 
     total_wagered = sum(b.stake_usd for b in settled)
     total_pnl = sum(b.pnl_usd for b in settled)
@@ -72,6 +78,7 @@ def calculate_metrics(
         won_bets=len(won),
         lost_bets=len(lost),
         open_bets=len(open_bets),
+        void_bets=len(void_bets),
         win_rate=win_rate,
         total_wagered_usd=total_wagered,
         total_pnl_usd=total_pnl,

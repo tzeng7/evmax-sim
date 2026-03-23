@@ -202,7 +202,7 @@ class TestToFuzz:
         ("St. Louis Blues",    "st louis blues"),
         ("San-Antonio Spurs",  "san antonio spurs"),
         ("real_madrid",        "real madrid"),
-        ("Atlético de Madrid", "atlético de madrid"),  # accent preserved by _to_fuzz
+        ("Atlético de Madrid", "atletico de madrid"),  # accent stripped by unicode normalisation
     ])
     def test_normalization(self, name: str, expected: str):
         assert _to_fuzz(name) == expected

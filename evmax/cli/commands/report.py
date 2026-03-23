@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 from typing import Optional
 
 import typer
 from rich.console import Console
 from sqlalchemy import select
+
+from sqlalchemy import func
 
 from evmax.cli.display import console, metrics_panel, ev_table
 from evmax.db import AsyncSessionLocal
@@ -28,10 +31,20 @@ def report(
         help="Filter report by sector.",
     ),
     last_n: int = typer.Option(
-        50,
+        0,
         "--last-n",
         "-n",
-        help="Number of most recent bets to include.",
+        help="Number of most recent bets to include (0 = all).",
+    ),
+    since: Optional[str] = typer.Option(
+        None,
+        "--since",
+        help="Only include bets placed on or after this date (YYYY-MM-DD).",
+    ),
+    until: Optional[str] = typer.Option(
+        None,
+        "--until",
+        help="Only include bets placed on or before this date (YYYY-MM-DD).",
     ),
     bankroll: bool = typer.Option(
         False,
@@ -43,16 +56,41 @@ def report(
     if bankroll:
         asyncio.run(_show_bankroll())
     else:
-        asyncio.run(_show_report(sector, last_n))
+        asyncio.run(_show_report(sector, last_n, since, until))
 
 
-async def _show_report(sector_filter: Optional[str], last_n: int) -> None:
+async def _show_report(
+    sector_filter: Optional[str],
+    last_n: int,
+    since: Optional[str] = None,
+    until: Optional[str] = None,
+) -> None:
+    from datetime import date, timedelta
+    from sqlalchemy import and_
+
     settings = get_settings()
 
+    # Parse date filters
+    since_dt = until_dt = None
+    try:
+        if since:
+            since_dt = datetime.fromisoformat(since).replace(hour=0, minute=0, second=0)
+        if until:
+            until_dt = datetime.fromisoformat(until).replace(hour=23, minute=59, second=59)
+    except ValueError as e:
+        console.print(f"[red]Invalid date format: {e}. Use YYYY-MM-DD.[/red]")
+        return
+
     async with AsyncSessionLocal() as session:
-        query = select(SimulatedBetORM).order_by(SimulatedBetORM.id.desc()).limit(last_n)
+        query = select(SimulatedBetORM).order_by(SimulatedBetORM.id.desc())
+        if last_n > 0:
+            query = query.limit(last_n)
         if sector_filter:
             query = query.where(SimulatedBetORM.sector == sector_filter.lower())
+        if since_dt:
+            query = query.where(SimulatedBetORM.placed_at >= since_dt)
+        if until_dt:
+            query = query.where(SimulatedBetORM.placed_at <= until_dt)
 
         result = await session.execute(query)
         bet_rows = result.scalars().all()
@@ -74,20 +112,54 @@ async def _show_report(sector_filter: Optional[str], last_n: int) -> None:
         return
 
     metrics = calculate_metrics(bets, initial_bankroll=settings.initial_bankroll)
+
+    # Calibration: join settled bets with their ev_bet to get true_prob at placement
+    ev_bet_ids = [b.ev_bet_id for b in bets if b.status.value in ("won", "lost")]
+    if ev_bet_ids:
+        async with AsyncSessionLocal() as session:
+            cal_result = await session.execute(
+                select(EVBetORM.true_prob).where(EVBetORM.id.in_(ev_bet_ids))
+            )
+            true_probs = [row[0] for row in cal_result.all()]
+        if true_probs:
+            avg_true_prob = sum(true_probs) / len(true_probs)
+            metrics.avg_true_prob = avg_true_prob
+            metrics.calibration_error = abs(avg_true_prob - metrics.win_rate)
+
     console.print(metrics_panel(metrics, bankroll=current_bankroll))
 
-    # Show recent EV bets (opportunities that were found)
+    # Show EV opportunities — one row per unique market (latest scan only)
     async with AsyncSessionLocal() as session:
-        ev_query = select(EVBetORM).order_by(EVBetORM.id.desc()).limit(20)
+        # Subquery: most recent id per (market_id, outcome) = one row per unique contract
+        dedup_subq = (
+            select(func.max(EVBetORM.id))
+            .group_by(EVBetORM.market_id, EVBetORM.outcome)
+        )
         if sector_filter:
-            ev_query = ev_query.where(EVBetORM.sector == sector_filter.lower())
+            dedup_subq = dedup_subq.where(EVBetORM.sector == sector_filter.lower())
+        if since_dt:
+            dedup_subq = dedup_subq.where(EVBetORM.scanned_at >= since_dt)
+        if until_dt:
+            dedup_subq = dedup_subq.where(EVBetORM.scanned_at <= until_dt)
+
+        ev_query = (
+            select(EVBetORM)
+            .where(EVBetORM.id.in_(dedup_subq))
+            .order_by(EVBetORM.ev.desc())
+        )
+        if last_n > 0:
+            ev_query = ev_query.limit(last_n)
+
         ev_result = await session.execute(ev_query)
         ev_rows = ev_result.scalars().all()
 
     if ev_rows:
-        ev_bets = [EVBet.model_validate(r.__dict__) for r in reversed(ev_rows)]
+        ev_bets = [EVBet.model_validate(r.__dict__) for r in ev_rows]
+        title = f"EV Opportunities — {len(ev_bets)} unique markets"
+        if last_n > 0:
+            title = f"EV Opportunities — top {last_n} by EV"
         console.print()
-        console.print(ev_table(ev_bets, title="Recent EV Opportunities (last 20)"))
+        console.print(ev_table(ev_bets, title=title, dedup=False))
 
 
 async def _show_bankroll() -> None:

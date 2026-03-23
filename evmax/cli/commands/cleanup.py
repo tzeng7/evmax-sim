@@ -79,7 +79,7 @@ def show(
                     AND p.scan_date = latest.latest_scan
             LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
             WHERE {where}
-            ORDER BY p.ev_pct DESC
+            ORDER BY p.event_date DESC, p.ev_pct DESC
             LIMIT 200""",
         params,
     ).fetchall()
@@ -192,11 +192,12 @@ def show(
         )
 
     console.print(table)
+    current_bankroll = bankroll + total_pnl
     console.print(
         f"  [{pnl_color}]Net P&L: {pnl_sign}${total_pnl:.2f}[/{pnl_color}]"
         f"  |  Staked: ${total_staked:.2f}"
         f"  |  ROI: [{pnl_color}]{pnl_sign}{(total_pnl / total_staked * 100) if total_staked else 0:.1f}%[/{pnl_color}]"
-        f"  (bankroll ${bankroll:.0f})\n"
+        f"  |  Bankroll: ${bankroll:.0f} → [bold {pnl_color}]${current_bankroll:.2f}[/bold {pnl_color}]\n"
     )
 
 
@@ -532,6 +533,71 @@ def adjust(
     console.print(
         "  [dim]Run [bold]evmax agents scan[/bold] — it will pick up the new weight automatically.[/dim]"
     )
+
+
+@app.command("dedup-ev")
+def dedup_ev(
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be deleted without making changes."
+    ),
+) -> None:
+    """Remove duplicate EV scan records, keeping only the latest scan per market.
+
+    Each time the scanner runs it stores a new ev_bets row for every +EV market found.
+    This command keeps only the most recent scan per (market_id, outcome) and deletes
+    the rest, so evmax report shows clean per-market data without scan-cycle duplicates.
+    """
+    import asyncio
+    from sqlalchemy import text
+    from evmax.db import AsyncSessionLocal
+
+    async def _run() -> tuple[int, int]:
+        async with AsyncSessionLocal() as session:
+            # Count total rows
+            total_result = await session.execute(text("SELECT COUNT(*) FROM ev_bets"))
+            total = total_result.scalar()
+
+            # Count unique (market_id, outcome) pairs
+            unique_result = await session.execute(
+                text("SELECT COUNT(*) FROM (SELECT DISTINCT market_id, outcome FROM ev_bets)")
+            )
+            unique = unique_result.scalar()
+
+            duplicates = total - unique
+
+            if not dry_run and duplicates > 0:
+                # Delete all rows except the highest id per (market_id, outcome)
+                await session.execute(text("""
+                    DELETE FROM ev_bets
+                    WHERE id NOT IN (
+                        SELECT MAX(id)
+                        FROM ev_bets
+                        GROUP BY market_id, outcome
+                    )
+                """))
+                await session.commit()
+
+        return total, unique
+
+    total, unique = asyncio.run(_run())
+    duplicates = total - unique
+
+    if duplicates == 0:
+        console.print("[green]No duplicate EV scan records found.[/green]")
+        console.print(f"  {total} rows, all unique (market_id, outcome) pairs.")
+        return
+
+    if dry_run:
+        console.print(
+            f"[yellow][DRY RUN][/yellow] Would delete [bold]{duplicates}[/bold] duplicate scan records "
+            f"({total} total → {unique} unique markets)."
+        )
+        console.print("  Remove [bold]--dry-run[/bold] to apply.")
+    else:
+        console.print(
+            f"[green]Deleted {duplicates} duplicate EV scan records.[/green]  "
+            f"{total} rows → {unique} unique markets remaining."
+        )
 
 
 @app.command("train")

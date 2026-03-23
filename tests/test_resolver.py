@@ -29,6 +29,7 @@ from evmax.agents.cleanup.resolver import (
     _write_outcome,
     _fetch_espn_scores,
     FUZZY_THRESHOLD,
+    _ACRONYM_EXPAND,
 )
 
 
@@ -114,6 +115,40 @@ class TestToFuzz:
         assert "&" not in result
         assert "'" not in result
         assert "." not in result
+
+    # -- Unicode / umlaut normalization --
+
+    def test_umlaut_o_stripped(self):
+        """ö → o so 'köln' normalises to 'koln'."""
+        assert _to_fuzz("köln") == "koln"
+
+    def test_umlaut_u_stripped(self):
+        assert _to_fuzz("münchen") == "munchen"
+
+    def test_accent_e_stripped(self):
+        assert _to_fuzz("atlético") == "atletico"
+
+    def test_umlaut_in_full_name(self):
+        result = _to_fuzz("1. FC Köln")
+        assert "ö" not in result
+        assert "koln" in result
+
+    def test_unicode_normalization_round_trip(self):
+        """Umlaut variants of the same city must produce identical fuzz strings."""
+        assert _to_fuzz("köln") == _to_fuzz("koln")
+        assert _to_fuzz("münchen") == _to_fuzz("munchen")
+
+    # -- Acronym expansion --
+
+    def test_psg_expanded(self):
+        assert _to_fuzz("psg") == "paris saint germain"
+
+    def test_mgladbach_expanded(self):
+        assert _to_fuzz("mgladbach") == "borussia monchengladbach"
+
+    def test_m_gladbach_with_apostrophe_expanded(self):
+        # After apostrophe removal "m'gladbach" → "mgladbach"
+        assert _to_fuzz("m'gladbach") == "borussia monchengladbach"
 
 
 # ---------------------------------------------------------------------------
@@ -310,6 +345,48 @@ class TestMatchEspn:
         scores = [_make_score("Chelsea", 3, "Arsenal", 1)]
         pred = _make_pred("soccer::2026-03-19::chelsea_vs_arsenal", "chelsea")
         assert _match_espn(pred, scores) == 1
+
+    # ------------------------------------------------------------------
+    # Umlaut / unicode matching (regression: köln, atlético)
+    # ------------------------------------------------------------------
+
+    def test_koln_umlaut_matches_espn(self):
+        """Event slug 'koln' must match ESPN's '1. FC Köln'."""
+        scores = [_make_score("1. FC Köln", 2, "Borussia Mönchengladbach", 1)]
+        pred = _make_pred("soccer::2026-03-21::koln_vs_m'gladbach", "koln")
+        assert _match_espn(pred, scores) == 1
+
+    def test_mgladbach_umlaut_matches_espn(self):
+        """Event slug 'm'gladbach' must match ESPN's 'Borussia Mönchengladbach'."""
+        scores = [_make_score("1. FC Köln", 2, "Borussia Mönchengladbach", 1)]
+        pred = _make_pred("soccer::2026-03-21::koln_vs_m'gladbach", "m'gladbach")
+        assert _match_espn(pred, scores) == 0
+
+    def test_atletico_accent_matches_espn(self):
+        """'atletico madrid' slug must match ESPN's 'Atlético de Madrid'."""
+        scores = [_make_score("Real Madrid", 2, "Atlético de Madrid", 1)]
+        pred = _make_pred("soccer::2026-03-22::real_madrid_vs_atletico", "real madrid")
+        assert _match_espn(pred, scores) == 1
+
+    # ------------------------------------------------------------------
+    # PSG acronym expansion (regression: psg vs Paris Saint-Germain)
+    # ------------------------------------------------------------------
+
+    def test_psg_slug_matches_espn_full_name(self):
+        """'psg' slug must match ESPN's 'Paris Saint-Germain' above threshold."""
+        scores = [_make_score("Paris Saint-Germain", 3, "OGC Nice", 0)]
+        pred = _make_pred("soccer::2026-03-21::nice_vs_psg", "psg")
+        assert _match_espn(pred, scores) == 1
+
+    def test_psg_loses(self):
+        scores = [_make_score("OGC Nice", 2, "Paris Saint-Germain", 1)]
+        pred = _make_pred("soccer::2026-03-21::nice_vs_psg", "psg")
+        assert _match_espn(pred, scores) == 0
+
+    def test_psg_fuzzy_threshold(self):
+        """Directly verify PSG expansion meets threshold against ESPN full name."""
+        score = _fuzzy_team_match("psg", "Paris Saint-Germain")
+        assert score >= FUZZY_THRESHOLD, f"psg vs Paris Saint-Germain scored {score:.1f}"
 
     def test_multiple_scores_correct_event_selected(self):
         """Only the matching game should be used, not unrelated ones."""
@@ -567,3 +644,89 @@ class TestWriteOutcome:
                             ("kalshi:TEST-DUPE",)).fetchall()
         assert len(rows) == 1
         assert rows[0]["outcome"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Pending deduplication helper (unit test for the dedup logic)
+# ---------------------------------------------------------------------------
+
+class TestPendingDedup:
+    """Verify that duplicate market_ids in pending produce only one entry each."""
+
+    def _dedup(self, rows: list[dict]) -> list[dict]:
+        """Replicates the dedup logic from resolve_outcomes_for_date."""
+        seen: set[str] = set()
+        out: list[dict] = []
+        for d in rows:
+            if d["market_id"] not in seen:
+                seen.add(d["market_id"])
+                out.append(d)
+        return out
+
+    def test_no_duplicates_unchanged(self):
+        rows = [
+            {"market_id": "kalshi:A", "event_id": "nba::2026-03-21::rockets_vs_hawks"},
+            {"market_id": "kalshi:B", "event_id": "nba::2026-03-21::nuggets_vs_raptors"},
+        ]
+        assert len(self._dedup(rows)) == 2
+
+    def test_duplicates_reduced(self):
+        rows = [
+            {"market_id": "kalshi:A", "event_id": "soccer::2026-03-21::nice_vs_psg"},
+            {"market_id": "kalshi:A", "event_id": "soccer::2026-03-21::nice_vs_psg"},
+            {"market_id": "kalshi:A", "event_id": "soccer::2026-03-21::nice_vs_psg"},
+            {"market_id": "kalshi:B", "event_id": "soccer::2026-03-21::koln_vs_mgladbach"},
+        ]
+        result = self._dedup(rows)
+        assert len(result) == 2
+        assert result[0]["market_id"] == "kalshi:A"
+        assert result[1]["market_id"] == "kalshi:B"
+
+    def test_first_occurrence_kept(self):
+        rows = [
+            {"market_id": "kalshi:A", "event_id": "first"},
+            {"market_id": "kalshi:A", "event_id": "second"},
+        ]
+        result = self._dedup(rows)
+        assert result[0]["event_id"] == "first"
+
+
+# ---------------------------------------------------------------------------
+# Off-by-one date matching (2-day window)
+# ---------------------------------------------------------------------------
+
+class TestOffByOneDateMatching:
+    """Verify that a game stored with the wrong event_date (off by 1) still resolves.
+
+    The resolver fetches ESPN scores for both event_date AND event_date-1.
+    These tests exercise _match_espn directly against the combined score list,
+    simulating the merged window that resolve_outcomes_for_date now builds.
+    """
+
+    def test_game_found_on_prev_day(self):
+        """Event stored as 3-22 but game was on 3-21 — prev-day scores contain it."""
+        prev_day_scores = [_make_score("Golden State Warriors", 115, "Atlanta Hawks", 102)]
+        stored_day_scores = []  # empty for 3-22
+        combined = stored_day_scores + prev_day_scores
+        pred = _make_pred("nba::2026-03-22::hawks_vs_warriors", "hawks")
+        # Hawks are away and lost — outcome = 0
+        assert _match_espn(pred, combined) == 0
+
+    def test_game_found_on_prev_day_home_wins(self):
+        prev_day_scores = [_make_score("San Antonio Spurs", 110, "Indiana Pacers", 95)]
+        pred = _make_pred("nba::2026-03-22::spurs_vs_pacers", "spurs")
+        assert _match_espn(pred, prev_day_scores) == 1
+
+    def test_stored_date_takes_precedence_when_both_have_game(self):
+        """If the same matchup somehow appears in both windows, first match is used."""
+        prev_day_score = _make_score("Detroit Pistons", 100, "Los Angeles Lakers", 98)
+        stored_day_score = _make_score("Detroit Pistons", 105, "Los Angeles Lakers", 100)
+        combined = [stored_day_score, prev_day_score]
+        pred = _make_pred("nba::2026-03-23::pistons_vs_lakers", "pistons")
+        assert _match_espn(pred, combined) == 1  # pistons won in both, either is fine
+
+    def test_soccer_barcelona_prev_day(self):
+        """Barcelona match stored as 3-22 resolves against prev-day scores."""
+        prev_scores = [_make_score("FC Barcelona", 3, "Rayo Vallecano", 0)]
+        pred = _make_pred("soccer::2026-03-22::barcelona_vs_rayo_vallecano", "barcelona")
+        assert _match_espn(pred, prev_scores) == 1

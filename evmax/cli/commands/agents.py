@@ -690,6 +690,55 @@ def pick(
     console.print("[dim]These bets are now tracked in predictions.db. Run [bold]evmax cleanup show[/bold] to see your P&L.[/dim]\n")
 
 
+@app.command("resolve")
+def resolve(
+    target_date: Optional[str] = typer.Option(
+        None, "--date", "-d",
+        help="Date to resolve outcomes for (YYYY-MM-DD). Defaults to yesterday.",
+    ),
+) -> None:
+    """Resolve yesterday's game outcomes via ESPN and update P&L.
+
+    Alias for: evmax cleanup resolve --date YYYY-MM-DD
+
+    \b
+    Example:
+      evmax agents resolve              # resolves yesterday
+      evmax agents resolve --date 2026-03-21
+    """
+    from datetime import date as _date, timedelta
+    from evmax.agents.cleanup.resolver import resolve_outcomes_for_date
+
+    if target_date:
+        try:
+            d = _date.fromisoformat(target_date)
+        except ValueError:
+            console.print(f"[red]Invalid date:[/red] {target_date!r} — use YYYY-MM-DD")
+            raise typer.Exit(1)
+    else:
+        d = _date.today() - timedelta(days=1)
+
+    console.print(f"[cyan]Resolving outcomes for[/cyan] {d.isoformat()} via ESPN...")
+    result = asyncio.run(resolve_outcomes_for_date(d))
+
+    console.print(
+        f"  [green]Resolved:[/green] {result['resolved']}  "
+        f"[yellow]Unmatched:[/yellow] {result['failed']}"
+    )
+    unmatched = result.get("unmatched", [])
+    if unmatched:
+        console.print(f"\n  [yellow]Unmatched ({len(unmatched)}):[/yellow]")
+        for eid in unmatched[:20]:
+            console.print(f"    [dim]{eid}[/dim]")
+        if len(unmatched) > 20:
+            console.print(f"    [dim]... and {len(unmatched) - 20} more[/dim]")
+
+    if result["resolved"] > 0:
+        console.print(
+            f"\n  [dim]Run [bold]evmax cleanup show[/bold] to view updated P&L.[/dim]"
+        )
+
+
 @app.command("seed")
 def seed(
     model: str = typer.Argument(..., help="Model to seed: elo | form | poisson"),

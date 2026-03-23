@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import sqlite3
+import unicodedata
 from datetime import date, timedelta
 from typing import Optional
 
@@ -77,14 +78,68 @@ def _slug_teams(event_id: str) -> tuple[str, str]:
     return "", ""
 
 
+# Short canonical forms OR ESPN display names that don't fuzzy-match our stored slugs.
+# Keys are the normalised form (post-punctuation/unicode strip); values are
+# the expanded form that will score ≥ FUZZY_THRESHOLD in comparison.
+_ACRONYM_EXPAND: dict[str, str] = {
+    # PSG / Bundesliga short forms
+    "psg":                      "paris saint germain",
+    "mgladbach":                "borussia monchengladbach",
+    "m gladbach":               "borussia monchengladbach",
+    "monchengladbach":          "borussia monchengladbach",
+    # ESPN display names that differ significantly from our stored slugs
+    # (ESPN uses English/formal names; we store short slugs from Kalshi tickers)
+    "fc cologne":               "koln",         # ESPN: "FC Cologne" → slug: "koln"
+    "cologne":                  "koln",
+    "stade rennais":            "rennes",       # ESPN: "Stade Rennais" → slug: "rennes"
+    "olympique lyonnais":       "lyon",         # ESPN: "Olympique Lyonnais" → slug: "lyon"
+    "olympique de marseille":   "marseille",
+    "losc lille":               "lille",
+    "rc lens":                  "lens",
+    "stade brestois":           "brest",
+    "ogc nice":                 "nice",
+    "toulouse fc":              "toulouse",
+    "fc nantes":                "nantes",
+    "le havre ac":              "le havre",
+    "aj auxerre":               "auxerre",
+    "montpellier hsc":          "montpellier",
+    "as monaco":                "monaco",
+    # EPL short-form slugs whose ESPN full names score just below threshold
+    "manchester city":          "man city",
+    "manchester united":        "man united",
+    "bayer leverkusen":         "leverkusen",
+    "rb leipzig":               "leipzig",
+    "borussia dortmund":        "dortmund",
+    "sc freiburg":              "freiburg",
+    "eintracht frankfurt":      "frankfurt",
+    "vfb stuttgart":            "stuttgart",
+    "fc augsburg":              "augsburg",
+    "sv werder bremen":         "werder bremen",
+    "tsg hoffenheim":           "hoffenheim",
+    "1 fc union berlin":        "union berlin",
+    "fc st pauli":              "st pauli",
+    "vfl wolfsburg":            "wolfsburg",
+    "vfl bochum":               "bochum",
+}
+
+
 def _to_fuzz(name: str) -> str:
     """Normalise a team name for fuzzy comparison: lowercase, spaces only.
 
-    Strip punctuation (., &, -) that appears in team names like "Texas A&M"
-    or "Saint Mary's" so they don't block token_set_ratio matching.
+    1. Unicode-strip accents/umlauts (köln→koln, atlético→atletico, ö→o).
+    2. Strip punctuation (., &, -, ') that appears in team names like
+       "Texas A&M" or "Saint Mary's".
+    3. Expand known short acronyms (psg, mgladbach) to full club names so
+       they fuzzy-match ESPN's long-form display names above threshold.
     """
-    return (
-        name.lower()
+    # Strip accents / umlauts (NFKD decomposition → keep only ASCII)
+    ascii_name = (
+        unicodedata.normalize("NFKD", name)
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
+    result = (
+        ascii_name.lower()
         .replace("_", " ")
         .replace(".", "")
         .replace("-", " ")
@@ -92,6 +147,7 @@ def _to_fuzz(name: str) -> str:
         .replace("'", "")
         .strip()
     )
+    return _ACRONYM_EXPAND.get(result, result)
 
 
 def _fuzzy_team_match(query: str, candidate: str) -> float:
@@ -242,15 +298,15 @@ def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
             yes_is_team_a: Optional[bool] = True
         elif yes_b_score >= FUZZY_THRESHOLD:
             yes_is_team_a = False
-        elif yes_a_score > yes_b_score and yes_a_score >= 20:
-            # Both below threshold but slug_a is a clearly better match
-            # (e.g. yes_team is an abbreviation like "hp" for "high point").
-            # Once the event-identity gate passes, we trust the relative signal.
+        elif yes_a_score > yes_b_score:
+            # yes_team is an abbreviation (e.g. "hp", "cbu") — both scores below
+            # threshold but slug_a is relatively better. Trust the relative signal
+            # once the event-identity gate passes.
             yes_is_team_a = True
-        elif yes_b_score > yes_a_score and yes_b_score >= 20:
+        elif yes_b_score > yes_a_score:
             yes_is_team_a = False
         else:
-            yes_is_team_a = None  # fall through to direct yes_team match
+            yes_is_team_a = None  # fall through to direct yes_team match (both score 0)
     else:
         slug_a = slug_b = ""
         yes_is_team_a = None
@@ -268,6 +324,12 @@ def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
 
             if not ((a_home and b_away) or (a_away and b_home)):
                 continue  # not our event
+
+            # Soccer draw/tie market — resolve immediately after event gate,
+            # before yes_team side resolution (tie has no "home" side).
+            if yes_raw in ("tie", "draw", "x"):
+                is_draw = score["home_score"] == score["away_score"]
+                return 1 if is_draw else 0
 
             # Resolve yes team side
             if yes_is_team_a is True:
@@ -289,7 +351,9 @@ def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
         if yes_is_home:
             return 1 if score["home_won"] else 0
         else:
-            return 1 if not score["home_won"] else 0
+            # Explicit away win only — draws are not wins for the away side
+            away_won = score["away_score"] > score["home_score"]
+            return 1 if away_won else 0
 
     logger.debug(
         "espn_no_match",
@@ -542,20 +606,33 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
     date_str = target_date.isoformat()
 
     conn = get_connection()
+    today_str = date.today().isoformat()
     pending = conn.execute(
         """SELECT p.market_id, p.event_id, p.sector, p.yes_team,
                   p.event_title, p.event_date, p.sharp_true_prob, p.blended_true_prob
            FROM ev_predictions p
            LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
            WHERE (p.event_date = ? OR p.scan_date = ?)
-             AND o.market_id IS NULL""",
-        (date_str, date_str),
+             AND o.market_id IS NULL
+             AND COALESCE(p.event_date, p.scan_date) <= ?""",
+        (date_str, date_str, today_str),
     ).fetchall()
 
     if not pending:
         logger.info("no_pending_outcomes", date=date_str)
         conn.close()
         return {"resolved": 0, "failed": 0, "unmatched": []}
+
+    # Deduplicate by market_id — the same market may be logged on multiple
+    # scan_dates; resolving duplicates produces duplicate unmatched IDs.
+    seen_market_ids: set[str] = set()
+    deduped: list[dict] = []
+    for row in pending:
+        d = dict(row)
+        if d["market_id"] not in seen_market_ids:
+            seen_market_ids.add(d["market_id"])
+            deduped.append(d)
+    pending = deduped
 
     logger.info("resolving_outcomes", count=len(pending), date=date_str)
 
@@ -582,10 +659,21 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
             if sector in ESPN_SPORT_MAP:
                 sport, league, extra_params = ESPN_SPORT_MAP[sector]
                 for group_date, rows in date_groups.items():
-                    group_espn_date = group_date.replace("-", "")
-                    scores = await _fetch_espn_scores(client, sport, league, group_espn_date, extra_params)
+                    group_date_obj = date.fromisoformat(group_date)
+                    # 3-day window: event_date-1, event_date, event_date+1
+                    # Guards against off-by-one stored dates in either direction.
+                    espn_dates = [
+                        (group_date_obj - timedelta(days=1)).isoformat().replace("-", ""),
+                        group_date.replace("-", ""),
+                        (group_date_obj + timedelta(days=1)).isoformat().replace("-", ""),
+                    ]
+                    combined_scores: list[dict] = []
+                    for d in espn_dates:
+                        combined_scores.extend(
+                            await _fetch_espn_scores(client, sport, league, d, extra_params)
+                        )
                     for pred in rows:
-                        outcome = _match_espn(pred, scores)
+                        outcome = _match_espn(pred, combined_scores)
                         if outcome is not None:
                             _write_outcome(conn, pred, outcome, "espn")
                             resolved += 1
@@ -595,12 +683,18 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
 
             elif sector == "soccer":
                 for group_date, rows in date_groups.items():
-                    group_espn_date = group_date.replace("-", "")
+                    group_date_obj = date.fromisoformat(group_date)
+                    espn_dates = [
+                        (group_date_obj - timedelta(days=1)).isoformat().replace("-", ""),
+                        group_date.replace("-", ""),
+                        (group_date_obj + timedelta(days=1)).isoformat().replace("-", ""),
+                    ]
                     all_scores: list[dict] = []
                     for espn_league in ESPN_SOCCER_LEAGUES:
-                        all_scores.extend(
-                            await _fetch_espn_scores(client, "soccer", espn_league, group_espn_date)
-                        )
+                        for d in espn_dates:
+                            all_scores.extend(
+                                await _fetch_espn_scores(client, "soccer", espn_league, d)
+                            )
                     for pred in rows:
                         outcome = _match_espn(pred, all_scores)
                         if outcome is not None:
