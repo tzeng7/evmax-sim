@@ -14,6 +14,9 @@ from evmax.cli.commands.report import app as report_app
 from evmax.cli.commands.opportunities import app as opps_app
 from evmax.cli.commands.agents import app as agents_app
 from evmax.cli.commands.cleanup import app as cleanup_app
+from evmax.cli.commands.backtest import app as backtest_app
+from evmax.cli.commands.archive import app as archive_app
+from evmax.cli.commands.update import app as update_app
 
 console = Console()
 
@@ -31,6 +34,9 @@ app.add_typer(report_app, name="report", help="View performance reports.")
 app.add_typer(opps_app, name="opps", help="View pre-game + live +EV opportunities and place bets.")
 app.add_typer(agents_app, name="agents", help="Agent pipeline: odds checkers + statistical model agents.")
 app.add_typer(cleanup_app, name="cleanup", help="Log +EV bets, resolve outcomes, compute Brier scores, adjust sharp_weight.")
+app.add_typer(backtest_app, name="backtest", help="Historical model calibration backtest (soccer + tennis).")
+app.add_typer(archive_app, name="archive", help="Manage historical data archive (Pinnacle + Kalshi snapshots).")
+app.add_typer(update_app, name="update", help="Fetch ESPN scores and update Elo/Form/Poisson models.")
 
 
 @app.callback()

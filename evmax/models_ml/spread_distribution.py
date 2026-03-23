@@ -77,12 +77,12 @@ class SpreadDistributionModel:
         if true_prob_a <= 0 or true_prob_a >= 1:
             return None
 
-        # Reject Kalshi lines that are more than 2 sigmas away from Pinnacle's line.
+        # Reject Kalshi lines that are more than 1 sigma away from Pinnacle's line.
         # Beyond this range the normal distribution extrapolation becomes unreliable
-        # and produces absurd probabilities vs mis-priced Kalshi markets.
+        # (tail probabilities are very sensitive to small errors in the inferred mean).
         sigma = _SECTOR_SIGMA.get(sector, _SECTOR_SIGMA["default"])
         line_distance = abs(abs(target_line) - abs(pinnacle_line))
-        if line_distance > 2.0 * sigma:
+        if line_distance > 1.0 * sigma:
             logger.debug(
                 "spread_model_line_too_far",
                 event_id=sharp_odds.event_id,

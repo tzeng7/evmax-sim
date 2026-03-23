@@ -13,6 +13,7 @@ Final K is hard-capped at max_kelly_fraction (default 5% of bankroll).
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 
@@ -66,6 +67,16 @@ def compute_kelly(
     Returns:
         KellyResult with full and adjusted Kelly fractions.
     """
+    # Guard against NaN/Inf from upstream model drift or bad data
+    if not math.isfinite(true_prob) or not math.isfinite(payout_decimal):
+        return KellyResult(
+            kelly_full=0.0,
+            kelly_fraction=0.0,
+            confidence_discount=0.0,
+            liquidity_discount=0.0,
+            suggested_units=0.0,
+        )
+
     k_full = kelly_full(true_prob, payout_decimal)
 
     if k_full <= 0:

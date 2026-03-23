@@ -61,14 +61,29 @@ class SharpOdds(BaseModel):
     # Spread-specific: line from outcome_a's perspective (e.g. -7.5 means team_a -7.5)
     spread_line: Optional[float] = None
 
+    # Totals-specific: devigged over/under probabilities and the posted line
+    total_line: Optional[float] = None
+    true_prob_over: Optional[float] = None
+    true_prob_under: Optional[float] = None
+
+    # Player prop fields (reuses true_prob_over/true_prob_under for over/under probs)
+    prop_player_name: Optional[str] = None  # normalized player name
+    prop_stat_type: Optional[str] = None    # "points", "rebounds", "assists", etc.
+
     event_date: Optional[datetime] = None
     fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @model_validator(mode="after")
     def probs_sum_to_one(self) -> "SharpOdds":
+        # Moneyline / spread validation
         total = self.true_prob_a + self.true_prob_b + (self.true_prob_draw or 0.0)
         if self.true_prob_a > 0 and abs(total - 1.0) > 0.01:
             raise ValueError(f"True probs must sum to ~1.0, got {total}")
+        # Totals validation
+        if self.true_prob_over is not None and self.true_prob_under is not None:
+            ot = self.true_prob_over + self.true_prob_under
+            if abs(ot - 1.0) > 0.01:
+                raise ValueError(f"true_prob_over + true_prob_under must sum to ~1.0, got {ot}")
         return self
 
     def to_orm(self) -> SharpOddsORM:

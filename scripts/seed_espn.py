@@ -1,12 +1,12 @@
 """Seed Elo, Form, and Poisson models from ESPN public API.
 
-Covers: NBA, NFL, NCAAB, Soccer (EPL, La Liga, Bundesliga, Serie A, Ligue 1, UCL).
+Covers: NBA, NFL, NCAAB, MLB Baseball, Soccer (EPL, La Liga, Bundesliga, Serie A, Ligue 1, UCL).
 No API key required — ESPN's public scoreboard endpoint.
 
 Usage:
-    python scripts/seed_espn.py                    # all sectors
-    python scripts/seed_espn.py --sectors nba,nfl  # specific sectors
-    python scripts/seed_espn.py --sectors soccer   # soccer only
+    python scripts/seed_espn.py                         # all sectors
+    python scripts/seed_espn.py --sectors nba,nfl       # specific sectors
+    python scripts/seed_espn.py --sectors baseball      # baseball only
 """
 
 from __future__ import annotations
@@ -63,6 +63,21 @@ SECTOR_CONFIGS: dict[str, dict] = {
         "sport": "basketball",
         "league": "mens-college-basketball",
         "months": _months("2025-11", "2026-03"),
+    },
+    "baseball": {
+        "sport": "baseball",
+        "league": "mlb",
+        "months": _months("2025-03", "2025-10"),  # 2025 MLB season
+    },
+    "ufc": {
+        "sport": "mma",
+        "league": "ufc",
+        "months": _months("2025-01", "2026-03"),
+    },
+    "f1": {
+        "sport": "racing",
+        "league": "f1",
+        "months": _months("2025-03", "2026-03"),  # 2025 F1 season
     },
     "soccer": {
         "leagues": {
@@ -302,9 +317,177 @@ async def seed_soccer(cfg: dict, client: httpx.AsyncClient) -> None:
         print(f"  Top Elo: " + " | ".join(f"{t}: {r:.0f}" for t, r in top))
 
 
-async def main(sectors: list[str]) -> None:
+async def seed_ufc(cfg: dict, client: httpx.AsyncClient) -> None:
+    """
+    Seed UFC fighter Elo + Form from fight results.
+
+    ESPN MMA uses an event-based API — each event contains individual bouts.
+    We fetch the events list, then each event's competitors (winner/loser).
+    """
+    sector = "ufc"
+    months = cfg["months"]
+
+    print(f"\n{'='*60}")
+    print(f"  Seeding UFC from ESPN ({len(months)} months)")
+    print(f"{'='*60}")
+
+    elo = EloModelAgent()
+    form = FormModelAgent()
+    norm = NameNormalizer(sector)
+    total_bouts = 0
+
+    for month in months:
+        # ESPN MMA scoreboard with calendar=true returns events by month
+        url = f"{ESPN_BASE}/mma/ufc/scoreboard"
+        try:
+            r = await client.get(url, params={"dates": month, "limit": 100, "calendar": "true"})
+            r.raise_for_status()
+            data = r.json()
+        except Exception as e:
+            print(f"    WARN: ESPN UFC fetch failed ({month}): {e}")
+            continue
+
+        events = data.get("events", [])
+        bouts_this_month = 0
+
+        for event in events:
+            comps = event.get("competitions", [])
+            date_str = event.get("date", "")[:10]
+
+            for comp in comps:
+                if not comp.get("status", {}).get("type", {}).get("completed"):
+                    continue
+                competitors = comp.get("competitors", [])
+                if len(competitors) < 2:
+                    continue
+
+                winner = next((c for c in competitors if c.get("winner")), None)
+                loser  = next((c for c in competitors if not c.get("winner")), None)
+                if not winner or not loser:
+                    continue
+
+                w_name = norm.normalize(
+                    winner.get("athlete", {}).get("displayName") or winner.get("displayName", "")
+                )
+                l_name = norm.normalize(
+                    loser.get("athlete", {}).get("displayName") or loser.get("displayName", "")
+                )
+                if not w_name or not l_name:
+                    continue
+
+                elo.update(w_name, l_name, 1.0, 0.0, sector, date_str)
+                form.update(w_name, l_name, 1.0, 0.0, sector, date_str)
+                total_bouts += 1
+                bouts_this_month += 1
+
+        if bouts_this_month:
+            print(f"  {month}: {bouts_this_month} bouts")
+
+    elo.save_state()
+    form.save_state()
+
+    ratings = elo.all_ratings(sector)
+    if ratings:
+        top = sorted(ratings.items(), key=lambda x: x[1], reverse=True)[:10]
+        print(f"  Top Elo: " + " | ".join(f"{t}: {r:.0f}" for t, r in top))
+    print(f"  Total bouts seeded: {total_bouts}")
+
+
+async def seed_f1(cfg: dict, client: httpx.AsyncClient) -> None:
+    """
+    Seed F1 driver Elo + Form from race results.
+
+    F1 races return finishing positions for each driver. We convert each race
+    into pairwise head-to-head results: driver who finished higher 'beats'
+    adjacent finisher. This builds meaningful Elo ratings from race positions.
+    """
+    sport, league = cfg["sport"], cfg["league"]
+    months = cfg["months"]
+    sector = "f1"
+
+    print(f"\n{'='*60}")
+    print(f"  Seeding F1 from ESPN ({len(months)} months)")
+    print(f"{'='*60}")
+
+    elo = EloModelAgent()
+    form = FormModelAgent()
+    norm = NameNormalizer(sector)
+    total_pairs = 0
+
+    for month in months:
+        url = f"{ESPN_BASE}/{sport}/{league}/scoreboard"
+        try:
+            r = await client.get(url, params={"dates": month, "limit": 100})
+            r.raise_for_status()
+            data = r.json()
+        except Exception as e:
+            print(f"    WARN: ESPN F1 fetch failed ({month}): {e}")
+            continue
+
+        events = data.get("events", [])
+        races_this_month = 0
+
+        for event in events:
+            comp = (event.get("competitions") or [{}])[0]
+            if not comp.get("status", {}).get("type", {}).get("completed"):
+                continue
+
+            date_str = event.get("date", "")[:10]
+            competitors = comp.get("competitors", [])
+
+            # Build sorted finishing order
+            finishers: list[tuple[int, str]] = []
+            for c in competitors:
+                pos_str = c.get("order") or c.get("rank") or c.get("score")
+                try:
+                    pos = int(pos_str)
+                except (TypeError, ValueError):
+                    continue
+                name_raw = c.get("athlete", {}).get("displayName") or c.get("displayName", "")
+                name = norm.normalize(name_raw)
+                if name:
+                    finishers.append((pos, name))
+
+            finishers.sort(key=lambda x: x[0])
+
+            # Pairwise: each driver beats all drivers who finished behind them
+            # To keep updates tractable, only use adjacent pairs (1v2, 2v3, 3v4, ...)
+            for i in range(len(finishers) - 1):
+                pos_a, driver_a = finishers[i]
+                pos_b, driver_b = finishers[i + 1]
+                elo.update(driver_a, driver_b, 1.0, 0.0, sector, date_str)
+                form.update(driver_a, driver_b, 1.0, 0.0, sector, date_str)
+                total_pairs += 1
+
+            races_this_month += 1
+
+        if races_this_month:
+            print(f"  {month}: {races_this_month} race(s), {total_pairs} total pairwise updates so far")
+
+    elo.save_state()
+    form.save_state()
+
+    ratings = elo.all_ratings(sector)
+    if ratings:
+        top = sorted(ratings.items(), key=lambda x: x[1], reverse=True)[:10]
+        print(f"  Top Elo: " + " | ".join(f"{t}: {r:.0f}" for t, r in top))
+    print(f"  Total pairwise updates: {total_pairs}")
+
+
+async def main(sectors: list[str], since: str | None = None) -> None:
     print(f"ESPN model seeder — sectors: {', '.join(sectors)}")
     print(f"Date: {date.today()}")
+
+    # Override hardcoded month ranges if --since is provided
+    if since:
+        today = date.today()
+        since_months = _months(since[:7], f"{today.year}-{today.month:02d}")
+        for cfg in SECTOR_CONFIGS.values():
+            if "months" in cfg:
+                cfg["months"] = since_months
+            if "leagues" in cfg:
+                # soccer sub-config inherits same months
+                cfg["months"] = since_months
 
     async with httpx.AsyncClient(
         timeout=httpx.Timeout(20.0),
@@ -318,6 +501,10 @@ async def main(sectors: list[str]) -> None:
             cfg = SECTOR_CONFIGS[sector]
             if sector == "soccer":
                 await seed_soccer(cfg, client)
+            elif sector == "f1":
+                await seed_f1(cfg, client)
+            elif sector == "ufc":
+                await seed_ufc(cfg, client)
             else:
                 await seed_standard_sector(sector, cfg, client)
 
@@ -328,9 +515,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed models from ESPN data")
     parser.add_argument(
         "--sectors", "-s",
-        default="nba,nfl,ncaab,soccer",
-        help="Comma-separated sectors to seed (default: nba,nfl,ncaab,soccer)",
+        default="nba,nfl,ncaab,baseball,ufc,f1,soccer",
+        help="Comma-separated sectors to seed (default: nba,nfl,ncaab,baseball,ufc,f1,soccer)",
+    )
+    parser.add_argument(
+        "--since",
+        default=None,
+        help="Seed from this month onward (YYYY-MM-DD or YYYY-MM). Overrides default date ranges.",
     )
     args = parser.parse_args()
     sector_list = [s.strip().lower() for s in args.sectors.split(",") if s.strip()]
-    asyncio.run(main(sector_list))
+    asyncio.run(main(sector_list, since=args.since))

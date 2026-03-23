@@ -103,9 +103,12 @@ class AgentBus:
 
     def subscribe(self, topic: str, handler: Handler) -> None:
         if topic == "*":
-            self._wildcard.append(handler)
+            if handler not in self._wildcard:
+                self._wildcard.append(handler)
         else:
-            self._subscribers[topic].append(handler)
+            existing = self._subscribers[topic]
+            if handler not in existing:
+                existing.append(handler)
 
     async def publish(self, message: AgentMessage) -> None:
         import asyncio

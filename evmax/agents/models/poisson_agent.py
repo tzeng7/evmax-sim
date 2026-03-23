@@ -38,21 +38,23 @@ from evmax.models.odds import SharpOdds
 
 # Default league-average goals per game (home / away)
 LEAGUE_AVG_DEFAULTS: dict[str, dict[str, float]] = {
-    "soccer": {"home": 1.55, "away": 1.15},
-    "nba": {"home": 113.5, "away": 111.0},
-    "nfl": {"home": 23.5, "away": 21.5},
-    "ncaab": {"home": 72.0, "away": 70.0},
+    "soccer":   {"home": 1.55, "away": 1.15},
+    "nba":      {"home": 113.5, "away": 111.0},
+    "nfl":      {"home": 23.5,  "away": 21.5},
+    "ncaab":    {"home": 72.0,  "away": 70.0},
+    "baseball": {"home": 4.65,  "away": 4.37},  # MLB 2024 averages (runs/game)
 }
 
 # Supported sectors (Poisson makes most sense for goal/point-scoring games)
-SUPPORTED_SECTORS = {"soccer", "nba", "nfl", "ncaab"}
+SUPPORTED_SECTORS = {"soccer", "nba", "nfl", "ncaab", "baseball"}
 
 # Maximum score to consider in score matrix
 MAX_SCORE: dict[str, int] = {
-    "soccer": 8,
-    "nba": 25,   # buckets of 5 pts → effectively 0-125 range mapped to 0-25
-    "nfl": 20,
-    "ncaab": 20,
+    "soccer":   8,
+    "nba":      25,   # buckets of 5 pts → effectively 0-125 range mapped to 0-25
+    "nfl":      20,
+    "ncaab":    20,
+    "baseball": 15,   # covers >99% of MLB games
 }
 
 # Dixon-Coles rho correction factor (τ parameter)
@@ -203,7 +205,7 @@ class PoissonModelAgent(ModelAgent):
         if has_home and has_away:
             confidence = 0.65 + 0.15 * min(1.0, (min_games - MIN_GAMES) / 25)
         elif has_home or has_away:
-            confidence = 0.45
+            confidence = 0.40  # one team unseeded — not reliable enough for blend
         else:
             confidence = 0.30   # league-average fallback
 

@@ -24,6 +24,7 @@ class MarketType(str, enum.Enum):
     total = "total"
     map_handicap = "map_handicap"
     series_winner = "series_winner"
+    player_prop = "player_prop"
     other = "other"
 
 
@@ -74,6 +75,10 @@ class PredictionMarket(BaseModel):
     # Which team the YES side represents (normalized alias name).
     # None means default: YES = home/outcome_a side.
     yes_team: Optional[str] = None
+    # Player prop fields (only set when market_type == player_prop)
+    player_name: Optional[str] = None   # normalized player name
+    stat_type: Optional[str] = None     # e.g. "points", "rebounds", "assists"
+    threshold: Optional[float] = None   # e.g. 24.5
     fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @field_validator("yes_price", "no_price")

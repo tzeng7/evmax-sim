@@ -166,7 +166,6 @@ class InjuryReportAgent(Agent):
 
         self.log.info("fetching_injuries", sector=sector, urls=len(urls))
 
-        # Fetch all URLs for this sector concurrently
         results = await asyncio.gather(
             *(self._fetch_injuries(url, sector) for url in urls),
             return_exceptions=True,
@@ -228,15 +227,28 @@ class InjuryReportAgent(Agent):
 
         return reports
 
-    def _parse_player(self, inj: dict) -> Optional[InjuredPlayer]:
+    def _parse_player(self, inj: dict, star_ids: set[str] | None = None) -> Optional[InjuredPlayer]:
         """Parse a single injury entry from ESPN JSON."""
         athlete = inj.get("athlete", {})
         name = athlete.get("displayName", "")
+        # ESPN injuries API doesn't expose id directly — parse from playercard link href
+        athlete_id = ""
+        for link in athlete.get("links", []):
+            href = link.get("href", "")
+            if "/id/" in href:
+                m = re.search(r"/id/(\d+)/", href)
+                if m:
+                    athlete_id = m.group(1)
+                    break
         position_obj = athlete.get("position", {})
         position = position_obj.get("abbreviation", "").upper()
 
-        status_obj = inj.get("status", {})
-        status_name = status_obj.get("name", "Active").strip()
+        # ESPN returns status as either a plain string ("Out") or a dict with "name"
+        status_raw = inj.get("status", "Active")
+        if isinstance(status_raw, str):
+            status_name = status_raw.strip()
+        else:
+            status_name = status_raw.get("name", "Active").strip()
         status_key = status_name.lower()
 
         raw_impact = STATUS_IMPACT.get(status_key, 0.0)
@@ -248,8 +260,8 @@ class InjuryReportAgent(Agent):
         injury_type = details.get("type", "Unknown")
         short_comment = inj.get("shortComment", "")
 
-        # Tier: star players have significantly more impact
-        tier = self._classify_tier(position)
+        # Tier: use ESPN leader IDs if available, otherwise fall back to position
+        tier = self._classify_tier(position, athlete_id=athlete_id, star_ids=star_ids)
         impact = raw_impact * TIER_MULTIPLIER[tier]
 
         return InjuredPlayer(
@@ -263,10 +275,10 @@ class InjuryReportAgent(Agent):
         )
 
     @staticmethod
-    def _classify_tier(position: str) -> str:
-        """Classify player tier based on position."""
-        # All NBA/soccer/NFL starters are at least 'starter' tier
-        # We'd need salary/stats data to identify 'star' — default to starter
+    def _classify_tier(position: str, athlete_id: str = "", star_ids: set[str] | None = None) -> str:
+        """Classify player tier based on ESPN leaders data and position."""
+        if star_ids and athlete_id and athlete_id in star_ids:
+            return "star"
         if position in HIGH_IMPACT_POSITIONS:
             return "starter"
         return "rotation"
@@ -296,9 +308,14 @@ class InjuryReportAgent(Agent):
         true_prob_b: float,
         team_a: str,
         team_b: str,
+        spread_multiplier: float = 1.0,
     ) -> tuple[float, float, str]:
         """
         Apply injury probability adjustments to a matched pair.
+
+        spread_multiplier: amplify injury impact for spread markets (default 1.0 for ML,
+          use 2.0 for spread — missing a star scorer shifts the margin far more than
+          just the win probability).
 
         Returns (adjusted_prob_a, adjusted_prob_b, notes_str).
         """
@@ -309,14 +326,19 @@ class InjuryReportAgent(Agent):
         team_a_norm = team_a.lower().strip()
         team_b_norm = team_b.lower().strip()
 
+        # Cap per-team effective adjustment: max ±10% swing (before multiplier allows up to ±MAX_ADJ)
+        _adj_cap = 0.10
+
         # Find matching reports (fuzzy — check if report team is substring of team_a or vice versa)
         for team_key, report in reports.items():
             if team_a_norm in team_key or team_key in team_a_norm:
-                adj_a = report.probability_adjustment
+                raw = report.probability_adjustment * spread_multiplier
+                adj_a = max(-_adj_cap, raw)  # probability_adjustment is negative
                 if report.players:
                     notes.append(f"{team_a}:{adj_a:+.1%}({len(report.players)} inj)")
             elif team_b_norm in team_key or team_key in team_b_norm:
-                adj_b = report.probability_adjustment
+                raw = report.probability_adjustment * spread_multiplier
+                adj_b = max(-_adj_cap, raw)
                 if report.players:
                     notes.append(f"{team_b}:{adj_b:+.1%}({len(report.players)} inj)")
 

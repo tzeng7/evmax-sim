@@ -32,6 +32,12 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     volume_usd          REAL,
     model_sources       TEXT,
     sharp_weight_used   REAL,                       -- sharp_weight at scan time
+    line                REAL,                       -- spread/total line (e.g. -8.5)
+    voided              INTEGER NOT NULL DEFAULT 0, -- 1=voided (game cancelled/untraceable)
+    placed              INTEGER NOT NULL DEFAULT 0, -- 1=user manually placed this bet
+    placed_at           TEXT,                       -- ISO timestamp when bet was placed
+    placed_price        REAL,                       -- Kalshi ask at time of placement
+    placed_stake        REAL,                       -- dollar amount staked
     UNIQUE(market_id, scan_date)
 );
 
@@ -45,6 +51,7 @@ CREATE TABLE IF NOT EXISTS ev_outcomes (
     outcome             INTEGER,                    -- 1=YES won, 0=NO won, NULL=pending
     sharp_true_prob     REAL,
     blended_true_prob   REAL,
+    pinnacle_close_prob REAL,                       -- Pinnacle true prob captured at close
     resolved_at         TEXT,
     result_source       TEXT,                       -- "espn", "bo3gg", "manual"
     UNIQUE(market_id)
@@ -58,5 +65,18 @@ def get_connection() -> sqlite3.Connection:
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA)
-    conn.commit()
+    # Migrate: add voided column to existing databases that predate it
+    for migration in [
+        "ALTER TABLE ev_predictions ADD COLUMN voided INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE ev_outcomes ADD COLUMN pinnacle_close_prob REAL",
+        "ALTER TABLE ev_predictions ADD COLUMN placed INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE ev_predictions ADD COLUMN placed_at TEXT",
+        "ALTER TABLE ev_predictions ADD COLUMN placed_price REAL",
+        "ALTER TABLE ev_predictions ADD COLUMN placed_stake REAL",
+    ]:
+        try:
+            conn.execute(migration)
+            conn.commit()
+        except Exception:
+            pass  # column already exists
     return conn

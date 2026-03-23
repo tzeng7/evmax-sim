@@ -8,11 +8,14 @@ Supports 2-way markets (most sports) and 3-way markets (soccer with draw).
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Optional
 
 import numpy as np
 from scipy.optimize import brentq
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -59,6 +62,11 @@ def devig_power_method(
         k = brentq(_objective, k_bracket[0], k_bracket[1], args=(raw_probs,))
     except ValueError:
         # Fallback: proportional devig (multiplicative)
+        _log.warning(
+            "devig_power_method_fallback: brentq failed for decimals=%s, "
+            "using proportional devig (k=1.0)",
+            decimals,
+        )
         k = 1.0
         true_probs = [p / overround for p in raw_probs]
         return DevigResult(true_probs=true_probs, margin=margin, k=k)
@@ -102,7 +110,13 @@ def devig_three_way(
 
 
 def american_to_decimal(american: int) -> float:
-    """Convert American odds to decimal."""
+    """Convert American odds to decimal.
+
+    Raises:
+        ValueError: If american == 0 (invalid odds) or would produce <= 1.0.
+    """
+    if american == 0:
+        raise ValueError("American odds cannot be 0")
     if american > 0:
         return 1.0 + american / 100.0
     else:
@@ -110,7 +124,13 @@ def american_to_decimal(american: int) -> float:
 
 
 def decimal_to_american(decimal: float) -> int:
-    """Convert decimal odds to American."""
+    """Convert decimal odds to American.
+
+    Raises:
+        ValueError: If decimal <= 1.0 (no profit possible).
+    """
+    if decimal <= 1.0:
+        raise ValueError(f"Decimal odds must be > 1.0, got {decimal}")
     if decimal >= 2.0:
         return int((decimal - 1) * 100)
     else:

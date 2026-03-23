@@ -1,8 +1,9 @@
 """Application settings loaded from environment / .env file."""
 
 from pathlib import Path
+from typing import Optional
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,13 +38,33 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # EV threshold
-    ev_threshold: float = 0.02  # 2%
+    ev_threshold: float = Field(default=0.02, ge=0.0, le=1.0)  # 2%
 
     # Minimum market volume to place a simulated bet (filters stale/illiquid markets)
-    min_volume_usd: float = 500.0
+    min_volume_usd: float = Field(default=500.0, ge=0.0)
+
+    @field_validator("ev_threshold")
+    @classmethod
+    def ev_threshold_sane(cls, v: float) -> float:
+        if v > 0.5:
+            raise ValueError(
+                f"ev_threshold={v} is > 50% which would filter almost all bets. "
+                "Typical values are 0.02–0.10."
+            )
+        return v
 
     # Matching
     fuzzy_threshold: int = 88  # rapidfuzz score threshold
+
+    # Push notifications (Slack and/or Discord webhooks)
+    slack_webhook_url: Optional[str] = None
+    discord_webhook_url: Optional[str] = None
+    notification_min_ev_pct: float = 5.0  # only notify when EV >= this %
+
+    # Kalshi WebSocket (real-time orderbook prices)
+    kalshi_ws_url: str = "wss://api.elections.kalshi.com/trade-api/ws/v2"
+    kalshi_ws_snapshot_timeout: float = 5.0  # seconds to wait per ticker snapshot
+    kalshi_ws_enabled: bool = True  # kill-switch; set False to force REST-only
 
 
 _settings: Settings | None = None

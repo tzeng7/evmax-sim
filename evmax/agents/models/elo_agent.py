@@ -42,17 +42,23 @@ K_FACTORS: dict[str, float] = {
     "nba": 20.0,
     "ncaab": 20.0,
     "soccer": 30.0,
+    "baseball": 6.0,   # 162-game season → smaller K to avoid overreaction per game
+    "ufc": 32.0,       # fighters have few bouts/year → larger K for faster updates
+    "f1": 16.0,        # ~24 races/season, pairwise head-to-head updates per race
     "lol": 20.0,
     "cs2": 20.0,
 }
 
 # Home Elo advantage in Elo points (added to home team effective rating)
 HOME_ADVANTAGE_ELO: dict[str, float] = {
-    "nfl": 48.0,   # ~3 pts / ~55% win rate
-    "nba": 100.0,  # ~6 pts / ~60% win rate
+    "nfl": 48.0,      # ~3 pts / ~55% win rate
+    "nba": 100.0,     # ~6 pts / ~60% win rate
     "ncaab": 70.0,
     "soccer": 60.0,
-    "lol": 0.0,    # LoL played on neutral servers
+    "baseball": 32.0, # ~54% home win rate historically
+    "ufc": 0.0,       # neutral venue
+    "f1": 0.0,        # different circuit each race
+    "lol": 0.0,
     "cs2": 0.0,
 }
 

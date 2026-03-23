@@ -175,7 +175,7 @@ class EnsembleModelAgent(Agent):
         # --- Step 1: Confidence-weighted average of model predictions ---
         model_contribs: list[tuple[float, float, float, Optional[float]]] = []
         for pred in model_preds.values():
-            if pred.confidence < 0.45:
+            if pred.confidence <= 0.45:
                 continue
             eff_w = pred.weight * pred.confidence
             if eff_w <= 0:

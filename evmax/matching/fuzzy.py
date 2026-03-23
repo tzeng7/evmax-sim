@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 from rapidfuzz import fuzz, process
+
+_log = logging.getLogger(__name__)
 
 DEFAULT_THRESHOLD = 88
 
@@ -80,7 +83,22 @@ def fuzzy_match_event_keys(
     ]
 
     if not filtered:
-        filtered = candidate_keys  # Fallback to all
+        # Try same-sector candidates regardless of date before falling back to all
+        same_sector = [k for k in candidate_keys if k.startswith(f"{query_sector}::")]
+        if same_sector:
+            _log.debug(
+                "fuzzy_date_filter_empty: falling back to %d same-sector candidates for %s",
+                len(same_sector),
+                query_key,
+            )
+            filtered = same_sector
+        else:
+            # No same-sector candidates at all — cross-sector match is always wrong
+            _log.debug(
+                "fuzzy_date_filter_empty: no same-sector candidates for %s — no match",
+                query_key,
+            )
+            return None
 
     best = fuzzy_match(query_teams, [extract_teams(k) for k in filtered], threshold)
     if best is None:
@@ -113,7 +131,7 @@ def _teams_individually_match(query_teams: str, match_teams: str, min_score: int
     m_tokens = [t for t in match_teams.split() if t != "vs"]
 
     if not q_tokens or not m_tokens:
-        return True  # Can't check, allow
+        return False  # Empty tokens — conservative reject to prevent false positives
 
     for qt in q_tokens:
         best = process.extractOne(qt, m_tokens, scorer=fuzz.ratio, score_cutoff=min_score)

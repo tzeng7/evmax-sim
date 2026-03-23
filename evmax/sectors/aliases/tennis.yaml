@@ -1,0 +1,125 @@
+aliases:
+  # Djokovic
+  "novak djokovic": "djokovic"
+  "n. djokovic": "djokovic"
+  "n djokovic": "djokovic"
+
+  # Alcaraz
+  "carlos alcaraz": "alcaraz"
+  "c. alcaraz": "alcaraz"
+  "c alcaraz": "alcaraz"
+
+  # Sinner
+  "jannik sinner": "sinner"
+  "j. sinner": "sinner"
+  "j sinner": "sinner"
+
+  # Zverev
+  "alexander zverev": "zverev"
+  "a. zverev": "zverev"
+  "sascha zverev": "zverev"
+
+  # Medvedev
+  "daniil medvedev": "medvedev"
+  "d. medvedev": "medvedev"
+
+  # Rublev
+  "andrey rublev": "rublev"
+  "a. rublev": "rublev"
+
+  # Fritz
+  "taylor fritz": "fritz"
+  "t. fritz": "fritz"
+
+  # De Minaur
+  "alex de minaur": "de minaur"
+  "a. de minaur": "de minaur"
+
+  # Ruud
+  "casper ruud": "ruud"
+  "c. ruud": "ruud"
+
+  # Hurkacz
+  "hubert hurkacz": "hurkacz"
+  "h. hurkacz": "hurkacz"
+
+  # Tsitsipas
+  "stefanos tsitsipas": "tsitsipas"
+  "s. tsitsipas": "tsitsipas"
+
+  # Draper
+  "jack draper": "draper"
+  "j. draper": "draper"
+
+  # Berrettini
+  "matteo berrettini": "berrettini"
+  "m. berrettini": "berrettini"
+
+  # Musetti
+  "lorenzo musetti": "musetti"
+  "l. musetti": "musetti"
+
+  # Dimitrov
+  "grigor dimitrov": "dimitrov"
+  "g. dimitrov": "dimitrov"
+
+  # Shelton
+  "ben shelton": "shelton"
+  "b. shelton": "shelton"
+
+  # Norrie
+  "cameron norrie": "norrie"
+  "c. norrie": "norrie"
+
+  # Tiafoe
+  "frances tiafoe": "tiafoe"
+  "f. tiafoe": "tiafoe"
+
+  # Khachanov
+  "karen khachanov": "khachanov"
+  "k. khachanov": "khachanov"
+
+  # Holger Rune
+  "holger rune": "rune"
+  "h. rune": "rune"
+
+  # Tommy Paul
+  "tommy paul": "paul"
+  "t. paul": "paul"
+
+  # Bautista Agut
+  "roberto bautista agut": "bautista agut"
+  "r. bautista agut": "bautista agut"
+  "bautista": "bautista agut"
+
+  # Swiatek (WTA)
+  "iga swiatek": "swiatek"
+  "i. swiatek": "swiatek"
+
+  # Sabalenka (WTA)
+  "aryna sabalenka": "sabalenka"
+  "a. sabalenka": "sabalenka"
+
+  # Gauff (WTA)
+  "coco gauff": "gauff"
+  "c. gauff": "gauff"
+
+  # Rybakina (WTA)
+  "elena rybakina": "rybakina"
+  "e. rybakina": "rybakina"
+
+  # Collins (WTA)
+  "danielle collins": "collins"
+  "d. collins": "collins"
+
+  # Pegula (WTA)
+  "jessica pegula": "pegula"
+  "j. pegula": "pegula"
+
+  # Wozniacki (WTA)
+  "caroline wozniacki": "wozniacki"
+  "c. wozniacki": "wozniacki"
+
+  # Kvitova (WTA)
+  "petra kvitova": "kvitova"
+  "p. kvitova": "kvitova"

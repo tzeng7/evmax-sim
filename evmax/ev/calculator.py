@@ -42,6 +42,8 @@ def calculate_ev(
     """
     if market_price <= 0 or market_price >= 1.0:
         return 0.0, 0.0
+    if not (0.0 < true_prob <= 1.0):
+        return 0.0, 0.0
 
     payout = 1.0 / market_price  # e.g. price=0.40 → payout=2.5x
     ev = (true_prob * payout) - 1.0

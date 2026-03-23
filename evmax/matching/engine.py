@@ -69,9 +69,15 @@ class MatchingEngine:
             market.sector,
         )
 
-        # Spread markets match at game level — the line is handled by SpreadDistributionModel
+        # Spread markets: line handled by SpreadDistributionModel downstream
         if market.market_type == MarketType.spread:
             return f"{base_key}::spread"
+
+        # Total markets: embed the line so each total line is a distinct sharp record
+        if market.market_type == MarketType.total:
+            if market.line is not None:
+                return f"{base_key}::total::{market.line}"
+            return f"{base_key}::total"
 
         return base_key
 
@@ -115,8 +121,8 @@ class MatchingEngine:
                 logger.debug("match_exact", market_id=market.id, event_id=so.event_id)
                 return so, 100.0
 
-        # 2. Fuzzy match — disabled for spread markets (line must match exactly)
-        if market.market_type != MarketType.spread:
+        # 2. Fuzzy match — disabled for spread/total markets (line must match exactly)
+        if market.market_type not in (MarketType.spread, MarketType.total):
             fuzzy_result = fuzzy_match_event_keys(
                 market_key,
                 sharp_keys,
@@ -134,8 +140,61 @@ class MatchingEngine:
                         )
                         return so, score
 
+        # 3. Nearest-line fallback for totals — find closest Pinnacle line within 2 pts
+        if market.market_type == MarketType.total and market.line is not None:
+            nearest = self._find_nearest_total(market, sharp_odds_list)
+            if nearest:
+                so, score = nearest
+                logger.debug(
+                    "match_total_nearest_line",
+                    market_id=market.id,
+                    kalshi_line=market.line,
+                    sharp_line=so.total_line,
+                    event_id=so.event_id,
+                )
+                return so, score
+
         logger.debug("match_failed", market_id=market.id, market_key=market_key)
         return None
+
+    def _find_nearest_total(
+        self,
+        market: PredictionMarket,
+        sharp_odds_list: list[SharpOdds],
+        tolerance: float = 2.0,
+    ) -> Optional[tuple[SharpOdds, float]]:
+        """Find the Pinnacle total line closest to the Kalshi line within tolerance."""
+        if not market.team_home or not market.team_away or not market.event_date:
+            return None
+
+        normalizer = self._get_normalizer(market.sector)
+        date_str = market.event_date.strftime("%Y-%m-%d")
+        base_key = normalizer.normalize_event_key(
+            market.team_home, market.team_away, date_str, market.sector
+        )
+        prefix = f"{base_key}::total::"
+
+        best_so: Optional[SharpOdds] = None
+        best_dist = float("inf")
+
+        for so in sharp_odds_list:
+            if not so.event_id.startswith(prefix):
+                continue
+            try:
+                sharp_line = float(so.event_id.split(prefix, 1)[1])
+            except (ValueError, IndexError):
+                continue
+            dist = abs((market.line or 0.0) - sharp_line)
+            if dist <= tolerance and dist < best_dist:
+                best_dist = dist
+                best_so = so
+
+        if best_so is None:
+            return None
+
+        # Confidence penalty: 5 points per unit of line distance
+        confidence = max(50.0, 95.0 - best_dist * 5.0)
+        return best_so, confidence
 
     def match_all(
         self,

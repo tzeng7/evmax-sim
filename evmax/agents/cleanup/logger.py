@@ -13,6 +13,16 @@ from evmax.agents.odds.ev_gap_agent import EVGap
 logger = structlog.get_logger(__name__)
 
 
+def get_logged_market_ids(scan_date: Optional[date] = None) -> set[str]:
+    """Return market_ids already logged for a given scan_date (default today)."""
+    sd = (scan_date or date.today()).isoformat()
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT market_id FROM ev_predictions WHERE scan_date = ?", (sd,)
+        ).fetchall()
+    return {r["market_id"] for r in rows}
+
+
 def log_gaps(
     gaps: list[EVGap],
     scan_date: Optional[date] = None,
@@ -43,8 +53,8 @@ def log_gaps(
                     (scan_date, market_id, event_id, sector, yes_team, market_type,
                      event_title, event_date, kalshi_yes_price, sharp_true_prob,
                      blended_true_prob, ev_pct, kelly_fraction, volume_usd,
-                     model_sources, sharp_weight_used)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     model_sources, sharp_weight_used, line)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         sd,
                         g.market_id,
@@ -62,6 +72,7 @@ def log_gaps(
                         g.volume_usd,
                         g.model_sources,
                         sharp_weight_used,
+                        g.line,
                     ),
                 )
                 if conn.execute("SELECT changes()").fetchone()[0]:

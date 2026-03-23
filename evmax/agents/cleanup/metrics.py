@@ -48,6 +48,14 @@ def save_config(cfg: dict) -> None:
     CONFIG_PATH.write_text(json.dumps(cfg, indent=2))
 
 
+PROB_TIERS = [
+    ("< 20%",  0.00, 0.20),
+    ("20–40%", 0.20, 0.40),
+    ("40–60%", 0.40, 0.60),
+    ("> 60%",  0.60, 1.01),
+]
+
+
 def compute_brier_scores(weeks: int = 1) -> Optional[dict]:
     """
     Compute Brier scores for resolved predictions in the last `weeks` weeks.
@@ -82,12 +90,28 @@ def compute_brier_scores(weeks: int = 1) -> Optional[dict]:
     brier_model = sum((r["blended_true_prob"] - r["outcome"]) ** 2 for r in rows) / n
     brier_sharp = sum((r["sharp_true_prob"] - r["outcome"]) ** 2 for r in rows) / n
 
+    # Per-tier breakdown
+    tiers = []
+    for label, lo, hi in PROB_TIERS:
+        tier_rows = [r for r in rows if lo <= r["blended_true_prob"] < hi]
+        if not tier_rows:
+            tiers.append({"label": label, "n": 0, "brier_model": None, "brier_sharp": None})
+            continue
+        tn = len(tier_rows)
+        tiers.append({
+            "label":       label,
+            "n":           tn,
+            "brier_model": round(sum((r["blended_true_prob"] - r["outcome"]) ** 2 for r in tier_rows) / tn, 6),
+            "brier_sharp": round(sum((r["sharp_true_prob"]   - r["outcome"]) ** 2 for r in tier_rows) / tn, 6),
+        })
+
     return {
         "brier_model":   round(brier_model, 6),
         "brier_sharp":   round(brier_sharp, 6),
         "n":             n,
         "period_start":  since,
         "period_end":    date.today().isoformat(),
+        "tiers":         tiers,
     }
 
 

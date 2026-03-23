@@ -6,7 +6,9 @@ import asyncio
 from typing import Optional
 
 import typer
+from rich import box
 from rich.console import Console
+from rich.table import Table
 from sqlalchemy import select
 
 from evmax.cli.display import console, sim_bets_table
@@ -100,6 +102,114 @@ async def _resolve_market(market_id: str, yes_price: float) -> None:
             f"  Bet #{bet.id}: [{status_style}]{bet.status.value.upper()}[/{status_style}]  "
             f"P&L: ${bet.pnl_usd:+.2f}"
         )
+
+
+@app.command("montecarlo")
+def montecarlo(
+    trials: int = typer.Option(10_000, "--trials", "-t", help="Number of simulation trials."),
+    bankroll: float = typer.Option(1_000.0, "--bankroll", "-b", help="Starting bankroll in USD."),
+    kelly: float = typer.Option(0.25, "--kelly", "-k", help="Kelly fraction (default: quarter Kelly)."),
+    since: Optional[str] = typer.Option(None, "--since", help="Only use bets since YYYY-MM-DD."),
+    sector: Optional[str] = typer.Option(None, "--sector", "-s", help="Filter by sector."),
+    min_ev: float = typer.Option(0.02, "--min-ev", help="Minimum EV threshold for included bets."),
+) -> None:
+    """Run Monte Carlo bankroll simulation on historical bets with known outcomes."""
+    from evmax.agents.cleanup.db import get_connection
+    from evmax.simulation.montecarlo import MonteCarloSimulator
+
+    conn = get_connection()
+    query = """
+        SELECT p.kalshi_yes_price, p.blended_true_prob, p.kelly_fraction,
+               p.ev_pct, p.sector, o.outcome
+        FROM ev_predictions p
+        INNER JOIN ev_outcomes o ON p.market_id = o.market_id
+        WHERE o.outcome IS NOT NULL AND p.voided = 0
+    """
+    params: list = []
+
+    if since:
+        query += " AND p.scan_date >= ?"
+        params.append(since)
+    if sector:
+        query += " AND p.sector = ?"
+        params.append(sector.lower())
+    if min_ev:
+        query += " AND p.ev_pct >= ?"
+        params.append(min_ev)
+
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+
+    if not rows:
+        console.print(
+            "[yellow]No resolved bets found.[/yellow] "
+            "Run [bold]evmax cleanup resolve[/bold] first to log outcomes."
+        )
+        return
+
+    bets = [
+        {
+            "kalshi_yes_price": r["kalshi_yes_price"],
+            "true_prob": r["blended_true_prob"],
+            "kelly_fraction": r["kelly_fraction"] * kelly / 0.5,  # rescale to requested fraction
+            "ev_pct": r["ev_pct"],
+            "sector": r["sector"],
+            "outcome": r["outcome"],
+        }
+        for r in rows
+    ]
+
+    console.print(
+        f"\n[bold cyan]Monte Carlo Simulation[/bold cyan] — "
+        f"{len(bets)} resolved bets | {trials:,} trials | "
+        f"${bankroll:,.0f} bankroll | {kelly:.0%} Kelly\n"
+    )
+
+    sim = MonteCarloSimulator()
+    result = sim.run(bets, trials=trials, starting_bankroll=bankroll, kelly_fraction=kelly)
+
+    # Summary table
+    table = Table(title="Monte Carlo Results", box=box.ROUNDED)
+    table.add_column("Metric", style="bold")
+    table.add_column("Value", justify="right")
+
+    pnl_style = "green" if result.median_final >= bankroll else "red"
+    p5_style = "green" if result.p5_final >= bankroll else "red"
+    p95_style = "green" if result.p95_final >= bankroll else "red"
+
+    def _fmt(val: float) -> str:
+        pct = (val / bankroll - 1) * 100
+        return f"${val:,.2f}  ({pct:+.1f}%)"
+
+    table.add_row("Median final bankroll", f"[{pnl_style}]{_fmt(result.median_final)}[/{pnl_style}]")
+    table.add_row("Mean final bankroll", _fmt(result.mean_final))
+    table.add_row("5th percentile (bad run)", f"[{p5_style}]{_fmt(result.p5_final)}[/{p5_style}]")
+    table.add_row("25th percentile", _fmt(result.p25_final))
+    table.add_row("75th percentile", _fmt(result.p75_final))
+    table.add_row("95th percentile (great run)", f"[{p95_style}]{_fmt(result.p95_final)}[/{p95_style}]")
+    ruin_style = "red bold" if result.ruin_probability > 0.1 else "yellow" if result.ruin_probability > 0.03 else "green"
+    table.add_row("Ruin probability (<20% bankroll)", f"[{ruin_style}]{result.ruin_probability*100:.1f}%[/{ruin_style}]")
+    table.add_row("Median max drawdown", f"{result.max_drawdown_median*100:.1f}%")
+    table.add_row("Total bets", str(result.total_bets))
+    table.add_row("Median total wagered", f"${result.total_wagered:,.2f}")
+
+    console.print(table)
+
+    # Sparkline path chart
+    if result.path_p50:
+        console.print("\n[bold]Bankroll path (p5 / median / p95 at checkpoints):[/bold]")
+        for i, (lo, mid, hi) in enumerate(
+            zip(result.path_p5, result.path_p50, result.path_p95)
+        ):
+            bar_len = max(1, int((mid / bankroll) * 30))
+            bar = "█" * bar_len
+            mid_style = "green" if mid >= bankroll else "red"
+            console.print(
+                f"  [{i*10:>3}%] "
+                f"[dim]${lo:>8,.0f}[/dim]  "
+                f"[{mid_style}]{bar:<32}[/{mid_style}]  "
+                f"[dim]${hi:>8,.0f}[/dim]"
+            )
 
 
 async def _auto_resolve() -> None:

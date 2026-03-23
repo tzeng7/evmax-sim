@@ -19,10 +19,10 @@ from evmax.sectors.registry import ALL_SECTORS
 from evmax.settings import get_settings
 
 console = Console()
-app = typer.Typer()
+app = typer.Typer(invoke_without_command=True)
 
 
-@app.command("opps")
+@app.callback()
 def opportunities(
     sectors: Optional[str] = typer.Option(
         None,

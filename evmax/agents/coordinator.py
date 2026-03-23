@@ -28,14 +28,19 @@ Usage:
 from __future__ import annotations
 
 import asyncio
+import dataclasses
+import json
 import time
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 import structlog
 
 from evmax.agents.base import Agent, AgentBus, AgentMessage, AgentRequest, AgentResponse
+from evmax.archiver import DataArchiver
 from evmax.agents.odds.kalshi_agent import KalshiOddsAgent
 from evmax.agents.odds.sharp_agent import SharpOddsAgent
 from evmax.agents.odds.ev_gap_agent import EVGapAgent, EVGap
@@ -43,12 +48,16 @@ from evmax.agents.models.elo_agent import EloModelAgent
 from evmax.agents.models.form_agent import FormModelAgent
 from evmax.agents.models.poisson_agent import PoissonModelAgent
 from evmax.agents.models.ensemble_agent import EnsembleModelAgent, BlendedPrediction
+from evmax.agents.models.tennis_model_agent import TennisModelAgent
 from evmax.agents.intelligence.injury_agent import InjuryReportAgent, InjuryReport
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
 from evmax.matching.engine import MatchingEngine
 
 logger = structlog.get_logger(__name__)
+
+_STEAM_CACHE_PATH = Path(__file__).resolve().parents[2] / "data" / "steam_cache.json"
+_STEAM_THRESHOLD = 0.02  # 2 percentage points
 
 
 @dataclass
@@ -98,6 +107,97 @@ class CycleResult:
         print()
 
 
+def _load_steam_cache() -> dict[str, float]:
+    """Load previous scan's sharp probabilities from disk."""
+    try:
+        if _STEAM_CACHE_PATH.exists():
+            return json.loads(_STEAM_CACHE_PATH.read_text())
+    except Exception as exc:
+        logger.warning("steam_cache_load_failed", path=str(_STEAM_CACHE_PATH), error=str(exc))
+    return {}
+
+
+def _save_steam_cache(probs: dict[str, float]) -> None:
+    try:
+        _STEAM_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _STEAM_CACHE_PATH.write_text(json.dumps(probs))
+    except Exception as exc:
+        logger.error("steam_cache_save_failed", path=str(_STEAM_CACHE_PATH), error=str(exc))
+
+
+def _detect_steam(
+    sharp_odds: list,
+    prev_probs: dict[str, float],
+    threshold: float = _STEAM_THRESHOLD,
+) -> set[str]:
+    """Return event_ids where Pinnacle true_prob_a moved >= threshold since last scan."""
+    steam: set[str] = set()
+    for so in sharp_odds:
+        prev = prev_probs.get(so.event_id)
+        if prev is not None and abs(so.true_prob_a - prev) >= threshold:
+            steam.add(so.event_id)
+            logger.info(
+                "steam_move_detected",
+                event_id=so.event_id,
+                prev=round(prev, 3),
+                current=round(so.true_prob_a, 3),
+                delta=round(so.true_prob_a - prev, 3),
+            )
+    return steam
+
+
+def _apply_exposure_guard(
+    gaps: list[EVGap],
+    max_event_exposure: float = 0.08,
+) -> list[EVGap]:
+    """Cap total Kelly allocation per game to max_event_exposure (default 8%).
+
+    Multiple markets on the same underlying game (ML + spread + total) are
+    correlated — betting all at full Kelly compounds risk beyond the intended
+    exposure. Best plays (by EV) consume budget first; lower-EV plays are
+    scaled down or dropped when the cap is hit.
+    """
+    # Budget per base event (strip ::spread / ::total / ::spread::... suffixes)
+    def _base_event(event_id: str) -> str:
+        parts = event_id.split("::")
+        # Keep sector::date::matchup (first 3 parts)
+        return "::".join(parts[:3])
+
+    event_budget: dict[str, float] = {}
+    guarded: list[EVGap] = []
+
+    for gap in sorted(gaps, key=lambda g: g.ev_pct, reverse=True):
+        base = _base_event(gap.event_id)
+        used = event_budget.get(base, 0.0)
+        remaining = max_event_exposure - used
+
+        if remaining <= 0.005:  # < 0.5% left — skip
+            logger.debug(
+                "exposure_guard_dropped",
+                event_id=gap.event_id,
+                used=round(used, 4),
+                cap=max_event_exposure,
+            )
+            continue
+
+        if gap.kelly_fraction <= remaining:
+            event_budget[base] = used + gap.kelly_fraction
+            guarded.append(gap)
+        else:
+            # Scale down to fit remaining budget
+            logger.debug(
+                "exposure_guard_capped",
+                event_id=gap.event_id,
+                original=round(gap.kelly_fraction, 4),
+                capped=round(remaining, 4),
+            )
+            capped = dataclasses.replace(gap, kelly_fraction=round(remaining, 4))
+            event_budget[base] = max_event_exposure
+            guarded.append(capped)
+
+    return guarded
+
+
 class AgentCoordinator:
     """
     Top-level orchestrator for the evmax agent pipeline.
@@ -142,12 +242,17 @@ class AgentCoordinator:
         self.elo_agent = EloModelAgent()
         self.form_agent = FormModelAgent()
         self.poisson_agent = PoissonModelAgent()
+        self.tennis_agent = TennisModelAgent()
         self.ensemble_agent = EnsembleModelAgent(
-            models=[self.elo_agent, self.form_agent, self.poisson_agent],
+            models=[self.elo_agent, self.form_agent, self.poisson_agent, self.tennis_agent],
             sharp_weight=sharp_weight,
         )
 
         self._matching = MatchingEngine()
+        self._archiver = DataArchiver()
+
+        from evmax.notifications import Notifier
+        self._notifier = Notifier.from_settings()
 
         for agent in self._all_agents():
             agent.attach_bus(self.bus)
@@ -158,7 +263,7 @@ class AgentCoordinator:
         return [
             self.kalshi_agent, self.sharp_agent, self.ev_gap_agent,
             self.injury_agent,
-            self.elo_agent, self.form_agent, self.poisson_agent, self.ensemble_agent,
+            self.elo_agent, self.form_agent, self.poisson_agent, self.tennis_agent, self.ensemble_agent,
         ]
 
     # ------------------------------------------------------------------
@@ -171,6 +276,7 @@ class AgentCoordinator:
         result = CycleResult(bankroll=self._bankroll, kelly_fraction=self._kelly_fraction)
 
         self.log.info("cycle_start", correlation_id=correlation_id, sectors=self._sectors)
+        self._archiver.open_session(correlation_id, self._sectors, "agents")
 
         sector_results = await asyncio.gather(
             *(self._run_sector(sector, correlation_id) for sector in self._sectors),
@@ -190,7 +296,26 @@ class AgentCoordinator:
             if sr.get("injuries"):
                 result.injury_reports[sector] = sr["injuries"]
 
+        result.ev_gaps = _apply_exposure_guard(result.ev_gaps)
         result.cycle_duration_s = time.perf_counter() - t0
+
+        # Archive all raw fetched data for historical analysis
+        k_total = s_total = 0
+        for sector, sr in zip(self._sectors, sector_results):
+            if isinstance(sr, Exception):
+                continue
+            k_total += self._archiver.archive_kalshi_markets(
+                correlation_id, sector, sr.get("markets", [])
+            )
+            s_total += self._archiver.archive_sharp_odds(
+                correlation_id, sector, sr.get("sharp_odds", [])
+            )
+        self._archiver.close_session(
+            correlation_id,
+            int(result.cycle_duration_s * 1000),
+            k_total,
+            s_total,
+        )
 
         self.log.info(
             "cycle_done",
@@ -209,19 +334,33 @@ class AgentCoordinator:
             correlation_id=correlation_id,
         ))
 
+        # Fire notifications (sync, non-blocking — uses urllib internally)
+        try:
+            self._notifier.notify_cycle(result)
+        except Exception:
+            pass
+
         return result
 
     # ------------------------------------------------------------------
     # Single-sector cycle
     # ------------------------------------------------------------------
 
+    # Sectors that have Kalshi player prop series + TheOddsAPI prop coverage
+    _PROP_SECTORS = {"nba", "nfl"}
+
     async def _run_sector(self, sector: str, correlation_id: str) -> dict:
         req = AgentRequest(sector=sector, correlation_id=correlation_id)
 
         # Steps 1-3: Fetch Kalshi + sharp + injuries concurrently
+        # Also fetch player props for supported sectors
         fetch_tasks = [self.kalshi_agent(req), self.sharp_agent(req)]
         if self._enable_injuries:
             fetch_tasks.append(self.injury_agent(req))
+
+        prop_task = None
+        if sector.lower() in self._PROP_SECTORS:
+            prop_task = asyncio.create_task(self._fetch_props(sector))
 
         fetch_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
 
@@ -235,6 +374,15 @@ class AgentCoordinator:
         sharp_odds: list[SharpOdds] = (
             sharp_resp.data if not isinstance(sharp_resp, Exception) else []
         ) or []
+
+        # Merge prop markets and prop odds if available
+        if prop_task is not None:
+            try:
+                prop_markets, prop_sharp = await prop_task
+                markets = markets + prop_markets
+                sharp_odds = sharp_odds + prop_sharp
+            except Exception as e:
+                self.log.debug("prop_fetch_failed", sector=sector, error=str(e))
         injuries: dict[str, InjuryReport] = (
             injury_resp.data if injury_resp and not isinstance(injury_resp, Exception) else {}
         ) or {}
@@ -244,6 +392,12 @@ class AgentCoordinator:
         if isinstance(sharp_resp, Exception):
             self.log.error("sharp_failed", sector=sector, error=str(sharp_resp))
 
+        # Steam move detection: compare current sharp probs to last scan's probs
+        prev_probs = _load_steam_cache()
+        steam_events = _detect_steam(sharp_odds, prev_probs)
+        new_probs = {so.event_id: so.true_prob_a for so in sharp_odds}
+        _save_steam_cache({**prev_probs, **new_probs})
+
         if not markets or not sharp_odds:
             return {
                 "markets_fetched": len(markets),
@@ -251,10 +405,15 @@ class AgentCoordinator:
                 "ev_gaps": [],
                 "blended_predictions": {},
                 "injuries": injuries,
+                "markets": markets,
+                "sharp_odds": sharp_odds,
             }
 
-        # Step 4: Match markets → sharp events
-        matched_pairs = self._matching.match_all(markets, sharp_odds)
+        # Step 4: Match non-prop markets → sharp events (for model ensemble)
+        from evmax.models.market import MarketType as _MT
+        regular_markets = [m for m in markets if m.market_type != _MT.player_prop]
+        regular_sharp = [s for s in sharp_odds if s.prop_player_name is None]
+        matched_pairs = self._matching.match_all(regular_markets, regular_sharp)
         pairs = [{"market": m, "sharp": s} for m, s, _ in matched_pairs]
 
         # Step 5: Ensemble model predictions
@@ -287,6 +446,7 @@ class AgentCoordinator:
                 "injuries": injuries,
                 "model_sources": model_sources,
                 "kelly_base_fraction": self._kelly_fraction,
+                "steam_events": steam_events,
             },
             correlation_id=correlation_id,
         )
@@ -299,7 +459,40 @@ class AgentCoordinator:
             "ev_gaps": ev_gaps,
             "blended_predictions": blended,
             "injuries": injuries,
+            "markets": markets,
+            "sharp_odds": sharp_odds,
         }
+
+    async def _fetch_props(
+        self,
+        sector: str,
+    ) -> tuple[list[PredictionMarket], list[SharpOdds]]:
+        """Fetch Kalshi player prop markets + Pinnacle prop odds concurrently."""
+        from evmax.clients.kalshi import KalshiClient
+        from evmax.clients.pinnacle import PinnacleClient
+
+        prop_sector = f"{sector}_props"
+        async with KalshiClient() as kalshi, PinnacleClient() as pinnacle:
+            kalshi_props, sharp_props = await asyncio.gather(
+                kalshi.get_markets(prop_sector),
+                pinnacle.get_prop_odds(sector),
+                return_exceptions=True,
+            )
+
+        prop_markets: list[PredictionMarket] = (
+            kalshi_props if not isinstance(kalshi_props, Exception) else []
+        ) or []
+        prop_sharp: list[SharpOdds] = (
+            sharp_props if not isinstance(sharp_props, Exception) else []
+        ) or []
+
+        self.log.debug(
+            "props_fetched",
+            sector=sector,
+            prop_markets=len(prop_markets),
+            prop_sharp=len(prop_sharp),
+        )
+        return prop_markets, prop_sharp
 
     # ------------------------------------------------------------------
     # Model training helpers
@@ -313,6 +506,7 @@ class AgentCoordinator:
         score_b: float,
         sector: str,
         event_date: Optional[str] = None,
+        surface: str = "overall",
     ) -> None:
         """Feed a completed game result into all model agents."""
         for model in [self.elo_agent, self.form_agent, self.poisson_agent]:
@@ -320,6 +514,44 @@ class AgentCoordinator:
         self.elo_agent.save_state()
         self.form_agent.save_state()
         self.poisson_agent.save_state()
+        if sector == "tennis":
+            self.tennis_agent.update(team_a, team_b, score_a, score_b, sector, event_date, surface=surface)
+
+    def next_scan_interval_seconds(self, result: "CycleResult") -> int:
+        """Compute adaptive scan interval based on time until soonest game.
+
+        Uses event_date from EV gaps found in the most recent cycle result.
+
+        Tier logic (time to soonest kickoff):
+          Live / already started: 90 sec
+          < 60 min:               3 min
+          60 min – 4 hours:       10 min
+          > 4 hours / no games:   30 min
+        """
+        now_utc = datetime.now(timezone.utc)
+        soonest_delta: float | None = None
+
+        for gap in result.ev_gaps:
+            ed = gap.event_date
+            if ed is None:
+                continue
+            # Normalise to offset-aware UTC
+            if not hasattr(ed, "tzinfo") or ed.tzinfo is None:
+                ed = ed.replace(tzinfo=timezone.utc)
+            delta = (ed - now_utc).total_seconds()
+            if soonest_delta is None or delta < soonest_delta:
+                soonest_delta = delta
+
+        if soonest_delta is None:
+            return 1800  # 30 min — no games found
+
+        if soonest_delta <= 0:
+            return 90   # game is live
+        if soonest_delta < 60 * 60:
+            return 180  # < 1 hour to kickoff
+        if soonest_delta < 4 * 60 * 60:
+            return 600  # 1–4 hours
+        return 1800  # > 4 hours
 
     def subscribe(self, topic: str, handler) -> None:
         self.bus.subscribe(topic, handler)

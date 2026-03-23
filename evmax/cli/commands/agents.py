@@ -23,10 +23,79 @@ app = typer.Typer(no_args_is_help=True)
 console = Console()
 
 
+def _display_label(yes_team: str, market_type: str, line) -> str:
+    """Mirror EVGap.display_label: team + market type + line."""
+    team = (yes_team or "?").capitalize()
+    mt = (market_type or "").lower()
+    if mt == "moneyline":
+        return f"{team} ML"
+    if mt == "spread" and line is not None:
+        line_str = f"{line:.1f}".rstrip("0").rstrip(".")
+        return f"{team} {line_str}"
+    if mt in ("over_under", "total") and line is not None:
+        return f"O/U {line:.1f}"
+    return team
+
+
+def _american(prob: float) -> str:
+    """Convert implied probability to American odds string (+185, -108)."""
+    if prob <= 0 or prob >= 1:
+        return "N/A"
+    if prob >= 0.5:
+        return f"{-round(prob / (1 - prob) * 100)}"
+    return f"+{round((1 - prob) / prob * 100)}"
+
+
+async def _scan_loop(
+    coordinator,
+    sector_list: list[str],
+    min_ev: float,
+    min_prob: float,
+    top: int,
+    bankroll: float,
+    kelly: float,
+    date_filter,
+    sharp_weight: float,
+) -> None:
+    """Run agent scan continuously with adaptive intervals."""
+    cycle = 0
+    while True:
+        cycle += 1
+        console.print(f"\n[dim]--- Cycle #{cycle} ---[/dim]")
+        try:
+            result = await coordinator.run_cycle()
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Stopped.[/yellow]")
+            return
+        except Exception as e:
+            console.print(f"[red]Cycle error: {e}[/red]")
+            await asyncio.sleep(60)
+            continue
+
+        # Compute adaptive interval from EV gaps' event dates
+        interval = coordinator.next_scan_interval_seconds(result)
+
+        if interval <= 90:
+            interval_label = "[bold red]90s (LIVE)[/bold red]"
+        elif interval <= 180:
+            interval_label = f"[yellow]{interval}s (<1h to kickoff)[/yellow]"
+        elif interval <= 600:
+            interval_label = f"[cyan]{interval}s (1–4h to kickoff)[/cyan]"
+        else:
+            interval_label = f"[dim]{interval}s (>4h / no games)[/dim]"
+
+        console.print(f"[dim]Next scan in[/dim] {interval_label}[dim]. Ctrl+C to stop.[/dim]")
+        try:
+            await asyncio.sleep(interval)
+        except asyncio.CancelledError:
+            console.print("\n[yellow]Stopped.[/yellow]")
+            return
+
+
 @app.command("scan")
 def scan(
     sectors: str = typer.Option(
-        "nba,ncaab,soccer,lol,cs2",
+        "nba,ncaab,soccer,lol,cs2,tennis",
         "--sectors",
         "-s",
         help="Comma-separated sector list, e.g. 'nba,soccer'",
@@ -36,11 +105,16 @@ def scan(
     sharp_weight: float = typer.Option(0.85, "--sharp-weight", help="Weight for Pinnacle in ensemble blend."),
     bankroll: float = typer.Option(250.0, "--bankroll", "-b", help="Current bankroll in USD."),
     kelly: float = typer.Option(0.5, "--kelly", "-k", help="Kelly fraction (0.5=half, 0.25=quarter)."),
-    min_ev: float = typer.Option(0.02, "--min-ev", help="Minimum EV threshold to display."),
+    min_ev: float = typer.Option(0.02, "--min-ev", help="Base minimum EV threshold (scaled up automatically for low-prob bets)."),
+    min_prob: float = typer.Option(0.15, "--min-prob", help="Minimum true probability floor. Bets below this are excluded regardless of EV."),
     top: int = typer.Option(25, "--top", "-n", help="Max plays to show."),
     date_filter: Optional[str] = typer.Option(
         None, "--date", "-d",
         help="Only show games on this date (YYYY-MM-DD). Defaults to today.",
+    ),
+    loop: bool = typer.Option(
+        False, "--loop",
+        help="Run continuously with smart adaptive scan intervals based on game times.",
     ),
 ) -> None:
     """Run the full agent pipeline for one cycle and display +EV plays."""
@@ -65,33 +139,29 @@ def scan(
 
     console.print(f"\n[bold cyan]evmax agent scan[/bold cyan] — sectors: {', '.join(sector_list)}\n")
 
+    if loop:
+        asyncio.run(_scan_loop(coordinator, sector_list, min_ev, min_prob, top, bankroll, kelly, date_filter, sharp_weight))
+        return
+
     result = asyncio.run(coordinator.run_cycle())
 
-    # Auto-log all +EV gaps found (above min_ev) to predictions.db
-    gaps_to_log = [g for g in result.top_gaps if g.ev_pct >= min_ev]
-    if gaps_to_log:
-        try:
-            from evmax.agents.cleanup.logger import log_gaps as _log_gaps
-            n_logged = _log_gaps(gaps_to_log, sharp_weight_used=sharp_weight)
-            if n_logged:
-                console.print(f"[dim]  Logged {n_logged} new prediction(s) to predictions.db[/dim]")
-        except Exception as _log_err:
-            console.print(f"[dim yellow]  Warning: could not log predictions: {_log_err}[/dim yellow]")
-
-    # Print injury summary first
-    if result.injury_reports:
-        inj_lines = []
-        for sector, team_reports in result.injury_reports.items():
-            sig = [r for r in team_reports.values() if r.has_significant_injuries]
-            if sig:
-                inj_lines.append(f"[bold]{sector.upper()}[/bold]: " + ", ".join(
-                    f"{r.team} ({len(r.players)} out/dtd, adj={r.probability_adjustment:+.1%})"
-                    for r in sig[:5]
-                ))
-        if inj_lines:
-            console.print("\n[bold yellow]Injury Impact:[/bold yellow]")
-            for line in inj_lines:
-                console.print(f"  {line}")
+    # Run maintenance checks after logging
+    try:
+        from evmax.agents.cleanup.maintenance import run_maintenance, MaintenanceReport
+        maint = run_maintenance()
+        console.print(f"[dim]  {maint.summary()}[/dim]")
+        if maint.errors:
+            for issue in maint.errors:
+                console.print(f"[red]  [MAINT ERROR][/red] [{issue.check}] {issue.event_id}: {issue.detail}")
+                if issue.fix:
+                    console.print(f"[dim]               → {issue.fix}[/dim]")
+        if maint.warnings:
+            for issue in maint.warnings:
+                console.print(f"[yellow]  [MAINT WARN][/yellow]  [{issue.check}] {issue.event_id}: {issue.detail}")
+                if issue.fix:
+                    console.print(f"[dim]               → {issue.fix}[/dim]")
+    except Exception as _maint_err:
+        console.print(f"[dim yellow]  Warning: maintenance check failed: {_maint_err}[/dim yellow]")
 
     # Parse date filter (default: today)
     if date_filter:
@@ -110,7 +180,67 @@ def scan(
         ed = g.event_date.date() if hasattr(g.event_date, "date") else g.event_date
         return ed == target_date
 
-    gaps = [g for g in result.top_gaps if g.ev_pct >= min_ev and _matches_date(g)][:top]
+    def _tiered_min_ev(true_prob: float) -> float:
+        """Scale minimum EV up for low-probability bets.
+
+        Formula: base_min_ev + max(0, min_prob_floor - true_prob) * 0.5
+        Examples (base=2%, floor=15%):
+          true_prob=0.08 → min_ev = 2% + (0.15-0.08)*0.5 = 5.5%
+          true_prob=0.12 → min_ev = 2% + (0.15-0.12)*0.5 = 3.5%
+          true_prob=0.15 → min_ev = 2% (floor, no scaling)
+          true_prob=0.50 → min_ev = 2% (unchanged)
+        """
+        return min_ev + max(0.0, min_prob - true_prob) * 0.5
+
+    # All gaps that pass display filters (no top-N cap yet) — these are what get logged.
+    # Logging uses the same date + min_prob + tiered EV as the display so that
+    # verify only shows bets the user actually saw (or would have seen) in the scan.
+    qualifying_gaps = [
+        g for g in result.top_gaps
+        if g.blended_true_prob >= min_prob
+        and g.ev_pct >= _tiered_min_ev(g.blended_true_prob)
+        and _matches_date(g)
+    ]
+
+    # Auto-log qualifying gaps to predictions.db
+    if qualifying_gaps:
+        try:
+            from evmax.agents.cleanup.logger import log_gaps as _log_gaps
+            n_logged = _log_gaps(qualifying_gaps, sharp_weight_used=sharp_weight)
+            if n_logged:
+                console.print(f"[dim]  Logged {n_logged} new prediction(s) to predictions.db[/dim]")
+        except Exception as _log_err:
+            console.print(f"[dim yellow]  Warning: could not log predictions: {_log_err}[/dim yellow]")
+
+    gaps = qualifying_gaps[:top]
+
+    # Print injury summary — only for teams involved in the displayed plays
+    if result.injury_reports and gaps:
+        # Build set of team name fragments from event titles + yes_team
+        teams_in_plays: set[str] = set()
+        for g in gaps:
+            teams_in_plays.add(g.yes_team.lower().strip())
+            # event_title format: "Team A vs Team B"
+            for part in g.event_title.lower().replace(" vs ", " ").split():
+                if len(part) > 3:
+                    teams_in_plays.add(part)
+
+        inj_lines = []
+        for sector, team_reports in result.injury_reports.items():
+            sig = [
+                r for r in team_reports.values()
+                if r.has_significant_injuries
+                and any(t in r.team or r.team in t for t in teams_in_plays)
+            ]
+            if sig:
+                inj_lines.append(f"[bold]{sector.upper()}[/bold]: " + ", ".join(
+                    f"{r.team} ({len(r.players)} out/dtd, adj={r.probability_adjustment:+.1%})"
+                    for r in sig
+                ))
+        if inj_lines:
+            console.print("\n[bold yellow]Injury Impact:[/bold yellow]")
+            for line in inj_lines:
+                console.print(f"  {line}")
 
     if not gaps:
         console.print(f"\n[yellow]No +EV plays found at EV >= {min_ev*100:.0f}% threshold.[/yellow]")
@@ -120,7 +250,10 @@ def scan(
         return
 
     table = Table(
-        title=f"+EV Plays — {len(gaps)} found | {target_date} | Bankroll ${bankroll:.0f} | {kelly:.0%} Kelly",
+        title=(
+            f"+EV Plays — {len(gaps)} found | {target_date} | Bankroll ${bankroll:.0f} | {kelly:.0%} Kelly"
+            f" | min prob {min_prob:.0%} | base EV {min_ev:.0%} (tiered)"
+        ),
         box=box.ROUNDED,
         show_lines=True,
     )
@@ -128,31 +261,44 @@ def scan(
     table.add_column("Sector", style="dim", width=6)
     table.add_column("Event", style="dim", min_width=24)
     table.add_column("Outcome", style="bold white", min_width=18)
-    table.add_column("Kalshi", justify="right", width=7)
+    table.add_column("K Odds", justify="right", width=7)
+    table.add_column("True Odds", justify="right", width=9)
+    table.add_column("Min Odds", justify="right", width=9)
     table.add_column("True P", justify="right", width=7)
     table.add_column("EV %", justify="right", style="green bold", width=7)
     table.add_column("Kelly%", justify="right", width=7)
     table.add_column("Stake $", justify="right", style="cyan bold", width=8)
     table.add_column("Vol $", justify="right", width=9)
     table.add_column("Sources", style="dim", min_width=12)
+    table.add_column("Conf", justify="center", width=5)
 
     total_stake = 0.0
     for i, gap in enumerate(gaps, 1):
         stake = result.stake_for(gap)
         total_stake += stake
         ev_color = "bold green" if gap.ev_pct >= 0.10 else "green" if gap.ev_pct >= 0.05 else "yellow"
+        k_odds = _american(gap.kalshi_yes_price)
+        true_odds = _american(gap.blended_true_prob)
+        min_prob_needed = gap.blended_true_prob / 1.02  # inverse of 2% EV floor
+        min_odds = _american(min_prob_needed)
+        odds_ok = gap.blended_true_prob >= gap.kalshi_yes_price * 1.02
+        odds_color = "green" if odds_ok else "red"
+        steam_prefix = "⚡ " if getattr(gap, "steam_move", False) else ""
         table.add_row(
             str(i),
             gap.sector.upper(),
             gap.event_title[:28],
             gap.display_label[:22],
-            f"{gap.kalshi_yes_price:.2f}",
+            f"[{odds_color}]{k_odds}[/{odds_color}]",
+            true_odds,
+            min_odds,
             f"{gap.blended_true_prob:.3f}",
-            f"[{ev_color}]{gap.ev_pct*100:+.1f}%[/{ev_color}]",
+            f"{steam_prefix}[{ev_color}]{gap.ev_pct*100:+.1f}%[/{ev_color}]",
             f"{gap.kelly_fraction*100:.2f}%",
             f"${stake:.2f}",
             f"${gap.volume_usd:,.0f}",
             gap.model_sources[:14],
+            gap.stars_display,
         )
 
     console.print(f"\n[bold cyan]evmax agent scan — {', '.join(sector_list).upper()}[/bold cyan]\n")
@@ -165,6 +311,383 @@ def scan(
 
     if result.errors:
         console.print(f"[red]Errors:[/red] {', '.join(result.errors)}")
+
+
+@app.command("verify")
+def verify(
+    date_filter: Optional[str] = typer.Option(
+        None, "--date", "-d",
+        help="Check bets logged on this date (YYYY-MM-DD). Defaults to today.",
+    ),
+    min_ev: float = typer.Option(0.02, "--min-ev", help="Base EV threshold for 'still live' check."),
+    min_prob: float = typer.Option(0.15, "--min-prob", help="Minimum true probability floor."),
+    bankroll: float = typer.Option(250.0, "--bankroll", "-b", help="Bankroll for stake re-calc."),
+    kelly: float = typer.Option(0.5, "--kelly", "-k", help="Kelly fraction."),
+) -> None:
+    """Re-fetch live Kalshi ask prices and check which +EV bets are still actionable."""
+    from evmax.agents.cleanup.db import get_connection
+    from evmax.clients.kalshi import KalshiClient
+    from evmax.ev.calculator import calculate_ev
+    from evmax.ev.kelly import compute_kelly
+
+    if date_filter:
+        try:
+            target_date = datetime.strptime(date_filter, "%Y-%m-%d").date()
+        except ValueError:
+            console.print(f"[red]Invalid date format:[/red] {date_filter!r} — use YYYY-MM-DD")
+            raise typer.Exit(1)
+    else:
+        target_date = date.today()
+
+    conn = get_connection()
+    rows = conn.execute(
+        """
+        SELECT p.id, p.market_id, p.event_title, p.yes_team, p.sector,
+               p.market_type, p.kalshi_yes_price, p.sharp_true_prob,
+               p.blended_true_prob, p.ev_pct, p.kelly_fraction,
+               p.volume_usd, p.model_sources, p.line
+        FROM ev_predictions p
+        INNER JOIN (
+            SELECT market_id, MAX(scan_date) AS latest_scan
+            FROM ev_predictions WHERE voided = 0 GROUP BY market_id
+        ) latest ON p.market_id = latest.market_id AND p.scan_date = latest.latest_scan
+        LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
+        WHERE (p.event_date = ? OR (p.event_date IS NULL AND p.scan_date = ?))
+          AND p.voided = 0
+          AND (o.outcome IS NULL OR o.id IS NULL)
+        ORDER BY p.ev_pct DESC
+        """,
+        (str(target_date), str(target_date)),
+    ).fetchall()
+    conn.close()
+
+    if not rows:
+        console.print(f"[yellow]No open (unresolved, non-voided) predictions for games on {target_date}.[/yellow]")
+        return
+
+    console.print(f"\n[bold cyan]evmax verify[/bold cyan] — re-checking {len(rows)} bets for games on {target_date} ...\n")
+
+    def _tiered_min_ev(true_prob: float) -> float:
+        return min_ev + max(0.0, min_prob - true_prob) * 0.5
+
+    # Fetch all live ask prices via WebSocket (one connection for all tickers)
+    # with automatic REST fallback for any ticker missed by WS.
+    async def _fetch_asks(tickers: list[str]) -> dict[str, Optional[float]]:
+        async with KalshiClient() as client:
+            return await client.get_market_asks_batch(tickers)
+
+    tickers = [dict(r)["market_id"] for r in rows]
+    live_prices = asyncio.run(_fetch_asks(tickers))
+
+    table = Table(
+        title=f"Live Price Check — {target_date} | Bankroll ${bankroll:.0f} | {kelly:.0%} Kelly",
+        box=box.ROUNDED,
+        show_lines=True,
+    )
+    table.add_column("#", style="dim", width=3)
+    table.add_column("Sector", style="dim", width=6)
+    table.add_column("Event", style="dim", min_width=20)
+    table.add_column("Outcome", style="bold white", min_width=18)
+    table.add_column("Scan Ask", justify="right", width=9)
+    table.add_column("Live Ask", justify="right", width=9)
+    table.add_column("Δ Price", justify="right", width=8)
+    table.add_column("True P", justify="right", width=7)
+    table.add_column("Scan EV%", justify="right", width=9)
+    table.add_column("Live EV%", justify="right", style="bold", width=9)
+    table.add_column("Stake $", justify="right", style="cyan", width=8)
+    table.add_column("Status", justify="center", width=10)
+
+    still_live = 0
+    total_stake = 0.0
+
+    for i, row in enumerate(rows, 1):
+        r = dict(row)
+        market_id = r["market_id"]
+        blended_prob = r["blended_true_prob"]
+        scan_ask = r["kalshi_yes_price"]
+        live_ask = live_prices.get(market_id)
+
+        if live_ask is None:
+            # Settled or fetch error
+            table.add_row(
+                str(i), r["sector"].upper(),
+                (r["event_title"] or "")[:22],
+                _display_label(r["yes_team"], r["market_type"], r["line"])[:20],
+                f"{scan_ask:.3f}", "—", "—",
+                f"{blended_prob:.3f}",
+                f"{r['ev_pct']*100:+.1f}%", "—",
+                "—", "[dim]settled/err[/dim]",
+            )
+            continue
+
+        live_ev, _ = calculate_ev(live_ask, blended_prob)
+        threshold = _tiered_min_ev(blended_prob)
+        is_live = live_ev >= threshold and blended_prob >= min_prob
+
+        # Kelly stake at live price
+        if is_live:
+            from evmax.settings import get_settings
+            settings = get_settings()
+            payout = 1.0 / live_ask
+            k = compute_kelly(
+                true_prob=blended_prob,
+                payout_decimal=payout,
+                edge_pct=live_ev,
+                spread_pct=0.0,
+                base_fraction=kelly,
+                max_kelly=settings.max_kelly_fraction,
+            )
+            stake = bankroll * k.kelly_fraction
+            total_stake += stake
+            stake_str = f"${stake:.2f}"
+            still_live += 1
+        else:
+            stake_str = "—"
+
+        price_delta = live_ask - scan_ask
+        delta_color = "red" if price_delta > 0.01 else "green" if price_delta < -0.01 else "dim"
+        ev_color = "bold green" if is_live and live_ev >= 0.10 else "green" if is_live else "red"
+        status = "[green]LIVE[/green]" if is_live else "[red]STALE[/red]"
+
+        table.add_row(
+            str(i), r["sector"].upper(),
+            (r["event_title"] or "")[:22],
+            _display_label(r["yes_team"], r["market_type"], r["line"])[:20],
+            f"{scan_ask:.3f}",
+            f"[{delta_color}]{live_ask:.3f}[/{delta_color}]",
+            f"[{delta_color}]{price_delta:+.3f}[/{delta_color}]",
+            f"{blended_prob:.3f}",
+            f"{r['ev_pct']*100:+.1f}%",
+            f"[{ev_color}]{live_ev*100:+.1f}%[/{ev_color}]",
+            stake_str,
+            status,
+        )
+
+    console.print(table)
+    console.print(
+        f"\n  [bold]{still_live}[/bold] of {len(rows)} bets still +EV at live prices  |  "
+        f"Total stake if all placed: [cyan]${total_stake:.2f}[/cyan]\n"
+    )
+
+
+@app.command("pick")
+def pick(
+    date_filter: Optional[str] = typer.Option(
+        None, "--date", "-d",
+        help="Check bets logged on this date (YYYY-MM-DD). Defaults to today.",
+    ),
+    min_ev: float = typer.Option(0.02, "--min-ev", help="Base EV threshold for 'still live' check."),
+    min_prob: float = typer.Option(0.15, "--min-prob", help="Minimum true probability floor."),
+    bankroll: float = typer.Option(250.0, "--bankroll", "-b", help="Bankroll for stake calculation."),
+    kelly: float = typer.Option(0.5, "--kelly", "-k", help="Kelly fraction."),
+    show_stale: bool = typer.Option(False, "--show-stale", help="Also show bets whose edge has evaporated."),
+) -> None:
+    """Interactively select which +EV bets you're placing. Records placed bets in the database."""
+    from evmax.agents.cleanup.db import get_connection
+    from evmax.clients.kalshi import KalshiClient
+    from evmax.ev.calculator import calculate_ev
+    from evmax.ev.kelly import compute_kelly
+    from evmax.settings import get_settings
+    import questionary
+    from datetime import datetime as _dt
+
+    if date_filter:
+        try:
+            target_date = datetime.strptime(date_filter, "%Y-%m-%d").date()
+        except ValueError:
+            console.print(f"[red]Invalid date format:[/red] {date_filter!r} — use YYYY-MM-DD")
+            raise typer.Exit(1)
+    else:
+        target_date = date.today()
+
+    conn = get_connection()
+    rows = conn.execute(
+        """
+        SELECT p.id, p.market_id, p.event_title, p.yes_team, p.sector,
+               p.market_type, p.kalshi_yes_price, p.sharp_true_prob,
+               p.blended_true_prob, p.ev_pct, p.kelly_fraction,
+               p.volume_usd, p.model_sources, p.line,
+               p.placed, p.placed_price, p.placed_stake
+        FROM ev_predictions p
+        INNER JOIN (
+            SELECT market_id, MAX(scan_date) AS latest_scan
+            FROM ev_predictions WHERE voided = 0 GROUP BY market_id
+        ) latest ON p.market_id = latest.market_id AND p.scan_date = latest.latest_scan
+        LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
+        WHERE (p.event_date = ? OR (p.event_date IS NULL AND p.scan_date = ?))
+          AND p.voided = 0
+          AND (o.outcome IS NULL OR o.id IS NULL)
+        ORDER BY p.ev_pct DESC
+        """,
+        (str(target_date), str(target_date)),
+    ).fetchall()
+    conn.close()
+
+    if not rows:
+        console.print(f"[yellow]No open predictions for games on {target_date}.[/yellow]")
+        console.print(f"[dim]Tip: scan_date is when the scan ran; --date filters by game date.[/dim]")
+        return
+
+    console.print(f"\n[bold cyan]evmax pick[/bold cyan] — fetching live prices for {len(rows)} bets ...\n")
+
+    def _tiered_min_ev(true_prob: float) -> float:
+        return min_ev + max(0.0, min_prob - true_prob) * 0.5
+
+    # Fetch live ask prices via WebSocket (one connection for all tickers)
+    # with automatic REST fallback for any ticker missed by WS.
+    async def _fetch_asks(tickers: list[str]) -> dict[str, Optional[float]]:
+        async with KalshiClient() as client:
+            return await client.get_market_asks_batch(tickers)
+
+    tickers = [dict(r)["market_id"] for r in rows]
+    live_prices = asyncio.run(_fetch_asks(tickers))
+
+    settings = get_settings()
+
+    # Build enriched bet list
+    bets = []
+    for r in [dict(r) for r in rows]:
+        blended_prob = r["blended_true_prob"]
+        scan_ask = r["kalshi_yes_price"]
+        live_ask = live_prices.get(r["market_id"])
+        already_placed = bool(r["placed"])
+
+        if live_ask is not None:
+            live_ev, _ = calculate_ev(live_ask, blended_prob)
+            threshold = _tiered_min_ev(blended_prob)
+            is_live = live_ev >= threshold and blended_prob >= min_prob
+            payout = 1.0 / live_ask
+            k = compute_kelly(
+                true_prob=blended_prob,
+                payout_decimal=payout,
+                edge_pct=live_ev,
+                spread_pct=0.0,
+                base_fraction=kelly,
+                max_kelly=settings.max_kelly_fraction,
+            )
+            stake = bankroll * k.kelly_fraction
+        else:
+            live_ev = r["ev_pct"]
+            is_live = False
+            stake = bankroll * r["kelly_fraction"]
+
+        bets.append({
+            **r,
+            "live_ask": live_ask,
+            "live_ev": live_ev,
+            "is_live": is_live,
+            "stake": stake,
+            "already_placed": already_placed,
+        })
+
+    def _display_label(yes_team, market_type, line):
+        team = (yes_team or "?").capitalize()
+        if market_type == "moneyline":
+            return f"{team} ML"
+        if market_type == "spread" and line is not None:
+            line_str = f"{line:.1f}".rstrip("0").rstrip(".")
+            return f"{team} {line_str}"
+        if market_type in ("over_under", "total") and line is not None:
+            return f"O/U {line:.1f}"
+        return team
+
+    # Show a summary table first
+    table = Table(
+        title=f"Live Bets — {target_date} | Bankroll ${bankroll:.0f} | {kelly:.0%} Kelly",
+        box=box.ROUNDED,
+        show_lines=False,
+    )
+    table.add_column("#", style="dim", width=3)
+    table.add_column("Sector", style="dim", width=6)
+    table.add_column("Event", style="dim", min_width=20)
+    table.add_column("Outcome", style="bold white", min_width=16)
+    table.add_column("Live Ask", justify="right", width=9)
+    table.add_column("True P", justify="right", width=7)
+    table.add_column("Live EV%", justify="right", width=9)
+    table.add_column("Stake $", justify="right", style="cyan", width=8)
+    table.add_column("Status", justify="center", width=10)
+
+    displayable = [b for b in bets if b["is_live"] or show_stale]
+
+    for i, b in enumerate(displayable, 1):
+        ev_color = "bold green" if b["live_ev"] >= 0.10 else "green" if b["is_live"] else "red dim"
+        live_ask_str = f"{b['live_ask']:.3f}" if b["live_ask"] else "—"
+        if b["already_placed"]:
+            status = "[dim cyan]PLACED[/dim cyan]"
+        elif b["is_live"]:
+            status = "[green]LIVE[/green]"
+        else:
+            status = "[red]STALE[/red]"
+        table.add_row(
+            str(i),
+            b["sector"].upper(),
+            (b["event_title"] or "")[:22],
+            _display_label(b["yes_team"], b["market_type"], b["line"])[:18],
+            live_ask_str,
+            f"{b['blended_true_prob']:.3f}",
+            f"[{ev_color}]{b['live_ev']*100:+.1f}%[/{ev_color}]",
+            f"${b['stake']:.2f}",
+            status,
+        )
+
+    console.print(table)
+
+    live_bets = [b for b in displayable if b["is_live"] and not b["already_placed"]]
+    if not live_bets:
+        already = sum(1 for b in bets if b["already_placed"])
+        if already:
+            console.print(f"\n[dim cyan]All live bets already marked as placed ({already} total).[/dim cyan]\n")
+        else:
+            console.print("\n[yellow]No live bets to select.[/yellow]\n")
+        return
+
+    # Build questionary choices — only show live, unplaced bets
+    choices = []
+    for b in live_bets:
+        label = _display_label(b["yes_team"], b["market_type"], b["line"])
+        event = (b["event_title"] or b["yes_team"] or "?")[:30]
+        ask_str = f"{b['live_ask']:.3f}" if b["live_ask"] else "?"
+        choices.append(questionary.Choice(
+            title=f"{b['sector'].upper():6s} | {event:30s} | {label:18s} | ask={ask_str}  EV={b['live_ev']*100:+.1f}%  stake=${b['stake']:.2f}",
+            value=b,
+            checked=True,  # default: all live bets selected
+        ))
+
+    console.print()
+    selected = questionary.checkbox(
+        "Select the bets you're placing (space to toggle, enter to confirm):",
+        choices=choices,
+        style=questionary.Style([
+            ("checkbox-selected", "fg:cyan bold"),
+            ("selected", "fg:cyan"),
+            ("pointer", "fg:cyan bold"),
+        ]),
+    ).ask()
+
+    if selected is None or len(selected) == 0:
+        console.print("\n[dim]No bets selected. Nothing recorded.[/dim]\n")
+        return
+
+    # Write placed records to DB
+    now_str = _dt.now(timezone.utc).isoformat()
+    conn = get_connection()
+    placed_count = 0
+    for b in selected:
+        conn.execute(
+            """
+            UPDATE ev_predictions
+            SET placed = 1, placed_at = ?, placed_price = ?, placed_stake = ?
+            WHERE id = ?
+            """,
+            (now_str, b["live_ask"], b["stake"], b["id"]),
+        )
+        placed_count += 1
+    conn.commit()
+    conn.close()
+
+    total = sum(b["stake"] for b in selected)
+    console.print(f"\n[bold green]Recorded {placed_count} bet(s)[/bold green] — total at risk: [cyan]${total:.2f}[/cyan]\n")
+    console.print("[dim]These bets are now tracked in predictions.db. Run [bold]evmax cleanup show[/bold] to see your P&L.[/dim]\n")
 
 
 @app.command("seed")
@@ -268,11 +791,50 @@ def update_result(
     score_a: float = typer.Option(..., "--score-home", help="Final score for home team"),
     score_b: float = typer.Option(..., "--score-away", help="Final score for away team"),
     date: Optional[str] = typer.Option(None, "--date", help="Game date ISO (YYYY-MM-DD)"),
+    surface: Optional[str] = typer.Option(None, "--surface", help="Court surface (hard/clay/grass/indoor). Required for tennis."),
 ) -> None:
     """Feed a completed game result into all model agents (updates Elo + Form + Poisson)."""
     from evmax.agents.coordinator import AgentCoordinator
     c = AgentCoordinator(sectors=[sector], enable_models=True)
-    c.update_models(team_a, team_b, score_a, score_b, sector, date)
+    c.update_models(team_a, team_b, score_a, score_b, sector, date, surface=surface or "overall")
     console.print(
         f"[green]Updated models:[/green] {team_a} {score_a:.0f} – {score_b:.0f} {team_b} ({sector})"
     )
+
+
+@app.command("seed-tennis")
+def seed_tennis(
+    what: str = typer.Argument(..., help="What to seed: rankings | surface"),
+    file: Path = typer.Option(..., "--file", "-f", help="JSON file"),
+    surface: Optional[str] = typer.Option(None, "--surface", help="Surface for 'surface' seeding: hard/clay/grass/indoor"),
+) -> None:
+    """Seed tennis rankings or surface-specific Elo ratings.
+
+    JSON format for rankings:
+      {"sinner": 1, "alcaraz": 2, "djokovic": 3, ...}
+
+    JSON format for surface ratings:
+      {"djokovic": 1860.0, "nadal": 1820.0, ...}
+    """
+    from evmax.agents.models.tennis_model_agent import TennisModelAgent
+    import json
+
+    if not file.exists():
+        console.print(f"[red]File not found:[/red] {file}")
+        raise typer.Exit(1)
+
+    agent = TennisModelAgent()
+    data = json.loads(file.read_text())
+
+    if what == "rankings":
+        agent.seed_rankings(data)
+        console.print(f"[green]Seeded rankings:[/green] {len(data)} players")
+    elif what == "surface":
+        if not surface:
+            console.print("[red]--surface required for surface seeding[/red]")
+            raise typer.Exit(1)
+        agent.seed_surface_ratings(surface, data)
+        console.print(f"[green]Seeded {surface} ratings:[/green] {len(data)} players")
+    else:
+        console.print(f"[red]Unknown:[/red] {what}. Choose: rankings | surface")
+        raise typer.Exit(1)

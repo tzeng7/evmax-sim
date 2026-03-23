@@ -34,30 +34,43 @@ SECTOR_SPORT_LEAGUES: dict[str, tuple[int, list[int]]] = {
     "nba":      (4,  [487]),
     "ncaab":    (4,  [493]),
     "nfl":      (15, [258]),
+    "baseball": (3,  [246]),    # MLB
+    "ufc":      (22, []),       # Mixed Martial Arts — matched by league name
+    "f1":       (44, []),       # Formula 1 — matched by league name
     "soccer":   (29, [1980, 2196, 1842, 2436, 2036, 2186]),  # EPL, La Liga, Bundesliga, Serie A, Ligue1, UCL
-    "cs2":      (12, []),   # all esports leagues matched by name
+    "cs2":      (12, []),       # Esports — matched by league name
     "lol":      (12, []),
     "valorant": (12, []),
+    "tennis":   (33, []),       # ATP/WTA — matched by league name (ATP Miami, WTA Miami, etc.)
 }
 
-# Esports: league name substrings → sector
-ESPORTS_LEAGUE_MAP: list[tuple[str, str]] = [
+# Sectors that use league-name matching instead of league IDs
+NAME_MATCHED_LEAGUE_MAP: list[tuple[str, str]] = [
     ("CS2", "cs2"),
     ("Counter-Strike", "cs2"),
     ("League of Legends", "lol"),
     ("Valorant", "valorant"),
+    ("UFC", "ufc"),
+    ("Bellator", "ufc"),      # Bellator MMA also captured under ufc sector
+    ("Formula 1", "f1"),
+    ("Formula One", "f1"),
+    ("ATP", "tennis"),
+    ("WTA", "tennis"),
 ]
 
 # All sectors this client can handle
 ALL_SECTORS = set(SECTOR_SPORT_LEAGUES.keys())
-ESPORTS_SECTORS = {"cs2", "lol", "valorant"}
+# Sectors resolved by league name (not league ID list)
+NAME_MATCHED_SECTORS = {"cs2", "lol", "valorant", "ufc", "f1", "tennis"}
+ESPORTS_SECTORS = {"cs2", "lol", "valorant"}  # kept for backward compat
 
 # Soccer leagues that have draws (all of them)
 SOCCER_DRAW_LEAGUES = {1980, 2196, 1842, 2436, 2036, 2186}
 
 
-def _esports_league_sector(league_name: str) -> Optional[str]:
-    for keyword, sector in ESPORTS_LEAGUE_MAP:
+def _name_matched_sector(league_name: str) -> Optional[str]:
+    """Return sector for a league resolved by name matching (esports, UFC, F1)."""
+    for keyword, sector in NAME_MATCHED_LEAGUE_MAP:
         if keyword.lower() in league_name.lower():
             return sector
     return None
@@ -66,7 +79,7 @@ def _esports_league_sector(league_name: str) -> Optional[str]:
 class PinnacleGuestClient(BaseAPIClient):
     """
     Fetches sharp Pinnacle odds from the public guest Arcadia API.
-    Covers NBA, NCAAB, NFL, Soccer, CS2, LoL, Valorant.
+    Covers NBA, NCAAB, NFL, Baseball, Soccer, UFC, F1, CS2, LoL, Valorant.
     No API key or account required.
     """
 
@@ -102,12 +115,12 @@ class PinnacleGuestClient(BaseAPIClient):
             return []
 
         # Filter to parent matchups for this sector
-        if sector in ESPORTS_SECTORS:
+        if sector in NAME_MATCHED_SECTORS:
             matchups = [
                 m for m in all_matchups
                 if m.get("parentId") is None
                 and m.get("type") == "matchup"
-                and _esports_league_sector(m.get("league", {}).get("name", "")) == sector
+                and _name_matched_sector(m.get("league", {}).get("name", "")) == sector
             ]
         else:
             matchups = [
@@ -190,8 +203,8 @@ class PinnacleGuestClient(BaseAPIClient):
             if ml_odds:
                 results.append(ml_odds)
 
-        # --- Spread (non-soccer, non-esports) ---
-        if sector not in ESPORTS_SECTORS and sector != "soccer":
+        # --- Spread (only for team sports with meaningful point spreads) ---
+        if sector not in NAME_MATCHED_SECTORS and sector != "soccer":
             spread_market = next(
                 (m for m in markets_data
                  if m.get("matchupId") == matchup_id
@@ -205,6 +218,23 @@ class PinnacleGuestClient(BaseAPIClient):
                 spread_odds = self._parse_spread(spread_market, base_event_id, sector, home, away, event_date)
                 if spread_odds:
                     results.append(spread_odds)
+
+        # --- Totals (scoring team sports only — excludes esports, UFC, F1, tennis) ---
+        _TOTALS_SECTORS = {"nba", "nfl", "ncaab", "soccer", "baseball"}
+        if sector in _TOTALS_SECTORS:
+            totals_market = next(
+                (m for m in markets_data
+                 if m.get("matchupId") == matchup_id
+                 and m.get("type") == "total"
+                 and m.get("period") == 0
+                 and not m.get("isAlternate", False)
+                 and m.get("status") == "open"),
+                None,
+            )
+            if totals_market:
+                totals_odds = self._parse_totals(totals_market, base_event_id, sector, event_date)
+                if totals_odds:
+                    results.append(totals_odds)
 
         return results if results else None
 
@@ -265,8 +295,9 @@ class PinnacleGuestClient(BaseAPIClient):
         if not home_entry or not away_entry:
             return None
 
-        home_hdp = home_entry.get("handicap", 0.0)
-        away_hdp = away_entry.get("handicap", 0.0)
+        # Pinnacle guest API uses "points" for the handicap value (not "handicap")
+        home_hdp = home_entry.get("points") if "points" in home_entry else home_entry.get("handicap", 0.0)
+        away_hdp = away_entry.get("points") if "points" in away_entry else away_entry.get("handicap", 0.0)
 
         # Covering team = negative handicap (favorite)
         if home_hdp < 0:
@@ -299,6 +330,47 @@ class PinnacleGuestClient(BaseAPIClient):
             true_prob_a=prob_cover,
             true_prob_b=prob_other,
             spread_line=cover_point,
+            margin=margin,
+            event_date=event_date,
+        )
+
+    def _parse_totals(
+        self, market: dict, base_event_id: str, sector: str,
+        event_date: Optional[datetime],
+    ) -> Optional[SharpOdds]:
+        prices = market.get("prices", [])
+        over_entry  = next((p for p in prices if p.get("designation") == "over"),  None)
+        under_entry = next((p for p in prices if p.get("designation") == "under"), None)
+        if not over_entry or not under_entry:
+            return None
+
+        # "points" field holds the total line (e.g. 220.5)
+        raw_line = over_entry.get("points") or over_entry.get("handicap")
+        if raw_line is None:
+            return None
+        total_line = float(raw_line)
+
+        try:
+            over_dec  = american_to_decimal(int(over_entry["price"]))
+            under_dec = american_to_decimal(int(under_entry["price"]))
+            prob_over, prob_under, margin = devig_two_way(over_dec, under_dec)
+        except Exception as e:
+            logger.debug("pinnacle_guest_totals_devig_failed", error=str(e))
+            return None
+
+        return SharpOdds(
+            event_id=f"{base_event_id}::total::{total_line}",
+            book=SharpBook.pinnacle,
+            sector=sector,
+            outcome_a_label="over",
+            outcome_b_label="under",
+            outcome_a_decimal=over_dec,
+            outcome_b_decimal=under_dec,
+            true_prob_a=0.0,
+            true_prob_b=0.0,
+            true_prob_over=prob_over,
+            true_prob_under=prob_under,
+            total_line=total_line,
             margin=margin,
             event_date=event_date,
         )

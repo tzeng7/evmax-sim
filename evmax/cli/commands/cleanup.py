@@ -31,82 +31,173 @@ def show(
     days: int = typer.Option(7, "--days", "-d", help="How many days back to display."),
     sector: Optional[str] = typer.Option(None, "--sector", "-s", help="Filter by sector."),
     resolved_only: bool = typer.Option(False, "--resolved", help="Only show resolved bets."),
+    placed_only: bool = typer.Option(False, "--placed", help="Only show bets you manually placed via 'pick'."),
+    bankroll: float = typer.Option(250.0, "--bankroll", "-b", help="Bankroll in USD for P&L calculation."),
+    game_date: Optional[str] = typer.Option(None, "--date", help="Filter by game date (YYYY-MM-DD)."),
 ) -> None:
     """Show logged +EV predictions and their WIN/LOSS outcomes."""
     from evmax.agents.cleanup.db import get_connection
 
+    if game_date:
+        try:
+            date.fromisoformat(game_date)
+        except ValueError:
+            console.print(f"[red]Invalid date:[/red] {game_date!r} — use YYYY-MM-DD")
+            raise typer.Exit(1)
+
     since = (date.today() - timedelta(days=days)).isoformat()
     conn = get_connection()
 
-    where_parts = ["p.scan_date >= ?"]
+    where_parts = ["p.scan_date >= ?", "p.voided = 0"]
     params: list = [since]
+    if game_date:
+        where_parts.append("p.event_date = ?")
+        params.append(game_date)
     if sector:
         where_parts.append("p.sector = ?")
         params.append(sector.lower())
     if resolved_only:
         where_parts.append("o.outcome IS NOT NULL")
+    if placed_only:
+        where_parts.append("p.placed = 1")
 
     where = " AND ".join(where_parts)
     rows = conn.execute(
-        f"""SELECT p.scan_date, p.sector, p.yes_team, p.event_title,
-                   p.kalshi_yes_price, p.blended_true_prob, p.ev_pct,
-                   p.model_sources, p.sharp_weight_used,
-                   o.outcome, o.result_source
+        f"""SELECT p.scan_date, p.event_date, p.sector, p.yes_team, p.event_title,
+                   p.market_type, p.line,
+                   p.kalshi_yes_price, p.sharp_true_prob, p.blended_true_prob, p.ev_pct,
+                   p.kelly_fraction, p.volume_usd, p.model_sources,
+                   p.placed, p.placed_price, p.placed_stake,
+                   o.outcome, o.pinnacle_close_prob
             FROM ev_predictions p
+            INNER JOIN (
+                SELECT market_id, MAX(scan_date) AS latest_scan
+                FROM ev_predictions
+                WHERE voided = 0
+                GROUP BY market_id
+            ) latest ON p.market_id = latest.market_id
+                    AND p.scan_date = latest.latest_scan
             LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
             WHERE {where}
-            ORDER BY p.scan_date DESC, p.ev_pct DESC
+            ORDER BY p.ev_pct DESC
             LIMIT 200""",
         params,
     ).fetchall()
     conn.close()
 
     if not rows:
-        console.print(f"[yellow]No predictions in the last {days} day(s).[/yellow]")
+        msg = "No placed bets" if placed_only else "No predictions"
+        console.print(f"[yellow]{msg} in the last {days} day(s).[/yellow]")
         return
 
     pending = sum(1 for r in rows if r["outcome"] is None)
     wins    = sum(1 for r in rows if r["outcome"] == 1)
     losses  = sum(1 for r in rows if r["outcome"] == 0)
 
+    # P&L: use placed_stake if available, else bankroll * kelly_fraction
+    total_staked = 0.0
+    total_pnl    = 0.0
+    for r in rows:
+        if r["outcome"] is None:
+            continue
+        stake = r["placed_stake"] if r["placed_stake"] else bankroll * (r["kelly_fraction"] or 0.0)
+        price = r["placed_price"] if r["placed_price"] else r["kalshi_yes_price"]
+        total_staked += stake
+        if r["outcome"] == 1:
+            total_pnl += stake * (1.0 / price - 1.0)
+        else:
+            total_pnl -= stake
+
+    pnl_color = "green" if total_pnl >= 0 else "red"
+    pnl_sign  = "+" if total_pnl >= 0 else ""
+
+    title_date = f"game date {game_date}" if game_date else f"last {days}d"
+    placed_note = " | placed only" if placed_only else ""
+    placed_total = sum(1 for r in rows if r["placed"])
     table = Table(
-        title=f"+EV Predictions (last {days}d) | {wins}W / {losses}L / {pending} pending",
-        box=box.ROUNDED,
+        title=(
+            f"+EV Predictions ({title_date}{placed_note}) | {wins}W / {losses}L / {pending} pending"
+            f" | P&L [{pnl_color}]{pnl_sign}${total_pnl:.2f}[/{pnl_color}]"
+            f" on ${total_staked:.2f} staked"
+            + (f" | {placed_total} placed" if not placed_only and placed_total else "")
+        ),
+        box=box.SIMPLE,
         show_lines=False,
     )
-    table.add_column("Date", style="dim", width=10)
-    table.add_column("Sector", style="dim", width=6)
-    table.add_column("Bet", min_width=20)
-    table.add_column("Kalshi", justify="right", width=7)
-    table.add_column("TrueP", justify="right", width=7)
-    table.add_column("EV%", justify="right", width=7)
-    table.add_column("SW", justify="right", width=5, style="dim")
-    table.add_column("Sources", style="dim", width=12)
-    table.add_column("Result", justify="center", width=8)
+    table.add_column("Date",    style="dim", width=10)
+    table.add_column("Sect",    style="dim", width=5)
+    table.add_column("Event",   style="dim", min_width=18, no_wrap=False)
+    table.add_column("Outcome", style="bold white", min_width=12, no_wrap=False)
+    table.add_column("Kalshi",  justify="right", width=6)
+    table.add_column("TrueP",   justify="right", width=6)
+    table.add_column("CLV",     justify="right", width=7)
+    table.add_column("EV%",     justify="right", width=6)
+    table.add_column("Stake$",  justify="right", width=7)
+    table.add_column("P&L$",    justify="right", width=8)
+    table.add_column("Src",     style="dim", width=10)
+    table.add_column("Result",  justify="center", width=7)
 
-    for r in rows:
-        ev_color = "green" if r["ev_pct"] >= 0.05 else "yellow"
+    def _display_label(yes_team: str, market_type: str, line) -> str:
+        team = (yes_team or "?").capitalize()
+        if market_type == "moneyline":
+            return f"{team} ML"
+        if market_type == "spread" and line is not None:
+            line_str = f"{line:.1f}".rstrip("0").rstrip(".")
+            return f"{team} {line_str}"
+        if market_type in ("over_under", "total") and line is not None:
+            return f"O/U {line:.1f}"
+        return team
+
+    for i, r in enumerate(rows, 1):
+        ev_color = "bold green" if r["ev_pct"] >= 0.10 else "green" if r["ev_pct"] >= 0.05 else "yellow"
+        # Use actual placed stake/price if available, else estimated
+        stake = r["placed_stake"] if r["placed_stake"] else bankroll * (r["kelly_fraction"] or 0.0)
+        price = r["placed_price"] if r["placed_price"] else r["kalshi_yes_price"]
+        placed_marker = " [cyan]●[/cyan]" if r["placed"] else ""
+
         if r["outcome"] is None:
             result_str = "[dim]pending[/dim]"
+            pnl_str = "[dim]—[/dim]"
         elif r["outcome"] == 1:
             result_str = "[bold green]WIN[/bold green]"
+            profit = stake * (1.0 / price - 1.0)
+            pnl_str = f"[green]+${profit:.2f}[/green]"
         else:
             result_str = "[bold red]LOSS[/bold red]"
+            pnl_str = f"[red]-${stake:.2f}[/red]"
 
-        sw = f"{r['sharp_weight_used']:.2f}" if r["sharp_weight_used"] is not None else ""
+        # CLV = entry sharp prob - Pinnacle closing prob (positive = bought value)
+        close_prob = r["pinnacle_close_prob"]
+        entry_prob = r["sharp_true_prob"]
+        if close_prob is not None and entry_prob is not None:
+            clv = entry_prob - close_prob
+            clv_color = "green" if clv >= 0.01 else "red" if clv <= -0.01 else "dim"
+            clv_str = f"[{clv_color}]{clv*100:+.1f}pp[/{clv_color}]"
+        else:
+            clv_str = "[dim]—[/dim]"
+
         table.add_row(
-            r["scan_date"] or "",
+            r["event_date"] or r["scan_date"] or "",
             (r["sector"] or "").upper(),
-            (r["yes_team"] or "?")[:22],
-            f"{r['kalshi_yes_price']:.2f}",
+            (r["event_title"] or "")[:24],
+            _display_label(r["yes_team"], r["market_type"] or "moneyline", r["line"]) + placed_marker,
+            f"{price:.2f}",
             f"{r['blended_true_prob']:.3f}",
+            clv_str,
             f"[{ev_color}]{r['ev_pct']*100:+.1f}%[/{ev_color}]",
-            sw,
+            f"${stake:.2f}",
+            pnl_str,
             (r["model_sources"] or "")[:14],
             result_str,
         )
 
     console.print(table)
+    console.print(
+        f"  [{pnl_color}]Net P&L: {pnl_sign}${total_pnl:.2f}[/{pnl_color}]"
+        f"  |  Staked: ${total_staked:.2f}"
+        f"  |  ROI: [{pnl_color}]{pnl_sign}{(total_pnl / total_staked * 100) if total_staked else 0:.1f}%[/{pnl_color}]"
+        f"  (bankroll ${bankroll:.0f})\n"
+    )
 
 
 @app.command("resolve")
@@ -135,11 +226,198 @@ def resolve(
         f"  [green]Resolved:[/green] {result['resolved']}  "
         f"[yellow]Unmatched:[/yellow] {result['failed']}"
     )
-    if result["resolved"] == 0:
+    unmatched = result.get("unmatched", [])
+    if unmatched:
+        console.print(f"\n  [yellow]Unmatched event IDs ({len(unmatched)}):[/yellow]")
+        for eid in unmatched[:30]:
+            console.print(f"    [dim]{eid}[/dim]")
+        if len(unmatched) > 30:
+            console.print(f"    [dim]... and {len(unmatched) - 30} more[/dim]")
+    if result["resolved"] == 0 and not unmatched:
         console.print(
             "  [dim]Tip: run [bold]evmax cleanup show[/bold] to check logged bets, "
             "or try [bold]--date YYYY-MM-DD[/bold] to target a specific game date.[/dim]"
         )
+
+
+@app.command("close-lines")
+def close_lines(
+    target_date: Optional[str] = typer.Option(
+        None, "--date", "-d",
+        help="Date to capture closing lines for (YYYY-MM-DD). Defaults to today.",
+    ),
+) -> None:
+    """Capture Pinnacle closing lines for unresolved markets.
+
+    Run this at or just before game start time. Stores pinnacle_close_prob in
+    ev_outcomes so CLV (entry prob vs closing line) can be computed later.
+
+    CLV = sharp_true_prob (at scan time) - pinnacle_close_prob (at close).
+    Positive CLV means you got better odds than the sharpest book offered at close.
+    """
+    import asyncio
+    from evmax.agents.cleanup.db import get_connection
+    from evmax.clients.pinnacle import PinnacleClient
+
+    if target_date:
+        try:
+            d = date.fromisoformat(target_date)
+        except ValueError:
+            console.print(f"[red]Invalid date:[/red] {target_date!r} — use YYYY-MM-DD")
+            raise typer.Exit(1)
+    else:
+        d = date.today()
+
+    date_str = d.isoformat()
+    conn = get_connection()
+
+    # Get unresolved markets for this date that don't yet have a closing line
+    rows = conn.execute(
+        """SELECT o.market_id, o.event_id, o.sector, p.sharp_true_prob
+           FROM ev_outcomes o
+           JOIN ev_predictions p ON o.market_id = p.market_id
+           WHERE o.event_date = ?
+             AND o.outcome IS NULL
+             AND o.pinnacle_close_prob IS NULL""",
+        (date_str,),
+    ).fetchall()
+
+    if not rows:
+        console.print(f"[yellow]No unresolved markets without closing lines for {date_str}.[/yellow]")
+        conn.close()
+        return
+
+    console.print(f"[cyan]Capturing closing lines for {len(rows)} market(s) on {date_str}...[/cyan]")
+
+    # Group by sector to batch Pinnacle fetches
+    by_sector: dict[str, list] = {}
+    for r in rows:
+        by_sector.setdefault(r["sector"], []).append(dict(r))
+
+    async def _fetch_and_store() -> int:
+        updated = 0
+        async with PinnacleClient() as client:
+            for sector, markets in by_sector.items():
+                sharp_odds = await client.get_odds(sector)
+                sharp_by_event: dict[str, float] = {}
+                for so in sharp_odds:
+                    # Store true_prob_a as the closing prob reference (YES-aligned per entry)
+                    sharp_by_event[so.event_id] = so.true_prob_a
+
+                for m in markets:
+                    close_prob = sharp_by_event.get(m["event_id"])
+                    if close_prob is None:
+                        continue
+                    conn.execute(
+                        "UPDATE ev_outcomes SET pinnacle_close_prob = ? WHERE market_id = ?",
+                        (close_prob, m["market_id"]),
+                    )
+                    updated += 1
+
+        conn.commit()
+        return updated
+
+    updated = asyncio.run(_fetch_and_store())
+    conn.close()
+
+    console.print(f"  [green]Stored closing lines for {updated}/{len(rows)} market(s).[/green]")
+    if updated < len(rows):
+        console.print(
+            f"  [dim]{len(rows) - updated} market(s) had no matching Pinnacle event "
+            f"(may have already started or Pinnacle delisted).[/dim]"
+        )
+
+
+@app.command("void")
+def void(
+    before: Optional[str] = typer.Option(
+        None, "--before",
+        help="Void predictions with event_date before this date (YYYY-MM-DD). "
+             "Defaults to 5 days ago.",
+    ),
+    stale_days: int = typer.Option(
+        5, "--days", "-d",
+        help="Void predictions older than this many days with no outcome (used when --before is omitted).",
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would be voided without making changes."
+    ),
+) -> None:
+    """Void stale unmatched predictions (cancelled/postponed games, untraceable markets).
+
+    Voided bets are excluded from P&L and Brier score calculations but kept
+    in the database for audit purposes.
+    """
+    from evmax.agents.cleanup.db import get_connection
+
+    if before:
+        try:
+            cutoff = date.fromisoformat(before)
+        except ValueError:
+            console.print(f"[red]Invalid date:[/red] {before!r} — use YYYY-MM-DD")
+            raise typer.Exit(1)
+    else:
+        cutoff = date.today() - timedelta(days=stale_days)
+
+    cutoff_str = cutoff.isoformat()
+    conn = get_connection()
+
+    # Find predictions that are: past the cutoff, still unresolved, and not already voided
+    candidates = conn.execute(
+        """
+        SELECT p.market_id, p.event_id, p.sector, p.yes_team,
+               p.event_date, p.scan_date, p.ev_pct
+        FROM   ev_predictions p
+        LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
+        WHERE  p.voided = 0
+          AND  o.market_id IS NULL
+          AND  COALESCE(p.event_date, p.scan_date) < ?
+        ORDER  BY COALESCE(p.event_date, p.scan_date) DESC
+        """,
+        (cutoff_str,),
+    ).fetchall()
+
+    if not candidates:
+        console.print(f"[green]No stale unmatched predictions before {cutoff_str}.[/green]")
+        conn.close()
+        return
+
+    table = Table(
+        title=f"{'[DRY RUN] ' if dry_run else ''}Voiding {len(candidates)} stale prediction(s) before {cutoff_str}",
+        box=box.SIMPLE,
+    )
+    table.add_column("Event Date", style="dim", width=10)
+    table.add_column("Sector", style="dim", width=6)
+    table.add_column("Event ID", style="dim", min_width=32)
+    table.add_column("YES Team", style="dim", min_width=14)
+    table.add_column("EV%", justify="right", width=6)
+
+    for r in candidates:
+        table.add_row(
+            r["event_date"] or r["scan_date"] or "",
+            (r["sector"] or "").upper(),
+            r["event_id"],
+            r["yes_team"],
+            f"{r['ev_pct'] * 100:+.1f}%",
+        )
+
+    console.print(table)
+
+    if dry_run:
+        console.print(f"\n  [dim]Dry run — no changes made. Remove --dry-run to apply.[/dim]")
+        conn.close()
+        return
+
+    market_ids = [r["market_id"] for r in candidates]
+    conn.execute(
+        f"UPDATE ev_predictions SET voided = 1 WHERE market_id IN ({','.join('?' * len(market_ids))})",
+        market_ids,
+    )
+    conn.commit()
+    conn.close()
+
+    console.print(f"\n  [cyan]Voided {len(candidates)} prediction(s).[/cyan] "
+                  f"They are excluded from P&L but kept for audit.")
 
 
 @app.command("metrics")
@@ -183,6 +461,42 @@ def metrics(
     table.add_row("Last adjusted", cfg.get("last_adjusted") or "never")
 
     console.print(table)
+
+    # Per-tier breakdown
+    tiers = scores.get("tiers", [])
+    if any(t["n"] > 0 for t in tiers):
+        tier_table = Table(title="Brier Score by Probability Tier", box=box.SIMPLE)
+        tier_table.add_column("Prob Tier",    style="dim", width=10)
+        tier_table.add_column("Bets",         justify="right", width=6)
+        tier_table.add_column("Brier Model",  justify="right", width=12)
+        tier_table.add_column("Brier Sharp",  justify="right", width=12)
+        tier_table.add_column("Model vs Sharp", justify="right", width=16)
+        tier_table.add_column("Note", style="dim", min_width=20)
+
+        for t in tiers:
+            if t["n"] == 0:
+                tier_table.add_row(t["label"], "0", "—", "—", "—", "[dim]insufficient data[/dim]")
+                continue
+            bm, bs = t["brier_model"], t["brier_sharp"]
+            imp = (bs - bm) / bs * 100 if bs and bs > 0 else 0.0
+            imp_str = (
+                f"[green]+{imp:.1f}%[/green]" if imp > 0
+                else f"[red]{imp:.1f}%[/red]"
+            )
+            note = ""
+            if t["label"] == "< 20%" and t["n"] < 50:
+                note = "[yellow]low vol — high variance[/yellow]"
+            elif t["n"] < 15:
+                note = "[dim]< 15 samples[/dim]"
+            tier_table.add_row(
+                t["label"],
+                str(t["n"]),
+                f"{bm:.5f}",
+                f"{bs:.5f}",
+                imp_str,
+                note,
+            )
+        console.print(tier_table)
 
     if scores["n"] < 30:
         console.print(
@@ -236,7 +550,7 @@ def train(
     scripts_dir = Path(__file__).resolve().parents[3] / "scripts"
 
     esports = [s for s in sector_list if s in ("lol", "cs2", "valorant")]
-    sports   = [s for s in sector_list if s in ("nba", "nfl", "ncaab", "soccer")]
+    sports   = [s for s in sector_list if s in ("nba", "nfl", "ncaab", "soccer", "baseball", "ufc", "f1")]
 
     if esports:
         console.print(f"\n[cyan]Seeding esports:[/cyan] {', '.join(esports)}")

@@ -50,6 +50,9 @@ HOME_ADJ: dict[str, float] = {
     "nba": 0.04,
     "ncaab": 0.05,
     "soccer": 0.04,
+    "baseball": 0.04,
+    "ufc": 0.0,   # neutral venue
+    "f1": 0.0,    # different circuit each race
     "lol": 0.0,
     "cs2": 0.0,
 }

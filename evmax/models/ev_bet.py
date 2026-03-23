@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import DateTime, Float, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -35,7 +35,7 @@ class EVBetORM(Base):
     open_interest_usd: Mapped[float] = mapped_column(Float, default=0.0)
     spread_pct: Mapped[float] = mapped_column(Float, default=0.0)
 
-    scanned_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    scanned_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     event_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
 
@@ -61,7 +61,7 @@ class EVBet(BaseModel):
     open_interest_usd: float = 0.0
     spread_pct: float = 0.0
 
-    scanned_at: datetime = datetime.utcnow()
+    scanned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     event_date: Optional[datetime] = None
 
     @property
