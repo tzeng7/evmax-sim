@@ -172,15 +172,27 @@ evmax agents scan --bankroll 250 --kelly 0.5
 
 Output:
 ```
-================================================================================
-  +EV PLAYS  |  Bankroll: $250  |  Kelly: 50%
-================================================================================
- 1. [STRONG  ] NBA    Celtics              Kalshi=0.62  TrueP=0.714  EV=+15.2%  Kelly=4.82%  Stake=$12.05  [sharp+elo+form]
- 2. [GOOD    ] SOCCER Arsenal             Kalshi=0.48  TrueP=0.537  EV=+11.9%  Kelly=3.21%  Stake=$8.03   [sharp]
- 3. [MARGINAL] NBA    Lakers -4.5         Kalshi=0.44  TrueP=0.471  EV=+7.1%   Kelly=1.90%  Stake=$4.75   [spread_model]
-================================================================================
-  Total at risk: $52.43 / $250 (21.0%)
++EV Plays — 3 found | 2026-03-24 | Bankroll $250 | 50% Kelly | base EV 2%
+╭───┬────────┬──────────────────────────┬─────────────┬─────────┬───────────┬────────┬────────┬────────┬─────────╮
+│ # │ Sector │ Event                    │ Outcome     │ K Odds  │ True Odds │ True P │ EV %   │ Kelly% │ Stake $ │
+├───┼────────┼──────────────────────────┼─────────────┼─────────┼───────────┼────────┼────────┼────────┼─────────┤
+│ 1 │ NBA    │ Celtics vs 76ers         │ Celtics ML  │  -162   │  -250     │ 0.714  │ +15.2% │ 4.82%  │ $12.05  │
+│ 2 │ SOCCER │ Arsenal vs Spurs         │ Arsenal ML  │  +108   │  +86      │ 0.537  │ +11.9% │ 3.21%  │  $8.03  │
+│ 3 │ NBA    │ Lakers vs Nuggets        │ Lakers -4.5 │  +127   │  +113     │ 0.471  │  +7.1% │ 1.90%  │  $4.75  │
+╰───┴────────┴──────────────────────────┴─────────────┴─────────┴───────────┴────────┴────────┴────────┴─────────╯
+  Total at risk: $24.83 / $250 (9.9%)  |  Matched 147/1084 markets
 ```
+
+**Column guide:**
+
+| Column | Description |
+|--------|-------------|
+| **K Odds** | Kalshi implied probability expressed as American odds — what the market is offering |
+| **True Odds** | Model's estimated fair-value probability expressed as American odds |
+| **True P** | Fair-value probability as a decimal (0.714 = 71.4%) |
+| **EV %** | Edge: how much you gain per dollar wagered on average |
+| **Kelly%** | Fraction of bankroll to wager (fractional Kelly, capped at 5%) |
+| **Stake $** | Dollar amount to bet |
 
 ### Verify plays before betting (real-time price check)
 
@@ -711,17 +723,43 @@ The archive and cleanup DBs are independent — the archive stores raw everythin
 
 ## Core EV and Kelly Math
 
+### American Odds Format
+
+All odds in evmax output are displayed as **American odds** (+/−), not Kalshi's raw cent prices (0.00–1.00).
+
+**Converting between formats:**
+
+| Kalshi price | Implied prob | American odds |
+|-------------|-------------|--------------|
+| $0.65 | 65% | −186 |
+| $0.50 | 50% | +100 (even) |
+| $0.40 | 40% | +150 |
+| $0.30 | 30% | +233 |
+
+Conversion rules:
+```
+# Favorite (prob ≥ 50%):
+american = -(prob / (1 - prob)) * 100   →  e.g. 0.65 → -186
+
+# Underdog (prob < 50%):
+american = ((1 - prob) / prob) * 100    →  e.g. 0.40 → +150
+```
+
+**K Odds** = Kalshi market price as American odds (what you're being offered).
+**True Odds** = Model's fair-value probability as American odds (what it should be worth).
+The gap between them is the edge.
+
 ### Expected Value
 
 ```
 EV = (true_probability × payout) − 1
 
-payout = 1 / yes_price  (for Kalshi YES contracts priced 0–1)
+payout = 1 / yes_price  (Kalshi YES contracts are priced 0–1)
 ```
 
 **Example:**
-- Kalshi: YES at $0.40 → payout = 2.5×
-- Pinnacle devigged true prob = 48%
+- Kalshi: YES at $0.40 (shown as **+150**) → payout = 2.5×
+- Pinnacle devigged true prob = 48% (shown as **+108**)
 - EV = 0.48 × 2.50 − 1 = **+20%**
 
 Any EV ≥ 2% is flagged as a play.
@@ -791,7 +829,7 @@ evmax agents scan --loop --sectors nba,soccer
 # Re-check all logged plays for today via WebSocket (real-time prices)
 evmax agents verify --date 2026-03-23 --bankroll 250 --kelly 0.5
 
-# Shows: Scan Ask | Live Ask | Δ Price | Scan EV% | Live EV% | Status (LIVE/STALE)
+# Shows: Scan Odds | Live Odds (American +/-) | Δ Price | Scan EV% | Live EV% | Status (LIVE/STALE)
 ```
 
 ### Model Management
