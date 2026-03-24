@@ -40,23 +40,22 @@ _TICKER_DATE_RE = re.compile(r"(\d{2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|N
 SECTOR_SERIES_MAP: dict[str, list[str]] = {
     "nfl": ["KXNFLGAME"],
     "nba": ["KXNBAGAME", "KXNBASPREAD"],
-    "ncaab": ["KXNCAAMBGAME", "KXNCAABGAME"],
+    "ncaab": ["KXNCAABGAME"],
     "ncaaw": ["KXNCAAWBGAME", "KXNCAAWBSPREAD", "KXNCAAWBTOTAL"],
     "nba_props": ["KXNBAPTS", "KXNBAREB", "KXNBAAST", "KXNBA3PT", "KXNBASTP", "KXNBABLK", "KXNBAPRA"],
     "nfl_props": ["KXNFLPAS", "KXNFLRSH", "KXNFLREC", "KXNFLTD"],
     "soccer": [
-        "KXEPLGAME",       # English Premier League
-        "KXUCLGAME",       # UEFA Champions League
-        "KXMLSGAME",       # Major League Soccer
-        "KXLALIGAGAME",    # La Liga
-        "KXBUNDESLIGAGAME",# Bundesliga
-        "KXSERIEAGAME",    # Serie A
-        "KXLIGUE1GAME",    # Ligue 1
-        "KXUELGAME",       # UEFA Europa League
-        "KXUEFAGAME",      # UEFA Soccer (catch-all)
+        "KXEPLGAME",        # English Premier League
+        "KXUCLGAME",        # UEFA Champions League
+        "KXMLSGAME",        # Major League Soccer
+        "KXLALIGAGAME",     # La Liga
+        "KXBUNDESLIGAGAME", # Bundesliga
+        "KXSERIEAGAME",     # Serie A
+        "KXLIGUE1GAME",     # Ligue 1
+        "KXUELGAME",        # UEFA Europa League
     ],
-    "lol": ["KXLOLGAME", "KXLOLGAMES"],
-    "cs2": ["KXCS2GAME", "KXCS2GAMES", "KXCSGOGAME"],
+    "lol": ["KXLOLGAME"],
+    "cs2": ["KXCS2GAME", "KXCS2GAMES"],
     "tennis": ["KXATPMATCH", "KXWTAMATCH"],
 }
 

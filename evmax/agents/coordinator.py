@@ -284,8 +284,18 @@ class AgentCoordinator:
         self.log.info("cycle_start", correlation_id=correlation_id, sectors=self._sectors)
         self._archiver.open_session(correlation_id, self._sectors, "agents")
 
+        async def _run_sector_delayed(sector: str, delay: float) -> dict:
+            if delay:
+                await asyncio.sleep(delay)
+            return await self._run_sector(sector, correlation_id)
+
+        # Stagger sector starts 400ms apart so their Kalshi series fetches don't
+        # all land on the API simultaneously (8 sectors × 0.4s = 3.2s spread).
         sector_results = await asyncio.gather(
-            *(self._run_sector(sector, correlation_id) for sector in self._sectors),
+            *(
+                _run_sector_delayed(sector, i * 0.4)
+                for i, sector in enumerate(self._sectors)
+            ),
             return_exceptions=True,
         )
 
