@@ -89,6 +89,11 @@ _PROP_OU_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Global semaphore — shared across ALL KalshiClient instances in the process.
+# Each sector spawns its own client, so a per-instance semaphore does nothing.
+# 3 concurrent requests keeps us well inside Kalshi's rate limit.
+_KALSHI_FETCH_SEM = asyncio.Semaphore(3)
+
 
 class KalshiWSClient:
     """Short-lived Kalshi WebSocket client for real-time orderbook snapshots.
@@ -317,10 +322,8 @@ class KalshiClient(BaseAPIClient):
         series_prefixes = SECTOR_SERIES_MAP.get(sector.lower(), [])
         is_prop_sector = sector.lower().endswith("_props")
 
-        sem = asyncio.Semaphore(3)  # max 3 concurrent Kalshi requests to avoid 429
-
         async def _fetch_prefix(prefix: str) -> list[PredictionMarket]:
-            async with sem:
+            async with _KALSHI_FETCH_SEM:
                 try:
                     data = await self._get(
                         "/markets",
