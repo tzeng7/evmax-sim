@@ -89,11 +89,6 @@ _PROP_OU_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Global semaphore — shared across ALL KalshiClient instances in the process.
-# Each sector spawns its own client, so a per-instance semaphore does nothing.
-# 5 concurrent requests: enough to keep scans fast, well below burst 429 threshold.
-_KALSHI_FETCH_SEM = asyncio.Semaphore(5)
-
 
 class KalshiWSClient:
     """Short-lived Kalshi WebSocket client for real-time orderbook snapshots.
@@ -323,26 +318,25 @@ class KalshiClient(BaseAPIClient):
         is_prop_sector = sector.lower().endswith("_props")
 
         async def _fetch_prefix(prefix: str) -> list[PredictionMarket]:
-            async with _KALSHI_FETCH_SEM:
-                try:
-                    data = await self._get(
-                        "/markets",
-                        params={"status": status, "series_ticker": prefix, "limit": limit},
-                    )
-                    parsed = []
-                    for m in data.get("markets", []):
-                        if is_prop_sector:
-                            stat_type = _PROP_SERIES_TO_STAT.get(prefix.upper(), "unknown")
-                            p = self._parse_prop_market(m, sector, stat_type)
-                        else:
-                            p = self._parse_market(m, sector)
-                        if p:
-                            parsed.append(p)
-                    return parsed
-                except Exception as e:
-                    err = str(e) or repr(e) or type(e).__name__
-                    logger.warning("kalshi_fetch_failed", prefix=prefix, error=err)
-                    return []
+            try:
+                data = await self._get(
+                    "/markets",
+                    params={"status": status, "series_ticker": prefix, "limit": limit},
+                )
+                parsed = []
+                for m in data.get("markets", []):
+                    if is_prop_sector:
+                        stat_type = _PROP_SERIES_TO_STAT.get(prefix.upper(), "unknown")
+                        p = self._parse_prop_market(m, sector, stat_type)
+                    else:
+                        p = self._parse_market(m, sector)
+                    if p:
+                        parsed.append(p)
+                return parsed
+            except Exception as e:
+                err = str(e) or repr(e) or type(e).__name__
+                logger.warning("kalshi_fetch_failed", prefix=prefix, error=err)
+                return []
 
         results = await asyncio.gather(*(_fetch_prefix(p) for p in series_prefixes))
         all_markets: list[PredictionMarket] = [m for batch in results for m in batch]
