@@ -317,7 +317,9 @@ class KalshiClient(BaseAPIClient):
         series_prefixes = SECTOR_SERIES_MAP.get(sector.lower(), [])
         is_prop_sector = sector.lower().endswith("_props")
 
-        async def _fetch_prefix(prefix: str) -> list[PredictionMarket]:
+        async def _fetch_prefix(prefix: str, stagger_s: float) -> list[PredictionMarket]:
+            if stagger_s:
+                await asyncio.sleep(stagger_s)
             try:
                 data = await self._get(
                     "/markets",
@@ -338,7 +340,11 @@ class KalshiClient(BaseAPIClient):
                 logger.warning("kalshi_fetch_failed", prefix=prefix, error=err)
                 return []
 
-        results = await asyncio.gather(*(_fetch_prefix(p) for p in series_prefixes))
+        # Stagger launches 150ms apart — all run in parallel but avoid a simultaneous
+        # burst that triggers Kalshi 429s (24 series × 0.15s = 3.6s spread, ~5s total).
+        results = await asyncio.gather(*(
+            _fetch_prefix(p, i * 0.15) for i, p in enumerate(series_prefixes)
+        ))
         all_markets: list[PredictionMarket] = [m for batch in results for m in batch]
         return all_markets
 
