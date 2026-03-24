@@ -41,6 +41,7 @@ SECTOR_SERIES_MAP: dict[str, list[str]] = {
     "nfl": ["KXNFLGAME"],
     "nba": ["KXNBAGAME", "KXNBASPREAD"],
     "ncaab": ["KXNCAAMBGAME", "KXNCAABGAME"],
+    "ncaaw": ["KXNCAAWBGAME", "KXNCAAWBSPREAD", "KXNCAAWBTOTAL"],
     "nba_props": ["KXNBAPTS", "KXNBAREB", "KXNBAAST", "KXNBA3PT", "KXNBASTP", "KXNBABLK", "KXNBAPRA"],
     "nfl_props": ["KXNFLPAS", "KXNFLRSH", "KXNFLREC", "KXNFLTD"],
     "soccer": [
@@ -314,31 +315,33 @@ class KalshiClient(BaseAPIClient):
     ) -> list[PredictionMarket]:
         """Fetch active markets for a given sector."""
         series_prefixes = SECTOR_SERIES_MAP.get(sector.lower(), [])
-        all_markets: list[PredictionMarket] = []
         is_prop_sector = sector.lower().endswith("_props")
 
-        for prefix in series_prefixes:
-            try:
-                data = await self._get(
-                    "/markets",
-                    params={
-                        "status": status,
-                        "series_ticker": prefix,
-                        "limit": limit,
-                    },
-                )
-                markets = data.get("markets", [])
-                for m in markets:
-                    if is_prop_sector:
-                        stat_type = _PROP_SERIES_TO_STAT.get(prefix.upper(), "unknown")
-                        parsed = self._parse_prop_market(m, sector, stat_type)
-                    else:
-                        parsed = self._parse_market(m, sector)
-                    if parsed:
-                        all_markets.append(parsed)
-            except Exception as e:
-                logger.warning("kalshi_fetch_failed", prefix=prefix, error=str(e))
+        sem = asyncio.Semaphore(3)  # max 3 concurrent Kalshi requests to avoid 429
 
+        async def _fetch_prefix(prefix: str) -> list[PredictionMarket]:
+            async with sem:
+                try:
+                    data = await self._get(
+                        "/markets",
+                        params={"status": status, "series_ticker": prefix, "limit": limit},
+                    )
+                    parsed = []
+                    for m in data.get("markets", []):
+                        if is_prop_sector:
+                            stat_type = _PROP_SERIES_TO_STAT.get(prefix.upper(), "unknown")
+                            p = self._parse_prop_market(m, sector, stat_type)
+                        else:
+                            p = self._parse_market(m, sector)
+                        if p:
+                            parsed.append(p)
+                    return parsed
+                except Exception as e:
+                    logger.warning("kalshi_fetch_failed", prefix=prefix, error=str(e))
+                    return []
+
+        results = await asyncio.gather(*(_fetch_prefix(p) for p in series_prefixes))
+        all_markets: list[PredictionMarket] = [m for batch in results for m in batch]
         return all_markets
 
     def _ws_client(self) -> "KalshiWSClient":
@@ -775,33 +778,38 @@ class KalshiClient(BaseAPIClient):
     ) -> tuple[Optional[str], Optional[float]]:
         """Extract (player_name, threshold) from a prop market title.
 
-        Handles common Kalshi title formats:
-          - "Will LeBron James score 25+ points?"
+        Handles Kalshi title formats:
+          - "Derik Queen: 20+ points"         ← current live format (2026)
           - "LeBron James - Points O/U 24.5"
+          - "Will LeBron James score 25+ points?"
           - "LeBron James Points Over 24.5?"
         Returns (None, None) if parsing fails.
         """
+        # Primary format: "First Last: 20+ stat"  (live Kalshi format as of 2026)
+        colon_m = re.match(r"^(.+?):\s*(\d+(?:\.\d+)?)\+?\s+\w", title, re.IGNORECASE)
+        if colon_m:
+            player_name = colon_m.group(1).strip()
+            threshold = float(colon_m.group(2))
+            return player_name, threshold
+
         # Format: "Player - Stat O/U threshold"
         m = _PROP_OU_RE.match(title)
         if m:
-            player_name = m.group(1).strip()
+            player_name = m.group(1).strip().rstrip(":").strip()
             threshold = float(m.group(3))
             return player_name, threshold
 
-        # Format: "Will Player score/record N+ stat?" or "Player N+ stat"
-        # Try to extract leading player name before a number
-        # e.g. "Will LeBron James score 25+ points?"
+        # Format: "Will Player score/record N+ stat?"
         will_m = re.match(r"will\s+(.+?)\s+(?:score|record|make|have|get|grab|dish|hit)\s+(\d+(?:\.\d+)?)", title, re.IGNORECASE)
         if will_m:
-            player_name = will_m.group(1).strip()
+            player_name = will_m.group(1).strip().rstrip(":").strip()
             threshold = float(will_m.group(2))
             return player_name, threshold
 
-        # Format: "LeBron James 25+ Points" or "LeBron James Over 24.5 Points"
+        # Format: "LeBron James Over 24.5 Points" or "LeBron James 25+ Points"
         over_m = re.match(r"^(.+?)\s+(?:over\s+)?(\d+(?:\.\d+)?)\+?\s+\w+", title, re.IGNORECASE)
         if over_m:
-            player_name = over_m.group(1).strip()
-            # Sanity check: player name should have at least 2 words
+            player_name = over_m.group(1).strip().rstrip(":").strip()
             if len(player_name.split()) >= 2:
                 threshold = float(over_m.group(2))
                 return player_name, threshold

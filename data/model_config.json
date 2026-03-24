@@ -1,0 +1,16 @@
+{
+  "sharp_weight": 0.85,
+  "last_brier_model": 0.21907,
+  "last_brier_sharp": 0.22252,
+  "last_adjusted": "2026-03-16",
+  "brier_history": [
+    {
+      "date": "2026-03-16",
+      "brier_model": 0.21907,
+      "brier_sharp": 0.22252,
+      "n": 146,
+      "old_weight": 0.85,
+      "new_weight": 0.85
+    }
+  ]
+}

@@ -49,8 +49,8 @@ ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports"
 SECTOR_INJURY_URLS: dict[str, list[str]] = {
     "nba": [f"{ESPN_BASE}/basketball/nba/injuries"],
     "nfl": [f"{ESPN_BASE}/football/nfl/injuries"],
-    "ncaab": [f"{ESPN_BASE}/basketball/mens-college-basketball/injuries",
-              f"{ESPN_BASE}/basketball/mens-college-basketball/tournament/injuries"],
+    "ncaab": [f"{ESPN_BASE}/basketball/mens-college-basketball/injuries"],
+    "ncaaw": [f"{ESPN_BASE}/basketball/womens-college-basketball/injuries"],
     "soccer": [
         f"{ESPN_BASE}/soccer/eng.1/injuries",       # EPL
         f"{ESPN_BASE}/soccer/UEFA.CHAMPIONS/injuries",  # UCL
@@ -166,10 +166,12 @@ class InjuryReportAgent(Agent):
 
         self.log.info("fetching_injuries", sector=sector, urls=len(urls))
 
-        results = await asyncio.gather(
-            *(self._fetch_injuries(url, sector) for url in urls),
-            return_exceptions=True,
-        )
+        # Share one httpx client across all parallel fetches to reuse TCP/TLS connections
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            results = await asyncio.gather(
+                *(self._fetch_injuries(url, sector, client) for url in urls),
+                return_exceptions=True,
+            )
 
         reports: dict[str, InjuryReport] = {}
         for r in results:
@@ -198,12 +200,14 @@ class InjuryReportAgent(Agent):
     # Fetching + parsing
     # ------------------------------------------------------------------
 
-    async def _fetch_injuries(self, url: str, sector: str) -> dict[str, InjuryReport]:
+    async def _fetch_injuries(self, url: str, sector: str, client: httpx.AsyncClient) -> dict[str, InjuryReport]:
         """Fetch one ESPN injuries URL and return team → InjuryReport."""
-        async with httpx.AsyncClient(timeout=self._timeout) as client:
-            resp = await client.get(url, follow_redirects=True)
-            resp.raise_for_status()
-            data = resp.json()
+        resp = await client.get(url, follow_redirects=True)
+        if resp.status_code == 404:
+            self.log.debug("injury_url_not_found", url=url)
+            return {}
+        resp.raise_for_status()
+        data = resp.json()
 
         reports: dict[str, InjuryReport] = {}
         for team_entry in data.get("injuries", []):

@@ -85,6 +85,16 @@ class ModelAgent(Agent, ModelBase):
             try:
                 self._state = json.loads(self._state_path.read_text())
                 self.log.info("state_loaded", model=self.name, keys=len(self._state))
+            except json.JSONDecodeError as exc:
+                # File exists but is corrupted — log clearly so it's not missed
+                self.log.error(
+                    "state_corrupted",
+                    model=self.name,
+                    path=str(self._state_path),
+                    error=str(exc),
+                    action="using empty state — run evmax cleanup train to rebuild",
+                )
+                self._state = {}
             except Exception as exc:
                 self.log.warning("state_load_failed", model=self.name, error=str(exc))
                 self._state = {}

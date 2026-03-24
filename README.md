@@ -526,6 +526,14 @@ The difference tells you whether the statistical models are adding value:
 
 Bounds: `sharp_weight` stays in `[0.40, 0.95]`. Adjustments happen at most once per 7 days and require 30+ resolved predictions.
 
+### Exposure Guard
+
+To prevent over-concentration on a single game, the pipeline enforces a hard cap: total Kelly exposure across all bets on the same game cannot exceed **8% of bankroll**. If multiple +EV plays reference the same event (e.g., a moneyline + spread on the same game), bets are scaled proportionally until the combined stake stays within the cap. Bets that cannot fit are dropped. The scan output shows a warning when plays are dropped or capped.
+
+### Props in Scans
+
+Player prop markets (NBA player stats, NFL yardage, etc.) are shown in scan output but **not logged to `predictions.db`**. This keeps the predictions log focused on game-level markets while still surfacing prop opportunities for manual review. Prop event IDs contain `::prop::` and are excluded from the DB write path.
+
 The updated `sharp_weight` is written to `data/model_config.json` and automatically picked up by the next `evmax agents scan` run — no manual flag needed.
 
 ### Sharp Weight Progression
@@ -589,7 +597,7 @@ All predictions and outcomes are stored in `data/predictions.db` (SQLite).
 
 | Table | Contents |
 |-------|---------|
-| `ev_predictions` | One row per +EV gap per scan — includes kalshi price, blended prob, EV%, kelly, sharp_weight used |
+| `ev_predictions` | One row per +EV gap per scan — includes kalshi price, blended prob, EV%, kelly, sharp_weight used, `bankroll_used` (scan-time bankroll for consistent verify/pick sizing) |
 | `ev_outcomes` | One row per resolved market — outcome (1/0), result source, timestamps |
 
 `data/model_config.json` persists `sharp_weight`, Brier score history, and adjustment timestamps.
@@ -904,19 +912,49 @@ All settings live in `.env` (or environment variables):
 | NBA | Pinnacle guest API (league 487) | Elo + Form + Poisson | ESPN |
 | NFL | Pinnacle guest API (league 258) | Elo + Form + Poisson | ESPN |
 | NCAAB | Pinnacle guest API (league 493) | Elo + Form + Poisson | ESPN |
+| NCAAW | TheOddsAPI (`basketball_wncaab`) | Elo + Form + Poisson | ESPN |
 | Soccer | Pinnacle guest API (EPL/UCL/La Liga/Bundesliga/Serie A/Ligue 1) | Elo + Form + Poisson | ESPN |
 | Tennis | Pinnacle guest API (ATP/WTA) | Surface Elo + ATP rankings | None |
 | LoL | Pinnacle guest API (esports, sport 12) | Elo + Form | None |
 | CS2 | Pinnacle guest API (esports, sport 12) | Elo + Form | None |
 | Valorant | Pinnacle guest API (esports, sport 12) | Elo + Form | None |
 
-The Pinnacle guest API (`guest.api.arcadia.pinnacle.com/0.1`) requires no credentials and covers all sectors.
+The Pinnacle guest API (`guest.api.arcadia.pinnacle.com/0.1`) requires no credentials and covers all sectors except NCAAW (which uses TheOddsAPI).
+
+**Kalshi series tickers per sector:**
+
+| Sector | Kalshi Series |
+|--------|--------------|
+| NBA | `KXNBAGAME`, `KXNBASPREAD` |
+| NFL | `KXNFLGAME` |
+| NCAAB | `KXNCAAMBGAME`, `KXNCAABGAME` |
+| NCAAW | `KXNCAAWBGAME`, `KXNCAAWBSPREAD`, `KXNCAAWBTOTAL` |
+| Soccer | `KXEPLGAME`, `KXUCLGAME`, `KXMLSGAME`, `KXLALIGAGAME`, `KXBUNDESLIGAGAME`, `KXSERIEAGAME`, `KXLIGUE1GAME`, `KXUELGAME` |
+| Tennis | `KXATPMATCH`, `KXWTAMATCH` |
+| LoL | `KXLOLGAME`, `KXLOLGAMES` |
+| CS2 | `KXCS2GAME`, `KXCS2GAMES`, `KXCSGOGAME` |
 
 **Market types supported:**
 
 - **Moneyline** — team A or team B wins
 - **Spread** — team A wins by more/less than X points (SpreadDistributionModel)
 - **Three-way (soccer)** — home / draw / away with three-way devig
+- **Totals (NCAAW)** — over/under point total
+
+---
+
+## Performance Notes
+
+### Parallel API Fetching
+
+All three data sources run concurrently per sector using `asyncio.gather`:
+- **Kalshi**: All series prefix requests fired in parallel, throttled to **3 concurrent requests** via a semaphore to respect Kalshi's rate limits (prevents 429 errors).
+- **Pinnacle**: All `(sport_key × market_type)` combinations fetched simultaneously.
+- **ESPN injury agent**: Shares a single `httpx.AsyncClient` across all parallel endpoint fetches to reuse TCP/TLS connections.
+
+### Scan Bankroll Consistency
+
+The bankroll used during `evmax agents scan` is stored in each prediction row (`bankroll_used`). When you run `evmax agents verify` or `evmax agents pick` without specifying `--bankroll`, the stored value is used automatically — ensuring Kelly stakes are identical between scan and verification.
 
 ---
 

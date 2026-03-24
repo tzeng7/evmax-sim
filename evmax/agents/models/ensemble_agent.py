@@ -232,7 +232,12 @@ class EnsembleModelAgent(Agent):
         else:
             avg_conf = max(0.5, 1.0 - (sharp.margin * 10 if sharp else 0.5))
 
-        model_sources = "+".join(sorted(model_preds.keys()) + (["sharp"] if sharp else []))
+        # Only include models that actually contributed (passed confidence threshold)
+        contributing_models = [
+            name for name, pred in model_preds.items()
+            if pred.confidence > 0.45 and pred.weight * pred.confidence > 0
+        ]
+        model_sources = "+".join(sorted(contributing_models) + (["sharp"] if sharp else []))
 
         return BlendedPrediction(
             event_id=event_id,

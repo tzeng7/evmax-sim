@@ -246,19 +246,21 @@ class TestDevigFallbackLogging:
 class TestPlayerNormalization:
     def test_alias_lookup(self):
         from evmax.players import normalize_player_name
-        assert normalize_player_name("lbj", "nba") == "lebron james"
-        assert normalize_player_name("kd", "nba") == "kevin durant"
-        assert normalize_player_name("sga", "nba") == "shai gilgeous-alexander"
+        # Aliases now return underscore-joined names
+        assert normalize_player_name("lbj", "nba") == "lebron_james"
+        assert normalize_player_name("kd", "nba") == "kevin_durant"
+        assert normalize_player_name("sga", "nba") == "shai_gilgeous-alexander"
 
     def test_full_name_passthrough(self):
         from evmax.players import normalize_player_name
-        assert normalize_player_name("lebron james", "nba") == "lebron james"
+        # Full names get underscore-joined
+        assert normalize_player_name("lebron james", "nba") == "lebron_james"
 
     def test_unknown_name_falls_back_to_last_name(self):
         from evmax.players import normalize_player_name
         result = normalize_player_name("Victor Wembanyama Jr", "nba")
-        # Unknown in alias table → last word
-        assert result == "jr" or result == "wembanyama"
+        # Unknown in alias table → strip suffix → "victor_wembanyama"
+        assert result == "victor_wembanyama"
 
     def test_empty_string_returns_empty(self):
         from evmax.players import normalize_player_name
@@ -266,8 +268,9 @@ class TestPlayerNormalization:
 
     def test_nfl_aliases(self):
         from evmax.players import normalize_player_name
-        assert normalize_player_name("cmc", "nfl") == "christian mccaffrey"
-        assert normalize_player_name("mahomes", "nfl") == "patrick mahomes"
+        # Aliases return underscore-joined canonical names
+        assert normalize_player_name("cmc", "nfl") == "christian_mccaffrey"
+        assert normalize_player_name("mahomes", "nfl") == "patrick_mahomes"
 
     def test_wrong_sector_misses_alias(self):
         from evmax.players import normalize_player_name

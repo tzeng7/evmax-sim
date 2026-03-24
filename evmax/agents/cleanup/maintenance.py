@@ -188,7 +188,10 @@ def _check_duplicate_events(
 def _check_stale_markets(
     scan_date: str, conn: sqlite3.Connection, report: MaintenanceReport
 ) -> None:
-    """Markets already resolved in ev_outcomes — remove from today's predictions."""
+    """Markets already resolved in ev_outcomes — remove from today's predictions.
+
+    If a market has a resolved outcome, the game is in the past by definition.
+    """
     stale = conn.execute(
         """
         SELECT p.market_id, p.event_id

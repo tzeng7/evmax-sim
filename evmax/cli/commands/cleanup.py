@@ -94,19 +94,26 @@ def show(
     wins    = sum(1 for r in rows if r["outcome"] == 1)
     losses  = sum(1 for r in rows if r["outcome"] == 0)
 
-    # P&L: use placed_stake if available, else bankroll * kelly_fraction
-    total_staked = 0.0
-    total_pnl    = 0.0
+    # P&L split: real (placed) vs simulated (all unpicked resolved bets)
+    real_staked = 0.0
+    real_pnl    = 0.0
+    sim_staked  = 0.0
+    sim_pnl     = 0.0
     for r in rows:
         if r["outcome"] is None:
             continue
-        stake = r["placed_stake"] if r["placed_stake"] else bankroll * (r["kelly_fraction"] or 0.0)
         price = r["placed_price"] if r["placed_price"] else r["kalshi_yes_price"]
-        total_staked += stake
-        if r["outcome"] == 1:
-            total_pnl += stake * (1.0 / price - 1.0)
+        if r["placed"] and r["placed_stake"]:
+            stake = r["placed_stake"]
+            real_staked += stake
+            real_pnl += stake * (1.0 / price - 1.0) if r["outcome"] == 1 else -stake
         else:
-            total_pnl -= stake
+            stake = bankroll * (r["kelly_fraction"] or 0.0)
+            sim_staked += stake
+            sim_pnl += stake * (1.0 / price - 1.0) if r["outcome"] == 1 else -stake
+
+    total_pnl    = real_pnl + sim_pnl
+    total_staked = real_staked + sim_staked
 
     pnl_color = "green" if total_pnl >= 0 else "red"
     pnl_sign  = "+" if total_pnl >= 0 else ""
@@ -117,8 +124,7 @@ def show(
     table = Table(
         title=(
             f"+EV Predictions ({title_date}{placed_note}) | {wins}W / {losses}L / {pending} pending"
-            f" | P&L [{pnl_color}]{pnl_sign}${total_pnl:.2f}[/{pnl_color}]"
-            f" on ${total_staked:.2f} staked"
+            f" | Sim P&L [{pnl_color}]{pnl_sign}${total_pnl:.2f}[/{pnl_color}]"
             + (f" | {placed_total} placed" if not placed_only and placed_total else "")
         ),
         box=box.SIMPLE,
@@ -155,16 +161,17 @@ def show(
         price = r["placed_price"] if r["placed_price"] else r["kalshi_yes_price"]
         placed_marker = " [cyan]●[/cyan]" if r["placed"] else ""
 
+        is_sim = not r["placed"]
         if r["outcome"] is None:
             result_str = "[dim]pending[/dim]"
             pnl_str = "[dim]—[/dim]"
         elif r["outcome"] == 1:
-            result_str = "[bold green]WIN[/bold green]"
+            result_str = "[bold green]WIN[/bold green]" + ("[dim] sim[/dim]" if is_sim else "")
             profit = stake * (1.0 / price - 1.0)
-            pnl_str = f"[green]+${profit:.2f}[/green]"
+            pnl_str = f"[green]+${profit:.2f}[/green]" + ("[dim]*[/dim]" if is_sim else "")
         else:
-            result_str = "[bold red]LOSS[/bold red]"
-            pnl_str = f"[red]-${stake:.2f}[/red]"
+            result_str = "[bold red]LOSS[/bold red]" + ("[dim] sim[/dim]" if is_sim else "")
+            pnl_str = f"[red]-${stake:.2f}[/red]" + ("[dim]*[/dim]" if is_sim else "")
 
         # CLV = entry sharp prob - Pinnacle closing prob (positive = bought value)
         close_prob = r["pinnacle_close_prob"]
@@ -192,13 +199,34 @@ def show(
         )
 
     console.print(table)
-    current_bankroll = bankroll + total_pnl
-    console.print(
-        f"  [{pnl_color}]Net P&L: {pnl_sign}${total_pnl:.2f}[/{pnl_color}]"
-        f"  |  Staked: ${total_staked:.2f}"
-        f"  |  ROI: [{pnl_color}]{pnl_sign}{(total_pnl / total_staked * 100) if total_staked else 0:.1f}%[/{pnl_color}]"
-        f"  |  Bankroll: ${bankroll:.0f} → [bold {pnl_color}]${current_bankroll:.2f}[/bold {pnl_color}]\n"
-    )
+
+    # Footer: split real vs simulated
+    if real_staked > 0:
+        real_color = "green" if real_pnl >= 0 else "red"
+        real_sign  = "+" if real_pnl >= 0 else ""
+        real_roi   = real_pnl / real_staked * 100 if real_staked else 0.0
+        current_bankroll = bankroll + real_pnl
+        console.print(
+            f"  [bold]Placed bets[/bold]  [{real_color}]{real_sign}${real_pnl:.2f}[/{real_color}]"
+            f"  |  Staked: ${real_staked:.2f}"
+            f"  |  ROI: [{real_color}]{real_sign}{real_roi:.1f}%[/{real_color}]"
+            f"  |  Bankroll: ${bankroll:.0f} → [bold {real_color}]${current_bankroll:.2f}[/bold {real_color}]"
+        )
+
+    if sim_staked > 0:
+        sim_color = "green" if sim_pnl >= 0 else "red"
+        sim_sign  = "+" if sim_pnl >= 0 else ""
+        sim_roi   = sim_pnl / sim_staked * 100 if sim_staked else 0.0
+        console.print(
+            f"  [bold]Simulated (all)[/bold]  [{sim_color}]{sim_sign}${sim_pnl:.2f}[/{sim_color}]"
+            f"  |  Staked: ${sim_staked:.2f}"
+            f"  |  ROI: [{sim_color}]{sim_sign}{sim_roi:.1f}%[/{sim_color}]"
+            f"  [dim](hypothetical Kelly stakes — not real money)[/dim]"
+        )
+
+    if real_staked == 0 and sim_staked == 0:
+        console.print(f"  [dim]No resolved bets in this period yet.[/dim]")
+    print()
 
 
 @app.command("resolve")

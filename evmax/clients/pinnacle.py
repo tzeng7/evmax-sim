@@ -33,6 +33,7 @@ SECTOR_SPORT_KEYS: dict[str, list[str]] = {
     "nfl": ["americanfootball_nfl"],
     "nba": ["basketball_nba"],
     "ncaab": ["basketball_ncaab"],
+    "ncaaw": ["basketball_wncaab"],
     "soccer": [
         "soccer_usa_mls",
         "soccer_epl",
@@ -94,20 +95,20 @@ class PinnacleClient(BaseAPIClient):
             return []
 
         logger.debug("pinnacle_cache_miss", sector=sector_key)
+        import asyncio
+        # Fire ALL sport_key × market_type requests concurrently (was sequential per sport_key)
+        tasks = [
+            self._fetch_market_type(sport_key, market_type, sector)
+            for sport_key in sport_keys
+            for market_type in ("h2h", "spreads")
+        ]
+        all_results = await asyncio.gather(*tasks, return_exceptions=True)
         all_odds: list[SharpOdds] = []
-        for sport_key in sport_keys:
-            # Fetch moneylines and spreads in parallel
-            import asyncio
-            results = await asyncio.gather(
-                self._fetch_market_type(sport_key, "h2h", sector),
-                self._fetch_market_type(sport_key, "spreads", sector),
-                return_exceptions=True,
-            )
-            for r in results:
-                if isinstance(r, list):
-                    all_odds.extend(r)
-                elif isinstance(r, Exception):
-                    logger.warning("pinnacle_fetch_failed", sport_key=sport_key, error=str(r))
+        for r in all_results:
+            if isinstance(r, list):
+                all_odds.extend(r)
+            elif isinstance(r, Exception):
+                logger.warning("pinnacle_fetch_error", sector=sector_key, error=str(r))
 
         _CACHE[sector_key] = (time.monotonic(), all_odds)
         return all_odds
@@ -328,9 +329,11 @@ class PinnacleClient(BaseAPIClient):
         if not stat_markets:
             return []
 
+        # Player props require the event-level TheOddsAPI endpoint which is a premium feature.
+        # Gracefully return empty if the plan doesn't support it.
         all_props: list[SharpOdds] = []
+        _warned = False
         for sport_key in sport_keys:
-            # Fetch one stat market type at a time (TheOddsAPI requires separate calls)
             tasks = [
                 self._fetch_player_props(sport_key, stat_mkt, base_sector)
                 for stat_mkt in stat_markets
@@ -339,8 +342,13 @@ class PinnacleClient(BaseAPIClient):
             for r in results:
                 if isinstance(r, list):
                     all_props.extend(r)
-                elif isinstance(r, Exception):
-                    logger.debug("pinnacle_props_fetch_error", sport_key=sport_key, error=str(r))
+                elif isinstance(r, Exception) and not _warned:
+                    logger.warning(
+                        "pinnacle_props_unavailable",
+                        reason="Player props require a premium TheOddsAPI plan",
+                        sport_key=sport_key,
+                    )
+                    _warned = True
 
         return all_props
 
@@ -349,6 +357,7 @@ class PinnacleClient(BaseAPIClient):
         sport_key: str,
         stat_market: str,
         sector: str,
+        bookmakers: str = "pinnacle",
     ) -> list[SharpOdds]:
         """Fetch a single player-prop market type from TheOddsAPI."""
         try:
@@ -358,7 +367,7 @@ class PinnacleClient(BaseAPIClient):
                     "apiKey": self._api_key,
                     "regions": "us",
                     "markets": stat_market,
-                    "bookmakers": "pinnacle",
+                    "bookmakers": bookmakers,
                     "oddsFormat": "decimal",
                 },
             )
@@ -367,11 +376,118 @@ class PinnacleClient(BaseAPIClient):
                 return []
 
             for event in data:
-                parsed = self._parse_prop_event(event, stat_market, sector)
+                parsed = self._parse_prop_event(event, stat_market, sector, bookmakers)
                 props.extend(parsed)
             return props
         except Exception as e:
             logger.debug("pinnacle_player_props_failed", sport_key=sport_key, stat_market=stat_market, error=str(e))
+            return []
+
+    async def get_us_book_prop_odds(self, sector: str, bookmakers: list[str] | None = None) -> list[SharpOdds]:
+        """Fetch player prop lines from US sportsbooks (FanDuel, DraftKings, etc.) via TheOddsAPI.
+
+        Uses the event-level endpoint (required for player props — the bulk endpoint
+        doesn't support prop markets). Batches all stat markets into one call per event
+        to minimise credit usage (~4 credits × n_bookmakers per event).
+
+        Useful as a consensus reference for NBA props where Pinnacle has no coverage.
+        """
+        import asyncio as _asyncio
+
+        base_sector = sector.lower().replace("_props", "")
+        sport_keys = SECTOR_SPORT_KEYS.get(base_sector, [])
+        if not sport_keys or not self._api_key:
+            return []
+
+        books = ",".join(bookmakers or ["fanduel", "draftkings"])
+        prop_markets_by_sector: dict[str, list[str]] = {
+            "nba": ["player_points", "player_rebounds", "player_assists",
+                    "player_threes", "player_steals", "player_blocks",
+                    "player_points_rebounds_assists"],
+            "nfl": ["player_pass_yds", "player_rush_yds", "player_reception_yds", "player_anytime_td"],
+        }
+        stat_markets = prop_markets_by_sector.get(base_sector, [])
+        if not stat_markets:
+            return []
+
+        all_props: list[SharpOdds] = []
+        for sport_key in sport_keys:
+            # Step 1: get event IDs for today's slate
+            event_ids = await self._fetch_event_ids(sport_key)
+            if not event_ids:
+                continue
+
+            # Step 2: one event-level call per event with ALL stat markets batched
+            # Cost: 4 credits × n_bookmakers per event (not per market when batched)
+            markets_param = ",".join(stat_markets)
+            tasks = [
+                self._fetch_event_props(sport_key, eid, markets_param, books, base_sector)
+                for eid in event_ids
+            ]
+            results = await _asyncio.gather(*tasks, return_exceptions=True)
+            for r in results:
+                if isinstance(r, list):
+                    all_props.extend(r)
+
+        return all_props
+
+    async def _fetch_event_ids(self, sport_key: str) -> list[str]:
+        """Return event IDs for upcoming games in a sport."""
+        try:
+            data = await self._get(
+                f"/sports/{sport_key}/events",
+                params={"apiKey": self._api_key},
+            )
+            if isinstance(data, list):
+                return [e["id"] for e in data if "id" in e]
+        except Exception as e:
+            logger.debug("pinnacle_event_ids_failed", sport_key=sport_key, error=str(e))
+        return []
+
+    async def _fetch_event_props(
+        self,
+        sport_key: str,
+        event_id: str,
+        markets_param: str,
+        bookmakers: str,
+        sector: str,
+    ) -> list[SharpOdds]:
+        """Fetch player props for a single event via the event-level endpoint.
+
+        This is the correct endpoint for player props — the bulk /sports/{sport}/odds
+        endpoint does not support player prop market types.
+        Credit cost: 4 credits × number_of_bookmakers (independent of market count
+        when batched in one call).
+        """
+        try:
+            data = await self._get(
+                f"/sports/{sport_key}/events/{event_id}/odds",
+                params={
+                    "apiKey": self._api_key,
+                    "markets": markets_param,
+                    "bookmakers": bookmakers,
+                    "oddsFormat": "decimal",
+                },
+            )
+            if not isinstance(data, dict):
+                return []
+
+            # Wrap as a single-event list so _parse_prop_event can process each market
+            props: list[SharpOdds] = []
+            event_wrapper = {
+                "id": data.get("id", ""),
+                "home_team": data.get("home_team", ""),
+                "away_team": data.get("away_team", ""),
+                "commence_time": data.get("commence_time", ""),
+                "bookmakers": data.get("bookmakers", []),
+            }
+            # Parse each stat market from the batched response
+            for stat_mkt in markets_param.split(","):
+                parsed = self._parse_prop_event(event_wrapper, stat_mkt.strip(), sector, bookmakers)
+                props.extend(parsed)
+            return props
+        except Exception as e:
+            logger.debug("pinnacle_event_props_failed", event_id=event_id, error=str(e))
             return []
 
     def _parse_prop_event(
@@ -379,6 +495,7 @@ class PinnacleClient(BaseAPIClient):
         event: dict[str, Any],
         stat_market: str,
         sector: str,
+        bookmakers: str = "pinnacle",
     ) -> list[SharpOdds]:
         """Parse a TheOddsAPI event for player props.
 
@@ -404,36 +521,31 @@ class PinnacleClient(BaseAPIClient):
             date_str = event_date.strftime("%Y-%m-%d") if event_date else "unknown"
             game_key = f"{sector}::{date_str}::{self._normalize(home_team, sector)}_vs_{self._normalize(away_team, sector)}"
 
-            pinnacle_data = next(
-                (bm for bm in event.get("bookmakers", []) if bm.get("key") == "pinnacle"),
-                None,
-            )
-            if not pinnacle_data:
-                return []
-
-            # Find the matching market
-            target_market = next(
-                (m for m in pinnacle_data.get("markets", []) if m.get("key") == stat_market),
-                None,
-            )
-            if not target_market:
-                return []
-
-            # Group outcomes by player name
+            # Collect outcomes from all bookmakers in the response, grouped by player.
+            # When multiple books are requested, merge their lines (first seen wins per player).
             player_outcomes: dict[str, dict] = {}
-            for o in target_market.get("outcomes", []):
-                player = o.get("name", "")
-                desc = (o.get("description", "") or "").lower()
-                price = float(o.get("price", 2.0))
-                point = o.get("point")
+            book_key_used = "unknown"
+            for bm in event.get("bookmakers", []):
+                book_key_used = bm.get("key", "unknown")
+                target_market = next(
+                    (m for m in bm.get("markets", []) if m.get("key") == stat_market),
+                    None,
+                )
+                if not target_market:
+                    continue
+                for o in target_market.get("outcomes", []):
+                    player = o.get("name", "")
+                    desc = (o.get("description", "") or "").lower()
+                    price = float(o.get("price", 2.0))
+                    point = o.get("point")
 
-                if player not in player_outcomes:
-                    player_outcomes[player] = {}
-                if "over" in desc:
-                    player_outcomes[player]["over_price"] = price
-                    player_outcomes[player]["threshold"] = float(point) if point is not None else None
-                elif "under" in desc:
-                    player_outcomes[player]["under_price"] = price
+                    if player not in player_outcomes:
+                        player_outcomes[player] = {}
+                    if "over" in desc:
+                        player_outcomes[player].setdefault("over_price", price)
+                        player_outcomes[player].setdefault("threshold", float(point) if point is not None else None)
+                    elif "under" in desc:
+                        player_outcomes[player].setdefault("under_price", price)
 
             # Build SharpOdds per player
             # Map TheOddsAPI stat_market key → canonical stat type
@@ -469,9 +581,14 @@ class PinnacleClient(BaseAPIClient):
                 player_norm = normalize_player_name(player_name, sector)
                 event_id = f"{game_key}::prop::{player_norm}::{stat_type}::{threshold}"
 
+                try:
+                    book_enum = SharpBook(book_key_used)
+                except ValueError:
+                    book_enum = SharpBook.pinnacle
+
                 results.append(SharpOdds(
                     event_id=event_id,
-                    book=SharpBook.pinnacle,
+                    book=book_enum,
                     sector=sector,
                     outcome_a_label=player_name,
                     outcome_b_label=player_name,

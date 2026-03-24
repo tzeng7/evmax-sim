@@ -57,6 +57,7 @@ class EVGap:
     prop_player_name: Optional[str] = None
     prop_stat_type: Optional[str] = None
     prop_threshold: Optional[float] = None
+    prop_l15_games: int = 0   # number of games in the L15 sample (0 = unknown)
 
     @property
     def edge_label(self) -> str:
@@ -78,7 +79,7 @@ class EVGap:
         if self.market_type == "player_prop":
             stat = (self.prop_stat_type or "prop").replace("_", " ").title()
             thr = f"{self.prop_threshold:.1f}" if self.prop_threshold is not None else "?"
-            return f"{self.prop_player_name or team} {stat} O {thr}"
+            return f"{stat} O{thr}"
         if self.market_type == "moneyline":
             return f"{team} ML"
         if self.market_type == "spread" and self.line is not None:
@@ -442,6 +443,12 @@ class EVGapAgent(Agent):
         if sharp.true_prob_over is None:
             return None
 
+        # Reject illiquid prop markets. Spread > 0.40 means the bid-ask is
+        # wider than 40% of the mid price — effectively no real market yet.
+        _MAX_PROP_SPREAD = 0.40
+        if market.spread_pct > _MAX_PROP_SPREAD:
+            return None
+
         sharp_true_prob = sharp.true_prob_over
         ev, edge_pct = calculate_ev(market.yes_price, sharp_true_prob)
         if ev < self._settings.ev_threshold:
@@ -477,9 +484,10 @@ class EVGapAgent(Agent):
             spread_pct=market.spread_pct,
             event_date=sharp.event_date or market.event_date,
             line=market.threshold,
-            model_sources="sharp",
-            event_title=f"{player_display} {stat_display} O{market.threshold}",
+            model_sources="nba_stats",
+            event_title=player_display,  # Event = player name; Outcome = stat+line via display_label
             prop_player_name=market.player_name,
             prop_stat_type=market.stat_type,
             prop_threshold=market.threshold,
+            prop_l15_games=sharp.prop_l15_games,
         )

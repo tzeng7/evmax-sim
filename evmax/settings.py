@@ -53,6 +53,17 @@ class Settings(BaseSettings):
             )
         return v
 
+    def warn_missing_keys(self) -> list[str]:
+        """Return list of missing required API keys (non-fatal — allows read-only use)."""
+        missing = []
+        if not self.kalshi_api_key_id:
+            missing.append("KALSHI_API_KEY_ID (required to fetch Kalshi markets)")
+        if not self.kalshi_private_key_path:
+            missing.append("KALSHI_PRIVATE_KEY_PATH (required for Kalshi auth)")
+        if not self.the_odds_api_key:
+            missing.append("THE_ODDS_API_KEY (required to fetch Pinnacle sharp lines)")
+        return missing
+
     # Matching
     fuzzy_threshold: int = 88  # rapidfuzz score threshold
 

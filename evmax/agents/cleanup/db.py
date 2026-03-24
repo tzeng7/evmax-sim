@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     volume_usd          REAL,
     model_sources       TEXT,
     sharp_weight_used   REAL,                       -- sharp_weight at scan time
+    bankroll_used       REAL,                       -- bankroll passed to scan (for stake calc)
     line                REAL,                       -- spread/total line (e.g. -8.5)
     voided              INTEGER NOT NULL DEFAULT 0, -- 1=voided (game cancelled/untraceable)
     placed              INTEGER NOT NULL DEFAULT 0, -- 1=user manually placed this bet
@@ -73,6 +74,7 @@ def get_connection() -> sqlite3.Connection:
         "ALTER TABLE ev_predictions ADD COLUMN placed_at TEXT",
         "ALTER TABLE ev_predictions ADD COLUMN placed_price REAL",
         "ALTER TABLE ev_predictions ADD COLUMN placed_stake REAL",
+        "ALTER TABLE ev_predictions ADD COLUMN bankroll_used REAL",
     ]:
         try:
             conn.execute(migration)

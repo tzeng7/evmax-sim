@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     volume_usd          REAL,
     model_sources       TEXT,
     sharp_weight_used   REAL,
+    bankroll_used       REAL,
     line                REAL,
     voided              INTEGER NOT NULL DEFAULT 0,
     UNIQUE(market_id, scan_date)

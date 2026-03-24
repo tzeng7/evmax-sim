@@ -64,6 +64,11 @@ SECTOR_CONFIGS: dict[str, dict] = {
         "league": "mens-college-basketball",
         "months": _months("2025-11", "2026-03"),
     },
+    "ncaaw": {
+        "sport": "basketball",
+        "league": "womens-college-basketball",
+        "months": _months("2025-11", "2026-03"),
+    },
     "baseball": {
         "sport": "baseball",
         "league": "mlb",

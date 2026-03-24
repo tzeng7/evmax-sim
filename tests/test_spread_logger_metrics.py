@@ -112,6 +112,7 @@ def _make_in_memory_db():
             volume_usd REAL,
             model_sources TEXT,
             sharp_weight_used REAL,
+            bankroll_used REAL,
             line REAL,
             UNIQUE(market_id, scan_date)
         );

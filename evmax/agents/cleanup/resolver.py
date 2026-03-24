@@ -40,6 +40,7 @@ ESPN_SPORT_MAP: dict[str, tuple[str, str, dict]] = {
     # groups=50 includes NIT + NCAA tournament first-four games that are
     # excluded from the default (groups=1) scoreboard.
     "ncaab":    ("basketball", "mens-college-basketball", {"groups": "50"}),
+    "ncaaw":    ("basketball", "womens-college-basketball", {"groups": "50"}),
     "nfl":      ("football", "nfl", {}),
     "baseball": ("baseball", "mlb", {}),
     "ufc":      ("mma", "ufc", {}),
@@ -453,6 +454,66 @@ async def _resolve_via_kalshi(preds: list[dict]) -> dict[str, Optional[int]]:
     return out
 
 
+def _resolve_prop_outcome(
+    player_name: str,
+    stat_type: str,
+    threshold: float,
+    target_date: date,
+) -> Optional[int]:
+    """Look up a player's actual stat on target_date and compare to threshold.
+
+    Returns 1 (over hit), 0 (under / no game), or None (player/stat not found).
+    Uses a ±1-day window around target_date to absorb stored-date off-by-ones.
+    """
+    try:
+        from evmax.clients.nba_stats import _find_player_id, STAT_COL, _SEASON
+        import pandas as pd
+        from nba_api.stats.endpoints import playergamelogs
+
+        player_id = _find_player_id(player_name)
+        if player_id is None:
+            logger.debug("prop_player_not_found", player=player_name)
+            return None
+
+        df = playergamelogs.PlayerGameLogs(
+            player_id_nullable=player_id,
+            season_nullable=_SEASON,
+            last_n_games_nullable=0,
+        ).get_data_frames()[0]
+
+        if df is None or df.empty:
+            return None
+
+        df["GAME_DATE"] = pd.to_datetime(df["GAME_DATE"]).dt.date
+        lo = target_date - timedelta(days=1)
+        hi = target_date + timedelta(days=1)
+        game_row = df[(df["GAME_DATE"] >= lo) & (df["GAME_DATE"] <= hi)]
+
+        if game_row.empty:
+            logger.debug("prop_no_game_on_date", player=player_name, date=str(target_date))
+            return None
+
+        row = game_row.iloc[0]
+        col = STAT_COL.get(stat_type)
+        if col is None:
+            return None
+
+        if col == "__pra__":
+            stat_val = float(row["PTS"]) + float(row["REB"]) + float(row["AST"])
+        elif col == "__bs__":
+            stat_val = float(row.get("BLK", 0)) + float(row.get("STL", 0))
+        elif col in df.columns:
+            stat_val = float(row[col])
+        else:
+            return None
+
+        return 1 if stat_val >= threshold else 0
+
+    except Exception as exc:
+        logger.warning("prop_resolve_error", player=player_name, stat=stat_type, error=str(exc))
+        return None
+
+
 def _write_outcome(conn: sqlite3.Connection, pred: dict, outcome: int, source: str) -> None:
     conn.execute(
         """INSERT OR REPLACE INTO ev_outcomes
@@ -636,18 +697,45 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
 
     logger.info("resolving_outcomes", count=len(pending), date=date_str)
 
-    # Group by sector → event_date → rows.
-    # Using event_date (not target_date) ensures we query ESPN for the correct
-    # date even when scan_date differs (e.g. a game scanned on 3/19 that plays 3/20).
-    by_sector_date: dict[str, dict[str, list[dict]]] = {}
-    for row in pending:
-        d = dict(row)
-        event_date = d.get("event_date") or date_str
-        by_sector_date.setdefault(d["sector"], {}).setdefault(event_date, []).append(d)
+    # Split prop predictions (event_id part[2] == "prop") from game predictions.
+    prop_preds = [p for p in pending if p["event_id"].split("::")[2:3] == ["prop"]]
+    game_preds = [p for p in pending if p not in prop_preds]
 
     resolved = 0
     failed = 0
     unmatched: list[str] = []
+
+    # Resolve NBA player props synchronously (nba_api is blocking).
+    for pred in prop_preds:
+        parts = pred["event_id"].split("::")
+        if len(parts) < 6:
+            failed += 1
+            unmatched.append(pred["event_id"])
+            continue
+        _player, _stat, _thr_str = parts[3], parts[4], parts[5]
+        try:
+            _threshold = float(_thr_str)
+        except ValueError:
+            failed += 1
+            unmatched.append(pred["event_id"])
+            continue
+        _event_date = date.fromisoformat(parts[1])
+        outcome = _resolve_prop_outcome(_player, _stat, _threshold, _event_date)
+        if outcome is not None:
+            _write_outcome(conn, pred, outcome, "nba_api")
+            resolved += 1
+        else:
+            failed += 1
+            unmatched.append(pred["event_id"])
+
+    # Group by sector → event_date → rows for game markets.
+    # Using event_date (not target_date) ensures we query ESPN for the correct
+    # date even when scan_date differs (e.g. a game scanned on 3/19 that plays 3/20).
+    by_sector_date: dict[str, dict[str, list[dict]]] = {}
+    for row in game_preds:
+        d = dict(row)
+        event_date = d.get("event_date") or date_str
+        by_sector_date.setdefault(d["sector"], {}).setdefault(event_date, []).append(d)
 
     async with httpx.AsyncClient(
         timeout=httpx.Timeout(20.0),

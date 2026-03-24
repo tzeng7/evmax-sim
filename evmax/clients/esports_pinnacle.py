@@ -94,6 +94,171 @@ class PinnacleGuestClient(BaseAPIClient):
             },
         )
 
+    async def get_prop_odds(self, sector: str) -> list[SharpOdds]:
+        """Fetch devigged Pinnacle player prop lines from the guest Arcadia API.
+
+        Pinnacle posts player props as 'special' matchups with
+        special.category == 'Player Props' and description like 'Luka Doncic (Points)'.
+        Each prop has one over/under market at a specific line.
+
+        Supports: nba, nfl, ncaab, baseball.
+        """
+        sector = sector.lower()
+        _PROP_SECTORS = {"nba", "nfl", "ncaab", "baseball"}
+        if sector not in _PROP_SECTORS or sector not in SECTOR_SPORT_LEAGUES:
+            return []
+
+        sport_id, league_ids = SECTOR_SPORT_LEAGUES[sector]
+
+        try:
+            all_matchups = await self._get(
+                f"/sports/{sport_id}/matchups",
+                params={"withSpecials": "true"},
+            )
+        except Exception as e:
+            logger.warning("pinnacle_guest_props_matchups_failed", sector=sector, error=str(e))
+            return []
+
+        if not isinstance(all_matchups, list):
+            return []
+
+        # Filter to player prop specials for the right leagues
+        prop_matchups = [
+            m for m in all_matchups
+            if m.get("type") == "special"
+            and m.get("league", {}).get("id") in league_ids
+            and (m.get("special") or {}).get("category", "").lower() == "player props"
+        ]
+
+        if not prop_matchups:
+            logger.info("pinnacle_guest_no_props", sector=sector)
+            return []
+
+        results = await asyncio.gather(
+            *(self._fetch_prop_matchup(m, sector) for m in prop_matchups),
+            return_exceptions=True,
+        )
+
+        props: list[SharpOdds] = []
+        for r in results:
+            if isinstance(r, SharpOdds):
+                props.append(r)
+            elif isinstance(r, list):
+                props.extend(r)
+
+        logger.info("pinnacle_props_fetched", sector=sector, count=len(props))
+        return props
+
+    async def _fetch_prop_matchup(self, matchup: dict, sector: str) -> Optional[SharpOdds]:
+        """Fetch and parse a single player prop special matchup."""
+        matchup_id = matchup.get("id")
+        special = matchup.get("special") or {}
+        description = special.get("description", "")  # e.g. "Luka Doncic (Points)"
+
+        # Parse "Player Name (Stat Type)"
+        import re as _re
+        m = _re.match(r"^(.+?)\s*\((.+?)\)$", description.strip())
+        if not m:
+            return None
+        player_raw = m.group(1).strip()
+        stat_raw = m.group(2).strip().lower()  # "Points", "Rebounds", etc.
+
+        # Map Pinnacle stat label → canonical stat_type
+        _STAT_MAP = {
+            "points": "points", "pts": "points",
+            "rebounds": "rebounds", "reb": "rebounds",
+            "assists": "assists", "ast": "assists",
+            "threes": "threes", "3-pointers": "threes", "3 pointers made": "threes",
+            "steals": "steals", "stl": "steals",
+            "blocks": "blocks", "blk": "blocks",
+            "pts+reb+ast": "points_rebounds_assists",
+            "points + rebounds + assists": "points_rebounds_assists",
+            "pra": "points_rebounds_assists",
+            "passing yards": "pass_yds", "passing yds": "pass_yds",
+            "rushing yards": "rush_yds", "rushing yds": "rush_yds",
+            "receiving yards": "reception_yds", "receiving yds": "reception_yds",
+        }
+        stat_type = _STAT_MAP.get(stat_raw)
+        if stat_type is None:
+            logger.debug("pinnacle_prop_unknown_stat", description=description)
+            return None
+
+        # Normalize player name
+        from evmax.players import normalize_player_name
+        player_norm = normalize_player_name(player_raw, sector)
+
+        # Fetch markets for this prop matchup
+        start_time = matchup.get("startTime", "")
+        event_date: Optional[datetime] = None
+        if start_time:
+            try:
+                event_date = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+            except ValueError:
+                pass
+
+        try:
+            markets_data = await self._get(f"/matchups/{matchup_id}/markets/related/straight")
+        except Exception as e:
+            logger.debug("pinnacle_prop_markets_failed", matchup_id=matchup_id, error=str(e))
+            return None
+
+        if not isinstance(markets_data, list):
+            return None
+
+        # Find the over/under market — prop markets have status=None (not "open")
+        ou_market = next(
+            (mk for mk in markets_data if mk.get("type") == "total"),
+            None,
+        )
+        if not ou_market:
+            return None
+
+        prices = ou_market.get("prices", [])
+        # Prop market prices have designation=None; positional: index 0 = over, index 1 = under
+        over_entry  = next((p for p in prices if p.get("designation") == "over"),  None)
+        under_entry = next((p for p in prices if p.get("designation") == "under"), None)
+        if not over_entry or not under_entry:
+            # Fall back to positional indexing for prop markets
+            if len(prices) >= 2:
+                over_entry, under_entry = prices[0], prices[1]
+            else:
+                return None
+
+        raw_line = over_entry.get("points") or over_entry.get("handicap")
+        if raw_line is None:
+            return None
+        total_line = float(raw_line)
+
+        try:
+            over_dec  = american_to_decimal(int(over_entry["price"]))
+            under_dec = american_to_decimal(int(under_entry["price"]))
+            prob_over, prob_under, margin = devig_two_way(over_dec, under_dec)
+        except Exception as e:
+            logger.debug("pinnacle_prop_devig_failed", error=str(e))
+            return None
+
+        date_str = event_date.strftime("%Y-%m-%d") if event_date else "unknown"
+        event_id = f"{sector}::{date_str}::prop::{player_norm}::{stat_type}::{total_line}"
+
+        return SharpOdds(
+            event_id=event_id,
+            book=SharpBook.pinnacle,
+            sector=sector,
+            outcome_a_label="over",
+            outcome_b_label="under",
+            outcome_a_decimal=over_dec,
+            outcome_b_decimal=under_dec,
+            true_prob_a=0.0,
+            true_prob_b=0.0,
+            true_prob_over=prob_over,
+            true_prob_under=prob_under,
+            total_line=total_line,
+            margin=margin,
+            event_date=event_date,
+            prop_player_name=player_norm,
+            prop_stat_type=stat_type,
+        )
+
     async def get_odds(self, sector: str) -> list[SharpOdds]:
         """Fetch devigged Pinnacle moneyline odds for a sector."""
         sector = sector.lower()

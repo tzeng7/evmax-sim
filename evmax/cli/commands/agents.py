@@ -95,7 +95,7 @@ async def _scan_loop(
 @app.command("scan")
 def scan(
     sectors: str = typer.Option(
-        "nba,ncaab,soccer,lol,cs2,tennis",
+        "nba,ncaab,ncaaw,soccer,lol,cs2,tennis",
         "--sectors",
         "-s",
         help="Comma-separated sector list, e.g. 'nba,soccer'",
@@ -108,6 +108,7 @@ def scan(
     min_ev: float = typer.Option(0.02, "--min-ev", help="Base minimum EV threshold (scaled up automatically for low-prob bets)."),
     min_prob: float = typer.Option(0.15, "--min-prob", help="Minimum true probability floor. Bets below this are excluded regardless of EV."),
     top: int = typer.Option(25, "--top", "-n", help="Max plays to show."),
+    max_props: int = typer.Option(10, "--max-props", help="Max player prop plays to show (prevents prop spam)."),
     date_filter: Optional[str] = typer.Option(
         None, "--date", "-d",
         help="Only show games on this date (YYYY-MM-DD). Defaults to today.",
@@ -119,8 +120,22 @@ def scan(
 ) -> None:
     """Run the full agent pipeline for one cycle and display +EV plays."""
     from evmax.agents.coordinator import AgentCoordinator
+    from evmax.settings import get_settings as _get_settings
+    from evmax.sectors.registry import ALL_SECTORS
 
-    sector_list = [s.strip() for s in sectors.split(",") if s.strip()]
+    sector_list = [s.strip().lower() for s in sectors.split(",") if s.strip()]
+
+    # Validate sector names upfront
+    invalid = [s for s in sector_list if s not in ALL_SECTORS]
+    if invalid:
+        console.print(f"[red]Unknown sector(s):[/red] {', '.join(invalid)}")
+        console.print(f"[dim]Valid sectors: {', '.join(ALL_SECTORS)}[/dim]")
+        raise typer.Exit(1)
+
+    # Warn on missing API keys before spinning up the pipeline
+    _missing_keys = _get_settings().warn_missing_keys()
+    for _key_warn in _missing_keys:
+        console.print(f"[yellow]⚠ Missing:[/yellow] {_key_warn}")
 
     # Read persisted sharp_weight from model_config.json (overrides CLI default 0.85)
     from evmax.agents.cleanup.metrics import load_config as _load_cfg
@@ -143,6 +158,7 @@ def scan(
         asyncio.run(_scan_loop(coordinator, sector_list, min_ev, min_prob, top, bankroll, kelly, date_filter, sharp_weight))
         return
 
+
     result = asyncio.run(coordinator.run_cycle())
 
     # Run maintenance checks after logging
@@ -163,7 +179,7 @@ def scan(
     except Exception as _maint_err:
         console.print(f"[dim yellow]  Warning: maintenance check failed: {_maint_err}[/dim yellow]")
 
-    # Parse date filter (default: today)
+    # Parse date filter (default: earliest date with gaps, starting from today)
     if date_filter:
         try:
             target_date = datetime.strptime(date_filter, "%Y-%m-%d").date()
@@ -171,7 +187,15 @@ def scan(
             console.print(f"[red]Invalid date format:[/red] {date_filter!r} — use YYYY-MM-DD")
             raise typer.Exit(1)
     else:
-        target_date = date.today()
+        # Auto-detect: use today if any gaps today, else the next available date
+        today = date.today()
+        gap_dates = sorted(set(
+            g.event_date.date() if hasattr(g.event_date, "date") else g.event_date
+            for g in result.ev_gaps
+            if g.event_date is not None
+        ))
+        future_dates = [d for d in gap_dates if d >= today]
+        target_date = future_dates[0] if future_dates else today
 
     def _matches_date(g) -> bool:
         if g.event_date is None:
@@ -202,17 +226,22 @@ def scan(
         and _matches_date(g)
     ]
 
-    # Auto-log qualifying gaps to predictions.db
-    if qualifying_gaps:
+    # Auto-log qualifying gaps to predictions.db — exclude props until prop pipeline is ready
+    loggable_gaps = [g for g in qualifying_gaps if "::prop::" not in g.event_id]
+    if loggable_gaps:
         try:
             from evmax.agents.cleanup.logger import log_gaps as _log_gaps
-            n_logged = _log_gaps(qualifying_gaps, sharp_weight_used=sharp_weight)
+            n_logged = _log_gaps(loggable_gaps, sharp_weight_used=sharp_weight, bankroll_used=bankroll)
             if n_logged:
                 console.print(f"[dim]  Logged {n_logged} new prediction(s) to predictions.db[/dim]")
         except Exception as _log_err:
-            console.print(f"[dim yellow]  Warning: could not log predictions: {_log_err}[/dim yellow]")
+            console.print(f"[bold red]  ERROR: Failed to log predictions to DB: {_log_err}[/bold red]")
+            console.print(f"[red]  Plays above were NOT saved — resolve will not find them.[/red]")
 
-    gaps = qualifying_gaps[:top]
+    # Enforce per-type cap: at most max_props prop plays, rest are game markets
+    prop_gaps = [g for g in qualifying_gaps if g.market_type == "player_prop"]
+    game_gaps = [g for g in qualifying_gaps if g.market_type != "player_prop"]
+    gaps = (game_gaps + prop_gaps[:max_props])[:top]
 
     # Print injury summary — only for teams involved in the displayed plays
     if result.injury_reports and gaps:
@@ -259,31 +288,38 @@ def scan(
     )
     table.add_column("#", style="dim", width=3)
     table.add_column("Sector", style="dim", width=6)
-    table.add_column("Event", style="dim", min_width=24)
-    table.add_column("Outcome", style="bold white", min_width=18)
+    table.add_column("Event", style="dim", min_width=22, no_wrap=False)
+    table.add_column("Outcome", style="bold white", min_width=16, no_wrap=False)
     table.add_column("K Odds", justify="right", width=7)
     table.add_column("True Odds", justify="right", width=9)
-    table.add_column("Min Odds", justify="right", width=9)
     table.add_column("True P", justify="right", width=7)
-    table.add_column("EV %", justify="right", style="green bold", width=7)
+    table.add_column("EV %", justify="right", style="green bold", width=8)
     table.add_column("Kelly%", justify="right", width=7)
     table.add_column("Stake $", justify="right", style="cyan bold", width=8)
+    table.add_column("L15", justify="right", width=4)  # games in sample (props only)
     table.add_column("Vol $", justify="right", width=9)
-    table.add_column("Sources", style="dim", min_width=12)
     table.add_column("Conf", justify="center", width=5)
 
     total_stake = 0.0
     for i, gap in enumerate(gaps, 1):
         stake = result.stake_for(gap)
         total_stake += stake
-        ev_color = "bold green" if gap.ev_pct >= 0.10 else "green" if gap.ev_pct >= 0.05 else "yellow"
+        is_prop = gap.market_type == "player_prop"
+        # Flag suspiciously high EV on props (likely small sample / model artifact)
+        ev_suspicious = is_prop and gap.ev_pct > 0.30
+        ev_color = (
+            "bold red" if ev_suspicious
+            else "bold green" if gap.ev_pct >= 0.10
+            else "green" if gap.ev_pct >= 0.05
+            else "yellow"
+        )
         k_odds = _american(gap.kalshi_yes_price)
         true_odds = _american(gap.blended_true_prob)
-        min_prob_needed = gap.blended_true_prob / 1.02  # inverse of 2% EV floor
-        min_odds = _american(min_prob_needed)
         odds_ok = gap.blended_true_prob >= gap.kalshi_yes_price * 1.02
         odds_color = "green" if odds_ok else "red"
         steam_prefix = "⚡ " if getattr(gap, "steam_move", False) else ""
+        ev_str = f"{steam_prefix}[{ev_color}]{gap.ev_pct*100:+.1f}%{'?' if ev_suspicious else ''}[/{ev_color}]"
+        l15_str = str(gap.prop_l15_games) if is_prop and gap.prop_l15_games else "[dim]—[/dim]"
         table.add_row(
             str(i),
             gap.sector.upper(),
@@ -291,22 +327,26 @@ def scan(
             gap.display_label[:22],
             f"[{odds_color}]{k_odds}[/{odds_color}]",
             true_odds,
-            min_odds,
             f"{gap.blended_true_prob:.3f}",
-            f"{steam_prefix}[{ev_color}]{gap.ev_pct*100:+.1f}%[/{ev_color}]",
+            ev_str,
             f"{gap.kelly_fraction*100:.2f}%",
             f"${stake:.2f}",
+            l15_str,
             f"${gap.volume_usd:,.0f}",
-            gap.model_sources[:14],
             gap.stars_display,
         )
 
     console.print(f"\n[bold cyan]evmax agent scan — {', '.join(sector_list).upper()}[/bold cyan]\n")
     console.print(table)
+    guard_note = (
+        f"  [yellow]⚠ {result.exposure_guard_dropped} play(s) dropped/capped by exposure guard "
+        f"(>8% per game)[/yellow]" if result.exposure_guard_dropped else ""
+    )
     console.print(
         f"\n  [bold]Total at risk:[/bold] ${total_stake:.2f} / ${bankroll:.0f} "
         f"({total_stake/bankroll*100:.1f}%)  |  "
-        f"Matched {result.markets_matched}/{result.markets_fetched} markets\n"
+        f"Matched {result.markets_matched}/{result.markets_fetched} markets"
+        + (f"\n{guard_note}" if guard_note else "") + "\n"
     )
 
     if result.errors:
@@ -321,7 +361,7 @@ def verify(
     ),
     min_ev: float = typer.Option(0.02, "--min-ev", help="Base EV threshold for 'still live' check."),
     min_prob: float = typer.Option(0.15, "--min-prob", help="Minimum true probability floor."),
-    bankroll: float = typer.Option(250.0, "--bankroll", "-b", help="Bankroll for stake re-calc."),
+    bankroll: Optional[float] = typer.Option(None, "--bankroll", "-b", help="Bankroll for stake re-calc (default: value used at scan time)."),
     kelly: float = typer.Option(0.5, "--kelly", "-k", help="Kelly fraction."),
 ) -> None:
     """Re-fetch live Kalshi ask prices and check which +EV bets are still actionable."""
@@ -345,7 +385,7 @@ def verify(
         SELECT p.id, p.market_id, p.event_title, p.yes_team, p.sector,
                p.market_type, p.kalshi_yes_price, p.sharp_true_prob,
                p.blended_true_prob, p.ev_pct, p.kelly_fraction,
-               p.volume_usd, p.model_sources, p.line
+               p.volume_usd, p.model_sources, p.line, p.bankroll_used
         FROM ev_predictions p
         INNER JOIN (
             SELECT market_id, MAX(scan_date) AS latest_scan
@@ -365,6 +405,10 @@ def verify(
         console.print(f"[yellow]No open (unresolved, non-voided) predictions for games on {target_date}.[/yellow]")
         return
 
+    # Resolve bankroll: CLI override > stored scan value > fallback 250
+    stored_bankroll = next((dict(r)["bankroll_used"] for r in rows if dict(r).get("bankroll_used")), None)
+    effective_bankroll = bankroll if bankroll is not None else (stored_bankroll or 250.0)
+
     console.print(f"\n[bold cyan]evmax verify[/bold cyan] — re-checking {len(rows)} bets for games on {target_date} ...\n")
 
     def _tiered_min_ev(true_prob: float) -> float:
@@ -379,6 +423,7 @@ def verify(
     tickers = [dict(r)["market_id"] for r in rows]
     live_prices = asyncio.run(_fetch_asks(tickers))
 
+    bankroll = effective_bankroll
     table = Table(
         title=f"Live Price Check — {target_date} | Bankroll ${bankroll:.0f} | {kelly:.0%} Kelly",
         box=box.ROUNDED,
@@ -478,7 +523,7 @@ def pick(
     ),
     min_ev: float = typer.Option(0.02, "--min-ev", help="Base EV threshold for 'still live' check."),
     min_prob: float = typer.Option(0.15, "--min-prob", help="Minimum true probability floor."),
-    bankroll: float = typer.Option(250.0, "--bankroll", "-b", help="Bankroll for stake calculation."),
+    bankroll: Optional[float] = typer.Option(None, "--bankroll", "-b", help="Bankroll for stake calculation (default: value used at scan time)."),
     kelly: float = typer.Option(0.5, "--kelly", "-k", help="Kelly fraction."),
     show_stale: bool = typer.Option(False, "--show-stale", help="Also show bets whose edge has evaporated."),
 ) -> None:
@@ -507,7 +552,7 @@ def pick(
                p.market_type, p.kalshi_yes_price, p.sharp_true_prob,
                p.blended_true_prob, p.ev_pct, p.kelly_fraction,
                p.volume_usd, p.model_sources, p.line,
-               p.placed, p.placed_price, p.placed_stake
+               p.placed, p.placed_price, p.placed_stake, p.bankroll_used
         FROM ev_predictions p
         INNER JOIN (
             SELECT market_id, MAX(scan_date) AS latest_scan
@@ -527,6 +572,10 @@ def pick(
         console.print(f"[yellow]No open predictions for games on {target_date}.[/yellow]")
         console.print(f"[dim]Tip: scan_date is when the scan ran; --date filters by game date.[/dim]")
         return
+
+    # Resolve bankroll: CLI override > stored scan value > fallback 250
+    stored_bankroll = next((dict(r)["bankroll_used"] for r in rows if dict(r).get("bankroll_used")), None)
+    bankroll = bankroll if bankroll is not None else (stored_bankroll or 250.0)
 
     console.print(f"\n[bold cyan]evmax pick[/bold cyan] — fetching live prices for {len(rows)} bets ...\n")
 

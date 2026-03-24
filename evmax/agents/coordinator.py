@@ -51,7 +51,7 @@ from evmax.agents.models.ensemble_agent import EnsembleModelAgent, BlendedPredic
 from evmax.agents.models.tennis_model_agent import TennisModelAgent
 from evmax.agents.intelligence.injury_agent import InjuryReportAgent, InjuryReport
 from evmax.models.market import PredictionMarket
-from evmax.models.odds import SharpOdds
+from evmax.models.odds import SharpOdds, SharpBook
 from evmax.matching.engine import MatchingEngine
 
 logger = structlog.get_logger(__name__)
@@ -71,6 +71,7 @@ class CycleResult:
     blended_predictions: dict[str, BlendedPrediction] = field(default_factory=dict)
     injury_reports: dict[str, dict[str, InjuryReport]] = field(default_factory=dict)  # sector → team → report
     cycle_duration_s: float = 0.0
+    exposure_guard_dropped: int = 0
     errors: list[str] = field(default_factory=list)
     bankroll: float = 250.0
     kelly_fraction: float = 0.5
@@ -160,6 +161,11 @@ def _apply_exposure_guard(
     # Budget per base event (strip ::spread / ::total / ::spread::... suffixes)
     def _base_event(event_id: str) -> str:
         parts = event_id.split("::")
+        # Prop events: "nba::2026-03-24::prop::player::stat::line"
+        # Group by player (first 4 parts) so each player has its own budget
+        if len(parts) > 3 and parts[2] == "prop":
+            return "::".join(parts[:4])
+        # Game events: "nba::2026-03-24::team_vs_team[::spread|total|...]"
         # Keep sector::date::matchup (first 3 parts)
         return "::".join(parts[:3])
 
@@ -296,7 +302,12 @@ class AgentCoordinator:
             if sr.get("injuries"):
                 result.injury_reports[sector] = sr["injuries"]
 
+        pre_guard = len(result.ev_gaps)
         result.ev_gaps = _apply_exposure_guard(result.ev_gaps)
+        dropped = pre_guard - len(result.ev_gaps)
+        if dropped > 0:
+            self.log.info("exposure_guard_applied", dropped=dropped, remaining=len(result.ev_gaps))
+        result.exposure_guard_dropped = dropped
         result.cycle_duration_s = time.perf_counter() - t0
 
         # Archive all raw fetched data for historical analysis
@@ -467,24 +478,82 @@ class AgentCoordinator:
         self,
         sector: str,
     ) -> tuple[list[PredictionMarket], list[SharpOdds]]:
-        """Fetch Kalshi player prop markets + Pinnacle prop odds concurrently."""
+        """Fetch Kalshi player prop markets and compute true probabilities via stats model.
+
+        Sharp prop lines use the NBA stats model (stats.nba.com via nba_api, free/no auth):
+        last-15-game averages → normal distribution → P(over threshold).
+
+        Pinnacle guest API has <1% prop coverage for NBA, so we use player form stats
+        as the true probability reference instead.
+        """
         from evmax.clients.kalshi import KalshiClient
-        from evmax.clients.pinnacle import PinnacleClient
 
         prop_sector = f"{sector}_props"
-        async with KalshiClient() as kalshi, PinnacleClient() as pinnacle:
-            kalshi_props, sharp_props = await asyncio.gather(
-                kalshi.get_markets(prop_sector),
-                pinnacle.get_prop_odds(sector),
+        async with KalshiClient() as kalshi:
+            raw = await kalshi.get_markets(prop_sector)
+
+        prop_markets: list[PredictionMarket] = raw if not isinstance(raw, Exception) else []
+        if not prop_markets:
+            self.log.debug("props_fetched", sector=sector, prop_markets=0, prop_sharp=0)
+            return [], []
+
+        # Deduplicate (player, stat, threshold) so we only compute each prob once
+        seen: set[tuple] = set()
+        unique: list[PredictionMarket] = []
+        for m in prop_markets:
+            if m.player_name and m.stat_type and m.threshold is not None:
+                key = (m.player_name, m.stat_type, m.threshold)
+                if key not in seen:
+                    seen.add(key)
+                    unique.append(m)
+
+        if sector == "nba":
+            from evmax.clients.nba_stats import get_prop_true_prob
+            probs = await asyncio.gather(
+                *(get_prop_true_prob(
+                    m.player_name,
+                    m.stat_type,
+                    m.threshold,
+                    game_date=m.event_date.strftime("%Y-%m-%d") if m.event_date else None,
+                  )
+                  for m in unique),
                 return_exceptions=True,
             )
+        else:
+            probs = [None] * len(unique)
 
-        prop_markets: list[PredictionMarket] = (
-            kalshi_props if not isinstance(kalshi_props, Exception) else []
-        ) or []
-        prop_sharp: list[SharpOdds] = (
-            sharp_props if not isinstance(sharp_props, Exception) else []
-        ) or []
+        prop_sharp: list[SharpOdds] = []
+        for market, result in zip(unique, probs):
+            if isinstance(result, Exception) or result is None:
+                continue
+            prob, n_games = result
+            date_str = (
+                market.event_date.strftime("%Y-%m-%d")
+                if market.event_date else "unknown"
+            )
+            event_id = (
+                f"{sector}::{date_str}::prop"
+                f"::{market.player_name}::{market.stat_type}::{market.threshold}"
+            )
+            prop_sharp.append(SharpOdds(
+                event_id=event_id,
+                book=SharpBook.pinnacle,
+                sector=sector,
+                outcome_a_label="over",
+                outcome_b_label="under",
+                outcome_a_decimal=1.0,
+                outcome_b_decimal=1.0,
+                true_prob_a=0.0,
+                true_prob_b=0.0,
+                true_prob_over=prob,
+                true_prob_under=1.0 - prob,
+                total_line=market.threshold,
+                margin=0.0,
+                event_date=market.event_date,
+                prop_player_name=market.player_name,
+                prop_stat_type=market.stat_type,
+                prop_l15_games=n_games,
+            ))
 
         self.log.debug(
             "props_fetched",

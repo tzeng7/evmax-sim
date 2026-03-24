@@ -15,6 +15,10 @@ from evmax.db import Base
 
 class SharpBook(str, enum.Enum):
     pinnacle = "pinnacle"
+    fanduel = "fanduel"
+    draftkings = "draftkings"
+    betmgm = "betmgm"
+    pointsbetus = "pointsbetus"
 
 
 class SharpOddsORM(Base):
@@ -69,6 +73,7 @@ class SharpOdds(BaseModel):
     # Player prop fields (reuses true_prob_over/true_prob_under for over/under probs)
     prop_player_name: Optional[str] = None  # normalized player name
     prop_stat_type: Optional[str] = None    # "points", "rebounds", "assists", etc.
+    prop_l15_games: int = 0                 # games in the L15 sample (0 = unknown)
 
     event_date: Optional[datetime] = None
     fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

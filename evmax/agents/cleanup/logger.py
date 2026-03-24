@@ -27,6 +27,7 @@ def log_gaps(
     gaps: list[EVGap],
     scan_date: Optional[date] = None,
     sharp_weight_used: float = 0.85,
+    bankroll_used: Optional[float] = None,
 ) -> int:
     """
     Persist EVGap objects to ev_predictions.
@@ -53,8 +54,8 @@ def log_gaps(
                     (scan_date, market_id, event_id, sector, yes_team, market_type,
                      event_title, event_date, kalshi_yes_price, sharp_true_prob,
                      blended_true_prob, ev_pct, kelly_fraction, volume_usd,
-                     model_sources, sharp_weight_used, line)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     model_sources, sharp_weight_used, bankroll_used, line)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         sd,
                         g.market_id,
@@ -72,6 +73,7 @@ def log_gaps(
                         g.volume_usd,
                         g.model_sources,
                         sharp_weight_used,
+                        bankroll_used,
                         g.line,
                     ),
                 )
