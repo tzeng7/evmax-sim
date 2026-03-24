@@ -91,8 +91,8 @@ _PROP_OU_RE = re.compile(
 
 # Global semaphore — shared across ALL KalshiClient instances in the process.
 # Each sector spawns its own client, so a per-instance semaphore does nothing.
-# 3 concurrent requests keeps us well inside Kalshi's rate limit.
-_KALSHI_FETCH_SEM = asyncio.Semaphore(3)
+# 5 concurrent requests: enough to keep scans fast, well below burst 429 threshold.
+_KALSHI_FETCH_SEM = asyncio.Semaphore(5)
 
 
 class KalshiWSClient:
@@ -264,8 +264,8 @@ class KalshiClient(BaseAPIClient):
         settings = get_settings()
         super().__init__(
             base_url=settings.kalshi_base_url,
-            concurrency=3,
-            timeout=15.0,
+            concurrency=50,   # _KALSHI_FETCH_SEM is the real throttle; inner semaphore must not block
+            timeout=20.0,
         )
         self._key_id = settings.kalshi_api_key_id
         self._private_key_path = settings.kalshi_private_key_path
@@ -340,7 +340,8 @@ class KalshiClient(BaseAPIClient):
                             parsed.append(p)
                     return parsed
                 except Exception as e:
-                    logger.warning("kalshi_fetch_failed", prefix=prefix, error=str(e))
+                    err = str(e) or repr(e) or type(e).__name__
+                    logger.warning("kalshi_fetch_failed", prefix=prefix, error=err)
                     return []
 
         results = await asyncio.gather(*(_fetch_prefix(p) for p in series_prefixes))
