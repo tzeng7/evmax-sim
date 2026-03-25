@@ -307,7 +307,7 @@ def scan(
     table.add_column("EV %", justify="right", style="green bold", width=8)
     table.add_column("Kelly%", justify="right", width=7)
     table.add_column("Stake $", justify="right", style="cyan bold", width=8)
-    table.add_column("L15", justify="right", width=4)  # games in sample (props only)
+    table.add_column("N", justify="right", width=4)  # games in sample (props only)
     table.add_column("Vol $", justify="right", width=9)
     table.add_column("Conf", justify="center", width=5)
 
