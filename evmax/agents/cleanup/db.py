@@ -1,8 +1,10 @@
 """SQLite database for prediction logging and outcome tracking.
 
 Schema:
-  ev_predictions — one row per +EV gap found per scan per market
-  ev_outcomes    — one row per resolved market (outcome = 1/0)
+  ev_predictions    — one row per +EV gap found per scan per market
+  ev_outcomes       — one row per resolved market (outcome = 1/0)
+  prop_observations — one row per prop line seen per scan (all props, not just +EV)
+                      used for training the player prop model
 """
 
 from __future__ import annotations
@@ -39,6 +41,28 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     placed_at           TEXT,                       -- ISO timestamp when bet was placed
     placed_price        REAL,                       -- Kalshi ask at time of placement
     placed_stake        REAL,                       -- dollar amount staked
+    UNIQUE(market_id, scan_date)
+);
+
+CREATE TABLE IF NOT EXISTS prop_observations (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    logged_at       TEXT NOT NULL DEFAULT (datetime('now')),
+    scan_date       TEXT NOT NULL,          -- YYYY-MM-DD when scan ran
+    event_date      TEXT,                   -- YYYY-MM-DD of the game
+    sector          TEXT NOT NULL,          -- "nba", "nfl"
+    player_name     TEXT NOT NULL,
+    stat_type       TEXT NOT NULL,          -- "points", "rebounds", "assists", "threes", "steals", "blocks", "pra"
+    line            REAL NOT NULL,          -- threshold (e.g. 24.5)
+    kalshi_price    REAL,                   -- Kalshi implied probability (0-1)
+    sharp_prob      REAL,                   -- sharp/model estimated probability (0-1)
+    ev_pct          REAL,                   -- EV at scan time (may be negative — we log all lines)
+    l15_games       INTEGER,                -- sample size used for sharp_prob
+    market_id       TEXT,
+    event_id        TEXT,
+    event_title     TEXT,                   -- "LeBron James — LAL vs GSW"
+    actual_value    REAL,                   -- filled in after game (e.g. 28.0 for 28 pts)
+    outcome         INTEGER,                -- 1=over hit, 0=under, NULL=unresolved
+    resolved_at     TEXT,
     UNIQUE(market_id, scan_date)
 );
 

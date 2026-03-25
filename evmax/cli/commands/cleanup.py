@@ -1,11 +1,13 @@
 """CLI commands for prediction logging, outcome resolution, and model calibration.
 
 Commands:
-  evmax cleanup show     — show logged +EV bets and their outcomes
-  evmax cleanup resolve  — fetch actual outcomes for a given date
-  evmax cleanup metrics  — compute Brier scores and display calibration report
-  evmax cleanup adjust   — auto-adjust sharp_weight based on Brier scores
-  evmax cleanup train    — re-seed model agents from live data (ESPN + bo3.gg)
+  evmax cleanup show          — show logged +EV bets and their outcomes
+  evmax cleanup resolve       — fetch actual outcomes for a given date
+  evmax cleanup metrics       — compute Brier scores and display calibration report
+  evmax cleanup adjust        — auto-adjust sharp_weight based on Brier scores
+  evmax cleanup train         — re-seed model agents from live data (ESPN + bo3.gg)
+  evmax cleanup props         — show logged prop observations and outcomes
+  evmax cleanup resolve-props — fetch ESPN boxscores and fill prop_observations outcomes
 """
 
 from __future__ import annotations
@@ -671,4 +673,130 @@ def train(
     console.print("\n[green]Training complete.[/green]")
     console.print(
         "  [dim]Run [bold]evmax cleanup adjust[/bold] to update sharp_weight if enough data.[/dim]"
+    )
+
+
+@app.command("resolve-props")
+def resolve_props(
+    game_date: Optional[str] = typer.Option(None, "--date", "-d", help="YYYY-MM-DD (default: yesterday)"),
+    sectors: str = typer.Option("nba,nfl", "--sectors", "-s", help="Comma-separated sectors to resolve"),
+) -> None:
+    """Fetch ESPN boxscores and fill in prop_observations actual values + outcomes."""
+    from evmax.agents.cleanup.prop_resolver import resolve_prop_observations
+
+    target = date.fromisoformat(game_date) if game_date else date.today() - timedelta(days=1)
+    sector_list = [s.strip().lower() for s in sectors.split(",")]
+
+    console.print(f"\n[bold]Resolving prop observations for {target}[/bold]")
+    total_resolved = total_unmatched = 0
+
+    for sector in sector_list:
+        result = resolve_prop_observations(sector, target)
+        resolved = result["resolved"]
+        unmatched = result["unmatched"]
+        total_resolved += resolved
+        total_unmatched += unmatched
+        if resolved or unmatched:
+            console.print(
+                f"  [cyan]{sector.upper()}[/cyan]  resolved={resolved}  unmatched={unmatched}"
+            )
+
+    console.print(
+        f"\n  [green]Total resolved: {total_resolved}[/green]  "
+        f"[yellow]Unmatched: {total_unmatched}[/yellow]"
+    )
+
+
+@app.command("props")
+def show_props(
+    days: int = typer.Option(14, "--days", "-d", help="How many days back to show"),
+    sector: Optional[str] = typer.Option(None, "--sector", "-s"),
+    stat_type: Optional[str] = typer.Option(None, "--stat", help="Filter by stat type (points, rebounds, etc.)"),
+    player: Optional[str] = typer.Option(None, "--player", "-p", help="Filter by player name (partial)"),
+    resolved_only: bool = typer.Option(False, "--resolved", help="Only show resolved observations"),
+) -> None:
+    """Show logged prop observations and their resolved outcomes."""
+    from evmax.agents.cleanup.db import get_connection
+
+    since = (date.today() - timedelta(days=days)).isoformat()
+    conn = get_connection()
+
+    where = ["scan_date >= ?"]
+    params: list = [since]
+    if sector:
+        where.append("sector = ?")
+        params.append(sector.lower())
+    if stat_type:
+        where.append("stat_type = ?")
+        params.append(stat_type.lower())
+    if player:
+        where.append("player_name LIKE ?")
+        params.append(f"%{player}%")
+    if resolved_only:
+        where.append("outcome IS NOT NULL")
+
+    rows = conn.execute(
+        f"""SELECT scan_date, event_date, sector, player_name, stat_type, line,
+                   kalshi_price, sharp_prob, ev_pct, l15_games,
+                   actual_value, outcome
+            FROM prop_observations
+            WHERE {' AND '.join(where)}
+            ORDER BY scan_date DESC, player_name""",
+        params,
+    ).fetchall()
+
+    if not rows:
+        console.print(f"[yellow]No prop observations in the last {days} day(s).[/yellow]")
+        return
+
+    table = Table(title=f"Prop Observations — last {days} days", box=box.ROUNDED, show_lines=True)
+    table.add_column("Date", width=10)
+    table.add_column("Sector", width=6)
+    table.add_column("Player", min_width=18, no_wrap=False)
+    table.add_column("Stat", width=8)
+    table.add_column("Line", justify="right", width=6)
+    table.add_column("K Prob", justify="right", width=7)
+    table.add_column("Sharp", justify="right", width=7)
+    table.add_column("EV%", justify="right", width=7)
+    table.add_column("L15", justify="right", width=4)
+    table.add_column("Actual", justify="right", width=7)
+    table.add_column("Result", justify="center", width=7)
+
+    over_count = under_count = unresolved = 0
+    for r in rows:
+        outcome = r["outcome"]
+        if outcome == 1:
+            result_str = "[green]OVER[/green]"
+            over_count += 1
+        elif outcome == 0:
+            result_str = "[red]UNDER[/red]"
+            under_count += 1
+        else:
+            result_str = "[dim]—[/dim]"
+            unresolved += 1
+
+        ev_color = "green" if (r["ev_pct"] or 0) >= 0.02 else "dim"
+        table.add_row(
+            r["scan_date"] or "—",
+            (r["sector"] or "").upper(),
+            r["player_name"] or "—",
+            r["stat_type"] or "—",
+            f"{r['line']:.1f}" if r["line"] else "—",
+            f"{r['kalshi_price']:.1%}" if r["kalshi_price"] else "—",
+            f"{r['sharp_prob']:.1%}" if r["sharp_prob"] else "—",
+            f"[{ev_color}]{(r['ev_pct'] or 0)*100:+.1f}%[/{ev_color}]",
+            str(r["l15_games"]) if r["l15_games"] else "—",
+            f"{r['actual_value']:.1f}" if r["actual_value"] is not None else "—",
+            result_str,
+        )
+
+    console.print(table)
+    resolved = over_count + under_count
+    hit_rate = over_count / resolved if resolved else 0
+    console.print(
+        f"\n  {len(rows)} observations  |  "
+        f"Resolved: {resolved}  "
+        f"([green]OVER: {over_count}[/green] / [red]UNDER: {under_count}[/red])  "
+        + (f"Over rate: {hit_rate:.1%}  |  " if resolved else "")
+        + f"Pending: {unresolved}"
     )

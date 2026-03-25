@@ -86,3 +86,62 @@ def log_gaps(
 
     logger.info("predictions_logged", inserted=inserted, total=len(gaps), date=sd)
     return inserted
+
+
+def log_prop_observations(
+    gaps: list[EVGap],
+    scan_date: Optional[date] = None,
+) -> int:
+    """
+    Persist ALL prop EVGap objects to prop_observations for model training.
+
+    Logs every prop line seen — not just +EV ones — so we have the full
+    distribution of lines and outcomes for calibration. Skips duplicates.
+    Returns the number of newly inserted rows.
+    """
+    prop_gaps = [g for g in gaps if "::prop::" in g.event_id]
+    if not prop_gaps:
+        return 0
+
+    sd = (scan_date or date.today()).isoformat()
+    inserted = 0
+
+    with get_connection() as conn:
+        for g in prop_gaps:
+            event_date_str: Optional[str] = None
+            if g.event_date is not None:
+                ed = g.event_date.date() if hasattr(g.event_date, "date") else g.event_date
+                event_date_str = ed.isoformat()
+
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO prop_observations
+                    (scan_date, event_date, sector, player_name, stat_type, line,
+                     kalshi_price, sharp_prob, ev_pct, l15_games,
+                     market_id, event_id, event_title)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        sd,
+                        event_date_str,
+                        g.sector,
+                        g.prop_player_name or g.yes_team,
+                        g.prop_stat_type or "",
+                        g.prop_threshold or g.line,
+                        g.kalshi_yes_price,
+                        g.sharp_true_prob,
+                        g.ev_pct,
+                        g.prop_l15_games or None,
+                        g.market_id,
+                        g.event_id,
+                        g.event_title,
+                    ),
+                )
+                if conn.execute("SELECT changes()").fetchone()[0]:
+                    inserted += 1
+            except Exception as e:
+                logger.warning("prop_log_error", market_id=g.market_id, error=str(e))
+
+        conn.commit()
+
+    logger.info("props_logged", inserted=inserted, total=len(prop_gaps), date=sd)
+    return inserted

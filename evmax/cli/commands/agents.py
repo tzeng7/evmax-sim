@@ -226,7 +226,7 @@ def scan(
         and _matches_date(g)
     ]
 
-    # Auto-log qualifying gaps to predictions.db — exclude props until prop pipeline is ready
+    # Log game-level +EV gaps to ev_predictions (bankroll tracking)
     loggable_gaps = [g for g in qualifying_gaps if "::prop::" not in g.event_id]
     if loggable_gaps:
         try:
@@ -237,6 +237,17 @@ def scan(
         except Exception as _log_err:
             console.print(f"[bold red]  ERROR: Failed to log predictions to DB: {_log_err}[/bold red]")
             console.print(f"[red]  Plays above were NOT saved — resolve will not find them.[/red]")
+
+    # Log ALL prop lines (not just +EV) to prop_observations for model training
+    all_prop_gaps = [g for g in result.top_gaps if "::prop::" in g.event_id]
+    if all_prop_gaps:
+        try:
+            from evmax.agents.cleanup.logger import log_prop_observations as _log_props
+            n_props = _log_props(all_prop_gaps)
+            if n_props:
+                console.print(f"[dim]  Logged {n_props} prop line(s) to prop_observations[/dim]")
+        except Exception as _log_err:
+            logger.warning("prop_log_failed", error=str(_log_err))
 
     # Enforce per-type cap: at most max_props prop plays, rest are game markets
     prop_gaps = [g for g in qualifying_gaps if g.market_type == "player_prop"]
