@@ -305,6 +305,60 @@ class InjuryReportAgent(Agent):
     # Utility: apply injury adjustments to a probability dict
     # ------------------------------------------------------------------
 
+    # Default usage share by tier when OUT — redistributed among remaining players
+    _USAGE_BY_TIER = {"star": 0.25, "starter": 0.15, "rotation": 0.08}
+
+    @staticmethod
+    def get_out_players(
+        reports: dict[str, InjuryReport],
+        team: str,
+    ) -> list[dict]:
+        """Return OUT/DOUBTFUL players for a team with estimated usage shares.
+
+        Used by prop injury boost: when teammates are OUT, remaining players
+        absorb their usage (minutes, touches, shots).
+
+        Returns: [{"name": str, "tier": str, "usage_share": float}, ...]
+        """
+        team_norm = team.lower().strip()
+        out_players = []
+
+        for team_key, report in reports.items():
+            if team_norm not in team_key and team_key not in team_norm:
+                continue
+            for p in report.players:
+                if p.status.lower() in ("out", "doubtful"):
+                    usage = InjuryReportAgent._USAGE_BY_TIER.get(p.tier, 0.08)
+                    out_players.append({
+                        "name": p.name,
+                        "tier": p.tier,
+                        "usage_share": usage,
+                    })
+
+        return out_players
+
+    @staticmethod
+    def compute_prop_injury_boost(
+        reports: dict[str, InjuryReport],
+        team: str,
+        redistribution_factor: float = 0.6,
+        max_boost: float = 0.15,
+    ) -> float:
+        """Compute probability boost for a player's props when teammates are OUT.
+
+        Not all freed usage goes to a single player — `redistribution_factor` controls
+        what fraction of the freed usage is assumed to reach our player (0.6 = 60%).
+
+        Returns: boost as a fraction (e.g. 0.08 = 8% boost to over probability).
+        """
+        out_players = InjuryReportAgent.get_out_players(reports, team)
+        if not out_players:
+            return 0.0
+
+        total_freed = sum(p["usage_share"] for p in out_players)
+        boost = total_freed * redistribution_factor
+        return min(boost, max_boost)
+
     @staticmethod
     def apply_adjustments(
         reports: dict[str, InjuryReport],

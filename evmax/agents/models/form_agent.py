@@ -81,8 +81,21 @@ class FormModelAgent(ModelAgent):
     weight = 0.25   # blending weight in ensemble
 
     def _team_records(self, sector: str, team: str) -> list[GameRecord]:
-        team_data = self._state.get(sector, {}).get(team, [])
-        return [GameRecord(**r) for r in team_data]
+        sector_data = self._state.get(sector, {})
+        team_data = sector_data.get(team)
+        # Fallback: try last word (e.g. "new york knicks" → "knicks")
+        if not team_data and " " in team:
+            last = team.rsplit(" ", 1)[-1]
+            team_data = sector_data.get(last)
+        # Fallback: prefix/suffix/substring match
+        # Handles "duke blue devils" → "duke" and "st. johns red storm" → "st. johns red storm"
+        if not team_data:
+            for key, val in sector_data.items():
+                if (team.startswith(key + " ") or key.startswith(team + " ")
+                        or team.endswith(key) or key.endswith(team)):
+                    team_data = val
+                    break
+        return [GameRecord(**r) for r in (team_data or [])]
 
     def _form_rate(self, records: list[GameRecord]) -> float:
         """Exponentially-weighted win rate from most recent WINDOW games."""
@@ -196,12 +209,17 @@ class FormModelAgent(ModelAgent):
         def _add_record(team: str, won: bool, opp: str, home: bool) -> None:
             if team not in self._state[sector]:
                 self._state[sector][team] = []
-            self._state[sector][team].append(
+            existing = self._state[sector][team]
+            # Dedup: skip if same (date, opp, home) already recorded
+            key = (date_str, opp, home)
+            if any((r["date"], r["opp"], r["home"]) == key for r in existing):
+                return
+            existing.append(
                 {"date": date_str, "won": won, "opp": opp, "home": home}
             )
             # Keep only the most recent 2×WINDOW entries to control file size
             self._state[sector][team] = sorted(
-                self._state[sector][team], key=lambda r: r["date"], reverse=True
+                existing, key=lambda r: r["date"], reverse=True
             )[: WINDOW * 2]
 
         _add_record(team_a, a_won, team_b, home=True)

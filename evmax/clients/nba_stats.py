@@ -32,6 +32,10 @@ from scipy.stats import norm
 
 logger = structlog.get_logger(__name__)
 
+# Cap concurrent nba_api calls — stats.nba.com throttles at ~3–5 req/s
+_NBA_API_SEM = asyncio.Semaphore(3)
+_NBA_API_TIMEOUT = 10  # seconds per request (nba_api timeout param)
+
 _SEASON = "2025-26"
 _LAST_N_GAMES = 15
 _MIN_GAMES = 5           # need at least this many data points
@@ -110,6 +114,7 @@ def _fetch_gamelog_sync(player_id: int) -> Optional[object]:
             player_id_nullable=player_id,
             season_nullable=_SEASON,
             last_n_games_nullable=_LAST_N_GAMES,
+            timeout=_NBA_API_TIMEOUT,
         )
         return logs.get_data_frames()[0]
     except Exception as exc:
@@ -141,6 +146,7 @@ def _fetch_team_stats() -> dict[str, dict]:
             season=_SEASON,
             per_mode_simple="PerGame",
             measure_type_simple_defense="Base",
+            timeout=_NBA_API_TIMEOUT,
         ).get_data_frames()[0]
 
         # Opponent shooting stats: opp 3PT makes/attempts per game
@@ -148,6 +154,7 @@ def _fetch_team_stats() -> dict[str, dict]:
             season=_SEASON,
             per_mode_simple="PerGame",
             measure_type_simple_defense="Opponent",
+            timeout=_NBA_API_TIMEOUT,
         ).get_data_frames()[0]
 
         result: dict[str, dict] = {}
@@ -471,13 +478,16 @@ async def get_prop_true_prob(
     """Async: compute P(player stat >= threshold) with recency + opponent context.
 
     Returns (probability, n_games_in_sample), or None if player/stat unavailable.
+    Semaphore-limited to _NBA_API_SEM concurrent requests to avoid rate-limiting
+    stats.nba.com. Each executor call has _NBA_API_TIMEOUT applied at the HTTP layer.
     """
-    loop = asyncio.get_event_loop()
-    player_id = await loop.run_in_executor(None, _find_player_id, player_name)
-    if player_id is None:
-        logger.debug("nba_stats_player_not_found", player=player_name)
-        return None
-    result = await loop.run_in_executor(
-        None, _compute_prob_sync, player_id, stat_type, threshold, game_date
-    )
-    return result
+    async with _NBA_API_SEM:
+        loop = asyncio.get_event_loop()
+        player_id = await loop.run_in_executor(None, _find_player_id, player_name)
+        if player_id is None:
+            logger.debug("nba_stats_player_not_found", player=player_name)
+            return None
+        result = await loop.run_in_executor(
+            None, _compute_prob_sync, player_id, stat_type, threshold, game_date
+        )
+        return result

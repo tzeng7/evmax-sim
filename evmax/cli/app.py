@@ -15,6 +15,7 @@ from evmax.cli.commands.cleanup import app as cleanup_app
 from evmax.cli.commands.backtest import app as backtest_app
 from evmax.cli.commands.archive import app as archive_app
 from evmax.cli.commands.update import app as update_app
+from evmax.cli.commands.project import app as project_app
 
 console = Console()
 
@@ -43,6 +44,7 @@ app.add_typer(sim_app,     name="sim",     help="Monte Carlo simulation and pape
 app.add_typer(report_app,  name="report",  help="P&L report from simulation database.")
 app.add_typer(backtest_app, name="backtest", help="Historical model calibration backtest.")
 app.add_typer(archive_app, name="archive", help="Manage historical Pinnacle + Kalshi snapshots.")
+app.add_typer(project_app, name="project", help="Standalone point projections (not EV pipeline).")
 
 
 @app.callback()

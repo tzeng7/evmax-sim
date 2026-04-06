@@ -187,15 +187,7 @@ def scan(
             console.print(f"[red]Invalid date format:[/red] {date_filter!r} — use YYYY-MM-DD")
             raise typer.Exit(1)
     else:
-        # Auto-detect: use today if any gaps today, else the next available date
-        today = date.today()
-        gap_dates = sorted(set(
-            g.event_date.date() if hasattr(g.event_date, "date") else g.event_date
-            for g in result.ev_gaps
-            if g.event_date is not None
-        ))
-        future_dates = [d for d in gap_dates if d >= today]
-        target_date = future_dates[0] if future_dates else today
+        target_date = date.today()
 
     def _matches_date(g) -> bool:
         if g.event_date is None:
@@ -225,6 +217,21 @@ def scan(
         and g.ev_pct >= _tiered_min_ev(g.blended_true_prob)
         and _matches_date(g)
     ]
+
+    # Exclude events that have already been placed via pick
+    try:
+        from evmax.agents.cleanup.db import get_connection as _get_conn
+        _pconn = _get_conn()
+        _placed_rows = _pconn.execute(
+            "SELECT DISTINCT event_title FROM ev_predictions WHERE placed = 1 AND event_date = ?",
+            (str(target_date),),
+        ).fetchall()
+        _pconn.close()
+        _placed_events = {r["event_title"] for r in _placed_rows if r["event_title"]}
+        if _placed_events:
+            qualifying_gaps = [g for g in qualifying_gaps if g.event_title not in _placed_events]
+    except Exception:
+        pass  # DB unavailable — show all
 
     # Log game-level +EV gaps to ev_predictions (bankroll tracking)
     loggable_gaps = [g for g in qualifying_gaps if "::prop::" not in g.event_id]
@@ -301,13 +308,15 @@ def scan(
     table.add_column("Sector", style="dim", width=6)
     table.add_column("Event", style="dim", min_width=22, no_wrap=False)
     table.add_column("Outcome", style="bold white", min_width=16, no_wrap=False)
-    table.add_column("K Odds", justify="right", width=7)
-    table.add_column("True Odds", justify="right", width=9)
-    table.add_column("True P", justify="right", width=7)
+    table.add_column("Ask", justify="right", width=7)       # current Kalshi ask (what you'd pay)
+    table.add_column("Fair", justify="right", width=7)      # fair odds — max price for +EV
+    table.add_column("Edge", justify="right", width=7)      # fair prob - ask prob (in ¢)
     table.add_column("EV %", justify="right", style="green bold", width=8)
     table.add_column("Kelly%", justify="right", width=7)
     table.add_column("Stake $", justify="right", style="cyan bold", width=8)
     table.add_column("N", justify="right", width=4)  # games in sample (props only)
+    table.add_column("Bks", justify="right", width=3)  # sharp books in consensus
+    table.add_column("Steam", justify="center", width=6)  # line velocity flag
     table.add_column("Vol $", justify="right", width=9)
     table.add_column("Conf", justify="center", width=5)
 
@@ -324,25 +333,40 @@ def scan(
             else "green" if gap.ev_pct >= 0.05
             else "yellow"
         )
-        k_odds = _american(gap.kalshi_yes_price)
-        true_odds = _american(gap.blended_true_prob)
+        ask_odds = _american(gap.kalshi_yes_price)
+        fair_odds = _american(gap.blended_true_prob)
+        # Edge in cents: how much cheaper the ask is vs fair value
+        # e.g. ask=42¢, fair=48¢ → edge=6¢ — you can pay up to 48¢ and still be +EV
+        edge_cents = round((gap.blended_true_prob - gap.kalshi_yes_price) * 100)
+        edge_color = "green" if edge_cents >= 3 else "yellow"
         odds_ok = gap.blended_true_prob >= gap.kalshi_yes_price * 1.02
         odds_color = "green" if odds_ok else "red"
-        steam_prefix = "⚡ " if getattr(gap, "steam_move", False) else ""
-        ev_str = f"{steam_prefix}[{ev_color}]{gap.ev_pct*100:+.1f}%{'?' if ev_suspicious else ''}[/{ev_color}]"
+        ev_str = f"[{ev_color}]{gap.ev_pct*100:+.1f}%{'?' if ev_suspicious else ''}[/{ev_color}]"
         l15_str = str(gap.prop_l15_games) if is_prop and gap.prop_l15_games else "[dim]—[/dim]"
+        bks = getattr(gap, "book_count", 1)
+        bks_str = f"[green]{bks}[/green]" if bks > 1 else f"[dim]{bks}[/dim]"
+        # Line velocity / steam flag
+        vel_flag = getattr(gap, "velocity_flag", None)
+        if vel_flag == "STEAM":
+            steam_str = "[bold red]⚡STEAM[/bold red]"
+        elif vel_flag == "STALE":
+            steam_str = "[dim]STALE[/dim]"
+        else:
+            steam_str = "[dim]—[/dim]"
         table.add_row(
             str(i),
             gap.sector.upper(),
             gap.event_title[:28],
             gap.display_label[:22],
-            f"[{odds_color}]{k_odds}[/{odds_color}]",
-            true_odds,
-            f"{gap.blended_true_prob:.3f}",
+            f"[{odds_color}]{ask_odds}[/{odds_color}]",
+            f"[bold]{fair_odds}[/bold]",
+            f"[{edge_color}]{edge_cents:+d}¢[/{edge_color}]",
             ev_str,
             f"{gap.kelly_fraction*100:.2f}%",
             f"${stake:.2f}",
             l15_str,
+            bks_str,
+            steam_str,
             f"${gap.volume_usd:,.0f}",
             gap.stars_display,
         )
@@ -353,10 +377,21 @@ def scan(
         f"  [yellow]⚠ {result.exposure_guard_dropped} play(s) dropped/capped by exposure guard "
         f"(>8% per game)[/yellow]" if result.exposure_guard_dropped else ""
     )
+    # TheOddsAPI quota
+    from evmax.clients.pinnacle import PinnacleClient
+    quota = PinnacleClient.get_quota()
+    quota_str = ""
+    if quota["remaining"] is not None:
+        remaining = quota["remaining"]
+        used = quota["used"] or 0
+        color = "green" if remaining > 100 else "yellow" if remaining > 25 else "red"
+        quota_str = f"  |  TheOddsAPI: [{color}]{remaining:,} remaining[/{color}] ({used:,} used)"
+
     console.print(
         f"\n  [bold]Total at risk:[/bold] ${total_stake:.2f} / ${bankroll:.0f} "
         f"({total_stake/bankroll*100:.1f}%)  |  "
         f"Matched {result.markets_matched}/{result.markets_fetched} markets"
+        + quota_str
         + (f"\n{guard_note}" if guard_note else "") + "\n"
     )
 
@@ -532,6 +567,7 @@ def pick(
         None, "--date", "-d",
         help="Check bets logged on this date (YYYY-MM-DD). Defaults to today.",
     ),
+    sectors: Optional[str] = typer.Option(None, "--sectors", "-s", help="Filter by sectors (comma-separated, e.g. 'nba,tennis'). Default: all."),
     min_ev: float = typer.Option(0.02, "--min-ev", help="Base EV threshold for 'still live' check."),
     min_prob: float = typer.Option(0.15, "--min-prob", help="Minimum true probability floor."),
     bankroll: Optional[float] = typer.Option(None, "--bankroll", "-b", help="Bankroll for stake calculation (default: value used at scan time)."),
@@ -556,10 +592,14 @@ def pick(
     else:
         target_date = date.today()
 
+    # Parse sector filter
+    sector_filter = None
+    if sectors:
+        sector_filter = [s.strip().lower() for s in sectors.split(",") if s.strip()]
+
     conn = get_connection()
-    rows = conn.execute(
-        """
-        SELECT p.id, p.market_id, p.event_title, p.yes_team, p.sector,
+    query = """
+        SELECT p.id, p.market_id, p.event_id, p.event_title, p.yes_team, p.sector,
                p.market_type, p.kalshi_yes_price, p.sharp_true_prob,
                p.blended_true_prob, p.ev_pct, p.kelly_fraction,
                p.volume_usd, p.model_sources, p.line,
@@ -574,10 +614,35 @@ def pick(
           AND p.voided = 0
           AND (o.outcome IS NULL OR o.id IS NULL)
         ORDER BY p.ev_pct DESC
-        """,
-        (str(target_date), str(target_date)),
-    ).fetchall()
+    """
+    params: list = [str(target_date), str(target_date)]
+    all_rows = conn.execute(query, params).fetchall()
     conn.close()
+
+    # Build set of events that have ANY placed bet — exclude all rows for those events
+    placed_events: set[str] = set()
+    for r in all_rows:
+        d = dict(r)
+        if d["placed"]:
+            # Key by event: sector + event_title (covers different market_ids for same game)
+            placed_events.add(f"{d['sector']}::{d['event_title']}")
+
+    rows = [r for r in all_rows if f"{dict(r)['sector']}::{dict(r)['event_title']}" not in placed_events and not dict(r)["placed"]]
+
+    # Deduplicate by event+outcome (same game can have multiple market_ids across scans)
+    seen_keys: set[str] = set()
+    deduped_rows = []
+    for r in rows:
+        d = dict(r)
+        dedup_key = f"{d['sector']}::{d['event_title']}::{d['yes_team']}::{d['market_type']}::{d.get('line')}"
+        if dedup_key not in seen_keys:
+            seen_keys.add(dedup_key)
+            deduped_rows.append(r)
+    rows = deduped_rows
+
+    # Apply sector filter
+    if sector_filter:
+        rows = [r for r in rows if dict(r)["sector"] in sector_filter]
 
     if not rows:
         console.print(f"[yellow]No open predictions for games on {target_date}.[/yellow]")
@@ -610,34 +675,24 @@ def pick(
         blended_prob = r["blended_true_prob"]
         scan_ask = r["kalshi_yes_price"]
         live_ask = live_prices.get(r["market_id"])
-        already_placed = bool(r["placed"])
+
+        # Use scan-time stake as baseline
+        scan_stake = bankroll * r["kelly_fraction"]
 
         if live_ask is not None:
             live_ev, _ = calculate_ev(live_ask, blended_prob)
             threshold = _tiered_min_ev(blended_prob)
             is_live = live_ev >= threshold and blended_prob >= min_prob
-            payout = 1.0 / live_ask
-            k = compute_kelly(
-                true_prob=blended_prob,
-                payout_decimal=payout,
-                edge_pct=live_ev,
-                spread_pct=0.0,
-                base_fraction=kelly,
-                max_kelly=settings.max_kelly_fraction,
-            )
-            stake = bankroll * k.kelly_fraction
         else:
             live_ev = r["ev_pct"]
             is_live = False
-            stake = bankroll * r["kelly_fraction"]
 
         bets.append({
             **r,
             "live_ask": live_ask,
             "live_ev": live_ev,
             "is_live": is_live,
-            "stake": stake,
-            "already_placed": already_placed,
+            "stake": scan_stake,
         })
 
     def _display_label(yes_team, market_type, line):
@@ -661,9 +716,10 @@ def pick(
     table.add_column("Sector", style="dim", width=6)
     table.add_column("Event", style="dim", min_width=20)
     table.add_column("Outcome", style="bold white", min_width=16)
-    table.add_column("Live Ask", justify="right", width=9)
-    table.add_column("True P", justify="right", width=7)
-    table.add_column("Live EV%", justify="right", width=9)
+    table.add_column("Ask", justify="right", width=7)
+    table.add_column("Fair", justify="right", width=7)
+    table.add_column("Edge", justify="right", width=7)
+    table.add_column("EV%", justify="right", width=8)
     table.add_column("Stake $", justify="right", style="cyan", width=8)
     table.add_column("Status", justify="center", width=10)
 
@@ -671,10 +727,11 @@ def pick(
 
     for i, b in enumerate(displayable, 1):
         ev_color = "bold green" if b["live_ev"] >= 0.10 else "green" if b["is_live"] else "red dim"
-        live_ask_str = f"{b['live_ask']:.3f}" if b["live_ask"] else "—"
-        if b["already_placed"]:
-            status = "[dim cyan]PLACED[/dim cyan]"
-        elif b["is_live"]:
+        live_ask_american = _american(b["live_ask"]) if b["live_ask"] else "—"
+        fair_american = _american(b["blended_true_prob"])
+        # Edge in cents (ask prob vs fair prob)
+        edge_cents = f"{(b['blended_true_prob'] - (b['live_ask'] or b['kalshi_yes_price'])) * 100:+.0f}\u00a2" if b["live_ask"] else "—"
+        if b["is_live"]:
             status = "[green]LIVE[/green]"
         else:
             status = "[red]STALE[/red]"
@@ -683,8 +740,9 @@ def pick(
             b["sector"].upper(),
             (b["event_title"] or "")[:22],
             _display_label(b["yes_team"], b["market_type"], b["line"])[:18],
-            live_ask_str,
-            f"{b['blended_true_prob']:.3f}",
+            live_ask_american,
+            fair_american,
+            edge_cents,
             f"[{ev_color}]{b['live_ev']*100:+.1f}%[/{ev_color}]",
             f"${b['stake']:.2f}",
             status,
@@ -692,13 +750,9 @@ def pick(
 
     console.print(table)
 
-    live_bets = [b for b in displayable if b["is_live"] and not b["already_placed"]]
+    live_bets = [b for b in displayable if b["is_live"]]
     if not live_bets:
-        already = sum(1 for b in bets if b["already_placed"])
-        if already:
-            console.print(f"\n[dim cyan]All live bets already marked as placed ({already} total).[/dim cyan]\n")
-        else:
-            console.print("\n[yellow]No live bets to select.[/yellow]\n")
+        console.print("\n[yellow]No live bets to select.[/yellow]\n")
         return
 
     # Build questionary choices — only show live, unplaced bets
@@ -706,9 +760,10 @@ def pick(
     for b in live_bets:
         label = _display_label(b["yes_team"], b["market_type"], b["line"])
         event = (b["event_title"] or b["yes_team"] or "?")[:30]
-        ask_str = f"{b['live_ask']:.3f}" if b["live_ask"] else "?"
+        ask_odds = _american(b["live_ask"]) if b["live_ask"] else "?"
+        fair_odds = _american(b["blended_true_prob"])
         choices.append(questionary.Choice(
-            title=f"{b['sector'].upper():6s} | {event:30s} | {label:18s} | ask={ask_str}  EV={b['live_ev']*100:+.1f}%  stake=${b['stake']:.2f}",
+            title=f"{b['sector'].upper():6s} | {event:30s} | {label:18s} | Ask {ask_odds:>5s}  Fair {fair_odds:>5s}  EV={b['live_ev']*100:+.1f}%  ${b['stake']:.2f}",
             value=b,
             checked=True,  # default: all live bets selected
         ))
@@ -728,26 +783,98 @@ def pick(
         console.print("\n[dim]No bets selected. Nothing recorded.[/dim]\n")
         return
 
-    # Write placed records to DB
+    # Ask for actual fill price and stake per bet
+    console.print("\n[bold]For each bet, enter your fill odds and stake. Press Enter to use defaults.[/bold]\n")
+    filled_bets = []
+    for b in selected:
+        label = _display_label(b["yes_team"], b["market_type"], b["line"])
+        event = (b["event_title"] or "?")[:35]
+        default_odds = _american(b["live_ask"]) if b["live_ask"] else "N/A"
+        default_stake = b["stake"]
+
+        fill_input = questionary.text(
+            f"  {event} | {label}\n    Odds [default {default_odds}]:",
+            default="",
+        ).ask()
+        if fill_input is None:
+            console.print("\n[dim]Cancelled. Nothing recorded.[/dim]\n")
+            return
+
+        stake_input = questionary.text(
+            f"    Stake [default ${default_stake:.2f}]:",
+            default="",
+        ).ask()
+        if stake_input is None:
+            console.print("\n[dim]Cancelled. Nothing recorded.[/dim]\n")
+            return
+
+        # Parse odds
+        fill_input = fill_input.strip()
+        if fill_input:
+            try:
+                odds_val = int(fill_input.replace("+", ""))
+                if odds_val > 0:
+                    fill_prob = 100.0 / (odds_val + 100.0)
+                else:
+                    fill_prob = abs(odds_val) / (abs(odds_val) + 100.0)
+                fill_odds_str = fill_input
+            except ValueError:
+                console.print(f"[yellow]  Invalid odds '{fill_input}', using live ask.[/yellow]")
+                fill_prob = b["live_ask"]
+                fill_odds_str = default_odds
+        else:
+            fill_prob = b["live_ask"]
+            fill_odds_str = default_odds
+
+        # Parse stake
+        stake_input = stake_input.strip().replace("$", "")
+        if stake_input:
+            try:
+                fill_stake = float(stake_input)
+            except ValueError:
+                console.print(f"[yellow]  Invalid stake '{stake_input}', using default.[/yellow]")
+                fill_stake = default_stake
+        else:
+            fill_stake = default_stake
+
+        filled_bets.append({**b, "fill_price": fill_prob, "fill_odds": fill_odds_str, "fill_stake": fill_stake})
+
+    # Write placed records to DB — mark ALL rows for the same market_id
+    # (covers re-scans that create duplicate rows for the same market)
     now_str = _dt.now(timezone.utc).isoformat()
     conn = get_connection()
     placed_count = 0
-    for b in selected:
+    for b in filled_bets:
         conn.execute(
             """
             UPDATE ev_predictions
             SET placed = 1, placed_at = ?, placed_price = ?, placed_stake = ?
-            WHERE id = ?
+            WHERE market_id = ?
             """,
-            (now_str, b["live_ask"], b["stake"], b["id"]),
+            (now_str, b["fill_price"], b["fill_stake"], b["market_id"]),
         )
         placed_count += 1
     conn.commit()
     conn.close()
 
-    total = sum(b["stake"] for b in selected)
+    # Summary
+    console.print()
+    summary_table = Table(box=box.SIMPLE, show_header=True, title="Placed Bets")
+    summary_table.add_column("Event", min_width=24)
+    summary_table.add_column("Outcome", width=18)
+    summary_table.add_column("Fill Odds", justify="right", width=10)
+    summary_table.add_column("Stake", justify="right", width=8)
+    for b in filled_bets:
+        summary_table.add_row(
+            (b["event_title"] or "?")[:30],
+            _display_label(b["yes_team"], b["market_type"], b["line"]),
+            b["fill_odds"],
+            f"${b['fill_stake']:.2f}",
+        )
+    console.print(summary_table)
+
+    total = sum(b["fill_stake"] for b in filled_bets)
     console.print(f"\n[bold green]Recorded {placed_count} bet(s)[/bold green] — total at risk: [cyan]${total:.2f}[/cyan]\n")
-    console.print("[dim]These bets are now tracked in predictions.db. Run [bold]evmax cleanup show[/bold] to see your P&L.[/dim]\n")
 
 
 @app.command("resolve")

@@ -30,11 +30,12 @@ SOCCER_SEASON_URLS: dict[str, dict[str, str]] = {
 TENNIS_SEASON_URLS: dict[int, str] = {
     2024: "http://www.tennis-data.co.uk/2024/2024.xlsx",
     2025: "http://www.tennis-data.co.uk/2025/2025.xlsx",
+    2026: "http://www.tennis-data.co.uk/2026/2026.xlsx",
 }
 
 # Current season files may update daily — cache for 6h
 CURRENT_SEASON = "2526"
-CURRENT_TENNIS_YEAR = 2025
+CURRENT_TENNIS_YEAR = 2026
 CACHE_TTL_CURRENT = 6 * 3600
 CACHE_TTL_HISTORICAL = float("inf")  # historical files never change
 

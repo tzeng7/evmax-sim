@@ -1,7 +1,10 @@
-"""Pinnacle odds via TheOddsAPI client.
+"""Sharp odds via TheOddsAPI client (multi-book consensus).
 
-TheOddsAPI commercially licenses Pinnacle lines.
+TheOddsAPI commercially licenses lines from multiple bookmakers.
 Docs: https://the-odds-api.com/lol-api/
+
+Requests Pinnacle + BetOnline + Bovada + LowVig in a single API call (no extra cost).
+Each book is devigged independently, then combined via inverse-margin weighted average.
 
 Key sports IDs on TheOddsAPI:
   americanfootball_nfl, basketball_nba, basketball_ncaab,
@@ -28,6 +31,14 @@ logger = structlog.get_logger(__name__)
 _CACHE: dict[str, tuple[float, list[SharpOdds]]] = {}
 _CACHE_TTL = 300.0  # seconds
 
+# TheOddsAPI quota tracking (updated from response headers)
+_quota: dict[str, int | None] = {"remaining": None, "used": None}
+
+# Multi-book consensus: request these bookmakers in every TheOddsAPI call.
+# Pinnacle is always the primary anchor; others improve consensus when available.
+# No extra API cost — TheOddsAPI supports comma-separated bookmakers in one request.
+CONSENSUS_BOOKMAKERS = "pinnacle,betonlineag,bovada,lowvig"
+
 # Map our sector names → TheOddsAPI sport keys
 SECTOR_SPORT_KEYS: dict[str, list[str]] = {
     "nfl": ["americanfootball_nfl"],
@@ -42,8 +53,10 @@ SECTOR_SPORT_KEYS: dict[str, list[str]] = {
         "soccer_italy_serie_a",
         "soccer_uefa_champs_league",
         "soccer_france_ligue_one",
+        "soccer_uefa_europa_league",
     ],
     "baseball": ["baseball_mlb"],
+    "nhl": ["icehockey_nhl"],
     # lol / cs2 / valorant use EsportsPinnacleClient (Pinnacle guest API) — not TheOddsAPI
     "tennis": [
         "tennis_atp_miami_open",
@@ -100,7 +113,7 @@ class PinnacleClient(BaseAPIClient):
         tasks = [
             self._fetch_market_type(sport_key, market_type, sector)
             for sport_key in sport_keys
-            for market_type in ("h2h", "spreads")
+            for market_type in ("h2h", "spreads", "totals")
         ]
         all_results = await asyncio.gather(*tasks, return_exceptions=True)
         all_odds: list[SharpOdds] = []
@@ -113,6 +126,11 @@ class PinnacleClient(BaseAPIClient):
         _CACHE[sector_key] = (time.monotonic(), all_odds)
         return all_odds
 
+    @staticmethod
+    def get_quota() -> dict[str, int | None]:
+        """Return TheOddsAPI quota: {'remaining': int|None, 'used': int|None}."""
+        return dict(_quota)
+
     async def _fetch_market_type(self, sport_key: str, market_type: str, sector: str) -> list[SharpOdds]:
         """Fetch a specific market type (h2h or spreads) from TheOddsAPI."""
         try:
@@ -122,10 +140,16 @@ class PinnacleClient(BaseAPIClient):
                     "apiKey": self._api_key,
                     "regions": "us",
                     "markets": market_type,
-                    "bookmakers": "pinnacle",
+                    "bookmakers": CONSENSUS_BOOKMAKERS,
                     "oddsFormat": "decimal",
                 },
             )
+            # Track TheOddsAPI quota from response headers
+            hdrs = getattr(self, "_last_response_headers", {})
+            if "x-requests-remaining" in hdrs:
+                _quota["remaining"] = int(hdrs["x-requests-remaining"])
+            if "x-requests-used" in hdrs:
+                _quota["used"] = int(hdrs["x-requests-used"])
             odds = []
             if isinstance(data, list):
                 for event in data:
@@ -136,47 +160,25 @@ class PinnacleClient(BaseAPIClient):
                     elif market_type == "spreads":
                         parsed_list = self._parse_spread_event(event, sector)
                         odds.extend(parsed_list)
+                    elif market_type == "totals":
+                        parsed_list = self._parse_total_event(event, sector)
+                        odds.extend(parsed_list)
             return odds
         except Exception as e:
             logger.warning("pinnacle_fetch_failed", sport_key=sport_key, market_type=market_type, error=str(e))
             return []
 
     def _parse_event(self, event: dict[str, Any], sector: str) -> Optional[SharpOdds]:
-        """Parse a TheOddsAPI event into SharpOdds."""
+        """Parse a TheOddsAPI event into SharpOdds.
+
+        Pinnacle is always the true probability anchor (sharpest book, lowest margin).
+        Other books (BetOnline, Bovada, LowVig) contribute only a book_count for
+        confidence — they do NOT dilute the probability via averaging. Averaging
+        sharp + soft books systematically dampens edges toward 50/50.
+        """
         try:
-            event_id_raw = event.get("id", "")
             home_team = event.get("home_team", "")
             away_team = event.get("away_team", "")
-            sport = event.get("sport_key", "")
-
-            # Find Pinnacle bookmaker
-            pinnacle_data = None
-            for bm in event.get("bookmakers", []):
-                if bm.get("key") == "pinnacle":
-                    pinnacle_data = bm
-                    break
-
-            if not pinnacle_data:
-                return None
-
-            # Find h2h market
-            h2h_market = None
-            for mkt in pinnacle_data.get("markets", []):
-                if mkt.get("key") == "h2h":
-                    h2h_market = mkt
-                    break
-
-            if not h2h_market:
-                return None
-
-            outcomes = h2h_market.get("outcomes", [])
-            if len(outcomes) < 2:
-                return None
-
-            # Build outcome map
-            outcome_map: dict[str, float] = {}
-            for o in outcomes:
-                outcome_map[o["name"]] = float(o["price"])
 
             # Event date
             event_date = None
@@ -192,45 +194,129 @@ class PinnacleClient(BaseAPIClient):
                 f"{sector}::{date_str}::{self._normalize(home_team, sector)}_vs_{self._normalize(away_team, sector)}"
             )
 
-            # Three-way (soccer with draw)
-            draw_decimal = outcome_map.get("Draw")
-            home_decimal = outcome_map.get(home_team, list(outcome_map.values())[0])
-            away_decimal = outcome_map.get(away_team, list(outcome_map.values())[1] if len(outcome_map) > 1 else 2.0)
+            is_three_way = sector in ("soccer",)
 
-            if draw_decimal:
-                prob_a, prob_b, prob_draw, margin = devig_three_way(
-                    home_decimal, away_decimal, draw_decimal
+            # --- Pinnacle is the true prob anchor ---
+            pinnacle_estimate: tuple[float, float, float | None, float] | None = None
+            pinnacle_home_dec = pinnacle_away_dec = pinnacle_draw_dec = None
+            book_count = 0
+
+            for bm in event.get("bookmakers", []):
+                h2h_market = next(
+                    (m for m in bm.get("markets", []) if m.get("key") == "h2h"),
+                    None,
                 )
-            else:
-                prob_a, prob_b, margin = devig_two_way(home_decimal, away_decimal)
-                prob_draw = None
+                if not h2h_market:
+                    continue
+
+                outcomes = h2h_market.get("outcomes", [])
+                if len(outcomes) < 2:
+                    continue
+
+                outcome_map: dict[str, float] = {o["name"]: float(o["price"]) for o in outcomes}
+                draw_decimal = outcome_map.get("Draw")
+                home_decimal = outcome_map.get(home_team, list(outcome_map.values())[0])
+                away_decimal = outcome_map.get(away_team, list(outcome_map.values())[1] if len(outcome_map) > 1 else 2.0)
+
+                try:
+                    if draw_decimal and is_three_way:
+                        pa, pb, pd, margin = devig_three_way(home_decimal, away_decimal, draw_decimal)
+                    else:
+                        pa, pb, margin = devig_two_way(home_decimal, away_decimal)
+                        pd = None
+                except Exception:
+                    continue
+
+                book_count += 1
+
+                if bm.get("key") == "pinnacle":
+                    pinnacle_estimate = (pa, pb, pd, margin)
+                    pinnacle_home_dec = home_decimal
+                    pinnacle_away_dec = away_decimal
+                    pinnacle_draw_dec = draw_decimal
+                elif pinnacle_estimate is None:
+                    # Fallback: use first available book if Pinnacle is absent
+                    pinnacle_estimate = (pa, pb, pd, margin)
+                    pinnacle_home_dec = home_decimal
+                    pinnacle_away_dec = away_decimal
+                    pinnacle_draw_dec = draw_decimal
+
+            if pinnacle_estimate is None:
+                return None
+
+            prob_a, prob_b, prob_draw, margin = pinnacle_estimate
+            book_label = SharpBook.consensus if book_count > 1 else SharpBook.pinnacle
 
             return SharpOdds(
                 event_id=canonical_event_id,
-                book=SharpBook.pinnacle,
+                book=book_label,
                 sector=sector,
                 outcome_a_label=home_team,
                 outcome_b_label=away_team,
-                outcome_a_decimal=home_decimal,
-                outcome_b_decimal=away_decimal,
-                outcome_draw_decimal=draw_decimal,
+                outcome_a_decimal=pinnacle_home_dec or 2.0,
+                outcome_b_decimal=pinnacle_away_dec or 2.0,
+                outcome_draw_decimal=pinnacle_draw_dec,
                 true_prob_a=prob_a,
                 true_prob_b=prob_b,
                 true_prob_draw=prob_draw,
                 margin=margin,
+                book_count=book_count,
                 event_date=event_date,
             )
         except Exception as e:
             logger.warning("pinnacle_parse_failed", error=str(e))
             return None
 
-    def _parse_spread_event(self, event: dict[str, Any], sector: str) -> list[SharpOdds]:
-        """
-        Parse a TheOddsAPI event into SharpOdds objects for spread markets.
+    @staticmethod
+    def _consensus_probs(
+        estimates: list[tuple[float, float, float | None, float]],
+    ) -> tuple[float, float, float | None, float]:
+        """Compute inverse-margin weighted average of devigged probabilities.
 
-        Creates one SharpOdds per spread line where the covering team has a
-        negative spread (i.e. the favorite). Event ID format:
-          "{sector}::{date}::{home}_vs_{away}::spread::{covering_team}{line_int}"
+        Lower-margin books (sharper) get higher weight.
+        Returns (prob_a, prob_b, prob_draw_or_None, weighted_avg_margin).
+        """
+        if len(estimates) == 1:
+            return estimates[0]
+
+        weights = []
+        for _, _, _, margin in estimates:
+            # Inverse margin weight; floor margin at 0.5% to avoid division issues
+            w = 1.0 / max(margin, 0.005)
+            weights.append(w)
+
+        total_w = sum(weights)
+        prob_a = sum(w * e[0] for w, e in zip(weights, estimates)) / total_w
+        prob_b = sum(w * e[1] for w, e in zip(weights, estimates)) / total_w
+
+        has_draw = any(e[2] is not None for e in estimates)
+        if has_draw:
+            draw_weights = [(w, e[2]) for w, e in zip(weights, estimates) if e[2] is not None]
+            if draw_weights:
+                dw_total = sum(w for w, _ in draw_weights)
+                prob_draw: float | None = sum(w * d for w, d in draw_weights) / dw_total
+            else:
+                prob_draw = None
+        else:
+            prob_draw = None
+
+        # Normalize to sum to 1.0
+        total_prob = prob_a + prob_b + (prob_draw or 0.0)
+        if total_prob > 0:
+            prob_a /= total_prob
+            prob_b /= total_prob
+            if prob_draw is not None:
+                prob_draw /= total_prob
+
+        avg_margin = sum(w * e[3] for w, e in zip(weights, estimates)) / total_w
+
+        return prob_a, prob_b, prob_draw, avg_margin
+
+    def _parse_spread_event(self, event: dict[str, Any], sector: str) -> list[SharpOdds]:
+        """Parse a TheOddsAPI event into SharpOdds for spread markets.
+
+        Pinnacle is always the true probability anchor. Other books with the
+        same spread line contribute only to book_count (confidence signal).
         """
         try:
             home_team = event.get("home_team", "")
@@ -249,11 +335,13 @@ class PinnacleClient(BaseAPIClient):
             away_norm = self._normalize(away_team, sector)
             base_event_id = f"{sector}::{date_str}::{home_norm}_vs_{away_norm}"
 
-            # Find Pinnacle spreads market
-            pinnacle_data = next(
-                (bm for bm in event.get("bookmakers", []) if bm.get("key") == "pinnacle"),
-                None,
-            )
+            # Find Pinnacle's spread — this is the true prob anchor
+            pinnacle_data = None
+            for bm in event.get("bookmakers", []):
+                if bm.get("key") == "pinnacle":
+                    pinnacle_data = bm
+                    break
+
             if not pinnacle_data:
                 return []
 
@@ -268,10 +356,7 @@ class PinnacleClient(BaseAPIClient):
             if len(outcomes) != 2:
                 return []
 
-            # Build outcome map: name → (price, point)
             outcome_map = {o["name"]: (float(o["price"]), float(o["point"])) for o in outcomes}
-
-            # Identify covering team (negative spread = favorite)
             covering_team = next(
                 (name for name, (_, pt) in outcome_map.items() if pt < 0), None
             )
@@ -284,12 +369,31 @@ class PinnacleClient(BaseAPIClient):
 
             prob_cover, prob_other, margin = devig_two_way(cover_price, other_price)
 
-            # Event ID at game level — line is stored in spread_line field
+            # Count other books with the same spread line (confidence signal only)
+            book_count = 1  # Pinnacle
+            for bm in event.get("bookmakers", []):
+                if bm.get("key") == "pinnacle":
+                    continue
+                bm_spreads = next(
+                    (m for m in bm.get("markets", []) if m.get("key") == "spreads"), None
+                )
+                if not bm_spreads:
+                    continue
+                bm_outcomes = bm_spreads.get("outcomes", [])
+                if len(bm_outcomes) != 2:
+                    continue
+                for o in bm_outcomes:
+                    if float(o.get("point", 0)) < 0 and abs(float(o["point"]) - cover_point) <= 0.01:
+                        book_count += 1
+                        break
+
+            book_label = SharpBook.consensus if book_count > 1 else SharpBook.pinnacle
+
             event_id = f"{base_event_id}::spread"
 
             return [SharpOdds(
                 event_id=event_id,
-                book=SharpBook.pinnacle,
+                book=book_label,
                 sector=sector,
                 outcome_a_label=covering_team,
                 outcome_b_label=other_team,
@@ -297,12 +401,112 @@ class PinnacleClient(BaseAPIClient):
                 outcome_b_decimal=other_price,
                 true_prob_a=prob_cover,
                 true_prob_b=prob_other,
-                spread_line=cover_point,  # e.g. -7.5
+                spread_line=cover_point,
                 margin=margin,
+                book_count=book_count,
                 event_date=event_date,
             )]
         except Exception as e:
             logger.warning("pinnacle_spread_parse_failed", error=str(e))
+            return []
+
+    def _parse_total_event(self, event: dict[str, Any], sector: str) -> list[SharpOdds]:
+        """Parse a TheOddsAPI event into SharpOdds for totals (game over/under).
+
+        TheOddsAPI totals format:
+          market.key = "totals", outcomes = [
+            {"name": "Over", "price": 1.91, "point": 220.5},
+            {"name": "Under", "price": 1.91, "point": 220.5},
+          ]
+
+        Returns one SharpOdds per distinct total line from Pinnacle.
+        Event_id format: {sector}::{date}::{home}_vs_{away}::total::{line}
+        (matches MatchingEngine._find_nearest_total)
+        """
+        try:
+            home_team = event.get("home_team", "")
+            away_team = event.get("away_team", "")
+
+            commence_time = event.get("commence_time", "")
+            event_date = None
+            if commence_time:
+                try:
+                    event_date = datetime.fromisoformat(commence_time.replace("Z", "+00:00"))
+                except ValueError:
+                    pass
+
+            date_str = event_date.strftime("%Y-%m-%d") if event_date else "unknown"
+            home_norm = self._normalize(home_team, sector)
+            away_norm = self._normalize(away_team, sector)
+            base_event_id = f"{sector}::{date_str}::{home_norm}_vs_{away_norm}"
+
+            # Use Pinnacle as the true prob anchor
+            pinnacle_data = None
+            for bm in event.get("bookmakers", []):
+                if bm.get("key") == "pinnacle":
+                    pinnacle_data = bm
+                    break
+            if not pinnacle_data:
+                return []
+
+            totals_market = next(
+                (m for m in pinnacle_data.get("markets", []) if m.get("key") == "totals"),
+                None,
+            )
+            if not totals_market:
+                return []
+
+            outcomes = totals_market.get("outcomes", [])
+            over_outcome = next((o for o in outcomes if o.get("name", "").lower() == "over"), None)
+            under_outcome = next((o for o in outcomes if o.get("name", "").lower() == "under"), None)
+            if not over_outcome or not under_outcome:
+                return []
+
+            over_price = float(over_outcome["price"])
+            under_price = float(under_outcome["price"])
+            total_line = float(over_outcome.get("point", under_outcome.get("point", 0)))
+            if total_line <= 0:
+                return []
+
+            prob_over, prob_under, margin = devig_two_way(over_price, under_price)
+
+            # Count other books at same line for confidence
+            book_count = 1
+            for bm in event.get("bookmakers", []):
+                if bm.get("key") == "pinnacle":
+                    continue
+                bm_totals = next(
+                    (m for m in bm.get("markets", []) if m.get("key") == "totals"), None
+                )
+                if not bm_totals:
+                    continue
+                for o in bm_totals.get("outcomes", []):
+                    if o.get("name", "").lower() == "over" and abs(float(o.get("point", -1)) - total_line) <= 0.01:
+                        book_count += 1
+                        break
+
+            book_label = SharpBook.consensus if book_count > 1 else SharpBook.pinnacle
+            event_id = f"{base_event_id}::total::{total_line}"
+
+            return [SharpOdds(
+                event_id=event_id,
+                book=book_label,
+                sector=sector,
+                outcome_a_label="Over",
+                outcome_b_label="Under",
+                outcome_a_decimal=over_price,
+                outcome_b_decimal=under_price,
+                true_prob_a=prob_over,
+                true_prob_b=prob_under,
+                total_line=total_line,
+                true_prob_over=prob_over,
+                true_prob_under=prob_under,
+                margin=margin,
+                book_count=book_count,
+                event_date=event_date,
+            )]
+        except Exception as e:
+            logger.warning("pinnacle_total_parse_failed", error=str(e))
             return []
 
     async def get_prop_odds(self, sector: str) -> list[SharpOdds]:

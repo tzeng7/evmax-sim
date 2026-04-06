@@ -3,11 +3,13 @@
 No credentials required. Replaces TheOddsAPI for Pinnacle sharp lines.
 
 Sport IDs:
-  4  = Basketball (NBA id=487, NCAA id=493)
+  4  = Basketball (NBA id=487, NCAA Men's id=493, WNCAA id=583)
   12 = E Sports   (CS2, LoL, Valorant)
   15 = Football   (NFL id=258)
+  19 = Hockey     (NHL id=1456)
   29 = Soccer     (EPL id=1980, La Liga id=2196, Bundesliga id=1842,
-                   Serie A id=2436, Ligue 1 id=2036, UCL id=2186)
+                   Serie A id=2436, Ligue 1 id=2036, UCL id=2186,
+                   UEL id=2630, MLS id=2663)
 
 Odds are American format; we convert via american_to_decimal() + devig_two_way().
 Soccer three-way (draw) odds use devig_three_way().
@@ -22,8 +24,10 @@ from typing import Any, Optional
 import structlog
 
 from evmax.clients.base import BaseAPIClient
+from evmax.disk_cache import cache_get, cache_set, cache_get_offline
 from evmax.ev.devig import devig_two_way, devig_three_way, american_to_decimal
 from evmax.models.odds import SharpBook, SharpOdds
+from evmax.settings import get_settings
 
 logger = structlog.get_logger(__name__)
 
@@ -33,11 +37,14 @@ GUEST_API_BASE = "https://guest.api.arcadia.pinnacle.com/0.1"
 SECTOR_SPORT_LEAGUES: dict[str, tuple[int, list[int]]] = {
     "nba":      (4,  [487]),
     "ncaab":    (4,  [493]),
+    "ncaaw":    (4,  [583]),    # WNCAA
     "nfl":      (15, [258]),
+    "nhl":      (19, [1456]),   # NHL
     "baseball": (3,  [246]),    # MLB
     "ufc":      (22, []),       # Mixed Martial Arts — matched by league name
     "f1":       (44, []),       # Formula 1 — matched by league name
-    "soccer":   (29, [1980, 2196, 1842, 2436, 2036, 2186]),  # EPL, La Liga, Bundesliga, Serie A, Ligue1, UCL
+    "soccer":   (29, [1980, 2196, 1842, 2436, 2036, 2186, 2630, 2663]),
+    #                EPL  LaLiga Bundes SerieA Ligue1 UCL   UEL   MLS
     "cs2":      (12, []),       # Esports — matched by league name
     "lol":      (12, []),
     "valorant": (12, []),
@@ -64,8 +71,8 @@ ALL_SECTORS = set(SECTOR_SPORT_LEAGUES.keys())
 NAME_MATCHED_SECTORS = {"cs2", "lol", "valorant", "ufc", "f1", "tennis"}
 ESPORTS_SECTORS = {"cs2", "lol", "valorant"}  # kept for backward compat
 
-# Soccer leagues that have draws (all of them)
-SOCCER_DRAW_LEAGUES = {1980, 2196, 1842, 2436, 2036, 2186}
+# Soccer leagues that have draws (all of them); MLS uses draws too
+SOCCER_DRAW_LEAGUES = {1980, 2196, 1842, 2436, 2036, 2186, 2630, 2663}
 
 
 def _name_matched_sector(league_name: str) -> Optional[str]:
@@ -265,6 +272,20 @@ class PinnacleGuestClient(BaseAPIClient):
         if sector not in ALL_SECTORS:
             return []
 
+        cfg = get_settings()
+        cache_key = f"pinnacle_{sector}"
+
+        # Offline mode: always use cache (stale is fine)
+        if cfg.offline_mode:
+            raw = cache_get_offline(cache_key)
+            return [SharpOdds.model_validate(r) for r in raw]
+
+        # Dev cache: skip API if fresh cached data exists
+        if cfg.cache_ttl_secs > 0:
+            raw = cache_get(cache_key, cfg.cache_ttl_secs)
+            if raw is not None:
+                return [SharpOdds.model_validate(r) for r in raw]
+
         sport_id, league_ids = SECTOR_SPORT_LEAGUES[sector]
 
         try:
@@ -315,6 +336,11 @@ class PinnacleGuestClient(BaseAPIClient):
 
         logger.info("sharp_fetched", sector=sector, count=len(odds),
                     avg_margin=round(sum(o.margin for o in odds) / len(odds), 4) if odds else 0.0)
+
+        # Write to dev cache if enabled
+        if cfg.cache_ttl_secs > 0 and odds:
+            cache_set(cache_key, [o.model_dump(mode="json") for o in odds])
+
         return odds
 
     async def _fetch_matchup_odds(self, matchup: dict, sector: str) -> Optional[SharpOdds] | list[SharpOdds]:
@@ -385,7 +411,7 @@ class PinnacleGuestClient(BaseAPIClient):
                     results.append(spread_odds)
 
         # --- Totals (scoring team sports only — excludes esports, UFC, F1, tennis) ---
-        _TOTALS_SECTORS = {"nba", "nfl", "ncaab", "soccer", "baseball"}
+        _TOTALS_SECTORS = {"nba", "nfl", "ncaab", "ncaaw", "soccer", "baseball", "nhl"}
         if sector in _TOTALS_SECTORS:
             totals_market = next(
                 (m for m in markets_data

@@ -135,7 +135,21 @@ class PoissonModelAgent(ModelAgent):
         )
 
     def _team_stats(self, sector: str, team: str) -> Optional[dict]:
-        return self._state.get(sector, {}).get("teams", {}).get(team)
+        teams = self._state.get(sector, {}).get("teams", {})
+        stats = teams.get(team)
+        # Fallback: try last word (e.g. "new york knicks" → "knicks")
+        if not stats and " " in team:
+            last = team.rsplit(" ", 1)[-1]
+            stats = teams.get(last)
+        # Fallback: prefix/suffix/substring match
+        # Handles "duke blue devils" → "duke" and "st. johns red storm" → "st. johns red storm"
+        if not stats:
+            for key, val in teams.items():
+                if (team.startswith(key + " ") or key.startswith(team + " ")
+                        or team.endswith(key) or key.endswith(team)):
+                    stats = val
+                    break
+        return stats
 
     def _expected_goals(
         self,

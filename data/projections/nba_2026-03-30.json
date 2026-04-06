@@ -1,0 +1,77 @@
+{
+  "date": "2026-03-30",
+  "games": [
+    {
+      "home": "Miami Heat",
+      "away": "Philadelphia 76ers",
+      "elo_home_prob": 0.7243,
+      "form_home_prob": 0.95,
+      "poisson_home_prob": 0.509,
+      "blend_home_prob": 0.7152,
+      "pick": "Miami Heat"
+    },
+    {
+      "home": "Atlanta Hawks",
+      "away": "Boston Celtics",
+      "elo_home_prob": 0.6409,
+      "form_home_prob": 0.8505,
+      "poisson_home_prob": 0.4915,
+      "blend_home_prob": 0.6493,
+      "pick": "Atlanta Hawks"
+    },
+    {
+      "home": "Memphis Grizzlies",
+      "away": "Phoenix Suns",
+      "elo_home_prob": 0.3434,
+      "form_home_prob": 0.0776,
+      "poisson_home_prob": 0.4876,
+      "blend_home_prob": 0.3176,
+      "pick": "Phoenix Suns"
+    },
+    {
+      "home": "San Antonio Spurs",
+      "away": "Chicago Bulls",
+      "elo_home_prob": 0.9136,
+      "form_home_prob": 0.8791,
+      "poisson_home_prob": 0.5339,
+      "blend_home_prob": 0.7775,
+      "pick": "San Antonio Spurs"
+    },
+    {
+      "home": "Dallas Mavericks",
+      "away": "Minnesota Timberwolves",
+      "elo_home_prob": 0.3691,
+      "form_home_prob": 0.1991,
+      "poisson_home_prob": 0.4796,
+      "blend_home_prob": 0.3587,
+      "pick": "Minnesota Timberwolves"
+    },
+    {
+      "home": "Utah Jazz",
+      "away": "Cleveland Cavaliers",
+      "elo_home_prob": 0.3975,
+      "form_home_prob": 0.2302,
+      "poisson_home_prob": 0.4829,
+      "blend_home_prob": 0.3795,
+      "pick": "Cleveland Cavaliers"
+    },
+    {
+      "home": "Oklahoma City Thunder",
+      "away": "Detroit Pistons",
+      "elo_home_prob": 0.7204,
+      "form_home_prob": 0.8579,
+      "poisson_home_prob": 0.5071,
+      "blend_home_prob": 0.6875,
+      "pick": "Oklahoma City Thunder"
+    },
+    {
+      "home": "Los Angeles Lakers",
+      "away": "Washington Wizards",
+      "elo_home_prob": 0.8907,
+      "form_home_prob": 0.95,
+      "poisson_home_prob": 0.5278,
+      "blend_home_prob": 0.7862,
+      "pick": "Los Angeles Lakers"
+    }
+  ]
+}

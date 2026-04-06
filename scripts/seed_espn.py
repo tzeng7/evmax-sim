@@ -47,12 +47,26 @@ def _months(start: str, end: str) -> list[str]:
     return months
 
 
+def _days(start: str, end: str) -> list[str]:
+    """Generate YYYYMMDD strings from start to end inclusive."""
+    from datetime import timedelta
+    s = datetime.strptime(start[:10], "%Y-%m-%d").date()
+    e = datetime.strptime(end[:10], "%Y-%m-%d").date()
+    days = []
+    d = s
+    while d <= e:
+        days.append(d.strftime("%Y%m%d"))
+        d += timedelta(days=1)
+    return days
+
+
 # Each entry: sector, ESPN sport, ESPN league, season months to fetch
 SECTOR_CONFIGS: dict[str, dict] = {
     "nba": {
         "sport": "basketball",
         "league": "nba",
-        "months": _months("2025-10", "2026-03"),
+        "months": _months("2025-10", "2026-06"),
+        "use_daily": True,  # March+ has 200+ games/month; daily queries avoid ESPN's 200-game cap
     },
     "nfl": {
         "sport": "football",
@@ -63,16 +77,18 @@ SECTOR_CONFIGS: dict[str, dict] = {
         "sport": "basketball",
         "league": "mens-college-basketball",
         "months": _months("2025-11", "2026-03"),
+        "use_daily": True,  # NCAA has 100+ games/month; daily queries avoid ESPN's 100-game cap
     },
     "ncaaw": {
         "sport": "basketball",
         "league": "womens-college-basketball",
         "months": _months("2025-11", "2026-03"),
+        "use_daily": True,
     },
     "baseball": {
         "sport": "baseball",
         "league": "mlb",
-        "months": _months("2025-03", "2025-10"),  # 2025 MLB season
+        "months": _months("2025-03", "2026-03"),  # 2025 season + 2026 spring
     },
     "ufc": {
         "sport": "mma",
@@ -83,6 +99,9 @@ SECTOR_CONFIGS: dict[str, dict] = {
         "sport": "racing",
         "league": "f1",
         "months": _months("2025-03", "2026-03"),  # 2025 F1 season
+    },
+    "tennis": {
+        "months": [],  # uses tennis-data.co.uk, not ESPN months
     },
     "soccer": {
         "leagues": {
@@ -171,6 +190,40 @@ def normalize_games(games: list[dict], sector: str) -> list[dict]:
     return normalized
 
 
+MIN_GAMES_THRESHOLD: dict[str, int] = {
+    "nba": 10,
+    "nfl": 4,
+    "ncaab": 5,
+    "ncaaw": 5,
+    "baseball": 10,
+    "soccer": 3,
+}
+
+
+def prune_low_game_teams(elo_agent: EloModelAgent, poisson_agent: PoissonModelAgent, sector: str) -> int:
+    """Remove teams with too few games (exhibition/international opponents). Returns count removed."""
+    threshold = MIN_GAMES_THRESHOLD.get(sector, 5)
+    removed = 0
+
+    # Prune Elo
+    state = elo_agent._sector_state(sector)
+    ratings = state.get("ratings", {})
+    counts = state.get("game_counts", {})
+    to_remove = [t for t, c in counts.items() if c < threshold]
+    for t in to_remove:
+        ratings.pop(t, None)
+        counts.pop(t, None)
+        removed += 1
+
+    # Prune Poisson
+    poisson_teams = poisson_agent._state.get(sector, {}).get("teams", {})
+    to_remove_p = [t for t, v in poisson_teams.items() if v.get("games", 0) < threshold]
+    for t in to_remove_p:
+        poisson_teams.pop(t, None)
+
+    return removed
+
+
 def seed_elo_form(games: list[dict], sector: str, elo_agent: EloModelAgent, form_agent: FormModelAgent) -> int:
     """Feed games chronologically into Elo + Form agents. Returns game count."""
     sorted_games = sorted(games, key=lambda g: g["date"])
@@ -234,17 +287,41 @@ async def seed_standard_sector(sector: str, cfg: dict, client: httpx.AsyncClient
     """Seed a single non-soccer sector (NBA, NFL, NCAAB)."""
     sport = cfg["sport"]
     league = cfg["league"]
-    months = cfg["months"]
+    use_daily = cfg.get("use_daily", False)
+
+    if use_daily:
+        # NCAA has 100+ games/month; use daily YYYYMMDD queries to avoid ESPN's 100-game cap
+        from datetime import timedelta
+        periods = []
+        for month_str in cfg["months"]:
+            y, m = int(month_str[:4]), int(month_str[4:6])
+            d = date(y, m, 1)
+            # Generate all days in this month
+            while d.month == m:
+                periods.append(d.strftime("%Y%m%d"))
+                d += timedelta(days=1)
+        label = f"{len(periods)} days"
+    else:
+        periods = cfg["months"]
+        label = f"{len(periods)} months"
 
     print(f"\n{'='*60}")
-    print(f"  Seeding {sector.upper()} from ESPN ({len(months)} months)")
+    print(f"  Seeding {sector.upper()} from ESPN ({label})")
     print(f"{'='*60}")
 
     all_games: list[dict] = []
-    for month in months:
-        games = await fetch_espn_games(client, sport, league, month)
+    batch_count = 0
+    for period in periods:
+        games = await fetch_espn_games(client, sport, league, period)
         all_games.extend(games)
-        print(f"  {month}: {len(games)} completed games")
+        if games:
+            batch_count += 1
+            if use_daily:
+                # Only print days that have games to reduce noise
+                if len(games) >= 5:
+                    print(f"  {period}: {len(games)} completed games")
+            else:
+                print(f"  {period}: {len(games)} completed games")
 
     print(f"  Total raw games: {len(all_games)}")
     normalized = normalize_games(all_games, sector)
@@ -258,8 +335,18 @@ async def seed_standard_sector(sector: str, cfg: dict, client: httpx.AsyncClient
     form = FormModelAgent()
     poisson = PoissonModelAgent()
 
+    # Clear existing sector data before re-seeding to prevent duplicates
+    elo._state.pop(sector, None)
+    form._state.pop(sector, None)
+    poisson._state.pop(sector, None)
+
     n_elo = seed_elo_form(normalized, sector, elo, form)
     n_poisson = seed_poisson(normalized, sector, poisson)
+
+    # Remove exhibition/international teams with too few games
+    n_pruned = prune_low_game_teams(elo, poisson, sector)
+    if n_pruned:
+        print(f"  Pruned {n_pruned} non-league teams (< {MIN_GAMES_THRESHOLD.get(sector, 5)} games)")
 
     elo.save_state()
     form.save_state()
@@ -305,6 +392,11 @@ async def seed_soccer(cfg: dict, client: httpx.AsyncClient) -> None:
     elo = EloModelAgent()
     form = FormModelAgent()
     poisson = PoissonModelAgent()
+
+    # Clear existing sector data before re-seeding to prevent duplicates
+    elo._state.pop(sector, None)
+    form._state.pop(sector, None)
+    poisson._state.pop(sector, None)
 
     n_elo = seed_elo_form(normalized, sector, elo, form)
     n_poisson = seed_poisson(normalized, sector, poisson)
@@ -479,6 +571,187 @@ async def seed_f1(cfg: dict, client: httpx.AsyncClient) -> None:
     print(f"  Total pairwise updates: {total_pairs}")
 
 
+async def seed_tennis(client: httpx.AsyncClient) -> None:
+    """Seed tennis surface Elo from tennis-data.co.uk XLSX files + WTA rankings."""
+    from evmax.agents.models.tennis_model_agent import TennisModelAgent
+
+    print(f"\n{'='*60}")
+    print(f"  Seeding TENNIS from tennis-data.co.uk (2024-2025)")
+    print(f"{'='*60}")
+
+    agent = TennisModelAgent()
+
+    # --- Seed WTA rankings (top 50) ---
+    wta_rankings = {
+        "swiatek": 1, "iga swiatek": 1,
+        "sabalenka": 2, "aryna sabalenka": 2,
+        "gauff": 3, "coco gauff": 3,
+        "rybakina": 4, "elena rybakina": 4,
+        "pegula": 5, "jessica pegula": 5,
+        "zheng": 6, "qinwen zheng": 6,
+        "ostapenko": 7, "jelena ostapenko": 7,
+        "keys": 8, "madison keys": 8,
+        "kasatkina": 9, "daria kasatkina": 9,
+        "navarro": 10, "emma navarro": 10,
+        "badosa": 11, "paula badosa": 11,
+        "paolini": 12, "jasmine paolini": 12,
+        "alexandrova": 13, "ekaterina alexandrova": 13,
+        "collins": 14, "danielle collins": 14,
+        "muchova": 15, "karolina muchova": 15,
+        "krejcikova": 16, "barbora krejcikova": 16,
+        "haddad maia": 17, "beatriz haddad maia": 17,
+        "linette": 18, "magda linette": 18,
+        "fernandez": 19, "leylah fernandez": 19,
+        "shnaider": 20, "diana shnaider": 20,
+        "samsonova": 21, "liudmila samsonova": 21,
+        "sakkari": 22, "maria sakkari": 22,
+        "bencic": 23, "belinda bencic": 23,
+        "andreeva": 24, "mirra andreeva": 24,
+        "vekic": 25, "donna vekic": 25,
+        "mertens": 26, "elise mertens": 26,
+        "potapova": 27, "anastasia potapova": 27,
+        "putintseva": 28, "yulia putintseva": 28,
+        "fruhvirtova": 29, "linda fruhvirtova": 29,
+        "dolehide": 30, "caroline dolehide": 30,
+        "svitolina": 31, "elina svitolina": 31,
+        "boulter": 32, "katie boulter": 32,
+        "todoni": 33, "sara errani": 33,
+        "yuan": 34, "yue yuan": 34,
+        "stearns": 35, "peyton stearns": 35,
+        "wozniacki": 36, "caroline wozniacki": 36,
+        "kvitova": 37, "petra kvitova": 37,
+        "cirstea": 38, "sorana cirstea": 38,
+        "maria": 39, "tatjana maria": 39,
+        "volynets": 40, "katie volynets": 40,
+        "bouzkova": 41, "marie bouzkova": 41,
+        "sorribes tormo": 42, "sara sorribes tormo": 42,
+        "anisimova": 43, "amanda anisimova": 43,
+        "kerber": 44, "angelique kerber": 44,
+        "kalinina": 45, "anhelina kalinina": 45,
+        "jabeur": 46, "ons jabeur": 46,
+        "townsend": 47, "taylor townsend": 47,
+        "wang": 48, "xinyu wang": 48,
+        "raducanu": 49, "emma raducanu": 49,
+        "kostyuk": 50, "marta kostyuk": 50,
+    }
+    agent.seed_rankings(wta_rankings, tour="wta")
+    print(f"  WTA rankings seeded: {len(wta_rankings)} entries")
+
+    # --- Seed surface Elo from historical match data ---
+    try:
+        from evmax.backtest.sources.tennis_xlsx import load_tennis
+        rows = load_tennis([2024, 2025])
+        print(f"  Loaded {len(rows)} historical matches from tennis-data.co.uk")
+
+        # Sort by date and feed into tennis Elo
+        for row in sorted(rows, key=lambda r: r.date):
+            surface = agent._detect_surface(row.league or "")
+            agent.update(
+                team_a=row.team_home.lower().strip(),
+                team_b=row.team_away.lower().strip(),
+                score_a=1.0,  # winner
+                score_b=0.0,  # loser
+                sector="tennis",
+                event_date=str(row.date),
+                surface=surface,
+            )
+
+        agent.save_state()
+        # Count ratings per surface
+        for surface in ("hard", "clay", "grass", "indoor", "overall"):
+            ratings = agent._ratings(surface)
+            if ratings:
+                print(f"  {surface}: {len(ratings)} players rated")
+    except Exception as e:
+        print(f"  WARN: Tennis historical seeding failed: {e}")
+        print(f"  (WTA rankings were still seeded successfully)")
+        agent.save_state()
+
+
+def seed_pitchers() -> None:
+    """Seed MLB pitcher ERA data for the pitcher model."""
+    from evmax.agents.models.pitcher_agent import PitcherModelAgent
+
+    print(f"\n{'='*60}")
+    print(f"  Seeding MLB PITCHER model (2025 season ERAs)")
+    print(f"{'='*60}")
+
+    agent = PitcherModelAgent()
+
+    # 2025 MLB starting pitcher data (top starters per team)
+    # Format: {pitcher_name: {era, ip, team}}
+    pitchers = {
+        # AL East
+        "corbin burnes": {"era": 2.92, "ip": 194.2, "team": "orioles"},
+        "grayson rodriguez": {"era": 3.58, "ip": 170.1, "team": "orioles"},
+        "gerrit cole": {"era": 3.41, "ip": 185.0, "team": "yankees"},
+        "carlos rodon": {"era": 4.20, "ip": 150.0, "team": "yankees"},
+        "chris sale": {"era": 2.38, "ip": 177.2, "team": "red sox"},
+        "brayan bello": {"era": 4.50, "ip": 170.0, "team": "red sox"},
+        "kevin gausman": {"era": 3.75, "ip": 180.0, "team": "blue jays"},
+        "jose berrios": {"era": 3.65, "ip": 175.0, "team": "blue jays"},
+        "zack littell": {"era": 3.80, "ip": 165.0, "team": "rays"},
+        "ryan pepiot": {"era": 3.50, "ip": 140.0, "team": "rays"},
+        # AL Central
+        "tarik skubal": {"era": 2.39, "ip": 192.0, "team": "tigers"},
+        "reese olson": {"era": 3.50, "ip": 160.0, "team": "tigers"},
+        "seth lugo": {"era": 3.00, "ip": 206.2, "team": "royals"},
+        "cole ragans": {"era": 3.14, "ip": 186.1, "team": "royals"},
+        "dylan cease": {"era": 3.42, "ip": 187.0, "team": "padres"},
+        "garrett crochet": {"era": 3.58, "ip": 146.0, "team": "white sox"},
+        "shane bieber": {"era": 3.80, "ip": 120.0, "team": "guardians"},
+        "tanner bibee": {"era": 3.45, "ip": 175.0, "team": "guardians"},
+        "joe ryan": {"era": 3.70, "ip": 165.0, "team": "twins"},
+        "pablo lopez": {"era": 4.08, "ip": 180.0, "team": "twins"},
+        # AL West
+        "logan gilbert": {"era": 3.23, "ip": 190.0, "team": "mariners"},
+        "george kirby": {"era": 3.35, "ip": 185.0, "team": "mariners"},
+        "tyler anderson": {"era": 4.10, "ip": 155.0, "team": "angels"},
+        "reid detmers": {"era": 4.50, "ip": 140.0, "team": "angels"},
+        "nathan eovaldi": {"era": 3.35, "ip": 170.0, "team": "rangers"},
+        "jon gray": {"era": 4.20, "ip": 155.0, "team": "rangers"},
+        "jp sears": {"era": 4.15, "ip": 160.0, "team": "athletics"},
+        "hunter brown": {"era": 3.49, "ip": 175.0, "team": "astros"},
+        "framber valdez": {"era": 3.38, "ip": 195.0, "team": "astros"},
+        # NL East
+        "zack wheeler": {"era": 2.57, "ip": 200.0, "team": "phillies"},
+        "aaron nola": {"era": 3.57, "ip": 195.0, "team": "phillies"},
+        "spencer strider": {"era": 3.10, "ip": 130.0, "team": "braves"},
+        "reynaldo lopez": {"era": 1.83, "ip": 160.0, "team": "braves"},
+        "sandy alcantara": {"era": 4.20, "ip": 140.0, "team": "marlins"},
+        "kodai senga": {"era": 3.00, "ip": 100.0, "team": "mets"},
+        "sean manaea": {"era": 3.47, "ip": 181.2, "team": "mets"},
+        "mackenzie gore": {"era": 3.90, "ip": 155.0, "team": "nationals"},
+        # NL Central
+        "paul skenes": {"era": 1.96, "ip": 133.0, "team": "pirates"},
+        "jared jones": {"era": 3.48, "ip": 130.0, "team": "pirates"},
+        "shota imanaga": {"era": 2.91, "ip": 172.0, "team": "cubs"},
+        "justin steele": {"era": 3.06, "ip": 173.0, "team": "cubs"},
+        "hunter greene": {"era": 2.83, "ip": 170.2, "team": "reds"},
+        "andrew abbott": {"era": 3.66, "ip": 140.0, "team": "reds"},
+        "freddy peralta": {"era": 3.68, "ip": 185.0, "team": "brewers"},
+        "tobias myers": {"era": 3.11, "ip": 135.0, "team": "brewers"},
+        "sonny gray": {"era": 3.84, "ip": 180.0, "team": "cardinals"},
+        # NL West
+        "yoshinobu yamamoto": {"era": 3.00, "ip": 140.0, "team": "dodgers"},
+        "tyler glasnow": {"era": 3.32, "ip": 134.0, "team": "dodgers"},
+        "logan webb": {"era": 3.25, "ip": 212.0, "team": "giants"},
+        "yu darvish": {"era": 3.20, "ip": 175.0, "team": "padres"},
+        "joe musgrove": {"era": 3.80, "ip": 120.0, "team": "padres"},
+        "zac gallen": {"era": 3.65, "ip": 180.0, "team": "diamondbacks"},
+        "merrill kelly": {"era": 3.37, "ip": 175.0, "team": "diamondbacks"},
+        "cal quantrill": {"era": 3.90, "ip": 170.0, "team": "rockies"},
+    }
+
+    agent.seed_pitchers(pitchers, league_avg_era=4.08)
+    print(f"  Seeded {len(pitchers)} starting pitchers")
+    print(f"  League avg ERA: 4.08")
+
+    # Show top pitchers
+    top = sorted(pitchers.items(), key=lambda x: x[1]["era"])[:10]
+    print(f"  Top 10 by ERA: " + " | ".join(f"{n}: {d['era']}" for n, d in top))
+
+
 async def main(sectors: list[str], since: str | None = None) -> None:
     print(f"ESPN model seeder — sectors: {', '.join(sectors)}")
     print(f"Date: {date.today()}")
@@ -510,6 +783,11 @@ async def main(sectors: list[str], since: str | None = None) -> None:
                 await seed_f1(cfg, client)
             elif sector == "ufc":
                 await seed_ufc(cfg, client)
+            elif sector == "tennis":
+                await seed_tennis(client)
+            elif sector == "baseball":
+                await seed_standard_sector(sector, cfg, client)
+                seed_pitchers()
             else:
                 await seed_standard_sector(sector, cfg, client)
 
@@ -520,7 +798,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed models from ESPN data")
     parser.add_argument(
         "--sectors", "-s",
-        default="nba,nfl,ncaab,baseball,ufc,f1,soccer",
+        default="nba,nfl,ncaab,baseball,ufc,f1,soccer,tennis",
         help="Comma-separated sectors to seed (default: nba,nfl,ncaab,baseball,ufc,f1,soccer)",
     )
     parser.add_argument(

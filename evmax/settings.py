@@ -77,6 +77,11 @@ class Settings(BaseSettings):
     kalshi_ws_snapshot_timeout: float = 5.0  # seconds to wait per ticker snapshot
     kalshi_ws_enabled: bool = True  # kill-switch; set False to force REST-only
 
+    # Development cache — set EVMAX_CACHE_TTL_SECS=3600 in .env to reuse responses for 1h
+    # Set EVMAX_OFFLINE=true to never hit live APIs (fails if no cache exists)
+    cache_ttl_secs: int = Field(default=0, ge=0)  # 0 = disabled
+    offline_mode: bool = False
+
 
 _settings: Settings | None = None
 

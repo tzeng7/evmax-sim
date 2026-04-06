@@ -839,3 +839,77 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
 
     logger.info("resolve_done", date=date_str, resolved=resolved, failed=failed)
     return {"resolved": resolved, "failed": failed, "unmatched": unmatched}
+
+
+def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> dict:
+    """Backfill CLV (Closing Line Value) for resolved bets from the archive.
+
+    For each resolved bet missing pinnacle_close_prob, finds the last archived
+    Pinnacle closing line from archived_sharp_odds and populates both:
+      - ev_outcomes.pinnacle_close_prob (used by `cleanup show`)
+      - ev_predictions.clv_pct (entry_prob - close_prob in pp)
+
+    Positive CLV (entry_prob > close_prob) = we got a better price (real edge).
+
+    Returns: {"updated": N, "skipped": M, "avg_clv": float}
+    """
+    from evmax.archiver import DataArchiver
+
+    archiver = DataArchiver()
+    conn = get_connection()
+
+    since_str = (since or date(2020, 1, 1)).isoformat()
+    until_str = (until or date.today()).isoformat()
+
+    # Get resolved bets missing close prob
+    rows = conn.execute(
+        """SELECT p.id, p.market_id, p.event_id, p.sharp_true_prob, p.market_type
+           FROM ev_predictions p
+           INNER JOIN ev_outcomes o ON p.market_id = o.market_id
+           WHERE o.outcome IS NOT NULL
+             AND o.pinnacle_close_prob IS NULL
+             AND p.scan_date >= ? AND p.scan_date <= ?""",
+        (since_str, until_str),
+    ).fetchall()
+
+    updated = skipped = 0
+    clv_values: list[float] = []
+
+    for row in rows:
+        close_prob = archiver.get_closing_line(row["event_id"])
+        if close_prob is None:
+            skipped += 1
+            continue
+
+        entry_prob = row["sharp_true_prob"]
+        if entry_prob <= 0:
+            skipped += 1
+            continue
+
+        # CLV in pp: positive means our entry price was better than close
+        clv_pp = (entry_prob - close_prob) * 100
+
+        # Update ev_outcomes.pinnacle_close_prob (used by `cleanup show`)
+        conn.execute(
+            "UPDATE ev_outcomes SET pinnacle_close_prob = ? WHERE market_id = ?",
+            (close_prob, row["market_id"]),
+        )
+        # Update ev_predictions.clv_pct
+        conn.execute(
+            "UPDATE ev_predictions SET clv_pct = ? WHERE id = ?",
+            (round(clv_pp, 2), row["id"]),
+        )
+        updated += 1
+        clv_values.append(clv_pp)
+
+    conn.commit()
+    conn.close()
+
+    avg_clv = sum(clv_values) / len(clv_values) if clv_values else 0.0
+    logger.info(
+        "clv_backfill_done",
+        updated=updated,
+        skipped=skipped,
+        avg_clv=round(avg_clv, 2),
+    )
+    return {"updated": updated, "skipped": skipped, "avg_clv": round(avg_clv, 2)}

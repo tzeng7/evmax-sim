@@ -20,12 +20,18 @@ from typing import Any, Callable, Optional
 
 import httpx
 import structlog
+from aiolimiter import AsyncLimiter
 
 from evmax.clients.base import BaseAPIClient
+from evmax.disk_cache import cache_get, cache_set, cache_get_offline
 from evmax.models.market import MarketSource, MarketType, PredictionMarket
 from evmax.settings import get_settings
 
 logger = structlog.get_logger(__name__)
+
+# Module-level token bucket: 3 requests/second across all KalshiClient instances.
+# Kalshi enforces a strict burst limit; spreading requests over time avoids 429s.
+_KALSHI_RATE_LIMITER = AsyncLimiter(3, 1.0)
 
 # YYMONDD date format used in Kalshi game tickers (e.g. "26FEB24" → 2026-02-24)
 _MONTH_MAP = {
@@ -40,8 +46,10 @@ _TICKER_DATE_RE = re.compile(r"(\d{2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|N
 SECTOR_SERIES_MAP: dict[str, list[str]] = {
     "nfl": ["KXNFLGAME"],
     "nba": ["KXNBAGAME", "KXNBASPREAD"],
-    "ncaab": ["KXNCAABGAME"],
+    "ncaab": ["KXNCAABGAME", "KXNCAAMBGAME", "KXNCAAMBSPREAD", "KXNCAAMBTOTAL"],
     "ncaaw": ["KXNCAAWBGAME", "KXNCAAWBSPREAD", "KXNCAAWBTOTAL"],
+    "baseball": ["KXMLBGAME", "KXMLBSPREAD", "KXMLBTOTAL"],
+    "nhl": ["KXNHLGAME", "KXNHLSPREAD", "KXNHLTOTAL"],
     "nba_props": ["KXNBAPTS", "KXNBAREB", "KXNBAAST", "KXNBA3PT", "KXNBASTP", "KXNBABLK", "KXNBAPRA"],
     "nfl_props": ["KXNFLPAS", "KXNFLRSH", "KXNFLREC", "KXNFLTD"],
     "soccer": [
@@ -258,8 +266,10 @@ class KalshiClient(BaseAPIClient):
         settings = get_settings()
         super().__init__(
             base_url=settings.kalshi_base_url,
-            concurrency=50,   # _KALSHI_FETCH_SEM is the real throttle; inner semaphore must not block
+            concurrency=50,     # _KALSHI_RATE_LIMITER is the real throttle; inner semaphore must not block
             timeout=20.0,
+            max_retries=4,      # up to 3 retries for 429s
+            retry_max_wait=30.0,  # wait up to 30s between retries (Kalshi quota window)
         )
         self._key_id = settings.kalshi_api_key_id
         self._private_key_path = settings.kalshi_private_key_path
@@ -313,12 +323,25 @@ class KalshiClient(BaseAPIClient):
         limit: int = 200,
     ) -> list[PredictionMarket]:
         """Fetch active markets for a given sector."""
+        cfg = get_settings()
+        cache_key = f"kalshi_{sector}_{status}"
+
+        # Offline mode: always use cache (stale is fine)
+        if cfg.offline_mode:
+            raw = cache_get_offline(cache_key)
+            return [PredictionMarket.model_validate(r) for r in raw]
+
+        # Dev cache: skip API if fresh cached data exists
+        if cfg.cache_ttl_secs > 0:
+            raw = cache_get(cache_key, cfg.cache_ttl_secs)
+            if raw is not None:
+                return [PredictionMarket.model_validate(r) for r in raw]
+
         series_prefixes = SECTOR_SERIES_MAP.get(sector.lower(), [])
         is_prop_sector = sector.lower().endswith("_props")
 
-        async def _fetch_prefix(prefix: str, stagger_s: float) -> list[PredictionMarket]:
-            if stagger_s:
-                await asyncio.sleep(stagger_s)
+        async def _fetch_prefix(prefix: str) -> list[PredictionMarket]:
+            await _KALSHI_RATE_LIMITER.acquire()
             try:
                 data = await self._get(
                     "/markets",
@@ -339,12 +362,13 @@ class KalshiClient(BaseAPIClient):
                 logger.warning("kalshi_fetch_failed", prefix=prefix, error=err)
                 return []
 
-        # Stagger launches 150ms apart — all run in parallel but avoid a simultaneous
-        # burst that triggers Kalshi 429s (24 series × 0.15s = 3.6s spread, ~5s total).
-        results = await asyncio.gather(*(
-            _fetch_prefix(p, i * 0.15) for i, p in enumerate(series_prefixes)
-        ))
+        results = await asyncio.gather(*(_fetch_prefix(p) for p in series_prefixes))
         all_markets: list[PredictionMarket] = [m for batch in results for m in batch]
+
+        # Write to dev cache if enabled
+        if cfg.cache_ttl_secs > 0 and all_markets:
+            cache_set(cache_key, [m.model_dump(mode="json") for m in all_markets])
+
         return all_markets
 
     def _ws_client(self) -> "KalshiWSClient":
@@ -540,7 +564,10 @@ class KalshiClient(BaseAPIClient):
             # Detect spread series by ticker prefix and extract line
             is_spread = any(
                 ticker.upper().startswith(s)
-                for s in ["KXNBASPREAD", "KXNFLSPREAD"]
+                for s in [
+                    "KXNBASPREAD", "KXNFLSPREAD", "KXNCAAWBSPREAD",
+                    "KXNCAAMBSPREAD", "KXMLBSPREAD", "KXNHLSPREAD",
+                ]
             )
             market_type = MarketType.spread if is_spread else self._infer_market_type(title)
             spread_line = self._extract_spread_line(ticker) if is_spread else None

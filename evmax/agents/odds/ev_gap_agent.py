@@ -53,6 +53,9 @@ class EVGap:
     line: Optional[float] = None          # spread/total line (e.g. -8.5, 220.5)
     event_title: str = ""                 # e.g. "Celtics vs Wizards"
     steam_move: bool = False              # True if Pinnacle line moved ≥ 2pp since last scan
+    line_velocity: float | None = None   # prob change per hour (pp/hr), from archived line history
+    velocity_flag: str | None = None     # "STEAM" if |velocity| > 1.5 pp/hr, "STALE" if no move 4+hrs
+    book_count: int = 1                  # number of sharp books in consensus
     # Player prop fields (only set when market_type == player_prop)
     prop_player_name: Optional[str] = None
     prop_stat_type: Optional[str] = None
@@ -92,13 +95,14 @@ class EVGap:
 
     @property
     def confidence_stars(self) -> int:
-        """0–3 confidence stars based on match quality, volume, and model signal."""
+        """0–3 confidence stars based on match quality, volume, and signal quality."""
         stars = 0
         if self.match_confidence >= 0.90:
             stars += 1
         if self.volume_usd >= 5000:
             stars += 1
-        if self.model_sources not in ("sharp", "sharp(capped)"):
+        # Extra star for multi-book consensus OR model blend
+        if self.book_count >= 2 or self.model_sources not in ("sharp", "sharp(capped)"):
             stars += 1
         return stars
 
@@ -137,6 +141,10 @@ class EVGapAgent(Agent):
         "applies model blend and injury adjustments, computes EV gaps ≥ threshold."
     )
 
+    # Line velocity thresholds (pp/hr)
+    _STEAM_THRESHOLD = 1.5   # |velocity| > this → "STEAM" flag
+    _STALE_HOURS = 4         # no line history in this many hours → "STALE"
+
     def __init__(self) -> None:
         super().__init__()
         self._settings = get_settings()
@@ -144,6 +152,11 @@ class EVGapAgent(Agent):
         self._prop_matcher = PropMatcher()
         self._spread_model = SpreadDistributionModel()
         self._total_model = TotalDistributionModel()
+        try:
+            from evmax.archiver import DataArchiver
+            self._archiver = DataArchiver()
+        except Exception:
+            self._archiver = None
 
     async def run(self, request: AgentRequest) -> AgentResponse:
         sector = request.sector
@@ -195,6 +208,7 @@ class EVGapAgent(Agent):
                 confidence=confidence,
                 sector=sector,
                 kelly_base=kelly_base,
+                injuries=injuries,
             )
             if gap is not None:
                 gaps.append(gap)
@@ -210,6 +224,65 @@ class EVGapAgent(Agent):
             sector=sector,
             data=gaps,
         )
+
+    # ------------------------------------------------------------------
+    # Line velocity
+    # ------------------------------------------------------------------
+
+    def _compute_velocity(self, event_id: str) -> tuple[float | None, str | None]:
+        """Compute line velocity (pp/hr) and flag from archived line history.
+
+        Returns (velocity, flag) where flag is "STEAM", "STALE", or None.
+        """
+        if self._archiver is None:
+            return None, None
+
+        try:
+            history = self._archiver.get_line_history(event_id, hours=6)
+        except Exception:
+            return None, None
+
+        if len(history) < 2:
+            if not history:
+                return None, "STALE"
+            return None, None
+
+        # Compute velocity from first to last snapshot
+        first_time, first_prob = history[0]
+        last_time, last_prob = history[-1]
+
+        try:
+            from datetime import datetime as _dt
+            t0 = _dt.fromisoformat(first_time)
+            t1 = _dt.fromisoformat(last_time)
+            hours_elapsed = (t1 - t0).total_seconds() / 3600.0
+        except Exception:
+            return None, None
+
+        if hours_elapsed < 0.01:
+            return 0.0, None
+
+        # Velocity in probability points per hour (multiply by 100 for pp/hr)
+        velocity_pp_hr = ((last_prob - first_prob) * 100) / hours_elapsed
+
+        if abs(velocity_pp_hr) > self._STEAM_THRESHOLD:
+            return round(velocity_pp_hr, 2), "STEAM"
+
+        # Check staleness: if all snapshots are old (> _STALE_HOURS ago)
+        try:
+            from datetime import datetime as _dt, timezone as _tz
+            now = _dt.now(_tz.utc)
+            last_dt = _dt.fromisoformat(last_time)
+            if not last_dt.tzinfo:
+                from datetime import timezone as _tz2
+                last_dt = last_dt.replace(tzinfo=_tz2.utc)
+            hours_since_last = (now - last_dt).total_seconds() / 3600.0
+            if hours_since_last > self._STALE_HOURS:
+                return round(velocity_pp_hr, 2), "STALE"
+        except Exception:
+            pass
+
+        return round(velocity_pp_hr, 2), None
 
     # ------------------------------------------------------------------
     # Core evaluation
@@ -255,8 +328,38 @@ class EVGapAgent(Agent):
         # ------------------------------------------------------------------
         yes_team_norm = (market.yes_team or "").lower().strip()
         outcome_a_norm = (sharp.outcome_a_label or "").lower().strip()
+        outcome_b_norm = (sharp.outcome_b_label or "").lower().strip()
 
         is_draw = yes_team_norm in ("tie", "draw", "x", "draw/tie")
+
+        def _yes_matches(yes: str, candidate: str) -> bool:
+            """Check if YES team name matches a Pinnacle outcome label.
+
+            Uses fuzzy matching (rapidfuzz token_set_ratio) instead of raw substring
+            to avoid false positives like 'm' in 'hoffenheim' or 'oconnell' missing
+            "o'connell". Short names (<3 chars) require the candidate to START with
+            them as a word boundary (e.g. 'm' only matches 'mainz', not 'hoffenheim').
+            """
+            if not yes or not candidate:
+                return False
+            # Strip apostrophes/hyphens for comparison
+            y = yes.replace("'", "").replace("\u2019", "").replace("-", "")
+            c = candidate.replace("'", "").replace("\u2019", "").replace("-", "")
+            # Exact match (post-strip)
+            if y == c:
+                return True
+            # Short names (<3 chars): require word-boundary prefix match
+            if len(y) < 3:
+                words = c.split()
+                return any(w.startswith(y) for w in words) and not any(
+                    w.startswith(y) for w in (outcome_b_norm if candidate == outcome_a_norm else outcome_a_norm).split()
+                )
+            # Substring match (only if yes_team is 3+ chars to avoid spurious hits)
+            if y in c:
+                return True
+            # Fuzzy fallback for names with punctuation differences
+            from rapidfuzz import fuzz
+            return fuzz.token_set_ratio(y, c) >= 80
 
         # Totals: YES side is "over" or "under" — not a team name
         if is_total:
@@ -271,8 +374,18 @@ class EVGapAgent(Agent):
             sharp_true_prob = sharp.true_prob_draw
             yes_is_outcome_b = False
             yes_is_under = False
+        elif _yes_matches(yes_team_norm, outcome_a_norm):
+            # YES team matches outcome_a (home/favorite)
+            sharp_true_prob = sharp.true_prob_a
+            yes_is_outcome_b = False
+            yes_is_under = False
+        elif _yes_matches(yes_team_norm, outcome_b_norm):
+            # YES team matches outcome_b (away/underdog)
+            sharp_true_prob = sharp.true_prob_b
+            yes_is_outcome_b = True
+            yes_is_under = False
         elif yes_team_norm and outcome_a_norm and yes_team_norm not in outcome_a_norm:
-            # YES team is outcome_b (away/underdog)
+            # Fallback: YES team not found in outcome_a → assume outcome_b
             sharp_true_prob = sharp.true_prob_b
             yes_is_outcome_b = True
             yes_is_under = False
@@ -394,6 +507,12 @@ class EVGapAgent(Agent):
 
         is_steam = bool(steam_events and sharp.event_id in steam_events)
 
+        # Line velocity from archived sharp odds history
+        velocity, vel_flag = self._compute_velocity(sharp.event_id)
+        # Legacy steam detection also sets steam flag
+        if vel_flag == "STEAM":
+            is_steam = True
+
         return EVGap(
             market_id=market.id,
             event_id=sharp.event_id,
@@ -422,6 +541,9 @@ class EVGapAgent(Agent):
                 else f"{sharp.outcome_a_label or '?'} vs {sharp.outcome_b_label or '?'}"
             ),
             steam_move=is_steam,
+            line_velocity=velocity,
+            velocity_flag=vel_flag,
+            book_count=getattr(sharp, "book_count", 1),
         )
 
     def _evaluate_prop_pair(
@@ -431,11 +553,13 @@ class EVGapAgent(Agent):
         confidence: float,
         sector: str,
         kelly_base: float = 0.25,
+        injuries: dict | None = None,
     ) -> Optional[EVGap]:
         """Evaluate a matched player prop pair for EV.
 
         YES side on Kalshi = player goes OVER the threshold.
-        Uses sharp.true_prob_over as the true probability.
+        Uses sharp.true_prob_over as the true probability, boosted by injury
+        redistribution when teammates are OUT.
         """
         if market.yes_price <= 0 or market.yes_price >= 1.0:
             return None
@@ -450,6 +574,60 @@ class EVGapAgent(Agent):
             return None
 
         sharp_true_prob = sharp.true_prob_over
+        src = "nba_stats"
+
+        # Injury boost: when TEAMMATES (same team) are OUT, this player absorbs usage.
+        #
+        # Problem: we don't have a player→team mapping. We extract both teams from
+        # the event_id slug and check injuries for each. To avoid incorrectly boosting
+        # based on opponent injuries, we only apply the boost when exactly ONE team
+        # has OUT players (unambiguous). If both teams have OUT players, we skip
+        # (can't tell which team our player is on).
+        #
+        # Also skip if our prop player is themselves on the OUT list.
+        injury_boost = 0.0
+        if injuries:
+            try:
+                from evmax.agents.intelligence.injury_agent import InjuryReportAgent
+                player_name_norm = (market.player_name or "").lower().replace("_", " ")
+
+                if "::" in sharp.event_id:
+                    parts = sharp.event_id.split("::")
+                    if len(parts) >= 3:
+                        game_slug = parts[2].split("::")[0]
+                        teams = game_slug.split("_vs_")
+
+                        # Collect per-team OUT info
+                        team_boosts: list[tuple[str, float, list[dict]]] = []
+                        for t in teams:
+                            team_str = t.replace("_", " ")
+                            out_players = InjuryReportAgent.get_out_players(injuries, team_str)
+                            if not out_players:
+                                continue
+                            boost = InjuryReportAgent.compute_prop_injury_boost(
+                                injuries, team_str
+                            )
+                            team_boosts.append((team_str, boost, out_players))
+
+                        # Only apply if exactly one team has OUT players (unambiguous)
+                        if len(team_boosts) == 1:
+                            _, boost, out_players = team_boosts[0]
+
+                            # Don't boost if our prop player is the one who's OUT
+                            player_is_out = any(
+                                player_name_norm in op["name"].lower()
+                                or op["name"].lower() in player_name_norm
+                                for op in out_players
+                            )
+                            if not player_is_out:
+                                injury_boost = boost
+
+                if injury_boost > 0:
+                    sharp_true_prob = min(0.95, sharp_true_prob * (1 + injury_boost))
+                    src = f"nba_stats+inj({injury_boost:.0%})"
+            except Exception:
+                pass
+
         ev, edge_pct = calculate_ev(market.yes_price, sharp_true_prob)
         if ev < self._settings.ev_threshold:
             return None
@@ -465,7 +643,6 @@ class EVGapAgent(Agent):
         )
 
         player_display = (market.player_name or "?").replace("_", " ").title()
-        stat_display = (market.stat_type or "prop").replace("_", " ").title()
 
         return EVGap(
             market_id=market.id,
@@ -474,8 +651,8 @@ class EVGapAgent(Agent):
             yes_team=market.player_name or "?",
             market_type=MarketType.player_prop.value,
             kalshi_yes_price=market.yes_price,
-            sharp_true_prob=sharp_true_prob,
-            blended_true_prob=sharp_true_prob,
+            sharp_true_prob=sharp.true_prob_over,  # original sharp prob (pre-boost)
+            blended_true_prob=sharp_true_prob,      # after injury boost
             ev_pct=ev,
             kelly_full=kelly.kelly_full,
             kelly_fraction=kelly.kelly_fraction,
@@ -484,8 +661,8 @@ class EVGapAgent(Agent):
             spread_pct=market.spread_pct,
             event_date=sharp.event_date or market.event_date,
             line=market.threshold,
-            model_sources="nba_stats",
-            event_title=player_display,  # Event = player name; Outcome = stat+line via display_label
+            model_sources=src,
+            event_title=player_display,
             prop_player_name=market.player_name,
             prop_stat_type=market.stat_type,
             prop_threshold=market.threshold,

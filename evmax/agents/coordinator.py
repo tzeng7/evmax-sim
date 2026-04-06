@@ -49,6 +49,7 @@ from evmax.agents.models.form_agent import FormModelAgent
 from evmax.agents.models.poisson_agent import PoissonModelAgent
 from evmax.agents.models.ensemble_agent import EnsembleModelAgent, BlendedPrediction
 from evmax.agents.models.tennis_model_agent import TennisModelAgent
+from evmax.agents.models.pitcher_agent import PitcherModelAgent
 from evmax.agents.intelligence.injury_agent import InjuryReportAgent, InjuryReport
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds, SharpBook
@@ -249,8 +250,9 @@ class AgentCoordinator:
         self.form_agent = FormModelAgent()
         self.poisson_agent = PoissonModelAgent()
         self.tennis_agent = TennisModelAgent()
+        self.pitcher_agent = PitcherModelAgent()
         self.ensemble_agent = EnsembleModelAgent(
-            models=[self.elo_agent, self.form_agent, self.poisson_agent, self.tennis_agent],
+            models=[self.elo_agent, self.form_agent, self.poisson_agent, self.tennis_agent, self.pitcher_agent],
             sharp_weight=sharp_weight,
         )
 
@@ -269,7 +271,7 @@ class AgentCoordinator:
         return [
             self.kalshi_agent, self.sharp_agent, self.ev_gap_agent,
             self.injury_agent,
-            self.elo_agent, self.form_agent, self.poisson_agent, self.tennis_agent, self.ensemble_agent,
+            self.elo_agent, self.form_agent, self.poisson_agent, self.tennis_agent, self.pitcher_agent, self.ensemble_agent,
         ]
 
     # ------------------------------------------------------------------
@@ -284,18 +286,22 @@ class AgentCoordinator:
         self.log.info("cycle_start", correlation_id=correlation_id, sectors=self._sectors)
         self._archiver.open_session(correlation_id, self._sectors, "agents")
 
-        async def _run_sector_delayed(sector: str, delay: float) -> dict:
-            if delay:
-                await asyncio.sleep(delay)
-            return await self._run_sector(sector, correlation_id)
+        # All sectors run in parallel — Kalshi rate limiting is handled by the
+        # module-level AsyncLimiter token bucket in kalshi.py (8 req/s).
+        # Hard 45s timeout per sector: prevents a single hanging API call from
+        # stalling the entire cycle indefinitely.
+        async def _run_sector_with_timeout(sector: str) -> dict:
+            try:
+                return await asyncio.wait_for(
+                    self._run_sector(sector, correlation_id),
+                    timeout=45.0,
+                )
+            except asyncio.TimeoutError:
+                self.log.warning("sector_timeout", sector=sector, timeout_s=45)
+                raise asyncio.TimeoutError(f"{sector} timed out after 45s")
 
-        # Stagger sector starts 400ms apart so their Kalshi series fetches don't
-        # all land on the API simultaneously (8 sectors × 0.4s = 3.2s spread).
         sector_results = await asyncio.gather(
-            *(
-                _run_sector_delayed(sector, i * 0.4)
-                for i, sector in enumerate(self._sectors)
-            ),
+            *(_run_sector_with_timeout(sector) for sector in self._sectors),
             return_exceptions=True,
         )
 
@@ -396,14 +402,15 @@ class AgentCoordinator:
             sharp_resp.data if not isinstance(sharp_resp, Exception) else []
         ) or []
 
-        # Merge prop markets and prop odds if available
+        # Merge prop markets and prop odds if available (hard 25s cap so props
+        # can't eat the full sector budget when stats.nba.com is slow)
         if prop_task is not None:
             try:
-                prop_markets, prop_sharp = await prop_task
+                prop_markets, prop_sharp = await asyncio.wait_for(prop_task, timeout=25.0)
                 markets = markets + prop_markets
                 sharp_odds = sharp_odds + prop_sharp
-            except Exception as e:
-                self.log.debug("prop_fetch_failed", sector=sector, error=str(e))
+            except (asyncio.TimeoutError, Exception) as e:
+                self.log.debug("prop_fetch_skipped", sector=sector, reason=str(e))
         injuries: dict[str, InjuryReport] = (
             injury_resp.data if injury_resp and not isinstance(injury_resp, Exception) else {}
         ) or {}

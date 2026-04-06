@@ -19,6 +19,10 @@ class SharpBook(str, enum.Enum):
     draftkings = "draftkings"
     betmgm = "betmgm"
     pointsbetus = "pointsbetus"
+    betonlineag = "betonlineag"
+    bovada = "bovada"
+    lowvig = "lowvig"
+    consensus = "consensus"  # multi-book weighted average
 
 
 class SharpOddsORM(Base):
@@ -74,6 +78,9 @@ class SharpOdds(BaseModel):
     prop_player_name: Optional[str] = None  # normalized player name
     prop_stat_type: Optional[str] = None    # "points", "rebounds", "assists", etc.
     prop_l15_games: int = 0                 # games in the L15 sample (0 = unknown)
+
+    # Multi-book consensus: how many books contributed to this estimate
+    book_count: int = 1
 
     event_date: Optional[datetime] = None
     fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

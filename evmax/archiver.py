@@ -277,6 +277,46 @@ class DataArchiver:
             )
         return len(rows)
 
+    def get_line_history(
+        self,
+        event_id: str,
+        hours: int = 6,
+    ) -> list[tuple[str, float]]:
+        """Return archived Pinnacle prob snapshots for an event over the last N hours.
+
+        Returns list of (fetched_at_iso, true_prob_a) sorted by time ascending.
+        Used for CLV calculation and line velocity (steam) detection.
+        """
+        with _get_connection() as conn:
+            rows = conn.execute(
+                """SELECT fetched_at, true_prob_a
+                   FROM archived_sharp_odds
+                   WHERE event_id = ?
+                     AND spread_line IS NULL
+                     AND fetched_at >= datetime('now', ?)
+                   ORDER BY fetched_at ASC""",
+                (event_id, f"-{hours} hours"),
+            ).fetchall()
+        return [(r["fetched_at"], r["true_prob_a"]) for r in rows]
+
+    def get_closing_line(self, event_id: str) -> float | None:
+        """Return the last archived Pinnacle true_prob_a for an event (moneyline only).
+
+        This is the 'closing line' — the last snapshot before the game started.
+        Used for CLV calculation.
+        """
+        with _get_connection() as conn:
+            row = conn.execute(
+                """SELECT true_prob_a
+                   FROM archived_sharp_odds
+                   WHERE event_id = ?
+                     AND spread_line IS NULL
+                   ORDER BY fetched_at DESC
+                   LIMIT 1""",
+                (event_id,),
+            ).fetchone()
+        return row["true_prob_a"] if row else None
+
     def close_session(
         self,
         session_id: str,

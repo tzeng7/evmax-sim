@@ -105,23 +105,94 @@ class TennisModelAgent(ModelAgent):
     def _counts(self, player: str) -> dict[str, int]:
         return self._state.setdefault("game_counts", {}).setdefault(player, {})
 
+    @staticmethod
+    def _normalize_name(name: str) -> str:
+        """Strip apostrophes and collapse spaces for consistent comparison.
+
+        Handles: "o'connell" → "oconnell", "o connell" → "oconnell"
+        """
+        return re.sub(r"[\s''\-]+", "", name.lower().strip().rstrip("."))
+
+    @staticmethod
+    def _surname_key(name: str) -> str:
+        """Extract surname for fuzzy matching: 'sinner' from 'jannik sinner' or 'sinner j.'."""
+        name = name.strip().rstrip(".")
+        parts = name.split()
+        if not parts:
+            return name
+        # "sinner j." → surname is first token; "jannik sinner" → surname is last token
+        # Heuristic: if last part is a single char (initial), surname is everything before it
+        if len(parts[-1]) <= 2:
+            return " ".join(parts[:-1])
+        return parts[-1]
+
+    def _resolve_player(self, player: str, store: dict) -> str | None:
+        """Resolve player name against a ratings dict with surname fallback.
+
+        Handles: 'sinner' or 'jannik sinner' → 'sinner j.' (tennis-data format).
+        Also handles multi-word surnames: 'de minaur' → 'de minaur a.'
+        Also handles apostrophe variants: "o'connell" / "oconnell" → "o connell c."
+        """
+        if player in store:
+            return player
+        # Surname match: find entries where surname matches
+        target = self._surname_key(player)
+        candidates = [k for k in store if self._surname_key(k) == target]
+        if len(candidates) == 1:
+            return candidates[0]
+        # Normalized match: strip apostrophes/spaces and compare
+        # "oconnell" matches "o connell c." because both normalize to "oconnell"
+        if len(candidates) == 0:
+            norm_player = self._normalize_name(player)
+            candidates = [
+                k for k in store
+                if self._normalize_name(self._surname_key(k)) == norm_player
+            ]
+            if len(candidates) == 1:
+                return candidates[0]
+        # Multi-word name prefix match: "de minaur" matches "de minaur a."
+        if len(candidates) == 0:
+            candidates = [k for k in store if k.startswith(player + " ") or k.startswith(player + ".")]
+            if len(candidates) == 1:
+                return candidates[0]
+        return None
+
     def _get_rating(self, player: str, surface: str) -> float:
-        """Get surface-specific Elo, falling back to overall, then ATP ranking prior."""
+        """Get surface-specific Elo, falling back to overall, then ATP/WTA ranking prior."""
         surface_ratings = self._ratings(surface)
-        if player in surface_ratings:
-            return surface_ratings[player]
+        resolved = self._resolve_player(player, surface_ratings)
+        if resolved:
+            return surface_ratings[resolved]
         overall = self._ratings("overall")
-        if player in overall:
-            return overall[player]
-        # Fall back to ATP ranking prior
+        resolved = self._resolve_player(player, overall)
+        if resolved:
+            return overall[resolved]
+        # Fall back to ATP ranking prior, then WTA
         rank = self._state.get("atp_rankings", {}).get(player)
+        if rank is None:
+            rank = self._state.get("wta_rankings", {}).get(player)
         return ranking_to_elo(rank)
 
     def _get_count(self, player: str, surface: str) -> int:
-        return self._counts(player).get(surface, 0)
+        counts = self._counts(player)
+        if counts:
+            return counts.get(surface, 0)
+        # Surname fallback for game_counts
+        game_counts = self._state.get("game_counts", {})
+        resolved = self._resolve_player(player, game_counts)
+        if resolved:
+            return game_counts[resolved].get(surface, 0)
+        return 0
 
     def _get_overall_count(self, player: str) -> int:
-        return self._counts(player).get("overall", 0)
+        counts = self._counts(player)
+        if counts:
+            return counts.get("overall", 0)
+        game_counts = self._state.get("game_counts", {})
+        resolved = self._resolve_player(player, game_counts)
+        if resolved:
+            return game_counts[resolved].get("overall", 0)
+        return 0
 
     # ------------------------------------------------------------------
     # Prediction
@@ -262,19 +333,21 @@ class TennisModelAgent(ModelAgent):
     # Seeding helpers
     # ------------------------------------------------------------------
 
-    def seed_rankings(self, rankings: dict[str, int]) -> None:
+    def seed_rankings(self, rankings: dict[str, int], tour: str = "atp") -> None:
         """
         Seed ATP/WTA rankings from an external source.
 
         Args:
             rankings: {player_name (lowercase) → rank_integer}
                       e.g. {"sinner": 1, "alcaraz": 2, "djokovic": 3}
+            tour: "atp" or "wta"
         """
-        atp = self._state.setdefault("atp_rankings", {})
+        key = f"{tour.lower()}_rankings"
+        store = self._state.setdefault(key, {})
         for player, rank in rankings.items():
-            atp[player.lower().strip()] = int(rank)
+            store[player.lower().strip()] = int(rank)
         self.save_state()
-        self.log.info("tennis_rankings_seeded", count=len(rankings))
+        self.log.info("tennis_rankings_seeded", tour=tour, count=len(rankings))
 
     def seed_surface_ratings(self, surface: str, ratings: dict[str, float]) -> None:
         """

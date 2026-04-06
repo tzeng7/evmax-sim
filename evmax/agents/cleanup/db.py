@@ -99,6 +99,7 @@ def get_connection() -> sqlite3.Connection:
         "ALTER TABLE ev_predictions ADD COLUMN placed_price REAL",
         "ALTER TABLE ev_predictions ADD COLUMN placed_stake REAL",
         "ALTER TABLE ev_predictions ADD COLUMN bankroll_used REAL",
+        "ALTER TABLE ev_predictions ADD COLUMN clv_pct REAL",
     ]:
         try:
             conn.execute(migration)

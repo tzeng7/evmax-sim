@@ -30,28 +30,31 @@ console = Console()
 
 @app.command("show")
 def show(
-    days: int = typer.Option(7, "--days", "-d", help="How many days back to display."),
+    since: Optional[str] = typer.Option(None, "--since", help="Start date YYYY-MM-DD (default: 7 days ago)."),
+    until: Optional[str] = typer.Option(None, "--until", help="End date YYYY-MM-DD (default: today)."),
     sector: Optional[str] = typer.Option(None, "--sector", "-s", help="Filter by sector."),
     resolved_only: bool = typer.Option(False, "--resolved", help="Only show resolved bets."),
     placed_only: bool = typer.Option(False, "--placed", help="Only show bets you manually placed via 'pick'."),
     bankroll: float = typer.Option(250.0, "--bankroll", "-b", help="Bankroll in USD for P&L calculation."),
-    game_date: Optional[str] = typer.Option(None, "--date", help="Filter by game date (YYYY-MM-DD)."),
+    game_date: Optional[str] = typer.Option(None, "--date", help="Filter by exact game date (YYYY-MM-DD)."),
 ) -> None:
     """Show logged +EV predictions and their WIN/LOSS outcomes."""
     from evmax.agents.cleanup.db import get_connection
 
-    if game_date:
-        try:
-            date.fromisoformat(game_date)
-        except ValueError:
-            console.print(f"[red]Invalid date:[/red] {game_date!r} — use YYYY-MM-DD")
-            raise typer.Exit(1)
+    for label, val in [("since", since), ("until", until), ("date", game_date)]:
+        if val:
+            try:
+                date.fromisoformat(val)
+            except ValueError:
+                console.print(f"[red]Invalid {label}:[/red] {val!r} — use YYYY-MM-DD")
+                raise typer.Exit(1)
 
-    since = (date.today() - timedelta(days=days)).isoformat()
+    since_date = since or (date.today() - timedelta(days=7)).isoformat()
+    until_date = until or date.today().isoformat()
     conn = get_connection()
 
-    where_parts = ["p.scan_date >= ?", "p.voided = 0"]
-    params: list = [since]
+    where_parts = ["p.scan_date >= ?", "p.scan_date <= ?", "p.voided = 0"]
+    params: list = [since_date, until_date]
     if game_date:
         where_parts.append("p.event_date = ?")
         params.append(game_date)
@@ -73,7 +76,11 @@ def show(
                    o.outcome, o.pinnacle_close_prob
             FROM ev_predictions p
             INNER JOIN (
-                SELECT market_id, MAX(scan_date) AS latest_scan
+                SELECT market_id,
+                       COALESCE(
+                           MAX(CASE WHEN placed = 1 THEN scan_date END),
+                           MAX(scan_date)
+                       ) AS latest_scan
                 FROM ev_predictions
                 WHERE voided = 0
                 GROUP BY market_id
@@ -89,7 +96,7 @@ def show(
 
     if not rows:
         msg = "No placed bets" if placed_only else "No predictions"
-        console.print(f"[yellow]{msg} in the last {days} day(s).[/yellow]")
+        console.print(f"[yellow]{msg} for {since_date} → {until_date}.[/yellow]")
         return
 
     pending = sum(1 for r in rows if r["outcome"] is None)
@@ -120,7 +127,7 @@ def show(
     pnl_color = "green" if total_pnl >= 0 else "red"
     pnl_sign  = "+" if total_pnl >= 0 else ""
 
-    title_date = f"game date {game_date}" if game_date else f"last {days}d"
+    title_date = f"game date {game_date}" if game_date else f"{since_date} → {until_date}"
     placed_note = " | placed only" if placed_only else ""
     placed_total = sum(1 for r in rows if r["placed"])
     table = Table(
@@ -288,7 +295,7 @@ def close_lines(
     """
     import asyncio
     from evmax.agents.cleanup.db import get_connection
-    from evmax.clients.pinnacle import PinnacleClient
+    from evmax.clients.esports_pinnacle import PinnacleGuestClient
 
     if target_date:
         try:
@@ -327,7 +334,7 @@ def close_lines(
 
     async def _fetch_and_store() -> int:
         updated = 0
-        async with PinnacleClient() as client:
+        async with PinnacleGuestClient() as client:
             for sector, markets in by_sector.items():
                 sharp_odds = await client.get_odds(sector)
                 sharp_by_event: dict[str, float] = {}
@@ -800,3 +807,195 @@ def show_props(
         + (f"Over rate: {hit_rate:.1%}  |  " if resolved else "")
         + f"Pending: {unresolved}"
     )
+
+
+@app.command("prop-calibration")
+def prop_calibration(
+    weeks: int = typer.Option(4, "--weeks", "-w", help="Look-back window in weeks."),
+    min_samples: int = typer.Option(5, "--min-samples", help="Minimum resolved rows per bucket to show."),
+    stat: Optional[str] = typer.Option(None, "--stat", help="Filter to one stat type."),
+) -> None:
+    """Show player prop model calibration: predicted hit rate vs actual hit rate.
+
+    Groups resolved prop_observations by (stat_type, probability bucket) and
+    shows where the model is over- or under-estimating. Use this after running
+    evmax cleanup resolve-props to detect systematic bias and tune nba_stats.py.
+
+    Bias = model_prob - actual_hit_rate. Positive = over-estimating probability.
+    """
+    from evmax.agents.cleanup.db import get_connection
+
+    since = (date.today() - timedelta(weeks=weeks)).isoformat()
+    conn = get_connection()
+
+    where = ["scan_date >= ?", "outcome IS NOT NULL", "sharp_prob IS NOT NULL"]
+    params: list = [since]
+    if stat:
+        where.append("stat_type = ?")
+        params.append(stat.lower())
+
+    rows = conn.execute(
+        f"""SELECT stat_type, line, sharp_prob, kalshi_price, outcome, l15_games
+            FROM prop_observations
+            WHERE {' AND '.join(where)}
+            ORDER BY stat_type, sharp_prob""",
+        params,
+    ).fetchall()
+    conn.close()
+
+    if not rows:
+        console.print(f"[yellow]No resolved prop observations in the last {weeks} week(s).[/yellow]")
+        console.print("  Run [bold]evmax cleanup resolve-props[/bold] first.")
+        return
+
+    # Probability buckets
+    BUCKETS = [
+        ("< 30%",    0.00, 0.30),
+        ("30–40%",   0.30, 0.40),
+        ("40–50%",   0.40, 0.50),
+        ("50–60%",   0.50, 0.60),
+        ("60–70%",   0.60, 0.70),
+        ("> 70%",    0.70, 1.01),
+    ]
+
+    # Group by stat_type
+    from collections import defaultdict
+    by_stat: dict[str, list] = defaultdict(list)
+    for r in rows:
+        by_stat[r["stat_type"]].append(r)
+
+    # Overall summary table
+    summary_table = Table(title=f"Prop Model Calibration — last {weeks}w ({len(rows)} resolved)", box=box.SIMPLE)
+    summary_table.add_column("Stat Type", min_width=14)
+    summary_table.add_column("N", justify="right", width=5)
+    summary_table.add_column("Avg Model%", justify="right", width=11)
+    summary_table.add_column("Actual Hit%", justify="right", width=12)
+    summary_table.add_column("Bias (pp)", justify="right", width=10)
+    summary_table.add_column("Brier", justify="right", width=8)
+    summary_table.add_column("Signal", justify="center", width=14)
+
+    all_biases: list[float] = []
+    for stat_type in sorted(by_stat):
+        stat_rows = by_stat[stat_type]
+        n = len(stat_rows)
+        avg_model = sum(r["sharp_prob"] for r in stat_rows) / n
+        hit_rate = sum(r["outcome"] for r in stat_rows) / n
+        bias = avg_model - hit_rate  # positive = over-estimating
+        brier = sum((r["sharp_prob"] - r["outcome"]) ** 2 for r in stat_rows) / n
+        all_biases.append(bias)
+
+        bias_pp = bias * 100
+        bias_color = "red" if bias > 0.05 else "yellow" if bias > 0.02 else "green" if bias > -0.02 else "cyan"
+        signal = (
+            "[red]OVER-EST[/red]" if bias > 0.05 else
+            "[yellow]slight over[/yellow]" if bias > 0.02 else
+            "[cyan]slight under[/cyan]" if bias < -0.02 else
+            "[green]calibrated[/green]"
+        )
+        summary_table.add_row(
+            stat_type,
+            str(n),
+            f"{avg_model:.1%}",
+            f"{hit_rate:.1%}",
+            f"[{bias_color}]{bias_pp:+.1f}pp[/{bias_color}]",
+            f"{brier:.4f}",
+            signal,
+        )
+
+    console.print(summary_table)
+
+    # Reliability diagram per bucket (overall)
+    bucket_table = Table(title="Reliability by Probability Bucket (all stats)", box=box.SIMPLE)
+    bucket_table.add_column("Model Prob", min_width=10)
+    bucket_table.add_column("N", justify="right", width=5)
+    bucket_table.add_column("Actual Hit%", justify="right", width=12)
+    bucket_table.add_column("Bias (pp)", justify="right", width=10)
+    bucket_table.add_column("Calibration", justify="center", width=14)
+
+    for label, lo, hi in BUCKETS:
+        bucket_rows = [r for r in rows if lo <= r["sharp_prob"] < hi]
+        if len(bucket_rows) < min_samples:
+            bucket_table.add_row(label, str(len(bucket_rows)), "—", "—", "[dim]too few[/dim]")
+            continue
+        mid = (lo + hi) / 2
+        hit_rate = sum(r["outcome"] for r in bucket_rows) / len(bucket_rows)
+        bias = mid - hit_rate
+        bias_color = "red" if abs(bias) > 0.08 else "yellow" if abs(bias) > 0.04 else "green"
+        cal_str = (
+            "[red]over-est[/red]" if bias > 0.08 else
+            "[yellow]slight over[/yellow]" if bias > 0.04 else
+            "[cyan]slight under[/cyan]" if bias < -0.04 else
+            "[green]good[/green]"
+        )
+        bucket_table.add_row(
+            label,
+            str(len(bucket_rows)),
+            f"{hit_rate:.1%}",
+            f"[{bias_color}]{bias*100:+.1f}pp[/{bias_color}]",
+            cal_str,
+        )
+
+    console.print(bucket_table)
+
+    # Recommendations
+    avg_bias = sum(all_biases) / len(all_biases) if all_biases else 0
+    console.print()
+    if abs(avg_bias) < 0.02:
+        console.print("[green]Model is well-calibrated overall.[/green]")
+    elif avg_bias > 0.05:
+        console.print(
+            f"[red]Model over-estimates by avg {avg_bias*100:.1f}pp.[/red]  "
+            "Consider: lower _DECAY in nba_stats.py (e.g. 0.80) to reduce hot-streak inflation, "
+            "or raise the spread_pct filter to cut thin markets."
+        )
+    elif avg_bias > 0.02:
+        console.print(
+            f"[yellow]Slight over-estimation ({avg_bias*100:.1f}pp avg bias).[/yellow]  "
+            "Monitor another week — may self-correct with more samples."
+        )
+    elif avg_bias < -0.05:
+        console.print(
+            f"[cyan]Model under-estimates by avg {avg_bias*100:.1f}pp.[/cyan]  "
+            "Consider: raise _DECAY in nba_stats.py (e.g. 0.90) to weight recent form more, "
+            "or loosen the spread_pct filter."
+        )
+
+    console.print(
+        f"\n  [dim]Tune nba_stats.py constants: _DECAY (recency), _MAX_OPP_ADJ (opponent cap). "
+        f"Run resolve-props → prop-calibration weekly.[/dim]"
+    )
+
+
+@app.command("backfill-clv")
+def backfill_clv_cmd(
+    since: str = typer.Option(
+        None, "--since", help="YYYY-MM-DD start date (default: all time)."
+    ),
+    until: str = typer.Option(
+        None, "--until", help="YYYY-MM-DD end date (default: today)."
+    ),
+) -> None:
+    """Backfill CLV (Closing Line Value) for resolved bets.
+
+    Compares entry price vs Pinnacle closing line. Positive CLV = real edge.
+    """
+    from datetime import date as _date
+    from evmax.agents.cleanup.resolver import backfill_clv
+
+    since_date = _date.fromisoformat(since) if since else None
+    until_date = _date.fromisoformat(until) if until else None
+
+    result = backfill_clv(since=since_date, until=until_date)
+    updated = result["updated"]
+    skipped = result["skipped"]
+    avg_clv = result["avg_clv"]
+
+    if updated:
+        clv_color = "green" if avg_clv > 0 else "red"
+        console.print(
+            f"\n  Backfilled CLV for [bold]{updated}[/bold] bets.  "
+            f"Avg CLV: [{clv_color}]{avg_clv:+.1f}%[/{clv_color}]  "
+            f"Skipped: {skipped}"
+        )
+    else:
+        console.print("[dim]No resolved bets found missing CLV.[/dim]")

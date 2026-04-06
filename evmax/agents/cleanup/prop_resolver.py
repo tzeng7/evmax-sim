@@ -124,6 +124,18 @@ def fetch_player_stats(sector: str, game_date: date) -> dict[str, dict[str, floa
     return player_stats
 
 
+def _normalize_for_match(name: str) -> str:
+    """Normalize a player name for matching: lowercase, strip accents, underscores→spaces."""
+    import unicodedata
+    name = name.lower().strip().replace("_", " ")
+    # Strip accents: dončić → doncic, müller → muller
+    name = unicodedata.normalize("NFKD", name)
+    name = "".join(c for c in name if not unicodedata.combining(c))
+    # Strip suffixes like Jr., Sr., III, II
+    name = re.sub(r"\s+(jr\.?|sr\.?|iii|ii|iv)$", "", name, flags=re.IGNORECASE)
+    return name.strip()
+
+
 def resolve_prop_observations(sector: str, game_date: date) -> dict[str, int]:
     """
     Fetch ESPN boxscores for game_date and update prop_observations rows
@@ -137,6 +149,12 @@ def resolve_prop_observations(sector: str, game_date: date) -> dict[str, int]:
     if not player_stats:
         return {"resolved": 0, "unmatched": 0}
 
+    # Build normalized lookup: "lebron james" → stats dict
+    # Handles underscores, accents, suffixes
+    norm_stats: dict[str, dict[str, float]] = {}
+    for raw_name, stats_dict in player_stats.items():
+        norm_stats[_normalize_for_match(raw_name)] = stats_dict
+
     conn = get_connection()
     rows = conn.execute(
         """SELECT id, player_name, stat_type, line
@@ -147,13 +165,26 @@ def resolve_prop_observations(sector: str, game_date: date) -> dict[str, int]:
 
     resolved = unmatched = 0
     for row in rows:
-        player_key = row["player_name"].lower().strip()
-        # Try exact match first, then last-name fallback
-        stats = player_stats.get(player_key)
+        player_key = _normalize_for_match(row["player_name"])
+
+        # 1. Exact normalized match
+        stats = norm_stats.get(player_key)
+
+        # 2. Last-name fallback (only if unique)
         if stats is None:
             last_name = player_key.split()[-1]
+            candidates = [v for k, v in norm_stats.items() if k.split()[-1] == last_name]
+            if len(candidates) == 1:
+                stats = candidates[0]
+
+        # 3. First-initial + last-name fallback (e.g. "s gilgeous-alexander" matches "shai gilgeous-alexander")
+        if stats is None and len(player_key.split()) >= 2:
+            first_initial = player_key[0]
+            last_parts = " ".join(player_key.split()[1:])
             stats = next(
-                (v for k, v in player_stats.items() if k.split()[-1] == last_name),
+                (v for k, v in norm_stats.items()
+                 if k.split()[0][0] == first_initial
+                 and " ".join(k.split()[1:]) == last_parts),
                 None,
             )
 
