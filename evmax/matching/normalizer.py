@@ -26,6 +26,13 @@ class NameNormalizer:
         "esports", "gaming", "team", "club",
     }
 
+    # Game-name suffixes Kalshi appends to away team names (longest first)
+    _GAME_SUFFIXES = [
+        "league of legends",
+        "valorant",
+        "cs2",
+    ]
+
     def __init__(self, sector: str) -> None:
         self._sector = sector
         try:
@@ -43,6 +50,12 @@ class NameNormalizer:
         result = re.sub(r"['\u2019\u2018]", "", result)  # Remove apostrophes
         result = re.sub(r"[^\w\s\-\.]", " ", result)
         result = re.sub(r"\s+", " ", result).strip()
+
+        # Strip game-name suffixes Kalshi appends (e.g. "G2 NORD League of Legends")
+        for suffix in self._GAME_SUFFIXES:
+            if result.endswith(suffix):
+                result = result[: -len(suffix)].strip()
+                break
 
         # Try alias lookup on full cleaned name BEFORE noise stripping.
         # This ensures "Los Angeles FC" -> "lafc" fires before "fc" is stripped.

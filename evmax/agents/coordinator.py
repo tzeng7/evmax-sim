@@ -51,6 +51,7 @@ from evmax.agents.models.ensemble_agent import EnsembleModelAgent, BlendedPredic
 from evmax.agents.models.tennis_model_agent import TennisModelAgent
 from evmax.agents.models.pitcher_agent import PitcherModelAgent
 from evmax.agents.intelligence.injury_agent import InjuryReportAgent, InjuryReport
+from evmax.agents.intelligence.standings_agent import StandingsAgent, TeamStanding
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds, SharpBook
 from evmax.matching.engine import MatchingEngine
@@ -244,6 +245,7 @@ class AgentCoordinator:
 
         # Intelligence agents
         self.injury_agent = InjuryReportAgent()
+        self.standings_agent = StandingsAgent()
 
         # Statistical model agents
         self.elo_agent = EloModelAgent()
@@ -270,7 +272,7 @@ class AgentCoordinator:
     def _all_agents(self) -> list[Agent]:
         return [
             self.kalshi_agent, self.sharp_agent, self.ev_gap_agent,
-            self.injury_agent,
+            self.injury_agent, self.standings_agent,
             self.elo_agent, self.form_agent, self.poisson_agent, self.tennis_agent, self.pitcher_agent, self.ensemble_agent,
         ]
 
@@ -384,6 +386,7 @@ class AgentCoordinator:
         fetch_tasks = [self.kalshi_agent(req), self.sharp_agent(req)]
         if self._enable_injuries:
             fetch_tasks.append(self.injury_agent(req))
+        fetch_tasks.append(self.standings_agent(req))
 
         prop_task = None
         if sector.lower() in self._PROP_SECTORS:
@@ -393,7 +396,12 @@ class AgentCoordinator:
 
         kalshi_resp = fetch_results[0]
         sharp_resp = fetch_results[1]
-        injury_resp = fetch_results[2] if self._enable_injuries else None
+        _idx = 2
+        injury_resp = None
+        if self._enable_injuries:
+            injury_resp = fetch_results[_idx]
+            _idx += 1
+        standings_resp = fetch_results[_idx]
 
         markets: list[PredictionMarket] = (
             kalshi_resp.data if not isinstance(kalshi_resp, Exception) else []
@@ -402,17 +410,22 @@ class AgentCoordinator:
             sharp_resp.data if not isinstance(sharp_resp, Exception) else []
         ) or []
 
-        # Merge prop markets and prop odds if available (hard 25s cap so props
-        # can't eat the full sector budget when stats.nba.com is slow)
+        # Merge prop markets and prop odds if available. Props run concurrently
+        # with the main fetch (create_task above), so this timeout only gates
+        # how long we wait *after* Kalshi/Pinnacle/injuries finish. 20s is
+        # enough for stats.nba.com without blocking other sectors.
         if prop_task is not None:
             try:
-                prop_markets, prop_sharp = await asyncio.wait_for(prop_task, timeout=25.0)
+                prop_markets, prop_sharp = await asyncio.wait_for(prop_task, timeout=20.0)
                 markets = markets + prop_markets
                 sharp_odds = sharp_odds + prop_sharp
             except (asyncio.TimeoutError, Exception) as e:
                 self.log.debug("prop_fetch_skipped", sector=sector, reason=str(e))
         injuries: dict[str, InjuryReport] = (
             injury_resp.data if injury_resp and not isinstance(injury_resp, Exception) else {}
+        ) or {}
+        standings: dict[str, TeamStanding] = (
+            standings_resp.data if not isinstance(standings_resp, Exception) else {}
         ) or {}
 
         if isinstance(kalshi_resp, Exception):
@@ -472,6 +485,7 @@ class AgentCoordinator:
                 "sharp_odds": sharp_odds,
                 "blended_preds": blended_preds,
                 "injuries": injuries,
+                "standings": standings,
                 "model_sources": model_sources,
                 "kelly_base_fraction": self._kelly_fraction,
                 "steam_events": steam_events,
@@ -495,15 +509,19 @@ class AgentCoordinator:
         self,
         sector: str,
     ) -> tuple[list[PredictionMarket], list[SharpOdds]]:
-        """Fetch Kalshi player prop markets and compute true probabilities via stats model.
+        """Fetch Kalshi player prop markets and compute true probabilities.
 
-        Sharp prop lines use the NBA stats model (stats.nba.com via nba_api, free/no auth):
-        last-15-game averages → normal distribution → P(over threshold).
-
-        Pinnacle guest API has <1% prop coverage for NBA, so we use player form stats
-        as the true probability reference instead.
+        Uses a daily-refreshed local cache of player L15 game logs + team
+        defensive stats. The cache is populated from stats.nba.com once per
+        day (auto-refreshed on first scan if stale). During scans, all prop
+        probabilities are computed from cached data with zero API calls.
         """
         from evmax.clients.kalshi import KalshiClient
+        from evmax.clients.nba_props_cache import (
+            compute_prop_prob_cached,
+            is_cache_fresh,
+            refresh_props_cache,
+        )
 
         prop_sector = f"{sector}_props"
         async with KalshiClient() as kalshi:
@@ -524,30 +542,29 @@ class AgentCoordinator:
                     seen.add(key)
                     unique.append(m)
 
-        if sector == "nba":
-            from evmax.clients.nba_stats import get_prop_true_prob
-            probs = await asyncio.gather(
-                *(get_prop_true_prob(
-                    m.player_name,
-                    m.stat_type,
-                    m.threshold,
-                    game_date=m.event_date.strftime("%Y-%m-%d") if m.event_date else None,
-                  )
-                  for m in unique),
-                return_exceptions=True,
-            )
-        else:
-            probs = [None] * len(unique)
+        # Auto-refresh cache with only the players who have Kalshi prop markets
+        if sector == "nba" and not is_cache_fresh():
+            player_names = list({m.player_name for m in unique if m.player_name})
+            self.log.info("props_cache_refreshing", players=len(player_names))
+            await refresh_props_cache(force=True, player_names=player_names)
 
+        # Compute probabilities from cached data (instant, no API calls)
         prop_sharp: list[SharpOdds] = []
-        for market, result in zip(unique, probs):
-            if isinstance(result, Exception) or result is None:
+        for market in unique:
+            game_date = market.event_date.strftime("%Y-%m-%d") if market.event_date else None
+
+            if sector == "nba":
+                result = compute_prop_prob_cached(
+                    market.player_name, market.stat_type, market.threshold, game_date,
+                )
+            else:
+                result = None
+
+            if result is None:
                 continue
+
             prob, n_games = result
-            date_str = (
-                market.event_date.strftime("%Y-%m-%d")
-                if market.event_date else "unknown"
-            )
+            date_str = game_date or "unknown"
             event_id = (
                 f"{sector}::{date_str}::prop"
                 f"::{market.player_name}::{market.stat_type}::{market.threshold}"

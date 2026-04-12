@@ -95,7 +95,7 @@ async def _scan_loop(
 @app.command("scan")
 def scan(
     sectors: str = typer.Option(
-        "nba,ncaab,ncaaw,soccer,lol,cs2,tennis",
+        "nba,ncaab,ncaaw,soccer,lol,cs2,tennis,baseball",
         "--sectors",
         "-s",
         help="Comma-separated sector list, e.g. 'nba,soccer'",
@@ -303,22 +303,23 @@ def scan(
         ),
         box=box.ROUNDED,
         show_lines=True,
+        expand=False,
     )
-    table.add_column("#", style="dim", width=3)
-    table.add_column("Sector", style="dim", width=6)
-    table.add_column("Event", style="dim", min_width=22, no_wrap=False)
-    table.add_column("Outcome", style="bold white", min_width=16, no_wrap=False)
-    table.add_column("Ask", justify="right", width=7)       # current Kalshi ask (what you'd pay)
-    table.add_column("Fair", justify="right", width=7)      # fair odds — max price for +EV
-    table.add_column("Edge", justify="right", width=7)      # fair prob - ask prob (in ¢)
-    table.add_column("EV %", justify="right", style="green bold", width=8)
-    table.add_column("Kelly%", justify="right", width=7)
-    table.add_column("Stake $", justify="right", style="cyan bold", width=8)
-    table.add_column("N", justify="right", width=4)  # games in sample (props only)
-    table.add_column("Bks", justify="right", width=3)  # sharp books in consensus
-    table.add_column("Steam", justify="center", width=6)  # line velocity flag
-    table.add_column("Vol $", justify="right", width=9)
-    table.add_column("Conf", justify="center", width=5)
+    table.add_column("#", style="dim", width=2)
+    table.add_column("Sec", style="dim", width=5)
+    table.add_column("Event", style="dim", no_wrap=False, max_width=26)
+    table.add_column("Outcome", style="bold white", no_wrap=False, max_width=20)
+    table.add_column("Ask", justify="right", width=6)
+    table.add_column("Fair", justify="right", width=6)
+    table.add_column("Edge", justify="right", width=5)
+    table.add_column("EV%", justify="right", style="green bold", width=6)
+    table.add_column("K%", justify="right", width=6)
+    table.add_column("Stake", justify="right", style="cyan bold", width=7)
+    table.add_column("N", justify="right", width=3)
+    table.add_column("Bk", justify="right", width=2)
+    table.add_column("Stm", justify="center", width=5)
+    table.add_column("Vol", justify="right", width=8)
+    table.add_column("Cf", justify="center", width=4)
 
     total_stake = 0.0
     for i, gap in enumerate(gaps, 1):
@@ -511,6 +512,19 @@ def verify(
             )
             continue
 
+        # 99¢ asks = empty orderbook (no real liquidity), skip entirely
+        if live_ask >= 0.99:
+            table.add_row(
+                str(i), r["sector"].upper(),
+                (r["event_title"] or "")[:22],
+                _display_label(r["yes_team"], r["market_type"], r["line"])[:20],
+                f"{scan_ask:.3f}", f"{live_ask:.3f}", "—",
+                f"{blended_prob:.3f}",
+                "—", "—",
+                "—", "[dim]no book[/dim]",
+            )
+            continue
+
         live_ev, _ = calculate_ev(live_ask, blended_prob)
         threshold = _tiered_min_ev(blended_prob)
         is_live = live_ev >= threshold and blended_prob >= min_prob
@@ -653,44 +667,27 @@ def pick(
     stored_bankroll = next((dict(r)["bankroll_used"] for r in rows if dict(r).get("bankroll_used")), None)
     bankroll = bankroll if bankroll is not None else (stored_bankroll or 250.0)
 
-    console.print(f"\n[bold cyan]evmax pick[/bold cyan] — fetching live prices for {len(rows)} bets ...\n")
+    console.print(f"\n[bold cyan]evmax pick[/bold cyan] — {len(rows)} bets from scan\n")
 
     def _tiered_min_ev(true_prob: float) -> float:
         return min_ev + max(0.0, min_prob - true_prob) * 0.5
 
-    # Fetch live ask prices via WebSocket (one connection for all tickers)
-    # with automatic REST fallback for any ticker missed by WS.
-    async def _fetch_asks(tickers: list[str]) -> dict[str, Optional[float]]:
-        async with KalshiClient() as client:
-            return await client.get_market_asks_batch(tickers)
-
-    tickers = [dict(r)["market_id"] for r in rows]
-    live_prices = asyncio.run(_fetch_asks(tickers))
-
     settings = get_settings()
 
-    # Build enriched bet list
+    # Build enriched bet list using scan-time prices (no live re-fetch)
     bets = []
     for r in [dict(r) for r in rows]:
         blended_prob = r["blended_true_prob"]
         scan_ask = r["kalshi_yes_price"]
-        live_ask = live_prices.get(r["market_id"])
 
-        # Use scan-time stake as baseline
         scan_stake = bankroll * r["kelly_fraction"]
-
-        if live_ask is not None:
-            live_ev, _ = calculate_ev(live_ask, blended_prob)
-            threshold = _tiered_min_ev(blended_prob)
-            is_live = live_ev >= threshold and blended_prob >= min_prob
-        else:
-            live_ev = r["ev_pct"]
-            is_live = False
+        threshold = _tiered_min_ev(blended_prob)
+        is_live = r["ev_pct"] >= threshold and blended_prob >= min_prob
 
         bets.append({
             **r,
-            "live_ask": live_ask,
-            "live_ev": live_ev,
+            "live_ask": scan_ask,
+            "live_ev": r["ev_pct"],
             "is_live": is_live,
             "stake": scan_stake,
         })

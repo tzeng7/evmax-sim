@@ -57,9 +57,11 @@ class Settings(BaseSettings):
         """Return list of missing required API keys (non-fatal — allows read-only use)."""
         missing = []
         if not self.kalshi_api_key_id:
-            missing.append("KALSHI_API_KEY_ID (required to fetch Kalshi markets)")
+            missing.append("KALSHI_API_KEY_ID (required for Kalshi WebSocket + trading)")
         if not self.kalshi_private_key_path:
-            missing.append("KALSHI_PRIVATE_KEY_PATH (required for Kalshi auth)")
+            # PEM key only needed for trading and WebSocket auth.
+            # Market reads are unauthenticated — not a blocker for scanning.
+            missing.append("KALSHI_PRIVATE_KEY_PATH (optional — needed for WS price refresh + trading, not scanning)")
         if not self.the_odds_api_key:
             missing.append("THE_ODDS_API_KEY (required to fetch Pinnacle sharp lines)")
         return missing
@@ -74,12 +76,13 @@ class Settings(BaseSettings):
 
     # Kalshi WebSocket (real-time orderbook prices)
     kalshi_ws_url: str = "wss://api.elections.kalshi.com/trade-api/ws/v2"
-    kalshi_ws_snapshot_timeout: float = 5.0  # seconds to wait per ticker snapshot
+    kalshi_ws_snapshot_timeout: float = 8.0  # seconds to collect all orderbook snapshots
     kalshi_ws_enabled: bool = True  # kill-switch; set False to force REST-only
 
-    # Development cache — set EVMAX_CACHE_TTL_SECS=3600 in .env to reuse responses for 1h
+    # Response cache — reuses recent API responses to avoid redundant fetches.
+    # Default 120s covers back-to-back scans. Set EVMAX_CACHE_TTL_SECS=3600 for dev.
     # Set EVMAX_OFFLINE=true to never hit live APIs (fails if no cache exists)
-    cache_ttl_secs: int = Field(default=0, ge=0)  # 0 = disabled
+    cache_ttl_secs: int = Field(default=120, ge=0)  # 0 = disabled
     offline_mode: bool = False
 
 

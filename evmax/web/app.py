@@ -1,0 +1,415 @@
+"""FastAPI dashboard for evmax — tables, profit chart, and action buttons."""
+from __future__ import annotations
+
+import asyncio
+import sqlite3
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
+
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+PREDICTIONS_DB = ROOT / "data" / "predictions.db"
+TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+
+app = FastAPI(title="evmax dashboard")
+
+
+def _prob_to_american(prob: float) -> str:
+    """Convert probability (0-1) to American odds string."""
+    if prob <= 0 or prob >= 1:
+        return "+100"
+    if prob < 0.5:
+        return f"+{round((1 / prob - 1) * 100)}"
+    return f"-{round((prob / (1 - prob)) * 100)}"
+
+
+TEMPLATES.env.globals["probToAmerican"] = _prob_to_american
+
+
+# ---------------------------------------------------------------------------
+# DB helpers
+# ---------------------------------------------------------------------------
+
+def _conn() -> sqlite3.Connection:
+    conn = sqlite3.connect(PREDICTIONS_DB)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _settled_bets() -> list[dict[str, Any]]:
+    with _conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT p.id, p.scan_date, p.event_date, p.sector, p.event_title,
+                   p.yes_team, p.market_type, p.kalshi_yes_price,
+                   p.blended_true_prob, p.sharp_true_prob, p.ev_pct,
+                   p.kelly_fraction, p.bankroll_used, p.model_sources,
+                   p.placed, p.placed_stake, p.placed_price, p.line,
+                   o.outcome
+            FROM ev_predictions p
+            JOIN ev_outcomes o ON p.market_id = o.market_id
+            WHERE p.voided = 0 AND o.outcome IS NOT NULL
+            ORDER BY p.event_date ASC, p.id ASC
+            """
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _open_bets() -> list[dict[str, Any]]:
+    with _conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT p.id, p.scan_date, p.event_date, p.sector, p.event_title,
+                   p.yes_team, p.market_type, p.kalshi_yes_price,
+                   p.blended_true_prob, p.ev_pct, p.kelly_fraction,
+                   p.bankroll_used, p.volume_usd, p.model_sources,
+                   p.placed, p.placed_stake, p.market_id, p.line
+            FROM ev_predictions p
+            LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
+            WHERE p.voided = 0 AND (o.outcome IS NULL)
+            ORDER BY p.event_date DESC, p.ev_pct DESC
+            LIMIT 200
+            """
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _bet_pnl(bet: dict[str, Any]) -> float:
+    bankroll = bet.get("bankroll_used") or 250.0
+    kelly = bet.get("kelly_fraction") or 0.0
+    stake = bet.get("placed_stake") or (bankroll * kelly)
+    price = bet.get("placed_price") or bet.get("kalshi_yes_price") or 0.5
+    if price <= 0 or price >= 1:
+        return 0.0
+    if bet.get("outcome") == 1:
+        return stake * (1.0 / price - 1.0)
+    return -stake
+
+
+def _profit_series(bets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_date: dict[str, float] = {}
+    for b in bets:
+        pnl = _bet_pnl(b)
+        d = b["event_date"] or b["scan_date"]
+        by_date[d] = by_date.get(d, 0.0) + pnl
+    cum = 0.0
+    out = []
+    for dt in sorted(by_date.keys()):
+        cum += by_date[dt]
+        out.append({"date": dt, "daily": round(by_date[dt], 2), "cumulative": round(cum, 2)})
+    return out
+
+
+def _summary_stats(bets: list[dict[str, Any]]) -> dict[str, Any]:
+    if not bets:
+        return {"total_bets": 0, "wins": 0, "losses": 0, "win_rate": 0.0,
+                "total_pnl": 0.0, "roi_pct": 0.0, "avg_ev": 0.0, "total_staked": 0.0}
+    wins = sum(1 for b in bets if b["outcome"] == 1)
+    losses = sum(1 for b in bets if b["outcome"] == 0)
+    total_pnl = sum(_bet_pnl(b) for b in bets)
+    total_staked = sum(
+        (b.get("placed_stake") or (b.get("bankroll_used") or 250.0) * (b.get("kelly_fraction") or 0.0))
+        for b in bets
+    )
+    avg_ev = sum((b.get("ev_pct") or 0.0) for b in bets) / len(bets)
+    return {
+        "total_bets": len(bets), "wins": wins, "losses": losses,
+        "win_rate": round(100.0 * wins / max(wins + losses, 1), 1),
+        "total_pnl": round(total_pnl, 2), "total_staked": round(total_staked, 2),
+        "roi_pct": round(100.0 * total_pnl / max(total_staked, 0.01), 2),
+        "avg_ev": round(100.0 * avg_ev, 2),
+    }
+
+
+def _sector_breakdown(bets: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_sector: dict[str, list[dict[str, Any]]] = {}
+    for b in bets:
+        by_sector.setdefault(b["sector"], []).append(b)
+    rows = []
+    for sector, bs in by_sector.items():
+        wins = sum(1 for b in bs if b["outcome"] == 1)
+        pnl = sum(_bet_pnl(b) for b in bs)
+        staked = sum(
+            (b.get("placed_stake") or (b.get("bankroll_used") or 250.0) * (b.get("kelly_fraction") or 0.0))
+            for b in bs
+        )
+        rows.append({
+            "sector": sector, "bets": len(bs), "wins": wins,
+            "win_rate": round(100.0 * wins / len(bs), 1),
+            "pnl": round(pnl, 2),
+            "roi_pct": round(100.0 * pnl / max(staked, 0.01), 2),
+        })
+    rows.sort(key=lambda r: r["pnl"], reverse=True)
+    return rows
+
+
+# ---------------------------------------------------------------------------
+# Pages
+# ---------------------------------------------------------------------------
+
+@app.get("/", response_class=HTMLResponse)
+def index(request: Request) -> Any:
+    settled = _settled_bets()
+    open_bets = _open_bets()
+
+    # All scanned bets
+    summary_all = _summary_stats(settled)
+    series_all = _profit_series(settled)
+    sectors_all = _sector_breakdown(settled)
+
+    # Placed-only subset
+    settled_placed = [b for b in settled if b.get("placed")]
+    summary_placed = _summary_stats(settled_placed)
+    series_placed = _profit_series(settled_placed)
+
+    recent = list(reversed(settled))[:50]
+    placed_bets = [b for b in open_bets if b.get("placed")]
+    unplaced_bets = [b for b in open_bets if not b.get("placed")]
+    return TEMPLATES.TemplateResponse(
+        request, "dashboard.html",
+        {"summary_all": summary_all, "summary_placed": summary_placed,
+         "sectors": sectors_all, "placed_bets": placed_bets,
+         "unplaced_bets": unplaced_bets, "recent": recent,
+         "series_all": series_all, "series_placed": series_placed},
+    )
+
+
+# ---------------------------------------------------------------------------
+# JSON APIs (for dashboard AJAX)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/profit")
+def api_profit() -> JSONResponse:
+    return JSONResponse(_profit_series(_settled_bets()))
+
+
+@app.get("/api/summary")
+def api_summary() -> JSONResponse:
+    return JSONResponse(_summary_stats(_settled_bets()))
+
+
+@app.post("/api/scan")
+async def api_scan(request: Request) -> JSONResponse:
+    """Run a full agent scan and return EV gaps as JSON."""
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    sectors_str = body.get("sectors", "nba,soccer,tennis")
+    bankroll = float(body.get("bankroll", 500))
+    kelly = float(body.get("kelly", 0.5))
+
+    from evmax.agents.coordinator import AgentCoordinator
+    sectors = [s.strip() for s in sectors_str.split(",") if s.strip()]
+    coord = AgentCoordinator(
+        sectors=sectors, bankroll=bankroll, kelly_fraction=kelly,
+    )
+    cycle = await coord.run_cycle()
+
+    gaps = []
+    for g in cycle.top_gaps:
+        gaps.append({
+            "event_title": g.event_title or "",
+            "yes_team": g.yes_team or "",
+            "market_type": g.market_type or "",
+            "line": g.line,
+            "sector": g.sector or "",
+            "kalshi_price": round(g.kalshi_yes_price, 2),
+            "true_prob": round(g.blended_true_prob, 3),
+            "ev_pct": round(g.ev_pct * 100, 2),
+            "kelly_pct": round(g.kelly_fraction * 100, 2),
+            "stake": round(bankroll * g.kelly_fraction, 2),
+            "model_sources": g.model_sources or "",
+            "market_id": g.market_id or "",
+            "event_date": g.event_date or "",
+            "volume": g.volume_usd or 0,
+        })
+
+    return JSONResponse({
+        "gaps": gaps,
+        "markets_fetched": cycle.markets_fetched,
+        "markets_matched": cycle.markets_matched,
+        "sectors": sectors,
+    })
+
+
+@app.post("/api/pick")
+async def api_pick(request: Request) -> JSONResponse:
+    """Mark selected bets as placed in the database.
+
+    Accepts either:
+      { "bets": [{"market_id": "...", "fill_price": 0.45, "fill_stake": 12.50}, ...] }
+    or legacy:
+      { "market_ids": ["..."] }
+    """
+    body = await request.json()
+    bets_list: list[dict] = body.get("bets", [])
+
+    # Legacy fallback: bare market_ids without price/stake
+    if not bets_list:
+        market_ids = body.get("market_ids", [])
+        bets_list = [{"market_id": mid} for mid in market_ids]
+
+    if not bets_list:
+        return JSONResponse({"error": "No bets provided"}, status_code=400)
+
+    now_str = datetime.now(timezone.utc).isoformat()
+    conn = _conn()
+    placed = 0
+    for bet in bets_list:
+        mid = bet.get("market_id")
+        if not mid:
+            continue
+
+        # Get scan-time defaults
+        row = conn.execute(
+            "SELECT kalshi_yes_price, kelly_fraction, bankroll_used FROM ev_predictions WHERE market_id = ? AND voided = 0 ORDER BY id DESC LIMIT 1",
+            (mid,),
+        ).fetchone()
+        if not row:
+            continue
+
+        # Use user-provided fill price/stake, fall back to scan defaults
+        fill_price = bet.get("fill_price") or row["kalshi_yes_price"]
+        default_stake = round((row["bankroll_used"] or 500.0) * (row["kelly_fraction"] or 0.0), 2)
+        fill_stake = bet.get("fill_stake") or default_stake
+
+        conn.execute(
+            "UPDATE ev_predictions SET placed = 1, placed_at = ?, placed_price = ?, placed_stake = ? WHERE market_id = ?",
+            (now_str, fill_price, fill_stake, mid),
+        )
+        placed += 1
+    conn.commit()
+    conn.close()
+    return JSONResponse({"placed": placed})
+
+
+@app.post("/api/update-placed")
+async def api_update_placed(request: Request) -> JSONResponse:
+    """Update fill price and stake on already-placed bets."""
+    body = await request.json()
+    edits: list[dict] = body.get("edits", [])
+    if not edits:
+        return JSONResponse({"error": "No edits provided"}, status_code=400)
+
+    conn = _conn()
+    updated = 0
+    for edit in edits:
+        mid = edit.get("market_id")
+        price = edit.get("fill_price")
+        stake = edit.get("fill_stake")
+        if not mid or price is None or stake is None:
+            continue
+        conn.execute(
+            "UPDATE ev_predictions SET placed_price = ?, placed_stake = ? WHERE market_id = ? AND placed = 1",
+            (price, stake, mid),
+        )
+        updated += 1
+    conn.commit()
+    conn.close()
+    return JSONResponse({"updated": updated})
+
+
+@app.post("/api/unplace")
+async def api_unplace(request: Request) -> JSONResponse:
+    """Remove placed status from bets (un-pick them)."""
+    body = await request.json()
+    market_ids: list[str] = body.get("market_ids", [])
+    if not market_ids:
+        return JSONResponse({"error": "No market_ids provided"}, status_code=400)
+
+    conn = _conn()
+    removed = 0
+    for mid in market_ids:
+        cur = conn.execute(
+            "UPDATE ev_predictions SET placed = 0, placed_at = NULL, placed_price = NULL, placed_stake = NULL WHERE market_id = ? AND placed = 1",
+            (mid,),
+        )
+        if cur.rowcount > 0:
+            removed += 1
+    conn.commit()
+    conn.close()
+    return JSONResponse({"removed": removed})
+
+
+@app.post("/api/resolve")
+async def api_resolve(request: Request) -> JSONResponse:
+    """Resolve outcomes for a given date (defaults to yesterday)."""
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    target = body.get("date")
+    if target:
+        d = date.fromisoformat(target)
+    else:
+        d = date.today() - timedelta(days=1)
+
+    from evmax.agents.cleanup.resolver import resolve_outcomes_for_date
+    result = await resolve_outcomes_for_date(d)
+    return JSONResponse({
+        "date": d.isoformat(),
+        "resolved": result["resolved"],
+        "failed": result["failed"],
+        "unmatched": result.get("unmatched", [])[:20],
+    })
+
+
+@app.post("/api/metrics")
+async def api_metrics(request: Request) -> JSONResponse:
+    """Return calibration metrics."""
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    weeks = int(body.get("weeks", 4))
+
+    conn = _conn()
+    since = (date.today() - timedelta(weeks=weeks)).isoformat()
+    rows = conn.execute(
+        """
+        SELECT p.blended_true_prob, p.sharp_true_prob, o.outcome
+        FROM ev_predictions p
+        JOIN ev_outcomes o ON p.market_id = o.market_id
+        WHERE p.voided = 0 AND o.outcome IS NOT NULL AND p.event_date >= ?
+        """,
+        (since,),
+    ).fetchall()
+    conn.close()
+
+    if not rows:
+        return JSONResponse({"error": "No resolved bets in date range", "weeks": weeks})
+
+    n = len(rows)
+    brier_model = sum((r["blended_true_prob"] - r["outcome"]) ** 2 for r in rows) / n
+    brier_sharp = sum((r["sharp_true_prob"] - r["outcome"]) ** 2 for r in rows) / n
+    wins = sum(1 for r in rows if r["outcome"] == 1)
+
+    # Calibration buckets
+    buckets: dict[str, dict] = {}
+    for r in rows:
+        p = r["blended_true_prob"]
+        if p < 0.3:
+            label = "<30%"
+        elif p < 0.5:
+            label = "30-50%"
+        elif p < 0.7:
+            label = "50-70%"
+        else:
+            label = ">70%"
+        if label not in buckets:
+            buckets[label] = {"n": 0, "pred_sum": 0.0, "actual_sum": 0}
+        buckets[label]["n"] += 1
+        buckets[label]["pred_sum"] += p
+        buckets[label]["actual_sum"] += r["outcome"]
+
+    calibration = []
+    for label in ["<30%", "30-50%", "50-70%", ">70%"]:
+        b = buckets.get(label)
+        if b and b["n"] > 0:
+            calibration.append({
+                "bucket": label, "n": b["n"],
+                "predicted": round(b["pred_sum"] / b["n"] * 100, 1),
+                "actual": round(b["actual_sum"] / b["n"] * 100, 1),
+            })
+
+    return JSONResponse({
+        "weeks": weeks, "n": n, "wins": wins, "win_rate": round(100 * wins / n, 1),
+        "brier_model": round(brier_model, 4), "brier_sharp": round(brier_sharp, 4),
+        "calibration": calibration,
+    })

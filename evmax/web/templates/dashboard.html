@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>evmax dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0e14; --panel: #11151c; --border: #1f2530;
+    --text: #d6deeb; --muted: #7a8aa0;
+    --green: #4ade80; --red: #f87171; --accent: #60a5fa; --yellow: #fbbf24;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    padding: 20px 24px; font-family: -apple-system, BlinkMacSystemFont, "SF Mono", Menlo, monospace;
+    background: var(--bg); color: var(--text); font-size: 13px;
+  }
+  h1 { font-size: 20px; font-weight: 600; }
+  h2 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .header-left { display: flex; align-items: baseline; gap: 12px; }
+  .subtitle { color: var(--muted); font-size: 12px; }
+
+  /* Action bar */
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    padding: 7px 14px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--panel); color: var(--text); cursor: pointer; font-size: 12px;
+    font-family: inherit; transition: all .15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.primary { background: #1a3a5c; border-color: var(--accent); color: var(--accent); }
+  .btn.danger { border-color: var(--red); color: var(--red); }
+  .btn.success { border-color: var(--green); color: var(--green); }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+  select, input[type="text"], input[type="number"] {
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--panel); color: var(--text); font-size: 12px; font-family: inherit;
+  }
+  .pnl-tab.active { background: #1a3a5c; border-color: var(--accent); color: var(--accent); }
+  .btn-del {
+    background: none; border: 1px solid transparent; color: var(--muted); cursor: pointer;
+    font-size: 16px; line-height: 1; padding: 2px 6px; border-radius: 4px;
+  }
+  .btn-del:hover { color: var(--red); border-color: var(--red); }
+  td input[type="number"], td input[type="text"] {
+    padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px;
+    background: #0d1117; color: var(--text); font-size: 12px; font-family: inherit;
+    text-align: right;
+  }
+  td input[type="number"]:focus, td input[type="text"]:focus { border-color: var(--accent); outline: none; }
+
+  /* KPIs */
+  .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .kpi .label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi .value { font-size: 20px; font-weight: 600; margin-top: 2px; }
+  .green { color: var(--green); } .red { color: var(--red); } .muted { color: var(--muted); } .yellow { color: var(--yellow); }
+
+  /* Panels */
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+  .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 500; text-transform: uppercase; font-size: 10px; letter-spacing: 0.04em; }
+  td { padding: 7px 6px; border-bottom: 1px solid #161b24; }
+  tr:hover td { background: #161b24; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #1a2030; font-size: 10px; text-transform: uppercase; }
+  .badge.won { background: #0d3320; color: var(--green); }
+  .badge.lost { background: #3b1515; color: var(--red); }
+  .check { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+  #profitChart { max-height: 280px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; padding: 12px 20px;
+    border-radius: 8px; font-size: 13px; z-index: 999; opacity: 0;
+    transition: opacity .3s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .toast.info { background: #1a3a5c; border: 1px solid var(--accent); color: var(--accent); }
+  .toast.ok { background: #0d3320; border: 1px solid var(--green); color: var(--green); }
+  .toast.err { background: #3b1515; border: 1px solid var(--red); color: var(--red); }
+
+  /* Spinner */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>evmax</h1>
+    <span class="subtitle">+EV prediction market dashboard</span>
+  </div>
+  <div class="actions">
+    <select id="sectorSelect">
+      <option value="nba,soccer,tennis,ncaab">All Sectors</option>
+      <option value="nba">NBA</option>
+      <option value="soccer">Soccer</option>
+      <option value="tennis">Tennis</option>
+      <option value="ncaab">NCAAB</option>
+      <option value="baseball">Baseball</option>
+      <option value="lol,cs2">Esports</option>
+    </select>
+    <input id="bankrollInput" type="number" value="500" style="width:80px" title="Bankroll ($)">
+    <button class="btn primary" id="scanBtn" onclick="runScan()">Scan</button>
+    <button class="btn success" id="pickBtn" onclick="pickSelected()" disabled>Pick Selected</button>
+    <button class="btn" id="resolveBtn" onclick="runResolve()">Resolve</button>
+    <button class="btn" id="metricsBtn" onclick="runMetrics()">Metrics</button>
+  </div>
+</div>
+
+<!-- P&L toggle -->
+<div style="display:flex;gap:6px;margin-bottom:14px">
+  <button class="btn btn-sm pnl-tab active" data-view="all" onclick="switchPnlView('all')">All Scanned</button>
+  <button class="btn btn-sm pnl-tab" data-view="placed" onclick="switchPnlView('placed')">Placed Only</button>
+</div>
+
+<!-- KPI cards — All -->
+<div class="grid-kpi pnl-view" data-view="all">
+  <div class="kpi"><div class="label">Total P&L</div><div class="value {{ 'green' if summary_all.total_pnl >= 0 else 'red' }}">${{ '%.2f'|format(summary_all.total_pnl) }}</div></div>
+  <div class="kpi"><div class="label">ROI</div><div class="value {{ 'green' if summary_all.roi_pct >= 0 else 'red' }}">{{ '%.1f'|format(summary_all.roi_pct) }}%</div></div>
+  <div class="kpi"><div class="label">Win Rate</div><div class="value">{{ summary_all.win_rate }}%</div></div>
+  <div class="kpi"><div class="label">Bets</div><div class="value">{{ summary_all.total_bets }}</div></div>
+  <div class="kpi"><div class="label">W / L</div><div class="value"><span class="green">{{ summary_all.wins }}</span><span class="muted"> / </span><span class="red">{{ summary_all.losses }}</span></div></div>
+  <div class="kpi"><div class="label">Avg EV</div><div class="value">{{ summary_all.avg_ev }}%</div></div>
+</div>
+<!-- KPI cards — Placed -->
+<div class="grid-kpi pnl-view" data-view="placed" style="display:none">
+  <div class="kpi"><div class="label">Total P&L</div><div class="value {{ 'green' if summary_placed.total_pnl >= 0 else 'red' }}">${{ '%.2f'|format(summary_placed.total_pnl) }}</div></div>
+  <div class="kpi"><div class="label">ROI</div><div class="value {{ 'green' if summary_placed.roi_pct >= 0 else 'red' }}">{{ '%.1f'|format(summary_placed.roi_pct) }}%</div></div>
+  <div class="kpi"><div class="label">Win Rate</div><div class="value">{{ summary_placed.win_rate }}%</div></div>
+  <div class="kpi"><div class="label">Bets</div><div class="value">{{ summary_placed.total_bets }}</div></div>
+  <div class="kpi"><div class="label">W / L</div><div class="value"><span class="green">{{ summary_placed.wins }}</span><span class="muted"> / </span><span class="red">{{ summary_placed.losses }}</span></div></div>
+  <div class="kpi"><div class="label">Avg EV</div><div class="value">{{ summary_placed.avg_ev }}%</div></div>
+</div>
+
+<!-- Profit chart -->
+<div class="panel">
+  <h2>Cumulative Profit</h2>
+  <canvas id="profitChart"></canvas>
+</div>
+
+<!-- Scan results (hidden until scan runs) -->
+<div class="panel" id="scanPanel" style="display:none">
+  <div class="panel-header">
+    <h2 id="scanTitle">Scan Results</h2>
+    <div>
+      <button class="btn btn-sm" onclick="selectAllScan()">Select All</button>
+      <button class="btn btn-sm" onclick="deselectAllScan()">Deselect All</button>
+    </div>
+  </div>
+  <table>
+    <thead><tr>
+      <th style="width:30px"></th>
+      <th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th>
+      <th class="num">Ask</th><th class="num">Model</th><th class="num">EV</th>
+      <th class="num">Fill Odds</th><th class="num">Stake ($)</th><th>Models</th>
+    </tr></thead>
+    <tbody id="scanBody"></tbody>
+  </table>
+</div>
+
+<!-- Metrics panel (hidden until metrics runs) -->
+<div class="panel" id="metricsPanel" style="display:none">
+  <h2>Model Calibration</h2>
+  <div id="metricsContent"></div>
+</div>
+
+<!-- Placed Bets (picked positions) -->
+{% if placed_bets %}
+<div class="panel">
+  <div class="panel-header">
+    <h2>Placed Bets ({{ placed_bets|length }})</h2>
+    <button class="btn btn-sm" id="savePlacedBtn" onclick="savePlacedEdits()" style="display:none">Save Changes</button>
+  </div>
+  <table>
+    <thead><tr>
+      <th style="width:30px"></th>
+      <th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th>
+      <th class="num">Model</th><th class="num">EV</th>
+      <th class="num">Fill Odds</th><th class="num">Stake ($)</th><th class="num">To Win</th>
+    </tr></thead>
+    <tbody>
+    {% for b in placed_bets %}
+      {% set fill = b.placed_price or b.kalshi_yes_price or 0.5 %}
+      {% set stake = b.placed_stake or ((b.bankroll_used or 500) * (b.kelly_fraction or 0)) %}
+      {% set to_win = stake * (1.0 / fill - 1.0) if fill > 0 and fill < 1 else 0 %}
+      <tr data-mid="{{ b.market_id }}">
+        <td><button class="btn-del" onclick="removePlaced(this)" title="Remove bet">&times;</button></td>
+        <td class="muted">{{ b.event_date }}</td>
+        <td><span class="badge">{{ b.sector }}</span></td>
+        <td>{{ b.event_title }}</td>
+        <td>{{ b.yes_team }} {{ b.market_type }}{% if b.line %} {{ b.line }}{% endif %}</td>
+        <td class="num">{{ '%.0f'|format((b.blended_true_prob or 0) * 100) }}%</td>
+        <td class="num green">{{ '%.1f'|format((b.ev_pct or 0) * 100) }}%</td>
+        <td class="num"><input type="text" class="placed-odds" data-mid="{{ b.market_id }}" value="{{ probToAmerican(fill) }}" style="width:64px" title="American odds (e.g. +181 or -150)"></td>
+        <td class="num"><input type="number" class="placed-stake" data-mid="{{ b.market_id }}" value="{{ '%.2f'|format(stake) }}" min="0.01" step="0.01" style="width:70px" title="Stake in $"></td>
+        <td class="num green to-win">${{ '%.2f'|format(to_win) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% set ns = namespace(exposure=0) %}
+  {% for b in placed_bets %}{% if b.placed_stake %}{% set ns.exposure = ns.exposure + b.placed_stake %}{% endif %}{% endfor %}
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">
+    Total exposure: $<span id="totalExposure">{{ '%.2f'|format(ns.exposure) }}</span>
+  </div>
+</div>
+{% endif %}
+
+<!-- Two-column: sector breakdown + open (unplaced) positions -->
+<div class="two-col">
+  <div class="panel">
+    <h2>Sector Performance</h2>
+    <table>
+      <thead><tr><th>Sector</th><th class="num">Bets</th><th class="num">Wins</th><th class="num">Win%</th><th class="num">P&L</th><th class="num">ROI</th></tr></thead>
+      <tbody>
+      {% for s in sectors %}
+        <tr>
+          <td><span class="badge">{{ s.sector }}</span></td>
+          <td class="num">{{ s.bets }}</td><td class="num">{{ s.wins }}</td>
+          <td class="num">{{ s.win_rate }}%</td>
+          <td class="num {{ 'green' if s.pnl >= 0 else 'red' }}">${{ '%.2f'|format(s.pnl) }}</td>
+          <td class="num {{ 'green' if s.roi_pct >= 0 else 'red' }}">{{ s.roi_pct }}%</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Open Positions ({{ unplaced_bets|length }})</h2>
+      {% if unplaced_bets %}
+      <button class="btn btn-sm success" onclick="pickFromOpen()">Pick All</button>
+      {% endif %}
+    </div>
+    <div style="max-height:300px;overflow-y:auto">
+    <table>
+      <thead><tr><th style="width:28px"></th><th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th><th class="num">EV</th></tr></thead>
+      <tbody>
+      {% for b in unplaced_bets[:40] %}
+        <tr>
+          <td><input type="checkbox" class="check open-check" data-mid="{{ b.market_id }}"></td>
+          <td class="muted">{{ b.event_date }}</td>
+          <td><span class="badge">{{ b.sector }}</span></td>
+          <td>{{ b.event_title }}</td>
+          <td>{{ b.yes_team }} {{ b.market_type }}{% if b.line %} {{ b.line }}{% endif %}</td>
+          <td class="num green">{{ '%.1f'|format((b.ev_pct or 0) * 100) }}%</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- Recent settled -->
+<div class="panel">
+  <h2>Recent Settled Bets</h2>
+  <div style="max-height:400px;overflow-y:auto">
+  <table>
+    <thead><tr>
+      <th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th>
+      <th class="num">Ask</th><th class="num">Model</th><th class="num">EV</th>
+      <th>Result</th><th class="num">P&L</th>
+    </tr></thead>
+    <tbody>
+    {% for b in recent %}
+      {% set bankroll = b.bankroll_used or 250 %}
+      {% set kelly = b.kelly_fraction or 0 %}
+      {% set stake = b.placed_stake or (bankroll * kelly) %}
+      {% set price = b.placed_price or b.kalshi_yes_price or 0.5 %}
+      {% if b.outcome == 1 %}{% set pnl = stake * (1.0 / price - 1.0) %}{% else %}{% set pnl = -stake %}{% endif %}
+      <tr>
+        <td class="muted">{{ b.event_date }}</td>
+        <td><span class="badge">{{ b.sector }}</span></td>
+        <td>{{ b.event_title }}</td>
+        <td>{{ b.yes_team }} {{ b.market_type }}{% if b.line %} {{ b.line }}{% endif %}</td>
+        <td class="num">{{ '%.0f'|format(b.kalshi_yes_price * 100) }}c</td>
+        <td class="num">{{ '%.0f'|format((b.blended_true_prob or 0) * 100) }}%</td>
+        <td class="num">{{ '%.1f'|format((b.ev_pct or 0) * 100) }}%</td>
+        <td><span class="badge {{ 'won' if b.outcome == 1 else 'lost' }}">{{ 'WON' if b.outcome == 1 else 'LOST' }}</span></td>
+        <td class="num {{ 'green' if pnl >= 0 else 'red' }}">${{ '%.2f'|format(pnl) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<script>
+const seriesAll = {{ series_all|tojson }};
+const seriesPlaced = {{ series_placed|tojson }};
+let currentView = 'all';
+let scanData = [];
+
+// ── Profit chart ──
+const ctx = document.getElementById('profitChart').getContext('2d');
+const profitChart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: seriesAll.map(p => p.date),
+    datasets: [{
+      label: 'All Scanned P&L ($)',
+      data: seriesAll.map(p => p.cumulative),
+      borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.1)',
+      fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5, borderWidth: 2,
+    }, {
+      label: 'Placed Only P&L ($)',
+      data: seriesPlaced.map(p => p.cumulative),
+      borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.08)',
+      fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5, borderWidth: 2,
+      hidden: true,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#d6deeb' } }, tooltip: { mode: 'index', intersect: false } },
+    scales: {
+      x: { ticks: { color: '#7a8aa0' }, grid: { color: '#1f2530' } },
+      y: { ticks: { color: '#7a8aa0', callback: v => '$' + v }, grid: { color: '#1f2530' } }
+    }
+  }
+});
+
+// Merge x-axis labels from both series for the chart
+const allDates = [...new Set([...seriesAll.map(p=>p.date), ...seriesPlaced.map(p=>p.date)])].sort();
+const placedMap = Object.fromEntries(seriesPlaced.map(p => [p.date, p.cumulative]));
+const allMap = Object.fromEntries(seriesAll.map(p => [p.date, p.cumulative]));
+// Fill gaps with last known value
+let lastAll = 0, lastPlaced = 0;
+const filledAll = [], filledPlaced = [];
+for (const d of allDates) {
+  if (d in allMap) lastAll = allMap[d];
+  if (d in placedMap) lastPlaced = placedMap[d];
+  filledAll.push(lastAll);
+  filledPlaced.push(lastPlaced);
+}
+profitChart.data.labels = allDates;
+profitChart.data.datasets[0].data = filledAll;
+profitChart.data.datasets[1].data = filledPlaced;
+profitChart.update();
+
+function switchPnlView(view) {
+  currentView = view;
+  document.querySelectorAll('.pnl-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+  document.querySelectorAll('.pnl-view').forEach(el => el.style.display = el.dataset.view === view ? '' : 'none');
+  // Toggle chart datasets
+  profitChart.data.datasets[0].hidden = (view === 'placed');
+  profitChart.data.datasets[1].hidden = (view === 'all');
+  profitChart.update();
+}
+
+// ── Odds conversion ──
+function probToAmerican(p) {
+  if (p <= 0 || p >= 1) return '+100';
+  if (p < 0.5) return '+' + Math.round((1/p - 1) * 100);
+  return '-' + Math.round((p / (1 - p)) * 100);
+}
+function americanToProb(s) {
+  s = s.toString().trim();
+  const n = parseFloat(s.replace('+', ''));
+  if (isNaN(n) || n === 0) return null;
+  if (n > 0) return 100 / (n + 100);        // +181 → 100/281 = 0.356
+  return Math.abs(n) / (Math.abs(n) + 100);  // -150 → 150/250 = 0.60
+}
+
+// ── Toast ──
+function toast(msg, type='info', ms=3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => el.className = 'toast', ms);
+}
+
+// ── Scan ──
+async function runScan() {
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Scanning...';
+  toast('Scanning markets...', 'info', 30000);
+
+  try {
+    const resp = await fetch('/api/scan', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        sectors: document.getElementById('sectorSelect').value,
+        bankroll: parseFloat(document.getElementById('bankrollInput').value) || 500,
+        kelly: 0.5,
+      })
+    });
+    const data = await resp.json();
+    scanData = data.gaps || [];
+    renderScan(data);
+    toast(`Found ${scanData.length} +EV plays across ${data.markets_fetched} markets`, 'ok');
+  } catch(e) {
+    toast('Scan failed: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Scan';
+  }
+}
+
+function renderScan(data) {
+  const panel = document.getElementById('scanPanel');
+  const body = document.getElementById('scanBody');
+  const title = document.getElementById('scanTitle');
+  panel.style.display = 'block';
+  title.textContent = `Scan Results — ${data.gaps.length} plays (${data.markets_fetched} markets, ${data.markets_matched} matched)`;
+  body.innerHTML = '';
+
+  for (const g of data.gaps) {
+    const askOdds = probToAmerican(g.kalshi_price);
+    const outcome = g.yes_team + ' ' + g.market_type + (g.line ? ' ' + g.line : '');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="checkbox" class="check scan-check" data-mid="${g.market_id}" checked></td>
+      <td class="muted">${g.event_date}</td>
+      <td><span class="badge">${g.sector}</span></td>
+      <td>${g.event_title}</td>
+      <td>${outcome}</td>
+      <td class="num">${askOdds} <span class="muted">(${Math.round(g.kalshi_price*100)}c)</span></td>
+      <td class="num">${(g.true_prob*100).toFixed(1)}%</td>
+      <td class="num green">${g.ev_pct.toFixed(1)}%</td>
+      <td class="num"><input type="text" class="fill-odds" data-mid="${g.market_id}" value="${askOdds}" style="width:64px" title="American odds (e.g. +181 or -150)"></td>
+      <td class="num"><input type="number" class="fill-stake" data-mid="${g.market_id}" value="${g.stake.toFixed(2)}" min="0.01" step="0.01" style="width:70px" title="Stake in $"></td>
+      <td class="muted" style="font-size:10px">${g.model_sources}</td>
+    `;
+    body.appendChild(tr);
+  }
+  updatePickBtn();
+  document.querySelectorAll('.scan-check').forEach(cb => cb.addEventListener('change', updatePickBtn));
+}
+
+function updatePickBtn() {
+  const checked = document.querySelectorAll('.scan-check:checked').length;
+  const btn = document.getElementById('pickBtn');
+  btn.disabled = checked === 0;
+  btn.textContent = checked > 0 ? `Pick Selected (${checked})` : 'Pick Selected';
+}
+
+function selectAllScan() { document.querySelectorAll('.scan-check').forEach(c => c.checked = true); updatePickBtn(); }
+function deselectAllScan() { document.querySelectorAll('.scan-check').forEach(c => c.checked = false); updatePickBtn(); }
+
+// ── Pick ──
+async function pickSelected() {
+  const checked = [...document.querySelectorAll('.scan-check:checked')];
+  if (!checked.length) return;
+  const btn = document.getElementById('pickBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Placing...';
+
+  // Collect per-bet fill odds (American → prob) and stake
+  const bets = checked.map(cb => {
+    const mid = cb.dataset.mid;
+    const oddsInput = document.querySelector(`.fill-odds[data-mid="${mid}"]`);
+    const stakeInput = document.querySelector(`.fill-stake[data-mid="${mid}"]`);
+    const prob = oddsInput ? americanToProb(oddsInput.value) : null;
+    const stake = stakeInput ? parseFloat(stakeInput.value) : null;
+    return {
+      market_id: mid,
+      fill_price: prob,
+      fill_stake: stake,
+    };
+  });
+
+  try {
+    const resp = await fetch('/api/pick', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ bets })
+    });
+    const data = await resp.json();
+    toast(`Placed ${data.placed} bet(s) — refresh to see in Placed Bets`, 'ok', 4000);
+    checked.forEach(cb => { cb.checked = false; cb.closest('tr').style.opacity = '0.4'; });
+  } catch(e) {
+    toast('Pick failed: ' + e.message, 'err');
+  } finally {
+    btn.textContent = 'Pick Selected';
+    updatePickBtn();
+  }
+}
+
+// ── Resolve ──
+async function runResolve() {
+  const btn = document.getElementById('resolveBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Resolving...';
+  toast('Resolving outcomes...', 'info', 15000);
+
+  try {
+    // Resolve yesterday and today
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+    const today = new Date().toISOString().slice(0,10);
+    const [r1, r2] = await Promise.all([
+      fetch('/api/resolve', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date: yesterday}) }).then(r=>r.json()),
+      fetch('/api/resolve', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date: today}) }).then(r=>r.json()),
+    ]);
+    const total = (r1.resolved||0) + (r2.resolved||0);
+    toast(`Resolved ${total} outcome(s). Refresh to see updated P&L.`, 'ok', 5000);
+  } catch(e) {
+    toast('Resolve failed: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Resolve';
+  }
+}
+
+// ── Metrics ──
+async function runMetrics() {
+  const btn = document.getElementById('metricsBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Loading...';
+
+  try {
+    const resp = await fetch('/api/metrics', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({weeks: 4})
+    });
+    const data = await resp.json();
+    const panel = document.getElementById('metricsPanel');
+    const content = document.getElementById('metricsContent');
+    panel.style.display = 'block';
+
+    if (data.error) {
+      content.innerHTML = `<p class="muted">${data.error}</p>`;
+      return;
+    }
+
+    let html = `
+      <div class="grid-kpi" style="margin-bottom:12px">
+        <div class="kpi"><div class="label">Brier (Model)</div><div class="value">${data.brier_model.toFixed(4)}</div></div>
+        <div class="kpi"><div class="label">Brier (Sharp)</div><div class="value">${data.brier_sharp.toFixed(4)}</div></div>
+        <div class="kpi"><div class="label">Sample</div><div class="value">${data.n}</div></div>
+        <div class="kpi"><div class="label">Win Rate</div><div class="value">${data.win_rate}%</div></div>
+      </div>
+      <h2 style="margin-top:8px">Calibration Buckets</h2>
+      <table><thead><tr><th>Bucket</th><th class="num">N</th><th class="num">Predicted</th><th class="num">Actual</th><th class="num">Gap</th></tr></thead><tbody>
+    `;
+    for (const b of data.calibration) {
+      const gap = (b.actual - b.predicted).toFixed(1);
+      const cls = Math.abs(gap) < 5 ? 'green' : (Math.abs(gap) < 10 ? 'yellow' : 'red');
+      html += `<tr><td>${b.bucket}</td><td class="num">${b.n}</td><td class="num">${b.predicted}%</td><td class="num">${b.actual}%</td><td class="num ${cls}">${gap > 0 ? '+' : ''}${gap}%</td></tr>`;
+    }
+    html += '</tbody></table>';
+    content.innerHTML = html;
+  } catch(e) {
+    toast('Metrics failed: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Metrics';
+  }
+}
+
+// ── Placed bets editing ──
+document.querySelectorAll('.placed-odds, .placed-stake').forEach(input => {
+  input.addEventListener('input', () => {
+    document.getElementById('savePlacedBtn').style.display = '';
+    // Live-update "To Win" in same row
+    const tr = input.closest('tr');
+    const oddsInput = tr.querySelector('.placed-odds');
+    const stakeInput = tr.querySelector('.placed-stake');
+    const toWinCell = tr.querySelector('.to-win');
+    const prob = americanToProb(oddsInput.value);
+    const stake = parseFloat(stakeInput.value) || 0;
+    if (prob && prob > 0 && prob < 1) {
+      const toWin = stake * (1 / prob - 1);
+      toWinCell.textContent = '$' + toWin.toFixed(2);
+    }
+    // Update total exposure
+    let total = 0;
+    document.querySelectorAll('.placed-stake').forEach(s => { total += parseFloat(s.value) || 0; });
+    document.getElementById('totalExposure').textContent = total.toFixed(2);
+  });
+});
+
+async function savePlacedEdits() {
+  const btn = document.getElementById('savePlacedBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Saving...';
+
+  const edits = [];
+  const seen = new Set();
+  document.querySelectorAll('.placed-odds').forEach(oddsInput => {
+    const mid = oddsInput.dataset.mid;
+    if (seen.has(mid)) return;
+    seen.add(mid);
+    const stakeInput = document.querySelector(`.placed-stake[data-mid="${mid}"]`);
+    const prob = americanToProb(oddsInput.value);
+    edits.push({
+      market_id: mid,
+      fill_price: prob,
+      fill_stake: parseFloat(stakeInput.value),
+    });
+  });
+
+  try {
+    const resp = await fetch('/api/update-placed', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ edits })
+    });
+    const data = await resp.json();
+    toast(`Updated ${data.updated} bet(s)`, 'ok');
+    btn.style.display = 'none';
+  } catch(e) {
+    toast('Save failed: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
+// ── Remove placed bet ──
+async function removePlaced(btn) {
+  const tr = btn.closest('tr');
+  const mid = tr.dataset.mid;
+  if (!confirm('Remove this bet from placed?')) return;
+
+  try {
+    const resp = await fetch('/api/unplace', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ market_ids: [mid] })
+    });
+    const data = await resp.json();
+    if (data.removed > 0) {
+      tr.remove();
+      toast('Bet removed — it will appear back in Open Positions on refresh', 'ok');
+      // Update exposure
+      let total = 0;
+      document.querySelectorAll('.placed-stake').forEach(s => { total += parseFloat(s.value) || 0; });
+      const exp = document.getElementById('totalExposure');
+      if (exp) exp.textContent = total.toFixed(2);
+    }
+  } catch(e) {
+    toast('Remove failed: ' + e.message, 'err');
+  }
+}
+
+// ── Pick from open positions ──
+async function pickFromOpen() {
+  const checked = [...document.querySelectorAll('.open-check:checked')].map(c => c.dataset.mid);
+  if (!checked.length) {
+    toast('Select positions to pick first', 'info');
+    return;
+  }
+  try {
+    const resp = await fetch('/api/pick', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ market_ids: checked })
+    });
+    const data = await resp.json();
+    toast(`Placed ${data.placed} bet(s) — refresh to see them in Placed Bets`, 'ok', 4000);
+    document.querySelectorAll('.open-check:checked').forEach(cb => {
+      cb.checked = false;
+      cb.closest('tr').style.opacity = '0.4';
+    });
+  } catch(e) {
+    toast('Pick failed: ' + e.message, 'err');
+  }
+}
+</script>
+</body>
+</html>

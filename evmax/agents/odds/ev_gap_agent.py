@@ -164,6 +164,7 @@ class EVGapAgent(Agent):
         sharp_list: list[SharpOdds] = request.params.get("sharp_odds", [])
         blended_preds: dict = request.params.get("blended_preds", {})
         injuries: dict = request.params.get("injuries", {})
+        standings: dict = request.params.get("standings", {})
         model_sources: dict[str, str] = request.params.get("model_sources", {})
         kelly_base: float = request.params.get("kelly_base_fraction", 0.25)
         steam_events: set[str] = request.params.get("steam_events", set())
@@ -194,6 +195,7 @@ class EVGapAgent(Agent):
                 sector=sector,
                 blended_preds=blended_preds,
                 injuries=injuries,
+                standings=standings,
                 model_sources=model_sources,
                 kelly_base=kelly_base,
                 steam_events=steam_events,
@@ -285,6 +287,87 @@ class EVGapAgent(Agent):
         return round(velocity_pp_hr, 2), None
 
     # ------------------------------------------------------------------
+    # YES-team resolution via market fields
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _resolve_yes_via_market_teams(
+        yes_team_norm: str,
+        market: PredictionMarket,
+        sharp: SharpOdds,
+        sector: str,
+    ) -> Optional[tuple[float, bool]]:
+        """Resolve YES alignment using the market's team_home/team_away fields.
+
+        Returns (sharp_true_prob, yes_is_outcome_b) or None if unresolvable.
+        """
+        from evmax.matching.normalizer import NameNormalizer
+
+        home_raw = (market.team_home or "").lower()
+        away_raw = (market.team_away or "").lower()
+        if not home_raw or not away_raw:
+            return None
+
+        # Strip game-name suffixes Kalshi appends to away team names
+        _SUFFIXES = ["league of legends", "valorant", "cs2"]
+        for suffix in _SUFFIXES:
+            if home_raw.endswith(suffix):
+                home_raw = home_raw[: -len(suffix)].strip()
+            if away_raw.endswith(suffix):
+                away_raw = away_raw[: -len(suffix)].strip()
+
+        def _acronym(name: str) -> str:
+            return "".join(w[0] for w in name.split() if w)
+
+        def _matches_team(abbrev: str, team: str) -> bool:
+            if abbrev in team or team.startswith(abbrev):
+                return True
+            if any(w.startswith(abbrev) for w in team.split()):
+                return True
+            if abbrev == _acronym(team):
+                return True
+            return False
+
+        # Determine which market team the YES abbreviation belongs to
+        yes_is_home: Optional[bool] = None
+        home_hit = _matches_team(yes_team_norm, home_raw)
+        away_hit = _matches_team(yes_team_norm, away_raw)
+        if home_hit and not away_hit:
+            yes_is_home = True
+        elif away_hit and not home_hit:
+            yes_is_home = False
+
+        if yes_is_home is None:
+            # Name matching failed — try price-based alignment
+            ask = market.yes_price
+            dist_a = abs(ask - sharp.true_prob_a)
+            dist_b = abs(ask - sharp.true_prob_b)
+            if dist_a < 0.05 and dist_b > 0.10:
+                return sharp.true_prob_a, False
+            if dist_b < 0.05 and dist_a > 0.10:
+                return sharp.true_prob_b, True
+            return None
+
+        # Normalize the YES team's full name and match to sharp outcomes
+        normalizer = NameNormalizer(sector)
+        yes_full = home_raw if yes_is_home else away_raw
+        yes_norm = normalizer.normalize(yes_full)
+
+        outcome_a_norm = normalizer.normalize(sharp.outcome_a_label or "")
+        outcome_b_norm = normalizer.normalize(sharp.outcome_b_label or "")
+
+        from rapidfuzz import fuzz
+        score_a = fuzz.token_set_ratio(yes_norm, outcome_a_norm)
+        score_b = fuzz.token_set_ratio(yes_norm, outcome_b_norm)
+
+        if score_a > score_b and score_a >= 60:
+            return sharp.true_prob_a, False
+        elif score_b > score_a and score_b >= 60:
+            return sharp.true_prob_b, True
+
+        return None
+
+    # ------------------------------------------------------------------
     # Core evaluation
     # ------------------------------------------------------------------
 
@@ -296,7 +379,8 @@ class EVGapAgent(Agent):
         sector: str,
         blended_preds: dict,
         injuries: dict,
-        model_sources: dict[str, str],
+        standings: dict | None = None,
+        model_sources: dict[str, str] | None = None,
         kelly_base: float = 0.25,
         steam_events: Optional[set] = None,
     ) -> Optional[EVGap]:
@@ -384,14 +468,19 @@ class EVGapAgent(Agent):
             sharp_true_prob = sharp.true_prob_b
             yes_is_outcome_b = True
             yes_is_under = False
-        elif yes_team_norm and outcome_a_norm and yes_team_norm not in outcome_a_norm:
-            # Fallback: YES team not found in outcome_a → assume outcome_b
-            sharp_true_prob = sharp.true_prob_b
-            yes_is_outcome_b = True
-            yes_is_under = False
         else:
-            sharp_true_prob = sharp.true_prob_a
-            yes_is_outcome_b = False
+            # Fallback: match YES team via market's own home/away fields.
+            # Kalshi esports use short tickers ("th", "dsg") that can't match
+            # Pinnacle labels directly. Determine which market team is YES,
+            # normalize it, then match against sharp outcomes.
+            resolved = self._resolve_yes_via_market_teams(
+                yes_team_norm, market, sharp, sector,
+            )
+            if resolved is not None:
+                sharp_true_prob, yes_is_outcome_b = resolved
+            else:
+                sharp_true_prob = sharp.true_prob_a
+                yes_is_outcome_b = False
             yes_is_under = False
 
         # ------------------------------------------------------------------
@@ -489,8 +578,31 @@ class EVGapAgent(Agent):
                 src = f"{src}+injury"
 
         # ------------------------------------------------------------------
+        # Step 4b: Standings / rest-risk adjustment
+        # ------------------------------------------------------------------
+        if standings and not is_total:
+            from evmax.agents.intelligence.standings_agent import StandingsAgent
+            team_a = (sharp.outcome_a_label or "").lower()
+            team_b = (sharp.outcome_b_label or "").lower()
+            new_a, new_b, rest_notes = StandingsAgent.apply_adjustments(
+                standings=standings,
+                true_prob_a=blended_prob if not yes_is_outcome_b else 1.0 - blended_prob,
+                true_prob_b=blended_prob if yes_is_outcome_b else 1.0 - blended_prob,
+                team_a=team_a,
+                team_b=team_b,
+            )
+            if rest_notes:
+                blended_prob = new_b if yes_is_outcome_b else new_a
+                src = f"{src}+rest"
+
+        # ------------------------------------------------------------------
         # Step 5: EV and Kelly sizing
         # ------------------------------------------------------------------
+        # Filter out dead orderbooks: 99¢ asks are Kalshi's default when all
+        # orders have been pulled (common for live/in-game markets).
+        if market.yes_price >= 0.99:
+            return None
+
         ev, edge_pct = calculate_ev(market.yes_price, blended_prob)
         if ev < self._settings.ev_threshold:
             return None
@@ -567,9 +679,9 @@ class EVGapAgent(Agent):
         if sharp.true_prob_over is None:
             return None
 
-        # Reject illiquid prop markets. Spread > 0.40 means the bid-ask is
-        # wider than 40% of the mid price — effectively no real market yet.
-        _MAX_PROP_SPREAD = 0.40
+        # Reject extremely illiquid prop markets. Kalshi prop books are
+        # normally wider than game markets, so we use a looser threshold.
+        _MAX_PROP_SPREAD = 0.80
         if market.spread_pct > _MAX_PROP_SPREAD:
             return None
 

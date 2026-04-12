@@ -29,9 +29,10 @@ from evmax.settings import get_settings
 
 logger = structlog.get_logger(__name__)
 
-# Module-level token bucket: 3 requests/second across all KalshiClient instances.
-# Kalshi enforces a strict burst limit; spreading requests over time avoids 429s.
-_KALSHI_RATE_LIMITER = AsyncLimiter(3, 1.0)
+# Module-level token bucket: 8 requests/second across all KalshiClient instances.
+# Kalshi's documented limit is 10/s; we stay slightly under to absorb bursts.
+# Previous value (3/s) was overly conservative and caused 13s+ scan times.
+_KALSHI_RATE_LIMITER = AsyncLimiter(10, 1.0)
 
 # YYMONDD date format used in Kalshi game tickers (e.g. "26FEB24" → 2026-02-24)
 _MONTH_MAP = {
@@ -149,11 +150,28 @@ class KalshiWSClient:
         remaining = set(tickers)
 
         try:
-            async with ws_client.connect(self._ws_url, open_timeout=5) as ws:
+            # Authenticate via HTTP headers on the WebSocket upgrade request.
+            # Kalshi requires KALSHI-ACCESS-KEY, KALSHI-ACCESS-SIGNATURE, and
+            # KALSHI-ACCESS-TIMESTAMP as headers. The signature signs:
+            #   {timestamp_ms}GET/trade-api/ws/v2
+            auth_headers = self._sign_fn("GET", "/trade-api/ws/v2")
+            extra_headers = {}
+            if auth_headers:
+                extra_headers = {
+                    "KALSHI-ACCESS-KEY": auth_headers.get("KALSHI-ACCESS-KEY", ""),
+                    "KALSHI-ACCESS-SIGNATURE": auth_headers.get("KALSHI-ACCESS-SIGNATURE", ""),
+                    "KALSHI-ACCESS-TIMESTAMP": auth_headers.get("KALSHI-ACCESS-TIMESTAMP", ""),
+                }
+
+            async with ws_client.connect(
+                self._ws_url,
+                open_timeout=5,
+                additional_headers=extra_headers if extra_headers else None,
+            ) as ws:
                 self._ws = ws
 
-                # Authenticate
-                await self._login(ws)
+                # Auth is handled via HTTP headers on the upgrade request above.
+                # No in-band login command needed for Kalshi WS v2.
 
                 # Subscribe to orderbook for all tickers at once
                 await ws.send(json.dumps({
@@ -226,36 +244,39 @@ class KalshiWSClient:
                 break
 
     def _parse_message(self, msg: dict[str, Any]) -> tuple[Optional[str], Optional[float]]:
-        """Extract (ticker, yes_ask) from a WS message.
+        """Extract (ticker, yes_ask) from a WS orderbook snapshot.
 
-        Handles:
-          - type=orderbook_snapshot  → full snapshot, parse no_dollars last entry
-          - type=orderbook_delta     → incremental; ignored (wait for snapshot)
-          - type=subscribed / other  → ignored
+        WS v2 snapshot format:
+          {"type": "orderbook_snapshot", "msg": {
+            "market_ticker": "KXNBA...",
+            "yes_dollars_fp": [["0.01", "1000.00"], ..., ["0.33", "5.00"]],
+            "no_dollars_fp":  [["0.01", "2000.00"], ..., ["0.45", "5.00"]],
+          }}
+
+        Both yes_dollars_fp and no_dollars_fp are BID ladders (buy orders),
+        sorted ascending by price. The YES ask price = 1 - best_no_bid
+        (highest entry in no_dollars_fp).
         """
         msg_type = msg.get("type", "")
         if msg_type != "orderbook_snapshot":
             return None, None
 
-        ticker = msg.get("market_ticker") or msg.get("msg", {}).get("market_ticker")
+        body = msg.get("msg", msg)
+        ticker = body.get("market_ticker") or msg.get("market_ticker")
         if not ticker:
             return None, None
 
-        # Message body mirrors REST orderbook_fp format
-        body = msg.get("msg", msg)
-        ob = body.get("orderbook_fp", body.get("orderbook", {}))
-        no_entries = ob.get("no_dollars", ob.get("no", []))
-        if not no_entries:
-            return ticker, None
+        # YES ask = 1 - best NO bid (last/highest entry in no_dollars_fp)
+        no_entries = body.get("no_dollars_fp", [])
+        if no_entries:
+            try:
+                best_no_bid = float(no_entries[-1][0])
+                yes_ask = 1.0 - best_no_bid
+                if 0 < yes_ask < 1:
+                    return ticker, yes_ask
+            except (ValueError, TypeError, IndexError):
+                pass
 
-        last = no_entries[-1]
-        try:
-            best_no_bid = float(last[0]) if isinstance(last, (list, tuple)) else float(last.get("price", 0))
-            yes_ask = 1.0 - best_no_bid
-            if 0 < yes_ask < 1:
-                return ticker, yes_ask
-        except (ValueError, TypeError, IndexError):
-            pass
         return ticker, None
 
 
@@ -304,7 +325,10 @@ class KalshiClient(BaseAPIClient):
             message = f"{timestamp_ms}{method}{path}"
             signature = private_key.sign(
                 message.encode("utf-8"),
-                padding.PKCS1v15(),
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.DIGEST_LENGTH,
+                ),
                 hashes.SHA256(),
             )
             return {
@@ -364,6 +388,27 @@ class KalshiClient(BaseAPIClient):
 
         results = await asyncio.gather(*(_fetch_prefix(p) for p in series_prefixes))
         all_markets: list[PredictionMarket] = [m for batch in results for m in batch]
+
+        # WebSocket price refresh: only for small batches (e.g. verify).
+        # For large scans (>50 markets), REST prices are fresh enough —
+        # WS subscribe + snapshot for 200+ tickers takes 8s+ and dominates scan time.
+        if cfg.kalshi_ws_enabled and all_markets and len(all_markets) <= 50:
+            tickers = [m.ticker for m in all_markets if m.ticker]
+            if tickers:
+                try:
+                    async with self._ws_client() as ws:
+                        ws_prices = await ws.fetch_asks(tickers)
+                    refreshed = 0
+                    for m in all_markets:
+                        ws_ask = ws_prices.get(m.ticker)
+                        if ws_ask is not None and 0 < ws_ask < 1:
+                            m.yes_price = ws_ask
+                            m.no_price = 1.0 - ws_ask
+                            refreshed += 1
+                    if refreshed:
+                        logger.debug("kalshi_ws_refresh", refreshed=refreshed, total=len(tickers))
+                except Exception as e:
+                    logger.debug("kalshi_ws_refresh_failed", error=str(e))
 
         # Write to dev cache if enabled
         if cfg.cache_ttl_secs > 0 and all_markets:

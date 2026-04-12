@@ -29,6 +29,10 @@ dependencies = [
     "nba_api>=1.4",
     "pandas>=2.0",
     "aiolimiter>=1.1",
+    "cryptography>=46.0.6",
+    "fastapi>=0.135.3",
+    "uvicorn>=0.44.0",
+    "jinja2>=3.1.6",
 ]
 
 [project.scripts]
