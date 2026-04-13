@@ -8,6 +8,11 @@
 
 ## Recently Shipped
 
+### PR #2 — Poisson bucketing + prop injury boost
+- ✅ BUG-4 — Poisson NBA/NFL/NCAAB score matrix now bucketed (NBA=5, NFL=4, NCAAB=5). `lam_h`/`lam_a` scaled by bucket before the matrix is built so Poisson mass fits inside MAX_SCORE.
+- ✅ BUG-5 — Prop injury boost now uses `nba_props_cache.lookup_player_team()` to find the player's actual team instead of parsing a nonexistent game slug out of `parts[2]`. The boost was silently never firing for any prop.
+- ✅ Regression tests for both (TestPoissonModelAgent::test_nba_score_matrix_is_bucketed, TestEVGapAgent::test_prop_injury_boost_applies_via_player_team_lookup). Suite: 640 → 647.
+
 ### PR #1 — Quality sweep: docs sync, resolution gaps, tennis tests
 - ✅ DOC-1 — CLAUDE.md stale facts fixed (rate limiting, NCAAW source, sharp weight, clients tree, tennis weight, resolution table, sectors)
 - ✅ DOC-2 — Folder READMEs added for `evmax/clients/` and `evmax/models_ml/` (the two most confusing dirs). Remaining: `evmax/agents/`, `evmax/sectors/aliases/`.
@@ -39,16 +44,7 @@ Minor packages still with stub docstrings: `evmax/web/`, `evmax/cli/`, `evmax/cl
 
 ## Section 2 — Bugs (Correctness Issues)
 
-### BUG-4 Poisson NBA/NFL Score Matrix is Truncated [P1]
-**File:** `evmax/agents/models/poisson_agent.py`
-`MAX_SCORE` maps `nba→25`, `nfl→20`, `ncaab→20`. The comment says "buckets of 5 pts → effectively 0–125 range" but **no bucketing code exists**. Each matrix cell represents exactly 1 scoring unit, so the matrix covers 0–25 points total — absurdly low for basketball/football.
-The normalization in `_win_draw_probs()` partially recovers the win probability direction but the distribution is wrong and produces overconfident predictions for large favorites.
-- Implement the intended bucketing: divide `lam_h` and `lam_a` by bucket_size (5 for NBA, 4 for NFL), use `max_g` buckets, then check `h_score_bucket > a_score_bucket` for win
-
-### BUG-5 Prop Injury Boosts Are Silently Never Applied [P1]
-**File:** `evmax/agents/coordinator.py` (prop evaluation block)
-The injury boost lookup splits `prop.event_id` on `"::"` expecting a `game_slug` segment, but prop event_ids are formatted as `{sector}::{date}::prop::{player}::{stat}::{threshold}`. The `parts[2]` segment is always `"prop"`, not a game slug. So `team_boosts` is always empty for props.
-- Extract the correct team context for props from the `PropMatch.player_team` field (it's already populated via `nba_stats.py`)
+_(BUG-4 and BUG-5 shipped — see "Recently Shipped" above.)_
 
 ---
 
@@ -200,8 +196,6 @@ See MODEL-1 above. This is the highest-leverage model improvement for tennis.
 
 | Priority | Item | Impact |
 |----------|------|--------|
-| P1 | BUG-4 Poisson score matrix | Wrong probabilities for NBA/NFL |
-| P1 | BUG-5 Prop injury boosts broken | Props underestimated |
 | P1 | MODEL-1 / SECTOR-3 Tennis surface detection | Surface Elo rarely fires in practice |
 | P1 | PROPS-1 NFL props backend | Dead API calls |
 | P2 | MODEL-2 NCAAW/NHL Elo calibration | Uncalibrated K + home adv |
