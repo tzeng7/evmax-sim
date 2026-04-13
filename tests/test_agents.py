@@ -370,6 +370,50 @@ class TestEVGapAgent:
         assert len(received) == 1
         assert received[0].topic == "ev.gaps.nba"
 
+    # ------------------------------------------------------------------
+    # ARCH-7: _resolve_yes_via_market_teams price-fallback
+    # ------------------------------------------------------------------
+
+    def _price_fallback(self, ask: float, prob_a: float, prob_b: float):
+        """Invoke the price-based branch by passing a YES abbrev that matches neither team."""
+        market = make_market(yes_price=ask, team_home="lakers", team_away="celtics", yes_team="lakers")
+        sharp = make_sharp(prob_a=prob_a, prob_b=prob_b, team_a="lakers", team_b="celtics")
+        return EVGapAgent._resolve_yes_via_market_teams(
+            yes_team_norm="xxx",  # matches neither home nor away → forces price fallback
+            market=market,
+            sharp=sharp,
+            sector="nba",
+        )
+
+    def test_price_fallback_aligns_when_one_side_clearly_closer(self):
+        # ask 0.60 vs (a=0.58, b=0.42): dist_a=0.02, dist_b=0.18 → align to a
+        result = self._price_fallback(ask=0.60, prob_a=0.58, prob_b=0.42)
+        assert result == (0.58, False)
+
+    def test_price_fallback_aligns_to_b_when_b_closer(self):
+        # ask 0.40 vs (a=0.58, b=0.42): dist_a=0.18, dist_b=0.02 → align to b
+        result = self._price_fallback(ask=0.40, prob_a=0.58, prob_b=0.42)
+        assert result == (0.42, True)
+
+    def test_price_fallback_rejects_near_coin_flip(self):
+        """Regression for ARCH-7: near-50/50 markets must not be force-aligned.
+
+        At prob_a=0.52, prob_b=0.48, ask=0.50 both distances are 0.02 — the
+        old heuristic would silently pick outcome_a; the new logic rejects it.
+        """
+        result = self._price_fallback(ask=0.50, prob_a=0.52, prob_b=0.48)
+        assert result is None
+
+    def test_price_fallback_rejects_when_gap_too_small(self):
+        # dist_a=0.03, dist_b=0.07: closer tight enough but gap (0.04) < 0.05 → reject
+        result = self._price_fallback(ask=0.52, prob_a=0.55, prob_b=0.45)
+        assert result is None
+
+    def test_price_fallback_rejects_when_closer_side_too_far(self):
+        # dist_a=0.05 exceeds 0.04 ceiling even though gap is large → reject
+        result = self._price_fallback(ask=0.53, prob_a=0.58, prob_b=0.42)
+        assert result is None
+
 
 # ---------------------------------------------------------------------------
 # EloModelAgent
