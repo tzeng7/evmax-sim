@@ -461,9 +461,16 @@ def void(
 @app.command("metrics")
 def metrics(
     weeks: int = typer.Option(1, "--weeks", "-w", help="Look-back window in weeks."),
+    by_sector: bool = typer.Option(
+        False, "--by-sector", help="Also print a per-sector Brier breakdown."
+    ),
 ) -> None:
     """Show Brier score calibration report for logged predictions."""
-    from evmax.agents.cleanup.metrics import compute_brier_scores, load_config
+    from evmax.agents.cleanup.metrics import (
+        compute_brier_scores,
+        compute_brier_scores_by_sector,
+        load_config,
+    )
 
     cfg = load_config()
     scores = compute_brier_scores(weeks=weeks)
@@ -540,6 +547,51 @@ def metrics(
         console.print(
             f"  [dim]Need 30+ resolved bets to trigger auto-adjustment (have {scores['n']}).[/dim]"
         )
+
+    if by_sector:
+        by = compute_brier_scores_by_sector(weeks=weeks)
+        if not by:
+            console.print(f"[dim]No per-sector data in the last {weeks} week(s).[/dim]")
+            return
+        sw_map = cfg.get("sharp_weight_by_sector") or {}
+        global_sw = float(cfg.get("sharp_weight", 0.85))
+
+        sec_table = Table(title=f"Brier by Sector — last {weeks}w", box=box.SIMPLE)
+        sec_table.add_column("Sector", style="bold")
+        sec_table.add_column("N", justify="right")
+        sec_table.add_column("Brier Model",  justify="right")
+        sec_table.add_column("Brier Sharp",  justify="right")
+        sec_table.add_column("Edge",         justify="right")
+        sec_table.add_column("sharp_w",      justify="right")
+        sec_table.add_column("Suggests",     style="dim")
+
+        for row in by:
+            edge = row["edge_pct"]
+            edge_str = (
+                f"[green]+{edge:.1f}%[/green]" if edge > 0
+                else f"[red]{edge:.1f}%[/red]"
+            )
+            sw = float(sw_map.get(row["sector"], global_sw))
+            # Rule of thumb: if model is > 3% better, lower sharp_weight by 0.05;
+            # if sharp is > 3% better, raise it by 0.05. Clamped 0.40–0.95.
+            if row["n"] < 20:
+                suggest = "[dim]insufficient data[/dim]"
+            elif edge > 3:
+                suggest = f"lower → {max(0.40, sw - 0.05):.2f}"
+            elif edge < -3:
+                suggest = f"raise → {min(0.95, sw + 0.05):.2f}"
+            else:
+                suggest = "hold"
+            sec_table.add_row(
+                row["sector"],
+                str(row["n"]),
+                f"{row['brier_model']:.5f}",
+                f"{row['brier_sharp']:.5f}",
+                edge_str,
+                f"{sw:.2f}",
+                suggest,
+            )
+        console.print(sec_table)
 
 
 @app.command("adjust")

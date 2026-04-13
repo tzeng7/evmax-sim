@@ -77,20 +77,11 @@
     "ratings": {
       "weibo": 1566.31,
       "oh my god": 1441.37,
-      "nongshim academy": 1385.78,
-      "dn freecs challengers": 1548.13,
-      "oksavingsbank brion challengers": 1481.27,
-      "t1 academy": 1591.59,
       "lng": 1341.63,
       "thundertalk": 1582.14,
       "bnk fearx youth": 1498.43,
-      "hanwha life challengers": 1376.72,
-      "dplus kia challengers": 1416.36,
-      "kt rolster challengers": 1678.99,
       "rng": 1462.91,
       "funplus phoenix": 1374.19,
-      "drx challengers": 1620.26,
-      "gen.g global academy": 1402.47,
       "oksavingsbank brion": 1400.2,
       "drx": 1438.52,
       "ultra prime": 1401.6,
@@ -119,7 +110,6 @@
       "kc": 1593.2,
       "g2": 1609.75,
       "invictus": 1537.09,
-      "ninjas in pyjamas.cn": 1625.81,
       "jd": 1590.72,
       "bwe": 1472.5,
       "le\u00f5es porto salvo": 1527.5,
@@ -141,20 +131,11 @@
     "game_counts": {
       "weibo": 36,
       "oh my god": 37,
-      "nongshim academy": 39,
-      "dn freecs challengers": 41,
-      "oksavingsbank brion challengers": 49,
-      "t1 academy": 51,
       "lng": 30,
       "thundertalk": 29,
       "bnk fearx youth": 58,
-      "hanwha life challengers": 42,
-      "dplus kia challengers": 39,
-      "kt rolster challengers": 34,
       "rng": 27,
       "funplus phoenix": 24,
-      "drx challengers": 38,
-      "gen.g global academy": 55,
       "oksavingsbank brion": 42,
       "drx": 63,
       "ultra prime": 34,
@@ -183,7 +164,6 @@
       "kc": 31,
       "g2": 31,
       "invictus": 27,
-      "ninjas in pyjamas.cn": 24,
       "jd": 39,
       "bwe": 9,
       "le\u00f5es porto salvo": 9,
@@ -201,1970 +181,6639 @@
       "for the win": 3,
       "grow up": 3,
       "berimbados": 2
-    }
+    },
+    "h2h": {}
   },
   "cs2": {
     "ratings": {
-      "preasy": 1531.12,
-      "imperial academy": 1572.15,
-      "cybershoke prospects": 1651.65,
-      "watermelon": 1476.19,
-      "mix52": 1499.5,
-      "young tigeres": 1650.12,
-      "bushido wildcats": 1492.12,
-      "fut academy": 1570.49,
-      "havu": 1512.81,
-      "elitenergy": 1558.21,
-      "b8 academy": 1533.29,
-      "state": 1470.53,
-      "aurora young blud": 1688.46,
-      "oldboys": 1636.35,
-      "muerta": 1479.58,
-      "sunfall": 1328.23,
-      "enrage": 1531.42,
-      "kono": 1401.26,
-      "players": 1432.95,
-      "megoshort": 1578.69,
-      "svenska": 1408.44,
-      "zotix": 1505.94,
-      "3dmax academy": 1409.16,
-      "g2 ares": 1626.66,
-      "xi": 1441.17,
-      "stinky rats": 1426.53,
-      "wave": 1474.59,
-      "lph": 1654.68,
-      "eternal fire academy": 1399.35,
-      "bad news snakes": 1375.54,
-      "oxuji": 1514.05,
-      "ex-ruby": 1699.73,
-      "nemesis": 1705.77,
-      "blinkdagger": 1515.8,
-      "bet-m": 1761.94,
-      "rustec": 1430.81,
-      "1win": 1558.02,
-      "senza pulse": 1453.16,
-      "bad luck": 1461.23,
-      "metanoia": 1385.62,
-      "minlate": 1412.23,
-      "airlya": 1390.45,
-      "nexus": 1490.16,
-      "blitzkrieg": 1525.0,
-      "overknight": 1348.95,
-      "aether": 1486.73,
-      "farmville": 1554.86,
-      "regain": 1414.76,
-      "outfit 49": 1484.12,
-      "chicken coop": 1538.68,
-      "f5": 1443.02,
-      "lag": 1596.71,
-      "sportsbetexpert": 1391.44,
-      "lazer cats": 1477.55,
-      "ww": 1627.33,
-      "home": 1318.42,
-      "forze reload": 1509.65,
-      "vp.prodigy": 1554.23,
-      "famalic\u00e3o": 1353.15,
-      "allinners": 1395.54,
-      "rebels": 1564.44,
-      "basement boys": 1443.48,
-      "tdk": 1631.58,
-      "olybet": 1307.39,
-      "ex-fire flux": 1425.06,
-      "tnt": 1616.17,
-      "ex-zero tenacity": 1540.18,
-      "unity": 1561.63,
-      "whitebird": 1556.94,
-      "ex-flame sharks": 1546.47,
-      "astral": 1484.17,
-      "omega": 1469.86,
-      "csdiilit": 1490.1,
-      "ence academy": 1540.89,
-      "los kogutos": 1484.16,
-      "algo": 1455.8,
-      "prime": 1477.97,
-      "leo": 1596.49,
-      "rave": 1512.36,
-      "money crew": 1410.72,
-      "boss": 1412.86,
-      "sakura": 1316.98,
-      "flying angels": 1523.68,
-      "young ninjas": 1657.38,
-      "brazylijski luz": 1545.19,
-      "millennium": 1507.51,
-      "gatorian": 1462.51,
-      "falcons force": 1579.84,
-      "oramond": 1434.78,
-      "genone": 1486.01,
-      "illwill": 1790.83,
-      "sangal": 1579.27,
-      "sparta": 1412.95,
-      "alliance": 1708.77,
-      "johnny speeds": 1508.93,
-      "jijiehao": 1630.98,
-      "am": 1599.7,
-      "mouz nxt": 1641.97,
-      "kolesie": 1577.46,
-      "ex-500": 1474.57,
-      "nuclear tigeres": 1520.73,
-      "sangal academy": 1500.51,
-      "incontrol": 1504.53,
-      "reign above": 1451.6,
-      "eternal premium": 1491.95,
-      "washington": 1583.84,
-      "tricked": 1610.16,
-      "prestige": 1352.44,
-      "aab": 1570.96,
-      "cybershoke": 1501.85,
-      "lilmix": 1367.95,
-      "og": 1583.53,
-      "eternal fire": 1712.78,
-      "yngods": 1585.49,
-      "japczany": 1467.66,
-      "inner circle": 1629.72,
-      "yawara": 1535.92,
-      "folha amarela": 1449.75,
-      "bounty hunters": 1619.22,
-      "r2": 1492.74,
-      "galorys": 1604.32,
-      "procyon": 1496.08,
-      "lp": 1616.82,
-      "crashers": 1486.73,
-      "arcred": 1616.21,
-      "dundu": 1352.32,
-      "vexa": 1361.03,
-      "fokus reality": 1294.2,
-      "aka hero kajo": 1267.0,
-      "haspers": 1516.21,
-      "rethink": 1489.27,
-      "spirit academy": 1439.59,
-      "aimclub": 1476.97,
-      "mana": 1544.44,
-      "lfo 6": 1491.92,
-      "square sausages": 1451.68,
-      "pigeons": 1300.25,
-      "masqueic0gang": 1394.61,
-      "hindsight": 1370.33,
-      "peekaboo": 1380.88,
-      "big equipa": 1309.05,
-      "alzon": 1456.73,
-      "big academy": 1519.19,
-      "fingers crossed": 1540.43,
-      "fokus": 1657.64,
-      "ursa": 1611.0,
-      "nemiga": 1682.22,
-      "magic": 1371.73,
-      "novaq": 1636.5,
-      "betclic": 1626.68,
-      "prison breakers": 1334.43,
-      "keyd stars": 1643.41,
-      "metanoia wolves": 1471.32,
-      "guar\u00e1": 1425.04,
-      "back to back": 1552.26,
-      "brute": 1593.42,
-      "the last resort": 1692.56,
-      "hyperspirit": 1460.57,
-      "masonic": 1405.66,
-      "siuuuuuu": 1463.34,
-      "ex-gank": 1532.64,
-      "bratland": 1373.45,
-      "tnc": 1554.65,
-      "imperial": 1671.42,
-      "fake do biru": 1407.93,
-      "shinden": 1647.52,
-      "sharks": 1722.68,
-      "ex-kr\u00fc": 1388.69,
-      "red canids": 1548.11,
-      "oddik": 1639.6,
-      "mibr": 1674.44,
-      "four magic": 1397.16,
-      "time waves": 1382.13,
-      "bbbmbcbs": 1414.02,
-      "underground": 1482.02,
-      "shanghai sharks": 1406.14,
-      "zomblers": 1492.65,
-      "exsto": 1400.26,
-      "fury": 1405.78,
-      "just swing": 1413.68,
-      "nomads": 1453.49,
-      "ihc": 1419.22,
-      "last bullet": 1508.76,
-      "arise": 1496.64,
-      "change the game": 1585.35,
-      "boring players": 1514.15,
-      "deep cross": 1410.91,
-      "the qube": 1548.29,
-      "legion": 1596.39,
-      "pain academy": 1522.43,
-      "silence clan": 1457.53,
-      "red canids academy": 1584.26,
-      "mibr academy": 1560.22,
-      "ex-fut academy": 1427.0,
-      "aaa": 1366.46,
-      "jumbo": 1488.91,
-      "quazar": 1542.07,
-      "qwentry": 1717.94,
-      "uno mille": 1556.42,
-      "bestia academy": 1560.33,
-      "marsborne": 1633.94,
-      "flyquest red": 1408.45,
-      "mythic": 1455.48,
-      "voca": 1669.35,
-      "m80": 1586.07,
-      "skele": 1461.27,
-      "le-lux": 1447.69,
-      "jft": 1394.51,
-      "abyssal": 1497.22,
-      "thunder downunder": 1721.92,
-      "rooster": 1504.36,
-      "ground zero": 1478.54,
-      "mindfreak": 1530.23,
-      "chinggis warriors": 1499.97,
-      "eruption": 1415.03,
-      "morningstar": 1628.43,
-      "misa": 1604.28,
-      "heroic academy": 1542.31,
-      "inner circle academy": 1525.75,
-      "fuzos": 1382.22,
-      "wildcard": 1554.14,
-      "eyeballers": 1624.8,
-      "gentle mates": 1624.61,
-      "passion ua": 1424.07,
-      "hotu": 1716.77,
-      "gamle venner": 1418.68,
-      "insidious": 1384.02,
-      "acend": 1665.74,
-      "metizport": 1640.83,
-      "infurity": 1562.18,
-      "phantom": 1514.83,
-      "ticket to norway": 1386.25,
-      "semperfi": 1569.88,
-      "fingers crossed fe": 1450.34,
-      "saw": 1384.41,
-      "betboom": 1620.05,
-      "fnatic": 1468.03,
-      "bestia": 1493.75,
-      "monte": 1509.59,
-      "nip": 1561.14,
-      "100 thieves": 1693.12,
-      "isurus": 1546.59,
-      "elites": 1364.34,
-      "damajuana": 1414.17,
-      "curralzinho": 1360.35,
-      "british aussie gang": 1413.45,
-      "ctrl": 1472.43,
-      "asylumpeekers": 1426.04,
-      "8sins": 1529.04,
-      "nigel mirage": 1485.48,
-      "ec banga": 1325.25,
-      "sinqu": 1348.01,
-      "navi junior": 1632.26,
-      "kuusamo.gg": 1439.7,
-      "the continental": 1508.29,
-      "depo": 1327.25,
-      "miracle": 1423.85,
-      "goodgame": 1532.05,
-      "gamehunters": 1511.6,
-      "vasco": 1414.52,
-      "9ine": 1598.54,
-      "bc.game": 1449.47,
-      "sashi": 1546.12,
-      "sinners": 1668.12,
-      "avanti": 1243.37,
-      "gamerlegion": 1754.56,
-      "ecstatic": 1530.8,
-      "bankapepsi": 1528.48,
-      "elite klan": 1372.78,
-      "rounds": 1433.66,
-      "weshowskill": 1295.18,
-      "coalesce": 1392.27,
-      "vp.future": 1543.73,
-      "strife": 1363.33,
-      "atreides": 1634.64,
-      "mixmix": 1431.05,
-      "drama": 1482.54,
-      "flame sharks": 1558.26,
-      "k27": 1782.64,
-      "bebop": 1602.51,
-      "bojong": 1586.67,
-      "nordic valor": 1355.28,
-      "boyband": 1462.44,
-      "ex-team peep": 1434.08,
-      "adepts": 1482.04,
-      "partizan": 1515.51,
-      "altay": 1432.6,
-      "rune eaters": 1479.86,
-      "the unit": 1332.18,
-      "zajezdzacze": 1527.06,
-      "infinite": 1519.18,
-      "hermine": 1427.27,
-      "laguna": 1421.89,
-      "diamant": 1453.45,
-      "mindshock": 1411.33,
-      "m1x ks": 1454.67,
-      "insiders": 1422.41,
-      "project h1": 1451.96,
-      "jeleznienoji": 1449.01,
-      "meta": 1417.22,
-      "ence": 1509.15,
-      "heroic": 1593.61,
-      "flyquest": 1579.7,
-      "fluxo": 1581.28,
-      "9z": 1790.76,
-      "nexvoid": 1393.03,
-      "bmz": 1495.27,
-      "the huns": 1692.39,
-      "biryani": 1451.95,
-      "scarx": 1499.73,
-      "rare atom": 1570.81,
-      "lynn vision": 1671.49,
-      "struggletony": 1492.84,
-      "sketch": 1442.24,
-      "wazabi": 1483.98,
-      "cuties": 1452.09,
-      "ex-fingers crossed female": 1460.84,
-      "hacha": 1330.1,
-      "rtt100": 1438.63,
-      "hanners": 1413.04,
-      "luna": 1429.16,
-      "fisher college": 1466.03,
-      "ex-fingers crossed": 1456.9,
-      "g2": 1570.47,
-      "gaimin gladiators": 1500.82,
-      "parivision": 1498.1,
-      "astralis": 1650.86,
-      "fut": 1639.76,
-      "3dmax": 1525.07,
-      "pain": 1534.42,
-      "liquid": 1446.01,
-      "legacy": 1680.83,
-      "nrg": 1382.25,
-      "mibr fe": 1454.66,
-      "furia fe": 1409.95,
-      "dash": 1668.26,
-      "favbet": 1624.93,
-      "fortress": 1466.34,
-      "sera": 1494.14,
-      "stream": 1452.56,
-      "donstu": 1531.64,
-      "premghouls": 1463.26,
-      "b52": 1415.04,
-      "younglings": 1456.13,
-      "5actors": 1398.94,
-      "pugdesonesto": 1462.24,
-      "big": 1663.52,
-      "regnum4games": 1457.71,
-      "playing ducks": 1583.46,
-      "sashi academy": 1512.71,
-      "rcave": 1376.66,
-      "friendly campers": 1541.4,
-      "ehisto base": 1389.18,
-      "navi": 1646.3,
-      "spirit": 1586.02,
-      "aurora": 1635.5,
-      "the mongolz": 1568.04,
-      "faze": 1428.32,
-      "mouz": 1595.03,
-      "furia": 1486.94,
-      "b8": 1422.81,
-      "valtrion": 1411.44,
-      "duggedup": 1518.34,
-      "endless journey": 1603.27,
-      "glitch": 1410.69,
-      "qual4": 1432.27,
-      "m33": 1457.8,
-      "enjoy": 1533.34,
-      "daluyong": 1465.77,
-      "evo novo": 1326.97,
-      "100ra": 1420.93,
-      "tyloo": 1660.24,
-      "fengda": 1515.51,
-      "alter ego": 1579.09,
-      "blazing beavers": 1412.12,
-      "chaos": 1424.17,
-      "hashiras": 1403.62,
-      "magicos": 1444.24,
-      "supermatch": 1422.0,
-      "new project": 1617.07,
-      "frox": 1461.43,
-      "idopieca": 1391.81,
-      "mousquetaires": 1459.6,
-      "nic": 1372.01,
-      "herewegoagain": 1422.86,
-      "gringos": 1358.98,
-      "arcade": 1481.94,
-      "iedopieca": 1465.66,
-      "ex-sparta": 1517.13,
-      "charrados": 1458.45,
-      "rottweilers": 1538.45,
-      "overpeek": 1477.68,
-      "guara": 1455.49,
-      "kuusamo": 1452.08,
-      "huskies esport": 1478.86,
-      "acezone": 1527.45,
-      "khan": 1475.22,
-      "dziuseppe": 1496.39,
-      "alka": 1483.28,
-      "exterus": 1480.86,
-      "reveal": 1471.5,
-      "zennox": 1487.82,
-      "nova legion": 1491.89,
-      "ak bars": 1465.39,
-      "phantom academy": 1508.35,
-      "basement bobs": 1534.66,
-      "vexar": 1498.6,
-      "exsad": 1479.78,
-      "falcons": 1513.58,
-      "off site": 1531.54,
-      "esc": 1493.3,
-      "vitality": 1563.8,
-      "fighters": 1480.53,
-      "nsn": 1489.16,
-      "5star": 1511.5,
-      "haunted house": 1482.94,
-      "take me away": 1485.12,
-      "markandlarry": 1506.07,
-      "muttley crew": 1495.37,
-      "atrix": 1476.75,
-      "palace": 1495.94,
-      "banda chuya": 1485.0,
-      "baks": 1476.5,
-      "vantage": 1479.74,
-      "wanted goons": 1486.47,
-      "surge": 1494.6,
-      "nutorious": 1472.64,
-      "benched gods": 1536.17,
-      "fire flux": 1511.79,
-      "rhadamanthys": 1490.46,
-      "lavked": 1570.16,
-      "wrotberry": 1515.44,
-      "behaczka": 1499.29,
-      "gameharmony": 1489.75,
-      "matrix": 1483.79,
-      "exilium": 1473.55,
-      "berg": 1493.55,
-      "claymakers": 1488.59,
-      "chicanery": 1496.28,
-      "sleepless": 1490.0,
-      "foxtrot": 1486.18,
-      "the night": 1484.95,
-      "infinite talent": 1485.02,
-      "zorka future": 1503.24,
-      "acrobats": 1537.4,
-      "okura": 1490.0,
-      "mellren": 1502.66,
-      "v\u00e4ster\u00e5s": 1493.27,
-      "magna": 1489.17,
-      "bond1e": 1519.46,
-      "banger gang": 1494.81,
-      "memeories": 1488.68,
-      "nomercy": 1467.75,
-      "ascend": 1461.6,
-      "the glecs": 1486.64,
-      "grindas": 1505.32,
-      "the": 1491.04,
-      "ex-senza": 1493.04,
-      "cswalkers": 1486.19,
-      "carritospain": 1465.59,
-      "strael bora": 1487.1,
-      "adn": 1483.21
+      "spirit": 1666.66,
+      "fnatic": 1450.93,
+      "liquid": 1473.84,
+      "9pandas": 1479.66,
+      "3dmax": 1508.92,
+      "heroic": 1486.27,
+      "flyquest": 1448.39,
+      "mibr": 1437.06,
+      "vitality": 1827.63,
+      "metizport": 1465.03,
+      "falcons": 1654.85,
+      "ence": 1476.61,
+      "saw": 1495.42,
+      "big": 1446.96,
+      "astralis": 1611.14,
+      "wildcard": 1447.33,
+      "navi": 1659.59,
+      "imperial valkyries": 1444.99,
+      "faze": 1439.17,
+      "m80": 1444.69,
+      "eternal fire": 1562.36,
+      "fluxo": 1441.47,
+      "col": 1449.89,
+      "virtus.pro": 1464.87,
+      "g2": 1611.33,
+      "b8": 1481.99,
+      "mouz": 1623.36,
+      "betboom": 1553.05,
+      "furia": 1624.33,
+      "nemiga": 1490.81,
+      "pain": 1473.59,
+      "gamerlegion": 1479.56,
+      "the mongolz": 1635.11,
+      "hesta": 1485.16,
+      "nexus": 1502.59,
+      "zero tenacity": 1492.33,
+      "nevermore": 1485.33,
+      "og": 1460.23,
+      "bc.game": 1441.0,
+      "tnl": 1507.56,
+      "housebets": 1478.13,
+      "nrg": 1411.56,
+      "lynn vision": 1442.37,
+      "tyloo": 1468.69,
+      "mindfreak": 1478.25,
+      "the huns": 1440.53,
+      "imperial": 1461.99,
+      "betclic": 1493.1,
+      "legacy": 1515.91,
+      "aurora": 1608.34,
+      "rare atom": 1447.07,
+      "parivision": 1567.96,
+      "500": 1462.39,
+      "gtz": 1480.4,
+      "spirit academy": 1568.07,
+      "navi junior": 1587.24,
+      "partizan": 1480.64,
+      "eclot": 1507.9,
+      "gun5": 1477.88,
+      "eruption": 1505.39,
+      "chinggis warriors": 1503.23,
+      "jijiehao": 1485.07,
+      "9z": 1515.9,
+      "bestia": 1492.35,
+      "sharks": 1491.58,
+      "ninja": 1484.29,
+      "nomads": 1483.85,
+      "hotu": 1526.87,
+      "nip": 1436.44,
+      "oddik": 1491.75,
+      "nip impact": 1513.76,
+      "furia fe": 1502.04,
+      "supernova comets": 1506.76,
+      "flyquest red": 1438.32,
+      "mibr fe": 1463.15,
+      "zerance": 1492.62,
+      "dms": 1484.52,
+      "passion ua": 1450.11,
+      "alliance": 1500.23,
+      "esc": 1499.44,
+      "sashi": 1514.37,
+      "m1x ks": 1499.97,
+      "iberian soul": 1492.48,
+      "9ine": 1484.52,
+      "1win": 1492.62,
+      "sangal": 1478.0,
+      "ex-navi junior": 1573.62,
+      "ecstatic": 1465.87,
+      "fut": 1625.75,
+      "venom": 1506.88,
+      "gentle mates": 1477.01,
+      "inner circle": 1482.6,
+      "rooster": 1471.18,
+      "red canids": 1480.15,
+      "atrix": 1491.02,
+      "let her cook": 1490.69,
+      "sakura": 1490.56,
+      "big equipa": 1486.32,
+      "sensation": 1484.6,
+      "nemesis sea": 1491.39,
+      "deep cross": 1498.87,
+      "change the game": 1513.15,
+      "ravens": 1484.82,
+      "vtm": 1483.65,
+      "eyeballers": 1497.81,
+      "monte": 1494.02,
+      "friendly campers": 1492.88,
+      "sinners": 1509.28,
+      "genone": 1491.52,
+      "ursa": 1499.08,
+      "big academy": 1442.39,
+      "kolesie": 1491.23,
+      "nuclear tigeres": 1491.96,
+      "k27": 1477.07,
+      "nemesis": 1449.15,
+      "bet-m": 1521.4,
+      "tricked": 1485.41,
+      "basement boys": 1485.3,
+      "cybershoke": 1491.72,
+      "johnny speeds": 1507.68,
+      "gaimin gladiators": 1479.11,
+      "semperfi": 1470.37,
+      "voca": 1451.99,
+      "fokus": 1484.15
     },
     "game_counts": {
-      "preasy": 30,
-      "imperial academy": 119,
-      "cybershoke prospects": 111,
-      "watermelon": 85,
-      "mix52": 65,
-      "young tigeres": 75,
-      "bushido wildcats": 70,
-      "fut academy": 40,
-      "havu": 138,
-      "elitenergy": 74,
-      "b8 academy": 52,
-      "state": 109,
-      "aurora young blud": 104,
-      "oldboys": 87,
-      "muerta": 55,
-      "sunfall": 25,
-      "enrage": 55,
-      "kono": 100,
-      "players": 103,
-      "megoshort": 109,
-      "svenska": 35,
-      "zotix": 26,
-      "3dmax academy": 24,
-      "g2 ares": 101,
-      "xi": 102,
-      "stinky rats": 20,
-      "wave": 34,
-      "lph": 114,
-      "eternal fire academy": 50,
-      "bad news snakes": 15,
-      "oxuji": 137,
-      "ex-ruby": 122,
-      "nemesis": 132,
-      "blinkdagger": 5,
-      "bet-m": 62,
-      "rustec": 65,
-      "1win": 67,
-      "senza pulse": 5,
-      "bad luck": 45,
-      "metanoia": 53,
-      "minlate": 78,
-      "airlya": 13,
-      "nexus": 79,
-      "blitzkrieg": 15,
-      "overknight": 23,
-      "aether": 31,
-      "farmville": 35,
-      "regain": 23,
-      "outfit 49": 60,
-      "chicken coop": 18,
-      "f5": 11,
-      "lag": 83,
-      "sportsbetexpert": 26,
-      "lazer cats": 107,
-      "ww": 214,
-      "home": 66,
-      "forze reload": 54,
-      "vp.prodigy": 115,
-      "famalic\u00e3o": 82,
-      "allinners": 10,
-      "rebels": 92,
-      "basement boys": 83,
-      "tdk": 66,
-      "olybet": 79,
-      "ex-fire flux": 10,
-      "tnt": 81,
-      "ex-zero tenacity": 163,
-      "unity": 127,
-      "whitebird": 57,
-      "ex-flame sharks": 25,
-      "astral": 76,
-      "omega": 195,
-      "csdiilit": 203,
-      "ence academy": 145,
-      "los kogutos": 158,
-      "algo": 69,
-      "prime": 15,
-      "leo": 83,
-      "rave": 30,
-      "money crew": 20,
-      "boss": 95,
-      "sakura": 28,
-      "flying angels": 10,
-      "young ninjas": 74,
-      "brazylijski luz": 56,
-      "millennium": 40,
-      "gatorian": 5,
-      "falcons force": 50,
-      "oramond": 45,
-      "genone": 51,
-      "illwill": 109,
-      "sangal": 114,
-      "sparta": 42,
-      "alliance": 88,
-      "johnny speeds": 100,
-      "jijiehao": 75,
-      "am": 81,
-      "mouz nxt": 133,
-      "kolesie": 79,
-      "ex-500": 15,
-      "nuclear tigeres": 83,
-      "sangal academy": 97,
-      "incontrol": 30,
-      "reign above": 9,
-      "eternal premium": 74,
-      "washington": 20,
-      "tricked": 55,
-      "prestige": 35,
-      "aab": 88,
-      "cybershoke": 78,
-      "lilmix": 86,
-      "og": 37,
-      "eternal fire": 120,
-      "yngods": 64,
-      "japczany": 24,
-      "inner circle": 63,
-      "yawara": 73,
-      "folha amarela": 117,
-      "bounty hunters": 119,
-      "r2": 102,
-      "galorys": 92,
-      "procyon": 101,
-      "lp": 97,
-      "crashers": 78,
-      "arcred": 80,
-      "dundu": 15,
-      "vexa": 23,
-      "fokus reality": 57,
-      "aka hero kajo": 31,
-      "haspers": 35,
-      "rethink": 86,
-      "spirit academy": 40,
-      "aimclub": 127,
-      "mana": 121,
-      "lfo 6": 45,
-      "square sausages": 35,
-      "pigeons": 93,
-      "masqueic0gang": 12,
-      "hindsight": 27,
-      "peekaboo": 30,
-      "big equipa": 38,
-      "alzon": 51,
-      "big academy": 29,
-      "fingers crossed": 25,
-      "fokus": 91,
-      "ursa": 154,
-      "nemiga": 120,
-      "magic": 48,
-      "novaq": 141,
-      "betclic": 93,
-      "prison breakers": 20,
-      "keyd stars": 102,
-      "metanoia wolves": 44,
-      "guar\u00e1": 17,
-      "back to back": 25,
-      "brute": 67,
-      "the last resort": 86,
-      "hyperspirit": 88,
-      "masonic": 165,
-      "siuuuuuu": 25,
-      "ex-gank": 90,
-      "bratland": 25,
-      "tnc": 48,
-      "imperial": 79,
-      "fake do biru": 46,
-      "shinden": 93,
-      "sharks": 70,
-      "ex-kr\u00fc": 81,
-      "red canids": 63,
-      "oddik": 78,
-      "mibr": 48,
-      "four magic": 15,
-      "time waves": 49,
-      "bbbmbcbs": 42,
-      "underground": 40,
-      "shanghai sharks": 10,
-      "zomblers": 33,
-      "exsto": 10,
-      "fury": 10,
-      "just swing": 16,
-      "nomads": 15,
-      "ihc": 10,
-      "last bullet": 32,
-      "arise": 20,
-      "change the game": 57,
-      "boring players": 24,
-      "deep cross": 10,
-      "the qube": 31,
-      "legion": 47,
-      "pain academy": 99,
-      "silence clan": 15,
-      "red canids academy": 39,
-      "mibr academy": 47,
-      "ex-fut academy": 40,
-      "aaa": 42,
-      "jumbo": 75,
-      "quazar": 58,
-      "qwentry": 214,
-      "uno mille": 85,
-      "bestia academy": 35,
-      "marsborne": 73,
-      "flyquest red": 32,
-      "mythic": 17,
-      "voca": 118,
-      "m80": 67,
-      "skele": 60,
-      "le-lux": 15,
-      "jft": 12,
-      "abyssal": 49,
-      "thunder downunder": 96,
-      "rooster": 57,
-      "ground zero": 104,
-      "mindfreak": 110,
-      "chinggis warriors": 72,
-      "eruption": 10,
-      "morningstar": 48,
-      "misa": 111,
-      "heroic academy": 117,
-      "inner circle academy": 77,
-      "fuzos": 108,
-      "wildcard": 43,
-      "eyeballers": 67,
-      "gentle mates": 27,
-      "passion ua": 47,
-      "hotu": 85,
-      "gamle venner": 20,
-      "insidious": 15,
-      "acend": 110,
-      "metizport": 81,
-      "infurity": 83,
-      "phantom": 116,
-      "ticket to norway": 15,
-      "semperfi": 69,
-      "fingers crossed fe": 15,
-      "saw": 44,
-      "betboom": 53,
-      "fnatic": 53,
-      "bestia": 72,
-      "monte": 52,
-      "nip": 68,
-      "100 thieves": 110,
-      "isurus": 126,
-      "elites": 15,
-      "damajuana": 20,
-      "curralzinho": 15,
-      "british aussie gang": 10,
-      "ctrl": 15,
-      "asylumpeekers": 10,
-      "8sins": 47,
-      "nigel mirage": 11,
-      "ec banga": 88,
-      "sinqu": 23,
-      "navi junior": 40,
-      "kuusamo.gg": 60,
-      "the continental": 50,
-      "depo": 40,
-      "miracle": 20,
-      "goodgame": 25,
-      "gamehunters": 51,
-      "vasco": 49,
-      "9ine": 81,
-      "bc.game": 62,
-      "sashi": 112,
-      "sinners": 67,
-      "avanti": 50,
-      "gamerlegion": 47,
-      "ecstatic": 72,
-      "bankapepsi": 23,
-      "elite klan": 17,
-      "rounds": 20,
-      "weshowskill": 30,
-      "coalesce": 24,
-      "vp.future": 61,
-      "strife": 15,
-      "atreides": 26,
-      "mixmix": 10,
-      "drama": 25,
-      "flame sharks": 20,
-      "k27": 85,
-      "bebop": 71,
-      "bojong": 17,
-      "nordic valor": 17,
-      "boyband": 17,
-      "ex-team peep": 28,
-      "adepts": 40,
-      "partizan": 58,
-      "altay": 30,
-      "rune eaters": 88,
-      "the unit": 35,
-      "zajezdzacze": 55,
-      "infinite": 35,
-      "hermine": 17,
-      "laguna": 10,
-      "diamant": 18,
-      "mindshock": 10,
-      "m1x ks": 19,
-      "insiders": 10,
-      "project h1": 5,
-      "jeleznienoji": 5,
-      "meta": 25,
-      "ence": 30,
-      "heroic": 70,
-      "flyquest": 50,
-      "fluxo": 46,
-      "9z": 62,
-      "nexvoid": 25,
-      "bmz": 20,
-      "the huns": 65,
-      "biryani": 15,
-      "scarx": 20,
-      "rare atom": 44,
-      "lynn vision": 52,
-      "struggletony": 16,
-      "sketch": 5,
-      "wazabi": 10,
-      "cuties": 5,
-      "ex-fingers crossed female": 5,
-      "hacha": 20,
-      "rtt100": 15,
-      "hanners": 10,
-      "luna": 30,
-      "fisher college": 21,
-      "ex-fingers crossed": 35,
-      "g2": 56,
-      "gaimin gladiators": 46,
-      "parivision": 30,
-      "astralis": 54,
-      "fut": 49,
-      "3dmax": 55,
-      "pain": 44,
-      "liquid": 54,
-      "legacy": 44,
-      "nrg": 18,
-      "mibr fe": 5,
-      "furia fe": 38,
-      "dash": 42,
-      "favbet": 46,
-      "fortress": 14,
-      "sera": 10,
-      "stream": 5,
-      "donstu": 65,
-      "premghouls": 15,
-      "b52": 10,
-      "younglings": 15,
-      "5actors": 25,
-      "pugdesonesto": 25,
-      "big": 36,
-      "regnum4games": 5,
-      "playing ducks": 10,
-      "sashi academy": 30,
-      "rcave": 15,
-      "friendly campers": 11,
-      "ehisto base": 10,
-      "navi": 39,
-      "spirit": 24,
-      "aurora": 34,
-      "the mongolz": 30,
-      "faze": 22,
-      "mouz": 22,
-      "furia": 29,
-      "b8": 22,
-      "valtrion": 10,
-      "duggedup": 20,
-      "endless journey": 22,
-      "glitch": 13,
-      "qual4": 17,
-      "m33": 15,
-      "enjoy": 26,
-      "daluyong": 18,
-      "evo novo": 25,
-      "100ra": 10,
-      "tyloo": 23,
-      "fengda": 21,
-      "alter ego": 32,
-      "blazing beavers": 10,
-      "chaos": 10,
-      "hashiras": 37,
-      "magicos": 14,
-      "supermatch": 10,
-      "new project": 11,
-      "frox": 7,
-      "idopieca": 17,
-      "mousquetaires": 19,
-      "nic": 20,
-      "herewegoagain": 11,
-      "gringos": 20,
-      "arcade": 27,
-      "iedopieca": 4,
-      "ex-sparta": 4,
-      "charrados": 7,
-      "rottweilers": 14,
-      "overpeek": 3,
-      "guara": 14,
-      "kuusamo": 25,
-      "huskies esport": 2,
-      "acezone": 3,
-      "khan": 2,
-      "dziuseppe": 4,
-      "alka": 6,
-      "exterus": 2,
-      "reveal": 3,
-      "zennox": 3,
-      "nova legion": 7,
-      "ak bars": 3,
-      "phantom academy": 7,
-      "basement bobs": 6,
-      "vexar": 8,
-      "exsad": 4,
-      "falcons": 5,
-      "off site": 4,
-      "esc": 8,
-      "vitality": 5,
-      "fighters": 2,
-      "nsn": 3,
-      "5star": 3,
-      "haunted house": 4,
-      "take me away": 2,
-      "markandlarry": 5,
-      "muttley crew": 4,
-      "atrix": 5,
-      "palace": 4,
-      "banda chuya": 2,
-      "baks": 2,
-      "vantage": 2,
-      "wanted goons": 5,
-      "surge": 2,
-      "nutorious": 3,
-      "benched gods": 5,
-      "fire flux": 5,
-      "rhadamanthys": 1,
-      "lavked": 6,
-      "wrotberry": 3,
-      "behaczka": 2,
-      "gameharmony": 3,
-      "matrix": 3,
-      "exilium": 3,
-      "berg": 3,
-      "claymakers": 1,
-      "chicanery": 2,
-      "sleepless": 1,
-      "foxtrot": 1,
-      "the night": 1,
-      "infinite talent": 2,
-      "zorka future": 2,
-      "acrobats": 3,
-      "okura": 1,
-      "mellren": 2,
-      "v\u00e4ster\u00e5s": 3,
-      "magna": 2,
-      "bond1e": 2,
-      "banger gang": 1,
-      "memeories": 1,
-      "nomercy": 4,
-      "ascend": 4,
-      "the glecs": 1,
-      "grindas": 1,
-      "the": 1,
-      "ex-senza": 1,
-      "cswalkers": 4,
-      "carritospain": 4,
-      "strael bora": 3,
-      "adn": 2
+      "spirit": 85,
+      "fnatic": 37,
+      "liquid": 84,
+      "9pandas": 13,
+      "3dmax": 115,
+      "heroic": 91,
+      "flyquest": 45,
+      "mibr": 49,
+      "vitality": 103,
+      "metizport": 17,
+      "falcons": 100,
+      "ence": 29,
+      "saw": 39,
+      "big": 38,
+      "astralis": 116,
+      "wildcard": 26,
+      "navi": 92,
+      "imperial valkyries": 12,
+      "faze": 108,
+      "m80": 39,
+      "eternal fire": 31,
+      "fluxo": 15,
+      "col": 27,
+      "virtus.pro": 63,
+      "g2": 102,
+      "b8": 76,
+      "mouz": 98,
+      "betboom": 55,
+      "furia": 115,
+      "nemiga": 38,
+      "pain": 90,
+      "gamerlegion": 87,
+      "the mongolz": 114,
+      "hesta": 4,
+      "nexus": 8,
+      "zero tenacity": 3,
+      "nevermore": 2,
+      "og": 26,
+      "bc.game": 20,
+      "tnl": 9,
+      "housebets": 3,
+      "nrg": 34,
+      "lynn vision": 43,
+      "tyloo": 49,
+      "mindfreak": 3,
+      "the huns": 13,
+      "imperial": 30,
+      "betclic": 5,
+      "legacy": 68,
+      "aurora": 85,
+      "rare atom": 16,
+      "parivision": 60,
+      "500": 5,
+      "gtz": 5,
+      "spirit academy": 5,
+      "navi junior": 8,
+      "partizan": 9,
+      "eclot": 7,
+      "gun5": 5,
+      "eruption": 7,
+      "chinggis warriors": 14,
+      "jijiehao": 14,
+      "9z": 10,
+      "bestia": 1,
+      "sharks": 1,
+      "ninja": 2,
+      "nomads": 2,
+      "hotu": 16,
+      "nip": 44,
+      "oddik": 5,
+      "nip impact": 6,
+      "furia fe": 4,
+      "supernova comets": 5,
+      "flyquest red": 5,
+      "mibr fe": 7,
+      "zerance": 3,
+      "dms": 2,
+      "passion ua": 28,
+      "alliance": 6,
+      "esc": 2,
+      "sashi": 6,
+      "m1x ks": 2,
+      "iberian soul": 1,
+      "9ine": 12,
+      "1win": 1,
+      "sangal": 3,
+      "ex-navi junior": 3,
+      "ecstatic": 5,
+      "fut": 39,
+      "venom": 5,
+      "gentle mates": 29,
+      "inner circle": 17,
+      "rooster": 6,
+      "red canids": 5,
+      "atrix": 3,
+      "let her cook": 3,
+      "sakura": 3,
+      "big equipa": 5,
+      "sensation": 2,
+      "nemesis sea": 3,
+      "deep cross": 2,
+      "change the game": 4,
+      "ravens": 2,
+      "vtm": 2,
+      "eyeballers": 15,
+      "monte": 9,
+      "friendly campers": 1,
+      "sinners": 7,
+      "genone": 3,
+      "ursa": 4,
+      "big academy": 3,
+      "kolesie": 3,
+      "nuclear tigeres": 7,
+      "k27": 5,
+      "nemesis": 8,
+      "bet-m": 5,
+      "tricked": 2,
+      "basement boys": 2,
+      "cybershoke": 3,
+      "johnny speeds": 5,
+      "gaimin gladiators": 4,
+      "semperfi": 3,
+      "voca": 3,
+      "fokus": 5
+    },
+    "h2h": {
+      "fnatic::spirit": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "9pandas::liquid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "3dmax::heroic": {
+        "a_wins": 3,
+        "b_wins": 2,
+        "games": 5
+      },
+      "flyquest::mibr": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "metizport::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ence::falcons": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "big::saw": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "astralis::wildcard": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "imperial valkyries::navi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "faze::m80": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eternal fire::fluxo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "col::virtus.pro": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "b8::g2": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "betboom::mouz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "furia::nemiga": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gamerlegion::pain": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "astralis::navi": {
+        "a_wins": 3,
+        "b_wins": 2,
+        "games": 5
+      },
+      "flyquest::spirit": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "faze::pain": {
+        "a_wins": 3,
+        "b_wins": 2,
+        "games": 5
+      },
+      "heroic::liquid": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "big::g2": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "virtus.pro::vitality": {
+        "a_wins": 0,
+        "b_wins": 6,
+        "games": 6
+      },
+      "betboom::furia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eternal fire::falcons": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "betboom::g2": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "heroic::spirit": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "navi::pain": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "eternal fire::vitality": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "navi::spirit": {
+        "a_wins": 1,
+        "b_wins": 6,
+        "games": 7
+      },
+      "eternal fire::g2": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "eternal fire::spirit": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "col::eternal fire": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::imperial valkyries": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "big::wildcard": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "astralis::mibr": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "gamerlegion::saw": {
+        "a_wins": 3,
+        "b_wins": 4,
+        "games": 7
+      },
+      "pain::virtus.pro": {
+        "a_wins": 4,
+        "b_wins": 1,
+        "games": 5
+      },
+      "3dmax::flyquest": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "eternal fire::heroic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "big::imperial valkyries": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "3dmax::mibr": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "astralis::flyquest": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "saw::virtus.pro": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "astralis::pain": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "liquid::wildcard": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mibr::virtus.pro": {
+        "a_wins": 2,
+        "b_wins": 3,
+        "games": 5
+      },
+      "big::heroic": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "furia::wildcard": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "col::liquid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::navi": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "gamerlegion::mouz": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "g2::virtus.pro": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "big::faze": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "3dmax::vitality": {
+        "a_wins": 0,
+        "b_wins": 5,
+        "games": 5
+      },
+      "3dmax::big": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "faze::vitality": {
+        "a_wins": 1,
+        "b_wins": 4,
+        "games": 5
+      },
+      "eternal fire::virtus.pro": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "falcons::g2": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "liquid::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 8,
+        "games": 8
+      },
+      "astralis::spirit": {
+        "a_wins": 1,
+        "b_wins": 4,
+        "games": 5
+      },
+      "faze::g2": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "3dmax::eternal fire": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "astralis::furia": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "gamerlegion::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "liquid::mouz": {
+        "a_wins": 1,
+        "b_wins": 4,
+        "games": 5
+      },
+      "gamerlegion::spirit": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "navi::the mongolz": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "eternal fire::faze": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "astralis::gamerlegion": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "liquid::spirit": {
+        "a_wins": 0,
+        "b_wins": 5,
+        "games": 5
+      },
+      "spirit::virtus.pro": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "eternal fire::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "the mongolz::vitality": {
+        "a_wins": 2,
+        "b_wins": 10,
+        "games": 12
+      },
+      "spirit::vitality": {
+        "a_wins": 0,
+        "b_wins": 5,
+        "games": 5
+      },
+      "hesta::nexus": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gamerlegion::metizport": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nevermore::zero tenacity": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "big::og": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "astralis::bc.game": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betboom::falcons": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nemiga::tnl": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "3dmax::nevermore": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "metizport::nexus": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "heroic::zero tenacity": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gamerlegion::hesta": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bc.game::big": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "astralis::og": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "falcons::tnl": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betboom::nemiga": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "astralis::betboom": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "heroic::metizport": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betboom::hesta": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "astralis::zero tenacity": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "metizport::nemiga": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eternal fire::imperial valkyries": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mibr::wildcard": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "col::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "falcons::flyquest": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "faze::saw": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "big::mouz": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "3dmax::virtus.pro": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "falcons::pain": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "astralis::saw": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "imperial valkyries::mibr": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "the mongolz::wildcard": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "3dmax::mouz": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "big::flyquest": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "pain::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 6,
+        "games": 6
+      },
+      "flyquest::saw": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "faze::mouz": {
+        "a_wins": 3,
+        "b_wins": 4,
+        "games": 7
+      },
+      "col::imperial valkyries": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "astralis::falcons": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "virtus.pro::wildcard": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "big::eternal fire": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "col::saw": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "falcons::mouz": {
+        "a_wins": 7,
+        "b_wins": 6,
+        "games": 13
+      },
+      "mouz::virtus.pro": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "3dmax::saw": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "astralis::big": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "astralis::heroic": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "astralis::the mongolz": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "mouz::pain": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "falcons::faze": {
+        "a_wins": 5,
+        "b_wins": 0,
+        "games": 5
+      },
+      "astralis::mouz": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "astralis::faze": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "housebets::pain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gamerlegion::nrg": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "furia::lynn vision": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "mibr::nemiga": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "heroic::saw": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "3dmax::tyloo": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "flyquest::m80": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "eternal fire::mindfreak": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "m80::pain": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gamerlegion::mibr": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "furia::saw": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "nemiga::nrg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "eternal fire::tyloo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "heroic::housebets": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "3dmax::mindfreak": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "flyquest::lynn vision": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eternal fire::nrg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "flyquest::pain": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "furia::mibr": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "m80::saw": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gamerlegion::tyloo": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "mindfreak::nemiga": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "housebets::lynn vision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::nrg": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "3dmax::m80": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lynn vision::pain": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "eternal fire::flyquest": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mibr::tyloo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heroic::nemiga": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "furia::m80": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "nemiga::pain": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "flyquest::tyloo": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "falcons::liquid": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "g2::pain": {
+        "a_wins": 4,
+        "b_wins": 1,
+        "games": 5
+      },
+      "furia::mouz": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "navi::saw": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "spirit::tyloo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mibr::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "saw::spirit": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::liquid": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "g2::the mongolz": {
+        "a_wins": 2,
+        "b_wins": 5,
+        "games": 7
+      },
+      "eternal fire::mibr": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "navi::tyloo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eternal fire::liquid": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "mouz::vitality": {
+        "a_wins": 2,
+        "b_wins": 11,
+        "games": 13
+      },
+      "spirit::the mongolz": {
+        "a_wins": 3,
+        "b_wins": 2,
+        "games": 5
+      },
+      "g2::saw": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "3dmax::falcons": {
+        "a_wins": 1,
+        "b_wins": 4,
+        "games": 5
+      },
+      "falcons::furia": {
+        "a_wins": 3,
+        "b_wins": 4,
+        "games": 7
+      },
+      "g2::navi": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "eternal fire::pain": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "3dmax::the mongolz": {
+        "a_wins": 2,
+        "b_wins": 5,
+        "games": 7
+      },
+      "g2::gamerlegion": {
+        "a_wins": 4,
+        "b_wins": 1,
+        "games": 5
+      },
+      "3dmax::liquid": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "g2::mouz": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "liquid::vitality": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "mouz::spirit": {
+        "a_wins": 3,
+        "b_wins": 5,
+        "games": 8
+      },
+      "faze::virtus.pro": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "astralis::vitality": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "spirit::the huns": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "m80::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "g2::imperial": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "falcons::the huns": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "imperial::liquid": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "g2::m80": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "faze::spirit": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "falcons::virtus.pro": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "eternal fire::navi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eternal fire::mouz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betclic::furia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "legacy::liquid": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "aurora::pain": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "col::falcons": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "rare atom::virtus.pro": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "col::furia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betclic::the mongolz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "3dmax::astralis": {
+        "a_wins": 1,
+        "b_wins": 4,
+        "games": 5
+      },
+      "aurora::legacy": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "liquid::virtus.pro": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "g2::rare atom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "falcons::gamerlegion": {
+        "a_wins": 4,
+        "b_wins": 1,
+        "games": 5
+      },
+      "3dmax::aurora": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "col::g2": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "faze::rare atom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "furia::virtus.pro": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "astralis::betclic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gamerlegion::legacy": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "furia::the mongolz": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "aurora::betclic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "falcons::rare atom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "col::faze": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "gamerlegion::virtus.pro": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "astralis::legacy": {
+        "a_wins": 3,
+        "b_wins": 2,
+        "games": 5
+      },
+      "falcons::the mongolz": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "betclic::faze": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "astralis::virtus.pro": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "aurora::col": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "3dmax::faze": {
+        "a_wins": 3,
+        "b_wins": 4,
+        "games": 7
+      },
+      "fnatic::gamerlegion": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "astralis::parivision": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "9pandas::og": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bc.game::metizport": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "b8::saw": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ence::heroic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "500::big": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gamerlegion::nemiga": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betboom::saw": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bc.game::fnatic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9pandas::big": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heroic::parivision": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "500::ence": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "b8::metizport": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "metizport::og": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "astralis::ence": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "9pandas::saw": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betboom::fnatic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::parivision": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "500::gamerlegion": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ence::saw": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9pandas::b8": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "astralis::metizport": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "9pandas::betboom": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "big::nemiga": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ence::fnatic": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "ence::gtz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ence::nexus": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betboom::spirit academy": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "navi junior::nemiga": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9pandas::partizan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betboom::metizport": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "astralis::b8": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "eclot::nemiga": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nexus::spirit academy": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gun5::navi junior": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gtz::metizport": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eclot::partizan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betboom::nexus": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::ence": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9pandas::navi junior": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gun5::nemiga": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9pandas::nemiga": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gtz::spirit academy": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "eclot::gun5": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "navi junior::partizan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betboom::ence": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "9pandas::gun5": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gtz::nexus": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nemiga::partizan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ence::metizport": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "eclot::navi junior": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "metizport::spirit academy": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gun5::partizan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betboom::gtz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9pandas::eclot": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ence::spirit academy": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eclot::nexus": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9pandas::ence": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ence::navi junior": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "falcons::saw": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mibr::navi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "flyquest::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "3dmax::gamerlegion": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "mibr::saw": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "falcons::navi": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "flyquest::virtus.pro": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "col::pain": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "faze::the mongolz": {
+        "a_wins": 1,
+        "b_wins": 4,
+        "games": 5
+      },
+      "liquid::navi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "falcons::vitality": {
+        "a_wins": 3,
+        "b_wins": 5,
+        "games": 8
+      },
+      "mouz::the mongolz": {
+        "a_wins": 4,
+        "b_wins": 1,
+        "games": 5
+      },
+      "faze::gamerlegion": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liquid::mibr": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "flyquest::navi": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "col::gamerlegion": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "500::imperial": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betboom::wildcard": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bc.game::heroic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "b8::partizan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betboom::imperial": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::heroic": {
+        "a_wins": 3,
+        "b_wins": 2,
+        "games": 5
+      },
+      "500::wildcard": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bc.game::partizan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "heroic::partizan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::betboom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "imperial::partizan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "heroic::wildcard": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betboom::heroic": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "big::eruption": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "vitality::wildcard": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::the huns": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "chinggis warriors::heroic": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "jijiehao::saw": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "falcons::spirit": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "b8::big": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "faze::flyquest": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heroic::jijiehao": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "pain::wildcard": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chinggis warriors::saw": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eruption::the huns": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9z::imperial": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "9z::bestia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "spirit::wildcard": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "imperial::sharks": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::jijiehao": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chinggis warriors::eruption": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::chinggis warriors": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lynn vision::ninja": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "jijiehao::the huns": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "flyquest::nomads": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "rare atom::tyloo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ninja::the huns": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jijiehao::lynn vision": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "nomads::rare atom": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hotu::pain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "m80::navi": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "nip::virtus.pro": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "flyquest::rare atom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "g2::mibr": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lynn vision::the huns": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "astralis::oddik": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aurora::big": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "g2::oddik": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aurora::hotu": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "nip::spirit": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "big::navi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::gamerlegion": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "mibr::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "m80::virtus.pro": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "gamerlegion::hotu": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aurora::nip": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "oddik::pain": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "big::virtus.pro": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aurora::navi": {
+        "a_wins": 0,
+        "b_wins": 6,
+        "games": 6
+      },
+      "mibr::pain": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hotu::nip": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::oddik": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aurora::oddik": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "g2::nip": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lynn vision::tyloo": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "flyquest::jijiehao": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aurora::the mongolz": {
+        "a_wins": 2,
+        "b_wins": 5,
+        "games": 7
+      },
+      "furia::spirit": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "astralis::aurora": {
+        "a_wins": 2,
+        "b_wins": 5,
+        "games": 7
+      },
+      "aurora::furia": {
+        "a_wins": 3,
+        "b_wins": 4,
+        "games": 7
+      },
+      "g2::lynn vision": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "falcons::nrg": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "bc.game::mouz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "legacy::vitality": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "faze::liquid": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "aurora::nrg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "falcons::heroic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gamerlegion::vitality": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "3dmax::legacy": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "bc.game::faze": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "aurora::heroic": {
+        "a_wins": 3,
+        "b_wins": 2,
+        "games": 5
+      },
+      "3dmax::g2": {
+        "a_wins": 2,
+        "b_wins": 3,
+        "games": 5
+      },
+      "aurora::liquid": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "faze::heroic": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "imperial valkyries::nip impact": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "furia fe::supernova comets": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "flyquest red::imperial valkyries": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "mibr fe::nip impact": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "supernova comets::zerance": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "dms::furia fe": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dms::zerance": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "flyquest red::mibr fe": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "furia fe::imperial valkyries": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nip impact::supernova comets": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "imperial::nemiga": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chinggis warriors::legacy": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "col::fluxo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betboom::flyquest": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lynn vision::wildcard": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "b8::og": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "heroic::nrg": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "fluxo::flyquest": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "metizport::wildcard": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "legacy::lynn vision": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "nrg::tyloo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::imperial": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "col::og": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chinggis warriors::fluxo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "imperial::metizport": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::wildcard": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "flyquest::heroic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lynn vision::nemiga": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "og::tyloo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "col::nrg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betboom::legacy": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "metizport::tyloo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "flyquest::nemiga": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chinggis warriors::lynn vision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nrg::og": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "imperial::legacy": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "col::tyloo": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "legacy::wildcard": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lynn vision::nrg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "m80::og": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "falcons::lynn vision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "faze::tyloo": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "b8::virtus.pro": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::pain": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "m80::tyloo": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "legacy::mibr": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "3dmax::betboom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "og::virtus.pro": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "b8::falcons": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "betboom::mibr": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "falcons::og": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "faze::legacy": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "3dmax::nemiga": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::furia": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "falcons::mibr": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "heroic::tyloo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "m80::nemiga": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "faze::mibr": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::lynn vision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nemiga::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lynn vision::spirit": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "3dmax::navi": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "legacy::virtus.pro": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "liquid::lynn vision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "navi::nemiga": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aurora::faze": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "pain::spirit": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "lynn vision::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "aurora::g2": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "aurora::mouz": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "3dmax::pain": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "legacy::mouz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "navi::vitality": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "jijiehao::passion ua": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "alliance::navi junior": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ence::parivision": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "esc::fnatic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liquid::sashi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "m1x ks::nemiga": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "iberian soul::og": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "9ine::tnl": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "alliance::hesta": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9pandas::esc": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "1win::sashi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "m1x ks::sangal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "sashi::tnl": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nemiga::parivision": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "ex-navi junior::og": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::passion ua": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "tyloo::virtus.pro": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "betboom::col": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "passion ua::tnl": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nemiga::og": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ex-navi junior::parivision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fnatic::sashi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "pain::rare atom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "3dmax::lynn vision": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "gamerlegion::wildcard": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "big::col": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "parivision::sashi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "astralis::tyloo": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "parivision::passion ua": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ex-navi junior::sashi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "3dmax::rare atom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betboom::big": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "parivision::tnl": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betboom::gamerlegion": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "astralis::lynn vision": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "saw::tyloo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liquid::pain": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heroic::nip": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "flyquest::furia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "heroic::mibr": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "3dmax::nip": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "b8::flyquest": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "heroic::virtus.pro": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "flyquest::liquid": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "big::pain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "faze::navi": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "furia::g2": {
+        "a_wins": 4,
+        "b_wins": 3,
+        "games": 7
+      },
+      "g2::vitality": {
+        "a_wins": 1,
+        "b_wins": 4,
+        "games": 5
+      },
+      "aurora::spirit": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mouz::navi": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "navi::nip": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "betboom::faze": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "g2::nemiga": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ecstatic::liquid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "b8::fut": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "astralis::rare atom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "passion ua::spirit": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "navi::tnl": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::legacy": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nip::pain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mouz::og": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "big::furia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "col::heroic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nrg::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aurora::flyquest": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ence::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "g2::spirit": {
+        "a_wins": 1,
+        "b_wins": 4,
+        "games": 5
+      },
+      "b8::mouz": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "tyloo::vitality": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "aurora::falcons": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "fnatic::navi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ecstatic::faze": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "m80::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::legacy": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "g2::liquid": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "imperial::mouz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ecstatic::fnatic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "flyquest::legacy": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "flyquest::g2": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fnatic::m80": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "m80::mouz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "9z::betboom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "jijiehao::legacy": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ecstatic::parivision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "imperial::tnl": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nip::venom": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ence::nemiga": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "9z::parivision": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nemiga::venom": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "heroic::legacy": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "heroic::pain": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "aurora::tyloo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gamerlegion::liquid": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "falcons::legacy": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "g2::legacy": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lynn vision::virtus.pro": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "the mongolz::tyloo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "liquid::tyloo": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "9ine::navi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gentle mates::passion ua": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nip::og": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "navi::passion ua": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nip::parivision": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "9ine::gentle mates": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "b8::gentle mates": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::passion ua": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gentle mates::parivision": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::nip": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ence::m80": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gentle mates::heroic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::legacy": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "furia::hotu": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "3dmax::inner circle": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "g2::rooster": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "astralis::fluxo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fluxo::furia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "g2::gentle mates": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "legacy::nrg": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "heroic::m80": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gamerlegion::inner circle": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "3dmax::rooster": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::hotu": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fluxo::nrg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gentle mates::inner circle": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ence::hotu": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "m80::rooster": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gentle mates::legacy": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "3dmax::ence": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fluxo::g2": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "b8::gamerlegion": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ence::g2": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "3dmax::furia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "gentle mates::vitality": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hotu::the mongolz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "inner circle::spirit": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hotu::spirit": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gentle mates::mouz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "inner circle::the mongolz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "furia::inner circle": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hotu::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aurora::gentle mates": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "faze::inner circle": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "gentle mates::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hotu::navi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::vitality": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "the huns::virtus.pro": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gamerlegion::lynn vision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "faze::fut": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "fnatic::pain": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fluxo::tyloo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lynn vision::mibr": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "3dmax::the huns": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aurora::venom": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "imperial::navi": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "9z::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "furia::og": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::tyloo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fut::heroic": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "b8::faze": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fluxo::pain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "imperial::venom": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "9z::og": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::heroic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fut::pain": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fut::legacy": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "3dmax::fnatic": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "aurora::fnatic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "flyquest::gamerlegion": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gentle mates::pain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "3dmax::b8": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "flyquest::fnatic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nip::saw": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fnatic::mibr": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gentle mates::nip": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "b8::pain": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "betboom::liquid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betboom::gentle mates": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "aurora::saw": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gamerlegion::gentle mates": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "legacy::saw": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aurora::gamerlegion": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "liquid::saw": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "legacy::pain": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aurora::b8": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "gamerlegion::heroic": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "heroic::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "falcons::tyloo": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "pain::tyloo": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "heroic::navi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lynn vision::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "passion ua::the mongolz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "falcons::passion ua": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "pain::passion ua": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "faze::nrg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fluxo::fnatic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lynn vision::nip": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gamerlegion::red canids": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "m80::parivision": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "flyquest::imperial": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "legacy::rare atom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::red canids": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "faze::lynn vision": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fluxo::gamerlegion": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nip::nrg": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "parivision::the huns": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "imperial::rare atom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::m80": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "m80::nrg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gamerlegion::rare atom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "faze::nip": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "fnatic::imperial": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "legacy::red canids": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gamerlegion::parivision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "imperial::the huns": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::nrg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "faze::red canids": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fluxo::nip": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "legacy::parivision": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "imperial::nrg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "faze::fluxo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "imperial valkyries::mibr fe": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atrix::nip impact": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "let her cook::sakura": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atrix::mibr fe": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "big equipa::sakura": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "flyquest red::let her cook": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liquid::parivision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "b8::fnatic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mibr::passion ua": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "astralis::m80": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nip::tyloo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "imperial::mibr": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::liquid": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aurora::m80": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "big equipa::let her cook": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "parivision::tyloo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "faze::passion ua": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "astralis::nip": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "big equipa::flyquest red": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::navi": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "aurora::parivision": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "big equipa::mibr fe": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "3dmax::passion ua": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "big equipa::nip impact": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mibr fe::sakura": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "imperial::m80": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "astralis::liquid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "m80::passion ua": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::imperial": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "navi::parivision": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "g2::passion ua": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "mouz::parivision": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "imperial::the mongolz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "3dmax::parivision": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "liquid::passion ua": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "falcons::imperial": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "imperial::passion ua": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "eruption::sensation": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "jijiehao::sensation": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eruption::jijiehao": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "deep cross::nemesis sea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "deep cross::lynn vision": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lynn vision::nemesis sea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "change the game::ravens": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chinggis warriors::ravens": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "change the game::chinggis warriors": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "rooster::vtm": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "rare atom::vtm": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "rare atom::rooster": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chinggis warriors::rare atom": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "change the game::rooster": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eruption::nemesis sea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chinggis warriors::jijiehao": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "astralis::fnatic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eyeballers::faze": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "fut::og": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "monte::navi": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "friendly campers::heroic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gamerlegion::passion ua": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ecstatic::falcons": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liquid::nip": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "gentle mates::m80": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9ine::furia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betboom::pain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "sinners::spirit": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "falcons::monte": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gentle mates::liquid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::fut": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "eyeballers::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fnatic::genone": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "eyeballers::ursa": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "9ine::big academy": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gentle mates::hotu": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betboom::kolesie": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nuclear tigeres::sangal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fut::k27": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eyeballers::nemesis": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betboom::genone": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::kolesie": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bc.game::ursa": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gentle mates::nuclear tigeres": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "big academy::fut": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hotu::sangal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9ine::k27": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9ine::nuclear tigeres": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gentle mates::ursa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "furia::heroic": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "gentle mates::nemesis": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eyeballers::nuclear tigeres": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "9ine::hotu": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betboom::ursa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "big academy::nemesis": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "genone::gentle mates": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "eyeballers::fut": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kolesie::nuclear tigeres": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bc.game::nemesis": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "parivision::spirit": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "betboom::hotu": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::parivision": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "falcons::parivision": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "3dmax::fut": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bc.game::legacy": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "b8::nrg": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "3dmax::bc.game": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nip::passion ua": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fut::liquid": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bc.game::nip": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "astralis::nrg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bc.game::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fut::g2": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "mouz::nrg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "astralis::fut": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "aurora::vitality": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "bet-m::inner circle": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nemesis::og": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "eyeballers::tricked": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::k27": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "basement boys::cybershoke": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "alliance::sinners": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "johnny speeds::nuclear tigeres": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "k27::nemesis": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bet-m::eyeballers": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "inner circle::tricked": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::og": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cybershoke::ence": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "basement boys::betboom": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nuclear tigeres::sinners": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "alliance::johnny speeds": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "johnny speeds::sinners": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "alliance::ence": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bet-m::fnatic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betboom::sinners": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "inner circle::johnny speeds": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "alliance::og": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "johnny speeds::k27": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ence::eyeballers": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cybershoke::inner circle": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bet-m::sinners": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bet-m::betboom": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fnatic::sinners": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aurora::fut": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "g2::parivision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "b8::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "faze::parivision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "g2::heroic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fut::mouz": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "fut::parivision": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "parivision::vitality": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "fut::m80": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "legacy::nip": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "g2::gaimin gladiators": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "astralis::monte": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "parivision::semperfi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gaimin gladiators::liquid": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fut::passion ua": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "m80::nip": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "pain::parivision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "3dmax::semperfi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "monte::nrg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "3dmax::gaimin gladiators": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "liquid::semperfi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heroic::monte": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liquid::m80": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heroic::passion ua": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gaimin gladiators::nip": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "monte::parivision": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heroic::mouz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "3dmax::spirit": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "b8::spirit": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "legacy::monte": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "faze::monte": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "legacy::navi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fut::navi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::tyloo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9z::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "9z::mouz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9z::spirit": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "9ine::gamerlegion": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "g2::nemesis": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gamerlegion::nip": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heroic::nemesis": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "9ine::betboom": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bc.game::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nrg::voca": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fut::inner circle": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "3dmax::fokus": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "faze::wildcard": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "eyeballers::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "inner circle::legacy": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fokus::parivision": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bc.game::mibr": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fut::nrg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "3dmax::voca": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bc.game::voca": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eyeballers::nrg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fokus::wildcard": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bc.game::fokus": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "b8::inner circle": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eyeballers::mibr": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "parivision::wildcard": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eyeballers::fokus": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "parivision::the mongolz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "astralis::eyeballers": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fut::the mongolz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "red canids::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      }
     }
   },
   "valorant": {
     "ratings": {
-      "chaos alliance": 1385.09,
-      "flash": 1470.86,
-      "alter ego": 1588.36,
-      "orangutan": 1551.56,
-      "all gamers young": 1399.72,
-      "boom": 1569.94,
-      "cnesports": 1492.9,
-      "zol": 1498.34,
-      "disguised": 1459.16,
-      "nkt academy": 1455.25,
-      "xipto": 1439.92,
-      "tumt shark": 1459.15,
-      "crest zst": 1505.96,
-      "next gen": 1525.45,
-      "secret": 1409.62,
-      "rival": 1468.15,
-      "dvm esport": 1548.55,
-      "valiant": 1573.22,
-      "joblife": 1686.46,
-      "siko": 1451.43,
-      "xlg": 1534.89,
-      "wolves": 1462.0,
-      "tyloo": 1457.77,
-      "titan": 1412.14,
-      "cicadas": 1383.88,
-      "zerance": 1427.03,
-      "mandatory": 1704.41,
-      "karmine corp blue stars": 1630.84,
-      "ramboot": 1492.62,
-      "zeta": 1425.18,
-      "novo": 1512.63,
-      "hge esport": 1531.53,
-      "kpi": 1367.5,
-      "falke": 1482.62,
-      "dnsty": 1669.1,
-      "koi f\u00e9nix": 1647.54,
-      "bar\u00e7a": 1591.72,
-      "ucam": 1635.73,
-      "jd": 1494.44,
-      "dragon ranger": 1509.82,
-      "all gamers": 1465.67,
-      "nova": 1420.05,
-      "bbl": 1752.81,
-      "giantx": 1675.72,
-      "karmine corp": 1582.1,
-      "natus vincere": 1595.42,
-      "full sense": 1638.79,
-      "rrq academy": 1541.38,
-      "naos": 1604.94,
-      "liquid": 1733.3,
-      "koi": 1330.21,
-      "apeks": 1234.39,
-      "gentle mates": 1591.31,
-      "funplus phoenix": 1466.14,
-      "bilibili": 1535.46,
-      "elected": 1452.21,
-      "critics": 1459.11,
-      "sentinals lover": 1461.65,
-      "vnx": 1499.43,
-      "stk": 1464.58,
-      "marvel aim": 1562.71,
-      "the nation": 1502.97,
-      "xen": 1506.81,
-      "pixel lumina": 1671.28,
-      "exo clan": 1506.4,
-      "genziary": 1418.34,
-      "coalesce": 1409.5,
-      "d\u011bti ulice": 1544.24,
-      "wintermint": 1434.55,
-      "sheshmans": 1387.13,
-      "goodfor3": 1466.62,
-      "nxt": 1398.18,
-      "dudes": 1383.27,
-      "lilmix": 1374.27,
-      "bitfix": 1452.71,
-      "unsigned": 1534.48,
-      "sweetnsour": 1652.85,
-      "formulation": 1600.36,
-      "szach mat": 1647.34,
-      "edward": 1558.06,
-      "the mongolz": 1394.62,
-      "kimmy kittens": 1607.84,
-      "z11": 1428.79,
-      "fnatic": 1754.15,
-      "vitality": 1709.85,
-      "trace": 1450.68,
-      "eintracht frankfurt": 1699.06,
-      "alternate attax": 1449.74,
-      "fokus": 1671.43,
-      "permitta unicorns": 1391.0,
-      "fenerbah\u00e7e": 1607.22,
-      "galakticos": 1421.32,
-      "bbl pcific": 1885.88,
-      "s2g": 1573.43,
-      "fire flux": 1482.24,
-      "eternal fire": 1673.31,
-      "digital athletics": 1292.07,
-      "galatasaray": 1555.94,
-      "papara supermassive": 1460.88,
-      "t1": 1713.97,
-      "zeta division": 1463.58,
-      "nongshim redforce": 1822.48,
-      "mouz": 1767.85,
-      "xperion nxt": 1346.67,
-      "cgn": 1716.88,
-      "teamorangegaming": 1406.9,
-      "istanbul wildcats": 1480.14,
-      "global": 1457.47,
-      "detonation focusme": 1549.23,
-      "rex regum qeon": 1669.9,
-      "drx": 1662.05,
-      "paper rex": 1821.52,
-      "xenon": 1539.34,
-      "talon academy": 1443.36,
-      "oblivion force": 1289.0,
-      "secret academy": 1397.99,
-      "fut": 1647.02,
-      "heretics": 1692.74,
-      "zero tenacity": 1621.2,
-      "wylde": 1473.43,
-      "metizport": 1562.39,
-      "enterprise": 1899.44,
-      "talon": 1579.53,
-      "gen.g": 1687.82,
-      "havu": 1334.59,
-      "nom": 1400.58,
-      "liquid academy": 1742.59,
-      "esc": 1502.8,
-      "shopify rebellion black": 1620.95,
-      "burger boyz": 1480.09,
-      "trust in plug": 1528.02,
-      "shopify rebellion gold": 1733.4,
-      "tsm": 1702.45,
-      "winthrop university": 1531.79,
-      "m80": 1605.73,
-      "hakikimori": 1415.15,
-      "rankers": 1644.51,
-      "blue otter": 1407.72,
-      "ambrosia": 1584.41,
-      "cubert academy": 1632.93,
-      "yfp": 1525.67,
-      "nightblood": 1428.79,
-      "sad": 1532.29,
-      "qor": 1663.46,
-      "leviat\u00e1n academy": 1753.08,
-      "las cabras": 1264.51,
-      "nottingham miedo": 1505.06,
-      "aura": 1321.26,
-      "fuego": 1386.88,
-      "cintanegra": 1258.61,
-      "six karma": 1614.15,
-      "ab3": 1366.62,
-      "scarz": 1503.58,
-      "murash": 1445.4,
-      "detonation focusme academy": 1198.99,
-      "contra": 1486.81,
-      "fusion": 1403.9,
-      "qt dig": 1483.82,
-      "fennel": 1637.99,
-      "reject": 1507.17,
-      "zeta division academy": 1315.69,
-      "9z": 1579.82,
-      "rebirth": 1357.11,
-      "oxen": 1604.99,
-      "shinden": 1683.87,
-      "chivas": 1451.42,
-      "e-xolos lazer": 1801.94,
-      "loud": 1205.98,
-      "sentinels": 1661.17,
-      "g2": 1761.25,
-      "leviat\u00e1n": 1514.39,
-      "nrg": 1787.08,
-      "kr\u00fc": 1402.4,
-      "mibr": 1583.89,
-      "bc swell": 1425.42,
-      "riddle order": 1605.14,
-      "zen": 1309.25,
-      "fearx": 1606.11,
-      "fn": 1280.68,
-      "gen.g global academy": 1498.85,
-      "drx academy": 1501.75,
-      "igzist": 1482.13,
-      "noez foxx": 1591.56,
-      "t1 academy": 1722.61,
-      "sherpa": 1363.89,
-      "dplus": 1517.85,
-      "slt": 1707.39,
-      "yfp x": 1651.9,
-      "catnappers": 1309.06,
-      "teddy tactics": 1404.16,
-      "3": 1535.52,
-      "wadadaa": 1689.11,
-      "bun n gun": 1509.87,
-      "flyquest red": 1630.82,
-      "shrimpmori": 1343.65,
-      "red canids": 1603.23,
-      "furia academy": 1459.98,
-      "corinthians": 1612.9,
-      "tbk": 1467.41,
-      "gr\u00eamio": 1435.94,
-      "mibr academy": 1464.54,
-      "vila do zana": 1526.92,
-      "2game academy": 1613.68,
-      "los": 1662.39,
-      "stellae": 1747.49,
-      "peek": 1454.21,
-      "f4tality": 1345.24,
-      "g2 gozen": 1772.27,
-      "blvkhvnd": 1497.34,
-      "heroic valkyries": 1355.99,
-      "giantx gc": 1608.18,
-      "zerance mint": 1344.02,
-      "lunar": 1370.54,
-      "karmine corp gc": 1663.78,
-      "alternate attax ruby": 1514.22,
-      "nasr ignite": 1324.87,
-      "nebula": 1594.24,
-      "agropesca jacare": 1216.91,
-      "sagaz": 1268.3,
-      "zen gc": 1574.44,
-      "kr\u00fc blaze": 1856.26,
-      "las cabras gc": 1376.03,
-      "prasso clan": 1364.37,
-      "university war gc": 1508.72,
-      "leviat\u00e1n gc": 1659.42,
-      "mix": 1355.32,
-      "hellguardians violett": 1291.83,
-      "gonext": 1594.89,
-      "global academy": 1444.68,
-      "revenant xspark": 1594.6,
-      "asterisk": 1374.73,
-      "contra gc": 1456.24,
-      "fusion x": 1510.34,
-      "no sweat blossom": 1462.97,
-      "1up": 1309.43,
-      "reckoning": 1512.19,
-      "s8ul": 1486.79,
-      "velocity": 1708.96,
-      "myvra gc": 1701.13,
-      "akave black": 1889.9,
-      "ktana gc": 1242.7,
-      "antares gc": 1575.72,
-      "the ultimates": 1712.23,
-      "rvn": 1501.11,
-      "raad": 1567.22,
-      "gng amazigh": 1559.37,
-      "nasr": 1398.82,
-      "gamax": 1552.03,
-      "envy": 1712.33,
-      "twisted minds": 1771.93,
-      "fraggerz": 1536.28,
-      "yung": 1457.51,
-      "voidwalkers": 1430.46,
-      "gb": 1414.67,
-      "baam": 1427.82,
-      "one more": 1558.05,
-      "ulf": 1731.96,
-      "nkt": 1489.91,
-      "ignite": 1460.26,
-      "sharper esport": 1644.01,
-      "fancy": 1603.33,
-      "oasis": 1495.28,
-      "xgod": 1567.46,
-      "s2": 1484.08,
-      "arf": 1461.21,
-      "good boys": 1424.55,
-      "extreme": 1341.26,
-      "eclipse": 1436.85,
-      "acegear tempest": 1458.6,
-      "mir": 1513.57,
-      "bonk": 1473.0,
-      "ctrl": 1464.08,
-      "cloud9": 1588.45,
-      "rizon": 1329.49,
-      "la masia": 1398.51,
-      "furia": 1406.37,
-      "2game": 1468.96,
-      "evil geniuses": 1487.32,
-      "100 thieves": 1603.06,
-      "nobles": 1430.32,
-      "f16": 1260.92,
-      "rafha": 1346.47,
-      "alqadsiah": 1653.45,
-      "stallions": 1688.16,
-      "nuclear zone": 1369.03,
-      "motiv": 1656.24,
-      "prosperity": 1279.03,
-      "funhaver": 1431.94,
-      "overkill black": 1533.21,
-      "fisher fumblers": 1463.95,
-      "teevee": 1371.27,
-      "berzerkers dawn": 1427.19,
-      "evolution": 1391.65,
-      "kessoku band": 1431.63,
-      "100 thieves gc": 1587.76,
-      "prosperity x": 1461.21,
-      "vit.revolution": 1489.02,
-      "ghost gc": 1529.45,
-      "landor": 1522.87,
-      "farenvehn": 1636.37,
-      "ktana": 1290.44,
-      "x\u00f8 ind": 1375.52,
-      "dot exe": 1386.42,
-      "flare": 1433.96,
-      "chets pets": 1440.79,
-      "3bl": 1453.62,
-      "twisted minds orchid": 1634.24,
-      "alqadsiah corals": 1511.18,
-      "dvm gc": 1388.34,
-      "precision power quickness": 1504.48,
-      "sirensix": 1465.86,
-      "hypa hypa": 1583.41,
-      "ytjt": 1398.01,
-      "sisu": 1530.78,
-      "999": 1399.0,
-      "blue eyes white dragon ego": 1463.07,
-      "kimmys kitchen": 1528.05,
-      "diretoria": 1583.43,
-      "elevate": 1483.65,
-      "sissi state punks": 1464.79,
-      "mad army": 1557.76,
-      "love gc": 1432.82,
-      "salapao": 1545.49,
-      "lilax": 1432.81,
-      "falcons vega": 1701.0,
-      "mori dusk hemera": 1401.68,
-      "orion gc": 1469.78,
-      "kitty nya nya": 1472.53,
-      "villianarc": 1306.96,
-      "misa": 1617.02,
-      "polar squad gc": 1509.38,
-      "gold evictix": 1471.91,
-      "nekoma": 1384.97,
-      "legiowon": 1272.14,
-      "2game gc": 1618.83,
-      "curralzinho sync": 1393.3,
-      "liquid brazil": 1889.4,
-      "ainda estamos aqui": 1446.1,
-      "mibr gc": 1794.9,
-      "ballerina cappuccina": 1437.71,
-      "corinthians gc": 1478.26,
-      "brave soldiers gc": 1502.35,
-      "reignite lily": 1517.64,
-      "soleil gc": 1462.34,
-      "drx changers": 1463.25,
-      "delight gc": 1423.44,
-      "meteor gc": 1528.56,
-      "eoto": 1505.65,
-      "fennel female": 1620.11,
-      "sasanqua": 1432.97,
-      "xipto gc": 1623.82,
-      "hide on bush": 1449.66,
-      "f9 eicar": 1284.21,
-      "full box 200": 1529.74,
-      "mania": 1457.78,
-      "boars": 1572.39,
-      "twisted saints": 1359.51,
-      "vertical7even": 1386.35,
-      "easties": 1508.39,
-      "blx corp": 1509.26,
-      "wip": 1495.7,
-      "6gpa": 1435.7,
-      "maryville university": 1561.14,
-      "onside": 1570.16,
-      "legacy kingdom": 1472.79,
-      "solid": 1741.34,
-      "delight": 1593.68,
-      "input lag enjoyers": 1475.03,
-      "alliance angels": 1360.59,
-      "hakikimori gc": 1542.38,
-      "equinox": 1500.1,
-      "artificial intelligence": 1410.51,
-      "mak n cheese": 1455.84,
-      "-": 1476.27,
-      "tenax gc": 1436.16,
-      "ydz black": 1440.29,
-      "box of rocketz": 1446.58,
-      "paintress": 1439.14,
-      "stellae gc": 1477.57,
-      "n\u00e3o estamos aqui": 1431.67,
-      "empire 3": 1463.89,
-      "blue otter gc": 1620.12,
-      "frick my chungus life": 1515.44,
-      "zennit orange gc": 1493.69,
-      "rising gc": 1420.84,
-      "ninetails": 1520.73,
-      "asterisk women": 1418.89,
-      "kiri magenta": 1526.9,
-      "zhu chao": 1453.49,
-      "octagonal disposition": 1460.73,
-      "thunder": 1408.73,
-      "chosen clique": 1406.39,
-      "alg": 1456.8,
-      "rare atom": 1590.76,
-      "any questions": 1469.24,
-      "e-king": 1364.63,
-      "ustunlukuranlar": 1410.41,
-      "gigantic lynx": 1410.48,
-      "lapolizia": 1473.69,
-      "hasbi": 1470.64,
-      "rrr": 1489.48,
-      "dortmund": 1498.16,
-      "vcgn kaltstart": 1499.97,
-      "bodax": 1268.51,
-      "coffeshop": 1424.36,
-      "small crew": 1337.46,
-      "leisure": 1458.63,
-      "klannalan": 1544.77,
-      "bxl zoo": 1541.25,
-      "flow tim cheese": 1463.78,
-      "nova gc": 1508.83,
-      "erah esport": 1312.53,
-      "trashcan": 1472.89,
-      "nfm": 1470.51,
-      "bwbb": 1409.37,
-      "bratan mix": 1562.02,
-      "gofund4omarhouse": 1374.51,
-      "willygpalace": 1410.1,
-      "lost puppies": 1429.59,
-      "nuxeria esport": 1531.31,
-      "oxuji": 1565.29,
-      "melilla titans": 1433.22,
-      "ratatouille": 1359.52,
-      "dimonix gc": 1366.99,
-      "osan university": 1568.45,
-      "kookje university": 1513.05,
-      "drx youth": 1469.24,
-      "iam": 1668.44,
-      "bench5": 1498.41,
-      "2l8": 1522.93,
-      "fut academy": 1471.94,
-      "envy x flyquest": 1476.04,
-      "kr\u00fc x lyon": 1504.06,
-      "winthrop x shopify rebellion": 1553.94,
-      "next": 1518.26,
-      "howlers": 1410.0,
-      "mayhem": 1450.01,
-      "ghools": 1611.25,
-      "vibranium": 1408.35,
-      "ggez": 1452.64,
-      "lit esport": 1376.13,
-      "dream chaser": 1382.72,
-      "todak": 1541.07,
-      "esprit sh\u014dnen": 1400.31,
-      "caldya": 1460.9,
-      "galions": 1530.15,
-      "bushido wildcats": 1286.17,
-      "be\u015fikta\u015f": 1561.2,
-      "otakar": 1469.88,
-      "fokus sakura": 1463.71,
-      "streamerzone indigo": 1459.21,
-      "hornets": 1413.09,
-      "cristaux de menthe": 1582.38,
-      "s2g female": 1503.52,
-      "ssp numina": 1461.11,
-      "overpeek": 1419.67,
-      "bar\u00e7a gc": 1452.21,
-      "bem": 1401.53,
-      "twisted saints x": 1449.25,
-      "kit cats": 1486.27,
-      "la mala": 1423.22,
-      "azure dragon": 1476.06,
-      "nrg academy": 1537.58,
-      "alliance guardians": 1426.75,
-      "sleepers": 1603.96,
-      "evil geniuses academy": 1508.2,
-      "pigeons": 1445.42,
-      "evictix": 1503.72,
-      "rose": 1391.02,
-      "pcific": 1428.15,
-      "bunkurs 13": 1353.46,
-      "ube": 1357.76,
-      "evoplay": 1543.63,
-      "vinfo": 1403.87,
-      "uniway": 1345.75,
-      "leo": 1479.85,
-      "boogeymen": 1394.66,
-      "frg": 1371.07,
-      "vr2": 1611.32,
-      "varrel": 1394.43,
-      "joblife gc": 1273.85,
-      "lyon": 1722.26,
-      "alt f4": 1424.29,
-      "gentle mates gc": 1802.98,
-      "tezcat": 1512.19,
-      "lazer": 1444.93,
-      "kr\u00fc spark": 1367.3,
-      "remo e-sports": 1271.56,
-      "holy": 1329.76,
-      "intz": 1491.92,
-      "paysandu e-sports": 1440.28,
-      "looking for laburo": 1478.47,
-      "olimpo gold": 1587.03,
-      "equipe caos": 1450.05,
-      "evictix gc": 1467.63,
-      "maui wowie": 1424.67,
-      "melser kindergarten": 1576.7,
-      "arete": 1474.48,
-      "555": 1556.67,
-      "trinity": 1518.04,
-      "4 shurima": 1466.87,
-      "kadiliman": 1468.07,
-      "pulsar": 1474.46,
-      "kiwoom drx": 1654.95,
-      "world sports invictus": 1487.44,
-      "leosun": 1475.86,
-      "the rad syndicate": 1501.87,
-      "gods reign": 1513.47,
-      "xcrew": 1446.68,
-      "agelite": 1479.97,
-      "insomnia": 1501.44,
-      "wec c": 1478.98,
-      "reignite foxx": 1519.68,
-      "division one": 1501.61
+      "xlg": 1570.61,
+      "wolves": 1428.53,
+      "tyloo": 1508.37,
+      "titan": 1422.85,
+      "all gamers": 1482.78,
+      "nova": 1405.09,
+      "jd": 1458.42,
+      "dragon ranger": 1501.89,
+      "karmine corp": 1471.4,
+      "natus vincere": 1500.38,
+      "bbl": 1553.13,
+      "giantx": 1496.22,
+      "evil geniuses": 1461.44,
+      "loud": 1432.72,
+      "apeks": 1409.85,
+      "gentle mates": 1481.38,
+      "liquid": 1591.87,
+      "koi": 1435.82,
+      "bilibili": 1523.88,
+      "funplus phoenix": 1468.62,
+      "2game": 1441.87,
+      "furia": 1462.79,
+      "vitality": 1496.29,
+      "fnatic": 1616.47,
+      "edward": 1574.32,
+      "trace": 1494.82,
+      "mibr": 1523.98,
+      "100 thieves": 1535.66,
+      "kr\u00fc": 1485.36,
+      "zeta division": 1438.02,
+      "nongshim redforce": 1561.94,
+      "boom": 1471.0,
+      "t1": 1570.3,
+      "nrg": 1585.84,
+      "cloud9": 1487.33,
+      "leviat\u00e1n": 1485.07,
+      "detonation focusme": 1455.59,
+      "rex regum qeon": 1540.19,
+      "global": 1490.95,
+      "secret": 1408.14,
+      "sentinels": 1505.64,
+      "paper rex": 1633.69,
+      "kiwoom drx": 1568.87,
+      "g2": 1596.2,
+      "heretics": 1526.5,
+      "fut": 1503.32,
+      "gen.g": 1529.09,
+      "talon": 1510.89,
+      "mibr gc": 1523.37,
+      "giantx gc": 1488.7,
+      "ninetails": 1492.11,
+      "nova gc": 1468.25,
+      "liquid brazil": 1580.05,
+      "kr\u00fc blaze": 1500.58,
+      "xipto gc": 1485.3,
+      "karmine corp gc": 1505.25,
+      "shopify rebellion gold": 1510.71,
+      "g2 gozen": 1592.63,
+      "envy": 1473.46,
+      "ulf": 1486.92,
+      "pcific": 1452.86,
+      "full sense": 1519.91,
+      "varrel": 1453.96,
+      "eternal fire": 1507.51
     },
     "game_counts": {
-      "chaos alliance": 27,
-      "flash": 12,
-      "alter ego": 81,
-      "orangutan": 40,
-      "all gamers young": 12,
-      "boom": 145,
-      "cnesports": 17,
-      "zol": 48,
-      "disguised": 12,
-      "nkt academy": 12,
-      "xipto": 90,
-      "tumt shark": 12,
-      "crest zst": 31,
-      "next gen": 12,
-      "secret": 111,
-      "rival": 19,
-      "dvm esport": 32,
-      "valiant": 88,
-      "joblife": 200,
-      "siko": 52,
-      "xlg": 163,
-      "wolves": 187,
-      "tyloo": 118,
-      "titan": 131,
-      "cicadas": 36,
-      "zerance": 16,
-      "mandatory": 206,
-      "karmine corp blue stars": 84,
-      "ramboot": 169,
-      "zeta": 88,
-      "novo": 139,
-      "hge esport": 104,
-      "kpi": 129,
-      "falke": 131,
-      "dnsty": 208,
-      "koi f\u00e9nix": 148,
-      "bar\u00e7a": 142,
-      "ucam": 196,
-      "jd": 137,
-      "dragon ranger": 164,
-      "all gamers": 107,
-      "nova": 147,
-      "bbl": 163,
-      "giantx": 183,
-      "karmine corp": 160,
-      "natus vincere": 169,
-      "full sense": 188,
-      "rrq academy": 64,
-      "naos": 128,
-      "liquid": 200,
-      "koi": 56,
-      "apeks": 56,
-      "gentle mates": 152,
-      "funplus phoenix": 142,
-      "bilibili": 229,
-      "elected": 16,
-      "critics": 4,
-      "sentinals lover": 4,
-      "vnx": 16,
-      "stk": 4,
-      "marvel aim": 16,
-      "the nation": 8,
-      "xen": 8,
-      "pixel lumina": 199,
-      "exo clan": 60,
-      "genziary": 16,
-      "coalesce": 117,
-      "d\u011bti ulice": 124,
-      "wintermint": 16,
-      "sheshmans": 12,
-      "goodfor3": 20,
-      "nxt": 48,
-      "dudes": 12,
-      "lilmix": 32,
-      "bitfix": 113,
-      "unsigned": 40,
-      "sweetnsour": 68,
-      "formulation": 177,
-      "szach mat": 52,
-      "edward": 223,
-      "the mongolz": 44,
-      "kimmy kittens": 36,
-      "z11": 72,
-      "fnatic": 239,
-      "vitality": 177,
-      "trace": 155,
-      "eintracht frankfurt": 240,
-      "alternate attax": 220,
-      "fokus": 219,
-      "permitta unicorns": 12,
-      "fenerbah\u00e7e": 183,
-      "galakticos": 120,
-      "bbl pcific": 235,
-      "s2g": 223,
-      "fire flux": 199,
-      "eternal fire": 337,
-      "digital athletics": 32,
-      "galatasaray": 256,
-      "papara supermassive": 159,
-      "t1": 232,
-      "zeta division": 102,
-      "nongshim redforce": 185,
-      "mouz": 96,
-      "xperion nxt": 68,
-      "cgn": 247,
-      "teamorangegaming": 36,
-      "istanbul wildcats": 116,
-      "global": 128,
-      "detonation focusme": 95,
-      "rex regum qeon": 203,
-      "drx": 203,
-      "paper rex": 282,
-      "xenon": 4,
-      "talon academy": 60,
-      "oblivion force": 44,
-      "secret academy": 60,
-      "fut": 167,
-      "heretics": 187,
-      "zero tenacity": 84,
-      "wylde": 80,
-      "metizport": 109,
-      "enterprise": 256,
-      "talon": 96,
-      "gen.g": 184,
-      "havu": 32,
-      "nom": 12,
-      "liquid academy": 254,
-      "esc": 80,
-      "shopify rebellion black": 160,
-      "burger boyz": 84,
-      "trust in plug": 44,
-      "shopify rebellion gold": 133,
-      "tsm": 150,
-      "winthrop university": 186,
-      "m80": 124,
-      "hakikimori": 20,
-      "rankers": 16,
-      "blue otter": 112,
-      "ambrosia": 64,
-      "cubert academy": 140,
-      "yfp": 137,
-      "nightblood": 116,
-      "sad": 115,
-      "qor": 148,
-      "leviat\u00e1n academy": 150,
-      "las cabras": 72,
-      "nottingham miedo": 56,
-      "aura": 67,
-      "fuego": 115,
-      "cintanegra": 36,
-      "six karma": 148,
-      "ab3": 131,
-      "scarz": 16,
-      "murash": 51,
-      "detonation focusme academy": 74,
-      "contra": 135,
-      "fusion": 127,
-      "qt dig": 94,
-      "fennel": 118,
-      "reject": 95,
-      "zeta division academy": 64,
-      "9z": 174,
-      "rebirth": 76,
-      "oxen": 129,
-      "shinden": 168,
-      "chivas": 117,
-      "e-xolos lazer": 124,
-      "loud": 71,
-      "sentinels": 216,
-      "g2": 268,
-      "leviat\u00e1n": 127,
-      "nrg": 213,
-      "kr\u00fc": 115,
-      "mibr": 137,
-      "bc swell": 8,
-      "riddle order": 115,
-      "zen": 76,
-      "fearx": 165,
-      "fn": 84,
-      "gen.g global academy": 136,
-      "drx academy": 130,
-      "igzist": 23,
-      "noez foxx": 96,
-      "t1 academy": 138,
-      "sherpa": 68,
-      "dplus": 124,
-      "slt": 194,
-      "yfp x": 97,
-      "catnappers": 24,
-      "teddy tactics": 36,
-      "3": 72,
-      "wadadaa": 136,
-      "bun n gun": 16,
-      "flyquest red": 104,
-      "shrimpmori": 28,
-      "red canids": 140,
-      "furia academy": 110,
-      "corinthians": 92,
-      "tbk": 89,
-      "gr\u00eamio": 24,
-      "mibr academy": 85,
-      "vila do zana": 36,
-      "2game academy": 68,
-      "los": 100,
-      "stellae": 106,
-      "peek": 90,
-      "f4tality": 90,
-      "g2 gozen": 236,
-      "blvkhvnd": 121,
-      "heroic valkyries": 76,
-      "giantx gc": 248,
-      "zerance mint": 121,
-      "lunar": 36,
-      "karmine corp gc": 239,
-      "alternate attax ruby": 96,
-      "nasr ignite": 36,
-      "nebula": 204,
-      "agropesca jacare": 48,
-      "sagaz": 48,
-      "zen gc": 96,
-      "kr\u00fc blaze": 158,
-      "las cabras gc": 60,
-      "prasso clan": 28,
-      "university war gc": 119,
-      "leviat\u00e1n gc": 124,
-      "mix": 28,
-      "hellguardians violett": 56,
-      "gonext": 32,
-      "global academy": 60,
-      "revenant xspark": 69,
-      "asterisk": 54,
-      "contra gc": 116,
-      "fusion x": 124,
-      "no sweat blossom": 106,
-      "1up": 28,
-      "reckoning": 60,
-      "s8ul": 96,
-      "velocity": 102,
-      "myvra gc": 141,
-      "akave black": 139,
-      "ktana gc": 56,
-      "antares gc": 40,
-      "the ultimates": 156,
-      "rvn": 40,
-      "raad": 115,
-      "gng amazigh": 94,
-      "nasr": 12,
-      "gamax": 120,
-      "envy": 174,
-      "twisted minds": 203,
-      "fraggerz": 79,
-      "yung": 54,
-      "voidwalkers": 16,
-      "gb": 28,
-      "baam": 83,
-      "one more": 74,
-      "ulf": 252,
-      "nkt": 85,
-      "ignite": 4,
-      "sharper esport": 98,
-      "fancy": 77,
-      "oasis": 46,
-      "xgod": 32,
-      "s2": 8,
-      "arf": 4,
-      "good boys": 16,
-      "extreme": 72,
-      "eclipse": 16,
-      "acegear tempest": 48,
-      "mir": 142,
-      "bonk": 166,
-      "ctrl": 91,
-      "cloud9": 155,
-      "rizon": 156,
-      "la masia": 20,
-      "furia": 109,
-      "2game": 112,
-      "evil geniuses": 89,
-      "100 thieves": 176,
-      "nobles": 111,
-      "f16": 56,
-      "rafha": 121,
-      "alqadsiah": 189,
-      "stallions": 151,
-      "nuclear zone": 28,
-      "motiv": 141,
-      "prosperity": 32,
-      "funhaver": 24,
-      "overkill black": 4,
-      "fisher fumblers": 28,
-      "teevee": 62,
-      "berzerkers dawn": 24,
-      "evolution": 20,
-      "kessoku band": 24,
-      "100 thieves gc": 95,
-      "prosperity x": 28,
-      "vit.revolution": 12,
-      "ghost gc": 93,
-      "landor": 40,
-      "farenvehn": 70,
-      "ktana": 40,
-      "x\u00f8 ind": 16,
-      "dot exe": 50,
-      "flare": 28,
-      "chets pets": 8,
-      "3bl": 42,
-      "twisted minds orchid": 175,
-      "alqadsiah corals": 85,
-      "dvm gc": 36,
-      "precision power quickness": 24,
-      "sirensix": 12,
-      "hypa hypa": 47,
-      "ytjt": 12,
-      "sisu": 12,
-      "999": 12,
-      "blue eyes white dragon ego": 12,
-      "kimmys kitchen": 20,
-      "diretoria": 16,
-      "elevate": 62,
-      "sissi state punks": 12,
-      "mad army": 24,
-      "love gc": 8,
-      "salapao": 28,
-      "lilax": 8,
-      "falcons vega": 53,
-      "mori dusk hemera": 12,
-      "orion gc": 12,
-      "kitty nya nya": 20,
-      "villianarc": 47,
-      "misa": 87,
-      "polar squad gc": 65,
-      "gold evictix": 32,
-      "nekoma": 32,
-      "legiowon": 59,
-      "2game gc": 50,
-      "curralzinho sync": 12,
-      "liquid brazil": 62,
-      "ainda estamos aqui": 16,
-      "mibr gc": 100,
-      "ballerina cappuccina": 16,
-      "corinthians gc": 40,
-      "brave soldiers gc": 37,
-      "reignite lily": 35,
-      "soleil gc": 12,
-      "drx changers": 12,
-      "delight gc": 8,
-      "meteor gc": 20,
-      "eoto": 16,
-      "fennel female": 36,
-      "sasanqua": 8,
-      "xipto gc": 50,
-      "hide on bush": 16,
-      "f9 eicar": 51,
-      "full box 200": 90,
-      "mania": 57,
-      "boars": 109,
-      "twisted saints": 80,
-      "vertical7even": 12,
-      "easties": 32,
-      "blx corp": 67,
-      "wip": 74,
-      "6gpa": 135,
-      "maryville university": 32,
-      "onside": 68,
-      "legacy kingdom": 28,
-      "solid": 102,
-      "delight": 28,
-      "input lag enjoyers": 20,
-      "alliance angels": 16,
-      "hakikimori gc": 38,
-      "equinox": 24,
-      "artificial intelligence": 20,
-      "mak n cheese": 24,
-      "-": 28,
-      "tenax gc": 24,
-      "ydz black": 24,
-      "box of rocketz": 8,
-      "paintress": 8,
-      "stellae gc": 12,
-      "n\u00e3o estamos aqui": 8,
-      "empire 3": 14,
-      "blue otter gc": 49,
-      "frick my chungus life": 44,
-      "zennit orange gc": 109,
-      "rising gc": 10,
-      "ninetails": 45,
-      "asterisk women": 10,
-      "kiri magenta": 10,
-      "zhu chao": 15,
-      "octagonal disposition": 25,
-      "thunder": 10,
-      "chosen clique": 10,
-      "alg": 15,
-      "rare atom": 26,
-      "any questions": 39,
-      "e-king": 35,
-      "ustunlukuranlar": 10,
-      "gigantic lynx": 10,
-      "lapolizia": 5,
-      "hasbi": 5,
-      "rrr": 30,
-      "dortmund": 110,
-      "vcgn kaltstart": 20,
-      "bodax": 85,
-      "coffeshop": 20,
-      "small crew": 20,
-      "leisure": 20,
-      "klannalan": 15,
-      "bxl zoo": 10,
-      "flow tim cheese": 5,
-      "nova gc": 15,
-      "erah esport": 55,
-      "trashcan": 25,
-      "nfm": 25,
-      "bwbb": 20,
-      "bratan mix": 25,
-      "gofund4omarhouse": 15,
-      "willygpalace": 20,
-      "lost puppies": 20,
-      "nuxeria esport": 30,
-      "oxuji": 25,
-      "melilla titans": 20,
-      "ratatouille": 15,
-      "dimonix gc": 15,
-      "osan university": 15,
-      "kookje university": 10,
-      "drx youth": 5,
-      "iam": 35,
-      "bench5": 10,
-      "2l8": 10,
-      "fut academy": 40,
-      "envy x flyquest": 25,
-      "kr\u00fc x lyon": 20,
-      "winthrop x shopify rebellion": 25,
-      "next": 10,
-      "howlers": 35,
-      "mayhem": 40,
-      "ghools": 50,
-      "vibranium": 35,
-      "ggez": 15,
-      "lit esport": 15,
-      "dream chaser": 15,
-      "todak": 15,
-      "esprit sh\u014dnen": 35,
-      "caldya": 35,
-      "galions": 45,
-      "bushido wildcats": 35,
-      "be\u015fikta\u015f": 65,
-      "otakar": 43,
-      "fokus sakura": 15,
-      "streamerzone indigo": 15,
-      "hornets": 10,
-      "cristaux de menthe": 10,
-      "s2g female": 20,
-      "ssp numina": 15,
-      "overpeek": 10,
-      "bar\u00e7a gc": 55,
-      "bem": 10,
-      "twisted saints x": 15,
-      "kit cats": 20,
-      "la mala": 10,
-      "azure dragon": 37,
-      "nrg academy": 52,
-      "alliance guardians": 32,
-      "sleepers": 47,
-      "evil geniuses academy": 42,
-      "pigeons": 32,
-      "evictix": 42,
-      "rose": 33,
-      "pcific": 15,
-      "bunkurs 13": 15,
-      "ube": 15,
-      "evoplay": 70,
-      "vinfo": 20,
-      "uniway": 60,
-      "leo": 65,
-      "boogeymen": 20,
-      "frg": 65,
-      "vr2": 75,
-      "varrel": 15,
-      "joblife gc": 45,
-      "lyon": 38,
-      "alt f4": 35,
-      "gentle mates gc": 60,
-      "tezcat": 38,
-      "lazer": 35,
-      "kr\u00fc spark": 35,
-      "remo e-sports": 30,
-      "holy": 30,
-      "intz": 36,
-      "paysandu e-sports": 30,
-      "looking for laburo": 27,
-      "olimpo gold": 47,
-      "equipe caos": 32,
-      "evictix gc": 15,
-      "maui wowie": 10,
-      "melser kindergarten": 9,
-      "arete": 11,
-      "555": 9,
-      "trinity": 8,
-      "4 shurima": 4,
-      "kadiliman": 4,
-      "pulsar": 2,
-      "kiwoom drx": 61,
-      "world sports invictus": 1,
-      "leosun": 6,
-      "the rad syndicate": 5,
-      "gods reign": 6,
-      "xcrew": 5,
-      "agelite": 2,
-      "insomnia": 4,
-      "wec c": 2,
-      "reignite foxx": 6,
-      "division one": 2
+      "xlg": 39,
+      "wolves": 32,
+      "tyloo": 26,
+      "titan": 25,
+      "all gamers": 26,
+      "nova": 23,
+      "jd": 23,
+      "dragon ranger": 33,
+      "karmine corp": 31,
+      "natus vincere": 31,
+      "bbl": 36,
+      "giantx": 33,
+      "evil geniuses": 25,
+      "loud": 20,
+      "apeks": 14,
+      "gentle mates": 29,
+      "liquid": 50,
+      "koi": 14,
+      "bilibili": 42,
+      "funplus phoenix": 21,
+      "2game": 15,
+      "furia": 22,
+      "vitality": 31,
+      "fnatic": 48,
+      "edward": 47,
+      "trace": 28,
+      "mibr": 37,
+      "100 thieves": 36,
+      "kr\u00fc": 26,
+      "zeta division": 18,
+      "nongshim redforce": 29,
+      "boom": 14,
+      "t1": 43,
+      "nrg": 49,
+      "cloud9": 31,
+      "leviat\u00e1n": 25,
+      "detonation focusme": 24,
+      "rex regum qeon": 39,
+      "global": 21,
+      "secret": 17,
+      "sentinels": 40,
+      "paper rex": 55,
+      "kiwoom drx": 41,
+      "g2": 52,
+      "heretics": 40,
+      "fut": 28,
+      "gen.g": 37,
+      "talon": 21,
+      "mibr gc": 6,
+      "giantx gc": 2,
+      "ninetails": 3,
+      "nova gc": 3,
+      "liquid brazil": 4,
+      "kr\u00fc blaze": 5,
+      "xipto gc": 2,
+      "karmine corp gc": 3,
+      "shopify rebellion gold": 5,
+      "g2 gozen": 3,
+      "envy": 6,
+      "ulf": 4,
+      "pcific": 5,
+      "full sense": 7,
+      "varrel": 5,
+      "eternal fire": 2
+    },
+    "h2h": {
+      "wolves::xlg": {
+        "a_wins": 0,
+        "b_wins": 6,
+        "games": 6
+      },
+      "titan::tyloo": {
+        "a_wins": 2,
+        "b_wins": 3,
+        "games": 5
+      },
+      "all gamers::nova": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "dragon ranger::jd": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "karmine corp::natus vincere": {
+        "a_wins": 2,
+        "b_wins": 3,
+        "games": 5
+      },
+      "bbl::giantx": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "evil geniuses::loud": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "apeks::gentle mates": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "koi::liquid": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "bilibili::xlg": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "funplus phoenix::titan": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "2game::furia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "karmine corp::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bbl::fnatic": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "edward::nova": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "dragon ranger::trace": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "100 thieves::mibr": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "kr\u00fc::loud": {
+        "a_wins": 4,
+        "b_wins": 1,
+        "games": 5
+      },
+      "all gamers::xlg": {
+        "a_wins": 1,
+        "b_wins": 4,
+        "games": 5
+      },
+      "nongshim redforce::zeta division": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "jd::titan": {
+        "a_wins": 5,
+        "b_wins": 0,
+        "games": 5
+      },
+      "boom::t1": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "cloud9::nrg": {
+        "a_wins": 2,
+        "b_wins": 3,
+        "games": 5
+      },
+      "furia::leviat\u00e1n": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "nova::wolves": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "detonation focusme::rex regum qeon": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "dragon ranger::tyloo": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "global::secret": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "100 thieves::sentinels": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "edward::trace": {
+        "a_wins": 3,
+        "b_wins": 2,
+        "games": 5
+      },
+      "paper rex::t1": {
+        "a_wins": 3,
+        "b_wins": 2,
+        "games": 5
+      },
+      "bilibili::funplus phoenix": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "kiwoom drx::nongshim redforce": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "cloud9::g2": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "jd::xlg": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "dragon ranger::nova": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "gentle mates::heretics": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "fut::liquid": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "edward::xlg": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "dragon ranger::funplus phoenix": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "evil geniuses::furia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "fnatic::natus vincere": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "giantx::karmine corp": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dragon ranger::edward": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "bilibili::trace": {
+        "a_wins": 2,
+        "b_wins": 3,
+        "games": 5
+      },
+      "2game::kr\u00fc": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "gentle mates::koi": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "apeks::liquid": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bilibili::edward": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "cloud9::mibr": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "gen.g::rex regum qeon": {
+        "a_wins": 2,
+        "b_wins": 3,
+        "games": 5
+      },
+      "global::talon": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "100 thieves::nrg": {
+        "a_wins": 3,
+        "b_wins": 4,
+        "games": 7
+      },
+      "paper rex::zeta division": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "boom::nongshim redforce": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "detonation focusme::global": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "rex regum qeon::secret": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "fut::vitality": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "bbl::heretics": {
+        "a_wins": 1,
+        "b_wins": 4,
+        "games": 5
+      },
+      "giantx::liquid": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "fnatic::gentle mates": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "loud::sentinels": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bbl::liquid": {
+        "a_wins": 1,
+        "b_wins": 4,
+        "games": 5
+      },
+      "fnatic::fut": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "gen.g::kiwoom drx": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "t1::talon": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "evil geniuses::mibr": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "detonation focusme::paper rex": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "nongshim redforce::rex regum qeon": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "g2::leviat\u00e1n": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "leviat\u00e1n::mibr": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "detonation focusme::gen.g": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "nongshim redforce::talon": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "kr\u00fc::nrg": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "g2::sentinels": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "mibr::sentinels": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "heretics::vitality": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "gen.g::talon": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "kiwoom drx::t1": {
+        "a_wins": 3,
+        "b_wins": 2,
+        "games": 5
+      },
+      "kr\u00fc::mibr": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "heretics::liquid": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "gen.g::t1": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "liquid::vitality": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "kiwoom drx::sentinels": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "edward::liquid": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "g2::trace": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "t1::vitality": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "edward::g2": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "kiwoom drx::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liquid::sentinels": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "t1::trace": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "g2::liquid": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "g2::vitality": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "edward::t1": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "g2::t1": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "all gamers::trace": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "edward::tyloo": {
+        "a_wins": 5,
+        "b_wins": 0,
+        "games": 5
+      },
+      "jd::wolves": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "funplus phoenix::tyloo": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "furia::g2": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "trace::wolves": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "t1::zeta division": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "2game::evil geniuses": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bilibili::jd": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "secret::talon": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dragon ranger::titan": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "kiwoom drx::paper rex": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "boom::gen.g": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bbl::karmine corp": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "giantx::vitality": {
+        "a_wins": 1,
+        "b_wins": 4,
+        "games": 5
+      },
+      "fut::koi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "apeks::heretics": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jd::trace": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "furia::nrg": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "gentle mates::liquid": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "g2::mibr": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "100 thieves::evil geniuses": {
+        "a_wins": 5,
+        "b_wins": 0,
+        "games": 5
+      },
+      "nongshim redforce::t1": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "secret::zeta division": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kr\u00fc::sentinels": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "2game::loud": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "all gamers::bilibili": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "detonation focusme::kiwoom drx": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "funplus phoenix::nova": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "gen.g::paper rex": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "boom::global": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "rex regum qeon::talon": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cloud9::leviat\u00e1n": {
+        "a_wins": 4,
+        "b_wins": 1,
+        "games": 5
+      },
+      "apeks::natus vincere": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "giantx::heretics": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "fut::gentle mates": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "100 thieves::loud": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "evil geniuses::sentinels": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "karmine corp::koi": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "fnatic::vitality": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "bilibili::wolves": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "edward::titan": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "rex regum qeon::zeta division": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "all gamers::jd": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "trace::xlg": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "nova::tyloo": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "boom::paper rex": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "g2::nrg": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "secret::t1": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "global::kiwoom drx": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "giantx::natus vincere": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "bbl::koi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "100 thieves::2game": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gentle mates::karmine corp": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "apeks::fnatic": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "cloud9::furia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "boom::kiwoom drx": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "all gamers::wolves": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "nongshim redforce::secret": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "mibr::nrg": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "evil geniuses::kr\u00fc": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "gen.g::global": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "edward::funplus phoenix": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nova::titan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "rex regum qeon::t1": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "talon::zeta division": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "apeks::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fnatic::giantx": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bbl::gentle mates": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "nova::xlg": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "titan::wolves": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "heretics::natus vincere": {
+        "a_wins": 2,
+        "b_wins": 3,
+        "games": 5
+      },
+      "fut::karmine corp": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "nova::trace": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "100 thieves::kr\u00fc": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "2game::sentinels": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "global::paper rex": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "furia::mibr": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "boom::detonation focusme": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "leviat\u00e1n::nrg": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "apeks::giantx": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bbl::fut": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "cloud9::sentinels": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "natus vincere::vitality": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cloud9::evil geniuses": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "kiwoom drx::rex regum qeon": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "100 thieves::g2": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "fnatic::heretics": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "karmine corp::liquid": {
+        "a_wins": 2,
+        "b_wins": 3,
+        "games": 5
+      },
+      "evil geniuses::g2": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kiwoom drx::talon": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bbl::natus vincere": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::liquid": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "paper rex::rex regum qeon": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "liquid::natus vincere": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "gentle mates::natus vincere": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "apeks::fut": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "100 thieves::furia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "2game::cloud9": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "gentle mates::vitality": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cloud9::kr\u00fc": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kr\u00fc::leviat\u00e1n": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "2game::nrg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "100 thieves::cloud9": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "fut::natus vincere": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bilibili::liquid": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heretics::paper rex": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "gen.g::mibr": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "sentinels::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bilibili::sentinels": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liquid::mibr": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heretics::wolves": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liquid::paper rex": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "sentinels::xlg": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "g2::paper rex": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "fnatic::gen.g": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "rex regum qeon::wolves": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fnatic::rex regum qeon": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "g2::xlg": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "paper rex::sentinels": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "gen.g::wolves": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fnatic::sentinels": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "g2::gen.g": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::g2": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "paper rex::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::paper rex": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "bilibili::tyloo": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "funplus phoenix::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nrg::rex regum qeon": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bbl::kiwoom drx": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "karmine corp::paper rex": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "100 thieves::fnatic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "edward::gen.g": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "rex regum qeon::titan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heretics::nrg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kiwoom drx::xlg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bbl::sentinels": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "g2::karmine corp": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bilibili::paper rex": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "heretics::titan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "100 thieves::edward": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bilibili::g2": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heretics::rex regum qeon": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bilibili::karmine corp": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gen.g::nrg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::karmine corp": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "gen.g::heretics": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "boom::talon": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "trace::tyloo": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "detonation focusme::zeta division": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "global::rex regum qeon": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leviat\u00e1n::loud": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "all gamers::dragon ranger": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "apeks::karmine corp": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bilibili::titan": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "furia::sentinels": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "2game::g2": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fnatic::koi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "detonation focusme::talon": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "loud::nrg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "funplus phoenix::xlg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dragon ranger::wolves": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "kiwoom drx::secret": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "fut::giantx": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "edward::jd": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "titan::trace": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "all gamers::funplus phoenix": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "gen.g::secret": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dragon ranger::xlg": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "jd::tyloo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "global::nongshim redforce": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "apeks::koi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fut::heretics": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gentle mates::giantx": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bbl::vitality": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "paper rex::talon": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "gen.g::nongshim redforce": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "boom::zeta division": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "all gamers::tyloo": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "detonation focusme::t1": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "koi::natus vincere": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "detonation focusme::nongshim redforce": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "100 thieves::leviat\u00e1n": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "loud::mibr": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bilibili::dragon ranger": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "nrg::sentinels": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "giantx::sentinels": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "paper rex::xlg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kiwoom drx::liquid": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "edward::nrg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "g2::heretics": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dragon ranger::t1": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bilibili::mibr": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kiwoom drx::nrg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "giantx::paper rex": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fnatic::mibr": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heretics::t1": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dragon ranger::g2": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bilibili::rex regum qeon": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "giantx::xlg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mibr::rex regum qeon": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::kiwoom drx": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "giantx::nrg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "heretics::mibr": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kiwoom drx::mibr": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fnatic::nrg": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "giantx gc::mibr gc": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ninetails::nova gc": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kr\u00fc blaze::liquid brazil": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "karmine corp gc::xipto gc": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mibr gc::shopify rebellion gold": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "g2 gozen::nova gc": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "giantx gc::kr\u00fc blaze": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ninetails::xipto gc": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kr\u00fc blaze::nova gc": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mibr gc::ninetails": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "karmine corp gc::shopify rebellion gold": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "g2 gozen::liquid brazil": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "karmine corp gc::kr\u00fc blaze": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "g2 gozen::mibr gc": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kr\u00fc blaze::mibr gc": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liquid brazil::shopify rebellion gold": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "envy::evil geniuses": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "furia::kr\u00fc": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cloud9::loud": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "envy::mibr": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ulf::vitality": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bbl::pcific": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "full sense::zeta division": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "global::varrel": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "envy::kr\u00fc": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "full sense::kiwoom drx": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cloud9::envy": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heretics::ulf": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "giantx::pcific": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "global::zeta division": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "detonation focusme::secret": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kiwoom drx::varrel": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "full sense::nongshim redforce": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "funplus phoenix::jd": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "pcific::ulf": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liquid::ulf": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heretics::karmine corp": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gen.g::varrel": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "detonation focusme::full sense": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "kiwoom drx::zeta division": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leviat\u00e1n::sentinels": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nrg::xlg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "edward::gentle mates": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liquid::t1": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nrg::paper rex": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "liquid::nrg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gentle mates::nongshim redforce": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "furia::paper rex": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "all gamers::g2": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bbl::nrg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "all gamers::gentle mates": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bbl::furia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "g2::nongshim redforce": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "all gamers::paper rex": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bbl::g2": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nongshim redforce::nrg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nongshim redforce::paper rex": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "all gamers::titan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "eternal fire::fnatic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "t1::varrel": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "edward::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bbl::eternal fire": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "rex regum qeon::varrel": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "envy::loud": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      }
     }
   },
   "f1": {

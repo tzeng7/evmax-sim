@@ -478,17 +478,19 @@ class AgentCoordinator:
 
         blended_preds: dict = {}  # event_id → BlendedPrediction
         if self._enable_models and pairs:
+            # Per-sector sharp_weight override comes from data/model_config.json's
+            # `sharp_weight_by_sector` map (see evmax/agents/cleanup/metrics.py).
+            # Tennis / baseball live there as defaults because our models are thin
+            # and we want to trust Pinnacle more heavily on those sports.
+            from evmax.agents.cleanup.metrics import load_config as _load_cfg
+            cfg = _load_cfg()
+            by_sector = cfg.get("sharp_weight_by_sector") or {}
+            sector_sharp_weight = float(by_sector.get(sector.lower(), self._sharp_weight))
             ensemble_req = AgentRequest(
                 sector=sector,
                 params={
                     "pairs": pairs,
-                    # Tennis/baseball: lean harder on sharp since our models are thin.
-                    # Prevents phantom edges from vig removal alone.
-                    "sharp_weight": (
-                        0.92 if sector.lower() == "tennis"
-                        else 0.88 if sector.lower() == "baseball"
-                        else self._sharp_weight
-                    ),
+                    "sharp_weight": sector_sharp_weight,
                 },
                 correlation_id=correlation_id,
             )

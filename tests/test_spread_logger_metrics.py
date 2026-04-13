@@ -532,6 +532,96 @@ class TestComputeBrierScores:
         assert len(result["tiers"]) == 4
 
 
+class TestBrierBySector:
+    def test_returns_empty_on_empty_db(self):
+        from evmax.agents.cleanup.metrics import compute_brier_scores_by_sector
+
+        conn = _make_in_memory_db()
+        with patch("evmax.agents.cleanup.metrics.get_connection", return_value=conn):
+            result = compute_brier_scores_by_sector(weeks=52)
+        assert result == []
+
+    def test_splits_rows_by_sector(self):
+        """Two sectors with different calibration should produce two rows,
+        sorted by sample count desc, with the right edge_pct sign."""
+        from evmax.agents.cleanup.metrics import compute_brier_scores_by_sector
+
+        conn = _make_in_memory_db()
+        scan_date = (date.today() - timedelta(days=7)).isoformat()
+
+        # NBA: model is much better (blend=0.9 vs sharp=0.5 on outcome=1)
+        for i in range(6):
+            mid = f"kalshi:NBA-{i}"
+            conn.execute(
+                "INSERT INTO ev_predictions (scan_date, market_id, event_id, sector, yes_team, "
+                "market_type, kalshi_yes_price, sharp_true_prob, blended_true_prob, ev_pct, "
+                "kelly_fraction, volume_usd, model_sources, sharp_weight_used) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (scan_date, mid, f"ev::nba::{i}", "nba", "team", "moneyline",
+                 0.50, 0.5, 0.9, 0.05, 0.025, 1000.0, "sharp", 0.85),
+            )
+            conn.execute(
+                "INSERT INTO ev_outcomes (market_id, event_id, sector, yes_team, outcome, "
+                "sharp_true_prob, blended_true_prob, result_source) VALUES (?,?,?,?,?,?,?,?)",
+                (mid, f"ev::nba::{i}", "nba", "team", 1, 0.5, 0.9, "espn"),
+            )
+
+        # Soccer: model is worse (blend=0.3 vs sharp=0.6 on outcome=1)
+        for i in range(4):
+            mid = f"kalshi:SOC-{i}"
+            conn.execute(
+                "INSERT INTO ev_predictions (scan_date, market_id, event_id, sector, yes_team, "
+                "market_type, kalshi_yes_price, sharp_true_prob, blended_true_prob, ev_pct, "
+                "kelly_fraction, volume_usd, model_sources, sharp_weight_used) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (scan_date, mid, f"ev::soc::{i}", "soccer", "team", "moneyline",
+                 0.50, 0.6, 0.3, 0.05, 0.025, 1000.0, "sharp", 0.85),
+            )
+            conn.execute(
+                "INSERT INTO ev_outcomes (market_id, event_id, sector, yes_team, outcome, "
+                "sharp_true_prob, blended_true_prob, result_source) VALUES (?,?,?,?,?,?,?,?)",
+                (mid, f"ev::soc::{i}", "soccer", "team", 1, 0.6, 0.3, "espn"),
+            )
+        conn.commit()
+
+        with patch("evmax.agents.cleanup.metrics.get_connection", return_value=conn):
+            result = compute_brier_scores_by_sector(weeks=52)
+
+        assert len(result) == 2
+        # Sorted by n desc → nba first
+        assert result[0]["sector"] == "nba"
+        assert result[0]["n"] == 6
+        assert result[0]["edge_pct"] > 0  # model beats sharp
+        assert result[1]["sector"] == "soccer"
+        assert result[1]["n"] == 4
+        assert result[1]["edge_pct"] < 0  # sharp beats model
+
+
+class TestGetSharpWeight:
+    def test_per_sector_override_wins(self):
+        from evmax.agents.cleanup.metrics import get_sharp_weight
+        cfg = {
+            "sharp_weight": 0.80,
+            "sharp_weight_by_sector": {"tennis": 0.95, "baseball": 0.90},
+        }
+        assert get_sharp_weight("tennis", cfg) == 0.95
+        assert get_sharp_weight("TENNIS", cfg) == 0.95  # case-insensitive
+        assert get_sharp_weight("baseball", cfg) == 0.90
+
+    def test_fallback_to_global(self):
+        from evmax.agents.cleanup.metrics import get_sharp_weight
+        cfg = {"sharp_weight": 0.77, "sharp_weight_by_sector": {"tennis": 0.95}}
+        assert get_sharp_weight("nba", cfg) == 0.77
+        assert get_sharp_weight("", cfg) == 0.77
+
+    def test_backward_compat_missing_dict(self):
+        """Old configs without sharp_weight_by_sector should still work."""
+        from evmax.agents.cleanup.metrics import get_sharp_weight
+        cfg = {"sharp_weight": 0.82}
+        assert get_sharp_weight("nba", cfg) == 0.82
+        assert get_sharp_weight("tennis", cfg) == 0.82
+
+
 class TestAdjustSharpWeight:
     def _base_config(self, sharp_weight=0.85, last_adjusted=None):
         return {

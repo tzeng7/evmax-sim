@@ -12,5 +12,9 @@
       "old_weight": 0.85,
       "new_weight": 0.85
     }
-  ]
+  ],
+  "sharp_weight_by_sector": {
+    "tennis": 0.92,
+    "baseball": 0.88
+  }
 }

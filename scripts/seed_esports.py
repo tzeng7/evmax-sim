@@ -34,19 +34,74 @@ from evmax.matching.normalizer import NameNormalizer
 # League of Legends — Leaguepedia
 # ---------------------------------------------------------------------------
 
-# Major leagues to include (Leaguepedia tournament name substrings)
-LOL_MAJOR_TOURNAMENTS = [
-    "LCK", "LEC", "LCS", "LPL", "CBLOL", "LLA", "VCS",
-    "First Stand", "MSI", "Worlds",
+# Major LoL tournaments. Matched as whole-word tokens (see `_is_major_lol_tournament`)
+# so that substrings like "LCK Challengers League" do NOT count as LCK — academy/
+# Challengers circuits had been polluting Elo with tier-2 teams ranked above T1.
+LOL_MAJOR_TOKENS = {
+    "lck", "lec", "lcs", "lpl", "cblol", "lla", "vcs",
+    "msi", "worlds",
+}
+# Phrase-level majors (multi-word names that are uniquely top-tier)
+LOL_MAJOR_PHRASES = [
+    "first stand",
+    "world championship",
+    "mid-season invitational",
+]
+# Hard exclusions — tier-2 / academy / amateur circuits and regional splits that
+# reuse major-league names.
+LOL_EXCLUDE_KEYWORDS = [
+    "challengers", "academy", "amateur", "scholastic", "collegiate",
+    "development", "promotion", "proving grounds", "second division",
+    "national", "superliga", "ultraliga", "nlc", "pg nationals",
+    "esports balkan", "hitpoint", "elite series", "arabian league",
+    "liga portuguesa", "greek legends",
 ]
 
 
+# Whole-word tokens that mark a tier-2 circuit even when sitting next to a
+# major-league abbreviation — "LCK CL", "LEC CL", etc.
+LOL_EXCLUDE_TOKENS = {"cl"}  # "LCK CL" / "LEC CL" / etc.
+
+
+def _is_major_lol_tournament(name: str) -> bool:
+    """True iff `name` is a recognized tier-1 LoL event."""
+    if not name:
+        return False
+    lowered = name.lower()
+    if any(bad in lowered for bad in LOL_EXCLUDE_KEYWORDS):
+        return False
+    tokens = set(lowered.replace("/", " ").replace("-", " ").split())
+    if tokens & LOL_EXCLUDE_TOKENS:
+        return False
+    if any(phrase in lowered for phrase in LOL_MAJOR_PHRASES):
+        return True
+    # whole-word token match — "LCK" matches "LCK Spring 2025" but not "LCK CL"
+    return bool(tokens & LOL_MAJOR_TOKENS)
+
+
 async def fetch_lol_games(client: httpx.AsyncClient, since: str = "2025-01-01") -> list[dict]:
-    """Fetch LoL match results from Leaguepedia (win/loss only, no scores)."""
+    """Fetch LoL match results from Leaguepedia (win/loss only, no scores).
+
+    Leaguepedia's MediaWiki API silently returns `{"error": {"code": "ratelimited"}}`
+    with an empty cargoquery when anon rate limits trip. We detect that explicitly
+    and back off, because the original seed was getting 0 rows without warning.
+    """
     url = "https://lol.fandom.com/api.php"
-    games = []
+    games: list[dict] = []
     offset = 0
     batch = 500
+    backoff = 2.0
+
+    # Server-side filter via LIKE on Tournament cuts the result set from
+    # ~100k rows (all leagues) down to ~5k rows (majors only), so we finish
+    # well before rate limits bite.
+    major_likes = " OR ".join(
+        f"Tournament LIKE '%{kw}%'" for kw in ("LCK","LEC","LCS","LPL","CBLOL","LLA","VCS","First Stand","MSI","World Championship")
+    )
+    where = (
+        f"DateTime_UTC > '{since}' AND WinTeam IS NOT NULL AND WinTeam != '' "
+        f"AND ({major_likes})"
+    )
 
     while True:
         try:
@@ -54,20 +109,39 @@ async def fetch_lol_games(client: httpx.AsyncClient, since: str = "2025-01-01") 
                 "action": "cargoquery",
                 "tables": "ScoreboardGames",
                 "fields": "Team1,Team2,WinTeam,DateTime_UTC,Tournament",
-                "where": f"DateTime_UTC > '{since}' AND WinTeam IS NOT NULL AND WinTeam != ''",
+                "where": where,
                 "order_by": "DateTime_UTC ASC",
                 "limit": batch,
                 "offset": offset,
                 "format": "json",
             })
             r.raise_for_status()
-            rows = r.json().get("cargoquery", [])
+            payload = r.json()
         except Exception as e:
             print(f"  WARN Leaguepedia fetch error: {e}")
             break
 
+        err = payload.get("error") if isinstance(payload, dict) else None
+        if err:
+            code = err.get("code", "")
+            if code == "ratelimited":
+                if backoff > 300:
+                    print(f"  WARN Leaguepedia rate-limited (gave up after {backoff:.0f}s backoff)")
+                    break
+                print(f"  Leaguepedia rate-limited at offset {offset}, sleeping {backoff:.0f}s")
+                await asyncio.sleep(backoff)
+                backoff *= 2
+                continue
+            print(f"  WARN Leaguepedia error {code}: {err.get('info','')}")
+            break
+
+        # Reset backoff on success
+        backoff = 2.0
+        rows = payload.get("cargoquery", [])
         if not rows:
             break
+        # Throttle to be a polite anon client
+        await asyncio.sleep(0.5)
 
         for row in rows:
             t = row.get("title", row)
@@ -81,7 +155,7 @@ async def fetch_lol_games(client: httpx.AsyncClient, since: str = "2025-01-01") 
                 continue
 
             # Only include major tournaments to avoid noise from amateur leagues
-            if not any(kw.lower() in tournament.lower() for kw in LOL_MAJOR_TOURNAMENTS):
+            if not _is_major_lol_tournament(tournament):
                 continue
 
             if winner == team1:
@@ -154,66 +228,72 @@ async def fetch_bo3_games(
     sector: str,
     since: str = "2025-01-01",
     teams: dict[int, str] | None = None,
+    tiers: tuple[str, ...] = ("s", "a"),
 ) -> list[dict]:
-    """Fetch completed series from bo3.gg for a given discipline."""
+    """Fetch completed series from bo3.gg for a given discipline.
+
+    Uses server-side `tier in {s,a}` filter to exclude tier-2/amateur matches
+    (`b`/`c`), and sorts by `-start_date` to iterate newest → oldest, stopping
+    when we hit the `since` cutoff. Previously used a blind offset-walk that
+    pulled 5k amateur matches and left Vitality/Spirit/Sentinels off the
+    Elo leaderboard entirely.
+    """
     if teams is None:
         print(f"  Fetching bo3.gg team list...")
         teams = await fetch_bo3_teams(client, discipline_id)
         print(f"  Got {len(teams)} teams")
 
     limit = 100
-    # Get total match count for this discipline
-    try:
-        r = await client.get(
-            f"{BO3_GG_BASE}/matches",
-            params={"filter[matches.discipline_id][eq]": discipline_id, "page[limit]": 1, "page[offset]": 0},
-        )
-        total = r.json().get("total", {}).get("count", 0)
-    except Exception:
-        total = 5000
-
-    print(f"  Total bo3.gg {sector} matches: {total}")
-
-    # Work backwards from last page to find matches since cutoff
-    last_offset = max(0, ((total // limit) * limit) - limit)
     games: list[dict] = []
-    found_cutoff = False
+    offset = 0
+    tier_filter = ",".join(tiers)
 
-    for offset in range(last_offset, max(-1, last_offset - 50 * limit), -limit):
+    while True:
         try:
             r = await client.get(
                 f"{BO3_GG_BASE}/matches",
                 params={
                     "filter[matches.discipline_id][eq]": discipline_id,
+                    "filter[matches.tier][in]": tier_filter,
+                    "sort": "-start_date",
                     "page[limit]": limit,
-                    "page[offset]": max(0, offset),
+                    "page[offset]": offset,
                 },
             )
             r.raise_for_status()
-            batch = r.json().get("results", [])
+            payload = r.json()
         except Exception as e:
             print(f"  WARN bo3.gg match fetch error offset {offset}: {e}")
-            continue
+            break
 
+        batch = payload.get("results", [])
         if not batch:
             break
 
+        hit_cutoff = False
         for m in batch:
+            start_date = (m.get("start_date") or "")[:10]
+            if not start_date:
+                continue
+            if start_date < since:
+                hit_cutoff = True
+                continue
+
             team1_id = m.get("team1_id")
             team2_id = m.get("team2_id")
-            t1_score = m.get("team1_score", 0)
-            t2_score = m.get("team2_score", 0)
-            start_date = (m.get("start_date") or "")[:10]
+            if not team1_id or not team2_id:
+                continue
 
-            if not start_date or start_date < since:
-                found_cutoff = True
+            t1_score = m.get("team1_score", 0) or 0
+            t2_score = m.get("team2_score", 0) or 0
+            if t1_score == 0 and t2_score == 0:
+                continue  # unplayed / walkover
+            if m.get("winner_team_id") is None:
                 continue
 
             team1_name = teams.get(team1_id, "")
             team2_name = teams.get(team2_id, "")
             if not team1_name or not team2_name:
-                continue
-            if t1_score == 0 and t2_score == 0:
                 continue
 
             games.append({
@@ -224,31 +304,54 @@ async def fetch_bo3_games(
                 "score_away": float(t2_score),
             })
 
-        if found_cutoff:
+        if hit_cutoff:
             break
+        if len(batch) < limit:
+            break
+        offset += limit
 
     return games
 
 
 async def fetch_cs2_games(client: httpx.AsyncClient, since: str = "2025-01-01") -> list[dict]:
-    """Fetch CS2 series results from bo3.gg."""
-    return await fetch_bo3_games(client, discipline_id=1, sector="cs2", since=since)
+    """Fetch CS2 series results from bo3.gg.
+
+    s + a tiers — s covers Tier-1 circuits (BLAST, IEM, ESL Pro League),
+    a covers national leagues. Empirically yields Vitality/Spirit/NAVI at top.
+    """
+    return await fetch_bo3_games(client, discipline_id=1, sector="cs2", since=since, tiers=("s", "a"))
 
 
 async def fetch_valorant_games(client: httpx.AsyncClient, since: str = "2025-01-01") -> list[dict]:
-    """Fetch Valorant series results from bo3.gg."""
-    return await fetch_bo3_games(client, discipline_id=2, sector="valorant", since=since)
+    """Fetch Valorant series results from bo3.gg.
+
+    s-tier only — a-tier is VCT Challengers/Ascension which fragments the
+    rating pool with regional teams that never face VCT-International opponents
+    but still inflate Elo by beating other Challengers teams.
+    """
+    return await fetch_bo3_games(client, discipline_id=2, sector="valorant", since=since, tiers=("s",))
 
 
 # ---------------------------------------------------------------------------
 # Seeding helpers
 # ---------------------------------------------------------------------------
 
-def seed_elo_form(games: list[dict], sector: str) -> int:
-    """Feed games chronologically into Elo + Form agents."""
+def seed_elo_form(games: list[dict], sector: str, reset: bool = True) -> int:
+    """Feed games chronologically into Elo + Form agents.
+
+    If `reset=True` (default), drops any existing state for `sector` before
+    replaying. This prevents stale tier-2 teams from a prior seed pass
+    lingering in the leaderboard when the new filter excludes them.
+    """
     elo = EloModelAgent()
     form = FormModelAgent()
     norm = NameNormalizer(sector)
+
+    if reset:
+        if sector in elo._state:
+            elo._state[sector] = {"ratings": {}, "game_counts": {}, "h2h": {}}
+        if sector in form._state:
+            form._state[sector] = {}
 
     sorted_games = sorted(games, key=lambda g: g["date"])
     count = 0
