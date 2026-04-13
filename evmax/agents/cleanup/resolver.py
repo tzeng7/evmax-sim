@@ -43,6 +43,7 @@ ESPN_SPORT_MAP: dict[str, tuple[str, str, dict]] = {
     "ncaaw":    ("basketball", "womens-college-basketball", {"groups": "50"}),
     "nfl":      ("football", "nfl", {}),
     "baseball": ("baseball", "mlb", {}),
+    "nhl":      ("hockey", "nhl", {}),
     "ufc":      ("mma", "ufc", {}),
     "f1":       ("racing", "f1", {}),
 }
@@ -55,6 +56,8 @@ ESPN_SOCCER_LEAGUES = [
     "ita.1",          # Serie A
     "fra.1",          # Ligue 1
     "uefa.champions", # UCL
+    "uefa.europa",    # UEL
+    "usa.1",          # MLS
 ]
 
 # bo3.gg discipline IDs

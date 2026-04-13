@@ -49,7 +49,9 @@ class PredictionMarketORM(Base):
     event_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     event_id: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # matched event key
-    fetched_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
 
 
 class PredictionMarket(BaseModel):

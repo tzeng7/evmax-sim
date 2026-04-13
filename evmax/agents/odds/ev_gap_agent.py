@@ -89,7 +89,7 @@ class EVGap:
             # line is stored as negative (win by X); format without trailing zeros
             line_str = f"{self.line:.1f}".rstrip("0").rstrip(".")
             return f"{team} {line_str}"
-        if self.market_type in ("over_under", "total") and self.line is not None:
+        if self.market_type == "total" and self.line is not None:
             return f"O/U {self.line:.1f}"
         return team
 

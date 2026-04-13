@@ -89,7 +89,7 @@ REST_ELO_ADJ: dict[str, dict[int, float]] = {
     "ncaaw": {0: -50.0, 1: 0.0, 2: 10.0, 3: 15.0},
     "soccer": {0: -40.0, 1: -15.0, 2: 0.0, 3: 10.0},  # soccer baseline is 2 days
 }
-FORM_STATE_PATH = Path("data/models/form_state.json")
+FORM_STATE_PATH = Path(__file__).resolve().parents[3] / "data" / "models" / "form_state.json"
 
 
 class EloModelAgent(ModelAgent):
