@@ -149,10 +149,9 @@ NFL prop series (`KXNFLPAS`, `KXNFLREC`, etc.) are fetched from Kalshi but `_fet
 `pred_list = list(model_preds.values())` contains all models, but the confidence averaging loop uses `model_contribs` (only models that passed the gate). The indexing mismatch produces incorrect `avg_conf` display values. This doesn't affect probability predictions, only the displayed confidence.
 - Rewrite to compute `avg_conf` directly from the contributing predictions dict rather than by indexing into `pred_list`
 
-### ARCH-7 YES-Team Price Heuristic Fails on Even-Money Games [P2]
-**File:** `evmax/agents/odds/ev_gap_agent.py:345-349`
-The `_resolve_yes_via_market_teams` fallback aligns YES to outcome_a when `|kalshi_ask - sharp.true_prob_a| < 0.05`. When both teams have near-50% probability, both conditions can be true simultaneously, producing ambiguous alignment.
-- Add a tiebreaker: prefer the alignment that results in a higher EV (more conservative: require `< 0.03` threshold, or require one distance to be at least 2x the other)
+### ~~ARCH-7 YES-Team Price Heuristic Fails on Even-Money Games~~ ✅ SHIPPED
+**File:** `evmax/agents/odds/ev_gap_agent.py`
+Replaced the asymmetric `< 0.05` / `> 0.10` thresholds in the `_resolve_yes_via_market_teams` price fallback with an explicit two-condition rule: the closer side must be within 4pp of the YES ask, AND the gap between the two distances must be ≥ 5pp. Near-coin-flip markets (where both distances are similar) now return `None` instead of being force-aligned to an arbitrary outcome. 5 regression tests in `TestEVGapAgent`.
 
 ---
 

@@ -338,15 +338,20 @@ class EVGapAgent(Agent):
             yes_is_home = False
 
         if yes_is_home is None:
-            # Name matching failed — try price-based alignment
+            # Name matching failed — try price-based alignment.
+            # Require the closer side to be tight AND meaningfully closer than the
+            # farther side, so near-coin-flip markets (where both distances are
+            # similar) can never be force-aligned to an arbitrary outcome.
             ask = market.yes_price
             dist_a = abs(ask - sharp.true_prob_a)
             dist_b = abs(ask - sharp.true_prob_b)
-            if dist_a < 0.05 and dist_b > 0.10:
+            closer = min(dist_a, dist_b)
+            gap = abs(dist_a - dist_b)
+            if closer > 0.04 or gap < 0.05:
+                return None
+            if dist_a < dist_b:
                 return sharp.true_prob_a, False
-            if dist_b < 0.05 and dist_a > 0.10:
-                return sharp.true_prob_b, True
-            return None
+            return sharp.true_prob_b, True
 
         # Normalize the YES team's full name and match to sharp outcomes
         normalizer = NameNormalizer(sector)
