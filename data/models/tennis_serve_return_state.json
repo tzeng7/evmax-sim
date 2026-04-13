@@ -1,0 +1,4624 @@
+{
+  "spw": {
+    "taylor fritz": {
+      "spw": 0.6936184430337454,
+      "n": 11972
+    },
+    "matteo berrettini": {
+      "spw": 0.6962801741195093,
+      "n": 5054
+    },
+    "frances tiafoe": {
+      "spw": 0.6650045792205149,
+      "n": 9827
+    },
+    "lorenzo musetti": {
+      "spw": 0.6361528379877004,
+      "n": 9919
+    },
+    "hubert hurkacz": {
+      "spw": 0.6914804362748836,
+      "n": 13111
+    },
+    "kacper zuk": {
+      "spw": 0.5588235294117647,
+      "n": 68
+    },
+    "stefanos tsitsipas": {
+      "spw": 0.6835694306595687,
+      "n": 11083
+    },
+    "stefanos sakellaridis": {
+      "spw": 0.594855305466238,
+      "n": 311
+    },
+    "borna coric": {
+      "spw": 0.6407695153533112,
+      "n": 5406
+    },
+    "borna gojo": {
+      "spw": 0.6796875,
+      "n": 1792
+    },
+    "daniel michalski": {
+      "spw": 0.5418994413407822,
+      "n": 179
+    },
+    "cameron norrie": {
+      "spw": 0.6449782713664897,
+      "n": 8284
+    },
+    "daniel evans": {
+      "spw": 0.6230876216968011,
+      "n": 5752
+    },
+    "david goffin": {
+      "spw": 0.6060331140848265,
+      "n": 4409
+    },
+    "zizou bergs": {
+      "spw": 0.6462167689161554,
+      "n": 3912
+    },
+    "grigor dimitrov": {
+      "spw": 0.6804416084270232,
+      "n": 9873
+    },
+    "dimitar kuzmanov": {
+      "spw": 0.6178343949044586,
+      "n": 314
+    },
+    "michail pervolarakis": {
+      "spw": 0.4166666666666667,
+      "n": 48
+    },
+    "stan wawrinka": {
+      "spw": 0.6575165509446149,
+      "n": 6193
+    },
+    "marc andrea huesler": {
+      "spw": 0.6445927903871829,
+      "n": 3745
+    },
+    "alexander bublik": {
+      "spw": 0.6413310889550693,
+      "n": 7723
+    },
+    "timofey skatov": {
+      "spw": 0.5961538461538461,
+      "n": 936
+    },
+    "alexander zverev": {
+      "spw": 0.6854240806642942,
+      "n": 13488
+    },
+    "oscar otte": {
+      "spw": 0.6367521367521367,
+      "n": 1638
+    },
+    "jiri lehecka": {
+      "spw": 0.6552737963983829,
+      "n": 8163
+    },
+    "tomas machac": {
+      "spw": 0.6307935393258427,
+      "n": 5696
+    },
+    "dalibor svrcina": {
+      "spw": 0.5462184873949579,
+      "n": 476
+    },
+    "alex de minaur": {
+      "spw": 0.6419289633265954,
+      "n": 10389
+    },
+    "rafael nadal": {
+      "spw": 0.6141215106732348,
+      "n": 1827
+    },
+    "jason kubler": {
+      "spw": 0.62375049980008,
+      "n": 2501
+    },
+    "albert ramos": {
+      "spw": 0.5955437151852749,
+      "n": 4129
+    },
+    "thiago monteiro": {
+      "spw": 0.6607451270663706,
+      "n": 4053
+    },
+    "felipe meligeni alves": {
+      "spw": 0.6321243523316062,
+      "n": 965
+    },
+    "casper ruud": {
+      "spw": 0.6581364829396326,
+      "n": 10668
+    },
+    "viktor durasovic": {
+      "spw": 0.6046511627906976,
+      "n": 215
+    },
+    "arthur rinderknech": {
+      "spw": 0.6612330535829567,
+      "n": 6196
+    },
+    "adrian mannarino": {
+      "spw": 0.6282984531392175,
+      "n": 8792
+    },
+    "francisco cerundolo": {
+      "spw": 0.616157820573039,
+      "n": 10645
+    },
+    "federico coria": {
+      "spw": 0.5690184049079755,
+      "n": 3260
+    },
+    "novak djokovic": {
+      "spw": 0.6872634271099745,
+      "n": 9775
+    },
+    "sebastian korda": {
+      "spw": 0.6599478952420129,
+      "n": 7293
+    },
+    "daniil medvedev": {
+      "spw": 0.6507527239457707,
+      "n": 12023
+    },
+    "yoshihito nishioka": {
+      "spw": 0.6217906517445688,
+      "n": 6076
+    },
+    "denis shapovalov": {
+      "spw": 0.6543704891740176,
+      "n": 6235
+    },
+    "karen khachanov": {
+      "spw": 0.6650155512037784,
+      "n": 8681
+    },
+    "jannik sinner": {
+      "spw": 0.7012168303767776,
+      "n": 13642
+    },
+    "alexei popyrin": {
+      "spw": 0.6621934854214957,
+      "n": 8197
+    },
+    "quentin halys": {
+      "spw": 0.6798746362211775,
+      "n": 4467
+    },
+    "roman safiullin": {
+      "spw": 0.6478214985677673,
+      "n": 6633
+    },
+    "miomir kecmanovic": {
+      "spw": 0.6358664691808135,
+      "n": 8777
+    },
+    "jack draper": {
+      "spw": 0.6685280641466208,
+      "n": 6984
+    },
+    "thanasi kokkinakis": {
+      "spw": 0.668234064785789,
+      "n": 5742
+    },
+    "roberto bautista agut": {
+      "spw": 0.6357204735778227,
+      "n": 6926
+    },
+    "mackenzie mcdonald": {
+      "spw": 0.620207871869143,
+      "n": 5869
+    },
+    "marcos giron": {
+      "spw": 0.6454022284804701,
+      "n": 8167
+    },
+    "constant lestienne": {
+      "spw": 0.5651403249630724,
+      "n": 3385
+    },
+    "jordan thompson": {
+      "spw": 0.6560409287682015,
+      "n": 7623
+    },
+    "mikael ymer": {
+      "spw": 0.5920349684312773,
+      "n": 2059
+    },
+    "rinky hijikata": {
+      "spw": 0.5967476327706875,
+      "n": 4858
+    },
+    "lorenzo sonego": {
+      "spw": 0.6593859968450431,
+      "n": 8241
+    },
+    "christopher oconnell": {
+      "spw": 0.6395312981806969,
+      "n": 6486
+    },
+    "soon woo kwon": {
+      "spw": 0.6190959878110716,
+      "n": 1969
+    },
+    "pedro cachin": {
+      "spw": 0.6037919299951385,
+      "n": 4114
+    },
+    "kyle edmund": {
+      "spw": 0.549266247379455,
+      "n": 477
+    },
+    "maxime cressy": {
+      "spw": 0.6671280276816609,
+      "n": 2890
+    },
+    "andy murray": {
+      "spw": 0.6395269501933136,
+      "n": 4397
+    },
+    "andrey rublev": {
+      "spw": 0.6684738630846415,
+      "n": 12358
+    },
+    "holger rune": {
+      "spw": 0.657938564026647,
+      "n": 10808
+    },
+    "daniel elahi galan": {
+      "spw": 0.5990732568402471,
+      "n": 4532
+    },
+    "richard gasquet": {
+      "spw": 0.6200089726334679,
+      "n": 4458
+    },
+    "felix auger aliassime": {
+      "spw": 0.6634794156706507,
+      "n": 7530
+    },
+    "tallon griekspoor": {
+      "spw": 0.6729654069186163,
+      "n": 10002
+    },
+    "benjamin bonzi": {
+      "spw": 0.6408306522374964,
+      "n": 3419
+    },
+    "aslan karatsev": {
+      "spw": 0.6412576340194526,
+      "n": 4421
+    },
+    "botic van de zandschulp": {
+      "spw": 0.6132633844498251,
+      "n": 7434
+    },
+    "pedro martinez": {
+      "spw": 0.5915283099191145,
+      "n": 4698
+    },
+    "filip krajinovic": {
+      "spw": 0.5904298459042985,
+      "n": 1233
+    },
+    "maximilian marterer": {
+      "spw": 0.6177536231884058,
+      "n": 2760
+    },
+    "marin cilic": {
+      "spw": 0.6473118279569893,
+      "n": 1395
+    },
+    "roberto carballes baena": {
+      "spw": 0.6187323943661972,
+      "n": 7100
+    },
+    "marco cecchinato": {
+      "spw": 0.5961934156378601,
+      "n": 1944
+    },
+    "sebastian baez": {
+      "spw": 0.6098765432098765,
+      "n": 8910
+    },
+    "tim van rijthoven": {
+      "spw": 0.697841726618705,
+      "n": 278
+    },
+    "michael mmoh": {
+      "spw": 0.6349206349206349,
+      "n": 2709
+    },
+    "emil ruusuvuori": {
+      "spw": 0.6444581851909105,
+      "n": 6469
+    },
+    "laslo djere": {
+      "spw": 0.635926449787836,
+      "n": 7070
+    },
+    "flavio cobolli": {
+      "spw": 0.6284277137757586,
+      "n": 6163
+    },
+    "bernabe zapata miralles": {
+      "spw": 0.5663560815915386,
+      "n": 3971
+    },
+    "nikoloz basilashvili": {
+      "spw": 0.5903846153846154,
+      "n": 520
+    },
+    "jaume munar": {
+      "spw": 0.5951595159515951,
+      "n": 5454
+    },
+    "ramkumar ramanathan": {
+      "spw": 0.6694214876033058,
+      "n": 242
+    },
+    "radu albot": {
+      "spw": 0.5957446808510638,
+      "n": 2491
+    },
+    "pablo andujar": {
+      "spw": 0.47783251231527096,
+      "n": 203
+    },
+    "sumit nagal": {
+      "spw": 0.5938189845474614,
+      "n": 1812
+    },
+    "manas dhamne": {
+      "spw": 0.5254237288135594,
+      "n": 59
+    },
+    "chun hsin tseng": {
+      "spw": 0.6031957390146472,
+      "n": 751
+    },
+    "alex molcan": {
+      "spw": 0.6014194994396713,
+      "n": 2677
+    },
+    "elias ymer": {
+      "spw": 0.5863717872086073,
+      "n": 1673
+    },
+    "sasi kumar mukund": {
+      "spw": 0.5045045045045045,
+      "n": 111
+    },
+    "jenson brooksby": {
+      "spw": 0.5761494252873564,
+      "n": 696
+    },
+    "gregoire barrere": {
+      "spw": 0.6336864406779661,
+      "n": 4720
+    },
+    "joao sousa": {
+      "spw": 0.5602755453501722,
+      "n": 871
+    },
+    "christopher eubanks": {
+      "spw": 0.6673646907216495,
+      "n": 6208
+    },
+    "ben shelton": {
+      "spw": 0.6815766592599749,
+      "n": 10351
+    },
+    "diego schwartzman": {
+      "spw": 0.5661047027506655,
+      "n": 3381
+    },
+    "j j wolf": {
+      "spw": 0.6329636877582083,
+      "n": 4599
+    },
+    "john isner": {
+      "spw": 0.7151717557251909,
+      "n": 2096
+    },
+    "kiranpal pannu": {
+      "spw": 0.5903954802259888,
+      "n": 354
+    },
+    "ugo humbert": {
+      "spw": 0.6604541559554413,
+      "n": 9336
+    },
+    "fabio fognini": {
+      "spw": 0.5857033051498847,
+      "n": 3903
+    },
+    "alejandro davidovich fokina": {
+      "spw": 0.626139058794158,
+      "n": 8011
+    },
+    "robin haase": {
+      "spw": 0.6052631578947368,
+      "n": 266
+    },
+    "john millman": {
+      "spw": 0.6150121065375302,
+      "n": 413
+    },
+    "tommy paul": {
+      "spw": 0.6497661365762395,
+      "n": 10690
+    },
+    "pablo carreno busta": {
+      "spw": 0.6266195524146054,
+      "n": 1698
+    },
+    "tomas martin etcheverry": {
+      "spw": 0.644609899328859,
+      "n": 9536
+    },
+    "brandon nakashima": {
+      "spw": 0.6760987357013847,
+      "n": 6644
+    },
+    "juncheng shang": {
+      "spw": 0.6349337748344371,
+      "n": 4832
+    },
+    "daniel altmaier": {
+      "spw": 0.6242424242424243,
+      "n": 5940
+    },
+    "nuno borges": {
+      "spw": 0.6228532562489373,
+      "n": 5881
+    },
+    "taro daniel": {
+      "spw": 0.6023329798515377,
+      "n": 4715
+    },
+    "ernesto escobedo": {
+      "spw": 0.605683836589698,
+      "n": 563
+    },
+    "dusan lajovic": {
+      "spw": 0.6171482412060302,
+      "n": 6368
+    },
+    "cristian garin": {
+      "spw": 0.634090909090909,
+      "n": 4400
+    },
+    "yosuke watanuki": {
+      "spw": 0.6466268930702157,
+      "n": 2179
+    },
+    "yannick hanfmann": {
+      "spw": 0.6300954690104561,
+      "n": 6599
+    },
+    "pavel kotov": {
+      "spw": 0.6260468296017775,
+      "n": 5851
+    },
+    "ilya ivashka": {
+      "spw": 0.593235831809872,
+      "n": 2188
+    },
+    "lloyd harris": {
+      "spw": 0.6798853320592451,
+      "n": 2093
+    },
+    "marton fucsovics": {
+      "spw": 0.6316227924025325,
+      "n": 6002
+    },
+    "luca van assche": {
+      "spw": 0.6107478545157335,
+      "n": 4894
+    },
+    "guido pella": {
+      "spw": 0.6218109054527263,
+      "n": 1999
+    },
+    "corentin moutet": {
+      "spw": 0.5956474428726877,
+      "n": 4595
+    },
+    "yibing wu": {
+      "spw": 0.6148830072880705,
+      "n": 2607
+    },
+    "vasek pospisil": {
+      "spw": 0.6348773841961853,
+      "n": 367
+    },
+    "dominic thiem": {
+      "spw": 0.6398069963811821,
+      "n": 4145
+    },
+    "max purcell": {
+      "spw": 0.6366083445491252,
+      "n": 5201
+    },
+    "jeremy chardy": {
+      "spw": 0.5327313769751693,
+      "n": 443
+    },
+    "facundo bagnis": {
+      "spw": 0.6008119079837618,
+      "n": 1478
+    },
+    "denis kudla": {
+      "spw": 0.6089813800657174,
+      "n": 913
+    },
+    "mattia bellucci": {
+      "spw": 0.6561797752808989,
+      "n": 1335
+    },
+    "yu hsiou hsu": {
+      "spw": 0.6006493506493507,
+      "n": 616
+    },
+    "enzo couacaud": {
+      "spw": 0.62756052141527,
+      "n": 537
+    },
+    "hugo dellien": {
+      "spw": 0.587708830548926,
+      "n": 1676
+    },
+    "zhizhen zhang": {
+      "spw": 0.6483501118568232,
+      "n": 7152
+    },
+    "nicolas jarry": {
+      "spw": 0.6727896154788146,
+      "n": 8166
+    },
+    "oleksii krutykh": {
+      "spw": 0.5831533477321814,
+      "n": 463
+    },
+    "laurent lokoli": {
+      "spw": 0.6081424936386769,
+      "n": 393
+    },
+    "juan pablo varillas": {
+      "spw": 0.6001055130572408,
+      "n": 3791
+    },
+    "brandon holt": {
+      "spw": 0.5684803001876173,
+      "n": 533
+    },
+    "aleksandar vukic": {
+      "spw": 0.6428802066515983,
+      "n": 6194
+    },
+    "jan lennard struff": {
+      "spw": 0.6582828548854359,
+      "n": 7594
+    },
+    "juan manuel cerundolo": {
+      "spw": 0.5742120343839542,
+      "n": 1745
+    },
+    "tomas barrios vera": {
+      "spw": 0.5781391147244805,
+      "n": 1107
+    },
+    "luciano darderi": {
+      "spw": 0.6229824138761744,
+      "n": 4151
+    },
+    "federico delbonis": {
+      "spw": 0.6121495327102804,
+      "n": 214
+    },
+    "andrea vavassori": {
+      "spw": 0.6225654801880457,
+      "n": 1489
+    },
+    "hugo gaston": {
+      "spw": 0.5882352941176471,
+      "n": 3570
+    },
+    "alejandro tabilo": {
+      "spw": 0.652352501867065,
+      "n": 5356
+    },
+    "emilio gomez": {
+      "spw": 0.5919395465994962,
+      "n": 794
+    },
+    "jack sock": {
+      "spw": 0.6101364522417154,
+      "n": 513
+    },
+    "alex rybakov": {
+      "spw": 0.5922330097087378,
+      "n": 103
+    },
+    "steve johnson": {
+      "spw": 0.6046931407942239,
+      "n": 554
+    },
+    "zachary svajda": {
+      "spw": 0.6066420664206642,
+      "n": 1355
+    },
+    "gabriel diallo": {
+      "spw": 0.6248269497000462,
+      "n": 2167
+    },
+    "liam krall": {
+      "spw": 0.6375,
+      "n": 80
+    },
+    "fernando verdasco": {
+      "spw": 0.47692307692307695,
+      "n": 325
+    },
+    "arthur fils": {
+      "spw": 0.6500305064063453,
+      "n": 8195
+    },
+    "luca nardi": {
+      "spw": 0.5818373812038015,
+      "n": 1894
+    },
+    "antoine bellier": {
+      "spw": 0.7540983606557377,
+      "n": 122
+    },
+    "clement chidekh": {
+      "spw": 0.6699029126213593,
+      "n": 103
+    },
+    "geoffrey blancaneaux": {
+      "spw": 0.6127450980392157,
+      "n": 204
+    },
+    "matija pecotic": {
+      "spw": 0.636986301369863,
+      "n": 146
+    },
+    "tung lin wu": {
+      "spw": 0.5719844357976653,
+      "n": 257
+    },
+    "aleksandar kovacevic": {
+      "spw": 0.640406258578095,
+      "n": 3643
+    },
+    "carlos alcaraz": {
+      "spw": 0.67650912902944,
+      "n": 11447
+    },
+    "camilo ugo carabelli": {
+      "spw": 0.5325301204819277,
+      "n": 830
+    },
+    "facundo diaz acosta": {
+      "spw": 0.6147087536609177,
+      "n": 3073
+    },
+    "gijs brouwer": {
+      "spw": 0.650853889943074,
+      "n": 1581
+    },
+    "alexandre muller": {
+      "spw": 0.6065608919382505,
+      "n": 4664
+    },
+    "liam broady": {
+      "spw": 0.5883180858550316,
+      "n": 1421
+    },
+    "damir dzumhur": {
+      "spw": 0.5840867992766727,
+      "n": 553
+    },
+    "abedallah shelbayh": {
+      "spw": 0.5779153766769866,
+      "n": 969
+    },
+    "mateus alves": {
+      "spw": 0.6402439024390244,
+      "n": 164
+    },
+    "thomaz bellucci": {
+      "spw": 0.5352112676056338,
+      "n": 71
+    },
+    "joao fonseca": {
+      "spw": 0.6514018691588785,
+      "n": 3210
+    },
+    "leandro riedi": {
+      "spw": 0.6370481927710844,
+      "n": 664
+    },
+    "alexander ritschard": {
+      "spw": 0.6023255813953489,
+      "n": 430
+    },
+    "lukas klein": {
+      "spw": 0.6635071090047393,
+      "n": 1899
+    },
+    "feliciano lopez": {
+      "spw": 0.6519230769230769,
+      "n": 520
+    },
+    "jacopo berrettini": {
+      "spw": 0.5405405405405406,
+      "n": 111
+    },
+    "nick chappell": {
+      "spw": 0.6025641025641025,
+      "n": 78
+    },
+    "rodrigo pacheco mendez": {
+      "spw": 0.6069114470842333,
+      "n": 463
+    },
+    "guido andreozzi": {
+      "spw": 0.5973154362416108,
+      "n": 298
+    },
+    "alexander shevchenko": {
+      "spw": 0.608622276772016,
+      "n": 6518
+    },
+    "matteo arnaldi": {
+      "spw": 0.6197748155817264,
+      "n": 7727
+    },
+    "alexandar lazarov": {
+      "spw": 0.5,
+      "n": 104
+    },
+    "francesco passaro": {
+      "spw": 0.6275695284159613,
+      "n": 827
+    },
+    "malek jaziri": {
+      "spw": 0.3783783783783784,
+      "n": 74
+    },
+    "riccardo bonadio": {
+      "spw": 0.6372093023255814,
+      "n": 215
+    },
+    "carlos taberner": {
+      "spw": 0.4811320754716981,
+      "n": 106
+    },
+    "gael monfils": {
+      "spw": 0.6447300771208226,
+      "n": 5835
+    },
+    "emilio nava": {
+      "spw": 0.6176084099868594,
+      "n": 761
+    },
+    "benoit paire": {
+      "spw": 0.5806831566548881,
+      "n": 849
+    },
+    "jurij rodionov": {
+      "spw": 0.6277436347673397,
+      "n": 1139
+    },
+    "giulio zeppieri": {
+      "spw": 0.6383855024711697,
+      "n": 1214
+    },
+    "sebastian ofner": {
+      "spw": 0.6266167460857727,
+      "n": 5876
+    },
+    "alessandro giannessi": {
+      "spw": 0.42,
+      "n": 50
+    },
+    "pedro sousa": {
+      "spw": 0.5274725274725275,
+      "n": 91
+    },
+    "henrique rocha": {
+      "spw": 0.5726744186046512,
+      "n": 344
+    },
+    "alexey vatutin": {
+      "spw": 0.5314685314685315,
+      "n": 143
+    },
+    "hugo grenier": {
+      "spw": 0.5833979829325058,
+      "n": 1289
+    },
+    "adam moundir": {
+      "spw": 0.6216216216216216,
+      "n": 74
+    },
+    "elliot benchetrit": {
+      "spw": 0.5876288659793815,
+      "n": 291
+    },
+    "younes lalami laaroussi": {
+      "spw": 0.5130434782608696,
+      "n": 115
+    },
+    "ivan gakhov": {
+      "spw": 0.5578947368421052,
+      "n": 285
+    },
+    "valentin vacherot": {
+      "spw": 0.6423982869379015,
+      "n": 467
+    },
+    "jozef kovalik": {
+      "spw": 0.619935170178282,
+      "n": 1234
+    },
+    "attila balazs": {
+      "spw": 0.37719298245614036,
+      "n": 114
+    },
+    "marco trungelliti": {
+      "spw": 0.5900826446280992,
+      "n": 605
+    },
+    "daniel rincon": {
+      "spw": 0.5567010309278351,
+      "n": 194
+    },
+    "lorenzo giustino": {
+      "spw": 0.5217391304347826,
+      "n": 46
+    },
+    "marko topo": {
+      "spw": 0.5286624203821656,
+      "n": 157
+    },
+    "max hans rehberg": {
+      "spw": 0.5609756097560976,
+      "n": 164
+    },
+    "hamad medjedovic": {
+      "spw": 0.6635879218472469,
+      "n": 2815
+    },
+    "dino prizmic": {
+      "spw": 0.5933774834437087,
+      "n": 755
+    },
+    "martin landaluce": {
+      "spw": 0.5775656324582339,
+      "n": 419
+    },
+    "fabian marozsan": {
+      "spw": 0.6247939937740341,
+      "n": 5461
+    },
+    "stefano napolitano": {
+      "spw": 0.6462480857580398,
+      "n": 653
+    },
+    "stefano travaglia": {
+      "spw": 0.5573770491803278,
+      "n": 183
+    },
+    "vitaliy sachko": {
+      "spw": 0.6290322580645161,
+      "n": 186
+    },
+    "nino serdarusic": {
+      "spw": 0.6476190476190476,
+      "n": 105
+    },
+    "pablo llamas ruiz": {
+      "spw": 0.6290849673202614,
+      "n": 612
+    },
+    "oriol roca batalla": {
+      "spw": 0.5333333333333333,
+      "n": 60
+    },
+    "alvaro lopez san martin": {
+      "spw": 0.5079365079365079,
+      "n": 63
+    },
+    "lucas pouille": {
+      "spw": 0.603988603988604,
+      "n": 702
+    },
+    "eduardo nava": {
+      "spw": 0.48623853211009177,
+      "n": 109
+    },
+    "jiri vesely": {
+      "spw": 0.6427015250544662,
+      "n": 918
+    },
+    "patrick kypson": {
+      "spw": 0.6365105008077544,
+      "n": 619
+    },
+    "arthur cazaux": {
+      "spw": 0.6412948381452318,
+      "n": 2286
+    },
+    "genaro alberto olivieri": {
+      "spw": 0.6045340050377834,
+      "n": 397
+    },
+    "giovanni mpetshi perricard": {
+      "spw": 0.6966136834830684,
+      "n": 2894
+    },
+    "dominic stricker": {
+      "spw": 0.6469379367036581,
+      "n": 2433
+    },
+    "thiago agustin tirante": {
+      "spw": 0.6272727272727273,
+      "n": 1320
+    },
+    "thiago seyboth wild": {
+      "spw": 0.6220631013649586,
+      "n": 4469
+    },
+    "milos raonic": {
+      "spw": 0.7148488830486203,
+      "n": 1522
+    },
+    "ricardas berankis": {
+      "spw": 0.6037735849056604,
+      "n": 265
+    },
+    "nick kyrgios": {
+      "spw": 0.6875,
+      "n": 224
+    },
+    "louis wessels": {
+      "spw": 0.6373626373626373,
+      "n": 91
+    },
+    "ryan peniston": {
+      "spw": 0.6,
+      "n": 235
+    },
+    "jan choinski": {
+      "spw": 0.6085626911314985,
+      "n": 981
+    },
+    "alex michelsen": {
+      "spw": 0.6356675705854203,
+      "n": 6269
+    },
+    "li tu": {
+      "spw": 0.6211382113821138,
+      "n": 615
+    },
+    "george loffhagen": {
+      "spw": 0.581081081081081,
+      "n": 222
+    },
+    "kimmer coppejans": {
+      "spw": 0.6104294478527608,
+      "n": 326
+    },
+    "sho shimabukuro": {
+      "spw": 0.598825831702544,
+      "n": 511
+    },
+    "arthur fery": {
+      "spw": 0.5708955223880597,
+      "n": 268
+    },
+    "dennis novak": {
+      "spw": 0.6611111111111111,
+      "n": 180
+    },
+    "shintaro mochizuki": {
+      "spw": 0.5823327615780446,
+      "n": 1166
+    },
+    "dominik koepfer": {
+      "spw": 0.6348737238044062,
+      "n": 3722
+    },
+    "harold mayot": {
+      "spw": 0.6227830832196453,
+      "n": 1466
+    },
+    "otto virtanen": {
+      "spw": 0.6316105769230769,
+      "n": 1664
+    },
+    "filip misolic": {
+      "spw": 0.5994005994005994,
+      "n": 1001
+    },
+    "leo borg": {
+      "spw": 0.6209262435677531,
+      "n": 583
+    },
+    "dragos nicolae madaras": {
+      "spw": 0.5405405405405406,
+      "n": 74
+    },
+    "kevin anderson": {
+      "spw": 0.6443661971830986,
+      "n": 284
+    },
+    "ethan quinn": {
+      "spw": 0.5960264900662252,
+      "n": 604
+    },
+    "james duckworth": {
+      "spw": 0.6452889944576405,
+      "n": 2526
+    },
+    "alex bolt": {
+      "spw": 0.647787610619469,
+      "n": 565
+    },
+    "eliot spizzirri": {
+      "spw": 0.5435540069686411,
+      "n": 287
+    },
+    "yunseong chung": {
+      "spw": 0.5769230769230769,
+      "n": 52
+    },
+    "kei nishikori": {
+      "spw": 0.6156739811912225,
+      "n": 1595
+    },
+    "jason jung": {
+      "spw": 0.5513513513513514,
+      "n": 185
+    },
+    "andres martin": {
+      "spw": 0.494949494949495,
+      "n": 99
+    },
+    "rudolf molleker": {
+      "spw": 0.5892255892255892,
+      "n": 297
+    },
+    "zsombor piros": {
+      "spw": 0.5843621399176955,
+      "n": 243
+    },
+    "jesper de jong": {
+      "spw": 0.6419803600654664,
+      "n": 2444
+    },
+    "duje ajdukovic": {
+      "spw": 0.6133333333333333,
+      "n": 750
+    },
+    "beibit zhukayev": {
+      "spw": 0.6759259259259259,
+      "n": 432
+    },
+    "skander mansouri": {
+      "spw": 0.5786516853932584,
+      "n": 178
+    },
+    "gonzalo lama": {
+      "spw": 0.5675675675675675,
+      "n": 74
+    },
+    "omni kumar": {
+      "spw": 0.5986622073578596,
+      "n": 299
+    },
+    "bradley klahn": {
+      "spw": 0.5573770491803278,
+      "n": 61
+    },
+    "bjorn fratangelo": {
+      "spw": 0.6065573770491803,
+      "n": 61
+    },
+    "alexis galarneau": {
+      "spw": 0.6565217391304348,
+      "n": 230
+    },
+    "mitchell krueger": {
+      "spw": 0.6411238825031929,
+      "n": 783
+    },
+    "strong kirchheimer": {
+      "spw": 0.5895522388059702,
+      "n": 134
+    },
+    "andrey kuznetsov": {
+      "spw": 0.5208333333333334,
+      "n": 48
+    },
+    "illya marchenko": {
+      "spw": 0.5352112676056338,
+      "n": 71
+    },
+    "darian king": {
+      "spw": 0.5511551155115512,
+      "n": 303
+    },
+    "thai son kwiatkowski": {
+      "spw": 0.5764705882352941,
+      "n": 85
+    },
+    "nicolas moreno de alboran": {
+      "spw": 0.6510115606936416,
+      "n": 1384
+    },
+    "learner tien": {
+      "spw": 0.6157894736842106,
+      "n": 1140
+    },
+    "titouan droguet": {
+      "spw": 0.615909090909091,
+      "n": 440
+    },
+    "jakub mensik": {
+      "spw": 0.6367691946466306,
+      "n": 4259
+    },
+    "philip sekulic": {
+      "spw": 0.5914396887159533,
+      "n": 257
+    },
+    "tao mu": {
+      "spw": 0.41304347826086957,
+      "n": 46
+    },
+    "benjamin lock": {
+      "spw": 0.6408450704225352,
+      "n": 142
+    },
+    "jie cui": {
+      "spw": 0.5476190476190477,
+      "n": 42
+    },
+    "alibek kachmazov": {
+      "spw": 0.6213389121338913,
+      "n": 478
+    },
+    "marc polmans": {
+      "spw": 0.5841584158415841,
+      "n": 303
+    },
+    "zhe li": {
+      "spw": 0.5849056603773585,
+      "n": 53
+    },
+    "luke saville": {
+      "spw": 0.5783132530120482,
+      "n": 83
+    },
+    "terence atmane": {
+      "spw": 0.611541774332472,
+      "n": 1161
+    },
+    "yi zhou": {
+      "spw": 0.6248196248196248,
+      "n": 693
+    },
+    "ye cong mo": {
+      "spw": 0.6140350877192983,
+      "n": 57
+    },
+    "dane sweeny": {
+      "spw": 0.5973154362416108,
+      "n": 298
+    },
+    "egor gerasimov": {
+      "spw": 0.6382978723404256,
+      "n": 235
+    },
+    "mikhail kukushkin": {
+      "spw": 0.5961227786752827,
+      "n": 619
+    },
+    "bu yunchaokete": {
+      "spw": 0.6614754098360656,
+      "n": 1220
+    },
+    "rigele te": {
+      "spw": 0.5949367088607594,
+      "n": 158
+    },
+    "denis yevseyev": {
+      "spw": 0.5993485342019544,
+      "n": 307
+    },
+    "karl friberg": {
+      "spw": 0.5950413223140496,
+      "n": 121
+    },
+    "benjamin hassan": {
+      "spw": 0.6418539325842697,
+      "n": 712
+    },
+    "mark lajal": {
+      "spw": 0.6459459459459459,
+      "n": 370
+    },
+    "alexander blockx": {
+      "spw": 0.6,
+      "n": 210
+    },
+    "pierre hugues herbert": {
+      "spw": 0.65402124430956,
+      "n": 659
+    },
+    "mate valkusz": {
+      "spw": 0.6148867313915858,
+      "n": 309
+    },
+    "matteo martineau": {
+      "spw": 0.6461538461538462,
+      "n": 130
+    },
+    "mathias bourgue": {
+      "spw": 0.5949367088607594,
+      "n": 79
+    },
+    "calvin hemery": {
+      "spw": 0.5476190476190477,
+      "n": 42
+    },
+    "cem ilkel": {
+      "spw": 0.6062992125984252,
+      "n": 254
+    },
+    "billy harris": {
+      "spw": 0.6638795986622074,
+      "n": 1196
+    },
+    "seong chan hong": {
+      "spw": 0.6158445440956651,
+      "n": 669
+    },
+    "patrick kaukovalta": {
+      "spw": 0.65,
+      "n": 60
+    },
+    "nicolas barrientos": {
+      "spw": 0.5882352941176471,
+      "n": 51
+    },
+    "nicolas mejia": {
+      "spw": 0.5783582089552238,
+      "n": 268
+    },
+    "yuki bhambri": {
+      "spw": 0.5102040816326531,
+      "n": 49
+    },
+    "steven diez": {
+      "spw": 0.5755395683453237,
+      "n": 139
+    },
+    "chak lam coleman wong": {
+      "spw": 0.6,
+      "n": 80
+    },
+    "james mccabe": {
+      "spw": 0.5765472312703583,
+      "n": 307
+    },
+    "adam walton": {
+      "spw": 0.6480349344978166,
+      "n": 1145
+    },
+    "vit kopriva": {
+      "spw": 0.5548387096774193,
+      "n": 620
+    },
+    "omar jasika": {
+      "spw": 0.6224489795918368,
+      "n": 98
+    },
+    "antoine escoffier": {
+      "spw": 0.5205479452054794,
+      "n": 73
+    },
+    "ugo blanchet": {
+      "spw": 0.6302816901408451,
+      "n": 284
+    },
+    "roman andres burruchaga": {
+      "spw": 0.5352941176470588,
+      "n": 340
+    },
+    "mariano navone": {
+      "spw": 0.5789473684210527,
+      "n": 3211
+    },
+    "francisco comesana": {
+      "spw": 0.625,
+      "n": 1120
+    },
+    "federico agustin gomez": {
+      "spw": 0.5935828877005348,
+      "n": 187
+    },
+    "tennys sandgren": {
+      "spw": 0.620253164556962,
+      "n": 79
+    },
+    "adam neff": {
+      "spw": 0.5,
+      "n": 72
+    },
+    "gustavo heide": {
+      "spw": 0.6067588325652842,
+      "n": 651
+    },
+    "martin damm": {
+      "spw": 0.6884422110552764,
+      "n": 199
+    },
+    "coleman wong": {
+      "spw": 0.6228070175438597,
+      "n": 570
+    },
+    "darwin blanch": {
+      "spw": 0.46296296296296297,
+      "n": 108
+    },
+    "david jorda sanchis": {
+      "spw": 0.5846994535519126,
+      "n": 183
+    },
+    "jaime faria": {
+      "spw": 0.6052631578947368,
+      "n": 152
+    },
+    "matteo gigante": {
+      "spw": 0.5340909090909091,
+      "n": 176
+    },
+    "aziz dougaz": {
+      "spw": 0.6016260162601627,
+      "n": 246
+    },
+    "nick hardt": {
+      "spw": 0.5678391959798995,
+      "n": 199
+    },
+    "alejandro moro canas": {
+      "spw": 0.5955882352941176,
+      "n": 272
+    },
+    "javier barranco cosano": {
+      "spw": 0.6486486486486487,
+      "n": 111
+    },
+    "nikolas sanchez izquierdo": {
+      "spw": 0.49382716049382713,
+      "n": 81
+    },
+    "sebastian fanselow": {
+      "spw": 0.42857142857142855,
+      "n": 49
+    },
+    "henri squire": {
+      "spw": 0.6652977412731006,
+      "n": 487
+    },
+    "tristan schoolkate": {
+      "spw": 0.6396588486140725,
+      "n": 469
+    },
+    "paul jubb": {
+      "spw": 0.6538461538461539,
+      "n": 442
+    },
+    "giles hussey": {
+      "spw": 0.6774193548387096,
+      "n": 124
+    },
+    "charles broom": {
+      "spw": 0.5737704918032787,
+      "n": 183
+    },
+    "jacob fearnley": {
+      "spw": 0.6570796460176991,
+      "n": 452
+    },
+    "henry searle": {
+      "spw": 0.5965909090909091,
+      "n": 176
+    },
+    "maxime janvier": {
+      "spw": 0.6091954022988506,
+      "n": 87
+    },
+    "andrea pellegrino": {
+      "spw": 0.6236559139784946,
+      "n": 93
+    },
+    "reilly opelka": {
+      "spw": 0.6930455635491607,
+      "n": 1251
+    },
+    "lukas neumayer": {
+      "spw": 0.5482233502538071,
+      "n": 197
+    },
+    "joel schwaerzler": {
+      "spw": 0.5526315789473685,
+      "n": 114
+    },
+    "andrea collarini": {
+      "spw": 0.5692307692307692,
+      "n": 65
+    },
+    "matej dodig": {
+      "spw": 0.6107784431137725,
+      "n": 167
+    },
+    "luka mikrut": {
+      "spw": 0.559322033898305,
+      "n": 59
+    },
+    "mili poljicak": {
+      "spw": 0.6311475409836066,
+      "n": 122
+    },
+    "matthew ebden": {
+      "spw": 0.34782608695652173,
+      "n": 46
+    },
+    "moez echargui": {
+      "spw": 0.5886075949367089,
+      "n": 158
+    },
+    "francisco cabral": {
+      "spw": 0.4852941176470588,
+      "n": 68
+    },
+    "petros tsitsipas": {
+      "spw": 0.5576923076923077,
+      "n": 52
+    },
+    "hady habib": {
+      "spw": 0.5982142857142857,
+      "n": 224
+    },
+    "matthew forbes": {
+      "spw": 0.5357142857142857,
+      "n": 112
+    },
+    "kyrian jacquet": {
+      "spw": 0.5620437956204379,
+      "n": 274
+    },
+    "maks kasnikowski": {
+      "spw": 0.5732758620689655,
+      "n": 232
+    },
+    "fajing sun": {
+      "spw": 0.7142857142857143,
+      "n": 98
+    },
+    "yasutaka uchiyama": {
+      "spw": 0.691304347826087,
+      "n": 230
+    },
+    "justin engel": {
+      "spw": 0.6462585034013606,
+      "n": 147
+    },
+    "raphael collignon": {
+      "spw": 0.6145833333333334,
+      "n": 672
+    },
+    "gilles arnaud bailly": {
+      "spw": 0.4852941176470588,
+      "n": 68
+    },
+    "jerome kym": {
+      "spw": 0.6788990825688074,
+      "n": 109
+    },
+    "branko djuric": {
+      "spw": 0.5283018867924528,
+      "n": 53
+    },
+    "manuel guinard": {
+      "spw": 0.625,
+      "n": 72
+    },
+    "theo papamalamis": {
+      "spw": 0.46551724137931033,
+      "n": 58
+    },
+    "nishesh basavareddy": {
+      "spw": 0.6593578700078309,
+      "n": 1277
+    },
+    "norbert gombos": {
+      "spw": 0.5737704918032787,
+      "n": 61
+    },
+    "eero vasa": {
+      "spw": 0.5574324324324325,
+      "n": 296
+    },
+    "dmitry popko": {
+      "spw": 0.5808823529411765,
+      "n": 272
+    },
+    "ignacio buse": {
+      "spw": 0.6139240506329114,
+      "n": 158
+    },
+    "joris de loore": {
+      "spw": 0.4727272727272727,
+      "n": 55
+    },
+    "yshai oliel": {
+      "spw": 0.5967741935483871,
+      "n": 62
+    },
+    "daniel cukierman": {
+      "spw": 0.49230769230769234,
+      "n": 65
+    },
+    "orel kimhi": {
+      "spw": 0.6268656716417911,
+      "n": 67
+    },
+    "kevin krawietz": {
+      "spw": 0.5492957746478874,
+      "n": 71
+    },
+    "lukas pokorny": {
+      "spw": 0.6,
+      "n": 25
+    },
+    "viacheslav bielinskyi": {
+      "spw": 0.5254237288135594,
+      "n": 59
+    },
+    "vladyslav orlov": {
+      "spw": 0.5636363636363636,
+      "n": 55
+    },
+    "nerman fatic": {
+      "spw": 0.6623376623376623,
+      "n": 77
+    },
+    "yanaki milev": {
+      "spw": 0.5726141078838174,
+      "n": 241
+    },
+    "petr nesterov": {
+      "spw": 0.532258064516129,
+      "n": 124
+    },
+    "andrej nedic": {
+      "spw": 0.5714285714285714,
+      "n": 98
+    },
+    "chris rodesch": {
+      "spw": 0.6640926640926641,
+      "n": 259
+    },
+    "alex knaff": {
+      "spw": 0.6480836236933798,
+      "n": 287
+    },
+    "adria soriano barrera": {
+      "spw": 0.6524390243902439,
+      "n": 164
+    },
+    "mohamed safwat": {
+      "spw": 0.562962962962963,
+      "n": 135
+    },
+    "alvaro guillen meza": {
+      "spw": 0.599290780141844,
+      "n": 282
+    },
+    "amr elsayed abdou ahmed mohamed": {
+      "spw": 0.6730769230769231,
+      "n": 52
+    },
+    "andres andrade": {
+      "spw": 0.6428571428571429,
+      "n": 168
+    },
+    "michael bassem sobhy": {
+      "spw": 0.6056338028169014,
+      "n": 71
+    },
+    "marius copil": {
+      "spw": 0.68,
+      "n": 50
+    },
+    "aristotelis thanos": {
+      "spw": 0.6666666666666666,
+      "n": 87
+    },
+    "nicholas david ionel": {
+      "spw": 0.6091954022988506,
+      "n": 87
+    },
+    "ioannis xilas": {
+      "spw": 0.5957446808510638,
+      "n": 47
+    },
+    "luca preda": {
+      "spw": 0.4375,
+      "n": 64
+    },
+    "michael agwi": {
+      "spw": 0.6062992125984252,
+      "n": 254
+    },
+    "osgar ohoisin": {
+      "spw": 0.6666666666666666,
+      "n": 54
+    },
+    "lucas miedler": {
+      "spw": 0.6338028169014085,
+      "n": 71
+    },
+    "saba purtseladze": {
+      "spw": 0.62751677852349,
+      "n": 298
+    },
+    "vilius gaubas": {
+      "spw": 0.6132596685082873,
+      "n": 181
+    },
+    "zura tkemaladze": {
+      "spw": 0.5238095238095238,
+      "n": 147
+    },
+    "elmer moller": {
+      "spw": 0.5668934240362812,
+      "n": 441
+    },
+    "august holmgren": {
+      "spw": 0.7243589743589743,
+      "n": 156
+    },
+    "robert strombachs": {
+      "spw": 0.6333333333333333,
+      "n": 60
+    },
+    "martins rocens": {
+      "spw": 0.43902439024390244,
+      "n": 41
+    },
+    "nicolai budkov kjaer": {
+      "spw": 0.5862068965517241,
+      "n": 145
+    },
+    "davis rolis": {
+      "spw": 0.5892857142857143,
+      "n": 112
+    },
+    "yanki erel": {
+      "spw": 0.6951219512195121,
+      "n": 82
+    },
+    "ajeet rai": {
+      "spw": 0.5492957746478874,
+      "n": 213
+    },
+    "altug celikbilek": {
+      "spw": 0.6617647058823529,
+      "n": 68
+    },
+    "aisam ul haq qureshi": {
+      "spw": 0.6413043478260869,
+      "n": 92
+    },
+    "n sriram balaji": {
+      "spw": 0.8,
+      "n": 55
+    },
+    "aqeel khan": {
+      "spw": 0.6764705882352942,
+      "n": 136
+    },
+    "niki kaliyanda poonacha": {
+      "spw": 0.7692307692307693,
+      "n": 52
+    },
+    "muhammad shoaib": {
+      "spw": 0.5328467153284672,
+      "n": 137
+    },
+    "sergey fomin": {
+      "spw": 0.565,
+      "n": 200
+    },
+    "khumoun sultanov": {
+      "spw": 0.6647727272727273,
+      "n": 176
+    },
+    "kamil majchrzak": {
+      "spw": 0.6806930693069307,
+      "n": 404
+    },
+    "maxim shin": {
+      "spw": 0.36363636363636365,
+      "n": 33
+    },
+    "kaipo marshall": {
+      "spw": 0.5368852459016393,
+      "n": 244
+    },
+    "yousaf khalil": {
+      "spw": 0.4864864864864865,
+      "n": 37
+    },
+    "joaquin  aguilar cardozo": {
+      "spw": 0.4868421052631579,
+      "n": 152
+    },
+    "franco roncadelli": {
+      "spw": 0.5669781931464174,
+      "n": 321
+    },
+    "murkel alejandro dellien velasco": {
+      "spw": 0.5833333333333334,
+      "n": 84
+    },
+    "marcelo arevalo": {
+      "spw": 0.6079545454545454,
+      "n": 176
+    },
+    "cesar cruz": {
+      "spw": 0.5420560747663551,
+      "n": 107
+    },
+    "iliyan radulov": {
+      "spw": 0.6666666666666666,
+      "n": 42
+    },
+    "juan carlos fuentes vasquez": {
+      "spw": 0.5568181818181818,
+      "n": 88
+    },
+    "alan fernando rubio fierros": {
+      "spw": 0.6291390728476821,
+      "n": 151
+    },
+    "aleksandre bakshi": {
+      "spw": 0.6506849315068494,
+      "n": 146
+    },
+    "jack cheng": {
+      "spw": 0.4528301886792453,
+      "n": 53
+    },
+    "marcos lee chan baratau": {
+      "spw": 0.5789473684210527,
+      "n": 76
+    },
+    "gonzalo escobar": {
+      "spw": 0.7045454545454546,
+      "n": 44
+    },
+    "ki lung ng": {
+      "spw": 0.4714285714285714,
+      "n": 70
+    },
+    "alec beckley": {
+      "spw": 0.5714285714285714,
+      "n": 56
+    },
+    "philip henning": {
+      "spw": 0.6046511627906976,
+      "n": 258
+    },
+    "hugo nys": {
+      "spw": 0.6222222222222222,
+      "n": 90
+    },
+    "yassine dlimi": {
+      "spw": 0.5987654320987654,
+      "n": 162
+    },
+    "romain arneodo": {
+      "spw": 0.6808510638297872,
+      "n": 94
+    },
+    "benjamin balleret": {
+      "spw": 0.5887850467289719,
+      "n": 107
+    },
+    "jack loutit": {
+      "spw": 0.6933333333333334,
+      "n": 75
+    },
+    "jose rubin statham": {
+      "spw": 0.5,
+      "n": 56
+    },
+    "cezar cretu": {
+      "spw": 0.5970873786407767,
+      "n": 206
+    },
+    "gabi adrian boitan": {
+      "spw": 0.6904761904761905,
+      "n": 126
+    },
+    "thomas yaka kofi setodji": {
+      "spw": 0.6636363636363637,
+      "n": 220
+    },
+    "liova ayite ajavon": {
+      "spw": 0.6935483870967742,
+      "n": 62
+    },
+    "daniels tens": {
+      "spw": 0.577639751552795,
+      "n": 161
+    },
+    "conor gannon": {
+      "spw": 0.5247524752475248,
+      "n": 101
+    },
+    "kristjan tamm": {
+      "spw": 0.6009615384615384,
+      "n": 208
+    },
+    "juan carlos prado angelo": {
+      "spw": 0.571912013536379,
+      "n": 591
+    },
+    "maximus jones": {
+      "spw": 0.4788732394366197,
+      "n": 71
+    },
+    "wishaya trongcharoenchaikul": {
+      "spw": 0.4358974358974359,
+      "n": 39
+    },
+    "boris arias": {
+      "spw": 0.7547169811320755,
+      "n": 53
+    },
+    "thanapet chanta": {
+      "spw": 0.5857142857142857,
+      "n": 70
+    },
+    "matic kriznik": {
+      "spw": 0.48031496062992124,
+      "n": 127
+    },
+    "sebastian dominko": {
+      "spw": 0.7012987012987013,
+      "n": 154
+    },
+    "petros chrysochos": {
+      "spw": 0.5679012345679012,
+      "n": 81
+    },
+    "menelaos efstathiou": {
+      "spw": 0.5833333333333334,
+      "n": 48
+    },
+    "stylianos christodoulou": {
+      "spw": 0.7,
+      "n": 50
+    },
+    "hamza karmoussi": {
+      "spw": 0.46938775510204084,
+      "n": 49
+    },
+    "diego duran": {
+      "spw": 0.6956521739130435,
+      "n": 46
+    },
+    "gillian osmont": {
+      "spw": 0.41304347826086957,
+      "n": 46
+    },
+    "heve kelley": {
+      "spw": 0.37142857142857144,
+      "n": 35
+    },
+    "matavao fanguna": {
+      "spw": 0.46551724137931033,
+      "n": 58
+    },
+    "hong kit jack wong": {
+      "spw": 0.6631578947368421,
+      "n": 95
+    },
+    "courtney john lock": {
+      "spw": 0.43137254901960786,
+      "n": 51
+    },
+    "benedict badza": {
+      "spw": 0.6829268292682927,
+      "n": 82
+    },
+    "kwok shun dasson chan": {
+      "spw": 0.6265060240963856,
+      "n": 83
+    },
+    "oliver ojakaar": {
+      "spw": 0.7640449438202247,
+      "n": 89
+    },
+    "hamid reza nadaf": {
+      "spw": 0.4852941176470588,
+      "n": 68
+    },
+    "sina moghimi": {
+      "spw": 0.5434782608695652,
+      "n": 138
+    },
+    "blaise bicknell": {
+      "spw": 0.6495726495726496,
+      "n": 117
+    },
+    "rowland phillips": {
+      "spw": 0.5133689839572193,
+      "n": 187
+    },
+    "daniel vallejo": {
+      "spw": 0.6597222222222222,
+      "n": 144
+    },
+    "martin antonio vergara del puerto": {
+      "spw": 0.358974358974359,
+      "n": 39
+    },
+    "fitriadi m rifqi": {
+      "spw": 0.7115384615384616,
+      "n": 104
+    },
+    "komlavi loglo": {
+      "spw": 0.6262626262626263,
+      "n": 99
+    },
+    "anthony susanto": {
+      "spw": 0.49504950495049505,
+      "n": 101
+    },
+    "jesse flores": {
+      "spw": 0.5306122448979592,
+      "n": 49
+    },
+    "rodrigo crespo piedra": {
+      "spw": 0.5795454545454546,
+      "n": 88
+    },
+    "ilya snitari": {
+      "spw": 0.43137254901960786,
+      "n": 153
+    },
+    "nam hoang ly": {
+      "spw": 0.6294117647058823,
+      "n": 170
+    },
+    "kris van wyk": {
+      "spw": 0.5617283950617284,
+      "n": 162
+    },
+    "linh giang trinh": {
+      "spw": 0.45774647887323944,
+      "n": 142
+    },
+    "jessica pegula": {
+      "spw": 0.5993969175787358,
+      "n": 8954
+    },
+    "martina trevisan": {
+      "spw": 0.5356622998544396,
+      "n": 5496
+    },
+    "madison keys": {
+      "spw": 0.605688202247191,
+      "n": 5696
+    },
+    "lucia bronzetti": {
+      "spw": 0.5543762246897452,
+      "n": 6124
+    },
+    "iga swiatek": {
+      "spw": 0.6447383042560284,
+      "n": 8999
+    },
+    "magda linette": {
+      "spw": 0.5760322255790534,
+      "n": 7944
+    },
+    "maria sakkari": {
+      "spw": 0.5949527703369519,
+      "n": 7093
+    },
+    "valentini grammatikopoulou": {
+      "spw": 0.4527363184079602,
+      "n": 201
+    },
+    "petra martic": {
+      "spw": 0.5899547138740222,
+      "n": 4858
+    },
+    "donna vekic": {
+      "spw": 0.5912099549907334,
+      "n": 7554
+    },
+    "despina papamichail": {
+      "spw": 0.5167464114832536,
+      "n": 627
+    },
+    "harriet dart": {
+      "spw": 0.5563542265669925,
+      "n": 3478
+    },
+    "katie swan": {
+      "spw": 0.5747663551401869,
+      "n": 428
+    },
+    "elise mertens": {
+      "spw": 0.5692051979449985,
+      "n": 6618
+    },
+    "alison van uytvanck": {
+      "spw": 0.5429447852760736,
+      "n": 978
+    },
+    "viktoriya tomova": {
+      "spw": 0.5360659031545107,
+      "n": 4977
+    },
+    "isabella shinikova": {
+      "spw": 0.5146198830409356,
+      "n": 171
+    },
+    "gergana topalova": {
+      "spw": 0.4788732394366197,
+      "n": 213
+    },
+    "belinda bencic": {
+      "spw": 0.6154096228868661,
+      "n": 3076
+    },
+    "jil teichmann": {
+      "spw": 0.5517241379310345,
+      "n": 2320
+    },
+    "yulia putintseva": {
+      "spw": 0.5744564474223984,
+      "n": 7313
+    },
+    "zhibek kulambayeva": {
+      "spw": 0.42391304347826086,
+      "n": 92
+    },
+    "laura siegemund": {
+      "spw": 0.5529236022193769,
+      "n": 4686
+    },
+    "jule niemeier": {
+      "spw": 0.5469988674971688,
+      "n": 3532
+    },
+    "petra kvitova": {
+      "spw": 0.6136287344746559,
+      "n": 2979
+    },
+    "marie bouzkova": {
+      "spw": 0.5831257783312578,
+      "n": 6424
+    },
+    "jessica bouzas maneiro": {
+      "spw": 0.5187353629976581,
+      "n": 1708
+    },
+    "olivia gadecki": {
+      "spw": 0.5717592592592593,
+      "n": 1296
+    },
+    "nuria parrizas diaz": {
+      "spw": 0.5243798118049615,
+      "n": 2338
+    },
+    "maddison inglis": {
+      "spw": 0.5309734513274337,
+      "n": 113
+    },
+    "paula badosa": {
+      "spw": 0.5982142857142857,
+      "n": 6160
+    },
+    "zoe hives": {
+      "spw": 0.42857142857142855,
+      "n": 63
+    },
+    "beatriz haddad maia": {
+      "spw": 0.5883113828786454,
+      "n": 8504
+    },
+    "laura pigossi": {
+      "spw": 0.5204236006051437,
+      "n": 1322
+    },
+    "malene helgo": {
+      "spw": 0.5787234042553191,
+      "n": 470
+    },
+    "ulrikke eikeri": {
+      "spw": 0.47577092511013214,
+      "n": 227
+    },
+    "caroline garcia": {
+      "spw": 0.6258620689655172,
+      "n": 7540
+    },
+    "alize cornet": {
+      "spw": 0.5344716494845361,
+      "n": 3104
+    },
+    "nadia podoroska": {
+      "spw": 0.5366228070175438,
+      "n": 4560
+    },
+    "maria lourdes carle": {
+      "spw": 0.5014245014245015,
+      "n": 1755
+    },
+    "aryna sabalenka": {
+      "spw": 0.6316353887399464,
+      "n": 9325
+    },
+    "linda noskova": {
+      "spw": 0.5982822881218604,
+      "n": 6171
+    },
+    "ons jabeur": {
+      "spw": 0.5876200274348422,
+      "n": 5832
+    },
+    "irina camelia begu": {
+      "spw": 0.5661664392905866,
+      "n": 2932
+    },
+    "marta kostyuk": {
+      "spw": 0.5593197278911565,
+      "n": 7350
+    },
+    "victoria azarenka": {
+      "spw": 0.5867227676484339,
+      "n": 6417
+    },
+    "veronika kudermetova": {
+      "spw": 0.5831807296802366,
+      "n": 7099
+    },
+    "marketa vondrousova": {
+      "spw": 0.5820951664472447,
+      "n": 5317
+    },
+    "sorana cirstea": {
+      "spw": 0.5711374583178955,
+      "n": 5398
+    },
+    "elena rybakina": {
+      "spw": 0.6296250616674889,
+      "n": 8108
+    },
+    "claire liu": {
+      "spw": 0.54839845124956,
+      "n": 2841
+    },
+    "qinwen zheng": {
+      "spw": 0.6105399976367718,
+      "n": 8463
+    },
+    "jelena ostapenko": {
+      "spw": 0.5738428553411528,
+      "n": 7929
+    },
+    "bianca andreescu": {
+      "spw": 0.5822705415011499,
+      "n": 4783
+    },
+    "kaia kanepi": {
+      "spw": 0.5710526315789474,
+      "n": 1520
+    },
+    "liudmila samsonova": {
+      "spw": 0.5995734470807784,
+      "n": 7502
+    },
+    "viktorija golubic": {
+      "spw": 0.5551075268817204,
+      "n": 2976
+    },
+    "jaimee fourlis": {
+      "spw": 0.5171428571428571,
+      "n": 350
+    },
+    "danielle collins": {
+      "spw": 0.5968464986860411,
+      "n": 6469
+    },
+    "daria kasatkina": {
+      "spw": 0.5447252747252748,
+      "n": 9100
+    },
+    "priscilla hon": {
+      "spw": 0.5423728813559322,
+      "n": 649
+    },
+    "anhelina kalinina": {
+      "spw": 0.5531207495844038,
+      "n": 6617
+    },
+    "anett kontaveit": {
+      "spw": 0.5721331689272503,
+      "n": 811
+    },
+    "karolina pliskova": {
+      "spw": 0.5879182156133829,
+      "n": 5380
+    },
+    "shelby rogers": {
+      "spw": 0.5820578231292517,
+      "n": 2352
+    },
+    "garbine muguruza": {
+      "spw": 0.5477031802120141,
+      "n": 283
+    },
+    "amanda anisimova": {
+      "spw": 0.5886781090033123,
+      "n": 3321
+    },
+    "ekaterina alexandrova": {
+      "spw": 0.5906462803546191,
+      "n": 7783
+    },
+    "aliaksandra sasnovich": {
+      "spw": 0.5383825417201541,
+      "n": 3895
+    },
+    "shuai zhang": {
+      "spw": 0.5371234620280017,
+      "n": 2357
+    },
+    "coco gauff": {
+      "spw": 0.6005479452054795,
+      "n": 9125
+    },
+    "rebeka masarova": {
+      "spw": 0.5775286896183613,
+      "n": 3747
+    },
+    "danka kovinic": {
+      "spw": 0.5384615384615384,
+      "n": 1287
+    },
+    "ysaline bonaventure": {
+      "spw": 0.5432185523541813,
+      "n": 1423
+    },
+    "lin zhu": {
+      "spw": 0.5638601498394578,
+      "n": 5606
+    },
+    "viktoria hruncakova": {
+      "spw": 0.565707839819515,
+      "n": 1773
+    },
+    "leylah fernandez": {
+      "spw": 0.5857180020811654,
+      "n": 7688
+    },
+    "karolina muchova": {
+      "spw": 0.6095167561562673,
+      "n": 5401
+    },
+    "sofia kenin": {
+      "spw": 0.5834061135371179,
+      "n": 5725
+    },
+    "venus williams": {
+      "spw": 0.534375,
+      "n": 960
+    },
+    "emma raducanu": {
+      "spw": 0.5861157024793389,
+      "n": 3025
+    },
+    "lauren davis": {
+      "spw": 0.5405405405405406,
+      "n": 2405
+    },
+    "rebecca marino": {
+      "spw": 0.5612510860121633,
+      "n": 2302
+    },
+    "julia grabher": {
+      "spw": 0.5536619069553201,
+      "n": 2171
+    },
+    "elena gabriela ruse": {
+      "spw": 0.5601659751037344,
+      "n": 1928
+    },
+    "anna blinkova": {
+      "spw": 0.5355102040816326,
+      "n": 6125
+    },
+    "tatjana maria": {
+      "spw": 0.5482007263123143,
+      "n": 6058
+    },
+    "xin yu wang": {
+      "spw": 0.5689772572518045,
+      "n": 7343
+    },
+    "katie volynets": {
+      "spw": 0.5360634081902246,
+      "n": 3785
+    },
+    "madison brengle": {
+      "spw": 0.5189309576837416,
+      "n": 1347
+    },
+    "bernarda pera": {
+      "spw": 0.557731387400702,
+      "n": 5413
+    },
+    "linda fruhvirtova": {
+      "spw": 0.5413025091626726,
+      "n": 3547
+    },
+    "tamara zidansek": {
+      "spw": 0.5154536390827518,
+      "n": 2006
+    },
+    "nao hibino": {
+      "spw": 0.5388113023708997,
+      "n": 3079
+    },
+    "dalma galfi": {
+      "spw": 0.5853193517635844,
+      "n": 2098
+    },
+    "tereza martincova": {
+      "spw": 0.5356921166977033,
+      "n": 1611
+    },
+    "brenda fruhvirtova": {
+      "spw": 0.5104562737642585,
+      "n": 1052
+    },
+    "xiyu wang": {
+      "spw": 0.5970454188275971,
+      "n": 6363
+    },
+    "erin routliffe": {
+      "spw": 0.5320197044334976,
+      "n": 203
+    },
+    "elisabetta cocciaretto": {
+      "spw": 0.5585909417685119,
+      "n": 5564
+    },
+    "sloane stephens": {
+      "spw": 0.5616236162361624,
+      "n": 5420
+    },
+    "katerina siniakova": {
+      "spw": 0.5559236472629753,
+      "n": 6339
+    },
+    "anna kalinskaya": {
+      "spw": 0.5871104815864022,
+      "n": 5648
+    },
+    "barbora krejcikova": {
+      "spw": 0.5958498023715415,
+      "n": 6072
+    },
+    "anastasia potapova": {
+      "spw": 0.5563038793103449,
+      "n": 7424
+    },
+    "anastasia pavlyuchenkova": {
+      "spw": 0.5864524003254679,
+      "n": 4916
+    },
+    "storm hunter": {
+      "spw": 0.5479559748427673,
+      "n": 1272
+    },
+    "alison riske amritraj": {
+      "spw": 0.5275862068965518,
+      "n": 580
+    },
+    "jasmine paolini": {
+      "spw": 0.5764868951612904,
+      "n": 7936
+    },
+    "maryna zanevska": {
+      "spw": 0.5325022261798753,
+      "n": 1123
+    },
+    "jaqueline cristian": {
+      "spw": 0.5573961735884274,
+      "n": 4286
+    },
+    "mayar sherif": {
+      "spw": 0.5637612709317303,
+      "n": 4658
+    },
+    "patricia maria tig": {
+      "spw": 0.4747634069400631,
+      "n": 634
+    },
+    "talia gibson": {
+      "spw": 0.5860215053763441,
+      "n": 186
+    },
+    "camila osorio": {
+      "spw": 0.5324881141045958,
+      "n": 5048
+    },
+    "panna udvardy": {
+      "spw": 0.503960396039604,
+      "n": 1010
+    },
+    "cristina bucsa": {
+      "spw": 0.5270851246775581,
+      "n": 4652
+    },
+    "eva lys": {
+      "spw": 0.5347544022242817,
+      "n": 2158
+    },
+    "kaja juvan": {
+      "spw": 0.585345545378851,
+      "n": 1201
+    },
+    "selena janicijevic": {
+      "spw": 0.5552995391705069,
+      "n": 434
+    },
+    "lesia tsurenko": {
+      "spw": 0.5139142335766423,
+      "n": 4384
+    },
+    "caty mcnally": {
+      "spw": 0.5372062663185379,
+      "n": 1532
+    },
+    "kateryna baindl": {
+      "spw": 0.5307739183424741,
+      "n": 1641
+    },
+    "kamilla rakhimova": {
+      "spw": 0.5459940652818991,
+      "n": 3707
+    },
+    "anna bondar": {
+      "spw": 0.5673455978975033,
+      "n": 3044
+    },
+    "ana bogdan": {
+      "spw": 0.560389757534557,
+      "n": 4413
+    },
+    "dayana yastremska": {
+      "spw": 0.5412676698586412,
+      "n": 4386
+    },
+    "moyuka uchijima": {
+      "spw": 0.5349706353443673,
+      "n": 1873
+    },
+    "tamara korpatsch": {
+      "spw": 0.5220963172804532,
+      "n": 3530
+    },
+    "polina kudermetova": {
+      "spw": 0.5502183406113537,
+      "n": 1145
+    },
+    "sara bejlek": {
+      "spw": 0.5133037694013304,
+      "n": 902
+    },
+    "clara burel": {
+      "spw": 0.530932962005172,
+      "n": 5027
+    },
+    "coco vandeweghe": {
+      "spw": 0.5581395348837209,
+      "n": 215
+    },
+    "leolia jeanjean": {
+      "spw": 0.5155412647374062,
+      "n": 933
+    },
+    "diana shnaider": {
+      "spw": 0.5892504930966469,
+      "n": 6084
+    },
+    "kristina kucova": {
+      "spw": 0.48615384615384616,
+      "n": 325
+    },
+    "yue yuan": {
+      "spw": 0.5658428624123939,
+      "n": 5422
+    },
+    "varvara gracheva": {
+      "spw": 0.5577249575551783,
+      "n": 5890
+    },
+    "lucrezia stefanini": {
+      "spw": 0.5023446658851114,
+      "n": 1706
+    },
+    "evgeniya rodina": {
+      "spw": 0.5107361963190185,
+      "n": 652
+    },
+    "taylor townsend": {
+      "spw": 0.6074678380922498,
+      "n": 3187
+    },
+    "diane parry": {
+      "spw": 0.5881727292065518,
+      "n": 4701
+    },
+    "elizabeth mandlik": {
+      "spw": 0.515177065767285,
+      "n": 1186
+    },
+    "katherine sebov": {
+      "spw": 0.5082508250825083,
+      "n": 303
+    },
+    "arianne hartono": {
+      "spw": 0.5470798569725864,
+      "n": 839
+    },
+    "anna karolina schmiedlova": {
+      "spw": 0.5312282331088926,
+      "n": 4307
+    },
+    "camila giorgi": {
+      "spw": 0.5744170096021948,
+      "n": 2916
+    },
+    "oksana selekhmeteva": {
+      "spw": 0.546242774566474,
+      "n": 346
+    },
+    "kimberly birrell": {
+      "spw": 0.5603674540682415,
+      "n": 2286
+    },
+    "heather watson": {
+      "spw": 0.5659182498560736,
+      "n": 1737
+    },
+    "anastasia zakharova": {
+      "spw": 0.5606060606060606,
+      "n": 594
+    },
+    "su jeong jang": {
+      "spw": 0.5300171526586621,
+      "n": 583
+    },
+    "mirjam bjorklund": {
+      "spw": 0.561035758323058,
+      "n": 811
+    },
+    "na lae han": {
+      "spw": 0.4984126984126984,
+      "n": 315
+    },
+    "valeria savinykh": {
+      "spw": 0.5297113752122241,
+      "n": 589
+    },
+    "en shuo liang": {
+      "spw": 0.48333333333333334,
+      "n": 240
+    },
+    "ekaterina makarova": {
+      "spw": 0.47386172006745364,
+      "n": 593
+    },
+    "alexandra eala": {
+      "spw": 0.4562043795620438,
+      "n": 822
+    },
+    "bethanie mattek sands": {
+      "spw": 0.32608695652173914,
+      "n": 46
+    },
+    "astra sharma": {
+      "spw": 0.576978417266187,
+      "n": 695
+    },
+    "katie boulter": {
+      "spw": 0.5918708240534521,
+      "n": 5388
+    },
+    "joanne zuger": {
+      "spw": 0.3939393939393939,
+      "n": 66
+    },
+    "lanlana tararudee": {
+      "spw": 0.5284552845528455,
+      "n": 246
+    },
+    "alycia parks": {
+      "spw": 0.5618601930389002,
+      "n": 3419
+    },
+    "erika andreeva": {
+      "spw": 0.5678837291740517,
+      "n": 2821
+    },
+    "olga danilovic": {
+      "spw": 0.5601010101010101,
+      "n": 1980
+    },
+    "ana konjuh": {
+      "spw": 0.5714285714285714,
+      "n": 147
+    },
+    "kristina mladenovic": {
+      "spw": 0.4915254237288136,
+      "n": 472
+    },
+    "marina bassols ribera": {
+      "spw": 0.5,
+      "n": 764
+    },
+    "clara tauson": {
+      "spw": 0.5769906323185011,
+      "n": 3416
+    },
+    "anna lena friedsam": {
+      "spw": 0.5533596837944664,
+      "n": 1771
+    },
+    "sara errani": {
+      "spw": 0.48796960742929507,
+      "n": 2369
+    },
+    "ipek oz": {
+      "spw": 0.5,
+      "n": 194
+    },
+    "vera zvonareva": {
+      "spw": 0.5366459627329192,
+      "n": 805
+    },
+    "katarina zavatska": {
+      "spw": 0.5011933174224343,
+      "n": 419
+    },
+    "rebecca peterson": {
+      "spw": 0.5529640427599611,
+      "n": 1029
+    },
+    "fernanda contreras gomez": {
+      "spw": 0.603290676416819,
+      "n": 547
+    },
+    "elina avanesyan": {
+      "spw": 0.537901758641601,
+      "n": 4947
+    },
+    "simona waltert": {
+      "spw": 0.49230769230769234,
+      "n": 650
+    },
+    "peyton stearns": {
+      "spw": 0.5574794716172795,
+      "n": 5602
+    },
+    "ann li": {
+      "spw": 0.5687086092715232,
+      "n": 1208
+    },
+    "robin montgomery": {
+      "spw": 0.5757970071567989,
+      "n": 1537
+    },
+    "ashlyn krueger": {
+      "spw": 0.5690463783220427,
+      "n": 3838
+    },
+    "magdalena frech": {
+      "spw": 0.5674397314617028,
+      "n": 6554
+    },
+    "louisa chirico": {
+      "spw": 0.5087412587412588,
+      "n": 572
+    },
+    "caroline dolehide": {
+      "spw": 0.5693448110951698,
+      "n": 4182
+    },
+    "emma navarro": {
+      "spw": 0.577623590633131,
+      "n": 6918
+    },
+    "sachia vickery": {
+      "spw": 0.5434782608695652,
+      "n": 1242
+    },
+    "arantxa rus": {
+      "spw": 0.5680803571428571,
+      "n": 4480
+    },
+    "victoria jimenez kasintseva": {
+      "spw": 0.5254545454545455,
+      "n": 550
+    },
+    "hailey baptiste": {
+      "spw": 0.5877325289089995,
+      "n": 1989
+    },
+    "francesca jones": {
+      "spw": 0.5748031496062992,
+      "n": 635
+    },
+    "sara sorribes tormo": {
+      "spw": 0.5124037639007699,
+      "n": 4676
+    },
+    "nuria brancaccio": {
+      "spw": 0.5015923566878981,
+      "n": 628
+    },
+    "eugenie bouchard": {
+      "spw": 0.5794979079497908,
+      "n": 478
+    },
+    "emiliana arango": {
+      "spw": 0.5387076135636596,
+      "n": 1563
+    },
+    "natalija stevanovic": {
+      "spw": 0.5438356164383562,
+      "n": 730
+    },
+    "carol zhao": {
+      "spw": 0.5285714285714286,
+      "n": 700
+    },
+    "sinja kraus": {
+      "spw": 0.5422885572139303,
+      "n": 402
+    },
+    "carolina alves": {
+      "spw": 0.5167173252279635,
+      "n": 329
+    },
+    "reka luca jani": {
+      "spw": 0.4482758620689655,
+      "n": 116
+    },
+    "rosa vicens mas": {
+      "spw": 0.5348837209302325,
+      "n": 43
+    },
+    "raluka serban": {
+      "spw": 0.5053763440860215,
+      "n": 279
+    },
+    "ylena in albon": {
+      "spw": 0.5416666666666666,
+      "n": 216
+    },
+    "harmony tan": {
+      "spw": 0.5396825396825397,
+      "n": 63
+    },
+    "aliona bolsova": {
+      "spw": 0.4827586206896552,
+      "n": 290
+    },
+    "antonia samudio": {
+      "spw": 0.275,
+      "n": 40
+    },
+    "katrina scott": {
+      "spw": 0.49193548387096775,
+      "n": 124
+    },
+    "kayla day": {
+      "spw": 0.5505254648342764,
+      "n": 1237
+    },
+    "elina svitolina": {
+      "spw": 0.5821815465072843,
+      "n": 5354
+    },
+    "fiona crawley": {
+      "spw": 0.515527950310559,
+      "n": 161
+    },
+    "sabine lisicki": {
+      "spw": 0.5772727272727273,
+      "n": 220
+    },
+    "paula ormaechea": {
+      "spw": 0.3902439024390244,
+      "n": 41
+    },
+    "mirra andreeva": {
+      "spw": 0.5924378109452736,
+      "n": 5025
+    },
+    "irene burillo escorihuela": {
+      "spw": 0.5143884892086331,
+      "n": 278
+    },
+    "barbora strycova": {
+      "spw": 0.5417867435158501,
+      "n": 694
+    },
+    "lisa pigato": {
+      "spw": 0.4463276836158192,
+      "n": 177
+    },
+    "camilla rosatello": {
+      "spw": 0.5076142131979695,
+      "n": 394
+    },
+    "diletta cherubini": {
+      "spw": 0.550561797752809,
+      "n": 89
+    },
+    "dalila spiteri": {
+      "spw": 0.42592592592592593,
+      "n": 54
+    },
+    "matilde paoletti": {
+      "spw": 0.5185185185185185,
+      "n": 108
+    },
+    "julia riera": {
+      "spw": 0.5484550561797753,
+      "n": 1424
+    },
+    "jana fett": {
+      "spw": 0.5218855218855218,
+      "n": 1188
+    },
+    "cagla buyukakcay": {
+      "spw": 0.5066666666666667,
+      "n": 150
+    },
+    "timea babos": {
+      "spw": 0.567741935483871,
+      "n": 465
+    },
+    "sada nahimana": {
+      "spw": 0.42,
+      "n": 50
+    },
+    "gabriela lee": {
+      "spw": 0.5077720207253886,
+      "n": 193
+    },
+    "aya el aouni": {
+      "spw": 0.45794392523364486,
+      "n": 107
+    },
+    "tatiana prozorova": {
+      "spw": 0.5165289256198347,
+      "n": 484
+    },
+    "malak el allami": {
+      "spw": 0.3978494623655914,
+      "n": 93
+    },
+    "anastasia tikhonova": {
+      "spw": 0.4838709677419355,
+      "n": 279
+    },
+    "angela fita boluda": {
+      "spw": 0.5333333333333333,
+      "n": 195
+    },
+    "irina khromacheva": {
+      "spw": 0.48936170212765956,
+      "n": 141
+    },
+    "angelina gabueva": {
+      "spw": 0.46,
+      "n": 50
+    },
+    "sarah iliev": {
+      "spw": 0.41509433962264153,
+      "n": 53
+    },
+    "amandine hesse": {
+      "spw": 0.5048543689320388,
+      "n": 103
+    },
+    "elena malygina": {
+      "spw": 0.43661971830985913,
+      "n": 71
+    },
+    "sophie chang": {
+      "spw": 0.5102040816326531,
+      "n": 98
+    },
+    "zhuoxuan bai": {
+      "spw": 0.5469824293353706,
+      "n": 1309
+    },
+    "oceane dodin": {
+      "spw": 0.5506912442396313,
+      "n": 868
+    },
+    "su wei hsieh": {
+      "spw": 0.5949367088607594,
+      "n": 79
+    },
+    "fiona ferro": {
+      "spw": 0.5098934550989346,
+      "n": 657
+    },
+    "jessika ponchet": {
+      "spw": 0.5485362095531587,
+      "n": 1298
+    },
+    "iryna shymanovich": {
+      "spw": 0.515625,
+      "n": 512
+    },
+    "jodie burrage": {
+      "spw": 0.5473484848484849,
+      "n": 1584
+    },
+    "daria snigur": {
+      "spw": 0.5488505747126436,
+      "n": 696
+    },
+    "sonay kartal": {
+      "spw": 0.5826972010178118,
+      "n": 786
+    },
+    "emily appleton": {
+      "spw": 0.48623853211009177,
+      "n": 109
+    },
+    "celine naef": {
+      "spw": 0.5627996164908916,
+      "n": 1043
+    },
+    "emina bektas": {
+      "spw": 0.6129943502824858,
+      "n": 1416
+    },
+    "greet minnen": {
+      "spw": 0.562285357477365,
+      "n": 3203
+    },
+    "susan bandecchi": {
+      "spw": 0.48739495798319327,
+      "n": 119
+    },
+    "zeynep sonmez": {
+      "spw": 0.5395314787701317,
+      "n": 1366
+    },
+    "lesley pattinama kerkhove": {
+      "spw": 0.532258064516129,
+      "n": 62
+    },
+    "lena rueffer": {
+      "spw": 0.5766871165644172,
+      "n": 163
+    },
+    "daria saville": {
+      "spw": 0.5305863708399366,
+      "n": 3155
+    },
+    "margarita gasparyan": {
+      "spw": 0.49162011173184356,
+      "n": 179
+    },
+    "yanina wickmayer": {
+      "spw": 0.5638606676342526,
+      "n": 1378
+    },
+    "maria timofeeva": {
+      "spw": 0.5665338645418326,
+      "n": 1255
+    },
+    "fanny stollar": {
+      "spw": 0.5227272727272727,
+      "n": 352
+    },
+    "anna siskova": {
+      "spw": 0.5584415584415584,
+      "n": 77
+    },
+    "amarissa kiara toth": {
+      "spw": 0.4330708661417323,
+      "n": 127
+    },
+    "rebecca sramkova": {
+      "spw": 0.5697080291970803,
+      "n": 2740
+    },
+    "kateryna bondarenko": {
+      "spw": 0.5418502202643172,
+      "n": 227
+    },
+    "carole monnet": {
+      "spw": 0.5467980295566502,
+      "n": 203
+    },
+    "natalia szabanin": {
+      "spw": 0.47244094488188976,
+      "n": 127
+    },
+    "sofya lansere": {
+      "spw": 0.5598086124401914,
+      "n": 209
+    },
+    "nigina abduraimova": {
+      "spw": 0.5426356589147286,
+      "n": 129
+    },
+    "mia ristic": {
+      "spw": 0.430939226519337,
+      "n": 181
+    },
+    "tessah andrianjafitrimo": {
+      "spw": 0.39705882352941174,
+      "n": 68
+    },
+    "francesca curmi": {
+      "spw": 0.43617021276595747,
+      "n": 94
+    },
+    "eva vedder": {
+      "spw": 0.565677966101695,
+      "n": 472
+    },
+    "aurora zantedeschi": {
+      "spw": 0.4931506849315068,
+      "n": 73
+    },
+    "noma noha akugue": {
+      "spw": 0.5337931034482759,
+      "n": 725
+    },
+    "elvina kalieva": {
+      "spw": 0.47572815533980584,
+      "n": 206
+    },
+    "miriam bianca bulgaru": {
+      "spw": 0.5324675324675324,
+      "n": 539
+    },
+    "elsa jacquemot": {
+      "spw": 0.5134146341463415,
+      "n": 820
+    },
+    "ella seidel": {
+      "spw": 0.5503978779840849,
+      "n": 754
+    },
+    "dalila jakupovic": {
+      "spw": 0.4658385093167702,
+      "n": 161
+    },
+    "chloe paquet": {
+      "spw": 0.5432999088422972,
+      "n": 1097
+    },
+    "jenny duerst": {
+      "spw": 0.2972972972972973,
+      "n": 37
+    },
+    "yuliya hatouka": {
+      "spw": 0.5268817204301075,
+      "n": 186
+    },
+    "ankita raina": {
+      "spw": 0.48556430446194226,
+      "n": 381
+    },
+    "maja chwalinska": {
+      "spw": 0.48494983277591974,
+      "n": 299
+    },
+    "weronika ewald": {
+      "spw": 0.676923076923077,
+      "n": 65
+    },
+    "barbora palicova": {
+      "spw": 0.48739495798319327,
+      "n": 119
+    },
+    "gabriela andrea knutson": {
+      "spw": 0.5175438596491229,
+      "n": 114
+    },
+    "lucie havlickova": {
+      "spw": 0.40476190476190477,
+      "n": 84
+    },
+    "jennifer brady": {
+      "spw": 0.5685210312075983,
+      "n": 737
+    },
+    "caroline wozniacki": {
+      "spw": 0.5776718315454906,
+      "n": 2517
+    },
+    "clervie ngounoue": {
+      "spw": 0.5857142857142857,
+      "n": 280
+    },
+    "ajla tomljanovic": {
+      "spw": 0.5459821428571429,
+      "n": 2240
+    },
+    "yuriko miyazaki": {
+      "spw": 0.5280172413793104,
+      "n": 464
+    },
+    "yafan wang": {
+      "spw": 0.5713035870516185,
+      "n": 2286
+    },
+    "mai hontama": {
+      "spw": 0.53,
+      "n": 1800
+    },
+    "himeno sakatsume": {
+      "spw": 0.5578947368421052,
+      "n": 190
+    },
+    "misaki doi": {
+      "spw": 0.5876288659793815,
+      "n": 194
+    },
+    "demi schuurs": {
+      "spw": 0.34782608695652173,
+      "n": 46
+    },
+    "maria mateas": {
+      "spw": 0.4032258064516129,
+      "n": 62
+    },
+    "asia muhammad": {
+      "spw": 0.5510204081632653,
+      "n": 49
+    },
+    "grace min": {
+      "spw": 0.425531914893617,
+      "n": 47
+    },
+    "stacey fung": {
+      "spw": 0.6387434554973822,
+      "n": 191
+    },
+    "renata zarazua": {
+      "spw": 0.5408753096614368,
+      "n": 1211
+    },
+    "ana sofia sanchez": {
+      "spw": 0.4482758620689655,
+      "n": 203
+    },
+    "ena shibahara": {
+      "spw": 0.5424739195230999,
+      "n": 671
+    },
+    "lya fernandez": {
+      "spw": 0.3541666666666667,
+      "n": 48
+    },
+    "xiaodi you": {
+      "spw": 0.46264367816091956,
+      "n": 348
+    },
+    "ya yi yang": {
+      "spw": 0.5303030303030303,
+      "n": 66
+    },
+    "sakura hosogi": {
+      "spw": 0.5432098765432098,
+      "n": 81
+    },
+    "rina saigo": {
+      "spw": 0.4339622641509434,
+      "n": 53
+    },
+    "fangran tian": {
+      "spw": 0.5151515151515151,
+      "n": 66
+    },
+    "alina korneeva": {
+      "spw": 0.5533333333333333,
+      "n": 600
+    },
+    "ho ching wu": {
+      "spw": 0.2972972972972973,
+      "n": 37
+    },
+    "eudice wong chong": {
+      "spw": 0.5170068027210885,
+      "n": 147
+    },
+    "anna danilina": {
+      "spw": 0.4476987447698745,
+      "n": 239
+    },
+    "hong yi cody wong": {
+      "spw": 0.45,
+      "n": 120
+    },
+    "kathinka von deichmann": {
+      "spw": 0.4575,
+      "n": 400
+    },
+    "dayeon back": {
+      "spw": 0.46919431279620855,
+      "n": 211
+    },
+    "yeon woo ku": {
+      "spw": 0.5213675213675214,
+      "n": 117
+    },
+    "hanyu guo": {
+      "spw": 0.48854961832061067,
+      "n": 131
+    },
+    "ellen perez": {
+      "spw": 0.4,
+      "n": 50
+    },
+    "nikola bartunkova": {
+      "spw": 0.5691489361702128,
+      "n": 188
+    },
+    "martha matoula": {
+      "spw": 0.49122807017543857,
+      "n": 114
+    },
+    "ylona georgiana ghioroaie": {
+      "spw": 0.4166666666666667,
+      "n": 48
+    },
+    "anastasiya soboleva": {
+      "spw": 0.46710526315789475,
+      "n": 152
+    },
+    "petra marcinko": {
+      "spw": 0.5344827586206896,
+      "n": 174
+    },
+    "katarzyna kawa": {
+      "spw": 0.5260273972602739,
+      "n": 730
+    },
+    "darja semenistaja": {
+      "spw": 0.53125,
+      "n": 512
+    },
+    "amina anshba": {
+      "spw": 0.47368421052631576,
+      "n": 152
+    },
+    "sijia wei": {
+      "spw": 0.5384615384615384,
+      "n": 611
+    },
+    "ye xin ma": {
+      "spw": 0.503968253968254,
+      "n": 252
+    },
+    "xinyu jiang": {
+      "spw": 0.4,
+      "n": 50
+    },
+    "yuhan wang": {
+      "spw": 0.49056603773584906,
+      "n": 53
+    },
+    "marina stakusic": {
+      "spw": 0.5428082191780822,
+      "n": 1168
+    },
+    "yuliana lizarazo": {
+      "spw": 0.4727272727272727,
+      "n": 55
+    },
+    "aleksandra krunic": {
+      "spw": 0.5382685069008782,
+      "n": 797
+    },
+    "sohyun park": {
+      "spw": 0.4523809523809524,
+      "n": 168
+    },
+    "maria fernanda herazo gonzalez": {
+      "spw": 0.47058823529411764,
+      "n": 51
+    },
+    "suzan lamens": {
+      "spw": 0.5507669831994156,
+      "n": 1369
+    },
+    "renata jamrichova": {
+      "spw": 0.631578947368421,
+      "n": 152
+    },
+    "tamira paszek": {
+      "spw": 0.518324607329843,
+      "n": 191
+    },
+    "kajsa rinaldo persson": {
+      "spw": 0.5409836065573771,
+      "n": 122
+    },
+    "giuliana olmos": {
+      "spw": 0.5183673469387755,
+      "n": 245
+    },
+    "caijsa wilda hennemann": {
+      "spw": 0.4909090909090909,
+      "n": 110
+    },
+    "angelique kerber": {
+      "spw": 0.5505804311774462,
+      "n": 1809
+    },
+    "daniela seguel": {
+      "spw": 0.40404040404040403,
+      "n": 99
+    },
+    "arina rodionova": {
+      "spw": 0.5406006674082313,
+      "n": 899
+    },
+    "naomi osaka": {
+      "spw": 0.6370313103981445,
+      "n": 2587
+    },
+    "lulu sun": {
+      "spw": 0.6267409470752089,
+      "n": 1436
+    },
+    "mccartney kessler": {
+      "spw": 0.5576923076923077,
+      "n": 1404
+    },
+    "monique barry": {
+      "spw": 0.43333333333333335,
+      "n": 60
+    },
+    "taylah preston": {
+      "spw": 0.5151515151515151,
+      "n": 528
+    },
+    "yuliia starodubtseva": {
+      "spw": 0.5379250217959896,
+      "n": 1147
+    },
+    "qiang wang": {
+      "spw": 0.47391304347826085,
+      "n": 230
+    },
+    "thasaporn naklo": {
+      "spw": 0.44680851063829785,
+      "n": 141
+    },
+    "anastasija sevastova": {
+      "spw": 0.5869565217391305,
+      "n": 368
+    },
+    "anca alexia todoni": {
+      "spw": 0.5691382765531062,
+      "n": 499
+    },
+    "cristina andreea mitu": {
+      "spw": 0.4931506849315068,
+      "n": 73
+    },
+    "katherine hui": {
+      "spw": 0.36363636363636365,
+      "n": 55
+    },
+    "marina melnikova": {
+      "spw": 0.4827586206896552,
+      "n": 87
+    },
+    "liv hovde": {
+      "spw": 0.3728813559322034,
+      "n": 59
+    },
+    "simona halep": {
+      "spw": 0.5471698113207547,
+      "n": 159
+    },
+    "irina bara": {
+      "spw": 0.4956772334293948,
+      "n": 347
+    },
+    "yuliana monroy": {
+      "spw": 0.38461538461538464,
+      "n": 65
+    },
+    "mariana isabel higuita barraza": {
+      "spw": 0.22580645161290322,
+      "n": 31
+    },
+    "valentina mediorreal arias": {
+      "spw": 0.5275590551181102,
+      "n": 127
+    },
+    "alice robbe": {
+      "spw": 0.3829787234042553,
+      "n": 47
+    },
+    "vittoria paganetti": {
+      "spw": 0.45,
+      "n": 140
+    },
+    "federica di sarra": {
+      "spw": 0.4318181818181818,
+      "n": 44
+    },
+    "georgia pedone": {
+      "spw": 0.44776119402985076,
+      "n": 67
+    },
+    "yasmine kabbaj": {
+      "spw": 0.4461538461538462,
+      "n": 65
+    },
+    "berfu cengiz": {
+      "spw": 0.4583333333333333,
+      "n": 48
+    },
+    "julia avdeeva": {
+      "spw": 0.6075949367088608,
+      "n": 79
+    },
+    "lucija ciric bagaric": {
+      "spw": 0.48514851485148514,
+      "n": 101
+    },
+    "amelia rajecki": {
+      "spw": 0.5588235294117647,
+      "n": 68
+    },
+    "julia stusek": {
+      "spw": 0.5797101449275363,
+      "n": 69
+    },
+    "saisai zheng": {
+      "spw": 0.5011389521640092,
+      "n": 439
+    },
+    "mona barthel": {
+      "spw": 0.4935897435897436,
+      "n": 156
+    },
+    "lea boskovic": {
+      "spw": 0.5730994152046783,
+      "n": 171
+    },
+    "varvara lepchenko": {
+      "spw": 0.5251798561151079,
+      "n": 556
+    },
+    "aliona falei": {
+      "spw": 0.4823529411764706,
+      "n": 85
+    },
+    "marie benoit": {
+      "spw": 0.5,
+      "n": 50
+    },
+    "leyre romero gormaz": {
+      "spw": 0.3888888888888889,
+      "n": 54
+    },
+    "laura samson": {
+      "spw": 0.5038759689922481,
+      "n": 387
+    },
+    "dominika salkova": {
+      "spw": 0.5950413223140496,
+      "n": 121
+    },
+    "tara wurth": {
+      "spw": 0.4032258064516129,
+      "n": 62
+    },
+    "sayaka ishii": {
+      "spw": 0.5675675675675675,
+      "n": 259
+    },
+    "lina glushko": {
+      "spw": 0.6063829787234043,
+      "n": 188
+    },
+    "victoria rodriguez": {
+      "spw": 0.4807692307692308,
+      "n": 52
+    },
+    "destanee aiava": {
+      "spw": 0.5555555555555556,
+      "n": 63
+    },
+    "alexa noel": {
+      "spw": 0.4406779661016949,
+      "n": 59
+    },
+    "solana sierra": {
+      "spw": 0.4727272727272727,
+      "n": 55
+    },
+    "maya joint": {
+      "spw": 0.5764139590854392,
+      "n": 831
+    },
+    "iva jovic": {
+      "spw": 0.5520446096654275,
+      "n": 1076
+    },
+    "antonia ruzic": {
+      "spw": 0.5127272727272727,
+      "n": 275
+    },
+    "chiraz bechri": {
+      "spw": 0.3684210526315789,
+      "n": 38
+    },
+    "priska madelyn nugroho": {
+      "spw": 0.3225806451612903,
+      "n": 93
+    },
+    "xinyu gao": {
+      "spw": 0.49829351535836175,
+      "n": 293
+    },
+    "mananchaya sawangkaew": {
+      "spw": 0.5446153846153846,
+      "n": 650
+    },
+    "ksenia laskutova": {
+      "spw": 0.3541666666666667,
+      "n": 48
+    },
+    "jia jing lu": {
+      "spw": 0.5780346820809249,
+      "n": 173
+    },
+    "zarina diyas": {
+      "spw": 0.432,
+      "n": 125
+    },
+    "xinxin yao": {
+      "spw": 0.5,
+      "n": 186
+    },
+    "han shi": {
+      "spw": 0.5545454545454546,
+      "n": 330
+    },
+    "meiling wang": {
+      "spw": 0.5378787878787878,
+      "n": 132
+    },
+    "yufei ren": {
+      "spw": 0.5294117647058824,
+      "n": 51
+    },
+    "aoi ito": {
+      "spw": 0.5566265060240964,
+      "n": 415
+    },
+    "sara saito": {
+      "spw": 0.5664739884393064,
+      "n": 346
+    },
+    "elena pridankina": {
+      "spw": 0.5,
+      "n": 256
+    },
+    "kyoka okamura": {
+      "spw": 0.6071428571428571,
+      "n": 168
+    },
+    "mika stojsavljevic": {
+      "spw": 0.6194690265486725,
+      "n": 113
+    },
+    "mei yamaguchi": {
+      "spw": 0.5352112676056338,
+      "n": 142
+    },
+    "hina inoue": {
+      "spw": 0.5540540540540541,
+      "n": 74
+    },
+    "fangzhou liu": {
+      "spw": 0.4225352112676056,
+      "n": 71
+    },
+    "wushuang zheng": {
+      "spw": 0.49206349206349204,
+      "n": 63
+    },
+    "nina stojanovic": {
+      "spw": 0.5354609929078015,
+      "n": 282
+    },
+    "akasha urhobo": {
+      "spw": 0.43333333333333335,
+      "n": 60
+    },
+    "jazmin ortenzi": {
+      "spw": 0.6,
+      "n": 210
+    },
+    "guiomar maristany zuleta de reales": {
+      "spw": 0.5625,
+      "n": 128
+    },
+    "julia caffarena": {
+      "spw": 0.2571428571428571,
+      "n": 35
+    },
+    "victoria bosio": {
+      "spw": 0.36538461538461536,
+      "n": 52
+    },
+    "nicole fossa huergo": {
+      "spw": 0.5,
+      "n": 74
+    },
+    "luisina giovannini": {
+      "spw": 0.5,
+      "n": 46
+    },
+    "valeriya strakhova": {
+      "spw": 0.449438202247191,
+      "n": 89
+    },
+    "martina capurro taborda": {
+      "spw": 0.5,
+      "n": 76
+    },
+    "francisca jorge": {
+      "spw": 0.7043478260869566,
+      "n": 115
+    },
+    "robin anderson": {
+      "spw": 0.5094339622641509,
+      "n": 53
+    },
+    "marcela zacarias": {
+      "spw": 0.375,
+      "n": 80
+    },
+    "ela nala milic": {
+      "spw": 0.40789473684210525,
+      "n": 76
+    },
+    "veronika erjavec": {
+      "spw": 0.5727272727272728,
+      "n": 220
+    },
+    "sofia costoulas": {
+      "spw": 0.4782608695652174,
+      "n": 115
+    },
+    "hanne vandewinkel": {
+      "spw": 0.5234899328859061,
+      "n": 149
+    },
+    "rafael jodar": {
+      "spw": 0.5368421052631579,
+      "n": 95
+    },
+    "daniel de jonge": {
+      "spw": 0.611764705882353,
+      "n": 85
+    },
+    "michael zheng": {
+      "spw": 0.6708860759493671,
+      "n": 79
+    },
+    "ozan baris": {
+      "spw": 0.5227272727272727,
+      "n": 132
+    },
+    "marcelo tomas barrios vera": {
+      "spw": 0.5845070422535211,
+      "n": 142
+    },
+    "juan bautista torres": {
+      "spw": 0.5590062111801242,
+      "n": 161
+    },
+    "maxim mrva": {
+      "spw": 0.42424242424242425,
+      "n": 66
+    },
+    "harry wendelken": {
+      "spw": 0.6185567010309279,
+      "n": 194
+    },
+    "michael geerts": {
+      "spw": 0.6134453781512605,
+      "n": 119
+    },
+    "bernard tomic": {
+      "spw": 0.5916955017301038,
+      "n": 289
+    },
+    "guy den ouden": {
+      "spw": 0.5865384615384616,
+      "n": 312
+    },
+    "dan martin": {
+      "spw": 0.4528301886792453,
+      "n": 53
+    },
+    "nicolas arseneault": {
+      "spw": 0.5862068965517241,
+      "n": 87
+    },
+    "valentin royer": {
+      "spw": 0.64,
+      "n": 275
+    },
+    "william rejchtman vinciguerra": {
+      "spw": 0.5303030303030303,
+      "n": 66
+    },
+    "ivan ivanov": {
+      "spw": 0.7307692307692307,
+      "n": 52
+    },
+    "ronit karki": {
+      "spw": 0.5681818181818182,
+      "n": 44
+    },
+    "oliver tarvet": {
+      "spw": 0.7948717948717948,
+      "n": 78
+    },
+    "preston stearns": {
+      "spw": 0.6111111111111112,
+      "n": 72
+    },
+    "alejandro lopez escribano": {
+      "spw": 0.5161290322580645,
+      "n": 62
+    },
+    "max schoenhaus": {
+      "spw": 0.5833333333333334,
+      "n": 84
+    },
+    "niels mcdonald": {
+      "spw": 0.7380952380952381,
+      "n": 84
+    },
+    "federico arnaboldi": {
+      "spw": 0.5652173913043478,
+      "n": 46
+    },
+    "federico cina": {
+      "spw": 0.6061946902654868,
+      "n": 226
+    },
+    "jelle sels": {
+      "spw": 0.6153846153846154,
+      "n": 91
+    },
+    "murphy cassone": {
+      "spw": 0.6019417475728155,
+      "n": 103
+    },
+    "mees rottgering": {
+      "spw": 0.5979899497487438,
+      "n": 199
+    },
+    "kryce didier momo kassa": {
+      "spw": 0.2,
+      "n": 30
+    },
+    "max houkes": {
+      "spw": 0.9230769230769231,
+      "n": 26
+    },
+    "nicholas alan van aken": {
+      "spw": 0.28205128205128205,
+      "n": 39
+    },
+    "andrej martin": {
+      "spw": 0.7352941176470589,
+      "n": 34
+    },
+    "oleksandr ovcharenko": {
+      "spw": 0.6222222222222222,
+      "n": 90
+    },
+    "adrian andreev": {
+      "spw": 0.5907172995780591,
+      "n": 474
+    },
+    "kasidit samrej": {
+      "spw": 0.567741935483871,
+      "n": 155
+    },
+    "karue sell": {
+      "spw": 0.6311787072243346,
+      "n": 526
+    },
+    "robin bertrand": {
+      "spw": 0.54,
+      "n": 50
+    },
+    "christoph negritu": {
+      "spw": 0.7352941176470589,
+      "n": 68
+    },
+    "rei sakamoto": {
+      "spw": 0.6904761904761905,
+      "n": 168
+    },
+    "pedro araujo": {
+      "spw": 0.5833333333333334,
+      "n": 60
+    },
+    "alex marti pujolras": {
+      "spw": 0.35294117647058826,
+      "n": 51
+    },
+    "liam draxl": {
+      "spw": 0.5964912280701754,
+      "n": 114
+    },
+    "inaki montes de la torre": {
+      "spw": 0.6071428571428571,
+      "n": 56
+    },
+    "goncalo oliveira": {
+      "spw": 0.6666666666666666,
+      "n": 93
+    },
+    "kilian feldbausch": {
+      "spw": 0.6923076923076923,
+      "n": 52
+    },
+    "niels visker": {
+      "spw": 0.5,
+      "n": 60
+    },
+    "govind nanda": {
+      "spw": 0.5079365079365079,
+      "n": 63
+    },
+    "martin borisiouk": {
+      "spw": 0.5,
+      "n": 62
+    },
+    "colton smith": {
+      "spw": 0.582089552238806,
+      "n": 67
+    },
+    "filip cristian jianu": {
+      "spw": 0.546875,
+      "n": 64
+    },
+    "alex barrena": {
+      "spw": 0.5882352941176471,
+      "n": 51
+    },
+    "dylan dietrich": {
+      "spw": 0.75,
+      "n": 48
+    },
+    "naoki nakagawa": {
+      "spw": 0.48,
+      "n": 50
+    },
+    "cooper kose": {
+      "spw": 0.5849056603773585,
+      "n": 53
+    },
+    "joshua sheehy": {
+      "spw": 0.7358490566037735,
+      "n": 53
+    },
+    "daniel dutra da silva": {
+      "spw": 0.4883720930232558,
+      "n": 129
+    },
+    "juan pablo ficovich": {
+      "spw": 0.5428571428571428,
+      "n": 35
+    },
+    "cooper williams": {
+      "spw": 0.43333333333333335,
+      "n": 60
+    },
+    "james trotter": {
+      "spw": 0.5818181818181818,
+      "n": 55
+    },
+    "karlis ozolins": {
+      "spw": 0.7543859649122807,
+      "n": 57
+    },
+    "masamichi imamura": {
+      "spw": 0.6470588235294118,
+      "n": 51
+    },
+    "ryan seggerman": {
+      "spw": 0.6551724137931034,
+      "n": 58
+    },
+    "kaylan bigun": {
+      "spw": 0.6666666666666666,
+      "n": 87
+    },
+    "tomasz berkieta": {
+      "spw": 0.6344086021505376,
+      "n": 93
+    },
+    "ergi kirkin": {
+      "spw": 0.5753424657534246,
+      "n": 73
+    },
+    "pol martin tiffon": {
+      "spw": 0.5689655172413793,
+      "n": 58
+    },
+    "evan zhu": {
+      "spw": 0.4426229508196721,
+      "n": 61
+    },
+    "lucas catarina": {
+      "spw": 0.5652173913043478,
+      "n": 46
+    },
+    "peter fajta": {
+      "spw": 0.5531914893617021,
+      "n": 47
+    },
+    "thijs boogaard": {
+      "spw": 0.5671641791044776,
+      "n": 67
+    },
+    "patrick brady": {
+      "spw": 0.5769230769230769,
+      "n": 52
+    },
+    "jan kumstat": {
+      "spw": 0.6220472440944882,
+      "n": 127
+    },
+    "matwe middelkoop": {
+      "spw": 0.7547169811320755,
+      "n": 53
+    },
+    "minhtuan pham": {
+      "spw": 0.425531914893617,
+      "n": 47
+    },
+    "evgeny donskoy": {
+      "spw": 0.627906976744186,
+      "n": 86
+    },
+    "hibah shaikh": {
+      "spw": 0.5739130434782609,
+      "n": 115
+    },
+    "katy dunne": {
+      "spw": 0.5087719298245614,
+      "n": 114
+    },
+    "sarah van emst": {
+      "spw": 0.5844155844155844,
+      "n": 77
+    },
+    "britt du pree": {
+      "spw": 0.5443037974683544,
+      "n": 79
+    },
+    "yaroslava bartashevich": {
+      "spw": 0.3404255319148936,
+      "n": 47
+    },
+    "nada fouad": {
+      "spw": 0.48148148148148145,
+      "n": 54
+    },
+    "daria khomutsianskaya": {
+      "spw": 0.6666666666666666,
+      "n": 54
+    },
+    "kamilla bartone": {
+      "spw": 0.6938775510204082,
+      "n": 49
+    },
+    "paula cembranos": {
+      "spw": 0.6756756756756757,
+      "n": 37
+    },
+    "nemha sarah kispotta": {
+      "spw": 0.1724137931034483,
+      "n": 29
+    },
+    "chelsea fontenel": {
+      "spw": 0.6666666666666666,
+      "n": 48
+    },
+    "chanel janssen": {
+      "spw": 0.4318181818181818,
+      "n": 44
+    },
+    "martyna kubka": {
+      "spw": 0.6299212598425197,
+      "n": 127
+    },
+    "anouck vrancken peeters": {
+      "spw": 0.48598130841121495,
+      "n": 107
+    },
+    "tiantsoa sarah rakotomanga rajaonah": {
+      "spw": 0.5705645161290323,
+      "n": 496
+    },
+    "linda klimovicova": {
+      "spw": 0.6369047619047619,
+      "n": 504
+    },
+    "petra sedlackova": {
+      "spw": 0.631578947368421,
+      "n": 57
+    },
+    "stella kovacicova": {
+      "spw": 0.3953488372093023,
+      "n": 43
+    },
+    "alicia dudeney": {
+      "spw": 0.5272727272727272,
+      "n": 55
+    },
+    "jeline vandromme": {
+      "spw": 0.5769230769230769,
+      "n": 78
+    },
+    "samira de stefano": {
+      "spw": 0.5631067961165048,
+      "n": 103
+    },
+    "shrivalli rashmikaa bhamidipaty": {
+      "spw": 0.6153846153846154,
+      "n": 52
+    },
+    "anouk koevermans": {
+      "spw": 0.5654205607476636,
+      "n": 214
+    },
+    "carson branstine": {
+      "spw": 0.6568627450980392,
+      "n": 204
+    },
+    "julia garcia ruiz": {
+      "spw": 0.5675675675675675,
+      "n": 74
+    },
+    "sahaja yamalapalli": {
+      "spw": 0.5359477124183006,
+      "n": 153
+    },
+    "annika penickova": {
+      "spw": 0.6724137931034483,
+      "n": 58
+    },
+    "caroline shao": {
+      "spw": 0.5208333333333334,
+      "n": 48
+    },
+    "ella mcdonald": {
+      "spw": 0.4166666666666667,
+      "n": 48
+    },
+    "mina hodzic": {
+      "spw": 0.6481481481481481,
+      "n": 54
+    },
+    "laura mair": {
+      "spw": 0.48,
+      "n": 50
+    },
+    "baylen brown": {
+      "spw": 0.5106382978723404,
+      "n": 47
+    },
+    "melisa ercan": {
+      "spw": 0.723404255319149,
+      "n": 47
+    },
+    "mia pohankova": {
+      "spw": 0.5351351351351351,
+      "n": 185
+    },
+    "janice tjen": {
+      "spw": 0.6346863468634686,
+      "n": 271
+    },
+    "polina iatcenko": {
+      "spw": 0.3409090909090909,
+      "n": 44
+    },
+    "mingge xu": {
+      "spw": 0.6129032258064516,
+      "n": 62
+    },
+    "andre lukosiute": {
+      "spw": 0.4942528735632184,
+      "n": 87
+    },
+    "victoria mboko": {
+      "spw": 0.561510353227771,
+      "n": 821
+    },
+    "alina charaeva": {
+      "spw": 0.5,
+      "n": 206
+    },
+    "tereza valentova": {
+      "spw": 0.6075471698113207,
+      "n": 530
+    },
+    "lola radivojevic": {
+      "spw": 0.5566037735849056,
+      "n": 106
+    },
+    "lois boisson": {
+      "spw": 0.6173285198555957,
+      "n": 277
+    },
+    "eri shimizu": {
+      "spw": 0.603448275862069,
+      "n": 58
+    },
+    "chihiro muramatsu": {
+      "spw": 0.4444444444444444,
+      "n": 54
+    },
+    "iva ivanovic": {
+      "spw": 0.8421052631578947,
+      "n": 38
+    },
+    "klara vaja": {
+      "spw": 0.4444444444444444,
+      "n": 45
+    },
+    "valerie glozman": {
+      "spw": 0.43103448275862066,
+      "n": 58
+    },
+    "matilde jorge": {
+      "spw": 0.5153374233128835,
+      "n": 163
+    },
+    "ekaterina kazionova": {
+      "spw": 0.5396825396825397,
+      "n": 63
+    },
+    "maria sara popa": {
+      "spw": 0.4166666666666667,
+      "n": 48
+    },
+    "gabriella mikaul": {
+      "spw": 0.2413793103448276,
+      "n": 29
+    },
+    "aneta laboutkova": {
+      "spw": 0.5228758169934641,
+      "n": 153
+    },
+    "darja vidmanova": {
+      "spw": 0.5925925925925926,
+      "n": 297
+    },
+    "alexandra vagramov": {
+      "spw": 0.6046511627906976,
+      "n": 86
+    },
+    "alice gillan": {
+      "spw": 0.48333333333333334,
+      "n": 60
+    },
+    "olivia lincer": {
+      "spw": 0.4393939393939394,
+      "n": 66
+    },
+    "lea ma": {
+      "spw": 0.6326530612244898,
+      "n": 49
+    },
+    "haley giavara": {
+      "spw": 0.6083333333333333,
+      "n": 120
+    },
+    "hephzibah oluwadare": {
+      "spw": 0.4489795918367347,
+      "n": 49
+    },
+    "usue maitane arconada": {
+      "spw": 0.4117647058823529,
+      "n": 51
+    },
+    "raphaelle lacasse": {
+      "spw": 0.4576271186440678,
+      "n": 59
+    },
+    "madhurima sawant": {
+      "spw": 0.3673469387755102,
+      "n": 49
+    },
+    "tianmi mi": {
+      "spw": 0.54,
+      "n": 50
+    },
+    "julieta pareja": {
+      "spw": 0.5632183908045977,
+      "n": 87
+    },
+    "angella okutoyi": {
+      "spw": 0.5098039215686274,
+      "n": 51
+    },
+    "alevtina ibragimova": {
+      "spw": 0.53125,
+      "n": 64
+    },
+    "antonia schmidt": {
+      "spw": 0.4811320754716981,
+      "n": 106
+    },
+    "ziva falkner": {
+      "spw": 0.4909090909090909,
+      "n": 55
+    },
+    "selina dal": {
+      "spw": 0.6282051282051282,
+      "n": 78
+    },
+    "rasheeda mcadoo": {
+      "spw": 0.6666666666666666,
+      "n": 51
+    },
+    "sophia ksandinov": {
+      "spw": 0.49122807017543857,
+      "n": 57
+    },
+    "monika ekstrand": {
+      "spw": 0.5204081632653061,
+      "n": 98
+    },
+    "julia victoria rennert": {
+      "spw": 0.4117647058823529,
+      "n": 34
+    },
+    "cadence brace": {
+      "spw": 0.5176470588235295,
+      "n": 85
+    },
+    "theadora rabman": {
+      "spw": 0.40816326530612246,
+      "n": 49
+    },
+    "anastasia kulikova": {
+      "spw": 0.5857142857142857,
+      "n": 70
+    },
+    "yasmine mansouri": {
+      "spw": 0.5875,
+      "n": 80
+    },
+    "lian tran": {
+      "spw": 0.5375,
+      "n": 80
+    },
+    "elena giessler": {
+      "spw": 0.5441176470588235,
+      "n": 68
+    },
+    "kanako morisaki": {
+      "spw": 0.4883720930232558,
+      "n": 43
+    },
+    "yidi yang": {
+      "spw": 0.5121951219512195,
+      "n": 82
+    },
+    "saki imamura": {
+      "spw": 0.4375,
+      "n": 64
+    },
+    "junhan zhang": {
+      "spw": 0.6,
+      "n": 70
+    },
+    "evialina laskevich": {
+      "spw": 0.4716981132075472,
+      "n": 53
+    },
+    "tian jialin": {
+      "spw": 0.625,
+      "n": 48
+    },
+    "kristiana sidorova": {
+      "spw": 0.3333333333333333,
+      "n": 42
+    },
+    "julie belgraver": {
+      "spw": 0.4842105263157895,
+      "n": 95
+    },
+    "silvia ambrosio": {
+      "spw": 0.42105263157894735,
+      "n": 57
+    },
+    "joanna garland": {
+      "spw": 0.4666666666666667,
+      "n": 60
+    },
+    "lilli tagger": {
+      "spw": 0.6333333333333333,
+      "n": 60
+    },
+    "hannah klugman": {
+      "spw": 0.5118110236220472,
+      "n": 127
+    },
+    "luciana perry": {
+      "spw": 0.23076923076923078,
+      "n": 39
+    },
+    "arianna zucchini": {
+      "spw": 0.4090909090909091,
+      "n": 44
+    },
+    "federica urgesi": {
+      "spw": 0.42857142857142855,
+      "n": 56
+    },
+    "tyra caterina grant": {
+      "spw": 0.5221238938053098,
+      "n": 113
+    },
+    "whitney osuigwe": {
+      "spw": 0.48,
+      "n": 50
+    },
+    "carlota martinez cirez": {
+      "spw": 0.5517241379310345,
+      "n": 87
+    },
+    "kaitlin quevedo": {
+      "spw": 0.5818181818181818,
+      "n": 55
+    },
+    "hanna chang": {
+      "spw": 0.6266666666666667,
+      "n": 75
+    },
+    "maria jose sanchez uribe": {
+      "spw": 0.45454545454545453,
+      "n": 66
+    },
+    "maria camila torres murcia": {
+      "spw": 0.46,
+      "n": 50
+    },
+    "wakana sonobe": {
+      "spw": 0.735632183908046,
+      "n": 87
+    },
+    "kristina penickova": {
+      "spw": 0.391304347826087,
+      "n": 46
+    },
+    "emerson jones": {
+      "spw": 0.4,
+      "n": 50
+    },
+    "momoko kobori": {
+      "spw": 0.6865671641791045,
+      "n": 67
+    },
+    "tiphanie fiquet": {
+      "spw": 0.5571428571428572,
+      "n": 70
+    },
+    "mary stoiana": {
+      "spw": 0.6595744680851063,
+      "n": 47
+    },
+    "alexis blokhina": {
+      "spw": 0.576271186440678,
+      "n": 118
+    },
+    "kayla cross": {
+      "spw": 0.6506024096385542,
+      "n": 83
+    },
+    "jada robinson": {
+      "spw": 0.4461538461538462,
+      "n": 65
+    },
+    "isabelle boulais": {
+      "spw": 0.45098039215686275,
+      "n": 51
+    },
+    "martina okalova": {
+      "spw": 0.5765765765765766,
+      "n": 111
+    },
+    "bianca jolie fernandez": {
+      "spw": 0.4594594594594595,
+      "n": 111
+    },
+    "gina feistel": {
+      "spw": 0.5294117647058824,
+      "n": 68
+    },
+    "petra hule": {
+      "spw": 0.3333333333333333,
+      "n": 51
+    },
+    "leonie kung": {
+      "spw": 0.5546875,
+      "n": 128
+    },
+    "nahia berecoechea": {
+      "spw": 0.48295454545454547,
+      "n": 176
+    },
+    "caroline uebelhoer": {
+      "spw": 0.6,
+      "n": 60
+    },
+    "radka zelnickova": {
+      "spw": 0.5659340659340659,
+      "n": 182
+    },
+    "anastasiia gureva": {
+      "spw": 0.64,
+      "n": 50
+    },
+    "amarni banks": {
+      "spw": 0.7285714285714285,
+      "n": 70
+    },
+    "madison sieg": {
+      "spw": 0.5079365079365079,
+      "n": 63
+    },
+    "manon leonard": {
+      "spw": 0.4666666666666667,
+      "n": 75
+    },
+    "elena micic": {
+      "spw": 0.4426229508196721,
+      "n": 61
+    },
+    "alice ferlito": {
+      "spw": 0.46551724137931033,
+      "n": 58
+    },
+    "denisa hindova": {
+      "spw": 0.5714285714285714,
+      "n": 49
+    },
+    "josy daems": {
+      "spw": 0.2978723404255319,
+      "n": 47
+    },
+    "valentina ryser": {
+      "spw": 0.7045454545454546,
+      "n": 44
+    },
+    "milana zhabrailova": {
+      "spw": 0.5614035087719298,
+      "n": 57
+    },
+    "annelin bakker": {
+      "spw": 0.4696969696969697,
+      "n": 66
+    },
+    "elena milovanovic": {
+      "spw": 0.5285714285714286,
+      "n": 70
+    },
+    "chloe beck": {
+      "spw": 0.45901639344262296,
+      "n": 61
+    },
+    "daria nazarenko": {
+      "spw": 0.40384615384615385,
+      "n": 52
+    },
+    "tyra lithiby": {
+      "spw": 0.6666666666666666,
+      "n": 39
+    },
+    "darya astakhova": {
+      "spw": 0.5178571428571429,
+      "n": 56
+    },
+    "emma lene": {
+      "spw": 0.5338983050847458,
+      "n": 118
+    },
+    "alina granwehr": {
+      "spw": 0.4,
+      "n": 40
+    },
+    "laura radakovic": {
+      "spw": 0.48214285714285715,
+      "n": 56
+    },
+    "weronika falkowska": {
+      "spw": 0.6101694915254238,
+      "n": 59
+    },
+    "sapfo sakellaridi": {
+      "spw": 0.40425531914893614,
+      "n": 47
+    },
+    "mara guth": {
+      "spw": 0.627906976744186,
+      "n": 43
+    }
+  }
+}

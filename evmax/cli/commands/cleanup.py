@@ -784,7 +784,7 @@ def show_props(
 
         ev_color = "green" if (r["ev_pct"] or 0) >= 0.02 else "dim"
         table.add_row(
-            r["scan_date"] or "—",
+            r["event_date"] or r["scan_date"] or "—",
             (r["sector"] or "").upper(),
             r["player_name"] or "—",
             r["stat_type"] or "—",

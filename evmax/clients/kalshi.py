@@ -652,7 +652,10 @@ class KalshiClient(BaseAPIClient):
             year = 2000 + int(m.group(1))
             month = _MONTH_MAP[m.group(2).upper()]
             day = int(m.group(3))
-            return datetime(year, month, day, tzinfo=timezone.utc)
+            # Anchor at noon UTC (≈ morning across all US time zones) so any
+            # downstream .astimezone() can't slide the date backward into the
+            # previous calendar day.
+            return datetime(year, month, day, 12, 0, tzinfo=timezone.utc)
         except (ValueError, KeyError):
             return None
 

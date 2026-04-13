@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
@@ -16,6 +17,7 @@ PREDICTIONS_DB = ROOT / "data" / "predictions.db"
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 
 app = FastAPI(title="evmax dashboard")
+app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allow_methods=["*"], allow_headers=["*"])
 
 
 def _prob_to_american(prob: float) -> str:
@@ -60,8 +62,28 @@ def _settled_bets() -> list[dict[str, Any]]:
     return [dict(r) for r in rows]
 
 
+def _placed_bets() -> list[dict[str, Any]]:
+    """Return placed but unresolved bets — always shown regardless of newer scans."""
+    with _conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT p.id, p.scan_date, p.event_date, p.sector, p.event_title,
+                   p.yes_team, p.market_type, p.kalshi_yes_price,
+                   p.blended_true_prob, p.ev_pct, p.kelly_fraction,
+                   p.bankroll_used, p.volume_usd, p.model_sources,
+                   p.placed, p.placed_stake, p.placed_price, p.market_id, p.line
+            FROM ev_predictions p
+            LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
+            WHERE p.placed = 1 AND p.voided = 0 AND (o.outcome IS NULL)
+              AND p.market_type != 'map_handicap'
+            ORDER BY p.event_date DESC, p.ev_pct DESC
+            """
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def _open_bets() -> list[dict[str, Any]]:
-    """Return open (unresolved) bets, deduplicated by market_id (latest scan wins)."""
+    """Return open (unresolved, unplaced) bets, deduplicated by market_id."""
     with _conn() as conn:
         rows = conn.execute(
             """
@@ -78,7 +100,7 @@ def _open_bets() -> list[dict[str, Any]]:
                 GROUP BY market_id
             ) latest ON p.id = latest.max_id
             LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
-            WHERE p.voided = 0 AND (o.outcome IS NULL)
+            WHERE p.voided = 0 AND p.placed = 0 AND (o.outcome IS NULL)
               AND p.market_type != 'map_handicap'
             ORDER BY p.event_date DESC, p.ev_pct DESC
             LIMIT 200
@@ -176,8 +198,8 @@ def index(request: Request) -> Any:
     series_placed = _profit_series(settled_placed)
 
     recent = list(reversed(settled))[:50]
-    placed_bets = [b for b in open_bets if b.get("placed")]
-    unplaced_bets = [b for b in open_bets if not b.get("placed")]
+    placed_bets = _placed_bets()
+    unplaced_bets = open_bets
     return TEMPLATES.TemplateResponse(
         request, "dashboard.html",
         {"summary_all": summary_all, "summary_placed": summary_placed,
@@ -190,6 +212,35 @@ def index(request: Request) -> Any:
 # ---------------------------------------------------------------------------
 # JSON APIs (for dashboard AJAX)
 # ---------------------------------------------------------------------------
+
+@app.get("/api/dashboard")
+def api_dashboard() -> JSONResponse:
+    """Return all dashboard data as JSON for the React SPA."""
+    settled = _settled_bets()
+    open_bets = _open_bets()
+
+    summary_all = _summary_stats(settled)
+    series_all = _profit_series(settled)
+    sectors_all = _sector_breakdown(settled)
+
+    settled_placed = [b for b in settled if b.get("placed")]
+    summary_placed = _summary_stats(settled_placed)
+    series_placed = _profit_series(settled_placed)
+
+    recent = list(reversed(settled))[:50]
+    placed_bets = _placed_bets()
+
+    return JSONResponse({
+        "summary_all": summary_all,
+        "summary_placed": summary_placed,
+        "series_all": series_all,
+        "series_placed": series_placed,
+        "sectors": sectors_all,
+        "placed_bets": placed_bets,
+        "unplaced_bets": open_bets,
+        "recent": recent,
+    })
+
 
 @app.get("/api/profit")
 def api_profit() -> JSONResponse:

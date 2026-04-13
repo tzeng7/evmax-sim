@@ -661,8 +661,8 @@ async function pickSelected() {
       body: JSON.stringify({ bets })
     });
     const data = await resp.json();
-    toast(`Placed ${data.placed} bet(s) — refresh to see in Placed Bets`, 'ok', 4000);
-    checked.forEach(cb => { cb.checked = false; cb.closest('tr').style.opacity = '0.4'; });
+    toast(`Placed ${data.placed} bet(s) — refreshing...`, 'ok', 1500);
+    setTimeout(() => location.reload(), 1500);
   } catch(e) {
     toast('Pick failed: ' + e.message, 'err');
   } finally {
@@ -840,11 +840,8 @@ async function pickFromOpen() {
       body: JSON.stringify({ market_ids: checked })
     });
     const data = await resp.json();
-    toast(`Placed ${data.placed} bet(s) — refresh to see them in Placed Bets`, 'ok', 4000);
-    document.querySelectorAll('.open-check:checked').forEach(cb => {
-      cb.checked = false;
-      cb.closest('tr').style.opacity = '0.4';
-    });
+    toast(`Placed ${data.placed} bet(s) — refreshing...`, 'ok', 1500);
+    setTimeout(() => location.reload(), 1500);
   } catch(e) {
     toast('Pick failed: ' + e.message, 'err');
   }

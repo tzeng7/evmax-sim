@@ -13,11 +13,13 @@ evmax uses a multi-agent pipeline to find positive expected value (+EV) opportun
 5. [Statistical Models](#statistical-models)
 6. [Seeding and Updating Models](#seeding-and-updating-models)
 7. [Cleanup Agent: Logging, Resolution, and Calibration](#cleanup-agent-logging-resolution-and-calibration)
-8. [Data Archive and Backtest](#data-archive-and-backtest)
-9. [Core EV and Kelly Math](#core-ev-and-kelly-math)
-10. [CLI Reference](#cli-reference)
-11. [Configuration](#configuration)
-12. [Sectors and Market Types](#sectors-and-market-types)
+8. [Player Prop Pipeline](#player-prop-pipeline)
+9. [Web Dashboard](#web-dashboard)
+10. [Data Archive and Backtest](#data-archive-and-backtest)
+11. [Core EV and Kelly Math](#core-ev-and-kelly-math)
+12. [CLI Reference](#cli-reference)
+13. [Configuration](#configuration)
+14. [Sectors and Market Types](#sectors-and-market-types)
 
 ---
 
@@ -265,7 +267,7 @@ KALSHI_WS_SNAPSHOT_TIMEOUT=8.0
 
 ## Statistical Models
 
-The system uses three statistical model agents plus two baseline models. All model outputs are blended by the EnsembleModelAgent.
+The system uses three core statistical model agents (Elo / Form / Poisson), four tennis-specific agents, an MLB pitcher agent, an NBA player-prop agent, and two baseline models. All model outputs are blended by the EnsembleModelAgent. Models below the 0.45 confidence gate are silently dropped from the blend so missing coverage degrades gracefully.
 
 ### Elo Model (`EloModelAgent`, weight=0.35)
 
@@ -404,6 +406,39 @@ Find exponent `k` where `Σ(raw_prob_i ^ k) = 1.0` (solved via Brent's method). 
 
 ---
 
+### Tennis Models
+
+Tennis runs four independent agents alongside the Elo/Form/Poisson core. Each is wired into the ensemble in `agents/coordinator.py` and returns `None` when its store has no coverage for the players in question, so unseeded matchups fall back to the remaining models.
+
+| Agent | Weight | Signal | State file |
+|---|---|---|---|
+| `TennisModelAgent` (surface Elo) | 0.45 | Surface-specific Elo (hard / clay / grass) seeded from ATP rankings | `data/models/tennis_surface_state.json` |
+| `TennisServeReturnAgent` | 0.40 | Logistic on serve-points-won differential, calibrated for bo3 (`k=14`) and bo5 (`k=18`); slam detection from market title | `data/models/tennis_serve_return_state.json` |
+| `TennisH2HAgent` | 0.10 | Head-to-head record nudge with Laplace smoothing + sample-size shrinkage; capped at ±18pp from 0.5; requires ≥3 meetings | `data/models/tennis_h2h_state.json` |
+| `TennisRankingTrendAgent` | 0.10 | 12-week ranking-momentum log-odds nudge; positive = climbing the rankings; capped at ±0.40 logit | `data/models/tennis_ranking_trend_state.json` |
+
+The serve/return, H2H, and ranking-trend agents are seeded from Jeff Sackmann's public CSVs (`tennis_atp`, `tennis_wta`) plus the Match Charting Project for 2025+ SPW augmentation. See [Seed Tennis Models](#seed-tennis-models) below.
+
+---
+
+### MLB Pitcher Agent (`PitcherAgent`)
+
+Adapts the starting pitcher's recent ERA / WHIP / K-rate into a moneyline edge for MLB game markets. Falls back to `None` for non-baseball markets and when no probable pitcher is set.
+
+**State file:** `data/models/pitcher_state.json`
+
+---
+
+### NBA Player Prop Model (`nba_stats`)
+
+Per-player line distribution model used by the EVGap agent's prop pipeline. For a given (player, stat, line) it pulls the last 15 games via `nba_api`, computes a weighted mean / stdev, applies a continuity correction (`+0.5` to the threshold so OVER hits the strict `actual > line` semantics Kalshi resolves on), and rescales to per-36 minutes when the player's average minutes are ≥ 5. The output is a normal-CDF tail probability for `P(X > line)`.
+
+**Cache file:** `data/nba_props_cache.json` (game logs)
+
+See [Player Prop Pipeline](#player-prop-pipeline) for how observations are logged and calibrated.
+
+---
+
 ### Spread Distribution Model (Spread markets only)
 
 For spread markets (e.g., "Lakers win by more than 5.5"), Pinnacle posts one line per game. Kalshi lists many alternative lines. This model translates Pinnacle's single line into a cover probability at any Kalshi line.
@@ -483,6 +518,35 @@ evmax agents seed poisson --sector soccer --file data/seeds/epl_poisson.json
   }
 }
 ```
+
+### Seed Tennis Models
+
+The three new tennis agents (serve/return, H2H, ranking trend) are seeded directly from Jeff Sackmann's public CSV mirrors of the ATP and WTA tours, plus the Match Charting Project for 2025+ coverage where Sackmann's standard match files lag.
+
+```bash
+# Default — both tours, 2023→2026, MCP augmentation enabled
+uv run python scripts/seed_tennis_models.py
+
+# Skip MCP (Sackmann-only) if you want to keep state minimal
+uv run python scripts/seed_tennis_models.py --no-mcp
+
+# Custom slice
+uv run python scripts/seed_tennis_models.py --years 2023,2024 --tours atp
+```
+
+What gets written:
+
+| Output | Source | Aggregation |
+|---|---|---|
+| `tennis_serve_return_state.json` | `{tour}_matches_{year}.csv` (winner/loser SPW columns) + `charting-{m,w}-stats-Overview.csv` | Per-player SPW = `(1stWon + 2ndWon) / svpt`; merge rule keeps the entry with more service points |
+| `tennis_h2h_state.json` | `{tour}_matches_{year}.csv` (winner_name / loser_name) | Win counts per alphabetically-sorted player pair |
+| `tennis_ranking_trend_state.json` | `{tour}_rankings_current.csv` joined to `{tour}_players.csv` | Weekly snapshots `[{date, rank}, ...]` per player |
+
+Years that haven't been published yet (e.g. `atp_matches_2026.csv`) are silently skipped, and the H2H pipeline is left untouched by MCP since the charting overview file has no winner column.
+
+A typical full run produces roughly **1,150 players with serve stats**, **9,100 H2H pairs**, and **4,400 players with ranking history** across both tours.
+
+---
 
 ### Feed Game Results Back
 
@@ -613,6 +677,100 @@ All predictions and outcomes are stored in `data/predictions.db` (SQLite).
 | `ev_outcomes` | One row per resolved market — outcome (1/0), result source, timestamps |
 
 `data/model_config.json` persists `sharp_weight`, Brier score history, and adjustment timestamps.
+
+---
+
+## Player Prop Pipeline
+
+NBA player props (points / rebounds / assists / threes / steals / blocks / PRA) run through a separate logging path from game-level bets. Props are deliberately excluded from `ev_predictions` to keep the bet log clean, and instead land in `prop_observations` for model calibration and offline analysis.
+
+### How it works
+
+1. **Scan emits prop EVGaps** alongside game gaps. A per-type cap (`--max-props`, default 10) prevents prop spam at the top of the table.
+2. **All prop lines are logged** — including negative-EV ones — to `prop_observations`. This is the training set for the next round of NBA-prop calibration.
+3. **The `nba_stats` model** (per-player log distribution from `nba_api`) competes side-by-side with Pinnacle's prop devig in the EVGap agent. When neither side has coverage the prop is dropped.
+4. **Resolution** pulls ESPN boxscores the next morning and fills `actual_value` + `outcome` (`1` = OVER hit, `0` = UNDER). The resolver looks up each stat by name in the boxscore stat-group `keys` array — never by hardcoded index — because ESPN's column layout drifts between seasons.
+
+### `prop_observations` schema
+
+| Column | Notes |
+|---|---|
+| `scan_date` | When the scan ran |
+| `event_date` | Actual game date (anchored at noon UTC in the Kalshi ticker parser to prevent local-tz date drift) |
+| `player_name`, `stat_type`, `line` | The line being observed |
+| `kalshi_price`, `sharp_prob`, `ev_pct` | Snapshot at scan time |
+| `l15_games` | Sample size used by `nba_stats` |
+| `actual_value`, `outcome`, `resolved_at` | Filled by `evmax cleanup resolve-props` |
+
+### Daily prop workflow
+
+```bash
+# Morning — props are auto-logged inside the normal scan
+evmax agents scan --bankroll 500
+
+# Cap the number of prop rows shown in the +EV table (default 10)
+evmax agents scan --max-props 5
+
+# Next morning — fetch ESPN boxscores and fill actual_value/outcome
+evmax cleanup resolve-props --sector nba --date YYYY-MM-DD
+
+# Browse the observation log
+evmax cleanup props --days 7
+evmax cleanup props --stat points --resolved-only
+
+# Calibration: predicted vs actual hit rate, bucketed by probability
+evmax cleanup prop-calibration --weeks 4
+evmax cleanup prop-calibration --weeks 4 --stat rebounds
+```
+
+The calibration table groups resolved props by `(stat_type, sharp_prob bucket)` and reports model hit rate vs realized hit rate. Use it to spot stat-specific biases (e.g. the model under-pricing 3-point props because per-36 normalization smooths over hot streaks).
+
+---
+
+## Web Dashboard
+
+`evmax dashboard serve` launches a FastAPI + vanilla-JS dashboard at `http://127.0.0.1:8000/` that mirrors the CLI scan / verify / pick flow without leaving the browser. Useful for visual triage when you have a lot of plays open at once.
+
+### Launch
+
+```bash
+# Default — localhost:8000, no auto-reload
+evmax dashboard serve
+
+# Custom host/port
+evmax dashboard serve --host 0.0.0.0 --port 8080
+
+# Auto-reload during development
+evmax dashboard serve --reload
+```
+
+### What it shows
+
+- **Pending plays** — every +EV gap from the most recent scan, grouped by sector with date filtering, EV%, Kelly stake, model sources, and one-click pick / unplace buttons
+- **Placed bets** — current open positions with live CLV (Pinnacle close vs entry) and pending-resolution status
+- **Resolved bets** — historical results with sim vs real P&L split and per-sector ROI
+- **Profit chart** — running P&L curve (real bets in solid, simulated in dashed)
+- **Action buttons** — kick off a fresh scan, mark bets placed, resolve a date, or run `cleanup metrics` directly from the UI without dropping back to the shell
+
+### API surface
+
+The dashboard is backed by a small JSON API that's also useful for ad-hoc tooling:
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/dashboard` | Combined snapshot for the landing page |
+| `GET /api/profit` | P&L series for the chart |
+| `GET /api/summary` | Real vs simulated stake / P&L / ROI rollups |
+| `POST /api/scan` | Run a coordinator cycle and return the gap list |
+| `POST /api/pick` | Mark a list of `market_id`s as placed |
+| `POST /api/update-placed` | Update the price/stake of a placed bet |
+| `POST /api/unplace` | Demote a placed bet back to simulated |
+| `POST /api/resolve` | Trigger outcome resolution for a date |
+| `POST /api/metrics` | Run the Brier-score calibration report |
+
+### Date-handling note
+
+Scan rows display `event_date` (the actual game date), not `scan_date`. Kalshi ticker dates are parsed at noon UTC inside `kalshi.py:_parse_ticker_date` so subsequent `.astimezone()` conversions in the dashboard payload can't roll the date back to the previous day in negative-offset US time zones.
 
 ---
 

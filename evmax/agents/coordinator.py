@@ -49,6 +49,9 @@ from evmax.agents.models.form_agent import FormModelAgent
 from evmax.agents.models.poisson_agent import PoissonModelAgent
 from evmax.agents.models.ensemble_agent import EnsembleModelAgent, BlendedPrediction
 from evmax.agents.models.tennis_model_agent import TennisModelAgent
+from evmax.agents.models.tennis_serve_return_agent import TennisServeReturnAgent
+from evmax.agents.models.tennis_h2h_agent import TennisH2HAgent
+from evmax.agents.models.tennis_ranking_trend_agent import TennisRankingTrendAgent
 from evmax.agents.models.pitcher_agent import PitcherModelAgent
 from evmax.agents.intelligence.injury_agent import InjuryReportAgent, InjuryReport
 from evmax.agents.intelligence.standings_agent import StandingsAgent, TeamStanding
@@ -252,9 +255,17 @@ class AgentCoordinator:
         self.form_agent = FormModelAgent()
         self.poisson_agent = PoissonModelAgent()
         self.tennis_agent = TennisModelAgent()
+        self.tennis_serve_agent = TennisServeReturnAgent()
+        self.tennis_h2h_agent = TennisH2HAgent()
+        self.tennis_trend_agent = TennisRankingTrendAgent()
         self.pitcher_agent = PitcherModelAgent()
         self.ensemble_agent = EnsembleModelAgent(
-            models=[self.elo_agent, self.form_agent, self.poisson_agent, self.tennis_agent, self.pitcher_agent],
+            models=[
+                self.elo_agent, self.form_agent, self.poisson_agent,
+                self.tennis_agent, self.tennis_serve_agent,
+                self.tennis_h2h_agent, self.tennis_trend_agent,
+                self.pitcher_agent,
+            ],
             sharp_weight=sharp_weight,
         )
 
@@ -273,7 +284,10 @@ class AgentCoordinator:
         return [
             self.kalshi_agent, self.sharp_agent, self.ev_gap_agent,
             self.injury_agent, self.standings_agent,
-            self.elo_agent, self.form_agent, self.poisson_agent, self.tennis_agent, self.pitcher_agent, self.ensemble_agent,
+            self.elo_agent, self.form_agent, self.poisson_agent,
+            self.tennis_agent, self.tennis_serve_agent,
+            self.tennis_h2h_agent, self.tennis_trend_agent,
+            self.pitcher_agent, self.ensemble_agent,
         ]
 
     # ------------------------------------------------------------------
