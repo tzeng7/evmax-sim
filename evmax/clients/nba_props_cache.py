@@ -535,3 +535,36 @@ def _opponent_adjustment(stat_type: str, opp_stats: dict, league_avg: dict) -> f
 def is_cache_fresh() -> bool:
     """Check if the props cache exists and is within TTL."""
     return _load_cache() is not None
+
+
+# Abbreviation → team nickname used by InjuryReportAgent (keys are lowercase
+# full team names like "los angeles lakers", and substring matching reduces
+# them via the nickname). Keeping a small local map avoids pulling in the
+# sector alias loader just for injury boosts.
+_NBA_ABBREV_TO_NICKNAME: dict[str, str] = {
+    "atl": "hawks", "bos": "celtics", "bkn": "nets", "cha": "hornets",
+    "chi": "bulls", "cle": "cavaliers", "dal": "mavericks", "den": "nuggets",
+    "det": "pistons", "gsw": "warriors", "hou": "rockets", "ind": "pacers",
+    "lac": "clippers", "lal": "lakers", "mem": "grizzlies", "mia": "heat",
+    "mil": "bucks", "min": "timberwolves", "nop": "pelicans", "nyk": "knicks",
+    "okc": "thunder", "orl": "magic", "phi": "76ers", "phx": "suns",
+    "por": "trail blazers", "sac": "kings", "sas": "spurs", "tor": "raptors",
+    "uta": "jazz", "was": "wizards",
+}
+
+
+def lookup_player_team(player_name: str) -> str | None:
+    """Return the canonical team nickname for a cached NBA player, or None.
+
+    Used by the prop-injury-boost logic so it can identify the player's team
+    directly instead of trying to parse a game slug out of the prop event_id
+    (which has no game slug).
+    """
+    cache = _load_cache()
+    if cache is None:
+        return None
+    player = cache.get("players", {}).get(player_name)
+    if not player:
+        return None
+    abbrev = (player.get("team") or "").lower().strip()
+    return _NBA_ABBREV_TO_NICKNAME.get(abbrev)
