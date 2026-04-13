@@ -8,10 +8,13 @@
 
 ## Recently Shipped
 
-### PR #2 — Poisson bucketing + prop injury boost
+### PR #2 — Poisson bucketing + prop injury boost + pitcher Pythag + TEST-2/TEST-6
 - ✅ BUG-4 — Poisson NBA/NFL/NCAAB score matrix now bucketed (NBA=5, NFL=4, NCAAB=5). `lam_h`/`lam_a` scaled by bucket before the matrix is built so Poisson mass fits inside MAX_SCORE.
 - ✅ BUG-5 — Prop injury boost now uses `nba_props_cache.lookup_player_team()` to find the player's actual team instead of parsing a nonexistent game slug out of `parts[2]`. The boost was silently never firing for any prop.
-- ✅ Regression tests for both (TestPoissonModelAgent::test_nba_score_matrix_is_bucketed, TestEVGapAgent::test_prop_injury_boost_applies_via_player_team_lookup). Suite: 640 → 647.
+- ✅ BUG-9 — Pitcher Pythag semantics corrected. Previously `home_ra = away_era` treated a team's runs allowed as a function of the *opposing* starter, making the team with the better pitcher *less* favored. Fixed to `home_rs = away_era, home_ra = home_era` (each team scores at opponent's rate, allows at its own pitcher's rate). A 2.50 vs 5.50 ERA matchup now produces home_wp ≈ 0.80 instead of ~0.38.
+- ✅ TEST-2 — PitcherModelAgent now has 14 tests across sector gating, seeding, Pythag prediction, confidence tiers, and team-name fallback. Writing the tests surfaced BUG-9.
+- ✅ TEST-6 — 44 tests added for the prop pipeline: PropMatcher matching logic, `nba_props_cache` (lookup_player_team, compute_prop_prob_cached, _opponent_adjustment), and `prop_resolver` pure helpers (_normalize_for_match, _extract_stat). Network-dependent paths (`fetch_player_stats` body, `resolve_prop_observations`, `refresh_props_cache`) intentionally not covered here — live in the network tier.
+- ✅ Suite: 640 → 705 (+65).
 
 ### PR #1 — Quality sweep: docs sync, resolution gaps, tennis tests
 - ✅ DOC-1 — CLAUDE.md stale facts fixed (rate limiting, NCAAW source, sharp weight, clients tree, tennis weight, resolution table, sectors)
@@ -44,7 +47,7 @@ Minor packages still with stub docstrings: `evmax/web/`, `evmax/cli/`, `evmax/cl
 
 ## Section 2 — Bugs (Correctness Issues)
 
-_(BUG-4 and BUG-5 shipped — see "Recently Shipped" above.)_
+_(BUG-4, BUG-5, and BUG-9 shipped — see "Recently Shipped" above.)_
 
 ---
 
@@ -87,9 +90,6 @@ team["attack"] = (1 - alpha) * team["attack"] + alpha * actual_goals
 
 ## Section 4 — Test Coverage Gaps
 
-### TEST-2 PitcherModelAgent Has Zero Tests [P2]
-No tests for pitcher ERA lookup, park factor application, or Pythagorean win probability. The pre-commit hook will flag this as `[ZERO COVERAGE]` on every edit — the next natural follow-up to TEST-1.
-
 ### TEST-3 PinnacleGuestClient Has Zero Tests [P2]
 **File:** `evmax/clients/esports_pinnacle.py`
 This is the only live sharp odds provider and has no tests. At minimum, test the response parsing and devigging with a fixture.
@@ -101,8 +101,8 @@ There's no test that runs a full `coordinator.run_cycle()` against fixture data 
 **File:** `evmax/models_ml/live_win_prob.py`
 No tests for the live in-game model.
 
-### TEST-6 Prop Probability Pipeline Untested [P2]
-`nba_stats.py`, `nba_props_cache.py`, `prop_matcher.py`, and `prop_resolver.py` have no tests. These cover the end-to-end prop workflow.
+### TEST-6 Prop Probability Pipeline — Partially Covered [P2]
+`nba_props_cache.py`, `prop_matcher.py`, and `prop_resolver.py` pure paths are now covered via `tests/test_prop_pipeline.py` (44 tests, PR #2). Still missing: `nba_stats.py` (network-heavy, needs httpx mocking) and the side-effectful paths of the three covered modules (`fetch_player_stats` body, `resolve_prop_observations` DB loop, `refresh_props_cache`).
 
 ---
 
@@ -199,10 +199,9 @@ See MODEL-1 above. This is the highest-leverage model improvement for tennis.
 | P1 | MODEL-1 / SECTOR-3 Tennis surface detection | Surface Elo rarely fires in practice |
 | P1 | PROPS-1 NFL props backend | Dead API calls |
 | P2 | MODEL-2 NCAAW/NHL Elo calibration | Uncalibrated K + home adv |
-| P2 | TEST-2 Pitcher model tests | Next zero-coverage model |
 | P2 | TEST-3 PinnacleGuestClient tests | Only live sharp source untested |
 | P2 | TEST-4 Coordinator integration test | Catches wiring regressions |
-| P2 | TEST-6 Prop pipeline tests | nba_stats / prop_matcher uncovered |
+| P2 | TEST-6 Prop pipeline — remaining | nba_stats.py still uncovered |
 | P3 | DOC-2b / DOC-3b remaining doc polish | — |
 | P3 | MODEL-3 Form draw normalization | Cosmetic precision |
 | P3 | MODEL-4 Poisson EWMA | Long-term staleness |

@@ -166,18 +166,22 @@ class PitcherModelAgent(ModelAgent):
         home_era = home_pitcher.get("era", league_avg)
         away_era = away_pitcher.get("era", league_avg)
 
-        # Pythagorean: home team scores at league avg, allows at away pitcher's rate
-        # Away team scores at league avg, allows at home pitcher's rate
-        home_rs = league_avg
-        home_ra = away_era
-        away_rs = league_avg
-        away_ra = home_era
-
+        # Pythagorean matchup: each team scores at the rate the opposing
+        # starter gives up runs (opponent's ERA) and allows at its own
+        # starter's rate. league_avg is *not* used in the matchup formula —
+        # it only backstops pitchers with unknown ERA in the fallback above.
         e = PYTHAG_EXP
+        home_rs = away_era  # we score at rate the opposing pitcher allows
+        home_ra = home_era  # we allow at rate our own pitcher allows
+        away_rs = home_era
+        away_ra = away_era
+
         home_wp = (home_rs ** e) / (home_rs ** e + home_ra ** e)
         away_wp = (away_rs ** e) / (away_rs ** e + away_ra ** e)
 
-        # Normalize to sum to 1
+        # home_wp and away_wp are already complements by construction
+        # (home_wp = away_era^e / (away_era^e + home_era^e) = 1 - away_wp),
+        # but normalize defensively in case ERAs are degenerate.
         total = home_wp + away_wp
         prob_a = home_wp / total if total > 0 else 0.5
 
