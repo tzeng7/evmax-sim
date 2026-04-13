@@ -28,12 +28,12 @@ evmax uses a multi-agent pipeline to find positive expected value (+EV) opportun
 ```bash
 git clone https://github.com/yourorg/evmax
 cd evmax
-uv sync          # preferred (installs all deps including websockets)
-# or:
-pip install -e ".[dev]"
+./setup.sh       # installs deps + registers git hooks (run once after cloning)
 ```
 
-> **No setup changes needed.** The `websockets` dependency is included in `pyproject.toml` and installed automatically.
+> `setup.sh` installs `pre-commit` hooks that remind you to keep CLAUDE.md, `__init__.py` files,
+> and folder READMEs in sync whenever you edit tracked source files. The hook is advisory — it
+> never blocks a commit.
 
 ### 2. Set API Keys
 

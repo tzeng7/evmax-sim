@@ -10,11 +10,14 @@ You are an expert in acquiring expected value for specific predictions found on 
 - Tennis (ATP + WTA)
 - League of Legends
 - CS2
+- Baseball (MLB) — in registry, sharp odds + models wired; pitcher model supported
+- NHL — in registry, sharp odds + models wired; **outcome resolution not yet implemented**
+- Valorant — in registry and sharp odds; no dedicated model beyond Elo/Form
 
 ### Key Pipeline
 
 1. **Fetch live Kalshi markets** for each sector via series tickers (e.g. `KXNBAGAME`, `KXEPLGAME`, `KXATPMATCH`, `KXNCAAWBGAME`)
-2. **Fetch Pinnacle sharp lines** via the guest API (`guest.api.arcadia.pinnacle.com/0.1`) for all sectors except NCAAW (which uses TheOddsAPI `basketball_wncaab`)
+2. **Fetch Pinnacle sharp lines** via the guest API (`guest.api.arcadia.pinnacle.com/0.1`) for all sectors via `PinnacleGuestClient` in `clients/esports_pinnacle.py`
 3. **Fetch ESPN injury data** concurrently for NBA/NFL/NCAAB/NCAAW/Soccer
 4. **Fuzzy-match** Kalshi markets to Pinnacle events using canonical keys + rapidfuzz (threshold=88)
 5. **Devig Pinnacle lines** using the Power Method (handles 2-way and 3-way markets)
@@ -33,9 +36,9 @@ evmax/
 ├── db.py                    # SQLAlchemy async SQLite engine
 ├── models/                  # Pydantic + ORM: market, odds, ev_bet, simulated_bet, bankroll
 ├── clients/
-│   ├── kalshi.py            # RSA auth, series ticker fetching, WebSocket orderbook, semaphore(3)
-│   ├── pinnacle.py          # TheOddsAPI + Pinnacle guest API, parallelized fetches
-│   ├── esports_pinnacle.py  # Esports-specific Pinnacle guest API (LoL, CS2, Valorant)
+│   ├── kalshi.py            # RSA auth, series ticker fetching, WebSocket orderbook, AsyncLimiter(10/s)
+│   ├── esports_pinnacle.py  # PinnacleGuestClient — ALL sectors (not just esports despite filename)
+│   ├── pinnacle.py          # LEGACY: TheOddsAPI client — NOT used in live pipeline
 │   └── base.py              # BaseAPIClient
 ├── sectors/
 │   ├── registry.py          # Dict mapping sector name → SectorHandler instance
@@ -86,8 +89,8 @@ evmax/
 | Elo | 0.35 | 0.45 | `data/models/elo_state.json` |
 | Form | 0.25 | 0.45 | `data/models/form_state.json` |
 | Poisson | 0.30 | 0.45 | `data/models/poisson_state.json` |
-| Tennis Surface Elo | — | 0.45 | `data/models/tennis_surface_state.json` |
-| Sharp (Pinnacle) | 0.85 default | always | auto-tuned in `data/model_config.json` |
+| Tennis Surface Elo | 0.45 | 0.45 | `data/models/tennis_surface_state.json` |
+| Sharp (Pinnacle) | 0.85 (CLI/config default) | always | auto-tuned in `data/model_config.json` |
 
 - Models below the confidence gate are excluded from the blend entirely
 - `model_sources` in each EVGap only lists models that actually contributed
@@ -98,12 +101,16 @@ evmax/
 
 | Sector | Source |
 |--------|--------|
-| NBA / NFL / NCAAB / NCAAW / Soccer | ESPN scoreboard API |
+| NBA / NFL / NCAAB / NCAAW / Soccer (EPL/UCL/La Liga/Bundesliga/Serie A/Ligue 1) | ESPN scoreboard API |
+| Baseball (MLB) | ESPN scoreboard API |
 | CS2 / LoL | bo3.gg matches API |
+| Tennis | **Not yet implemented** — bets log but never auto-resolve |
+| NHL | **Not yet implemented** — bets log but never auto-resolve |
+| Soccer (MLS / UEL) | **Not yet implemented** — missing from ESPN league list |
 
 ### Key Implementation Details
 
-- **Kalshi rate limiting**: `asyncio.Semaphore(3)` in `get_markets()` — max 3 concurrent series requests
+- **Kalshi rate limiting**: `AsyncLimiter(10, 1.0)` from `aiolimiter` in `kalshi.py` — token bucket, 10 req/s
 - **Pinnacle parallelism**: all `(sport_key × market_type)` combinations fetched simultaneously
 - **Bankroll persistence**: `bankroll_used` column in `ev_predictions` — verify/pick reuse scan-time bankroll automatically
 - **Props**: shown in scan output, excluded from `predictions.db` (filter: `::prop::` in event_id)
@@ -117,6 +124,26 @@ evmax/
 ### Key Goals
 
 Find +EV plays (cognizant of liquidity) when they appear on Kalshi, and place Kelly-fractioned bets on these plays for long-run profitability. Track performance via `predictions.db`, resolve outcomes automatically, and auto-tune model weights based on Brier score calibration.
+
+### Testing Policy
+
+**Tests are required for new logic.** When you add or modify any module under `evmax/` that
+contains real logic (model agents, EV math, devigging, matching, resolution, Kelly sizing,
+sector handlers, clients), you must write or extend the corresponding test in `tests/`.
+
+- New module → new test file (or new test class in the closest existing file)
+- New function or branch → at least one happy-path + one edge-case test
+- Bug fix → a regression test that fails before the fix and passes after
+- A change that touches `evmax/agents/models/`, `evmax/ev/`, `evmax/matching/`,
+  `evmax/agents/odds/`, or `evmax/agents/cleanup/resolver.py` is **not done**
+  until `tests/` has a matching change
+
+The pre-commit `test-sync` hook will remind you if you stage source changes in these areas
+without staging a test change. The reminder is advisory — it never blocks a commit — but
+treat it as a hard rule: skipping it accumulates the test-coverage debt that already exists
+for `tennis_model_agent.py`, `pitcher_agent.py`, and `clients/esports_pinnacle.py`.
+
+Run `pytest tests/ -q` before declaring any task complete.
 
 ### CLI Output Requirements
 
