@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import DateTime, Float, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -23,7 +23,9 @@ class BankrollSnapshotORM(Base):
     lost_bets_count: Mapped[int] = mapped_column(Integer, default=0)
     roi_pct: Mapped[float] = mapped_column(Float, default=0.0)
     notes: Mapped[str] = mapped_column(String, default="")
-    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
 
 
 class BankrollSnapshot(BaseModel):
@@ -37,7 +39,7 @@ class BankrollSnapshot(BaseModel):
     lost_bets_count: int = 0
     roi_pct: float = 0.0
     notes: str = ""
-    recorded_at: datetime = datetime.utcnow()
+    recorded_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_orm(self) -> BankrollSnapshotORM:
         return BankrollSnapshotORM(**self.model_dump())

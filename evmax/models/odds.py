@@ -45,7 +45,9 @@ class SharpOddsORM(Base):
     margin: Mapped[float] = mapped_column(Float)
 
     event_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    fetched_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )
 
 
 class SharpOdds(BaseModel):

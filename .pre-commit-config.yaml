@@ -1,0 +1,29 @@
+repos:
+  - repo: local
+    hooks:
+      - id: doc-and-test-sync-reminder
+        name: doc + test sync reminder
+        language: python
+        entry: python3 scripts/check_doc_sync.py
+        pass_filenames: true
+        always_run: false
+        verbose: true
+        types_or: [python, markdown, yaml]
+        # Also trigger on edits to the docs themselves (catches drift in the other direction)
+        files: >-
+          (?x)^(
+            evmax/clients/.*|
+            evmax/agents/models/.*|
+            evmax/agents/odds/.*|
+            evmax/agents/coordinator\.py|
+            evmax/agents/cleanup/.*|
+            evmax/sectors/.*|
+            evmax/ev/.*|
+            evmax/matching/.*|
+            evmax/models_ml/.*|
+            evmax/pipeline/.*|
+            evmax/cli/commands/.*|
+            CLAUDE\.md|
+            README\.md|
+            TODO\.md
+          )$

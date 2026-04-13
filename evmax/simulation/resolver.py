@@ -12,7 +12,7 @@ Resolution modes:
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Optional
 
 import structlog
@@ -65,7 +65,7 @@ class BetResolver:
 
         bet_orm.status = status
         bet_orm.pnl_usd = pnl
-        bet_orm.resolved_at = datetime.utcnow()
+        bet_orm.resolved_at = datetime.now(timezone.utc)
         # bankroll_after tracks the restoration/loss
         bet_orm.bankroll_after = (bet_orm.bankroll_before or 0.0) + (stake * odds if won else 0.0)
 

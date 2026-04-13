@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
@@ -205,7 +205,7 @@ class FormModelAgent(ModelAgent):
         sector: str,
         event_date: Optional[str] = None,
     ) -> None:
-        date_str = event_date or datetime.utcnow().date().isoformat()
+        date_str = event_date or datetime.now(timezone.utc).date().isoformat()
         sector = sector.lower()
         team_a = team_a.lower().strip()
         team_b = team_b.lower().strip()
