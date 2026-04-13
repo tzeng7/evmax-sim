@@ -8,7 +8,7 @@ repos:
         pass_filenames: true
         always_run: false
         verbose: true
-        types: [python, yaml]
+        types_or: [python, markdown, yaml]
         # Also trigger on edits to the docs themselves (catches drift in the other direction)
         files: >-
           (?x)^(
