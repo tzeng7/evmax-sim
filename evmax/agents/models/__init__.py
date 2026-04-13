@@ -5,11 +5,14 @@ EnsembleModelAgent blends their outputs weighted by confidence; models below the
 gate are excluded from the blend entirely.
 
 Model weights and state files:
-  EloModelAgent       weight=0.35  data/models/elo_state.json
-  FormModelAgent      weight=0.25  data/models/form_state.json
-  PoissonModelAgent   weight=0.30  data/models/poisson_state.json
-  TennisModelAgent    weight=0.45  data/models/tennis_surface_state.json  (tennis only)
-  PitcherModelAgent   weight=0.20  data/models/pitcher_state.json         (baseball only)
+  EloModelAgent              weight=0.35  data/models/elo_state.json
+  FormModelAgent             weight=0.25  data/models/form_state.json
+  PoissonModelAgent          weight=0.30  data/models/poisson_state.json
+  TennisModelAgent           weight=0.45  data/models/tennis_surface_state.json        (tennis only)
+  TennisServeReturnAgent     weight=0.40  data/models/tennis_serve_return_state.json   (tennis only)
+  TennisH2HAgent             weight=0.10  data/models/tennis_h2h_state.json            (tennis only)
+  TennisRankingTrendAgent    weight=0.10  data/models/tennis_ranking_trend_state.json  (tennis only)
+  PitcherModelAgent          weight=0.20  data/models/pitcher_state.json               (baseball only)
 
 Sharp weight (Pinnacle) is separate from the model blend — controlled by sharp_weight
 in EnsembleModelAgent, auto-tuned weekly via Brier score in agents/cleanup/metrics.py.
@@ -21,6 +24,9 @@ from evmax.agents.models.form_agent import FormModelAgent
 from evmax.agents.models.poisson_agent import PoissonModelAgent
 from evmax.agents.models.ensemble_agent import EnsembleModelAgent
 from evmax.agents.models.tennis_model_agent import TennisModelAgent
+from evmax.agents.models.tennis_serve_return_agent import TennisServeReturnAgent
+from evmax.agents.models.tennis_h2h_agent import TennisH2HAgent
+from evmax.agents.models.tennis_ranking_trend_agent import TennisRankingTrendAgent
 from evmax.agents.models.pitcher_agent import PitcherModelAgent
 
 __all__ = [
@@ -31,5 +37,8 @@ __all__ = [
     "PoissonModelAgent",
     "EnsembleModelAgent",
     "TennisModelAgent",
+    "TennisServeReturnAgent",
+    "TennisH2HAgent",
+    "TennisRankingTrendAgent",
     "PitcherModelAgent",
 ]

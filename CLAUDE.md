@@ -90,7 +90,15 @@ evmax/
 | Form | 0.25 | 0.45 | `data/models/form_state.json` |
 | Poisson | 0.30 | 0.45 | `data/models/poisson_state.json` |
 | Tennis Surface Elo | 0.45 | 0.45 | `data/models/tennis_surface_state.json` |
+| Tennis Serve/Return | 0.40 | 0.45 | `data/models/tennis_serve_return_state.json` (logistic on SPW differential, bo3 k=14 / bo5 k=18) |
+| Tennis H2H | 0.10 | 0.45 | `data/models/tennis_h2h_state.json` (Laplace-smoothed nudge, ≥3 meetings, ±18pp cap) |
+| Tennis Ranking Trend | 0.10 | 0.45 | `data/models/tennis_ranking_trend_state.json` (12-week momentum, ±0.40 logit cap) |
+| MLB Pitcher | 0.20 | 0.45 | `data/models/pitcher_state.json` |
 | Sharp (Pinnacle) | 0.85 (CLI/config default) | always | auto-tuned in `data/model_config.json` |
+
+Tennis serve/return, H2H, and ranking-trend agents are seeded from Jeff Sackmann's
+`tennis_atp` / `tennis_wta` CSVs plus the Match Charting Project for 2025+ SPW
+augmentation via `scripts/seed_tennis_models.py`.
 
 - Models below the confidence gate are excluded from the blend entirely
 - `model_sources` in each EVGap only lists models that actually contributed
@@ -104,13 +112,14 @@ evmax/
 | NBA / NFL / NCAAB / NCAAW / Soccer (EPL/UCL/La Liga/Bundesliga/Serie A/Ligue 1) | ESPN scoreboard API |
 | Baseball (MLB) | ESPN scoreboard API |
 | CS2 / LoL | bo3.gg matches API |
-| Tennis | **Not yet implemented** — bets log but never auto-resolve |
+| Tennis | **Not yet implemented** — bets log but never auto-resolve (player models still seed from Sackmann CSVs + Match Charting Project) |
 | NHL | **Not yet implemented** — bets log but never auto-resolve |
 | Soccer (MLS / UEL) | **Not yet implemented** — missing from ESPN league list |
 
 ### Key Implementation Details
 
 - **Kalshi rate limiting**: `AsyncLimiter(10, 1.0)` from `aiolimiter` in `kalshi.py` — token bucket, 10 req/s
+- **Kalshi ticker dates**: `_parse_ticker_date` anchors at **noon UTC** (not midnight) so downstream `.astimezone()` can't roll the game date back a day in negative-offset US time zones
 - **Pinnacle parallelism**: all `(sport_key × market_type)` combinations fetched simultaneously
 - **Bankroll persistence**: `bankroll_used` column in `ev_predictions` — verify/pick reuse scan-time bankroll automatically
 - **Props**: shown in scan output, excluded from `predictions.db` (filter: `::prop::` in event_id)
