@@ -132,17 +132,11 @@ class TestSeedPitchers:
 
 class TestPythagPrediction:
     @pytest.mark.asyncio
-    async def test_known_bug_better_home_pitcher_is_less_favored(self, agent):
-        """**Known bug — pins current (inverted) behavior.**
-
-        The agent assigns ``home_ra = away_era`` (and vice versa), treating
-        "runs the home team allows" as a function of the *opposing* starter.
-        That's backwards: a team's runs allowed is driven by its own pitcher.
-        The consequence is that the side with the better starter ends up
-        *less* favored, which is the opposite of reality.
-
-        This test locks the current output so a fix will visibly break it.
-        """
+    async def test_lower_era_team_is_favored(self, agent):
+        """Regression for BUG-9: the side with the better starter must be
+        favored. Prior to the fix the Pythag assigned ``home_ra = away_era``
+        (and vice versa), producing the inverted result that a 2.50 ERA ace
+        opposing a 5.50 ERA starter won only ~38% of the time."""
         agent.seed_pitchers(
             {
                 "Ace Pitcher": {"era": 2.50, "ip": 180, "team": "yankees"},
@@ -155,10 +149,10 @@ class TestPythagPrediction:
         pred = await agent.predict_pair(m, s)
 
         assert pred is not None
-        # Home has the ace (2.50 ERA) vs away's 5.50 ERA — yet under current
-        # (buggy) semantics the home team is *under* 50/50 even after the
-        # home bonus. A proper fix should flip this to >0.80.
-        assert pred.true_prob_a < 0.50
+        # With the fix, 2.50 vs 5.50 ERA produces home_wp ≈ 0.80, and after
+        # the +0.04 home bonus the clamp in [0.10, 0.90] still leaves this
+        # comfortably above 0.80.
+        assert pred.true_prob_a > 0.80
         assert pred.true_prob_a == pytest.approx(1.0 - pred.true_prob_b, abs=1e-6)
 
     @pytest.mark.asyncio
@@ -323,8 +317,10 @@ class TestPythagMath:
         )
 
         e = PYTHAG_EXP
-        home_wp = league ** e / (league ** e + away_era ** e)
-        away_wp = league ** e / (league ** e + home_era ** e)
+        # Post-BUG-9: each team scores at the opposing starter's rate and
+        # allows at its own starter's rate.
+        home_wp = away_era ** e / (away_era ** e + home_era ** e)
+        away_wp = home_era ** e / (home_era ** e + away_era ** e)
         expected = home_wp / (home_wp + away_wp) + HOME_BONUS
 
         pred = await agent.predict_pair(_market(), _sharp())

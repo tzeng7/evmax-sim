@@ -8,10 +8,11 @@
 
 ## Recently Shipped
 
-### PR #2 — Poisson bucketing + prop injury boost + TEST-2/TEST-6
+### PR #2 — Poisson bucketing + prop injury boost + pitcher Pythag + TEST-2/TEST-6
 - ✅ BUG-4 — Poisson NBA/NFL/NCAAB score matrix now bucketed (NBA=5, NFL=4, NCAAB=5). `lam_h`/`lam_a` scaled by bucket before the matrix is built so Poisson mass fits inside MAX_SCORE.
 - ✅ BUG-5 — Prop injury boost now uses `nba_props_cache.lookup_player_team()` to find the player's actual team instead of parsing a nonexistent game slug out of `parts[2]`. The boost was silently never firing for any prop.
-- ✅ TEST-2 — PitcherModelAgent now has 14 tests across sector gating, seeding, Pythag prediction, confidence tiers, and team-name fallback. Writing the tests exposed **BUG-9** (filed below).
+- ✅ BUG-9 — Pitcher Pythag semantics corrected. Previously `home_ra = away_era` treated a team's runs allowed as a function of the *opposing* starter, making the team with the better pitcher *less* favored. Fixed to `home_rs = away_era, home_ra = home_era` (each team scores at opponent's rate, allows at its own pitcher's rate). A 2.50 vs 5.50 ERA matchup now produces home_wp ≈ 0.80 instead of ~0.38.
+- ✅ TEST-2 — PitcherModelAgent now has 14 tests across sector gating, seeding, Pythag prediction, confidence tiers, and team-name fallback. Writing the tests surfaced BUG-9.
 - ✅ TEST-6 — 44 tests added for the prop pipeline: PropMatcher matching logic, `nba_props_cache` (lookup_player_team, compute_prop_prob_cached, _opponent_adjustment), and `prop_resolver` pure helpers (_normalize_for_match, _extract_stat). Network-dependent paths (`fetch_player_stats` body, `resolve_prop_observations`, `refresh_props_cache`) intentionally not covered here — live in the network tier.
 - ✅ Suite: 640 → 705 (+65).
 
@@ -46,15 +47,7 @@ Minor packages still with stub docstrings: `evmax/web/`, `evmax/cli/`, `evmax/cl
 
 ## Section 2 — Bugs (Correctness Issues)
 
-_(BUG-4 and BUG-5 shipped — see "Recently Shipped" above.)_
-
-### BUG-9 Pitcher Pythag Semantics Are Inverted [P1]
-**File:** `evmax/agents/models/pitcher_agent.py:169-178`
-The Pythagorean block assigns `home_ra = away_era` and `away_ra = home_era`, treating "runs the home team allows" as a function of the *opposing* starter. Runs allowed is driven by a team's *own* pitcher, so the mapping is backwards: a team with the better starter ends up *less* favored after normalization. In a 2.50-vs-5.50 ERA matchup the home ace produces `prob_a ≈ 0.38` (before home bonus) instead of the ~0.80 it should.
-
-Pinned in `tests/test_pitcher_agent.py::test_known_bug_better_home_pitcher_is_less_favored`. Fix should flip that test assertion.
-
-Suggested fix: either use `home_rs=away_era, home_ra=home_era` (both pitchers enter via each team's own ERA) or simplify to the equivalent `home_wp = away_era^e / (away_era^e + home_era^e)`. `league_avg_era` drops out of the matchup formula under both options — keep it as a fallback for unknown-ERA pitchers.
+_(BUG-4, BUG-5, and BUG-9 shipped — see "Recently Shipped" above.)_
 
 ---
 
@@ -203,7 +196,6 @@ See MODEL-1 above. This is the highest-leverage model improvement for tennis.
 
 | Priority | Item | Impact |
 |----------|------|--------|
-| P1 | BUG-9 Pitcher Pythag inversion | Better pitcher → less favored (backwards) |
 | P1 | MODEL-1 / SECTOR-3 Tennis surface detection | Surface Elo rarely fires in practice |
 | P1 | PROPS-1 NFL props backend | Dead API calls |
 | P2 | MODEL-2 NCAAW/NHL Elo calibration | Uncalibrated K + home adv |
