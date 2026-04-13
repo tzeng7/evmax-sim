@@ -1,74 +1,43 @@
 # evmax TODO
 
 > Items discovered via full codebase quality sweep (April 2026).
-> PLAN.md covers completed work (Batches A–F ✅). This file tracks what's next.
+> PLAN.md covers older completed work (Batches A–F ✅). This file tracks what's next.
 > Each item has a priority: **P1** (correctness/money), **P2** (quality/coverage), **P3** (nice to have).
 
 ---
 
-## Section 1 — Documentation & Auto-Sync
+## Recently Shipped
 
-The codebase has drifted from its docs. CLAUDE.md has at least three stale facts, and there are
-no module-level docstrings or per-folder READMEs. Goal: make it easy for Claude Code to
-stay oriented in future sessions without needing to re-explore everything from scratch.
+### PR #1 — Quality sweep: docs sync, resolution gaps, tennis tests
+- ✅ DOC-1 — CLAUDE.md stale facts fixed (rate limiting, NCAAW source, sharp weight, clients tree, tennis weight, resolution table, sectors)
+- ✅ DOC-2 — Folder READMEs added for `evmax/clients/` and `evmax/models_ml/` (the two most confusing dirs). Remaining: `evmax/agents/`, `evmax/sectors/aliases/`.
+- ✅ DOC-3 — `__init__.py` docstrings upgraded across `clients`, `ev`, `matching`, `sectors`, `models_ml`, `pipeline`, `agents/cleanup`, `agents/models`. Also fixed a missing `TennisModelAgent` / `PitcherModelAgent` export. Remaining: a handful of minor packages (`web`, `cli`, `backtest`, `players`).
+- ✅ DOC-4 — Pre-commit `doc-and-test-sync-reminder` hook installed. Two layers: doc-sync warns when source changes without related doc updates; test-sync warns when source changes without test changes (with `[ZERO COVERAGE]` red label for modules with no test file at all).
+- ✅ Testing Policy section added to CLAUDE.md
+- ✅ `setup.sh` for one-command dev setup
+- ❌ BUG-1 — **false positive**: tennis already auto-resolves via Kalshi settlement at `resolver.py:850`. The audit missed that branch because tennis isn't in `ESPN_SPORT_MAP`. Removed.
+- ✅ BUG-2 — NHL added to `ESPN_SPORT_MAP` (`hockey/nhl`)
+- ✅ BUG-3 — UEL (`uefa.europa`) + MLS (`usa.1`) added to `ESPN_SOCCER_LEAGUES`
+- ✅ BUG-6 — `FORM_STATE_PATH` now absolute (was relative, silently failing under non-root CWD)
+- ✅ BUG-7 — Dead `"over_under"` string removed from `EVGap.display_label`
+- ✅ BUG-8 — All five remaining `datetime.utcnow()` call sites cleaned up (also caught a latent bug in `BankrollSnapshot` where the default was a frozen value)
+- ✅ TEST-1 — 51 tennis model tests across 8 test classes; total suite 589 → 640
 
-### DOC-1 Fix Stale CLAUDE.md Facts [P2]
-Three confirmed inaccuracies:
-- **Kalshi rate limiting**: says `asyncio.Semaphore(3)` — actual code uses `AsyncLimiter(10, 1.0)` (token bucket, 10 req/s from `aiolimiter`)
-- **NCAAW sharp source**: says "uses TheOddsAPI `basketball_wncaab`" — code uses `PinnacleGuestClient` (league_id=583) just like every other sector
-- **Sharp weight default**: says 0.85 — `AgentCoordinator.__init__` defaults to 0.40; 0.85 lives in CLI default + `_DEFAULT_CONFIG` only
+---
 
-### DOC-2 Add Per-Folder README.md Files [P3]
-Key folders that are confusing without orientation:
+## Section 1 — Documentation & Auto-Sync (remaining)
+
+### DOC-2b Per-Folder READMEs (remaining) [P3]
+Still missing dedicated READMEs:
 - `evmax/agents/` — explain pub/sub bus, AgentRequest/Response, coordinator lifecycle
-- `evmax/clients/` — explain that `pinnacle.py` (TheOddsAPI) is legacy/unused; `esports_pinnacle.py` handles ALL sectors
-- `evmax/models_ml/` — explain what's live vs dead (`sharp_only.py` is dead)
 - `evmax/sectors/aliases/` — explain YAML alias format and how fuzzy matching uses them
 
-### DOC-3 Add `__init__.py` Docstrings to All Packages [P3]
-Many packages have empty `__init__.py` files. Add one-line module docstrings so `help(evmax.agents)` is useful and Claude Code can orient quickly.
-
-### DOC-4 Pre-commit Hook: Remind to Update Docs [P3]
-Add a `.pre-commit-config.yaml` with a custom hook that:
-- On any commit touching `evmax/agents/`, `evmax/clients/`, `evmax/sectors/`, `evmax/ev/`, or `evmax/models_ml/`, prints a reminder: `"Remember: update CLAUDE.md, README.md, and relevant folder READMEs if public interfaces changed"`
-- Use `hooks.PostToolUse` in Claude Code settings (`.claude/settings.json`) so Claude itself gets this reminder after editing key files
-
-Example `.claude/settings.json` hook:
-```json
-{
-  "hooks": {
-    "PostToolUse": [{
-      "matcher": "Edit|Write",
-      "hooks": [{
-        "type": "command",
-        "command": "python scripts/check_doc_sync.py \"$CLAUDE_TOOL_INPUT_FILE_PATH\""
-      }]
-    }]
-  }
-}
-```
-`check_doc_sync.py` would print a warning when a changed file falls in a tracked folder.
+### DOC-3b `__init__.py` Docstrings (remaining) [P3]
+Minor packages still with stub docstrings: `evmax/web/`, `evmax/cli/`, `evmax/cli/commands/`, `evmax/backtest/`, `evmax/players/`, `evmax/backtest/sources/`. Low impact since these are leaf packages, but easy wins.
 
 ---
 
 ## Section 2 — Bugs (Correctness Issues)
-
-### BUG-1 Tennis Outcome Resolution is Missing [P1]
-**File:** `evmax/agents/cleanup/resolver.py`
-Tennis bets are found, logged, and never resolved. `ESPN_SPORT_MAP` has no tennis entry; neither does `BO3_DISCIPLINE`. There is no other resolution source.
-- Add ATP/WTA resolution via the ESPN tennis scoreboard endpoint (sport=`tennis`, league=`atp`/`wta`)
-- Or add a manual-resolve CLI fallback for sectors with no data source
-
-### BUG-2 NHL Outcome Resolution is Missing [P1]
-**File:** `evmax/agents/cleanup/resolver.py`
-Same as BUG-1 but for hockey. `ESPN_SPORT_MAP` has no `nhl` entry.
-- Add `"nhl": ("hockey", "nhl", {})` to `ESPN_SPORT_MAP`
-- Verify `elo_agent.py` K-factor and home advantage have NHL entries (currently defaults to NBA values silently)
-
-### BUG-3 UEL + MLS Bets Never Auto-Resolve [P1]
-**File:** `evmax/agents/cleanup/resolver.py:51-58`
-`ESPN_SOCCER_LEAGUES` covers EPL, La Liga, Bundesliga, Serie A, Ligue 1, UCL — UEL and MLS are missing. Any +EV bets on these competitions accumulate without resolution indefinitely.
-- Add UEL (`uefa.uel`) and MLS (`usa.1`) ESPN league slugs to `ESPN_SOCCER_LEAGUES`
 
 ### BUG-4 Poisson NBA/NFL Score Matrix is Truncated [P1]
 **File:** `evmax/agents/models/poisson_agent.py`
@@ -81,29 +50,6 @@ The normalization in `_win_draw_probs()` partially recovers the win probability 
 The injury boost lookup splits `prop.event_id` on `"::"` expecting a `game_slug` segment, but prop event_ids are formatted as `{sector}::{date}::prop::{player}::{stat}::{threshold}`. The `parts[2]` segment is always `"prop"`, not a game slug. So `team_boosts` is always empty for props.
 - Extract the correct team context for props from the `PropMatch.player_team` field (it's already populated via `nba_stats.py`)
 
-### BUG-6 Relative Path for Elo Rest-Day Adjustment [P2]
-**File:** `evmax/agents/models/elo_agent.py:92`
-```python
-FORM_STATE_PATH = Path("data/models/form_state.json")
-```
-This is a relative path. Every other state path in the codebase uses `Path(__file__).resolve().parents[N]`. When the process runs from a directory other than the project root, rest-day Elo adjustments silently fail.
-- Change to: `FORM_STATE_PATH = Path(__file__).resolve().parents[3] / "data" / "models" / "form_state.json"`
-
-### BUG-7 `EVGap.display_label` Checks Dead String "over_under" [P3]
-**File:** `evmax/agents/odds/ev_gap_agent.py:90-92`
-Checks `if self.market_type in ("over_under", "total")`. `MarketType` has no `over_under` member — only `total`. The string `"over_under"` is dead and will never match.
-- Remove `"over_under"` from the tuple
-
-### BUG-8 `datetime.utcnow()` Deprecation Not Fully Fixed [P2]
-PLAN.md marks A1 as ✅ but these files were missed:
-- `evmax/models/odds.py:48` — `fetched_at` default
-- `evmax/models/bankroll.py:26` — `recorded_at` default
-- `evmax/models/market.py:52` — `fetched_at` default
-- `evmax/agents/models/form_agent.py:208` — `update()` event_date fallback
-- `evmax/simulation/resolver.py:68` — `resolved_at` assignment
-
-Replace all remaining `datetime.utcnow()` with `datetime.now(timezone.utc)`.
-
 ---
 
 ## Section 3 — Model Quality
@@ -111,6 +57,8 @@ Replace all remaining `datetime.utcnow()` with `datetime.now(timezone.utc)`.
 ### MODEL-1 Tennis Surface Detection is Too Fragile [P1]
 **File:** `evmax/agents/models/tennis_model_agent.py`
 Surface is inferred from keywords in `market.title`. In practice, Kalshi market titles for ATP/WTA are typically just "Player A vs Player B" with no tournament context. The surface defaults to `hard` almost always, meaning surface-specific Elo (clay/grass advantages) is rarely exercised despite existing in the state.
+
+> **Note:** `tests/test_tennis_model.py::test_known_bug_title_without_tournament_silently_defaults_to_hard` pins the current buggy behavior. Fixing MODEL-1 will require updating that test, making the regression visible at code-review time.
 
 Fix options (in order of preference):
 1. Enrich `TennisSectorHandler` to carry a `surface` field from a tournament calendar lookup (ATP tour schedule is public)
@@ -143,12 +91,8 @@ team["attack"] = (1 - alpha) * team["attack"] + alpha * actual_goals
 
 ## Section 4 — Test Coverage Gaps
 
-### TEST-1 TennisModelAgent Has Zero Tests [P1]
-The entire tennis model agent — surface lookup, Elo computation, probability output — has no unit tests. This is the most important untested model given that the tennis prediction bug was recently discovered.
-- Add `tests/test_tennis_model.py` covering: surface detection, player lookup, surface Elo vs overall Elo fallback, unknown player handling, non-tennis sector returns None
-
 ### TEST-2 PitcherModelAgent Has Zero Tests [P2]
-No tests for pitcher ERA lookup, park factor application, or Pythagorean win probability.
+No tests for pitcher ERA lookup, park factor application, or Pythagorean win probability. The pre-commit hook will flag this as `[ZERO COVERAGE]` on every edit — the next natural follow-up to TEST-1.
 
 ### TEST-3 PinnacleGuestClient Has Zero Tests [P2]
 **File:** `evmax/clients/esports_pinnacle.py`
@@ -167,6 +111,9 @@ No tests for the live in-game model.
 ---
 
 ## Section 5 — Architecture / Cleanup
+
+> Skipped for now (your brother's repo — leaving major arch decisions alone).
+> Listed here so they don't get forgotten if/when he wants to tackle them.
 
 ### ARCH-1 Dead Code: `pipeline/runner.py` and `models_ml/sharp_only.py` [P2]
 `pipeline/runner.py` is a Phase 1 legacy module. It imports `SharpBooksModel` from `models_ml/sharp_only.py` and the old `PinnacleClient`. Neither is called by any CLI command.
@@ -236,37 +183,34 @@ Currently `evmax cleanup show` displays game-level bets only. Props are logged t
 ## Section 7 — Sector Gaps
 
 ### SECTOR-1 Hockey (NHL) Elo Calibration [P2]
-See MODEL-2 above. NHL is in the registry and Kalshi series but Elo uses NBA defaults.
+See MODEL-2 above. NHL is in the registry and Kalshi series but Elo uses NBA defaults. (NHL outcome resolution is fixed in PR #1.)
 
-### SECTOR-2 NCAAW Elo Calibration [P2]  
+### SECTOR-2 NCAAW Elo Calibration [P2]
 See MODEL-2 above. NCAAW has a `REST_ELO_ADJ` entry but no K-factor or home advantage.
 
 ### SECTOR-3 Tennis Tournament Calendar for Surface Lookup [P1]
 See MODEL-1 above. This is the highest-leverage model improvement for tennis.
 
 ### SECTOR-4 Sectors in Registry Not in CLAUDE.md [P3]
-`nhl`, `baseball`, `valorant`, `ufc`, `f1` are in `registry.py` and `esports_pinnacle.py` but absent from CLAUDE.md "Key Sectors". Either document them or remove them if they're experimental.
+~~`nhl`, `baseball`, `valorant`, `ufc`, `f1` are absent from CLAUDE.md~~ — partially fixed in PR #1 (NHL, Baseball, Valorant added to Key Sectors). UFC and F1 still undocumented but they're long-tail.
 
 ---
 
-## Priority Order
+## Priority Order (open items only)
 
 | Priority | Item | Impact |
 |----------|------|--------|
-| P1 | BUG-1 Tennis resolution | Bets never resolve |
-| P1 | BUG-2 NHL resolution | Bets never resolve |
-| P1 | BUG-3 UEL/MLS resolution | Bets never resolve |
 | P1 | BUG-4 Poisson score matrix | Wrong probabilities for NBA/NFL |
 | P1 | BUG-5 Prop injury boosts broken | Props underestimated |
-| P1 | MODEL-1 Tennis surface detection | Model rarely used as intended |
-| P1 | SECTOR-3 Tennis tournament calendar | Same as MODEL-1 |
+| P1 | MODEL-1 / SECTOR-3 Tennis surface detection | Surface Elo rarely fires in practice |
 | P1 | PROPS-1 NFL props backend | Dead API calls |
-| P2 | BUG-6 Relative Elo path | Silent failures on non-root CWD |
-| P2 | BUG-8 utcnow remaining | Deprecation warnings |
-| P2 | MODEL-2 NCAAW/NHL calibration | Uncalibrated Elo |
-| P2 | ARCH-1 Delete dead code | Confusion + maintenance |
-| P2 | ARCH-2 Dual DB documentation | Schema drift confusion |
-| P2 | ARCH-4 NFL props or remove | Wasted API calls |
-| P2 | TEST-1 Tennis model tests | No coverage for critical model |
-| P2 | TEST-4 Integration test | No end-to-end test |
-| P3 | Everything else | Quality / polish |
+| P2 | MODEL-2 NCAAW/NHL Elo calibration | Uncalibrated K + home adv |
+| P2 | TEST-2 Pitcher model tests | Next zero-coverage model |
+| P2 | TEST-3 PinnacleGuestClient tests | Only live sharp source untested |
+| P2 | TEST-4 Coordinator integration test | Catches wiring regressions |
+| P2 | TEST-6 Prop pipeline tests | nba_stats / prop_matcher uncovered |
+| P3 | DOC-2b / DOC-3b remaining doc polish | — |
+| P3 | MODEL-3 Form draw normalization | Cosmetic precision |
+| P3 | MODEL-4 Poisson EWMA | Long-term staleness |
+| P3 | MODEL-5 Tennis weight tuning | After MODEL-1 |
+| P3 | All ARCH-* | Skipped for now |

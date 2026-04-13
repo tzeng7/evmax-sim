@@ -24,5 +24,6 @@ repos:
             evmax/pipeline/.*|
             evmax/cli/commands/.*|
             CLAUDE\.md|
-            README\.md
+            README\.md|
+            TODO\.md
           )$

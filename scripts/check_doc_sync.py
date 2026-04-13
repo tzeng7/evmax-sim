@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Pre-commit hook: remind to keep docs AND tests in sync when source files change.
+"""Pre-commit hook: remind to keep docs, tests, AND TODO.md in sync.
 
-Two parallel checks:
-  1. doc-sync — warn when source changes but related docs (CLAUDE.md, __init__.py,
+Three parallel checks:
+  1. doc-sync  — warn when source changes but related docs (CLAUDE.md, __init__.py,
      folder READMEs) are not also in the staged set.
   2. test-sync — warn when logic-bearing source changes but no test file in the
      staged set covers it. Source modules without ANY existing test file get a
      stronger warning ("zero coverage — add a test file before merging").
+  3. todo-sync — warn when source changes but TODO.md is not in the staged set.
+     Soft nudge: "did this commit knock anything off the TODO list?"
 
 Exits 0 always — this is a reminder, not a blocker.
 Usage (called by pre-commit framework):
@@ -283,6 +285,31 @@ def check_tests(changed_files: list[str], repo_root: Path) -> None:
     )
 
 
+def check_todo(changed_files: list[str]) -> None:
+    """Soft nudge: if logic-bearing source changed, did you update TODO.md?
+
+    We don't try to be smart about whether the change actually closes a TODO item —
+    that requires understanding intent. Instead we just remind once per commit
+    when source under evmax/ changes without TODO.md being staged. Easy to ignore
+    if nothing was knocked off; hard to forget if something was.
+    """
+    if "TODO.md" in changed_files:
+        return  # Already updated — nothing to nudge about
+
+    src_changed = any(
+        f.startswith("evmax/") and f.endswith(".py") for f in changed_files
+    )
+    if not src_changed:
+        return
+
+    print(
+        "\n\033[36m[todo-sync]\033[0m Did this commit close, partially close, or"
+        " invalidate any item in TODO.md?\n"
+        "  If yes: move it to the 'Recently Shipped' section (or strike it through).\n"
+        "  If no:  ignore this nudge.\n"
+    )
+
+
 def main() -> None:
     if len(sys.argv) > 1:
         # Called with explicit file list (e.g. from pre-commit args)
@@ -294,6 +321,7 @@ def main() -> None:
         repo_root = Path(__file__).resolve().parents[1]
         check_docs(changed_files)
         check_tests(changed_files, repo_root)
+        check_todo(changed_files)
 
     sys.exit(0)  # Never block the commit
 
