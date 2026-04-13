@@ -1,0 +1,83 @@
+import { useState, useCallback } from 'react'
+import { useDashboard } from './hooks/useDashboard'
+import { useToast } from './hooks/useToast'
+import { KpiCards } from './components/KpiCards'
+import { ProfitChart } from './components/ProfitChart'
+import { ActionBar } from './components/ActionBar'
+import { ScanResults } from './components/ScanResults'
+import { PlacedBets } from './components/PlacedBets'
+import { SectorPerformance } from './components/SectorPerformance'
+import { OpenPositions } from './components/OpenPositions'
+import { RecentSettled } from './components/RecentSettled'
+import { MetricsPanel } from './components/MetricsPanel'
+import { Toast } from './components/Toast'
+import { fetchMetrics } from './lib/api'
+import type { MetricsResult } from './lib/types'
+import './App.css'
+
+export default function App() {
+  const dash = useDashboard()
+  const { toast, ...toastProps } = useToast()
+  const [view, setView] = useState<'all' | 'placed'>('all')
+  const [metrics, setMetrics] = useState<MetricsResult | null>(null)
+
+  const handleMetrics = useCallback(async () => {
+    toast('Loading metrics...', 'info')
+    try {
+      const data = await fetchMetrics(4)
+      setMetrics(data)
+    } catch (e) {
+      toast('Metrics failed: ' + (e as Error).message, 'err')
+    }
+  }, [toast])
+
+  if (dash.loading) {
+    return <div style={{ padding: 40, color: '#7a8aa0' }}>Loading dashboard...</div>
+  }
+
+  const summary = view === 'placed' ? dash.summaryPlaced : dash.summaryAll
+
+  return (
+    <>
+      <div className="header">
+        <div className="header-left">
+          <h1>evmax</h1>
+          <span className="subtitle">+EV prediction market dashboard</span>
+        </div>
+        <ActionBar
+          onScanComplete={dash.setScanResults}
+          onResolve={dash.refresh}
+          onMetrics={handleMetrics}
+          toast={toast}
+        />
+      </div>
+
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+        <button className={`btn btn-sm pnl-tab ${view === 'all' ? 'active' : ''}`} onClick={() => setView('all')}>All Scanned</button>
+        <button className={`btn btn-sm pnl-tab ${view === 'placed' ? 'active' : ''}`} onClick={() => setView('placed')}>Placed Only</button>
+      </div>
+
+      <KpiCards summary={summary} />
+      <ProfitChart seriesAll={dash.seriesAll} seriesPlaced={dash.seriesPlaced} view={view} />
+
+      <ScanResults
+        gaps={dash.scanGaps}
+        meta={dash.scanMeta}
+        toast={toast}
+        onPicked={dash.refresh}
+      />
+
+      <MetricsPanel data={metrics} />
+
+      <PlacedBets bets={dash.placedBets} toast={toast} onChanged={dash.refresh} />
+
+      <div className="two-col">
+        <SectorPerformance sectors={dash.sectors} />
+        <OpenPositions bets={dash.openBets} scanGaps={dash.scanGaps} toast={toast} onPicked={dash.refresh} />
+      </div>
+
+      <RecentSettled bets={dash.recent} />
+      <Toast {...toastProps} />
+    </>
+  )
+}

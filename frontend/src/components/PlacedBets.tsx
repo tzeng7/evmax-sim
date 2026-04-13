@@ -1,0 +1,125 @@
+import { useState, useCallback } from 'react'
+import type { Bet } from '../lib/types'
+import { probToAmerican, americanToProb } from '../lib/odds'
+import { SectorFilter } from './SectorFilter'
+import { updatePlaced, unplaceBets } from '../lib/api'
+
+interface Props {
+  bets: Bet[]
+  toast: (msg: string, type?: 'info' | 'ok' | 'err') => void
+  onChanged: () => void
+}
+
+export function PlacedBets({ bets, toast, onChanged }: Props) {
+  const [sector, setSector] = useState('')
+  const [edits, setEdits] = useState<Record<string, { odds: string; stake: string }>>({})
+  const [dirty, setDirty] = useState(false)
+
+  if (!bets.length) return null
+
+  const filtered = sector ? bets.filter(b => b.sector === sector) : bets
+
+  const getFill = (b: Bet) => b.placed_price || b.kalshi_yes_price || 0.5
+  const getStake = (b: Bet) => b.placed_stake || (b.bankroll_used || 500) * (b.kelly_fraction || 0)
+
+  const updateField = (mid: string, field: 'odds' | 'stake', value: string) => {
+    setEdits(prev => {
+      const existing = prev[mid] || {}
+      return { ...prev, [mid]: { ...existing, [field]: value } }
+    })
+    setDirty(true)
+  }
+
+  const getOdds = (b: Bet) => edits[b.market_id]?.odds ?? probToAmerican(getFill(b))
+  const getStakeVal = (b: Bet) => edits[b.market_id]?.stake ?? getStake(b).toFixed(2)
+
+  const toWin = (b: Bet) => {
+    const odds = getOdds(b)
+    const stake = parseFloat(getStakeVal(b)) || 0
+    const prob = americanToProb(odds)
+    if (prob && prob > 0 && prob < 1) return stake * (1 / prob - 1)
+    return 0
+  }
+
+  const handleSave = useCallback(async () => {
+    const items = Object.entries(edits).map(([mid, e]) => ({
+      market_id: mid,
+      fill_price: americanToProb(e.odds || ''),
+      fill_stake: parseFloat(e.stake || '0'),
+    }))
+    if (!items.length) return
+    try {
+      const res = await updatePlaced(items)
+      toast(`Updated ${res.updated} bet(s)`, 'ok')
+      setDirty(false)
+      setEdits({})
+      onChanged()
+    } catch (e) {
+      toast('Save failed: ' + (e as Error).message, 'err')
+    }
+  }, [edits, toast, onChanged])
+
+  const handleRemove = useCallback(async (mid: string) => {
+    if (!confirm('Remove this bet from placed?')) return
+    try {
+      const res = await unplaceBets([mid])
+      if (res.removed > 0) {
+        toast('Bet removed', 'ok')
+        onChanged()
+      }
+    } catch (e) {
+      toast('Remove failed: ' + (e as Error).message, 'err')
+    }
+  }, [toast, onChanged])
+
+  const totalExposure = filtered.reduce((sum, b) => sum + (parseFloat(getStakeVal(b)) || 0), 0)
+
+  return (
+    <div className="panel">
+      <div className="panel-header">
+        <h2>Placed Bets ({filtered.length})</h2>
+        <div className="actions" style={{ gap: 4 }}>
+          <SectorFilter value={sector} onChange={setSector} />
+          {dirty && <button className="btn btn-sm" onClick={handleSave}>Save Changes</button>}
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style={{ width: 30 }}></th>
+            <th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th>
+            <th className="num">Model</th><th className="num">EV</th>
+            <th className="num">Fill Odds</th><th className="num">Stake ($)</th><th className="num">To Win</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map(b => (
+            <tr key={b.market_id}>
+              <td><button className="btn-del" onClick={() => handleRemove(b.market_id)}>&times;</button></td>
+              <td className="muted">{b.event_date}</td>
+              <td><span className="badge">{b.sector}</span></td>
+              <td>{b.event_title}</td>
+              <td>{b.yes_team} {b.market_type}{b.line ? ' ' + b.line : ''}</td>
+              <td className="num">{Math.round((b.blended_true_prob || 0) * 100)}%</td>
+              <td className="num green">{((b.ev_pct || 0) * 100).toFixed(1)}%</td>
+              <td className="num">
+                <input type="text" value={getOdds(b)}
+                  onChange={e => updateField(b.market_id, 'odds', e.target.value)}
+                  style={{ width: 64 }} />
+              </td>
+              <td className="num">
+                <input type="number" value={getStakeVal(b)}
+                  onChange={e => updateField(b.market_id, 'stake', e.target.value)}
+                  style={{ width: 70 }} min="0.01" step="0.01" />
+              </td>
+              <td className="num green">${toWin(b).toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted)' }}>
+        Total exposure: ${totalExposure.toFixed(2)}
+      </div>
+    </div>
+  )
+}
