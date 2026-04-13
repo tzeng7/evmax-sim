@@ -375,7 +375,11 @@ def _compute_prob_sync(
     if col is None:
         return None
 
-    # --- Build raw stat series ---
+    # --- Build raw stat series (cap to most recent _LAST_N_GAMES) ---
+    # nba_api's last_n_games_nullable is advisory; the API sometimes returns
+    # more rows (entire season). Index 0 is most recent, so slicing [:N]
+    # keeps the newest games.
+    df = df.head(_LAST_N_GAMES)
     if col == "__pra__":
         raw = (df["PTS"] + df["REB"] + df["AST"]).astype(float).values
     elif col == "__bs__":
@@ -385,22 +389,27 @@ def _compute_prob_sync(
             return None
         raw = df[col].astype(float).values
 
-    n_games = min(len(raw), _LAST_N_GAMES)
+    n_games = len(raw)
 
     # --- Per-36-minute normalization ---
+    # Kalshi "over N" resolves via strict inequality (actual > line), and all
+    # NBA prop lines are integer. Continuity correction for strict-over on a
+    # discrete stat is P(X >= N+1) ≈ P(Z > N + 0.5). We apply the +0.5 to the
+    # raw threshold BEFORE per-36 scaling so it lives in the same space as
+    # the sample distribution.
+    cc_threshold = float(threshold) + 0.5
     if "MIN" in df.columns:
         minutes = df["MIN"].astype(float).values
         avg_min = float(np.mean(minutes))
         if avg_min >= 5.0:
-            # Each game's stat → per-36-min rate; threshold also scaled
             per36 = raw / np.maximum(minutes, 1.0) * 36.0
-            eff_threshold = threshold / avg_min * 36.0
+            eff_threshold = cc_threshold / avg_min * 36.0
         else:
             per36 = raw
-            eff_threshold = float(threshold)
+            eff_threshold = cc_threshold
     else:
         per36 = raw
-        eff_threshold = float(threshold)
+        eff_threshold = cc_threshold
 
     # --- Exponential decay weights (index 0 = most recent) ---
     weights = np.array([_DECAY ** i for i in range(n_games)], dtype=float)
@@ -421,8 +430,8 @@ def _compute_prob_sync(
     else:
         streak_adj = 0.0
 
-    # --- Base probability (continuity-corrected) ---
-    base_prob = float(1 - norm.cdf(eff_threshold - 0.5, wmean, wstd))
+    # --- Base probability (continuity correction already baked into eff_threshold) ---
+    base_prob = float(1 - norm.cdf(eff_threshold, wmean, wstd))
     base_prob = max(0.01, min(0.99, base_prob))
 
     # --- Opponent defensive adjustment ---

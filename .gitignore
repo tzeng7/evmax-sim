@@ -20,8 +20,14 @@ env/
 
 # Database
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
+
+# Runtime caches
+data/cache/
+data/*_cache.json
 
 # Logs
 *.log

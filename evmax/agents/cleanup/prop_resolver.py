@@ -7,9 +7,9 @@ ESPN endpoints used:
   Scoreboard: https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/scoreboard?dates=YYYYMMDD
   Summary:    https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/summary?event={event_id}
 
-Stat column indices in ESPN boxscore athlete.stats array (NBA):
-  0=MIN  1=FG(m-a)  2=3PT(m-a)  3=FT(m-a)  4=OREB  5=DREB  6=REB
-  7=AST  8=STL  9=BLK  10=TO  11=PF  12=+/-  13=PTS
+ESPN boxscore columns are identified by the per-group `keys` list (e.g.
+['minutes', 'points', 'fieldGoalsMade-fieldGoalsAttempted', ...]). Indices
+shift over time, so we look stat_type up by key rather than hardcoded index.
 """
 
 from __future__ import annotations
@@ -30,40 +30,56 @@ _SECTOR_ESPN = {
     "nfl": ("football", "nfl"),
 }
 
-# stat_type → how to extract a numeric value from ESPN stats array
-# Each entry is either an int (direct index) or a callable(stats_list) -> float
-_STAT_EXTRACTORS: dict[str, int | str] = {
-    "points": 13,
-    "rebounds": 6,
-    "assists": 7,
-    "steals": 8,
-    "blocks": 9,
-    "threes": "3pt_made",   # special: parse "2-5" → 2
-    "points_rebounds_assists": "pra",
+# stat_type → ESPN key name (from stat_group['keys']). "threes" and "pra" are
+# derived and handled in _extract_stat.
+_STAT_KEY: dict[str, str] = {
+    "points": "points",
+    "rebounds": "rebounds",
+    "assists": "assists",
+    "steals": "steals",
+    "blocks": "blocks",
 }
 
 
-def _extract_stat(stats: list[str], stat_type: str) -> Optional[float]:
-    extractor = _STAT_EXTRACTORS.get(stat_type)
-    if extractor is None:
+def _extract_stat(
+    stats: list[str],
+    key_index: dict[str, int],
+    stat_type: str,
+) -> Optional[float]:
+    def _get(key: str) -> Optional[float]:
+        idx = key_index.get(key)
+        if idx is None or idx >= len(stats):
+            return None
+        try:
+            return float(stats[idx])
+        except (TypeError, ValueError):
+            return None
+
+    if stat_type == "threes":
+        # ESPN stores "threePointFieldGoalsMade-threePointFieldGoalsAttempted"
+        # as a single "m-a" string like "3-7".
+        idx = key_index.get(
+            "threePointFieldGoalsMade-threePointFieldGoalsAttempted"
+        )
+        if idx is None or idx >= len(stats):
+            return None
+        try:
+            return float(str(stats[idx]).split("-")[0])
+        except (TypeError, ValueError):
+            return None
+
+    if stat_type == "points_rebounds_assists":
+        pts = _get("points")
+        reb = _get("rebounds")
+        ast = _get("assists")
+        if pts is None or reb is None or ast is None:
+            return None
+        return pts + reb + ast
+
+    key = _STAT_KEY.get(stat_type)
+    if key is None:
         return None
-    if isinstance(extractor, int):
-        try:
-            return float(stats[extractor])
-        except (IndexError, ValueError):
-            return None
-    if extractor == "3pt_made":
-        try:
-            made = stats[2].split("-")[0]
-            return float(made)
-        except (IndexError, ValueError):
-            return None
-    if extractor == "pra":
-        try:
-            return float(stats[13]) + float(stats[6]) + float(stats[7])
-        except (IndexError, ValueError):
-            return None
-    return None
+    return _get(key)
 
 
 def fetch_player_stats(sector: str, game_date: date) -> dict[str, dict[str, float]]:
@@ -107,14 +123,20 @@ def fetch_player_stats(sector: str, game_date: date) -> dict[str, dict[str, floa
 
             for team_entry in summary.get("boxscore", {}).get("players", []):
                 for stat_group in team_entry.get("statistics", []):
+                    keys = stat_group.get("keys") or []
+                    key_index = {k: i for i, k in enumerate(keys)}
+                    stat_types = list(_STAT_KEY.keys()) + [
+                        "threes",
+                        "points_rebounds_assists",
+                    ]
                     for athlete in stat_group.get("athletes", []):
                         name = athlete.get("athlete", {}).get("displayName", "").lower()
                         stats_list = athlete.get("stats", [])
                         if not name or not stats_list:
                             continue
                         row: dict[str, float] = {}
-                        for stat_type in _STAT_EXTRACTORS:
-                            val = _extract_stat(stats_list, stat_type)
+                        for stat_type in stat_types:
+                            val = _extract_stat(stats_list, key_index, stat_type)
                             if val is not None:
                                 row[stat_type] = val
                         if row:

@@ -427,7 +427,7 @@ class TestEvaluatePair:
         agent = self._agent()
         market = _market(yes_price=0.45, yes_team="pistons")
         sharp = _sharp(outcome_a="pistons", outcome_b="warriors", true_prob_a=0.60)
-        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, {}, 0.5)
+        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
         assert gap is not None
         assert gap.ev_pct > 0
 
@@ -439,7 +439,7 @@ class TestEvaluatePair:
         # Pinnacle: pistons = 55%, warriors = 45%
         sharp = _sharp(outcome_a="pistons", outcome_b="warriors", true_prob_a=0.55)
         # Kalshi has warriors at 0.60 but true prob is 0.45 → negative EV
-        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, {}, 0.5)
+        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
         assert gap is None  # 0.60 price for 0.45 true prob → negative EV
 
     def test_draw_market_uses_true_prob_draw(self):
@@ -468,7 +468,7 @@ class TestEvaluatePair:
             no_price=0.75,
             yes_team="tie",
         )
-        gap = agent._evaluate_pair(market_obj, sharp, 0.95, "soccer", {}, {}, {}, 0.5)
+        gap = agent._evaluate_pair(market_obj, sharp, 0.95, "soccer", {}, {}, model_sources={}, kelly_base=0.5)
         # Kalshi 0.25 vs true 0.28 → EV ≈ +12% → should find gap
         assert gap is not None
 
@@ -484,28 +484,28 @@ class TestEvaluatePair:
             no_price=0.75,
             yes_team="tie",
         )
-        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, {}, 0.5)
+        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
         assert gap is None
 
     def test_invalid_price_zero_returns_none(self):
         agent = self._agent()
         market = _market(yes_price=0.0)
         sharp = _sharp(true_prob_a=0.60)
-        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, {}, 0.5)
+        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
         assert gap is None
 
     def test_invalid_price_one_returns_none(self):
         agent = self._agent()
         market = _market(yes_price=1.0)
         sharp = _sharp(true_prob_a=0.60)
-        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, {}, 0.5)
+        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
         assert gap is None
 
     def test_moneyline_to_spread_mismatch_rejected(self):
         agent = self._agent()
         market = _market(yes_price=0.55, market_type=MarketType.moneyline)
         sharp = _sharp(spread_line=-7.5)  # spread event
-        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, {}, 0.5)
+        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
         assert gap is None
 
     def test_below_ev_threshold_returns_none(self):
@@ -513,7 +513,7 @@ class TestEvaluatePair:
         # Price = 0.55, true prob = 0.56 → tiny EV, below 2% threshold
         market = _market(yes_price=0.55, yes_team="pistons")
         sharp = _sharp(outcome_a="pistons", true_prob_a=0.56)
-        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, {}, 0.5)
+        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
         assert gap is None
 
     def test_model_drift_capped_when_ratio_too_high(self):
@@ -541,7 +541,7 @@ class TestEvaluatePair:
 
         blended_preds = {"nba::2026-03-20::pistons_vs_warriors": HighBlend()}
         gap = agent._evaluate_pair(market2, sharp2, 0.95, "nba",
-                                   blended_preds, {}, {}, 0.5)
+                                   blended_preds, {}, model_sources={}, kelly_base=0.5)
         if gap is not None:
             # When capped, blended_true_prob should be close to sharp_true_prob
             assert gap.model_sources == "sharp(capped)"
@@ -561,7 +561,7 @@ class TestEvaluatePair:
 
         blended_preds = {"nba::2026-03-20::pistons_vs_warriors": LowBlend()}
         gap = agent._evaluate_pair(market, sharp, 0.95, "nba",
-                                   blended_preds, {}, {}, 0.5)
+                                   blended_preds, {}, model_sources={}, kelly_base=0.5)
         if gap is not None:
             assert gap.model_sources == "sharp(capped)"
 
@@ -573,9 +573,9 @@ class TestEvaluatePair:
 
         report = _report("pistons", players=[_player(impact=0.045)])
         gap_no_inj = agent._evaluate_pair(
-            market, sharp, 0.95, "nba", {}, {}, {}, 0.5)
+            market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
         gap_with_inj = agent._evaluate_pair(
-            market, sharp, 0.95, "nba", {}, {"pistons": report}, {}, 0.5)
+            market, sharp, 0.95, "nba", {}, {"pistons": report}, model_sources={}, kelly_base=0.5)
 
         # Injury reduces pistons' true prob → less EV
         if gap_no_inj is not None and gap_with_inj is not None:
@@ -587,7 +587,7 @@ class TestEvaluatePair:
         # Kalshi offers 0.35 for a team that sharp says is 50% — big value
         market = _market(yes_price=0.35, yes_team="pistons")
         sharp = _sharp(outcome_a="pistons", outcome_b="warriors", true_prob_a=0.55)
-        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, {}, 0.5)
+        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
         assert gap is not None
         assert gap.ev_pct > 0.02
         assert gap.sector == "nba"

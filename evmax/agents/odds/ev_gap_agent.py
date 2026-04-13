@@ -603,8 +603,36 @@ class EVGapAgent(Agent):
         if market.yes_price >= 0.99:
             return None
 
+        # Phantom-EV guard for esports: opaque Kalshi ticker codes ("th",
+        # "dcg", "shg") can defeat the YES-alignment resolver and historically
+        # assigned the opposite team's devigged prob to the YES side — the
+        # 442%/107%/53% LoL bugs on 2026-04-12. Signature: sharp-only blend
+        # where blended_prob mirrors (1 − market.yes_price) with a large face
+        # edge. Scoped to esports because team-sport markets have reliable
+        # name matching and symmetric mispricings there are real edges.
+        is_sharp_only = src in ("sharp", "sharp(capped)") or src.startswith("sharp+")
+        if is_sharp_only and (market.sector or "").lower() in ("lol", "cs2", "valorant"):
+            mirror_distance = abs(blended_prob - (1.0 - market.yes_price))
+            face_edge = abs(blended_prob - market.yes_price)
+            if mirror_distance < 0.05 and face_edge > 0.15:
+                return None
+
         ev, edge_pct = calculate_ev(market.yes_price, blended_prob)
-        if ev < self._settings.ev_threshold:
+
+        # Tennis map_handicap needs a higher EV bar — sharp-only vig removal
+        # produces phantom 2-3% edges that don't hold empirically (31% actual
+        # vs 37% predicted). Require 5% EV, and 8% for sharp-only signals.
+        ev_floor = self._settings.ev_threshold
+        sector_lower = (market.sector or "").lower()
+        mtype_lower = (market.market_type or "").lower()
+        if sector_lower == "tennis" and mtype_lower == "map_handicap":
+            ev_floor = 0.08 if src == "sharp" else 0.05
+        elif sector_lower == "tennis" and src == "sharp":
+            ev_floor = 0.05  # ML tennis with sharp-only also needs bigger edge
+        elif sector_lower == "baseball" and src == "sharp":
+            ev_floor = 0.05  # Baseball sharp-only needs bigger edge (stale model data)
+
+        if ev < ev_floor:
             return None
 
         payout = 1.0 / market.yes_price

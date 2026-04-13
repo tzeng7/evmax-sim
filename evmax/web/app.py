@@ -53,6 +53,7 @@ def _settled_bets() -> list[dict[str, Any]]:
             FROM ev_predictions p
             JOIN ev_outcomes o ON p.market_id = o.market_id
             WHERE p.voided = 0 AND o.outcome IS NOT NULL
+              AND p.market_type != 'map_handicap'
             ORDER BY p.event_date ASC, p.id ASC
             """
         ).fetchall()
@@ -60,6 +61,7 @@ def _settled_bets() -> list[dict[str, Any]]:
 
 
 def _open_bets() -> list[dict[str, Any]]:
+    """Return open (unresolved) bets, deduplicated by market_id (latest scan wins)."""
     with _conn() as conn:
         rows = conn.execute(
             """
@@ -69,8 +71,15 @@ def _open_bets() -> list[dict[str, Any]]:
                    p.bankroll_used, p.volume_usd, p.model_sources,
                    p.placed, p.placed_stake, p.market_id, p.line
             FROM ev_predictions p
+            INNER JOIN (
+                SELECT market_id, MAX(id) AS max_id
+                FROM ev_predictions
+                WHERE voided = 0
+                GROUP BY market_id
+            ) latest ON p.id = latest.max_id
             LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
             WHERE p.voided = 0 AND (o.outcome IS NULL)
+              AND p.market_type != 'map_handicap'
             ORDER BY p.event_date DESC, p.ev_pct DESC
             LIMIT 200
             """
@@ -188,8 +197,19 @@ def api_profit() -> JSONResponse:
 
 
 @app.get("/api/summary")
-def api_summary() -> JSONResponse:
-    return JSONResponse(_summary_stats(_settled_bets()))
+def api_summary(days: int = 0, view: str = "all") -> JSONResponse:
+    """Summary stats filtered by rolling date window and view.
+
+    days=0 → all-time; otherwise keep bets with event_date >= today - days.
+    view=placed → only placed bets.
+    """
+    bets = _settled_bets()
+    if view == "placed":
+        bets = [b for b in bets if b.get("placed")]
+    if days > 0:
+        cutoff = (date.today() - timedelta(days=days - 1)).isoformat()
+        bets = [b for b in bets if (b.get("event_date") or b.get("scan_date") or "") >= cutoff]
+    return JSONResponse(_summary_stats(bets))
 
 
 @app.post("/api/scan")
@@ -199,6 +219,8 @@ async def api_scan(request: Request) -> JSONResponse:
     sectors_str = body.get("sectors", "nba,soccer,tennis")
     bankroll = float(body.get("bankroll", 500))
     kelly = float(body.get("kelly", 0.5))
+    date_from = body.get("date_from", "")
+    date_to = body.get("date_to", "")
 
     from evmax.agents.coordinator import AgentCoordinator
     sectors = [s.strip() for s in sectors_str.split(",") if s.strip()]
@@ -207,13 +229,25 @@ async def api_scan(request: Request) -> JSONResponse:
     )
     cycle = await coord.run_cycle()
 
+    # Persist game-level gaps to ev_predictions so "Pick Selected" can find
+    # them by market_id. Props are excluded (scan shows them but they aren't
+    # logged as tradeable predictions).
+    try:
+        from evmax.agents.cleanup.logger import log_gaps as _log_gaps
+        loggable = [g for g in cycle.top_gaps if "::prop::" not in (g.event_id or "")]
+        if loggable:
+            _log_gaps(loggable, bankroll_used=bankroll)
+    except Exception as _log_err:
+        import structlog
+        structlog.get_logger(__name__).warning("web_scan_log_failed", error=str(_log_err))
+
     gaps = []
     for g in cycle.top_gaps:
         gaps.append({
             "event_title": g.event_title or "",
             "yes_team": g.yes_team or "",
             "market_type": g.market_type or "",
-            "line": g.line,
+            "line": g.line if g.line is None else float(g.line) if isinstance(g.line, (int, float)) else str(g.line),
             "sector": g.sector or "",
             "kalshi_price": round(g.kalshi_yes_price, 2),
             "true_prob": round(g.blended_true_prob, 3),
@@ -222,9 +256,31 @@ async def api_scan(request: Request) -> JSONResponse:
             "stake": round(bankroll * g.kelly_fraction, 2),
             "model_sources": g.model_sources or "",
             "market_id": g.market_id or "",
-            "event_date": g.event_date or "",
+            "event_date": str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else ""),
             "volume": g.volume_usd or 0,
         })
+
+    # Filter by requested date range (defaults to today + tomorrow)
+    if date_from and date_to:
+        gaps = [g for g in gaps if date_from <= g["event_date"] <= date_to]
+    elif date_from:
+        gaps = [g for g in gaps if g["event_date"] >= date_from]
+    elif date_to:
+        gaps = [g for g in gaps if g["event_date"] <= date_to]
+    else:
+        today_str = date.today().isoformat()
+        tomorrow_str = (date.today() + timedelta(days=1)).isoformat()
+        gaps = [g for g in gaps if g["event_date"] in (today_str, tomorrow_str)]
+
+    # Drop market types that Kalshi doesn't offer (e.g. tennis set handicaps)
+    gaps = [g for g in gaps if g["market_type"] != "map_handicap"]
+
+    # Exclude markets already placed
+    with _conn() as conn:
+        placed_mids = {r[0] for r in conn.execute(
+            "SELECT DISTINCT market_id FROM ev_predictions WHERE placed = 1 AND voided = 0"
+        ).fetchall()}
+    gaps = [g for g in gaps if g["market_id"] not in placed_mids]
 
     return JSONResponse({
         "gaps": gaps,

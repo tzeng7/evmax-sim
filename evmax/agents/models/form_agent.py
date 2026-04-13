@@ -83,6 +83,16 @@ class FormModelAgent(ModelAgent):
     def _team_records(self, sector: str, team: str) -> list[GameRecord]:
         sector_data = self._state.get(sector, {})
         team_data = sector_data.get(team)
+        # Normalizer-driven resolution: apply sector aliases so Pinnacle labels
+        # ("Karmine Corp", "LGD Gaming") hit stored keys ("kc", "lgd").
+        if not team_data:
+            try:
+                from evmax.matching.normalizer import NameNormalizer
+                normed = NameNormalizer(sector).normalize(team)
+                if normed and normed != team:
+                    team_data = sector_data.get(normed)
+            except Exception:
+                pass
         # Fallback: try last word (e.g. "new york knicks" → "knicks")
         if not team_data and " " in team:
             last = team.rsplit(" ", 1)[-1]

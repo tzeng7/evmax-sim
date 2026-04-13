@@ -466,7 +466,16 @@ class AgentCoordinator:
         if self._enable_models and pairs:
             ensemble_req = AgentRequest(
                 sector=sector,
-                params={"pairs": pairs, "sharp_weight": self._sharp_weight},
+                params={
+                    "pairs": pairs,
+                    # Tennis/baseball: lean harder on sharp since our models are thin.
+                    # Prevents phantom edges from vig removal alone.
+                    "sharp_weight": (
+                        0.92 if sector.lower() == "tennis"
+                        else 0.88 if sector.lower() == "baseball"
+                        else self._sharp_weight
+                    ),
+                },
                 correlation_id=correlation_id,
             )
             ensemble_resp = await self.ensemble_agent(ensemble_req)

@@ -119,13 +119,22 @@ class EloModelAgent(ModelAgent):
         return state
 
     def _resolve_team(self, sector: str, team: str, store: dict) -> str:
-        """Resolve team name with last-word, prefix, and suffix fallbacks.
+        """Resolve team name via normalizer + last-word/prefix fallbacks.
 
-        Handles: "new york knicks" → "knicks" (last word)
-                 "duke blue devils" → "duke" (prefix match)
+        Routes through NameNormalizer first so sector aliases (e.g.
+        "Karmine Corp" → "kc", "LGD Gaming" → "lgd") resolve against stored
+        state keys. Falls through to legacy last-word / prefix matching.
         """
         if team in store:
             return team
+        # Normalizer-driven resolution: strip noise words + apply alias map
+        try:
+            from evmax.matching.normalizer import NameNormalizer
+            normed = NameNormalizer(sector).normalize(team)
+            if normed and normed != team and normed in store:
+                return normed
+        except Exception:
+            pass
         if " " in team:
             last = team.rsplit(" ", 1)[-1]
             if last in store:

@@ -203,12 +203,17 @@ async def _fetch_espn_scores(
         except (ValueError, TypeError):
             continue
 
+        # Extract actual game date from ESPN for cross-day series dedup
+        game_date_str = comp.get("date", "") or event.get("date", "")
+        game_date = game_date_str[:10] if game_date_str else espn_date[:4] + "-" + espn_date[4:6] + "-" + espn_date[6:8]
+
         results.append({
             "home_name": home.get("team", {}).get("displayName", ""),
             "away_name": away.get("team", {}).get("displayName", ""),
             "home_score": home_score,
             "away_score": away_score,
             "home_won": home_score > away_score,
+            "game_date": game_date,
         })
 
     return results
@@ -312,9 +317,27 @@ def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
         slug_a = slug_b = ""
         yes_is_team_a = None
 
+    # Prediction date for cross-day series guard
+    pred_date = pred.get("event_date", "")
+
     for score in scores:
         home_n = score["home_name"]
         away_n = score["away_name"]
+
+        # Cross-day series guard: if both the prediction and the ESPN result
+        # carry a date, skip results from a different calendar day. ESPN
+        # game_date is ISO format from competition.date (UTC); pred_date is
+        # the stored event_date. Allow same-day or ±1 day for UTC offset, but
+        # skip results clearly from a different game in the same series.
+        score_date = score.get("game_date", "")
+        if pred_date and score_date and len(pred_date) >= 10 and len(score_date) >= 10:
+            try:
+                pd = date.fromisoformat(pred_date[:10])
+                sd = date.fromisoformat(score_date[:10])
+                if abs((pd - sd).days) > 1:
+                    continue  # different day — wrong game in multi-day series
+            except ValueError:
+                pass
 
         if slug_a and slug_b:
             # Gate: both slugs must match this score (ensures correct event)
@@ -793,8 +816,27 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
                             unmatched.append(pred["event_id"])
 
             elif sector in BO3_DISCIPLINE:
-                for group_date, rows in date_groups.items():
-                    group_date_obj = date.fromisoformat(group_date) if group_date else target_date
+                # Kalshi settlement is ground truth — opaque esports ticker codes
+                # (e.g. "th", "shg", "dcg") don't reliably fuzzy-match bo3.gg team
+                # names. Fall back to bo3.gg only for markets Kalshi hasn't settled.
+                all_rows = [r for rows in date_groups.values() for r in rows]
+                kalshi_results = await _resolve_via_kalshi(all_rows)
+
+                bo3_pending: dict[str, list[dict]] = {}
+                for pred in all_rows:
+                    outcome = kalshi_results.get(pred["market_id"])
+                    if outcome is not None:
+                        _write_outcome(conn, pred, outcome, "kalshi_settlement")
+                        resolved += 1
+                    else:
+                        bo3_pending.setdefault(
+                            pred.get("event_date") or target_date.isoformat(), []
+                        ).append(pred)
+
+                for group_date, rows in bo3_pending.items():
+                    group_date_obj = (
+                        date.fromisoformat(group_date) if group_date else target_date
+                    )
                     scores = await _fetch_bo3_scores(client, sector, group_date_obj)
                     for pred in rows:
                         outcome = _match_bo3(pred, scores)

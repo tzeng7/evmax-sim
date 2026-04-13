@@ -132,30 +132,46 @@ class TennisModelAgent(ModelAgent):
         Handles: 'sinner' or 'jannik sinner' → 'sinner j.' (tennis-data format).
         Also handles multi-word surnames: 'de minaur' → 'de minaur a.'
         Also handles apostrophe variants: "o'connell" / "oconnell" → "o connell c."
+
+        When multiple state entries share the same surname (common when the
+        state was seeded from two sources that use different name formats —
+        e.g. 'adrian mannarino' AND 'mannarino a.'), pick the entry with the
+        highest game_count so duplicate-seed cases still resolve.
         """
         if player in store:
             return player
         # Surname match: find entries where surname matches
         target = self._surname_key(player)
         candidates = [k for k in store if self._surname_key(k) == target]
-        if len(candidates) == 1:
-            return candidates[0]
-        # Normalized match: strip apostrophes/spaces and compare
-        # "oconnell" matches "o connell c." because both normalize to "oconnell"
-        if len(candidates) == 0:
+        if not candidates:
+            # Normalized match: strip apostrophes/spaces and compare
+            # "oconnell" matches "o connell c." because both normalize to "oconnell"
             norm_player = self._normalize_name(player)
             candidates = [
                 k for k in store
                 if self._normalize_name(self._surname_key(k)) == norm_player
             ]
-            if len(candidates) == 1:
-                return candidates[0]
-        # Multi-word name prefix match: "de minaur" matches "de minaur a."
-        if len(candidates) == 0:
-            candidates = [k for k in store if k.startswith(player + " ") or k.startswith(player + ".")]
-            if len(candidates) == 1:
-                return candidates[0]
-        return None
+        if not candidates:
+            # Multi-word name prefix match: "de minaur" matches "de minaur a."
+            candidates = [
+                k for k in store
+                if k.startswith(player + " ") or k.startswith(player + ".")
+            ]
+        if not candidates:
+            return None
+        if len(candidates) == 1:
+            return candidates[0]
+        # Multiple same-surname matches: duplicate seed entries for the same
+        # player. Pick the one with the most recorded games (best signal).
+        counts = self._state.get("game_counts", {})
+
+        def _total_games(key: str) -> int:
+            rec = counts.get(key, {})
+            if isinstance(rec, dict):
+                return sum(v for v in rec.values() if isinstance(v, (int, float)))
+            return int(rec) if isinstance(rec, (int, float)) else 0
+
+        return max(candidates, key=_total_games)
 
     def _get_rating(self, player: str, surface: str) -> float:
         """Get surface-specific Elo, falling back to overall, then ATP/WTA ranking prior."""
@@ -235,7 +251,16 @@ class TennisModelAgent(ModelAgent):
         elif min_all >= MIN_OVERALL_GAMES:
             confidence = 0.50   # Have overall data but not surface-specific
         else:
-            confidence = 0.30   # Sparse data — mostly relying on ranking prior
+            # Use ranking prior confidence: ranked players get 0.48 (just above
+            # the 0.45 ensemble gate), unranked stay at 0.30 (excluded)
+            has_ranking = (
+                self._state.get("atp_rankings", {}).get(player_a) is not None
+                or self._state.get("wta_rankings", {}).get(player_a) is not None
+            ) and (
+                self._state.get("atp_rankings", {}).get(player_b) is not None
+                or self._state.get("wta_rankings", {}).get(player_b) is not None
+            )
+            confidence = 0.48 if has_ranking else 0.30
 
         return ModelAgentPrediction(
             event_id=sharp_odds.event_id,

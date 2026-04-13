@@ -38,7 +38,7 @@
     padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
     background: var(--panel); color: var(--text); font-size: 12px; font-family: inherit;
   }
-  .pnl-tab.active { background: #1a3a5c; border-color: var(--accent); color: var(--accent); }
+  .pnl-tab.active, .range-btn.active { background: #1a3a5c; border-color: var(--accent); color: var(--accent); }
   .btn-del {
     background: none; border: 1px solid transparent; color: var(--muted); cursor: pointer;
     font-size: 16px; line-height: 1; padding: 2px 6px; border-radius: 4px;
@@ -71,6 +71,8 @@
   .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; background: #1a2030; font-size: 10px; text-transform: uppercase; }
   .badge.won { background: #0d3320; color: var(--green); }
   .badge.lost { background: #3b1515; color: var(--red); }
+  .badge.new { background: #1a2a4a; color: var(--accent); font-weight: 600; animation: pulse 1.5s ease-in-out 3; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
   .check { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
   #profitChart { max-height: 280px; }
 
@@ -111,6 +113,9 @@
       <option value="lol,cs2">Esports</option>
     </select>
     <input id="bankrollInput" type="number" value="500" style="width:80px" title="Bankroll ($)">
+    <input type="date" id="scanDateFrom" style="width:130px;font-size:11px;padding:4px 6px;background:#1a1a2e;color:#e0e0e0;border:1px solid #333;border-radius:4px" title="From date">
+    <span style="color:#888">–</span>
+    <input type="date" id="scanDateTo" style="width:130px;font-size:11px;padding:4px 6px;background:#1a1a2e;color:#e0e0e0;border:1px solid #333;border-radius:4px" title="To date">
     <button class="btn primary" id="scanBtn" onclick="runScan()">Scan</button>
     <button class="btn success" id="pickBtn" onclick="pickSelected()" disabled>Pick Selected</button>
     <button class="btn" id="resolveBtn" onclick="runResolve()">Resolve</button>
@@ -126,26 +131,36 @@
 
 <!-- KPI cards — All -->
 <div class="grid-kpi pnl-view" data-view="all">
-  <div class="kpi"><div class="label">Total P&L</div><div class="value {{ 'green' if summary_all.total_pnl >= 0 else 'red' }}">${{ '%.2f'|format(summary_all.total_pnl) }}</div></div>
-  <div class="kpi"><div class="label">ROI</div><div class="value {{ 'green' if summary_all.roi_pct >= 0 else 'red' }}">{{ '%.1f'|format(summary_all.roi_pct) }}%</div></div>
-  <div class="kpi"><div class="label">Win Rate</div><div class="value">{{ summary_all.win_rate }}%</div></div>
-  <div class="kpi"><div class="label">Bets</div><div class="value">{{ summary_all.total_bets }}</div></div>
-  <div class="kpi"><div class="label">W / L</div><div class="value"><span class="green">{{ summary_all.wins }}</span><span class="muted"> / </span><span class="red">{{ summary_all.losses }}</span></div></div>
-  <div class="kpi"><div class="label">Avg EV</div><div class="value">{{ summary_all.avg_ev }}%</div></div>
+  <div class="kpi"><div class="label">Total P&L</div><div id="kpi-all-pnl" class="value {{ 'green' if summary_all.total_pnl >= 0 else 'red' }}">${{ '%.2f'|format(summary_all.total_pnl) }}</div></div>
+  <div class="kpi"><div class="label">ROI</div><div id="kpi-all-roi" class="value {{ 'green' if summary_all.roi_pct >= 0 else 'red' }}">{{ '%.1f'|format(summary_all.roi_pct) }}%</div></div>
+  <div class="kpi"><div class="label">Win Rate</div><div id="kpi-all-wr" class="value">{{ summary_all.win_rate }}%</div></div>
+  <div class="kpi"><div class="label">Bets</div><div id="kpi-all-n" class="value">{{ summary_all.total_bets }}</div></div>
+  <div class="kpi"><div class="label">W / L</div><div id="kpi-all-wl" class="value"><span class="green">{{ summary_all.wins }}</span><span class="muted"> / </span><span class="red">{{ summary_all.losses }}</span></div></div>
+  <div class="kpi"><div class="label">Avg EV</div><div id="kpi-all-ev" class="value">{{ summary_all.avg_ev }}%</div></div>
 </div>
 <!-- KPI cards — Placed -->
 <div class="grid-kpi pnl-view" data-view="placed" style="display:none">
-  <div class="kpi"><div class="label">Total P&L</div><div class="value {{ 'green' if summary_placed.total_pnl >= 0 else 'red' }}">${{ '%.2f'|format(summary_placed.total_pnl) }}</div></div>
-  <div class="kpi"><div class="label">ROI</div><div class="value {{ 'green' if summary_placed.roi_pct >= 0 else 'red' }}">{{ '%.1f'|format(summary_placed.roi_pct) }}%</div></div>
-  <div class="kpi"><div class="label">Win Rate</div><div class="value">{{ summary_placed.win_rate }}%</div></div>
-  <div class="kpi"><div class="label">Bets</div><div class="value">{{ summary_placed.total_bets }}</div></div>
-  <div class="kpi"><div class="label">W / L</div><div class="value"><span class="green">{{ summary_placed.wins }}</span><span class="muted"> / </span><span class="red">{{ summary_placed.losses }}</span></div></div>
-  <div class="kpi"><div class="label">Avg EV</div><div class="value">{{ summary_placed.avg_ev }}%</div></div>
+  <div class="kpi"><div class="label">Total P&L</div><div id="kpi-placed-pnl" class="value {{ 'green' if summary_placed.total_pnl >= 0 else 'red' }}">${{ '%.2f'|format(summary_placed.total_pnl) }}</div></div>
+  <div class="kpi"><div class="label">ROI</div><div id="kpi-placed-roi" class="value {{ 'green' if summary_placed.roi_pct >= 0 else 'red' }}">{{ '%.1f'|format(summary_placed.roi_pct) }}%</div></div>
+  <div class="kpi"><div class="label">Win Rate</div><div id="kpi-placed-wr" class="value">{{ summary_placed.win_rate }}%</div></div>
+  <div class="kpi"><div class="label">Bets</div><div id="kpi-placed-n" class="value">{{ summary_placed.total_bets }}</div></div>
+  <div class="kpi"><div class="label">W / L</div><div id="kpi-placed-wl" class="value"><span class="green">{{ summary_placed.wins }}</span><span class="muted"> / </span><span class="red">{{ summary_placed.losses }}</span></div></div>
+  <div class="kpi"><div class="label">Avg EV</div><div id="kpi-placed-ev" class="value">{{ summary_placed.avg_ev }}%</div></div>
 </div>
 
 <!-- Profit chart -->
 <div class="panel">
-  <h2>Cumulative Profit</h2>
+  <div class="panel-header">
+    <h2>Cumulative Profit</h2>
+    <div class="actions" style="gap:4px">
+      <button class="btn btn-sm range-btn" data-range="1" onclick="setChartRange(1)">1D</button>
+      <button class="btn btn-sm range-btn" data-range="7" onclick="setChartRange(7)">1W</button>
+      <button class="btn btn-sm range-btn" data-range="30" onclick="setChartRange(30)">1M</button>
+      <button class="btn btn-sm range-btn" data-range="90" onclick="setChartRange(90)">3M</button>
+      <button class="btn btn-sm range-btn" data-range="365" onclick="setChartRange(365)">1Y</button>
+      <button class="btn btn-sm range-btn active" data-range="0" onclick="setChartRange(0)">All</button>
+    </div>
+  </div>
   <canvas id="profitChart"></canvas>
 </div>
 
@@ -153,7 +168,19 @@
 <div class="panel" id="scanPanel" style="display:none">
   <div class="panel-header">
     <h2 id="scanTitle">Scan Results</h2>
-    <div>
+    <div class="actions" style="gap:4px">
+      <input type="date" id="scanDateFilter" onchange="filterScan()" style="font-size:11px;padding:4px 6px;background:#1a1a2e;color:#e0e0e0;border:1px solid #333;border-radius:4px">
+      <select id="scanSectorFilter" onchange="filterScan()" style="font-size:11px;padding:4px 8px">
+        <option value="">All Sectors</option>
+        <option value="nba">NBA</option>
+        <option value="ncaab">NCAAB</option>
+        <option value="soccer">SOCCER</option>
+        <option value="tennis">TENNIS</option>
+        <option value="baseball">BASEBALL</option>
+        <option value="lol">LOL</option>
+        <option value="cs2">CS2</option>
+      </select>
+      <button class="btn btn-sm" onclick="clearScanFilters()">Clear</button>
       <button class="btn btn-sm" onclick="selectAllScan()">Select All</button>
       <button class="btn btn-sm" onclick="deselectAllScan()">Deselect All</button>
     </div>
@@ -162,7 +189,7 @@
     <thead><tr>
       <th style="width:30px"></th>
       <th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th>
-      <th class="num">Ask</th><th class="num">Model</th><th class="num">EV</th>
+      <th class="num">Ask</th><th class="num">Fair Value</th><th class="num">Model</th><th class="num">EV</th>
       <th class="num">Fill Odds</th><th class="num">Stake ($)</th><th>Models</th>
     </tr></thead>
     <tbody id="scanBody"></tbody>
@@ -179,8 +206,20 @@
 {% if placed_bets %}
 <div class="panel">
   <div class="panel-header">
-    <h2>Placed Bets ({{ placed_bets|length }})</h2>
-    <button class="btn btn-sm" id="savePlacedBtn" onclick="savePlacedEdits()" style="display:none">Save Changes</button>
+    <h2>Placed Bets (<span id="placedCount">{{ placed_bets|length }}</span>)</h2>
+    <div class="actions" style="gap:4px">
+      <select id="placedSectorFilter" onchange="filterPlaced()" style="font-size:11px;padding:4px 8px">
+        <option value="">All Sectors</option>
+        <option value="nba">NBA</option>
+        <option value="ncaab">NCAAB</option>
+        <option value="soccer">SOCCER</option>
+        <option value="tennis">TENNIS</option>
+        <option value="baseball">BASEBALL</option>
+        <option value="lol">LOL</option>
+        <option value="cs2">CS2</option>
+      </select>
+      <button class="btn btn-sm" id="savePlacedBtn" onclick="savePlacedEdits()" style="display:none">Save Changes</button>
+    </div>
   </div>
   <table>
     <thead><tr>
@@ -194,7 +233,7 @@
       {% set fill = b.placed_price or b.kalshi_yes_price or 0.5 %}
       {% set stake = b.placed_stake or ((b.bankroll_used or 500) * (b.kelly_fraction or 0)) %}
       {% set to_win = stake * (1.0 / fill - 1.0) if fill > 0 and fill < 1 else 0 %}
-      <tr data-mid="{{ b.market_id }}">
+      <tr data-mid="{{ b.market_id }}" data-sector="{{ b.sector }}">
         <td><button class="btn-del" onclick="removePlaced(this)" title="Remove bet">&times;</button></td>
         <td class="muted">{{ b.event_date }}</td>
         <td><span class="badge">{{ b.sector }}</span></td>
@@ -239,23 +278,40 @@
 
   <div class="panel">
     <div class="panel-header">
-      <h2>Open Positions ({{ unplaced_bets|length }})</h2>
-      {% if unplaced_bets %}
-      <button class="btn btn-sm success" onclick="pickFromOpen()">Pick All</button>
-      {% endif %}
+      <h2>Open Positions (<span id="openCount">{{ unplaced_bets|length }}</span>)</h2>
+      <div class="actions" style="gap:4px">
+        <select id="openSectorFilter" onchange="filterOpen()" style="font-size:11px;padding:4px 8px">
+          <option value="">All Sectors</option>
+          <option value="nba">NBA</option>
+          <option value="ncaab">NCAAB</option>
+          <option value="soccer">SOCCER</option>
+          <option value="tennis">TENNIS</option>
+          <option value="baseball">BASEBALL</option>
+          <option value="lol">LOL</option>
+          <option value="cs2">CS2</option>
+        </select>
+        {% if unplaced_bets %}
+        <button class="btn btn-sm success" onclick="pickFromOpen()">Pick All</button>
+        {% endif %}
+      </div>
     </div>
-    <div style="max-height:300px;overflow-y:auto">
+    <div style="max-height:400px;overflow-y:auto">
     <table>
-      <thead><tr><th style="width:28px"></th><th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th><th class="num">EV</th></tr></thead>
-      <tbody>
+      <thead><tr><th style="width:28px"></th><th></th><th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th><th class="num">Ask</th><th class="num">Fair Value</th><th class="num">EV</th><th class="num">Stake</th></tr></thead>
+      <tbody id="openBody">
       {% for b in unplaced_bets[:40] %}
-        <tr>
+        {% set stake = ((b.bankroll_used or 500) * (b.kelly_fraction or 0)) %}
+        <tr data-mid="{{ b.market_id }}" data-sector="{{ b.sector }}">
           <td><input type="checkbox" class="check open-check" data-mid="{{ b.market_id }}"></td>
+          <td class="new-marker"></td>
           <td class="muted">{{ b.event_date }}</td>
           <td><span class="badge">{{ b.sector }}</span></td>
           <td>{{ b.event_title }}</td>
           <td>{{ b.yes_team }} {{ b.market_type }}{% if b.line %} {{ b.line }}{% endif %}</td>
+          <td class="num">{{ probToAmerican(b.kalshi_yes_price) }} <span class="muted">({{ '%.0f'|format(b.kalshi_yes_price * 100) }}¢)</span></td>
+          <td class="num">{{ probToAmerican(b.blended_true_prob) }} <span class="muted">({{ '%.0f'|format((b.blended_true_prob or 0) * 100) }}¢)</span></td>
           <td class="num green">{{ '%.1f'|format((b.ev_pct or 0) * 100) }}%</td>
+          <td class="num">${{ '%.2f'|format(stake) }}</td>
         </tr>
       {% endfor %}
       </tbody>
@@ -354,6 +410,8 @@ profitChart.data.datasets[0].data = filledAll;
 profitChart.data.datasets[1].data = filledPlaced;
 profitChart.update();
 
+let currentRange = 0; // 0 = all
+
 function switchPnlView(view) {
   currentView = view;
   document.querySelectorAll('.pnl-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
@@ -361,6 +419,59 @@ function switchPnlView(view) {
   // Toggle chart datasets
   profitChart.data.datasets[0].hidden = (view === 'placed');
   profitChart.data.datasets[1].hidden = (view === 'all');
+  profitChart.update();
+  refreshKpis();
+}
+
+function setChartRange(days) {
+  currentRange = days;
+  document.querySelectorAll('.range-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.range) === days));
+  applyChartRange();
+  refreshKpis();
+}
+
+async function refreshKpis() {
+  const prefix = currentView === 'placed' ? 'kpi-placed-' : 'kpi-all-';
+  try {
+    const r = await fetch(`/api/summary?days=${currentRange}&view=${currentView}`);
+    const s = await r.json();
+    const pnl = document.getElementById(prefix + 'pnl');
+    pnl.textContent = '$' + s.total_pnl.toFixed(2);
+    pnl.classList.toggle('green', s.total_pnl >= 0);
+    pnl.classList.toggle('red', s.total_pnl < 0);
+    const roi = document.getElementById(prefix + 'roi');
+    roi.textContent = s.roi_pct.toFixed(1) + '%';
+    roi.classList.toggle('green', s.roi_pct >= 0);
+    roi.classList.toggle('red', s.roi_pct < 0);
+    document.getElementById(prefix + 'wr').textContent = s.win_rate + '%';
+    document.getElementById(prefix + 'n').textContent = s.total_bets;
+    document.getElementById(prefix + 'wl').innerHTML =
+      `<span class="green">${s.wins}</span><span class="muted"> / </span><span class="red">${s.losses}</span>`;
+    document.getElementById(prefix + 'ev').textContent = s.avg_ev + '%';
+  } catch (e) { console.error('refreshKpis failed', e); }
+}
+
+function applyChartRange() {
+  let dates = allDates, dAll = filledAll, dPlaced = filledPlaced;
+  if (currentRange > 0) {
+    // For 1D, cutoff = today; for 1W, cutoff = 7 days ago; etc.
+    const cutoffDays = currentRange === 1 ? 0 : currentRange;
+    const cutoff = new Date(Date.now() - cutoffDays * 86400000).toISOString().slice(0, 10);
+    const startIdx = dates.findIndex(d => d >= cutoff);
+    if (startIdx > 0) {
+      dates = dates.slice(startIdx);
+      dAll = filledAll.slice(startIdx);
+      dPlaced = filledPlaced.slice(startIdx);
+      // Rebase cumulative to start at 0 from the cutoff point
+      const baseAll = filledAll[startIdx - 1] || 0;
+      const basePlaced = filledPlaced[startIdx - 1] || 0;
+      dAll = dAll.map(v => +(v - baseAll).toFixed(2));
+      dPlaced = dPlaced.map(v => +(v - basePlaced).toFixed(2));
+    }
+  }
+  profitChart.data.labels = dates;
+  profitChart.data.datasets[0].data = dAll;
+  profitChart.data.datasets[1].data = dPlaced;
   profitChart.update();
 }
 
@@ -376,6 +487,64 @@ function americanToProb(s) {
   if (isNaN(n) || n === 0) return null;
   if (n > 0) return 100 / (n + 100);        // +181 → 100/281 = 0.356
   return Math.abs(n) / (Math.abs(n) + 100);  // -150 → 150/250 = 0.60
+}
+
+// ── Sector filters ──
+let lastScanMids = new Set();
+
+function filterPlaced() {
+  const sector = document.getElementById('placedSectorFilter').value.toLowerCase();
+  let visible = 0;
+  document.querySelectorAll('tr[data-mid][data-sector]').forEach(tr => {
+    if (!tr.closest('#openBody') && tr.querySelector('.btn-del')) {
+      const show = !sector || tr.dataset.sector === sector;
+      tr.style.display = show ? '' : 'none';
+      if (show) visible++;
+    }
+  });
+  document.getElementById('placedCount').textContent = visible;
+}
+
+function filterOpen() {
+  const sector = document.getElementById('openSectorFilter').value.toLowerCase();
+  let visible = 0;
+  document.querySelectorAll('#openBody tr[data-sector]').forEach(tr => {
+    const show = !sector || tr.dataset.sector === sector;
+    tr.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('openCount').textContent = visible;
+}
+
+function filterScan() {
+  const sector = document.getElementById('scanSectorFilter').value.toLowerCase();
+  const dateVal = document.getElementById('scanDateFilter').value; // YYYY-MM-DD or ''
+  let visible = 0;
+  document.querySelectorAll('#scanBody tr[data-sector]').forEach(tr => {
+    const sectorOk = !sector || tr.dataset.sector === sector;
+    const dateOk = !dateVal || tr.dataset.date === dateVal;
+    const show = sectorOk && dateOk;
+    tr.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+}
+
+function clearScanFilters() {
+  document.getElementById('scanSectorFilter').value = '';
+  document.getElementById('scanDateFilter').value = '';
+  filterScan();
+}
+
+function markNewOnOpen(scanMids) {
+  // Clear old NEW badges
+  document.querySelectorAll('#openBody .new-marker').forEach(td => td.innerHTML = '');
+  // Mark rows whose market_id appeared in the latest scan
+  document.querySelectorAll('#openBody tr[data-mid]').forEach(tr => {
+    const marker = tr.querySelector('.new-marker');
+    if (scanMids.has(tr.dataset.mid)) {
+      marker.innerHTML = '<span class="badge new">NEW</span>';
+    }
+  });
 }
 
 // ── Toast ──
@@ -401,11 +570,15 @@ async function runScan() {
         sectors: document.getElementById('sectorSelect').value,
         bankroll: parseFloat(document.getElementById('bankrollInput').value) || 500,
         kelly: 0.5,
+        date_from: document.getElementById('scanDateFrom').value || '',
+        date_to: document.getElementById('scanDateTo').value || '',
       })
     });
     const data = await resp.json();
     scanData = data.gaps || [];
+    lastScanMids = new Set(scanData.map(g => g.market_id));
     renderScan(data);
+    markNewOnOpen(lastScanMids);
     toast(`Found ${scanData.length} +EV plays across ${data.markets_fetched} markets`, 'ok');
   } catch(e) {
     toast('Scan failed: ' + e.message, 'err');
@@ -427,6 +600,8 @@ function renderScan(data) {
     const askOdds = probToAmerican(g.kalshi_price);
     const outcome = g.yes_team + ' ' + g.market_type + (g.line ? ' ' + g.line : '');
     const tr = document.createElement('tr');
+    tr.dataset.sector = g.sector;
+    tr.dataset.date = (g.event_date || '').slice(0, 10);
     tr.innerHTML = `
       <td><input type="checkbox" class="check scan-check" data-mid="${g.market_id}" checked></td>
       <td class="muted">${g.event_date}</td>
@@ -434,6 +609,7 @@ function renderScan(data) {
       <td>${g.event_title}</td>
       <td>${outcome}</td>
       <td class="num">${askOdds} <span class="muted">(${Math.round(g.kalshi_price*100)}c)</span></td>
+      <td class="num">${probToAmerican(g.true_prob)} <span class="muted">(${Math.round(g.true_prob*100)}c)</span></td>
       <td class="num">${(g.true_prob*100).toFixed(1)}%</td>
       <td class="num green">${g.ev_pct.toFixed(1)}%</td>
       <td class="num"><input type="text" class="fill-odds" data-mid="${g.market_id}" value="${askOdds}" style="width:64px" title="American odds (e.g. +181 or -150)"></td>
@@ -503,13 +679,11 @@ async function runResolve() {
   toast('Resolving outcomes...', 'info', 15000);
 
   try {
-    // Resolve yesterday and today
+    // Resolve yesterday then today (sequential to avoid SQLite lock)
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
     const today = new Date().toISOString().slice(0,10);
-    const [r1, r2] = await Promise.all([
-      fetch('/api/resolve', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date: yesterday}) }).then(r=>r.json()),
-      fetch('/api/resolve', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date: today}) }).then(r=>r.json()),
-    ]);
+    const r1 = await fetch('/api/resolve', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date: yesterday}) }).then(r=>r.json());
+    const r2 = await fetch('/api/resolve', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date: today}) }).then(r=>r.json());
     const total = (r1.resolved||0) + (r2.resolved||0);
     toast(`Resolved ${total} outcome(s). Refresh to see updated P&L.`, 'ok', 5000);
   } catch(e) {
@@ -675,6 +849,16 @@ async function pickFromOpen() {
     toast('Pick failed: ' + e.message, 'err');
   }
 }
+
+// ── Init scan date defaults (today → tomorrow) ──
+(function() {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const fmt = d => d.toISOString().slice(0, 10);
+  document.getElementById('scanDateFrom').value = fmt(today);
+  document.getElementById('scanDateTo').value = fmt(tomorrow);
+})();
 </script>
 </body>
 </html>
