@@ -48,13 +48,25 @@ LEAGUE_AVG_DEFAULTS: dict[str, dict[str, float]] = {
 # Supported sectors (Poisson makes most sense for goal/point-scoring games)
 SUPPORTED_SECTORS = {"soccer", "nba", "nfl", "ncaab", "baseball"}
 
-# Maximum score to consider in score matrix
+# Maximum *bucket* count in the score matrix. Units depend on BUCKET_SIZE.
 MAX_SCORE: dict[str, int] = {
     "soccer":   8,
-    "nba":      25,   # buckets of 5 pts → effectively 0-125 range mapped to 0-25
-    "nfl":      20,
-    "ncaab":    20,
+    "nba":      25,   # with bucket=5 → effectively 0-125 points
+    "nfl":      20,   # with bucket=4 → effectively 0-80 points
+    "ncaab":    20,   # with bucket=5 → effectively 0-100 points
     "baseball": 15,   # covers >99% of MLB games
+}
+
+# Score-bucket size per sector. Basketball/football goals-scored rates are far
+# above 1/possession, so a raw Poisson over integer points collapses around the
+# mean. Bucketing scales lambda down to a regime where the Poisson mass fits in
+# the MAX_SCORE window: win is decided by comparing *buckets scored*.
+BUCKET_SIZE: dict[str, int] = {
+    "soccer":   1,
+    "nba":      5,
+    "nfl":      4,
+    "ncaab":    5,
+    "baseball": 1,
 }
 
 # Dixon-Coles rho correction factor (τ parameter)
@@ -202,8 +214,20 @@ class PoissonModelAgent(ModelAgent):
 
         lam_h, lam_a = self._expected_goals(sector, home, away)
         max_g = MAX_SCORE.get(sector, 8)
+        bucket = BUCKET_SIZE.get(sector, 1)
 
-        matrix = _score_matrix(lam_h, lam_a, max_g=max_g, rho=DC_RHO if sector == "soccer" else 0.0)
+        # Bucket lambda so the Poisson mass fits within max_g. For soccer/MLB
+        # this is a no-op (bucket=1); for basketball/football it maps raw point
+        # totals into "buckets scored" so the matrix isn't truncated.
+        lam_h_bucketed = lam_h / bucket
+        lam_a_bucketed = lam_a / bucket
+
+        matrix = _score_matrix(
+            lam_h_bucketed,
+            lam_a_bucketed,
+            max_g=max_g,
+            rho=DC_RHO if sector == "soccer" else 0.0,
+        )
         p_home, p_draw, p_away = _win_draw_probs(matrix)
 
         # For non-soccer: merge draw into proportional split

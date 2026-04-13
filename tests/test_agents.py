@@ -227,6 +227,93 @@ class TestEVGapAgent:
 
         assert len(resp.data) == 0
 
+    def test_prop_injury_boost_applies_via_player_team_lookup(self, monkeypatch):
+        """Regression for BUG-5: prop event_ids have no game slug, so the
+        boost used to fall through silently. The fix looks up the player's
+        team directly from the NBA props cache and checks injuries for that
+        team only.
+        """
+        from evmax.agents.intelligence.injury_agent import (
+            InjuredPlayer,
+            InjuryReport,
+            InjuryReportAgent,
+        )
+
+        agent = EVGapAgent()
+
+        prop_market = PredictionMarket(
+            id="kalshi:LEBRON-PTS",
+            source=MarketSource.kalshi,
+            sector="nba",
+            market_type=MarketType.player_prop,
+            title="LeBron 24.5+ Points",
+            ticker="KXNBAPTS-LEBRON",
+            yes_price=0.48,
+            no_price=0.52,
+            volume_usd=5_000.0,
+            player_name="LeBron James",
+            stat_type="points",
+            threshold=24.5,
+        )
+        prop_sharp = SharpOdds(
+            event_id="nba::2026-03-20::prop::LeBron James::points::24.5",
+            book=SharpBook.pinnacle,
+            sector="nba",
+            outcome_a_label="over",
+            outcome_b_label="under",
+            outcome_a_decimal=1.0,
+            outcome_b_decimal=1.0,
+            true_prob_a=0.0,
+            true_prob_b=0.0,
+            true_prob_over=0.55,
+            true_prob_under=0.45,
+            total_line=24.5,
+            margin=0.0,
+            prop_player_name="LeBron James",
+            prop_stat_type="points",
+            prop_l15_games=15,
+        )
+
+        # Pretend the props cache knows LeBron plays for the Lakers.
+        monkeypatch.setattr(
+            "evmax.clients.nba_props_cache.lookup_player_team",
+            lambda name: "lakers" if "lebron" in name.lower() else None,
+        )
+
+        out_star = InjuredPlayer(
+            name="Anthony Davis",
+            position="PF",
+            status="Out",
+            tier="star",
+            impact=0.045,
+            injury_type="Knee",
+            notes="",
+        )
+        injuries = {
+            "los angeles lakers": InjuryReport(
+                team="los angeles lakers", sector="nba", players=[out_star]
+            ),
+        }
+
+        gap_no_inj = agent._evaluate_prop_pair(
+            prop_market, prop_sharp, confidence=95.0, sector="nba", injuries=None
+        )
+        gap_with_inj = agent._evaluate_prop_pair(
+            prop_market, prop_sharp, confidence=95.0, sector="nba", injuries=injuries
+        )
+
+        assert gap_no_inj is not None
+        assert gap_with_inj is not None
+        # The boost must raise the blended probability above the raw sharp prob.
+        assert gap_with_inj.blended_true_prob > gap_no_inj.blended_true_prob
+        assert "inj" in gap_with_inj.model_sources
+        # Sanity: boost size matches the helper's computation.
+        expected_boost = InjuryReportAgent.compute_prop_injury_boost(injuries, "lakers")
+        assert expected_boost > 0
+        assert gap_with_inj.blended_true_prob == pytest.approx(
+            min(0.95, 0.55 * (1 + expected_boost)), abs=1e-6
+        )
+
     @pytest.mark.asyncio
     async def test_model_prob_override(self):
         from evmax.agents.models.ensemble_agent import BlendedPrediction
@@ -476,6 +563,39 @@ class TestPoissonModelAgent:
         pred = await agent.predict_pair(market, sharp)
         assert pred is not None
         assert pred.true_prob_a > 0.5   # Man City strong attack vs weak Bournemouth defense
+
+    @pytest.mark.asyncio
+    async def test_nba_score_matrix_is_bucketed(self, tmp_path, monkeypatch):
+        """Regression for BUG-4: NBA lambdas (~113 pts/game) must be bucketed
+        before going into the score matrix, otherwise the Poisson mass lives
+        far above MAX_SCORE=25 and the distribution collapses to a degenerate
+        region where small λ differences produce overconfident predictions."""
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = PoissonModelAgent()
+        agent._state_path = tmp_path / "poisson_state.json"
+
+        # Seed a modest favorite: 5% stronger offense, 5% weaker defense.
+        agent.seed_team_stats(
+            sector="nba",
+            team_stats={
+                "lakers": {"attack": 1.05, "defense": 0.95, "games": 20},
+                "celtics": {"attack": 1.00, "defense": 1.00, "games": 20},
+            },
+            league_avg={"home": 113.5, "away": 111.0},
+        )
+
+        market = make_market(sector="nba", team_home="lakers", team_away="celtics")
+        sharp = make_sharp(team_a="lakers", team_b="celtics", sector="nba")
+        pred = await agent.predict_pair(market, sharp)
+
+        assert pred is not None
+        # A ~5% rating edge should produce a moderate favorite, not a lock.
+        # Without bucketing the matrix was truncated and this agent returned
+        # values near 0.5 or pushed into extremes depending on λ alignment;
+        # with bucketing we expect a sane favorite somewhere in (0.52, 0.80).
+        assert 0.52 < pred.true_prob_a < 0.80
+        # (pre-existing: draw merge in non-soccer path leaves a small residual)
+        assert pred.true_prob_a + pred.true_prob_b == pytest.approx(1.0, abs=0.01)
 
 
 # ---------------------------------------------------------------------------

@@ -716,51 +716,35 @@ class EVGapAgent(Agent):
         sharp_true_prob = sharp.true_prob_over
         src = "nba_stats"
 
-        # Injury boost: when TEAMMATES (same team) are OUT, this player absorbs usage.
+        # Injury boost: when TEAMMATES are OUT, this player absorbs usage.
         #
-        # Problem: we don't have a player→team mapping. We extract both teams from
-        # the event_id slug and check injuries for each. To avoid incorrectly boosting
-        # based on opponent injuries, we only apply the boost when exactly ONE team
-        # has OUT players (unambiguous). If both teams have OUT players, we skip
-        # (can't tell which team our player is on).
-        #
-        # Also skip if our prop player is themselves on the OUT list.
+        # We look up the player's team directly from the NBA props cache rather
+        # than trying to parse a game slug out of the event_id — prop event_ids
+        # are `{sector}::{date}::prop::{player}::{stat}::{threshold}` and carry
+        # no game slug, so the old `parts[2]` approach always produced "prop"
+        # and silently skipped the boost.
         injury_boost = 0.0
-        if injuries:
+        if injuries and market.player_name:
             try:
                 from evmax.agents.intelligence.injury_agent import InjuryReportAgent
-                player_name_norm = (market.player_name or "").lower().replace("_", " ")
+                from evmax.clients.nba_props_cache import lookup_player_team
 
-                if "::" in sharp.event_id:
-                    parts = sharp.event_id.split("::")
-                    if len(parts) >= 3:
-                        game_slug = parts[2].split("::")[0]
-                        teams = game_slug.split("_vs_")
+                player_name_norm = market.player_name.lower().replace("_", " ")
+                team_str = lookup_player_team(market.player_name)
 
-                        # Collect per-team OUT info
-                        team_boosts: list[tuple[str, float, list[dict]]] = []
-                        for t in teams:
-                            team_str = t.replace("_", " ")
-                            out_players = InjuryReportAgent.get_out_players(injuries, team_str)
-                            if not out_players:
-                                continue
-                            boost = InjuryReportAgent.compute_prop_injury_boost(
+                if team_str:
+                    out_players = InjuryReportAgent.get_out_players(injuries, team_str)
+                    if out_players:
+                        # Don't boost if our prop player is themselves OUT.
+                        player_is_out = any(
+                            player_name_norm in op["name"].lower()
+                            or op["name"].lower() in player_name_norm
+                            for op in out_players
+                        )
+                        if not player_is_out:
+                            injury_boost = InjuryReportAgent.compute_prop_injury_boost(
                                 injuries, team_str
                             )
-                            team_boosts.append((team_str, boost, out_players))
-
-                        # Only apply if exactly one team has OUT players (unambiguous)
-                        if len(team_boosts) == 1:
-                            _, boost, out_players = team_boosts[0]
-
-                            # Don't boost if our prop player is the one who's OUT
-                            player_is_out = any(
-                                player_name_norm in op["name"].lower()
-                                or op["name"].lower() in player_name_norm
-                                for op in out_players
-                            )
-                            if not player_is_out:
-                                injury_boost = boost
 
                 if injury_boost > 0:
                     sharp_true_prob = min(0.95, sharp_true_prob * (1 + injury_boost))
