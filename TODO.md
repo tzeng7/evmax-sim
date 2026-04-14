@@ -193,6 +193,67 @@ NFL prop series (`KXNFLPAS`, `KXNFLREC`, etc.) are fetched from Kalshi but `_fet
 **File:** `evmax/agents/odds/ev_gap_agent.py`
 Replaced the asymmetric `< 0.05` / `> 0.10` thresholds in the `_resolve_yes_via_market_teams` price fallback with an explicit two-condition rule: the closer side must be within 4pp of the YES ask, AND the gap between the two distances must be ≥ 5pp. Near-coin-flip markets (where both distances are similar) now return `None` instead of being force-aligned to an arbitrary outcome. 5 regression tests in `TestEVGapAgent`.
 
+### ARCH-8 Pinnacle Guest Maintenance Handling + Stale Cache Fallback [P2]
+**Files:** `evmax/clients/esports_pinnacle.py`, `evmax/clients/base.py`, `evmax/agents/odds/sharp_agent.py`, `evmax/models/odds.py`
+
+`PinnacleGuestClient` is the single sharp-odds source for every sector (not just tennis — confirmed via `SharpOddsAgent` import and `SECTOR_SPORT_LEAGUES` map). The endpoint is unauthenticated and undocumented, and Pinnacle runs scheduled maintenance windows on it that take **the entire EV pipeline offline across all sectors simultaneously**. Observed 2026-04-13: `guest.api.arcadia.pinnacle.com` returned `503 MAINTENANCE` on every sport ID tested (4, 6, 29, 2, 33) with response body:
+
+```json
+{"type": "about:blank", "title": "MAINTENANCE", "detail": "API is currently undergoing maintenance, try again later", "status": 503}
+```
+
+The current retry layer (`base.py::_is_retryable`) only runs **2 attempts** with exponential backoff capped at ~10s total — useless against maintenance windows that last minutes to tens of minutes.
+
+**Fix scope:**
+1. **Parse the 503 body** — when the response body contains `"MAINTENANCE"`, emit a distinct `pinnacle.guest.maintenance` log event and short-circuit retries instead of burning the retry budget.
+2. **Long-TTL last-known-good cache** — populate on every successful fetch, separate from the dev-mode `cache_ttl_secs` cache. TTL = 1-2 hours. On retry exhaustion or maintenance detection, fall through to the cache.
+3. **`SharpOdds.is_stale: bool`** — new Pydantic field, default `False`, set `True` when served from fallback cache. Additive optional field (same zero-migration pattern as `PredictionMarket.competition` from MODEL-1). Exclude stale bets from live Kelly sizing by default; include in analysis/reporting.
+4. **Bump retry count for genuine transients** — `max_retries=3`, `retry_max_wait=15s` for non-MAINTENANCE 5xx only. Handles rare connection blips without over-retrying maintenance windows.
+5. **5xx counter metric** — increment per 5xx response split into `{transient, maintenance}`. Emit as a structured log field and aggregate via `evmax cleanup metrics` so outage frequency becomes visible historically.
+6. **Optional pre-scan health check** — `--skip-if-pinnacle-down` CLI flag that probes the endpoint once before running a full cycle. Avoids wasting a scan during known outages.
+
+**Blocker:** none. Uses existing infrastructure. Can ship as a standalone PR.
+
+### ARCH-9 Resurrect TheOddsAPI Legacy Client as Paid Fallback [P3]
+**Files:** `evmax/clients/pinnacle.py`, `evmax/agents/odds/sharp_agent.py`, `evmax/models/odds.py`
+
+The legacy `PinnacleClient` at `evmax/clients/pinnacle.py` is a fully-implemented TheOddsAPI wrapper (moneyline + spreads + totals + player props + quota tracking, ~900 lines) that was superseded by `PinnacleGuestClient` but never deleted. It's currently dead code — imported only by the dead `pipeline/runner.py` and by one vestigial `get_quota()` display call in `evmax/cli/commands/agents.py:382` that renders an empty string because `_quota` is never populated.
+
+Resurrecting it as a **commercial fallback** when Pinnacle Guest is unavailable is a real option:
+
+- **Data quality:** TheOddsAPI includes Pinnacle in its bookmaker list, so you get the same sharp book — just with ~30-60s latency on the passthrough.
+- **Effort:** moderate — client exists, needs wiring into `SharpOddsAgent` with source/latency marking and a fallback-chain strategy. Likely ~150-200 lines net including tests.
+- **Cost:** ~$30-100/mo depending on TheOddsAPI quota tier.
+- **Requires ARCH-8 first** — the `is_stale` / `source` field plumbing from ARCH-8 is what lets the EV calculator know to discount TheOddsAPI-sourced bets for latency.
+
+**Consider this only if**:
+- ARCH-8 observability shows Pinnacle Guest outages are frequent enough to materially affect EV capture (>1 outage/week sustained)
+- You're willing to pay for a paid API tier
+- The ~60s Pinnacle passthrough latency is acceptable for your betting cadence (pre-game only; useless for in-play)
+
+**Alternative to this item:** ARCH-10 below (authenticated ps3838 API) achieves the same resilience goal without paying TheOddsAPI, at the cost of a Pinnacle account signup. Pick one.
+
+### ARCH-10 Authenticated `api.ps3838.com` as Long-Term Primary [P3]
+**Files:** new `evmax/clients/ps3838.py`, `evmax/agents/odds/sharp_agent.py`
+
+Pinnacle operates `api.ps3838.com` as the authenticated version of their sharp-odds API — same sportsbook company, same lines, but served through documented/supported infrastructure that runs separately from the guest-tier Arcadia stack. Verified 2026-04-13: when `guest.api.arcadia.pinnacle.com` returned 503 MAINTENANCE, `api.ps3838.com` returned **403 Forbidden cleanly** (auth challenge, not maintenance) — strong evidence they're on independent maintenance schedules.
+
+**Requires a real Pinnacle account** with API privileges. Historically free for active bettors with a deposit minimum; terms vary. Not a trivial signup — this is a real account with KYC, deposits, etc.
+
+**Fix scope:**
+1. New `evmax/clients/ps3838.py::Ps3838Client` wrapping the authenticated Pinnacle API endpoints (`/v1/odds`, `/v1/fixtures`, `/v1/line`).
+2. Credentials in `secrets/PS3838_USERNAME` + `secrets/PS3838_PASSWORD` (HTTP Basic), read via settings.
+3. Parser adapter — the authenticated API response shape is **different** from the Arcadia guest stack. Not a drop-in swap.
+4. Wire as fallback in `SharpOddsAgent` (tier after Pinnacle Guest but before TheOddsAPI).
+5. **Long-term path:** promote to primary once confidence is established; retire `PinnacleGuestClient` if the authenticated path proves more stable.
+
+**Blockers:**
+- Pinnacle account signup (real-world, one-time)
+- Response format research — the published Pinnacle API docs are sparse and the real shape needs verification
+- Rate limits on the authenticated tier are different and need respect
+
+**When to prioritize:** only if ARCH-8 + ARCH-9 together aren't enough, OR if you're philosophically uncomfortable with the guest-tier dependency long-term. Good candidate for when the live pipeline starts carrying real bankroll.
+
 ---
 
 ## Section 6 — Player Props (In Progress)
@@ -241,7 +302,10 @@ Solved by reading Kalshi's `event.product_metadata.competition` field instead of
 | P2 | TEST-3 PinnacleGuestClient tests | Only live sharp source untested |
 | P2 | TEST-4 Coordinator integration test | Catches wiring regressions |
 | P2 | TEST-6 Prop pipeline — remaining | nba_stats.py still uncovered |
+| P2 | ARCH-8 Pinnacle maintenance + stale cache | Guest API maintenance windows take whole pipeline offline; retry layer currently useless against multi-minute outages |
 | P3 | DOC-2b / DOC-3b remaining doc polish | — |
 | P3 | MODEL-3 Form draw normalization | Cosmetic precision |
 | P3 | MODEL-4 Poisson EWMA | Long-term staleness |
-| P3 | All ARCH-* | Skipped for now |
+| P3 | ARCH-9 Resurrect TheOddsAPI as paid fallback | Alternative to ARCH-10; pay-to-resilience path |
+| P3 | ARCH-10 Authenticated ps3838 API | Long-term alternative to guest tier; requires real Pinnacle account |
+| P3 | All other ARCH-* (1–6) | Skipped for now |
