@@ -35,33 +35,142 @@ from __future__ import annotations
 import re
 from typing import Optional
 
+import structlog
+
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
 
-# Surface detection: tournament keywords → surface
-SURFACE_KEYWORDS: dict[str, list[str]] = {
-    "clay": [
-        "french open", "roland garros", "monte carlo", "monte-carlo",
-        "madrid", "barcelona", "rome", "roma", "hamburg",
-        "munich", "estoril", "marrakech", "bucharest", "geneva",
-        "lyon", "houston", "rio", "buenos aires", "santiago",
-        "cordoba", "bastad", "umag", "gstaad", "kitzbuhel", "winston-salem",
-    ],
-    "grass": [
-        "wimbledon", "queen's", "queens club", "halle", "s-hertogenbosch",
-        "hertogenbosch", "eastbourne", "nottingham", "newport",
-        "birmingham",  # WTA grass
-    ],
-    "indoor": [
-        "paris masters", "paris bercy", "nitto atp finals", "atp finals",
-        "nitto finals", "wta finals", "rotterdam", "marseille",
-        "montpellier", "sofia", "st. petersburg", "st petersburg",
-        "cologne", "vienna", "basel", "stockholm", "moscow", "antwerp",
-        "metz", "gijon", "nur-sultan",
-    ],
+logger = structlog.get_logger(__name__)
+
+# Surface detection from Kalshi event.product_metadata.competition.
+# Observed live (2026-04-13) always takes the form "{ATP|WTA} {City}" —
+# strip the tour prefix and look up the city in this dict.
+#
+# Ordering inside the dict doesn't matter — substring match stops at first hit,
+# and keys are specific enough that collisions are avoided. When adding new
+# tournaments, prefer the shortest unambiguous substring (e.g. "munich" is
+# fine; "atp munich" would be redundant because the tour prefix is stripped
+# before lookup).
+_CITY_TO_SURFACE_RAW: dict[str, str] = {
+    # Clay — outdoor. Keys are substrings matched against the lowercased
+    # competition/title. Includes both city names (for Kalshi's "{ATP|WTA}
+    # {City}" format) and tournament brand aliases (for historical
+    # tennis-data.co.uk rows used in the Sackmann replay test).
+    "roland garros": "clay",
+    "french open": "clay",
+    "monte carlo": "clay",
+    "monte-carlo": "clay",
+    "madrid": "clay",
+    "barcelona": "clay",
+    "rome": "clay",
+    "roma": "clay",
+    "internazionali": "clay",          # Internazionali BNL d'Italia (Rome)
+    "hamburg": "clay",
+    "munich": "clay",
+    "bmw open": "clay",                # Munich brand
+    "estoril": "clay",
+    "marrakech": "clay",
+    "hassan ii": "clay",               # Grand Prix Hassan II (Marrakech)
+    "bucharest": "clay",
+    "tiriac": "clay",                  # Tiriac Open (Bucharest)
+    "geneva": "clay",
+    "lyon": "clay",
+    "houston": "clay",
+    "clay court championships": "clay",  # U.S. Men's Clay Court (Houston)
+    "rio": "clay",
+    "buenos aires": "clay",
+    "argentina open": "clay",          # Buenos Aires brand
+    "santiago": "clay",
+    "chile open": "clay",              # Santiago brand
+    "cordoba": "clay",
+    "bastad": "clay",
+    "nordea open": "clay",             # Bastad brand
+    "umag": "clay",
+    "croatia open": "clay",            # Umag brand
+    "gstaad": "clay",
+    # Stuttgart Open is grass (ATP MercedesCup, June) — must be listed
+    # BEFORE the clay "stuttgart" entry so longest-match-first lookup
+    # picks it up first. See _CITY_TO_SURFACE for sorted order.
+    "stuttgart open": "grass",
+    "stuttgart": "clay",               # WTA Porsche Grand Prix (April)
+    "kitzbuhel": "clay",
+    "generali open": "clay",           # Kitzbuhel brand
+    "rouen": "clay",                   # WTA 250 (observed live 2026-04-13)
+    "european open": "clay",           # ambiguous brand — xlsx lists clay
+    "charleston": "clay",              # WTA green clay
+    "bogota": "clay",
+    "strasbourg": "clay",
+    "parma": "clay",
+    "palermo": "clay",
+    "warsaw": "clay",
+    "lausanne": "clay",
+    "prague": "clay",
+    "rabat": "clay",
+    "jasmin open": "clay",
+    # Grass — outdoor
+    "wimbledon": "grass",
+    "queen's club": "grass",
+    "queens club": "grass",
+    "queen's": "grass",
+    "halle": "grass",
+    "s-hertogenbosch": "grass",
+    "hertogenbosch": "grass",
+    "rosmalen": "grass",               # Rosmalen / Libema Open (Den Bosch)
+    "eastbourne": "grass",
+    "nottingham": "grass",
+    "newport": "grass",
+    "hall of fame": "grass",           # Hall of Fame Championships (Newport)
+    "birmingham": "grass",
+    "mallorca": "grass",
+    "bad homburg": "grass",
+    "berlin": "grass",
+    # Default hard — everything else (Australian Open, US Open,
+    # Indian Wells, Miami, Cincinnati, Canadian Open, etc.) falls through.
 }
-# Default surface for all others (Australian Open, US Open, Miami, Cincinnati, etc.)
+
+# Iterate longest keys first so specific aliases (e.g. "stuttgart open")
+# beat shorter ambiguous ones (e.g. "stuttgart"). This ordering is the
+# only way substring matching can resolve city-name collisions between
+# events held in the same city on different surfaces.
+CITY_TO_SURFACE: list[tuple[str, str]] = sorted(
+    _CITY_TO_SURFACE_RAW.items(), key=lambda kv: -len(kv[0])
+)
+
+# Indoor tournaments (always indoor hard). Only checked when surface
+# resolves to "hard" — clay and grass events are always outdoor on tour,
+# so "indoor clay" / "indoor grass" are logically impossible.
+#
+# NOTE: bare "paris" intentionally omitted. Paris hosts both Roland Garros
+# (outdoor clay) AND Paris Masters / Bercy (indoor hard); matching on plain
+# "paris" would incorrectly flag Roland Garros as indoor. Only the specific
+# indoor forms are listed.
+INDOOR_CITIES: set[str] = {
+    "paris bercy",
+    "paris masters",
+    "rotterdam",
+    "marseille",
+    "montpellier",
+    "sofia",
+    "st. petersburg",
+    "st petersburg",
+    "cologne",
+    "vienna",
+    "basel",
+    "stockholm",
+    "moscow",
+    "antwerp",
+    "metz",
+    "gijon",
+    "nur-sultan",
+    "atp finals",
+    "nitto atp finals",
+    "nitto finals",
+    "wta finals",
+}
+
+# Default surface when nothing matches (Australian Open, US Open,
+# Indian Wells, Miami, Cincinnati, Canadian Open, Dubai, etc.)
 DEFAULT_SURFACE = "hard"
 
 # K-factor for tennis Elo updates
@@ -229,8 +338,14 @@ class TennisModelAgent(ModelAgent):
         if not player_a or not player_b:
             return None
 
-        # Detect surface from event title
-        surface = self._detect_surface(market.title or "")
+        # Resolve surface from Kalshi event.product_metadata.competition
+        # (primary) with title as a fallback. `_is_indoor` is computed but
+        # not yet consumed — it's an explicit seam for MODEL-6, which will
+        # use it as a court-adjustment factor on hard-court events.
+        surface, _is_indoor = self._resolve_surface(
+            competition=market.competition,
+            title=market.title,
+        )
 
         elo_a = self._get_rating(player_a, surface)
         elo_b = self._get_rating(player_b, surface)
@@ -283,13 +398,77 @@ class TennisModelAgent(ModelAgent):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _detect_surface(event_title: str) -> str:
-        """Detect court surface from event/tournament title."""
-        title_lower = event_title.lower()
-        for surface, keywords in SURFACE_KEYWORDS.items():
-            if any(kw in title_lower for kw in keywords):
-                return surface
-        return DEFAULT_SURFACE
+    def _resolve_surface(
+        competition: Optional[str],
+        title: Optional[str] = None,
+    ) -> tuple[str, bool]:
+        """Resolve ``(surface, is_indoor)`` from Kalshi competition or title.
+
+        Primary signal: ``event.product_metadata.competition`` from Kalshi,
+        which observed live always takes the form ``"{ATP|WTA} {City}"``.
+        The tour prefix is stripped and the city is looked up in
+        ``CITY_TO_SURFACE``.
+
+        Fallback: scan the market title for any known city keyword. This is
+        defensive — in practice Kalshi titles are generic ("Will X win ...")
+        and the competition field carries the real signal.
+
+        Returns ``("hard", False)`` for any failure or unknown tournament;
+        logs ``tennis.surface_resolver_failed`` on exceptions. Never raises.
+
+        The ``is_indoor`` flag is only set when ``surface == "hard"`` —
+        clay/grass events are always outdoor on tour, so the flag is
+        mutually exclusive with those surfaces at the tournament level.
+        The flag is a seam for MODEL-6 (court-adjustment factor) and is
+        currently not consumed by ``predict_pair``.
+        """
+        try:
+            candidates: list[str] = []
+            if competition:
+                raw = competition.strip()
+                # Include BOTH the full string and the prefix-stripped form.
+                # Full form catches multi-word keys like "atp finals";
+                # stripped form catches city-only keys like "munich".
+                candidates.append(raw.lower())
+                stripped = raw
+                for prefix in ("ATP ", "WTA "):
+                    if stripped.upper().startswith(prefix):
+                        stripped = stripped[len(prefix):]
+                        break
+                if stripped.lower() != raw.lower():
+                    candidates.append(stripped.lower())
+            if title:
+                candidates.append(title.lower())
+
+            surface = DEFAULT_SURFACE
+            is_indoor = False
+            for cand in candidates:
+                for city, surf in CITY_TO_SURFACE:
+                    if city in cand:
+                        surface = surf
+                        break
+                if surface == "hard":
+                    for city in INDOOR_CITIES:
+                        if city in cand:
+                            is_indoor = True
+                            break
+                if surface != "hard" or is_indoor:
+                    break
+
+            # Verbose per-resolve log is intentional: gives the operator a
+            # greppable audit trail for the post-merge smoke test. Can be
+            # demoted to debug after observed stability.
+            logger.info(
+                "tennis.surface_resolved",
+                competition=competition,
+                title=title,
+                surface=surface,
+                is_indoor=is_indoor,
+            )
+            return surface, is_indoor
+        except Exception as e:
+            logger.warning("tennis.surface_resolver_failed", error=str(e))
+            return DEFAULT_SURFACE, False
 
     # ------------------------------------------------------------------
     # Update from result

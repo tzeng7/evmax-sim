@@ -364,20 +364,51 @@ class KalshiClient(BaseAPIClient):
         series_prefixes = SECTOR_SERIES_MAP.get(sector.lower(), [])
         is_prop_sector = sector.lower().endswith("_props")
 
+        # Tennis only: also fetch parent events to get product_metadata.competition,
+        # which is the primary signal for TennisModelAgent surface detection.
+        # Non-tennis sectors skip this — no behavior change, no extra latency.
+        fetch_events = sector.lower() == "tennis"
+
         async def _fetch_prefix(prefix: str) -> list[PredictionMarket]:
-            await _KALSHI_RATE_LIMITER.acquire()
             try:
-                data = await self._get(
+                # Each _get must independently acquire a rate-limiter token;
+                # do not share one acquire between markets and events calls.
+                await _KALSHI_RATE_LIMITER.acquire()
+                markets_task = self._get(
                     "/markets",
                     params={"status": status, "series_ticker": prefix, "limit": limit},
                 )
+                if fetch_events:
+                    await _KALSHI_RATE_LIMITER.acquire()
+                    events_task = self._get(
+                        "/events",
+                        params={"status": status, "series_ticker": prefix, "limit": limit},
+                    )
+                    data, events_data = await asyncio.gather(markets_task, events_task)
+                else:
+                    data = await markets_task
+                    events_data = None
+
+                # Build event_ticker → competition dict for tennis joins.
+                competitions: Optional[dict[str, str]] = None
+                if events_data is not None:
+                    competitions = {}
+                    for ev in events_data.get("events", []) or []:
+                        et = ev.get("event_ticker")
+                        if not et:
+                            continue
+                        pm = ev.get("product_metadata") or {}
+                        comp = pm.get("competition")
+                        if comp:
+                            competitions[et] = comp
+
                 parsed = []
                 for m in data.get("markets", []):
                     if is_prop_sector:
                         stat_type = _PROP_SERIES_TO_STAT.get(prefix.upper(), "unknown")
                         p = self._parse_prop_market(m, sector, stat_type)
                     else:
-                        p = self._parse_market(m, sector)
+                        p = self._parse_market(m, sector, competitions=competitions)
                     if p:
                         parsed.append(p)
                 return parsed
@@ -549,12 +580,21 @@ class KalshiClient(BaseAPIClient):
             logger.warning("kalshi_get_market_failed", ticker=ticker, error=str(e))
             return None
 
-    def _parse_market(self, raw: dict[str, Any], sector: str) -> Optional[PredictionMarket]:
+    def _parse_market(
+        self,
+        raw: dict[str, Any],
+        sector: str,
+        competitions: Optional[dict[str, str]] = None,
+    ) -> Optional[PredictionMarket]:
         """Parse a raw Kalshi market dict into a PredictionMarket.
 
         The API uses '_dollars' suffix fields (values already in 0.0–1.0 decimal
         form) with '_fp' suffix for volume/open_interest counts.  Falls back to
         legacy integer cent fields ('yes_bid', 'yes_ask') if present.
+
+        If ``competitions`` is provided (tennis only), the market's
+        ``event_ticker`` is looked up in the dict to populate
+        ``PredictionMarket.competition`` (e.g. "ATP Munich").
         """
         try:
             ticker = raw.get("ticker", "")
@@ -617,6 +657,12 @@ class KalshiClient(BaseAPIClient):
             market_type = MarketType.spread if is_spread else self._infer_market_type(title)
             spread_line = self._extract_spread_line(ticker) if is_spread else None
 
+            competition: Optional[str] = None
+            if competitions:
+                event_ticker = raw.get("event_ticker")
+                if event_ticker:
+                    competition = competitions.get(event_ticker)
+
             return PredictionMarket(
                 id=f"kalshi:{ticker}",
                 source=MarketSource.kalshi,
@@ -633,6 +679,7 @@ class KalshiClient(BaseAPIClient):
                 line=spread_line,
                 event_date=event_date,
                 yes_team=yes_team,
+                competition=competition,
             )
         except Exception as e:
             logger.warning("kalshi_parse_failed", error=str(e), raw=raw)

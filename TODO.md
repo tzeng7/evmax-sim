@@ -86,6 +86,43 @@ team["attack"] = (1 - alpha) * team["attack"] + alpha * actual_goals
 **File:** `evmax/agents/models/ensemble_agent.py`
 `TennisModelAgent.weight = 0.45` is higher than any other model weight. For tennis events where the agent contributes, it dominates the blend, which is aggressive given the surface detection weakness in MODEL-1. Consider reducing to 0.35 (matching Elo) after MODEL-1 is fixed and surface signals are reliable.
 
+### MODEL-6 Court-Adjustment Factor for Indoor Hard (Orthogonal to Surface) [P2]
+**File:** `evmax/agents/models/tennis_model_agent.py`
+
+**Context — why this exists as a separate item.** The original code treated `indoor` as a peer of `hard`/`clay`/`grass` in the surface dimension. This is a category error: in real tennis (and in every public dataset — Sackmann `tennis_atp`/`tennis_wta`, tennis-data.co.uk), surface and court are **orthogonal axes**:
+
+- **Surface** ∈ {hard, clay, grass} (+ carpet, phased out 2009)
+- **Court** ∈ {indoor, outdoor}
+- Clay = essentially always outdoor on tour. Grass = always outdoor. Hard = both.
+
+Notable indoor-hard events: Paris Masters (Bercy), Nitto ATP Finals (Turin), WTA Finals, Rotterdam, Basel, Vienna, Stockholm, Antwerp, Metz, Sofia.
+
+**Why it matters for predictions.** Indoor hard plays meaningfully differently from outdoor hard — faster courts, lower bounce, no wind, no sun, controlled temperature. This is a real player-level skill differential, not noise: Medvedev-archetype big servers historically overperform their outdoor-hard baseline on indoor hard, and ATP Finals results systematically deviate from hardcourt-season form. Modeling indoor as a court-adjustment factor (not a surface) would capture this correctly.
+
+**What MODEL-1 set up as a seam.** The surface resolver shipped in MODEL-1 returns both `surface ∈ {hard, clay, grass}` AND a separate `is_indoor: bool`. The boolean is currently unused by `predict_pair()` — it's a read-path hook waiting for MODEL-6 to consume it.
+
+**Design options for MODEL-6:**
+1. **Full `(surface, court)` buckets** — 6 separate Elo buckets: `hard_outdoor`, `hard_indoor`, `clay_outdoor` (empty), `grass_outdoor` (empty), plus the existing aggregates. Cleanest, but fragments rating data and bumps `MIN_SURFACE_GAMES` gate failures.
+2. **Court-adjustment factor** — single bonus/penalty applied on top of surface Elo when `is_indoor=True`. One scalar per player, or a global constant to start. Simpler, preserves existing rating density, only perturbs the prediction at blend time.
+
+Option 2 is the likely starting point. A global indoor bonus calibrated from Brier improvement would be the minimum viable version; per-player indoor modifiers can come later once data accumulates.
+
+**Stale state data to handle during migration.** As of the MODEL-1 ship date, `data/models/tennis_surface_state.json` contains ~51 ratings in the legacy `indoor` bucket (~288 total game-updates) written via manual `evmax agents update --surface indoor` / `evmax agents seed-tennis surface --surface indoor` calls before those CLI options were removed. **None** of the automated seed pipelines (`scripts/seed_tennis_models.py`, `scripts/seed_espn.py`) ever wrote to this bucket — Sackmann classifies indoor hard as just `Hard`. So the 51 entries are:
+- Sparse (avg ~5.6 games/player, below `MIN_SURFACE_GAMES=8`, never trips the confidence gate)
+- Inert after MODEL-1 (resolver no longer returns `indoor`, no reader consumes it)
+- Frozen (no writer after CLI cleanup, bucket cannot grow)
+
+**When MODEL-6 lands, decide what to do with them:**
+- **(a) Fold into `hard`** as bootstrap data for the indoor adjustment factor. Pro: preserves signal. Con: muddies hard ratings with players' indoor-specific skill.
+- **(b) Discard** via a one-liner migration (`del state["ratings"]["indoor"]` + corresponding `game_counts`). Pro: clean slate. Con: loses manual-curation work, but the signal is so thin it barely matters.
+- **(c) Migrate into a new `hard_indoor` bucket** if going with design option 1.
+
+This is a deliberate deferral — not a cleanup chore. Pick the strategy that fits whichever of the two design options MODEL-6 adopts.
+
+**Blocker:** needs calibration against live outcomes. The Brier-improvement signal from adding an indoor modifier isn't measurable offline — it requires accumulated predictions on both indoor and outdoor hard events. Leave to when the `predictions.db` has enough indoor-event coverage (probably post-Paris Masters / ATP Finals season). Document this as waiting on brother's live accumulation when picking it up.
+
+**Secondary cleanup tracked here:** the frozen 51-entry `indoor` bucket in state is cosmetic debt (~2KB disk, no correctness or perf impact) as long as MODEL-6 is pending. Do not ship a standalone cleanup script — fold it into MODEL-6's migration instead.
+
 ---
 
 ## Section 4 — Test Coverage Gaps
@@ -198,6 +235,7 @@ See MODEL-1 above. This is the highest-leverage model improvement for tennis.
 | P1 | MODEL-1 / SECTOR-3 Tennis surface detection | Surface Elo rarely fires in practice |
 | P1 | PROPS-1 NFL props backend | Dead API calls |
 | P2 | MODEL-2 NCAAW/NHL Elo calibration | Uncalibrated K + home adv |
+| P2 | MODEL-6 Tennis indoor court modifier | Waits on live indoor-event data; `is_indoor` seam already in MODEL-1 |
 | P2 | TEST-3 PinnacleGuestClient tests | Only live sharp source untested |
 | P2 | TEST-4 Coordinator integration test | Catches wiring regressions |
 | P2 | TEST-6 Prop pipeline — remaining | nba_stats.py still uncovered |
