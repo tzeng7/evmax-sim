@@ -8,6 +8,17 @@
 
 ## Recently Shipped
 
+### PR #5 — Tennis surface resolver from Kalshi competition + weight trim
+- ✅ MODEL-1 / SECTOR-3 — Tennis surface now detected from Kalshi `event.product_metadata.competition` (structured "{ATP|WTA} {City}" strings) instead of scanning generic market titles. `KalshiClient.get_markets` fetches `/events` in parallel with `/markets` for tennis and joins by `event_ticker`. `PredictionMarket` gained an optional `competition` field (additive, zero SQL migration). Resolver returns `(surface, is_indoor)` with longest-match-first dict ordering so brand aliases like "stuttgart open" (grass) beat ambiguous "stuttgart" (clay). Indoor check gated on `surface == hard` since clay/grass are always outdoor on tour.
+- ✅ MODEL-5 — `TennisModelAgent.weight` trimmed 0.45 → 0.35 so tennis no longer dominates the ensemble blend when competing with other models.
+- ✅ Resolver is total (try/except → `("hard", False)`), structured `tennis.surface_resolved` log on every call, 1000-run fuzz test verifies never raises.
+- ✅ CLI cleanup — `evmax agents update --surface indoor` and `evmax agents seed-tennis surface --surface indoor` now reject with a clear error pointing at MODEL-6. Only `hard/clay/grass` accepted.
+- ✅ Live Kalshi fixtures captured 2026-04-13 to `tests/fixtures/kalshi/` (4 JSON files, offline-replayable in CI forever).
+- ✅ Sackmann xlsx replay test (`tests/test_tennis_surface_replay.py`) at 99.0% accuracy on both 2024 (2676/2703) and 2025 (2617/2644) — designed as a coverage-expansion loop that drove dict additions until passing the 95% floor.
+- ✅ Three-layer Kalshi fixture replay tests (`tests/test_tennis_kalshi_fixtures.py`): resolver replay on captured events, end-to-end `get_markets()` join via monkey-patched `_get`, and explicit `is_indoor` seam verification preventing silent drift before MODEL-6.
+- ✅ Semantic correction documented: **MODEL-6** filed with full `(surface, court)` orthogonality context, explanation of the 51 stale legacy `indoor` ratings from manual CLI updates (inert post-merge), and three migration options for when the court-adjustment factor lands. Blocker: needs live indoor-event accumulation.
+- ✅ Suite: 705 → 772 (+67 net; 103 tennis-related tests across the three test files, ~36 old `TestSurfaceDetection` tests were replaced by the new `TestResolveSurface` class).
+
 ### PR #2 — Poisson bucketing + prop injury boost + pitcher Pythag + TEST-2/TEST-6
 - ✅ BUG-4 — Poisson NBA/NFL/NCAAB score matrix now bucketed (NBA=5, NFL=4, NCAAB=5). `lam_h`/`lam_a` scaled by bucket before the matrix is built so Poisson mass fits inside MAX_SCORE.
 - ✅ BUG-5 — Prop injury boost now uses `nba_props_cache.lookup_player_team()` to find the player's actual team instead of parsing a nonexistent game slug out of `parts[2]`. The boost was silently never firing for any prop.
@@ -53,15 +64,8 @@ _(BUG-4, BUG-5, and BUG-9 shipped — see "Recently Shipped" above.)_
 
 ## Section 3 — Model Quality
 
-### MODEL-1 Tennis Surface Detection is Too Fragile [P1]
-**File:** `evmax/agents/models/tennis_model_agent.py`
-Surface is inferred from keywords in `market.title`. In practice, Kalshi market titles for ATP/WTA are typically just "Player A vs Player B" with no tournament context. The surface defaults to `hard` almost always, meaning surface-specific Elo (clay/grass advantages) is rarely exercised despite existing in the state.
-
-> **Note:** `tests/test_tennis_model.py::test_known_bug_title_without_tournament_silently_defaults_to_hard` pins the current buggy behavior. Fixing MODEL-1 will require updating that test, making the regression visible at code-review time.
-
-Fix options (in order of preference):
-1. Enrich `TennisSectorHandler` to carry a `surface` field from a tournament calendar lookup (ATP tour schedule is public)
-2. As a fallback, add a lookup table of known tournament names → surface (Roland Garros → clay, Wimbledon → grass, US Open → hard, Australian Open → hard, etc.) and check if the Kalshi series ticker or league name contains a tournament keyword
+### ~~MODEL-1 Tennis Surface Detection~~ ✅ SHIPPED (PR #5)
+Shipped via the Kalshi `event.product_metadata.competition` join — see Recently Shipped above.
 
 ### MODEL-2 NCAAW and NHL Have No Calibrated K-Factor / Home Advantage [P2]
 **File:** `evmax/agents/models/elo_agent.py`
@@ -82,9 +86,8 @@ alpha = 0.1  # decay factor
 team["attack"] = (1 - alpha) * team["attack"] + alpha * actual_goals
 ```
 
-### MODEL-5 Tennis Model Weight Exceeds All Other Models Combined [P3]
-**File:** `evmax/agents/models/ensemble_agent.py`
-`TennisModelAgent.weight = 0.45` is higher than any other model weight. For tennis events where the agent contributes, it dominates the blend, which is aggressive given the surface detection weakness in MODEL-1. Consider reducing to 0.35 (matching Elo) after MODEL-1 is fixed and surface signals are reliable.
+### ~~MODEL-5 Tennis Model Weight~~ ✅ SHIPPED (PR #5)
+Trimmed 0.45 → 0.35. See Recently Shipped above.
 
 ### MODEL-6 Court-Adjustment Factor for Indoor Hard (Orthogonal to Surface) [P2]
 **File:** `evmax/agents/models/tennis_model_agent.py`
@@ -220,8 +223,8 @@ See MODEL-2 above. NHL is in the registry and Kalshi series but Elo uses NBA def
 ### SECTOR-2 NCAAW Elo Calibration [P2]
 See MODEL-2 above. NCAAW has a `REST_ELO_ADJ` entry but no K-factor or home advantage.
 
-### SECTOR-3 Tennis Tournament Calendar for Surface Lookup [P1]
-See MODEL-1 above. This is the highest-leverage model improvement for tennis.
+### ~~SECTOR-3 Tennis Tournament Calendar for Surface Lookup~~ ✅ SHIPPED (PR #5)
+Solved by reading Kalshi's `event.product_metadata.competition` field instead of a separate calendar lookup. See MODEL-1 in Recently Shipped.
 
 ### SECTOR-4 Sectors in Registry Not in CLAUDE.md [P3]
 ~~`nhl`, `baseball`, `valorant`, `ufc`, `f1` are absent from CLAUDE.md~~ — partially fixed in PR #1 (NHL, Baseball, Valorant added to Key Sectors). UFC and F1 still undocumented but they're long-tail.
@@ -232,7 +235,6 @@ See MODEL-1 above. This is the highest-leverage model improvement for tennis.
 
 | Priority | Item | Impact |
 |----------|------|--------|
-| P1 | MODEL-1 / SECTOR-3 Tennis surface detection | Surface Elo rarely fires in practice |
 | P1 | PROPS-1 NFL props backend | Dead API calls |
 | P2 | MODEL-2 NCAAW/NHL Elo calibration | Uncalibrated K + home adv |
 | P2 | MODEL-6 Tennis indoor court modifier | Waits on live indoor-event data; `is_indoor` seam already in MODEL-1 |
@@ -242,5 +244,4 @@ See MODEL-1 above. This is the highest-leverage model improvement for tennis.
 | P3 | DOC-2b / DOC-3b remaining doc polish | — |
 | P3 | MODEL-3 Form draw normalization | Cosmetic precision |
 | P3 | MODEL-4 Poisson EWMA | Long-term staleness |
-| P3 | MODEL-5 Tennis weight tuning | After MODEL-1 |
 | P3 | All ARCH-* | Skipped for now |
