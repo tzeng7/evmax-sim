@@ -28,7 +28,7 @@ evmax uses a multi-agent pipeline to find positive expected value (+EV) opportun
 ### 1. Install
 
 ```bash
-git clone https://github.com/yourorg/evmax
+git clone https://github.com/tzeng7/evmax
 cd evmax
 ./setup.sh       # installs deps + registers git hooks (run once after cloning)
 ```

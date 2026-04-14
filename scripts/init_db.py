@@ -26,7 +26,7 @@ async def main() -> None:
     print("\nNext steps:")
     print("  1. cp .env.example .env")
     print("  2. Edit .env with your API keys")
-    print("  3. evmax scan --sectors NFL --once")
+    print("  3. evmax --help   # see available commands")
 
 
 if __name__ == "__main__":
