@@ -680,3 +680,62 @@ class TestEnsembleModelAgent:
         ensemble = EnsembleModelAgent(models=[], sharp_weight=0.40)
         resp = await ensemble(AgentRequest(sector="nba", params={"pairs": []}))
         assert resp.data == {}
+
+
+# ---------------------------------------------------------------------------
+# MODEL-5: tennis weight trim (0.45 → 0.35)
+# ---------------------------------------------------------------------------
+
+class TestTennisWeightTrim:
+    """Paired with MODEL-1: trimming TennisModelAgent.weight from 0.45 to
+    0.35 reduces tennis's intra-model dominance so the ensemble blend is
+    less hostage to a single model's prediction when multiple tennis-
+    capable models fire on the same event."""
+
+    def test_weight_lock_in(self):
+        """Lock in MODEL-5: prevents silent drift back toward 0.45."""
+        from evmax.agents.models.tennis_model_agent import TennisModelAgent
+        assert TennisModelAgent.weight == 0.35, (
+            f"MODEL-5: TennisModelAgent.weight should be 0.35, got "
+            f"{TennisModelAgent.weight}. If you're changing this, update "
+            f"TODO.md MODEL-5 + this test's docstring with the new rationale."
+        )
+
+    def test_weight_change_measurably_shifts_blend(self):
+        """Direct arithmetic check on the intra-model confidence-weighted
+        average: when tennis (prob_a=0.70) competes with a generic model
+        (prob_a=0.40), dropping tennis weight 0.45 → 0.35 moves the blended
+        model probability measurably closer to the generic model's prediction.
+
+        This mirrors the ensemble_agent ``_blend`` Step 1 math:
+            model_a = Σ(eff_w × prob_a) / Σ(eff_w)
+        where ``eff_w = weight × confidence``.
+        """
+        # Shared confidence (0.6 > 0.45 gate) for both models
+        conf = 0.6
+        tennis_prob_a = 0.70
+        other_prob_a = 0.40
+        other_weight = 0.35
+
+        def blended(tennis_weight: float) -> float:
+            eff_tennis = tennis_weight * conf
+            eff_other = other_weight * conf
+            return (
+                eff_tennis * tennis_prob_a + eff_other * other_prob_a
+            ) / (eff_tennis + eff_other)
+
+        blend_old = blended(0.45)   # old tennis weight
+        blend_new = blended(0.35)   # MODEL-5
+
+        # New blend should be closer to the "other" model's prediction
+        # than the old blend, meaning tennis dominates less.
+        assert abs(blend_new - other_prob_a) < abs(blend_old - other_prob_a), (
+            f"MODEL-5 should reduce tennis dominance in the blend. "
+            f"Old (w=0.45): {blend_old:.4f}, New (w=0.35): {blend_new:.4f}, "
+            f"other: {other_prob_a}"
+        )
+
+        # And both blends still lean toward tennis since it's the higher
+        # prediction — the trim reduces dominance but doesn't flip the sign.
+        assert blend_new > other_prob_a
+        assert blend_new < blend_old

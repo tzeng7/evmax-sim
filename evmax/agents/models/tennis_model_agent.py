@@ -206,7 +206,8 @@ class TennisModelAgent(ModelAgent):
     """
 
     name = "tennis_surface"
-    weight = 0.45   # Higher weight in ensemble vs generic elo/form/poisson
+    weight = 0.35   # MODEL-5: trimmed from 0.45 alongside MODEL-1 surface fix
+                    # so tennis no longer dominates the ensemble blend
 
     def _ratings(self, surface: str) -> dict[str, float]:
         return self._state.setdefault("ratings", {}).setdefault(surface, {})
