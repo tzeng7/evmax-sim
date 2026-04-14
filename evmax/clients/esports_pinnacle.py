@@ -18,7 +18,8 @@ Soccer three-way (draw) odds use devig_three_way().
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+import time
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import structlog
@@ -101,6 +102,52 @@ class PinnacleGuestClient(BaseAPIClient):
             },
         )
 
+    async def _logged_get(
+        self,
+        path: str,
+        params: Optional[dict[str, Any]] = None,
+        *,
+        sector: str,
+        purpose: str,
+    ) -> Any:
+        """Wrap BaseAPIClient._get with an INFO-level call log.
+
+        Emits one `pinnacle_api_call` event per HTTP request with sector,
+        purpose (`list_matchups`, `fetch_matchup_markets`, etc.), full URL,
+        query params, wall-clock start time, duration, and item count. This
+        is the source of truth for "what Pinnacle calls did scan make".
+        """
+        t0 = time.perf_counter()
+        started_at = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+        status = "ok"
+        err: Optional[str] = None
+        items = 0
+        try:
+            data = await self._get(path, params=params)
+            if isinstance(data, list):
+                items = len(data)
+            elif isinstance(data, dict):
+                items = len(data)
+            return data
+        except Exception as e:
+            status = "error"
+            err = str(e) or type(e).__name__
+            raise
+        finally:
+            duration_ms = round((time.perf_counter() - t0) * 1000, 1)
+            logger.info(
+                "pinnacle_api_call",
+                sector=sector,
+                purpose=purpose,
+                url=f"{self.base_url}{path}",
+                params=params,
+                started_at=started_at,
+                duration_ms=duration_ms,
+                status=status,
+                items=items,
+                **({"error": err} if err else {}),
+            )
+
     async def get_prop_odds(self, sector: str) -> list[SharpOdds]:
         """Fetch devigged Pinnacle player prop lines from the guest Arcadia API.
 
@@ -116,11 +163,14 @@ class PinnacleGuestClient(BaseAPIClient):
             return []
 
         sport_id, league_ids = SECTOR_SPORT_LEAGUES[sector]
+        prop_t0 = time.perf_counter()
 
         try:
-            all_matchups = await self._get(
+            all_matchups = await self._logged_get(
                 f"/sports/{sport_id}/matchups",
                 params={"withSpecials": "true"},
+                sector=f"{sector}_props",
+                purpose="list_prop_matchups",
             )
         except Exception as e:
             logger.warning("pinnacle_guest_props_matchups_failed", sector=sector, error=str(e))
@@ -154,6 +204,16 @@ class PinnacleGuestClient(BaseAPIClient):
                 props.extend(r)
 
         logger.info("pinnacle_props_fetched", sector=sector, count=len(props))
+        logger.info(
+            "pinnacle_scan_done",
+            sector=f"{sector}_props",
+            sport_id=sport_id,
+            league_ids=league_ids or None,
+            parent_matchups=len(prop_matchups),
+            http_calls=1 + len(prop_matchups),
+            total_markets=len(props),
+            duration_ms=round((time.perf_counter() - prop_t0) * 1000, 1),
+        )
         return props
 
     async def _fetch_prop_matchup(self, matchup: dict, sector: str) -> Optional[SharpOdds]:
@@ -204,7 +264,11 @@ class PinnacleGuestClient(BaseAPIClient):
                 pass
 
         try:
-            markets_data = await self._get(f"/matchups/{matchup_id}/markets/related/straight")
+            markets_data = await self._logged_get(
+                f"/matchups/{matchup_id}/markets/related/straight",
+                sector=f"{sector}_props",
+                purpose="fetch_prop_markets",
+            )
         except Exception as e:
             logger.debug("pinnacle_prop_markets_failed", matchup_id=matchup_id, error=str(e))
             return None
@@ -287,11 +351,14 @@ class PinnacleGuestClient(BaseAPIClient):
                 return [SharpOdds.model_validate(r) for r in raw]
 
         sport_id, league_ids = SECTOR_SPORT_LEAGUES[sector]
+        scan_t0 = time.perf_counter()
 
         try:
-            all_matchups = await self._get(
+            all_matchups = await self._logged_get(
                 f"/sports/{sport_id}/matchups",
                 params={"withSpecials": "false"},
+                sector=sector,
+                purpose="list_matchups",
             )
         except Exception as e:
             logger.warning("pinnacle_guest_matchups_failed", sector=sector, error=str(e))
@@ -334,8 +401,26 @@ class PinnacleGuestClient(BaseAPIClient):
             elif isinstance(r, Exception):
                 logger.warning("pinnacle_guest_odds_error", error=str(r))
 
+        # Per-market-type breakdown for the scan summary
+        market_counts: dict[str, int] = {}
+        for o in odds:
+            mt = getattr(o, "market_type", None)
+            key = str(mt.value) if mt is not None and hasattr(mt, "value") else (str(mt) if mt else "moneyline")
+            market_counts[key] = market_counts.get(key, 0) + 1
+
         logger.info("sharp_fetched", sector=sector, count=len(odds),
                     avg_margin=round(sum(o.margin for o in odds) / len(odds), 4) if odds else 0.0)
+        logger.info(
+            "pinnacle_scan_done",
+            sector=sector,
+            sport_id=sport_id,
+            league_ids=league_ids or None,
+            parent_matchups=len(matchups),
+            http_calls=1 + len(matchups),  # 1 list + N per-matchup market fetches
+            market_counts=market_counts,
+            total_markets=len(odds),
+            duration_ms=round((time.perf_counter() - scan_t0) * 1000, 1),
+        )
 
         # Write to dev cache if enabled
         if cfg.cache_ttl_secs > 0 and odds:
@@ -369,7 +454,11 @@ class PinnacleGuestClient(BaseAPIClient):
         base_event_id = f"{sector}::{date_str}::{home_norm}_vs_{away_norm}"
 
         try:
-            markets_data = await self._get(f"/matchups/{matchup_id}/markets/related/straight")
+            markets_data = await self._logged_get(
+                f"/matchups/{matchup_id}/markets/related/straight",
+                sector=sector,
+                purpose="fetch_matchup_markets",
+            )
         except Exception as e:
             logger.debug("pinnacle_guest_markets_failed", matchup_id=matchup_id, error=str(e))
             return None
