@@ -326,23 +326,66 @@ The current retry layer (`base.py::_is_retryable`) only runs **2 attempts** with
 
 **Blocker:** none. Uses existing infrastructure. Can ship as a standalone PR.
 
-### ARCH-11 Per-Category Live / Shadow / Disabled Mode Config [P1]
-**Files:** new `evmax/modes.py`, `evmax/settings.py`, `evmax/agents/coordinator.py`, `evmax/agents/cleanup/db.py`, `evmax/cli/commands/agents.py`, `evmax/cli/commands/cleanup.py`, new `shadow_predictions` table
+### ARCH-11 Category Registry + Live / Shadow / Disabled Mode Config [P1]
+**Files:** new `evmax/categories.py` (registry module), new `data/categories.yaml` (source of truth), new `evmax/modes.py` (mode lookup API), `evmax/settings.py`, `evmax/agents/coordinator.py`, `evmax/agents/cleanup/db.py`, `evmax/agents/cleanup/logger.py`, `evmax/cli/commands/agents.py`, `evmax/cli/commands/cleanup.py`, new `evmax/cli/commands/categories.py`, `CLAUDE.md`
 
-**Context.** The user wants a single place to declare, per category (sector × market-type), whether the scanner should:
-- `live` — compute edges, produce EVGaps, persist to `ev_predictions`, size Kelly against bankroll (current default for every sector)
-- `shadow` — compute edges, log predictions + pre-game prices to a separate `shadow_predictions` table, do NOT touch bankroll
-- `disabled` — skip the category entirely during scan (saves API calls for sectors we're not trading)
+**Context.** Two related needs in one PR:
 
-The immediate use case is MODEL-9 (NFL props need shadow validation before live), but the same toggle is useful across the board: new sector rollouts, vacation bankroll freezes, post-outage recovery, or simply "I don't want to trade NHL anymore."
+1. **A single source of truth for the betting category catalog.** Today the answer to "what categories can we bet on, with which models, via which resolver, and in what state?" is scattered across CLAUDE.md's Key Sectors list, the Modeling table, the Data Sources for Outcome Resolution table, `SECTOR_SERIES_MAP` in `evmax/clients/kalshi.py`, and ad-hoc TODO.md entries. There is no single file a reader can open to see the full product state — and no machine-readable version for the scanner to consult at runtime. This drift is already starting to cost time during reviews (multiple cross-references to answer simple "is NHL modeled?" questions).
+
+2. **Per-category live / shadow / disabled mode.** The user wants a single place to declare, per category, whether the scanner should:
+   - `live` — compute edges, produce EVGaps, persist with `mode='live'`, size Kelly against bankroll (current default for every sector)
+   - `shadow` — compute edges, log predictions + pre-game prices with `mode='shadow'`, do NOT touch bankroll
+   - `disabled` — skip the category entirely during scan (saves API calls for sectors we're not trading)
+
+The immediate use case is MODEL-9 (NFL props need shadow validation before live), but the same toggle is useful across the board: new sector rollouts, vacation bankroll freezes, post-outage recovery, or simply "I don't want to trade NHL anymore." The catalog registry makes the mode the *only* source of truth — no scattered config, no docs-drifting-from-code.
 
 **Design:**
 
 1. **Canonical category keys** — strings of the form `{sector}` for game markets, `{sector}_props` for player props. Examples: `nba`, `nba_props`, `nfl`, `nfl_props`, `tennis`, `mlb`, `nhl`. Matches the Kalshi `_props` suffix convention already in `SECTOR_SERIES_MAP`.
 
-2. **Settings source of truth.** Add `category_modes: dict[str, str]` to `evmax/settings.py`. Default all known categories to `live` except `nfl_props` which starts as `shadow`. Loaded from env via pydantic-settings: `EVMAX_CATEGORY_MODES='{"nfl_props":"shadow","nhl":"disabled"}'` (JSON string) OR from a new `data/category_modes.yaml` if present, which takes precedence. YAML is editable without code changes.
+2. **Catalog registry — `data/categories.yaml` is the source of truth.** Schema per category:
 
-3. **New module `evmax/modes.py`** wraps the read with a clean API: `get_mode(category) -> Literal["live","shadow","disabled"]`, `is_live(category) -> bool`, `is_shadow(category) -> bool`. All coordinator branches go through this module — no raw dict lookups scattered in code.
+   ```yaml
+   nba:
+     display_name: "NBA"
+     market_types: [moneyline, spread, total]
+     models: [elo, form, poisson, sharp]
+     mode: live
+     resolver: espn_scoreboard
+     status: shipped
+     notes: null
+
+   nfl_props:
+     display_name: "NFL player props"
+     market_types: [over_under_passing_yards, over_under_rushing_yards, over_under_receiving_yards, over_under_passing_tds, over_under_receptions, anytime_td]
+     models: [nfl_props_cache_v1_qb_only]
+     mode: shadow                 # the ARCH-11 toggle lives on this line
+     resolver: espn_boxscore
+     status: "Stage 4 shipped; shadow validation pending MODEL-9"
+     notes: "NO-side only per MODEL-8; YES-side systematically overpriced"
+
+   tennis:
+     display_name: "Tennis (ATP + WTA)"
+     market_types: [moneyline]
+     models: [tennis_surface_elo, tennis_serve_return, tennis_h2h, tennis_ranking_trend, sharp]
+     mode: live
+     resolver: kalshi_settlement
+     status: shipped
+     notes: "Court adjustment (indoor) deferred — MODEL-6"
+   ```
+
+   Every key in `evmax/clients/kalshi.py::SECTOR_SERIES_MAP` must have a corresponding entry — enforced by a startup validator and a test. New sectors that forget to register will fail loudly at import time, not drift silently. The file is editable by humans without code changes; a test verifies the YAML parses and every field is valid.
+
+3. **`evmax/categories.py` registry module** loads `data/categories.yaml` into typed dataclasses (`CategorySpec` with `key`, `display_name`, `market_types`, `models`, `mode`, `resolver`, `status`, `notes`). Exposes:
+   - `get_category(key) -> CategorySpec`
+   - `all_categories() -> list[CategorySpec]`
+   - `categories_in_mode("live" | "shadow" | "disabled") -> list[str]`
+   - Validator: `validate_registry()` cross-checks against `SECTOR_SERIES_MAP` and the known model registry — failures are hard errors at import time.
+
+4. **Settings + env overrides.** Env var `EVMAX_CATEGORY_MODES='{"nfl_props":"shadow","nhl":"disabled"}'` (JSON string) overrides the YAML's `mode` field for a single process. Useful for CI, local testing, and CLI wrapper scripts. Overrides compose per-command, not persisted.
+
+5. **`evmax/modes.py`** wraps the mode read specifically (separate from the fuller registry API) with a clean surface: `get_mode(category) -> Literal["live","shadow","disabled"]`, `is_live(category) -> bool`, `is_shadow(category) -> bool`. All coordinator + CLI branches go through this module — no raw dict lookups scattered in code.
 
 4. **CLI overrides.** Every scan-adjacent CLI command accepts `--live X,Y --shadow Z --disabled W` to override settings for a single run. Overrides compose per-command, not persisted.
 
@@ -359,17 +402,27 @@ The immediate use case is MODEL-9 (NFL props need shadow validation before live)
    - `evmax cleanup shadow show --days 7` — recent shadow predictions with resolved outcomes
    - `evmax cleanup shadow metrics --weeks 4` — Brier + ROI over a window, with a gate table per category
    - `evmax cleanup shadow resolve --date YYYY-MM-DD` — calls `prop_resolver` against shadow rows for a given day
-   - `evmax cleanup shadow promote <category>` — after manual review, flips the category from `shadow` → `live` in `data/category_modes.yaml` and prints a confirmation
+   - `evmax cleanup shadow promote <category>` — after manual review, flips the category from `shadow` → `live` in `data/categories.yaml` and prints a confirmation
 
-8. **Documentation.** New section in CLAUDE.md: "Category modes" explaining the three states, the env var / YAML file, the CLI overrides, and the promotion workflow.
+8. **New CLI `evmax categories`** family — surfaces the registry to the user:
+   - `evmax categories list` — prints the full catalog as a rich table (key, display name, market types, models, mode, resolver, status). One-command answer to "what can we bet on and what are we doing with each?"
+   - `evmax categories show <key>` — detail view for one category, including the full model list, the resolver path, and any notes (e.g. the MODEL-8 NO-side-only caveat for nfl_props)
+   - `evmax categories validate` — runs `validate_registry()` and prints the result. Used by CI and by the pre-commit hook.
+
+9. **Documentation.** CLAUDE.md gets a new "Betting Categories" section that references `data/categories.yaml` as the source of truth and shows a compact rendered table. The existing scattered docs (Key Sectors list, Modeling table, Data Sources for Outcome Resolution table) either collapse into this new section OR cross-link to it so there's one canonical place to read the product state. "Category modes" explanation is folded into the same section — the three states, the env var / YAML file, the CLI overrides, the promotion workflow.
 
 **Blocker:** none. Pure infrastructure — can ship before MODEL-9 runs, and in fact SHOULD ship first because MODEL-9 depends on the shadow table and the category-mode plumbing existing.
 
 **Test coverage requirements (per CLAUDE.md testing policy):**
-- `evmax/modes.py` pure function tests — mode lookup, fallback to default, CLI override composition
-- Coordinator integration test: one sector in `live`, one in `shadow`, one in `disabled`, confirm each takes the right persistence path
-- `shadow_predictions` schema test
-- CLI override test (subprocess or typer Runner)
+- `evmax/categories.py` — YAML parse, dataclass construction, every `SECTOR_SERIES_MAP` key present, every referenced model name exists, every `mode` value is one of the three legal states
+- `evmax/modes.py` pure function tests — mode lookup, YAML fallback to default, env var override composition, CLI override composition
+- `validate_registry()` — negative tests for missing fields, unknown models, unknown resolvers, illegal mode values
+- Coordinator integration test: one sector in `live`, one in `shadow`, one in `disabled`, confirm each takes the right persistence path with the right `mode` column value
+- `log_gaps()` mode-column test — verify partitioning and correct column writes
+- `evmax categories list / show / validate` CLI output golden tests (typer Runner)
+- CLI mode-override test (`--shadow X --live Y` applied for a single run only, not persisted)
+
+**Revised effort estimate:** ~10–11 hours focused work (was ~7 without the catalog registry). The registry adds a YAML schema, a validator module, typed dataclasses, a new CLI command family, and the CLAUDE.md consolidation — but pays back the effort by giving both humans and code one canonical source of truth instead of a mode config + scattered docs.
 
 ### ARCH-9 Resurrect TheOddsAPI Legacy Client as Paid Fallback [P3]
 **Files:** `evmax/clients/pinnacle.py`, `evmax/agents/odds/sharp_agent.py`, `evmax/models/odds.py`
