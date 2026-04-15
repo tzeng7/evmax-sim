@@ -62,6 +62,10 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     bankroll_used       REAL,
     line                REAL,
     voided              INTEGER NOT NULL DEFAULT 0,
+    -- ARCH-11 mode columns:
+    mode                TEXT    NOT NULL DEFAULT 'live',
+    captured_yes_price  REAL,
+    model_version       TEXT,
     UNIQUE(market_id, scan_date)
 );
 """
