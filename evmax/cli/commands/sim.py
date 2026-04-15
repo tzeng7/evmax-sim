@@ -154,7 +154,7 @@ def montecarlo(
         ) latest ON p.market_id = latest.market_id
                 AND p.scan_date = latest.latest_scan
         INNER JOIN ev_outcomes o ON p.market_id = o.market_id
-        WHERE o.outcome IS NOT NULL AND p.voided = 0
+        WHERE o.outcome IS NOT NULL AND p.voided = 0 AND p.mode = 'live'
     """
     params: list = []
 

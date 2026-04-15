@@ -90,7 +90,12 @@ def _make_ev_gap(market_id="kalshi:TEST-001", event_id="nba::2026-03-20::test",
 
 
 def _make_in_memory_db():
-    """Create an in-memory SQLite with the ev_predictions and ev_outcomes schema."""
+    """Create an in-memory SQLite with the ev_predictions and ev_outcomes schema.
+
+    Mirrors the production schema in evmax/agents/cleanup/db.py including the
+    ARCH-11 `mode` / `captured_yes_price` / `model_version` columns so that
+    reader queries with `WHERE mode = 'live'` still match inserted rows.
+    """
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     conn.executescript("""
@@ -116,6 +121,9 @@ def _make_in_memory_db():
             line REAL,
             voided INTEGER NOT NULL DEFAULT 0,
             placed INTEGER NOT NULL DEFAULT 0,
+            mode TEXT NOT NULL DEFAULT 'live',
+            captured_yes_price REAL,
+            model_version TEXT,
             UNIQUE(market_id)
         );
         CREATE TABLE ev_outcomes (

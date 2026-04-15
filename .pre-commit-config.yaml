@@ -23,6 +23,9 @@ repos:
             evmax/models_ml/.*|
             evmax/pipeline/.*|
             evmax/cli/commands/.*|
+            evmax/categories\.py|
+            evmax/modes\.py|
+            data/categories\.yaml|
             CLAUDE\.md|
             README\.md|
             TODO\.md

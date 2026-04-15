@@ -27,6 +27,15 @@ from rich import box
 app = typer.Typer(no_args_is_help=True)
 console = Console()
 
+# ARCH-11 shadow-mode subcommand group: `evmax cleanup shadow show/metrics/promote`
+from evmax.cli.commands.shadow import app as shadow_app  # noqa: E402
+
+app.add_typer(
+    shadow_app,
+    name="shadow",
+    help="Inspect shadow-mode predictions (show / metrics) and promote categories to live.",
+)
+
 
 @app.command("show")
 def show(
@@ -53,7 +62,7 @@ def show(
     until_date = until or date.today().isoformat()
     conn = get_connection()
 
-    where_parts = ["p.scan_date >= ?", "p.scan_date <= ?", "p.voided = 0"]
+    where_parts = ["p.scan_date >= ?", "p.scan_date <= ?", "p.voided = 0", "p.mode = 'live'"]
     params: list = [since_date, until_date]
     if game_date:
         where_parts.append("p.event_date = ?")
@@ -82,7 +91,7 @@ def show(
                            MAX(scan_date)
                        ) AS latest_scan
                 FROM ev_predictions
-                WHERE voided = 0
+                WHERE voided = 0 AND mode = 'live'
                 GROUP BY market_id
             ) latest ON p.market_id = latest.market_id
                     AND p.scan_date = latest.latest_scan
@@ -780,7 +789,7 @@ def show_props(
     since = (date.today() - timedelta(days=days)).isoformat()
     conn = get_connection()
 
-    where = ["scan_date >= ?"]
+    where = ["scan_date >= ?", "mode = 'live'"]
     params: list = [since]
     if sector:
         where.append("sector = ?")
@@ -880,7 +889,7 @@ def prop_calibration(
     since = (date.today() - timedelta(weeks=weeks)).isoformat()
     conn = get_connection()
 
-    where = ["scan_date >= ?", "outcome IS NOT NULL", "sharp_prob IS NOT NULL"]
+    where = ["scan_date >= ?", "outcome IS NOT NULL", "sharp_prob IS NOT NULL", "mode = 'live'"]
     params: list = [since]
     if stat:
         where.append("stat_type = ?")

@@ -67,6 +67,10 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     placed_price        REAL,
     placed_stake        REAL,
     clv_pct             REAL,
+    -- ARCH-11 mode columns:
+    mode                TEXT    NOT NULL DEFAULT 'live',
+    captured_yes_price  REAL,
+    model_version       TEXT,
     UNIQUE(market_id)
 );
 """

@@ -41,6 +41,10 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     placed_at           TEXT,                       -- ISO timestamp when bet was placed
     placed_price        REAL,                       -- Kalshi ask at time of placement
     placed_stake        REAL,                       -- dollar amount staked
+    -- ARCH-11 category mode columns:
+    mode                TEXT    NOT NULL DEFAULT 'live',  -- live | shadow | disabled
+    captured_yes_price  REAL,                       -- pre-game YES ask at scan time
+    model_version       TEXT,                       -- e.g. "nfl_props_v1_qb_only" — lets us expire stale shadow data
     UNIQUE(market_id)
 );
 
@@ -63,6 +67,10 @@ CREATE TABLE IF NOT EXISTS prop_observations (
     actual_value    REAL,                   -- filled in after game (e.g. 28.0 for 28 pts)
     outcome         INTEGER,                -- 1=over hit, 0=under, NULL=unresolved
     resolved_at     TEXT,
+    -- ARCH-11 category mode columns (same semantics as ev_predictions):
+    mode                TEXT NOT NULL DEFAULT 'live',
+    captured_yes_price  REAL,
+    model_version       TEXT,
     UNIQUE(market_id, scan_date)
 );
 
@@ -154,6 +162,9 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             placed_price        REAL,
             placed_stake        REAL,
             clv_pct             REAL,
+            mode                TEXT    NOT NULL DEFAULT 'live',
+            captured_yes_price  REAL,
+            model_version       TEXT,
             UNIQUE(market_id)
         );
         INSERT INTO ev_predictions (
@@ -161,14 +172,16 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             market_type, event_title, event_date, kalshi_yes_price,
             sharp_true_prob, blended_true_prob, ev_pct, kelly_fraction,
             volume_usd, model_sources, sharp_weight_used, bankroll_used, line,
-            voided, placed, placed_at, placed_price, placed_stake, clv_pct
+            voided, placed, placed_at, placed_price, placed_stake, clv_pct,
+            mode, captured_yes_price, model_version
         )
         SELECT
             id, logged_at, scan_date, market_id, event_id, sector, yes_team,
             market_type, event_title, event_date, kalshi_yes_price,
             sharp_true_prob, blended_true_prob, ev_pct, kelly_fraction,
             volume_usd, model_sources, sharp_weight_used, bankroll_used, line,
-            voided, placed, placed_at, placed_price, placed_stake, clv_pct
+            voided, placed, placed_at, placed_price, placed_stake, clv_pct,
+            mode, captured_yes_price, model_version
         FROM ev_predictions_old;
         DROP TABLE ev_predictions_old;
         COMMIT;
@@ -191,6 +204,16 @@ def get_connection() -> sqlite3.Connection:
         "ALTER TABLE ev_predictions ADD COLUMN placed_stake REAL",
         "ALTER TABLE ev_predictions ADD COLUMN bankroll_used REAL",
         "ALTER TABLE ev_predictions ADD COLUMN clv_pct REAL",
+        # ARCH-11 category mode columns. SQLite does not allow adding a
+        # NOT NULL column without a default via ALTER, so we use a
+        # DEFAULT here — pre-ARCH-11 rows will backfill as 'live' which
+        # matches their implicit prior behavior.
+        "ALTER TABLE ev_predictions ADD COLUMN mode TEXT NOT NULL DEFAULT 'live'",
+        "ALTER TABLE ev_predictions ADD COLUMN captured_yes_price REAL",
+        "ALTER TABLE ev_predictions ADD COLUMN model_version TEXT",
+        "ALTER TABLE prop_observations ADD COLUMN mode TEXT NOT NULL DEFAULT 'live'",
+        "ALTER TABLE prop_observations ADD COLUMN captured_yes_price REAL",
+        "ALTER TABLE prop_observations ADD COLUMN model_version TEXT",
     ]:
         try:
             conn.execute(migration)
