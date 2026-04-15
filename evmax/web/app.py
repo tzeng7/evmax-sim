@@ -32,6 +32,56 @@ def _prob_to_american(prob: float) -> str:
 TEMPLATES.env.globals["probToAmerican"] = _prob_to_american
 
 
+_STAT_LABELS = {
+    "points": "PTS", "assists": "AST", "rebounds": "REB",
+    "threes": "3PM", "pra": "PRA", "pts_reb": "P+R", "pts_ast": "P+A",
+    "reb_ast": "R+A", "steals": "STL", "blocks": "BLK",
+    "strikeouts": "K", "hits": "H", "total_bases": "TB",
+}
+
+
+def _display_label_for_row(row: dict[str, Any]) -> str:
+    """Render a human-readable outcome label for one predictions.db row or scan gap.
+
+    Mirrors EVGap.display_label but works off a plain dict so we can use it for
+    both DB-backed bets and live scan gaps. Props show as "Mathurin 4+ AST"
+    instead of the old "bennedict_mathurin player_prop 4".
+    """
+    mt = (row.get("market_type") or "").lower()
+    yes_team = (row.get("yes_team") or "?").strip()
+    line = row.get("line")
+
+    if mt == "player_prop":
+        player = (row.get("prop_player_name") or yes_team or "?").replace("_", " ")
+        player = " ".join(p.capitalize() for p in player.split())
+        stat_raw = (row.get("prop_stat_type") or "").lower()
+        stat = _STAT_LABELS.get(stat_raw, stat_raw.replace("_", " ").upper() or "PROP")
+        thr = row.get("prop_threshold") if row.get("prop_threshold") is not None else line
+        if thr is not None:
+            try:
+                thr_str = f"{float(thr):g}+"
+            except (TypeError, ValueError):
+                thr_str = str(thr)
+            return f"{player} {thr_str} {stat}"
+        return f"{player} {stat}"
+
+    team = yes_team.capitalize() if yes_team else "?"
+    if mt == "moneyline":
+        return f"{team} ML"
+    if mt == "spread" and line is not None:
+        try:
+            line_str = f"{float(line):.1f}".rstrip("0").rstrip(".")
+        except (TypeError, ValueError):
+            line_str = str(line)
+        return f"{team} {line_str}"
+    if mt in ("over_under", "total") and line is not None:
+        try:
+            return f"O/U {float(line):.1f}"
+        except (TypeError, ValueError):
+            return f"O/U {line}"
+    return team
+
+
 # ---------------------------------------------------------------------------
 # DB helpers
 # ---------------------------------------------------------------------------
@@ -59,7 +109,10 @@ def _settled_bets() -> list[dict[str, Any]]:
             ORDER BY p.event_date ASC, p.id ASC
             """
         ).fetchall()
-    return [dict(r) for r in rows]
+    out = [dict(r) for r in rows]
+    for b in out:
+        b["display_label"] = _display_label_for_row(b)
+    return out
 
 
 def _placed_bets() -> list[dict[str, Any]]:
@@ -79,7 +132,10 @@ def _placed_bets() -> list[dict[str, Any]]:
             ORDER BY p.event_date DESC, p.ev_pct DESC
             """
         ).fetchall()
-    return [dict(r) for r in rows]
+    out = [dict(r) for r in rows]
+    for b in out:
+        b["display_label"] = _display_label_for_row(b)
+    return out
 
 
 def _open_bets() -> list[dict[str, Any]]:
@@ -106,7 +162,10 @@ def _open_bets() -> list[dict[str, Any]]:
             LIMIT 200
             """
         ).fetchall()
-    return [dict(r) for r in rows]
+    out = [dict(r) for r in rows]
+    for b in out:
+        b["display_label"] = _display_label_for_row(b)
+    return out
 
 
 def _bet_pnl(bet: dict[str, Any]) -> float:
@@ -298,6 +357,7 @@ async def api_scan(request: Request) -> JSONResponse:
             "event_title": g.event_title or "",
             "yes_team": g.yes_team or "",
             "market_type": g.market_type or "",
+            "display_label": g.display_label,
             "line": g.line if g.line is None else float(g.line) if isinstance(g.line, (int, float)) else str(g.line),
             "sector": g.sector or "",
             "kalshi_price": round(g.kalshi_yes_price, 2),

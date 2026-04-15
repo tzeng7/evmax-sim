@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import type { ScanGap } from '../lib/types'
-import { probToAmerican, americanToProb } from '../lib/odds'
+import { probToAmerican, americanToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { pickBets } from '../lib/api'
 
@@ -99,7 +99,7 @@ export function ScanResults({ gaps, meta, toast, onPicked }: Props) {
         <tbody>
           {filtered.map(g => {
             const askOdds = probToAmerican(g.kalshi_price)
-            const outcome = g.yes_team + ' ' + g.market_type + (g.line ? ' ' + g.line : '')
+            const outcome = outcomeLabel(g)
             return (
               <tr key={g.market_id}>
                 <td>

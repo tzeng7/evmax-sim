@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import type { Bet, ScanGap } from '../lib/types'
-import { probToAmerican } from '../lib/odds'
+import { probToAmerican, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { pickByIds } from '../lib/api'
 
@@ -70,7 +70,7 @@ export function OpenPositions({ bets, scanGaps, toast, onPicked }: Props) {
                   <td className="muted">{b.event_date}</td>
                   <td><span className="badge">{b.sector}</span></td>
                   <td>{b.event_title}</td>
-                  <td>{b.yes_team} {b.market_type}{b.line ? ' ' + b.line : ''}</td>
+                  <td>{outcomeLabel(b)}</td>
                   <td className="num">{probToAmerican(b.kalshi_yes_price)} <span className="muted">({Math.round(b.kalshi_yes_price * 100)}¢)</span></td>
                   <td className="num">{probToAmerican(b.blended_true_prob)} <span className="muted">({Math.round((b.blended_true_prob || 0) * 100)}¢)</span></td>
                   <td className="num green">{((b.ev_pct || 0) * 100).toFixed(1)}%</td>
