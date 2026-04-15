@@ -27,12 +27,24 @@ from pathlib import Path
 # Key: string that must appear in the changed file path (checked with str.startswith)
 # Value: list of (doc_path, hint) pairs
 DOC_RULES: list[tuple[str, list[tuple[str, str]]]] = [
+    # The category registry is a human-edited source of truth. Any change
+    # to it warrants a docs refresh. Keep this rule FIRST so it shows at
+    # the top of the reminder output when the YAML itself is staged.
+    (
+        "data/categories.yaml",
+        [
+            ("CLAUDE.md", "Betting Categories section — category list, modes, models, resolvers"),
+            ("README.md", "supported sports / categories list if it exists at the top"),
+            ("evmax/categories.py", "KNOWN_MODELS / KNOWN_RESOLVERS sets if new values were added"),
+        ],
+    ),
     (
         "evmax/clients/",
         [
             ("CLAUDE.md", "Key Pipeline step 2, Architecture tree, Key Implementation Details"),
             ("evmax/clients/__init__.py", "client descriptions"),
             ("evmax/clients/README.md", "active vs legacy client list"),
+            ("data/categories.yaml", "category list if SECTOR_SERIES_MAP in kalshi.py changed — every SECTOR_SERIES_MAP key must have a catalog entry (enforced by evmax/categories.py::validate_registry)"),
         ],
     ),
     (
@@ -40,6 +52,8 @@ DOC_RULES: list[tuple[str, list[tuple[str, str]]]] = [
         [
             ("CLAUDE.md", "Modeling table (weights, confidence gate, state files)"),
             ("evmax/agents/models/__init__.py", "model list and weight comments"),
+            ("data/categories.yaml", "per-category `models:` lists if a new model was added or a sector gate changed"),
+            ("evmax/categories.py", "KNOWN_MODELS set if a new model agent was added"),
         ],
     ),
     (
@@ -66,6 +80,7 @@ DOC_RULES: list[tuple[str, list[tuple[str, str]]]] = [
         [
             ("CLAUDE.md", "Key Sectors list, Architecture tree"),
             ("evmax/sectors/__init__.py", "active sectors list"),
+            ("data/categories.yaml", "add / remove / retag a category if a sector handler was added, removed, or its market_types_supported() changed"),
         ],
     ),
     (
