@@ -223,7 +223,8 @@ def scan(
         from evmax.agents.cleanup.db import get_connection as _get_conn
         _pconn = _get_conn()
         _placed_rows = _pconn.execute(
-            "SELECT DISTINCT event_title FROM ev_predictions WHERE placed = 1 AND event_date = ?",
+            "SELECT DISTINCT event_title FROM ev_predictions "
+            "WHERE placed = 1 AND event_date = ? AND mode = 'live'",
             (str(target_date),),
         ).fetchall()
         _pconn.close()
@@ -436,11 +437,12 @@ def verify(
         FROM ev_predictions p
         INNER JOIN (
             SELECT market_id, MAX(scan_date) AS latest_scan
-            FROM ev_predictions WHERE voided = 0 GROUP BY market_id
+            FROM ev_predictions WHERE voided = 0 AND mode = 'live' GROUP BY market_id
         ) latest ON p.market_id = latest.market_id AND p.scan_date = latest.latest_scan
         LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
         WHERE (p.event_date = ? OR (p.event_date IS NULL AND p.scan_date = ?))
           AND p.voided = 0
+          AND p.mode = 'live'
           AND (o.outcome IS NULL OR o.id IS NULL)
         ORDER BY p.ev_pct DESC
         """,
@@ -621,11 +623,12 @@ def pick(
         FROM ev_predictions p
         INNER JOIN (
             SELECT market_id, MAX(scan_date) AS latest_scan
-            FROM ev_predictions WHERE voided = 0 GROUP BY market_id
+            FROM ev_predictions WHERE voided = 0 AND mode = 'live' GROUP BY market_id
         ) latest ON p.market_id = latest.market_id AND p.scan_date = latest.latest_scan
         LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
         WHERE (p.event_date = ? OR (p.event_date IS NULL AND p.scan_date = ?))
           AND p.voided = 0
+          AND p.mode = 'live'
           AND (o.outcome IS NULL OR o.id IS NULL)
         ORDER BY p.ev_pct DESC
     """

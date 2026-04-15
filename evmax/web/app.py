@@ -56,6 +56,7 @@ def _settled_bets() -> list[dict[str, Any]]:
             JOIN ev_outcomes o ON p.market_id = o.market_id
             WHERE p.voided = 0 AND o.outcome IS NOT NULL
               AND p.market_type != 'map_handicap'
+              AND p.mode = 'live'
             ORDER BY p.event_date ASC, p.id ASC
             """
         ).fetchall()
@@ -76,6 +77,7 @@ def _placed_bets() -> list[dict[str, Any]]:
             LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
             WHERE p.placed = 1 AND p.voided = 0 AND (o.outcome IS NULL)
               AND p.market_type != 'map_handicap'
+              AND p.mode = 'live'
             ORDER BY p.event_date DESC, p.ev_pct DESC
             """
         ).fetchall()
@@ -96,12 +98,13 @@ def _open_bets() -> list[dict[str, Any]]:
             INNER JOIN (
                 SELECT market_id, MAX(id) AS max_id
                 FROM ev_predictions
-                WHERE voided = 0
+                WHERE voided = 0 AND mode = 'live'
                 GROUP BY market_id
             ) latest ON p.id = latest.max_id
             LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
             WHERE p.voided = 0 AND p.placed = 0 AND (o.outcome IS NULL)
               AND p.market_type != 'map_handicap'
+              AND p.mode = 'live'
             ORDER BY p.event_date DESC, p.ev_pct DESC
             LIMIT 200
             """
@@ -329,7 +332,8 @@ async def api_scan(request: Request) -> JSONResponse:
     # Exclude markets already placed
     with _conn() as conn:
         placed_mids = {r[0] for r in conn.execute(
-            "SELECT DISTINCT market_id FROM ev_predictions WHERE placed = 1 AND voided = 0"
+            "SELECT DISTINCT market_id FROM ev_predictions "
+            "WHERE placed = 1 AND voided = 0 AND mode = 'live'"
         ).fetchall()}
     gaps = [g for g in gaps if g["market_id"] not in placed_mids]
 
@@ -371,7 +375,8 @@ async def api_pick(request: Request) -> JSONResponse:
 
         # Get scan-time defaults
         row = conn.execute(
-            "SELECT kalshi_yes_price, kelly_fraction, bankroll_used FROM ev_predictions WHERE market_id = ? AND voided = 0 ORDER BY id DESC LIMIT 1",
+            "SELECT kalshi_yes_price, kelly_fraction, bankroll_used FROM ev_predictions "
+            "WHERE market_id = ? AND voided = 0 AND mode = 'live' ORDER BY id DESC LIMIT 1",
             (mid,),
         ).fetchone()
         if not row:
@@ -474,6 +479,7 @@ async def api_metrics(request: Request) -> JSONResponse:
         FROM ev_predictions p
         JOIN ev_outcomes o ON p.market_id = o.market_id
         WHERE p.voided = 0 AND o.outcome IS NOT NULL AND p.event_date >= ?
+          AND p.mode = 'live'
         """,
         (since,),
     ).fetchall()

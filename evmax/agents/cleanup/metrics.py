@@ -112,7 +112,8 @@ def compute_brier_scores(weeks: int = 1) -> Optional[dict]:
            FROM ev_outcomes o
            JOIN ev_predictions p ON o.market_id = p.market_id
            WHERE o.outcome IS NOT NULL
-             AND p.scan_date >= ?""",
+             AND p.scan_date >= ?
+             AND p.mode = 'live'""",
         (since,),
     ).fetchall()
     conn.close()
@@ -170,7 +171,8 @@ def compute_brier_scores_by_sector(weeks: int = 4) -> list[dict]:
            FROM ev_outcomes o
            JOIN ev_predictions p ON o.market_id = p.market_id
            WHERE o.outcome IS NOT NULL
-             AND p.scan_date >= ?""",
+             AND p.scan_date >= ?
+             AND p.mode = 'live'""",
         (since,),
     ).fetchall()
     conn.close()

@@ -149,7 +149,7 @@ def montecarlo(
                p.ev_pct, p.sector, o.outcome
         FROM ev_predictions p
         INNER JOIN ev_outcomes o ON p.market_id = o.market_id
-        WHERE o.outcome IS NOT NULL AND p.voided = 0
+        WHERE o.outcome IS NOT NULL AND p.voided = 0 AND p.mode = 'live'
     """
     params: list = []
 
