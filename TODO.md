@@ -424,6 +424,39 @@ The immediate use case is MODEL-9 (NFL props need shadow validation before live)
 
 **Revised effort estimate:** ~10–11 hours focused work (was ~7 without the catalog registry). The registry adds a YAML schema, a validator module, typed dataclasses, a new CLI command family, and the CLAUDE.md consolidation — but pays back the effort by giving both humans and code one canonical source of truth instead of a mode config + scattered docs.
 
+### ARCH-12 Kalshi Series Drift Detection [P2]
+**Files:** new `scripts/check_kalshi_series.py`, optional `.pre-commit-config.yaml` hook
+
+**Context.** `evmax/clients/kalshi.py::SECTOR_SERIES_MAP` is a **static hardcoded dict** that was manually audited once against Kalshi's `/series?category=Sports` endpoint ("Verified against live Kalshi series API (2026-02-23)") and then frozen into source. Kalshi is not re-queried at runtime, and there is no scheduled refresh. Drift goes one direction, silently:
+
+- **New Kalshi series are invisible.** If Kalshi launches a new sport, a new league, a renamed series, or (like real NFL player props during the 2026 season landing on `KXNFLPASSYDS`), `evmax` cannot bet on it until someone edits the dict. The scanner just returns an empty result set — which is what happened to NFL prop markets from day one until PR #6 audited the real series names.
+- **Typos / stale entries survive indefinitely.** PR #6 surfaced exactly this failure mode: `SECTOR_SERIES_MAP["nfl_props"]` held `["KXNFLPAS", "KXNFLRSH", "KXNFLREC", "KXNFLTD"]` — four phantom series names that never existed on Kalshi. Every scan fetched zero markets for months and reported success. The ARCH-11 category registry validator will catch drift *between* `SECTOR_SERIES_MAP` and `data/categories.yaml`, but neither side is checked against Kalshi. If both drift together from reality, the validator is happy and we still ship a broken catalog.
+
+**Fix scope:** a standalone script, no runtime dependency on Kalshi from the scan path.
+
+1. **`scripts/check_kalshi_series.py`** — queries `GET /trade-api/v2/series?category=Sports&limit=1000`, paginates the cursor, builds the set of live ticker prefixes. Unauthenticated (Kalshi's `/series` endpoint is public).
+
+2. **Diffs against `SECTOR_SERIES_MAP`** and emits three buckets:
+   ```
+   [NEW]   KXXFLGAME — Extreme Football League (live on Kalshi, not in SECTOR_SERIES_MAP)
+   [STALE] KXNFLPAS  — in SECTOR_SERIES_MAP, but /series returns 404 (retired or typo'd)
+   [OK]    KXNBAGAME — matched (category: nba)
+   ```
+
+3. **Optional: also probe each `[OK]` entry for market count** across open/closed/settled to flag "live in /series but zero markets ever" cases. That's the signature of a real NFL-prop-style typo where the series exists but the ticker prefix is wrong (e.g. `KXNFLPAS` vs `KXNFLPASSYDS` — both starting with `KX` but the shorter one is a substring match).
+
+4. **Exit code** non-zero if any `[NEW]` or `[STALE]` appears, so the script can run in CI or as a pre-commit hook without human review.
+
+5. **Wire into pre-commit** as a manual-stage hook (`pre-commit run check-kalshi-series`), not a pre-commit auto-hook — it hits the network and shouldn't block every commit. Intent is "run this before releases and once a week" not "run every commit."
+
+6. **Optional: cron it** via `.github/workflows/kalshi-drift.yml` to open a GitHub issue if drift is detected. Weekly cadence is plenty — Kalshi series launches aren't a real-time concern.
+
+**Blocker:** none. Pure infrastructure — can ship any time. Most valuable immediately after ARCH-11 lands, because ARCH-11 locks in the catalog structure that this script audits.
+
+**What this does NOT do:** automatically update `SECTOR_SERIES_MAP` when it detects drift. That would be a runtime behavior change and requires human review (new sectors need category registry entries, models, resolvers, etc. — the ARCH-11 plumbing). The script's job is surfacing drift, not fixing it.
+
+**Estimated effort:** ~2 hours including tests. Small, high-leverage, exactly the kind of automation that would have prevented the PR #6 typo discovery from taking a full research session.
+
 ### ARCH-9 Resurrect TheOddsAPI Legacy Client as Paid Fallback [P3]
 **Files:** `evmax/clients/pinnacle.py`, `evmax/agents/odds/sharp_agent.py`, `evmax/models/odds.py`
 
@@ -515,6 +548,7 @@ Solved by reading Kalshi's `event.product_metadata.competition` field instead of
 | P2 | TEST-4 Coordinator integration test | Catches wiring regressions |
 | P2 | TEST-6 Prop pipeline — remaining | nba_stats.py still uncovered |
 | P2 | ARCH-8 Pinnacle maintenance + stale cache | Guest API maintenance windows take whole pipeline offline; retry layer currently useless against multi-minute outages |
+| P2 | ARCH-12 Kalshi series drift detection | Standalone script + optional pre-commit hook; would have caught the PR #6 NFL prop typo on day one. Best landed right after ARCH-11. |
 | P3 | DOC-2b / DOC-3b remaining doc polish | — |
 | P3 | MODEL-3 Form draw normalization | Cosmetic precision |
 | P3 | MODEL-4 Poisson EWMA | Long-term staleness |
