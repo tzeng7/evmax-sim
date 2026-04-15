@@ -80,6 +80,9 @@ class CycleResult:
     errors: list[str] = field(default_factory=list)
     bankroll: float = 250.0
     kelly_fraction: float = 0.5
+    # Raw prop (SharpOdds, PredictionMarket) pairs for calibration logging
+    # when _evaluate_prop is disabled and no EVGaps are created.
+    prop_sharp_pairs: list[tuple[SharpOdds, PredictionMarket]] = field(default_factory=list)
 
     @property
     def top_gaps(self) -> list[EVGap]:
@@ -333,6 +336,7 @@ class AgentCoordinator:
             result.blended_predictions.update(sr.get("blended_predictions", {}))
             if sr.get("injuries"):
                 result.injury_reports[sector] = sr["injuries"]
+            result.prop_sharp_pairs.extend(sr.get("prop_sharp_pairs", []))
 
         pre_guard = len(result.ev_gaps)
         result.ev_gaps = _apply_exposure_guard(result.ev_gaps)
@@ -428,9 +432,21 @@ class AgentCoordinator:
         # with the main fetch (create_task above), so this timeout only gates
         # how long we wait *after* Kalshi/Pinnacle/injuries finish. 20s is
         # enough for stats.nba.com without blocking other sectors.
+        prop_sharp_pairs: list[tuple[SharpOdds, PredictionMarket]] = []
         if prop_task is not None:
             try:
                 prop_markets, prop_sharp = await asyncio.wait_for(prop_task, timeout=20.0)
+                # Build (SharpOdds, PredictionMarket) pairs for calibration logging.
+                # Match by player+stat+threshold since _fetch_props deduplicates markets.
+                _pm_by_key = {
+                    (m.player_name, m.stat_type, m.threshold): m
+                    for m in prop_markets if m.player_name and m.stat_type
+                }
+                for so in prop_sharp:
+                    key = (so.prop_player_name, so.prop_stat_type, so.total_line)
+                    pm = _pm_by_key.get(key)
+                    if pm is not None:
+                        prop_sharp_pairs.append((so, pm))
                 markets = markets + prop_markets
                 sharp_odds = sharp_odds + prop_sharp
             except (asyncio.TimeoutError, Exception) as e:
@@ -462,6 +478,7 @@ class AgentCoordinator:
                 "injuries": injuries,
                 "markets": markets,
                 "sharp_odds": sharp_odds,
+                "prop_sharp_pairs": prop_sharp_pairs,
             }
 
         # Step 4: Match non-prop markets → sharp events (for model ensemble)
@@ -528,6 +545,7 @@ class AgentCoordinator:
             "injuries": injuries,
             "markets": markets,
             "sharp_odds": sharp_odds,
+            "prop_sharp_pairs": prop_sharp_pairs,
         }
 
     async def _fetch_props(
@@ -543,6 +561,7 @@ class AgentCoordinator:
         """
         from evmax.clients.kalshi import KalshiClient
         from evmax.clients.nba_props_cache import (
+            PropResult,
             compute_prop_prob_cached,
             is_cache_fresh,
             refresh_props_cache,
@@ -588,7 +607,6 @@ class AgentCoordinator:
             if result is None:
                 continue
 
-            prob, n_games = result
             date_str = game_date or "unknown"
             event_id = (
                 f"{sector}::{date_str}::prop"
@@ -604,14 +622,16 @@ class AgentCoordinator:
                 outcome_b_decimal=1.0,
                 true_prob_a=0.0,
                 true_prob_b=0.0,
-                true_prob_over=prob,
-                true_prob_under=1.0 - prob,
+                true_prob_over=result.prob,
+                true_prob_under=1.0 - result.prob,
                 total_line=market.threshold,
                 margin=0.0,
                 event_date=market.event_date,
                 prop_player_name=market.player_name,
                 prop_stat_type=market.stat_type,
-                prop_l15_games=n_games,
+                prop_l15_games=result.n_games,
+                prop_minutes_volatile=result.minutes_volatile,
+                prop_minutes_cv=result.minutes_cv,
             ))
 
         self.log.debug(

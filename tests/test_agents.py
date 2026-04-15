@@ -295,6 +295,8 @@ class TestEVGapAgent:
             ),
         }
 
+        # _evaluate_prop_pair is DISABLED (Apr 2026) — backtest proved L15 model
+        # has no edge over naive baseline.  Verify it returns None.
         gap_no_inj = agent._evaluate_prop_pair(
             prop_market, prop_sharp, confidence=95.0, sector="nba", injuries=None
         )
@@ -302,17 +304,8 @@ class TestEVGapAgent:
             prop_market, prop_sharp, confidence=95.0, sector="nba", injuries=injuries
         )
 
-        assert gap_no_inj is not None
-        assert gap_with_inj is not None
-        # The boost must raise the blended probability above the raw sharp prob.
-        assert gap_with_inj.blended_true_prob > gap_no_inj.blended_true_prob
-        assert "inj" in gap_with_inj.model_sources
-        # Sanity: boost size matches the helper's computation.
-        expected_boost = InjuryReportAgent.compute_prop_injury_boost(injuries, "lakers")
-        assert expected_boost > 0
-        assert gap_with_inj.blended_true_prob == pytest.approx(
-            min(0.95, 0.55 * (1 + expected_boost)), abs=1e-6
-        )
+        assert gap_no_inj is None
+        assert gap_with_inj is None
 
     @pytest.mark.asyncio
     async def test_model_prob_override(self):

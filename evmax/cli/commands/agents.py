@@ -245,12 +245,12 @@ def scan(
             console.print(f"[bold red]  ERROR: Failed to log predictions to DB: {_log_err}[/bold red]")
             console.print(f"[red]  Plays above were NOT saved — resolve will not find them.[/red]")
 
-    # Log ALL prop lines (not just +EV) to prop_observations for model training
-    all_prop_gaps = [g for g in result.top_gaps if "::prop::" in g.event_id]
-    if all_prop_gaps:
+    # Log ALL prop lines to prop_observations for calibration data.
+    # With _evaluate_prop disabled, no prop EVGaps exist — use raw SharpOdds pairs.
+    if result.prop_sharp_pairs:
         try:
-            from evmax.agents.cleanup.logger import log_prop_observations as _log_props
-            n_props = _log_props(all_prop_gaps)
+            from evmax.agents.cleanup.logger import log_prop_from_sharp as _log_props
+            n_props = _log_props(result.prop_sharp_pairs)
             if n_props:
                 console.print(f"[dim]  Logged {n_props} prop line(s) to prop_observations[/dim]")
         except Exception as _log_err:
@@ -327,7 +327,8 @@ def scan(
         total_stake += stake
         is_prop = gap.market_type == "player_prop"
         # Flag suspiciously high EV on props (likely small sample / model artifact)
-        ev_suspicious = is_prop and gap.ev_pct > 0.30
+        min_vol = getattr(gap, "prop_minutes_volatile", False)
+        ev_suspicious = is_prop and (gap.ev_pct > 0.30 or min_vol)
         ev_color = (
             "bold red" if ev_suspicious
             else "bold green" if gap.ev_pct >= 0.10
@@ -344,6 +345,8 @@ def scan(
         odds_color = "green" if odds_ok else "red"
         ev_str = f"[{ev_color}]{gap.ev_pct*100:+.1f}%{'?' if ev_suspicious else ''}[/{ev_color}]"
         l15_str = str(gap.prop_l15_games) if is_prop and gap.prop_l15_games else "[dim]—[/dim]"
+        if min_vol and is_prop:
+            l15_str = f"[bold yellow]{l15_str}![/bold yellow]"
         bks = getattr(gap, "book_count", 1)
         bks_str = f"[green]{bks}[/green]" if bks > 1 else f"[dim]{bks}[/dim]"
         # Line velocity / steam flag

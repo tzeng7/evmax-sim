@@ -24,6 +24,7 @@ from evmax.agents.cleanup.prop_resolver import (
 )
 from evmax.clients import nba_props_cache
 from evmax.clients.nba_props_cache import (
+    PropResult,
     _opponent_adjustment,
     compute_prop_prob_cached,
     lookup_player_team,
@@ -271,21 +272,23 @@ class TestComputePropProbCached:
         low = compute_prop_prob_cached("LeBron James", "points", 20.5)
         high = compute_prop_prob_cached("LeBron James", "points", 35.5)
         assert low is not None and high is not None
-        low_prob, _ = low
-        high_prob, _ = high
-        assert low_prob > high_prob
+        assert low.prob > high.prob
 
     def test_probability_bounded(self, fake_cache):
         result = compute_prop_prob_cached("LeBron James", "points", 25.5)
         assert result is not None
-        prob, _ = result
-        assert 0.01 <= prob <= 0.99
+        assert 0.01 <= result.prob <= 0.99
 
     def test_returns_sample_size(self, fake_cache):
         result = compute_prop_prob_cached("LeBron James", "points", 25.5)
         assert result is not None
-        _, n = result
-        assert n == 15
+        assert result.n_games == 15
+
+    def test_returns_prop_result(self, fake_cache):
+        result = compute_prop_prob_cached("LeBron James", "points", 25.5)
+        assert isinstance(result, PropResult)
+        assert not result.minutes_volatile  # LeBron has consistent 34-37 min
+        assert result.avg_minutes > 30
 
     def test_pra_combo_stat(self, fake_cache):
         """Points+Rebounds+Assists combo requires all three series."""
@@ -293,12 +296,88 @@ class TestComputePropProbCached:
             "LeBron James", "points_rebounds_assists", 40.5
         )
         assert result is not None
-        prob, _ = result
-        assert 0.01 <= prob <= 0.99
+        assert 0.01 <= result.prob <= 0.99
 
     def test_pra_missing_series_returns_none(self, fake_cache):
         # Jayson Tatum has no REB/AST series in the fixture
         assert compute_prop_prob_cached("Jayson Tatum", "points_rebounds_assists", 40.5) is None
+
+    def test_minutes_volatility_detected(self, monkeypatch):
+        """Player with wildly inconsistent minutes should flag as volatile."""
+        data = {
+            "fetched_at": time.time(),
+            "players": {
+                "Bench Player": {
+                    "team": "IND",
+                    "n_games": 10,
+                    "stats": {
+                        # Normally 15 min, but 2 games at 35+ min (starter rest days)
+                        "PTS": [22, 8, 10, 25, 7, 9, 12, 8, 11, 9],
+                        "AST": [8, 2, 3, 7, 1, 2, 3, 2, 3, 2],
+                        "MIN": [35, 15, 14, 38, 16, 14, 15, 13, 16, 14],
+                    },
+                },
+            },
+            "team_stats": {},
+            "league_avg": {},
+            "schedule": [],
+        }
+        monkeypatch.setattr(nba_props_cache, "_mem_cache", data)
+        monkeypatch.setattr(nba_props_cache, "_mem_cache_time", time.monotonic())
+
+        result = compute_prop_prob_cached("Bench Player", "points", 15.5)
+        assert result is not None
+        assert result.minutes_volatile is True
+        assert result.volatile_games >= 2
+
+    def test_minutes_volatility_discounts_prob(self, monkeypatch):
+        """Volatile minutes should produce lower probability than stable minutes."""
+        stable_data = {
+            "fetched_at": time.time(),
+            "players": {
+                "Stable Player": {
+                    "team": "IND",
+                    "n_games": 10,
+                    "stats": {
+                        "AST": [6, 5, 7, 6, 5, 6, 7, 5, 6, 7],
+                        "MIN": [32, 33, 31, 34, 32, 33, 31, 32, 33, 32],
+                    },
+                },
+            },
+            "team_stats": {},
+            "league_avg": {},
+            "schedule": [],
+        }
+        monkeypatch.setattr(nba_props_cache, "_mem_cache", stable_data)
+        monkeypatch.setattr(nba_props_cache, "_mem_cache_time", time.monotonic())
+        stable_result = compute_prop_prob_cached("Stable Player", "assists", 4.5)
+
+        volatile_data = {
+            "fetched_at": time.time(),
+            "players": {
+                "Volatile Player": {
+                    "team": "IND",
+                    "n_games": 10,
+                    "stats": {
+                        # Same assist numbers but with wildly varying minutes
+                        "AST": [6, 5, 7, 6, 5, 6, 7, 5, 6, 7],
+                        "MIN": [38, 15, 14, 40, 16, 14, 15, 13, 16, 14],
+                    },
+                },
+            },
+            "team_stats": {},
+            "league_avg": {},
+            "schedule": [],
+        }
+        monkeypatch.setattr(nba_props_cache, "_mem_cache", volatile_data)
+        monkeypatch.setattr(nba_props_cache, "_mem_cache_time", time.monotonic())
+        volatile_result = compute_prop_prob_cached("Volatile Player", "assists", 4.5)
+
+        assert stable_result is not None and volatile_result is not None
+        assert not stable_result.minutes_volatile
+        assert volatile_result.minutes_volatile
+        # Volatile player should have discounted probability
+        assert volatile_result.prob < stable_result.prob
 
 
 # ===========================================================================
@@ -418,3 +497,104 @@ class TestFetchPlayerStatsGating:
     def test_unsupported_sector_returns_empty(self):
         from datetime import date
         assert prop_resolver.fetch_player_stats("tennis", date(2026, 3, 15)) == {}
+
+
+class TestLogPropFromSharp:
+    """Test that log_prop_from_sharp logs raw SharpOdds+Market pairs."""
+
+    def test_log_prop_from_sharp_inserts(self, tmp_path, monkeypatch):
+        import sqlite3
+        from datetime import date, datetime
+
+        from evmax.agents.cleanup.logger import log_prop_from_sharp
+        from evmax.models.market import MarketSource, MarketType, PredictionMarket
+        from evmax.models.odds import SharpBook, SharpOdds
+
+        db_path = tmp_path / "test.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("""CREATE TABLE IF NOT EXISTS prop_observations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            scan_date TEXT,
+            event_date TEXT,
+            sector TEXT,
+            player_name TEXT,
+            stat_type TEXT,
+            line REAL,
+            kalshi_price REAL,
+            sharp_prob REAL,
+            ev_pct REAL,
+            l15_games INTEGER,
+            market_id TEXT,
+            event_id TEXT,
+            event_title TEXT,
+            actual_value REAL,
+            outcome TEXT,
+            resolved_at TIMESTAMP,
+            UNIQUE(scan_date, player_name, stat_type, line)
+        )""")
+        conn.commit()
+        conn.close()
+
+        # Monkeypatch get_connection to use our temp DB
+        import contextlib
+
+        @contextlib.contextmanager
+        def _fake_conn():
+            c = sqlite3.connect(str(db_path))
+            try:
+                yield c
+            finally:
+                c.close()
+
+        monkeypatch.setattr("evmax.agents.cleanup.logger.get_connection", _fake_conn)
+
+        sharp = SharpOdds(
+            event_id="nba::2026-04-15::prop::LeBron James::points::24.5",
+            book=SharpBook.pinnacle,
+            sector="nba",
+            outcome_a_label="over",
+            outcome_b_label="under",
+            outcome_a_decimal=1.0,
+            outcome_b_decimal=1.0,
+            true_prob_a=0.0,
+            true_prob_b=0.0,
+            true_prob_over=0.42,
+            true_prob_under=0.58,
+            total_line=24.5,
+            margin=0.0,
+            prop_player_name="LeBron James",
+            prop_stat_type="points",
+            prop_l15_games=15,
+            event_date=datetime(2026, 4, 15),
+        )
+        market = PredictionMarket(
+            id="kalshi:KXNBAPTS-LEBRON",
+            source=MarketSource.kalshi,
+            sector="nba",
+            market_type=MarketType.player_prop,
+            title="LeBron James 24.5+ points",
+            yes_price=0.55,
+            no_price=0.45,
+            player_name="LeBron James",
+            stat_type="points",
+            threshold=24.5,
+        )
+
+        n = log_prop_from_sharp([(sharp, market)], scan_date=date(2026, 4, 15))
+        assert n == 1
+
+        # Verify what was written
+        c = sqlite3.connect(str(db_path))
+        row = c.execute("SELECT * FROM prop_observations").fetchone()
+        c.close()
+        assert row is not None
+        # Find column values by name using a dict cursor
+        c2 = sqlite3.connect(str(db_path))
+        c2.row_factory = sqlite3.Row
+        row2 = c2.execute("SELECT * FROM prop_observations").fetchone()
+        c2.close()
+        assert row2["sharp_prob"] == pytest.approx(0.42, abs=1e-6)
+        assert row2["kalshi_price"] == pytest.approx(0.55, abs=1e-6)
+        assert row2["player_name"] == "LeBron James"
+        assert row2["stat_type"] == "points"

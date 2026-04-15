@@ -151,3 +151,64 @@ def log_prop_observations(
 
     logger.info("props_logged", inserted=inserted, total=len(prop_gaps), date=sd)
     return inserted
+
+
+def log_prop_from_sharp(
+    pairs: list[tuple["SharpOdds", "PredictionMarket"]],
+    scan_date: Optional[date] = None,
+) -> int:
+    """Log prop observations directly from SharpOdds + PredictionMarket pairs.
+
+    Used when _evaluate_prop is disabled — props aren't turned into EVGaps but
+    we still want calibration data in prop_observations.
+    """
+    if not pairs:
+        return 0
+
+    sd = (scan_date or date.today()).isoformat()
+    inserted = 0
+
+    with get_connection() as conn:
+        for sharp, market in pairs:
+            event_date_str: Optional[str] = None
+            if sharp.event_date is not None:
+                ed = sharp.event_date.date() if hasattr(sharp.event_date, "date") else sharp.event_date
+                event_date_str = ed.isoformat()
+
+            # EV vs Kalshi price (over side)
+            kalshi_price = market.yes_price
+            model_prob = sharp.true_prob_over or 0.0
+            ev_pct = (model_prob / kalshi_price - 1.0) if kalshi_price > 0 else 0.0
+
+            try:
+                conn.execute(
+                    """INSERT OR IGNORE INTO prop_observations
+                    (scan_date, event_date, sector, player_name, stat_type, line,
+                     kalshi_price, sharp_prob, ev_pct, l15_games,
+                     market_id, event_id, event_title)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        sd,
+                        event_date_str,
+                        sharp.sector,
+                        sharp.prop_player_name or "",
+                        sharp.prop_stat_type or "",
+                        sharp.total_line,
+                        kalshi_price,
+                        model_prob,
+                        ev_pct,
+                        sharp.prop_l15_games or None,
+                        market.id,
+                        sharp.event_id,
+                        market.title,
+                    ),
+                )
+                if conn.execute("SELECT changes()").fetchone()[0]:
+                    inserted += 1
+            except Exception as e:
+                logger.warning("prop_log_error", market_id=market.id, error=str(e))
+
+        conn.commit()
+
+    logger.info("props_logged_from_sharp", inserted=inserted, total=len(pairs), date=sd)
+    return inserted
