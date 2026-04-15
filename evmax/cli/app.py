@@ -11,6 +11,7 @@ from rich.console import Console
 from evmax.cli.commands.sim import app as sim_app
 from evmax.cli.commands.report import app as report_app
 from evmax.cli.commands.agents import app as agents_app
+from evmax.cli.commands.categories import app as categories_app
 from evmax.cli.commands.cleanup import app as cleanup_app
 from evmax.cli.commands.backtest import app as backtest_app
 from evmax.cli.commands.archive import app as archive_app
@@ -39,6 +40,7 @@ app = typer.Typer(
 app.add_typer(agents_app,  name="agents",  help="[PRIMARY] Scan, pick, and manage model agents.")
 app.add_typer(cleanup_app, name="cleanup", help="[PRIMARY] Resolve outcomes, view P&L, calibrate models.")
 app.add_typer(update_app,  name="update",  help="Fetch ESPN scores and update Elo/Form/Poisson ratings.")
+app.add_typer(categories_app, name="categories", help="Inspect the betting-category registry (modes, models, status).")
 
 # ── Simulation / analytics ─────────────────────────────────────────────────────
 app.add_typer(sim_app,     name="sim",     help="Monte Carlo simulation and paper-bet management.")

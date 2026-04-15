@@ -27,6 +27,15 @@ from rich import box
 app = typer.Typer(no_args_is_help=True)
 console = Console()
 
+# ARCH-11 shadow-mode subcommand group: `evmax cleanup shadow show/metrics/promote`
+from evmax.cli.commands.shadow import app as shadow_app  # noqa: E402
+
+app.add_typer(
+    shadow_app,
+    name="shadow",
+    help="Inspect shadow-mode predictions (show / metrics) and promote categories to live.",
+)
+
 
 @app.command("show")
 def show(
