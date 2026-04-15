@@ -223,20 +223,18 @@ Middle bins are well-calibrated. Tails miss by 10–18pp. The ROI filter picks e
 
 **Distinguishing the three requires capturing pre-game prices at scan time and resolving outcomes separately.** That's what shadow mode is for: run the NFL prop scanner during live NFL weeks, log (model_prob, pre_game_yes_price, threshold, player, game) tuples to a shadow table, resolve outcomes via ESPN boxscore, compute ROI using prices the live bettor actually could have gotten. If shadow ROI holds within ~15pp of the backtest's +79%, the edge is real and we ship Stage 5 with real Kelly sizing. If it collapses below 0%, we know it was leakage and close PROPS-1.
 
-**Fix scope:**
-1. **New `shadow_predictions` table** in `predictions.db` mirroring `ev_predictions` schema plus a `captured_yes_price` column (the pre-game price at scan time — distinct from what the market drifts to post-game). Also a `model_mode` enum `shadow | live | disabled`.
-2. **Category mode config** (see ARCH-11 below — the general live/shadow toggle the user asked for). For NFL prop validation specifically, the mode is `shadow` for `nfl_props` and `live` (or current default) for everything else.
-3. **Coordinator branch point:** `_fetch_props()` → when an NFL prop scan produces EVGaps, instead of persisting to `ev_predictions`, check the mode for `nfl_props`. If shadow, write to `shadow_predictions` with `captured_yes_price = yes_ask` at scan time. No Kelly sizing applied to bankroll.
-4. **Resolver path:** `evmax cleanup resolve --date X --shadow` resolves shadow rows via ESPN boxscore using the same `prop_resolver` logic already generic for NFL.
-5. **New CLI: `evmax cleanup shadow show/metrics`** — reports shadow ROI and Brier alongside backtest numbers so we can compare.
-6. **Minimum sample gate:** do not re-enable live for NFL props until shadow mode has captured ≥ 500 bets across ≥ 3 NFL weeks (2026 regular season) AND shadow ROI is within 15pp of backtest ROI.
-7. **kalshi.py typo fix** comes in this PR since shadow mode requires the scanner to actually fetch NFL prop markets.
+**Fix scope:** depends on ARCH-11 shipping first (the general category-mode config). Assuming that's in place, MODEL-9 only needs to:
+1. Set `nfl_props` category default to `shadow` in `data/category_modes.yaml` (or equivalent).
+2. **kalshi.py typo fix** — fold the phantom series names into this PR since NFL prop markets won't appear in scan output until the fix lands.
+3. **Wire the NFL prop probability compute into the coordinator** — add the NBA-mirrored branch in `_fetch_props()` that calls `compute_nfl_prop_prob` with the features pre-computed from a daily-refreshed disk cache (new `data/nfl_props_cache.json`, schema mirrors NBA).
+4. **Resolver:** confirm `evmax/agents/cleanup/prop_resolver.py` auto-resolves NFL props via ESPN boxscore (exploration suggests it already does — no code change expected, just verify with a fixture test).
+5. **NO-side betting logic:** per the MODEL-8 / Stage 4 finding, Kalshi NFL prop markets are systematically YES-overpriced and the model's edge is on the NO side. The coordinator needs to handle both sides — either extend EVGap to carry a `side: "yes" | "no"` field or produce two gaps per market (one YES, one NO) and rely on the EV filter. Whatever the mechanism, the NFL prop shadow path must NOT only emit YES gaps (that would hide the real edge). This is a one-sector generalization of the existing coordinator logic.
+6. **Minimum sample gate to promote nfl_props from `shadow` → `live`:**
 
-**Gate to promote nfl_props from shadow to live:**
-- ≥ 500 shadow bets captured, ≥ 3 distinct weeks
-- Shadow ROI at ev≥3%, vol≥1000, NO-only ≥ 65% (backtest was 79%, allow 15pp degradation)
-- Shadow Brier within 10% of backtest Brier (0.197 max)
-- Calibration chart tail miss ≤ 15pp at 90–100% bin
+   - ≥ 500 shadow bets captured, ≥ 3 distinct NFL weeks
+   - Shadow ROI at ev≥3%, vol≥1000, NO-only ≥ 65% (backtest was 79%, allow 15pp degradation)
+   - Shadow Brier within 10% of backtest Brier (0.197 max)
+   - Calibration chart tail miss ≤ 15pp at 90–100% bin (the MODEL-8 residual)
 
 **Blocker:** NFL regular season starts Sept 2026. Shadow validation requires at least 3-4 weeks of live NFL to be meaningful. Until then, build the infrastructure only — don't attempt to run shadow during the offseason (no markets).
 
@@ -348,20 +346,14 @@ The immediate use case is MODEL-9 (NFL props need shadow validation before live)
 
 4. **CLI overrides.** Every scan-adjacent CLI command accepts `--live X,Y --shadow Z --disabled W` to override settings for a single run. Overrides compose per-command, not persisted.
 
-5. **Persistence split.** Add `shadow_predictions` table mirroring `ev_predictions` schema plus:
-   - `captured_yes_price` — the pre-game YES ask at scan time
-   - `captured_at` — scan timestamp
-   - `mode` — always `"shadow"` in this table (redundant but makes joins easier)
-   - `model_version` — a short string like `nfl_props_v1_QB_only` so we can re-validate when the model changes
+5. **Persistence — mode column, NOT separate table.** Code trace (2026-04-14) confirmed there is exactly ONE writer to `ev_predictions`: `log_gaps()` in `evmax/agents/cleanup/logger.py`. All ~12 readers live in `evmax/cli/commands/` and `evmax/agents/cleanup/`. Add:
+   - `mode TEXT NOT NULL DEFAULT 'live'` column on both `ev_predictions` and `prop_observations`
+   - `captured_yes_price REAL` nullable column on both (pre-game YES ask at scan time — distinct from any later value the row might pick up)
+   - `model_version TEXT` nullable column on both (short string like `nfl_props_v1_QB_only` so we can re-validate when the model changes and expire stale shadow data)
    
-   `ev_predictions` stays untouched. No shadow data in the live bet log, no live data in the shadow log.
+   Every existing SELECT against `ev_predictions` / `prop_observations` in the codebase must add `WHERE mode = 'live'` in the same migration PR. That's the regression risk — all ~12 call sites audited in one pass. Advantage of mode column over a second table: one schema, one migration, promotion from shadow → live is a single `UPDATE` (no row migration), and `evmax cleanup metrics` can compare shadow vs live side-by-side trivially.
 
-6. **Coordinator hook.** In `AgentCoordinator.run_cycle()`, after EVGaps are produced for a sector, check `get_mode(category)`:
-   - `disabled` → skip persistence entirely (scan output still prints, no DB write)
-   - `shadow` → insert into `shadow_predictions`, set `bankroll_used = 0`, skip exposure guard
-   - `live` → existing flow, insert into `ev_predictions`, full Kelly sizing + exposure guard
-   
-   The in-memory scan output (the rich table the user sees) shows all three with a `[SHADOW]` / `[DISABLED]` badge prepended.
+6. **`log_gaps()` takes a `mode_resolver: Callable[[str], str]`.** It partitions gaps by category, sets the `mode` column accordingly in the `INSERT`. Exposure guard and Kelly sizing inside the scan CLI still run only for gaps whose `mode == "live"`; shadow gaps log predictions but don't touch the bankroll math. Disabled categories are filtered out before even reaching `log_gaps()`.
 
 7. **New CLI `evmax cleanup shadow`** family:
    - `evmax cleanup shadow show --days 7` — recent shadow predictions with resolved outcomes
