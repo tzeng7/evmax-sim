@@ -32,7 +32,13 @@ def log_gaps(
     """
     Persist EVGap objects to ev_predictions.
 
-    Skips duplicates (same market_id + scan_date).
+    Freeze-on-first-insert: the table has UNIQUE(market_id), and this function
+    uses INSERT OR IGNORE, so the row written on the first scan that flags a
+    market as +EV is permanent. Re-scans on later days are no-ops — the stored
+    sharp/blended/ev_pct snapshot stays locked to the first-flag values.
+    This makes Brier, CLV, and calibration reflect the model's actual call at
+    the moment it was made, not a refreshed scan closer to close.
+
     Returns the number of newly inserted rows.
     """
     if not gaps:

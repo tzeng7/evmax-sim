@@ -18,7 +18,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS ev_predictions (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     logged_at           TEXT    NOT NULL DEFAULT (datetime('now')),
-    scan_date           TEXT    NOT NULL,           -- YYYY-MM-DD when scan ran
+    scan_date           TEXT    NOT NULL,           -- YYYY-MM-DD of the FIRST scan that flagged this market as +EV
     market_id           TEXT    NOT NULL,
     event_id            TEXT    NOT NULL,
     sector              TEXT    NOT NULL,
@@ -26,14 +26,14 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     market_type         TEXT    NOT NULL,
     event_title         TEXT,
     event_date          TEXT,                       -- YYYY-MM-DD of the game
-    kalshi_yes_price    REAL    NOT NULL,           -- Kalshi implied prob (e.g. 0.42)
-    sharp_true_prob     REAL    NOT NULL,           -- devigged Pinnacle prob
-    blended_true_prob   REAL    NOT NULL,           -- final blended prob
-    ev_pct              REAL    NOT NULL,           -- EV fraction (e.g. 0.07 for 7%)
+    kalshi_yes_price    REAL    NOT NULL,           -- Kalshi implied prob (e.g. 0.42) — frozen at first flag
+    sharp_true_prob     REAL    NOT NULL,           -- devigged Pinnacle prob — frozen at first flag
+    blended_true_prob   REAL    NOT NULL,           -- final blended prob — frozen at first flag
+    ev_pct              REAL    NOT NULL,           -- EV fraction (e.g. 0.07 for 7%) — frozen at first flag
     kelly_fraction      REAL    NOT NULL,
     volume_usd          REAL,
     model_sources       TEXT,
-    sharp_weight_used   REAL,                       -- sharp_weight at scan time
+    sharp_weight_used   REAL,                       -- sharp_weight at first-flag time
     bankroll_used       REAL,                       -- bankroll passed to scan (for stake calc)
     line                REAL,                       -- spread/total line (e.g. -8.5)
     voided              INTEGER NOT NULL DEFAULT 0, -- 1=voided (game cancelled/untraceable)
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     placed_at           TEXT,                       -- ISO timestamp when bet was placed
     placed_price        REAL,                       -- Kalshi ask at time of placement
     placed_stake        REAL,                       -- dollar amount staked
-    UNIQUE(market_id, scan_date)
+    UNIQUE(market_id)
 );
 
 CREATE TABLE IF NOT EXISTS prop_observations (
@@ -84,6 +84,97 @@ CREATE TABLE IF NOT EXISTS ev_outcomes (
 """
 
 
+def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
+    """Rebuild ev_predictions with UNIQUE(market_id) if the legacy composite
+    UNIQUE(market_id, scan_date) is still in place.
+
+    Freeze-on-first-insert semantics: each market gets exactly one row, whose
+    snapshot fields are set when the pipeline first flags it as +EV. Re-scans
+    on later days become no-ops via INSERT OR IGNORE. This makes `scan_date`
+    the "first flagged" date, makes CLV `(entry − close)` meaningful, and
+    eliminates the multi-scan Brier double-counting class of bugs.
+
+    Idempotent: re-running is a no-op once the new constraint is present.
+    """
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='ev_predictions'"
+    ).fetchone()
+    if not row or not row[0]:
+        return
+    ddl_normalized = " ".join(row[0].split())
+    if "UNIQUE(market_id, scan_date)" not in ddl_normalized \
+       and "UNIQUE (market_id, scan_date)" not in ddl_normalized:
+        return  # already migrated
+
+    # Safety net: dedupe any remaining rows before the constraint change.
+    # Keep the row with the strongest claim per market_id:
+    #   1. placed = 1 beats placed = 0
+    #   2. then oldest scan_date (freeze-on-first-insert semantics)
+    #   3. then lowest id (deterministic tiebreak)
+    conn.execute(
+        """DELETE FROM ev_predictions
+           WHERE id NOT IN (
+               SELECT id FROM ev_predictions p
+               WHERE id = (
+                   SELECT id FROM ev_predictions p2
+                   WHERE p2.market_id = p.market_id
+                   ORDER BY p2.placed DESC, p2.scan_date ASC, p2.id ASC
+                   LIMIT 1
+               )
+           )"""
+    )
+
+    conn.executescript("""
+        BEGIN;
+        ALTER TABLE ev_predictions RENAME TO ev_predictions_old;
+        CREATE TABLE ev_predictions (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            logged_at           TEXT    NOT NULL DEFAULT (datetime('now')),
+            scan_date           TEXT    NOT NULL,
+            market_id           TEXT    NOT NULL,
+            event_id            TEXT    NOT NULL,
+            sector              TEXT    NOT NULL,
+            yes_team            TEXT    NOT NULL,
+            market_type         TEXT    NOT NULL,
+            event_title         TEXT,
+            event_date          TEXT,
+            kalshi_yes_price    REAL    NOT NULL,
+            sharp_true_prob     REAL    NOT NULL,
+            blended_true_prob   REAL    NOT NULL,
+            ev_pct              REAL    NOT NULL,
+            kelly_fraction      REAL    NOT NULL,
+            volume_usd          REAL,
+            model_sources       TEXT,
+            sharp_weight_used   REAL,
+            bankroll_used       REAL,
+            line                REAL,
+            voided              INTEGER NOT NULL DEFAULT 0,
+            placed              INTEGER NOT NULL DEFAULT 0,
+            placed_at           TEXT,
+            placed_price        REAL,
+            placed_stake        REAL,
+            clv_pct             REAL,
+            UNIQUE(market_id)
+        );
+        INSERT INTO ev_predictions (
+            id, logged_at, scan_date, market_id, event_id, sector, yes_team,
+            market_type, event_title, event_date, kalshi_yes_price,
+            sharp_true_prob, blended_true_prob, ev_pct, kelly_fraction,
+            volume_usd, model_sources, sharp_weight_used, bankroll_used, line,
+            voided, placed, placed_at, placed_price, placed_stake, clv_pct
+        )
+        SELECT
+            id, logged_at, scan_date, market_id, event_id, sector, yes_team,
+            market_type, event_title, event_date, kalshi_yes_price,
+            sharp_true_prob, blended_true_prob, ev_pct, kelly_fraction,
+            volume_usd, model_sources, sharp_weight_used, bankroll_used, line,
+            voided, placed, placed_at, placed_price, placed_stake, clv_pct
+        FROM ev_predictions_old;
+        DROP TABLE ev_predictions_old;
+        COMMIT;
+    """)
+
+
 def get_connection() -> sqlite3.Connection:
     """Open (and initialize) the predictions database."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -106,4 +197,7 @@ def get_connection() -> sqlite3.Connection:
             conn.commit()
         except Exception:
             pass  # column already exists
+    # Table-rebuild migration runs AFTER column-add ALTERs so the new schema
+    # and the old table have matching column sets for the INSERT ... SELECT.
+    _migrate_unique_market_id(conn)
     return conn

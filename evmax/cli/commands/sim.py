@@ -148,6 +148,11 @@ def montecarlo(
         SELECT p.kalshi_yes_price, p.blended_true_prob, p.kelly_fraction,
                p.ev_pct, p.sector, o.outcome
         FROM ev_predictions p
+        INNER JOIN (
+            SELECT market_id, MAX(scan_date) AS latest_scan
+            FROM ev_predictions WHERE voided = 0 GROUP BY market_id
+        ) latest ON p.market_id = latest.market_id
+                AND p.scan_date = latest.latest_scan
         INNER JOIN ev_outcomes o ON p.market_id = o.market_id
         WHERE o.outcome IS NOT NULL AND p.voided = 0
     """

@@ -114,7 +114,9 @@ def _make_in_memory_db():
             sharp_weight_used REAL,
             bankroll_used REAL,
             line REAL,
-            UNIQUE(market_id, scan_date)
+            voided INTEGER NOT NULL DEFAULT 0,
+            placed INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(market_id)
         );
         CREATE TABLE ev_outcomes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -595,6 +597,83 @@ class TestBrierBySector:
         assert result[1]["sector"] == "soccer"
         assert result[1]["n"] == 4
         assert result[1]["edge_pct"] < 0  # sharp beats model
+
+
+class TestBrierDedupRegression:
+    """Regression: the same market_id scanned on multiple scan_dates must
+    not inflate Brier sample counts. Each resolved market should count once,
+    even when ev_predictions has N rows for it."""
+
+    def _seed_market_with_scans(
+        self, conn, market_id: str, sector: str, scan_dates: list[str],
+        first_blend: float, later_blend: float, outcome: int,
+    ) -> None:
+        """Simulate the live logger path: INSERT OR IGNORE on UNIQUE(market_id),
+        so the first scan wins and subsequent scans are no-ops. The stored
+        blended_true_prob should end up as `first_blend`, not `later_blend`."""
+        for i, sd in enumerate(scan_dates):
+            blend = first_blend if i == 0 else later_blend
+            conn.execute(
+                "INSERT OR IGNORE INTO ev_predictions (scan_date, market_id, event_id, "
+                "sector, yes_team, market_type, kalshi_yes_price, sharp_true_prob, "
+                "blended_true_prob, ev_pct, kelly_fraction, volume_usd, model_sources, "
+                "sharp_weight_used) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (sd, market_id, f"ev::{market_id}", sector, "team", "moneyline",
+                 0.5, 0.6, blend, 0.05, 0.025, 1000.0, "sharp", 0.85),
+            )
+        conn.execute(
+            "INSERT INTO ev_outcomes (market_id, event_id, sector, yes_team, outcome, "
+            "sharp_true_prob, blended_true_prob, result_source) VALUES (?,?,?,?,?,?,?,?)",
+            (market_id, f"ev::{market_id}", sector, "team", outcome, 0.6, first_blend, "espn"),
+        )
+        conn.commit()
+
+    def test_brier_uses_first_flag_snapshot_not_latest_rescan(self):
+        """Freeze-on-first-insert: even if the pipeline re-scans the same
+        market 3 days in a row, Brier must score the FIRST-flag probability,
+        not a refreshed value closer to close."""
+        from evmax.agents.cleanup.metrics import compute_brier_scores
+
+        conn = _make_in_memory_db()
+        base = date.today() - timedelta(days=5)
+        scans = [(base + timedelta(days=i)).isoformat() for i in range(3)]
+        self._seed_market_with_scans(
+            conn, "kalshi:DUP-1", "nba", scans,
+            first_blend=0.65, later_blend=0.90, outcome=1,
+        )
+
+        with patch("evmax.agents.cleanup.metrics.get_connection", return_value=conn):
+            result = compute_brier_scores(weeks=52)
+
+        assert result is not None
+        assert result["n"] == 1
+        # Must reflect first-flag (0.65), NOT later refresh (0.90).
+        assert result["brier_model"] == pytest.approx((0.65 - 1) ** 2)
+
+    def test_brier_by_sector_no_multi_scan_fanout(self):
+        """Per-sector Brier must not count a 3-scan market as 3 data points
+        (the real-world bug pattern for Bundesliga scanned Fri/Sat/Sun)."""
+        from evmax.agents.cleanup.metrics import compute_brier_scores_by_sector
+
+        conn = _make_in_memory_db()
+        base = date.today() - timedelta(days=5)
+        scans_3 = [(base + timedelta(days=i)).isoformat() for i in range(3)]
+        scans_1 = [base.isoformat()]
+        self._seed_market_with_scans(
+            conn, "kalshi:SOC-1", "soccer", scans_3,
+            first_blend=0.70, later_blend=0.85, outcome=1,
+        )
+        self._seed_market_with_scans(
+            conn, "kalshi:NBA-1", "nba", scans_1,
+            first_blend=0.70, later_blend=0.70, outcome=1,
+        )
+
+        with patch("evmax.agents.cleanup.metrics.get_connection", return_value=conn):
+            result = compute_brier_scores_by_sector(weeks=52)
+
+        by_sector = {r["sector"]: r for r in result}
+        assert by_sector["soccer"]["n"] == 1
+        assert by_sector["nba"]["n"] == 1
 
 
 class TestGetSharpWeight:
