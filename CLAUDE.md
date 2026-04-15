@@ -1,18 +1,49 @@
 You are an expert in acquiring expected value for specific predictions found on popular prediction markets such as Polymarket and Kalshi. You understand the steps it takes to find events within specific markets that are +EV if you were to bet on the game, knowledgeable of all key aspects of prediction markets such as liquidity, market makers. You are also familiar with the data analysis processes and model training simulations used for finding edges within the certain key sectors.
 
-### Key Sectors
+### Betting Categories & Mode Config
 
-- NBA
-- NFL
-- NCAAB (Men's College Basketball)
-- NCAAW (Women's College Basketball)
-- Soccer (EPL, UCL, La Liga, Bundesliga, Serie A, Ligue 1, MLS, UEL)
-- Tennis (ATP + WTA)
-- League of Legends
-- CS2
-- Baseball (MLB) — in registry, sharp odds + models wired; pitcher model supported
-- NHL — in registry, sharp odds + models wired; **outcome resolution not yet implemented**
-- Valorant — in registry and sharp odds; no dedicated model beyond Elo/Form
+**Single source of truth:** [`data/categories.yaml`](data/categories.yaml). Every bettable category on evmax — its models, mode, resolver, status, and notes — lives in that one file. Don't list sectors in docs or settings; read them from the registry at runtime via `evmax.categories.all_categories()` or from the CLI via `evmax categories list`.
+
+**Current catalog (13 categories):** `nba`, `nfl`, `ncaab`, `ncaaw`, `soccer`, `tennis`, `baseball`, `nhl`, `lol`, `cs2` (game markets) · `nba_props`, `nfl_props` (player props) · and `valorant` was removed because there's no Kalshi product for it (sector handler still exists in `evmax/sectors/registry.py` as a latent sector, same for `ufc` and `f1`, but none of them appear in `SECTOR_SERIES_MAP` so they can't be bet on today).
+
+**Three modes** (per category, per invocation):
+
+| Mode       | What happens |
+|------------|--------------|
+| `live`     | Scanner produces EVGaps, persists rows with `mode='live'`, sizes Kelly against bankroll. Default for every category in the shipped YAML except `nfl_props`. |
+| `shadow`   | Scanner produces EVGaps, persists rows with `mode='shadow'` AND `captured_yes_price = pre-game YES ask`, does NOT touch the bankroll. Used by MODEL-9 validation for NFL props. |
+| `disabled` | Scanner skips persistence entirely. Gap still appears in the in-memory CLI output for this session, but nothing lands in `ev_predictions` / `prop_observations`. |
+
+**Override precedence (highest wins):** runtime CLI flag > env var `EVMAX_CATEGORY_MODES` > YAML base.
+
+- Permanent change → edit `data/categories.yaml`
+- One-process change → `EVMAX_CATEGORY_MODES='{"nba":"disabled"}' evmax agents scan`
+- One-command change → `evmax agents scan --shadow nfl_props --disabled nhl`
+
+**CLI commands added by ARCH-11:**
+
+```bash
+evmax categories list [--mode live|shadow|disabled] [--effective]
+evmax categories show <key>                # detail view for one category
+evmax categories modes                     # effective mode per category
+evmax categories validate                  # run validate_registry(), exit non-zero on error
+
+evmax cleanup shadow show [--days N] [--category K]
+evmax cleanup shadow metrics [--days N] [--category K]
+evmax cleanup shadow promote <category>    # flip shadow → live in YAML
+
+evmax agents scan --shadow X,Y --live Z --disabled W   # runtime overrides
+```
+
+**Consistency enforcement:** `evmax/categories.py::validate_registry()` runs eagerly at import time and fails hard if:
+- a key in `SECTOR_SERIES_MAP` (in `evmax/clients/kalshi.py`) is missing from `categories.yaml`
+- a key in `categories.yaml` is missing from `SECTOR_SERIES_MAP`
+- any `models:` entry is not in `evmax.categories.KNOWN_MODELS`
+- any `resolver` is not in `evmax.categories.KNOWN_RESOLVERS`
+- any `mode` / `status` / `market_types` value is illegal
+- a prop category is missing `prop_stat_types` or a game category has them
+
+**Outcome resolution** is specified per-category via the `resolver` field. The shipped values are `espn_scoreboard` (NBA/NFL/NCAAB/NCAAW/soccer/baseball/nhl), `espn_boxscore` (NBA/NFL props), `bo3gg` (LoL/CS2), `kalshi_settlement` (tennis), and `none` (no auto-resolution wired yet). Do not maintain a separate "resolution table" in docs — this field is authoritative.
 
 ### Key Pipeline
 
@@ -26,7 +57,7 @@ You are an expert in acquiring expected value for specific predictions found on 
 8. **Compute EV** = (true_prob × payout) − 1. Flag any gap ≥ 2%
 9. **Kelly sizing** = Full Kelly × kelly_fraction × confidence_discount × liquidity_discount, hard capped at 5% of bankroll
 10. **Exposure guard** — total Kelly across all bets on the same game capped at 8% of bankroll
-11. **Log to predictions.db** — game-level bets only (props shown in scan but not saved)
+11. **Log to predictions.db** — game-level bets to `ev_predictions`, player props to `prop_observations`. Each row carries a `mode` column (`live` / `shadow`) plus `captured_yes_price` (pre-game YES ask at scan time) and an optional `model_version`. Disabled categories are dropped before insert. See the Betting Categories section for the mode semantics and CLI overrides.
 
 ### Architecture
 
@@ -82,7 +113,7 @@ evmax/
 
 ### Modeling
 
-**Statistical Models** (blended by EnsembleModelAgent):
+**Statistical Models** (blended by `EnsembleModelAgent`). For which models contribute to which category, see the `models:` field per entry in `data/categories.yaml`. This table is model-centric — it lists the ensemble weight, confidence gate, and state file for each agent regardless of which categories consume it.
 
 | Model | Weight | Confidence Gate | State File |
 |-------|--------|----------------|------------|
@@ -94,36 +125,26 @@ evmax/
 | Tennis H2H | 0.10 | 0.45 | `data/models/tennis_h2h_state.json` (Laplace-smoothed nudge, ≥3 meetings, ±18pp cap) |
 | Tennis Ranking Trend | 0.10 | 0.45 | `data/models/tennis_ranking_trend_state.json` (12-week momentum, ±0.40 logit cap) |
 | MLB Pitcher | 0.20 | 0.45 | `data/models/pitcher_state.json` |
+| NBA Props Cache | — | — | `data/nba_props_cache.json` (daily L15 per-player; per-36 normalization + opponent adj) |
+| NFL Props Cache (QB only v1) | — | — | pure compute, backtest only; Stage 4 shipped, Stage 5 gated on MODEL-9 |
 | Sharp (Pinnacle) | 0.85 (CLI/config default) | always | auto-tuned in `data/model_config.json` |
 
-Tennis serve/return, H2H, and ranking-trend agents are seeded from Jeff Sackmann's
-`tennis_atp` / `tennis_wta` CSVs plus the Match Charting Project for 2025+ SPW
-augmentation via `scripts/seed_tennis_models.py`.
+Tennis serve/return, H2H, and ranking-trend agents are seeded from Jeff Sackmann's `tennis_atp` / `tennis_wta` CSVs plus the Match Charting Project for 2025+ SPW augmentation via `scripts/seed_tennis_models.py`.
 
 - Models below the confidence gate are excluded from the blend entirely
 - `model_sources` in each EVGap only lists models that actually contributed
 - `sharp_weight` auto-tunes weekly based on Brier score comparison (bounds: 0.40–0.95)
-- All models seeded from ESPN historical game data via `scripts/seed_espn.py`
-
-### Data Sources for Outcome Resolution
-
-| Sector | Source |
-|--------|--------|
-| NBA / NFL / NCAAB / NCAAW / Soccer (EPL/UCL/La Liga/Bundesliga/Serie A/Ligue 1) | ESPN scoreboard API |
-| Baseball (MLB) | ESPN scoreboard API |
-| CS2 / LoL | bo3.gg matches API |
-| Tennis | **Not yet implemented** — bets log but never auto-resolve (player models still seed from Sackmann CSVs + Match Charting Project) |
-| NHL | **Not yet implemented** — bets log but never auto-resolve |
-| Soccer (MLS / UEL) | **Not yet implemented** — missing from ESPN league list |
+- All game-level models seeded from ESPN historical game data via `scripts/seed_espn.py`
+- When adding a new model agent, also add its canonical name to `evmax/categories.py::KNOWN_MODELS` AND update the relevant per-category `models:` list in `data/categories.yaml` — the pre-commit `doc-sync` hook nudges both, and `validate_registry()` fails loudly at import time if either is missed.
 
 ### Key Implementation Details
 
 - **Kalshi rate limiting**: `AsyncLimiter(10, 1.0)` from `aiolimiter` in `kalshi.py` — token bucket, 10 req/s
 - **Kalshi ticker dates**: `_parse_ticker_date` anchors at **noon UTC** (not midnight) so downstream `.astimezone()` can't roll the game date back a day in negative-offset US time zones
 - **Pinnacle parallelism**: all `(sport_key × market_type)` combinations fetched simultaneously
-- **Bankroll persistence**: `bankroll_used` column in `ev_predictions` — verify/pick reuse scan-time bankroll automatically
-- **Props**: shown in scan output, excluded from `predictions.db` (filter: `::prop::` in event_id)
-- **Exposure guard**: total Kelly per game ≤ 8% bankroll; excess bets scaled/dropped
+- **Bankroll persistence**: `bankroll_used` column in `ev_predictions` — verify/pick reuse scan-time bankroll automatically. Shadow rows do NOT touch bankroll (Kelly sizing is skipped for `mode='shadow'`).
+- **Props**: player prop gaps (event_id contains `::prop::`) land in `prop_observations`, not `ev_predictions`. They carry the same `mode` / `captured_yes_price` / `model_version` columns as game bets. The prop filter `::prop::` in `event_id` is how `log_prop_observations` picks them out.
+- **Exposure guard**: total Kelly per game ≤ 8% bankroll; excess bets scaled/dropped. Only applies to `mode='live'` rows.
 - **Fuzzy match underscore fix**: `_` replaced with space before rapidfuzz scoring
 - **YES team alignment**: Kalshi has separate YES markets per team — swap `true_prob_a ↔ true_prob_b` when YES = away
 - **Draw market**: Soccer TIE markets use `true_prob_draw`, not `true_prob_a`
@@ -182,4 +203,68 @@ evmax cleanup show --days 7
 # Weekly — calibrate models
 evmax cleanup metrics --weeks 4
 evmax cleanup adjust
+
+# Shadow-mode validation (MODEL-9 pattern)
+evmax categories list --mode shadow               # see what's in shadow today
+evmax cleanup shadow show --days 7                # recent shadow predictions
+evmax cleanup shadow metrics --days 30            # Brier + ROI per category
+evmax cleanup shadow promote nfl_props            # flip shadow → live once validated
 ```
+
+### Scan Pipeline
+
+What happens on a single `evmax agents scan` invocation, from CLI input to persisted rows. The numbered Key Pipeline list above is the authoritative reference; this diagram is the visual companion.
+
+```mermaid
+flowchart TD
+    CLI[evmax agents scan<br/>--sectors, --bankroll, --kelly,<br/>--shadow/--live/--disabled] --> COORD[AgentCoordinator.run_cycle]
+
+    subgraph FETCH[1. Data fetch · parallel fan-out]
+        K[KalshiOddsAgent<br/>SECTOR_SERIES_MAP → /markets<br/>+ /events for tennis]
+        P[PinnacleGuestClient<br/>devig-ready sharp lines<br/>per sector × market_type]
+        I[InjuryReportAgent<br/>ESPN public API<br/>NBA/NFL/NCAAB/NCAAW/soccer]
+        S[StandingsAgent<br/>ESPN standings]
+    end
+    COORD --> FETCH
+
+    FETCH --> MATCH[MatchingEngine<br/>canonical key → rapidfuzz fallback<br/>threshold = 88]
+    MATCH --> DEVIG[ev/devig.py Power Method<br/>2-way + 3-way]
+
+    subgraph MODELS[2. Statistical models · parallel fan-out]
+        ELO[EloModelAgent]
+        FORM[FormModelAgent]
+        POIS[PoissonModelAgent]
+        PITCH[PitcherModelAgent · MLB only]
+        TEN[Tennis agents ×4 · tennis only]
+    end
+    DEVIG --> MODELS
+    MODELS --> ENS[EnsembleModelAgent<br/>confidence-weighted blend<br/>+ sharp_weight from model_config.json]
+
+    ENS --> INJ[Injury adjustment<br/>−12% per team cap]
+    INJ --> EVGAP[EVGapAgent<br/>compute EV · YES-side only · swap if needed]
+    EVGAP --> FILTER{ev_pct ≥ threshold<br/>AND blended_prob ≥ min_prob?}
+    FILTER -->|no| DROP1[Drop]
+    FILTER -->|yes| KELLY[Kelly sizing<br/>× confidence × liquidity<br/>5% cap per bet]
+    KELLY --> EXP[Exposure guard<br/>≤ 8% bankroll per game]
+    EXP --> DISPLAY[Print EV table to terminal]
+
+    DISPLAY --> MODE{evmax.modes.get_mode<br/>category?}
+    MODE -->|live| WLIVE[log_gaps / log_prop_observations<br/>mode='live' · captured_yes_price set]
+    MODE -->|shadow| WSHADOW[log_gaps / log_prop_observations<br/>mode='shadow' · captured_yes_price set<br/>Kelly × 0 = no bankroll touched]
+    MODE -->|disabled| DROP2[Drop before insert]
+    WLIVE --> DB[(predictions.db<br/>ev_predictions / prop_observations)]
+    WSHADOW --> DB
+
+    DB --> MAINT[run_maintenance<br/>rule violations · duplicates · stale markets]
+
+    style DB fill:#1a3c5a,color:#fff,stroke:#4a90d9
+    style CLI fill:#2d4a2d,color:#fff,stroke:#4caf50
+    style FILTER fill:#4a3a1a,color:#fff,stroke:#c48b2f
+    style MODE fill:#4a3a1a,color:#fff,stroke:#c48b2f
+    style DROP1 fill:#4a1a1a,color:#fff,stroke:#d94a4a
+    style DROP2 fill:#4a1a1a,color:#fff,stroke:#d94a4a
+```
+
+- **Fan-out stages (FETCH, MODELS)** run in `asyncio.gather` — the coordinator launches every agent in parallel and waits for all results before moving forward.
+- **Mode resolution** at the last persistence step is the ARCH-11 addition: `evmax.modes.get_mode(category)` layers runtime CLI overrides (highest) over `EVMAX_CATEGORY_MODES` env var over the YAML base (lowest). Before ARCH-11, there was no `MODE` diamond — every EVGap above threshold went straight to `ev_predictions`.
+- **`run_maintenance`** runs on the persisted rows, not the in-memory gap list, so it sees the same filtered set the user will see in `evmax cleanup show`.
