@@ -375,10 +375,41 @@ def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
                 if _fuzzy_team_match(yes_raw, away_n) < FUZZY_THRESHOLD:
                     continue  # this score doesn't involve our team
 
+        market_type = (pred.get("market_type") or "moneyline").lower()
+        hs = score.get("home_score")
+        as_ = score.get("away_score")
+
+        if market_type == "spread":
+            # Kalshi spreads always ask "does TEAM win by more than |line|".
+            # We store `line` as a negative float; the threshold is abs(line).
+            # The bet wins iff yes_team wins outright AND margin > threshold.
+            if hs is None or as_ is None or pred.get("line") is None:
+                return None
+            threshold = abs(float(pred["line"]))
+            yes_score = hs if yes_is_home else as_
+            opp_score = as_ if yes_is_home else hs
+            margin = yes_score - opp_score
+            return 1 if margin > threshold else 0
+
+        if market_type in ("total", "over_under"):
+            # Kalshi totals ask "will combined score be > line" (yes=over)
+            # or "< line" (yes=under). yes_team is set to "over"/"under"
+            # at the kalshi parse step.
+            if hs is None or as_ is None or pred.get("line") is None:
+                return None
+            threshold = float(pred["line"])
+            total = hs + as_
+            side = (pred.get("yes_team") or "").lower()
+            if side == "over":
+                return 1 if total > threshold else 0
+            if side == "under":
+                return 1 if total < threshold else 0
+            return None
+
+        # Moneyline (default)
         if yes_is_home:
             return 1 if score["home_won"] else 0
         else:
-            # Explicit away win only — draws are not wins for the away side
             away_won = score["away_score"] > score["home_score"]
             return 1 if away_won else 0
 
@@ -696,7 +727,8 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
     today_str = date.today().isoformat()
     pending = conn.execute(
         """SELECT p.market_id, p.event_id, p.sector, p.yes_team,
-                  p.event_title, p.event_date, p.sharp_true_prob, p.blended_true_prob
+                  p.event_title, p.event_date, p.sharp_true_prob, p.blended_true_prob,
+                  p.market_type, p.line
            FROM ev_predictions p
            LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
            WHERE (p.event_date = ? OR p.scan_date = ?)
