@@ -306,6 +306,21 @@ def api_profit() -> JSONResponse:
     return JSONResponse(_profit_series(_settled_bets()))
 
 
+@app.get("/api/sectors")
+def api_sectors(range: str = "all") -> JSONResponse:
+    """Sector breakdown filtered by rolling date window.
+
+    range: "1d", "1w", "1m", "1y", or "all" (default).
+    """
+    days_map = {"1d": 1, "1w": 7, "1m": 30, "1y": 365, "all": 0}
+    days = days_map.get(range, 0)
+    bets = _settled_bets()
+    if days > 0:
+        cutoff = (date.today() - timedelta(days=days - 1)).isoformat()
+        bets = [b for b in bets if (b.get("event_date") or b.get("scan_date") or "") >= cutoff]
+    return JSONResponse(_sector_breakdown(bets))
+
+
 @app.get("/api/summary")
 def api_summary(days: int = 0, view: str = "all") -> JSONResponse:
     """Summary stats filtered by rolling date window and view.

@@ -112,7 +112,7 @@ SECTOR_CONFIGS: dict[str, dict] = {
             "ligue1":     ("soccer", "fra.1"),
             "ucl":        ("soccer", "UEFA.CHAMPIONS"),
         },
-        "months": _months("2025-08", "2026-03"),
+        "months": _months("2025-08", "2026-06"),
     },
 }
 

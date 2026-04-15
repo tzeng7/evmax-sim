@@ -259,10 +259,19 @@
 <!-- Two-column: sector breakdown + open (unplaced) positions -->
 <div class="two-col">
   <div class="panel">
-    <h2>Sector Performance</h2>
+    <div class="panel-header">
+      <h2>Sector Performance</h2>
+      <div class="actions" style="gap:4px">
+        <button class="btn btn-sm sector-range active" data-range="all" onclick="filterSectors('all')">All</button>
+        <button class="btn btn-sm sector-range" data-range="1y" onclick="filterSectors('1y')">1Y</button>
+        <button class="btn btn-sm sector-range" data-range="1m" onclick="filterSectors('1m')">1M</button>
+        <button class="btn btn-sm sector-range" data-range="1w" onclick="filterSectors('1w')">1W</button>
+        <button class="btn btn-sm sector-range" data-range="1d" onclick="filterSectors('1d')">1D</button>
+      </div>
+    </div>
     <table>
       <thead><tr><th>Sector</th><th class="num">Bets</th><th class="num">Wins</th><th class="num">Win%</th><th class="num">P&L</th><th class="num">ROI</th></tr></thead>
-      <tbody>
+      <tbody id="sectorBody">
       {% for s in sectors %}
         <tr>
           <td><span class="badge">{{ s.sector }}</span></td>
@@ -503,6 +512,32 @@ function filterPlaced() {
     }
   });
   document.getElementById('placedCount').textContent = visible;
+}
+
+async function filterSectors(range) {
+  document.querySelectorAll('.sector-range').forEach(b => b.classList.toggle('active', b.dataset.range === range));
+  try {
+    const res = await fetch(`/api/sectors?range=${range}`);
+    const rows = await res.json();
+    const tbody = document.getElementById('sectorBody');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted" style="text-align:center">No data for this period</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(s => {
+      const pnlClass = s.pnl >= 0 ? 'green' : 'red';
+      const roiClass = s.roi_pct >= 0 ? 'green' : 'red';
+      return `<tr>
+        <td><span class="badge">${s.sector}</span></td>
+        <td class="num">${s.bets}</td><td class="num">${s.wins}</td>
+        <td class="num">${s.win_rate}%</td>
+        <td class="num ${pnlClass}">$${s.pnl.toFixed(2)}</td>
+        <td class="num ${roiClass}">${s.roi_pct}%</td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    console.error('filterSectors error:', e);
+  }
 }
 
 function filterOpen() {
