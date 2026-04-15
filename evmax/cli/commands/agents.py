@@ -117,6 +117,21 @@ def scan(
         False, "--loop",
         help="Run continuously with smart adaptive scan intervals based on game times.",
     ),
+    live_override: Optional[str] = typer.Option(
+        None, "--live",
+        help="Comma-separated category keys to force into LIVE mode for this run "
+             "(e.g. 'nfl_props'). Overrides data/categories.yaml.",
+    ),
+    shadow_override: Optional[str] = typer.Option(
+        None, "--shadow",
+        help="Comma-separated category keys to force into SHADOW mode for this run. "
+             "Logged with mode='shadow', does NOT touch bankroll.",
+    ),
+    disabled_override: Optional[str] = typer.Option(
+        None, "--disabled",
+        help="Comma-separated category keys to force into DISABLED mode for this run. "
+             "Scanner skips persistence entirely for these categories.",
+    ),
 ) -> None:
     """Run the full agent pipeline for one cycle and display +EV plays."""
     from evmax.agents.coordinator import AgentCoordinator
@@ -131,6 +146,35 @@ def scan(
         console.print(f"[red]Unknown sector(s):[/red] {', '.join(invalid)}")
         console.print(f"[dim]Valid sectors: {', '.join(ALL_SECTORS)}[/dim]")
         raise typer.Exit(1)
+
+    # ARCH-11 category-mode overrides. Compose a single runtime-override
+    # dict and install it before any scan output or logging happens so
+    # every downstream call to evmax.modes.get_mode sees the right mode.
+    mode_overrides: dict[str, str] = {}
+    for raw, target_mode in (
+        (live_override, "live"),
+        (shadow_override, "shadow"),
+        (disabled_override, "disabled"),
+    ):
+        if not raw:
+            continue
+        for key in (k.strip() for k in raw.split(",") if k.strip()):
+            if key in mode_overrides:
+                console.print(
+                    f"[red]Category {key!r} appears in more than one of "
+                    f"--live / --shadow / --disabled.[/red]"
+                )
+                raise typer.Exit(1)
+            mode_overrides[key] = target_mode
+    if mode_overrides:
+        from evmax.modes import set_runtime_overrides
+        set_runtime_overrides(mode_overrides)
+        override_summary = ", ".join(
+            f"{k}={v}" for k, v in sorted(mode_overrides.items())
+        )
+        console.print(
+            f"[yellow]Mode overrides for this run:[/yellow] {override_summary}"
+        )
 
     # Warn on missing API keys before spinning up the pipeline
     _missing_keys = _get_settings().warn_missing_keys()

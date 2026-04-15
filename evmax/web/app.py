@@ -37,9 +37,16 @@ TEMPLATES.env.globals["probToAmerican"] = _prob_to_american
 # ---------------------------------------------------------------------------
 
 def _conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(PREDICTIONS_DB)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """Open the predictions DB, running any pending migrations.
+
+    Routes through `evmax.agents.cleanup.db.get_connection()` instead of
+    calling `sqlite3.connect()` directly so that ALTER TABLE migrations
+    (e.g. the ARCH-11 `mode` / `captured_yes_price` / `model_version`
+    columns) run on every process that opens the DB — not just the CLI.
+    """
+    from evmax.agents.cleanup.db import get_connection
+
+    return get_connection()
 
 
 def _settled_bets() -> list[dict[str, Any]]:
