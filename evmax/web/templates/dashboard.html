@@ -238,7 +238,7 @@
         <td class="muted">{{ b.event_date }}</td>
         <td><span class="badge">{{ b.sector }}</span></td>
         <td>{{ b.event_title }}</td>
-        <td>{{ b.yes_team }} {{ b.market_type }}{% if b.line %} {{ b.line }}{% endif %}</td>
+        <td>{{ b.display_label or (b.yes_team ~ ' ' ~ b.market_type ~ (' ' ~ b.line if b.line else '')) }}</td>
         <td class="num">{{ '%.0f'|format((b.blended_true_prob or 0) * 100) }}%</td>
         <td class="num green">{{ '%.1f'|format((b.ev_pct or 0) * 100) }}%</td>
         <td class="num"><input type="text" class="placed-odds" data-mid="{{ b.market_id }}" value="{{ probToAmerican(fill) }}" style="width:64px" title="American odds (e.g. +181 or -150)"></td>
@@ -316,7 +316,7 @@
           <td class="muted">{{ b.event_date }}</td>
           <td><span class="badge">{{ b.sector }}</span></td>
           <td>{{ b.event_title }}</td>
-          <td>{{ b.yes_team }} {{ b.market_type }}{% if b.line %} {{ b.line }}{% endif %}</td>
+          <td>{{ b.display_label or (b.yes_team ~ ' ' ~ b.market_type ~ (' ' ~ b.line if b.line else '')) }}</td>
           <td class="num">{{ probToAmerican(b.kalshi_yes_price) }} <span class="muted">({{ '%.0f'|format(b.kalshi_yes_price * 100) }}¢)</span></td>
           <td class="num">{{ probToAmerican(b.blended_true_prob) }} <span class="muted">({{ '%.0f'|format((b.blended_true_prob or 0) * 100) }}¢)</span></td>
           <td class="num green">{{ '%.1f'|format((b.ev_pct or 0) * 100) }}%</td>
@@ -350,7 +350,7 @@
         <td class="muted">{{ b.event_date }}</td>
         <td><span class="badge">{{ b.sector }}</span></td>
         <td>{{ b.event_title }}</td>
-        <td>{{ b.yes_team }} {{ b.market_type }}{% if b.line %} {{ b.line }}{% endif %}</td>
+        <td>{{ b.display_label or (b.yes_team ~ ' ' ~ b.market_type ~ (' ' ~ b.line if b.line else '')) }}</td>
         <td class="num">{{ '%.0f'|format(b.kalshi_yes_price * 100) }}c</td>
         <td class="num">{{ '%.0f'|format((b.blended_true_prob or 0) * 100) }}%</td>
         <td class="num">{{ '%.1f'|format((b.ev_pct or 0) * 100) }}%</td>
@@ -633,7 +633,7 @@ function renderScan(data) {
 
   for (const g of data.gaps) {
     const askOdds = probToAmerican(g.kalshi_price);
-    const outcome = g.yes_team + ' ' + g.market_type + (g.line ? ' ' + g.line : '');
+    const outcome = g.display_label || (g.yes_team + ' ' + g.market_type + (g.line ? ' ' + g.line : ''));
     const tr = document.createElement('tr');
     tr.dataset.sector = g.sector;
     tr.dataset.date = (g.event_date || '').slice(0, 10);

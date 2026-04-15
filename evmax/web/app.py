@@ -368,11 +368,22 @@ async def api_scan(request: Request) -> JSONResponse:
 
     gaps = []
     for g in cycle.top_gaps:
+        # Use the same helper as DB-backed rows so scan + history labels
+        # match and props render as "Mathurin 4+ AST" instead of
+        # "Assists O4.0" (EVGap.display_label omits the player name).
+        label_row = {
+            "market_type": g.market_type or "",
+            "yes_team": g.yes_team or "",
+            "line": g.line,
+            "prop_player_name": g.prop_player_name,
+            "prop_stat_type": g.prop_stat_type,
+            "prop_threshold": g.prop_threshold,
+        }
         gaps.append({
             "event_title": g.event_title or "",
             "yes_team": g.yes_team or "",
             "market_type": g.market_type or "",
-            "display_label": g.display_label,
+            "display_label": _display_label_for_row(label_row),
             "line": g.line if g.line is None else float(g.line) if isinstance(g.line, (int, float)) else str(g.line),
             "sector": g.sector or "",
             "kalshi_price": round(g.kalshi_yes_price, 2),
