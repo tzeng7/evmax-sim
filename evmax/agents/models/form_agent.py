@@ -166,11 +166,11 @@ class FormModelAgent(ModelAgent):
         prob_draw: Optional[float] = None
 
         if sector == "soccer":
-            # Same draw allocation logic as Elo model
-            closeness = 1.0 - abs(prob_a - 0.5) * 2.0
-            draw_base = 0.22
-            prob_draw = draw_base * (0.5 + 0.5 * closeness)
-            scale = (1.0 - prob_draw)
+            # Strength-dependent draw allocation (matches Elo model).
+            # Quadratic decay: ~26% for even matches, ~10% for mismatches.
+            gap = abs(prob_a - 0.5) * 2.0
+            prob_draw = max(0.08, 0.26 - 0.45 * gap * gap)
+            scale = (1.0 - prob_draw) / (prob_a + prob_b)
             prob_a = prob_a * scale
             prob_b = prob_b * scale
 

@@ -63,6 +63,15 @@ class EnsembleModelAgent(Agent):
         "confidence-weighted average, outputs event_id → BlendedPrediction."
     )
 
+    # Per-sector weight overrides for individual models.  When a sector
+    # is listed here the model's class-level `weight` attribute is replaced
+    # during blending.  This lets us lean on Poisson (goal-matrix derived
+    # draws) for soccer while down-weighting Elo/Form whose fixed draw
+    # allocations were historically overconfident.
+    SECTOR_WEIGHT_OVERRIDES: dict[str, dict[str, float]] = {
+        "soccer": {"elo": 0.20, "form": 0.15, "poisson": 0.45},
+    }
+
     def __init__(
         self,
         models: list[ModelAgent],
@@ -119,7 +128,7 @@ class EnsembleModelAgent(Agent):
         blended: dict[str, BlendedPrediction] = {}
         for event_id, model_preds in per_event.items():
             sharp = sharp_by_id.get(event_id)
-            blend = self._blend(event_id, model_preds, sharp, sharp_weight)
+            blend = self._blend(event_id, model_preds, sharp, sharp_weight, sector)
             if blend is not None:
                 blended[event_id] = blend
 
@@ -163,6 +172,7 @@ class EnsembleModelAgent(Agent):
         model_preds: dict[str, ModelAgentPrediction],
         sharp: Optional[SharpOdds],
         sharp_weight: float,
+        sector: str = "",
     ) -> Optional[BlendedPrediction]:
         """Blend model predictions + sharp book.
 
@@ -173,11 +183,13 @@ class EnsembleModelAgent(Agent):
         then combined with Pinnacle at the sharp_weight ratio.
         """
         # --- Step 1: Confidence-weighted average of model predictions ---
+        weight_overrides = self.SECTOR_WEIGHT_OVERRIDES.get(sector.lower(), {})
         model_contribs: list[tuple[float, float, float, Optional[float]]] = []
         for pred in model_preds.values():
             if pred.confidence <= 0.45:
                 continue
-            eff_w = pred.weight * pred.confidence
+            w = weight_overrides.get(pred.model_name, pred.weight)
+            eff_w = w * pred.confidence
             if eff_w <= 0:
                 continue
             model_contribs.append((eff_w, pred.true_prob_a, pred.true_prob_b, pred.true_prob_draw))

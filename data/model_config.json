@@ -15,6 +15,7 @@
   ],
   "sharp_weight_by_sector": {
     "tennis": 0.92,
-    "baseball": 0.88
+    "baseball": 0.88,
+    "soccer": 0.88
   }
 }

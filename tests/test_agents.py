@@ -494,6 +494,64 @@ class TestEloModelAgent:
         total = pred.true_prob_a + pred.true_prob_b + (pred.true_prob_draw or 0.0)
         assert abs(total - 1.0) < 0.01
 
+    @pytest.mark.asyncio
+    async def test_soccer_draw_strength_dependent(self, tmp_path, monkeypatch):
+        """Soccer draw allocation should scale with team-strength gap:
+        even matches get ~26% draw, mismatched get much less."""
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = EloModelAgent()
+        agent._state_path = tmp_path / "elo_state.json"
+
+        market = make_market(
+            sector="soccer", team_home="man city", team_away="burnley",
+            yes_team="man city",
+        )
+        market = market.model_copy(update={"sector": "soccer"})
+        sharp = make_sharp(
+            sector="soccer", team_a="man city", team_b="burnley",
+            event_id="soccer::2026-04-15::man_city_vs_burnley",
+        )
+        sharp = sharp.model_copy(update={
+            "sector": "soccer", "true_prob_draw": 0.25,
+            "true_prob_a": 0.40, "true_prob_b": 0.35,
+        })
+
+        # Even match: both teams at default 1500
+        pred_even = await agent.predict_pair(market, sharp)
+        assert pred_even is not None
+        assert pred_even.true_prob_draw is not None
+        # Even match draw should be ~26%
+        assert pred_even.true_prob_draw > 0.24
+
+        # Mismatched: seed one team much higher
+        agent.seed_ratings("soccer", {"man city": 1700, "burnley": 1300})
+        pred_mis = await agent.predict_pair(market, sharp)
+        assert pred_mis is not None
+        assert pred_mis.true_prob_draw is not None
+        # Mismatched draw should be much lower
+        assert pred_mis.true_prob_draw < 0.15
+        # And draw should be lower than even match
+        assert pred_mis.true_prob_draw < pred_even.true_prob_draw
+
+    @pytest.mark.asyncio
+    async def test_soccer_draw_never_exceeds_26pct(self, tmp_path, monkeypatch):
+        """Draw probability should cap at ~26% even for perfectly even teams."""
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = EloModelAgent()
+        agent._state_path = tmp_path / "elo_state.json"
+
+        market = make_market(sector="soccer")
+        market = market.model_copy(update={"sector": "soccer"})
+        sharp = make_sharp(sector="soccer")
+        sharp = sharp.model_copy(update={
+            "sector": "soccer", "true_prob_draw": 0.25,
+            "true_prob_a": 0.40, "true_prob_b": 0.35,
+        })
+        pred = await agent.predict_pair(market, sharp)
+        assert pred is not None
+        assert pred.true_prob_draw is not None
+        assert pred.true_prob_draw <= 0.27  # 26% + small rounding margin
+
 
 # ---------------------------------------------------------------------------
 # FormModelAgent
@@ -680,6 +738,57 @@ class TestEnsembleModelAgent:
         ensemble = EnsembleModelAgent(models=[], sharp_weight=0.40)
         resp = await ensemble(AgentRequest(sector="nba", params={"pairs": []}))
         assert resp.data == {}
+
+    def test_soccer_weight_overrides_exist(self):
+        """Ensure soccer has sector-specific weight overrides that boost
+        Poisson (empirical draws) and reduce Elo/Form (fixed draw formula)."""
+        overrides = EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES.get("soccer")
+        assert overrides is not None, "Soccer must have SECTOR_WEIGHT_OVERRIDES"
+        assert overrides["poisson"] > overrides["elo"], (
+            "Poisson should be weighted higher than Elo for soccer"
+        )
+        assert overrides["poisson"] > overrides["form"], (
+            "Poisson should be weighted higher than Form for soccer"
+        )
+        # Poisson should be the dominant model for soccer
+        assert overrides["poisson"] >= 0.40
+
+    def test_soccer_weight_overrides_applied_in_blend(self):
+        """Verify _blend uses sector overrides, not class-level weights."""
+        from evmax.agents.models.base import ModelAgentPrediction
+
+        ensemble = EnsembleModelAgent(models=[], sharp_weight=0.50)
+
+        # Two fake model predictions: elo (overridden to 0.20) and poisson (0.45)
+        preds = {
+            "elo": ModelAgentPrediction(
+                event_id="test", model_name="elo",
+                true_prob_a=0.30, true_prob_b=0.50, true_prob_draw=0.20,
+                confidence=0.60, weight=0.35,  # class-level weight
+            ),
+            "poisson": ModelAgentPrediction(
+                event_id="test", model_name="poisson",
+                true_prob_a=0.40, true_prob_b=0.35, true_prob_draw=0.25,
+                confidence=0.60, weight=0.30,  # class-level weight
+            ),
+        }
+        sharp = make_sharp(sector="soccer")
+        sharp = sharp.model_copy(update={
+            "sector": "soccer", "true_prob_a": 0.35, "true_prob_b": 0.40,
+            "true_prob_draw": 0.25,
+        })
+
+        # Blend with soccer sector → should use overrides
+        blend_soccer = ensemble._blend("test", preds, sharp, 0.50, sector="soccer")
+        # Blend with NBA → should use class-level weights
+        blend_nba = ensemble._blend("test", preds, sharp, 0.50, sector="nba")
+
+        assert blend_soccer is not None
+        assert blend_nba is not None
+        # Soccer blend should be closer to Poisson's prob_a (0.40) because
+        # Poisson gets 0.45 weight vs Elo's 0.20 in soccer overrides
+        # NBA blend has Elo 0.35 vs Poisson 0.30 — more balanced
+        assert blend_soccer.true_prob_a != blend_nba.true_prob_a
 
 
 # ---------------------------------------------------------------------------
