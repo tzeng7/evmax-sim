@@ -1,0 +1,162 @@
+# Betting category registry — the single source of truth for what evmax can
+# bet on, which models run for each category, what state each is in, and
+# whether the scanner should run it live, in shadow mode, or skip it.
+#
+# Schema per category:
+#   display_name     : human-readable name shown in CLI output and CLAUDE.md
+#   market_types     : list of MarketType enum values the sector produces
+#                      (moneyline / spread / total / map_handicap /
+#                      series_winner / player_prop / other). For prop
+#                      categories this is always [player_prop]; the per-stat
+#                      taxonomy lives in prop_stat_types.
+#   prop_stat_types  : (optional) list of stat-level names — only populated
+#                      for prop categories (e.g. [points, rebounds, assists]
+#                      for nba_props). Null / absent for game categories.
+#   models           : list of model names that actually contribute
+#                      (confidence > 0) for this sector. Models wired in
+#                      the ensemble but gated out per-sector are OMITTED —
+#                      this list reflects live contribution, not registration.
+#   mode             : one of "live" | "shadow" | "disabled"
+#                        live     → scanner produces EVGaps, persists with
+#                                   mode='live', sizes Kelly against bankroll
+#                        shadow   → scanner produces predictions, persists
+#                                   with mode='shadow', DOES NOT touch bankroll
+#                        disabled → scanner skips the category entirely
+#   resolver         : where outcome resolution reads from
+#   status           : one of "shipped" | "wip" | "unresolved" | "blocked"
+#   notes            : (optional) free-text caveats, TODO.md cross-references
+#
+# Validation (evmax/categories.py::validate_registry):
+#   - every key in evmax/clients/kalshi.py::SECTOR_SERIES_MAP must have an entry
+#   - every `market_types` value must be in MarketType enum
+#   - every `models` name must exist in KNOWN_MODELS
+#   - every `mode` value must be in {live, shadow, disabled}
+#   - every `resolver` value must be in KNOWN_RESOLVERS
+#   - every `status` value must be in {shipped, wip, unresolved, blocked}
+#   - prop_stat_types must be non-null iff `market_types == [player_prop]`
+
+# ===========================================================================
+# Game-level categories
+# ===========================================================================
+
+nba:
+  display_name: "NBA"
+  market_types: [moneyline, spread, total]
+  models: [elo, form, poisson, sharp]
+  mode: live
+  resolver: espn_scoreboard
+  status: shipped
+  notes: null
+
+nfl:
+  display_name: "NFL"
+  market_types: [moneyline, spread, total]
+  models: [elo, form, poisson, sharp]
+  mode: live
+  resolver: espn_scoreboard
+  status: shipped
+  notes: null
+
+ncaab:
+  display_name: "NCAAB (Men's College Basketball)"
+  market_types: [moneyline, spread, total]
+  models: [elo, form, poisson, sharp]
+  mode: live
+  resolver: espn_scoreboard
+  status: shipped
+  notes: null
+
+ncaaw:
+  display_name: "NCAAW (Women's College Basketball)"
+  market_types: [moneyline, spread, total]
+  models: [form, sharp]
+  mode: live
+  resolver: espn_scoreboard
+  status: shipped
+  notes: "Elo K-factor and home-advantage not calibrated for NCAAW — see MODEL-2 / SECTOR-2. Elo contributes 0 until then."
+
+soccer:
+  display_name: "Soccer (EPL, UCL, La Liga, Bundesliga, Serie A, Ligue 1, MLS, UEL)"
+  market_types: [moneyline, total]
+  models: [elo, form, poisson, sharp]
+  mode: live
+  resolver: espn_scoreboard
+  status: shipped
+  notes: "Draw markets handled as separate TIE outcomes. MLS + UEL resolution added in PR #1."
+
+tennis:
+  display_name: "Tennis (ATP + WTA)"
+  market_types: [moneyline]
+  models: [tennis_surface_elo, tennis_serve_return, tennis_h2h, tennis_ranking_trend, sharp]
+  mode: live
+  resolver: kalshi_settlement
+  status: shipped
+  notes: "Court adjustment (indoor vs outdoor) deferred — see MODEL-6. Surface resolved from Kalshi event.product_metadata.competition (MODEL-1 / PR #5)."
+
+baseball:
+  display_name: "Baseball (MLB)"
+  market_types: [moneyline, spread, total]
+  models: [elo, form, poisson, pitcher, sharp]
+  mode: live
+  resolver: espn_scoreboard
+  status: shipped
+  notes: "Pitcher Pythag model live (BUG-9 fixed in PR #2)."
+
+nhl:
+  display_name: "NHL"
+  market_types: [moneyline, spread, total]
+  models: [form, sharp]
+  mode: live
+  resolver: espn_scoreboard
+  status: shipped
+  notes: "Elo K-factor and home-advantage not calibrated for NHL — see MODEL-2 / SECTOR-1. Elo contributes 0 until then. Resolution wired via PR #1."
+
+lol:
+  display_name: "League of Legends"
+  market_types: [moneyline, map_handicap]
+  models: [elo, form, sharp]
+  mode: live
+  resolver: bo3gg
+  status: shipped
+  notes: null
+
+cs2:
+  display_name: "CS2"
+  market_types: [moneyline, map_handicap]
+  models: [elo, form, sharp]
+  mode: live
+  resolver: bo3gg
+  status: shipped
+  notes: null
+
+# Valorant, UFC, F1 are in evmax/sectors/registry.py (latent sector handlers
+# with Elo K-factors wired in) but are NOT in kalshi.py::SECTOR_SERIES_MAP —
+# there is no Kalshi product for them, so they cannot currently be bet on
+# even though the infrastructure would support them if markets appeared.
+# Do not add them to this registry until Kalshi ships matching series and
+# they get wired into SECTOR_SERIES_MAP. The validator enforces this by
+# failing fast if the two lists drift apart.
+
+# ===========================================================================
+# Player-prop categories
+# ===========================================================================
+
+nba_props:
+  display_name: "NBA player props"
+  market_types: [player_prop]
+  prop_stat_types: [points, rebounds, assists, threes, steals, blocks, points_rebounds_assists]
+  models: [nba_props_cache]
+  mode: live
+  resolver: espn_boxscore
+  status: shipped
+  notes: "Daily L15 game log cache at data/nba_props_cache.json; per-36-min normalization + opponent adjustment + streak/margin blends."
+
+nfl_props:
+  display_name: "NFL player props"
+  market_types: [player_prop]
+  prop_stat_types: [passing_yards, rushing_yards, receiving_yards, passing_tds, receptions, anytime_td]
+  models: [nfl_props_cache_v1_qb_only]
+  mode: shadow
+  resolver: espn_boxscore
+  status: blocked
+  notes: "Stage 4 backtest shipped (PR #6) — QB-only NO-side ROI +79% at ev>=3% vol>=1000. Live betting blocked on MODEL-9 (shadow validation against pre-game prices). kalshi.py SECTOR_SERIES_MAP still has phantom series names (KXNFLPAS etc.); the fix ships with MODEL-9 so no NFL prop markets are fetched in scan today."
