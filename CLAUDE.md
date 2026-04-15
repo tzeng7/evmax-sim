@@ -268,3 +268,84 @@ flowchart TD
 - **Fan-out stages (FETCH, MODELS)** run in `asyncio.gather` — the coordinator launches every agent in parallel and waits for all results before moving forward.
 - **Mode resolution** at the last persistence step is the ARCH-11 addition: `evmax.modes.get_mode(category)` layers runtime CLI overrides (highest) over `EVMAX_CATEGORY_MODES` env var over the YAML base (lowest). Before ARCH-11, there was no `MODE` diamond — every EVGap above threshold went straight to `ev_predictions`.
 - **`run_maintenance`** runs on the persisted rows, not the in-memory gap list, so it sees the same filtered set the user will see in `evmax cleanup show`.
+
+### Predictions DB Schema
+
+`data/predictions.db` (SQLite) has three tables. The join key is **`market_id`** across all three. Schema authoritatively defined in `evmax/agents/cleanup/db.py`.
+
+```mermaid
+erDiagram
+    ev_predictions ||--o| ev_outcomes : "market_id · LEFT JOIN for resolution"
+    ev_predictions {
+        int id PK
+        text scan_date "YYYY-MM-DD, part of UNIQUE"
+        text market_id "UNIQUE with scan_date"
+        text event_id
+        text sector "nba / nfl / tennis / ..."
+        text yes_team
+        text market_type "moneyline / spread / total / player_prop"
+        text event_title "display label"
+        text event_date "game date"
+        real kalshi_yes_price "implied prob at scan"
+        real sharp_true_prob "devigged Pinnacle"
+        real blended_true_prob "after model+injury blend"
+        real ev_pct "edge vs kalshi"
+        real kelly_fraction
+        real bankroll_used "at scan time"
+        real line "spread/total"
+        int voided "1=game cancelled"
+        int placed "1=user confirmed via pick"
+        real placed_price "fill price"
+        real placed_stake "dollars"
+        text mode "ARCH-11: live/shadow/disabled"
+        real captured_yes_price "ARCH-11: pre-game YES ask"
+        text model_version "ARCH-11: lets us expire stale shadow"
+    }
+
+    prop_observations {
+        int id PK
+        text scan_date "UNIQUE with market_id"
+        text sector
+        text player_name
+        text stat_type "points/rebounds/passing_yards/..."
+        real line "threshold, e.g. 24.5"
+        real kalshi_price
+        real sharp_prob
+        real ev_pct "may be negative - we log all"
+        int l15_games "sample size"
+        text market_id "UNIQUE with scan_date"
+        text event_id "contains '::prop::' marker"
+        real actual_value "28.0 = scored 28 pts"
+        int outcome "1=over, 0=under, NULL=pending"
+        text mode "ARCH-11"
+        real captured_yes_price "ARCH-11"
+        text model_version "ARCH-11"
+    }
+
+    ev_outcomes {
+        int id PK
+        text market_id UK "one row per market"
+        text event_id
+        text event_date
+        text sector
+        text yes_team
+        int outcome "1=YES won, 0=NO, NULL=pending"
+        real sharp_true_prob
+        real blended_true_prob
+        real pinnacle_close_prob "for CLV"
+        text resolved_at
+        text result_source "espn / bo3gg / manual"
+    }
+```
+
+**Key conventions that trip people up:**
+
+- **`ev_predictions` has one row per (market_id, scan_date)** — the UNIQUE constraint means a market scanned on two consecutive days produces two rows. `evmax cleanup show` and the web dashboard deduplicate via an `INNER JOIN (SELECT market_id, MAX(scan_date) ... GROUP BY market_id)` subquery so the user sees each market exactly once at its latest state.
+- **`ev_outcomes` has one row per market_id** (UNIQUE on `market_id` alone) — resolution lives here, not in `ev_predictions`. A `LEFT JOIN` is always used so unresolved markets still appear in the output with `outcome IS NULL`.
+- **`prop_observations` is parallel to `ev_predictions`** — not a child table. Both are log destinations for the scanner; `log_gaps()` writes the former and `log_prop_observations()` writes the latter. They share the `market_id` / `scan_date` uniqueness pattern but do not JOIN to each other.
+- **`sector` is stored on both `ev_predictions` and `ev_outcomes`** — denormalized by design. Lets `evmax cleanup show --sector nba` filter without a JOIN.
+- **Prop categories** (`nba_props`, `nfl_props`) are identified by `event_id LIKE '%::prop::%'`, not by a dedicated column. That substring is the signal `log_gaps` uses to route to `prop_observations` instead of `ev_predictions`, and `_gap_category_key()` uses to map `sector` → `{sector}_props` for mode lookup.
+- **ARCH-11 mode columns (`mode`, `captured_yes_price`, `model_version`) exist on both `ev_predictions` and `prop_observations` but NOT on `ev_outcomes`.** Outcome resolution is mode-agnostic — shadow bets still need outcomes — so there's no reason to tag the outcome row.
+- **`placed = 1`** is a user action (manual pick confirmation), distinct from the prediction log. A row can exist with `placed = 0` (scan-found but not confirmed), `placed = 1` (user clicked pick), and the outcome join works identically for both.
+
+For the bigger picture — how these tables fit into the live pipeline alongside `archive.db`, `model_config.json`, and the model state files — see the Scan Pipeline diagram above and the Architecture tree under Key Implementation Details.
