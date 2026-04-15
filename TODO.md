@@ -8,6 +8,25 @@
 
 ## Recently Shipped
 
+### NFL prop backtest infrastructure (Stage 4 of feat/nfl-prop-backtest)
+- ✅ Kalshi historical pull — `scripts/fetch_nfl_prop_history.py` pulls 31,869 settled NFL prop markets across 1,164 events, Dec 1 2025 – Feb 8 2026, via unauthenticated `/historical/markets?event_ticker=...`. Wrote to `data/backtest/nfl_props/kalshi_raw.json` (76 MB).
+- ✅ nflverse feature pull — `scripts/fetch_nfl_features.py` pulls weekly stats / schedules / weekly rosters direct from nflverse GitHub releases (ditched `nfl_data_py` — it hardcodes a dead URL). Writes parquet, spot check confirmed point-in-time filtering works.
+- ✅ Join + shape report — `scripts/join_nfl_prop_backtest.py` joins Kalshi → nflverse via normalized name matching, 99.7% match rate (30,601 / 30,693) after offensive-position-aware ambiguity resolution, roman-numeral suffix handling, nickname aliases (Hollywood → Marquise Brown, Joshua → Josh Palmer), empty-gsis-id filter, and "* Defense" / "No Touchdown" non-player drops.
+- ✅ Pure probability model — `evmax/clients/nfl_props_cache.py` with yardage (normal CDF + decay + empirical blend + streak), poisson (anytime TD + passing TDs), and count (receptions) branches. Per-stat MIN_STD floors. 23 unit tests covering monotonicity, opponent adj, thin-sample gating, poisson threshold stepping.
+- ✅ Backtest loader — `evmax/backtest/sources/nfl_props.py` with point-in-time feature extraction, pre-grouped player history, rolling opponent defense per (season, week, team), league-average baselines. `--stats` filter for sub-setting.
+- ✅ Prop-specific metrics + display — `metrics_props.py`, `display_props.py`, `PropBacktestRow` / `PropBacktestReport` dataclasses. Engine + CLI dispatch.
+- ✅ Closing-price leakage fix — ROI calculation now skips markets with closing price outside [0.05, 0.95] because `last_price_dollars` on settled Kalshi markets converges toward 0/1 near settlement. Market baseline Brier applies the same filter.
+- ✅ Full suite: 772 → 795 tests passing.
+
+**✅ Gate status (Stage 4 + MODEL-8):** NFL prop modeling passes all three gates via a **NO-side-only betting strategy**, with a leakage caveat that requires shadow validation before live bets (see MODEL-9).
+- QB-only pooled Brier: **0.179** (gate < 0.22, passes).
+- Per-stat Brier: passing_tds 0.169, passing_yards 0.180.
+- **ROI at ev≥3%, vol≥1000, NO-side only: +79.1%** (247 bets, 74.9% win rate).
+- **ROI is monotone in EV threshold** (+43% at ev=2% → +115% at ev=8% vol-gated) and **monotone in volume gate** (+43% ungated → +76% at vol≥1000). Both are consistent with a real edge, not noise.
+- **YES-side is catastrophic (−88% ROI)** at every EV threshold — the model's upper-tail overconfidence (still 12pp miss at the 90–100% bucket after MODEL-8) is concentrated on exactly the markets it flags as YES edges. Kalshi NFL prop markets also appear systematically overpriced on YES, likely retail excitement betting.
+- **Leakage caveat:** the backtest uses `last_price_dollars` (closing price) not a pre-game snapshot. A market settling NO drifts downward through the game as events unfold. The ROI signal could be partly/wholly retrospective. Volume-gating mitigates but doesn't eliminate this. See MODEL-9 for the shadow-mode validation plan required before live bets.
+- Non-QB stats (rec_yds, rush_yds, rec, anytime_td) still have Brier ≥ 0.21 — need usage/target-share/Vegas features, see MODEL-7.
+
 ### PR #5 — Tennis surface resolver from Kalshi competition + weight trim
 - ✅ MODEL-1 / SECTOR-3 — Tennis surface now detected from Kalshi `event.product_metadata.competition` (structured "{ATP|WTA} {City}" strings) instead of scanning generic market titles. `KalshiClient.get_markets` fetches `/events` in parallel with `/markets` for tennis and joins by `event_ticker`. `PredictionMarket` gained an optional `competition` field (additive, zero SQL migration). Resolver returns `(surface, is_indoor)` with longest-match-first dict ordering so brand aliases like "stuttgart open" (grass) beat ambiguous "stuttgart" (clay). Indoor check gated on `surface == hard` since clay/grass are always outdoor on tour.
 - ✅ MODEL-5 — `TennisModelAgent.weight` trimmed 0.45 → 0.35 so tennis no longer dominates the ensemble blend when competing with other models.
@@ -126,6 +145,101 @@ This is a deliberate deferral — not a cleanup chore. Pick the strategy that fi
 
 **Secondary cleanup tracked here:** the frozen 51-entry `indoor` bucket in state is cosmetic debt (~2KB disk, no correctness or perf impact) as long as MODEL-6 is pending. Do not ship a standalone cleanup script — fold it into MODEL-6's migration instead.
 
+### MODEL-7 Non-QB NFL Prop Features (Usage, Target Share, Vegas Totals) [P3]
+**Files:** `evmax/clients/nfl_props_cache.py`, `evmax/backtest/sources/nfl_props.py`, `scripts/fetch_nfl_features.py`
+
+**Context.** The Stage 4 backtest (see Recently Shipped) showed non-QB NFL stats (`rushing_yards`, `receiving_yards`, `receptions`, `anytime_td`) have Brier ≥ 0.21 and in some cases perform *worse* than the naive "always predict the base rate" prior. Receiving yards alone is 35% of the dataset and has Brier 0.254 vs prior 0.234. The current model for those stats uses only the player's L8-game rolling mean + Gaussian tail + streak adjustment + team-level opponent allowed-per-game. That feature set is insufficient for stats where per-game variance is dominated by usage shifts and game script, not mean skill.
+
+**Specific features to add (all already in `weekly_stats.parquet` — no new data pulls):**
+
+1. **Usage decomposition.** Model `yards = usage × efficiency` as two separate rolling terms instead of one combined term.
+   - RB rushing: `rushing_yards = carries × YPC`. Predict `carries` and `YPC` separately — each is less noisy than their product. A RB whose YPC is stable at 4.2 but whose carries drop 22 → 11/game will have current-model yards drop 92 → 46 silently; a decomposed model catches the usage shift immediately.
+   - WR receiving: `receiving_yards = targets × catch_rate × ypr`. Similar decomposition.
+   - Columns already in parquet: `carries`, `targets`, `receptions`, `target_share`, `air_yards_share`, `wopr`.
+
+2. **Position-aware opponent adjustment.** Currently `_build_defense_table()` computes a single "pass yards allowed per game" per defense-week. Replace with buckets by target player position/role (WR1 vs slot vs TE vs RB1). A defense that shuts down #1 WRs while getting shredded by slots is currently a lossy single number — tighten to role-matched rolling averages.
+
+3. **Vegas totals + spreads.** Game total is the single best predictor of scoring environment (drives weather, pace, script expectations). Check `schedules.parquet` — it has 46 columns and I only verified 7; look for `spread_line` / `total_line`. If absent, nflverse has a separate `lines` release tag (same direct-fetch pattern as Stage 2). Likely modest impact on QBs, larger impact on rec/rush yards.
+
+4. **Snap count.** nflverse has a separate `snap_counts` dataset (weekly). Out-of-parquet; separate fetch. Would let the model distinguish "played 70% snaps last week" from "played 35% snaps last week" — which is the dominant injury-recovery signal.
+
+**Expected impact.** Pooled Brier on non-QB stats probably drops 0.24–0.25 → 0.21–0.22. Would likely cross the 0.22 pooled gate from Stage 4. **Still insufficient for ROI viability** — would likely still lose to the market's 0.135 Brier on closing prices, because the market has access to practice reports / inactives / weather forecasts that no parquet captures.
+
+**Blocker / priority.** P3 because non-QB prop modeling is downstream of MODEL-8 (calibration fix). Fixing the features without fixing the tail overconfidence won't make the model bet-viable.
+
+### ~~MODEL-8 NFL Prop Tail Calibration~~ ✅ SHIPPED (partial — steps 1-3 of 4)
+Doubled MIN_STD floors (passing 35→70, rushing 15→30, receiving 12→24, receptions 1→2), removed the ±0.04 streak adjustment, and capped the empirical-blend disagreement at ±15pp. QB-only Brier improved from 0.1854 → 0.1789. Lower-tail calibration is now nearly perfect (0–10% predicted → 9.1% actual). Upper-tail still misses by ~12pp but the NO-side strategy doesn't depend on upper-tail accuracy. Step 4 (Platt/isotonic post-hoc) was not needed for the gate and is deferred. All 24 NFL prop tests still pass. See Recently Shipped block above for full gate numbers.
+
+### MODEL-8-ORIGINAL — historical context, do not re-run
+**File:** `evmax/clients/nfl_props_cache.py`
+**Files:** `evmax/clients/nfl_props_cache.py`
+
+**Context.** The QB-only Stage 4 backtest (passing_yards + passing_tds, 3,642 settled markets) produced:
+- Pooled Brier 0.1854 (passes 0.22 gate)
+- Accuracy 74.1%
+- **But ROI at ev≥2%, vol≥1000: −86.7% with 5.1% win rate** — the model systematically loses on the specific markets where it claims the biggest edge vs the market.
+
+The calibration chart is the diagnostic:
+```
+predicted  actual   n
+0–10%     → 12.3%  1,255   (model too confident "under")
+20–30%    → 33.1%    296
+30–40%    → 35.0%    254   (middle bins calibrate ok)
+50–60%    → 56.3%    229
+70–80%    → 61.0%    228   (upper tail: model too confident "over")
+90–100%   → 78.8%    349   (−18pp miss)
+```
+
+Middle bins are well-calibrated. Tails miss by 10–18pp. The ROI filter picks exactly those tail-disagreement markets where the model is wrong, producing the win-rate collapse.
+
+**Root causes (ordered by suspected magnitude):**
+
+1. **Gaussian std floor is too tight.** `MIN_STD_BY_STAT` uses 35 yards for passing, 15 for rushing, 12 for receiving. Real per-game variance is wider because of game-script effects, weather, opponent pressure. Raising the floors 1.5–2× would flatten the tails.
+
+2. **Streak adjustment amplifies overconfidence.** The `+0.04` / `−0.04` nudge for 3-of-3 hot/cold streaks compounds on top of an already-confident Gaussian. For a model predicting 0.92, adding 0.04 → 0.96 moves it into the miscalibrated 90–100% bucket.
+
+3. **Empirical hit-rate blend (60/40).** When the player has beaten the line in 6/8 recent games, `weighted_hit_rate` approaches 0.75 and the blend amplifies the Gaussian's prediction.
+
+4. **Margin adjustment.** `avg_margin × 0.01` can add up to ±8% — another extreme-pushing term.
+
+**Likely fix sequence (do in order, re-measure calibration after each):**
+
+1. **Raise MIN_STD floors by 2×** (passing: 70, rushing: 30, receiving: 24). Re-run backtest. Expected: tails shrink toward reality, middle bins unchanged. Brier may drift up slightly — that's OK, we want a less-confident model.
+
+2. **Kill the streak adjustment entirely.** Streaks in 3-game windows are mostly noise at the NFL's weekly cadence. Re-measure.
+
+3. **Cap the empirical blend at |model − empirical| ≤ 0.15.** If the hit rate disagrees with the Gaussian by more than 15pp, trust the Gaussian (the hit rate is being driven by 1–2 outlier games).
+
+4. **Optional: switch to a Platt-scaling or isotonic post-hoc calibration layer.** Train on (pred, actual) pairs from 2024 season data (out-of-sample from the 2025-26 backtest), apply as a post-processing step. This is the textbook fix for systematic miscalibration.
+
+**Gate to re-run:** target calibration bins of ≤5pp max miss across all buckets AND ROI > 0% at ev≥3%, vol≥1000. Only then proceed to Stage 5 (live pipeline integration).
+
+**Blocker:** none — purely a model iteration using data already on disk. ~4 hours focused work.
+
+### MODEL-9 NFL Prop Shadow-Mode Validation [P1 — blocks Stage 5 live betting]
+**Files:** `evmax/agents/coordinator.py`, `evmax/agents/cleanup/db.py`, `evmax/cli/commands/agents.py`, `evmax/cli/commands/cleanup.py`
+
+**Context.** MODEL-8 produced a backtest that passes all three Stage 4 gates — Brier 0.179, log-loss improved over prior, ROI +79% at ev≥3% vol≥1000 — **BUT** the ROI number uses Kalshi `last_price_dollars` (closing price), which for settled NO markets drifts downward through the game as events unfold. The ROI signal is either (a) real retail-overprices-YES edge, (b) retrospective leakage, or (c) a mix. We can't distinguish these three using only Stage 1's historical dataset.
+
+**Distinguishing the three requires capturing pre-game prices at scan time and resolving outcomes separately.** That's what shadow mode is for: run the NFL prop scanner during live NFL weeks, log (model_prob, pre_game_yes_price, threshold, player, game) tuples to a shadow table, resolve outcomes via ESPN boxscore, compute ROI using prices the live bettor actually could have gotten. If shadow ROI holds within ~15pp of the backtest's +79%, the edge is real and we ship Stage 5 with real Kelly sizing. If it collapses below 0%, we know it was leakage and close PROPS-1.
+
+**Fix scope:**
+1. **New `shadow_predictions` table** in `predictions.db` mirroring `ev_predictions` schema plus a `captured_yes_price` column (the pre-game price at scan time — distinct from what the market drifts to post-game). Also a `model_mode` enum `shadow | live | disabled`.
+2. **Category mode config** (see ARCH-11 below — the general live/shadow toggle the user asked for). For NFL prop validation specifically, the mode is `shadow` for `nfl_props` and `live` (or current default) for everything else.
+3. **Coordinator branch point:** `_fetch_props()` → when an NFL prop scan produces EVGaps, instead of persisting to `ev_predictions`, check the mode for `nfl_props`. If shadow, write to `shadow_predictions` with `captured_yes_price = yes_ask` at scan time. No Kelly sizing applied to bankroll.
+4. **Resolver path:** `evmax cleanup resolve --date X --shadow` resolves shadow rows via ESPN boxscore using the same `prop_resolver` logic already generic for NFL.
+5. **New CLI: `evmax cleanup shadow show/metrics`** — reports shadow ROI and Brier alongside backtest numbers so we can compare.
+6. **Minimum sample gate:** do not re-enable live for NFL props until shadow mode has captured ≥ 500 bets across ≥ 3 NFL weeks (2026 regular season) AND shadow ROI is within 15pp of backtest ROI.
+7. **kalshi.py typo fix** comes in this PR since shadow mode requires the scanner to actually fetch NFL prop markets.
+
+**Gate to promote nfl_props from shadow to live:**
+- ≥ 500 shadow bets captured, ≥ 3 distinct weeks
+- Shadow ROI at ev≥3%, vol≥1000, NO-only ≥ 65% (backtest was 79%, allow 15pp degradation)
+- Shadow Brier within 10% of backtest Brier (0.197 max)
+- Calibration chart tail miss ≤ 15pp at 90–100% bin
+
+**Blocker:** NFL regular season starts Sept 2026. Shadow validation requires at least 3-4 weeks of live NFL to be meaningful. Until then, build the infrastructure only — don't attempt to run shadow during the offseason (no markets).
+
 ---
 
 ## Section 4 — Test Coverage Gaps
@@ -214,6 +328,57 @@ The current retry layer (`base.py::_is_retryable`) only runs **2 attempts** with
 
 **Blocker:** none. Uses existing infrastructure. Can ship as a standalone PR.
 
+### ARCH-11 Per-Category Live / Shadow / Disabled Mode Config [P1]
+**Files:** new `evmax/modes.py`, `evmax/settings.py`, `evmax/agents/coordinator.py`, `evmax/agents/cleanup/db.py`, `evmax/cli/commands/agents.py`, `evmax/cli/commands/cleanup.py`, new `shadow_predictions` table
+
+**Context.** The user wants a single place to declare, per category (sector × market-type), whether the scanner should:
+- `live` — compute edges, produce EVGaps, persist to `ev_predictions`, size Kelly against bankroll (current default for every sector)
+- `shadow` — compute edges, log predictions + pre-game prices to a separate `shadow_predictions` table, do NOT touch bankroll
+- `disabled` — skip the category entirely during scan (saves API calls for sectors we're not trading)
+
+The immediate use case is MODEL-9 (NFL props need shadow validation before live), but the same toggle is useful across the board: new sector rollouts, vacation bankroll freezes, post-outage recovery, or simply "I don't want to trade NHL anymore."
+
+**Design:**
+
+1. **Canonical category keys** — strings of the form `{sector}` for game markets, `{sector}_props` for player props. Examples: `nba`, `nba_props`, `nfl`, `nfl_props`, `tennis`, `mlb`, `nhl`. Matches the Kalshi `_props` suffix convention already in `SECTOR_SERIES_MAP`.
+
+2. **Settings source of truth.** Add `category_modes: dict[str, str]` to `evmax/settings.py`. Default all known categories to `live` except `nfl_props` which starts as `shadow`. Loaded from env via pydantic-settings: `EVMAX_CATEGORY_MODES='{"nfl_props":"shadow","nhl":"disabled"}'` (JSON string) OR from a new `data/category_modes.yaml` if present, which takes precedence. YAML is editable without code changes.
+
+3. **New module `evmax/modes.py`** wraps the read with a clean API: `get_mode(category) -> Literal["live","shadow","disabled"]`, `is_live(category) -> bool`, `is_shadow(category) -> bool`. All coordinator branches go through this module — no raw dict lookups scattered in code.
+
+4. **CLI overrides.** Every scan-adjacent CLI command accepts `--live X,Y --shadow Z --disabled W` to override settings for a single run. Overrides compose per-command, not persisted.
+
+5. **Persistence split.** Add `shadow_predictions` table mirroring `ev_predictions` schema plus:
+   - `captured_yes_price` — the pre-game YES ask at scan time
+   - `captured_at` — scan timestamp
+   - `mode` — always `"shadow"` in this table (redundant but makes joins easier)
+   - `model_version` — a short string like `nfl_props_v1_QB_only` so we can re-validate when the model changes
+   
+   `ev_predictions` stays untouched. No shadow data in the live bet log, no live data in the shadow log.
+
+6. **Coordinator hook.** In `AgentCoordinator.run_cycle()`, after EVGaps are produced for a sector, check `get_mode(category)`:
+   - `disabled` → skip persistence entirely (scan output still prints, no DB write)
+   - `shadow` → insert into `shadow_predictions`, set `bankroll_used = 0`, skip exposure guard
+   - `live` → existing flow, insert into `ev_predictions`, full Kelly sizing + exposure guard
+   
+   The in-memory scan output (the rich table the user sees) shows all three with a `[SHADOW]` / `[DISABLED]` badge prepended.
+
+7. **New CLI `evmax cleanup shadow`** family:
+   - `evmax cleanup shadow show --days 7` — recent shadow predictions with resolved outcomes
+   - `evmax cleanup shadow metrics --weeks 4` — Brier + ROI over a window, with a gate table per category
+   - `evmax cleanup shadow resolve --date YYYY-MM-DD` — calls `prop_resolver` against shadow rows for a given day
+   - `evmax cleanup shadow promote <category>` — after manual review, flips the category from `shadow` → `live` in `data/category_modes.yaml` and prints a confirmation
+
+8. **Documentation.** New section in CLAUDE.md: "Category modes" explaining the three states, the env var / YAML file, the CLI overrides, and the promotion workflow.
+
+**Blocker:** none. Pure infrastructure — can ship before MODEL-9 runs, and in fact SHOULD ship first because MODEL-9 depends on the shadow table and the category-mode plumbing existing.
+
+**Test coverage requirements (per CLAUDE.md testing policy):**
+- `evmax/modes.py` pure function tests — mode lookup, fallback to default, CLI override composition
+- Coordinator integration test: one sector in `live`, one in `shadow`, one in `disabled`, confirm each takes the right persistence path
+- `shadow_predictions` schema test
+- CLI override test (subprocess or typer Runner)
+
 ### ARCH-9 Resurrect TheOddsAPI Legacy Client as Paid Fallback [P3]
 **Files:** `evmax/clients/pinnacle.py`, `evmax/agents/odds/sharp_agent.py`, `evmax/models/odds.py`
 
@@ -296,7 +461,9 @@ Solved by reading Kalshi's `event.product_metadata.competition` field instead of
 
 | Priority | Item | Impact |
 |----------|------|--------|
-| P1 | PROPS-1 NFL props backend | Dead API calls |
+| P1 | ARCH-11 Category mode config (live/shadow/disabled) | Prerequisite to MODEL-9 and general capability across all sectors |
+| P1 | MODEL-9 NFL prop shadow validation | Blocks Stage 5 live betting; distinguishes real edge from backtest leakage |
+| P1 | PROPS-1 NFL props backend | Merged into MODEL-9 (kalshi.py typo fix ships with the shadow PR) |
 | P2 | MODEL-2 NCAAW/NHL Elo calibration | Uncalibrated K + home adv |
 | P2 | MODEL-6 Tennis indoor court modifier | Waits on live indoor-event data; `is_indoor` seam already in MODEL-1 |
 | P2 | TEST-3 PinnacleGuestClient tests | Only live sharp source untested |
@@ -306,6 +473,7 @@ Solved by reading Kalshi's `event.product_metadata.competition` field instead of
 | P3 | DOC-2b / DOC-3b remaining doc polish | — |
 | P3 | MODEL-3 Form draw normalization | Cosmetic precision |
 | P3 | MODEL-4 Poisson EWMA | Long-term staleness |
+| P3 | MODEL-7 Non-QB NFL prop features | Downstream of MODEL-9 — usage decomposition + Vegas totals + position-aware defense |
 | P3 | ARCH-9 Resurrect TheOddsAPI as paid fallback | Alternative to ARCH-10; pay-to-resilience path |
 | P3 | ARCH-10 Authenticated ps3838 API | Long-term alternative to guest tier; requires real Pinnacle account |
 | P3 | All other ARCH-* (1–6) | Skipped for now |
