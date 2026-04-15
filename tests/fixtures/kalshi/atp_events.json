@@ -1,0 +1,86 @@
+{
+  "cursor": "CgYIsJnzzgYSGEtYQVRQTUFUQ0gtMjZBUFIxM05BS0NFUg",
+  "events": [
+    {
+      "available_on_brokers": true,
+      "category": "Sports",
+      "collateral_return_type": "MECNET",
+      "event_ticker": "KXATPMATCH-26APR14MOLBUB",
+      "last_updated_ts": "2026-04-13T09:03:03.980575Z",
+      "mutually_exclusive": true,
+      "product_metadata": {
+        "competition": "ATP Munich",
+        "competition_scope": "Game"
+      },
+      "series_ticker": "KXATPMATCH",
+      "strike_period": "",
+      "sub_title": "Molcan vs Bublik (Apr 14)",
+      "title": "Molcan vs Bublik"
+    },
+    {
+      "available_on_brokers": true,
+      "category": "Sports",
+      "collateral_return_type": "MECNET",
+      "event_ticker": "KXATPMATCH-26APR14COBDED",
+      "last_updated_ts": "2026-04-13T09:03:04.140605Z",
+      "mutually_exclusive": true,
+      "product_metadata": {
+        "competition": "ATP Munich",
+        "competition_scope": "Game"
+      },
+      "series_ticker": "KXATPMATCH",
+      "strike_period": "",
+      "sub_title": "Cobolli vs Dedura-Palomero (Apr 14)",
+      "title": "Cobolli vs Dedura-Palomero"
+    },
+    {
+      "available_on_brokers": true,
+      "category": "Sports",
+      "collateral_return_type": "MECNET",
+      "event_ticker": "KXATPMATCH-26APR14BERTOP",
+      "last_updated_ts": "2026-04-13T09:03:02.440855Z",
+      "mutually_exclusive": true,
+      "product_metadata": {
+        "competition": "ATP Munich",
+        "competition_scope": "Game"
+      },
+      "series_ticker": "KXATPMATCH",
+      "strike_period": "",
+      "sub_title": "Bergs vs ToPo (Apr 14)",
+      "title": "Bergs vs ToPo"
+    },
+    {
+      "available_on_brokers": true,
+      "category": "Sports",
+      "collateral_return_type": "MECNET",
+      "event_ticker": "KXATPMATCH-26APR13FILATM",
+      "last_updated_ts": "2026-04-12T11:03:25.629476Z",
+      "mutually_exclusive": true,
+      "product_metadata": {
+        "competition": "ATP Barcelona",
+        "competition_scope": "Game"
+      },
+      "series_ticker": "KXATPMATCH",
+      "strike_period": "",
+      "sub_title": "Fils vs Atmane (Apr 13)",
+      "title": "Fils vs Atmane"
+    },
+    {
+      "available_on_brokers": true,
+      "category": "Sports",
+      "collateral_return_type": "MECNET",
+      "event_ticker": "KXATPMATCH-26APR13NAKCER",
+      "last_updated_ts": "2026-04-12T15:52:06.955089Z",
+      "mutually_exclusive": true,
+      "product_metadata": {
+        "competition": "ATP Barcelona",
+        "competition_scope": "Game"
+      },
+      "series_ticker": "KXATPMATCH",
+      "strike_period": "",
+      "sub_title": "Nakashima vs Cerundolo (Apr 13)",
+      "title": "Nakashima vs Cerundolo"
+    }
+  ],
+  "milestones": []
+}

@@ -81,6 +81,10 @@ class PredictionMarket(BaseModel):
     player_name: Optional[str] = None   # normalized player name
     stat_type: Optional[str] = None     # e.g. "points", "rebounds", "assists"
     threshold: Optional[float] = None   # e.g. 24.5
+    # Upstream structured tournament label from Kalshi
+    # event.product_metadata.competition (e.g. "ATP Munich", "WTA Rouen").
+    # Used by TennisModelAgent surface resolver. None for non-tennis sectors.
+    competition: Optional[str] = None
     fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @field_validator("yes_price", "no_price")
@@ -98,4 +102,6 @@ class PredictionMarket(BaseModel):
         return spread / mid if mid > 0 else 1.0
 
     def to_orm(self) -> PredictionMarketORM:
-        return PredictionMarketORM(**self.model_dump())
+        return PredictionMarketORM(
+            **self.model_dump(exclude={"competition"})
+        )

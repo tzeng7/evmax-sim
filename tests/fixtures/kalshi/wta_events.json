@@ -1,0 +1,86 @@
+{
+  "cursor": "CgYI-Jf0zgYSGEtYV1RBTUFUQ0gtMjZBUFIxM1NPTlBBTw",
+  "events": [
+    {
+      "available_on_brokers": true,
+      "category": "Sports",
+      "collateral_return_type": "MECNET",
+      "event_ticker": "KXWTAMATCH-26APR14SHYFRU",
+      "last_updated_ts": "2026-04-13T09:33:25.421067Z",
+      "mutually_exclusive": true,
+      "product_metadata": {
+        "competition": "WTA Rouen",
+        "competition_scope": "Game"
+      },
+      "series_ticker": "KXWTAMATCH",
+      "strike_period": "",
+      "sub_title": "Shymanovich vs Fruhvirtova (Apr 14)",
+      "title": "Shymanovich vs Fruhvirtova"
+    },
+    {
+      "available_on_brokers": true,
+      "category": "Sports",
+      "collateral_return_type": "MECNET",
+      "event_ticker": "KXWTAMATCH-26APR14PAQWAN",
+      "last_updated_ts": "2026-04-13T09:33:22.400485Z",
+      "mutually_exclusive": true,
+      "product_metadata": {
+        "competition": "WTA Rouen",
+        "competition_scope": "Game"
+      },
+      "series_ticker": "KXWTAMATCH",
+      "strike_period": "",
+      "sub_title": "Paquet vs Wang (Apr 14)",
+      "title": "Paquet vs Wang"
+    },
+    {
+      "available_on_brokers": true,
+      "category": "Sports",
+      "collateral_return_type": "MECNET",
+      "event_ticker": "KXWTAMATCH-26APR14COCCHA",
+      "last_updated_ts": "2026-04-13T09:33:24.50034Z",
+      "mutually_exclusive": true,
+      "product_metadata": {
+        "competition": "WTA Rouen",
+        "competition_scope": "Game"
+      },
+      "series_ticker": "KXWTAMATCH",
+      "strike_period": "",
+      "sub_title": "Cocciaretto vs Charaeva (Apr 14)",
+      "title": "Cocciaretto vs Charaeva"
+    },
+    {
+      "available_on_brokers": true,
+      "category": "Sports",
+      "collateral_return_type": "MECNET",
+      "event_ticker": "KXWTAMATCH-26APR14BLISAL",
+      "last_updated_ts": "2026-04-13T11:43:12.243866Z",
+      "mutually_exclusive": true,
+      "product_metadata": {
+        "competition": "WTA Rouen",
+        "competition_scope": "Game"
+      },
+      "series_ticker": "KXWTAMATCH",
+      "strike_period": "",
+      "sub_title": "Blinkova vs Salkova (Apr 14)",
+      "title": "Blinkova vs Salkova"
+    },
+    {
+      "available_on_brokers": true,
+      "category": "Sports",
+      "collateral_return_type": "MECNET",
+      "event_ticker": "KXWTAMATCH-26APR13SONPAO",
+      "last_updated_ts": "2026-04-12T17:01:56.933867Z",
+      "mutually_exclusive": true,
+      "product_metadata": {
+        "competition": "WTA Stuttgart",
+        "competition_scope": "Game"
+      },
+      "series_ticker": "KXWTAMATCH",
+      "strike_period": "",
+      "sub_title": "Sonmez vs Paolini (Apr 13)",
+      "title": "Sonmez vs Paolini"
+    }
+  ],
+  "milestones": []
+}

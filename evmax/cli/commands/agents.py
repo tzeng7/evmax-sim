@@ -1024,9 +1024,17 @@ def update_result(
     score_a: float = typer.Option(..., "--score-home", help="Final score for home team"),
     score_b: float = typer.Option(..., "--score-away", help="Final score for away team"),
     date: Optional[str] = typer.Option(None, "--date", help="Game date ISO (YYYY-MM-DD)"),
-    surface: Optional[str] = typer.Option(None, "--surface", help="Court surface (hard/clay/grass/indoor). Required for tennis."),
+    surface: Optional[str] = typer.Option(None, "--surface", help="Court surface (hard/clay/grass). Required for tennis."),
 ) -> None:
     """Feed a completed game result into all model agents (updates Elo + Form + Poisson)."""
+    if surface and surface.lower() == "indoor":
+        console.print(
+            "[red]--surface indoor is no longer valid.[/red] "
+            "Indoor is a court-condition modifier on hard, not a surface. "
+            "Use --surface hard for indoor hard events. See TODO.md MODEL-6 "
+            "for the planned court-adjustment factor."
+        )
+        raise typer.Exit(1)
     from evmax.agents.coordinator import AgentCoordinator
     c = AgentCoordinator(sectors=[sector], enable_models=True)
     c.update_models(team_a, team_b, score_a, score_b, sector, date, surface=surface or "overall")
@@ -1039,7 +1047,7 @@ def update_result(
 def seed_tennis(
     what: str = typer.Argument(..., help="What to seed: rankings | surface"),
     file: Path = typer.Option(..., "--file", "-f", help="JSON file"),
-    surface: Optional[str] = typer.Option(None, "--surface", help="Surface for 'surface' seeding: hard/clay/grass/indoor"),
+    surface: Optional[str] = typer.Option(None, "--surface", help="Surface for 'surface' seeding: hard/clay/grass"),
 ) -> None:
     """Seed tennis rankings or surface-specific Elo ratings.
 
@@ -1065,6 +1073,13 @@ def seed_tennis(
     elif what == "surface":
         if not surface:
             console.print("[red]--surface required for surface seeding[/red]")
+            raise typer.Exit(1)
+        if surface.lower() == "indoor":
+            console.print(
+                "[red]--surface indoor is no longer valid.[/red] "
+                "Indoor is a court-condition modifier on hard, not a surface. "
+                "See TODO.md MODEL-6 for the planned court-adjustment factor."
+            )
             raise typer.Exit(1)
         agent.seed_surface_ratings(surface, data)
         console.print(f"[green]Seeded {surface} ratings:[/green] {len(data)} players")

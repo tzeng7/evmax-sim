@@ -89,7 +89,7 @@ evmax/
 | Elo | 0.35 | 0.45 | `data/models/elo_state.json` |
 | Form | 0.25 | 0.45 | `data/models/form_state.json` |
 | Poisson | 0.30 | 0.45 | `data/models/poisson_state.json` |
-| Tennis Surface Elo | 0.45 | 0.45 | `data/models/tennis_surface_state.json` |
+| Tennis Surface Elo | 0.35 | 0.45 | `data/models/tennis_surface_state.json` (surface resolved from Kalshi `event.product_metadata.competition` via MODEL-1; MODEL-5 trimmed weight from 0.45) |
 | Tennis Serve/Return | 0.40 | 0.45 | `data/models/tennis_serve_return_state.json` (logistic on SPW differential, bo3 k=14 / bo5 k=18) |
 | Tennis H2H | 0.10 | 0.45 | `data/models/tennis_h2h_state.json` (Laplace-smoothed nudge, ≥3 meetings, ±18pp cap) |
 | Tennis Ranking Trend | 0.10 | 0.45 | `data/models/tennis_ranking_trend_state.json` (12-week momentum, ±0.40 logit cap) |

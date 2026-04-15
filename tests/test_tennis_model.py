@@ -127,59 +127,192 @@ class TestSectorGate:
 
 
 # ---------------------------------------------------------------------------
-# Surface detection
+# Surface resolution (MODEL-1)
+#
+# The resolver replaces the old _detect_surface() keyword scan. It reads
+# Kalshi's structured event.product_metadata.competition field (e.g. "ATP
+# Munich", "WTA Rouen") and falls back to title only as a safety net.
+# Returns a (surface, is_indoor) tuple where is_indoor is a seam for MODEL-6.
 # ---------------------------------------------------------------------------
 
-class TestSurfaceDetection:
-    def test_default_surface_is_hard(self):
+class TestResolveSurface:
+    def test_default_surface_constant(self):
         assert DEFAULT_SURFACE == "hard"
 
-    def test_roland_garros_is_clay(self):
-        assert TennisModelAgent._detect_surface("French Open 2026") == "clay"
-        assert TennisModelAgent._detect_surface("Roland Garros R2") == "clay"
+    # --- Primary signal: Kalshi competition string ---
 
-    def test_madrid_monte_carlo_rome_are_clay(self):
-        assert TennisModelAgent._detect_surface("Madrid Open Final") == "clay"
-        assert TennisModelAgent._detect_surface("Monte Carlo Masters") == "clay"
-        assert TennisModelAgent._detect_surface("Rome ATP 1000") == "clay"
+    @pytest.mark.parametrize(
+        "competition,expected_surface",
+        [
+            # Clay — observed live on Kalshi 2026-04-13
+            ("ATP Munich", "clay"),
+            ("ATP Barcelona", "clay"),
+            ("WTA Rouen", "clay"),
+            ("WTA Stuttgart", "clay"),
+            # Clay — major tour stops
+            ("ATP Roland Garros", "clay"),
+            ("WTA French Open", "clay"),
+            ("ATP Monte Carlo", "clay"),
+            ("ATP Madrid", "clay"),
+            ("ATP Rome", "clay"),
+            ("ATP Hamburg", "clay"),
+            # Grass
+            ("ATP Wimbledon", "grass"),
+            ("WTA Wimbledon", "grass"),
+            ("ATP Queen's Club", "grass"),
+            ("ATP Halle", "grass"),
+            ("WTA Eastbourne", "grass"),
+            # Hard (default fallback — not in dict)
+            ("ATP Australian Open", "hard"),
+            ("US Open", "hard"),
+            ("ATP Indian Wells", "hard"),
+            ("ATP Miami", "hard"),
+            ("ATP Cincinnati", "hard"),
+            ("WTA Dubai", "hard"),
+        ],
+    )
+    def test_competition_maps_to_surface(self, competition, expected_surface):
+        surface, _is_indoor = TennisModelAgent._resolve_surface(competition=competition)
+        assert surface == expected_surface, (
+            f"expected {competition!r} → {expected_surface}, got {surface}"
+        )
 
-    def test_wimbledon_is_grass(self):
-        assert TennisModelAgent._detect_surface("Wimbledon Day 5") == "grass"
-        assert TennisModelAgent._detect_surface("Queen's Club Final") == "grass"
-        assert TennisModelAgent._detect_surface("Halle Open") == "grass"
+    # --- Indoor flag (seam for MODEL-6) ---
 
-    def test_atp_finals_is_indoor(self):
-        assert TennisModelAgent._detect_surface("ATP Finals") == "indoor"
-        assert TennisModelAgent._detect_surface("Paris Masters R3") == "indoor"
-        assert TennisModelAgent._detect_surface("Rotterdam Open") == "indoor"
+    @pytest.mark.parametrize(
+        "competition,expected_indoor",
+        [
+            ("ATP Paris Masters", True),
+            ("ATP Paris Bercy", True),
+            ("ATP Rotterdam", True),
+            ("ATP Vienna", True),
+            ("ATP Basel", True),
+            ("Nitto ATP Finals", True),
+            ("ATP Finals", True),
+            ("WTA Finals", True),
+            # Outdoor hard — not indoor
+            ("US Open", False),
+            ("ATP Australian Open", False),
+            ("ATP Miami", False),
+            # Clay/grass → never indoor
+            ("ATP Roland Garros", False),
+            ("ATP Wimbledon", False),
+            ("ATP Munich", False),
+        ],
+    )
+    def test_is_indoor_flag(self, competition, expected_indoor):
+        _surface, is_indoor = TennisModelAgent._resolve_surface(competition=competition)
+        assert is_indoor == expected_indoor
 
-    def test_us_open_falls_back_to_hard(self):
-        # US Open is hard but not in keyword list; default fallback handles it
-        assert TennisModelAgent._detect_surface("US Open Day 1") == "hard"
+    def test_indoor_flag_requires_hard_surface(self):
+        """Clay/grass events never get is_indoor=True, even if the competition
+        string contains an indoor-city substring. On tour, clay/grass are
+        always outdoor — the resolver enforces this invariant."""
+        # A synthetic edge case: if someone constructed "ATP Vienna Roland Garros"
+        # (nonsense but tests the gate), clay wins and indoor stays False.
+        surface, indoor = TennisModelAgent._resolve_surface(
+            competition="ATP Vienna Roland Garros"
+        )
+        assert surface == "clay"
+        assert indoor is False
 
-    def test_australian_open_falls_back_to_hard(self):
-        assert TennisModelAgent._detect_surface("Australian Open R4") == "hard"
+    # --- Null / empty inputs ---
+
+    def test_none_competition_defaults_to_hard(self):
+        assert TennisModelAgent._resolve_surface(competition=None) == ("hard", False)
+
+    def test_empty_competition_defaults_to_hard(self):
+        assert TennisModelAgent._resolve_surface(competition="") == ("hard", False)
+
+    def test_both_none(self):
+        assert TennisModelAgent._resolve_surface(competition=None, title=None) == ("hard", False)
+
+    # --- Title fallback (secondary signal) ---
+
+    def test_title_fallback_when_competition_missing(self):
+        """If competition is None (non-tennis sector or older cached data),
+        the resolver falls back to scanning the market title."""
+        surface, _ = TennisModelAgent._resolve_surface(
+            competition=None,
+            title="French Open 2026 — Round 2",
+        )
+        assert surface == "clay"
+
+    def test_competition_takes_precedence_over_title(self):
+        """Competition is the primary signal; title is only a fallback."""
+        surface, _ = TennisModelAgent._resolve_surface(
+            competition="ATP Wimbledon",   # grass
+            title="something about clay",  # misleading
+        )
+        assert surface == "grass"
+
+    # --- Paris ambiguity (Roland Garros vs Paris Masters) ---
+
+    def test_paris_masters_is_indoor_hard(self):
+        surface, indoor = TennisModelAgent._resolve_surface(competition="ATP Paris Masters")
+        assert (surface, indoor) == ("hard", True)
+
+    def test_roland_garros_is_outdoor_clay_even_though_in_paris(self):
+        """Roland Garros is played in Paris but is outdoor clay. The
+        resolver must not flip it to indoor via a 'paris' substring match.
+        This is enforced by omitting bare 'paris' from INDOOR_CITIES."""
+        surface, indoor = TennisModelAgent._resolve_surface(competition="ATP Roland Garros")
+        assert surface == "clay"
+        assert indoor is False
+
+    # --- MODEL-1 flipped regression test ---
+
+    def test_resolver_uses_competition_not_title(self):
+        """MODEL-1 flipped regression: the old _detect_surface scanned only
+        the market title, and Kalshi titles are generic ("Will X win ...")
+        with no tournament context, so surface always defaulted to 'hard'.
+
+        The fix routes surface detection through Kalshi's structured
+        event.product_metadata.competition field. With the fix, a generic
+        title plus a populated competition string resolves correctly —
+        proving that surface-specific Elo is now exercised.
+        """
+        generic_title = "Will Jannik Sinner win the Sinner vs Alcaraz : Round Of 128 match?"
+        surface, indoor = TennisModelAgent._resolve_surface(
+            competition="ATP Roland Garros",
+            title=generic_title,
+        )
+        assert surface == "clay"
+        assert indoor is False
+
+        # Without competition, the title-only path still defaults to hard
+        # (generic title has no tournament keywords) — confirming that the
+        # competition signal is what unlocks correct classification.
+        title_only_surface, _ = TennisModelAgent._resolve_surface(
+            competition=None,
+            title=generic_title,
+        )
+        assert title_only_surface == "hard"
+
+    # --- Totality (never raises) ---
+
+    def test_fuzz_never_raises(self):
+        """Resolver must be total: 1000 random strings, all return a valid
+        (surface, is_indoor) tuple, never raise.
+        """
+        import random
+        import string
+
+        random.seed(42)
+        for _ in range(1000):
+            length = random.randint(0, 80)
+            s = "".join(random.choices(string.printable, k=length))
+            surface, indoor = TennisModelAgent._resolve_surface(
+                competition=s,
+                title=s,
+            )
+            assert surface in {"hard", "clay", "grass"}
+            assert isinstance(indoor, bool)
 
     def test_case_insensitive(self):
-        assert TennisModelAgent._detect_surface("WIMBLEDON FINAL") == "grass"
-        assert TennisModelAgent._detect_surface("french OPEN") == "clay"
-
-    def test_empty_title_defaults_to_hard(self):
-        assert TennisModelAgent._detect_surface("") == "hard"
-
-    def test_unknown_tournament_defaults_to_hard(self):
-        assert TennisModelAgent._detect_surface("Some Random Event") == "hard"
-
-    def test_known_bug_title_without_tournament_silently_defaults_to_hard(self):
-        """MODEL-1: when Kalshi titles are just 'Player A vs Player B' with no
-        tournament context (the common case), the surface always defaults to hard.
-
-        This means surface-specific Elo (e.g. Nadal's clay rating) is rarely used
-        in practice. Documented here so the fix shows up as a test diff.
-        """
-        assert TennisModelAgent._detect_surface("Nadal vs Alcaraz") == "hard"
-        # Even when a Kalshi ticker is in the title, no surface signal:
-        assert TennisModelAgent._detect_surface("Sinner v. Djokovic ML YES") == "hard"
+        assert TennisModelAgent._resolve_surface(competition="ATP MUNICH")[0] == "clay"
+        assert TennisModelAgent._resolve_surface(competition="atp wimbledon")[0] == "grass"
+        assert TennisModelAgent._resolve_surface(competition="Atp Paris Masters") == ("hard", True)
 
 
 # ---------------------------------------------------------------------------

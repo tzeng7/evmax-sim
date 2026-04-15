@@ -645,7 +645,7 @@ async def seed_tennis(client: httpx.AsyncClient) -> None:
 
         # Sort by date and feed into tennis Elo
         for row in sorted(rows, key=lambda r: r.date):
-            surface = agent._detect_surface(row.league or "")
+            surface, _ = agent._resolve_surface(competition=row.league or None)
             agent.update(
                 team_a=row.team_home.lower().strip(),
                 team_b=row.team_away.lower().strip(),

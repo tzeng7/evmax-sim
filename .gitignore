@@ -17,6 +17,7 @@ env/
 .env
 *.pem
 *.key
+secrets/
 
 # Database
 *.db

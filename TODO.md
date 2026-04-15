@@ -8,6 +8,17 @@
 
 ## Recently Shipped
 
+### PR #5 — Tennis surface resolver from Kalshi competition + weight trim
+- ✅ MODEL-1 / SECTOR-3 — Tennis surface now detected from Kalshi `event.product_metadata.competition` (structured "{ATP|WTA} {City}" strings) instead of scanning generic market titles. `KalshiClient.get_markets` fetches `/events` in parallel with `/markets` for tennis and joins by `event_ticker`. `PredictionMarket` gained an optional `competition` field (additive, zero SQL migration). Resolver returns `(surface, is_indoor)` with longest-match-first dict ordering so brand aliases like "stuttgart open" (grass) beat ambiguous "stuttgart" (clay). Indoor check gated on `surface == hard` since clay/grass are always outdoor on tour.
+- ✅ MODEL-5 — `TennisModelAgent.weight` trimmed 0.45 → 0.35 so tennis no longer dominates the ensemble blend when competing with other models.
+- ✅ Resolver is total (try/except → `("hard", False)`), structured `tennis.surface_resolved` log on every call, 1000-run fuzz test verifies never raises.
+- ✅ CLI cleanup — `evmax agents update --surface indoor` and `evmax agents seed-tennis surface --surface indoor` now reject with a clear error pointing at MODEL-6. Only `hard/clay/grass` accepted.
+- ✅ Live Kalshi fixtures captured 2026-04-13 to `tests/fixtures/kalshi/` (4 JSON files, offline-replayable in CI forever).
+- ✅ Sackmann xlsx replay test (`tests/test_tennis_surface_replay.py`) at 99.0% accuracy on both 2024 (2676/2703) and 2025 (2617/2644) — designed as a coverage-expansion loop that drove dict additions until passing the 95% floor.
+- ✅ Three-layer Kalshi fixture replay tests (`tests/test_tennis_kalshi_fixtures.py`): resolver replay on captured events, end-to-end `get_markets()` join via monkey-patched `_get`, and explicit `is_indoor` seam verification preventing silent drift before MODEL-6.
+- ✅ Semantic correction documented: **MODEL-6** filed with full `(surface, court)` orthogonality context, explanation of the 51 stale legacy `indoor` ratings from manual CLI updates (inert post-merge), and three migration options for when the court-adjustment factor lands. Blocker: needs live indoor-event accumulation.
+- ✅ Suite: 705 → 772 (+67 net; 103 tennis-related tests across the three test files, ~36 old `TestSurfaceDetection` tests were replaced by the new `TestResolveSurface` class).
+
 ### PR #2 — Poisson bucketing + prop injury boost + pitcher Pythag + TEST-2/TEST-6
 - ✅ BUG-4 — Poisson NBA/NFL/NCAAB score matrix now bucketed (NBA=5, NFL=4, NCAAB=5). `lam_h`/`lam_a` scaled by bucket before the matrix is built so Poisson mass fits inside MAX_SCORE.
 - ✅ BUG-5 — Prop injury boost now uses `nba_props_cache.lookup_player_team()` to find the player's actual team instead of parsing a nonexistent game slug out of `parts[2]`. The boost was silently never firing for any prop.
@@ -53,15 +64,8 @@ _(BUG-4, BUG-5, and BUG-9 shipped — see "Recently Shipped" above.)_
 
 ## Section 3 — Model Quality
 
-### MODEL-1 Tennis Surface Detection is Too Fragile [P1]
-**File:** `evmax/agents/models/tennis_model_agent.py`
-Surface is inferred from keywords in `market.title`. In practice, Kalshi market titles for ATP/WTA are typically just "Player A vs Player B" with no tournament context. The surface defaults to `hard` almost always, meaning surface-specific Elo (clay/grass advantages) is rarely exercised despite existing in the state.
-
-> **Note:** `tests/test_tennis_model.py::test_known_bug_title_without_tournament_silently_defaults_to_hard` pins the current buggy behavior. Fixing MODEL-1 will require updating that test, making the regression visible at code-review time.
-
-Fix options (in order of preference):
-1. Enrich `TennisSectorHandler` to carry a `surface` field from a tournament calendar lookup (ATP tour schedule is public)
-2. As a fallback, add a lookup table of known tournament names → surface (Roland Garros → clay, Wimbledon → grass, US Open → hard, Australian Open → hard, etc.) and check if the Kalshi series ticker or league name contains a tournament keyword
+### ~~MODEL-1 Tennis Surface Detection~~ ✅ SHIPPED (PR #5)
+Shipped via the Kalshi `event.product_metadata.competition` join — see Recently Shipped above.
 
 ### MODEL-2 NCAAW and NHL Have No Calibrated K-Factor / Home Advantage [P2]
 **File:** `evmax/agents/models/elo_agent.py`
@@ -82,9 +86,45 @@ alpha = 0.1  # decay factor
 team["attack"] = (1 - alpha) * team["attack"] + alpha * actual_goals
 ```
 
-### MODEL-5 Tennis Model Weight Exceeds All Other Models Combined [P3]
-**File:** `evmax/agents/models/ensemble_agent.py`
-`TennisModelAgent.weight = 0.45` is higher than any other model weight. For tennis events where the agent contributes, it dominates the blend, which is aggressive given the surface detection weakness in MODEL-1. Consider reducing to 0.35 (matching Elo) after MODEL-1 is fixed and surface signals are reliable.
+### ~~MODEL-5 Tennis Model Weight~~ ✅ SHIPPED (PR #5)
+Trimmed 0.45 → 0.35. See Recently Shipped above.
+
+### MODEL-6 Court-Adjustment Factor for Indoor Hard (Orthogonal to Surface) [P2]
+**File:** `evmax/agents/models/tennis_model_agent.py`
+
+**Context — why this exists as a separate item.** The original code treated `indoor` as a peer of `hard`/`clay`/`grass` in the surface dimension. This is a category error: in real tennis (and in every public dataset — Sackmann `tennis_atp`/`tennis_wta`, tennis-data.co.uk), surface and court are **orthogonal axes**:
+
+- **Surface** ∈ {hard, clay, grass} (+ carpet, phased out 2009)
+- **Court** ∈ {indoor, outdoor}
+- Clay = essentially always outdoor on tour. Grass = always outdoor. Hard = both.
+
+Notable indoor-hard events: Paris Masters (Bercy), Nitto ATP Finals (Turin), WTA Finals, Rotterdam, Basel, Vienna, Stockholm, Antwerp, Metz, Sofia.
+
+**Why it matters for predictions.** Indoor hard plays meaningfully differently from outdoor hard — faster courts, lower bounce, no wind, no sun, controlled temperature. This is a real player-level skill differential, not noise: Medvedev-archetype big servers historically overperform their outdoor-hard baseline on indoor hard, and ATP Finals results systematically deviate from hardcourt-season form. Modeling indoor as a court-adjustment factor (not a surface) would capture this correctly.
+
+**What MODEL-1 set up as a seam.** The surface resolver shipped in MODEL-1 returns both `surface ∈ {hard, clay, grass}` AND a separate `is_indoor: bool`. The boolean is currently unused by `predict_pair()` — it's a read-path hook waiting for MODEL-6 to consume it.
+
+**Design options for MODEL-6:**
+1. **Full `(surface, court)` buckets** — 6 separate Elo buckets: `hard_outdoor`, `hard_indoor`, `clay_outdoor` (empty), `grass_outdoor` (empty), plus the existing aggregates. Cleanest, but fragments rating data and bumps `MIN_SURFACE_GAMES` gate failures.
+2. **Court-adjustment factor** — single bonus/penalty applied on top of surface Elo when `is_indoor=True`. One scalar per player, or a global constant to start. Simpler, preserves existing rating density, only perturbs the prediction at blend time.
+
+Option 2 is the likely starting point. A global indoor bonus calibrated from Brier improvement would be the minimum viable version; per-player indoor modifiers can come later once data accumulates.
+
+**Stale state data to handle during migration.** As of the MODEL-1 ship date, `data/models/tennis_surface_state.json` contains ~51 ratings in the legacy `indoor` bucket (~288 total game-updates) written via manual `evmax agents update --surface indoor` / `evmax agents seed-tennis surface --surface indoor` calls before those CLI options were removed. **None** of the automated seed pipelines (`scripts/seed_tennis_models.py`, `scripts/seed_espn.py`) ever wrote to this bucket — Sackmann classifies indoor hard as just `Hard`. So the 51 entries are:
+- Sparse (avg ~5.6 games/player, below `MIN_SURFACE_GAMES=8`, never trips the confidence gate)
+- Inert after MODEL-1 (resolver no longer returns `indoor`, no reader consumes it)
+- Frozen (no writer after CLI cleanup, bucket cannot grow)
+
+**When MODEL-6 lands, decide what to do with them:**
+- **(a) Fold into `hard`** as bootstrap data for the indoor adjustment factor. Pro: preserves signal. Con: muddies hard ratings with players' indoor-specific skill.
+- **(b) Discard** via a one-liner migration (`del state["ratings"]["indoor"]` + corresponding `game_counts`). Pro: clean slate. Con: loses manual-curation work, but the signal is so thin it barely matters.
+- **(c) Migrate into a new `hard_indoor` bucket** if going with design option 1.
+
+This is a deliberate deferral — not a cleanup chore. Pick the strategy that fits whichever of the two design options MODEL-6 adopts.
+
+**Blocker:** needs calibration against live outcomes. The Brier-improvement signal from adding an indoor modifier isn't measurable offline — it requires accumulated predictions on both indoor and outdoor hard events. Leave to when the `predictions.db` has enough indoor-event coverage (probably post-Paris Masters / ATP Finals season). Document this as waiting on brother's live accumulation when picking it up.
+
+**Secondary cleanup tracked here:** the frozen 51-entry `indoor` bucket in state is cosmetic debt (~2KB disk, no correctness or perf impact) as long as MODEL-6 is pending. Do not ship a standalone cleanup script — fold it into MODEL-6's migration instead.
 
 ---
 
@@ -153,6 +193,67 @@ NFL prop series (`KXNFLPAS`, `KXNFLREC`, etc.) are fetched from Kalshi but `_fet
 **File:** `evmax/agents/odds/ev_gap_agent.py`
 Replaced the asymmetric `< 0.05` / `> 0.10` thresholds in the `_resolve_yes_via_market_teams` price fallback with an explicit two-condition rule: the closer side must be within 4pp of the YES ask, AND the gap between the two distances must be ≥ 5pp. Near-coin-flip markets (where both distances are similar) now return `None` instead of being force-aligned to an arbitrary outcome. 5 regression tests in `TestEVGapAgent`.
 
+### ARCH-8 Pinnacle Guest Maintenance Handling + Stale Cache Fallback [P2]
+**Files:** `evmax/clients/esports_pinnacle.py`, `evmax/clients/base.py`, `evmax/agents/odds/sharp_agent.py`, `evmax/models/odds.py`
+
+`PinnacleGuestClient` is the single sharp-odds source for every sector (not just tennis — confirmed via `SharpOddsAgent` import and `SECTOR_SPORT_LEAGUES` map). The endpoint is unauthenticated and undocumented, and Pinnacle runs scheduled maintenance windows on it that take **the entire EV pipeline offline across all sectors simultaneously**. Observed 2026-04-13: `guest.api.arcadia.pinnacle.com` returned `503 MAINTENANCE` on every sport ID tested (4, 6, 29, 2, 33) with response body:
+
+```json
+{"type": "about:blank", "title": "MAINTENANCE", "detail": "API is currently undergoing maintenance, try again later", "status": 503}
+```
+
+The current retry layer (`base.py::_is_retryable`) only runs **2 attempts** with exponential backoff capped at ~10s total — useless against maintenance windows that last minutes to tens of minutes.
+
+**Fix scope:**
+1. **Parse the 503 body** — when the response body contains `"MAINTENANCE"`, emit a distinct `pinnacle.guest.maintenance` log event and short-circuit retries instead of burning the retry budget.
+2. **Long-TTL last-known-good cache** — populate on every successful fetch, separate from the dev-mode `cache_ttl_secs` cache. TTL = 1-2 hours. On retry exhaustion or maintenance detection, fall through to the cache.
+3. **`SharpOdds.is_stale: bool`** — new Pydantic field, default `False`, set `True` when served from fallback cache. Additive optional field (same zero-migration pattern as `PredictionMarket.competition` from MODEL-1). Exclude stale bets from live Kelly sizing by default; include in analysis/reporting.
+4. **Bump retry count for genuine transients** — `max_retries=3`, `retry_max_wait=15s` for non-MAINTENANCE 5xx only. Handles rare connection blips without over-retrying maintenance windows.
+5. **5xx counter metric** — increment per 5xx response split into `{transient, maintenance}`. Emit as a structured log field and aggregate via `evmax cleanup metrics` so outage frequency becomes visible historically.
+6. **Optional pre-scan health check** — `--skip-if-pinnacle-down` CLI flag that probes the endpoint once before running a full cycle. Avoids wasting a scan during known outages.
+
+**Blocker:** none. Uses existing infrastructure. Can ship as a standalone PR.
+
+### ARCH-9 Resurrect TheOddsAPI Legacy Client as Paid Fallback [P3]
+**Files:** `evmax/clients/pinnacle.py`, `evmax/agents/odds/sharp_agent.py`, `evmax/models/odds.py`
+
+The legacy `PinnacleClient` at `evmax/clients/pinnacle.py` is a fully-implemented TheOddsAPI wrapper (moneyline + spreads + totals + player props + quota tracking, ~900 lines) that was superseded by `PinnacleGuestClient` but never deleted. It's currently dead code — imported only by the dead `pipeline/runner.py` and by one vestigial `get_quota()` display call in `evmax/cli/commands/agents.py:382` that renders an empty string because `_quota` is never populated.
+
+Resurrecting it as a **commercial fallback** when Pinnacle Guest is unavailable is a real option:
+
+- **Data quality:** TheOddsAPI includes Pinnacle in its bookmaker list, so you get the same sharp book — just with ~30-60s latency on the passthrough.
+- **Effort:** moderate — client exists, needs wiring into `SharpOddsAgent` with source/latency marking and a fallback-chain strategy. Likely ~150-200 lines net including tests.
+- **Cost:** ~$30-100/mo depending on TheOddsAPI quota tier.
+- **Requires ARCH-8 first** — the `is_stale` / `source` field plumbing from ARCH-8 is what lets the EV calculator know to discount TheOddsAPI-sourced bets for latency.
+
+**Consider this only if**:
+- ARCH-8 observability shows Pinnacle Guest outages are frequent enough to materially affect EV capture (>1 outage/week sustained)
+- You're willing to pay for a paid API tier
+- The ~60s Pinnacle passthrough latency is acceptable for your betting cadence (pre-game only; useless for in-play)
+
+**Alternative to this item:** ARCH-10 below (authenticated ps3838 API) achieves the same resilience goal without paying TheOddsAPI, at the cost of a Pinnacle account signup. Pick one.
+
+### ARCH-10 Authenticated `api.ps3838.com` as Long-Term Primary [P3]
+**Files:** new `evmax/clients/ps3838.py`, `evmax/agents/odds/sharp_agent.py`
+
+Pinnacle operates `api.ps3838.com` as the authenticated version of their sharp-odds API — same sportsbook company, same lines, but served through documented/supported infrastructure that runs separately from the guest-tier Arcadia stack. Verified 2026-04-13: when `guest.api.arcadia.pinnacle.com` returned 503 MAINTENANCE, `api.ps3838.com` returned **403 Forbidden cleanly** (auth challenge, not maintenance) — strong evidence they're on independent maintenance schedules.
+
+**Requires a real Pinnacle account** with API privileges. Historically free for active bettors with a deposit minimum; terms vary. Not a trivial signup — this is a real account with KYC, deposits, etc.
+
+**Fix scope:**
+1. New `evmax/clients/ps3838.py::Ps3838Client` wrapping the authenticated Pinnacle API endpoints (`/v1/odds`, `/v1/fixtures`, `/v1/line`).
+2. Credentials in `secrets/PS3838_USERNAME` + `secrets/PS3838_PASSWORD` (HTTP Basic), read via settings.
+3. Parser adapter — the authenticated API response shape is **different** from the Arcadia guest stack. Not a drop-in swap.
+4. Wire as fallback in `SharpOddsAgent` (tier after Pinnacle Guest but before TheOddsAPI).
+5. **Long-term path:** promote to primary once confidence is established; retire `PinnacleGuestClient` if the authenticated path proves more stable.
+
+**Blockers:**
+- Pinnacle account signup (real-world, one-time)
+- Response format research — the published Pinnacle API docs are sparse and the real shape needs verification
+- Rate limits on the authenticated tier are different and need respect
+
+**When to prioritize:** only if ARCH-8 + ARCH-9 together aren't enough, OR if you're philosophically uncomfortable with the guest-tier dependency long-term. Good candidate for when the live pipeline starts carrying real bankroll.
+
 ---
 
 ## Section 6 — Player Props (In Progress)
@@ -183,8 +284,8 @@ See MODEL-2 above. NHL is in the registry and Kalshi series but Elo uses NBA def
 ### SECTOR-2 NCAAW Elo Calibration [P2]
 See MODEL-2 above. NCAAW has a `REST_ELO_ADJ` entry but no K-factor or home advantage.
 
-### SECTOR-3 Tennis Tournament Calendar for Surface Lookup [P1]
-See MODEL-1 above. This is the highest-leverage model improvement for tennis.
+### ~~SECTOR-3 Tennis Tournament Calendar for Surface Lookup~~ ✅ SHIPPED (PR #5)
+Solved by reading Kalshi's `event.product_metadata.competition` field instead of a separate calendar lookup. See MODEL-1 in Recently Shipped.
 
 ### SECTOR-4 Sectors in Registry Not in CLAUDE.md [P3]
 ~~`nhl`, `baseball`, `valorant`, `ufc`, `f1` are absent from CLAUDE.md~~ — partially fixed in PR #1 (NHL, Baseball, Valorant added to Key Sectors). UFC and F1 still undocumented but they're long-tail.
@@ -195,14 +296,16 @@ See MODEL-1 above. This is the highest-leverage model improvement for tennis.
 
 | Priority | Item | Impact |
 |----------|------|--------|
-| P1 | MODEL-1 / SECTOR-3 Tennis surface detection | Surface Elo rarely fires in practice |
 | P1 | PROPS-1 NFL props backend | Dead API calls |
 | P2 | MODEL-2 NCAAW/NHL Elo calibration | Uncalibrated K + home adv |
+| P2 | MODEL-6 Tennis indoor court modifier | Waits on live indoor-event data; `is_indoor` seam already in MODEL-1 |
 | P2 | TEST-3 PinnacleGuestClient tests | Only live sharp source untested |
 | P2 | TEST-4 Coordinator integration test | Catches wiring regressions |
 | P2 | TEST-6 Prop pipeline — remaining | nba_stats.py still uncovered |
+| P2 | ARCH-8 Pinnacle maintenance + stale cache | Guest API maintenance windows take whole pipeline offline; retry layer currently useless against multi-minute outages |
 | P3 | DOC-2b / DOC-3b remaining doc polish | — |
 | P3 | MODEL-3 Form draw normalization | Cosmetic precision |
 | P3 | MODEL-4 Poisson EWMA | Long-term staleness |
-| P3 | MODEL-5 Tennis weight tuning | After MODEL-1 |
-| P3 | All ARCH-* | Skipped for now |
+| P3 | ARCH-9 Resurrect TheOddsAPI as paid fallback | Alternative to ARCH-10; pay-to-resilience path |
+| P3 | ARCH-10 Authenticated ps3838 API | Long-term alternative to guest tier; requires real Pinnacle account |
+| P3 | All other ARCH-* (1–6) | Skipped for now |
