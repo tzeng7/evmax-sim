@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -307,13 +307,13 @@ def api_profit() -> JSONResponse:
 
 
 @app.get("/api/sectors")
-def api_sectors(range: str = "all") -> JSONResponse:
+def api_sectors(period: str = Query("all", alias="range")) -> JSONResponse:
     """Sector breakdown filtered by rolling date window.
 
     range: "1d", "1w", "1m", "1y", or "all" (default).
     """
     days_map = {"1d": 1, "1w": 7, "1m": 30, "1y": 365, "all": 0}
-    days = days_map.get(range, 0)
+    days = days_map.get(period, 0)
     bets = _settled_bets()
     if days > 0:
         cutoff = (date.today() - timedelta(days=days - 1)).isoformat()

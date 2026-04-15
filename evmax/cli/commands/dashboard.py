@@ -10,7 +10,7 @@ app = typer.Typer(help="Launch the evmax web dashboard.")
 def serve(
     host: str = typer.Option("127.0.0.1", "--host", "-h"),
     port: int = typer.Option(8000, "--port", "-p"),
-    reload: bool = typer.Option(False, "--reload", help="Auto-reload on code changes."),
+    reload: bool = typer.Option(True, "--reload/--no-reload", help="Auto-reload on code changes."),
 ) -> None:
     """Start the dashboard at http://HOST:PORT/."""
     import uvicorn
