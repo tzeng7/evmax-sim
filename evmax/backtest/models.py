@@ -76,3 +76,59 @@ class BacktestReport:
     @property
     def random_brier_baseline(self) -> float:
         return 0.333 if self.sector == "soccer" else 0.250
+
+
+@dataclass
+class PropBacktestRow:
+    """One settled NFL player-prop market with its model prediction."""
+    sector: str
+    stat_type: str              # passing_yards, rushing_yards, …
+    player_name: str
+    player_id: str              # gsis_id
+    team: str
+    opponent: str
+    is_home: bool
+    season: int
+    week: int
+    game_date: str
+    threshold: float
+    actual_result: int          # 1 = YES hit, 0 = NO
+    # Market context
+    volume: float
+    closing_yes_price: Optional[float] = None  # last_price_dollars, [0,1]
+    # Model output
+    model_prob: float = 0.0     # predicted P(stat ≥ threshold)
+    n_games_used: int = 0       # priors actually used
+    # Derived
+    @property
+    def edge(self) -> Optional[float]:
+        """Model prob − market implied prob (uses closing price)."""
+        if self.closing_yes_price is None:
+            return None
+        return self.model_prob - self.closing_yes_price
+
+
+@dataclass
+class PropBacktestReport:
+    """Per-sector report over NFL player props. Separate from BacktestReport
+    because the unit here is a (player, stat, threshold) market, not a game.
+    """
+    sector: str
+    stat_types: list[str]
+    n_markets: int
+    n_scored: int               # markets where the model produced a probability
+    # Core metrics (scored markets only)
+    brier_score: float = 0.0
+    log_loss: float = 0.0
+    accuracy: float = 0.0
+    # Naive baselines
+    baseline_mean_prior: float = 0.0  # Brier of always-predict-yes-rate
+    baseline_market: float = 0.0      # Brier of closing market price (needs closing_yes_price)
+    # Calibration
+    calibration_bins: list[CalibrationBin] = field(default_factory=list)
+    # Per-stat breakdown
+    by_stat: dict[str, dict] = field(default_factory=dict)
+    # ROI analysis at selected EV thresholds (uses closing price as fair)
+    roi_by_ev_threshold: dict[str, dict] = field(default_factory=dict)
+    # Volume-gated variants
+    min_volume: float = 0.0

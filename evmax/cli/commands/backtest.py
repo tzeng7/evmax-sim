@@ -15,7 +15,7 @@ console = Console()
 def run(
     sectors: str = typer.Option(
         "soccer,tennis", "--sectors", "-s",
-        help="Comma-separated sectors: soccer,tennis",
+        help="Comma-separated sectors: soccer,tennis,nfl_props",
     ),
     seasons: str = typer.Option(
         "2425,2526", "--seasons",
@@ -37,6 +37,14 @@ def run(
         0.02, "--ev-threshold",
         help="Minimum EV to count as positive edge (default 2%%).",
     ),
+    min_volume: float = typer.Option(
+        0.0, "--min-volume",
+        help="NFL props: minimum Kalshi volume to include a market (default: all).",
+    ),
+    stats: Optional[str] = typer.Option(
+        None, "--stats",
+        help="NFL props: comma-separated stat types to include (e.g. 'passing_yards,passing_tds'). Default: all stats.",
+    ),
 ) -> None:
     """
     Run historical backtest using football-data.co.uk (soccer) and tennis-data.co.uk (tennis).
@@ -53,11 +61,14 @@ def run(
       evmax backtest run --sectors soccer --kalshi   (requires API keys)
     """
     from evmax.backtest.display import print_report
+    from evmax.backtest.display_props import print_prop_report
     from evmax.backtest.engine import run_backtest
+    from evmax.backtest.models import PropBacktestReport
 
     sector_list = [s.strip().lower() for s in sectors.split(",") if s.strip()]
     season_list = [s.strip() for s in seasons.split(",") if s.strip()]
     league_list = [l.strip() for l in leagues.split(",") if l.strip()] if leagues else None
+    stats_list = [s.strip() for s in stats.split(",") if s.strip()] if stats else None
 
     console.print(
         f"\n[bold cyan]evmax backtest[/bold cyan] — sectors: {', '.join(sector_list)}"
@@ -74,6 +85,8 @@ def run(
             fetch_kalshi=kalshi,
             force_refresh=force,
             ev_threshold=ev_threshold,
+            min_volume=min_volume,
+            stats_filter=stats_list,
         )
 
     if not reports:
@@ -81,4 +94,7 @@ def run(
         raise typer.Exit(1)
 
     for report in reports:
-        print_report(report)
+        if isinstance(report, PropBacktestReport):
+            print_prop_report(report)
+        else:
+            print_report(report)

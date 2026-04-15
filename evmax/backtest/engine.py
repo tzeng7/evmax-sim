@@ -9,7 +9,8 @@ import structlog
 
 from evmax.backtest.loader import SOCCER_LEAGUES
 from evmax.backtest.metrics import compute_report
-from evmax.backtest.models import BacktestReport, BacktestRow
+from evmax.backtest.metrics_props import compute_prop_report
+from evmax.backtest.models import BacktestReport, BacktestRow, PropBacktestReport
 
 logger = structlog.get_logger(__name__)
 
@@ -21,25 +22,29 @@ def run_backtest(
     fetch_kalshi: bool = False,
     force_refresh: bool = False,
     ev_threshold: float = 0.02,
-) -> list[BacktestReport]:
+    min_volume: float = 0.0,
+    stats_filter: Optional[list[str]] = None,
+) -> list[BacktestReport | PropBacktestReport]:
     """
     Run historical backtest for the given sectors.
 
     Args:
-        sectors: List of sector names, e.g. ["soccer", "tennis"]
+        sectors: List of sector names, e.g. ["soccer", "tennis", "nfl_props"]
         seasons: Soccer seasons to include, e.g. ["2425", "2526"]
         leagues: Soccer league codes to include, e.g. ["E0", "SP1"]. None = all.
         fetch_kalshi: If True, fetch resolved Kalshi markets and join for EV analysis.
         force_refresh: Re-download cached CSV/XLSX files.
         ev_threshold: Minimum EV% to count as a positive edge (default 2%).
+        min_volume: For prop sectors, exclude markets with volume below this.
 
     Returns:
-        One BacktestReport per sector.
+        One report per sector — either BacktestReport (match markets) or
+        PropBacktestReport (player props).
     """
     if seasons is None:
         seasons = ["2425", "2526"]
 
-    reports: list[BacktestReport] = []
+    reports: list[BacktestReport | PropBacktestReport] = []
 
     for sector in sectors:
         try:
@@ -48,6 +53,8 @@ def run_backtest(
             elif sector == "tennis":
                 years = _seasons_to_tennis_years(seasons)
                 report = _run_tennis(years, fetch_kalshi, force_refresh, ev_threshold)
+            elif sector == "nfl_props":
+                report = _run_nfl_props(min_volume, stats_filter)
             else:
                 logger.warning("backtest_unsupported_sector", sector=sector)
                 continue
@@ -56,6 +63,18 @@ def run_backtest(
             logger.error("backtest_sector_failed", sector=sector, error=str(e))
 
     return reports
+
+
+def _run_nfl_props(
+    min_volume: float,
+    stats_filter: Optional[list[str]] = None,
+) -> PropBacktestReport:
+    from evmax.backtest.sources.nfl_props import load_nfl_props
+
+    logger.info("backtest_nfl_props_start", stats_filter=stats_filter or "all")
+    rows = load_nfl_props(stats_filter=stats_filter)
+    logger.info("backtest_nfl_props_loaded", n_rows=len(rows))
+    return compute_prop_report(rows, min_volume=min_volume)
 
 
 def _run_soccer(

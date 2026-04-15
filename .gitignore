@@ -30,6 +30,9 @@ secrets/
 data/cache/
 data/*_cache.json
 
+# Backtest raw data (reproducible via scripts/fetch_*.py)
+data/backtest/nfl_props/
+
 # Logs
 *.log
 logs/
