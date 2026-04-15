@@ -238,7 +238,7 @@
         <td class="muted">{{ b.event_date }}</td>
         <td><span class="badge">{{ b.sector }}</span></td>
         <td>{{ b.event_title }}</td>
-        <td>{{ b.yes_team }} {{ b.market_type }}{% if b.line %} {{ b.line }}{% endif %}</td>
+        <td>{{ b.display_label or (b.yes_team ~ ' ' ~ b.market_type ~ (' ' ~ b.line if b.line else '')) }}</td>
         <td class="num">{{ '%.0f'|format((b.blended_true_prob or 0) * 100) }}%</td>
         <td class="num green">{{ '%.1f'|format((b.ev_pct or 0) * 100) }}%</td>
         <td class="num"><input type="text" class="placed-odds" data-mid="{{ b.market_id }}" value="{{ probToAmerican(fill) }}" style="width:64px" title="American odds (e.g. +181 or -150)"></td>
@@ -259,10 +259,19 @@
 <!-- Two-column: sector breakdown + open (unplaced) positions -->
 <div class="two-col">
   <div class="panel">
-    <h2>Sector Performance</h2>
+    <div class="panel-header">
+      <h2>Sector Performance</h2>
+      <div class="actions" style="gap:4px">
+        <button class="btn btn-sm sector-range active" data-range="all" onclick="filterSectors('all')">All</button>
+        <button class="btn btn-sm sector-range" data-range="1y" onclick="filterSectors('1y')">1Y</button>
+        <button class="btn btn-sm sector-range" data-range="1m" onclick="filterSectors('1m')">1M</button>
+        <button class="btn btn-sm sector-range" data-range="1w" onclick="filterSectors('1w')">1W</button>
+        <button class="btn btn-sm sector-range" data-range="1d" onclick="filterSectors('1d')">1D</button>
+      </div>
+    </div>
     <table>
       <thead><tr><th>Sector</th><th class="num">Bets</th><th class="num">Wins</th><th class="num">Win%</th><th class="num">P&L</th><th class="num">ROI</th></tr></thead>
-      <tbody>
+      <tbody id="sectorBody">
       {% for s in sectors %}
         <tr>
           <td><span class="badge">{{ s.sector }}</span></td>
@@ -307,7 +316,7 @@
           <td class="muted">{{ b.event_date }}</td>
           <td><span class="badge">{{ b.sector }}</span></td>
           <td>{{ b.event_title }}</td>
-          <td>{{ b.yes_team }} {{ b.market_type }}{% if b.line %} {{ b.line }}{% endif %}</td>
+          <td>{{ b.display_label or (b.yes_team ~ ' ' ~ b.market_type ~ (' ' ~ b.line if b.line else '')) }}</td>
           <td class="num">{{ probToAmerican(b.kalshi_yes_price) }} <span class="muted">({{ '%.0f'|format(b.kalshi_yes_price * 100) }}¢)</span></td>
           <td class="num">{{ probToAmerican(b.blended_true_prob) }} <span class="muted">({{ '%.0f'|format((b.blended_true_prob or 0) * 100) }}¢)</span></td>
           <td class="num green">{{ '%.1f'|format((b.ev_pct or 0) * 100) }}%</td>
@@ -341,7 +350,7 @@
         <td class="muted">{{ b.event_date }}</td>
         <td><span class="badge">{{ b.sector }}</span></td>
         <td>{{ b.event_title }}</td>
-        <td>{{ b.yes_team }} {{ b.market_type }}{% if b.line %} {{ b.line }}{% endif %}</td>
+        <td>{{ b.display_label or (b.yes_team ~ ' ' ~ b.market_type ~ (' ' ~ b.line if b.line else '')) }}</td>
         <td class="num">{{ '%.0f'|format(b.kalshi_yes_price * 100) }}c</td>
         <td class="num">{{ '%.0f'|format((b.blended_true_prob or 0) * 100) }}%</td>
         <td class="num">{{ '%.1f'|format((b.ev_pct or 0) * 100) }}%</td>
@@ -505,6 +514,32 @@ function filterPlaced() {
   document.getElementById('placedCount').textContent = visible;
 }
 
+async function filterSectors(range) {
+  document.querySelectorAll('.sector-range').forEach(b => b.classList.toggle('active', b.dataset.range === range));
+  try {
+    const res = await fetch(`/api/sectors?range=${range}`);
+    const rows = await res.json();
+    const tbody = document.getElementById('sectorBody');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="muted" style="text-align:center">No data for this period</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(s => {
+      const pnlClass = s.pnl >= 0 ? 'green' : 'red';
+      const roiClass = s.roi_pct >= 0 ? 'green' : 'red';
+      return `<tr>
+        <td><span class="badge">${s.sector}</span></td>
+        <td class="num">${s.bets}</td><td class="num">${s.wins}</td>
+        <td class="num">${s.win_rate}%</td>
+        <td class="num ${pnlClass}">$${s.pnl.toFixed(2)}</td>
+        <td class="num ${roiClass}">${s.roi_pct}%</td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    console.error('filterSectors error:', e);
+  }
+}
+
 function filterOpen() {
   const sector = document.getElementById('openSectorFilter').value.toLowerCase();
   let visible = 0;
@@ -598,7 +633,7 @@ function renderScan(data) {
 
   for (const g of data.gaps) {
     const askOdds = probToAmerican(g.kalshi_price);
-    const outcome = g.yes_team + ' ' + g.market_type + (g.line ? ' ' + g.line : '');
+    const outcome = g.display_label || (g.yes_team + ' ' + g.market_type + (g.line ? ' ' + g.line : ''));
     const tr = document.createElement('tr');
     tr.dataset.sector = g.sector;
     tr.dataset.date = (g.event_date || '').slice(0, 10);

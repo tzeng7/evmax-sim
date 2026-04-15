@@ -62,11 +62,16 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     bankroll_used       REAL,
     line                REAL,
     voided              INTEGER NOT NULL DEFAULT 0,
+    placed              INTEGER NOT NULL DEFAULT 0,
+    placed_at           TEXT,
+    placed_price        REAL,
+    placed_stake        REAL,
+    clv_pct             REAL,
     -- ARCH-11 mode columns:
     mode                TEXT    NOT NULL DEFAULT 'live',
     captured_yes_price  REAL,
     model_version       TEXT,
-    UNIQUE(market_id, scan_date)
+    UNIQUE(market_id)
 );
 """
 
@@ -765,6 +770,8 @@ def _make_ev_gap(
     sector: str = "nba",
     yes_team: str = "pistons",
     ev_pct: float = 0.05,
+    sharp_true_prob: float = 0.55,
+    blended_true_prob: float = 0.55,
 ):
     from evmax.agents.odds.ev_gap_agent import EVGap
     return EVGap(
@@ -774,8 +781,8 @@ def _make_ev_gap(
         yes_team=yes_team,
         market_type="moneyline",
         kalshi_yes_price=0.40,
-        sharp_true_prob=0.55,
-        blended_true_prob=0.55,
+        sharp_true_prob=sharp_true_prob,
+        blended_true_prob=blended_true_prob,
         ev_pct=ev_pct,
         kelly_full=0.10,
         kelly_fraction=0.025,
@@ -848,13 +855,55 @@ class TestLogGaps:
         n = self._run_log(conn, [])
         assert n == 0
 
-    def test_same_market_id_different_scan_dates_both_inserted(self):
+    def test_rescan_on_later_date_is_noop_freeze_on_first_insert(self):
+        """Under UNIQUE(market_id), the second scan is ignored entirely —
+        the row's scan_date and snapshot fields stay frozen at first-flag time."""
         conn = _make_in_memory_db()
-        gap = _make_ev_gap("kalshi:MULTI-DATE")
-        n1 = self._run_log(conn, [gap], scan_date=date(2026, 3, 20))
-        n2 = self._run_log(conn, [gap], scan_date=date(2026, 3, 21))
+        gap1 = _make_ev_gap("kalshi:FREEZE", sharp_true_prob=0.60, blended_true_prob=0.65)
+        gap2 = _make_ev_gap("kalshi:FREEZE", sharp_true_prob=0.70, blended_true_prob=0.75)
+
+        n1 = self._run_log(conn, [gap1], scan_date=date(2026, 3, 20))
+        n2 = self._run_log(conn, [gap2], scan_date=date(2026, 3, 21))
+
         assert n1 == 1
-        assert n2 == 1
+        assert n2 == 0  # INSERT OR IGNORE skipped
+
+        row = conn.execute(
+            "SELECT scan_date, sharp_true_prob, blended_true_prob FROM ev_predictions "
+            "WHERE market_id = ?", ("kalshi:FREEZE",)
+        ).fetchone()
+        assert row["scan_date"] == "2026-03-20"
+        assert row["sharp_true_prob"] == 0.60
+        assert row["blended_true_prob"] == 0.65
+
+    def test_placed_row_untouchable_by_later_scans(self):
+        """If a market was placed (user hit 'pick'), a later re-log must not
+        disturb the placed_* fields or the frozen snapshot."""
+        conn = _make_in_memory_db()
+        gap1 = _make_ev_gap("kalshi:PLACED", sharp_true_prob=0.55)
+        self._run_log(conn, [gap1], scan_date=date(2026, 3, 20))
+
+        # Simulate `pick` stamping the row
+        conn.execute(
+            "UPDATE ev_predictions SET placed = 1, placed_at = ?, "
+            "placed_price = ?, placed_stake = ? WHERE market_id = ?",
+            ("2026-03-20T18:00:00+00:00", 0.54, 25.0, "kalshi:PLACED"),
+        )
+        conn.commit()
+
+        # Re-log the same market with different values
+        gap2 = _make_ev_gap("kalshi:PLACED", sharp_true_prob=0.80)
+        n2 = self._run_log(conn, [gap2], scan_date=date(2026, 3, 21))
+        assert n2 == 0
+
+        row = conn.execute(
+            "SELECT sharp_true_prob, placed, placed_at, placed_price, placed_stake "
+            "FROM ev_predictions WHERE market_id = ?", ("kalshi:PLACED",)
+        ).fetchone()
+        assert row["sharp_true_prob"] == 0.55  # frozen entry, not 0.80
+        assert row["placed"] == 1
+        assert row["placed_price"] == 0.54
+        assert row["placed_stake"] == 25.0
 
 
 class TestGetLoggedMarketIds:
@@ -911,3 +960,190 @@ class TestGetLoggedMarketIds:
             ids = get_logged_market_ids(self.SCAN_DATE)
 
         assert isinstance(ids, set)
+
+
+class TestUniqueMarketIdMigration:
+    """Covers the _migrate_unique_market_id rebuild in db.py. Simulates a
+    legacy database with UNIQUE(market_id, scan_date) and multiple rows per
+    market, runs the migration, and asserts the new constraint is in place
+    with the best row retained per market."""
+
+    def _make_legacy_db(self, path) -> sqlite3.Connection:
+        """Create a DB matching the pre-migration schema exactly."""
+        conn = sqlite3.connect(str(path))
+        conn.row_factory = sqlite3.Row
+        conn.executescript("""
+            CREATE TABLE ev_predictions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                logged_at TEXT NOT NULL DEFAULT (datetime('now')),
+                scan_date TEXT NOT NULL,
+                market_id TEXT NOT NULL,
+                event_id TEXT NOT NULL,
+                sector TEXT NOT NULL,
+                yes_team TEXT NOT NULL,
+                market_type TEXT NOT NULL,
+                event_title TEXT,
+                event_date TEXT,
+                kalshi_yes_price REAL NOT NULL,
+                sharp_true_prob REAL NOT NULL,
+                blended_true_prob REAL NOT NULL,
+                ev_pct REAL NOT NULL,
+                kelly_fraction REAL NOT NULL,
+                volume_usd REAL,
+                model_sources TEXT,
+                sharp_weight_used REAL,
+                bankroll_used REAL,
+                line REAL,
+                voided INTEGER NOT NULL DEFAULT 0,
+                placed INTEGER NOT NULL DEFAULT 0,
+                placed_at TEXT,
+                placed_price REAL,
+                placed_stake REAL,
+                clv_pct REAL,
+                UNIQUE(market_id, scan_date)
+            );
+            CREATE TABLE ev_outcomes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                market_id TEXT NOT NULL,
+                event_id TEXT NOT NULL,
+                event_date TEXT NOT NULL,
+                sector TEXT NOT NULL,
+                yes_team TEXT NOT NULL,
+                outcome INTEGER,
+                sharp_true_prob REAL,
+                blended_true_prob REAL,
+                pinnacle_close_prob REAL,
+                resolved_at TEXT,
+                result_source TEXT,
+                UNIQUE(market_id)
+            );
+            CREATE TABLE prop_observations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                logged_at TEXT NOT NULL DEFAULT (datetime('now')),
+                scan_date TEXT NOT NULL,
+                event_date TEXT,
+                sector TEXT NOT NULL,
+                player_name TEXT NOT NULL,
+                stat_type TEXT NOT NULL,
+                line REAL NOT NULL,
+                kalshi_price REAL,
+                sharp_prob REAL,
+                ev_pct REAL,
+                l15_games INTEGER,
+                market_id TEXT,
+                event_id TEXT,
+                event_title TEXT,
+                actual_value REAL,
+                outcome INTEGER,
+                resolved_at TEXT,
+                UNIQUE(market_id, scan_date)
+            );
+        """)
+        return conn
+
+    def test_migration_rebuilds_table_and_keeps_best_row_per_market(self, tmp_path):
+        db_path = tmp_path / "legacy.db"
+        conn = self._make_legacy_db(db_path)
+
+        # Seed a market scanned 3 times, placed on the middle scan
+        for sd, sharp, placed in [
+            ("2026-04-10", 0.60, 0),
+            ("2026-04-11", 0.65, 1),  # placed
+            ("2026-04-12", 0.70, 0),
+        ]:
+            conn.execute(
+                "INSERT INTO ev_predictions (scan_date, market_id, event_id, sector, "
+                "yes_team, market_type, kalshi_yes_price, sharp_true_prob, "
+                "blended_true_prob, ev_pct, kelly_fraction, placed) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                (sd, "kalshi:LEGACY-1", "nba::evt::1", "nba", "team", "moneyline",
+                 0.5, sharp, sharp, 0.05, 0.025, placed),
+            )
+        # And a market scanned twice, never placed — oldest should win
+        for sd, sharp in [("2026-04-10", 0.55), ("2026-04-11", 0.60)]:
+            conn.execute(
+                "INSERT INTO ev_predictions (scan_date, market_id, event_id, sector, "
+                "yes_team, market_type, kalshi_yes_price, sharp_true_prob, "
+                "blended_true_prob, ev_pct, kelly_fraction) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                (sd, "kalshi:LEGACY-2", "nba::evt::2", "nba", "team", "moneyline",
+                 0.5, sharp, sharp, 0.05, 0.025),
+            )
+        conn.commit()
+        conn.close()
+
+        # Run the migration via get_connection()
+        with patch("evmax.agents.cleanup.db.DB_PATH", db_path):
+            from evmax.agents.cleanup.db import get_connection
+            conn = get_connection()
+
+        # 1. New UNIQUE(market_id) constraint is in place
+        ddl = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='ev_predictions'"
+        ).fetchone()[0]
+        normalized = " ".join(ddl.split())
+        assert "UNIQUE(market_id)" in normalized
+        assert "UNIQUE(market_id, scan_date)" not in normalized
+
+        # 2. Exactly one row per market_id survives
+        rows = conn.execute(
+            "SELECT market_id, scan_date, sharp_true_prob, placed "
+            "FROM ev_predictions ORDER BY market_id"
+        ).fetchall()
+        assert len(rows) == 2
+
+        # 3. LEGACY-1: placed row (2026-04-11, 0.65) wins
+        legacy_1 = rows[0]
+        assert legacy_1["market_id"] == "kalshi:LEGACY-1"
+        assert legacy_1["placed"] == 1
+        assert legacy_1["scan_date"] == "2026-04-11"
+        assert legacy_1["sharp_true_prob"] == 0.65
+
+        # 4. LEGACY-2: oldest scan (2026-04-10, 0.55) wins — freeze-on-first-insert
+        legacy_2 = rows[1]
+        assert legacy_2["market_id"] == "kalshi:LEGACY-2"
+        assert legacy_2["scan_date"] == "2026-04-10"
+        assert legacy_2["sharp_true_prob"] == 0.55
+
+        # 5. Subsequent INSERT OR IGNORE of the same market is a no-op
+        conn.execute(
+            "INSERT OR IGNORE INTO ev_predictions (scan_date, market_id, event_id, "
+            "sector, yes_team, market_type, kalshi_yes_price, sharp_true_prob, "
+            "blended_true_prob, ev_pct, kelly_fraction) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            ("2026-04-20", "kalshi:LEGACY-2", "nba::evt::2", "nba", "team",
+             "moneyline", 0.5, 0.99, 0.99, 0.99, 0.99),
+        )
+        conn.commit()
+        row = conn.execute(
+            "SELECT scan_date, sharp_true_prob FROM ev_predictions "
+            "WHERE market_id = ?", ("kalshi:LEGACY-2",)
+        ).fetchone()
+        assert row["scan_date"] == "2026-04-10"
+        assert row["sharp_true_prob"] == 0.55
+
+        conn.close()
+
+    def test_migration_is_idempotent(self, tmp_path):
+        """Running get_connection twice must not fail or alter state."""
+        db_path = tmp_path / "legacy_idem.db"
+        conn = self._make_legacy_db(db_path)
+        conn.execute(
+            "INSERT INTO ev_predictions (scan_date, market_id, event_id, sector, "
+            "yes_team, market_type, kalshi_yes_price, sharp_true_prob, "
+            "blended_true_prob, ev_pct, kelly_fraction) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            ("2026-04-10", "kalshi:IDEM", "nba::evt::3", "nba", "team",
+             "moneyline", 0.5, 0.60, 0.60, 0.05, 0.025),
+        )
+        conn.commit()
+        conn.close()
+
+        with patch("evmax.agents.cleanup.db.DB_PATH", db_path):
+            from evmax.agents.cleanup.db import get_connection
+            c1 = get_connection()
+            c1.close()
+            c2 = get_connection()  # second call — must be a no-op
+            rows = c2.execute("SELECT COUNT(*) FROM ev_predictions").fetchone()
+            assert rows[0] == 1
+            c2.close()

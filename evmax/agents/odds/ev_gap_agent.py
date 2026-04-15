@@ -61,6 +61,8 @@ class EVGap:
     prop_stat_type: Optional[str] = None
     prop_threshold: Optional[float] = None
     prop_l15_games: int = 0   # number of games in the L15 sample (0 = unknown)
+    prop_minutes_volatile: bool = False  # True if player had abnormal recent minutes
+    prop_minutes_cv: float = 0.0         # minutes coefficient of variation
 
     @property
     def edge_label(self) -> str:
@@ -703,20 +705,20 @@ class EVGapAgent(Agent):
         """Evaluate a matched player prop pair for EV.
 
         YES side on Kalshi = player goes OVER the threshold.
-        Uses sharp.true_prob_over as the true probability, boosted by injury
-        redistribution when teammates are OUT.
+
+        DISABLED (Apr 2026): Backtest on 143 resolved prop observations showed
+        the L15-based model (Brier 0.253) loses to predicting 37% for everything
+        (Brier 0.233). Kalshi only offers overs, which are systematically
+        overpriced (62c implied, 37% actual). The model computes over-probability
+        from the same L15 stats the line-setters already know — zero information
+        edge. Non-volatile qualifying bets went 3/20 (-71% ROI).
+
+        Props are still logged to prop_observations for calibration data
+        via log_prop_from_sharp() in the CLI layer (uses raw SharpOdds pairs).
+        Re-enable when we have a model with genuine edge (real-time lineup
+        data, closing-line-value arbitrage, or cross-book sharp lines).
         """
-        if market.yes_price <= 0 or market.yes_price >= 1.0:
-            return None
-
-        if sharp.true_prob_over is None:
-            return None
-
-        # Reject extremely illiquid prop markets. Kalshi prop books are
-        # normally wider than game markets, so we use a looser threshold.
-        _MAX_PROP_SPREAD = 0.80
-        if market.spread_pct > _MAX_PROP_SPREAD:
-            return None
+        return None
 
         sharp_true_prob = sharp.true_prob_over
         src = "nba_stats"
@@ -796,4 +798,6 @@ class EVGapAgent(Agent):
             prop_stat_type=market.stat_type,
             prop_threshold=market.threshold,
             prop_l15_games=sharp.prop_l15_games,
+            prop_minutes_volatile=sharp.prop_minutes_volatile,
+            prop_minutes_cv=sharp.prop_minutes_cv,
         )

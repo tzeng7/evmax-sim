@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
@@ -37,6 +38,21 @@ _DECAY = 0.85
 _MAX_OPP_ADJ = 0.15
 
 # Stat column mapping
+_MIN_VOL_THRESHOLD = 1.5  # flag games with minutes > mean ± 1.5σ
+_VOL_DOWNWEIGHT = 0.25     # volatile games get 25% of their normal weight
+
+
+@dataclass
+class PropResult:
+    """Result from compute_prop_prob_cached with volatility metadata."""
+    prob: float
+    n_games: int
+    minutes_volatile: bool = False     # True if recent games have abnormal minutes
+    minutes_cv: float = 0.0            # coefficient of variation (std/mean) of minutes
+    volatile_games: int = 0            # count of games flagged as outlier-minutes
+    avg_minutes: float = 0.0           # L15 average minutes
+
+
 STAT_COL: dict[str, str] = {
     "points": "PTS",
     "rebounds": "REB",
@@ -349,11 +365,16 @@ def compute_prop_prob_cached(
     stat_type: str,
     threshold: float,
     game_date: str | None = None,
-) -> tuple[float, int] | None:
+) -> PropResult | None:
     """Compute P(player stat >= threshold) from cached data. No API calls.
 
     Same model as nba_stats.py: recency-weighted mean + opponent adjustment + streak.
-    Returns (probability, n_games) or None if player not in cache.
+    Returns PropResult or None if player not in cache.
+
+    Minutes volatility: games where the player's minutes deviate more than 1.5σ
+    from their L15 average are downweighted to 25% of normal decay weight.  This
+    prevents rest-day blowups (e.g. a bench player getting 35 min because starters
+    sat) from inflating projected stats.
     """
     cache = _load_cache()
     if cache is None:
@@ -401,6 +422,16 @@ def compute_prop_prob_cached(
     # Per-36-minute normalization
     minutes = np.array(stats.get("MIN", [36.0] * n)[:n])
     avg_min = float(np.mean(minutes))
+    min_std = float(np.std(minutes)) if n >= 3 else 0.0
+    minutes_cv = min_std / avg_min if avg_min > 5.0 else 0.0
+
+    # Detect minutes volatility: flag games where minutes deviate > 1.5σ
+    volatile_mask = np.zeros(n, dtype=bool)
+    if avg_min >= 5.0 and min_std > 1.0:
+        volatile_mask = np.abs(minutes - avg_min) > (_MIN_VOL_THRESHOLD * min_std)
+    volatile_games = int(np.sum(volatile_mask))
+    minutes_volatile = volatile_games >= 2 or (volatile_games >= 1 and minutes_cv > 0.25)
+
     if avg_min >= 5.0:
         per36 = raw / np.maximum(minutes, 1.0) * 36.0
         eff_threshold = threshold / avg_min * 36.0
@@ -408,8 +439,11 @@ def compute_prop_prob_cached(
         per36 = raw
         eff_threshold = float(threshold)
 
-    # Exponential decay weights
+    # Exponential decay weights — downweight volatile-minutes games
     weights = np.array([_DECAY ** i for i in range(n)])
+    for i in range(n):
+        if volatile_mask[i]:
+            weights[i] *= _VOL_DOWNWEIGHT
     weights /= weights.sum()
 
     wmean = float(np.dot(weights, per36))
@@ -433,37 +467,51 @@ def compute_prop_prob_cached(
     # ------------------------------------------------------------------
     # Base probability from normal distribution
     # ------------------------------------------------------------------
-    model_prob = float(1 - norm.cdf(eff_threshold - 0.5, wmean, wstd))
+    # No continuity correction — the old -0.5 inflated prob by ~5pp.
+    model_prob = float(1 - norm.cdf(eff_threshold, wmean, wstd))
     model_prob = max(0.01, min(0.99, model_prob))
 
     # ------------------------------------------------------------------
-    # Blend: model probability + empirical line performance
+    # Calibrated blend
     #
-    # The model (weighted mean + normal CDF) captures the player's current
-    # form. The empirical hit rate captures how they actually perform
-    # against this specific threshold. Blend 60/40 model/empirical —
-    # the model generalizes better, but empirical grounds us in reality.
+    # Calibration replay (n=143, Apr 2026) revealed the Kalshi over market
+    # is systematically overpriced: avg implied 62%, actual hit rate 37%.
+    # Our old model was EVEN WORSE — predicting 75% average, producing
+    # illusory +EV signals.  Root causes:
+    #   1. Normal CDF overestimates upper tail (stats are right-skewed)
+    #   2. Per-36 normalization inflates short-minute games
+    #   3. Margin/streak adjustments stacked +6-11pp upward bias
+    #   4. No calibration against the base rate of prop overs (~37%)
     #
-    # Additional adjustments layered on top:
-    #   - Margin signal: if player beats line by 3+ pts on average, the
-    #     line is stale and we boost confidence
-    #   - Streak: hot/cold in last 5 amplifies direction
+    # Fix: anchor on weighted empirical hit rate (most grounded signal),
+    # blend in model CDF at low weight, apply conservative adjustments,
+    # and shrink toward the empirical Kalshi base rate (~0.40).
     # ------------------------------------------------------------------
-    blended_prob = 0.60 * model_prob + 0.40 * weighted_hit_rate
 
-    # Margin adjustment: large avg margin over line → market hasn't caught up
-    # Scale: +1% per point of average margin, capped at ±8%
-    margin_adj = np.clip(avg_margin * 0.01, -0.08, 0.08)
+    # 40/60 model/empirical — empirical is the stronger anchor
+    blended_prob = 0.40 * model_prob + 0.60 * weighted_hit_rate
+
+    # Margin adjustment: conservative — +0.3% per point, capped ±3%
+    margin_adj = np.clip(avg_margin * 0.003, -0.03, 0.03)
     blended_prob += margin_adj
 
-    # Streak adjustment: amplified version — scales with streak strength
+    # Streak adjustment: very small nudge
     if last5_hits >= 4:
-        streak_adj = 0.03 + 0.02 * (last5_hits - 4)  # +3% for 4/5, +5% for 5/5
+        streak_adj = 0.01 + 0.005 * (last5_hits - 4)  # +1% for 4/5, +1.5% for 5/5
     elif last5_hits <= 1:
-        streak_adj = -0.03 - 0.02 * (1 - last5_hits)  # -3% for 1/5, -5% for 0/5
+        streak_adj = -0.01 - 0.005 * (1 - last5_hits)  # -1% for 1/5, -1.5% for 0/5
     else:
         streak_adj = 0.0
     blended_prob += streak_adj
+
+    # Shrink toward the empirical Kalshi over base rate (~0.40).
+    # The market-wide over hit rate is ~37%, but some of that is driven
+    # by extreme mispricing at 80-95c.  Use 0.40 as a conservative anchor.
+    # Shrinkage = 20% — strong enough to pull 80% down to 72%, mild enough
+    # that genuine 60% stays at 56%.
+    _BASE_RATE = 0.40
+    _SHRINKAGE = 0.20
+    blended_prob = blended_prob * (1 - _SHRINKAGE) + _BASE_RATE * _SHRINKAGE
 
     # ------------------------------------------------------------------
     # Opponent defensive adjustment
@@ -489,9 +537,26 @@ def compute_prop_prob_cached(
             opp_adj = _opponent_adjustment(stat_type, opp_stats, league_avg)
 
     prob = blended_prob * opp_adj
+
+    # Apply volatility discount: volatile players hit overs only ~18% of the
+    # time (calibration Apr 2026, n=28).  Shrink 40% toward the volatile base
+    # rate (0.25) — strong enough to kill false +EV signals from rest-day
+    # blowup games while still allowing genuinely high probs through.
+    if minutes_volatile:
+        _VOL_BASE = 0.25
+        _VOL_SHRINK = 0.40
+        prob = prob * (1 - _VOL_SHRINK) + _VOL_BASE * _VOL_SHRINK
+
     prob = max(0.01, min(0.99, prob))
 
-    return prob, n
+    return PropResult(
+        prob=prob,
+        n_games=n,
+        minutes_volatile=minutes_volatile,
+        minutes_cv=round(minutes_cv, 3),
+        volatile_games=volatile_games,
+        avg_minutes=round(avg_min, 1),
+    )
 
 
 def _opponent_adjustment(stat_type: str, opp_stats: dict, league_avg: dict) -> float:

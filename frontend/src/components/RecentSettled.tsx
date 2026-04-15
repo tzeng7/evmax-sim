@@ -1,4 +1,5 @@
 import type { Bet } from '../lib/types'
+import { outcomeLabel } from '../lib/odds'
 
 interface Props { bets: Bet[] }
 
@@ -31,7 +32,7 @@ export function RecentSettled({ bets }: Props) {
                   <td className="muted">{b.event_date}</td>
                   <td><span className="badge">{b.sector}</span></td>
                   <td>{b.event_title}</td>
-                  <td>{b.yes_team} {b.market_type}{b.line ? ' ' + b.line : ''}</td>
+                  <td>{outcomeLabel(b)}</td>
                   <td className="num">{Math.round(b.kalshi_yes_price * 100)}c</td>
                   <td className="num">{Math.round((b.blended_true_prob || 0) * 100)}%</td>
                   <td className="num">{((b.ev_pct || 0) * 100).toFixed(1)}%</td>

@@ -342,11 +342,14 @@ class EloModelAgent(ModelAgent):
         expected_a = max(0.01, min(0.99, expected_a + h2h_adj))
         expected_b = 1.0 - expected_a
 
-        # Soccer: allocate draw probability from the expected margin
+        # Soccer: allocate draw probability from the expected margin.
+        # Draw rate is strength-dependent: evenly matched teams draw ~26%,
+        # heavily mismatched teams draw ~10%.  Calibrated against EPL/La Liga
+        # historical averages (overall ~25%, but conditional on strength gap).
         if sector == "soccer":
-            closeness = 1.0 - abs(expected_a - 0.5) * 2.0
-            draw_base = 0.22
-            draw_prob = draw_base * (0.5 + 0.5 * closeness)
+            gap = abs(expected_a - 0.5) * 2.0  # 0 = even, 1 = total mismatch
+            # Quadratic decay: 0.26 at gap=0, ~0.10 at gap=0.6
+            draw_prob = max(0.08, 0.26 - 0.45 * gap * gap)
             scale = (1.0 - draw_prob) / (expected_a + expected_b)
             return expected_a * scale, expected_b * scale, draw_prob
 

@@ -220,8 +220,10 @@ def _make_score(home: str, home_score: int, away: str, away_score: int) -> dict:
     }
 
 
-def _make_pred(event_id: str, yes_team: str) -> dict:
-    return {"event_id": event_id, "yes_team": yes_team}
+def _make_pred(event_id: str, yes_team: str, **extra) -> dict:
+    base = {"event_id": event_id, "yes_team": yes_team}
+    base.update(extra)
+    return base
 
 
 class TestMatchEspn:
@@ -396,6 +398,58 @@ class TestMatchEspn:
             _make_score("Bulls", 98, "Celtics", 102),
         ]
         pred = _make_pred("nba::2026-03-19::pistons_vs_wizards", "pistons")
+        assert _match_espn(pred, scores) == 1
+
+    # ------------------------------------------------------------------
+    # Spread resolution — regression for BUG where _match_espn ignored
+    # market_type entirely and graded every bet as a moneyline. The
+    # example that surfaced it: Hornets won by 1 vs Heat on 2026-04-14,
+    # a Hornets -9.5 spread bet was marked WON.
+    # ------------------------------------------------------------------
+
+    def test_spread_yes_team_wins_but_does_not_cover(self):
+        scores = [_make_score("Charlotte Hornets", 127, "Miami Heat", 126)]
+        pred = _make_pred(
+            "nba::2026-04-14::hornets_vs_heat::spread",
+            "hornets", market_type="spread", line=-9.5,
+        )
+        # Hornets won by 1, threshold is 9.5 → did NOT cover.
+        assert _match_espn(pred, scores) == 0
+
+    def test_spread_yes_team_covers(self):
+        scores = [_make_score("Boston Celtics", 130, "Washington Wizards", 95)]
+        pred = _make_pred(
+            "nba::2026-03-19::celtics_vs_wizards::spread",
+            "celtics", market_type="spread", line=-10.5,
+        )
+        # Margin 35 > 10.5 → cover.
+        assert _match_espn(pred, scores) == 1
+
+    def test_spread_yes_team_away_covers(self):
+        scores = [_make_score("Washington Wizards", 95, "Boston Celtics", 130)]
+        pred = _make_pred(
+            "nba::2026-03-19::celtics_vs_wizards::spread",
+            "celtics", market_type="spread", line=-10.5,
+        )
+        assert _match_espn(pred, scores) == 1
+
+    def test_spread_exact_margin_does_not_cover(self):
+        # Kalshi phrasing is "wins by OVER 9.5 points" — exactly 10 covers
+        # a -9.5 line, but exactly 9 does not.
+        scores = [_make_score("Boston Celtics", 109, "Washington Wizards", 100)]
+        pred = _make_pred(
+            "nba::2026-03-19::celtics_vs_wizards::spread",
+            "celtics", market_type="spread", line=-9.5,
+        )
+        assert _match_espn(pred, scores) == 0  # margin 9 < 9.5
+
+    def test_moneyline_unaffected_by_spread_branch(self):
+        """Moneyline bets must still resolve on simple win/loss."""
+        scores = [_make_score("Charlotte Hornets", 127, "Miami Heat", 126)]
+        pred = _make_pred(
+            "nba::2026-04-14::hornets_vs_heat",
+            "hornets", market_type="moneyline", line=None,
+        )
         assert _match_espn(pred, scores) == 1
 
 

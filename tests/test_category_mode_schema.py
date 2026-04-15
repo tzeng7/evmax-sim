@@ -200,20 +200,38 @@ def test_migration_adds_columns_to_legacy_db(tmp_path, monkeypatch):
     loop backfills them."""
     db_path = tmp_path / "legacy.db"
     pre = sqlite3.connect(str(db_path))
+    # Mirror the pre-ARCH-11 schema: every column that existed before the
+    # mode/captured_yes_price/model_version additions. The composite UNIQUE
+    # is intentional so _migrate_unique_market_id() also runs during the
+    # test, exercising the full upgrade path.
     pre.executescript(
         """CREATE TABLE ev_predictions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            scan_date TEXT NOT NULL,
-            market_id TEXT NOT NULL,
-            event_id TEXT,
-            sector TEXT,
-            yes_team TEXT,
-            market_type TEXT,
-            kalshi_yes_price REAL,
-            sharp_true_prob REAL,
-            blended_true_prob REAL,
-            ev_pct REAL,
-            kelly_fraction REAL,
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            logged_at           TEXT    NOT NULL DEFAULT (datetime('now')),
+            scan_date           TEXT    NOT NULL,
+            market_id           TEXT    NOT NULL,
+            event_id            TEXT    NOT NULL,
+            sector              TEXT    NOT NULL,
+            yes_team            TEXT    NOT NULL,
+            market_type         TEXT    NOT NULL,
+            event_title         TEXT,
+            event_date          TEXT,
+            kalshi_yes_price    REAL    NOT NULL,
+            sharp_true_prob     REAL    NOT NULL,
+            blended_true_prob   REAL    NOT NULL,
+            ev_pct              REAL    NOT NULL,
+            kelly_fraction      REAL    NOT NULL,
+            volume_usd          REAL,
+            model_sources       TEXT,
+            sharp_weight_used   REAL,
+            bankroll_used       REAL,
+            line                REAL,
+            voided              INTEGER NOT NULL DEFAULT 0,
+            placed              INTEGER NOT NULL DEFAULT 0,
+            placed_at           TEXT,
+            placed_price        REAL,
+            placed_stake        REAL,
+            clv_pct             REAL,
             UNIQUE(market_id, scan_date)
         );
         CREATE TABLE prop_observations (

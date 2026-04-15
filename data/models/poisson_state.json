@@ -325,564 +325,6 @@
       }
     }
   },
-  "soccer": {
-    "league_avg": {
-      "home": 1.589,
-      "away": 1.249
-    },
-    "teams": {
-      "le havre": {
-        "attack": 0.5743,
-        "defense": 0.9136,
-        "games": 27
-      },
-      "nottm forest": {
-        "attack": 0.7048,
-        "defense": 0.9776,
-        "games": 31
-      },
-      "real madrid": {
-        "attack": 1.5814,
-        "defense": 0.6876,
-        "games": 41
-      },
-      "girona": {
-        "attack": 0.7534,
-        "defense": 1.0693,
-        "games": 29
-      },
-      "vfb stuttgart": {
-        "attack": 1.4617,
-        "defense": 0.9397,
-        "games": 27
-      },
-      "espanyol": {
-        "attack": 0.8749,
-        "defense": 1.0693,
-        "games": 29
-      },
-      "paris": {
-        "attack": 0.8353,
-        "defense": 1.1224,
-        "games": 27
-      },
-      "lorient": {
-        "attack": 0.9658,
-        "defense": 1.0702,
-        "games": 27
-      },
-      "psg": {
-        "attack": 1.7063,
-        "defense": 0.7233,
-        "games": 38
-      },
-      "west ham": {
-        "attack": 0.8184,
-        "defense": 1.2959,
-        "games": 31
-      },
-      "leverkusen": {
-        "attack": 1.2288,
-        "defense": 0.9578,
-        "games": 39
-      },
-      "leipzig": {
-        "attack": 1.3834,
-        "defense": 0.9136,
-        "games": 27
-      },
-      "frankfurt": {
-        "attack": 1.2082,
-        "defense": 1.4498,
-        "games": 35
-      },
-      "benfica": {
-        "attack": 0.7752,
-        "defense": 1.0571,
-        "games": 10
-      },
-      "sociedad": {
-        "attack": 1.0693,
-        "defense": 1.0936,
-        "games": 29
-      },
-      "marseille": {
-        "attack": 1.3089,
-        "defense": 0.9867,
-        "games": 35
-      },
-      "cremonese": {
-        "attack": 0.5873,
-        "defense": 1.0337,
-        "games": 30
-      },
-      "bologna": {
-        "attack": 0.8927,
-        "defense": 0.8457,
-        "games": 30
-      },
-      "brentford": {
-        "attack": 1.0458,
-        "defense": 0.9548,
-        "games": 31
-      },
-      "angers": {
-        "attack": 0.6265,
-        "defense": 0.9658,
-        "games": 27
-      },
-      "nice": {
-        "attack": 0.8353,
-        "defense": 1.3573,
-        "games": 27
-      },
-      "galatasaray": {
-        "attack": 0.9984,
-        "defense": 1.1746,
-        "games": 12
-      },
-      "osasuna": {
-        "attack": 0.8263,
-        "defense": 0.8506,
-        "games": 29
-      },
-      "aston villa": {
-        "attack": 0.9548,
-        "defense": 0.8412,
-        "games": 31
-      },
-      "elche": {
-        "attack": 0.9235,
-        "defense": 1.1179,
-        "games": 29
-      },
-      "toulouse": {
-        "attack": 0.9919,
-        "defense": 0.8353,
-        "games": 27
-      },
-      "juventus": {
-        "attack": 1.251,
-        "defense": 0.8105,
-        "games": 40
-      },
-      "chelsea": {
-        "attack": 1.2376,
-        "defense": 0.9626,
-        "games": 41
-      },
-      "freiburg": {
-        "attack": 1.018,
-        "defense": 1.1485,
-        "games": 27
-      },
-      "bodo glimt": {
-        "attack": 1.2921,
-        "defense": 1.2921,
-        "games": 12
-      },
-      "internazionale": {
-        "attack": 1.4624,
-        "defense": 0.6343,
-        "games": 40
-      },
-      "auxerre": {
-        "attack": 0.5743,
-        "defense": 0.9397,
-        "games": 27
-      },
-      "tottenham": {
-        "attack": 1.0657,
-        "defense": 1.1001,
-        "games": 41
-      },
-      "genoa": {
-        "attack": 0.8457,
-        "defense": 0.9867,
-        "games": 30
-      },
-      "wolves": {
-        "attack": 0.5456,
-        "defense": 1.2277,
-        "games": 31
-      },
-      "como": {
-        "attack": 1.2451,
-        "defense": 0.5168,
-        "games": 30
-      },
-      "sunderland": {
-        "attack": 0.7275,
-        "defense": 0.8184,
-        "games": 31
-      },
-      "newcastle": {
-        "attack": 1.1965,
-        "defense": 1.0326,
-        "games": 43
-      },
-      "leeds": {
-        "attack": 0.8412,
-        "defense": 1.0913,
-        "games": 31
-      },
-      "bayern": {
-        "attack": 2.4572,
-        "defense": 0.6667,
-        "games": 37
-      },
-      "atletico": {
-        "attack": 1.3752,
-        "defense": 0.8938,
-        "games": 41
-      },
-      "napoli": {
-        "attack": 1.0201,
-        "defense": 0.8346,
-        "games": 38
-      },
-      "arsenal": {
-        "attack": 1.4955,
-        "defense": 0.4641,
-        "games": 41
-      },
-      "union st.-gilloise": {
-        "attack": 0.7048,
-        "defense": 1.4976,
-        "games": 8
-      },
-      "ajax amsterdam": {
-        "attack": 0.7048,
-        "defense": 1.85,
-        "games": 8
-      },
-      "getafe": {
-        "attack": 0.6076,
-        "defense": 0.7534,
-        "games": 29
-      },
-      "parma": {
-        "attack": 0.4933,
-        "defense": 0.8927,
-        "games": 30
-      },
-      "alav\u00e9s": {
-        "attack": 0.7291,
-        "defense": 0.9964,
-        "games": 29
-      },
-      "psv eindhoven": {
-        "attack": 1.4095,
-        "defense": 1.4095,
-        "games": 8
-      },
-      "lecce": {
-        "attack": 0.4933,
-        "defense": 0.9397,
-        "games": 30
-      },
-      "dortmund": {
-        "attack": 1.5238,
-        "defense": 0.9333,
-        "games": 37
-      },
-      "metz": {
-        "attack": 0.6526,
-        "defense": 1.5661,
-        "games": 27
-      },
-      "union berlin": {
-        "attack": 0.8092,
-        "defense": 1.2007,
-        "games": 27
-      },
-      "lille": {
-        "attack": 1.0963,
-        "defense": 0.8875,
-        "games": 27
-      },
-      "strasbourg": {
-        "attack": 1.1224,
-        "defense": 0.8614,
-        "games": 27
-      },
-      "man city": {
-        "attack": 1.3391,
-        "defense": 0.74,
-        "games": 40
-      },
-      "celta vigo": {
-        "attack": 0.9964,
-        "defense": 0.8506,
-        "games": 29
-      },
-      "burnley": {
-        "attack": 0.7502,
-        "defense": 1.3868,
-        "games": 31
-      },
-      "nantes": {
-        "attack": 0.6506,
-        "defense": 1.2198,
-        "games": 26
-      },
-      "valencia": {
-        "attack": 0.7777,
-        "defense": 1.0207,
-        "games": 29
-      },
-      "bournemouth": {
-        "attack": 1.0458,
-        "defense": 1.0913,
-        "games": 31
-      },
-      "sporting cp": {
-        "attack": 1.5505,
-        "defense": 0.9867,
-        "games": 10
-      },
-      "man united": {
-        "attack": 1.2731,
-        "defense": 0.9776,
-        "games": 31
-      },
-      "fulham": {
-        "attack": 0.9776,
-        "defense": 1.0003,
-        "games": 31
-      },
-      "rayo vallecano": {
-        "attack": 0.6805,
-        "defense": 0.8506,
-        "games": 29
-      },
-      "hamburg sv": {
-        "attack": 0.8092,
-        "defense": 1.0441,
-        "games": 27
-      },
-      "athletic": {
-        "attack": 0.781,
-        "defense": 1.0476,
-        "games": 37
-      },
-      "pafos": {
-        "attack": 0.7048,
-        "defense": 0.9691,
-        "games": 8
-      },
-      "atalanta": {
-        "attack": 0.9565,
-        "defense": 0.839,
-        "games": 42
-      },
-      "villarreal": {
-        "attack": 1.1238,
-        "defense": 0.9905,
-        "games": 37
-      },
-      "barcelona": {
-        "attack": 1.9517,
-        "defense": 0.8132,
-        "games": 39
-      },
-      "milan": {
-        "attack": 1.1041,
-        "defense": 0.5403,
-        "games": 30
-      },
-      "everton": {
-        "attack": 0.8412,
-        "defense": 0.7957,
-        "games": 31
-      },
-      "vfl wolfsburg": {
-        "attack": 0.9136,
-        "defense": 1.4878,
-        "games": 27
-      },
-      "olympiacos": {
-        "attack": 0.7048,
-        "defense": 1.1276,
-        "games": 10
-      },
-      "crystal palace": {
-        "attack": 0.7752,
-        "defense": 0.8222,
-        "games": 30
-      },
-      "lens": {
-        "attack": 1.4095,
-        "defense": 0.6265,
-        "games": 27
-      },
-      "betis": {
-        "attack": 1.0693,
-        "defense": 0.8992,
-        "games": 29
-      },
-      "werder bremen": {
-        "attack": 0.7831,
-        "defense": 1.2268,
-        "games": 27
-      },
-      "mainz": {
-        "attack": 0.8614,
-        "defense": 1.0963,
-        "games": 27
-      },
-      "fiorentina": {
-        "attack": 0.8222,
-        "defense": 1.0337,
-        "games": 30
-      },
-      "brest": {
-        "attack": 0.8875,
-        "defense": 1.018,
-        "games": 27
-      },
-      "tsg hoffenheim": {
-        "attack": 1.4095,
-        "defense": 1.018,
-        "games": 27
-      },
-      "sassuolo": {
-        "attack": 0.8457,
-        "defense": 0.9397,
-        "games": 30
-      },
-      "st. pauli": {
-        "attack": 0.6265,
-        "defense": 1.1485,
-        "games": 27
-      },
-      "cologne": {
-        "attack": 0.9919,
-        "defense": 1.2268,
-        "games": 27
-      },
-      "levante": {
-        "attack": 0.8263,
-        "defense": 1.1665,
-        "games": 29
-      },
-      "brugge": {
-        "attack": 1.3391,
-        "defense": 1.6914,
-        "games": 10
-      },
-      "roma": {
-        "attack": 0.9397,
-        "defense": 0.5403,
-        "games": 30
-      },
-      "augsburg": {
-        "attack": 0.8614,
-        "defense": 1.3051,
-        "games": 27
-      },
-      "udinese": {
-        "attack": 0.8222,
-        "defense": 0.9867,
-        "games": 30
-      },
-      "hellas verona": {
-        "attack": 0.5168,
-        "defense": 1.2216,
-        "games": 30
-      },
-      "slavia prague": {
-        "attack": 0.4405,
-        "defense": 1.6738,
-        "games": 8
-      },
-      "torino": {
-        "attack": 0.7987,
-        "defense": 1.2451,
-        "games": 30
-      },
-      "rennes": {
-        "attack": 1.1224,
-        "defense": 0.9658,
-        "games": 27
-      },
-      "qarabag": {
-        "attack": 1.1276,
-        "defense": 2.1143,
-        "games": 10
-      },
-      "heidenheim": {
-        "attack": 0.7048,
-        "defense": 1.5922,
-        "games": 27
-      },
-      "liverpool": {
-        "attack": 1.272,
-        "defense": 0.8767,
-        "games": 41
-      },
-      "pisa": {
-        "attack": 0.5403,
-        "defense": 1.2686,
-        "games": 30
-      },
-      "monaco": {
-        "attack": 1.1238,
-        "defense": 1.0857,
-        "games": 37
-      },
-      "lazio": {
-        "attack": 0.7283,
-        "defense": 0.6578,
-        "games": 30
-      },
-      "real oviedo": {
-        "attack": 0.486,
-        "defense": 1.1665,
-        "games": 29
-      },
-      "cagliari": {
-        "attack": 0.7283,
-        "defense": 0.9867,
-        "games": 30
-      },
-      "f.c. k\u00f8benhavn": {
-        "attack": 1.0571,
-        "defense": 1.85,
-        "games": 8
-      },
-      "borussia m\u00f6nchengladbach": {
-        "attack": 0.8614,
-        "defense": 1.2007,
-        "games": 27
-      },
-      "mallorca": {
-        "attack": 0.8263,
-        "defense": 1.1422,
-        "games": 29
-      },
-      "brighton hove albion": {
-        "attack": 0.9321,
-        "defense": 0.8412,
-        "games": 31
-      },
-      "kairat almaty": {
-        "attack": 0.6167,
-        "defense": 1.9381,
-        "games": 8
-      },
-      "sevilla": {
-        "attack": 0.8992,
-        "defense": 1.1908,
-        "games": 29
-      },
-      "lyon": {
-        "attack": 1.0702,
-        "defense": 0.757,
-        "games": 27
-      }
-    }
-  },
   "ncaab": {
     "league_avg": {
       "home": 80.23,
@@ -2324,6 +1766,564 @@
         "attack": 0.9932,
         "defense": 0.9746,
         "games": 81
+      }
+    }
+  },
+  "soccer": {
+    "league_avg": {
+      "home": 1.584,
+      "away": 1.248
+    },
+    "teams": {
+      "celta vigo": {
+        "attack": 1.0023,
+        "defense": 0.9112,
+        "games": 31
+      },
+      "getafe": {
+        "attack": 0.6151,
+        "defense": 0.729,
+        "games": 31
+      },
+      "girona": {
+        "attack": 0.7517,
+        "defense": 1.0251,
+        "games": 31
+      },
+      "rayo vallecano": {
+        "attack": 0.6606,
+        "defense": 0.8656,
+        "games": 31
+      },
+      "leipzig": {
+        "attack": 1.3637,
+        "defense": 0.8766,
+        "games": 29
+      },
+      "f.c. k\u00f8benhavn": {
+        "attack": 1.0593,
+        "defense": 1.8537,
+        "games": 8
+      },
+      "atletico": {
+        "attack": 1.3339,
+        "defense": 0.9102,
+        "games": 45
+      },
+      "man city": {
+        "attack": 1.3607,
+        "defense": 0.7234,
+        "games": 41
+      },
+      "brest": {
+        "attack": 0.9332,
+        "defense": 1.0845,
+        "games": 28
+      },
+      "slavia prague": {
+        "attack": 0.4414,
+        "defense": 1.6772,
+        "games": 8
+      },
+      "marseille": {
+        "attack": 1.3169,
+        "defense": 0.9925,
+        "games": 37
+      },
+      "parma": {
+        "attack": 0.5076,
+        "defense": 0.8827,
+        "games": 32
+      },
+      "paris": {
+        "attack": 0.901,
+        "defense": 1.0958,
+        "games": 29
+      },
+      "mallorca": {
+        "attack": 0.8884,
+        "defense": 1.0934,
+        "games": 31
+      },
+      "rennes": {
+        "attack": 1.1932,
+        "defense": 0.9984,
+        "games": 29
+      },
+      "pisa": {
+        "attack": 0.5076,
+        "defense": 1.28,
+        "games": 32
+      },
+      "mainz": {
+        "attack": 0.8523,
+        "defense": 1.0715,
+        "games": 29
+      },
+      "lecce": {
+        "attack": 0.4634,
+        "defense": 0.9931,
+        "games": 32
+      },
+      "liverpool": {
+        "attack": 1.2198,
+        "defense": 0.8827,
+        "games": 44
+      },
+      "frankfurt": {
+        "attack": 1.2215,
+        "defense": 1.4315,
+        "games": 37
+      },
+      "lazio": {
+        "attack": 0.7062,
+        "defense": 0.662,
+        "games": 32
+      },
+      "chelsea": {
+        "attack": 1.2106,
+        "defense": 0.992,
+        "games": 42
+      },
+      "bodo glimt": {
+        "attack": 1.2947,
+        "defense": 1.2947,
+        "games": 12
+      },
+      "milan": {
+        "attack": 1.0372,
+        "defense": 0.5958,
+        "games": 32
+      },
+      "olympiacos": {
+        "attack": 0.7062,
+        "defense": 1.1299,
+        "games": 10
+      },
+      "everton": {
+        "attack": 0.8607,
+        "defense": 0.8165,
+        "games": 32
+      },
+      "elche": {
+        "attack": 0.8884,
+        "defense": 1.0707,
+        "games": 31
+      },
+      "auxerre": {
+        "attack": 0.5601,
+        "defense": 0.901,
+        "games": 29
+      },
+      "west ham": {
+        "attack": 0.8827,
+        "defense": 1.2579,
+        "games": 32
+      },
+      "genoa": {
+        "attack": 0.8386,
+        "defense": 0.9931,
+        "games": 32
+      },
+      "torino": {
+        "attack": 0.8165,
+        "defense": 1.1917,
+        "games": 32
+      },
+      "cremonese": {
+        "attack": 0.5738,
+        "defense": 1.0372,
+        "games": 32
+      },
+      "angers": {
+        "attack": 0.6088,
+        "defense": 0.9497,
+        "games": 29
+      },
+      "benfica": {
+        "attack": 0.7768,
+        "defense": 1.0593,
+        "games": 10
+      },
+      "espanyol": {
+        "attack": 0.8429,
+        "defense": 1.0934,
+        "games": 31
+      },
+      "newcastle": {
+        "attack": 1.1877,
+        "defense": 1.0432,
+        "games": 44
+      },
+      "pafos": {
+        "attack": 0.7062,
+        "defense": 0.971,
+        "games": 8
+      },
+      "psg": {
+        "attack": 1.7052,
+        "defense": 0.689,
+        "games": 41
+      },
+      "lille": {
+        "attack": 1.1932,
+        "defense": 0.8279,
+        "games": 29
+      },
+      "valencia": {
+        "attack": 0.7745,
+        "defense": 1.0479,
+        "games": 31
+      },
+      "burnley": {
+        "attack": 0.7283,
+        "defense": 1.3903,
+        "games": 32
+      },
+      "nantes": {
+        "attack": 0.6053,
+        "defense": 1.1349,
+        "games": 28
+      },
+      "como": {
+        "attack": 1.2358,
+        "defense": 0.5738,
+        "games": 32
+      },
+      "brugge": {
+        "attack": 1.3418,
+        "defense": 1.6948,
+        "games": 10
+      },
+      "galatasaray": {
+        "attack": 1.0004,
+        "defense": 1.177,
+        "games": 12
+      },
+      "union st.-gilloise": {
+        "attack": 0.7062,
+        "defense": 1.5006,
+        "games": 8
+      },
+      "lorient": {
+        "attack": 0.9253,
+        "defense": 1.0715,
+        "games": 29
+      },
+      "strasbourg": {
+        "attack": 1.1602,
+        "defense": 0.8575,
+        "games": 28
+      },
+      "nottm forest": {
+        "attack": 0.7062,
+        "defense": 0.971,
+        "games": 32
+      },
+      "cologne": {
+        "attack": 1.0471,
+        "defense": 1.2176,
+        "games": 29
+      },
+      "tottenham": {
+        "attack": 1.0425,
+        "defense": 1.0929,
+        "games": 42
+      },
+      "juventus": {
+        "attack": 1.2442,
+        "defense": 0.7734,
+        "games": 42
+      },
+      "ajax amsterdam": {
+        "attack": 0.7062,
+        "defense": 1.8537,
+        "games": 8
+      },
+      "werder bremen": {
+        "attack": 0.7792,
+        "defense": 1.2663,
+        "games": 29
+      },
+      "vfb stuttgart": {
+        "attack": 1.4611,
+        "defense": 0.9253,
+        "games": 29
+      },
+      "man united": {
+        "attack": 1.2579,
+        "defense": 0.9931,
+        "games": 32
+      },
+      "borussia m\u00f6nchengladbach": {
+        "attack": 0.8523,
+        "defense": 1.1932,
+        "games": 29
+      },
+      "sunderland": {
+        "attack": 0.7283,
+        "defense": 0.7945,
+        "games": 32
+      },
+      "qarabag": {
+        "attack": 1.1299,
+        "defense": 2.1186,
+        "games": 10
+      },
+      "osasuna": {
+        "attack": 0.8429,
+        "defense": 0.8656,
+        "games": 31
+      },
+      "psv eindhoven": {
+        "attack": 1.4124,
+        "defense": 1.4124,
+        "games": 8
+      },
+      "sevilla": {
+        "attack": 0.8884,
+        "defense": 1.1618,
+        "games": 31
+      },
+      "sassuolo": {
+        "attack": 0.8607,
+        "defense": 0.9489,
+        "games": 32
+      },
+      "lens": {
+        "attack": 1.3619,
+        "defense": 0.681,
+        "games": 28
+      },
+      "heidenheim": {
+        "attack": 0.7792,
+        "defense": 1.5585,
+        "games": 29
+      },
+      "kairat almaty": {
+        "attack": 0.6179,
+        "defense": 1.942,
+        "games": 8
+      },
+      "real madrid": {
+        "attack": 1.5247,
+        "defense": 0.7222,
+        "games": 44
+      },
+      "aston villa": {
+        "attack": 0.9489,
+        "defense": 0.8386,
+        "games": 32
+      },
+      "st. pauli": {
+        "attack": 0.6088,
+        "defense": 1.2176,
+        "games": 29
+      },
+      "real oviedo": {
+        "attack": 0.5467,
+        "defense": 1.0934,
+        "games": 31
+      },
+      "athletic": {
+        "attack": 0.7605,
+        "defense": 1.0683,
+        "games": 39
+      },
+      "toulouse": {
+        "attack": 0.9497,
+        "defense": 0.9497,
+        "games": 29
+      },
+      "monaco": {
+        "attack": 1.1227,
+        "defense": 1.1227,
+        "games": 39
+      },
+      "freiburg": {
+        "attack": 1.0227,
+        "defense": 1.1445,
+        "games": 29
+      },
+      "union berlin": {
+        "attack": 0.8036,
+        "defense": 1.2176,
+        "games": 29
+      },
+      "bournemouth": {
+        "attack": 1.0593,
+        "defense": 1.0813,
+        "games": 32
+      },
+      "cagliari": {
+        "attack": 0.7283,
+        "defense": 0.971,
+        "games": 32
+      },
+      "wolves": {
+        "attack": 0.5296,
+        "defense": 1.28,
+        "games": 32
+      },
+      "brighton hove albion": {
+        "attack": 0.9489,
+        "defense": 0.8165,
+        "games": 32
+      },
+      "bologna": {
+        "attack": 0.9269,
+        "defense": 0.8165,
+        "games": 32
+      },
+      "metz": {
+        "attack": 0.6331,
+        "defense": 1.5341,
+        "games": 29
+      },
+      "tsg hoffenheim": {
+        "attack": 1.388,
+        "defense": 1.0471,
+        "games": 29
+      },
+      "udinese": {
+        "attack": 0.8386,
+        "defense": 0.9269,
+        "games": 32
+      },
+      "sporting cp": {
+        "attack": 1.4124,
+        "defense": 0.963,
+        "games": 11
+      },
+      "brentford": {
+        "attack": 1.0593,
+        "defense": 0.971,
+        "games": 32
+      },
+      "le havre": {
+        "attack": 0.5844,
+        "defense": 0.901,
+        "games": 29
+      },
+      "crystal palace": {
+        "attack": 0.7973,
+        "defense": 0.8201,
+        "games": 31
+      },
+      "dortmund": {
+        "attack": 1.4848,
+        "defense": 0.9054,
+        "games": 39
+      },
+      "fulham": {
+        "attack": 0.9489,
+        "defense": 1.0151,
+        "games": 32
+      },
+      "betis": {
+        "attack": 1.0251,
+        "defense": 0.8656,
+        "games": 31
+      },
+      "vfl wolfsburg": {
+        "attack": 0.9497,
+        "defense": 1.5828,
+        "games": 29
+      },
+      "atalanta": {
+        "attack": 0.963,
+        "defense": 0.8185,
+        "games": 44
+      },
+      "nice": {
+        "attack": 0.8279,
+        "defense": 1.3637,
+        "games": 29
+      },
+      "sociedad": {
+        "attack": 1.1162,
+        "defense": 1.0934,
+        "games": 31
+      },
+      "fiorentina": {
+        "attack": 0.8165,
+        "defense": 0.971,
+        "games": 32
+      },
+      "villarreal": {
+        "attack": 1.1045,
+        "defense": 0.9778,
+        "games": 39
+      },
+      "barcelona": {
+        "attack": 1.9051,
+        "defense": 0.8211,
+        "games": 43
+      },
+      "roma": {
+        "attack": 0.9931,
+        "defense": 0.6179,
+        "games": 32
+      },
+      "napoli": {
+        "attack": 1.0063,
+        "defense": 0.8121,
+        "games": 40
+      },
+      "lyon": {
+        "attack": 1.0471,
+        "defense": 0.7062,
+        "games": 29
+      },
+      "hamburg sv": {
+        "attack": 0.7792,
+        "defense": 1.0958,
+        "games": 29
+      },
+      "leeds": {
+        "attack": 0.8607,
+        "defense": 1.0813,
+        "games": 32
+      },
+      "levante": {
+        "attack": 0.7973,
+        "defense": 1.139,
+        "games": 31
+      },
+      "bayern": {
+        "attack": 2.454,
+        "defense": 0.6709,
+        "games": 40
+      },
+      "hellas verona": {
+        "attack": 0.5076,
+        "defense": 1.2138,
+        "games": 32
+      },
+      "internazionale": {
+        "attack": 1.5469,
+        "defense": 0.6894,
+        "games": 42
+      },
+      "alav\u00e9s": {
+        "attack": 0.7973,
+        "defense": 1.0479,
+        "games": 31
+      },
+      "leverkusen": {
+        "attack": 1.2918,
+        "defense": 0.9645,
+        "games": 41
+      },
+      "arsenal": {
+        "attack": 1.4616,
+        "defense": 0.4763,
+        "games": 43
+      },
+      "augsburg": {
+        "attack": 0.8766,
+        "defense": 1.2906,
+        "games": 29
       }
     }
   }

@@ -32,6 +32,7 @@ export interface Bet {
   event_title: string
   yes_team: string
   market_type: string
+  display_label?: string
   kalshi_yes_price: number
   blended_true_prob: number
   sharp_true_prob?: number
@@ -52,6 +53,7 @@ export interface ScanGap {
   event_title: string
   yes_team: string
   market_type: string
+  display_label?: string
   line: number | string | null
   sector: string
   kalshi_price: number

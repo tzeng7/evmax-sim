@@ -497,6 +497,27 @@ Pinnacle operates `api.ps3838.com` as the authenticated version of their sharp-o
 
 **When to prioritize:** only if ARCH-8 + ARCH-9 together aren't enough, OR if you're philosophically uncomfortable with the guest-tier dependency long-term. Good candidate for when the live pipeline starts carrying real bankroll.
 
+### ARCH-11 CLV Is Computed But Not Wired Into Any Feedback Loop [P2]
+**Files:** `evmax/agents/cleanup/resolver.py:921 backfill_clv()`, `evmax/cli/commands/cleanup.py:1021 backfill-clv`, `evmax/cli/commands/cleanup.py:148 show`, `evmax/agents/cleanup/db.py:102 clv_pct column`, `evmax/archiver.py:288 get_closing_line()`
+
+CLV (Closing Line Value = `sharp_true_prob − pinnacle_close_prob`) is fully plumbed — column on `ev_predictions`, backfill from `archive.db`, green/red display in `cleanup show` — but **nothing downstream reads `clv_pct` to make a decision.** It's a cosmetic column.
+
+What's missing:
+- `backfill-clv` is orphaned. It's not called from `cleanup resolve` and not in the documented daily workflow. You have to remember to run it manually or the column stays NULL.
+- No per-sector CLV aggregation. `compute_brier_scores_by_sector` exists; the CLV equivalent does not.
+- `cleanup adjust` auto-tunes `sharp_weight` from Brier alone. CLV — which is lower variance and available hours after close rather than after outcome resolution — is a much faster signal that could feed the same tuner.
+- No CLV in `cleanup metrics` output or any alert path.
+
+Why it matters: CLV is the leading indicator for model sharpness. Brier needs 100+ resolved bets per sector to converge; CLV is near-deterministic per bet and available at close. A continuous model improvement loop (see the "modelling agent" concept discussed 2026-04-13) should read CLV first and Brier second. Right now it can't, because CLV is just a column nobody queries.
+
+**Fix options:**
+1. **Wire it in.** Auto-run `backfill_clv` at the end of `cleanup resolve`. Add `compute_clv_by_sector(weeks)` to `metrics.py`. Add a CLV row to `cleanup metrics` output. Feed avg CLV per sector into `cleanup adjust` as a secondary signal alongside Brier.
+2. **Rip it out.** If CLV is not going to drive any decision, delete the column, the backfill function, the CLI command, and the display column. Less code.
+
+**Connection to UNIQUE(market_id) migration:** When `log_gaps` moves to freeze-on-first-insert (see the multi-scan dedup discussion 2026-04-13), CLV gets *better* — `sharp_true_prob` will be the actual first-flag value rather than a refreshed scan closer to close, so `(entry − close)` measures real market movement the model caught. That migration is a prerequisite for #1 being meaningful.
+
+**When to prioritize:** bundle with the modelling-improvement-agent work. Doesn't make sense to build that agent without CLV as one of its inputs.
+
 ---
 
 ## Section 6 — Player Props (In Progress)

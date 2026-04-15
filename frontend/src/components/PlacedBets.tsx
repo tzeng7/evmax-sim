@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { Bet } from '../lib/types'
-import { probToAmerican, americanToProb } from '../lib/odds'
+import { probToAmerican, americanToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { updatePlaced, unplaceBets } from '../lib/api'
 
@@ -99,7 +99,7 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
               <td className="muted">{b.event_date}</td>
               <td><span className="badge">{b.sector}</span></td>
               <td>{b.event_title}</td>
-              <td>{b.yes_team} {b.market_type}{b.line ? ' ' + b.line : ''}</td>
+              <td>{outcomeLabel(b)}</td>
               <td className="num">{Math.round((b.blended_true_prob || 0) * 100)}%</td>
               <td className="num green">{((b.ev_pct || 0) * 100).toFixed(1)}%</td>
               <td className="num">

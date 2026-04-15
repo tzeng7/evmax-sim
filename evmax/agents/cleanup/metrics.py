@@ -111,6 +111,11 @@ def compute_brier_scores(weeks: int = 1) -> Optional[dict]:
         """SELECT o.outcome, o.sharp_true_prob, o.blended_true_prob
            FROM ev_outcomes o
            JOIN ev_predictions p ON o.market_id = p.market_id
+           INNER JOIN (
+               SELECT market_id, MAX(scan_date) AS latest_scan
+               FROM ev_predictions WHERE voided = 0 GROUP BY market_id
+           ) latest ON p.market_id = latest.market_id
+                   AND p.scan_date = latest.latest_scan
            WHERE o.outcome IS NOT NULL
              AND p.scan_date >= ?
              AND p.mode = 'live'""",
@@ -170,6 +175,11 @@ def compute_brier_scores_by_sector(weeks: int = 4) -> list[dict]:
         """SELECT p.sector, o.outcome, o.sharp_true_prob, o.blended_true_prob
            FROM ev_outcomes o
            JOIN ev_predictions p ON o.market_id = p.market_id
+           INNER JOIN (
+               SELECT market_id, MAX(scan_date) AS latest_scan
+               FROM ev_predictions WHERE voided = 0 GROUP BY market_id
+           ) latest ON p.market_id = latest.market_id
+                   AND p.scan_date = latest.latest_scan
            WHERE o.outcome IS NOT NULL
              AND p.scan_date >= ?
              AND p.mode = 'live'""",

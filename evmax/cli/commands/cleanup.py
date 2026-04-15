@@ -1027,6 +1027,157 @@ def prop_calibration(
     )
 
 
+@app.command("replay-props")
+def replay_props(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print results without updating DB."),
+) -> None:
+    """Replay resolved prop observations through the current model.
+
+    Runs compute_prop_prob_cached for every resolved prop_observations row and
+    backfills sharp_prob + ev_pct columns. This enables prop-calibration to work.
+
+    NOTE: Uses the CURRENT player cache, not the historical one from scan-time.
+    Best run shortly after games while the cache is still close to scan-time state.
+    """
+    from evmax.agents.cleanup.db import get_connection
+    from evmax.clients.nba_props_cache import compute_prop_prob_cached, is_cache_fresh
+
+    if not is_cache_fresh():
+        console.print("[yellow]Props cache is stale. Run a scan first to refresh, or results may be inaccurate.[/yellow]")
+
+    conn = get_connection()
+    rows = conn.execute(
+        """SELECT id, player_name, stat_type, line, kalshi_price, event_date, outcome
+           FROM prop_observations
+           WHERE outcome IS NOT NULL
+           ORDER BY id""",
+    ).fetchall()
+
+    if not rows:
+        console.print("[yellow]No resolved prop observations to replay.[/yellow]")
+        conn.close()
+        return
+
+    updated = 0
+    skipped = 0
+    model_brier_sum = 0.0
+    kalshi_brier_sum = 0.0
+    model_probs: list[tuple[float, int]] = []  # (model_prob, outcome)
+    n_volatile = 0
+
+    for r in rows:
+        row_id = r[0] if isinstance(r, (tuple, list)) else r["id"]
+        player = r[1] if isinstance(r, (tuple, list)) else r["player_name"]
+        stat = r[2] if isinstance(r, (tuple, list)) else r["stat_type"]
+        line = r[3] if isinstance(r, (tuple, list)) else r["line"]
+        ask = r[4] if isinstance(r, (tuple, list)) else r["kalshi_price"]
+        edate = r[5] if isinstance(r, (tuple, list)) else r["event_date"]
+        outcome = r[6] if isinstance(r, (tuple, list)) else r["outcome"]
+
+        result = compute_prop_prob_cached(player, stat, line, edate)
+        if result is None:
+            skipped += 1
+            continue
+
+        model_prob = result.prob
+        ev = (model_prob / ask - 1.0) if ask > 0 else 0.0
+        model_brier_sum += (model_prob - outcome) ** 2
+        kalshi_brier_sum += (ask - outcome) ** 2
+        model_probs.append((model_prob, outcome))
+        if result.minutes_volatile:
+            n_volatile += 1
+
+        if not dry_run:
+            conn.execute(
+                "UPDATE prop_observations SET sharp_prob = ?, ev_pct = ? WHERE id = ?",
+                (round(model_prob, 5), round(ev, 5), row_id),
+            )
+            updated += 1
+
+    if not dry_run:
+        conn.commit()
+    conn.close()
+
+    n = len(model_probs)
+    if n == 0:
+        console.print("[yellow]Model had no cached data for any resolved observations.[/yellow]")
+        return
+
+    model_brier = model_brier_sum / n
+    kalshi_brier = kalshi_brier_sum / n
+
+    console.print(f"\n[bold cyan]Prop Model Replay — {n} observations ({skipped} skipped, {n_volatile} volatile)[/bold cyan]\n")
+
+    # Overall comparison
+    summary = Table(title="Model vs Market", box=box.SIMPLE)
+    summary.add_column("Source", min_width=12)
+    summary.add_column("Brier", justify="right", width=8)
+    summary.add_column("Avg Prob", justify="right", width=10)
+    summary.add_column("Actual Hit%", justify="right", width=12)
+
+    avg_model = sum(p for p, _ in model_probs) / n
+    avg_kalshi = sum(r[4] if isinstance(r, (tuple, list)) else r["kalshi_price"]
+                     for r in rows if compute_prop_prob_cached(
+                         r[1] if isinstance(r, (tuple, list)) else r["player_name"],
+                         r[2] if isinstance(r, (tuple, list)) else r["stat_type"],
+                         r[3] if isinstance(r, (tuple, list)) else r["line"],
+                         r[5] if isinstance(r, (tuple, list)) else r["event_date"],
+                     ) is not None) / n
+    actual_hit = sum(o for _, o in model_probs) / n
+
+    m_color = "green" if model_brier < kalshi_brier else "red"
+    k_color = "green" if kalshi_brier < model_brier else "red"
+    summary.add_row("Our Model", f"[{m_color}]{model_brier:.4f}[/{m_color}]",
+                     f"{avg_model:.1%}", f"{actual_hit:.1%}")
+    summary.add_row("Kalshi Price", f"[{k_color}]{kalshi_brier:.4f}[/{k_color}]",
+                     f"{avg_kalshi:.1%}", f"{actual_hit:.1%}")
+    console.print(summary)
+
+    # Calibration by model prob bucket
+    BUCKETS = [
+        ("< 30%",    0.00, 0.30),
+        ("30–50%",   0.30, 0.50),
+        ("50–70%",   0.50, 0.70),
+        ("70–85%",   0.70, 0.85),
+        ("> 85%",    0.85, 1.01),
+    ]
+    cal = Table(title="Model Calibration by Predicted Probability", box=box.SIMPLE)
+    cal.add_column("Model Prob", min_width=10)
+    cal.add_column("N", justify="right", width=5)
+    cal.add_column("Predicted", justify="right", width=10)
+    cal.add_column("Actual", justify="right", width=10)
+    cal.add_column("Bias", justify="right", width=8)
+
+    for label, lo, hi in BUCKETS:
+        bucket = [(p, o) for p, o in model_probs if lo <= p < hi]
+        if not bucket:
+            cal.add_row(label, "0", "—", "—", "—")
+            continue
+        avg_p = sum(p for p, _ in bucket) / len(bucket)
+        avg_o = sum(o for _, o in bucket) / len(bucket)
+        bias = avg_p - avg_o
+        color = "red" if bias > 0.10 else "yellow" if bias > 0.05 else "green" if abs(bias) < 0.05 else "cyan"
+        cal.add_row(label, str(len(bucket)), f"{avg_p:.1%}", f"{avg_o:.1%}",
+                     f"[{color}]{bias*100:+.1f}pp[/{color}]")
+
+    console.print(cal)
+
+    if not dry_run:
+        console.print(f"\n  [green]Updated {updated} rows with model probabilities.[/green]")
+        console.print("  Run [bold]evmax cleanup prop-calibration[/bold] for detailed analysis.")
+    else:
+        console.print("\n  [dim]Dry run — no DB changes made.[/dim]")
+
+    # Diagnosis
+    bias = avg_model - actual_hit
+    if bias > 0.10:
+        console.print(
+            f"\n  [bold red]Model over-estimates by {bias*100:.1f}pp.[/bold red]"
+            f"\n  The model thinks overs hit {avg_model:.0%} of the time but they actually hit {actual_hit:.0%}."
+            f"\n  This is why 'high EV' props lose money — the edge is illusory."
+        )
+
+
 @app.command("backfill-clv")
 def backfill_clv_cmd(
     since: str = typer.Option(

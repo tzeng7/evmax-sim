@@ -80,6 +80,8 @@ class SharpOdds(BaseModel):
     prop_player_name: Optional[str] = None  # normalized player name
     prop_stat_type: Optional[str] = None    # "points", "rebounds", "assists", etc.
     prop_l15_games: int = 0                 # games in the L15 sample (0 = unknown)
+    prop_minutes_volatile: bool = False      # True if player had abnormal minutes recently
+    prop_minutes_cv: float = 0.0             # minutes coefficient of variation
 
     # Multi-book consensus: how many books contributed to this estimate
     book_count: int = 1

@@ -8428,232 +8428,6 @@
       "royals": 60
     }
   },
-  "soccer": {
-    "ratings": {
-      "liverpool": 1550.26,
-      "bournemouth": 1524.22,
-      "girona": 1487.33,
-      "rayo vallecano": 1468.15,
-      "villarreal": 1531.68,
-      "real oviedo": 1399.39,
-      "rennes": 1542.9,
-      "marseille": 1534.53,
-      "aston villa": 1549.77,
-      "newcastle": 1532.39,
-      "brighton hove albion": 1525.62,
-      "fulham": 1503.1,
-      "sunderland": 1508.95,
-      "west ham": 1453.51,
-      "tottenham": 1447.61,
-      "burnley": 1377.3,
-      "wolves": 1403.47,
-      "man city": 1605.33,
-      "mallorca": 1426.7,
-      "barcelona": 1692.38,
-      "alav\u00e9s": 1446.52,
-      "levante": 1427.5,
-      "valencia": 1488.28,
-      "sociedad": 1507.88,
-      "lens": 1607.34,
-      "lyon": 1532.88,
-      "monaco": 1578.62,
-      "le havre": 1443.61,
-      "nice": 1432.09,
-      "toulouse": 1489.85,
-      "chelsea": 1531.98,
-      "crystal palace": 1479.06,
-      "nottm forest": 1458.24,
-      "brentford": 1530.8,
-      "man united": 1596.85,
-      "arsenal": 1716.88,
-      "celta vigo": 1511.36,
-      "getafe": 1498.92,
-      "athletic": 1480.67,
-      "sevilla": 1437.62,
-      "espanyol": 1437.16,
-      "atletico": 1582.26,
-      "brest": 1499.25,
-      "lille": 1566.08,
-      "auxerre": 1425.72,
-      "lorient": 1522.57,
-      "angers": 1450.3,
-      "paris": 1486.23,
-      "metz": 1353.66,
-      "strasbourg": 1518.46,
-      "nantes": 1362.71,
-      "psg": 1660.39,
-      "leeds": 1477.67,
-      "everton": 1532.87,
-      "elche": 1426.53,
-      "betis": 1520.0,
-      "real madrid": 1680.87,
-      "osasuna": 1492.91,
-      "bayern": 1734.92,
-      "leipzig": 1570.81,
-      "heidenheim": 1358.05,
-      "vfl wolfsburg": 1383.99,
-      "union berlin": 1462.46,
-      "vfb stuttgart": 1597.65,
-      "leverkusen": 1559.68,
-      "tsg hoffenheim": 1564.98,
-      "frankfurt": 1462.71,
-      "werder bremen": 1440.03,
-      "freiburg": 1497.97,
-      "augsburg": 1465.48,
-      "st. pauli": 1421.75,
-      "dortmund": 1626.04,
-      "genoa": 1467.5,
-      "lecce": 1422.24,
-      "sassuolo": 1490.48,
-      "napoli": 1589.83,
-      "milan": 1624.2,
-      "cremonese": 1399.22,
-      "roma": 1552.08,
-      "bologna": 1476.51,
-      "mainz": 1498.31,
-      "cologne": 1424.39,
-      "borussia m\u00f6nchengladbach": 1464.52,
-      "hamburg sv": 1465.37,
-      "cagliari": 1426.39,
-      "fiorentina": 1463.5,
-      "como": 1608.79,
-      "lazio": 1531.55,
-      "atalanta": 1555.84,
-      "pisa": 1378.42,
-      "juventus": 1584.44,
-      "parma": 1463.98,
-      "udinese": 1480.66,
-      "hellas verona": 1359.84,
-      "internazionale": 1624.47,
-      "torino": 1443.09,
-      "psv eindhoven": 1484.27,
-      "union st.-gilloise": 1489.51,
-      "benfica": 1473.13,
-      "qarabag": 1458.67,
-      "olympiacos": 1503.02,
-      "pafos": 1491.7,
-      "slavia prague": 1442.97,
-      "bodo glimt": 1548.26,
-      "ajax amsterdam": 1453.25,
-      "brugge": 1493.46,
-      "f.c. k\u00f8benhavn": 1489.19,
-      "galatasaray": 1504.01,
-      "sporting cp": 1555.1,
-      "kairat almaty": 1414.14
-    },
-    "game_counts": {
-      "liverpool": 41,
-      "bournemouth": 31,
-      "girona": 29,
-      "rayo vallecano": 29,
-      "villarreal": 37,
-      "real oviedo": 29,
-      "rennes": 27,
-      "marseille": 35,
-      "aston villa": 31,
-      "newcastle": 43,
-      "brighton hove albion": 31,
-      "fulham": 31,
-      "sunderland": 31,
-      "west ham": 31,
-      "tottenham": 41,
-      "burnley": 31,
-      "wolves": 31,
-      "man city": 40,
-      "mallorca": 29,
-      "barcelona": 39,
-      "alav\u00e9s": 29,
-      "levante": 29,
-      "valencia": 29,
-      "sociedad": 29,
-      "lens": 27,
-      "lyon": 27,
-      "monaco": 37,
-      "le havre": 27,
-      "nice": 27,
-      "toulouse": 27,
-      "chelsea": 41,
-      "crystal palace": 30,
-      "nottm forest": 31,
-      "brentford": 31,
-      "man united": 31,
-      "arsenal": 41,
-      "celta vigo": 29,
-      "getafe": 29,
-      "athletic": 37,
-      "sevilla": 29,
-      "espanyol": 29,
-      "atletico": 41,
-      "brest": 27,
-      "lille": 27,
-      "auxerre": 27,
-      "lorient": 27,
-      "angers": 27,
-      "paris": 27,
-      "metz": 27,
-      "strasbourg": 27,
-      "nantes": 26,
-      "psg": 38,
-      "leeds": 31,
-      "everton": 31,
-      "elche": 29,
-      "betis": 29,
-      "real madrid": 41,
-      "osasuna": 29,
-      "bayern": 37,
-      "leipzig": 27,
-      "heidenheim": 27,
-      "vfl wolfsburg": 27,
-      "union berlin": 27,
-      "vfb stuttgart": 27,
-      "leverkusen": 39,
-      "tsg hoffenheim": 27,
-      "frankfurt": 35,
-      "werder bremen": 27,
-      "freiburg": 27,
-      "augsburg": 27,
-      "st. pauli": 27,
-      "dortmund": 37,
-      "genoa": 30,
-      "lecce": 30,
-      "sassuolo": 30,
-      "napoli": 38,
-      "milan": 30,
-      "cremonese": 30,
-      "roma": 30,
-      "bologna": 30,
-      "mainz": 27,
-      "cologne": 27,
-      "borussia m\u00f6nchengladbach": 27,
-      "hamburg sv": 27,
-      "cagliari": 30,
-      "fiorentina": 30,
-      "como": 30,
-      "lazio": 30,
-      "atalanta": 42,
-      "pisa": 30,
-      "juventus": 40,
-      "parma": 30,
-      "udinese": 30,
-      "hellas verona": 30,
-      "internazionale": 40,
-      "torino": 30,
-      "psv eindhoven": 8,
-      "union st.-gilloise": 8,
-      "benfica": 10,
-      "qarabag": 10,
-      "olympiacos": 10,
-      "pafos": 8,
-      "slavia prague": 8,
-      "bodo glimt": 12,
-      "ajax amsterdam": 8,
-      "brugge": 10,
-      "f.c. k\u00f8benhavn": 8,
-      "galatasaray": 12,
-      "sporting cp": 10,
-      "kairat almaty": 8
-    }
-  },
   "ncaab": {
     "ratings": {
       "st. johns red storm": 1714.72,
@@ -21255,6 +21029,4759 @@
         "games": 2
       },
       "pistons::timberwolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      }
+    }
+  },
+  "soccer": {
+    "ratings": {
+      "liverpool": 1522.69,
+      "bournemouth": 1553.12,
+      "girona": 1519.12,
+      "rayo vallecano": 1465.36,
+      "villarreal": 1536.57,
+      "real oviedo": 1466.43,
+      "rennes": 1561.41,
+      "marseille": 1523.87,
+      "aston villa": 1535.61,
+      "newcastle": 1501.04,
+      "brighton hove albion": 1550.97,
+      "fulham": 1487.75,
+      "sunderland": 1530.63,
+      "west ham": 1475.89,
+      "tottenham": 1439.24,
+      "burnley": 1376.44,
+      "wolves": 1412.92,
+      "man city": 1597.82,
+      "mallorca": 1490.31,
+      "barcelona": 1697.59,
+      "alav\u00e9s": 1469.19,
+      "levante": 1459.73,
+      "valencia": 1447.43,
+      "sociedad": 1507.38,
+      "lens": 1570.71,
+      "lyon": 1530.35,
+      "monaco": 1579.1,
+      "le havre": 1438.48,
+      "nice": 1415.44,
+      "toulouse": 1463.52,
+      "chelsea": 1479.18,
+      "crystal palace": 1504.7,
+      "nottm forest": 1473.49,
+      "brentford": 1516.72,
+      "man united": 1548.81,
+      "arsenal": 1676.95,
+      "celta vigo": 1494.72,
+      "getafe": 1502.01,
+      "athletic": 1441.94,
+      "sevilla": 1451.41,
+      "espanyol": 1437.96,
+      "atletico": 1540.04,
+      "brest": 1466.69,
+      "lille": 1620.93,
+      "auxerre": 1438.84,
+      "lorient": 1489.04,
+      "angers": 1433.94,
+      "paris": 1532.58,
+      "metz": 1362.42,
+      "strasbourg": 1536.1,
+      "nantes": 1392.68,
+      "psg": 1696.99,
+      "leeds": 1508.48,
+      "everton": 1534.24,
+      "elche": 1446.14,
+      "betis": 1494.76,
+      "real madrid": 1608.73,
+      "osasuna": 1487.35,
+      "bayern": 1773.65,
+      "leipzig": 1603.04,
+      "heidenheim": 1412.76,
+      "vfl wolfsburg": 1365.39,
+      "union berlin": 1437.62,
+      "vfb stuttgart": 1581.09,
+      "leverkusen": 1590.14,
+      "tsg hoffenheim": 1507.18,
+      "frankfurt": 1480.68,
+      "werder bremen": 1419.48,
+      "freiburg": 1512.91,
+      "augsburg": 1458.35,
+      "st. pauli": 1422.63,
+      "dortmund": 1606.93,
+      "genoa": 1480.63,
+      "lecce": 1393.13,
+      "sassuolo": 1480.15,
+      "napoli": 1600.41,
+      "milan": 1550.66,
+      "cremonese": 1375.91,
+      "roma": 1532.86,
+      "bologna": 1514.38,
+      "mainz": 1508.05,
+      "cologne": 1460.12,
+      "borussia m\u00f6nchengladbach": 1451.49,
+      "hamburg sv": 1441.4,
+      "cagliari": 1426.99,
+      "fiorentina": 1515.91,
+      "como": 1576.2,
+      "lazio": 1511.0,
+      "atalanta": 1533.65,
+      "pisa": 1364.49,
+      "juventus": 1612.11,
+      "parma": 1473.12,
+      "udinese": 1527.79,
+      "hellas verona": 1348.85,
+      "internazionale": 1641.05,
+      "torino": 1483.26,
+      "psv eindhoven": 1488.94,
+      "union st.-gilloise": 1485.69,
+      "benfica": 1473.94,
+      "qarabag": 1458.7,
+      "olympiacos": 1497.93,
+      "pafos": 1490.89,
+      "slavia prague": 1453.9,
+      "bodo glimt": 1533.92,
+      "ajax amsterdam": 1460.72,
+      "brugge": 1490.31,
+      "f.c. k\u00f8benhavn": 1487.33,
+      "galatasaray": 1497.08,
+      "sporting cp": 1531.57,
+      "kairat almaty": 1429.67
+    },
+    "game_counts": {
+      "liverpool": 44,
+      "bournemouth": 32,
+      "girona": 31,
+      "rayo vallecano": 31,
+      "villarreal": 39,
+      "real oviedo": 31,
+      "rennes": 29,
+      "marseille": 37,
+      "aston villa": 32,
+      "newcastle": 44,
+      "brighton hove albion": 32,
+      "fulham": 32,
+      "sunderland": 32,
+      "west ham": 32,
+      "tottenham": 42,
+      "burnley": 32,
+      "wolves": 32,
+      "man city": 41,
+      "mallorca": 31,
+      "barcelona": 43,
+      "alav\u00e9s": 31,
+      "levante": 31,
+      "valencia": 31,
+      "sociedad": 31,
+      "lens": 28,
+      "lyon": 29,
+      "monaco": 39,
+      "le havre": 29,
+      "nice": 29,
+      "toulouse": 29,
+      "chelsea": 42,
+      "crystal palace": 31,
+      "nottm forest": 32,
+      "brentford": 32,
+      "man united": 32,
+      "arsenal": 43,
+      "celta vigo": 31,
+      "getafe": 31,
+      "athletic": 39,
+      "sevilla": 31,
+      "espanyol": 31,
+      "atletico": 45,
+      "brest": 28,
+      "lille": 29,
+      "auxerre": 29,
+      "lorient": 29,
+      "angers": 29,
+      "paris": 29,
+      "metz": 29,
+      "strasbourg": 28,
+      "nantes": 28,
+      "psg": 41,
+      "leeds": 32,
+      "everton": 32,
+      "elche": 31,
+      "betis": 31,
+      "real madrid": 44,
+      "osasuna": 31,
+      "bayern": 40,
+      "leipzig": 29,
+      "heidenheim": 29,
+      "vfl wolfsburg": 29,
+      "union berlin": 29,
+      "vfb stuttgart": 29,
+      "leverkusen": 41,
+      "tsg hoffenheim": 29,
+      "frankfurt": 37,
+      "werder bremen": 29,
+      "freiburg": 29,
+      "augsburg": 29,
+      "st. pauli": 29,
+      "dortmund": 39,
+      "genoa": 32,
+      "lecce": 32,
+      "sassuolo": 32,
+      "napoli": 40,
+      "milan": 32,
+      "cremonese": 32,
+      "roma": 32,
+      "bologna": 32,
+      "mainz": 29,
+      "cologne": 29,
+      "borussia m\u00f6nchengladbach": 29,
+      "hamburg sv": 29,
+      "cagliari": 32,
+      "fiorentina": 32,
+      "como": 32,
+      "lazio": 32,
+      "atalanta": 44,
+      "pisa": 32,
+      "juventus": 42,
+      "parma": 32,
+      "udinese": 32,
+      "hellas verona": 32,
+      "internazionale": 42,
+      "torino": 32,
+      "psv eindhoven": 8,
+      "union st.-gilloise": 8,
+      "benfica": 10,
+      "qarabag": 10,
+      "olympiacos": 10,
+      "pafos": 8,
+      "slavia prague": 8,
+      "bodo glimt": 12,
+      "ajax amsterdam": 8,
+      "brugge": 10,
+      "f.c. k\u00f8benhavn": 8,
+      "galatasaray": 12,
+      "sporting cp": 11,
+      "kairat almaty": 8
+    },
+    "h2h": {
+      "bournemouth::liverpool": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "girona::rayo vallecano": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "real oviedo::villarreal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "marseille::rennes": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "sunderland::west ham": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "burnley::tottenham": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "man city::wolves": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "barcelona::mallorca": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "alav\u00e9s::levante": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lens::lyon": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "le havre::monaco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nice::toulouse": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "brentford::nottm forest": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "arsenal::man united": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "celta vigo::getafe": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "athletic::sevilla": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "atletico::espanyol": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "auxerre::lorient": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "angers::paris": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "metz::strasbourg": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "nantes::psg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "everton::leeds": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "osasuna::real madrid": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "chelsea::west ham": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "alav\u00e9s::betis": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bayern::leipzig": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "angers::psg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "man city::tottenham": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bournemouth::wolves": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "aston villa::brentford": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "burnley::sunderland": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "arsenal::leeds": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "barcelona::levante": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "heidenheim::vfl wolfsburg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "union berlin::vfb stuttgart": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leverkusen::tsg hoffenheim": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "frankfurt::werder bremen": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "augsburg::freiburg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "napoli::sassuolo": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cremonese::milan": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bologna::roma": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "marseille::paris": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "auxerre::nice": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lyon::metz": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "brighton hove albion::everton": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "osasuna::valencia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "girona::villarreal": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "real madrid::real oviedo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cologne::mainz": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "como::lazio": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "juventus::parma": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "lorient::rennes": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "le havre::lens": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "nantes::strasbourg": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "brest::toulouse": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "lille::monaco": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "liverpool::newcastle": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "athletic::rayo vallecano": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "getafe::sevilla": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "internazionale::torino": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "elche::levante": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "getafe::valencia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hamburg sv::st. pauli": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cremonese::sassuolo": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lecce::milan": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "brest::lens": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chelsea::fulham": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "burnley::man united": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brentford::sunderland": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bournemouth::tottenham": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "everton::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "real oviedo::sociedad": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "girona::sevilla": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mallorca::real madrid": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "heidenheim::leipzig": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "frankfurt::tsg hoffenheim": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "borussia m\u00f6nchengladbach::vfb stuttgart": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "augsburg::bayern": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bologna::como": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cagliari::napoli": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "pisa::roma": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "lille::lorient": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "auxerre::nantes": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "psg::toulouse": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "brighton hove albion::man city": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nottm forest::west ham": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "arsenal::liverpool": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aston villa::crystal palace": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "athletic::betis": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "espanyol::osasuna": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dortmund::union berlin": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cologne::freiburg": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "genoa::juventus": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "internazionale::udinese": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "hellas verona::lazio": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "monaco::strasbourg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "le havre::nice": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "metz::paris": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lyon::marseille": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "frankfurt::leverkusen": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "lorient::marseille": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "arsenal::nottm forest": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bournemouth::brighton hove albion": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fulham::leeds": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "newcastle::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "tottenham::west ham": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "getafe::real oviedo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "real madrid::sociedad": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "alav\u00e9s::athletic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "atletico::villarreal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dortmund::heidenheim": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "tsg hoffenheim::union berlin": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "leipzig::mainz": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "freiburg::vfb stuttgart": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bayern::hamburg sv": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cagliari::parma": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "internazionale::juventus": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "fiorentina::napoli": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "nantes::nice": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "auxerre::monaco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "burnley::liverpool": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "man city::man united": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "osasuna::rayo vallecano": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "barcelona::valencia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "augsburg::st. pauli": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "borussia m\u00f6nchengladbach::werder bremen": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "roma::torino": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "atalanta::lecce": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "pisa::udinese": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lazio::sassuolo": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bologna::milan": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "lille::toulouse": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "brest::paris": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lens::psg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "le havre::strasbourg": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lyon::rennes": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "espanyol::mallorca": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "arsenal::athletic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "psv eindhoven::union st.-gilloise": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "benfica::qarabag": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "marseille::real madrid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "tottenham::villarreal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ajax amsterdam::internazionale": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bayern::chelsea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "atletico::liverpool": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atalanta::psg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brugge::monaco": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "frankfurt::galatasaray": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "man city::napoli": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "barcelona::newcastle": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "kairat almaty::sporting cp": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betis::sociedad": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "st. pauli::vfb stuttgart": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cagliari::lecce": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "angers::lyon": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "everton::liverpool": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "crystal palace::west ham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leeds::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chelsea::man united": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brentford::fulham": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "girona::levante": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "espanyol::real madrid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "alav\u00e9s::sevilla": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "osasuna::villarreal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "athletic::valencia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "augsburg::mainz": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hamburg sv::heidenheim": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bayern::tsg hoffenheim": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "freiburg::werder bremen": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cologne::leipzig": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bologna::genoa": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "milan::udinese": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "brest::nice": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lens::lille": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "elche::real oviedo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "barcelona::getafe": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "frankfurt::union berlin": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dortmund::vfl wolfsburg": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "lazio::roma": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atalanta::torino": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "como::fiorentina": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "internazionale::sassuolo": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "paris::strasbourg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "auxerre::toulouse": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "metz::monaco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "napoli::pisa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "marseille::psg": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "levante::real madrid": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "sevilla::villarreal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atletico::rayo vallecano": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "mallorca::sociedad": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "barcelona::real oviedo": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bayern::werder bremen": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "marseille::strasbourg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brentford::man united": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brighton hove albion::chelsea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "crystal palace::liverpool": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "burnley::man city": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nottm forest::sunderland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atletico::real madrid": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "alav\u00e9s::mallorca": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "athletic::villarreal": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "augsburg::heidenheim": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "dortmund::mainz": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "leverkusen::st. pauli": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "leipzig::vfl wolfsburg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "borussia m\u00f6nchengladbach::frankfurt": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "cagliari::internazionale": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lorient::monaco": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "auxerre::psg": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "aston villa::fulham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::newcastle": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "rayo vallecano::sevilla": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "celta vigo::elche": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "barcelona::sociedad": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "betis::osasuna": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cologne::vfb stuttgart": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "sassuolo::udinese": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "hellas verona::roma": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "milan::napoli": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "angers::brest": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lille::lyon": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "parma::torino": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "genoa::lazio": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "real oviedo::valencia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "atalanta::brugge": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kairat almaty::real madrid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atletico::frankfurt": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benfica::chelsea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "galatasaray::liverpool": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "internazionale::slavia prague": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ajax amsterdam::marseille": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bayern::pafos": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "f.c. k\u00f8benhavn::qarabag": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "newcastle::union st.-gilloise": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::olympiacos": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "barcelona::psg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "athletic::dortmund": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "napoli::sporting cp": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bournemouth::fulham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "getafe::osasuna": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cologne::tsg hoffenheim": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hellas verona::sassuolo": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "lorient::paris": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "leeds::tottenham": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "arsenal::west ham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "man united::sunderland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chelsea::liverpool": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "levante::real oviedo": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "girona::valencia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "athletic::mallorca": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "real madrid::villarreal": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "leverkusen::union berlin": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "augsburg::vfl wolfsburg": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "st. pauli::werder bremen": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bayern::frankfurt": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "lecce::parma": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cremonese::internazionale": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "marseille::metz": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "auxerre::lens": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "aston villa::burnley": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "crystal palace::everton": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "newcastle::nottm forest": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brentford::man city": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "alav\u00e9s::elche": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "barcelona::sevilla": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "betis::espanyol": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "rayo vallecano::sociedad": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heidenheim::vfb stuttgart": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hamburg sv::mainz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bologna::pisa": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "fiorentina::roma": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "genoa::napoli": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "lyon::toulouse": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "angers::strasbourg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "espanyol::real oviedo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "borussia m\u00f6nchengladbach::union berlin": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "chelsea::nottm forest": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brighton hove albion::newcastle": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "burnley::leeds": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "everton::man city": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "sunderland::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::fulham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mallorca::sevilla": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "barcelona::girona": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "atletico::osasuna": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leverkusen::mainz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hamburg sv::leipzig": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "vfb stuttgart::vfl wolfsburg": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bayern::dortmund": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "napoli::torino": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "internazionale::roma": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "lyon::nice": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "le havre::marseille": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aston villa::tottenham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "liverpool::man united": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "levante::rayo vallecano": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "getafe::real madrid": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "st. pauli::tsg hoffenheim": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "como::juventus": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bologna::cagliari": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fiorentina::milan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lens::paris": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "metz::toulouse": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "lille::nantes": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "brentford::west ham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "barcelona::olympiacos": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::atletico": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leverkusen::psg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dortmund::f.c. k\u00f8benhavn": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benfica::newcastle": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "napoli::psv eindhoven": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "internazionale::union st.-gilloise": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "man city::villarreal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "athletic::qarabag": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bodo glimt::galatasaray": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bayern::brugge": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ajax amsterdam::chelsea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "frankfurt::liverpool": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "juventus::real madrid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "marseille::sporting cp": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "leeds::west ham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "sevilla::sociedad": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "union berlin::werder bremen": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "nantes::paris": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "chelsea::sunderland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fulham::newcastle": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brighton hove albion::man united": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brentford::liverpool": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "elche::espanyol": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "athletic::getafe": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "valencia::villarreal": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "frankfurt::st. pauli": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "augsburg::leipzig": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hamburg sv::vfl wolfsburg": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "heidenheim::tsg hoffenheim": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bayern::borussia m\u00f6nchengladbach": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cologne::dortmund": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "lecce::udinese": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "internazionale::napoli": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brest::psg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "monaco::toulouse": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lens::marseille": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bournemouth::nottm forest": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::crystal palace": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aston villa::man city": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "burnley::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "everton::tottenham": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "barcelona::real madrid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "celta vigo::osasuna": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "alav\u00e9s::rayo vallecano": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "freiburg::leverkusen": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mainz::vfb stuttgart": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "genoa::torino": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "roma::sassuolo": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "juventus::lazio": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lille::metz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "auxerre::le havre": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "angers::lorient": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "nice::rennes": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lyon::strasbourg": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "atletico::betis": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lecce::napoli": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "parma::roma": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "como::hellas verona": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "juventus::udinese": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cremonese::genoa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fiorentina::internazionale": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brest::le havre": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lens::metz": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lille::nice": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "monaco::nantes": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "auxerre::strasbourg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cagliari::sassuolo": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "getafe::girona": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "augsburg::dortmund": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "brighton hove albion::leeds": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::burnley": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brentford::crystal palace": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fulham::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chelsea::tottenham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aston villa::liverpool": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "rayo vallecano::villarreal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atletico::sevilla": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "athletic::sociedad": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "real madrid::valencia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "leipzig::vfb stuttgart": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "borussia m\u00f6nchengladbach::st. pauli": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bayern::leverkusen": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "atalanta::udinese": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cremonese::juventus": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "nice::psg": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "monaco::paris": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "auxerre::marseille": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "newcastle::west ham": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bournemouth::man city": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "celta vigo::levante": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "alav\u00e9s::espanyol": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "barcelona::elche": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "betis::mallorca": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cologne::hamburg sv": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "tsg hoffenheim::vfl wolfsburg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hellas verona::internazionale": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fiorentina::lecce": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bologna::parma": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "milan::roma": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "rennes::strasbourg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lens::lorient": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "angers::lille": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "metz::nantes": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "genoa::sassuolo": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cagliari::lazio": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "arsenal::slavia prague": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "atletico::union st.-gilloise": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bodo glimt::monaco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liverpool::real madrid": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bayern::psg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "f.c. k\u00f8benhavn::tottenham": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "pafos::villarreal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ajax amsterdam::galatasaray": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "benfica::leverkusen": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "internazionale::kairat almaty": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dortmund::man city": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atalanta::marseille": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "athletic::newcastle": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "vfl wolfsburg::werder bremen": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "cremonese::pisa": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "paris::rennes": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "everton::fulham": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "burnley::west ham": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "chelsea::wolves": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "alav\u00e9s::girona": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "osasuna::sevilla": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atletico::levante": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "espanyol::villarreal": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "heidenheim::leverkusen": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "leipzig::tsg hoffenheim": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "borussia m\u00f6nchengladbach::cologne": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brest::marseille": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lens::monaco": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "aston villa::bournemouth": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brentford::newcastle": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "leeds::nottm forest": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "liverpool::man city": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "athletic::real oviedo": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "getafe::mallorca": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "barcelona::celta vigo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "freiburg::st. pauli": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "augsburg::vfb stuttgart": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "frankfurt::mainz": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "atalanta::sassuolo": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bologna::napoli": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "roma::udinese": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "internazionale::lazio": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "angers::auxerre": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "metz::nice": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lille::strasbourg": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "lyon::psg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "levante::valencia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "marseille::nice": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "burnley::chelsea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brentford::brighton hove albion": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "fulham::sunderland": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "liverpool::nottm forest": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "crystal palace::wolves": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "man city::newcastle": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "alav\u00e9s::celta vigo": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "athletic::barcelona": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "osasuna::sociedad": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "mallorca::villarreal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "borussia m\u00f6nchengladbach::heidenheim": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bayern::freiburg": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "augsburg::hamburg sv": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leverkusen::vfl wolfsburg": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cologne::frankfurt": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bologna::udinese": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "atalanta::napoli": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lens::strasbourg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "monaco::rennes": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "le havre::psg": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "aston villa::leeds": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::tottenham": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "atletico::getafe": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "leipzig::werder bremen": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "st. pauli::union berlin": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hellas verona::parma": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "cremonese::roma": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "lazio::lecce": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "internazionale::milan": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "brest::metz": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "angers::toulouse": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "lille::paris": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "everton::man united": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "espanyol::sevilla": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "como::torino": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "ajax amsterdam::benfica": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "galatasaray::union st.-gilloise": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bodo glimt::juventus": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dortmund::villarreal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "barcelona::chelsea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "leverkusen::man city": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "marseille::newcastle": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "napoli::qarabag": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "f.c. k\u00f8benhavn::kairat almaty": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::bayern": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "atletico::internazionale": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "atalanta::frankfurt": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "liverpool::psv eindhoven": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "olympiacos::real madrid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "psg::tottenham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brugge::sporting cp": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "elche::getafe": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "como::sassuolo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "metz::rennes": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brentford::burnley": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "leeds::man city": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bournemouth::sunderland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "everton::newcastle": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "fulham::tottenham": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "alav\u00e9s::barcelona": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "athletic::levante": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "atletico::real oviedo": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "heidenheim::union berlin": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bayern::st. pauli": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "augsburg::tsg hoffenheim": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dortmund::leverkusen": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "genoa::hellas verona": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "parma::udinese": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cagliari::juventus": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lazio::milan": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "monaco::psg": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "crystal palace::man united": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "aston villa::wolves": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "brighton hove albion::nottm forest": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "liverpool::west ham": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "sociedad::villarreal": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "betis::sevilla": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "celta vigo::espanyol": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hamburg sv::vfb stuttgart": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "freiburg::mainz": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "lecce::torino": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "internazionale::pisa": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "atalanta::fiorentina": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "napoli::roma": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brest::strasbourg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "angers::lens": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "le havre::lille": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lorient::nice": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lyon::nantes": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bologna::cremonese": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bournemouth::everton": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "fulham::man city": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "atletico::barcelona": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "arsenal::brentford": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aston villa::brighton hove albion": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "burnley::crystal palace": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "nottm forest::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chelsea::leeds": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "athletic::real madrid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "borussia m\u00f6nchengladbach::mainz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brest::monaco": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lille::marseille": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "arsenal::aston villa": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "everton::nottm forest": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "man city::sunderland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "burnley::newcastle": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "brentford::tottenham": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "getafe::villarreal": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "alav\u00e9s::sociedad": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "barcelona::betis": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "athletic::atletico": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "freiburg::heidenheim": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "augsburg::leverkusen": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bayern::vfb stuttgart": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "union berlin::vfl wolfsburg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "frankfurt::leipzig": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fiorentina::sassuolo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "como::internazionale": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "atalanta::hellas verona": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lens::nantes": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "strasbourg::toulouse": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "psg::rennes": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "crystal palace::fulham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "elche::girona": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "espanyol::rayo vallecano": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "celta vigo::real madrid": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "hamburg sv::werder bremen": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dortmund::tsg hoffenheim": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cremonese::lecce": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cagliari::roma": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "juventus::napoli": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "angers::nice": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "auxerre::metz": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "lorient::lyon": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "man united::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "levante::osasuna": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "parma::pisa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "genoa::udinese": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "milan::torino": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "kairat almaty::olympiacos": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bayern::sporting cp": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "galatasaray::monaco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atalanta::chelsea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "barcelona::frankfurt": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "internazionale::liverpool": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atletico::psv eindhoven": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "slavia prague::tottenham": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "marseille::union st.-gilloise": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ajax amsterdam::qarabag": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "f.c. k\u00f8benhavn::villarreal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benfica::napoli": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::brugge": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "juventus::pafos": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "man city::real madrid": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "girona::sociedad": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leipzig::union berlin": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lecce::pisa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "angers::nantes": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "chelsea::everton": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "brighton hove albion::liverpool": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "burnley::fulham": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "arsenal::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "atletico::valencia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "elche::mallorca": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "barcelona::osasuna": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "espanyol::getafe": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "borussia m\u00f6nchengladbach::vfl wolfsburg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "augsburg::frankfurt": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "heidenheim::st. pauli": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hamburg sv::tsg hoffenheim": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cologne::leverkusen": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cremonese::torino": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lazio::parma": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "atalanta::cagliari": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brest::rennes": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "metz::psg": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "paris::toulouse": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "crystal palace::man city": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nottm forest::tottenham": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "newcastle::sunderland": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "aston villa::west ham": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "real oviedo::sevilla": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "athletic::celta vigo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "alav\u00e9s::real madrid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "vfb stuttgart::werder bremen": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fiorentina::hellas verona": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "napoli::udinese": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "genoa::internazionale": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bologna::juventus": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "le havre::lyon": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "auxerre::lille": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lens::nice": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "marseille::monaco": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "como::roma": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "borussia m\u00f6nchengladbach::dortmund": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "man city::west ham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brentford::wolves": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "liverpool::tottenham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::everton": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "crystal palace::leeds": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "alav\u00e9s::osasuna": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "real madrid::sevilla": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cologne::union berlin": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "freiburg::vfl wolfsburg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leipzig::leverkusen": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "juventus::roma": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aston villa::man united": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "atletico::girona": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "barcelona::villarreal": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "elche::rayo vallecano": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "betis::getafe": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bayern::heidenheim": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "sassuolo::torino": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fiorentina::udinese": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "atalanta::genoa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fulham::nottm forest": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "athletic::espanyol": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "man united::newcastle": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "man city::nottm forest": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::brighton hove albion": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bournemouth::brentford": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liverpool::wolves": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "fulham::west ham": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "aston villa::chelsea": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "fiorentina::parma": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "como::lecce": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cagliari::torino": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "juventus::pisa": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "crystal palace::tottenham": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "hellas verona::milan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cremonese::napoli": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atalanta::internazionale": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "genoa::roma": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cagliari::milan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lens::toulouse": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aston villa::nottm forest": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brighton hove albion::burnley": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "west ham::wolves": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "arsenal::bournemouth": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "celta vigo::valencia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "elche::villarreal": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "barcelona::espanyol": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "como::udinese": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "atalanta::roma": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lyon::monaco": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lille::rennes": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "brentford::everton": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "crystal palace::newcastle": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "levante::sevilla": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betis::real madrid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "girona::mallorca": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lazio::napoli": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cremonese::fiorentina": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hellas verona::torino": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bologna::internazionale": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "marseille::nantes": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "auxerre::brest": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "angers::le havre": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "paris::psg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "como::pisa": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "lecce::roma": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "juventus::sassuolo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leeds::newcastle": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atalanta::bologna": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "internazionale::parma": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "torino::udinese": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "getafe::sociedad": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "alav\u00e9s::villarreal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "girona::osasuna": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "freiburg::hamburg sv": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leverkusen::vfb stuttgart": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mallorca::rayo vallecano": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "augsburg::borussia m\u00f6nchengladbach": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bayern::vfl wolfsburg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "celta vigo::sevilla": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cagliari::genoa": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "frankfurt::vfb stuttgart": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dortmund::werder bremen": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heidenheim::mainz": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "st. pauli::vfl wolfsburg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bayern::cologne": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "freiburg::leipzig": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "borussia m\u00f6nchengladbach::tsg hoffenheim": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "internazionale::lecce": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bologna::hellas verona": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "como::milan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "espanyol::girona": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lille::psg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brentford::chelsea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "crystal palace::sunderland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "osasuna::real oviedo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "betis::villarreal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dortmund::st. pauli": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "angers::marseille": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aston villa::everton": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "alav\u00e9s::atletico": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "celta vigo::rayo vallecano": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bologna::fiorentina": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brest::lyon": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brugge::kairat almaty": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bodo glimt::man city": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::internazionale": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leverkusen::olympiacos": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "monaco::real madrid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "psg::sporting cp": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dortmund::tottenham": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ajax amsterdam::villarreal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "frankfurt::qarabag": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atalanta::athletic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bayern::union st.-gilloise": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chelsea::pafos": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benfica::juventus": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liverpool::marseille": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "newcastle::psv eindhoven": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "barcelona::slavia prague": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brighton hove albion::fulham": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "espanyol::valencia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "leverkusen::werder bremen": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mainz::vfl wolfsburg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cagliari::fiorentina": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chelsea::crystal palace": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aston villa::newcastle": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "atletico::mallorca": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "celta vigo::sociedad": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atalanta::parma": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hellas verona::udinese": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "tsg hoffenheim::werder bremen": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ajax amsterdam::olympiacos": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "arsenal::kairat almaty": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "athletic::sporting cp": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atletico::bodo glimt": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "barcelona::f.c. k\u00f8benhavn": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leverkusen::villarreal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benfica::real madrid": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "dortmund::internazionale": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brugge::marseille": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "frankfurt::tottenham": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liverpool::qarabag": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "galatasaray::man city": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chelsea::napoli": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "pafos::slavia prague": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bayern::psv eindhoven": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "atalanta::union st.-gilloise": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cologne::vfl wolfsburg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "girona::real oviedo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "pisa::sassuolo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cagliari::hellas verona": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lorient::nantes": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fulham::man united": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "rayo vallecano::real madrid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "betis::valencia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "angers::metz": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "psg::strasbourg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "man united::tottenham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::sunderland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "elche::sociedad": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lens::rennes": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brest::lorient": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brighton hove albion::crystal palace": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "alav\u00e9s::getafe": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atalanta::cremonese": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "newcastle::tottenham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "liverpool::sunderland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "milan::pisa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hamburg sv::union berlin": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "freiburg::tsg hoffenheim": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atalanta::lazio": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bologna::torino": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "le havre::toulouse": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "galatasaray::juventus": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "atalanta::dortmund": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "levante::villarreal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "newcastle::qarabag": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bodo glimt::internazionale": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "athletic::elche": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "celta vigo::mallorca": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "borussia m\u00f6nchengladbach::freiburg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "milan::parma": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "auxerre::rennes": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "le havre::nantes": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fiorentina::pisa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "atletico::brugge": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "augsburg::cologne": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "heidenheim::werder bremen": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hellas verona::napoli": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "rennes::toulouse": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "angers::monaco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "arsenal::chelsea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "celta vigo::girona": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "frankfurt::freiburg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lazio::torino": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nice::paris": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "burnley::everton": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "leeds::sunderland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "rayo vallecano::real oviedo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hamburg sv::leverkusen": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atletico::sociedad": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cagliari::como": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "marseille::toulouse": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "alav\u00e9s::valencia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "atalanta::bayern": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "atletico::tottenham": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bodo glimt::sporting cp": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "chelsea::psg": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "brighton hove albion::sunderland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chelsea::newcastle": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "athletic::girona": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "elche::real madrid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "frankfurt::heidenheim": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mainz::werder bremen": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "freiburg::union berlin": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cagliari::pisa": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bologna::sassuolo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::leverkusen": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "sevilla::valencia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bayern::union berlin": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dortmund::hamburg sv": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cremonese::parma": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lorient::toulouse": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "barcelona::rayo vallecano": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bologna::lazio": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "le havre::paris": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "levante::sociedad": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mainz::tsg hoffenheim": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dortmund::vfb stuttgart": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nice::strasbourg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "pisa::torino": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bayern::real madrid": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arsenal::sporting cp": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "liverpool::psg": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "fulham::liverpool": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "elche::valencia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "borussia m\u00f6nchengladbach::leipzig": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "frankfurt::vfl wolfsburg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cagliari::cremonese": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "atalanta::juventus": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "angers::rennes": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "sunderland::tottenham": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chelsea::man city": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "celta vigo::real oviedo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cologne::werder bremen": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bologna::lecce": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "leeds::man united": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "getafe::levante": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fiorentina::lazio": {
         "a_wins": 1,
         "b_wins": 0,
         "games": 1
