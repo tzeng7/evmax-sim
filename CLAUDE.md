@@ -126,7 +126,7 @@ evmax/
 | Tennis Ranking Trend | 0.10 | 0.45 | `data/models/tennis_ranking_trend_state.json` (12-week momentum, ±0.40 logit cap) |
 | MLB Pitcher | 0.20 | 0.45 | `data/models/pitcher_state.json` |
 | NBA Props Cache | — | — | `data/nba_props_cache.json` (daily L15 per-player; per-36 normalization + opponent adj) |
-| NFL Props Cache (QB only v1) | — | — | pure compute, backtest only; Stage 4 shipped, Stage 5 gated on MODEL-9 |
+| NFL Props Cache (QB only v1) | — | — | reuses `data/backtest/nfl_props/*.parquet`; live lookup via `evmax/clients/nfl_props_cache.py` (point-in-time history + schedule opponent adj). Wired to coordinator NFL branch for shadow scans (MODEL-9). Stage 5 live Kelly gated on 2026 shadow validation |
 | Sharp (Pinnacle) | 0.85 (CLI/config default) | always | auto-tuned in `data/model_config.json` |
 
 Tennis serve/return, H2H, and ranking-trend agents are seeded from Jeff Sackmann's `tennis_atp` / `tennis_wta` CSVs plus the Match Charting Project for 2025+ SPW augmentation via `scripts/seed_tennis_models.py`.
