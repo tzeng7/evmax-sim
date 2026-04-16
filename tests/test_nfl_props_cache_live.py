@@ -14,6 +14,7 @@ graceful fallback when inputs are missing.
 from __future__ import annotations
 
 import asyncio
+import time
 from pathlib import Path
 
 import numpy as np
@@ -135,6 +136,15 @@ class TestCacheLoad:
     def test_is_fresh_true_when_all_parquets_present(self, nfl_parquets):
         assert nfl_props_cache.is_nfl_cache_fresh() is True
 
+    def test_is_fresh_false_when_stale(self, nfl_parquets):
+        import os
+        # Set mtime to 10 days ago — older than _STALE_DAYS (7)
+        old = time.time() - 10 * 86400
+        for p in nfl_parquets.glob("*.parquet"):
+            os.utime(p, (old, old))
+        nfl_props_cache._reset_cache_for_tests()
+        assert nfl_props_cache.is_nfl_cache_fresh() is False
+
     def test_is_fresh_false_when_any_parquet_missing(self, nfl_parquets):
         (nfl_parquets / "rosters.parquet").unlink()
         nfl_props_cache._reset_cache_for_tests()
@@ -144,6 +154,24 @@ class TestCacheLoad:
         n = _run(nfl_props_cache.refresh_nfl_props_cache())
         # Every roster entry resolves — 4 entries in the synthetic fixture
         assert n == 4
+
+    def test_refresh_auto_downloads_when_stale(self, nfl_parquets, monkeypatch):
+        import os
+        from unittest.mock import MagicMock
+        # Make parquets stale
+        old = time.time() - 10 * 86400
+        for p in nfl_parquets.glob("*.parquet"):
+            os.utime(p, (old, old))
+        nfl_props_cache._reset_cache_for_tests()
+        # Mock _download_parquets to touch the files fresh instead of
+        # actually hitting nflverse (network-free test)
+        def _fake_download():
+            for p in nfl_parquets.glob("*.parquet"):
+                os.utime(p, None)  # set mtime to now
+            return True
+        monkeypatch.setattr(nfl_props_cache, "_download_parquets", _fake_download)
+        n = _run(nfl_props_cache.refresh_nfl_props_cache())
+        assert n == 4  # all roster entries loadable after "download"
 
     def test_name_normalization_is_case_and_suffix_insensitive(self, nfl_parquets):
         nfl_props_cache._load_tables()

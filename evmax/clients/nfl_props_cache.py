@@ -26,8 +26,11 @@ Model for touchdown props (anytime TD, passing TDs 1.5+/2.5+):
 
 from __future__ import annotations
 
+import io
 import re
+import time
 import unicodedata
+import urllib.request
 from pathlib import Path
 from typing import Optional
 
@@ -236,7 +239,12 @@ _WEEKLY_PATH = _NFL_DATA_DIR / "weekly_stats.parquet"
 _ROSTERS_PATH = _NFL_DATA_DIR / "rosters.parquet"
 _SCHEDULES_PATH = _NFL_DATA_DIR / "schedules.parquet"
 
+_STALE_DAYS = 7  # re-download if parquets are older than this
+
 _tables: Optional[dict] = None
+
+# nflverse GitHub release URLs — same as scripts/fetch_nfl_features.py
+_NFLVERSE = "https://github.com/nflverse/nflverse-data/releases/download"
 
 
 def _normalize_name(s: str) -> str:
@@ -323,13 +331,100 @@ def _load_tables() -> Optional[dict]:
     return _tables
 
 
-def is_nfl_cache_fresh() -> bool:
-    """True if the parquets exist and are loadable.
+def _parquets_are_stale() -> bool:
+    """True if any of the three parquets is missing or older than _STALE_DAYS."""
+    for p in (_WEEKLY_PATH, _ROSTERS_PATH, _SCHEDULES_PATH):
+        if not p.exists():
+            return True
+        age_days = (time.time() - p.stat().st_mtime) / 86400
+        if age_days > _STALE_DAYS:
+            return True
+    return False
 
-    Unlike the NBA cache there's no TTL — the parquets are authoritative
-    until `fetch_nfl_features.py` rewrites them. The user is expected to
-    rerun that script weekly during the NFL season.
+
+def _current_seasons() -> list[int]:
+    """Return the NFL seasons to fetch.
+
+    During the season (Sep–Feb) we want the current season and the prior
+    one for history depth. During the offseason we just want the most
+    recently completed season.
     """
+    from datetime import date
+    today = date.today()
+    year = today.year
+    # NFL season year = the year it started. A season that starts in
+    # Sep 2026 is "2026" even in Jan 2027.
+    if today.month >= 9:
+        return [year - 1, year]
+    elif today.month <= 2:
+        return [year - 2, year - 1]
+    else:
+        return [year - 2, year - 1]
+
+
+def _download_parquets() -> bool:
+    """Download fresh nflverse parquets to _NFL_DATA_DIR.
+
+    Returns True on success, False on any download failure.
+    """
+    import pandas as pd
+
+    seasons = _current_seasons()
+    _NFL_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    logger.info("nfl_props_downloading_parquets", seasons=seasons)
+
+    try:
+        # Weekly stats — one file per season
+        frames = []
+        for y in seasons:
+            url = f"{_NFLVERSE}/stats_player/stats_player_week_{y}.parquet"
+            logger.debug("nfl_props_fetch", url=url)
+            req = urllib.request.Request(url, headers={"User-Agent": "evmax-scan"})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                blob = r.read()
+            df = pd.read_parquet(io.BytesIO(blob))
+            if "season" not in df.columns:
+                df["season"] = y
+            frames.append(df)
+        weekly = pd.concat(frames, ignore_index=True)
+        weekly.to_parquet(_WEEKLY_PATH, index=False)
+
+        # Schedules — single file covers all seasons
+        url = f"{_NFLVERSE}/schedules/games.parquet"
+        req = urllib.request.Request(url, headers={"User-Agent": "evmax-scan"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            blob = r.read()
+        schedules = pd.read_parquet(io.BytesIO(blob))
+        schedules = schedules[schedules.season.isin(seasons)].reset_index(drop=True)
+        schedules.to_parquet(_SCHEDULES_PATH, index=False)
+
+        # Rosters — one file per season
+        frames = []
+        for y in seasons:
+            url = f"{_NFLVERSE}/weekly_rosters/roster_weekly_{y}.parquet"
+            req = urllib.request.Request(url, headers={"User-Agent": "evmax-scan"})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                blob = r.read()
+            frames.append(pd.read_parquet(io.BytesIO(blob)))
+        rosters = pd.concat(frames, ignore_index=True)
+        rosters.to_parquet(_ROSTERS_PATH, index=False)
+
+        logger.info(
+            "nfl_props_parquets_downloaded",
+            weekly_rows=len(weekly),
+            schedule_rows=len(schedules),
+            roster_rows=len(rosters),
+        )
+        return True
+    except Exception as e:
+        logger.warning("nfl_props_download_failed", error=str(e))
+        return False
+
+
+def is_nfl_cache_fresh() -> bool:
+    """True if the parquets exist, are not stale, and are loadable."""
+    if _parquets_are_stale():
+        return False
     return _load_tables() is not None
 
 
@@ -337,16 +432,21 @@ async def refresh_nfl_props_cache(
     force: bool = False,
     player_names: Optional[list[str]] = None,
 ) -> int:
-    """Load / reload the parquets into process memory.
+    """Ensure parquets are fresh, then load into process memory.
 
-    The `force` / `player_names` arguments exist for API symmetry with the
-    NBA refresh but this function does not actually touch the network — all
-    data comes from on-disk parquets. Returns the number of players whose
-    game logs are available.
+    Auto-downloads from nflverse if parquets are missing or older than
+    _STALE_DAYS. The download runs synchronously (~5 seconds, ~3MB total)
+    via urllib — acceptable since it only triggers once per week at most.
+    Returns the number of players whose game logs are available.
     """
     global _tables
-    if force:
+
+    if force or _parquets_are_stale():
         _tables = None
+        import asyncio
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _download_parquets)
+
     t = _load_tables()
     return len(t["name_to_id"]) if t else 0
 
