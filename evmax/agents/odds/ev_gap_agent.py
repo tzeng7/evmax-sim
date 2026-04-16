@@ -626,16 +626,12 @@ class EVGapAgent(Agent):
 
         ev, edge_pct = calculate_ev(market.yes_price, blended_prob)
 
-        # Tennis map_handicap needs a higher EV bar — sharp-only vig removal
-        # produces phantom 2-3% edges that don't hold empirically (31% actual
-        # vs 37% predicted). Require 5% EV, and 8% for sharp-only signals.
+        # Sharp-only signals need a higher EV bar — vig removal alone can
+        # produce phantom 2-3% edges that don't hold empirically.
         ev_floor = self._settings.ev_threshold
         sector_lower = (market.sector or "").lower()
-        mtype_lower = (market.market_type or "").lower()
-        if sector_lower == "tennis" and mtype_lower == "map_handicap":
-            ev_floor = 0.08 if src == "sharp" else 0.05
-        elif sector_lower == "tennis" and src == "sharp":
-            ev_floor = 0.05  # ML tennis with sharp-only also needs bigger edge
+        if sector_lower == "tennis" and src == "sharp":
+            ev_floor = 0.05  # Tennis sharp-only needs bigger edge
         elif sector_lower == "baseball" and src == "sharp":
             ev_floor = 0.05  # Baseball sharp-only needs bigger edge (stale model data)
 

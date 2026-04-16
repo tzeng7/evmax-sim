@@ -666,7 +666,7 @@ class KalshiClient(BaseAPIClient):
                     "KXNCAAMBSPREAD", "KXMLBSPREAD", "KXNHLSPREAD",
                 ]
             )
-            market_type = MarketType.spread if is_spread else self._infer_market_type(title)
+            market_type = MarketType.spread if is_spread else self._infer_market_type(title, sector)
             spread_line = self._extract_spread_line(ticker) if is_spread else None
 
             competition: Optional[str] = None
@@ -827,15 +827,18 @@ class KalshiClient(BaseAPIClient):
             return None
         return -(line_int + 0.5)
 
-    def _infer_market_type(self, title: str) -> MarketType:
+    def _infer_market_type(self, title: str, sector: str = "") -> MarketType:
         """Infer market type from title."""
         title_lower = title.lower()
         if any(kw in title_lower for kw in ["over", "under", "total"]):
             return MarketType.total
         if any(kw in title_lower for kw in ["spread", "+", "-"]) and "vs" not in title_lower:
             return MarketType.spread
-        if any(kw in title_lower for kw in ["map", "round"]):
-            return MarketType.map_handicap
+        # "round" in tennis titles means tournament round (e.g. "Round Of 16"),
+        # not set/game handicap. Only flag map_handicap for esports (LoL/CS2).
+        if sector.lower() not in ("tennis",):
+            if any(kw in title_lower for kw in ["map", "round"]):
+                return MarketType.map_handicap
         if any(kw in title_lower for kw in ["series", "championship", "advance"]):
             return MarketType.series_winner
         return MarketType.moneyline
