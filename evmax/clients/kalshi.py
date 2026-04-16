@@ -52,7 +52,17 @@ SECTOR_SERIES_MAP: dict[str, list[str]] = {
     "baseball": ["KXMLBGAME", "KXMLBSPREAD", "KXMLBTOTAL"],
     "nhl": ["KXNHLGAME", "KXNHLSPREAD", "KXNHLTOTAL"],
     "nba_props": ["KXNBAPTS", "KXNBAREB", "KXNBAAST", "KXNBA3PT", "KXNBASTP", "KXNBABLK", "KXNBAPRA"],
-    "nfl_props": ["KXNFLPAS", "KXNFLRSH", "KXNFLREC", "KXNFLTD"],
+    # NFL prop series verified live on Kalshi 2026-04 during PR #6 investigation.
+    # The shorter KXNFLPAS / KXNFLRSH / KXNFLREC / KXNFLTD names that shipped
+    # originally are not real tickers and returned zero markets on every scan.
+    "nfl_props": [
+        "KXNFLPASSYDS",   # passing yards
+        "KXNFLRSHYDS",    # rushing yards
+        "KXNFLRECYDS",    # receiving yards
+        "KXNFLANYTD",     # anytime touchdown
+        "KXNFLPASSTDS",   # passing TDs (1.5+, 2.5+)
+        "KXNFLREC",       # receptions
+    ],
     "soccer": [
         "KXEPLGAME",        # English Premier League
         "KXUCLGAME",        # UEFA Champions League
@@ -78,10 +88,12 @@ _PROP_SERIES_TO_STAT: dict[str, str] = {
     "KXNBASTP": "steals",
     "KXNBABLK": "blocks",
     "KXNBAPRA": "points_rebounds_assists",
-    "KXNFLPAS": "passing_yards",
-    "KXNFLRSH": "rushing_yards",
-    "KXNFLREC": "receiving_yards",
-    "KXNFLTD": "touchdowns",
+    "KXNFLPASSYDS": "passing_yards",
+    "KXNFLRSHYDS": "rushing_yards",
+    "KXNFLRECYDS": "receiving_yards",
+    "KXNFLANYTD": "anytime_td",
+    "KXNFLPASSTDS": "passing_tds",
+    "KXNFLREC": "receptions",
 }
 
 # Prop market title patterns

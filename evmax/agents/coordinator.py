@@ -566,6 +566,11 @@ class AgentCoordinator:
             is_cache_fresh,
             refresh_props_cache,
         )
+        from evmax.clients.nfl_props_cache import (
+            compute_nfl_prop_prob_cached,
+            is_nfl_cache_fresh,
+            refresh_nfl_props_cache,
+        )
 
         prop_sector = f"{sector}_props"
         async with KalshiClient() as kalshi:
@@ -591,6 +596,14 @@ class AgentCoordinator:
             player_names = list({m.player_name for m in unique if m.player_name})
             self.log.info("props_cache_refreshing", players=len(player_names))
             await refresh_props_cache(force=True, player_names=player_names)
+        elif sector == "nfl" and not is_nfl_cache_fresh():
+            # NFL cache loads from pre-downloaded nflverse parquets, not from
+            # the network — the refresh just materializes the in-memory
+            # tables. player_names is ignored (the parquet already covers
+            # every player) but passed for API symmetry with NBA.
+            player_names = list({m.player_name for m in unique if m.player_name})
+            self.log.info("nfl_props_cache_refreshing", players=len(player_names))
+            await refresh_nfl_props_cache(force=True, player_names=player_names)
 
         # Compute probabilities from cached data (instant, no API calls)
         prop_sharp: list[SharpOdds] = []
@@ -599,6 +612,10 @@ class AgentCoordinator:
 
             if sector == "nba":
                 result = compute_prop_prob_cached(
+                    market.player_name, market.stat_type, market.threshold, game_date,
+                )
+            elif sector == "nfl":
+                result = compute_nfl_prop_prob_cached(
                     market.player_name, market.stat_type, market.threshold, game_date,
                 )
             else:

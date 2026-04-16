@@ -487,6 +487,30 @@ class TestExtractStat:
         keys = {"points": 5}  # index beyond stats list
         assert _extract_stat(["30", "10"], keys, "points") is None
 
+    # NFL stat keys — added for MODEL-9 resolver support
+    def test_nfl_passing_yards_from_passing_group(self):
+        # A "passing" stat group has passingYards in its keys
+        keys = {"passingYards": 2, "passingTouchdowns": 4}
+        assert _extract_stat(["20/30", "66.7", "312", "10.4", "2"], keys, "passing_yards") == 312.0
+        assert _extract_stat(["20/30", "66.7", "312", "10.4", "2"], keys, "passing_tds") == 2.0
+
+    def test_nfl_rushing_yards_from_rushing_group(self):
+        keys = {"rushingYards": 1, "rushingTouchdowns": 3}
+        assert _extract_stat(["18", "94", "5.2", "1"], keys, "rushing_yards") == 94.0
+        assert _extract_stat(["18", "94", "5.2", "1"], keys, "rushing_tds") == 1.0
+
+    def test_nfl_receiving_group_extracts_receptions_yards_tds(self):
+        keys = {"receptions": 0, "receivingYards": 2, "receivingTouchdowns": 4}
+        assert _extract_stat(["6", "41.2", "72", "12.0", "1"], keys, "receptions") == 6.0
+        assert _extract_stat(["6", "41.2", "72", "12.0", "1"], keys, "receiving_yards") == 72.0
+        assert _extract_stat(["6", "41.2", "72", "12.0", "1"], keys, "receiving_tds") == 1.0
+
+    def test_nfl_anytime_td_not_derivable_from_single_group(self):
+        # anytime_td is computed post-merge in fetch_player_stats; the
+        # per-group _extract_stat path must return None for it.
+        keys = {"rushingTouchdowns": 1}
+        assert _extract_stat(["18", "94", "1"], keys, "anytime_td") is None
+
 
 # ===========================================================================
 # prop_resolver.fetch_player_stats — sector gating only (no network)
@@ -497,6 +521,189 @@ class TestFetchPlayerStatsGating:
     def test_unsupported_sector_returns_empty(self):
         from datetime import date
         assert prop_resolver.fetch_player_stats("tennis", date(2026, 3, 15)) == {}
+
+
+# ===========================================================================
+# prop_resolver.fetch_player_stats NFL merge-across-groups
+# ===========================================================================
+# This test exercises the MODEL-9 refactor that makes fetch_player_stats
+# accumulate per-player stats across multiple stat_groups. For NFL a QB
+# appears in both the passing group and the rushing group — the merged
+# row must contain passing_yards AND rushing_yards AND anytime_td (derived
+# post-merge from rushing_tds + receiving_tds).
+
+
+class TestFetchPlayerStatsNflMerge:
+    """Feed a minimal ESPN NFL summary response through fetch_player_stats
+    and assert the merge + anytime_td derivation produce correct rows."""
+
+    NFL_SUMMARY_RESPONSE = {
+        "boxscore": {
+            "players": [
+                {
+                    "statistics": [
+                        # passing group — one QB
+                        {
+                            "name": "passing",
+                            "keys": [
+                                "completions-attempts",
+                                "completionPercentage",
+                                "passingYards",
+                                "yardsPerPassAttempt",
+                                "passingTouchdowns",
+                            ],
+                            "athletes": [
+                                {
+                                    "athlete": {"displayName": "Patrick Mahomes"},
+                                    "stats": ["25/35", "71.4", "312", "8.9", "2"],
+                                },
+                            ],
+                        },
+                        # rushing group — same QB (rushing stats) + RB
+                        {
+                            "name": "rushing",
+                            "keys": [
+                                "rushingAttempts",
+                                "rushingYards",
+                                "yardsPerRushAttempt",
+                                "rushingTouchdowns",
+                            ],
+                            "athletes": [
+                                {
+                                    "athlete": {"displayName": "Patrick Mahomes"},
+                                    "stats": ["3", "18", "6.0", "1"],
+                                },
+                                {
+                                    "athlete": {"displayName": "Isiah Pacheco"},
+                                    "stats": ["18", "94", "5.2", "0"],
+                                },
+                            ],
+                        },
+                        # receiving group — WR with a TD
+                        {
+                            "name": "receiving",
+                            "keys": [
+                                "receptions",
+                                "receivingYards",
+                                "yardsPerReception",
+                                "receivingTouchdowns",
+                            ],
+                            "athletes": [
+                                {
+                                    "athlete": {"displayName": "Travis Kelce"},
+                                    "stats": ["6", "72", "12.0", "1"],
+                                },
+                                {
+                                    "athlete": {"displayName": "Isiah Pacheco"},
+                                    "stats": ["3", "22", "7.3", "0"],
+                                },
+                            ],
+                        },
+                    ]
+                }
+            ]
+        }
+    }
+
+    def test_qb_row_has_passing_and_rushing_stats_after_merge(self, monkeypatch):
+        """A QB who shows up in both passing and rushing groups must have
+        both keys set on the merged row — the pre-refactor behavior was
+        to overwrite row per group, losing passing stats."""
+        import httpx
+        from datetime import date
+
+        class _FakeResponse:
+            def __init__(self, payload):
+                self._payload = payload
+            def json(self):
+                return self._payload
+
+        class _FakeClient:
+            def __init__(self, *a, **kw): pass
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+            def get(self, url, params=None):
+                if "scoreboard" in url:
+                    return _FakeResponse({"events": [{"id": "401547435"}]})
+                if "summary" in url:
+                    return _FakeResponse(
+                        TestFetchPlayerStatsNflMerge.NFL_SUMMARY_RESPONSE
+                    )
+                return _FakeResponse({})
+
+        monkeypatch.setattr(httpx, "Client", _FakeClient)
+        rows = prop_resolver.fetch_player_stats("nfl", date(2026, 1, 7))
+
+        assert "patrick mahomes" in rows
+        mahomes = rows["patrick mahomes"]
+        assert mahomes["passing_yards"] == 312.0
+        assert mahomes["passing_tds"] == 2.0
+        assert mahomes["rushing_yards"] == 18.0
+        assert mahomes["rushing_tds"] == 1.0
+        # anytime_td = rushing_tds + receiving_tds (passing TDs excluded — he
+        # threw them, didn't score them). Mahomes scored 1 rushing TD.
+        assert mahomes["anytime_td"] == 1.0
+
+    def test_rb_with_receiving_stats_merges_both_groups(self, monkeypatch):
+        import httpx
+        from datetime import date
+
+        class _FakeResponse:
+            def __init__(self, payload):
+                self._payload = payload
+            def json(self):
+                return self._payload
+
+        class _FakeClient:
+            def __init__(self, *a, **kw): pass
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+            def get(self, url, params=None):
+                if "scoreboard" in url:
+                    return _FakeResponse({"events": [{"id": "x"}]})
+                return _FakeResponse(
+                    TestFetchPlayerStatsNflMerge.NFL_SUMMARY_RESPONSE
+                )
+
+        monkeypatch.setattr(httpx, "Client", _FakeClient)
+        rows = prop_resolver.fetch_player_stats("nfl", date(2026, 1, 7))
+
+        pacheco = rows["isiah pacheco"]
+        assert pacheco["rushing_yards"] == 94.0
+        assert pacheco["receiving_yards"] == 22.0
+        assert pacheco["receptions"] == 3.0
+        # He didn't score a TD — anytime_td should be present but 0
+        assert pacheco["anytime_td"] == 0.0
+
+    def test_receiver_with_td_has_correct_anytime_td(self, monkeypatch):
+        import httpx
+        from datetime import date
+
+        class _FakeResponse:
+            def __init__(self, payload):
+                self._payload = payload
+            def json(self):
+                return self._payload
+
+        class _FakeClient:
+            def __init__(self, *a, **kw): pass
+            def __enter__(self): return self
+            def __exit__(self, *a): pass
+            def get(self, url, params=None):
+                if "scoreboard" in url:
+                    return _FakeResponse({"events": [{"id": "x"}]})
+                return _FakeResponse(
+                    TestFetchPlayerStatsNflMerge.NFL_SUMMARY_RESPONSE
+                )
+
+        monkeypatch.setattr(httpx, "Client", _FakeClient)
+        rows = prop_resolver.fetch_player_stats("nfl", date(2026, 1, 7))
+
+        kelce = rows["travis kelce"]
+        assert kelce["receiving_yards"] == 72.0
+        assert kelce["receptions"] == 6.0
+        assert kelce["receiving_tds"] == 1.0
+        assert kelce["anytime_td"] == 1.0
 
 
 class TestLogPropFromSharp:

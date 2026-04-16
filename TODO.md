@@ -217,26 +217,34 @@ Middle bins are well-calibrated. Tails miss by 10–18pp. The ROI filter picks e
 **Blocker:** none — purely a model iteration using data already on disk. ~4 hours focused work.
 
 ### MODEL-9 NFL Prop Shadow-Mode Validation [P1 — blocks Stage 5 live betting]
-**Files:** `evmax/agents/coordinator.py`, `evmax/agents/cleanup/db.py`, `evmax/cli/commands/agents.py`, `evmax/cli/commands/cleanup.py`
+**Files:** `evmax/agents/coordinator.py`, `evmax/agents/cleanup/prop_resolver.py`, `evmax/clients/kalshi.py`, `evmax/clients/nfl_props_cache.py`
 
-**Context.** MODEL-8 produced a backtest that passes all three Stage 4 gates — Brier 0.179, log-loss improved over prior, ROI +79% at ev≥3% vol≥1000 — **BUT** the ROI number uses Kalshi `last_price_dollars` (closing price), which for settled NO markets drifts downward through the game as events unfold. The ROI signal is either (a) real retail-overprices-YES edge, (b) retrospective leakage, or (c) a mix. We can't distinguish these three using only Stage 1's historical dataset.
+**Status:** infrastructure shipped in `feat/model9-nfl-prop-shadow` (Apr 2026). Validation itself waits on the 2026 NFL regular season.
 
-**Distinguishing the three requires capturing pre-game prices at scan time and resolving outcomes separately.** That's what shadow mode is for: run the NFL prop scanner during live NFL weeks, log (model_prob, pre_game_yes_price, threshold, player, game) tuples to a shadow table, resolve outcomes via ESPN boxscore, compute ROI using prices the live bettor actually could have gotten. If shadow ROI holds within ~15pp of the backtest's +79%, the edge is real and we ship Stage 5 with real Kelly sizing. If it collapses below 0%, we know it was leakage and close PROPS-1.
+**Infrastructure shipped:**
+- ✅ `kalshi.py` series-name typo fix — `nfl_props` sector now points at the six real Kalshi tickers (`KXNFLPASSYDS`, `KXNFLRSHYDS`, `KXNFLRECYDS`, `KXNFLANYTD`, `KXNFLPASSTDS`, `KXNFLREC`). Zero markets flowed in before this fix.
+- ✅ `nfl_props_cache.py` disk-cache layer — wraps the pure compute function from PR #6 Stage 4 with parquet-backed feature lookup. Reuses `data/backtest/nfl_props/{weekly_stats,rosters,schedules}.parquet` directly, point-in-time history per (player, season, week), schedule-based opponent resolution with defense adjustment, lazy module-level memoization. Re-run `scripts/fetch_nfl_features.py` weekly during NFL season to refresh.
+- ✅ `coordinator._fetch_props()` NFL branch — mirrors the NBA path, calls `compute_nfl_prop_prob_cached` and emits `SharpOdds`.
+- ✅ `prop_resolver` NFL support — ESPN boxscore extraction now knows `passing_yards`, `passing_tds`, `rushing_yards`, `rushing_tds`, `receiving_yards`, `receiving_tds`, `receptions`. `fetch_player_stats` refactored to MERGE stats across stat_groups so a QB's passing + rushing rows land on the same player dict (pre-refactor the second group overwrote the first). `anytime_td` derived post-merge as `rushing_tds + receiving_tds`.
+- ✅ Shadow mode config was already in place via ARCH-11 — `data/categories.yaml` ships `nfl_props: mode: shadow`.
+- ✅ Tests: 14 new NFL cache-layer tests (parquet load, name normalization, point-in-time history, schedule opponent, coordinator `_fetch_props` integration) + 7 new resolver NFL tests (per-stat extraction, merge-across-groups, anytime_td derivation). Total suite 902 → 923.
 
-**Fix scope:** depends on ARCH-11 shipping first (the general category-mode config). Assuming that's in place, MODEL-9 only needs to:
-1. Set `nfl_props` category default to `shadow` in `data/category_modes.yaml` (or equivalent).
-2. **kalshi.py typo fix** — fold the phantom series names into this PR since NFL prop markets won't appear in scan output until the fix lands.
-3. **Wire the NFL prop probability compute into the coordinator** — add the NBA-mirrored branch in `_fetch_props()` that calls `compute_nfl_prop_prob` with the features pre-computed from a daily-refreshed disk cache (new `data/nfl_props_cache.json`, schema mirrors NBA).
-4. **Resolver:** confirm `evmax/agents/cleanup/prop_resolver.py` auto-resolves NFL props via ESPN boxscore (exploration suggests it already does — no code change expected, just verify with a fixture test).
-5. **NO-side betting logic:** per the MODEL-8 / Stage 4 finding, Kalshi NFL prop markets are systematically YES-overpriced and the model's edge is on the NO side. The coordinator needs to handle both sides — either extend EVGap to carry a `side: "yes" | "no"` field or produce two gaps per market (one YES, one NO) and rely on the EV filter. Whatever the mechanism, the NFL prop shadow path must NOT only emit YES gaps (that would hide the real edge). This is a one-sector generalization of the existing coordinator logic.
-6. **Minimum sample gate to promote nfl_props from `shadow` → `live`:**
+**Still pending — validation itself (needs 2026 NFL regular season data):**
+1. Capture ≥ 500 shadow bets across ≥ 3 distinct NFL weeks.
+2. `evmax cleanup shadow metrics --days N` reads the shadow rows and computes ROI at ev≥3%, vol≥1000.
+3. Promote/reject criteria:
+   - Shadow ROI NO-only ≥ 65% (backtest was 79%, allow 15pp degradation for leakage + live-price differences).
+   - Shadow Brier within 10% of backtest Brier (0.197 max).
+   - Calibration tail miss ≤ 15pp at 90–100% bin.
+4. If passes: promote with `evmax cleanup shadow promote nfl_props`, then do the NO-side EVGap refactor (see "Deferred" below) as a follow-up PR before Stage 5 live Kelly.
+5. If fails: close PROPS-1 with "backtest showed no real edge, ROI was retrospective leakage."
 
-   - ≥ 500 shadow bets captured, ≥ 3 distinct NFL weeks
-   - Shadow ROI at ev≥3%, vol≥1000, NO-only ≥ 65% (backtest was 79%, allow 15pp degradation)
-   - Shadow Brier within 10% of backtest Brier (0.197 max)
-   - Calibration chart tail miss ≤ 15pp at 90–100% bin (the MODEL-8 residual)
+**Deferred out of the infra PR (scope control):**
+- **NO-side EVGap emission.** The backtest showed the edge lives on the NO side (YES was catastrophic at −88% ROI). `log_prop_observations` already logs ALL prop rows regardless of EV sign, so the post-hoc NO-side ROI analysis can be done against `captured_yes_price + blended_true_prob + outcome` via `evmax cleanup shadow metrics` without touching EVGap. The full EVGap side refactor (add `side: "yes" | "no"` field OR emit two gaps per market, and propagate through Kelly + exposure guard) lands in a separate PR gated on shadow validation passing — no point designing a refactor for a signal that might be leakage.
+- **Opponent-adjustment fallback for schedule gaps.** Current cache uses `opp_adj = 1.0` if the schedule row is missing for the target game_date. During live NFL weeks with fresh `schedules.parquet` this should always resolve; if it becomes a gap we can fall back to season-level team-vs-position defense.
+- **MODEL-7** (non-QB features — usage rate, target share, Vegas totals) is still the downstream improvement once MODEL-9 validates QB-only edge.
 
-**Blocker:** NFL regular season starts Sept 2026. Shadow validation requires at least 3-4 weeks of live NFL to be meaningful. Until then, build the infrastructure only — don't attempt to run shadow during the offseason (no markets).
+**Blocker:** NFL regular season starts Sept 2026. Shadow validation requires at least 3-4 weeks of live NFL to be meaningful.
 
 ---
 
