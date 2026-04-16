@@ -51,7 +51,7 @@ SECTOR_SERIES_MAP: dict[str, list[str]] = {
     "ncaaw": ["KXNCAAWBGAME", "KXNCAAWBSPREAD", "KXNCAAWBTOTAL"],
     "baseball": ["KXMLBGAME", "KXMLBSPREAD", "KXMLBTOTAL"],
     "nhl": ["KXNHLGAME", "KXNHLSPREAD", "KXNHLTOTAL"],
-    "nba_props": ["KXNBAPTS", "KXNBAREB", "KXNBAAST", "KXNBA3PT", "KXNBASTP", "KXNBABLK", "KXNBAPRA"],
+    "nba_props": ["KXNBAPTS", "KXNBAREB", "KXNBAAST", "KXNBA3PT", "KXNBASTL", "KXNBABLK", "KXNBAPRA"],
     # NFL prop series verified live on Kalshi 2026-04 during PR #6 investigation.
     # The shorter KXNFLPAS / KXNFLRSH / KXNFLREC / KXNFLTD names that shipped
     # originally are not real tickers and returned zero markets on every scan.
@@ -85,7 +85,7 @@ _PROP_SERIES_TO_STAT: dict[str, str] = {
     "KXNBAREB": "rebounds",
     "KXNBAAST": "assists",
     "KXNBA3PT": "threes",
-    "KXNBASTP": "steals",
+    "KXNBASTL": "steals",
     "KXNBABLK": "blocks",
     "KXNBAPRA": "points_rebounds_assists",
     "KXNFLPASSYDS": "passing_yards",
