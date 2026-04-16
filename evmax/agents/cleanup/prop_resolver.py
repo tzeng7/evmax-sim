@@ -30,14 +30,31 @@ _SECTOR_ESPN = {
     "nfl": ("football", "nfl"),
 }
 
-# stat_type → ESPN key name (from stat_group['keys']). "threes" and "pra" are
-# derived and handled in _extract_stat.
+# stat_type → ESPN key name (from stat_group['keys']). "threes", "pra", and
+# "anytime_td" are derived and handled in _extract_stat.
+#
+# NBA keys live in a single `statistics` group per team. NFL keys live across
+# multiple groups (passing / rushing / receiving) — fetch_player_stats MERGES
+# stats per athlete across groups so a QB picks up both passing and rushing
+# rows.
 _STAT_KEY: dict[str, str] = {
+    # NBA
     "points": "points",
     "rebounds": "rebounds",
     "assists": "assists",
     "steals": "steals",
     "blocks": "blocks",
+    # NFL — yardage + counting stats sit directly in group 'keys' arrays.
+    # passing group
+    "passing_yards": "passingYards",
+    "passing_tds": "passingTouchdowns",
+    # rushing group
+    "rushing_yards": "rushingYards",
+    "rushing_tds": "rushingTouchdowns",
+    # receiving group
+    "receiving_yards": "receivingYards",
+    "receiving_tds": "receivingTouchdowns",
+    "receptions": "receptions",
 }
 
 
@@ -75,6 +92,12 @@ def _extract_stat(
         if pts is None or reb is None or ast is None:
             return None
         return pts + reb + ast
+
+    # "anytime_td" is derived post-hoc in fetch_player_stats from merged
+    # rushing_tds + receiving_tds — not extractable from a single stat
+    # group.
+    if stat_type == "anytime_td":
+        return None
 
     key = _STAT_KEY.get(stat_type)
     if key is None:
@@ -121,26 +144,39 @@ def fetch_player_stats(sector: str, game_date: date) -> dict[str, dict[str, floa
                 logger.warning("prop_resolver_summary_failed", event_id=event_id, error=str(e))
                 continue
 
+            stat_types = list(_STAT_KEY.keys()) + [
+                "threes",
+                "points_rebounds_assists",
+            ]
             for team_entry in summary.get("boxscore", {}).get("players", []):
+                # Accumulate stats PER PLAYER across every stat_group in the
+                # team entry. For NBA this is a single group per team so
+                # the behavior is identical to the pre-refactor pass; for
+                # NFL a player's passing / rushing / receiving numbers are
+                # in three separate groups and must merge.
                 for stat_group in team_entry.get("statistics", []):
                     keys = stat_group.get("keys") or []
                     key_index = {k: i for i, k in enumerate(keys)}
-                    stat_types = list(_STAT_KEY.keys()) + [
-                        "threes",
-                        "points_rebounds_assists",
-                    ]
                     for athlete in stat_group.get("athletes", []):
                         name = athlete.get("athlete", {}).get("displayName", "").lower()
                         stats_list = athlete.get("stats", [])
                         if not name or not stats_list:
                             continue
-                        row: dict[str, float] = {}
+                        row = player_stats.setdefault(name, {})
                         for stat_type in stat_types:
                             val = _extract_stat(stats_list, key_index, stat_type)
                             if val is not None:
                                 row[stat_type] = val
-                        if row:
-                            player_stats[name] = row
+
+            # NFL derived: anytime_td = rushing_tds + receiving_tds. Passing
+            # TDs are the thrower's stat, not the scorer's. Computed after
+            # the merge so QBs with rushing TDs and receivers with rec TDs
+            # both pick up their scoring TDs correctly.
+            for name, row in player_stats.items():
+                if "rushing_tds" in row or "receiving_tds" in row:
+                    row["anytime_td"] = float(
+                        (row.get("rushing_tds") or 0) + (row.get("receiving_tds") or 0)
+                    )
 
     logger.info("prop_resolver_fetched", sector=sector, date=str(game_date), players=len(player_stats))
     return player_stats
