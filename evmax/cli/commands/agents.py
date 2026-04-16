@@ -223,7 +223,7 @@ def scan(
     except Exception as _maint_err:
         console.print(f"[dim yellow]  Warning: maintenance check failed: {_maint_err}[/dim yellow]")
 
-    # Parse date filter (default: earliest date with gaps, starting from today)
+    # Parse date filter (default: today, falling back to earliest future date with gaps)
     if date_filter:
         try:
             target_date = datetime.strptime(date_filter, "%Y-%m-%d").date()
@@ -232,6 +232,21 @@ def scan(
             raise typer.Exit(1)
     else:
         target_date = date.today()
+        # If no gaps exist for today, advance to the earliest future date that has gaps.
+        today_has_gaps = any(
+            (g.event_date.date() if hasattr(g.event_date, "date") else g.event_date) == target_date
+            for g in result.ev_gaps if g.event_date is not None
+        )
+        if not today_has_gaps and result.ev_gaps:
+            future_dates = sorted({
+                (g.event_date.date() if hasattr(g.event_date, "date") else g.event_date)
+                for g in result.ev_gaps
+                if g.event_date is not None
+                and (g.event_date.date() if hasattr(g.event_date, "date") else g.event_date) >= target_date
+            })
+            if future_dates:
+                target_date = future_dates[0]
+                console.print(f"[dim]  No games today — showing {target_date.strftime('%A %b %d')}[/dim]")
 
     def _matches_date(g) -> bool:
         if g.event_date is None:
