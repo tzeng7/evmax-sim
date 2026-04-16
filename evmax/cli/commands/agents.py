@@ -111,7 +111,15 @@ def scan(
     max_props: int = typer.Option(10, "--max-props", help="Max player prop plays to show (prevents prop spam)."),
     date_filter: Optional[str] = typer.Option(
         None, "--date", "-d",
-        help="Only show games on this date (YYYY-MM-DD). Defaults to today.",
+        help="Only show games on this date (YYYY-MM-DD). Shortcut for --date-from X --date-to X.",
+    ),
+    date_from: Optional[str] = typer.Option(
+        None, "--date-from",
+        help="Start of date range (YYYY-MM-DD). Defaults to today.",
+    ),
+    date_to: Optional[str] = typer.Option(
+        None, "--date-to",
+        help="End of date range (YYYY-MM-DD). Defaults to date-from if omitted.",
     ),
     loop: bool = typer.Option(
         False, "--loop",
@@ -223,37 +231,42 @@ def scan(
     except Exception as _maint_err:
         console.print(f"[dim yellow]  Warning: maintenance check failed: {_maint_err}[/dim yellow]")
 
-    # Parse date filter (default: today, falling back to earliest future date with gaps)
-    if date_filter:
+    # Parse date range: --date is shortcut for --date-from X --date-to X
+    def _parse_date(s: str, label: str) -> date:
         try:
-            target_date = datetime.strptime(date_filter, "%Y-%m-%d").date()
+            return datetime.strptime(s, "%Y-%m-%d").date()
         except ValueError:
-            console.print(f"[red]Invalid date format:[/red] {date_filter!r} — use YYYY-MM-DD")
+            console.print(f"[red]Invalid {label} format:[/red] {s!r} — use YYYY-MM-DD")
             raise typer.Exit(1)
+
+    if date_filter:
+        range_start = range_end = _parse_date(date_filter, "--date")
+    elif date_from or date_to:
+        range_start = _parse_date(date_from, "--date-from") if date_from else date.today()
+        range_end = _parse_date(date_to, "--date-to") if date_to else range_start
     else:
-        target_date = date.today()
-        # If no gaps exist for today, advance to the earliest future date that has gaps.
-        today_has_gaps = any(
-            (g.event_date.date() if hasattr(g.event_date, "date") else g.event_date) == target_date
-            for g in result.ev_gaps if g.event_date is not None
-        )
-        if not today_has_gaps and result.ev_gaps:
+        # Default: today through the latest date with gaps (show all upcoming)
+        range_start = date.today()
+        if result.ev_gaps:
             future_dates = sorted({
                 (g.event_date.date() if hasattr(g.event_date, "date") else g.event_date)
                 for g in result.ev_gaps
                 if g.event_date is not None
-                and (g.event_date.date() if hasattr(g.event_date, "date") else g.event_date) >= target_date
+                and (g.event_date.date() if hasattr(g.event_date, "date") else g.event_date) >= range_start
             })
-            if future_dates:
-                target_date = future_dates[0]
-                console.print(f"[dim]  No games today — showing {target_date.strftime('%A %b %d')}[/dim]")
+            range_end = future_dates[-1] if future_dates else range_start
+        else:
+            range_end = range_start
+
+    if range_start > range_end:
+        console.print(f"[red]--date-from ({range_start}) is after --date-to ({range_end})[/red]")
+        raise typer.Exit(1)
 
     def _matches_date(g) -> bool:
         if g.event_date is None:
             return True  # no date info — include by default
-        # datetime subclasses date, so always call .date() to strip time/tz
         ed = g.event_date.date() if hasattr(g.event_date, "date") else g.event_date
-        return ed == target_date
+        return range_start <= ed <= range_end
 
     def _tiered_min_ev(true_prob: float) -> float:
         """Scale minimum EV up for low-probability bets.
@@ -283,8 +296,8 @@ def scan(
         _pconn = _get_conn()
         _placed_rows = _pconn.execute(
             "SELECT DISTINCT event_title FROM ev_predictions "
-            "WHERE placed = 1 AND event_date = ? AND mode = 'live'",
-            (str(target_date),),
+            "WHERE placed = 1 AND event_date BETWEEN ? AND ? AND mode = 'live'",
+            (str(range_start), str(range_end)),
         ).fetchall()
         _pconn.close()
         _placed_events = {r["event_title"] for r in _placed_rows if r["event_title"]}
@@ -358,7 +371,7 @@ def scan(
 
     table = Table(
         title=(
-            f"+EV Plays — {len(gaps)} found | {target_date} | Bankroll ${bankroll:.0f} | {kelly:.0%} Kelly"
+            f"+EV Plays — {len(gaps)} found | {range_start}" + (f" to {range_end}" if range_end != range_start else "") + f" | Bankroll ${bankroll:.0f} | {kelly:.0%} Kelly"
             f" | min prob {min_prob:.0%} | base EV {min_ev:.0%} (tiered)"
         ),
         box=box.ROUNDED,
