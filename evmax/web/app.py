@@ -112,7 +112,7 @@ def _settled_bets() -> list[dict[str, Any]]:
             FROM ev_predictions p
             JOIN ev_outcomes o ON p.market_id = o.market_id
             WHERE p.voided = 0 AND o.outcome IS NOT NULL
-              AND p.market_type != 'map_handicap'
+              AND (p.market_type != 'map_handicap' OR p.sector = 'tennis')
               AND p.mode = 'live'
             ORDER BY p.event_date ASC, p.id ASC
             """
@@ -136,7 +136,7 @@ def _placed_bets() -> list[dict[str, Any]]:
             FROM ev_predictions p
             LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
             WHERE p.placed = 1 AND p.voided = 0 AND (o.outcome IS NULL)
-              AND p.market_type != 'map_handicap'
+              AND (p.market_type != 'map_handicap' OR p.sector = 'tennis')
               AND p.mode = 'live'
             ORDER BY p.event_date DESC, p.ev_pct DESC
             """
@@ -166,7 +166,7 @@ def _open_bets() -> list[dict[str, Any]]:
             ) latest ON p.id = latest.max_id
             LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
             WHERE p.voided = 0 AND p.placed = 0 AND (o.outcome IS NULL)
-              AND p.market_type != 'map_handicap'
+              AND (p.market_type != 'map_handicap' OR p.sector = 'tennis')
               AND p.mode = 'live'
             ORDER BY p.event_date DESC, p.ev_pct DESC
             LIMIT 200
@@ -419,8 +419,12 @@ async def api_scan(request: Request) -> JSONResponse:
         tomorrow_str = (date.today() + timedelta(days=1)).isoformat()
         gaps = [g for g in gaps if g["event_date"] in (today_str, tomorrow_str)]
 
-    # Drop market types that Kalshi doesn't offer (e.g. tennis set handicaps)
-    gaps = [g for g in gaps if g["market_type"] != "map_handicap"]
+    # Drop esports map handicaps (LoL/CS2 set handicaps not on Kalshi).
+    # Tennis map_handicap (-1.5 sets in bo3) = match winner, which IS on Kalshi.
+    gaps = [
+        g for g in gaps
+        if g["market_type"] != "map_handicap" or g["sector"] == "tennis"
+    ]
 
     # Exclude markets already placed
     with _conn() as conn:
