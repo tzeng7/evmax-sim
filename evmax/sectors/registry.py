@@ -12,6 +12,7 @@ from evmax.sectors.tennis import TennisHandler
 from evmax.sectors.baseball import BaseballHandler
 from evmax.sectors.ncaaw import NCAAWHandler
 from evmax.sectors.nhl import NHLHandler
+from evmax.sectors.wnba import WNBAHandler
 
 _REGISTRY: dict[str, SectorHandler] = {
     "nfl": NFLHandler(),
@@ -25,6 +26,7 @@ _REGISTRY: dict[str, SectorHandler] = {
     "tennis": TennisHandler(),
     "baseball": BaseballHandler(),
     "nhl": NHLHandler(),
+    "wnba": WNBAHandler(),
 }
 
 ALL_SECTORS = list(_REGISTRY.keys())

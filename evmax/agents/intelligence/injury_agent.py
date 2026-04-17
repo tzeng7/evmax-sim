@@ -51,6 +51,7 @@ SECTOR_INJURY_URLS: dict[str, list[str]] = {
     "nfl": [f"{ESPN_BASE}/football/nfl/injuries"],
     "ncaab": [f"{ESPN_BASE}/basketball/mens-college-basketball/injuries"],
     "ncaaw": [f"{ESPN_BASE}/basketball/womens-college-basketball/injuries"],
+    "wnba": [f"{ESPN_BASE}/basketball/wnba/injuries"],
     "soccer": [
         f"{ESPN_BASE}/soccer/eng.1/injuries",       # EPL
         f"{ESPN_BASE}/soccer/UEFA.CHAMPIONS/injuries",  # UCL

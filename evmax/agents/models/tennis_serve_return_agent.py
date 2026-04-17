@@ -77,7 +77,7 @@ class TennisServeReturnAgent(ModelAgent):
     """Barnett-Clarke serve/return model — primary tennis signal alongside Elo."""
 
     name = "tennis_serve_return"
-    weight = 0.40
+    weight = 0.15
 
     # ------------------------------------------------------------------
 

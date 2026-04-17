@@ -11,6 +11,7 @@ from evmax.backtest.loader import SOCCER_LEAGUES
 from evmax.backtest.metrics import compute_report
 from evmax.backtest.metrics_props import compute_prop_report
 from evmax.backtest.models import BacktestReport, BacktestRow, PropBacktestReport
+from evmax.backtest.sources.espn_walkforward import WalkForwardReport, ESPN_SECTORS
 
 logger = structlog.get_logger(__name__)
 
@@ -44,7 +45,7 @@ def run_backtest(
     if seasons is None:
         seasons = ["2425", "2526"]
 
-    reports: list[BacktestReport | PropBacktestReport] = []
+    reports: list[BacktestReport | PropBacktestReport | WalkForwardReport] = []
 
     for sector in sectors:
         try:
@@ -55,6 +56,8 @@ def run_backtest(
                 report = _run_tennis(years, fetch_kalshi, force_refresh, ev_threshold)
             elif sector == "nfl_props":
                 report = _run_nfl_props(min_volume, stats_filter)
+            elif sector in ESPN_SECTORS:
+                report = _run_walkforward(sector, seasons)
             else:
                 logger.warning("backtest_unsupported_sector", sector=sector)
                 continue
@@ -63,6 +66,51 @@ def run_backtest(
             logger.error("backtest_sector_failed", sector=sector, error=str(e))
 
     return reports
+
+
+WALKFORWARD_MONTHS: dict[str, dict[str, list[str]]] = {
+    # season code → sector → months
+    "2425": {
+        "wnba": [f"2025{m:02d}" for m in range(5, 10)],  # 2025 season May-Sep
+        "nba": [f"2024{m:02d}" for m in range(10, 13)] + [f"2025{m:02d}" for m in range(1, 7)],
+        "ncaab": [f"2024{m:02d}" for m in range(11, 13)] + [f"2025{m:02d}" for m in range(1, 4)],
+        "ncaaw": [f"2024{m:02d}" for m in range(11, 13)] + [f"2025{m:02d}" for m in range(1, 4)],
+        "baseball": [f"2025{m:02d}" for m in range(3, 11)],
+        "nhl": [f"2024{m:02d}" for m in range(10, 13)] + [f"2025{m:02d}" for m in range(1, 7)],
+        "nfl": [f"2024{m:02d}" for m in range(9, 13)] + [f"2025{m:02d}" for m in range(1, 3)],
+    },
+    "2526": {
+        "wnba": [f"2026{m:02d}" for m in range(5, 10)],
+        "nba": [f"2025{m:02d}" for m in range(10, 13)] + [f"2026{m:02d}" for m in range(1, 7)],
+        "ncaab": [f"2025{m:02d}" for m in range(11, 13)] + [f"2026{m:02d}" for m in range(1, 4)],
+        "ncaaw": [f"2025{m:02d}" for m in range(11, 13)] + [f"2026{m:02d}" for m in range(1, 4)],
+        "baseball": [f"2025{m:02d}" for m in range(3, 11)] + [f"2026{m:02d}" for m in range(3, 11)],
+        "nhl": [f"2025{m:02d}" for m in range(10, 13)] + [f"2026{m:02d}" for m in range(1, 7)],
+        "nfl": [f"2025{m:02d}" for m in range(9, 13)] + [f"2026{m:02d}" for m in range(1, 3)],
+    },
+}
+
+
+def _run_walkforward(sector: str, seasons: list[str]) -> WalkForwardReport:
+    """Run ESPN walk-forward backtest for any ESPN-supported sector."""
+    from evmax.backtest.sources.espn_walkforward import run_walkforward
+
+    # Collect months for the requested seasons
+    months: list[str] = []
+    for s in seasons:
+        season_months = WALKFORWARD_MONTHS.get(s, {}).get(sector, [])
+        months.extend(season_months)
+
+    if not months:
+        logger.warning("walkforward_no_months", sector=sector, seasons=seasons)
+        # Fallback: if seasons don't map, use all of 2025
+        if sector == "wnba":
+            months = [f"2025{m:02d}" for m in range(5, 10)]
+
+    # Deduplicate and sort
+    months = sorted(set(months))
+    logger.info("walkforward_run", sector=sector, months=len(months))
+    return run_walkforward(sector, months)
 
 
 def _run_nfl_props(

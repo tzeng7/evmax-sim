@@ -108,6 +108,10 @@ team["attack"] = (1 - alpha) * team["attack"] + alpha * actual_goals
 ### ~~MODEL-5 Tennis Model Weight~~ ✅ SHIPPED (PR #5)
 Trimmed 0.45 → 0.35. See Recently Shipped above.
 
+### ~~MODEL-10 Tennis Advanced Stats Agent~~ ✅ SHIPPED
+**File:** `evmax/agents/models/tennis_advanced_stats_agent.py`
+Logistic regression on four advanced stat differentials: BP conversion rate, return points won %, unforced error rate, and winners-to-UE ratio. Trained on 2023-2024 Sackmann ATP/WTA CSVs + Match Charting Project data. Falls back to RPW-only reduced model when MCP coverage unavailable. Weight 0.25, registered in ensemble. Tennis serve/return weight reduced 0.40 → 0.15 (was destructive at higher weight). Sharp weight bumped tennis 0.92 → 0.95.
+
 ### MODEL-6 Court-Adjustment Factor for Indoor Hard (Orthogonal to Surface) [P2]
 **File:** `evmax/agents/models/tennis_model_agent.py`
 

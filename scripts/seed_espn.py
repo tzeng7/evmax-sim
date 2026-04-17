@@ -100,6 +100,11 @@ SECTOR_CONFIGS: dict[str, dict] = {
         "league": "f1",
         "months": _months("2025-03", "2026-03"),  # 2025 F1 season
     },
+    "wnba": {
+        "sport": "basketball",
+        "league": "wnba",
+        "months": _months("2025-05", "2025-10") + _months("2026-05", "2026-09"),
+    },
     "tennis": {
         "months": [],  # uses tennis-data.co.uk, not ESPN months
     },
@@ -195,6 +200,7 @@ MIN_GAMES_THRESHOLD: dict[str, int] = {
     "nfl": 4,
     "ncaab": 5,
     "ncaaw": 5,
+    "wnba": 5,
     "baseball": 10,
     "soccer": 3,
 }

@@ -156,6 +156,28 @@ async def _run_update(
                         event_date=fetch_date.isoformat(),
                     )
                     total_updated += 1
+
+                    # Feed shot stats into xG agent (soccer only)
+                    if sector == "soccer":
+                        home_sot = score.get("home_sot")
+                        away_sot = score.get("away_sot")
+                        home_shots = score.get("home_shots")
+                        away_shots = score.get("away_shots")
+                        if all(v is not None for v in (home_sot, away_sot, home_shots, away_shots)):
+                            xg = coordinator.soccer_xg_agent
+                            xg.record_match(
+                                team=team_a, goals_for=home_s, goals_against=away_s,
+                                shots_on_target=home_sot, total_shots=home_shots,
+                                opponent_sot=away_sot, opponent_shots=away_shots,
+                                match_date=fetch_date.isoformat(), is_home=True,
+                            )
+                            xg.record_match(
+                                team=team_b, goals_for=away_s, goals_against=home_s,
+                                shots_on_target=away_sot, total_shots=away_shots,
+                                opponent_sot=home_sot, opponent_shots=home_shots,
+                                match_date=fetch_date.isoformat(), is_home=False,
+                            )
+                            xg.save_state()
                 except Exception as e:
                     console.print(f"[yellow]  Warning: update failed for {team_a} vs {team_b}: {e}[/yellow]")
 

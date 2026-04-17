@@ -54,6 +54,7 @@ K_FACTORS: dict[str, float] = {
     "baseball": 6.0,   # 162-game season → smaller K to avoid overreaction per game
     "ufc": 32.0,       # fighters have few bouts/year → larger K for faster updates
     "f1": 16.0,        # ~24 races/season, pairwise head-to-head updates per race
+    "wnba": 20.0,     # 40-game season, fewer teams → each game informative
     "lol": 20.0,
     "cs2": 20.0,
 }
@@ -65,6 +66,7 @@ HOME_ADVANTAGE_ELO: dict[str, float] = {
     "ncaab": 70.0,
     "soccer": 60.0,
     "baseball": 32.0, # ~54% home win rate historically
+    "wnba": 60.0,    # ~54% home win rate (weaker than NBA's 60%)
     "ufc": 0.0,       # neutral venue
     "f1": 0.0,        # different circuit each race
     "lol": 0.0,
@@ -87,6 +89,7 @@ REST_ELO_ADJ: dict[str, dict[int, float]] = {
     "nfl": {0: -30.0, 1: 0.0, 2: 10.0, 3: 10.0},    # NFL rarely has B2B but short weeks matter
     "ncaab": {0: -50.0, 1: 0.0, 2: 10.0, 3: 15.0},
     "ncaaw": {0: -50.0, 1: 0.0, 2: 10.0, 3: 15.0},
+    "wnba": {0: -50.0, 1: 0.0, 2: 10.0, 3: 15.0},
     "soccer": {0: -40.0, 1: -15.0, 2: 0.0, 3: 10.0},  # soccer baseline is 2 days
 }
 FORM_STATE_PATH = Path(__file__).resolve().parents[3] / "data" / "models" / "form_state.json"
@@ -243,20 +246,58 @@ class EloModelAgent(ModelAgent):
         except Exception:
             return None
 
+    def _games_in_last_n_days(self, sector: str, team: str, days: int = 7) -> int:
+        """Count games played in the last N days from form_state."""
+        try:
+            if not FORM_STATE_PATH.exists():
+                return 0
+            form = json.loads(FORM_STATE_PATH.read_text())
+            games = form.get(sector, {}).get(team, [])
+            if not games:
+                return 0
+            cutoff = date.today() - __import__("datetime").timedelta(days=days)
+            count = 0
+            for g in games:
+                d_str = g.get("date", "")[:10]
+                if not d_str:
+                    continue
+                try:
+                    gd = datetime.strptime(d_str, "%Y-%m-%d").date()
+                except ValueError:
+                    continue
+                if gd < cutoff:
+                    break
+                count += 1
+            return count
+        except Exception:
+            return 0
+
+    def _congestion_penalty(self, sector: str, team: str) -> float:
+        """Elo penalty for fixture congestion (soccer: UCL midweek + league weekend).
+
+        Teams playing 3+ games in 7 days get a meaningful fatigue penalty.
+        """
+        if sector != "soccer":
+            return 0.0
+        games = self._games_in_last_n_days(sector, team, days=7)
+        if games >= 3:
+            return -40.0
+        if games >= 2:
+            return -15.0
+        return 0.0
+
     def _rest_elo_bonus(self, sector: str, team: str) -> float:
-        """Return Elo bonus/penalty based on days of rest."""
+        """Return Elo bonus/penalty based on days of rest + fixture congestion."""
         days = self._days_of_rest(sector, team)
-        if days is None:
-            return 0.0
-        # Ignore stale data — if last game was >7 days ago, form data is outdated
-        if days > 7:
-            return 0.0
-        adj_table = REST_ELO_ADJ.get(sector)
-        if not adj_table:
-            return 0.0
-        # Clamp to table range
-        clamped = min(days, max(adj_table.keys()))
-        return adj_table.get(clamped, 0.0)
+        base = 0.0
+        if days is not None and days <= 7:
+            adj_table = REST_ELO_ADJ.get(sector)
+            if adj_table:
+                clamped = min(days, max(adj_table.keys()))
+                base = adj_table.get(clamped, 0.0)
+
+        congestion = self._congestion_penalty(sector, team)
+        return base + congestion
 
     # ------------------------------------------------------------------
     # Prediction

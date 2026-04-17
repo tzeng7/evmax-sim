@@ -44,6 +44,7 @@ ESPN_SPORT_MAP: dict[str, tuple[str, str, dict]] = {
     "nfl":      ("football", "nfl", {}),
     "baseball": ("baseball", "mlb", {}),
     "nhl":      ("hockey", "nhl", {}),
+    "wnba":     ("basketball", "wnba", {}),
     "ufc":      ("mma", "ufc", {}),
     "f1":       ("racing", "f1", {}),
 }
@@ -210,6 +211,16 @@ async def _fetch_espn_scores(
         game_date_str = comp.get("date", "") or event.get("date", "")
         game_date = game_date_str[:10] if game_date_str else espn_date[:4] + "-" + espn_date[4:6] + "-" + espn_date[6:8]
 
+        # Extract box-score statistics (soccer: shotsOnTarget, totalShots)
+        def _stat(competitor: dict, name: str) -> Optional[int]:
+            for s in competitor.get("statistics", []):
+                if s.get("name") == name:
+                    try:
+                        return int(float(s.get("displayValue", 0)))
+                    except (ValueError, TypeError):
+                        pass
+            return None
+
         results.append({
             "home_name": home.get("team", {}).get("displayName", ""),
             "away_name": away.get("team", {}).get("displayName", ""),
@@ -217,6 +228,10 @@ async def _fetch_espn_scores(
             "away_score": away_score,
             "home_won": home_score > away_score,
             "game_date": game_date,
+            "home_sot": _stat(home, "shotsOnTarget"),
+            "away_sot": _stat(away, "shotsOnTarget"),
+            "home_shots": _stat(home, "totalShots"),
+            "away_shots": _stat(away, "totalShots"),
         })
 
     return results

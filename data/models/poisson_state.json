@@ -2326,5 +2326,92 @@
         "games": 29
       }
     }
+  },
+  "wnba": {
+    "league_avg": {
+      "home": 83.346,
+      "away": 80.199
+    },
+    "teams": {
+      "wings": {
+        "attack": 1.0078,
+        "defense": 1.0727,
+        "games": 46
+      },
+      "mystics": {
+        "attack": 0.9406,
+        "defense": 0.9964,
+        "games": 46
+      },
+      "sparks": {
+        "attack": 1.0468,
+        "defense": 1.0772,
+        "games": 45
+      },
+      "dream": {
+        "attack": 1.0215,
+        "defense": 0.9386,
+        "games": 49
+      },
+      "valkyries": {
+        "attack": 0.9508,
+        "defense": 0.9419,
+        "games": 48
+      },
+      "sun": {
+        "attack": 0.9278,
+        "defense": 1.0493,
+        "games": 46
+      },
+      "mercury": {
+        "attack": 1.0097,
+        "defense": 0.9852,
+        "games": 57
+      },
+      "liberty": {
+        "attack": 1.0213,
+        "defense": 0.9791,
+        "games": 49
+      },
+      "lynx": {
+        "attack": 1.0395,
+        "defense": 0.9419,
+        "games": 53
+      },
+      "storm": {
+        "attack": 1.001,
+        "defense": 0.9788,
+        "games": 48
+      },
+      "fever": {
+        "attack": 1.0318,
+        "defense": 0.9829,
+        "games": 56
+      },
+      "sky": {
+        "attack": 0.9328,
+        "defense": 1.0408,
+        "games": 47
+      },
+      "aces": {
+        "attack": 1.0416,
+        "defense": 0.992,
+        "games": 58
+      },
+      "fire": {
+        "attack": 0.92,
+        "defense": 1.02,
+        "games": 0,
+        "total_scored": 0,
+        "total_conceded": 0
+      },
+      "tempo": {
+        "attack": 0.95,
+        "defense": 1.05,
+        "games": 0,
+        "total_scored": 0,
+        "total_conceded": 0
+      }
+    }
   }
 }

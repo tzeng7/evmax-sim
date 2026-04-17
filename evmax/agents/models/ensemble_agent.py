@@ -69,7 +69,7 @@ class EnsembleModelAgent(Agent):
     # draws) for soccer while down-weighting Elo/Form whose fixed draw
     # allocations were historically overconfident.
     SECTOR_WEIGHT_OVERRIDES: dict[str, dict[str, float]] = {
-        "soccer": {"elo": 0.20, "form": 0.15, "poisson": 0.45},
+        "soccer": {"elo": 0.15, "form": 0.10, "poisson": 0.40, "xg": 0.25},
     }
 
     def __init__(

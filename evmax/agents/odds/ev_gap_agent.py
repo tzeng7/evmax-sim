@@ -167,6 +167,7 @@ class EVGapAgent(Agent):
         blended_preds: dict = request.params.get("blended_preds", {})
         injuries: dict = request.params.get("injuries", {})
         standings: dict = request.params.get("standings", {})
+        playoff_data: dict = request.params.get("playoff_data", {})
         model_sources: dict[str, str] = request.params.get("model_sources", {})
         kelly_base: float = request.params.get("kelly_base_fraction", 0.25)
         steam_events: set[str] = request.params.get("steam_events", set())
@@ -198,6 +199,7 @@ class EVGapAgent(Agent):
                 blended_preds=blended_preds,
                 injuries=injuries,
                 standings=standings,
+                playoff_data=playoff_data,
                 model_sources=model_sources,
                 kelly_base=kelly_base,
                 steam_events=steam_events,
@@ -387,6 +389,7 @@ class EVGapAgent(Agent):
         blended_preds: dict,
         injuries: dict,
         standings: dict | None = None,
+        playoff_data: dict | None = None,
         model_sources: dict[str, str] | None = None,
         kelly_base: float = 0.25,
         steam_events: Optional[set] = None,
@@ -601,6 +604,25 @@ class EVGapAgent(Agent):
             if rest_notes:
                 blended_prob = new_b if yes_is_outcome_b else new_a
                 src = f"{src}+rest"
+
+        # ------------------------------------------------------------------
+        # Step 4c: Playoff adjustment — series score, elimination, home court
+        # ------------------------------------------------------------------
+        if playoff_data:
+            from evmax.agents.intelligence.playoff_agent import PlayoffAgent
+            team_a = (sharp.outcome_a_label or "").lower()
+            team_b = (sharp.outcome_b_label or "").lower()
+            new_a, new_b, playoff_notes, is_playoff = PlayoffAgent.apply_adjustments(
+                playoff_data=playoff_data,
+                true_prob_a=blended_prob if not yes_is_outcome_b else 1.0 - blended_prob,
+                true_prob_b=blended_prob if yes_is_outcome_b else 1.0 - blended_prob,
+                team_a=team_a,
+                team_b=team_b,
+                is_total=is_total,
+            )
+            if playoff_notes:
+                blended_prob = new_b if yes_is_outcome_b else new_a
+                src = f"{src}+playoff"
 
         # ------------------------------------------------------------------
         # Step 5: EV and Kelly sizing

@@ -76611,5 +76611,1639 @@
         "home": false
       }
     ]
+  },
+  "wnba": {
+    "aces": [
+      {
+        "date": "2025-10-11",
+        "won": true,
+        "opp": "mercury",
+        "home": false
+      },
+      {
+        "date": "2025-10-09",
+        "won": true,
+        "opp": "mercury",
+        "home": false
+      },
+      {
+        "date": "2025-10-05",
+        "won": true,
+        "opp": "mercury",
+        "home": true
+      },
+      {
+        "date": "2025-10-04",
+        "won": true,
+        "opp": "mercury",
+        "home": true
+      },
+      {
+        "date": "2025-10-01",
+        "won": true,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-09-28",
+        "won": false,
+        "opp": "fever",
+        "home": false
+      },
+      {
+        "date": "2025-09-26",
+        "won": true,
+        "opp": "fever",
+        "home": false
+      },
+      {
+        "date": "2025-09-24",
+        "won": true,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-09-21",
+        "won": false,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-09-19",
+        "won": true,
+        "opp": "storm",
+        "home": true
+      },
+      {
+        "date": "2025-09-17",
+        "won": false,
+        "opp": "storm",
+        "home": false
+      },
+      {
+        "date": "2025-09-15",
+        "won": true,
+        "opp": "storm",
+        "home": true
+      },
+      {
+        "date": "2025-09-12",
+        "won": true,
+        "opp": "sparks",
+        "home": false
+      },
+      {
+        "date": "2025-09-10",
+        "won": true,
+        "opp": "sky",
+        "home": true
+      },
+      {
+        "date": "2025-09-08",
+        "won": true,
+        "opp": "sky",
+        "home": true
+      },
+      {
+        "date": "2025-09-05",
+        "won": true,
+        "opp": "lynx",
+        "home": true
+      },
+      {
+        "date": "2025-08-27",
+        "won": true,
+        "opp": "dream",
+        "home": false
+      },
+      {
+        "date": "2025-08-26",
+        "won": true,
+        "opp": "sky",
+        "home": false
+      },
+      {
+        "date": "2025-08-23",
+        "won": true,
+        "opp": "mystics",
+        "home": false
+      },
+      {
+        "date": "2025-08-22",
+        "won": true,
+        "opp": "mercury",
+        "home": true
+      }
+    ],
+    "wings": [
+      {
+        "date": "2025-09-12",
+        "won": true,
+        "opp": "mercury",
+        "home": true
+      },
+      {
+        "date": "2025-09-07",
+        "won": false,
+        "opp": "sparks",
+        "home": false
+      },
+      {
+        "date": "2025-09-05",
+        "won": false,
+        "opp": "valkyries",
+        "home": false
+      },
+      {
+        "date": "2025-09-02",
+        "won": false,
+        "opp": "lynx",
+        "home": false
+      },
+      {
+        "date": "2025-08-29",
+        "won": false,
+        "opp": "dream",
+        "home": false
+      },
+      {
+        "date": "2025-08-28",
+        "won": false,
+        "opp": "sun",
+        "home": true
+      },
+      {
+        "date": "2025-08-24",
+        "won": false,
+        "opp": "valkyries",
+        "home": true
+      },
+      {
+        "date": "2025-08-22",
+        "won": false,
+        "opp": "storm",
+        "home": true
+      },
+      {
+        "date": "2025-08-21",
+        "won": false,
+        "opp": "sparks",
+        "home": false
+      },
+      {
+        "date": "2025-08-17",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-08-15",
+        "won": false,
+        "opp": "sparks",
+        "home": true
+      },
+      {
+        "date": "2025-08-12",
+        "won": true,
+        "opp": "fever",
+        "home": false
+      },
+      {
+        "date": "2025-08-10",
+        "won": false,
+        "opp": "mystics",
+        "home": true
+      },
+      {
+        "date": "2025-08-08",
+        "won": false,
+        "opp": "liberty",
+        "home": true
+      },
+      {
+        "date": "2025-08-05",
+        "won": false,
+        "opp": "liberty",
+        "home": false
+      },
+      {
+        "date": "2025-08-01",
+        "won": false,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-07-31",
+        "won": false,
+        "opp": "dream",
+        "home": true
+      },
+      {
+        "date": "2025-07-29",
+        "won": true,
+        "opp": "liberty",
+        "home": true
+      },
+      {
+        "date": "2025-07-27",
+        "won": false,
+        "opp": "aces",
+        "home": true
+      },
+      {
+        "date": "2025-07-26",
+        "won": false,
+        "opp": "valkyries",
+        "home": false
+      }
+    ],
+    "sky": [
+      {
+        "date": "2025-09-12",
+        "won": false,
+        "opp": "liberty",
+        "home": true
+      },
+      {
+        "date": "2025-09-10",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-09-08",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-09-05",
+        "won": false,
+        "opp": "fever",
+        "home": false
+      },
+      {
+        "date": "2025-09-04",
+        "won": true,
+        "opp": "sun",
+        "home": true
+      },
+      {
+        "date": "2025-08-31",
+        "won": false,
+        "opp": "storm",
+        "home": false
+      },
+      {
+        "date": "2025-08-29",
+        "won": false,
+        "opp": "mercury",
+        "home": false
+      },
+      {
+        "date": "2025-08-26",
+        "won": false,
+        "opp": "aces",
+        "home": true
+      },
+      {
+        "date": "2025-08-23",
+        "won": false,
+        "opp": "sun",
+        "home": true
+      },
+      {
+        "date": "2025-08-21",
+        "won": true,
+        "opp": "liberty",
+        "home": false
+      },
+      {
+        "date": "2025-08-20",
+        "won": false,
+        "opp": "storm",
+        "home": true
+      },
+      {
+        "date": "2025-08-15",
+        "won": false,
+        "opp": "valkyries",
+        "home": true
+      },
+      {
+        "date": "2025-08-13",
+        "won": false,
+        "opp": "sun",
+        "home": false
+      },
+      {
+        "date": "2025-08-10",
+        "won": false,
+        "opp": "fever",
+        "home": false
+      },
+      {
+        "date": "2025-08-08",
+        "won": false,
+        "opp": "dream",
+        "home": true
+      },
+      {
+        "date": "2025-08-06",
+        "won": true,
+        "opp": "mystics",
+        "home": true
+      },
+      {
+        "date": "2025-08-03",
+        "won": false,
+        "opp": "mercury",
+        "home": true
+      },
+      {
+        "date": "2025-08-01",
+        "won": false,
+        "opp": "valkyries",
+        "home": true
+      },
+      {
+        "date": "2025-07-29",
+        "won": false,
+        "opp": "mystics",
+        "home": false
+      },
+      {
+        "date": "2025-07-27",
+        "won": false,
+        "opp": "fever",
+        "home": true
+      }
+    ],
+    "brazil": [
+      {
+        "date": "2025-05-04",
+        "won": false,
+        "opp": "fever",
+        "home": false
+      },
+      {
+        "date": "2025-05-03",
+        "won": false,
+        "opp": "sky",
+        "home": false
+      }
+    ],
+    "fever": [
+      {
+        "date": "2025-10-01",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-09-28",
+        "won": true,
+        "opp": "aces",
+        "home": true
+      },
+      {
+        "date": "2025-09-26",
+        "won": false,
+        "opp": "aces",
+        "home": true
+      },
+      {
+        "date": "2025-09-24",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-09-21",
+        "won": true,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-09-18",
+        "won": true,
+        "opp": "dream",
+        "home": false
+      },
+      {
+        "date": "2025-09-16",
+        "won": true,
+        "opp": "dream",
+        "home": true
+      },
+      {
+        "date": "2025-09-14",
+        "won": false,
+        "opp": "dream",
+        "home": false
+      },
+      {
+        "date": "2025-09-09",
+        "won": true,
+        "opp": "lynx",
+        "home": true
+      },
+      {
+        "date": "2025-09-07",
+        "won": true,
+        "opp": "mystics",
+        "home": false
+      },
+      {
+        "date": "2025-09-05",
+        "won": true,
+        "opp": "sky",
+        "home": true
+      },
+      {
+        "date": "2025-09-03",
+        "won": false,
+        "opp": "mercury",
+        "home": false
+      },
+      {
+        "date": "2025-09-01",
+        "won": false,
+        "opp": "valkyries",
+        "home": false
+      },
+      {
+        "date": "2025-08-30",
+        "won": true,
+        "opp": "sparks",
+        "home": false
+      },
+      {
+        "date": "2025-08-26",
+        "won": true,
+        "opp": "storm",
+        "home": true
+      },
+      {
+        "date": "2025-08-24",
+        "won": false,
+        "opp": "lynx",
+        "home": false
+      },
+      {
+        "date": "2025-08-22",
+        "won": false,
+        "opp": "lynx",
+        "home": true
+      },
+      {
+        "date": "2025-08-17",
+        "won": true,
+        "opp": "sun",
+        "home": false
+      },
+      {
+        "date": "2025-08-15",
+        "won": false,
+        "opp": "mystics",
+        "home": true
+      },
+      {
+        "date": "2025-08-12",
+        "won": false,
+        "opp": "wings",
+        "home": true
+      }
+    ],
+    "mystics": [
+      {
+        "date": "2025-09-09",
+        "won": false,
+        "opp": "liberty",
+        "home": false
+      },
+      {
+        "date": "2025-09-07",
+        "won": false,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-09-04",
+        "won": false,
+        "opp": "mercury",
+        "home": true
+      },
+      {
+        "date": "2025-09-01",
+        "won": false,
+        "opp": "sparks",
+        "home": false
+      },
+      {
+        "date": "2025-08-31",
+        "won": false,
+        "opp": "valkyries",
+        "home": false
+      },
+      {
+        "date": "2025-08-28",
+        "won": false,
+        "opp": "liberty",
+        "home": false
+      },
+      {
+        "date": "2025-08-24",
+        "won": false,
+        "opp": "storm",
+        "home": true
+      },
+      {
+        "date": "2025-08-23",
+        "won": false,
+        "opp": "aces",
+        "home": true
+      },
+      {
+        "date": "2025-08-21",
+        "won": false,
+        "opp": "sun",
+        "home": false
+      },
+      {
+        "date": "2025-08-19",
+        "won": false,
+        "opp": "sun",
+        "home": true
+      },
+      {
+        "date": "2025-08-17",
+        "won": true,
+        "opp": "sparks",
+        "home": true
+      },
+      {
+        "date": "2025-08-15",
+        "won": true,
+        "opp": "fever",
+        "home": false
+      },
+      {
+        "date": "2025-08-13",
+        "won": false,
+        "opp": "valkyries",
+        "home": true
+      },
+      {
+        "date": "2025-08-10",
+        "won": true,
+        "opp": "wings",
+        "home": false
+      },
+      {
+        "date": "2025-08-08",
+        "won": false,
+        "opp": "lynx",
+        "home": false
+      },
+      {
+        "date": "2025-08-06",
+        "won": false,
+        "opp": "sky",
+        "home": false
+      },
+      {
+        "date": "2025-08-03",
+        "won": false,
+        "opp": "dream",
+        "home": false
+      },
+      {
+        "date": "2025-07-31",
+        "won": false,
+        "opp": "valkyries",
+        "home": true
+      },
+      {
+        "date": "2025-07-29",
+        "won": true,
+        "opp": "sky",
+        "home": true
+      },
+      {
+        "date": "2025-07-27",
+        "won": false,
+        "opp": "mercury",
+        "home": true
+      }
+    ],
+    "storm": [
+      {
+        "date": "2025-09-19",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-09-17",
+        "won": true,
+        "opp": "aces",
+        "home": true
+      },
+      {
+        "date": "2025-09-15",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-09-10",
+        "won": true,
+        "opp": "valkyries",
+        "home": true
+      },
+      {
+        "date": "2025-09-06",
+        "won": false,
+        "opp": "liberty",
+        "home": true
+      },
+      {
+        "date": "2025-09-02",
+        "won": false,
+        "opp": "sparks",
+        "home": true
+      },
+      {
+        "date": "2025-08-31",
+        "won": true,
+        "opp": "sky",
+        "home": true
+      },
+      {
+        "date": "2025-08-29",
+        "won": true,
+        "opp": "lynx",
+        "home": false
+      },
+      {
+        "date": "2025-08-26",
+        "won": false,
+        "opp": "fever",
+        "home": false
+      },
+      {
+        "date": "2025-08-24",
+        "won": true,
+        "opp": "mystics",
+        "home": false
+      },
+      {
+        "date": "2025-08-22",
+        "won": true,
+        "opp": "wings",
+        "home": false
+      },
+      {
+        "date": "2025-08-20",
+        "won": true,
+        "opp": "sky",
+        "home": false
+      },
+      {
+        "date": "2025-08-17",
+        "won": false,
+        "opp": "mercury",
+        "home": true
+      },
+      {
+        "date": "2025-08-16",
+        "won": true,
+        "opp": "dream",
+        "home": false
+      },
+      {
+        "date": "2025-08-14",
+        "won": false,
+        "opp": "dream",
+        "home": true
+      },
+      {
+        "date": "2025-08-11",
+        "won": false,
+        "opp": "sparks",
+        "home": false
+      },
+      {
+        "date": "2025-08-09",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-08-06",
+        "won": false,
+        "opp": "lynx",
+        "home": true
+      },
+      {
+        "date": "2025-08-03",
+        "won": false,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-08-02",
+        "won": false,
+        "opp": "sparks",
+        "home": true
+      }
+    ],
+    "sun": [
+      {
+        "date": "2025-09-10",
+        "won": false,
+        "opp": "dream",
+        "home": true
+      },
+      {
+        "date": "2025-09-08",
+        "won": false,
+        "opp": "dream",
+        "home": false
+      },
+      {
+        "date": "2025-09-06",
+        "won": true,
+        "opp": "mercury",
+        "home": true
+      },
+      {
+        "date": "2025-09-04",
+        "won": false,
+        "opp": "sky",
+        "home": false
+      },
+      {
+        "date": "2025-09-01",
+        "won": false,
+        "opp": "dream",
+        "home": true
+      },
+      {
+        "date": "2025-08-30",
+        "won": false,
+        "opp": "lynx",
+        "home": true
+      },
+      {
+        "date": "2025-08-28",
+        "won": true,
+        "opp": "wings",
+        "home": false
+      },
+      {
+        "date": "2025-08-25",
+        "won": false,
+        "opp": "liberty",
+        "home": false
+      },
+      {
+        "date": "2025-08-23",
+        "won": true,
+        "opp": "sky",
+        "home": false
+      },
+      {
+        "date": "2025-08-21",
+        "won": true,
+        "opp": "mystics",
+        "home": true
+      },
+      {
+        "date": "2025-08-19",
+        "won": true,
+        "opp": "mystics",
+        "home": false
+      },
+      {
+        "date": "2025-08-17",
+        "won": false,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-08-13",
+        "won": true,
+        "opp": "sky",
+        "home": true
+      },
+      {
+        "date": "2025-08-12",
+        "won": false,
+        "opp": "valkyries",
+        "home": false
+      },
+      {
+        "date": "2025-08-11",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-08-08",
+        "won": false,
+        "opp": "sparks",
+        "home": false
+      },
+      {
+        "date": "2025-08-06",
+        "won": false,
+        "opp": "mercury",
+        "home": false
+      },
+      {
+        "date": "2025-08-03",
+        "won": false,
+        "opp": "liberty",
+        "home": true
+      },
+      {
+        "date": "2025-08-01",
+        "won": true,
+        "opp": "liberty",
+        "home": true
+      },
+      {
+        "date": "2025-07-28",
+        "won": false,
+        "opp": "storm",
+        "home": true
+      }
+    ],
+    "lynx": [
+      {
+        "date": "2025-09-29",
+        "won": false,
+        "opp": "mercury",
+        "home": false
+      },
+      {
+        "date": "2025-09-27",
+        "won": false,
+        "opp": "mercury",
+        "home": false
+      },
+      {
+        "date": "2025-09-23",
+        "won": false,
+        "opp": "mercury",
+        "home": true
+      },
+      {
+        "date": "2025-09-21",
+        "won": true,
+        "opp": "mercury",
+        "home": true
+      },
+      {
+        "date": "2025-09-18",
+        "won": true,
+        "opp": "valkyries",
+        "home": false
+      },
+      {
+        "date": "2025-09-14",
+        "won": true,
+        "opp": "valkyries",
+        "home": true
+      },
+      {
+        "date": "2025-09-12",
+        "won": true,
+        "opp": "valkyries",
+        "home": true
+      },
+      {
+        "date": "2025-09-09",
+        "won": false,
+        "opp": "fever",
+        "home": false
+      },
+      {
+        "date": "2025-09-07",
+        "won": true,
+        "opp": "valkyries",
+        "home": false
+      },
+      {
+        "date": "2025-09-05",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-09-02",
+        "won": true,
+        "opp": "wings",
+        "home": true
+      },
+      {
+        "date": "2025-08-30",
+        "won": true,
+        "opp": "sun",
+        "home": false
+      },
+      {
+        "date": "2025-08-29",
+        "won": false,
+        "opp": "storm",
+        "home": true
+      },
+      {
+        "date": "2025-08-24",
+        "won": true,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-08-22",
+        "won": true,
+        "opp": "fever",
+        "home": false
+      },
+      {
+        "date": "2025-08-21",
+        "won": false,
+        "opp": "dream",
+        "home": false
+      },
+      {
+        "date": "2025-08-19",
+        "won": false,
+        "opp": "liberty",
+        "home": false
+      },
+      {
+        "date": "2025-08-16",
+        "won": true,
+        "opp": "liberty",
+        "home": true
+      },
+      {
+        "date": "2025-08-10",
+        "won": true,
+        "opp": "liberty",
+        "home": false
+      },
+      {
+        "date": "2025-08-08",
+        "won": true,
+        "opp": "mystics",
+        "home": true
+      }
+    ],
+    "valkyries": [
+      {
+        "date": "2025-09-18",
+        "won": false,
+        "opp": "lynx",
+        "home": true
+      },
+      {
+        "date": "2025-09-14",
+        "won": false,
+        "opp": "lynx",
+        "home": false
+      },
+      {
+        "date": "2025-09-12",
+        "won": false,
+        "opp": "lynx",
+        "home": false
+      },
+      {
+        "date": "2025-09-10",
+        "won": false,
+        "opp": "storm",
+        "home": false
+      },
+      {
+        "date": "2025-09-07",
+        "won": false,
+        "opp": "lynx",
+        "home": true
+      },
+      {
+        "date": "2025-09-05",
+        "won": true,
+        "opp": "wings",
+        "home": true
+      },
+      {
+        "date": "2025-09-03",
+        "won": true,
+        "opp": "liberty",
+        "home": true
+      },
+      {
+        "date": "2025-09-01",
+        "won": true,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-08-31",
+        "won": true,
+        "opp": "mystics",
+        "home": true
+      },
+      {
+        "date": "2025-08-24",
+        "won": true,
+        "opp": "wings",
+        "home": false
+      },
+      {
+        "date": "2025-08-23",
+        "won": false,
+        "opp": "mercury",
+        "home": false
+      },
+      {
+        "date": "2025-08-20",
+        "won": false,
+        "opp": "mercury",
+        "home": true
+      },
+      {
+        "date": "2025-08-18",
+        "won": false,
+        "opp": "dream",
+        "home": true
+      },
+      {
+        "date": "2025-08-15",
+        "won": true,
+        "opp": "sky",
+        "home": false
+      },
+      {
+        "date": "2025-08-13",
+        "won": true,
+        "opp": "mystics",
+        "home": false
+      },
+      {
+        "date": "2025-08-12",
+        "won": true,
+        "opp": "sun",
+        "home": true
+      },
+      {
+        "date": "2025-08-10",
+        "won": true,
+        "opp": "sparks",
+        "home": true
+      },
+      {
+        "date": "2025-08-07",
+        "won": false,
+        "opp": "aces",
+        "home": true
+      },
+      {
+        "date": "2025-08-03",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-08-01",
+        "won": true,
+        "opp": "sky",
+        "home": false
+      }
+    ],
+    "sparks": [
+      {
+        "date": "2025-09-12",
+        "won": false,
+        "opp": "aces",
+        "home": true
+      },
+      {
+        "date": "2025-09-10",
+        "won": true,
+        "opp": "mercury",
+        "home": false
+      },
+      {
+        "date": "2025-09-07",
+        "won": true,
+        "opp": "wings",
+        "home": true
+      },
+      {
+        "date": "2025-09-05",
+        "won": false,
+        "opp": "dream",
+        "home": false
+      },
+      {
+        "date": "2025-09-03",
+        "won": false,
+        "opp": "dream",
+        "home": false
+      },
+      {
+        "date": "2025-09-02",
+        "won": true,
+        "opp": "storm",
+        "home": false
+      },
+      {
+        "date": "2025-09-01",
+        "won": true,
+        "opp": "mystics",
+        "home": true
+      },
+      {
+        "date": "2025-08-30",
+        "won": false,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-08-27",
+        "won": false,
+        "opp": "mercury",
+        "home": true
+      },
+      {
+        "date": "2025-08-21",
+        "won": true,
+        "opp": "wings",
+        "home": true
+      },
+      {
+        "date": "2025-08-17",
+        "won": false,
+        "opp": "mystics",
+        "home": false
+      },
+      {
+        "date": "2025-08-15",
+        "won": true,
+        "opp": "wings",
+        "home": false
+      },
+      {
+        "date": "2025-08-13",
+        "won": false,
+        "opp": "liberty",
+        "home": true
+      },
+      {
+        "date": "2025-08-11",
+        "won": true,
+        "opp": "storm",
+        "home": true
+      },
+      {
+        "date": "2025-08-10",
+        "won": false,
+        "opp": "valkyries",
+        "home": false
+      },
+      {
+        "date": "2025-08-08",
+        "won": true,
+        "opp": "sun",
+        "home": true
+      },
+      {
+        "date": "2025-08-06",
+        "won": true,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-08-02",
+        "won": true,
+        "opp": "storm",
+        "home": false
+      },
+      {
+        "date": "2025-07-30",
+        "won": false,
+        "opp": "aces",
+        "home": true
+      },
+      {
+        "date": "2025-07-26",
+        "won": true,
+        "opp": "liberty",
+        "home": false
+      }
+    ],
+    "mercury": [
+      {
+        "date": "2025-10-11",
+        "won": false,
+        "opp": "aces",
+        "home": true
+      },
+      {
+        "date": "2025-10-09",
+        "won": false,
+        "opp": "aces",
+        "home": true
+      },
+      {
+        "date": "2025-10-05",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-10-04",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-09-29",
+        "won": true,
+        "opp": "lynx",
+        "home": true
+      },
+      {
+        "date": "2025-09-27",
+        "won": true,
+        "opp": "lynx",
+        "home": true
+      },
+      {
+        "date": "2025-09-23",
+        "won": true,
+        "opp": "lynx",
+        "home": false
+      },
+      {
+        "date": "2025-09-21",
+        "won": false,
+        "opp": "lynx",
+        "home": false
+      },
+      {
+        "date": "2025-09-20",
+        "won": true,
+        "opp": "liberty",
+        "home": true
+      },
+      {
+        "date": "2025-09-18",
+        "won": true,
+        "opp": "liberty",
+        "home": false
+      },
+      {
+        "date": "2025-09-14",
+        "won": false,
+        "opp": "liberty",
+        "home": true
+      },
+      {
+        "date": "2025-09-12",
+        "won": false,
+        "opp": "wings",
+        "home": false
+      },
+      {
+        "date": "2025-09-10",
+        "won": false,
+        "opp": "sparks",
+        "home": true
+      },
+      {
+        "date": "2025-09-06",
+        "won": false,
+        "opp": "sun",
+        "home": false
+      },
+      {
+        "date": "2025-09-04",
+        "won": true,
+        "opp": "mystics",
+        "home": false
+      },
+      {
+        "date": "2025-09-03",
+        "won": true,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-08-31",
+        "won": true,
+        "opp": "liberty",
+        "home": true
+      },
+      {
+        "date": "2025-08-29",
+        "won": true,
+        "opp": "sky",
+        "home": true
+      },
+      {
+        "date": "2025-08-27",
+        "won": true,
+        "opp": "sparks",
+        "home": false
+      },
+      {
+        "date": "2025-08-23",
+        "won": true,
+        "opp": "valkyries",
+        "home": true
+      }
+    ],
+    "dream": [
+      {
+        "date": "2025-09-18",
+        "won": false,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-09-16",
+        "won": false,
+        "opp": "fever",
+        "home": false
+      },
+      {
+        "date": "2025-09-14",
+        "won": true,
+        "opp": "fever",
+        "home": true
+      },
+      {
+        "date": "2025-09-10",
+        "won": true,
+        "opp": "sun",
+        "home": false
+      },
+      {
+        "date": "2025-09-08",
+        "won": true,
+        "opp": "sun",
+        "home": true
+      },
+      {
+        "date": "2025-09-05",
+        "won": true,
+        "opp": "sparks",
+        "home": true
+      },
+      {
+        "date": "2025-09-03",
+        "won": true,
+        "opp": "sparks",
+        "home": true
+      },
+      {
+        "date": "2025-09-01",
+        "won": true,
+        "opp": "sun",
+        "home": false
+      },
+      {
+        "date": "2025-08-29",
+        "won": true,
+        "opp": "wings",
+        "home": true
+      },
+      {
+        "date": "2025-08-27",
+        "won": false,
+        "opp": "aces",
+        "home": true
+      },
+      {
+        "date": "2025-08-23",
+        "won": true,
+        "opp": "liberty",
+        "home": true
+      },
+      {
+        "date": "2025-08-21",
+        "won": true,
+        "opp": "lynx",
+        "home": true
+      },
+      {
+        "date": "2025-08-20",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-08-18",
+        "won": true,
+        "opp": "valkyries",
+        "home": false
+      },
+      {
+        "date": "2025-08-16",
+        "won": false,
+        "opp": "storm",
+        "home": true
+      },
+      {
+        "date": "2025-08-14",
+        "won": true,
+        "opp": "storm",
+        "home": false
+      },
+      {
+        "date": "2025-08-10",
+        "won": true,
+        "opp": "mercury",
+        "home": false
+      },
+      {
+        "date": "2025-08-08",
+        "won": true,
+        "opp": "sky",
+        "home": false
+      },
+      {
+        "date": "2025-08-03",
+        "won": true,
+        "opp": "mystics",
+        "home": true
+      },
+      {
+        "date": "2025-08-01",
+        "won": true,
+        "opp": "mercury",
+        "home": true
+      }
+    ],
+    "liberty": [
+      {
+        "date": "2025-09-20",
+        "won": false,
+        "opp": "mercury",
+        "home": false
+      },
+      {
+        "date": "2025-09-18",
+        "won": false,
+        "opp": "mercury",
+        "home": true
+      },
+      {
+        "date": "2025-09-14",
+        "won": true,
+        "opp": "mercury",
+        "home": false
+      },
+      {
+        "date": "2025-09-12",
+        "won": true,
+        "opp": "sky",
+        "home": false
+      },
+      {
+        "date": "2025-09-09",
+        "won": true,
+        "opp": "mystics",
+        "home": true
+      },
+      {
+        "date": "2025-09-06",
+        "won": true,
+        "opp": "storm",
+        "home": false
+      },
+      {
+        "date": "2025-09-03",
+        "won": false,
+        "opp": "valkyries",
+        "home": false
+      },
+      {
+        "date": "2025-08-31",
+        "won": false,
+        "opp": "mercury",
+        "home": false
+      },
+      {
+        "date": "2025-08-28",
+        "won": true,
+        "opp": "mystics",
+        "home": true
+      },
+      {
+        "date": "2025-08-25",
+        "won": true,
+        "opp": "sun",
+        "home": true
+      },
+      {
+        "date": "2025-08-23",
+        "won": false,
+        "opp": "dream",
+        "home": false
+      },
+      {
+        "date": "2025-08-21",
+        "won": false,
+        "opp": "sky",
+        "home": true
+      },
+      {
+        "date": "2025-08-19",
+        "won": true,
+        "opp": "lynx",
+        "home": true
+      },
+      {
+        "date": "2025-08-16",
+        "won": false,
+        "opp": "lynx",
+        "home": false
+      },
+      {
+        "date": "2025-08-14",
+        "won": false,
+        "opp": "aces",
+        "home": false
+      },
+      {
+        "date": "2025-08-13",
+        "won": true,
+        "opp": "sparks",
+        "home": false
+      },
+      {
+        "date": "2025-08-10",
+        "won": false,
+        "opp": "lynx",
+        "home": true
+      },
+      {
+        "date": "2025-08-08",
+        "won": true,
+        "opp": "wings",
+        "home": false
+      },
+      {
+        "date": "2025-08-05",
+        "won": true,
+        "opp": "wings",
+        "home": true
+      },
+      {
+        "date": "2025-08-03",
+        "won": true,
+        "opp": "sun",
+        "home": false
+      }
+    ],
+    "toyota antelopes": [
+      {
+        "date": "2025-05-13",
+        "won": false,
+        "opp": "liberty",
+        "home": false
+      },
+      {
+        "date": "2025-05-11",
+        "won": false,
+        "opp": "wings",
+        "home": false
+      }
+    ],
+    "clark": [
+      {
+        "date": "2025-07-20",
+        "won": false,
+        "opp": "collier",
+        "home": true
+      }
+    ],
+    "collier": [
+      {
+        "date": "2025-07-20",
+        "won": true,
+        "opp": "clark",
+        "home": false
+      }
+    ],
+    "fire": [],
+    "tempo": []
   }
 }

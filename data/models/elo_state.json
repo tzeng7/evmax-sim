@@ -25787,5 +25787,458 @@
         "games": 1
       }
     }
+  },
+  "wnba": {
+    "ratings": {
+      "aces": 1690.02,
+      "wings": 1353.42,
+      "sky": 1334.71,
+      "fever": 1580.49,
+      "mystics": 1378.74,
+      "storm": 1509.79,
+      "sun": 1371.63,
+      "lynx": 1624.56,
+      "valkyries": 1502.08,
+      "sparks": 1481.6,
+      "mercury": 1559.95,
+      "dream": 1628.18,
+      "liberty": 1534.1,
+      "fire": 1471.0,
+      "tempo": 1443.0
+    },
+    "game_counts": {
+      "aces": 58,
+      "wings": 46,
+      "sky": 47,
+      "fever": 56,
+      "mystics": 46,
+      "storm": 48,
+      "sun": 46,
+      "lynx": 53,
+      "valkyries": 48,
+      "sparks": 45,
+      "mercury": 57,
+      "dream": 49,
+      "liberty": 49,
+      "fire": 0,
+      "tempo": 0
+    },
+    "h2h": {
+      "aces::wings": {
+        "a_wins": 5,
+        "b_wins": 0,
+        "games": 5
+      },
+      "brazil::sky": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fever::mystics": {
+        "a_wins": 3,
+        "b_wins": 2,
+        "games": 5
+      },
+      "brazil::fever": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "storm::sun": {
+        "a_wins": 4,
+        "b_wins": 1,
+        "games": 5
+      },
+      "lynx::sky": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "sparks::valkyries": {
+        "a_wins": 2,
+        "b_wins": 3,
+        "games": 5
+      },
+      "aces::mercury": {
+        "a_wins": 8,
+        "b_wins": 1,
+        "games": 9
+      },
+      "dream::mystics": {
+        "a_wins": 4,
+        "b_wins": 1,
+        "games": 5
+      },
+      "liberty::sun": {
+        "a_wins": 3,
+        "b_wins": 2,
+        "games": 5
+      },
+      "dream::fever": {
+        "a_wins": 3,
+        "b_wins": 5,
+        "games": 8
+      },
+      "toyota antelopes::wings": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mercury::valkyries": {
+        "a_wins": 4,
+        "b_wins": 1,
+        "games": 5
+      },
+      "liberty::toyota antelopes": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lynx::wings": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "aces::liberty": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "fever::sky": {
+        "a_wins": 5,
+        "b_wins": 0,
+        "games": 5
+      },
+      "mercury::storm": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "mystics::sun": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "lynx::sparks": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "storm::wings": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "aces::sun": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "mystics::valkyries": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "mercury::sparks": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "liberty::sky": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "lynx::sun": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "aces::mystics": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "fever::liberty": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "dream::wings": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "dream::sun": {
+        "a_wins": 4,
+        "b_wins": 1,
+        "games": 5
+      },
+      "sky::sparks": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "mercury::mystics": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "aces::storm": {
+        "a_wins": 4,
+        "b_wins": 3,
+        "games": 7
+      },
+      "sun::wings": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "liberty::valkyries": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "lynx::storm": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "dream::sparks": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "mercury::sky": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "sky::wings": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "fever::sun": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "liberty::mystics": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "aces::sparks": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "lynx::mercury": {
+        "a_wins": 4,
+        "b_wins": 4,
+        "games": 8
+      },
+      "dream::storm": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "lynx::valkyries": {
+        "a_wins": 6,
+        "b_wins": 0,
+        "games": 6
+      },
+      "sparks::wings": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "aces::valkyries": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "mercury::wings": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "dream::sky": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "storm::valkyries": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "sky::sun": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "dream::liberty": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "mystics::sky": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "valkyries::wings": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "aces::lynx": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "sparks::storm": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "mercury::sun": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "liberty::mercury": {
+        "a_wins": 2,
+        "b_wins": 5,
+        "games": 7
+      },
+      "fever::valkyries": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "mystics::wings": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "aces::fever": {
+        "a_wins": 4,
+        "b_wins": 4,
+        "games": 8
+      },
+      "liberty::storm": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "sun::valkyries": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "lynx::mystics": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "fever::storm": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "fever::sparks": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "dream::lynx": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "fever::wings": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "sky::valkyries": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "fever::lynx": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "liberty::sparks": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "dream::valkyries": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "sparks::sun": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "mystics::storm": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "mystics::sparks": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "clark::collier": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aces::dream": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "dream::mercury": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "sky::storm": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "liberty::wings": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "fever::mercury": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "liberty::lynx": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "aces::sky": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      }
+    }
   }
 }

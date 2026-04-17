@@ -51,6 +51,7 @@ HOME_ADJ: dict[str, float] = {
     "ncaab": 0.05,
     "soccer": 0.04,
     "baseball": 0.04,
+    "wnba": 0.025,    # ~54% home win rate (weaker than NBA)
     "ufc": 0.0,   # neutral venue
     "f1": 0.0,    # different circuit each race
     "lol": 0.0,

@@ -43,10 +43,11 @@ LEAGUE_AVG_DEFAULTS: dict[str, dict[str, float]] = {
     "nfl":      {"home": 23.5,  "away": 21.5},
     "ncaab":    {"home": 72.0,  "away": 70.0},
     "baseball": {"home": 4.65,  "away": 4.37},  # MLB 2024 averages (runs/game)
+    "wnba":     {"home": 83.0,  "away": 81.0},   # WNBA 2023-2024 averages
 }
 
 # Supported sectors (Poisson makes most sense for goal/point-scoring games)
-SUPPORTED_SECTORS = {"soccer", "nba", "nfl", "ncaab", "baseball"}
+SUPPORTED_SECTORS = {"soccer", "nba", "nfl", "ncaab", "baseball", "wnba"}
 
 # Maximum *bucket* count in the score matrix. Units depend on BUCKET_SIZE.
 MAX_SCORE: dict[str, int] = {
@@ -55,6 +56,7 @@ MAX_SCORE: dict[str, int] = {
     "nfl":      20,   # with bucket=4 → effectively 0-80 points
     "ncaab":    20,   # with bucket=5 → effectively 0-100 points
     "baseball": 15,   # covers >99% of MLB games
+    "wnba":     20,   # with bucket=5 → effectively 0-100 points
 }
 
 # Score-bucket size per sector. Basketball/football goals-scored rates are far
@@ -67,6 +69,7 @@ BUCKET_SIZE: dict[str, int] = {
     "nfl":      4,
     "ncaab":    5,
     "baseball": 1,
+    "wnba":     5,
 }
 
 # Dixon-Coles rho correction factor (τ parameter)

@@ -204,13 +204,43 @@ class MatchingEngine:
         """
         Match a list of markets to sharp odds.
 
+        When multiple markets match the same sharp event (e.g. playoff
+        series games on Kalshi), keeps the one whose date is closest to
+        the sharp event date.
+
         Returns:
             List of (market, sharp_odds, confidence) tuples.
         """
-        results = []
+        raw: list[tuple[PredictionMarket, SharpOdds, float]] = []
         for market in markets:
-            match = self.match(market, sharp_odds_list)
-            if match:
-                so, confidence = match
-                results.append((market, so, confidence))
-        return results
+            result = self.match(market, sharp_odds_list)
+            if result:
+                so, confidence = result
+                raw.append((market, so, confidence))
+
+        best: dict[tuple[str, str], tuple[PredictionMarket, SharpOdds, float]] = {}
+        for m, s, conf in raw:
+            mt = m.market_type.value if hasattr(m.market_type, "value") else str(m.market_type)
+            key = (s.event_id, mt)
+            existing = best.get(key)
+            if existing is None:
+                best[key] = (m, s, conf)
+                continue
+            em = existing[0]
+            if s.event_date and m.event_date and em.event_date:
+                new_delta = abs((m.event_date - s.event_date).total_seconds())
+                old_delta = abs((em.event_date - s.event_date).total_seconds())
+                if new_delta < old_delta:
+                    best[key] = (m, s, conf)
+            elif conf > existing[2]:
+                best[key] = (m, s, conf)
+
+        if len(best) < len(raw):
+            logger.info(
+                "match_dedup_playoff",
+                raw=len(raw),
+                deduped=len(best),
+                dropped=len(raw) - len(best),
+            )
+
+        return list(best.values())

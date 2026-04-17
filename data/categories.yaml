@@ -102,6 +102,15 @@ baseball:
   status: shipped
   notes: "Pitcher Pythag model live (BUG-9 fixed in PR #2)."
 
+wnba:
+  display_name: "WNBA"
+  market_types: [moneyline, spread, total]
+  models: [elo, form, poisson, sharp]
+  mode: shadow
+  resolver: espn_scoreboard
+  status: wip
+  notes: "Season starts May 16 2026. Shadow mode until Kalshi KXWNBAGAME markets appear and models are seeded with 2025 data."
+
 nhl:
   display_name: "NHL"
   market_types: [moneyline, spread, total]

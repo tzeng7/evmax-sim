@@ -39,6 +39,7 @@ SECTOR_SPORT_LEAGUES: dict[str, tuple[int, list[int]]] = {
     "nba":      (4,  [487]),
     "ncaab":    (4,  [493]),
     "ncaaw":    (4,  [583]),    # WNCAA
+    "wnba":     (4,  [578]),    # WNBA
     "nfl":      (15, [258]),
     "nhl":      (19, [1456]),   # NHL
     "baseball": (3,  [246]),    # MLB

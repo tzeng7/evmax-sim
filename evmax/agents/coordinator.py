@@ -52,8 +52,11 @@ from evmax.agents.models.tennis_model_agent import TennisModelAgent
 from evmax.agents.models.tennis_serve_return_agent import TennisServeReturnAgent
 from evmax.agents.models.tennis_h2h_agent import TennisH2HAgent
 from evmax.agents.models.tennis_ranking_trend_agent import TennisRankingTrendAgent
+from evmax.agents.models.tennis_advanced_stats_agent import TennisAdvancedStatsAgent
 from evmax.agents.models.pitcher_agent import PitcherModelAgent
+from evmax.agents.models.soccer_xg_agent import SoccerXgAgent
 from evmax.agents.intelligence.injury_agent import InjuryReportAgent, InjuryReport
+from evmax.agents.intelligence.playoff_agent import PlayoffAgent, PlayoffSeries
 from evmax.agents.intelligence.standings_agent import StandingsAgent, TeamStanding
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds, SharpBook
@@ -252,6 +255,7 @@ class AgentCoordinator:
         # Intelligence agents
         self.injury_agent = InjuryReportAgent()
         self.standings_agent = StandingsAgent()
+        self.playoff_agent = PlayoffAgent()
 
         # Statistical model agents
         self.elo_agent = EloModelAgent()
@@ -261,13 +265,17 @@ class AgentCoordinator:
         self.tennis_serve_agent = TennisServeReturnAgent()
         self.tennis_h2h_agent = TennisH2HAgent()
         self.tennis_trend_agent = TennisRankingTrendAgent()
+        self.tennis_advanced_agent = TennisAdvancedStatsAgent()
         self.pitcher_agent = PitcherModelAgent()
+        self.soccer_xg_agent = SoccerXgAgent()
         self.ensemble_agent = EnsembleModelAgent(
             models=[
                 self.elo_agent, self.form_agent, self.poisson_agent,
                 self.tennis_agent, self.tennis_serve_agent,
                 self.tennis_h2h_agent, self.tennis_trend_agent,
+                self.tennis_advanced_agent,
                 self.pitcher_agent,
+                self.soccer_xg_agent,
             ],
             sharp_weight=sharp_weight,
         )
@@ -286,11 +294,12 @@ class AgentCoordinator:
     def _all_agents(self) -> list[Agent]:
         return [
             self.kalshi_agent, self.sharp_agent, self.ev_gap_agent,
-            self.injury_agent, self.standings_agent,
+            self.injury_agent, self.standings_agent, self.playoff_agent,
             self.elo_agent, self.form_agent, self.poisson_agent,
             self.tennis_agent, self.tennis_serve_agent,
             self.tennis_h2h_agent, self.tennis_trend_agent,
-            self.pitcher_agent, self.ensemble_agent,
+            self.pitcher_agent, self.soccer_xg_agent,
+            self.ensemble_agent,
         ]
 
     # ------------------------------------------------------------------
@@ -405,6 +414,7 @@ class AgentCoordinator:
         if self._enable_injuries:
             fetch_tasks.append(self.injury_agent(req))
         fetch_tasks.append(self.standings_agent(req))
+        fetch_tasks.append(self.playoff_agent(req))
 
         prop_task = None
         if sector.lower() in self._PROP_SECTORS:
@@ -420,6 +430,8 @@ class AgentCoordinator:
             injury_resp = fetch_results[_idx]
             _idx += 1
         standings_resp = fetch_results[_idx]
+        _idx += 1
+        playoff_resp = fetch_results[_idx]
 
         markets: list[PredictionMarket] = (
             kalshi_resp.data if not isinstance(kalshi_resp, Exception) else []
@@ -456,6 +468,9 @@ class AgentCoordinator:
         ) or {}
         standings: dict[str, TeamStanding] = (
             standings_resp.data if not isinstance(standings_resp, Exception) else {}
+        ) or {}
+        playoff_data: dict[str, PlayoffSeries] = (
+            playoff_resp.data if not isinstance(playoff_resp, Exception) else {}
         ) or {}
 
         if isinstance(kalshi_resp, Exception):
@@ -528,6 +543,7 @@ class AgentCoordinator:
                 "blended_preds": blended_preds,
                 "injuries": injuries,
                 "standings": standings,
+                "playoff_data": playoff_data,
                 "model_sources": model_sources,
                 "kelly_base_fraction": self._kelly_fraction,
                 "steam_events": steam_events,

@@ -47,14 +47,14 @@ def run(
     ),
 ) -> None:
     """
-    Run historical backtest using football-data.co.uk (soccer) and tennis-data.co.uk (tennis).
-
-    Validates Pinnacle devigged model calibration against actual match outcomes.
-    Optionally joins resolved Kalshi markets for theoretical EV analysis.
+    Run historical backtest. Supports Pinnacle-odds backtests (soccer, tennis) and
+    ESPN walk-forward backtests (wnba, nba, ncaab, baseball, nhl, nfl, ncaaw).
 
     Examples:
 
       evmax backtest run --sectors soccer
+
+      evmax backtest run --sectors wnba --seasons 2425
 
       evmax backtest run --sectors soccer,tennis --seasons 2425,2526
 
@@ -62,8 +62,10 @@ def run(
     """
     from evmax.backtest.display import print_report
     from evmax.backtest.display_props import print_prop_report
+    from evmax.backtest.display_walkforward import print_walkforward_report
     from evmax.backtest.engine import run_backtest
     from evmax.backtest.models import PropBacktestReport
+    from evmax.backtest.sources.espn_walkforward import WalkForwardReport
 
     sector_list = [s.strip().lower() for s in sectors.split(",") if s.strip()]
     season_list = [s.strip() for s in seasons.split(",") if s.strip()]
@@ -94,7 +96,9 @@ def run(
         raise typer.Exit(1)
 
     for report in reports:
-        if isinstance(report, PropBacktestReport):
+        if isinstance(report, WalkForwardReport):
+            print_walkforward_report(report)
+        elif isinstance(report, PropBacktestReport):
             print_prop_report(report)
         else:
             print_report(report)

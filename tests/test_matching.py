@@ -190,3 +190,31 @@ class TestMatchingEngine:
 
         results = engine.match_all(markets, sharp_odds)
         assert len(results) == 2
+
+    def test_match_all_dedup_playoff_series(self):
+        """Multiple Kalshi contracts for the same matchup → keep closest date."""
+        engine = MatchingEngine()
+
+        # Three Kalshi markets for Lakers vs Rockets at different game dates
+        m1 = make_market("lakers", "rockets", sector="nba",
+                         event_date=datetime(2026, 4, 18, 12, tzinfo=timezone.utc))
+        m1.id = "kalshi:KXNBAGAME-26APR18HOULAL-LAL"
+        m2 = make_market("lakers", "rockets", sector="nba",
+                         event_date=datetime(2026, 4, 24, 12, tzinfo=timezone.utc))
+        m2.id = "kalshi:KXNBAGAME-26APR24LALHOU-LAL"
+        m3 = make_market("lakers", "rockets", sector="nba",
+                         event_date=datetime(2026, 4, 26, 12, tzinfo=timezone.utc))
+        m3.id = "kalshi:KXNBAGAME-26APR26LALHOU-LAL"
+
+        # Single Pinnacle event for the APR19 game
+        sharp_key = engine.build_market_key(
+            make_market("lakers", "rockets", sector="nba",
+                        event_date=datetime(2026, 4, 19, 12, tzinfo=timezone.utc))
+        )
+        sharp = make_sharp(sharp_key, sector="nba")
+        sharp.event_date = datetime(2026, 4, 19, 12, tzinfo=timezone.utc)
+
+        results = engine.match_all([m1, m2, m3], [sharp])
+        assert len(results) == 1
+        winner_market = results[0][0]
+        assert winner_market.id == "kalshi:KXNBAGAME-26APR18HOULAL-LAL"

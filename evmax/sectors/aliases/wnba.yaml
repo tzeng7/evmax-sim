@@ -1,0 +1,63 @@
+aliases:
+  # Atlanta Dream
+  "atlanta dream": "dream"
+  "atl dream": "dream"
+
+  # Chicago Sky
+  "chicago sky": "sky"
+  "chi sky": "sky"
+
+  # Connecticut Sun
+  "connecticut sun": "sun"
+  "conn sun": "sun"
+
+  # Dallas Wings
+  "dallas wings": "wings"
+  "dal wings": "wings"
+
+  # Indiana Fever
+  "indiana fever": "fever"
+  "ind fever": "fever"
+
+  # Las Vegas Aces
+  "las vegas aces": "aces"
+  "lv aces": "aces"
+  "vegas aces": "aces"
+
+  # Los Angeles Sparks
+  "los angeles sparks": "sparks"
+  "la sparks": "sparks"
+
+  # Minnesota Lynx
+  "minnesota lynx": "lynx"
+  "min lynx": "lynx"
+
+  # New York Liberty
+  "new york liberty": "liberty"
+  "ny liberty": "liberty"
+
+  # Phoenix Mercury
+  "phoenix mercury": "mercury"
+  "phx mercury": "mercury"
+
+  # Seattle Storm
+  "seattle storm": "storm"
+  "sea storm": "storm"
+
+  # Washington Mystics
+  "washington mystics": "mystics"
+  "was mystics": "mystics"
+  "wsh mystics": "mystics"
+
+  # Golden State Valkyries (expansion 2025)
+  "golden state valkyries": "valkyries"
+  "gs valkyries": "valkyries"
+  "gsv": "valkyries"
+
+  # Portland Fire (expansion 2026)
+  "portland fire": "fire"
+  "por fire": "fire"
+
+  # Toronto Tempo (expansion 2026)
+  "toronto tempo": "tempo"
+  "tor tempo": "tempo"
