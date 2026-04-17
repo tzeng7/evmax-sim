@@ -109,8 +109,8 @@ class TestInjuryReport:
         assert r.probability_adjustment == pytest.approx(-0.045)
 
     def test_probability_adjustment_capped_at_max_adj(self):
-        # 3 starters out → 3 × 0.045 = 0.135 > MAX_ADJ (0.12)
-        players = [_player(impact=0.045) for _ in range(3)]
+        # 5 starters out → 5 × 0.045 = 0.225 > MAX_ADJ (0.20)
+        players = [_player(impact=0.045) for _ in range(5)]
         r = _report(players=players)
         assert r.probability_adjustment == pytest.approx(-MAX_ADJ)
 
@@ -221,6 +221,32 @@ class TestParsePlayer:
         assert p is not None
         assert p.tier == "star"
         assert p.impact == pytest.approx(STATUS_IMPACT["out"] * TIER_MULTIPLIER["star"])
+
+    def test_star_tier_from_known_stars_name(self):
+        """Stars are detected by name even without ESPN leader IDs."""
+        agent = InjuryReportAgent()
+        for name in ["Luka Doncic", "Stephen Curry", "Austin Reaves"]:
+            inj = {
+                "athlete": {
+                    "displayName": name,
+                    "position": {"abbreviation": "G"},
+                    "links": [],
+                },
+                "status": "Out",
+                "details": {"type": "Knee"},
+                "shortComment": "",
+            }
+            p = agent._parse_player(inj)  # no star_ids passed
+            assert p is not None, f"{name} should be parsed"
+            assert p.tier == "star", f"{name} should be star tier, got {p.tier}"
+            assert p.impact == pytest.approx(STATUS_IMPACT["out"] * TIER_MULTIPLIER["star"])
+
+    def test_non_star_not_elevated(self):
+        """Random bench player should NOT get star tier."""
+        agent = InjuryReportAgent()
+        p = agent._parse_player(self._inj(name="Random Benchwarmer", position="PG"))
+        assert p is not None
+        assert p.tier == "starter"  # position-based, not star
 
     def test_notes_truncated_at_120(self):
         agent = InjuryReportAgent()

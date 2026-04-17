@@ -76,8 +76,48 @@ STATUS_IMPACT: dict[str, float] = {
 # Player tier multiplier
 TIER_MULTIPLIER = {"star": 1.5, "starter": 1.0, "rotation": 0.5}
 
-# Cap on total adjustment per team
-MAX_ADJ = 0.12
+# Cap on total adjustment per team.
+# With star detection working, the raw impact of 2 stars OUT is already 13.5%.
+# A team missing its top 2 players should absolutely reflect > 12% impact.
+# Cap at 20% — losing your entire starting five is roughly a 20-25pp swing.
+MAX_ADJ = 0.20
+
+# ---------------------------------------------------------------------------
+# Known star players — fallback when ESPN leaders endpoint is unavailable.
+# Name-normalized (lowercased). Updated periodically; does not need to be
+# exhaustive — the ESPN leaders path (`star_ids`) catches most active stars.
+# This list is the safety net for injured stars who drop off the leaders.
+# ---------------------------------------------------------------------------
+KNOWN_STARS: set[str] = {
+    # NBA
+    "luka doncic", "nikola jokic", "giannis antetokounmpo", "shai gilgeous-alexander",
+    "jayson tatum", "anthony edwards", "lebron james", "stephen curry",
+    "kevin durant", "joel embiid", "jaylen brown", "devin booker",
+    "donovan mitchell", "jimmy butler", "anthony davis", "damian lillard",
+    "trae young", "de'aaron fox", "tyrese haliburton", "lamelo ball",
+    "zion williamson", "karl-anthony towns", "bam adebayo", "paolo banchero",
+    "victor wembanyama", "ja morant", "chet holmgren", "jalen brunson",
+    "darius garland", "evan mobley", "franz wagner", "scottie barnes",
+    "austin reaves", "alperen sengun", "cade cunningham", "tyrese maxey",
+    # NFL
+    "patrick mahomes", "josh allen", "lamar jackson", "joe burrow",
+    "jalen hurts", "justin jefferson", "ja'marr chase", "tyreek hill",
+    "ceedee lamb", "davante adams", "travis kelce", "nick bosa",
+    "myles garrett", "micah parsons", "t.j. watt", "derrick henry",
+    "saquon barkley", "christian mccaffrey", "breece hall",
+    "tua tagovailoa", "c.j. stroud", "caleb williams",
+    # WNBA
+    "a'ja wilson", "breanna stewart", "sabrina ionescu", "caitlin clark",
+    "alyssa thomas", "napheesa collier", "kelsey plum", "jewell loyd",
+    "angel reese", "dearica hamby",
+    # Soccer (key players in top-5 leagues)
+    "erling haaland", "kylian mbappe", "vinicius junior", "jude bellingham",
+    "bukayo saka", "rodri", "martin odegaard", "mohamed salah",
+    "robert lewandowski", "lamine yamal", "florian wirtz",
+    # NHL
+    "connor mcdavid", "nathan mackinnon", "auston matthews",
+    "leon draisaitl", "nikita kucherov", "cale makar",
+}
 
 # Positions treated as starters by default
 HIGH_IMPACT_POSITIONS = {
@@ -265,8 +305,8 @@ class InjuryReportAgent(Agent):
         injury_type = details.get("type", "Unknown")
         short_comment = inj.get("shortComment", "")
 
-        # Tier: use ESPN leader IDs if available, otherwise fall back to position
-        tier = self._classify_tier(position, athlete_id=athlete_id, star_ids=star_ids)
+        # Tier: use ESPN leader IDs if available, then known stars, then position
+        tier = self._classify_tier(position, athlete_id=athlete_id, star_ids=star_ids, player_name=name)
         impact = raw_impact * TIER_MULTIPLIER[tier]
 
         return InjuredPlayer(
@@ -280,9 +320,24 @@ class InjuryReportAgent(Agent):
         )
 
     @staticmethod
-    def _classify_tier(position: str, athlete_id: str = "", star_ids: set[str] | None = None) -> str:
-        """Classify player tier based on ESPN leaders data and position."""
+    def _classify_tier(
+        position: str,
+        athlete_id: str = "",
+        star_ids: set[str] | None = None,
+        player_name: str = "",
+    ) -> str:
+        """Classify player tier based on ESPN leaders data, known stars list, and position.
+
+        Priority:
+          1. ESPN leaders endpoint (star_ids) — most accurate, but only covers
+             players with enough games this season.
+          2. KNOWN_STARS hardcoded set — catches franchise players who are injured
+             long-term and drop off the leaders board (e.g., Luka, Embiid).
+          3. Position-based fallback — all starters get "starter" tier.
+        """
         if star_ids and athlete_id and athlete_id in star_ids:
+            return "star"
+        if player_name and player_name.lower().strip() in KNOWN_STARS:
             return "star"
         if position in HIGH_IMPACT_POSITIONS:
             return "starter"
