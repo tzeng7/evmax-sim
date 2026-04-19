@@ -1,0 +1,18 @@
+{
+  "coefficients": [
+    0.4502059323202129,
+    -0.12410414596677914,
+    0.6755279504626945,
+    0.0588972348041125
+  ],
+  "intercept": 0.010692373914907653,
+  "feature_names": [
+    "sharp_logit",
+    "blended_logit",
+    "kalshi_logit",
+    "ev_pct"
+  ],
+  "brier_score": 0.19803,
+  "n_samples": 204,
+  "trained_at": "2026-04-18"
+}

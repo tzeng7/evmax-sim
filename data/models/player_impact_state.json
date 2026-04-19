@@ -1,0 +1,3881 @@
+{
+  "fetched_date": "2026-04-18",
+  "teams": {
+    "bucks": [
+      {
+        "name": "aj green",
+        "mpg": 29.1,
+        "net_rating": -3.6,
+        "gp": 78,
+        "pie": 0.058,
+        "usg": 0.135
+      },
+      {
+        "name": "bobby portis",
+        "mpg": 24.2,
+        "net_rating": -8.2,
+        "gp": 67,
+        "pie": 0.122,
+        "usg": 0.225
+      },
+      {
+        "name": "cam thomas",
+        "mpg": 21.0,
+        "net_rating": -12.1,
+        "gp": 42,
+        "pie": 0.089,
+        "usg": 0.295
+      },
+      {
+        "name": "cole anthony",
+        "mpg": 15.0,
+        "net_rating": -9.7,
+        "gp": 35,
+        "pie": 0.082,
+        "usg": 0.244
+      },
+      {
+        "name": "cormac ryan",
+        "mpg": 24.6,
+        "net_rating": -3.1,
+        "gp": 11,
+        "pie": 0.104,
+        "usg": 0.206
+      },
+      {
+        "name": "gary harris",
+        "mpg": 13.8,
+        "net_rating": -9.6,
+        "gp": 48,
+        "pie": 0.048,
+        "usg": 0.082
+      },
+      {
+        "name": "gary trent jr.",
+        "mpg": 21.2,
+        "net_rating": -12.4,
+        "gp": 65,
+        "pie": 0.047,
+        "usg": 0.167
+      },
+      {
+        "name": "giannis antetokounmpo",
+        "mpg": 28.9,
+        "net_rating": 4.4,
+        "gp": 36,
+        "pie": 0.213,
+        "usg": 0.358
+      },
+      {
+        "name": "jericho sims",
+        "mpg": 19.7,
+        "net_rating": -10.1,
+        "gp": 67,
+        "pie": 0.083,
+        "usg": 0.095
+      },
+      {
+        "name": "kevin porter jr.",
+        "mpg": 33.2,
+        "net_rating": -4.7,
+        "gp": 38,
+        "pie": 0.132,
+        "usg": 0.236
+      },
+      {
+        "name": "kyle kuzma",
+        "mpg": 26.2,
+        "net_rating": -6.6,
+        "gp": 69,
+        "pie": 0.096,
+        "usg": 0.212
+      },
+      {
+        "name": "myles turner",
+        "mpg": 26.9,
+        "net_rating": -6.2,
+        "gp": 71,
+        "pie": 0.086,
+        "usg": 0.181
+      },
+      {
+        "name": "ousmane dieng",
+        "mpg": 19.3,
+        "net_rating": -8.6,
+        "gp": 57,
+        "pie": 0.075,
+        "usg": 0.192
+      },
+      {
+        "name": "pete nance",
+        "mpg": 15.7,
+        "net_rating": -5.2,
+        "gp": 47,
+        "pie": 0.078,
+        "usg": 0.132
+      },
+      {
+        "name": "ryan rollins",
+        "mpg": 32.1,
+        "net_rating": -3.2,
+        "gp": 74,
+        "pie": 0.111,
+        "usg": 0.236
+      },
+      {
+        "name": "taurean prince",
+        "mpg": 23.5,
+        "net_rating": -3.8,
+        "gp": 26,
+        "pie": 0.073,
+        "usg": 0.157
+      }
+    ],
+    "nuggets": [
+      {
+        "name": "aaron gordon",
+        "mpg": 27.9,
+        "net_rating": 12.7,
+        "gp": 36,
+        "pie": 0.117,
+        "usg": 0.213
+      },
+      {
+        "name": "bruce brown",
+        "mpg": 24.4,
+        "net_rating": -1.0,
+        "gp": 82,
+        "pie": 0.069,
+        "usg": 0.142
+      },
+      {
+        "name": "cameron johnson",
+        "mpg": 30.5,
+        "net_rating": 9.5,
+        "gp": 54,
+        "pie": 0.075,
+        "usg": 0.144
+      },
+      {
+        "name": "christian braun",
+        "mpg": 31.8,
+        "net_rating": 10.1,
+        "gp": 44,
+        "pie": 0.076,
+        "usg": 0.142
+      },
+      {
+        "name": "david roddy",
+        "mpg": 14.6,
+        "net_rating": 3.1,
+        "gp": 5,
+        "pie": 0.128,
+        "usg": 0.191
+      },
+      {
+        "name": "jalen pickett",
+        "mpg": 16.1,
+        "net_rating": -0.4,
+        "gp": 50,
+        "pie": 0.084,
+        "usg": 0.148
+      },
+      {
+        "name": "jamal murray",
+        "mpg": 35.4,
+        "net_rating": 6.8,
+        "gp": 75,
+        "pie": 0.142,
+        "usg": 0.269
+      },
+      {
+        "name": "jonas valan\u010di\u016bnas",
+        "mpg": 13.4,
+        "net_rating": -2.0,
+        "gp": 65,
+        "pie": 0.15,
+        "usg": 0.26
+      },
+      {
+        "name": "julian strawther",
+        "mpg": 15.1,
+        "net_rating": 1.5,
+        "gp": 57,
+        "pie": 0.082,
+        "usg": 0.187
+      },
+      {
+        "name": "kj simpson",
+        "mpg": 12.9,
+        "net_rating": 0,
+        "gp": 20,
+        "pie": 0.065,
+        "usg": 0.21
+      },
+      {
+        "name": "nikola joki\u0107",
+        "mpg": 34.8,
+        "net_rating": 10.8,
+        "gp": 65,
+        "pie": 0.213,
+        "usg": 0.289
+      },
+      {
+        "name": "peyton watson",
+        "mpg": 29.6,
+        "net_rating": 6.2,
+        "gp": 54,
+        "pie": 0.087,
+        "usg": 0.204
+      },
+      {
+        "name": "spencer jones",
+        "mpg": 22.1,
+        "net_rating": 1.6,
+        "gp": 64,
+        "pie": 0.045,
+        "usg": 0.097
+      },
+      {
+        "name": "tim hardaway jr.",
+        "mpg": 26.6,
+        "net_rating": 4.5,
+        "gp": 80,
+        "pie": 0.085,
+        "usg": 0.177
+      },
+      {
+        "name": "tyus jones",
+        "mpg": 14.6,
+        "net_rating": -6.1,
+        "gp": 67,
+        "pie": 0.065,
+        "usg": 0.103
+      },
+      {
+        "name": "zeke nnaji",
+        "mpg": 12.0,
+        "net_rating": -6.6,
+        "gp": 52,
+        "pie": 0.07,
+        "usg": 0.136
+      }
+    ],
+    "rockets": [
+      {
+        "name": "aaron holiday",
+        "mpg": 13.7,
+        "net_rating": 8.3,
+        "gp": 57,
+        "pie": 0.063,
+        "usg": 0.159
+      },
+      {
+        "name": "alperen sengun",
+        "mpg": 33.3,
+        "net_rating": 3.4,
+        "gp": 72,
+        "pie": 0.142,
+        "usg": 0.259
+      },
+      {
+        "name": "amen thompson",
+        "mpg": 37.4,
+        "net_rating": 6.6,
+        "gp": 79,
+        "pie": 0.128,
+        "usg": 0.195
+      },
+      {
+        "name": "clint capela",
+        "mpg": 12.3,
+        "net_rating": 8.0,
+        "gp": 75,
+        "pie": 0.11,
+        "usg": 0.133
+      },
+      {
+        "name": "dorian finney-smith",
+        "mpg": 16.8,
+        "net_rating": 1.8,
+        "gp": 37,
+        "pie": 0.034,
+        "usg": 0.104
+      },
+      {
+        "name": "jabari smith jr.",
+        "mpg": 35.1,
+        "net_rating": 5.0,
+        "gp": 77,
+        "pie": 0.093,
+        "usg": 0.179
+      },
+      {
+        "name": "josh okogie",
+        "mpg": 17.4,
+        "net_rating": 5.6,
+        "gp": 78,
+        "pie": 0.056,
+        "usg": 0.112
+      },
+      {
+        "name": "kevin durant",
+        "mpg": 36.4,
+        "net_rating": 5.5,
+        "gp": 78,
+        "pie": 0.15,
+        "usg": 0.263
+      },
+      {
+        "name": "reed sheppard",
+        "mpg": 26.2,
+        "net_rating": 4.3,
+        "gp": 82,
+        "pie": 0.102,
+        "usg": 0.21
+      },
+      {
+        "name": "steven adams",
+        "mpg": 22.8,
+        "net_rating": 11.8,
+        "gp": 32,
+        "pie": 0.1,
+        "usg": 0.116
+      },
+      {
+        "name": "tari eason",
+        "mpg": 25.8,
+        "net_rating": 6.5,
+        "gp": 60,
+        "pie": 0.083,
+        "usg": 0.181
+      },
+      {
+        "name": "tristen newton",
+        "mpg": 12.0,
+        "net_rating": 8.0,
+        "gp": 1,
+        "pie": 0.149,
+        "usg": 0.345
+      }
+    ],
+    "pacers": [
+      {
+        "name": "aaron nesmith",
+        "mpg": 29.7,
+        "net_rating": -7.3,
+        "gp": 45,
+        "pie": 0.067,
+        "usg": 0.19
+      },
+      {
+        "name": "andrew nembhard",
+        "mpg": 31.3,
+        "net_rating": -10.0,
+        "gp": 57,
+        "pie": 0.111,
+        "usg": 0.233
+      },
+      {
+        "name": "ben sheppard",
+        "mpg": 21.4,
+        "net_rating": -8.8,
+        "gp": 65,
+        "pie": 0.066,
+        "usg": 0.131
+      },
+      {
+        "name": "cody martin",
+        "mpg": 13.8,
+        "net_rating": -20.2,
+        "gp": 4,
+        "pie": 0.045,
+        "usg": 0.119
+      },
+      {
+        "name": "ethan thompson",
+        "mpg": 20.4,
+        "net_rating": -0.1,
+        "gp": 32,
+        "pie": 0.051,
+        "usg": 0.154
+      },
+      {
+        "name": "garrison mathews",
+        "mpg": 13.1,
+        "net_rating": -0.7,
+        "gp": 15,
+        "pie": 0.072,
+        "usg": 0.134
+      },
+      {
+        "name": "ivica zubac",
+        "mpg": 30.1,
+        "net_rating": -2.4,
+        "gp": 48,
+        "pie": 0.13,
+        "usg": 0.186
+      },
+      {
+        "name": "jalen slawson",
+        "mpg": 23.9,
+        "net_rating": -4.3,
+        "gp": 13,
+        "pie": 0.09,
+        "usg": 0.136
+      },
+      {
+        "name": "james wiseman",
+        "mpg": 14.6,
+        "net_rating": -9.5,
+        "gp": 4,
+        "pie": 0.01,
+        "usg": 0.114
+      },
+      {
+        "name": "jarace walker",
+        "mpg": 25.7,
+        "net_rating": -11.1,
+        "gp": 76,
+        "pie": 0.09,
+        "usg": 0.2
+      },
+      {
+        "name": "jay huff",
+        "mpg": 21.0,
+        "net_rating": -6.3,
+        "gp": 82,
+        "pie": 0.092,
+        "usg": 0.178
+      },
+      {
+        "name": "johnny furphy",
+        "mpg": 18.4,
+        "net_rating": -4.6,
+        "gp": 35,
+        "pie": 0.066,
+        "usg": 0.125
+      },
+      {
+        "name": "kam jones",
+        "mpg": 16.7,
+        "net_rating": -10.0,
+        "gp": 37,
+        "pie": 0.061,
+        "usg": 0.141
+      },
+      {
+        "name": "kobe brown",
+        "mpg": 15.8,
+        "net_rating": -10.5,
+        "gp": 61,
+        "pie": 0.078,
+        "usg": 0.154
+      },
+      {
+        "name": "micah potter",
+        "mpg": 19.3,
+        "net_rating": -6.4,
+        "gp": 47,
+        "pie": 0.114,
+        "usg": 0.174
+      },
+      {
+        "name": "monte morris",
+        "mpg": 10.8,
+        "net_rating": -20.9,
+        "gp": 6,
+        "pie": 0.076,
+        "usg": 0.141
+      },
+      {
+        "name": "obi toppin",
+        "mpg": 17.7,
+        "net_rating": -3.6,
+        "gp": 24,
+        "pie": 0.143,
+        "usg": 0.241
+      },
+      {
+        "name": "pascal siakam",
+        "mpg": 33.2,
+        "net_rating": -5.6,
+        "gp": 62,
+        "pie": 0.13,
+        "usg": 0.292
+      },
+      {
+        "name": "quenton jackson",
+        "mpg": 18.3,
+        "net_rating": -3.8,
+        "gp": 49,
+        "pie": 0.096,
+        "usg": 0.2
+      },
+      {
+        "name": "t.j. mcconnell",
+        "mpg": 17.2,
+        "net_rating": -7.6,
+        "gp": 56,
+        "pie": 0.15,
+        "usg": 0.227
+      },
+      {
+        "name": "taelon peter",
+        "mpg": 13.0,
+        "net_rating": -8.7,
+        "gp": 38,
+        "pie": 0.057,
+        "usg": 0.159
+      }
+    ],
+    "thunder": [
+      {
+        "name": "aaron wiggins",
+        "mpg": 21.8,
+        "net_rating": 6.2,
+        "gp": 65,
+        "pie": 0.082,
+        "usg": 0.194
+      },
+      {
+        "name": "ajay mitchell",
+        "mpg": 25.8,
+        "net_rating": 15.6,
+        "gp": 57,
+        "pie": 0.116,
+        "usg": 0.21
+      },
+      {
+        "name": "alex caruso",
+        "mpg": 18.2,
+        "net_rating": 17.6,
+        "gp": 56,
+        "pie": 0.093,
+        "usg": 0.152
+      },
+      {
+        "name": "branden carlson",
+        "mpg": 11.6,
+        "net_rating": -2.0,
+        "gp": 42,
+        "pie": 0.109,
+        "usg": 0.185
+      },
+      {
+        "name": "cason wallace",
+        "mpg": 26.6,
+        "net_rating": 12.4,
+        "gp": 77,
+        "pie": 0.076,
+        "usg": 0.141
+      },
+      {
+        "name": "chet holmgren",
+        "mpg": 28.9,
+        "net_rating": 16.1,
+        "gp": 69,
+        "pie": 0.154,
+        "usg": 0.214
+      },
+      {
+        "name": "isaiah hartenstein",
+        "mpg": 24.2,
+        "net_rating": 15.6,
+        "gp": 47,
+        "pie": 0.143,
+        "usg": 0.153
+      },
+      {
+        "name": "isaiah joe",
+        "mpg": 21.2,
+        "net_rating": 11.7,
+        "gp": 71,
+        "pie": 0.099,
+        "usg": 0.178
+      },
+      {
+        "name": "jalen williams",
+        "mpg": 28.4,
+        "net_rating": 11.7,
+        "gp": 33,
+        "pie": 0.135,
+        "usg": 0.252
+      },
+      {
+        "name": "jared mccain",
+        "mpg": 17.3,
+        "net_rating": 4.6,
+        "gp": 67,
+        "pie": 0.079,
+        "usg": 0.198
+      },
+      {
+        "name": "jaylin williams",
+        "mpg": 19.7,
+        "net_rating": 11.5,
+        "gp": 65,
+        "pie": 0.115,
+        "usg": 0.153
+      },
+      {
+        "name": "kenrich williams",
+        "mpg": 15.3,
+        "net_rating": 3.1,
+        "gp": 56,
+        "pie": 0.098,
+        "usg": 0.178
+      },
+      {
+        "name": "luguentz dort",
+        "mpg": 26.8,
+        "net_rating": 8.0,
+        "gp": 69,
+        "pie": 0.049,
+        "usg": 0.139
+      },
+      {
+        "name": "nikola topi\u0107",
+        "mpg": 16.0,
+        "net_rating": -13.7,
+        "gp": 10,
+        "pie": 0.063,
+        "usg": 0.204
+      },
+      {
+        "name": "payton sandfort",
+        "mpg": 15.8,
+        "net_rating": -14.0,
+        "gp": 4,
+        "pie": 0.066,
+        "usg": 0.186
+      },
+      {
+        "name": "shai gilgeous-alexander",
+        "mpg": 33.2,
+        "net_rating": 16.3,
+        "gp": 68,
+        "pie": 0.207,
+        "usg": 0.323
+      }
+    ],
+    "jazz": [
+      {
+        "name": "ace bailey",
+        "mpg": 27.6,
+        "net_rating": -10.7,
+        "gp": 72,
+        "pie": 0.069,
+        "usg": 0.21
+      },
+      {
+        "name": "andersson garcia",
+        "mpg": 33.8,
+        "net_rating": -9.8,
+        "gp": 5,
+        "pie": 0.052,
+        "usg": 0.094
+      },
+      {
+        "name": "bez mbeng",
+        "mpg": 32.8,
+        "net_rating": -13.2,
+        "gp": 15,
+        "pie": 0.06,
+        "usg": 0.106
+      },
+      {
+        "name": "blake hinson",
+        "mpg": 20.4,
+        "net_rating": 6.7,
+        "gp": 14,
+        "pie": 0.101,
+        "usg": 0.175
+      },
+      {
+        "name": "brice sensabaugh",
+        "mpg": 23.5,
+        "net_rating": -9.4,
+        "gp": 75,
+        "pie": 0.09,
+        "usg": 0.244
+      },
+      {
+        "name": "cody williams",
+        "mpg": 24.3,
+        "net_rating": -10.6,
+        "gp": 67,
+        "pie": 0.057,
+        "usg": 0.159
+      },
+      {
+        "name": "elijah harkless",
+        "mpg": 21.0,
+        "net_rating": -2.5,
+        "gp": 26,
+        "pie": 0.055,
+        "usg": 0.162
+      },
+      {
+        "name": "hayden gray",
+        "mpg": 24.8,
+        "net_rating": -29.0,
+        "gp": 1,
+        "pie": 0.05,
+        "usg": 0.079
+      },
+      {
+        "name": "isaiah collier",
+        "mpg": 25.7,
+        "net_rating": -13.2,
+        "gp": 59,
+        "pie": 0.102,
+        "usg": 0.204
+      },
+      {
+        "name": "jaren jackson jr.",
+        "mpg": 30.3,
+        "net_rating": -2.0,
+        "gp": 48,
+        "pie": 0.107,
+        "usg": 0.253
+      },
+      {
+        "name": "john konchar",
+        "mpg": 19.9,
+        "net_rating": -5.9,
+        "gp": 56,
+        "pie": 0.09,
+        "usg": 0.09
+      },
+      {
+        "name": "jusuf nurki\u0107",
+        "mpg": 26.4,
+        "net_rating": -7.9,
+        "gp": 41,
+        "pie": 0.121,
+        "usg": 0.186
+      },
+      {
+        "name": "kennedy chandler",
+        "mpg": 32.3,
+        "net_rating": -9.3,
+        "gp": 11,
+        "pie": 0.081,
+        "usg": 0.195
+      },
+      {
+        "name": "kevin love",
+        "mpg": 16.6,
+        "net_rating": -6.7,
+        "gp": 37,
+        "pie": 0.103,
+        "usg": 0.161
+      },
+      {
+        "name": "keyonte george",
+        "mpg": 33.1,
+        "net_rating": -8.6,
+        "gp": 54,
+        "pie": 0.122,
+        "usg": 0.275
+      },
+      {
+        "name": "kyle filipowski",
+        "mpg": 23.4,
+        "net_rating": -6.6,
+        "gp": 77,
+        "pie": 0.106,
+        "usg": 0.197
+      },
+      {
+        "name": "lauri markkanen",
+        "mpg": 34.3,
+        "net_rating": -1.5,
+        "gp": 42,
+        "pie": 0.139,
+        "usg": 0.269
+      },
+      {
+        "name": "mo bamba",
+        "mpg": 11.0,
+        "net_rating": -13.3,
+        "gp": 4,
+        "pie": 0.091,
+        "usg": 0.123
+      },
+      {
+        "name": "oscar tshiebwe",
+        "mpg": 16.6,
+        "net_rating": -8.0,
+        "gp": 27,
+        "pie": 0.125,
+        "usg": 0.162
+      },
+      {
+        "name": "svi mykhailiuk",
+        "mpg": 23.1,
+        "net_rating": -3.0,
+        "gp": 50,
+        "pie": 0.074,
+        "usg": 0.143
+      },
+      {
+        "name": "vince williams jr.",
+        "mpg": 20.5,
+        "net_rating": 0.3,
+        "gp": 40,
+        "pie": 0.085,
+        "usg": 0.19
+      },
+      {
+        "name": "walker kessler",
+        "mpg": 30.8,
+        "net_rating": 4.8,
+        "gp": 5,
+        "pie": 0.138,
+        "usg": 0.167
+      }
+    ],
+    "grizzlies": [
+      {
+        "name": "adama bal",
+        "mpg": 30.2,
+        "net_rating": -30.3,
+        "gp": 8,
+        "pie": 0.052,
+        "usg": 0.134
+      },
+      {
+        "name": "brandon clarke",
+        "mpg": 10.2,
+        "net_rating": -22.2,
+        "gp": 2,
+        "pie": 0.023,
+        "usg": 0.193
+      },
+      {
+        "name": "cam spencer",
+        "mpg": 23.8,
+        "net_rating": -3.6,
+        "gp": 72,
+        "pie": 0.12,
+        "usg": 0.166
+      },
+      {
+        "name": "cedric coward",
+        "mpg": 25.8,
+        "net_rating": 0.3,
+        "gp": 62,
+        "pie": 0.11,
+        "usg": 0.207
+      },
+      {
+        "name": "dariq whitehead",
+        "mpg": 30.5,
+        "net_rating": -24.1,
+        "gp": 6,
+        "pie": 0.062,
+        "usg": 0.231
+      },
+      {
+        "name": "dejon jarreau",
+        "mpg": 21.0,
+        "net_rating": -23.0,
+        "gp": 11,
+        "pie": 0.073,
+        "usg": 0.211
+      },
+      {
+        "name": "gg jackson",
+        "mpg": 21.4,
+        "net_rating": -3.5,
+        "gp": 55,
+        "pie": 0.108,
+        "usg": 0.23
+      },
+      {
+        "name": "ja morant",
+        "mpg": 28.4,
+        "net_rating": -4.4,
+        "gp": 20,
+        "pie": 0.128,
+        "usg": 0.305
+      },
+      {
+        "name": "jahmai mashack",
+        "mpg": 21.7,
+        "net_rating": -14.5,
+        "gp": 31,
+        "pie": 0.041,
+        "usg": 0.156
+      },
+      {
+        "name": "javon small",
+        "mpg": 20.2,
+        "net_rating": -5.7,
+        "gp": 41,
+        "pie": 0.109,
+        "usg": 0.183
+      },
+      {
+        "name": "jaylen wells",
+        "mpg": 26.4,
+        "net_rating": -4.4,
+        "gp": 69,
+        "pie": 0.069,
+        "usg": 0.189
+      },
+      {
+        "name": "kentavious caldwell-pope",
+        "mpg": 21.3,
+        "net_rating": -4.5,
+        "gp": 51,
+        "pie": 0.083,
+        "usg": 0.173
+      },
+      {
+        "name": "lawson lovering",
+        "mpg": 24.6,
+        "net_rating": -0.1,
+        "gp": 2,
+        "pie": 0.07,
+        "usg": 0.106
+      },
+      {
+        "name": "lucas williamson",
+        "mpg": 32.0,
+        "net_rating": -24.5,
+        "gp": 7,
+        "pie": 0.044,
+        "usg": 0.159
+      },
+      {
+        "name": "olivier-maxence prosper",
+        "mpg": 18.6,
+        "net_rating": -9.7,
+        "gp": 53,
+        "pie": 0.103,
+        "usg": 0.183
+      },
+      {
+        "name": "rayan rupert",
+        "mpg": 16.8,
+        "net_rating": -13.6,
+        "gp": 64,
+        "pie": 0.055,
+        "usg": 0.148
+      },
+      {
+        "name": "santi aldama",
+        "mpg": 27.9,
+        "net_rating": -2.4,
+        "gp": 43,
+        "pie": 0.115,
+        "usg": 0.191
+      },
+      {
+        "name": "scotty pippen jr.",
+        "mpg": 21.2,
+        "net_rating": -11.5,
+        "gp": 10,
+        "pie": 0.086,
+        "usg": 0.255
+      },
+      {
+        "name": "taylor hendricks",
+        "mpg": 19.0,
+        "net_rating": -10.7,
+        "gp": 59,
+        "pie": 0.077,
+        "usg": 0.157
+      },
+      {
+        "name": "toby okani",
+        "mpg": 36.2,
+        "net_rating": -28.1,
+        "gp": 6,
+        "pie": 0.013,
+        "usg": 0.142
+      },
+      {
+        "name": "ty jerome",
+        "mpg": 22.6,
+        "net_rating": -5.0,
+        "gp": 15,
+        "pie": 0.162,
+        "usg": 0.332
+      },
+      {
+        "name": "tyler burton",
+        "mpg": 25.6,
+        "net_rating": -22.3,
+        "gp": 12,
+        "pie": 0.061,
+        "usg": 0.18
+      },
+      {
+        "name": "walter clayton jr.",
+        "mpg": 20.4,
+        "net_rating": -9.6,
+        "gp": 69,
+        "pie": 0.073,
+        "usg": 0.181
+      },
+      {
+        "name": "zach edey",
+        "mpg": 25.8,
+        "net_rating": 18.3,
+        "gp": 11,
+        "pie": 0.157,
+        "usg": 0.2
+      }
+    ],
+    "76ers": [
+      {
+        "name": "adem bona",
+        "mpg": 17.4,
+        "net_rating": 0.3,
+        "gp": 71,
+        "pie": 0.069,
+        "usg": 0.108
+      },
+      {
+        "name": "andre drummond",
+        "mpg": 19.5,
+        "net_rating": -3.2,
+        "gp": 63,
+        "pie": 0.113,
+        "usg": 0.143
+      },
+      {
+        "name": "cameron payne",
+        "mpg": 17.0,
+        "net_rating": -8.1,
+        "gp": 22,
+        "pie": 0.096,
+        "usg": 0.183
+      },
+      {
+        "name": "dalen terry",
+        "mpg": 11.5,
+        "net_rating": -2.9,
+        "gp": 48,
+        "pie": 0.076,
+        "usg": 0.139
+      },
+      {
+        "name": "dominick barlow",
+        "mpg": 23.8,
+        "net_rating": 0.8,
+        "gp": 71,
+        "pie": 0.078,
+        "usg": 0.125
+      },
+      {
+        "name": "eric gordon",
+        "mpg": 12.3,
+        "net_rating": -17.6,
+        "gp": 6,
+        "pie": 0.083,
+        "usg": 0.137
+      },
+      {
+        "name": "jabari walker",
+        "mpg": 11.9,
+        "net_rating": 0,
+        "gp": 64,
+        "pie": 0.073,
+        "usg": 0.142
+      },
+      {
+        "name": "joel embiid",
+        "mpg": 31.6,
+        "net_rating": 5.8,
+        "gp": 38,
+        "pie": 0.163,
+        "usg": 0.336
+      },
+      {
+        "name": "justin edwards",
+        "mpg": 15.3,
+        "net_rating": -3.4,
+        "gp": 64,
+        "pie": 0.068,
+        "usg": 0.154
+      },
+      {
+        "name": "kelly oubre jr.",
+        "mpg": 31.5,
+        "net_rating": -1.9,
+        "gp": 50,
+        "pie": 0.083,
+        "usg": 0.179
+      },
+      {
+        "name": "marjon beauchamp",
+        "mpg": 14.0,
+        "net_rating": -4.0,
+        "gp": 14,
+        "pie": 0.087,
+        "usg": 0.203
+      },
+      {
+        "name": "paul george",
+        "mpg": 30.7,
+        "net_rating": 3.6,
+        "gp": 37,
+        "pie": 0.117,
+        "usg": 0.229
+      },
+      {
+        "name": "quentin grimes",
+        "mpg": 29.4,
+        "net_rating": -0.1,
+        "gp": 75,
+        "pie": 0.092,
+        "usg": 0.183
+      },
+      {
+        "name": "trendon watford",
+        "mpg": 16.3,
+        "net_rating": -9.1,
+        "gp": 53,
+        "pie": 0.093,
+        "usg": 0.17
+      },
+      {
+        "name": "tyrese martin",
+        "mpg": 16.9,
+        "net_rating": -10.9,
+        "gp": 46,
+        "pie": 0.077,
+        "usg": 0.178
+      },
+      {
+        "name": "tyrese maxey",
+        "mpg": 38.0,
+        "net_rating": 1.5,
+        "gp": 70,
+        "pie": 0.15,
+        "usg": 0.286
+      },
+      {
+        "name": "vj edgecombe",
+        "mpg": 35.0,
+        "net_rating": 0.9,
+        "gp": 75,
+        "pie": 0.092,
+        "usg": 0.196
+      }
+    ],
+    "warriors": [
+      {
+        "name": "al horford",
+        "mpg": 21.5,
+        "net_rating": -0.9,
+        "gp": 45,
+        "pie": 0.104,
+        "usg": 0.163
+      },
+      {
+        "name": "brandin podziemski",
+        "mpg": 28.4,
+        "net_rating": -0.1,
+        "gp": 82,
+        "pie": 0.114,
+        "usg": 0.196
+      },
+      {
+        "name": "charles bassey",
+        "mpg": 11.7,
+        "net_rating": -13.0,
+        "gp": 13,
+        "pie": 0.136,
+        "usg": 0.161
+      },
+      {
+        "name": "de'anthony melton",
+        "mpg": 23.0,
+        "net_rating": 3.9,
+        "gp": 49,
+        "pie": 0.09,
+        "usg": 0.244
+      },
+      {
+        "name": "draymond green",
+        "mpg": 27.5,
+        "net_rating": -4.3,
+        "gp": 68,
+        "pie": 0.084,
+        "usg": 0.158
+      },
+      {
+        "name": "gary payton ii",
+        "mpg": 15.6,
+        "net_rating": -2.3,
+        "gp": 73,
+        "pie": 0.114,
+        "usg": 0.177
+      },
+      {
+        "name": "gui santos",
+        "mpg": 20.5,
+        "net_rating": 1.0,
+        "gp": 68,
+        "pie": 0.097,
+        "usg": 0.181
+      },
+      {
+        "name": "jimmy butler iii",
+        "mpg": 31.1,
+        "net_rating": 7.3,
+        "gp": 38,
+        "pie": 0.155,
+        "usg": 0.226
+      },
+      {
+        "name": "kristaps porzi\u0146\u0123is",
+        "mpg": 24.0,
+        "net_rating": 3.0,
+        "gp": 32,
+        "pie": 0.124,
+        "usg": 0.265
+      },
+      {
+        "name": "lj cryer",
+        "mpg": 16.2,
+        "net_rating": -0.4,
+        "gp": 18,
+        "pie": 0.07,
+        "usg": 0.196
+      },
+      {
+        "name": "malevy leons",
+        "mpg": 11.1,
+        "net_rating": -10.6,
+        "gp": 25,
+        "pie": 0.062,
+        "usg": 0.137
+      },
+      {
+        "name": "moses moody",
+        "mpg": 25.7,
+        "net_rating": 2.2,
+        "gp": 60,
+        "pie": 0.083,
+        "usg": 0.174
+      },
+      {
+        "name": "nate williams",
+        "mpg": 17.1,
+        "net_rating": -15.1,
+        "gp": 14,
+        "pie": 0.056,
+        "usg": 0.192
+      },
+      {
+        "name": "omer yurtseven",
+        "mpg": 11.6,
+        "net_rating": -5.7,
+        "gp": 9,
+        "pie": 0.054,
+        "usg": 0.167
+      },
+      {
+        "name": "pat spencer",
+        "mpg": 18.6,
+        "net_rating": -3.4,
+        "gp": 66,
+        "pie": 0.087,
+        "usg": 0.185
+      },
+      {
+        "name": "quinten post",
+        "mpg": 17.3,
+        "net_rating": 2.3,
+        "gp": 67,
+        "pie": 0.089,
+        "usg": 0.183
+      },
+      {
+        "name": "seth curry",
+        "mpg": 13.3,
+        "net_rating": -3.0,
+        "gp": 10,
+        "pie": 0.093,
+        "usg": 0.169
+      },
+      {
+        "name": "stephen curry",
+        "mpg": 30.9,
+        "net_rating": 2.8,
+        "gp": 43,
+        "pie": 0.146,
+        "usg": 0.308
+      },
+      {
+        "name": "will richard",
+        "mpg": 20.0,
+        "net_rating": -3.3,
+        "gp": 69,
+        "pie": 0.063,
+        "usg": 0.123
+      }
+    ],
+    "wizards": [
+      {
+        "name": "alex sarr",
+        "mpg": 27.2,
+        "net_rating": -12.4,
+        "gp": 48,
+        "pie": 0.121,
+        "usg": 0.252
+      },
+      {
+        "name": "alondes williams",
+        "mpg": 25.2,
+        "net_rating": 15.6,
+        "gp": 4,
+        "pie": 0.133,
+        "usg": 0.141
+      },
+      {
+        "name": "anthony davis",
+        "mpg": 31.3,
+        "net_rating": -4.6,
+        "gp": 20,
+        "pie": 0.151,
+        "usg": 0.272
+      },
+      {
+        "name": "anthony gill",
+        "mpg": 17.3,
+        "net_rating": -14.4,
+        "gp": 55,
+        "pie": 0.08,
+        "usg": 0.116
+      },
+      {
+        "name": "bilal coulibaly",
+        "mpg": 26.2,
+        "net_rating": -12.8,
+        "gp": 56,
+        "pie": 0.082,
+        "usg": 0.193
+      },
+      {
+        "name": "bub carrington",
+        "mpg": 27.7,
+        "net_rating": -15.3,
+        "gp": 82,
+        "pie": 0.072,
+        "usg": 0.174
+      },
+      {
+        "name": "cam whitmore",
+        "mpg": 16.9,
+        "net_rating": -19.6,
+        "gp": 21,
+        "pie": 0.082,
+        "usg": 0.225
+      },
+      {
+        "name": "d'angelo russell",
+        "mpg": 19.0,
+        "net_rating": -3.3,
+        "gp": 26,
+        "pie": 0.098,
+        "usg": 0.261
+      },
+      {
+        "name": "jaden hardy",
+        "mpg": 15.8,
+        "net_rating": -4.4,
+        "gp": 57,
+        "pie": 0.066,
+        "usg": 0.239
+      },
+      {
+        "name": "jamir watkins",
+        "mpg": 20.6,
+        "net_rating": -6.4,
+        "gp": 50,
+        "pie": 0.069,
+        "usg": 0.148
+      },
+      {
+        "name": "julian reese",
+        "mpg": 30.9,
+        "net_rating": -11.8,
+        "gp": 13,
+        "pie": 0.092,
+        "usg": 0.173
+      },
+      {
+        "name": "justin champagnie",
+        "mpg": 20.0,
+        "net_rating": -9.4,
+        "gp": 69,
+        "pie": 0.106,
+        "usg": 0.161
+      },
+      {
+        "name": "kadary richmond",
+        "mpg": 22.3,
+        "net_rating": 4.0,
+        "gp": 3,
+        "pie": 0.129,
+        "usg": 0.114
+      },
+      {
+        "name": "kyshawn george",
+        "mpg": 29.0,
+        "net_rating": -11.5,
+        "gp": 48,
+        "pie": 0.09,
+        "usg": 0.222
+      },
+      {
+        "name": "leaky black",
+        "mpg": 28.9,
+        "net_rating": -9.9,
+        "gp": 15,
+        "pie": 0.051,
+        "usg": 0.113
+      },
+      {
+        "name": "sharife cooper",
+        "mpg": 17.1,
+        "net_rating": -11.7,
+        "gp": 41,
+        "pie": 0.094,
+        "usg": 0.197
+      },
+      {
+        "name": "skal labissiere",
+        "mpg": 12.5,
+        "net_rating": 4.0,
+        "gp": 3,
+        "pie": 0.124,
+        "usg": 0.117
+      },
+      {
+        "name": "trae young",
+        "mpg": 25.6,
+        "net_rating": -8.1,
+        "gp": 15,
+        "pie": 0.128,
+        "usg": 0.262
+      },
+      {
+        "name": "tre johnson",
+        "mpg": 24.0,
+        "net_rating": -11.2,
+        "gp": 60,
+        "pie": 0.068,
+        "usg": 0.22
+      },
+      {
+        "name": "tristan vukcevic",
+        "mpg": 13.7,
+        "net_rating": -15.1,
+        "gp": 49,
+        "pie": 0.11,
+        "usg": 0.259
+      },
+      {
+        "name": "will riley",
+        "mpg": 22.1,
+        "net_rating": -14.1,
+        "gp": 74,
+        "pie": 0.08,
+        "usg": 0.196
+      }
+    ],
+    "suns": [
+      {
+        "name": "amir coffey",
+        "mpg": 10.7,
+        "net_rating": -2.2,
+        "gp": 46,
+        "pie": 0.068,
+        "usg": 0.117
+      },
+      {
+        "name": "cj huntley",
+        "mpg": 10.1,
+        "net_rating": 17.6,
+        "gp": 4,
+        "pie": 0.061,
+        "usg": 0.107
+      },
+      {
+        "name": "collin gillespie",
+        "mpg": 28.5,
+        "net_rating": 3.7,
+        "gp": 80,
+        "pie": 0.108,
+        "usg": 0.181
+      },
+      {
+        "name": "devin booker",
+        "mpg": 33.5,
+        "net_rating": 3.9,
+        "gp": 64,
+        "pie": 0.142,
+        "usg": 0.307
+      },
+      {
+        "name": "dillon brooks",
+        "mpg": 30.4,
+        "net_rating": -1.1,
+        "gp": 56,
+        "pie": 0.088,
+        "usg": 0.279
+      },
+      {
+        "name": "grayson allen",
+        "mpg": 28.8,
+        "net_rating": 0.1,
+        "gp": 51,
+        "pie": 0.105,
+        "usg": 0.231
+      },
+      {
+        "name": "haywood highsmith",
+        "mpg": 13.0,
+        "net_rating": 1.7,
+        "gp": 7,
+        "pie": 0.107,
+        "usg": 0.121
+      },
+      {
+        "name": "jalen green",
+        "mpg": 25.9,
+        "net_rating": 0.7,
+        "gp": 32,
+        "pie": 0.106,
+        "usg": 0.309
+      },
+      {
+        "name": "jamaree bouyea",
+        "mpg": 14.0,
+        "net_rating": 1.4,
+        "gp": 46,
+        "pie": 0.103,
+        "usg": 0.184
+      },
+      {
+        "name": "jordan goodwin",
+        "mpg": 22.5,
+        "net_rating": 3.3,
+        "gp": 70,
+        "pie": 0.098,
+        "usg": 0.167
+      },
+      {
+        "name": "mark williams",
+        "mpg": 23.6,
+        "net_rating": -2.0,
+        "gp": 60,
+        "pie": 0.141,
+        "usg": 0.167
+      },
+      {
+        "name": "oso ighodaro",
+        "mpg": 22.1,
+        "net_rating": 5.1,
+        "gp": 82,
+        "pie": 0.09,
+        "usg": 0.12
+      },
+      {
+        "name": "rasheer fleming",
+        "mpg": 12.2,
+        "net_rating": 6.1,
+        "gp": 55,
+        "pie": 0.056,
+        "usg": 0.159
+      },
+      {
+        "name": "royce o'neale",
+        "mpg": 28.4,
+        "net_rating": -3.6,
+        "gp": 78,
+        "pie": 0.082,
+        "usg": 0.139
+      },
+      {
+        "name": "ryan dunn",
+        "mpg": 19.4,
+        "net_rating": 1.7,
+        "gp": 70,
+        "pie": 0.081,
+        "usg": 0.136
+      }
+    ],
+    "heat": [
+      {
+        "name": "andrew wiggins",
+        "mpg": 30.3,
+        "net_rating": -0.1,
+        "gp": 68,
+        "pie": 0.092,
+        "usg": 0.194
+      },
+      {
+        "name": "bam adebayo",
+        "mpg": 32.4,
+        "net_rating": 6.1,
+        "gp": 73,
+        "pie": 0.138,
+        "usg": 0.248
+      },
+      {
+        "name": "davion mitchell",
+        "mpg": 28.6,
+        "net_rating": 4.2,
+        "gp": 70,
+        "pie": 0.083,
+        "usg": 0.137
+      },
+      {
+        "name": "dru smith",
+        "mpg": 16.3,
+        "net_rating": -3.2,
+        "gp": 70,
+        "pie": 0.091,
+        "usg": 0.142
+      },
+      {
+        "name": "jaime jaquez jr.",
+        "mpg": 28.3,
+        "net_rating": 2.9,
+        "gp": 75,
+        "pie": 0.113,
+        "usg": 0.216
+      },
+      {
+        "name": "kasparas jaku\u010dionis",
+        "mpg": 17.8,
+        "net_rating": 3.0,
+        "gp": 53,
+        "pie": 0.073,
+        "usg": 0.129
+      },
+      {
+        "name": "kel'el ware",
+        "mpg": 22.1,
+        "net_rating": -1.0,
+        "gp": 77,
+        "pie": 0.137,
+        "usg": 0.174
+      },
+      {
+        "name": "nikola jovi\u0107",
+        "mpg": 17.2,
+        "net_rating": -0.8,
+        "gp": 47,
+        "pie": 0.073,
+        "usg": 0.203
+      },
+      {
+        "name": "norman powell",
+        "mpg": 29.6,
+        "net_rating": 0.6,
+        "gp": 58,
+        "pie": 0.113,
+        "usg": 0.262
+      },
+      {
+        "name": "pelle larsson",
+        "mpg": 26.4,
+        "net_rating": 2.4,
+        "gp": 70,
+        "pie": 0.084,
+        "usg": 0.165
+      },
+      {
+        "name": "simone fontecchio",
+        "mpg": 16.7,
+        "net_rating": 3.3,
+        "gp": 70,
+        "pie": 0.09,
+        "usg": 0.183
+      },
+      {
+        "name": "tyler herro",
+        "mpg": 31.3,
+        "net_rating": -2.0,
+        "gp": 33,
+        "pie": 0.122,
+        "usg": 0.248
+      }
+    ],
+    "bulls": [
+      {
+        "name": "anfernee simons",
+        "mpg": 24.9,
+        "net_rating": 3.0,
+        "gp": 55,
+        "pie": 0.096,
+        "usg": 0.227
+      },
+      {
+        "name": "collin sexton",
+        "mpg": 23.7,
+        "net_rating": -3.0,
+        "gp": 68,
+        "pie": 0.113,
+        "usg": 0.248
+      },
+      {
+        "name": "guerschon yabusele",
+        "mpg": 15.0,
+        "net_rating": -7.9,
+        "gp": 67,
+        "pie": 0.077,
+        "usg": 0.155
+      },
+      {
+        "name": "isaac okoro",
+        "mpg": 26.9,
+        "net_rating": -8.5,
+        "gp": 63,
+        "pie": 0.05,
+        "usg": 0.137
+      },
+      {
+        "name": "jaden ivey",
+        "mpg": 18.1,
+        "net_rating": 2.1,
+        "gp": 37,
+        "pie": 0.091,
+        "usg": 0.192
+      },
+      {
+        "name": "jalen smith",
+        "mpg": 20.7,
+        "net_rating": 3.4,
+        "gp": 53,
+        "pie": 0.109,
+        "usg": 0.183
+      },
+      {
+        "name": "josh giddey",
+        "mpg": 32.1,
+        "net_rating": -5.0,
+        "gp": 54,
+        "pie": 0.142,
+        "usg": 0.238
+      },
+      {
+        "name": "leonard miller",
+        "mpg": 15.6,
+        "net_rating": -2.5,
+        "gp": 46,
+        "pie": 0.104,
+        "usg": 0.176
+      },
+      {
+        "name": "mac mcclung",
+        "mpg": 12.3,
+        "net_rating": -9.4,
+        "gp": 11,
+        "pie": 0.047,
+        "usg": 0.199
+      },
+      {
+        "name": "matas buzelis",
+        "mpg": 29.2,
+        "net_rating": -6.3,
+        "gp": 77,
+        "pie": 0.097,
+        "usg": 0.223
+      },
+      {
+        "name": "mouhamadou gueye",
+        "mpg": 22.7,
+        "net_rating": -17.3,
+        "gp": 2,
+        "pie": 0.073,
+        "usg": 0.138
+      },
+      {
+        "name": "nick richards",
+        "mpg": 14.6,
+        "net_rating": -8.4,
+        "gp": 48,
+        "pie": 0.079,
+        "usg": 0.176
+      },
+      {
+        "name": "patrick williams",
+        "mpg": 20.5,
+        "net_rating": -11.0,
+        "gp": 72,
+        "pie": 0.057,
+        "usg": 0.159
+      },
+      {
+        "name": "rob dillingham",
+        "mpg": 14.9,
+        "net_rating": -7.4,
+        "gp": 65,
+        "pie": 0.06,
+        "usg": 0.218
+      },
+      {
+        "name": "tre jones",
+        "mpg": 27.0,
+        "net_rating": -3.8,
+        "gp": 65,
+        "pie": 0.126,
+        "usg": 0.186
+      },
+      {
+        "name": "yuki kawamura",
+        "mpg": 11.6,
+        "net_rating": -2.3,
+        "gp": 18,
+        "pie": 0.082,
+        "usg": 0.133
+      },
+      {
+        "name": "zach collins",
+        "mpg": 18.4,
+        "net_rating": 3.4,
+        "gp": 10,
+        "pie": 0.123,
+        "usg": 0.177
+      }
+    ],
+    "magic": [
+      {
+        "name": "anthony black",
+        "mpg": 29.8,
+        "net_rating": 0.2,
+        "gp": 64,
+        "pie": 0.09,
+        "usg": 0.219
+      },
+      {
+        "name": "desmond bane",
+        "mpg": 33.6,
+        "net_rating": 2.2,
+        "gp": 82,
+        "pie": 0.111,
+        "usg": 0.224
+      },
+      {
+        "name": "franz wagner",
+        "mpg": 30.0,
+        "net_rating": 3.6,
+        "gp": 34,
+        "pie": 0.134,
+        "usg": 0.256
+      },
+      {
+        "name": "goga bitadze",
+        "mpg": 15.2,
+        "net_rating": 1.6,
+        "gp": 64,
+        "pie": 0.122,
+        "usg": 0.128
+      },
+      {
+        "name": "jalen suggs",
+        "mpg": 27.6,
+        "net_rating": 5.2,
+        "gp": 57,
+        "pie": 0.11,
+        "usg": 0.22
+      },
+      {
+        "name": "jamal cain",
+        "mpg": 12.1,
+        "net_rating": 4.5,
+        "gp": 40,
+        "pie": 0.081,
+        "usg": 0.159
+      },
+      {
+        "name": "jase richardson",
+        "mpg": 10.9,
+        "net_rating": -0.8,
+        "gp": 54,
+        "pie": 0.074,
+        "usg": 0.162
+      },
+      {
+        "name": "jett howard",
+        "mpg": 12.6,
+        "net_rating": -5.5,
+        "gp": 55,
+        "pie": 0.07,
+        "usg": 0.166
+      },
+      {
+        "name": "jevon carter",
+        "mpg": 16.4,
+        "net_rating": -5.7,
+        "gp": 53,
+        "pie": 0.074,
+        "usg": 0.166
+      },
+      {
+        "name": "jonathan isaac",
+        "mpg": 10.0,
+        "net_rating": -1.3,
+        "gp": 52,
+        "pie": 0.078,
+        "usg": 0.119
+      },
+      {
+        "name": "moritz wagner",
+        "mpg": 11.8,
+        "net_rating": -10.0,
+        "gp": 36,
+        "pie": 0.106,
+        "usg": 0.237
+      },
+      {
+        "name": "noah penda",
+        "mpg": 12.8,
+        "net_rating": -3.0,
+        "gp": 59,
+        "pie": 0.076,
+        "usg": 0.14
+      },
+      {
+        "name": "paolo banchero",
+        "mpg": 34.7,
+        "net_rating": -0.2,
+        "gp": 72,
+        "pie": 0.138,
+        "usg": 0.274
+      },
+      {
+        "name": "tristan da silva",
+        "mpg": 24.7,
+        "net_rating": 1.6,
+        "gp": 77,
+        "pie": 0.085,
+        "usg": 0.16
+      },
+      {
+        "name": "wendell carter jr.",
+        "mpg": 29.3,
+        "net_rating": 2.2,
+        "gp": 78,
+        "pie": 0.096,
+        "usg": 0.156
+      }
+    ],
+    "timberwolves": [
+      {
+        "name": "anthony edwards",
+        "mpg": 35.0,
+        "net_rating": 3.5,
+        "gp": 61,
+        "pie": 0.145,
+        "usg": 0.309
+      },
+      {
+        "name": "ayo dosunmu",
+        "mpg": 27.3,
+        "net_rating": -1.5,
+        "gp": 69,
+        "pie": 0.114,
+        "usg": 0.197
+      },
+      {
+        "name": "bones hyland",
+        "mpg": 16.6,
+        "net_rating": 5.2,
+        "gp": 71,
+        "pie": 0.101,
+        "usg": 0.197
+      },
+      {
+        "name": "donte divincenzo",
+        "mpg": 30.4,
+        "net_rating": 6.2,
+        "gp": 82,
+        "pie": 0.084,
+        "usg": 0.164
+      },
+      {
+        "name": "jaden mcdaniels",
+        "mpg": 31.7,
+        "net_rating": 3.1,
+        "gp": 73,
+        "pie": 0.088,
+        "usg": 0.182
+      },
+      {
+        "name": "jaylen clark",
+        "mpg": 13.1,
+        "net_rating": 4.1,
+        "gp": 68,
+        "pie": 0.054,
+        "usg": 0.126
+      },
+      {
+        "name": "julius randle",
+        "mpg": 33.0,
+        "net_rating": 4.0,
+        "gp": 79,
+        "pie": 0.128,
+        "usg": 0.258
+      },
+      {
+        "name": "kyle anderson",
+        "mpg": 19.8,
+        "net_rating": -4.2,
+        "gp": 43,
+        "pie": 0.095,
+        "usg": 0.131
+      },
+      {
+        "name": "mike conley",
+        "mpg": 18.4,
+        "net_rating": 0.2,
+        "gp": 54,
+        "pie": 0.061,
+        "usg": 0.113
+      },
+      {
+        "name": "naz reid",
+        "mpg": 26.1,
+        "net_rating": 3.2,
+        "gp": 77,
+        "pie": 0.112,
+        "usg": 0.212
+      },
+      {
+        "name": "rudy gobert",
+        "mpg": 31.3,
+        "net_rating": 5.0,
+        "gp": 76,
+        "pie": 0.121,
+        "usg": 0.127
+      },
+      {
+        "name": "terrence shannon jr.",
+        "mpg": 12.5,
+        "net_rating": -8.5,
+        "gp": 43,
+        "pie": 0.069,
+        "usg": 0.171
+      }
+    ],
+    "hawks": [
+      {
+        "name": "asa newell",
+        "mpg": 11.4,
+        "net_rating": -3.8,
+        "gp": 44,
+        "pie": 0.074,
+        "usg": 0.16
+      },
+      {
+        "name": "buddy hield",
+        "mpg": 16.1,
+        "net_rating": -4.9,
+        "gp": 51,
+        "pie": 0.085,
+        "usg": 0.192
+      },
+      {
+        "name": "cj mccollum",
+        "mpg": 29.8,
+        "net_rating": 1.5,
+        "gp": 76,
+        "pie": 0.105,
+        "usg": 0.247
+      },
+      {
+        "name": "christian koloko",
+        "mpg": 13.2,
+        "net_rating": -1.3,
+        "gp": 27,
+        "pie": 0.046,
+        "usg": 0.109
+      },
+      {
+        "name": "corey kispert",
+        "mpg": 18.6,
+        "net_rating": -7.0,
+        "gp": 58,
+        "pie": 0.088,
+        "usg": 0.179
+      },
+      {
+        "name": "dyson daniels",
+        "mpg": 33.2,
+        "net_rating": 6.2,
+        "gp": 76,
+        "pie": 0.106,
+        "usg": 0.157
+      },
+      {
+        "name": "gabe vincent",
+        "mpg": 16.6,
+        "net_rating": 1.3,
+        "gp": 53,
+        "pie": 0.033,
+        "usg": 0.119
+      },
+      {
+        "name": "jalen johnson",
+        "mpg": 35.2,
+        "net_rating": 3.2,
+        "gp": 72,
+        "pie": 0.161,
+        "usg": 0.264
+      },
+      {
+        "name": "jock landale",
+        "mpg": 22.1,
+        "net_rating": -2.2,
+        "gp": 68,
+        "pie": 0.098,
+        "usg": 0.177
+      },
+      {
+        "name": "jonathan kuminga",
+        "mpg": 23.1,
+        "net_rating": 4.1,
+        "gp": 36,
+        "pie": 0.111,
+        "usg": 0.226
+      },
+      {
+        "name": "keaton wallace",
+        "mpg": 10.1,
+        "net_rating": -8.6,
+        "gp": 53,
+        "pie": 0.077,
+        "usg": 0.161
+      },
+      {
+        "name": "keshon gilbert",
+        "mpg": 18.4,
+        "net_rating": -38.1,
+        "gp": 4,
+        "pie": 0.049,
+        "usg": 0.131
+      },
+      {
+        "name": "mouhamed gueye",
+        "mpg": 15.3,
+        "net_rating": 2.3,
+        "gp": 77,
+        "pie": 0.075,
+        "usg": 0.12
+      },
+      {
+        "name": "nickeil alexander-walker",
+        "mpg": 33.4,
+        "net_rating": 4.0,
+        "gp": 78,
+        "pie": 0.105,
+        "usg": 0.23
+      },
+      {
+        "name": "onyeka okongwu",
+        "mpg": 31.0,
+        "net_rating": 2.1,
+        "gp": 74,
+        "pie": 0.104,
+        "usg": 0.189
+      },
+      {
+        "name": "rayj dennis",
+        "mpg": 12.1,
+        "net_rating": -14.2,
+        "gp": 17,
+        "pie": 0.051,
+        "usg": 0.195
+      },
+      {
+        "name": "tony bradley",
+        "mpg": 11.0,
+        "net_rating": -14.2,
+        "gp": 41,
+        "pie": 0.074,
+        "usg": 0.136
+      },
+      {
+        "name": "zaccharie risacher",
+        "mpg": 22.4,
+        "net_rating": 0.2,
+        "gp": 67,
+        "pie": 0.07,
+        "usg": 0.168
+      }
+    ],
+    "pistons": [
+      {
+        "name": "ausar thompson",
+        "mpg": 26.0,
+        "net_rating": 11.6,
+        "gp": 73,
+        "pie": 0.101,
+        "usg": 0.168
+      },
+      {
+        "name": "cade cunningham",
+        "mpg": 33.9,
+        "net_rating": 11.4,
+        "gp": 64,
+        "pie": 0.159,
+        "usg": 0.296
+      },
+      {
+        "name": "caris levert",
+        "mpg": 19.2,
+        "net_rating": 0.8,
+        "gp": 60,
+        "pie": 0.081,
+        "usg": 0.178
+      },
+      {
+        "name": "daniss jenkins",
+        "mpg": 20.2,
+        "net_rating": 6.6,
+        "gp": 72,
+        "pie": 0.1,
+        "usg": 0.209
+      },
+      {
+        "name": "duncan robinson",
+        "mpg": 27.4,
+        "net_rating": 11.3,
+        "gp": 77,
+        "pie": 0.078,
+        "usg": 0.152
+      },
+      {
+        "name": "isaiah stewart",
+        "mpg": 22.7,
+        "net_rating": 1.8,
+        "gp": 58,
+        "pie": 0.095,
+        "usg": 0.164
+      },
+      {
+        "name": "jalen duren",
+        "mpg": 28.2,
+        "net_rating": 11.8,
+        "gp": 70,
+        "pie": 0.177,
+        "usg": 0.231
+      },
+      {
+        "name": "javonte green",
+        "mpg": 17.6,
+        "net_rating": 7.6,
+        "gp": 82,
+        "pie": 0.095,
+        "usg": 0.143
+      },
+      {
+        "name": "kevin huerter",
+        "mpg": 22.5,
+        "net_rating": 2.3,
+        "gp": 69,
+        "pie": 0.093,
+        "usg": 0.184
+      },
+      {
+        "name": "marcus sasser",
+        "mpg": 12.0,
+        "net_rating": 13.4,
+        "gp": 38,
+        "pie": 0.078,
+        "usg": 0.197
+      },
+      {
+        "name": "paul reed",
+        "mpg": 13.9,
+        "net_rating": 8.1,
+        "gp": 65,
+        "pie": 0.153,
+        "usg": 0.2
+      },
+      {
+        "name": "ronald holland ii",
+        "mpg": 19.9,
+        "net_rating": 5.7,
+        "gp": 78,
+        "pie": 0.085,
+        "usg": 0.184
+      },
+      {
+        "name": "tobias harris",
+        "mpg": 27.7,
+        "net_rating": 10.0,
+        "gp": 63,
+        "pie": 0.112,
+        "usg": 0.181
+      }
+    ],
+    "lakers": [
+      {
+        "name": "austin reaves",
+        "mpg": 34.5,
+        "net_rating": 5.0,
+        "gp": 51,
+        "pie": 0.137,
+        "usg": 0.258
+      },
+      {
+        "name": "dalton knecht",
+        "mpg": 10.2,
+        "net_rating": -8.5,
+        "gp": 54,
+        "pie": 0.069,
+        "usg": 0.171
+      },
+      {
+        "name": "deandre ayton",
+        "mpg": 27.2,
+        "net_rating": 0.1,
+        "gp": 72,
+        "pie": 0.117,
+        "usg": 0.164
+      },
+      {
+        "name": "jake laravia",
+        "mpg": 25.1,
+        "net_rating": 0,
+        "gp": 82,
+        "pie": 0.067,
+        "usg": 0.138
+      },
+      {
+        "name": "jarred vanderbilt",
+        "mpg": 17.3,
+        "net_rating": 0.2,
+        "gp": 65,
+        "pie": 0.08,
+        "usg": 0.119
+      },
+      {
+        "name": "jaxson hayes",
+        "mpg": 18.3,
+        "net_rating": 2.4,
+        "gp": 66,
+        "pie": 0.109,
+        "usg": 0.124
+      },
+      {
+        "name": "lebron james",
+        "mpg": 33.2,
+        "net_rating": 2.6,
+        "gp": 60,
+        "pie": 0.154,
+        "usg": 0.262
+      },
+      {
+        "name": "luka don\u010di\u0107",
+        "mpg": 35.8,
+        "net_rating": 3.8,
+        "gp": 64,
+        "pie": 0.188,
+        "usg": 0.368
+      },
+      {
+        "name": "luke kennard",
+        "mpg": 21.5,
+        "net_rating": 0.5,
+        "gp": 78,
+        "pie": 0.089,
+        "usg": 0.131
+      },
+      {
+        "name": "marcus smart",
+        "mpg": 28.5,
+        "net_rating": 6.8,
+        "gp": 62,
+        "pie": 0.059,
+        "usg": 0.151
+      },
+      {
+        "name": "maxi kleber",
+        "mpg": 10.7,
+        "net_rating": 3.1,
+        "gp": 43,
+        "pie": 0.038,
+        "usg": 0.092
+      },
+      {
+        "name": "nick smith jr.",
+        "mpg": 12.5,
+        "net_rating": -1.1,
+        "gp": 30,
+        "pie": 0.067,
+        "usg": 0.212
+      },
+      {
+        "name": "rui hachimura",
+        "mpg": 28.3,
+        "net_rating": 2.0,
+        "gp": 68,
+        "pie": 0.073,
+        "usg": 0.149
+      }
+    ],
+    "celtics": [
+      {
+        "name": "baylor scheierman",
+        "mpg": 18.6,
+        "net_rating": 7.3,
+        "gp": 77,
+        "pie": 0.085,
+        "usg": 0.117
+      },
+      {
+        "name": "chris boucher",
+        "mpg": 10.5,
+        "net_rating": 4.4,
+        "gp": 9,
+        "pie": 0.04,
+        "usg": 0.128
+      },
+      {
+        "name": "dalano banton",
+        "mpg": 10.3,
+        "net_rating": -4.3,
+        "gp": 6,
+        "pie": 0.051,
+        "usg": 0.152
+      },
+      {
+        "name": "derrick white",
+        "mpg": 34.1,
+        "net_rating": 11.3,
+        "gp": 77,
+        "pie": 0.109,
+        "usg": 0.216
+      },
+      {
+        "name": "hugo gonz\u00e1lez",
+        "mpg": 14.6,
+        "net_rating": 11.9,
+        "gp": 74,
+        "pie": 0.067,
+        "usg": 0.114
+      },
+      {
+        "name": "jaylen brown",
+        "mpg": 34.4,
+        "net_rating": 6.5,
+        "gp": 71,
+        "pie": 0.152,
+        "usg": 0.351
+      },
+      {
+        "name": "jayson tatum",
+        "mpg": 32.6,
+        "net_rating": 10.5,
+        "gp": 16,
+        "pie": 0.159,
+        "usg": 0.29
+      },
+      {
+        "name": "jordan walsh",
+        "mpg": 17.8,
+        "net_rating": 5.1,
+        "gp": 68,
+        "pie": 0.08,
+        "usg": 0.114
+      },
+      {
+        "name": "luka garza",
+        "mpg": 16.2,
+        "net_rating": 5.8,
+        "gp": 69,
+        "pie": 0.103,
+        "usg": 0.168
+      },
+      {
+        "name": "neemias queta",
+        "mpg": 25.3,
+        "net_rating": 13.2,
+        "gp": 76,
+        "pie": 0.13,
+        "usg": 0.145
+      },
+      {
+        "name": "nikola vu\u010devi\u0107",
+        "mpg": 28.4,
+        "net_rating": -1.7,
+        "gp": 64,
+        "pie": 0.127,
+        "usg": 0.213
+      },
+      {
+        "name": "payton pritchard",
+        "mpg": 32.3,
+        "net_rating": 8.0,
+        "gp": 79,
+        "pie": 0.12,
+        "usg": 0.21
+      },
+      {
+        "name": "ron harper jr.",
+        "mpg": 10.9,
+        "net_rating": 2.7,
+        "gp": 29,
+        "pie": 0.086,
+        "usg": 0.158
+      },
+      {
+        "name": "sam hauser",
+        "mpg": 24.8,
+        "net_rating": 8.8,
+        "gp": 78,
+        "pie": 0.08,
+        "usg": 0.141
+      }
+    ],
+    "nets": [
+      {
+        "name": "ben saraf",
+        "mpg": 20.8,
+        "net_rating": -12.5,
+        "gp": 44,
+        "pie": 0.06,
+        "usg": 0.202
+      },
+      {
+        "name": "chaney johnson",
+        "mpg": 20.4,
+        "net_rating": -9.0,
+        "gp": 17,
+        "pie": 0.099,
+        "usg": 0.16
+      },
+      {
+        "name": "danny wolf",
+        "mpg": 20.8,
+        "net_rating": -9.0,
+        "gp": 57,
+        "pie": 0.096,
+        "usg": 0.201
+      },
+      {
+        "name": "day'ron sharpe",
+        "mpg": 18.7,
+        "net_rating": -4.3,
+        "gp": 62,
+        "pie": 0.141,
+        "usg": 0.19
+      },
+      {
+        "name": "drake powell",
+        "mpg": 20.9,
+        "net_rating": -16.1,
+        "gp": 63,
+        "pie": 0.053,
+        "usg": 0.149
+      },
+      {
+        "name": "e.j. liddell",
+        "mpg": 13.4,
+        "net_rating": -6.5,
+        "gp": 26,
+        "pie": 0.087,
+        "usg": 0.168
+      },
+      {
+        "name": "egor d\u00ebmin",
+        "mpg": 25.2,
+        "net_rating": -5.9,
+        "gp": 52,
+        "pie": 0.081,
+        "usg": 0.182
+      },
+      {
+        "name": "jalen wilson",
+        "mpg": 15.9,
+        "net_rating": -10.9,
+        "gp": 54,
+        "pie": 0.061,
+        "usg": 0.177
+      },
+      {
+        "name": "josh minott",
+        "mpg": 17.0,
+        "net_rating": -0.1,
+        "gp": 49,
+        "pie": 0.104,
+        "usg": 0.162
+      },
+      {
+        "name": "malachi smith",
+        "mpg": 23.9,
+        "net_rating": -13.2,
+        "gp": 15,
+        "pie": 0.102,
+        "usg": 0.136
+      },
+      {
+        "name": "michael porter jr.",
+        "mpg": 32.5,
+        "net_rating": -6.6,
+        "gp": 52,
+        "pie": 0.141,
+        "usg": 0.292
+      },
+      {
+        "name": "nic claxton",
+        "mpg": 27.8,
+        "net_rating": -12.9,
+        "gp": 69,
+        "pie": 0.117,
+        "usg": 0.175
+      },
+      {
+        "name": "noah clowney",
+        "mpg": 27.0,
+        "net_rating": -8.7,
+        "gp": 66,
+        "pie": 0.072,
+        "usg": 0.202
+      },
+      {
+        "name": "nolan traore",
+        "mpg": 22.2,
+        "net_rating": -10.5,
+        "gp": 56,
+        "pie": 0.056,
+        "usg": 0.224
+      },
+      {
+        "name": "ochai agbaji",
+        "mpg": 15.7,
+        "net_rating": -2.7,
+        "gp": 62,
+        "pie": 0.057,
+        "usg": 0.142
+      },
+      {
+        "name": "terance mann",
+        "mpg": 24.3,
+        "net_rating": -8.2,
+        "gp": 63,
+        "pie": 0.066,
+        "usg": 0.133
+      },
+      {
+        "name": "trevon scott",
+        "mpg": 30.4,
+        "net_rating": -16.9,
+        "gp": 6,
+        "pie": 0.053,
+        "usg": 0.136
+      },
+      {
+        "name": "tyson etienne",
+        "mpg": 15.8,
+        "net_rating": -12.2,
+        "gp": 24,
+        "pie": 0.071,
+        "usg": 0.198
+      },
+      {
+        "name": "ziaire williams",
+        "mpg": 22.9,
+        "net_rating": -10.1,
+        "gp": 56,
+        "pie": 0.079,
+        "usg": 0.179
+      }
+    ],
+    "la clippers": [
+      {
+        "name": "bennedict mathurin",
+        "mpg": 30.0,
+        "net_rating": -3.9,
+        "gp": 54,
+        "pie": 0.105,
+        "usg": 0.246
+      },
+      {
+        "name": "bogdan bogdanovi\u0107",
+        "mpg": 19.7,
+        "net_rating": -4.4,
+        "gp": 23,
+        "pie": 0.069,
+        "usg": 0.185
+      },
+      {
+        "name": "bradley beal",
+        "mpg": 20.2,
+        "net_rating": -9.3,
+        "gp": 6,
+        "pie": 0.018,
+        "usg": 0.224
+      },
+      {
+        "name": "brook lopez",
+        "mpg": 21.8,
+        "net_rating": 1.2,
+        "gp": 75,
+        "pie": 0.076,
+        "usg": 0.171
+      },
+      {
+        "name": "chris paul",
+        "mpg": 14.2,
+        "net_rating": -17.3,
+        "gp": 16,
+        "pie": 0.064,
+        "usg": 0.135
+      },
+      {
+        "name": "darius garland",
+        "mpg": 29.9,
+        "net_rating": 2.6,
+        "gp": 45,
+        "pie": 0.112,
+        "usg": 0.266
+      },
+      {
+        "name": "derrick jones jr.",
+        "mpg": 27.0,
+        "net_rating": 4.0,
+        "gp": 50,
+        "pie": 0.072,
+        "usg": 0.144
+      },
+      {
+        "name": "isaiah jackson",
+        "mpg": 16.5,
+        "net_rating": -2.9,
+        "gp": 55,
+        "pie": 0.104,
+        "usg": 0.152
+      },
+      {
+        "name": "john collins",
+        "mpg": 27.1,
+        "net_rating": -1.2,
+        "gp": 69,
+        "pie": 0.098,
+        "usg": 0.188
+      },
+      {
+        "name": "jordan miller",
+        "mpg": 22.1,
+        "net_rating": -0.4,
+        "gp": 60,
+        "pie": 0.106,
+        "usg": 0.177
+      },
+      {
+        "name": "kawhi leonard",
+        "mpg": 32.1,
+        "net_rating": 7.5,
+        "gp": 65,
+        "pie": 0.185,
+        "usg": 0.326
+      },
+      {
+        "name": "kobe sanders",
+        "mpg": 19.9,
+        "net_rating": 0.2,
+        "gp": 68,
+        "pie": 0.062,
+        "usg": 0.155
+      },
+      {
+        "name": "kris dunn",
+        "mpg": 27.2,
+        "net_rating": 0.5,
+        "gp": 82,
+        "pie": 0.074,
+        "usg": 0.122
+      },
+      {
+        "name": "nicolas batum",
+        "mpg": 17.5,
+        "net_rating": -0.5,
+        "gp": 74,
+        "pie": 0.058,
+        "usg": 0.092
+      },
+      {
+        "name": "yanic konan niederh\u00e4user",
+        "mpg": 10.3,
+        "net_rating": 4.5,
+        "gp": 41,
+        "pie": 0.098,
+        "usg": 0.153
+      }
+    ],
+    "trail blazers": [
+      {
+        "name": "blake wesley",
+        "mpg": 11.6,
+        "net_rating": -8.6,
+        "gp": 31,
+        "pie": 0.075,
+        "usg": 0.189
+      },
+      {
+        "name": "caleb love",
+        "mpg": 20.7,
+        "net_rating": -6.3,
+        "gp": 49,
+        "pie": 0.079,
+        "usg": 0.228
+      },
+      {
+        "name": "deni avdija",
+        "mpg": 33.3,
+        "net_rating": 0.3,
+        "gp": 66,
+        "pie": 0.149,
+        "usg": 0.285
+      },
+      {
+        "name": "donovan clingan",
+        "mpg": 27.2,
+        "net_rating": 0.1,
+        "gp": 77,
+        "pie": 0.139,
+        "usg": 0.163
+      },
+      {
+        "name": "jerami grant",
+        "mpg": 29.7,
+        "net_rating": -0.3,
+        "gp": 57,
+        "pie": 0.094,
+        "usg": 0.228
+      },
+      {
+        "name": "jrue holiday",
+        "mpg": 29.4,
+        "net_rating": 6.1,
+        "gp": 53,
+        "pie": 0.124,
+        "usg": 0.227
+      },
+      {
+        "name": "kris murray",
+        "mpg": 23.4,
+        "net_rating": 1.5,
+        "gp": 57,
+        "pie": 0.063,
+        "usg": 0.103
+      },
+      {
+        "name": "matisse thybulle",
+        "mpg": 16.0,
+        "net_rating": 9.0,
+        "gp": 30,
+        "pie": 0.093,
+        "usg": 0.144
+      },
+      {
+        "name": "robert williams iii",
+        "mpg": 17.1,
+        "net_rating": 3.4,
+        "gp": 59,
+        "pie": 0.163,
+        "usg": 0.129
+      },
+      {
+        "name": "scoot henderson",
+        "mpg": 24.9,
+        "net_rating": 3.2,
+        "gp": 30,
+        "pie": 0.086,
+        "usg": 0.246
+      },
+      {
+        "name": "shaedon sharpe",
+        "mpg": 29.4,
+        "net_rating": -1.3,
+        "gp": 50,
+        "pie": 0.108,
+        "usg": 0.293
+      },
+      {
+        "name": "sidy cissoko",
+        "mpg": 19.1,
+        "net_rating": -1.7,
+        "gp": 75,
+        "pie": 0.036,
+        "usg": 0.123
+      },
+      {
+        "name": "toumani camara",
+        "mpg": 33.3,
+        "net_rating": 1.3,
+        "gp": 82,
+        "pie": 0.073,
+        "usg": 0.16
+      },
+      {
+        "name": "v\u00edt krej\u010d\u00ed",
+        "mpg": 21.4,
+        "net_rating": -1.1,
+        "gp": 65,
+        "pie": 0.068,
+        "usg": 0.142
+      }
+    ],
+    "raptors": [
+      {
+        "name": "brandon ingram",
+        "mpg": 33.8,
+        "net_rating": 1.0,
+        "gp": 77,
+        "pie": 0.121,
+        "usg": 0.264
+      },
+      {
+        "name": "collin murray-boyles",
+        "mpg": 21.9,
+        "net_rating": 2.6,
+        "gp": 57,
+        "pie": 0.098,
+        "usg": 0.15
+      },
+      {
+        "name": "gradey dick",
+        "mpg": 14.0,
+        "net_rating": 4.1,
+        "gp": 76,
+        "pie": 0.07,
+        "usg": 0.176
+      },
+      {
+        "name": "immanuel quickley",
+        "mpg": 31.9,
+        "net_rating": 2.9,
+        "gp": 70,
+        "pie": 0.118,
+        "usg": 0.206
+      },
+      {
+        "name": "ja'kobe walter",
+        "mpg": 20.5,
+        "net_rating": 0.9,
+        "gp": 72,
+        "pie": 0.069,
+        "usg": 0.136
+      },
+      {
+        "name": "jakob poeltl",
+        "mpg": 25.0,
+        "net_rating": 2.0,
+        "gp": 46,
+        "pie": 0.115,
+        "usg": 0.15
+      },
+      {
+        "name": "jamal shead",
+        "mpg": 22.6,
+        "net_rating": 5.8,
+        "gp": 82,
+        "pie": 0.078,
+        "usg": 0.149
+      },
+      {
+        "name": "rj barrett",
+        "mpg": 30.3,
+        "net_rating": 4.9,
+        "gp": 57,
+        "pie": 0.112,
+        "usg": 0.254
+      },
+      {
+        "name": "sandro mamukelashvili",
+        "mpg": 21.9,
+        "net_rating": 5.3,
+        "gp": 80,
+        "pie": 0.123,
+        "usg": 0.181
+      },
+      {
+        "name": "scottie barnes",
+        "mpg": 33.5,
+        "net_rating": 4.6,
+        "gp": 80,
+        "pie": 0.139,
+        "usg": 0.226
+      }
+    ],
+    "hornets": [
+      {
+        "name": "brandon miller",
+        "mpg": 30.3,
+        "net_rating": 8.5,
+        "gp": 65,
+        "pie": 0.113,
+        "usg": 0.272
+      },
+      {
+        "name": "coby white",
+        "mpg": 25.0,
+        "net_rating": 3.2,
+        "gp": 50,
+        "pie": 0.112,
+        "usg": 0.283
+      },
+      {
+        "name": "drew peterson",
+        "mpg": 10.7,
+        "net_rating": -7.6,
+        "gp": 6,
+        "pie": 0.0,
+        "usg": 0.108
+      },
+      {
+        "name": "grant williams",
+        "mpg": 19.8,
+        "net_rating": 12.9,
+        "gp": 36,
+        "pie": 0.089,
+        "usg": 0.132
+      },
+      {
+        "name": "josh green",
+        "mpg": 15.7,
+        "net_rating": 12.5,
+        "gp": 58,
+        "pie": 0.059,
+        "usg": 0.104
+      },
+      {
+        "name": "kon knueppel",
+        "mpg": 31.5,
+        "net_rating": 6.2,
+        "gp": 81,
+        "pie": 0.115,
+        "usg": 0.216
+      },
+      {
+        "name": "lamelo ball",
+        "mpg": 28.0,
+        "net_rating": 9.1,
+        "gp": 72,
+        "pie": 0.134,
+        "usg": 0.306
+      },
+      {
+        "name": "liam mcneeley",
+        "mpg": 11.9,
+        "net_rating": 1.6,
+        "gp": 31,
+        "pie": 0.079,
+        "usg": 0.144
+      },
+      {
+        "name": "miles bridges",
+        "mpg": 31.0,
+        "net_rating": 3.5,
+        "gp": 77,
+        "pie": 0.114,
+        "usg": 0.221
+      },
+      {
+        "name": "moussa diabat\u00e9",
+        "mpg": 26.0,
+        "net_rating": 10.5,
+        "gp": 73,
+        "pie": 0.108,
+        "usg": 0.112
+      },
+      {
+        "name": "pj hall",
+        "mpg": 11.2,
+        "net_rating": -5.4,
+        "gp": 19,
+        "pie": 0.098,
+        "usg": 0.17
+      },
+      {
+        "name": "ryan kalkbrenner",
+        "mpg": 21.4,
+        "net_rating": 1.1,
+        "gp": 69,
+        "pie": 0.108,
+        "usg": 0.113
+      },
+      {
+        "name": "sion james",
+        "mpg": 22.5,
+        "net_rating": 3.3,
+        "gp": 82,
+        "pie": 0.062,
+        "usg": 0.109
+      },
+      {
+        "name": "tidjane sala\u00fcn",
+        "mpg": 15.6,
+        "net_rating": 2.1,
+        "gp": 37,
+        "pie": 0.102,
+        "usg": 0.147
+      },
+      {
+        "name": "tre mann",
+        "mpg": 12.6,
+        "net_rating": -10.1,
+        "gp": 53,
+        "pie": 0.062,
+        "usg": 0.231
+      }
+    ],
+    "mavericks": [
+      {
+        "name": "brandon williams",
+        "mpg": 22.2,
+        "net_rating": -4.4,
+        "gp": 66,
+        "pie": 0.115,
+        "usg": 0.242
+      },
+      {
+        "name": "caleb martin",
+        "mpg": 14.8,
+        "net_rating": -9.2,
+        "gp": 58,
+        "pie": 0.063,
+        "usg": 0.122
+      },
+      {
+        "name": "cooper flagg",
+        "mpg": 33.5,
+        "net_rating": -5.2,
+        "gp": 70,
+        "pie": 0.128,
+        "usg": 0.264
+      },
+      {
+        "name": "daniel gafford",
+        "mpg": 21.7,
+        "net_rating": -7.1,
+        "gp": 55,
+        "pie": 0.114,
+        "usg": 0.151
+      },
+      {
+        "name": "dereck lively ii",
+        "mpg": 16.5,
+        "net_rating": 6.3,
+        "gp": 7,
+        "pie": 0.094,
+        "usg": 0.113
+      },
+      {
+        "name": "dwight powell",
+        "mpg": 14.4,
+        "net_rating": -0.5,
+        "gp": 63,
+        "pie": 0.073,
+        "usg": 0.084
+      },
+      {
+        "name": "jeremiah robinson-earl",
+        "mpg": 16.4,
+        "net_rating": -10.2,
+        "gp": 22,
+        "pie": 0.069,
+        "usg": 0.129
+      },
+      {
+        "name": "john poulakidas",
+        "mpg": 19.5,
+        "net_rating": -2.3,
+        "gp": 13,
+        "pie": 0.069,
+        "usg": 0.153
+      },
+      {
+        "name": "khris middleton",
+        "mpg": 22.8,
+        "net_rating": -11.1,
+        "gp": 63,
+        "pie": 0.073,
+        "usg": 0.198
+      },
+      {
+        "name": "klay thompson",
+        "mpg": 21.7,
+        "net_rating": -4.6,
+        "gp": 69,
+        "pie": 0.077,
+        "usg": 0.214
+      },
+      {
+        "name": "marvin bagley iii",
+        "mpg": 20.0,
+        "net_rating": -9.1,
+        "gp": 60,
+        "pie": 0.123,
+        "usg": 0.18
+      },
+      {
+        "name": "max christie",
+        "mpg": 29.1,
+        "net_rating": -6.9,
+        "gp": 77,
+        "pie": 0.079,
+        "usg": 0.162
+      },
+      {
+        "name": "moussa cisse",
+        "mpg": 13.9,
+        "net_rating": 0.5,
+        "gp": 38,
+        "pie": 0.087,
+        "usg": 0.136
+      },
+      {
+        "name": "naji marshall",
+        "mpg": 29.5,
+        "net_rating": -4.6,
+        "gp": 74,
+        "pie": 0.106,
+        "usg": 0.2
+      },
+      {
+        "name": "p.j. washington",
+        "mpg": 31.0,
+        "net_rating": -7.3,
+        "gp": 56,
+        "pie": 0.093,
+        "usg": 0.194
+      },
+      {
+        "name": "ryan nembhard",
+        "mpg": 19.5,
+        "net_rating": -1.9,
+        "gp": 60,
+        "pie": 0.087,
+        "usg": 0.173
+      },
+      {
+        "name": "tyler smith",
+        "mpg": 13.8,
+        "net_rating": -4.1,
+        "gp": 12,
+        "pie": 0.059,
+        "usg": 0.135
+      }
+    ],
+    "pelicans": [
+      {
+        "name": "bryce mcgowens",
+        "mpg": 21.0,
+        "net_rating": -3.6,
+        "gp": 42,
+        "pie": 0.067,
+        "usg": 0.136
+      },
+      {
+        "name": "deandre jordan",
+        "mpg": 16.6,
+        "net_rating": -2.4,
+        "gp": 12,
+        "pie": 0.119,
+        "usg": 0.098
+      },
+      {
+        "name": "dejounte murray",
+        "mpg": 27.8,
+        "net_rating": 1.3,
+        "gp": 14,
+        "pie": 0.138,
+        "usg": 0.267
+      },
+      {
+        "name": "derik queen",
+        "mpg": 25.0,
+        "net_rating": -6.7,
+        "gp": 81,
+        "pie": 0.109,
+        "usg": 0.214
+      },
+      {
+        "name": "herbert jones",
+        "mpg": 28.4,
+        "net_rating": -0.9,
+        "gp": 56,
+        "pie": 0.053,
+        "usg": 0.153
+      },
+      {
+        "name": "jeremiah fears",
+        "mpg": 25.8,
+        "net_rating": -6.4,
+        "gp": 82,
+        "pie": 0.093,
+        "usg": 0.245
+      },
+      {
+        "name": "jordan hawkins",
+        "mpg": 13.6,
+        "net_rating": -9.8,
+        "gp": 51,
+        "pie": 0.055,
+        "usg": 0.175
+      },
+      {
+        "name": "jordan poole",
+        "mpg": 23.9,
+        "net_rating": -7.9,
+        "gp": 39,
+        "pie": 0.073,
+        "usg": 0.235
+      },
+      {
+        "name": "josh oduro",
+        "mpg": 27.3,
+        "net_rating": 3.2,
+        "gp": 3,
+        "pie": 0.05,
+        "usg": 0.09
+      },
+      {
+        "name": "karlo matkovi\u0107",
+        "mpg": 14.7,
+        "net_rating": -4.4,
+        "gp": 62,
+        "pie": 0.108,
+        "usg": 0.128
+      },
+      {
+        "name": "kevon looney",
+        "mpg": 14.6,
+        "net_rating": -10.4,
+        "gp": 21,
+        "pie": 0.093,
+        "usg": 0.096
+      },
+      {
+        "name": "micah peavy",
+        "mpg": 15.0,
+        "net_rating": -4.1,
+        "gp": 61,
+        "pie": 0.044,
+        "usg": 0.135
+      },
+      {
+        "name": "saddiq bey",
+        "mpg": 31.2,
+        "net_rating": -3.6,
+        "gp": 72,
+        "pie": 0.112,
+        "usg": 0.213
+      },
+      {
+        "name": "trey alexander",
+        "mpg": 12.3,
+        "net_rating": -7.0,
+        "gp": 9,
+        "pie": 0.078,
+        "usg": 0.148
+      },
+      {
+        "name": "trey murphy iii",
+        "mpg": 35.5,
+        "net_rating": -3.6,
+        "gp": 66,
+        "pie": 0.122,
+        "usg": 0.223
+      },
+      {
+        "name": "yves missi",
+        "mpg": 19.7,
+        "net_rating": -1.3,
+        "gp": 66,
+        "pie": 0.087,
+        "usg": 0.122
+      },
+      {
+        "name": "zion williamson",
+        "mpg": 29.7,
+        "net_rating": -1.9,
+        "gp": 62,
+        "pie": 0.141,
+        "usg": 0.25
+      }
+    ],
+    "spurs": [
+      {
+        "name": "carter bryant",
+        "mpg": 11.5,
+        "net_rating": 0.8,
+        "gp": 71,
+        "pie": 0.071,
+        "usg": 0.158
+      },
+      {
+        "name": "de'aaron fox",
+        "mpg": 31.0,
+        "net_rating": 9.9,
+        "gp": 72,
+        "pie": 0.117,
+        "usg": 0.242
+      },
+      {
+        "name": "devin vassell",
+        "mpg": 30.5,
+        "net_rating": 11.4,
+        "gp": 67,
+        "pie": 0.087,
+        "usg": 0.176
+      },
+      {
+        "name": "dylan harper",
+        "mpg": 22.6,
+        "net_rating": 9.5,
+        "gp": 69,
+        "pie": 0.113,
+        "usg": 0.211
+      },
+      {
+        "name": "harrison barnes",
+        "mpg": 25.8,
+        "net_rating": 7.8,
+        "gp": 77,
+        "pie": 0.075,
+        "usg": 0.144
+      },
+      {
+        "name": "julian champagnie",
+        "mpg": 27.6,
+        "net_rating": 12.4,
+        "gp": 82,
+        "pie": 0.091,
+        "usg": 0.146
+      },
+      {
+        "name": "keldon johnson",
+        "mpg": 23.3,
+        "net_rating": 7.8,
+        "gp": 82,
+        "pie": 0.118,
+        "usg": 0.201
+      },
+      {
+        "name": "luke kornet",
+        "mpg": 21.0,
+        "net_rating": 3.9,
+        "gp": 68,
+        "pie": 0.109,
+        "usg": 0.1
+      },
+      {
+        "name": "stephon castle",
+        "mpg": 30.0,
+        "net_rating": 9.8,
+        "gp": 68,
+        "pie": 0.117,
+        "usg": 0.243
+      },
+      {
+        "name": "victor wembanyama",
+        "mpg": 29.2,
+        "net_rating": 17.0,
+        "gp": 64,
+        "pie": 0.209,
+        "usg": 0.316
+      }
+    ],
+    "cavaliers": [
+      {
+        "name": "craig porter jr.",
+        "mpg": 17.9,
+        "net_rating": 4.6,
+        "gp": 64,
+        "pie": 0.092,
+        "usg": 0.119
+      },
+      {
+        "name": "dean wade",
+        "mpg": 22.3,
+        "net_rating": 6.2,
+        "gp": 59,
+        "pie": 0.074,
+        "usg": 0.097
+      },
+      {
+        "name": "dennis schr\u00f6der",
+        "mpg": 24.2,
+        "net_rating": -6.2,
+        "gp": 70,
+        "pie": 0.094,
+        "usg": 0.21
+      },
+      {
+        "name": "donovan mitchell",
+        "mpg": 33.5,
+        "net_rating": 7.2,
+        "gp": 70,
+        "pie": 0.152,
+        "usg": 0.311
+      },
+      {
+        "name": "evan mobley",
+        "mpg": 31.9,
+        "net_rating": 5.7,
+        "gp": 65,
+        "pie": 0.135,
+        "usg": 0.221
+      },
+      {
+        "name": "james harden",
+        "mpg": 34.8,
+        "net_rating": 1.8,
+        "gp": 70,
+        "pie": 0.143,
+        "usg": 0.279
+      },
+      {
+        "name": "jarrett allen",
+        "mpg": 27.1,
+        "net_rating": 6.4,
+        "gp": 56,
+        "pie": 0.143,
+        "usg": 0.196
+      },
+      {
+        "name": "jaylon tyson",
+        "mpg": 26.9,
+        "net_rating": 3.6,
+        "gp": 66,
+        "pie": 0.092,
+        "usg": 0.189
+      },
+      {
+        "name": "keon ellis",
+        "mpg": 20.5,
+        "net_rating": -4.8,
+        "gp": 72,
+        "pie": 0.058,
+        "usg": 0.129
+      },
+      {
+        "name": "larry nance jr.",
+        "mpg": 12.8,
+        "net_rating": -2.9,
+        "gp": 35,
+        "pie": 0.062,
+        "usg": 0.137
+      },
+      {
+        "name": "lonzo ball",
+        "mpg": 20.8,
+        "net_rating": 1.3,
+        "gp": 35,
+        "pie": 0.077,
+        "usg": 0.13
+      },
+      {
+        "name": "max strus",
+        "mpg": 24.0,
+        "net_rating": 0.3,
+        "gp": 12,
+        "pie": 0.088,
+        "usg": 0.17
+      },
+      {
+        "name": "nae'qwan tomlin",
+        "mpg": 15.7,
+        "net_rating": 3.6,
+        "gp": 64,
+        "pie": 0.069,
+        "usg": 0.151
+      },
+      {
+        "name": "sam merrill",
+        "mpg": 26.5,
+        "net_rating": 7.7,
+        "gp": 52,
+        "pie": 0.081,
+        "usg": 0.167
+      },
+      {
+        "name": "thomas bryant",
+        "mpg": 12.2,
+        "net_rating": 3.6,
+        "gp": 60,
+        "pie": 0.115,
+        "usg": 0.182
+      },
+      {
+        "name": "tyrese proctor",
+        "mpg": 10.9,
+        "net_rating": -0.3,
+        "gp": 50,
+        "pie": 0.087,
+        "usg": 0.214
+      }
+    ],
+    "kings": [
+      {
+        "name": "daquan jeffries",
+        "mpg": 20.0,
+        "net_rating": 0.8,
+        "gp": 3,
+        "pie": 0.078,
+        "usg": 0.141
+      },
+      {
+        "name": "daeqwon plowden",
+        "mpg": 26.4,
+        "net_rating": -10.9,
+        "gp": 32,
+        "pie": 0.057,
+        "usg": 0.157
+      },
+      {
+        "name": "de'andre hunter",
+        "mpg": 26.1,
+        "net_rating": -0.9,
+        "gp": 45,
+        "pie": 0.077,
+        "usg": 0.218
+      },
+      {
+        "name": "demar derozan",
+        "mpg": 31.2,
+        "net_rating": -11.7,
+        "gp": 77,
+        "pie": 0.111,
+        "usg": 0.222
+      },
+      {
+        "name": "devin carter",
+        "mpg": 18.4,
+        "net_rating": -7.3,
+        "gp": 38,
+        "pie": 0.094,
+        "usg": 0.226
+      },
+      {
+        "name": "domantas sabonis",
+        "mpg": 29.7,
+        "net_rating": -13.9,
+        "gp": 19,
+        "pie": 0.131,
+        "usg": 0.223
+      },
+      {
+        "name": "doug mcdermott",
+        "mpg": 15.1,
+        "net_rating": -11.1,
+        "gp": 29,
+        "pie": 0.055,
+        "usg": 0.146
+      },
+      {
+        "name": "drew eubanks",
+        "mpg": 13.1,
+        "net_rating": -11.4,
+        "gp": 42,
+        "pie": 0.082,
+        "usg": 0.161
+      },
+      {
+        "name": "dylan cardwell",
+        "mpg": 20.6,
+        "net_rating": -2.5,
+        "gp": 44,
+        "pie": 0.089,
+        "usg": 0.108
+      },
+      {
+        "name": "isaiah stevens",
+        "mpg": 14.3,
+        "net_rating": -13.0,
+        "gp": 3,
+        "pie": 0.093,
+        "usg": 0.107
+      },
+      {
+        "name": "keegan murray",
+        "mpg": 34.5,
+        "net_rating": -10.7,
+        "gp": 23,
+        "pie": 0.078,
+        "usg": 0.182
+      },
+      {
+        "name": "killian hayes",
+        "mpg": 17.6,
+        "net_rating": -2.8,
+        "gp": 23,
+        "pie": 0.071,
+        "usg": 0.179
+      },
+      {
+        "name": "malik monk",
+        "mpg": 22.0,
+        "net_rating": -8.3,
+        "gp": 62,
+        "pie": 0.094,
+        "usg": 0.234
+      },
+      {
+        "name": "maxime raynaud",
+        "mpg": 26.5,
+        "net_rating": -10.9,
+        "gp": 74,
+        "pie": 0.109,
+        "usg": 0.178
+      },
+      {
+        "name": "nique clifford",
+        "mpg": 25.1,
+        "net_rating": -4.5,
+        "gp": 75,
+        "pie": 0.062,
+        "usg": 0.167
+      },
+      {
+        "name": "patrick baldwin jr.",
+        "mpg": 11.4,
+        "net_rating": -17.2,
+        "gp": 9,
+        "pie": 0.052,
+        "usg": 0.142
+      },
+      {
+        "name": "precious achiuwa",
+        "mpg": 23.9,
+        "net_rating": -7.2,
+        "gp": 73,
+        "pie": 0.102,
+        "usg": 0.172
+      },
+      {
+        "name": "russell westbrook",
+        "mpg": 28.9,
+        "net_rating": -12.1,
+        "gp": 64,
+        "pie": 0.105,
+        "usg": 0.252
+      },
+      {
+        "name": "zach lavine",
+        "mpg": 31.4,
+        "net_rating": -12.6,
+        "gp": 39,
+        "pie": 0.096,
+        "usg": 0.234
+      }
+    ],
+    "knicks": [
+      {
+        "name": "jalen brunson",
+        "mpg": 35.0,
+        "net_rating": 6.1,
+        "gp": 74,
+        "pie": 0.135,
+        "usg": 0.296
+      },
+      {
+        "name": "jeremy sochan",
+        "mpg": 10.6,
+        "net_rating": -3.9,
+        "gp": 44,
+        "pie": 0.081,
+        "usg": 0.141
+      },
+      {
+        "name": "jordan clarkson",
+        "mpg": 17.8,
+        "net_rating": 3.7,
+        "gp": 72,
+        "pie": 0.068,
+        "usg": 0.203
+      },
+      {
+        "name": "jose alvarado",
+        "mpg": 19.9,
+        "net_rating": 1.3,
+        "gp": 69,
+        "pie": 0.088,
+        "usg": 0.167
+      },
+      {
+        "name": "josh hart",
+        "mpg": 30.2,
+        "net_rating": 5.5,
+        "gp": 66,
+        "pie": 0.118,
+        "usg": 0.163
+      },
+      {
+        "name": "karl-anthony towns",
+        "mpg": 31.0,
+        "net_rating": 7.0,
+        "gp": 75,
+        "pie": 0.154,
+        "usg": 0.251
+      },
+      {
+        "name": "landry shamet",
+        "mpg": 23.0,
+        "net_rating": 8.1,
+        "gp": 51,
+        "pie": 0.07,
+        "usg": 0.151
+      },
+      {
+        "name": "mikal bridges",
+        "mpg": 32.8,
+        "net_rating": 6.0,
+        "gp": 82,
+        "pie": 0.099,
+        "usg": 0.17
+      },
+      {
+        "name": "miles mcbride",
+        "mpg": 26.3,
+        "net_rating": 9.5,
+        "gp": 41,
+        "pie": 0.085,
+        "usg": 0.174
+      },
+      {
+        "name": "mitchell robinson",
+        "mpg": 19.6,
+        "net_rating": 7.8,
+        "gp": 60,
+        "pie": 0.124,
+        "usg": 0.102
+      },
+      {
+        "name": "og anunoby",
+        "mpg": 33.2,
+        "net_rating": 9.2,
+        "gp": 67,
+        "pie": 0.099,
+        "usg": 0.194
+      },
+      {
+        "name": "tyler kolek",
+        "mpg": 11.7,
+        "net_rating": 6.0,
+        "gp": 62,
+        "pie": 0.101,
+        "usg": 0.173
+      }
+    ]
+  }
+}

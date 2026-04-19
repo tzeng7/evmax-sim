@@ -42,7 +42,7 @@
 nba:
   display_name: "NBA"
   market_types: [moneyline, spread, total]
-  models: [elo, form, poisson, sharp]
+  models: [elo, form, efficiency, shot_quality, matchup, possession_sim, sharp]
   mode: live
   resolver: espn_scoreboard
   status: shipped

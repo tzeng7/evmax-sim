@@ -55,6 +55,10 @@ from evmax.agents.models.tennis_ranking_trend_agent import TennisRankingTrendAge
 from evmax.agents.models.tennis_advanced_stats_agent import TennisAdvancedStatsAgent
 from evmax.agents.models.pitcher_agent import PitcherModelAgent
 from evmax.agents.models.soccer_xg_agent import SoccerXgAgent
+from evmax.agents.models.efficiency_agent import EfficiencyModelAgent
+from evmax.agents.models.shot_quality_agent import ShotQualityAgent
+from evmax.agents.models.matchup_agent import MatchupAgent
+from evmax.agents.models.possession_sim_agent import PossessionSimAgent
 from evmax.agents.intelligence.injury_agent import InjuryReportAgent, InjuryReport
 from evmax.agents.intelligence.playoff_agent import PlayoffAgent, PlayoffSeries
 from evmax.agents.intelligence.standings_agent import StandingsAgent, TeamStanding
@@ -268,6 +272,10 @@ class AgentCoordinator:
         self.tennis_advanced_agent = TennisAdvancedStatsAgent()
         self.pitcher_agent = PitcherModelAgent()
         self.soccer_xg_agent = SoccerXgAgent()
+        self.efficiency_agent = EfficiencyModelAgent()
+        self.shot_quality_agent = ShotQualityAgent()
+        self.matchup_agent = MatchupAgent()
+        self.possession_sim_agent = PossessionSimAgent()
         self.ensemble_agent = EnsembleModelAgent(
             models=[
                 self.elo_agent, self.form_agent, self.poisson_agent,
@@ -276,6 +284,10 @@ class AgentCoordinator:
                 self.tennis_advanced_agent,
                 self.pitcher_agent,
                 self.soccer_xg_agent,
+                self.efficiency_agent,
+                self.shot_quality_agent,
+                self.matchup_agent,
+                self.possession_sim_agent,
             ],
             sharp_weight=sharp_weight,
         )
@@ -299,7 +311,8 @@ class AgentCoordinator:
             self.tennis_agent, self.tennis_serve_agent,
             self.tennis_h2h_agent, self.tennis_trend_agent,
             self.pitcher_agent, self.soccer_xg_agent,
-            self.ensemble_agent,
+            self.efficiency_agent, self.shot_quality_agent, self.matchup_agent,
+            self.possession_sim_agent, self.ensemble_agent,
         ]
 
     # ------------------------------------------------------------------

@@ -70,6 +70,12 @@ class EnsembleModelAgent(Agent):
     # allocations were historically overconfident.
     SECTOR_WEIGHT_OVERRIDES: dict[str, dict[str, float]] = {
         "soccer": {"elo": 0.15, "form": 0.10, "poisson": 0.40, "xg": 0.25},
+        "nba": {
+            "efficiency": 0.30, "possession_sim": 0.30,
+            "elo": 0.10, "form": 0.10,
+            "shot_quality": 0.10, "matchup": 0.10,
+            "poisson": 0.0,
+        },
     }
 
     def __init__(
@@ -166,6 +172,56 @@ class EnsembleModelAgent(Agent):
     # Blending logic
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _flb_correct(
+        prob_a: float,
+        prob_b: float,
+        prob_draw: float | None,
+        sharp: SharpOdds,
+        sharp_weight: float,
+    ) -> tuple[float, float, float | None]:
+        """Favorite-longshot bias correction.
+
+        When sharp probability is far from 50%, models trained on regular-season
+        data systematically compress toward 50/50 — inflating underdogs and
+        deflating favorites. This re-blends toward sharp at the extremes.
+
+        The effective sharp weight increases quadratically as sharp prob moves
+        away from 50%:
+            extra = FLB_STRENGTH × (sharp_prob - 0.5)²
+            effective_sharp = sharp_weight + extra × (1 - sharp_weight)
+
+        At sharp=90%, extra ≈ 0.6 × 0.16 = 0.096, so effective sharp goes
+        from 0.85 to ~0.99 — almost purely sharp at the extremes. At sharp=60%,
+        extra ≈ 0.006 — negligible. This only affects extreme probabilities.
+        """
+        FLB_STRENGTH = 1.5
+
+        for sharp_p, blended_p, label in [
+            (sharp.true_prob_a, prob_a, "a"),
+            (sharp.true_prob_b, prob_b, "b"),
+        ]:
+            deviation = (sharp_p - 0.5) ** 2
+            extra = FLB_STRENGTH * deviation
+            effective_sharp = sharp_weight + extra * (1.0 - sharp_weight)
+            effective_sharp = min(effective_sharp, 0.99)
+
+            corrected = effective_sharp * sharp_p + (1.0 - effective_sharp) * blended_p
+            if label == "a":
+                prob_a = corrected
+            else:
+                prob_b = corrected
+
+        if prob_draw is not None and sharp.true_prob_draw is not None:
+            sharp_draw = sharp.true_prob_draw
+            deviation = (sharp_draw - 0.5) ** 2
+            extra = FLB_STRENGTH * deviation
+            effective_sharp = sharp_weight + extra * (1.0 - sharp_weight)
+            effective_sharp = min(effective_sharp, 0.99)
+            prob_draw = effective_sharp * sharp_draw + (1.0 - effective_sharp) * prob_draw
+
+        return prob_a, prob_b, prob_draw
+
     def _blend(
         self,
         event_id: str,
@@ -226,6 +282,16 @@ class EnsembleModelAgent(Agent):
             prob_b = sharp_weight * sharp.true_prob_b + model_weight * model_b
             prob_draw = (sharp_weight * (sharp.true_prob_draw or 0.0) + model_weight * model_draw
                          if has_draw else None)
+
+        # Favorite-longshot bias correction: at extreme probabilities,
+        # models systematically compress toward 50/50 vs sharp. Scale model
+        # weight down when sharp prob is far from 50% so the blend trusts
+        # sharp more at the tails. This is the actual sharp_weight used after
+        # applying the correction.
+        if has_models and has_sharp:
+            prob_a, prob_b, prob_draw = self._flb_correct(
+                prob_a, prob_b, prob_draw, sharp, sharp_weight,
+            )
 
         # Normalize to sum to 1
         total_p = prob_a + prob_b + (prob_draw or 0.0)

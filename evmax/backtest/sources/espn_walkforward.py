@@ -22,8 +22,14 @@ import structlog
 from evmax.agents.models.elo_agent import EloModelAgent
 from evmax.agents.models.form_agent import FormModelAgent
 from evmax.agents.models.poisson_agent import PoissonModelAgent
+from evmax.agents.models.efficiency_agent import EfficiencyModelAgent
+from evmax.agents.models.possession_sim_agent import PossessionSimAgent
+from evmax.agents.models.shot_quality_agent import ShotQualityAgent
+from evmax.agents.models.matchup_agent import MatchupAgent
 from evmax.backtest.models import BacktestRow
 from evmax.matching.normalizer import NameNormalizer
+from evmax.models.market import PredictionMarket, MarketSource
+from evmax.models.odds import SharpOdds, SharpBook
 
 logger = structlog.get_logger(__name__)
 
@@ -54,6 +60,10 @@ class WalkForwardResult:
     elo_prob_home: Optional[float] = None
     form_prob_home: Optional[float] = None
     poisson_prob_home: Optional[float] = None
+    efficiency_prob_home: Optional[float] = None
+    possession_sim_prob_home: Optional[float] = None
+    shot_quality_prob_home: Optional[float] = None
+    matchup_prob_home: Optional[float] = None
     ensemble_prob_home: Optional[float] = None
 
 
@@ -73,6 +83,18 @@ class WalkForwardReport:
     poisson_brier: float = 0.0
     poisson_accuracy: float = 0.0
     poisson_n: int = 0
+    efficiency_brier: float = 0.0
+    efficiency_accuracy: float = 0.0
+    efficiency_n: int = 0
+    possession_sim_brier: float = 0.0
+    possession_sim_accuracy: float = 0.0
+    possession_sim_n: int = 0
+    shot_quality_brier: float = 0.0
+    shot_quality_accuracy: float = 0.0
+    shot_quality_n: int = 0
+    matchup_brier: float = 0.0
+    matchup_accuracy: float = 0.0
+    matchup_n: int = 0
     # Ensemble
     ensemble_brier: float = 0.0
     ensemble_accuracy: float = 0.0
@@ -166,6 +188,14 @@ def fetch_espn_games(
     return unique
 
 
+NBA_WEIGHT_OVERRIDES: dict[str, float] = {
+    "efficiency": 0.30, "possession_sim": 0.30,
+    "elo": 0.10, "form": 0.10,
+    "shot_quality": 0.10, "matchup": 0.10,
+    "poisson": 0.0,
+}
+
+
 def run_walkforward(
     sector: str,
     months: list[str],
@@ -191,6 +221,18 @@ def run_walkforward(
     poisson = PoissonModelAgent()
     poisson._state = {}
 
+    # NBA advanced models — use current season stats (not walk-forward)
+    is_nba = sector.lower() == "nba"
+    efficiency_agent = None
+    possession_sim_agent = None
+    shot_quality_agent = None
+    matchup_agent = None
+    if is_nba:
+        efficiency_agent = EfficiencyModelAgent()
+        possession_sim_agent = PossessionSimAgent()
+        shot_quality_agent = ShotQualityAgent()
+        matchup_agent = MatchupAgent()
+
     norm = NameNormalizer(sector)
     results: list[WalkForwardResult] = []
 
@@ -210,10 +252,29 @@ def run_walkforward(
         form_prob = _form_predict(form, sector, home, away)
         poisson_prob = _poisson_predict(poisson, sector, home, away)
 
+        eff_prob = None
+        possim_prob = None
+        sq_prob = None
+        mu_prob = None
+        if is_nba:
+            eff_prob, possim_prob, sq_prob, mu_prob = _nba_model_predict(
+                home, away, efficiency_agent, possession_sim_agent,
+                shot_quality_agent, matchup_agent,
+            )
+
         # Ensemble: weighted average of available models
-        ensemble_prob = _ensemble(
-            [(elo_prob, elo_weight), (form_prob, form_weight), (poisson_prob, poisson_weight)]
-        )
+        if is_nba:
+            w = NBA_WEIGHT_OVERRIDES
+            ensemble_prob = _ensemble([
+                (elo_prob, w["elo"]), (form_prob, w["form"]),
+                (poisson_prob, w["poisson"]),
+                (eff_prob, w["efficiency"]), (possim_prob, w["possession_sim"]),
+                (sq_prob, w["shot_quality"]), (mu_prob, w["matchup"]),
+            ])
+        else:
+            ensemble_prob = _ensemble(
+                [(elo_prob, elo_weight), (form_prob, form_weight), (poisson_prob, poisson_weight)]
+            )
 
         result = WalkForwardResult(
             date=game_date,
@@ -225,6 +286,10 @@ def run_walkforward(
             elo_prob_home=elo_prob,
             form_prob_home=form_prob,
             poisson_prob_home=poisson_prob,
+            efficiency_prob_home=eff_prob,
+            possession_sim_prob_home=possim_prob,
+            shot_quality_prob_home=sq_prob,
+            matchup_prob_home=mu_prob,
             ensemble_prob_home=ensemble_prob,
         )
         results.append(result)
@@ -237,6 +302,43 @@ def run_walkforward(
     # --- Compute metrics ---
     report = _compute_metrics(sector, results, elo_weight, form_weight, poisson_weight)
     return report
+
+
+def _nba_model_predict(
+    home: str,
+    away: str,
+    efficiency_agent: Optional[EfficiencyModelAgent],
+    possession_sim_agent: Optional[PossessionSimAgent],
+    shot_quality_agent: Optional[ShotQualityAgent],
+    matchup_agent: Optional[MatchupAgent],
+) -> tuple[Optional[float], Optional[float], Optional[float], Optional[float]]:
+    """Get predictions from NBA advanced models. Returns (eff, possim, sq, matchup)."""
+    prob_a_default = 0.55
+    prob_b_default = 0.45
+    market = PredictionMarket(
+        id="bt", market_id="bt", event_id=f"bt_{home}_{away}",
+        sector="nba", team_home=home, team_away=away,
+        source=MarketSource.kalshi, yes_price=prob_a_default, no_price=prob_b_default,
+    )
+    sharp = SharpOdds(
+        event_id=f"bt_{home}_{away}", book=SharpBook.pinnacle, sector="nba",
+        outcome_a_label=home, outcome_b_label=away,
+        outcome_a_decimal=1 / prob_a_default, outcome_b_decimal=1 / prob_b_default,
+        true_prob_a=prob_a_default, true_prob_b=prob_b_default,
+    )
+
+    results = []
+    for agent in [efficiency_agent, possession_sim_agent, shot_quality_agent, matchup_agent]:
+        if agent is None:
+            results.append(None)
+            continue
+        try:
+            pred = asyncio.run(agent.predict_pair(market, sharp))
+            results.append(pred.true_prob_a if pred else None)
+        except Exception:
+            results.append(None)
+
+    return tuple(results)  # type: ignore[return-value]
 
 
 def _elo_predict(elo: EloModelAgent, sector: str, home: str, away: str) -> Optional[float]:
@@ -461,6 +563,10 @@ def _compute_metrics(
     elo_pred, elo_actual = [], []
     form_pred, form_actual = [], []
     pois_pred, pois_actual = [], []
+    eff_pred, eff_actual = [], []
+    possim_pred, possim_actual = [], []
+    sq_pred, sq_actual = [], []
+    mu_pred, mu_actual = [], []
     ens_pred, ens_actual = [], []
 
     for r in results:
@@ -474,6 +580,18 @@ def _compute_metrics(
         if r.poisson_prob_home is not None:
             pois_pred.append(r.poisson_prob_home)
             pois_actual.append(actual)
+        if r.efficiency_prob_home is not None:
+            eff_pred.append(r.efficiency_prob_home)
+            eff_actual.append(actual)
+        if r.possession_sim_prob_home is not None:
+            possim_pred.append(r.possession_sim_prob_home)
+            possim_actual.append(actual)
+        if r.shot_quality_prob_home is not None:
+            sq_pred.append(r.shot_quality_prob_home)
+            sq_actual.append(actual)
+        if r.matchup_prob_home is not None:
+            mu_pred.append(r.matchup_prob_home)
+            mu_actual.append(actual)
         if r.ensemble_prob_home is not None:
             ens_pred.append(r.ensemble_prob_home)
             ens_actual.append(actual)
@@ -497,6 +615,18 @@ def _compute_metrics(
         poisson_brier=brier_score(pois_pred, pois_actual),
         poisson_accuracy=accuracy_score(pois_pred, pois_actual),
         poisson_n=len(pois_pred),
+        efficiency_brier=brier_score(eff_pred, eff_actual),
+        efficiency_accuracy=accuracy_score(eff_pred, eff_actual),
+        efficiency_n=len(eff_pred),
+        possession_sim_brier=brier_score(possim_pred, possim_actual),
+        possession_sim_accuracy=accuracy_score(possim_pred, possim_actual),
+        possession_sim_n=len(possim_pred),
+        shot_quality_brier=brier_score(sq_pred, sq_actual),
+        shot_quality_accuracy=accuracy_score(sq_pred, sq_actual),
+        shot_quality_n=len(sq_pred),
+        matchup_brier=brier_score(mu_pred, mu_actual),
+        matchup_accuracy=accuracy_score(mu_pred, mu_actual),
+        matchup_n=len(mu_pred),
         ensemble_brier=brier_score(ens_pred, ens_actual),
         ensemble_accuracy=accuracy_score(ens_pred, ens_actual),
         ensemble_n=len(ens_pred),

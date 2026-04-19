@@ -48,6 +48,10 @@ def summary_panel(report: WalkForwardReport) -> Panel:
         ("Elo", report.elo_brier, report.elo_accuracy, report.elo_n),
         ("Form", report.form_brier, report.form_accuracy, report.form_n),
         ("Poisson", report.poisson_brier, report.poisson_accuracy, report.poisson_n),
+        ("Efficiency", report.efficiency_brier, report.efficiency_accuracy, report.efficiency_n),
+        ("PossessionSim", report.possession_sim_brier, report.possession_sim_accuracy, report.possession_sim_n),
+        ("ShotQuality", report.shot_quality_brier, report.shot_quality_accuracy, report.shot_quality_n),
+        ("Matchup", report.matchup_brier, report.matchup_accuracy, report.matchup_n),
         ("Ensemble", report.ensemble_brier, report.ensemble_accuracy, report.ensemble_n),
     ]
     for name, brier, acc, n in models:
@@ -113,6 +117,10 @@ def model_convergence_table(report: WalkForwardReport) -> Table:
         ("Elo", "elo_prob_home"),
         ("Form", "form_prob_home"),
         ("Poisson", "poisson_prob_home"),
+        ("Efficiency", "efficiency_prob_home"),
+        ("PossessionSim", "possession_sim_prob_home"),
+        ("ShotQuality", "shot_quality_prob_home"),
+        ("Matchup", "matchup_prob_home"),
         ("Ensemble", "ensemble_prob_home"),
     ]
 

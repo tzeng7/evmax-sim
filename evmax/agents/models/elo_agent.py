@@ -402,11 +402,11 @@ class EloModelAgent(ModelAgent):
 
     @staticmethod
     def _recency_k(base_k: float, event_date: Optional[str] = None) -> float:
-        """Scale K-factor by recency: recent games get up to 2× base K.
+        """Scale K-factor by recency: recent games get up to 1.4× base K.
 
         Decay curve:
-          - Last 14 days: K multiplier = 2.0 (full recency boost)
-          - 14–60 days ago: linearly decays from 2.0 → 1.0
+          - Last 14 days: K multiplier = 1.4 (moderate recency boost)
+          - 14–60 days ago: linearly decays from 1.4 → 1.0
           - 60+ days ago: K multiplier = 1.0 (base K, no boost)
         """
         if not event_date:
@@ -421,10 +421,9 @@ class EloModelAgent(ModelAgent):
             days_ago = 0
 
         if days_ago <= 14:
-            multiplier = 2.0
+            multiplier = 1.4
         elif days_ago <= 60:
-            # Linear decay from 2.0 at day 14 to 1.0 at day 60
-            multiplier = 2.0 - (days_ago - 14) / (60 - 14)
+            multiplier = 1.4 - 0.4 * (days_ago - 14) / (60 - 14)
         else:
             multiplier = 1.0
 
@@ -436,17 +435,18 @@ class EloModelAgent(ModelAgent):
         Beating a strong opponent (above-average Elo) gives a bigger K boost,
         while beating a weak opponent yields a smaller update.
 
-        Range: [0.85, 1.15] — mild effect to avoid over-amplifying.
+        Range: [0.70, 1.30] — wide enough to meaningfully separate teams
+        with hard vs soft schedules over a full season.
         """
         ratings = self._sector_state(sector).get("ratings", {})
         if len(ratings) < 4:
             return 1.0  # not enough teams to compute league average
         opp_elo = self._get_rating(sector, opponent)
         avg_elo = sum(ratings.values()) / len(ratings)
-        # Scale: +200 Elo above avg → 1.15x, -200 below → 0.85x
+        # Scale: +200 Elo above avg → 1.30x, -200 below → 0.70x
         diff = opp_elo - avg_elo
-        mult = 1.0 + diff / (200.0 / 0.15)
-        return max(0.85, min(1.15, mult))
+        mult = 1.0 + diff / (200.0 / 0.30)
+        return max(0.70, min(1.30, mult))
 
     @staticmethod
     def _mov_multiplier(margin: float, elo_diff: float) -> float:

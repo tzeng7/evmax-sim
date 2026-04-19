@@ -1,0 +1,314 @@
+{
+  "nba": {
+    "fetched_date": "2026-04-19",
+    "teams": {
+      "hawks": {
+        "fg3_pct": 0.371,
+        "fg3a": 39.5,
+        "rim_pct": 0.661,
+        "rim_fga": 26.5,
+        "mid_pct": 0.427,
+        "mid_fga": 7.3,
+        "efg": 0.5533478260869565,
+        "full_name": "atlanta hawks"
+      },
+      "celtics": {
+        "fg3_pct": 0.367,
+        "fg3a": 42.1,
+        "rim_pct": 0.714,
+        "rim_fga": 19.0,
+        "mid_pct": 0.408,
+        "mid_fga": 11.2,
+        "efg": 0.552920177383592,
+        "full_name": "boston celtics"
+      },
+      "nets": {
+        "fg3_pct": 0.34,
+        "fg3a": 38.4,
+        "rim_pct": 0.646,
+        "rim_fga": 24.8,
+        "mid_pct": 0.371,
+        "mid_fga": 6.1,
+        "efg": 0.5205147928994083,
+        "full_name": "brooklyn nets"
+      },
+      "hornets": {
+        "fg3_pct": 0.378,
+        "fg3a": 43.3,
+        "rim_pct": 0.659,
+        "rim_fga": 23.2,
+        "mid_pct": 0.363,
+        "mid_fga": 5.3,
+        "efg": 0.5522384701912261,
+        "full_name": "charlotte hornets"
+      },
+      "bulls": {
+        "fg3_pct": 0.356,
+        "fg3a": 40.1,
+        "rim_pct": 0.632,
+        "rim_fga": 31.9,
+        "mid_pct": 0.405,
+        "mid_fga": 4.1,
+        "efg": 0.5480055248618785,
+        "full_name": "chicago bulls"
+      },
+      "cavaliers": {
+        "fg3_pct": 0.36,
+        "fg3a": 39.8,
+        "rim_pct": 0.679,
+        "rim_fga": 25.9,
+        "mid_pct": 0.452,
+        "mid_fga": 6.7,
+        "efg": 0.5614444444444444,
+        "full_name": "cleveland cavaliers"
+      },
+      "mavericks": {
+        "fg3_pct": 0.344,
+        "fg3a": 31.9,
+        "rim_pct": 0.656,
+        "rim_fga": 25.9,
+        "mid_pct": 0.39,
+        "mid_fga": 11.5,
+        "efg": 0.5272472160356347,
+        "full_name": "dallas mavericks"
+      },
+      "nuggets": {
+        "fg3_pct": 0.396,
+        "fg3a": 35.8,
+        "rim_pct": 0.683,
+        "rim_fga": 23.6,
+        "mid_pct": 0.451,
+        "mid_fga": 10.2,
+        "efg": 0.5768656036446469,
+        "full_name": "denver nuggets"
+      },
+      "pistons": {
+        "fg3_pct": 0.356,
+        "fg3a": 30.9,
+        "rim_pct": 0.673,
+        "rim_fga": 30.4,
+        "mid_pct": 0.421,
+        "mid_fga": 8.2,
+        "efg": 0.5464525139664804,
+        "full_name": "detroit pistons"
+      },
+      "warriors": {
+        "fg3_pct": 0.356,
+        "fg3a": 44.1,
+        "rim_pct": 0.696,
+        "rim_fga": 22.8,
+        "mid_pct": 0.397,
+        "mid_fga": 7.0,
+        "efg": 0.5494009009009009,
+        "full_name": "golden state warriors"
+      },
+      "rockets": {
+        "fg3_pct": 0.364,
+        "fg3a": 31.5,
+        "rim_pct": 0.664,
+        "rim_fga": 24.5,
+        "mid_pct": 0.407,
+        "mid_fga": 12.1,
+        "efg": 0.5430311804008908,
+        "full_name": "houston rockets"
+      },
+      "pacers": {
+        "fg3_pct": 0.356,
+        "fg3a": 37.6,
+        "rim_pct": 0.651,
+        "rim_fga": 24.1,
+        "mid_pct": 0.405,
+        "mid_fga": 10.8,
+        "efg": 0.5331964085297419,
+        "full_name": "indiana pacers"
+      },
+      "la clippers": {
+        "fg3_pct": 0.368,
+        "fg3a": 33.8,
+        "rim_pct": 0.706,
+        "rim_fga": 22.5,
+        "mid_pct": 0.414,
+        "mid_fga": 8.2,
+        "efg": 0.5581626794258373,
+        "full_name": "la clippers"
+      },
+      "lakers": {
+        "fg3_pct": 0.359,
+        "fg3a": 32.9,
+        "rim_pct": 0.744,
+        "rim_fga": 22.4,
+        "mid_pct": 0.446,
+        "mid_fga": 9.4,
+        "efg": 0.572489844683393,
+        "full_name": "los angeles lakers"
+      },
+      "grizzlies": {
+        "fg3_pct": 0.353,
+        "fg3a": 39.5,
+        "rim_pct": 0.646,
+        "rim_fga": 22.9,
+        "mid_pct": 0.403,
+        "mid_fga": 7.6,
+        "efg": 0.532710816777042,
+        "full_name": "memphis grizzlies"
+      },
+      "heat": {
+        "fg3_pct": 0.361,
+        "fg3a": 37.9,
+        "rim_pct": 0.663,
+        "rim_fga": 26.9,
+        "mid_pct": 0.38,
+        "mid_fga": 7.0,
+        "efg": 0.5414190782422293,
+        "full_name": "miami heat"
+      },
+      "bucks": {
+        "fg3_pct": 0.387,
+        "fg3a": 39.1,
+        "rim_pct": 0.701,
+        "rim_fga": 21.8,
+        "mid_pct": 0.422,
+        "mid_fga": 11.2,
+        "efg": 0.5653040935672514,
+        "full_name": "milwaukee bucks"
+      },
+      "timberwolves": {
+        "fg3_pct": 0.37,
+        "fg3a": 37.2,
+        "rim_pct": 0.681,
+        "rim_fga": 26.1,
+        "mid_pct": 0.419,
+        "mid_fga": 8.8,
+        "efg": 0.5589661016949152,
+        "full_name": "minnesota timberwolves"
+      },
+      "pelicans": {
+        "fg3_pct": 0.347,
+        "fg3a": 32.1,
+        "rim_pct": 0.639,
+        "rim_fga": 34.8,
+        "mid_pct": 0.341,
+        "mid_fga": 6.3,
+        "efg": 0.5273259668508288,
+        "full_name": "new orleans pelicans"
+      },
+      "knicks": {
+        "fg3_pct": 0.373,
+        "fg3a": 38.2,
+        "rim_pct": 0.663,
+        "rim_fga": 25.2,
+        "mid_pct": 0.445,
+        "mid_fga": 10.2,
+        "efg": 0.5574183445190156,
+        "full_name": "new york knicks"
+      },
+      "thunder": {
+        "fg3_pct": 0.365,
+        "fg3a": 37.9,
+        "rim_pct": 0.686,
+        "rim_fga": 24.9,
+        "mid_pct": 0.482,
+        "mid_fga": 9.6,
+        "efg": 0.5614410774410774,
+        "full_name": "oklahoma city thunder"
+      },
+      "magic": {
+        "fg3_pct": 0.343,
+        "fg3a": 34.1,
+        "rim_pct": 0.661,
+        "rim_fga": 27.6,
+        "mid_pct": 0.425,
+        "mid_fga": 8.8,
+        "efg": 0.5302514156285391,
+        "full_name": "orlando magic"
+      },
+      "76ers": {
+        "fg3_pct": 0.349,
+        "fg3a": 35.3,
+        "rim_pct": 0.642,
+        "rim_fga": 28.7,
+        "mid_pct": 0.424,
+        "mid_fga": 10.1,
+        "efg": 0.5301063122923588,
+        "full_name": "philadelphia 76ers"
+      },
+      "suns": {
+        "fg3_pct": 0.361,
+        "fg3a": 40.8,
+        "rim_pct": 0.664,
+        "rim_fga": 21.1,
+        "mid_pct": 0.424,
+        "mid_fga": 11.0,
+        "efg": 0.5371309655937847,
+        "full_name": "phoenix suns"
+      },
+      "trail blazers": {
+        "fg3_pct": 0.343,
+        "fg3a": 42.2,
+        "rim_pct": 0.664,
+        "rim_fga": 28.6,
+        "mid_pct": 0.38,
+        "mid_fga": 5.8,
+        "efg": 0.5334661487236404,
+        "full_name": "portland trail blazers"
+      },
+      "kings": {
+        "fg3_pct": 0.34,
+        "fg3a": 30.2,
+        "rim_pct": 0.695,
+        "rim_fga": 20.1,
+        "mid_pct": 0.417,
+        "mid_fga": 14.3,
+        "efg": 0.5248651685393259,
+        "full_name": "sacramento kings"
+      },
+      "spurs": {
+        "fg3_pct": 0.359,
+        "fg3a": 37.9,
+        "rim_pct": 0.679,
+        "rim_fga": 28.0,
+        "mid_pct": 0.436,
+        "mid_fga": 8.6,
+        "efg": 0.5586395995550612,
+        "full_name": "san antonio spurs"
+      },
+      "raptors": {
+        "fg3_pct": 0.354,
+        "fg3a": 32.1,
+        "rim_pct": 0.683,
+        "rim_fga": 26.7,
+        "mid_pct": 0.438,
+        "mid_fga": 10.6,
+        "efg": 0.5464796380090498,
+        "full_name": "toronto raptors"
+      },
+      "jazz": {
+        "fg3_pct": 0.345,
+        "fg3a": 36.7,
+        "rim_pct": 0.672,
+        "rim_fga": 23.5,
+        "mid_pct": 0.391,
+        "mid_fga": 9.0,
+        "efg": 0.5361547749725577,
+        "full_name": "utah jazz"
+      },
+      "wizards": {
+        "fg3_pct": 0.359,
+        "fg3a": 36.4,
+        "rim_pct": 0.682,
+        "rim_fga": 24.7,
+        "mid_pct": 0.429,
+        "mid_fga": 11.5,
+        "efg": 0.5349026548672566,
+        "full_name": "washington wizards"
+      }
+    },
+    "league_avgs": {
+      "fg3_pct": 0.35933333333333334,
+      "rim_pct": 0.6728333333333334,
+      "mid_pct": 0.41376666666666667,
+      "fg3a": 36.97666666666667,
+      "rim_fga": 25.303333333333335
+    }
+  }
+}

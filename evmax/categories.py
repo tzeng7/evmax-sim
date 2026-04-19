@@ -52,6 +52,11 @@ KNOWN_MODELS: set[str] = {
     "poisson",
     "sharp",
     "pitcher",
+    # NBA-specific advanced agents
+    "efficiency",
+    "shot_quality",
+    "matchup",
+    "possession_sim",
     # Tennis-specific agents
     "tennis_surface_elo",
     "tennis_serve_return",
