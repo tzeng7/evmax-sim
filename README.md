@@ -110,14 +110,17 @@ Every scan cycle runs through a coordinated set of agents:
 ┌───────────────────────────────────────────────────────────────────────────┤
 │  STEP 3 — EnsembleModelAgent (models run in parallel)                     │
 │                                                                           │
-│  ┌───────────────┐ ┌───────────────┐ ┌─────────────────┐                 │
-│  │  EloModel     │ │  FormModel    │ │  PoissonModel   │                 │
-│  │  Agent        │ │  Agent        │ │  Agent          │                 │
-│  │  (weight 0.35)│ │  (weight 0.25)│ │  (weight 0.30)  │                 │
-│  └───────┬───────┘ └───────┬───────┘ └────────┬────────┘                 │
-│          └─────────────────┴──────────────────┘                          │
-│                    Confidence-weighted blend                               │
-│                    + Sharp odds (weight 0.40)                             │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐    │
+│  │ Efficiency   │ │ Possession   │ │  EloModel    │ │  FormModel   │    │
+│  │ Agent (0.30) │ │ Sim (0.30)   │ │  (0.10)      │ │  (0.10)      │    │
+│  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘ └──────┬───────┘    │
+│  ┌──────┴───────┐ ┌──────┴───────┐        │                │            │
+│  │ ShotQuality  │ │  Matchup     │        │                │            │
+│  │ Agent (0.10) │ │  Agent (0.10)│        │                │            │
+│  └──────┬───────┘ └──────┬───────┘        │                │            │
+│         └────────────────┴────────────────┴────────────────┘             │
+│                    Confidence-weighted blend (NBA weights above)          │
+│                    + Sharp odds (weight 0.85)                            │
 │                    = BlendedPrediction per event                          │
 └───────────────────────────┬───────────────────────────────────────────────┘
                             │ blended_preds + injuries
@@ -267,11 +270,127 @@ KALSHI_WS_SNAPSHOT_TIMEOUT=8.0
 
 ## Statistical Models
 
-The system uses three core statistical model agents (Elo / Form / Poisson), four tennis-specific agents, an MLB pitcher agent, an NBA player-prop agent, and two baseline models. All model outputs are blended by the EnsembleModelAgent. Models below the 0.45 confidence gate are silently dropped from the blend so missing coverage degrades gracefully.
+The system runs sector-specific model ensembles blended with Pinnacle sharp lines. NBA uses six dedicated agents; soccer relies on Poisson; tennis has four specialized agents; MLB has a pitcher agent. All outputs are blended by the EnsembleModelAgent. Models below the 0.45 confidence gate are silently dropped from the blend so missing coverage degrades gracefully.
 
-### Elo Model (`EloModelAgent`, weight=0.35)
+### Per-Sector Ensemble Weights
 
-Elo is a dynamic rating system that updates after every game result.
+NBA uses dedicated advanced models that replace the generic Elo/Form/Poisson core. Other sectors use the default weights.
+
+| Model | NBA | Soccer | Other |
+|-------|-----|--------|-------|
+| Efficiency | **0.30** | — | — |
+| PossessionSim | **0.30** | — | — |
+| Elo | 0.10 | 0.15 | 0.35 |
+| Form | 0.10 | 0.10 | 0.25 |
+| ShotQuality | 0.10 | — | — |
+| Matchup | 0.10 | — | — |
+| Poisson | 0.0 | **0.40** | 0.30 |
+| Soccer xG | — | 0.25 | — |
+
+**Backtest results (2025-26 NBA, 1,221 games):**
+
+| Model | Brier Score | Accuracy | vs Baseline |
+|-------|------------|----------|-------------|
+| Ensemble | **0.2005** | **69.2%** | -18.9% |
+| Efficiency | 0.2021 | 69.6% | -18.2% |
+| PossessionSim | 0.2054 | 68.6% | -16.9% |
+| Elo | 0.2202 | 63.4% | -10.9% |
+| ShotQuality | 0.2319 | 60.1% | -6.2% |
+| Matchup | 0.2354 | 60.7% | -4.7% |
+| Form | 0.2415 | 62.3% | -2.3% |
+| Poisson | 0.2287 | 67.4% | -7.4% |
+| Baseline (always home) | 0.2471 | 55.4% | — |
+
+---
+
+### NBA Models
+
+#### Efficiency Model (`EfficiencyModelAgent`, NBA weight=0.30)
+
+The strongest single NBA model. Projects point differential from team Offensive/Defensive Ratings (per-100-possession efficiency) and pace, then converts to win probability via normal CDF.
+
+**How it works:**
+
+Fetches ORTG/DRTG/Pace daily from stats.nba.com `LeagueDashTeamStats` (Advanced). For each matchup:
+
+```
+off_factor_a = team_a_ortg / league_avg_ortg
+def_factor_b = team_b_drtg / league_avg_drtg
+possessions = (pace_a + pace_b) / 2
+
+proj_pts_a = off_factor_a × def_factor_b × league_ortg × possessions / 100
+margin = proj_pts_a − proj_pts_b + HOME_EDGE (3.2 pts)
+prob_a = normal_cdf(margin / σ)    where σ = 12.0
+```
+
+**Confidence:** 0.85 (82 GP), 0.70 (40+ GP), 0.50 (<40 GP, below gate at <20 GP).
+
+**State file:** `data/models/efficiency_state.json`
+
+---
+
+#### Possession Sim (`PossessionSimAgent`, NBA weight=0.30)
+
+Monte Carlo possession-level game simulator. Simulates 10,000 games per matchup at the possession level to produce a full score distribution.
+
+**How it works:**
+
+For each simulated game:
+1. Draw total possessions from `N(avg_pace, 3.0)`, clipped to [80, 120]
+2. For each possession: sample turnover (team TOV%), then draw points from `N(ppp, 0.45)` where `ppp` is pace-adjusted points-per-possession
+3. Add offensive rebound extra possessions (27% of misses)
+4. Home team gets +1.5 ORTG boost
+
+Win probability = fraction of sims where team A outscores team B. Deterministic seeding per matchup+date ensures reproducible results.
+
+**Captures what Poisson can't:** pace interaction (fast vs slow), 3PT variance (fat tails from hot/cold shooting), and score correlation (pace drives both teams' totals).
+
+**State file:** Reuses `data/models/efficiency_state.json` (no extra API calls).
+
+---
+
+#### Shot Quality (`ShotQualityAgent`, NBA weight=0.10)
+
+Evaluates offensive output from shot location data — where teams shoot from and how efficiently they convert at each zone.
+
+**How it works:**
+
+Fetches zone-level FGA and FG% from stats.nba.com `LeagueDashTeamShotLocations`. Computes expected points per shot from three zones (3PT, rim, mid-range), with each zone's FG% regressed 30% toward league average to filter variance from skill:
+
+```
+regressed_fg3 = team_fg3_pct × 0.70 + league_fg3_pct × 0.30
+pts_per_shot = (fg3a × regressed_fg3 × 3 + rim_fga × regressed_rim × 2 + mid_fga × regressed_mid × 2) / total_fga
+margin = (pps_a − pps_b) × 85 FGA/game + 2.5 home edge
+prob_a = normal_cdf(margin / 12.0)
+```
+
+**Why 30% regression:** Season-long 3PT% contains real skill signal but also variance. Full regression to mean (original implementation) was anti-predictive (Brier 0.2745). Partial regression preserves the skill component.
+
+**State file:** `data/models/shot_quality_state.json`
+
+---
+
+#### Matchup Agent (`MatchupAgent`, NBA weight=0.10)
+
+Analyzes how each team's offensive style interacts with the opponent's defensive profile to produce a probability nudge.
+
+**Three dimensions:**
+
+1. **Paint scoring vs rim protection** — does the opponent allow more/fewer points in the paint than league average? Coefficient: 0.15 per point above/below average.
+2. **Transition defense** — does the opponent allow excessive fastbreak points? Coefficient: 0.12 per point above/below average.
+3. **Turnover battle** — team ball security vs opponent steal rate, with an interaction term that amplifies pain when a careless team faces an active-hands defense.
+
+Each dimension capped at ±1.5 points, total capped at ±4 points → converted to probability via normal CDF.
+
+**State file:** `data/models/matchup_state.json`
+
+---
+
+### Shared Models (all sectors)
+
+#### Elo Model (`EloModelAgent`, default weight=0.35, NBA=0.10)
+
+Dynamic rating system that updates after every game result.
 
 **How it works:**
 
@@ -279,7 +398,7 @@ Each team starts at 1500 Elo. After each game:
 ```
 K_factor × (actual_result − expected_result)
 ```
-is added to the winner's rating and subtracted from the loser's. A larger K means faster adaptation; a smaller K means more stable, history-weighted ratings.
+is added to the winner's rating and subtracted from the loser's.
 
 | Sector | K-factor | Home Advantage (Elo pts) |
 |--------|----------|--------------------------|
@@ -294,6 +413,10 @@ is added to the winner's rating and subtracted from the loser's. A larger K mean
 P(A wins) = 1 / (1 + 10^((Elo_B − Elo_A) / 400))
 ```
 
+**Strength of Schedule:** Elo gains are multiplied by an SoS factor based on opponent rating. Beating a team +200 above average yields 1.30x, beating one -200 below yields 0.70x. This prevents teams inflating ratings against weak schedules.
+
+**Recency weighting:** Games within the last 14 days get a 1.4x K-factor boost, tapering linearly to 1.0x at 60 days. Kept modest (was 2.0x, reduced to prevent late-season noise from tanking opponents).
+
 **Confidence levels:**
 
 | Games played | Confidence |
@@ -303,19 +426,19 @@ P(A wins) = 1 / (1 + 10^((Elo_B − Elo_A) / 400))
 | 5–14 games | 0.60 |
 | 15+ games | 0.80 |
 
-**Soccer draws:** Elo produces a home/away split. Draw probability is estimated from how even the matchup is: `draw_base × (0.5 + 0.5 × closeness)`, then the remaining probability is allocated to home/away proportionally.
+**Soccer draws:** Draw probability is estimated from how even the matchup is: `draw_base × (0.5 + 0.5 × closeness)`, then the remaining probability is allocated to home/away proportionally.
 
 **State file:** `data/models/elo_state.json`
 
 ---
 
-### Form Model (`FormModelAgent`, weight=0.25)
+#### Form Model (`FormModelAgent`, default weight=0.25, NBA=0.10)
 
 Tracks each team's recent performance with exponential decay — recent results matter more than old ones.
 
 **How it works:**
 
-Over the last 10 games (configurable window), each game gets a decayed weight:
+Over the last 10 games, each game gets a decayed weight:
 ```
 weight_i = DECAY^(games_ago)   where DECAY = 0.85
 ```
@@ -341,13 +464,13 @@ Home advantage is applied additively:
 
 ---
 
-### Poisson Model (`PoissonModelAgent`, weight=0.30)
+#### Poisson Model (`PoissonModelAgent`, default weight=0.30, NBA=0.0)
 
-Models scoring as a Poisson process — each team has attack and defense strength parameters that combine to predict expected goals/points.
+Models scoring as a Poisson process — each team has attack and defense strength parameters that combine to predict expected goals/points. Primary model for soccer (weight 0.40); **zeroed for NBA** where the PossessionSimAgent provides better score distributions.
 
 **How it works:**
 
-For soccer/NBA/NFL/NCAAB, each team has:
+Each team has:
 - `attack_strength` — how many goals/points above league average they score
 - `defense_strength` — how many goals/points above average they concede
 
@@ -373,9 +496,31 @@ A score matrix is computed up to `max_g` goals/points (8 for soccer, 20–25 for
 
 ---
 
+### Calibration and Meta-Model
+
+#### Calibration Layer (`ModelCalibrator`)
+
+Isotonic regression per model — learns a monotonic mapping from raw model output to calibrated probability. Trained from resolved predictions in `predictions.db` via `evmax cleanup adjust`.
+
+**State file:** `data/models/calibration.json`
+
+#### Meta-Model (`MetaModel`)
+
+Logistic regression combiner that takes `sharp_logit`, `blended_logit`, `kalshi_logit`, and `ev_pct` as features. Trained from resolved outcomes. Currently informational — the ensemble uses fixed weights, and the meta-model coefficients are monitored to identify when models add/subtract value.
+
+**State file:** `data/models/meta_model.json`
+
+#### Player Impact Agent (`PlayerImpactAgent`)
+
+Fetches per-player advanced stats (NET_RATING, MIN) from stats.nba.com. Computes the fraction of a team's total impact-minutes lost to injury, converting to a probability adjustment capped at ±15%.
+
+**State file:** `data/models/player_impact_state.json`
+
+---
+
 ### Ensemble Model (`EnsembleModelAgent`)
 
-Blends all three model agents with the Pinnacle sharp line into one final probability estimate per event.
+Blends all model agents with the Pinnacle sharp line into one final probability estimate per event. Per-sector weight overrides (see table above) replace default model weights.
 
 **Blending:**
 
@@ -384,15 +529,12 @@ Blends all three model agents with the Pinnacle sharp line into one final probab
 3. Effective weight = `model_weight × model_confidence`.
 4. Sharp odds are blended at `sharp_weight` (default 0.85, auto-tuned by Cleanup Agent).
 5. Final blend: `prob = sharp_weight × pinnacle_prob + (1 − sharp_weight) × model_avg`.
-6. Normalized to sum to 1.0.
-
-```
-BlendedPrediction.true_prob_a = Σ(eff_weight_i × prob_a_i) / Σ(eff_weight_i)
-```
+6. **Favorite-longshot bias correction:** At extreme probabilities (>80% or <20%), the blend automatically increases the effective sharp weight quadratically. This prevents models from compressing heavy favorites/underdogs toward 50/50.
+7. Normalized to sum to 1.0.
 
 When no model has enough data (all below confidence gate), the sharp probability is used directly.
 
-The `model_sources` field on each `EVGap` shows which models contributed: `"elo+form+poisson+sharp"` or `"sharp"` (model-only run) or `"spread_model"`.
+The `model_sources` field on each `EVGap` shows which models contributed: `"efficiency+elo+form+matchup+possession_sim+shot_quality+sharp"` or `"sharp"` (model-only run).
 
 ---
 
@@ -408,12 +550,13 @@ Find exponent `k` where `Σ(raw_prob_i ^ k) = 1.0` (solved via Brent's method). 
 
 ### Tennis Models
 
-Tennis runs four independent agents alongside the Elo/Form/Poisson core. Each is wired into the ensemble in `agents/coordinator.py` and returns `None` when its store has no coverage for the players in question, so unseeded matchups fall back to the remaining models.
+Tennis runs four independent agents alongside the Elo/Form/Poisson core. Each returns `None` when its store has no coverage for the players in question, so unseeded matchups fall back to the remaining models.
 
 | Agent | Weight | Signal | State file |
 |---|---|---|---|
-| `TennisModelAgent` (surface Elo) | 0.45 | Surface-specific Elo (hard / clay / grass) seeded from ATP rankings | `data/models/tennis_surface_state.json` |
-| `TennisServeReturnAgent` | 0.40 | Logistic on serve-points-won differential, calibrated for bo3 (`k=14`) and bo5 (`k=18`); slam detection from market title | `data/models/tennis_serve_return_state.json` |
+| `TennisModelAgent` (surface Elo) | 0.35 | Surface-specific Elo (hard / clay / grass) seeded from ATP rankings | `data/models/tennis_surface_state.json` |
+| `TennisServeReturnAgent` | 0.15 | Logistic on serve-points-won differential, calibrated for bo3 (`k=14`) and bo5 (`k=18`); slam detection from market title | `data/models/tennis_serve_return_state.json` |
+| `TennisAdvancedStatsAgent` | 0.25 | Logistic on BP conv, RPW, UE rate, W/UE ratio; full 4-feature model when MCP data available, RPW-only reduced model otherwise | `data/models/tennis_advanced_state.json` |
 | `TennisH2HAgent` | 0.10 | Head-to-head record nudge with Laplace smoothing + sample-size shrinkage; capped at ±18pp from 0.5; requires ≥3 meetings | `data/models/tennis_h2h_state.json` |
 | `TennisRankingTrendAgent` | 0.10 | 12-week ranking-momentum log-odds nudge; positive = climbing the rankings; capped at ±0.40 logit | `data/models/tennis_ranking_trend_state.json` |
 
@@ -561,7 +704,7 @@ evmax agents update \
   --score-away 104
 ```
 
-This updates Elo ratings, Form records, and Poisson attack/defense strengths, then saves state.
+This updates Elo ratings, Form records, and Poisson attack/defense strengths, then saves state. NBA advanced models (Efficiency, PossessionSim, ShotQuality, Matchup) are fetched in bulk from stats.nba.com daily and do not require per-game updates.
 
 ### View Current Elo Leaderboard
 
@@ -1105,15 +1248,15 @@ All settings live in `.env` (or environment variables):
 
 | Sector | Sharp Source | Models | Injury Data |
 |--------|-------------|--------|-------------|
-| NBA | Pinnacle guest API (league 487) | Elo + Form + Poisson | ESPN |
+| NBA | Pinnacle guest API (league 487) | Efficiency + PossessionSim + ShotQuality + Matchup + Elo + Form | ESPN |
 | NFL | Pinnacle guest API (league 258) | Elo + Form + Poisson | ESPN |
 | NCAAB | Pinnacle guest API (league 493) | Elo + Form + Poisson | ESPN |
 | NCAAW | TheOddsAPI (`basketball_wncaab`) | Elo + Form + Poisson | ESPN |
-| Soccer | Pinnacle guest API (EPL/UCL/La Liga/Bundesliga/Serie A/Ligue 1) | Elo + Form + Poisson | ESPN |
-| Tennis | Pinnacle guest API (ATP/WTA) | Surface Elo + ATP rankings | None |
+| Soccer | Pinnacle guest API (EPL/UCL/La Liga/Bundesliga/Serie A/Ligue 1) | Poisson + xG + Elo + Form | ESPN |
+| Tennis | Pinnacle guest API (ATP/WTA) | Surface Elo + Serve/Return + Advanced + H2H + Ranking Trend | None |
+| Baseball | Pinnacle guest API (league 246) | Elo + Form + Poisson + Pitcher | ESPN |
 | LoL | Pinnacle guest API (esports, sport 12) | Elo + Form | None |
 | CS2 | Pinnacle guest API (esports, sport 12) | Elo + Form | None |
-| Valorant | Pinnacle guest API (esports, sport 12) | Elo + Form | None |
 
 The Pinnacle guest API (`guest.api.arcadia.pinnacle.com/0.1`) requires no credentials and covers all sectors except NCAAW (which uses TheOddsAPI).
 
