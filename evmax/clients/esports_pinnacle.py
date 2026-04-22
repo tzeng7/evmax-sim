@@ -25,6 +25,7 @@ from typing import Any, Optional
 import structlog
 
 from evmax.clients.base import BaseAPIClient
+from evmax.clients.time_util import kalshi_game_day
 from evmax.disk_cache import cache_get, cache_set, cache_get_offline
 from evmax.ev.devig import devig_two_way, devig_three_way, american_to_decimal
 from evmax.models.odds import SharpBook, SharpOdds
@@ -309,7 +310,7 @@ class PinnacleGuestClient(BaseAPIClient):
             logger.debug("pinnacle_prop_devig_failed", error=str(e))
             return None
 
-        date_str = event_date.strftime("%Y-%m-%d") if event_date else "unknown"
+        date_str = kalshi_game_day(event_date, sector)
         event_id = f"{sector}::{date_str}::prop::{player_norm}::{stat_type}::{total_line}"
 
         return SharpOdds(
@@ -449,7 +450,7 @@ class PinnacleGuestClient(BaseAPIClient):
             except ValueError:
                 pass
 
-        date_str = event_date.strftime("%Y-%m-%d") if event_date else "unknown"
+        date_str = kalshi_game_day(event_date, sector)
         home_norm = self._normalize(home, sector)
         away_norm = self._normalize(away, sector)
         base_event_id = f"{sector}::{date_str}::{home_norm}_vs_{away_norm}"

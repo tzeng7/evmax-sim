@@ -238,3 +238,90 @@ class TestHelpers:
 
     def test_infer_round_wnba_finals(self):
         assert _infer_round_number("WNBA Finals - Game 3", "wnba") == 3
+
+
+class TestPlayInTournament:
+    """Tests for Play-In tournament (ESPN season type 5) handling."""
+
+    def _make_playin(
+        self,
+        team_a: str = "phoenix suns",
+        team_b: str = "golden state warriors",
+        sector: str = "nba",
+    ) -> PlayoffSeries:
+        return PlayoffSeries(
+            team_a=team_a,
+            team_b=team_b,
+            team_a_abbrev="PHX",
+            team_b_abbrev="GSW",
+            series_wins_a=0,
+            series_wins_b=0,
+            round_num=0,
+            round_name="Play-In Tournament",
+            sector=sector,
+            is_play_in=True,
+        )
+
+    def test_playin_properties(self):
+        s = self._make_playin()
+        assert s.is_play_in is True
+        assert s.is_playoff is True
+        assert s.game_number == 1
+        assert s.is_elimination_for_a is True
+        assert s.is_elimination_for_b is True
+        assert s.is_game_7 is False
+        assert s.is_closeout_for_a is False
+        assert s.is_closeout_for_b is False
+
+    def test_playin_hca_boost_home(self):
+        """Play-in home team gets +2.0% HCA boost (on top of +1.5% playoff HCA)."""
+        data = {"phoenix suns_vs_golden state warriors": self._make_playin()}
+        a, b, notes, is_playoff = PlayoffAgent.apply_adjustments(
+            playoff_data=data,
+            true_prob_a=0.55,
+            true_prob_b=0.45,
+            team_a="phoenix suns",
+            team_b="golden state warriors",
+        )
+        assert is_playoff is True
+        assert a > 0.55  # Home team gets both playoff HCA + play-in HCA
+        assert "playin_hca" in notes
+        assert "playoff_hca" in notes
+
+    def test_playin_no_elimination_boost(self):
+        """Play-in should NOT trigger one-sided elimination boost."""
+        data = {"phoenix suns_vs_golden state warriors": self._make_playin()}
+        a, b, notes, is_playoff = PlayoffAgent.apply_adjustments(
+            playoff_data=data,
+            true_prob_a=0.55,
+            true_prob_b=0.45,
+            team_a="phoenix suns",
+            team_b="golden state warriors",
+        )
+        assert "elim_boost" not in notes
+
+    def test_playin_symmetric_for_away(self):
+        """When eval team_a is the away team in the series, away gets no HCA boost."""
+        data = {"phoenix suns_vs_golden state warriors": self._make_playin()}
+        # Swap: team_a in eval = warriors (away), team_b in eval = suns (home)
+        a, b, notes, is_playoff = PlayoffAgent.apply_adjustments(
+            playoff_data=data,
+            true_prob_a=0.45,
+            true_prob_b=0.55,
+            team_a="golden state warriors",
+            team_b="phoenix suns",
+        )
+        assert is_playoff is True
+        # Suns (team_b in eval, home in series) should get the boosts
+        assert b > 0.55
+
+    def test_playin_probs_sum_to_1(self):
+        data = {"phoenix suns_vs_golden state warriors": self._make_playin()}
+        a, b, _, _ = PlayoffAgent.apply_adjustments(
+            playoff_data=data,
+            true_prob_a=0.55,
+            true_prob_b=0.45,
+            team_a="phoenix suns",
+            team_b="golden state warriors",
+        )
+        assert abs(a + b - 1.0) < 0.001

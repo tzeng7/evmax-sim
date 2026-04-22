@@ -326,3 +326,36 @@ class TestPossessionSim:
         market, sharp = _make_pair("thunder", "suns")
         result = asyncio.run(agent.predict_pair(market, sharp))
         assert result is None
+
+    def test_cover_probability_favorite(self):
+        agent = self._make_agent()
+        market, sharp = _make_pair("thunder", "suns", 0.75)
+        asyncio.run(agent.predict_pair(market, sharp))
+        event_id = sharp.event_id
+        # Thunder are strong favorites — should cover small spreads often
+        p_cover_3 = agent.cover_probability(event_id, -3.0)
+        p_cover_15 = agent.cover_probability(event_id, -15.0)
+        assert p_cover_3 is not None
+        assert p_cover_15 is not None
+        assert p_cover_3 > p_cover_15  # easier to cover small spread
+
+    def test_cover_probability_unknown_event(self):
+        agent = self._make_agent()
+        assert agent.cover_probability("nonexistent", -5.0) is None
+
+    def test_total_probability(self):
+        agent = self._make_agent()
+        market, sharp = _make_pair("thunder", "suns", 0.75)
+        asyncio.run(agent.predict_pair(market, sharp))
+        event_id = sharp.event_id
+        p_over_200 = agent.total_probability(event_id, 200.0, is_over=True)
+        p_over_280 = agent.total_probability(event_id, 280.0, is_over=True)
+        assert p_over_200 is not None
+        assert p_over_280 is not None
+        assert p_over_200 > p_over_280  # lower bar → more likely to go over
+
+    def test_sigma_in_notes(self):
+        agent = self._make_agent()
+        market, sharp = _make_pair("thunder", "suns", 0.75)
+        result = asyncio.run(agent.predict_pair(market, sharp))
+        assert "sigma=" in result.notes

@@ -746,6 +746,60 @@ class TestEnsembleModelAgent:
         # Poisson should be the dominant model for soccer
         assert overrides["poisson"] >= 0.40
 
+    def test_flb_correction_extreme_longshot(self):
+        """FLB correction should suppress model inflation at extreme probs."""
+        from evmax.agents.models.base import ModelAgentPrediction
+
+        ensemble = EnsembleModelAgent(models=[], sharp_weight=0.85)
+        sharp = make_sharp()
+        # Sharp says 90% favorite / 10% underdog
+        sharp = sharp.model_copy(update={
+            "true_prob_a": 0.90, "true_prob_b": 0.10, "true_prob_draw": None,
+        })
+        # Model says 80% / 20% (compressing toward 50/50)
+        preds = {
+            "elo": ModelAgentPrediction(
+                event_id="test", model_name="elo",
+                true_prob_a=0.80, true_prob_b=0.20, true_prob_draw=None,
+                confidence=0.60, weight=0.35,
+            ),
+        }
+        blend = ensemble._blend("test", preds, sharp, 0.85, sector="nba")
+        assert blend is not None
+        # Without FLB: blend_b = 0.85*0.10 + 0.15*0.20 = 0.115
+        # With FLB (S=1.5): effective sharp weight at 10% is ~88.6%
+        # The underdog inflation should be dampened but models still contribute
+        assert blend.true_prob_b < 0.115, (
+            f"FLB correction should dampen underdog inflation: got {blend.true_prob_b:.3f}"
+        )
+        # Should be closer to sharp than uncorrected, but not pure sharp
+        assert blend.true_prob_b > 0.10, "Models should still contribute at extremes"
+        assert blend.true_prob_b < 0.113
+
+    def test_flb_correction_near_50_50_minimal(self):
+        """FLB correction should have minimal effect near 50/50."""
+        from evmax.agents.models.base import ModelAgentPrediction
+
+        ensemble = EnsembleModelAgent(models=[], sharp_weight=0.85)
+        sharp = make_sharp()
+        sharp = sharp.model_copy(update={
+            "true_prob_a": 0.52, "true_prob_b": 0.48, "true_prob_draw": None,
+        })
+        preds = {
+            "elo": ModelAgentPrediction(
+                event_id="test", model_name="elo",
+                true_prob_a=0.55, true_prob_b=0.45, true_prob_draw=None,
+                confidence=0.60, weight=0.35,
+            ),
+        }
+        blend = ensemble._blend("test", preds, sharp, 0.85, sector="nba")
+        assert blend is not None
+        # Near 50/50, FLB correction is negligible — model input preserved
+        # Without FLB: blend_a = 0.85*0.52 + 0.15*0.55 = 0.5245
+        # With FLB: deviation=(0.52-0.5)^2=0.0004, extra≈0.002, eff_sharp≈0.85
+        # Should be almost identical to uncorrected
+        assert abs(blend.true_prob_a - 0.525) < 0.01
+
     def test_soccer_weight_overrides_applied_in_blend(self):
         """Verify _blend uses sector overrides, not class-level weights."""
         from evmax.agents.models.base import ModelAgentPrediction

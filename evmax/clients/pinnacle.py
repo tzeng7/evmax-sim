@@ -21,6 +21,7 @@ from typing import Any, Optional
 import structlog
 
 from evmax.clients.base import BaseAPIClient
+from evmax.clients.time_util import kalshi_game_day
 from evmax.ev.devig import devig_two_way, devig_three_way, american_to_decimal
 from evmax.models.odds import SharpBook, SharpOdds
 from evmax.settings import get_settings
@@ -189,7 +190,7 @@ class PinnacleClient(BaseAPIClient):
                 except ValueError:
                     pass
 
-            date_str = event_date.strftime("%Y-%m-%d") if event_date else "unknown"
+            date_str = kalshi_game_day(event_date, sector)
             canonical_event_id = (
                 f"{sector}::{date_str}::{self._normalize(home_team, sector)}_vs_{self._normalize(away_team, sector)}"
             )
@@ -330,7 +331,7 @@ class PinnacleClient(BaseAPIClient):
                 except ValueError:
                     pass
 
-            date_str = event_date.strftime("%Y-%m-%d") if event_date else "unknown"
+            date_str = kalshi_game_day(event_date, sector)
             home_norm = self._normalize(home_team, sector)
             away_norm = self._normalize(away_team, sector)
             base_event_id = f"{sector}::{date_str}::{home_norm}_vs_{away_norm}"
@@ -435,7 +436,7 @@ class PinnacleClient(BaseAPIClient):
                 except ValueError:
                     pass
 
-            date_str = event_date.strftime("%Y-%m-%d") if event_date else "unknown"
+            date_str = kalshi_game_day(event_date, sector)
             home_norm = self._normalize(home_team, sector)
             away_norm = self._normalize(away_team, sector)
             base_event_id = f"{sector}::{date_str}::{home_norm}_vs_{away_norm}"
@@ -722,7 +723,7 @@ class PinnacleClient(BaseAPIClient):
                 except ValueError:
                     pass
 
-            date_str = event_date.strftime("%Y-%m-%d") if event_date else "unknown"
+            date_str = kalshi_game_day(event_date, sector)
             game_key = f"{sector}::{date_str}::{self._normalize(home_team, sector)}_vs_{self._normalize(away_team, sector)}"
 
             # Collect outcomes from all bookmakers in the response, grouped by player.

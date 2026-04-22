@@ -18747,2294 +18747,6 @@
       }
     }
   },
-  "nba": {
-    "ratings": {
-      "knicks": 1606.53,
-      "76ers": 1528.62,
-      "pelicans": 1422.93,
-      "lakers": 1709.83,
-      "suns": 1513.62,
-      "nets": 1264.26,
-      "heat": 1516.24,
-      "magic": 1502.55,
-      "nuggets": 1631.78,
-      "timberwolves": 1583.18,
-      "hornets": 1621.84,
-      "thunder": 1791.23,
-      "warriors": 1416.58,
-      "bucks": 1331.24,
-      "rockets": 1598.64,
-      "hawks": 1647.87,
-      "grizzlies": 1279.69,
-      "pistons": 1695.25,
-      "spurs": 1826.84,
-      "mavericks": 1298.42,
-      "raptors": 1540.65,
-      "cavaliers": 1601.56,
-      "bulls": 1342.54,
-      "pacers": 1264.21,
-      "jazz": 1218.11,
-      "celtics": 1704.94,
-      "trail blazers": 1503.14,
-      "kings": 1287.57,
-      "la clippers": 1587.12,
-      "wizards": 1234.94
-    },
-    "game_counts": {
-      "knicks": 82,
-      "76ers": 79,
-      "pelicans": 80,
-      "lakers": 82,
-      "suns": 80,
-      "nets": 80,
-      "heat": 82,
-      "magic": 79,
-      "nuggets": 81,
-      "timberwolves": 81,
-      "hornets": 81,
-      "thunder": 82,
-      "warriors": 80,
-      "bucks": 79,
-      "rockets": 79,
-      "hawks": 80,
-      "grizzlies": 80,
-      "pistons": 80,
-      "spurs": 81,
-      "mavericks": 80,
-      "raptors": 81,
-      "cavaliers": 80,
-      "bulls": 80,
-      "pacers": 79,
-      "jazz": 80,
-      "celtics": 79,
-      "trail blazers": 80,
-      "kings": 80,
-      "la clippers": 79,
-      "wizards": 78
-    },
-    "h2h": {
-      "76ers::knicks": {
-        "a_wins": 2,
-        "b_wins": 4,
-        "games": 6
-      },
-      "melbourne::pelicans": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "lakers::suns": {
-        "a_wins": 1,
-        "b_wins": 5,
-        "games": 6
-      },
-      "hapoel jerusalem::nets": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "heat::magic": {
-        "a_wins": 0,
-        "b_wins": 7,
-        "games": 7
-      },
-      "nuggets::timberwolves": {
-        "a_wins": 3,
-        "b_wins": 2,
-        "games": 5
-      },
-      "melbourne pnx::pelicans": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "hornets::thunder": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "lakers::warriors": {
-        "a_wins": 3,
-        "b_wins": 2,
-        "games": 5
-      },
-      "bucks::heat": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "hawks::rockets": {
-        "a_wins": 0,
-        "b_wins": 4,
-        "games": 4
-      },
-      "grizzlies::pistons": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "guangzhou loong-lions::spurs": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "mavericks::thunder": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "nuggets::raptors": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "bulls::cavaliers": {
-        "a_wins": 4,
-        "b_wins": 2,
-        "games": 6
-      },
-      "pacers::timberwolves": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "heat::spurs": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "jazz::rockets": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "celtics::grizzlies": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "trail blazers::warriors": {
-        "a_wins": 3,
-        "b_wins": 3,
-        "games": 6
-      },
-      "kings::raptors": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "knicks::timberwolves": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "bucks::pistons": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "guangzhou loong-lions::la clippers": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "nets::suns": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "celtics::raptors": {
-        "a_wins": 4,
-        "b_wins": 1,
-        "games": 5
-      },
-      "76ers::magic": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "jazz::spurs": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "kings::trail blazers": {
-        "a_wins": 0,
-        "b_wins": 4,
-        "games": 4
-      },
-      "pacers::thunder": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "grizzlies::hawks": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "hornets::mavericks": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "raptors::wizards": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "cavaliers::celtics": {
-        "a_wins": 0,
-        "b_wins": 4,
-        "games": 4
-      },
-      "bucks::bulls": {
-        "a_wins": 4,
-        "b_wins": 1,
-        "games": 5
-      },
-      "la clippers::nuggets": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "hawks::heat": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "pacers::spurs": {
-        "a_wins": 0,
-        "b_wins": 4,
-        "games": 4
-      },
-      "knicks::wizards": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "guangzhou loong-lions::timberwolves": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "jazz::mavericks": {
-        "a_wins": 2,
-        "b_wins": 3,
-        "games": 5
-      },
-      "cavaliers::pistons": {
-        "a_wins": 3,
-        "b_wins": 2,
-        "games": 5
-      },
-      "pelicans::rockets": {
-        "a_wins": 1,
-        "b_wins": 4,
-        "games": 5
-      },
-      "bucks::thunder": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "bulls::nuggets": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "grizzlies::hornets": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "kings::la clippers": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "lakers::mavericks": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "magic::pelicans": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "pistons::wizards": {
-        "a_wins": 4,
-        "b_wins": 1,
-        "games": 5
-      },
-      "bulls::timberwolves": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "jazz::trail blazers": {
-        "a_wins": 1,
-        "b_wins": 4,
-        "games": 5
-      },
-      "nets::raptors": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "76ers::timberwolves": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "hornets::knicks": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "grizzlies::heat": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "nuggets::thunder": {
-        "a_wins": 0,
-        "b_wins": 4,
-        "games": 4
-      },
-      "la clippers::warriors": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "kings::lakers": {
-        "a_wins": 2,
-        "b_wins": 3,
-        "games": 5
-      },
-      "rockets::thunder": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "cavaliers::knicks": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "hornets::nets": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "hawks::raptors": {
-        "a_wins": 0,
-        "b_wins": 4,
-        "games": 4
-      },
-      "76ers::celtics": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "bulls::pistons": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "grizzlies::pelicans": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "bucks::wizards": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "jazz::la clippers": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "mavericks::spurs": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "kings::suns": {
-        "a_wins": 0,
-        "b_wins": 4,
-        "games": 4
-      },
-      "timberwolves::trail blazers": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "nuggets::warriors": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "bucks::raptors": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "hawks::magic": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "cavaliers::nets": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "celtics::knicks": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "pistons::rockets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "pelicans::spurs": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "mavericks::wizards": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "lakers::timberwolves": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "jazz::kings": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "la clippers::suns": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "bulls::magic": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "hawks::thunder": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "76ers::hornets": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "grizzlies::pacers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "nuggets::suns": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "nets::spurs": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "celtics::pistons": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "bucks::cavaliers": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "heat::knicks": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "hornets::wizards": {
-        "a_wins": 4,
-        "b_wins": 0,
-        "games": 4
-      },
-      "mavericks::raptors": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "la clippers::trail blazers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "bulls::hawks": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "nets::rockets": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "celtics::pelicans": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      },
-      "raptors::spurs": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "jazz::suns": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "grizzlies::warriors": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "lakers::trail blazers": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "76ers::wizards": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "heat::hornets": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "bucks::knicks": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "kings::thunder": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "raptors::rockets": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "magic::pistons": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "hawks::nets": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "bulls::kings": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "mavericks::pacers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "nuggets::pelicans": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "grizzlies::suns": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "hornets::magic": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "bucks::warriors": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "thunder::wizards": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "hawks::pacers": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "cavaliers::raptors": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "bulls::knicks": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "grizzlies::lakers": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "nuggets::trail blazers": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "la clippers::pelicans": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "bucks::kings": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "hornets::timberwolves": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "pacers::warriors": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "magic::wizards": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "celtics::rockets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "mavericks::pistons": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "pelicans::thunder": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "76ers::nets": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "hornets::jazz": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "cavaliers::hawks": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "grizzlies::raptors": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "spurs::suns": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "heat::lakers": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "nets::timberwolves": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "bucks::pacers": {
-        "a_wins": 4,
-        "b_wins": 0,
-        "games": 4
-      },
-      "celtics::jazz": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "mavericks::rockets": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "kings::nuggets": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "heat::la clippers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "76ers::bulls": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "hornets::pelicans": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "suns::warriors": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "la clippers::thunder": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "76ers::cavaliers": {
-        "a_wins": 0,
-        "b_wins": 4,
-        "games": 4
-      },
-      "jazz::pistons": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "nets::pacers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "celtics::wizards": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "grizzlies::rockets": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "mavericks::pelicans": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "heat::nuggets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "lakers::spurs": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "thunder::trail blazers": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "kings::warriors": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "celtics::magic": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "cavaliers::wizards": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "nets::pistons": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "rockets::spurs": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "grizzlies::mavericks": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "jazz::timberwolves": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "76ers::raptors": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "hawks::lakers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "heat::trail blazers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "nuggets::pacers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "bucks::rockets": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "knicks::nets": {
-        "a_wins": 4,
-        "b_wins": 0,
-        "games": 4
-      },
-      "grizzlies::thunder": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "76ers::pistons": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "kings::timberwolves": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "hornets::lakers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "magic::trail blazers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "cavaliers::heat": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "bulls::spurs": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "bucks::mavericks": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "pelicans::suns": {
-        "a_wins": 0,
-        "b_wins": 4,
-        "games": 4
-      },
-      "hawks::la clippers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "grizzlies::knicks": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "thunder::warriors": {
-        "a_wins": 4,
-        "b_wins": 0,
-        "games": 4
-      },
-      "jazz::pacers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "bucks::hornets": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "knicks::magic": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "rockets::wizards": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "pelicans::trail blazers": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "spurs::warriors": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "mavericks::suns": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "lakers::thunder": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "hawks::kings": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "pacers::suns": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "hawks::jazz": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "magic::nets": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "rockets::trail blazers": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "lakers::pelicans": {
-        "a_wins": 4,
-        "b_wins": 0,
-        "games": 4
-      },
-      "la clippers::mavericks": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "cavaliers::grizzlies": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      },
-      "pacers::raptors": {
-        "a_wins": 0,
-        "b_wins": 4,
-        "games": 4
-      },
-      "bucks::lakers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "celtics::la clippers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "kings::spurs": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "nets::wizards": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "magic::rockets": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "pelicans::warriors": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "mavericks::trail blazers": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "hawks::suns": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "bulls::jazz": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "pacers::pistons": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "76ers::la clippers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "hornets::raptors": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "mavericks::timberwolves": {
-        "a_wins": 0,
-        "b_wins": 4,
-        "games": 4
-      },
-      "magic::warriors": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "celtics::nets": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "hawks::pistons": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "grizzlies::spurs": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "jazz::lakers": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "suns::trail blazers": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "cavaliers::rockets": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "hornets::pacers": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "heat::warriors": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "timberwolves::wizards": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "knicks::mavericks": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "bulls::trail blazers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "la clippers::magic": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "grizzlies::kings": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "76ers::bucks": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "hawks::spurs": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "cavaliers::pacers": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "bulls::heat": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "suns::timberwolves": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "nuggets::rockets": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "jazz::thunder": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "hornets::la clippers": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "hawks::pelicans": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "bulls::wizards": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      },
-      "76ers::heat": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "hawks::hornets": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "cavaliers::la clippers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "heat::mavericks": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "grizzlies::nuggets": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "bucks::trail blazers": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "bulls::pelicans": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "rockets::suns": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "jazz::warriors": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "hawks::wizards": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "la clippers::lakers": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "thunder::timberwolves": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "rockets::warriors": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "spurs::trail blazers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "bulls::hornets": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "pacers::wizards": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "suns::thunder": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "nuggets::spurs": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "grizzlies::la clippers": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "celtics::timberwolves": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "bulls::pacers": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "heat::pistons": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "bucks::nets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "knicks::raptors": {
-        "a_wins": 4,
-        "b_wins": 0,
-        "games": 4
-      },
-      "76ers::hawks": {
-        "a_wins": 0,
-        "b_wins": 4,
-        "games": 4
-      },
-      "spurs::timberwolves": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "mavericks::nuggets": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "raptors::trail blazers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "pelicans::timberwolves": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "cavaliers::trail blazers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "magic::spurs": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "bulls::nets": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "kings::rockets": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "76ers::warriors": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "jazz::nets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "lakers::raptors": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "celtics::lakers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "hawks::nuggets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "cavaliers::spurs": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "pistons::trail blazers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "jazz::knicks": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "nets::pelicans": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "cavaliers::warriors": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "heat::kings": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "la clippers::timberwolves": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "hornets::nuggets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "grizzlies::trail blazers": {
-        "a_wins": 1,
-        "b_wins": 3,
-        "games": 4
-      },
-      "bulls::warriors": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "76ers::lakers": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "kings::pacers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "la clippers::rockets": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "bucks::celtics": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "76ers::pacers": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "grizzlies::jazz": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "mavericks::nets": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "timberwolves::warriors": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "spurs::thunder": {
-        "a_wins": 4,
-        "b_wins": 1,
-        "games": 5
-      },
-      "cavaliers::hornets": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "heat::raptors": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "knicks::spurs": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "grizzlies::timberwolves": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "knicks::pacers": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "heat::nets": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "spurs::wizards": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "magic::nuggets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "celtics::heat": {
-        "a_wins": 3,
-        "b_wins": 0,
-        "games": 3
-      },
-      "76ers::mavericks": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "pacers::pelicans": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "hornets::pistons": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "grizzlies::wizards": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "jazz::magic": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "bucks::timberwolves": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "celtics::pacers": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "jazz::nuggets": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "cavaliers::pelicans": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "kings::pistons": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "mavericks::warriors": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "lakers::rockets": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "bucks::grizzlies": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "kings::mavericks": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "hawks::knicks": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "heat::pacers": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "raptors::warriors": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "76ers::thunder": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "celtics::trail blazers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "la clippers::pistons": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "suns::wizards": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "nets::warriors": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "magic::raptors": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "pacers::rockets": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "knicks::pelicans": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "76ers::grizzlies": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "lakers::pistons": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "hornets::warriors": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "hawks::timberwolves": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "magic::pacers": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "cavaliers::suns": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "celtics::kings": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "cavaliers::nuggets": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "heat::timberwolves": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "nets::nuggets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "heat::pelicans": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "knicks::pistons": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "bulls::celtics": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "76ers::nuggets": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "celtics::nuggets": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "knicks::la clippers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "cavaliers::timberwolves": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "pelicans::wizards": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "la clippers::nets": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "knicks::suns": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "celtics::spurs": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "bulls::mavericks": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      },
-      "grizzlies::nets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "knicks::trail blazers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "heat::thunder": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "bucks::nuggets": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "hawks::warriors": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "cavaliers::jazz": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "heat::suns": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "bulls::rockets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "kings::knicks": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "la clippers::wizards": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "grizzlies::magic": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "pistons::suns": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "bucks::spurs": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "knicks::warriors": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "hawks::trail blazers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "la clippers::raptors": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "rockets::timberwolves": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "kings::wizards": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "celtics::hawks": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
-      },
-      "nuggets::wizards": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "bucks::hawks": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "cavaliers::thunder": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "76ers::suns": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "bulls::la clippers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "lakers::nuggets": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "pelicans::pistons": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "76ers::rockets": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      },
-      "cavaliers::kings": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "cavaliers::magic": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
-      },
-      "heat::jazz": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "raptors::thunder": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "bulls::lakers": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "trail blazers::wizards": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "nuggets::pistons": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "cavaliers::lakers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "76ers::kings": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "lakers::wizards": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "pistons::warriors": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "hornets::spurs": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "76ers::pelicans": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "jazz::raptors": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "knicks::lakers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "lakers::nets": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "celtics::mavericks": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "magic::thunder": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "knicks::nuggets": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "raptors::timberwolves": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "bucks::pelicans": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "bulls::raptors": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
-      },
-      "hornets::rockets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "heat::wizards": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "bucks::magic": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
-      },
-      "kings::pelicans": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "76ers::trail blazers": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "pistons::raptors": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
-      },
-      "stars::world": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      },
-      "stars::stripes": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "stripes::world": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      },
-      "celtics::warriors": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "kings::magic": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "nets::thunder": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "magic::suns": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "knicks::rockets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "pistons::spurs": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "celtics::suns": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "lakers::magic": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "pistons::thunder": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "jazz::pelicans": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "hornets::trail blazers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "heat::rockets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "76ers::spurs": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "bulls::thunder": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "knicks::thunder": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "celtics::hornets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "76ers::jazz": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "la clippers::pacers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "magic::mavericks": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      },
-      "jazz::wizards": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "bulls::suns": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      },
-      "la clippers::spurs": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "lakers::pacers": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "magic::timberwolves": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      },
-      "bucks::jazz": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "pacers::trail blazers": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "hornets::suns": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "hawks::mavericks": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "bucks::suns": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "pelicans::raptors": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "hornets::kings": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "celtics::thunder": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "raptors::suns": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "cavaliers::mavericks": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "warriors::wizards": {
-        "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
-      },
-      "nets::trail blazers": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "bulls::grizzlies": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "kings::nets": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "bucks::la clippers": {
-        "a_wins": 0,
-        "b_wins": 2,
-        "games": 2
-      },
-      "pistons::timberwolves": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      }
-    }
-  },
   "soccer": {
     "ratings": {
       "liverpool": 1522.69,
@@ -26238,6 +23950,2264 @@
         "a_wins": 3,
         "b_wins": 0,
         "games": 3
+      }
+    }
+  },
+  "nba": {
+    "ratings": {
+      "thunder": 1734.15,
+      "rockets": 1614.04,
+      "lakers": 1629.84,
+      "warriors": 1379.77,
+      "knicks": 1625.59,
+      "cavaliers": 1615.8,
+      "hornets": 1636.07,
+      "nets": 1262.92,
+      "magic": 1553.76,
+      "heat": 1511.83,
+      "hawks": 1600.8,
+      "raptors": 1532.84,
+      "celtics": 1716.99,
+      "76ers": 1532.06,
+      "bulls": 1324.08,
+      "pistons": 1715.1,
+      "grizzlies": 1261.3,
+      "pelicans": 1379.84,
+      "bucks": 1344.3,
+      "wizards": 1203.06,
+      "jazz": 1256.13,
+      "la clippers": 1522.53,
+      "mavericks": 1336.06,
+      "spurs": 1768.87,
+      "suns": 1533.78,
+      "kings": 1319.63,
+      "trail blazers": 1542.32,
+      "timberwolves": 1548.89,
+      "pacers": 1293.62,
+      "nuggets": 1704.03
+    },
+    "game_counts": {
+      "thunder": 82,
+      "rockets": 82,
+      "lakers": 82,
+      "warriors": 82,
+      "knicks": 83,
+      "cavaliers": 82,
+      "hornets": 82,
+      "nets": 82,
+      "magic": 82,
+      "heat": 82,
+      "hawks": 82,
+      "raptors": 82,
+      "celtics": 82,
+      "76ers": 82,
+      "bulls": 82,
+      "pistons": 82,
+      "grizzlies": 82,
+      "pelicans": 82,
+      "bucks": 82,
+      "wizards": 82,
+      "jazz": 82,
+      "la clippers": 82,
+      "mavericks": 82,
+      "spurs": 83,
+      "suns": 82,
+      "kings": 82,
+      "trail blazers": 82,
+      "timberwolves": 82,
+      "pacers": 82,
+      "nuggets": 82
+    },
+    "h2h": {
+      "rockets::thunder": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "lakers::warriors": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "cavaliers::knicks": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "hornets::nets": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "heat::magic": {
+        "a_wins": 0,
+        "b_wins": 5,
+        "games": 5
+      },
+      "hawks::raptors": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "76ers::celtics": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "bulls::pistons": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "grizzlies::pelicans": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "bucks::wizards": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "jazz::la clippers": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "mavericks::spurs": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "kings::suns": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "timberwolves::trail blazers": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "pacers::thunder": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "nuggets::warriors": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "bucks::raptors": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "hawks::magic": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "cavaliers::nets": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "celtics::knicks": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "pistons::rockets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "grizzlies::heat": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "pelicans::spurs": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "mavericks::wizards": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lakers::timberwolves": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "trail blazers::warriors": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "jazz::kings": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "la clippers::suns": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "bulls::magic": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "hawks::thunder": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "76ers::hornets": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "grizzlies::pacers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "nuggets::suns": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "nets::spurs": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "celtics::pistons": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "bucks::cavaliers": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "heat::knicks": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "hornets::wizards": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "pacers::timberwolves": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "mavericks::raptors": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "la clippers::trail blazers": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "kings::lakers": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "cavaliers::pistons": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "76ers::magic": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "bulls::hawks": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "nets::rockets": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "celtics::pelicans": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "raptors::spurs": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "mavericks::thunder": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "jazz::suns": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "nuggets::timberwolves": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "grizzlies::warriors": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "lakers::trail blazers": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "76ers::wizards": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "heat::hornets": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "bucks::knicks": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "kings::thunder": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "la clippers::warriors": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "raptors::rockets": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "cavaliers::celtics": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "magic::pistons": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "hawks::nets": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "bulls::kings": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "mavericks::pacers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "nuggets::pelicans": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "jazz::trail blazers": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "grizzlies::suns": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "hornets::magic": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "bucks::warriors": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "thunder::wizards": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "heat::spurs": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hawks::pacers": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "cavaliers::raptors": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "bulls::knicks": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "grizzlies::lakers": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "nuggets::trail blazers": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "la clippers::pelicans": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "bucks::kings": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "hornets::timberwolves": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "pacers::warriors": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "magic::wizards": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "celtics::rockets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "mavericks::pistons": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "pelicans::thunder": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "76ers::nets": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "hornets::jazz": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cavaliers::hawks": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "grizzlies::raptors": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "spurs::suns": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "heat::lakers": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "nets::timberwolves": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bucks::pacers": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "celtics::jazz": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "knicks::wizards": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "mavericks::rockets": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "grizzlies::pistons": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kings::nuggets": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "heat::la clippers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "76ers::bulls": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "hornets::pelicans": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "suns::warriors": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "la clippers::thunder": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "76ers::cavaliers": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "jazz::pistons": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "nets::pacers": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "celtics::wizards": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "knicks::timberwolves": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "grizzlies::rockets": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "mavericks::pelicans": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "heat::nuggets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lakers::spurs": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "thunder::trail blazers": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "kings::warriors": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "celtics::magic": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "cavaliers::wizards": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "nets::pistons": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "rockets::spurs": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "grizzlies::mavericks": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "bucks::bulls": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "jazz::timberwolves": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "76ers::raptors": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "hawks::lakers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bulls::cavaliers": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "heat::trail blazers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "nuggets::pacers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bucks::rockets": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "knicks::nets": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "grizzlies::thunder": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "76ers::pistons": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "kings::timberwolves": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "hornets::lakers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "pistons::wizards": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "magic::trail blazers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cavaliers::heat": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "bulls::spurs": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bucks::mavericks": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "pelicans::suns": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "hawks::la clippers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "nets::raptors": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "grizzlies::knicks": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "thunder::warriors": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "jazz::pacers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bucks::hornets": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "knicks::magic": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "celtics::grizzlies": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "rockets::wizards": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "pelicans::trail blazers": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "spurs::warriors": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "mavericks::suns": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "lakers::thunder": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "hawks::kings": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "la clippers::nuggets": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "pacers::suns": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hawks::jazz": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "magic::nets": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "rockets::trail blazers": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "lakers::pelicans": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "la clippers::mavericks": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "cavaliers::grizzlies": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "hornets::thunder": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "pacers::raptors": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "bucks::lakers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "celtics::la clippers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "kings::spurs": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "nets::wizards": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "magic::rockets": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "pelicans::warriors": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "mavericks::trail blazers": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "hawks::suns": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bulls::jazz": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "pacers::pistons": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "76ers::la clippers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "hornets::raptors": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "mavericks::timberwolves": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "bulls::nuggets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "magic::warriors": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "celtics::nets": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "hawks::pistons": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "grizzlies::spurs": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "jazz::lakers": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "suns::trail blazers": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "cavaliers::rockets": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hornets::pacers": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "heat::warriors": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "timberwolves::wizards": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "knicks::mavericks": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bulls::trail blazers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "la clippers::magic": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "grizzlies::kings": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "76ers::bucks": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "hawks::spurs": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "cavaliers::pacers": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "raptors::wizards": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "bulls::heat": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "suns::timberwolves": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "nuggets::rockets": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "jazz::thunder": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "hornets::la clippers": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hawks::pelicans": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bulls::wizards": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "bucks::pistons": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "76ers::heat": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "hawks::hornets": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "cavaliers::la clippers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "heat::mavericks": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "grizzlies::nuggets": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "bucks::trail blazers": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bulls::pelicans": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "rockets::suns": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "jazz::warriors": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "hawks::wizards": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "la clippers::lakers": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "hornets::knicks": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "bucks::heat": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "thunder::timberwolves": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "rockets::warriors": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "spurs::trail blazers": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "bulls::hornets": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "pacers::wizards": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "suns::thunder": {
+        "a_wins": 2,
+        "b_wins": 3,
+        "games": 5
+      },
+      "nuggets::spurs": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "lakers::mavericks": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "grizzlies::la clippers": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "celtics::timberwolves": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bulls::pacers": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "heat::pistons": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "bucks::nets": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "jazz::rockets": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "knicks::raptors": {
+        "a_wins": 5,
+        "b_wins": 0,
+        "games": 5
+      },
+      "76ers::hawks": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "spurs::timberwolves": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "mavericks::nuggets": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "lakers::suns": {
+        "a_wins": 2,
+        "b_wins": 3,
+        "games": 5
+      },
+      "raptors::trail blazers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "pelicans::timberwolves": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "cavaliers::trail blazers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "magic::spurs": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bulls::nets": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "kings::rockets": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "76ers::warriors": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "jazz::nets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lakers::raptors": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "celtics::lakers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "hawks::nuggets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cavaliers::spurs": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "pistons::trail blazers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "jazz::knicks": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "nets::pelicans": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cavaliers::warriors": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "heat::kings": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "la clippers::timberwolves": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "celtics::raptors": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "hornets::nuggets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "grizzlies::trail blazers": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "bulls::warriors": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "76ers::lakers": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kings::pacers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "la clippers::rockets": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "bucks::celtics": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "76ers::pacers": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "grizzlies::jazz": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "mavericks::nets": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "timberwolves::warriors": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "spurs::thunder": {
+        "a_wins": 4,
+        "b_wins": 1,
+        "games": 5
+      },
+      "cavaliers::hornets": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "heat::raptors": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "jazz::mavericks": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "knicks::spurs": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "grizzlies::timberwolves": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "knicks::pacers": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "heat::nets": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "spurs::wizards": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "pelicans::rockets": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "magic::nuggets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "kings::trail blazers": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "celtics::heat": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "76ers::knicks": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "76ers::mavericks": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "pacers::pelicans": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "hornets::pistons": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "grizzlies::wizards": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "jazz::magic": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bucks::timberwolves": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "celtics::pacers": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "jazz::nuggets": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "cavaliers::pelicans": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "kings::pistons": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "mavericks::warriors": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "lakers::rockets": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "hawks::heat": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "bucks::grizzlies": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "kings::mavericks": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "hawks::knicks": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "heat::pacers": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "jazz::spurs": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "raptors::warriors": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "76ers::thunder": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "celtics::trail blazers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "la clippers::pistons": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "suns::wizards": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "nets::warriors": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "magic::raptors": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "bulls::timberwolves": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "pacers::rockets": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "knicks::pelicans": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "76ers::grizzlies": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "lakers::pistons": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kings::la clippers": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "hornets::warriors": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hawks::timberwolves": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "magic::pacers": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "cavaliers::suns": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "nuggets::raptors": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "celtics::kings": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "pacers::spurs": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "cavaliers::nuggets": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "heat::timberwolves": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "nets::nuggets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "heat::pelicans": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "knicks::pistons": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "bulls::celtics": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "76ers::nuggets": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "celtics::nuggets": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "knicks::la clippers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cavaliers::timberwolves": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "pelicans::wizards": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "la clippers::nets": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "knicks::suns": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "celtics::spurs": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bulls::mavericks": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "magic::pelicans": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "grizzlies::nets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "knicks::trail blazers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "heat::thunder": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bucks::nuggets": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hawks::warriors": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cavaliers::jazz": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "heat::suns": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bulls::rockets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "kings::knicks": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "la clippers::wizards": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "grizzlies::magic": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "pistons::suns": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bucks::spurs": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "knicks::warriors": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "hawks::trail blazers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "la clippers::raptors": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "rockets::timberwolves": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "kings::wizards": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "celtics::hawks": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "nuggets::wizards": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bucks::hawks": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "cavaliers::thunder": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "nets::suns": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "76ers::suns": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bulls::la clippers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lakers::nuggets": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "grizzlies::hawks": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "pelicans::pistons": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bucks::thunder": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "kings::raptors": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "76ers::rockets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cavaliers::kings": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cavaliers::magic": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "heat::jazz": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "raptors::thunder": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bulls::lakers": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "trail blazers::wizards": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "nuggets::pistons": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "cavaliers::lakers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "grizzlies::hornets": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "76ers::kings": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "hawks::rockets": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hornets::mavericks": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "lakers::wizards": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "pistons::warriors": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "hornets::spurs": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "76ers::pelicans": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "jazz::raptors": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "knicks::lakers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "nuggets::thunder": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "lakers::nets": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "celtics::mavericks": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "magic::thunder": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "knicks::nuggets": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "raptors::timberwolves": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bucks::pelicans": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bulls::raptors": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "hornets::rockets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "heat::wizards": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "bucks::magic": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "kings::pelicans": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "76ers::trail blazers": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "pistons::raptors": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "stars::world": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "stars::stripes": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "stripes::world": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "celtics::warriors": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "kings::magic": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "nets::thunder": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "magic::suns": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "knicks::rockets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "76ers::timberwolves": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "pistons::spurs": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "celtics::suns": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "lakers::magic": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "pistons::thunder": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "jazz::pelicans": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "hornets::trail blazers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "heat::rockets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "76ers::spurs": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bulls::thunder": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "knicks::thunder": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "celtics::hornets": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "76ers::jazz": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "la clippers::pacers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "magic::mavericks": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "jazz::wizards": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bulls::suns": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "la clippers::spurs": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "lakers::pacers": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "magic::timberwolves": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bucks::jazz": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "pacers::trail blazers": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hornets::suns": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "hawks::mavericks": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bucks::suns": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "pelicans::raptors": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "hornets::kings": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "celtics::thunder": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "raptors::suns": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cavaliers::mavericks": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "warriors::wizards": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "nets::trail blazers": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bulls::grizzlies": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "kings::nets": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bucks::la clippers": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "pistons::timberwolves": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
       }
     }
   }

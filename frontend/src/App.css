@@ -76,3 +76,6 @@ tr:hover td { background: #161b24; }
 
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+.nav-tabs { display: flex; gap: 4px; }
+.header { flex-wrap: wrap; gap: 12px; }

@@ -10,16 +10,21 @@ import { SectorPerformance } from './components/SectorPerformance'
 import { OpenPositions } from './components/OpenPositions'
 import { RecentSettled } from './components/RecentSettled'
 import { MetricsPanel } from './components/MetricsPanel'
+import { PortfolioGrid } from './components/PortfolioGrid'
+import { PortfolioDetail } from './components/PortfolioDetail'
 import { Toast } from './components/Toast'
 import { fetchMetrics } from './lib/api'
 import type { MetricsResult } from './lib/types'
 import './App.css'
+
+type Page = { kind: 'dashboard' } | { kind: 'portfolios' } | { kind: 'portfolio'; id: string }
 
 export default function App() {
   const dash = useDashboard()
   const { toast, ...toastProps } = useToast()
   const [view, setView] = useState<'all' | 'placed'>('all')
   const [metrics, setMetrics] = useState<MetricsResult | null>(null)
+  const [page, setPage] = useState<Page>({ kind: 'dashboard' })
 
   const handleMetrics = useCallback(async () => {
     toast('Loading metrics...', 'info')
@@ -31,7 +36,7 @@ export default function App() {
     }
   }, [toast])
 
-  if (dash.loading) {
+  if (dash.loading && page.kind === 'dashboard') {
     return <div style={{ padding: 40, color: '#7a8aa0' }}>Loading dashboard...</div>
   }
 
@@ -41,42 +46,78 @@ export default function App() {
     <>
       <div className="header">
         <div className="header-left">
-          <h1>evmax</h1>
+          <h1 style={{ cursor: 'pointer' }} onClick={() => setPage({ kind: 'dashboard' })}>evmax</h1>
           <span className="subtitle">+EV prediction market dashboard</span>
         </div>
-        <ActionBar
-          onScanComplete={dash.setScanResults}
-          onResolve={dash.refresh}
-          onMetrics={handleMetrics}
+        <nav className="nav-tabs">
+          <button
+            className={`btn btn-sm pnl-tab ${page.kind === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setPage({ kind: 'dashboard' })}
+          >
+            Dashboard
+          </button>
+          <button
+            className={`btn btn-sm pnl-tab ${page.kind === 'portfolios' || page.kind === 'portfolio' ? 'active' : ''}`}
+            onClick={() => setPage({ kind: 'portfolios' })}
+          >
+            Portfolios
+          </button>
+        </nav>
+        {page.kind === 'dashboard' && (
+          <ActionBar
+            onScanComplete={dash.setScanResults}
+            onResolve={dash.refresh}
+            onMetrics={handleMetrics}
+            toast={toast}
+          />
+        )}
+      </div>
+
+      {page.kind === 'dashboard' && (
+        <>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+            <button className={`btn btn-sm pnl-tab ${view === 'all' ? 'active' : ''}`} onClick={() => setView('all')}>All Scanned</button>
+            <button className={`btn btn-sm pnl-tab ${view === 'placed' ? 'active' : ''}`} onClick={() => setView('placed')}>Placed Only</button>
+          </div>
+
+          <KpiCards summary={summary} />
+          <ProfitChart seriesAll={dash.seriesAll} seriesPlaced={dash.seriesPlaced} view={view} />
+
+          <ScanResults
+            gaps={dash.scanGaps}
+            meta={dash.scanMeta}
+            toast={toast}
+            onPicked={dash.refresh}
+          />
+
+          <MetricsPanel data={metrics} />
+
+          <PlacedBets bets={dash.placedBets} toast={toast} onChanged={dash.refresh} />
+
+          <div className="two-col">
+            <SectorPerformance sectors={dash.sectors} />
+            <OpenPositions bets={dash.openBets} scanGaps={dash.scanGaps} toast={toast} onPicked={dash.refresh} />
+          </div>
+
+          <RecentSettled bets={dash.recent} />
+        </>
+      )}
+
+      {page.kind === 'portfolios' && (
+        <PortfolioGrid
+          onSelect={(id) => setPage({ kind: 'portfolio', id })}
           toast={toast}
         />
-      </div>
+      )}
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-        <button className={`btn btn-sm pnl-tab ${view === 'all' ? 'active' : ''}`} onClick={() => setView('all')}>All Scanned</button>
-        <button className={`btn btn-sm pnl-tab ${view === 'placed' ? 'active' : ''}`} onClick={() => setView('placed')}>Placed Only</button>
-      </div>
+      {page.kind === 'portfolio' && (
+        <PortfolioDetail
+          portfolioId={page.id}
+          onBack={() => setPage({ kind: 'portfolios' })}
+          toast={toast}
+        />
+      )}
 
-      <KpiCards summary={summary} />
-      <ProfitChart seriesAll={dash.seriesAll} seriesPlaced={dash.seriesPlaced} view={view} />
-
-      <ScanResults
-        gaps={dash.scanGaps}
-        meta={dash.scanMeta}
-        toast={toast}
-        onPicked={dash.refresh}
-      />
-
-      <MetricsPanel data={metrics} />
-
-      <PlacedBets bets={dash.placedBets} toast={toast} onChanged={dash.refresh} />
-
-      <div className="two-col">
-        <SectorPerformance sectors={dash.sectors} />
-        <OpenPositions bets={dash.openBets} scanGaps={dash.scanGaps} toast={toast} onPicked={dash.refresh} />
-      </div>
-
-      <RecentSettled bets={dash.recent} />
       <Toast {...toastProps} />
     </>
   )

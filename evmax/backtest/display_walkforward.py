@@ -7,7 +7,12 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from evmax.backtest.sources.espn_walkforward import WalkForwardReport
+from evmax.backtest.sources.espn_walkforward import (
+    WalkForwardReport,
+    SpreadBacktestReport,
+    TotalsBacktestReport,
+    TOTALS_LINES,
+)
 
 console = Console()
 
@@ -138,6 +143,206 @@ def model_convergence_table(report: WalkForwardReport) -> Table:
         t.add_row(name, first_str, str(count), coverage)
 
     return t
+
+
+def spread_summary_panel(report: SpreadBacktestReport) -> Panel:
+    lines: list[str] = []
+    lines.append(f"  [bold]Games:[/bold]       {report.n_games}")
+    lines.append(f"  [bold]Predictions:[/bold] {report.n_predictions}  ({len(SPREAD_LINES)} lines × games with sim data)")
+    lines.append("")
+
+    sim_color = "green" if report.sim_brier < report.cdf_brier else "red"
+    cdf_color = "green" if report.cdf_brier < report.sim_brier else "red"
+    lines.append("  [bold underline]Overall Spread Prediction Accuracy[/bold underline]")
+    lines.append(f"  {'PossessionSim':16s}  Brier: [{sim_color}]{report.sim_brier:.4f}[/{sim_color}]  |  Acc: {report.sim_accuracy:.1%}")
+    lines.append(f"  {'Normal CDF':16s}  Brier: [{cdf_color}]{report.cdf_brier:.4f}[/{cdf_color}]  |  Acc: {report.cdf_accuracy:.1%}")
+    delta = report.cdf_brier - report.sim_brier
+    if delta > 0:
+        lines.append(f"  [green]  Sim beats CDF by {delta:.4f} Brier ({delta/report.cdf_brier:.1%} improvement)[/green]")
+    else:
+        lines.append(f"  [red]  CDF beats Sim by {-delta:.4f} Brier[/red]")
+
+    content = "\n".join(lines)
+    return Panel(content, title="[bold]SPREAD BACKTEST — NBA[/bold]  |  PossessionSim vs Normal CDF", border_style="cyan")
+
+
+SPREAD_LINES = [-1.5, -3.5, -5.5, -7.5, -9.5, -11.5, -13.5]
+
+
+def spread_per_line_table(report: SpreadBacktestReport) -> Table:
+    t = Table(
+        title="Per-Line Breakdown",
+        box=box.SIMPLE,
+        header_style="bold cyan",
+    )
+    t.add_column("Line", width=8)
+    t.add_column("N", justify="right", width=6)
+    t.add_column("Cover %", justify="right", width=9)
+    t.add_column("Sim Prob", justify="right", width=10)
+    t.add_column("CDF Prob", justify="right", width=10)
+    t.add_column("Sim Brier", justify="right", width=10)
+    t.add_column("CDF Brier", justify="right", width=10)
+    t.add_column("Winner", width=10)
+
+    for line in SPREAD_LINES:
+        data = report.per_line.get(line)
+        if not data:
+            continue
+        winner = "Sim" if data["sim_brier"] < data["cdf_brier"] else "CDF"
+        w_color = "green" if winner == "Sim" else "yellow"
+        t.add_row(
+            f"{line:+.1f}",
+            str(data["n"]),
+            f"{data['actual_cover_rate']:.1%}",
+            f"{data['sim_mean_prob']:.1%}",
+            f"{data['cdf_mean_prob']:.1%}",
+            f"{data['sim_brier']:.4f}",
+            f"{data['cdf_brier']:.4f}",
+            f"[{w_color}]{winner}[/{w_color}]",
+        )
+    return t
+
+
+def spread_calibration_table(report: SpreadBacktestReport) -> Table:
+    t = Table(
+        title="PossessionSim Spread Calibration",
+        box=box.SIMPLE,
+        header_style="bold cyan",
+    )
+    t.add_column("Prob Range", width=12)
+    t.add_column("Mean Pred", justify="right", width=10)
+    t.add_column("Actual %", justify="right", width=10)
+    t.add_column("N", justify="right", width=7)
+    t.add_column("Delta", justify="right", width=8)
+
+    for b in report.calibration_bins:
+        if b.n == 0:
+            continue
+        delta = b.actual_rate - b.mean_pred
+        color = _delta_color(b.mean_pred, b.actual_rate, b.n)
+        t.add_row(
+            f"{b.prob_low:.0%}–{b.prob_high:.0%}",
+            f"{b.mean_pred:.1%}",
+            f"{b.actual_rate:.1%}",
+            str(b.n),
+            f"[{color}]{delta:+.1%}[/{color}]",
+        )
+    return t
+
+
+def print_spread_backtest(report: SpreadBacktestReport) -> None:
+    console.print()
+    console.print(spread_summary_panel(report))
+    console.print()
+    console.print(spread_per_line_table(report))
+    console.print()
+    if report.calibration_bins:
+        console.print(spread_calibration_table(report))
+        console.print()
+
+
+def totals_summary_panel(report: TotalsBacktestReport) -> Panel:
+    lines: list[str] = []
+    lines.append(f"  [bold]Games:[/bold]       {report.n_games}")
+    lines.append(
+        f"  [bold]Predictions:[/bold] {report.n_predictions}  "
+        f"({len(TOTALS_LINES)} lines × games with sim data)"
+    )
+    lines.append("")
+
+    sim_color = "green" if report.sim_brier < report.cdf_brier else "red"
+    cdf_color = "green" if report.cdf_brier < report.sim_brier else "red"
+    lines.append("  [bold underline]Overall Totals Prediction Accuracy[/bold underline]")
+    lines.append(
+        f"  {'PossessionSim':16s}  Brier: [{sim_color}]{report.sim_brier:.4f}[/{sim_color}]"
+        f"  |  Acc: {report.sim_accuracy:.1%}"
+    )
+    lines.append(
+        f"  {'Normal CDF (σ20)':16s}  Brier: [{cdf_color}]{report.cdf_brier:.4f}[/{cdf_color}]"
+        f"  |  Acc: {report.cdf_accuracy:.1%}"
+    )
+    delta = report.cdf_brier - report.sim_brier
+    if delta > 0:
+        lines.append(
+            f"  [green]  Sim beats CDF by {delta:.4f} Brier ({delta/report.cdf_brier:.1%} improvement)[/green]"
+        )
+    else:
+        lines.append(f"  [red]  CDF beats Sim by {-delta:.4f} Brier[/red]")
+
+    content = "\n".join(lines)
+    return Panel(
+        content,
+        title="[bold]TOTALS BACKTEST — NBA[/bold]  |  PossessionSim vs Normal CDF",
+        border_style="cyan",
+    )
+
+
+def totals_per_line_table(report: TotalsBacktestReport) -> Table:
+    t = Table(title="Per-Line Breakdown", box=box.SIMPLE, header_style="bold cyan")
+    t.add_column("Line", width=8)
+    t.add_column("N", justify="right", width=6)
+    t.add_column("Over %", justify="right", width=9)
+    t.add_column("Sim Prob", justify="right", width=10)
+    t.add_column("CDF Prob", justify="right", width=10)
+    t.add_column("Sim Brier", justify="right", width=10)
+    t.add_column("CDF Brier", justify="right", width=10)
+    t.add_column("Winner", width=10)
+
+    for line in TOTALS_LINES:
+        data = report.per_line.get(line)
+        if not data:
+            continue
+        winner = "Sim" if data["sim_brier"] < data["cdf_brier"] else "CDF"
+        w_color = "green" if winner == "Sim" else "yellow"
+        t.add_row(
+            f"{line:.1f}",
+            str(data["n"]),
+            f"{data['actual_over_rate']:.1%}",
+            f"{data['sim_mean_prob']:.1%}",
+            f"{data['cdf_mean_prob']:.1%}",
+            f"{data['sim_brier']:.4f}",
+            f"{data['cdf_brier']:.4f}",
+            f"[{w_color}]{winner}[/{w_color}]",
+        )
+    return t
+
+
+def totals_calibration_table(report: TotalsBacktestReport) -> Table:
+    t = Table(
+        title="PossessionSim Totals Calibration",
+        box=box.SIMPLE,
+        header_style="bold cyan",
+    )
+    t.add_column("Prob Range", width=12)
+    t.add_column("Mean Pred", justify="right", width=10)
+    t.add_column("Actual %", justify="right", width=10)
+    t.add_column("N", justify="right", width=7)
+    t.add_column("Delta", justify="right", width=8)
+
+    for b in report.calibration_bins:
+        if b.n == 0:
+            continue
+        delta = b.actual_rate - b.mean_pred
+        color = _delta_color(b.mean_pred, b.actual_rate, b.n)
+        t.add_row(
+            f"{b.prob_low:.0%}–{b.prob_high:.0%}",
+            f"{b.mean_pred:.1%}",
+            f"{b.actual_rate:.1%}",
+            str(b.n),
+            f"[{color}]{delta:+.1%}[/{color}]",
+        )
+    return t
+
+
+def print_totals_backtest(report: TotalsBacktestReport) -> None:
+    console.print()
+    console.print(totals_summary_panel(report))
+    console.print()
+    console.print(totals_per_line_table(report))
+    console.print()
+    if report.calibration_bins:
+        console.print(totals_calibration_table(report))
+        console.print()
 
 
 def print_walkforward_report(report: WalkForwardReport) -> None:

@@ -1,24 +1,19 @@
-"""Point Projection Model — standalone team score predictions.
+"""Point Projection Model — ensemble-backed team score predictions.
 
-Combines Poisson attack/defense strengths with Elo-implied win probability
-to produce projected scores, spread, and total for any matchup.
+For NBA, uses PossessionSimAgent's Monte Carlo engine directly (the same one
+the EV pipeline uses for spreads/totals). For other sectors, uses a
+Poisson attack/defense × Elo-implied-margin blend from state files.
 
-This is NOT part of the EV pipeline. It's a standalone conviction tool
-for evaluating games independent of market pricing.
-
-Methodology:
-  1. Poisson base: λ_home = home_attack × away_defense × league_avg_home
-                   λ_away = away_attack × home_defense × league_avg_away
-  2. Elo adjustment: shift projected scores toward Elo-implied margin
-     (blends Poisson raw projection with Elo-derived spread)
-  3. Output: team_a_pts, team_b_pts, projected_spread, projected_total
+Returns None (not silent defaults) when either team is missing from state —
+this is the conviction tool used in playoffs, and fake projections would be
+worse than no projection at all.
 """
 
 from __future__ import annotations
 
 import json
-import math
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Optional
 
@@ -28,16 +23,6 @@ logger = structlog.get_logger(__name__)
 
 DATA_DIR = Path("data/models")
 
-# Home advantage in points (used when Elo doesn't provide one)
-HOME_ADVANTAGE: dict[str, float] = {
-    "nba": 3.5,
-    "nfl": 2.5,
-    "ncaab": 3.0,
-    "ncaaw": 3.0,
-    "soccer": 0.4,  # goals
-}
-
-# Elo home advantage in Elo points (for win prob calculation)
 ELO_HOME_ADV: dict[str, float] = {
     "nba": 100.0,
     "nfl": 48.0,
@@ -46,7 +31,6 @@ ELO_HOME_ADV: dict[str, float] = {
     "soccer": 60.0,
 }
 
-# Default league averages (fallback if not in Poisson state)
 LEAGUE_AVG_DEFAULTS: dict[str, dict[str, float]] = {
     "nba": {"home": 113.5, "away": 111.0},
     "nfl": {"home": 23.5, "away": 21.5},
@@ -55,7 +39,6 @@ LEAGUE_AVG_DEFAULTS: dict[str, dict[str, float]] = {
     "soccer": {"home": 1.55, "away": 1.15},
 }
 
-# Empirical scoring margin standard deviations
 SECTOR_SIGMA: dict[str, float] = {
     "nba": 11.5,
     "nfl": 14.0,
@@ -65,9 +48,21 @@ SECTOR_SIGMA: dict[str, float] = {
 }
 
 DEFAULT_ELO = 1500.0
-
-# How much Elo adjustment influences the final projection (0=pure Poisson, 1=pure Elo)
 ELO_BLEND_WEIGHT = 0.35
+
+# NBA playoff window (months). Play-in starts mid-April, Finals end mid-June.
+NBA_PLAYOFF_MONTHS = {4, 5, 6}
+
+
+def is_nba_playoff_date(game_date: Optional[str]) -> bool:
+    """Return True if ``game_date`` (YYYY-MM-DD) falls in the NBA playoff window."""
+    if not game_date:
+        return False
+    try:
+        parsed = date.fromisoformat(game_date[:10])
+    except (ValueError, TypeError):
+        return False
+    return parsed.month in NBA_PLAYOFF_MONTHS
 
 # City → team name mapping for common lookups (lowercase)
 CITY_TO_TEAM: dict[str, str] = {
@@ -105,44 +100,65 @@ class GameProjection:
     away_points: float
     projected_spread: float  # negative = home favored
     projected_total: float
-    home_elo: float
-    away_elo: float
-    elo_win_prob_home: float
-    confidence: str  # "high", "medium", "low"
+    margin_sigma: float       # std of modelled margin distribution
+    total_sigma: float        # std of modelled total distribution
+    win_prob_home: float      # P(home wins) from the engine
+    home_elo: Optional[float]
+    away_elo: Optional[float]
+    confidence: str           # "high", "medium", "low"
+    engine: str               # "possession_sim" | "poisson_elo"
     sector: str
+    is_playoff: bool = False  # whether playoff tightening was applied
+
+    # Backwards-compat shim — legacy CLI/tests read ``elo_win_prob_home``.
+    @property
+    def elo_win_prob_home(self) -> float:
+        return self.win_prob_home
 
     @property
     def spread_pick(self) -> str:
-        """Which side the model favors on the spread."""
         if abs(self.projected_spread) < 1.0:
             return "Pick"
         return self.home_team if self.projected_spread < 0 else self.away_team
 
 
 class PointProjectionModel:
-    """Produces point projections by combining Poisson and Elo state."""
+    """Projects scores using the PossessionSim engine (NBA) or Poisson+Elo blend (other sectors)."""
 
     def __init__(self) -> None:
         self._poisson_state: dict = {}
         self._elo_state: dict = {}
+        self._efficiency_state: dict = {}
+        self._possession_agent = None
         self._load_state()
 
     def _load_state(self) -> None:
-        poisson_path = DATA_DIR / "poisson_state.json"
-        elo_path = DATA_DIR / "elo_state.json"
-        if poisson_path.exists():
-            self._poisson_state = json.loads(poisson_path.read_text())
-        if elo_path.exists():
-            self._elo_state = json.loads(elo_path.read_text())
+        for attr, filename in [
+            ("_poisson_state", "poisson_state.json"),
+            ("_elo_state", "elo_state.json"),
+            ("_efficiency_state", "efficiency_state.json"),
+        ]:
+            path = DATA_DIR / filename
+            if path.exists():
+                try:
+                    setattr(self, attr, json.loads(path.read_text()))
+                except Exception:
+                    logger.warning("point_projection_state_load_failed", file=filename)
 
-    def _get_league_avg(self, sector: str) -> dict[str, float]:
+    def _get_possession_agent(self):
+        if self._possession_agent is None:
+            from evmax.agents.models.possession_sim_agent import PossessionSimAgent
+            self._possession_agent = PossessionSimAgent()
+        return self._possession_agent
+
+    def _get_league_avg(self, sector: str) -> Optional[dict[str, float]]:
         return (
             self._poisson_state.get(sector, {}).get("league_avg")
-            or LEAGUE_AVG_DEFAULTS.get(sector, {"home": 72.0, "away": 70.0})
+            or LEAGUE_AVG_DEFAULTS.get(sector)
         )
 
     def _resolve_key(self, store: dict, team: str) -> Optional[str]:
-        """Resolve a team name against a dict using exact, last-word, suffix, and normalizer fallbacks."""
+        """Resolve a team name against a dict using exact, last-word, suffix fallbacks."""
         if team in store:
             return team
         if " " in team:
@@ -155,9 +171,7 @@ class PointProjectionModel:
         return None
 
     def _normalize_team(self, sector: str, team: str) -> str:
-        """Normalize a team name using city lookup and sector alias system."""
         team_lower = team.lower().strip()
-        # Try city → team mapping first
         if team_lower in CITY_TO_TEAM:
             return CITY_TO_TEAM[team_lower]
         try:
@@ -173,96 +187,165 @@ class PointProjectionModel:
         key = self._resolve_key(teams, team)
         return teams.get(key) if key else None
 
-    def _get_elo(self, sector: str, team: str) -> float:
+    def _get_elo(self, sector: str, team: str) -> Optional[float]:
         ratings = self._elo_state.get(sector, {}).get("ratings", {})
         key = self._resolve_key(ratings, team)
-        return ratings.get(key, DEFAULT_ELO) if key else DEFAULT_ELO
-
-    def _elo_win_prob(self, elo_a: float, elo_b: float, home_adv: float) -> float:
-        """P(A wins) given Elo ratings and home advantage for A."""
-        return 1.0 / (1.0 + 10 ** ((elo_b - elo_a - home_adv) / 400))
-
-    def _elo_implied_margin(self, win_prob: float, sigma: float) -> float:
-        """Convert win probability to implied point margin via normal inverse."""
-        from scipy.stats import norm
-
-        # Clamp to avoid infinite margins
-        p = max(0.01, min(0.99, win_prob))
-        return norm.ppf(p) * sigma
+        if key is None:
+            return None
+        return ratings.get(key)
 
     def project(
         self,
         home_team: str,
         away_team: str,
         sector: str,
+        game_date: Optional[str] = None,
     ) -> Optional[GameProjection]:
-        """Generate point projection for a matchup."""
+        """Generate a point projection. Returns None if required state is missing.
+
+        ``game_date`` (YYYY-MM-DD) enables playoff detection for NBA. When the
+        date falls inside the NBA playoff window the sim applies defensive
+        tightening (see PossessionSimAgent.PLAYOFF_ORTG_FACTOR).
+        """
         sector = sector.lower()
-        home_key = self._normalize_team(sector, home_team.lower().strip())
-        away_key = self._normalize_team(sector, away_team.lower().strip())
+        home_key = self._normalize_team(sector, home_team)
+        away_key = self._normalize_team(sector, away_team)
+
+        if sector == "nba":
+            return self._project_nba(home_team, away_team, home_key, away_key, game_date)
+        return self._project_poisson_elo(home_team, away_team, home_key, away_key, sector)
+
+    def _project_nba(
+        self,
+        home_display: str,
+        away_display: str,
+        home_key: str,
+        away_key: str,
+        game_date: Optional[str] = None,
+    ) -> Optional[GameProjection]:
+        agent = self._get_possession_agent()
+        is_playoff = is_nba_playoff_date(game_date)
+        sim = agent.simulate_matchup(home_key, away_key, is_playoff=is_playoff)
+        if sim is None:
+            logger.debug(
+                "point_projection_nba_sim_unavailable",
+                home=home_key, away=away_key,
+            )
+            return None
+
+        scores_a = sim["scores_a"]
+        scores_b = sim["scores_b"]
+        margins = sim["margin"]
+        totals = sim["total"]
+
+        home_pts = float(scores_a.mean())
+        away_pts = float(scores_b.mean())
+        margin_mean = float(margins.mean())
+        total_mean = float(totals.mean())
+        margin_sigma = float(margins.std())
+        total_sigma = float(totals.std())
+
+        stats_a = sim["stats_a"]
+        stats_b = sim["stats_b"]
+        min_gp = min(stats_a.get("gp", 0), stats_b.get("gp", 0))
+        confidence = "high" if min_gp >= 60 else ("medium" if min_gp >= 30 else "low")
+
+        elo_h = self._get_elo("nba", home_key)
+        elo_a = self._get_elo("nba", away_key)
+
+        return GameProjection(
+            home_team=home_display,
+            away_team=away_display,
+            home_points=round(home_pts, 2),
+            away_points=round(away_pts, 2),
+            projected_spread=round(-margin_mean, 2),
+            projected_total=round(total_mean, 2),
+            margin_sigma=round(margin_sigma, 2),
+            total_sigma=round(total_sigma, 2),
+            win_prob_home=round(float(sim["prob_a"]), 4),
+            home_elo=round(elo_h, 1) if elo_h is not None else None,
+            away_elo=round(elo_a, 1) if elo_a is not None else None,
+            confidence=confidence,
+            engine="possession_sim",
+            sector="nba",
+            is_playoff=is_playoff,
+        )
+
+    def _project_poisson_elo(
+        self,
+        home_display: str,
+        away_display: str,
+        home_key: str,
+        away_key: str,
+        sector: str,
+    ) -> Optional[GameProjection]:
+        from scipy.stats import norm
+
+        home_stats = self._get_poisson_stats(sector, home_key)
+        away_stats = self._get_poisson_stats(sector, away_key)
+        if not home_stats or not away_stats:
+            logger.debug(
+                "point_projection_poisson_state_missing",
+                sector=sector, home=home_key, away=away_key,
+                home_found=bool(home_stats), away_found=bool(away_stats),
+            )
+            return None
+
+        elo_h = self._get_elo(sector, home_key)
+        elo_a = self._get_elo(sector, away_key)
+        if elo_h is None or elo_a is None:
+            logger.debug(
+                "point_projection_elo_missing",
+                sector=sector, home=home_key, away=away_key,
+            )
+            return None
 
         avg = self._get_league_avg(sector)
+        if avg is None:
+            return None
         avg_h = avg["home"]
         avg_a = avg["away"]
 
-        # --- Poisson base projection ---
-        home_stats = self._get_poisson_stats(sector, home_key)
-        away_stats = self._get_poisson_stats(sector, away_key)
-
-        home_attack = home_stats["attack"] if home_stats else 1.0
-        home_defense = home_stats["defense"] if home_stats else 1.0
-        away_attack = away_stats["attack"] if away_stats else 1.0
-        away_defense = away_stats["defense"] if away_stats else 1.0
+        home_attack = home_stats["attack"]
+        home_defense = home_stats["defense"]
+        away_attack = away_stats["attack"]
+        away_defense = away_stats["defense"]
 
         poisson_home = home_attack * away_defense * avg_h
         poisson_away = away_attack * home_defense * avg_a
-
-        # --- Elo adjustment ---
-        home_elo = self._get_elo(sector, home_key)
-        away_elo = self._get_elo(sector, away_key)
-        home_adv_elo = ELO_HOME_ADV.get(sector, 50.0)
-        sigma = SECTOR_SIGMA.get(sector, 12.0)
-
-        elo_wp = self._elo_win_prob(home_elo, away_elo, home_adv_elo)
-        elo_margin = self._elo_implied_margin(elo_wp, sigma)
-
-        # Poisson margin
         poisson_margin = poisson_home - poisson_away
 
-        # Blend: shift Poisson scores toward Elo-implied margin
-        blended_margin = (
-            (1 - ELO_BLEND_WEIGHT) * poisson_margin
-            + ELO_BLEND_WEIGHT * elo_margin
-        )
+        home_adv_elo = ELO_HOME_ADV.get(sector, 50.0)
+        sigma = SECTOR_SIGMA.get(sector, 12.0)
+        elo_wp = 1.0 / (1.0 + 10 ** ((elo_a - elo_h - home_adv_elo) / 400))
+        elo_wp_clamped = max(0.01, min(0.99, elo_wp))
+        elo_margin = norm.ppf(elo_wp_clamped) * sigma
 
-        # Adjust scores symmetrically to match blended margin
+        blended_margin = (1 - ELO_BLEND_WEIGHT) * poisson_margin + ELO_BLEND_WEIGHT * elo_margin
         margin_shift = (blended_margin - poisson_margin) / 2
         home_pts = poisson_home + margin_shift
         away_pts = poisson_away - margin_shift
 
-        # --- Confidence ---
-        home_games = home_stats.get("games", 0) if home_stats else 0
-        away_games = away_stats.get("games", 0) if away_stats else 0
-        min_games = min(home_games, away_games)
+        min_games = min(home_stats.get("games", 0), away_stats.get("games", 0))
+        confidence = "high" if min_games >= 15 else ("medium" if min_games >= 5 else "low")
 
-        if min_games >= 15:
-            confidence = "high"
-        elif min_games >= 5:
-            confidence = "medium"
-        else:
-            confidence = "low"
+        # Total σ heuristic — without a sim we scale margin σ up since totals vary more
+        total_sigma = sigma * 1.6
 
         return GameProjection(
-            home_team=home_team,
-            away_team=away_team,
+            home_team=home_display,
+            away_team=away_display,
             home_points=round(home_pts, 2),
             away_points=round(away_pts, 2),
-            projected_spread=round(-(home_pts - away_pts), 2),  # negative = home fav
+            projected_spread=round(-(home_pts - away_pts), 2),
             projected_total=round(home_pts + away_pts, 2),
-            home_elo=round(home_elo, 1),
-            away_elo=round(away_elo, 1),
-            elo_win_prob_home=round(elo_wp, 4),
+            margin_sigma=round(sigma, 2),
+            total_sigma=round(total_sigma, 2),
+            win_prob_home=round(float(elo_wp), 4),
+            home_elo=round(elo_h, 1),
+            away_elo=round(elo_a, 1),
             confidence=confidence,
+            engine="poisson_elo",
             sector=sector,
         )
 
@@ -273,12 +356,17 @@ class PointProjectionModel:
         sector: str,
         book_spread: Optional[float] = None,
         book_total: Optional[float] = None,
+        spread_threshold: float = 1.0,
+        total_threshold: float = 1.5,
+        game_date: Optional[str] = None,
     ) -> Optional[dict]:
         """Project scores and compare against sportsbook lines.
 
-        Returns a dict with projection + edge analysis.
+        ``book_spread`` is expressed as the home team's handicap (negative = home fav).
+        ``game_date`` (YYYY-MM-DD) enables playoff detection for NBA.
+        Returns None if the projection itself is unavailable.
         """
-        proj = self.project(home_team, away_team, sector)
+        proj = self.project(home_team, away_team, sector, game_date=game_date)
         if proj is None:
             return None
 
@@ -293,50 +381,54 @@ class PointProjectionModel:
         }
 
         if book_spread is not None:
-            # book_spread is home spread (e.g. -7.5 means home favored by 7.5)
             spread_diff = proj.projected_spread - book_spread
             result["spread_edge"] = round(spread_diff, 2)
-            # If our projected spread is more negative than book → home is undervalued
-            if abs(spread_diff) >= 1.0:
-                if spread_diff < 0:
-                    result["spread_play"] = proj.home_team
-                else:
-                    result["spread_play"] = proj.away_team
+            if abs(spread_diff) >= spread_threshold:
+                # Model projects a more-negative home spread → home is the value side
+                result["spread_play"] = proj.home_team if spread_diff < 0 else proj.away_team
 
         if book_total is not None:
             total_diff = proj.projected_total - book_total
             result["total_edge"] = round(total_diff, 2)
-            if abs(total_diff) >= 1.5:
+            if abs(total_diff) >= total_threshold:
                 result["total_play"] = "Over" if total_diff > 0 else "Under"
 
         return result
 
     def available_teams(self, sector: str) -> list[str]:
-        """List teams with Poisson data for a sector."""
+        """List teams with projection data for a sector."""
+        sector = sector.lower()
+        if sector == "nba":
+            nba = self._efficiency_state.get("nba", {})
+            teams = nba.get("teams", {})
+            if teams:
+                return sorted(teams.keys())
         return sorted(self._poisson_state.get(sector, {}).get("teams", {}).keys())
 
     def detect_sector(self, team: str) -> Optional[str]:
         """Auto-detect which sector a team belongs to by checking Poisson + Elo state."""
         team_lower = team.lower().strip()
 
-        def _check_store(store: dict) -> bool:
-            if self._resolve_key(store, team_lower):
-                return True
-            return False
+        # NBA gets priority since it has the richest state (efficiency)
+        nba_teams = self._efficiency_state.get("nba", {}).get("teams", {})
+        if nba_teams:
+            if self._resolve_key(nba_teams, team_lower):
+                return "nba"
+            normalized = self._normalize_team("nba", team_lower)
+            if normalized != team_lower and self._resolve_key(nba_teams, normalized):
+                return "nba"
 
-        # Check Poisson teams first (more reliable — requires minimum games)
         for sector in self._poisson_state:
             teams = self._poisson_state[sector].get("teams", {})
-            if _check_store(teams):
+            if self._resolve_key(teams, team_lower):
                 return sector
-            # Try normalizer: "boston" → "celtics" via alias lookup
             normalized = self._normalize_team(sector, team_lower)
             if normalized != team_lower and self._resolve_key(teams, normalized):
                 return sector
-        # Fallback: check Elo ratings
+
         for sector in self._elo_state:
             ratings = self._elo_state[sector].get("ratings", {})
-            if _check_store(ratings):
+            if self._resolve_key(ratings, team_lower):
                 return sector
             normalized = self._normalize_team(sector, team_lower)
             if normalized != team_lower and self._resolve_key(ratings, normalized):

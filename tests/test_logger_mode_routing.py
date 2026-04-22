@@ -268,6 +268,56 @@ def test_log_gaps_broken_resolver_defaults_to_live(patched_db, caplog):
     assert row["mode"] == "live"
 
 
+def test_log_gaps_unsticks_voided_on_rescan(patched_db):
+    """If a market was marked voided by cleanup but Kalshi is quoting it
+    again, the next log_gaps call must reset voided=0 so /api/pick can
+    find the row. Snapshot columns stay frozen (freeze-on-first-insert).
+    Regression for: silent 'Placed 0 bet(s)' toast when a stale voided
+    row blocks a live scan result."""
+    gap = _gap("stuck-mid", sector="nba")
+    assert log_gaps([gap], sharp_weight_used=0.85, bankroll_used=500.0) == 1
+
+    # Simulate cleanup voiding the row + the user not yet picking it.
+    patched_db.execute(
+        "UPDATE ev_predictions SET voided = 1 WHERE market_id = ?",
+        ("stuck-mid",),
+    )
+    patched_db.commit()
+
+    # Second scan: INSERT OR IGNORE is a no-op (UNIQUE conflict), but
+    # the new branch should flip voided back to 0.
+    inserted = log_gaps([gap], sharp_weight_used=0.85, bankroll_used=500.0)
+    assert inserted == 0  # snapshot stayed frozen
+    row = patched_db.execute(
+        "SELECT voided, ev_pct FROM ev_predictions WHERE market_id = ?",
+        ("stuck-mid",),
+    ).fetchone()
+    assert row["voided"] == 0
+    # Snapshot preserved — original ev_pct still there.
+    assert row["ev_pct"] == pytest.approx(0.07)
+
+
+def test_log_gaps_does_not_unvoid_placed_rows(patched_db):
+    """A row with placed=1 is a deliberate user action — never reset its
+    voided flag, even on rescan. Protects against accidental re-activation
+    of a manually-voided placed bet."""
+    gap = _gap("placed-mid", sector="nba")
+    log_gaps([gap])
+    patched_db.execute(
+        "UPDATE ev_predictions SET voided = 1, placed = 1 WHERE market_id = ?",
+        ("placed-mid",),
+    )
+    patched_db.commit()
+
+    log_gaps([gap])
+    row = patched_db.execute(
+        "SELECT voided, placed FROM ev_predictions WHERE market_id = ?",
+        ("placed-mid",),
+    ).fetchone()
+    assert row["voided"] == 1  # stays voided
+    assert row["placed"] == 1
+
+
 def test_log_gaps_empty_list_is_noop(patched_db):
     assert log_gaps([]) == 0
     rows = patched_db.execute("SELECT COUNT(*) AS n FROM ev_predictions").fetchone()

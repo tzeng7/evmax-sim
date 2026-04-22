@@ -102,3 +102,85 @@ def run(
             print_prop_report(report)
         else:
             print_report(report)
+
+
+@app.command("spread")
+def spread(
+    months: str = typer.Option(
+        None, "--months", "-m",
+        help="Comma-separated YYYYMM months (e.g. '202410,202411,...'). Default: Oct 2025 – Apr 2026.",
+    ),
+) -> None:
+    """Backtest NBA spread predictions: PossessionSim margin distribution vs Normal CDF.
+
+    Tests cover probability at standard spread lines (-1.5 to -13.5) against
+    actual game margins from ESPN historical data.
+
+    Examples:
+
+      evmax backtest spread
+
+      evmax backtest spread --months 202501,202502,202503
+    """
+    from evmax.backtest.display_walkforward import print_spread_backtest
+    from evmax.backtest.sources.espn_walkforward import run_spread_backtest
+
+    if months:
+        month_list = [m.strip() for m in months.split(",") if m.strip()]
+    else:
+        month_list = [f"2025{m:02d}" for m in range(10, 13)] + [f"2026{m:02d}" for m in range(1, 5)]
+
+    console.print(
+        f"\n[bold cyan]evmax backtest spread[/bold cyan] — months: {', '.join(month_list)}"
+        "\n  PossessionSim vs Normal CDF (σ=11.5)"
+    )
+
+    with console.status("[bold green]Running spread backtest (PossessionSim 10K sims per game)...[/bold green]"):
+        report = run_spread_backtest(month_list)
+
+    if report.n_predictions == 0:
+        console.print("[red]No spread predictions generated. Check PossessionSim data.[/red]")
+        raise typer.Exit(1)
+
+    print_spread_backtest(report)
+
+
+@app.command("totals")
+def totals(
+    months: str = typer.Option(
+        None, "--months", "-m",
+        help="Comma-separated YYYYMM months (e.g. '202410,202411,...'). Default: Oct 2025 – Apr 2026.",
+    ),
+) -> None:
+    """Backtest NBA totals predictions: PossessionSim total distribution vs Normal CDF.
+
+    Tests P(total > line) at standard lines (210.5 – 240.5) against actual
+    game totals from ESPN historical data.
+
+    Examples:
+
+      evmax backtest totals
+
+      evmax backtest totals --months 202501,202502,202503
+    """
+    from evmax.backtest.display_walkforward import print_totals_backtest
+    from evmax.backtest.sources.espn_walkforward import run_totals_backtest
+
+    if months:
+        month_list = [m.strip() for m in months.split(",") if m.strip()]
+    else:
+        month_list = [f"2025{m:02d}" for m in range(10, 13)] + [f"2026{m:02d}" for m in range(1, 5)]
+
+    console.print(
+        f"\n[bold cyan]evmax backtest totals[/bold cyan] — months: {', '.join(month_list)}"
+        "\n  PossessionSim vs Normal CDF (σ=20)"
+    )
+
+    with console.status("[bold green]Running totals backtest (PossessionSim 10K sims per game)...[/bold green]"):
+        report = run_totals_backtest(month_list)
+
+    if report.n_predictions == 0:
+        console.print("[red]No totals predictions generated. Check PossessionSim data.[/red]")
+        raise typer.Exit(1)
+
+    print_totals_backtest(report)

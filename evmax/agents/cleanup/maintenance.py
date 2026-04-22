@@ -219,29 +219,47 @@ def _check_stale_markets(
 def _check_prob_divergence(
     rows: list, scan_date: str, conn: sqlite3.Connection, report: MaintenanceReport
 ) -> None:
-    """blended_true_prob > 50% relative drift from sharp → reset to sharp_true_prob."""
+    """blended_true_prob > 50% relative drift from sharp → reset to sharp and recalculate EV."""
     for r in rows:
         sharp = r["sharp_true_prob"]
         blended = r["blended_true_prob"]
+        kalshi = r["kalshi_yes_price"]
         if not (sharp and sharp > 0):
             continue
         drift = abs(blended - sharp) / sharp
         if drift <= MAX_PROB_DRIFT:
             continue
 
-        conn.execute(
-            "UPDATE ev_predictions SET blended_true_prob = ? WHERE market_id = ? AND scan_date = ?",
-            (sharp, r["market_id"], scan_date),
-        )
-        report.fixes_applied += 1
-        report.issues.append(MaintenanceIssue(
-            level="warning",
-            check="prob_divergence",
-            market_id=r["market_id"],
-            event_id=r["event_id"],
-            detail=f"blended={blended:.3f} vs sharp={sharp:.3f} ({drift:.0%} drift)",
-            fix=f"reset blended_true_prob to sharp_true_prob ({sharp:.3f})",
-        ))
+        new_ev = (sharp / kalshi - 1.0) if kalshi and kalshi > 0 else 0.0
+        if new_ev < 0:
+            conn.execute(
+                "DELETE FROM ev_predictions WHERE market_id = ? AND scan_date = ?",
+                (r["market_id"], scan_date),
+            )
+            report.fixes_applied += 1
+            report.issues.append(MaintenanceIssue(
+                level="warning",
+                check="prob_divergence",
+                market_id=r["market_id"],
+                event_id=r["event_id"],
+                detail=f"blended={blended:.3f} vs sharp={sharp:.3f} ({drift:.0%} drift), negative EV after reset",
+                fix="deleted row (negative EV after drift correction)",
+            ))
+        else:
+            conn.execute(
+                "UPDATE ev_predictions SET blended_true_prob = ?, ev_pct = ?, kelly_fraction = 0 "
+                "WHERE market_id = ? AND scan_date = ?",
+                (sharp, new_ev, r["market_id"], scan_date),
+            )
+            report.fixes_applied += 1
+            report.issues.append(MaintenanceIssue(
+                level="warning",
+                check="prob_divergence",
+                market_id=r["market_id"],
+                event_id=r["event_id"],
+                detail=f"blended={blended:.3f} vs sharp={sharp:.3f} ({drift:.0%} drift)",
+                fix=f"reset blended_true_prob to {sharp:.3f}, ev_pct to {new_ev:.3f}",
+            ))
 
 
 # ---------------------------------------------------------------------------

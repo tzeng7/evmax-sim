@@ -171,6 +171,7 @@ class EVGapAgent(Agent):
         model_sources: dict[str, str] = request.params.get("model_sources", {})
         kelly_base: float = request.params.get("kelly_base_fraction", 0.25)
         steam_events: set[str] = request.params.get("steam_events", set())
+        self._possession_sim = request.params.get("possession_sim_agent")
 
         self.log.info(
             "ev_gap_start",
@@ -494,7 +495,7 @@ class EVGapAgent(Agent):
             yes_is_under = False
 
         # ------------------------------------------------------------------
-        # Step 2a: Spread markets — use SpreadDistributionModel (line-adjusted)
+        # Step 2a: Spread markets — blend Pinnacle CDF with sim distribution
         # ------------------------------------------------------------------
         used_spread_model = False
         if market.market_type == MarketType.spread and market.line is not None:
@@ -508,6 +509,17 @@ class EVGapAgent(Agent):
                 sharp_true_prob = spread_result.true_prob
                 yes_is_outcome_b = False
                 used_spread_model = True
+
+                # Blend with PossessionSim margin distribution for NBA
+                sim = getattr(self, "_possession_sim", None)
+                if sim is not None and sector == "nba":
+                    sim_prob = sim.cover_probability(
+                        sharp.event_id, market.line, yes_is_underdog=yes_is_outcome_b,
+                    )
+                    if sim_prob is not None:
+                        sim_weight = 0.35
+                        sharp_true_prob = (1.0 - sim_weight) * sharp_true_prob + sim_weight * sim_prob
+                        used_spread_model = True
             else:
                 return None  # line too far — extrapolation unreliable
 
@@ -525,6 +537,15 @@ class EVGapAgent(Agent):
             if total_result is not None:
                 sharp_true_prob = total_result.true_prob
                 used_total_model = True
+
+                sim = getattr(self, "_possession_sim", None)
+                if sim is not None and sector == "nba":
+                    sim_prob = sim.total_probability(
+                        sharp.event_id, market.line, is_over=not yes_is_under,
+                    )
+                    if sim_prob is not None:
+                        sim_weight = 0.35
+                        sharp_true_prob = (1.0 - sim_weight) * sharp_true_prob + sim_weight * sim_prob
             # If None (line too far), fall through with raw Pinnacle over/under prob
 
         skip_blend = used_spread_model or used_total_model or is_total
@@ -546,7 +567,9 @@ class EVGapAgent(Agent):
         else:
             blended_prob = sharp_true_prob
             if used_spread_model:
-                src = "sharp+spread_dist"
+                sim = getattr(self, "_possession_sim", None)
+                has_sim = sim is not None and sharp.event_id in getattr(sim, "_margin_cache", {})
+                src = "sharp+spread_dist+possession_sim" if has_sim and sector == "nba" else "sharp+spread_dist"
             elif used_total_model:
                 src = "sharp+total_dist"
             else:

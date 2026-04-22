@@ -148,13 +148,13 @@ def _render_game(result: dict) -> None:
     )
     teams_table.add_row(
         "Elo",
-        str(proj.away_elo),
-        str(proj.home_elo),
+        f"{proj.away_elo:.0f}" if proj.away_elo is not None else "—",
+        f"{proj.home_elo:.0f}" if proj.home_elo is not None else "—",
     )
     teams_table.add_row(
         "Win Prob",
-        f"{(1 - proj.elo_win_prob_home) * 100:.1f}%",
-        f"{proj.elo_win_prob_home * 100:.1f}%",
+        f"{(1 - proj.win_prob_home) * 100:.1f}%",
+        f"{proj.win_prob_home * 100:.1f}%",
     )
     console.print(teams_table)
 
@@ -166,15 +166,16 @@ def _render_game(result: dict) -> None:
 
     lines_table.add_row(
         "Spread",
-        f"[bold]{_spread_str(proj.projected_spread)}[/bold]",
+        f"[bold]{_spread_str(proj.projected_spread)}[/bold]  [dim]σ={proj.margin_sigma:.1f}[/dim]",
         _spread_str(book_spread) if book_spread is not None else "—",
     )
     lines_table.add_row(
         "Total",
-        f"[bold]{proj.projected_total:.1f}[/bold]",
+        f"[bold]{proj.projected_total:.1f}[/bold]  [dim]σ={proj.total_sigma:.1f}[/dim]",
         f"{book_total:.1f}" if book_total is not None else "—",
     )
     console.print(lines_table)
+    console.print(f"[dim]Engine: {proj.engine}[/dim]")
 
     # Recommended plays
     spread_play = result.get("spread_play")
@@ -289,7 +290,16 @@ def slate(
                     "away": odds.outcome_b_label,
                     "book_spread": None,
                     "book_total": None,
+                    "event_date": None,
                 }
+
+            if odds.event_date is not None:
+                # Convert UTC → US/Eastern so the "game day" matches ESPN and
+                # the NBA schedule (late-PT tipoffs don't roll into the next
+                # UTC day).
+                from zoneinfo import ZoneInfo
+                et = odds.event_date.astimezone(ZoneInfo("US/Eastern"))
+                events[base_key]["event_date"] = et.date().isoformat()
 
             if "::spread" in eid and odds.spread_line is not None:
                 events[base_key]["book_spread"] = odds.spread_line
@@ -303,8 +313,11 @@ def slate(
                 sector=sector,
                 book_spread=ev.get("book_spread"),
                 book_total=ev.get("book_total"),
+                game_date=ev.get("event_date"),
             )
             if result:
+                # Attach per-event date so logging + display use the real game day
+                result["game_date"] = ev.get("event_date") or date.today().isoformat()
                 results.append(result)
 
         return results
@@ -318,8 +331,11 @@ def slate(
     # Log projections if requested
     if log:
         conn = _get_proj_db()
-        today = date.today().isoformat()
-        logged = sum(1 for r in results if _log_projection(conn, r, today, sector))
+        fallback = date.today().isoformat()
+        logged = sum(
+            1 for r in results
+            if _log_projection(conn, r, r.get("game_date") or fallback, sector)
+        )
         conn.close()
         console.print(f"[green]Logged {logged} new projections to projections.db[/green]")
 

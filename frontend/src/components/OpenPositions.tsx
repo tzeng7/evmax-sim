@@ -34,7 +34,16 @@ export function OpenPositions({ bets, scanGaps, toast, onPicked }: Props) {
     if (!ids.length) { toast('Select positions to pick first', 'info'); return }
     try {
       const res = await pickByIds(ids)
-      toast(`Placed ${res.placed} bet(s)`, 'ok')
+      if (res.placed > 0) {
+        const skippedNote = res.skipped?.length ? ` · skipped ${res.skipped.length}` : ''
+        toast(`Placed ${res.placed} bet(s)${skippedNote}`, 'ok')
+      } else if (res.skipped?.length) {
+        const first = res.skipped[0]
+        const more = res.skipped.length > 1 ? ` (+${res.skipped.length - 1} more)` : ''
+        toast(`Placed 0 — ${first.reason}${more}`, 'err')
+      } else {
+        toast('Placed 0 bet(s)', 'err')
+      }
       setSelected(new Set())
       onPicked()
     } catch (e) {

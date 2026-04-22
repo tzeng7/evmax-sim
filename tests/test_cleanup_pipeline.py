@@ -662,12 +662,14 @@ class TestRunMaintenance:
     # Check 6: prob_divergence → blended reset to sharp
     # ------------------------------------------------------------------
 
-    def test_prob_divergence_resets_blended_to_sharp(self):
+    def test_prob_divergence_resets_blended_and_ev(self):
         conn = _make_in_memory_db()
-        # blended=0.90, sharp=0.40 → drift = |0.90-0.40|/0.40 = 125% > 50%
+        # blended=0.90, sharp=0.55, kalshi=0.45 → drift 64% > 50%
+        # After reset: EV = (0.55/0.45)-1 = 0.222 (still positive)
         _insert_prediction(
             conn, market_id="kalshi:DRIFT", scan_date=self.SD,
-            sharp_true_prob=0.40, blended_true_prob=0.90,
+            kalshi_yes_price=0.45, sharp_true_prob=0.55, blended_true_prob=0.90,
+            ev_pct=1.0,
         )
 
         report = self._run(conn)
@@ -677,11 +679,35 @@ class TestRunMaintenance:
         assert report.fixes_applied >= 1
 
         row = conn.execute(
-            "SELECT blended_true_prob FROM ev_predictions WHERE market_id = ?",
+            "SELECT blended_true_prob, ev_pct FROM ev_predictions WHERE market_id = ?",
             ("kalshi:DRIFT",),
         ).fetchone()
         assert row is not None
-        assert row["blended_true_prob"] == pytest.approx(0.40)
+        assert row["blended_true_prob"] == pytest.approx(0.55)
+        assert row["ev_pct"] == pytest.approx(0.55 / 0.45 - 1.0, abs=0.001)
+
+    def test_prob_divergence_deletes_when_negative_ev(self):
+        """When drift correction makes a row negative EV, delete it entirely."""
+        conn = _make_in_memory_db()
+        # blended=0.11, sharp=0.055, kalshi=0.08 → drift 100% > 50%
+        # After reset: EV = (0.055/0.08)-1 = -0.31 → delete
+        _insert_prediction(
+            conn, market_id="kalshi:NEG-DRIFT", scan_date=self.SD,
+            kalshi_yes_price=0.08, sharp_true_prob=0.055, blended_true_prob=0.11,
+            ev_pct=0.375,
+        )
+
+        report = self._run(conn)
+
+        drift_issues = [i for i in report.issues if i.check == "prob_divergence"]
+        assert len(drift_issues) == 1
+        assert "negative EV" in drift_issues[0].fix
+
+        row = conn.execute(
+            "SELECT * FROM ev_predictions WHERE market_id = ?",
+            ("kalshi:NEG-DRIFT",),
+        ).fetchone()
+        assert row is None
 
     def test_small_divergence_not_flagged(self):
         """blended within 50% of sharp must not trigger prob_divergence."""

@@ -537,6 +537,22 @@ def _resolve_prop_outcome(
     Returns 1 (over hit), 0 (under / no game), or None (player/stat not found).
     Uses a ±1-day window around target_date to absorb stored-date off-by-ones.
     """
+    result = _resolve_prop_outcome_with_value(player_name, stat_type, threshold, target_date)
+    if result is None:
+        return None
+    return result[0]
+
+
+def _resolve_prop_outcome_with_value(
+    player_name: str,
+    stat_type: str,
+    threshold: float,
+    target_date: date,
+) -> Optional[tuple[int, float]]:
+    """Look up a player's actual stat and return (outcome, actual_value).
+
+    Returns (1, value) for over, (0, value) for under, or None if not found.
+    """
     try:
         from evmax.clients.nba_stats import _find_player_id, STAT_COL, _SEASON
         import pandas as pd
@@ -579,7 +595,8 @@ def _resolve_prop_outcome(
         else:
             return None
 
-        return 1 if stat_val >= threshold else 0
+        outcome = 1 if stat_val >= threshold else 0
+        return outcome, stat_val
 
     except Exception as exc:
         logger.warning("prop_resolve_error", player=player_name, stat=stat_type, error=str(exc))
@@ -730,6 +747,173 @@ async def fetch_completed_scores(sector: str, target_date: date) -> list[dict]:
     return []
 
 
+def _resolve_prop_observations(conn: sqlite3.Connection, target_date: date) -> int:
+    """Resolve pending rows in prop_observations using ESPN box scores.
+
+    Fetches box scores for each game date that has pending props, extracts
+    player stats, and fills outcome + actual_value.  One HTTP request per game
+    (not per player) so this is fast and doesn't hit nba_api rate limits.
+    """
+    today_str = date.today().isoformat()
+    rows = conn.execute(
+        """SELECT id, scan_date, player_name, stat_type, line, event_id
+           FROM prop_observations
+           WHERE outcome IS NULL AND scan_date <= ?""",
+        (today_str,),
+    ).fetchall()
+
+    if not rows:
+        return 0
+
+    # Group by game date
+    by_date: dict[str, list[dict]] = {}
+    for row in rows:
+        r = dict(row)
+        parts = (r.get("event_id") or "").split("::")
+        game_date = parts[1] if len(parts) >= 2 else r["scan_date"]
+        try:
+            gd = date.fromisoformat(game_date)
+        except ValueError:
+            continue
+        if gd > date.today():
+            continue
+        by_date.setdefault(game_date, []).append(r)
+
+    if not by_date:
+        return 0
+
+    import unicodedata
+
+    def _norm_player(s: str) -> str:
+        """Normalize player name: strip accents, lowercase, underscores."""
+        nfkd = unicodedata.normalize("NFKD", s)
+        ascii_only = "".join(c for c in nfkd if not unicodedata.combining(c))
+        return (
+            ascii_only.lower().strip()
+            .replace(" ", "_").replace(".", "")
+            .replace("\u2019", "'").replace("\u2018", "'")  # curly → straight apostrophe
+            .replace("'", "'")
+        )
+
+    # ESPN stat label → our stat_type mapping
+    LABEL_MAP = {
+        "points": "PTS", "rebounds": "REB", "assists": "AST",
+        "steals": "STL", "blocks": "BLK", "threes": "3PT",
+        "turnovers": "TO",
+    }
+
+    resolved = 0
+    client = httpx.Client(timeout=15.0, follow_redirects=True)
+
+    try:
+        for game_date, prop_rows in by_date.items():
+            espn_date = game_date.replace("-", "")
+
+            # Fetch scoreboard to get game IDs
+            try:
+                r = client.get(
+                    f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
+                    params={"dates": espn_date},
+                )
+                r.raise_for_status()
+                events = r.json().get("events", [])
+            except Exception as e:
+                logger.warning("prop_obs_scoreboard_fail", date=game_date, error=str(e))
+                continue
+
+            # Build player → stats lookup from all box scores on this date
+            player_stats: dict[str, dict[str, float]] = {}  # normalized_name → {PTS, REB, ...}
+
+            for event in events:
+                eid = event.get("id")
+                if not eid:
+                    continue
+                comp = event.get("competitions", [{}])[0]
+                if not comp.get("status", {}).get("type", {}).get("completed", False):
+                    continue
+
+                try:
+                    box_resp = client.get(
+                        f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary",
+                        params={"event": eid},
+                    )
+                    box_resp.raise_for_status()
+                    box = box_resp.json()
+                except Exception as e:
+                    logger.debug("prop_obs_box_fail", event=eid, error=str(e))
+                    continue
+
+                for team_box in box.get("boxscore", {}).get("players", []):
+                    for stat_block in team_box.get("statistics", []):
+                        labels = stat_block.get("labels", [])
+                        for athlete in stat_block.get("athletes", []):
+                            name = athlete.get("athlete", {}).get("displayName", "")
+                            vals = athlete.get("stats", [])
+                            if not name or not vals:
+                                continue
+                            stat_dict: dict[str, float] = {}
+                            for lbl, val in zip(labels, vals):
+                                try:
+                                    # Handle "7-22" FG format — extract made count
+                                    if "-" in str(val) and lbl in ("FG", "3PT", "FT"):
+                                        stat_dict[lbl] = float(str(val).split("-")[0])
+                                    else:
+                                        stat_dict[lbl] = float(val)
+                                except (ValueError, TypeError):
+                                    pass
+                            norm_name = _norm_player(name)
+                            player_stats[norm_name] = stat_dict
+
+            # Now resolve each prop row
+            for prop in prop_rows:
+                player = prop["player_name"]
+                stat_type = prop["stat_type"]
+                threshold = prop["line"]
+                if not player or not stat_type or threshold is None:
+                    continue
+
+                norm_p = _norm_player(player)
+                stats = player_stats.get(norm_p)
+                if stats is None:
+                    # Try partial match (last name)
+                    last = norm_p.rsplit("_", 1)[-1] if "_" in norm_p else norm_p
+                    for pname, pstats in player_stats.items():
+                        if pname.endswith(last):
+                            stats = pstats
+                            break
+
+                if stats is None:
+                    continue
+
+                # Map our stat_type to ESPN label
+                espn_label = LABEL_MAP.get(stat_type)
+                if espn_label is None:
+                    # Compound stats
+                    if stat_type in ("pts+reb+ast", "pra"):
+                        actual = stats.get("PTS", 0) + stats.get("REB", 0) + stats.get("AST", 0)
+                    elif stat_type in ("blks+stls", "stocks"):
+                        actual = stats.get("BLK", 0) + stats.get("STL", 0)
+                    else:
+                        continue
+                else:
+                    actual = stats.get(espn_label)
+                    if actual is None:
+                        continue
+
+                outcome = 1 if actual >= threshold else 0
+                conn.execute(
+                    "UPDATE prop_observations SET outcome = ?, actual_value = ? WHERE id = ?",
+                    (outcome, actual, prop["id"]),
+                )
+                resolved += 1
+
+    finally:
+        client.close()
+
+    logger.info("prop_observations_resolved", count=resolved, total_pending=len(rows))
+    return resolved
+
+
 async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
     """Fetch and store outcomes for all pending predictions on target_date.
 
@@ -752,10 +936,35 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
         (date_str, date_str, today_str),
     ).fetchall()
 
+    # Also pick up portfolio-only markets (scanned through the portfolio
+    # path, which writes to portfolio_bets instead of ev_predictions).
+    # The portfolios module creates this table lazily, so in fresh/test
+    # environments it may not exist yet — treat that as "no portfolio bets".
+    has_portfolio_bets = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='portfolio_bets'"
+    ).fetchone()
+    if has_portfolio_bets:
+        portfolio_pending = conn.execute(
+            """SELECT pb.market_id, pb.event_id, pb.sector, pb.yes_team,
+                      pb.event_title, pb.event_date, pb.sharp_true_prob, pb.blended_true_prob,
+                      pb.market_type, pb.line
+               FROM portfolio_bets pb
+               LEFT JOIN ev_outcomes o ON pb.market_id = o.market_id
+               WHERE (pb.event_date = ? OR pb.scan_date = ?)
+                 AND o.market_id IS NULL
+                 AND COALESCE(pb.event_date, pb.scan_date) <= ?""",
+            (date_str, date_str, today_str),
+        ).fetchall()
+        seen = {r["market_id"] for r in pending}
+        pending = list(pending) + [r for r in portfolio_pending if r["market_id"] not in seen]
+
     if not pending:
         logger.info("no_pending_outcomes", date=date_str)
+        # Still resolve prop_observations even if no ev_predictions pending
+        prop_obs_resolved = _resolve_prop_observations(conn, target_date)
+        conn.commit()
         conn.close()
-        return {"resolved": 0, "failed": 0, "unmatched": []}
+        return {"resolved": prop_obs_resolved, "failed": 0, "unmatched": []}
 
     # Deduplicate by market_id — the same market may be logged on multiple
     # scan_dates; resolving duplicates produces duplicate unmatched IDs.
@@ -918,6 +1127,12 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
                     r["event_id"] for rows in date_groups.values() for r in rows
                 )
 
+    # ------------------------------------------------------------------
+    # Resolve prop_observations table (separate from ev_predictions props)
+    # ------------------------------------------------------------------
+    prop_obs_resolved = _resolve_prop_observations(conn, target_date)
+    resolved += prop_obs_resolved
+
     conn.commit()
     conn.close()
 
@@ -929,7 +1144,8 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
             events=unmatched[:20],  # cap log size
         )
 
-    logger.info("resolve_done", date=date_str, resolved=resolved, failed=failed)
+    logger.info("resolve_done", date=date_str, resolved=resolved, failed=failed,
+                prop_obs_resolved=prop_obs_resolved)
     return {"resolved": resolved, "failed": failed, "unmatched": unmatched}
 
 

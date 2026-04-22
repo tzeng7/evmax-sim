@@ -560,6 +560,7 @@ class AgentCoordinator:
                 "model_sources": model_sources,
                 "kelly_base_fraction": self._kelly_fraction,
                 "steam_events": steam_events,
+                "possession_sim_agent": self.possession_sim_agent,
             },
             correlation_id=correlation_id,
         )

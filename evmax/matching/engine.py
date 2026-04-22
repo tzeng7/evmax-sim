@@ -218,10 +218,14 @@ class MatchingEngine:
                 so, confidence = result
                 raw.append((market, so, confidence))
 
-        best: dict[tuple[str, str], tuple[PredictionMarket, SharpOdds, float]] = {}
+        best: dict[tuple, tuple[PredictionMarket, SharpOdds, float]] = {}
         for m, s, conf in raw:
             mt = m.market_type.value if hasattr(m.market_type, "value") else str(m.market_type)
-            key = (s.event_id, mt)
+            # For moneyline/spread, each team's YES market is a distinct bet
+            # (different Kalshi price, different edge). Include yes_team so
+            # both sides survive dedup. For totals, over/under are distinct.
+            yes_side = (m.yes_team or "").lower().strip()
+            key = (s.event_id, mt, yes_side)
             existing = best.get(key)
             if existing is None:
                 best[key] = (m, s, conf)

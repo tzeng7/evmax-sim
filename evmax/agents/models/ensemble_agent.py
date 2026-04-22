@@ -286,9 +286,12 @@ class EnsembleModelAgent(Agent):
         # Favorite-longshot bias correction: at extreme probabilities,
         # models systematically compress toward 50/50 vs sharp. Scale model
         # weight down when sharp prob is far from 50% so the blend trusts
-        # sharp more at the tails. This is the actual sharp_weight used after
-        # applying the correction.
-        if has_models and has_sharp:
+        # sharp more at the tails.
+        # Skip for NBA: our NBA-specific models (efficiency, possession_sim,
+        # shot_quality, matchup) use actual ORTG/DRTG ratings and produce
+        # well-calibrated extreme probabilities — FLB suppresses legitimate
+        # model signal on favorites and biases edge-finding toward underdogs.
+        if has_models and has_sharp and sector.lower() != "nba":
             prob_a, prob_b, prob_draw = self._flb_correct(
                 prob_a, prob_b, prob_draw, sharp, sharp_weight,
             )

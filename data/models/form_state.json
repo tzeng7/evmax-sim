@@ -60324,3766 +60324,6 @@
       }
     ]
   },
-  "nba": {
-    "knicks": [
-      {
-        "date": "2026-04-01",
-        "won": false,
-        "opp": "rockets",
-        "home": false
-      },
-      {
-        "date": "2026-03-29",
-        "won": false,
-        "opp": "thunder",
-        "home": false
-      },
-      {
-        "date": "2026-03-26",
-        "won": false,
-        "opp": "hornets",
-        "home": false
-      },
-      {
-        "date": "2026-03-24",
-        "won": true,
-        "opp": "pelicans",
-        "home": true
-      },
-      {
-        "date": "2026-03-22",
-        "won": true,
-        "opp": "wizards",
-        "home": true
-      },
-      {
-        "date": "2026-03-20",
-        "won": true,
-        "opp": "nets",
-        "home": false
-      },
-      {
-        "date": "2026-03-17",
-        "won": true,
-        "opp": "pacers",
-        "home": true
-      },
-      {
-        "date": "2026-03-16",
-        "won": true,
-        "opp": "warriors",
-        "home": true
-      },
-      {
-        "date": "2026-03-13",
-        "won": true,
-        "opp": "pacers",
-        "home": false
-      },
-      {
-        "date": "2026-03-12",
-        "won": true,
-        "opp": "jazz",
-        "home": false
-      },
-      {
-        "date": "2026-03-10",
-        "won": false,
-        "opp": "la clippers",
-        "home": false
-      },
-      {
-        "date": "2026-03-08",
-        "won": false,
-        "opp": "lakers",
-        "home": false
-      },
-      {
-        "date": "2026-03-07",
-        "won": true,
-        "opp": "nuggets",
-        "home": false
-      },
-      {
-        "date": "2026-03-05",
-        "won": false,
-        "opp": "thunder",
-        "home": true
-      },
-      {
-        "date": "2026-03-04",
-        "won": true,
-        "opp": "raptors",
-        "home": false
-      },
-      {
-        "date": "2026-03-01",
-        "won": true,
-        "opp": "spurs",
-        "home": true
-      },
-      {
-        "date": "2026-02-28",
-        "won": true,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-02-25",
-        "won": false,
-        "opp": "cavaliers",
-        "home": false
-      },
-      {
-        "date": "2026-02-23",
-        "won": true,
-        "opp": "bulls",
-        "home": false
-      },
-      {
-        "date": "2026-02-22",
-        "won": true,
-        "opp": "rockets",
-        "home": true
-      }
-    ],
-    "76ers": [
-      {
-        "date": "2026-03-30",
-        "won": false,
-        "opp": "heat",
-        "home": false
-      },
-      {
-        "date": "2026-03-28",
-        "won": true,
-        "opp": "hornets",
-        "home": false
-      },
-      {
-        "date": "2026-03-25",
-        "won": true,
-        "opp": "bulls",
-        "home": true
-      },
-      {
-        "date": "2026-03-23",
-        "won": false,
-        "opp": "thunder",
-        "home": true
-      },
-      {
-        "date": "2026-03-22",
-        "won": true,
-        "opp": "jazz",
-        "home": false
-      },
-      {
-        "date": "2026-03-20",
-        "won": true,
-        "opp": "kings",
-        "home": false
-      },
-      {
-        "date": "2026-03-18",
-        "won": false,
-        "opp": "nuggets",
-        "home": false
-      },
-      {
-        "date": "2026-03-15",
-        "won": true,
-        "opp": "trail blazers",
-        "home": true
-      },
-      {
-        "date": "2026-03-14",
-        "won": true,
-        "opp": "nets",
-        "home": true
-      },
-      {
-        "date": "2026-03-12",
-        "won": false,
-        "opp": "pistons",
-        "home": false
-      },
-      {
-        "date": "2026-03-10",
-        "won": true,
-        "opp": "grizzlies",
-        "home": true
-      },
-      {
-        "date": "2026-03-09",
-        "won": false,
-        "opp": "cavaliers",
-        "home": false
-      },
-      {
-        "date": "2026-03-07",
-        "won": false,
-        "opp": "hawks",
-        "home": false
-      },
-      {
-        "date": "2026-03-05",
-        "won": true,
-        "opp": "jazz",
-        "home": true
-      },
-      {
-        "date": "2026-03-04",
-        "won": false,
-        "opp": "spurs",
-        "home": true
-      },
-      {
-        "date": "2026-03-02",
-        "won": false,
-        "opp": "celtics",
-        "home": false
-      },
-      {
-        "date": "2026-02-27",
-        "won": true,
-        "opp": "heat",
-        "home": true
-      },
-      {
-        "date": "2026-02-25",
-        "won": true,
-        "opp": "pacers",
-        "home": false
-      },
-      {
-        "date": "2026-02-23",
-        "won": true,
-        "opp": "timberwolves",
-        "home": false
-      },
-      {
-        "date": "2026-02-22",
-        "won": false,
-        "opp": "pelicans",
-        "home": false
-      }
-    ],
-    "pelicans": [
-      {
-        "date": "2026-03-29",
-        "won": false,
-        "opp": "rockets",
-        "home": true
-      },
-      {
-        "date": "2026-03-28",
-        "won": false,
-        "opp": "raptors",
-        "home": false
-      },
-      {
-        "date": "2026-03-26",
-        "won": false,
-        "opp": "pistons",
-        "home": false
-      },
-      {
-        "date": "2026-03-24",
-        "won": false,
-        "opp": "knicks",
-        "home": false
-      },
-      {
-        "date": "2026-03-21",
-        "won": false,
-        "opp": "cavaliers",
-        "home": true
-      },
-      {
-        "date": "2026-03-20",
-        "won": true,
-        "opp": "la clippers",
-        "home": true
-      },
-      {
-        "date": "2026-03-19",
-        "won": true,
-        "opp": "la clippers",
-        "home": true
-      },
-      {
-        "date": "2026-03-17",
-        "won": true,
-        "opp": "mavericks",
-        "home": true
-      },
-      {
-        "date": "2026-03-14",
-        "won": false,
-        "opp": "rockets",
-        "home": false
-      },
-      {
-        "date": "2026-03-12",
-        "won": true,
-        "opp": "raptors",
-        "home": true
-      },
-      {
-        "date": "2026-03-08",
-        "won": true,
-        "opp": "wizards",
-        "home": true
-      },
-      {
-        "date": "2026-03-07",
-        "won": false,
-        "opp": "suns",
-        "home": false
-      },
-      {
-        "date": "2026-03-06",
-        "won": true,
-        "opp": "kings",
-        "home": false
-      },
-      {
-        "date": "2026-03-04",
-        "won": false,
-        "opp": "lakers",
-        "home": false
-      },
-      {
-        "date": "2026-03-02",
-        "won": false,
-        "opp": "la clippers",
-        "home": false
-      },
-      {
-        "date": "2026-03-01",
-        "won": true,
-        "opp": "jazz",
-        "home": false
-      },
-      {
-        "date": "2026-02-27",
-        "won": true,
-        "opp": "jazz",
-        "home": false
-      },
-      {
-        "date": "2026-02-25",
-        "won": true,
-        "opp": "warriors",
-        "home": true
-      },
-      {
-        "date": "2026-02-22",
-        "won": true,
-        "opp": "76ers",
-        "home": true
-      },
-      {
-        "date": "2026-02-21",
-        "won": false,
-        "opp": "bucks",
-        "home": true
-      }
-    ],
-    "melbourne": [
-      {
-        "date": "2025-10-03",
-        "won": false,
-        "opp": "pelicans",
-        "home": false
-      }
-    ],
-    "lakers": [
-      {
-        "date": "2026-04-01",
-        "won": true,
-        "opp": "cavaliers",
-        "home": true
-      },
-      {
-        "date": "2026-03-31",
-        "won": true,
-        "opp": "wizards",
-        "home": true
-      },
-      {
-        "date": "2026-03-28",
-        "won": true,
-        "opp": "nets",
-        "home": true
-      },
-      {
-        "date": "2026-03-25",
-        "won": true,
-        "opp": "pacers",
-        "home": false
-      },
-      {
-        "date": "2026-03-23",
-        "won": false,
-        "opp": "pistons",
-        "home": false
-      },
-      {
-        "date": "2026-03-21",
-        "won": true,
-        "opp": "magic",
-        "home": false
-      },
-      {
-        "date": "2026-03-20",
-        "won": true,
-        "opp": "heat",
-        "home": false
-      },
-      {
-        "date": "2026-03-19",
-        "won": true,
-        "opp": "rockets",
-        "home": false
-      },
-      {
-        "date": "2026-03-17",
-        "won": true,
-        "opp": "rockets",
-        "home": false
-      },
-      {
-        "date": "2026-03-15",
-        "won": true,
-        "opp": "nuggets",
-        "home": true
-      },
-      {
-        "date": "2026-03-13",
-        "won": true,
-        "opp": "bulls",
-        "home": true
-      },
-      {
-        "date": "2026-03-11",
-        "won": true,
-        "opp": "timberwolves",
-        "home": true
-      },
-      {
-        "date": "2026-03-08",
-        "won": true,
-        "opp": "knicks",
-        "home": true
-      },
-      {
-        "date": "2026-03-07",
-        "won": true,
-        "opp": "pacers",
-        "home": true
-      },
-      {
-        "date": "2026-03-06",
-        "won": false,
-        "opp": "nuggets",
-        "home": false
-      },
-      {
-        "date": "2026-03-04",
-        "won": true,
-        "opp": "pelicans",
-        "home": true
-      },
-      {
-        "date": "2026-03-02",
-        "won": true,
-        "opp": "kings",
-        "home": true
-      },
-      {
-        "date": "2026-03-01",
-        "won": true,
-        "opp": "warriors",
-        "home": false
-      },
-      {
-        "date": "2026-02-27",
-        "won": false,
-        "opp": "suns",
-        "home": false
-      },
-      {
-        "date": "2026-02-25",
-        "won": false,
-        "opp": "magic",
-        "home": true
-      }
-    ],
-    "suns": [
-      {
-        "date": "2026-03-31",
-        "won": true,
-        "opp": "grizzlies",
-        "home": false
-      },
-      {
-        "date": "2026-03-31",
-        "won": false,
-        "opp": "magic",
-        "home": false
-      },
-      {
-        "date": "2026-03-29",
-        "won": true,
-        "opp": "jazz",
-        "home": true
-      },
-      {
-        "date": "2026-03-25",
-        "won": false,
-        "opp": "nuggets",
-        "home": true
-      },
-      {
-        "date": "2026-03-23",
-        "won": true,
-        "opp": "raptors",
-        "home": true
-      },
-      {
-        "date": "2026-03-22",
-        "won": false,
-        "opp": "bucks",
-        "home": true
-      },
-      {
-        "date": "2026-03-20",
-        "won": false,
-        "opp": "spurs",
-        "home": false
-      },
-      {
-        "date": "2026-03-18",
-        "won": false,
-        "opp": "timberwolves",
-        "home": false
-      },
-      {
-        "date": "2026-03-16",
-        "won": false,
-        "opp": "celtics",
-        "home": false
-      },
-      {
-        "date": "2026-03-13",
-        "won": false,
-        "opp": "raptors",
-        "home": false
-      },
-      {
-        "date": "2026-03-12",
-        "won": true,
-        "opp": "pacers",
-        "home": false
-      },
-      {
-        "date": "2026-03-11",
-        "won": true,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-03-09",
-        "won": true,
-        "opp": "hornets",
-        "home": true
-      },
-      {
-        "date": "2026-03-07",
-        "won": true,
-        "opp": "pelicans",
-        "home": true
-      },
-      {
-        "date": "2026-03-06",
-        "won": false,
-        "opp": "bulls",
-        "home": true
-      },
-      {
-        "date": "2026-03-04",
-        "won": true,
-        "opp": "kings",
-        "home": false
-      },
-      {
-        "date": "2026-02-27",
-        "won": true,
-        "opp": "lakers",
-        "home": true
-      },
-      {
-        "date": "2026-02-25",
-        "won": false,
-        "opp": "celtics",
-        "home": true
-      },
-      {
-        "date": "2026-02-23",
-        "won": false,
-        "opp": "trail blazers",
-        "home": true
-      },
-      {
-        "date": "2026-02-21",
-        "won": true,
-        "opp": "magic",
-        "home": true
-      }
-    ],
-    "nets": [
-      {
-        "date": "2026-03-31",
-        "won": false,
-        "opp": "hornets",
-        "home": true
-      },
-      {
-        "date": "2026-03-29",
-        "won": true,
-        "opp": "kings",
-        "home": true
-      },
-      {
-        "date": "2026-03-28",
-        "won": false,
-        "opp": "lakers",
-        "home": false
-      },
-      {
-        "date": "2026-03-26",
-        "won": false,
-        "opp": "warriors",
-        "home": false
-      },
-      {
-        "date": "2026-03-24",
-        "won": false,
-        "opp": "trail blazers",
-        "home": false
-      },
-      {
-        "date": "2026-03-22",
-        "won": false,
-        "opp": "kings",
-        "home": false
-      },
-      {
-        "date": "2026-03-20",
-        "won": false,
-        "opp": "knicks",
-        "home": true
-      },
-      {
-        "date": "2026-03-18",
-        "won": false,
-        "opp": "thunder",
-        "home": true
-      },
-      {
-        "date": "2026-03-16",
-        "won": false,
-        "opp": "trail blazers",
-        "home": true
-      },
-      {
-        "date": "2026-03-14",
-        "won": false,
-        "opp": "76ers",
-        "home": false
-      },
-      {
-        "date": "2026-03-12",
-        "won": false,
-        "opp": "hawks",
-        "home": false
-      },
-      {
-        "date": "2026-03-10",
-        "won": false,
-        "opp": "pistons",
-        "home": true
-      },
-      {
-        "date": "2026-03-09",
-        "won": true,
-        "opp": "grizzlies",
-        "home": true
-      },
-      {
-        "date": "2026-03-07",
-        "won": true,
-        "opp": "pistons",
-        "home": false
-      },
-      {
-        "date": "2026-03-06",
-        "won": false,
-        "opp": "heat",
-        "home": false
-      },
-      {
-        "date": "2026-03-04",
-        "won": false,
-        "opp": "heat",
-        "home": false
-      },
-      {
-        "date": "2026-03-01",
-        "won": false,
-        "opp": "cavaliers",
-        "home": true
-      },
-      {
-        "date": "2026-02-28",
-        "won": false,
-        "opp": "celtics",
-        "home": false
-      },
-      {
-        "date": "2026-02-27",
-        "won": false,
-        "opp": "spurs",
-        "home": true
-      },
-      {
-        "date": "2026-02-25",
-        "won": false,
-        "opp": "mavericks",
-        "home": true
-      }
-    ],
-    "hapoel jerusalem": [
-      {
-        "date": "2025-10-05",
-        "won": false,
-        "opp": "nets",
-        "home": false
-      }
-    ],
-    "heat": [
-      {
-        "date": "2026-03-30",
-        "won": true,
-        "opp": "76ers",
-        "home": true
-      },
-      {
-        "date": "2026-03-29",
-        "won": false,
-        "opp": "pacers",
-        "home": false
-      },
-      {
-        "date": "2026-03-27",
-        "won": false,
-        "opp": "cavaliers",
-        "home": false
-      },
-      {
-        "date": "2026-03-25",
-        "won": true,
-        "opp": "cavaliers",
-        "home": false
-      },
-      {
-        "date": "2026-03-23",
-        "won": false,
-        "opp": "spurs",
-        "home": true
-      },
-      {
-        "date": "2026-03-22",
-        "won": false,
-        "opp": "rockets",
-        "home": false
-      },
-      {
-        "date": "2026-03-20",
-        "won": false,
-        "opp": "lakers",
-        "home": true
-      },
-      {
-        "date": "2026-03-17",
-        "won": false,
-        "opp": "hornets",
-        "home": false
-      },
-      {
-        "date": "2026-03-15",
-        "won": false,
-        "opp": "magic",
-        "home": true
-      },
-      {
-        "date": "2026-03-12",
-        "won": true,
-        "opp": "bucks",
-        "home": true
-      },
-      {
-        "date": "2026-03-10",
-        "won": true,
-        "opp": "wizards",
-        "home": true
-      },
-      {
-        "date": "2026-03-08",
-        "won": true,
-        "opp": "pistons",
-        "home": true
-      },
-      {
-        "date": "2026-03-07",
-        "won": true,
-        "opp": "hornets",
-        "home": false
-      },
-      {
-        "date": "2026-03-06",
-        "won": true,
-        "opp": "nets",
-        "home": true
-      },
-      {
-        "date": "2026-03-04",
-        "won": true,
-        "opp": "nets",
-        "home": true
-      },
-      {
-        "date": "2026-02-28",
-        "won": true,
-        "opp": "rockets",
-        "home": true
-      },
-      {
-        "date": "2026-02-27",
-        "won": false,
-        "opp": "76ers",
-        "home": false
-      },
-      {
-        "date": "2026-02-25",
-        "won": false,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-02-22",
-        "won": true,
-        "opp": "grizzlies",
-        "home": true
-      },
-      {
-        "date": "2026-02-21",
-        "won": true,
-        "opp": "hawks",
-        "home": false
-      }
-    ],
-    "magic": [
-      {
-        "date": "2026-03-31",
-        "won": true,
-        "opp": "suns",
-        "home": true
-      },
-      {
-        "date": "2026-03-29",
-        "won": false,
-        "opp": "raptors",
-        "home": false
-      },
-      {
-        "date": "2026-03-26",
-        "won": true,
-        "opp": "kings",
-        "home": true
-      },
-      {
-        "date": "2026-03-25",
-        "won": false,
-        "opp": "cavaliers",
-        "home": false
-      },
-      {
-        "date": "2026-03-23",
-        "won": false,
-        "opp": "pacers",
-        "home": true
-      },
-      {
-        "date": "2026-03-21",
-        "won": false,
-        "opp": "lakers",
-        "home": true
-      },
-      {
-        "date": "2026-03-19",
-        "won": false,
-        "opp": "hornets",
-        "home": false
-      },
-      {
-        "date": "2026-03-17",
-        "won": false,
-        "opp": "thunder",
-        "home": true
-      },
-      {
-        "date": "2026-03-16",
-        "won": false,
-        "opp": "hawks",
-        "home": false
-      },
-      {
-        "date": "2026-03-15",
-        "won": true,
-        "opp": "heat",
-        "home": false
-      },
-      {
-        "date": "2026-03-12",
-        "won": true,
-        "opp": "wizards",
-        "home": true
-      },
-      {
-        "date": "2026-03-11",
-        "won": true,
-        "opp": "cavaliers",
-        "home": true
-      },
-      {
-        "date": "2026-03-09",
-        "won": true,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-03-07",
-        "won": true,
-        "opp": "timberwolves",
-        "home": false
-      },
-      {
-        "date": "2026-03-06",
-        "won": true,
-        "opp": "mavericks",
-        "home": true
-      },
-      {
-        "date": "2026-03-04",
-        "won": true,
-        "opp": "wizards",
-        "home": true
-      },
-      {
-        "date": "2026-03-01",
-        "won": false,
-        "opp": "pistons",
-        "home": true
-      },
-      {
-        "date": "2026-02-27",
-        "won": false,
-        "opp": "rockets",
-        "home": true
-      },
-      {
-        "date": "2026-02-25",
-        "won": true,
-        "opp": "lakers",
-        "home": false
-      },
-      {
-        "date": "2026-02-23",
-        "won": true,
-        "opp": "la clippers",
-        "home": false
-      }
-    ],
-    "nuggets": [
-      {
-        "date": "2026-03-30",
-        "won": true,
-        "opp": "warriors",
-        "home": true
-      },
-      {
-        "date": "2026-03-28",
-        "won": true,
-        "opp": "jazz",
-        "home": true
-      },
-      {
-        "date": "2026-03-26",
-        "won": true,
-        "opp": "mavericks",
-        "home": true
-      },
-      {
-        "date": "2026-03-25",
-        "won": true,
-        "opp": "suns",
-        "home": false
-      },
-      {
-        "date": "2026-03-22",
-        "won": true,
-        "opp": "trail blazers",
-        "home": true
-      },
-      {
-        "date": "2026-03-21",
-        "won": true,
-        "opp": "raptors",
-        "home": true
-      },
-      {
-        "date": "2026-03-19",
-        "won": false,
-        "opp": "grizzlies",
-        "home": false
-      },
-      {
-        "date": "2026-03-18",
-        "won": true,
-        "opp": "76ers",
-        "home": true
-      },
-      {
-        "date": "2026-03-15",
-        "won": false,
-        "opp": "lakers",
-        "home": false
-      },
-      {
-        "date": "2026-03-13",
-        "won": true,
-        "opp": "spurs",
-        "home": false
-      },
-      {
-        "date": "2026-03-12",
-        "won": true,
-        "opp": "rockets",
-        "home": true
-      },
-      {
-        "date": "2026-03-09",
-        "won": false,
-        "opp": "thunder",
-        "home": false
-      },
-      {
-        "date": "2026-03-07",
-        "won": false,
-        "opp": "knicks",
-        "home": true
-      },
-      {
-        "date": "2026-03-06",
-        "won": true,
-        "opp": "lakers",
-        "home": true
-      },
-      {
-        "date": "2026-03-03",
-        "won": true,
-        "opp": "jazz",
-        "home": false
-      },
-      {
-        "date": "2026-03-01",
-        "won": false,
-        "opp": "timberwolves",
-        "home": true
-      },
-      {
-        "date": "2026-02-28",
-        "won": false,
-        "opp": "thunder",
-        "home": false
-      },
-      {
-        "date": "2026-02-26",
-        "won": true,
-        "opp": "celtics",
-        "home": true
-      },
-      {
-        "date": "2026-02-22",
-        "won": false,
-        "opp": "warriors",
-        "home": false
-      },
-      {
-        "date": "2026-02-21",
-        "won": true,
-        "opp": "trail blazers",
-        "home": false
-      }
-    ],
-    "timberwolves": [
-      {
-        "date": "2026-03-31",
-        "won": true,
-        "opp": "mavericks",
-        "home": false
-      },
-      {
-        "date": "2026-03-28",
-        "won": false,
-        "opp": "pistons",
-        "home": true
-      },
-      {
-        "date": "2026-03-26",
-        "won": true,
-        "opp": "rockets",
-        "home": true
-      },
-      {
-        "date": "2026-03-23",
-        "won": true,
-        "opp": "celtics",
-        "home": false
-      },
-      {
-        "date": "2026-03-21",
-        "won": false,
-        "opp": "trail blazers",
-        "home": true
-      },
-      {
-        "date": "2026-03-19",
-        "won": true,
-        "opp": "jazz",
-        "home": true
-      },
-      {
-        "date": "2026-03-18",
-        "won": true,
-        "opp": "suns",
-        "home": true
-      },
-      {
-        "date": "2026-03-15",
-        "won": false,
-        "opp": "thunder",
-        "home": false
-      },
-      {
-        "date": "2026-03-14",
-        "won": true,
-        "opp": "warriors",
-        "home": false
-      },
-      {
-        "date": "2026-03-12",
-        "won": false,
-        "opp": "la clippers",
-        "home": false
-      },
-      {
-        "date": "2026-03-11",
-        "won": false,
-        "opp": "lakers",
-        "home": false
-      },
-      {
-        "date": "2026-03-07",
-        "won": false,
-        "opp": "magic",
-        "home": true
-      },
-      {
-        "date": "2026-03-06",
-        "won": true,
-        "opp": "raptors",
-        "home": true
-      },
-      {
-        "date": "2026-03-04",
-        "won": true,
-        "opp": "grizzlies",
-        "home": true
-      },
-      {
-        "date": "2026-03-01",
-        "won": true,
-        "opp": "nuggets",
-        "home": false
-      },
-      {
-        "date": "2026-02-27",
-        "won": true,
-        "opp": "la clippers",
-        "home": false
-      },
-      {
-        "date": "2026-02-25",
-        "won": true,
-        "opp": "trail blazers",
-        "home": false
-      },
-      {
-        "date": "2026-02-23",
-        "won": false,
-        "opp": "76ers",
-        "home": true
-      },
-      {
-        "date": "2026-02-21",
-        "won": true,
-        "opp": "mavericks",
-        "home": true
-      },
-      {
-        "date": "2026-02-12",
-        "won": true,
-        "opp": "trail blazers",
-        "home": true
-      }
-    ],
-    "melbourne pnx": [
-      {
-        "date": "2025-10-05",
-        "won": false,
-        "opp": "pelicans",
-        "home": false
-      }
-    ],
-    "hornets": [
-      {
-        "date": "2026-03-31",
-        "won": true,
-        "opp": "nets",
-        "home": false
-      },
-      {
-        "date": "2026-03-29",
-        "won": false,
-        "opp": "celtics",
-        "home": true
-      },
-      {
-        "date": "2026-03-28",
-        "won": false,
-        "opp": "76ers",
-        "home": true
-      },
-      {
-        "date": "2026-03-26",
-        "won": true,
-        "opp": "knicks",
-        "home": true
-      },
-      {
-        "date": "2026-03-24",
-        "won": true,
-        "opp": "kings",
-        "home": true
-      },
-      {
-        "date": "2026-03-21",
-        "won": true,
-        "opp": "grizzlies",
-        "home": true
-      },
-      {
-        "date": "2026-03-19",
-        "won": true,
-        "opp": "magic",
-        "home": true
-      },
-      {
-        "date": "2026-03-17",
-        "won": true,
-        "opp": "heat",
-        "home": true
-      },
-      {
-        "date": "2026-03-14",
-        "won": false,
-        "opp": "spurs",
-        "home": false
-      },
-      {
-        "date": "2026-03-12",
-        "won": true,
-        "opp": "kings",
-        "home": false
-      },
-      {
-        "date": "2026-03-11",
-        "won": true,
-        "opp": "trail blazers",
-        "home": false
-      },
-      {
-        "date": "2026-03-09",
-        "won": false,
-        "opp": "suns",
-        "home": false
-      },
-      {
-        "date": "2026-03-07",
-        "won": false,
-        "opp": "heat",
-        "home": true
-      },
-      {
-        "date": "2026-03-05",
-        "won": true,
-        "opp": "celtics",
-        "home": false
-      },
-      {
-        "date": "2026-03-04",
-        "won": true,
-        "opp": "mavericks",
-        "home": true
-      },
-      {
-        "date": "2026-02-28",
-        "won": true,
-        "opp": "trail blazers",
-        "home": true
-      },
-      {
-        "date": "2026-02-27",
-        "won": true,
-        "opp": "pacers",
-        "home": false
-      },
-      {
-        "date": "2026-02-25",
-        "won": true,
-        "opp": "bulls",
-        "home": false
-      },
-      {
-        "date": "2026-02-22",
-        "won": true,
-        "opp": "wizards",
-        "home": false
-      },
-      {
-        "date": "2026-02-21",
-        "won": false,
-        "opp": "cavaliers",
-        "home": true
-      }
-    ],
-    "thunder": [
-      {
-        "date": "2026-03-31",
-        "won": true,
-        "opp": "pistons",
-        "home": true
-      },
-      {
-        "date": "2026-03-29",
-        "won": true,
-        "opp": "knicks",
-        "home": true
-      },
-      {
-        "date": "2026-03-28",
-        "won": true,
-        "opp": "bulls",
-        "home": true
-      },
-      {
-        "date": "2026-03-25",
-        "won": false,
-        "opp": "celtics",
-        "home": false
-      },
-      {
-        "date": "2026-03-23",
-        "won": true,
-        "opp": "76ers",
-        "home": false
-      },
-      {
-        "date": "2026-03-21",
-        "won": true,
-        "opp": "wizards",
-        "home": false
-      },
-      {
-        "date": "2026-03-18",
-        "won": true,
-        "opp": "nets",
-        "home": false
-      },
-      {
-        "date": "2026-03-17",
-        "won": true,
-        "opp": "magic",
-        "home": false
-      },
-      {
-        "date": "2026-03-15",
-        "won": true,
-        "opp": "timberwolves",
-        "home": true
-      },
-      {
-        "date": "2026-03-13",
-        "won": true,
-        "opp": "celtics",
-        "home": true
-      },
-      {
-        "date": "2026-03-09",
-        "won": true,
-        "opp": "nuggets",
-        "home": true
-      },
-      {
-        "date": "2026-03-08",
-        "won": true,
-        "opp": "warriors",
-        "home": true
-      },
-      {
-        "date": "2026-03-05",
-        "won": true,
-        "opp": "knicks",
-        "home": false
-      },
-      {
-        "date": "2026-03-04",
-        "won": true,
-        "opp": "bulls",
-        "home": false
-      },
-      {
-        "date": "2026-03-02",
-        "won": true,
-        "opp": "mavericks",
-        "home": false
-      },
-      {
-        "date": "2026-02-28",
-        "won": true,
-        "opp": "nuggets",
-        "home": true
-      },
-      {
-        "date": "2026-02-26",
-        "won": false,
-        "opp": "pistons",
-        "home": false
-      },
-      {
-        "date": "2026-02-25",
-        "won": true,
-        "opp": "raptors",
-        "home": false
-      },
-      {
-        "date": "2026-02-22",
-        "won": true,
-        "opp": "cavaliers",
-        "home": true
-      },
-      {
-        "date": "2026-02-21",
-        "won": true,
-        "opp": "nets",
-        "home": true
-      }
-    ],
-    "warriors": [
-      {
-        "date": "2026-03-30",
-        "won": false,
-        "opp": "nuggets",
-        "home": false
-      },
-      {
-        "date": "2026-03-28",
-        "won": true,
-        "opp": "wizards",
-        "home": true
-      },
-      {
-        "date": "2026-03-26",
-        "won": true,
-        "opp": "nets",
-        "home": true
-      },
-      {
-        "date": "2026-03-24",
-        "won": true,
-        "opp": "mavericks",
-        "home": false
-      },
-      {
-        "date": "2026-03-22",
-        "won": false,
-        "opp": "hawks",
-        "home": false
-      },
-      {
-        "date": "2026-03-20",
-        "won": false,
-        "opp": "pistons",
-        "home": false
-      },
-      {
-        "date": "2026-03-18",
-        "won": false,
-        "opp": "celtics",
-        "home": false
-      },
-      {
-        "date": "2026-03-16",
-        "won": false,
-        "opp": "knicks",
-        "home": false
-      },
-      {
-        "date": "2026-03-16",
-        "won": true,
-        "opp": "wizards",
-        "home": false
-      },
-      {
-        "date": "2026-03-14",
-        "won": false,
-        "opp": "timberwolves",
-        "home": true
-      },
-      {
-        "date": "2026-03-11",
-        "won": false,
-        "opp": "bulls",
-        "home": true
-      },
-      {
-        "date": "2026-03-10",
-        "won": false,
-        "opp": "jazz",
-        "home": false
-      },
-      {
-        "date": "2026-03-08",
-        "won": false,
-        "opp": "thunder",
-        "home": false
-      },
-      {
-        "date": "2026-03-06",
-        "won": true,
-        "opp": "rockets",
-        "home": false
-      },
-      {
-        "date": "2026-03-03",
-        "won": false,
-        "opp": "la clippers",
-        "home": true
-      },
-      {
-        "date": "2026-03-01",
-        "won": false,
-        "opp": "lakers",
-        "home": true
-      },
-      {
-        "date": "2026-02-26",
-        "won": true,
-        "opp": "grizzlies",
-        "home": false
-      },
-      {
-        "date": "2026-02-25",
-        "won": false,
-        "opp": "pelicans",
-        "home": false
-      },
-      {
-        "date": "2026-02-22",
-        "won": true,
-        "opp": "nuggets",
-        "home": true
-      },
-      {
-        "date": "2026-02-20",
-        "won": false,
-        "opp": "celtics",
-        "home": true
-      }
-    ],
-    "bucks": [
-      {
-        "date": "2026-04-01",
-        "won": true,
-        "opp": "mavericks",
-        "home": true
-      },
-      {
-        "date": "2026-03-29",
-        "won": false,
-        "opp": "la clippers",
-        "home": true
-      },
-      {
-        "date": "2026-03-28",
-        "won": false,
-        "opp": "spurs",
-        "home": true
-      },
-      {
-        "date": "2026-03-26",
-        "won": false,
-        "opp": "trail blazers",
-        "home": false
-      },
-      {
-        "date": "2026-03-24",
-        "won": false,
-        "opp": "la clippers",
-        "home": false
-      },
-      {
-        "date": "2026-03-22",
-        "won": true,
-        "opp": "suns",
-        "home": false
-      },
-      {
-        "date": "2026-03-20",
-        "won": false,
-        "opp": "jazz",
-        "home": false
-      },
-      {
-        "date": "2026-03-18",
-        "won": false,
-        "opp": "cavaliers",
-        "home": true
-      },
-      {
-        "date": "2026-03-15",
-        "won": true,
-        "opp": "pacers",
-        "home": true
-      },
-      {
-        "date": "2026-03-14",
-        "won": false,
-        "opp": "hawks",
-        "home": false
-      },
-      {
-        "date": "2026-03-12",
-        "won": false,
-        "opp": "heat",
-        "home": false
-      },
-      {
-        "date": "2026-03-11",
-        "won": false,
-        "opp": "suns",
-        "home": true
-      },
-      {
-        "date": "2026-03-09",
-        "won": false,
-        "opp": "magic",
-        "home": true
-      },
-      {
-        "date": "2026-03-08",
-        "won": true,
-        "opp": "jazz",
-        "home": true
-      },
-      {
-        "date": "2026-03-05",
-        "won": false,
-        "opp": "hawks",
-        "home": true
-      },
-      {
-        "date": "2026-03-03",
-        "won": false,
-        "opp": "celtics",
-        "home": true
-      },
-      {
-        "date": "2026-03-01",
-        "won": false,
-        "opp": "bulls",
-        "home": false
-      },
-      {
-        "date": "2026-02-28",
-        "won": false,
-        "opp": "knicks",
-        "home": true
-      },
-      {
-        "date": "2026-02-26",
-        "won": true,
-        "opp": "cavaliers",
-        "home": true
-      },
-      {
-        "date": "2026-02-25",
-        "won": true,
-        "opp": "heat",
-        "home": true
-      }
-    ],
-    "rockets": [
-      {
-        "date": "2026-04-01",
-        "won": true,
-        "opp": "knicks",
-        "home": true
-      },
-      {
-        "date": "2026-03-29",
-        "won": true,
-        "opp": "pelicans",
-        "home": false
-      },
-      {
-        "date": "2026-03-28",
-        "won": true,
-        "opp": "grizzlies",
-        "home": false
-      },
-      {
-        "date": "2026-03-26",
-        "won": false,
-        "opp": "timberwolves",
-        "home": false
-      },
-      {
-        "date": "2026-03-24",
-        "won": false,
-        "opp": "bulls",
-        "home": false
-      },
-      {
-        "date": "2026-03-22",
-        "won": true,
-        "opp": "heat",
-        "home": true
-      },
-      {
-        "date": "2026-03-21",
-        "won": true,
-        "opp": "hawks",
-        "home": true
-      },
-      {
-        "date": "2026-03-19",
-        "won": false,
-        "opp": "lakers",
-        "home": true
-      },
-      {
-        "date": "2026-03-17",
-        "won": false,
-        "opp": "lakers",
-        "home": true
-      },
-      {
-        "date": "2026-03-14",
-        "won": true,
-        "opp": "pelicans",
-        "home": true
-      },
-      {
-        "date": "2026-03-12",
-        "won": false,
-        "opp": "nuggets",
-        "home": false
-      },
-      {
-        "date": "2026-03-11",
-        "won": true,
-        "opp": "raptors",
-        "home": true
-      },
-      {
-        "date": "2026-03-09",
-        "won": false,
-        "opp": "spurs",
-        "home": false
-      },
-      {
-        "date": "2026-03-07",
-        "won": true,
-        "opp": "trail blazers",
-        "home": true
-      },
-      {
-        "date": "2026-03-06",
-        "won": false,
-        "opp": "warriors",
-        "home": true
-      },
-      {
-        "date": "2026-03-03",
-        "won": true,
-        "opp": "wizards",
-        "home": false
-      },
-      {
-        "date": "2026-02-28",
-        "won": false,
-        "opp": "heat",
-        "home": false
-      },
-      {
-        "date": "2026-02-27",
-        "won": true,
-        "opp": "magic",
-        "home": false
-      },
-      {
-        "date": "2026-02-26",
-        "won": true,
-        "opp": "kings",
-        "home": true
-      },
-      {
-        "date": "2026-02-24",
-        "won": true,
-        "opp": "jazz",
-        "home": true
-      }
-    ],
-    "hawks": [
-      {
-        "date": "2026-03-30",
-        "won": true,
-        "opp": "celtics",
-        "home": true
-      },
-      {
-        "date": "2026-03-28",
-        "won": true,
-        "opp": "kings",
-        "home": true
-      },
-      {
-        "date": "2026-03-27",
-        "won": false,
-        "opp": "celtics",
-        "home": false
-      },
-      {
-        "date": "2026-03-25",
-        "won": true,
-        "opp": "pistons",
-        "home": false
-      },
-      {
-        "date": "2026-03-23",
-        "won": true,
-        "opp": "grizzlies",
-        "home": true
-      },
-      {
-        "date": "2026-03-22",
-        "won": true,
-        "opp": "warriors",
-        "home": true
-      },
-      {
-        "date": "2026-03-21",
-        "won": false,
-        "opp": "rockets",
-        "home": false
-      },
-      {
-        "date": "2026-03-19",
-        "won": true,
-        "opp": "mavericks",
-        "home": false
-      },
-      {
-        "date": "2026-03-16",
-        "won": true,
-        "opp": "magic",
-        "home": true
-      },
-      {
-        "date": "2026-03-14",
-        "won": true,
-        "opp": "bucks",
-        "home": true
-      },
-      {
-        "date": "2026-03-12",
-        "won": true,
-        "opp": "nets",
-        "home": true
-      },
-      {
-        "date": "2026-03-10",
-        "won": true,
-        "opp": "mavericks",
-        "home": true
-      },
-      {
-        "date": "2026-03-07",
-        "won": true,
-        "opp": "76ers",
-        "home": true
-      },
-      {
-        "date": "2026-03-05",
-        "won": true,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-03-01",
-        "won": true,
-        "opp": "trail blazers",
-        "home": true
-      },
-      {
-        "date": "2026-02-27",
-        "won": true,
-        "opp": "wizards",
-        "home": true
-      },
-      {
-        "date": "2026-02-25",
-        "won": true,
-        "opp": "wizards",
-        "home": true
-      },
-      {
-        "date": "2026-02-22",
-        "won": true,
-        "opp": "nets",
-        "home": true
-      },
-      {
-        "date": "2026-02-21",
-        "won": false,
-        "opp": "heat",
-        "home": true
-      },
-      {
-        "date": "2026-02-20",
-        "won": true,
-        "opp": "76ers",
-        "home": false
-      }
-    ],
-    "grizzlies": [
-      {
-        "date": "2026-03-31",
-        "won": false,
-        "opp": "suns",
-        "home": true
-      },
-      {
-        "date": "2026-03-29",
-        "won": true,
-        "opp": "bulls",
-        "home": true
-      },
-      {
-        "date": "2026-03-28",
-        "won": false,
-        "opp": "rockets",
-        "home": true
-      },
-      {
-        "date": "2026-03-26",
-        "won": false,
-        "opp": "spurs",
-        "home": true
-      },
-      {
-        "date": "2026-03-23",
-        "won": false,
-        "opp": "hawks",
-        "home": false
-      },
-      {
-        "date": "2026-03-21",
-        "won": false,
-        "opp": "celtics",
-        "home": true
-      },
-      {
-        "date": "2026-03-21",
-        "won": false,
-        "opp": "hornets",
-        "home": false
-      },
-      {
-        "date": "2026-03-19",
-        "won": true,
-        "opp": "nuggets",
-        "home": true
-      },
-      {
-        "date": "2026-03-17",
-        "won": false,
-        "opp": "bulls",
-        "home": false
-      },
-      {
-        "date": "2026-03-13",
-        "won": false,
-        "opp": "mavericks",
-        "home": true
-      },
-      {
-        "date": "2026-03-13",
-        "won": false,
-        "opp": "pistons",
-        "home": false
-      },
-      {
-        "date": "2026-03-10",
-        "won": false,
-        "opp": "76ers",
-        "home": false
-      },
-      {
-        "date": "2026-03-09",
-        "won": false,
-        "opp": "nets",
-        "home": false
-      },
-      {
-        "date": "2026-03-08",
-        "won": false,
-        "opp": "la clippers",
-        "home": true
-      },
-      {
-        "date": "2026-03-05",
-        "won": false,
-        "opp": "trail blazers",
-        "home": true
-      },
-      {
-        "date": "2026-03-04",
-        "won": false,
-        "opp": "timberwolves",
-        "home": false
-      },
-      {
-        "date": "2026-03-01",
-        "won": true,
-        "opp": "pacers",
-        "home": false
-      },
-      {
-        "date": "2026-02-28",
-        "won": true,
-        "opp": "mavericks",
-        "home": false
-      },
-      {
-        "date": "2026-02-26",
-        "won": false,
-        "opp": "warriors",
-        "home": true
-      },
-      {
-        "date": "2026-02-24",
-        "won": false,
-        "opp": "kings",
-        "home": true
-      }
-    ],
-    "pistons": [
-      {
-        "date": "2026-04-01",
-        "won": true,
-        "opp": "raptors",
-        "home": true
-      },
-      {
-        "date": "2026-03-31",
-        "won": false,
-        "opp": "thunder",
-        "home": false
-      },
-      {
-        "date": "2026-03-28",
-        "won": true,
-        "opp": "timberwolves",
-        "home": false
-      },
-      {
-        "date": "2026-03-26",
-        "won": true,
-        "opp": "pelicans",
-        "home": true
-      },
-      {
-        "date": "2026-03-25",
-        "won": false,
-        "opp": "hawks",
-        "home": true
-      },
-      {
-        "date": "2026-03-23",
-        "won": true,
-        "opp": "lakers",
-        "home": true
-      },
-      {
-        "date": "2026-03-20",
-        "won": true,
-        "opp": "warriors",
-        "home": true
-      },
-      {
-        "date": "2026-03-19",
-        "won": true,
-        "opp": "wizards",
-        "home": false
-      },
-      {
-        "date": "2026-03-17",
-        "won": true,
-        "opp": "wizards",
-        "home": false
-      },
-      {
-        "date": "2026-03-15",
-        "won": false,
-        "opp": "raptors",
-        "home": false
-      },
-      {
-        "date": "2026-03-13",
-        "won": true,
-        "opp": "grizzlies",
-        "home": true
-      },
-      {
-        "date": "2026-03-12",
-        "won": true,
-        "opp": "76ers",
-        "home": true
-      },
-      {
-        "date": "2026-03-10",
-        "won": true,
-        "opp": "nets",
-        "home": false
-      },
-      {
-        "date": "2026-03-08",
-        "won": false,
-        "opp": "heat",
-        "home": false
-      },
-      {
-        "date": "2026-03-07",
-        "won": false,
-        "opp": "nets",
-        "home": true
-      },
-      {
-        "date": "2026-03-06",
-        "won": false,
-        "opp": "spurs",
-        "home": false
-      },
-      {
-        "date": "2026-03-04",
-        "won": false,
-        "opp": "cavaliers",
-        "home": false
-      },
-      {
-        "date": "2026-03-01",
-        "won": true,
-        "opp": "magic",
-        "home": false
-      },
-      {
-        "date": "2026-02-28",
-        "won": true,
-        "opp": "cavaliers",
-        "home": true
-      },
-      {
-        "date": "2026-02-26",
-        "won": true,
-        "opp": "thunder",
-        "home": true
-      }
-    ],
-    "spurs": [
-      {
-        "date": "2026-03-31",
-        "won": true,
-        "opp": "bulls",
-        "home": true
-      },
-      {
-        "date": "2026-03-28",
-        "won": true,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-03-26",
-        "won": true,
-        "opp": "grizzlies",
-        "home": false
-      },
-      {
-        "date": "2026-03-23",
-        "won": true,
-        "opp": "heat",
-        "home": false
-      },
-      {
-        "date": "2026-03-22",
-        "won": true,
-        "opp": "pacers",
-        "home": true
-      },
-      {
-        "date": "2026-03-20",
-        "won": true,
-        "opp": "suns",
-        "home": true
-      },
-      {
-        "date": "2026-03-18",
-        "won": true,
-        "opp": "kings",
-        "home": false
-      },
-      {
-        "date": "2026-03-17",
-        "won": true,
-        "opp": "la clippers",
-        "home": false
-      },
-      {
-        "date": "2026-03-14",
-        "won": true,
-        "opp": "hornets",
-        "home": true
-      },
-      {
-        "date": "2026-03-13",
-        "won": false,
-        "opp": "nuggets",
-        "home": true
-      },
-      {
-        "date": "2026-03-11",
-        "won": true,
-        "opp": "celtics",
-        "home": true
-      },
-      {
-        "date": "2026-03-09",
-        "won": true,
-        "opp": "rockets",
-        "home": true
-      },
-      {
-        "date": "2026-03-07",
-        "won": true,
-        "opp": "la clippers",
-        "home": true
-      },
-      {
-        "date": "2026-03-06",
-        "won": true,
-        "opp": "pistons",
-        "home": true
-      },
-      {
-        "date": "2026-03-04",
-        "won": true,
-        "opp": "76ers",
-        "home": false
-      },
-      {
-        "date": "2026-03-01",
-        "won": false,
-        "opp": "knicks",
-        "home": false
-      },
-      {
-        "date": "2026-02-27",
-        "won": true,
-        "opp": "nets",
-        "home": false
-      },
-      {
-        "date": "2026-02-26",
-        "won": true,
-        "opp": "raptors",
-        "home": false
-      },
-      {
-        "date": "2026-02-24",
-        "won": true,
-        "opp": "pistons",
-        "home": false
-      },
-      {
-        "date": "2026-02-22",
-        "won": true,
-        "opp": "kings",
-        "home": true
-      }
-    ],
-    "guangzhou loong-lions": [
-      {
-        "date": "2025-10-14",
-        "won": false,
-        "opp": "timberwolves",
-        "home": false
-      },
-      {
-        "date": "2025-10-10",
-        "won": false,
-        "opp": "la clippers",
-        "home": false
-      },
-      {
-        "date": "2025-10-07",
-        "won": false,
-        "opp": "spurs",
-        "home": false
-      }
-    ],
-    "mavericks": [
-      {
-        "date": "2026-04-01",
-        "won": false,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-03-31",
-        "won": false,
-        "opp": "timberwolves",
-        "home": true
-      },
-      {
-        "date": "2026-03-28",
-        "won": true,
-        "opp": "trail blazers",
-        "home": false
-      },
-      {
-        "date": "2026-03-26",
-        "won": false,
-        "opp": "nuggets",
-        "home": false
-      },
-      {
-        "date": "2026-03-24",
-        "won": false,
-        "opp": "warriors",
-        "home": true
-      },
-      {
-        "date": "2026-03-22",
-        "won": false,
-        "opp": "la clippers",
-        "home": true
-      },
-      {
-        "date": "2026-03-19",
-        "won": false,
-        "opp": "hawks",
-        "home": true
-      },
-      {
-        "date": "2026-03-17",
-        "won": false,
-        "opp": "pelicans",
-        "home": false
-      },
-      {
-        "date": "2026-03-15",
-        "won": true,
-        "opp": "cavaliers",
-        "home": false
-      },
-      {
-        "date": "2026-03-13",
-        "won": true,
-        "opp": "grizzlies",
-        "home": false
-      },
-      {
-        "date": "2026-03-13",
-        "won": false,
-        "opp": "cavaliers",
-        "home": true
-      },
-      {
-        "date": "2026-03-10",
-        "won": false,
-        "opp": "hawks",
-        "home": false
-      },
-      {
-        "date": "2026-03-08",
-        "won": false,
-        "opp": "raptors",
-        "home": false
-      },
-      {
-        "date": "2026-03-07",
-        "won": false,
-        "opp": "celtics",
-        "home": false
-      },
-      {
-        "date": "2026-03-06",
-        "won": false,
-        "opp": "magic",
-        "home": false
-      },
-      {
-        "date": "2026-03-04",
-        "won": false,
-        "opp": "hornets",
-        "home": false
-      },
-      {
-        "date": "2026-03-02",
-        "won": false,
-        "opp": "thunder",
-        "home": true
-      },
-      {
-        "date": "2026-02-28",
-        "won": false,
-        "opp": "grizzlies",
-        "home": true
-      },
-      {
-        "date": "2026-02-27",
-        "won": false,
-        "opp": "kings",
-        "home": true
-      },
-      {
-        "date": "2026-02-25",
-        "won": true,
-        "opp": "nets",
-        "home": false
-      }
-    ],
-    "raptors": [
-      {
-        "date": "2026-04-01",
-        "won": false,
-        "opp": "pistons",
-        "home": false
-      },
-      {
-        "date": "2026-03-29",
-        "won": true,
-        "opp": "magic",
-        "home": true
-      },
-      {
-        "date": "2026-03-28",
-        "won": true,
-        "opp": "pelicans",
-        "home": true
-      },
-      {
-        "date": "2026-03-26",
-        "won": false,
-        "opp": "la clippers",
-        "home": false
-      },
-      {
-        "date": "2026-03-24",
-        "won": true,
-        "opp": "jazz",
-        "home": false
-      },
-      {
-        "date": "2026-03-23",
-        "won": false,
-        "opp": "suns",
-        "home": false
-      },
-      {
-        "date": "2026-03-21",
-        "won": false,
-        "opp": "nuggets",
-        "home": false
-      },
-      {
-        "date": "2026-03-19",
-        "won": true,
-        "opp": "bulls",
-        "home": false
-      },
-      {
-        "date": "2026-03-15",
-        "won": true,
-        "opp": "pistons",
-        "home": true
-      },
-      {
-        "date": "2026-03-13",
-        "won": true,
-        "opp": "suns",
-        "home": true
-      },
-      {
-        "date": "2026-03-12",
-        "won": false,
-        "opp": "pelicans",
-        "home": false
-      },
-      {
-        "date": "2026-03-11",
-        "won": false,
-        "opp": "rockets",
-        "home": false
-      },
-      {
-        "date": "2026-03-08",
-        "won": true,
-        "opp": "mavericks",
-        "home": true
-      },
-      {
-        "date": "2026-03-06",
-        "won": false,
-        "opp": "timberwolves",
-        "home": false
-      },
-      {
-        "date": "2026-03-04",
-        "won": false,
-        "opp": "knicks",
-        "home": true
-      },
-      {
-        "date": "2026-03-01",
-        "won": true,
-        "opp": "wizards",
-        "home": false
-      },
-      {
-        "date": "2026-02-26",
-        "won": false,
-        "opp": "spurs",
-        "home": true
-      },
-      {
-        "date": "2026-02-25",
-        "won": false,
-        "opp": "thunder",
-        "home": true
-      },
-      {
-        "date": "2026-02-22",
-        "won": true,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-02-20",
-        "won": true,
-        "opp": "bulls",
-        "home": false
-      }
-    ],
-    "cavaliers": [
-      {
-        "date": "2026-04-01",
-        "won": false,
-        "opp": "lakers",
-        "home": false
-      },
-      {
-        "date": "2026-03-31",
-        "won": true,
-        "opp": "jazz",
-        "home": false
-      },
-      {
-        "date": "2026-03-27",
-        "won": true,
-        "opp": "heat",
-        "home": true
-      },
-      {
-        "date": "2026-03-25",
-        "won": true,
-        "opp": "magic",
-        "home": true
-      },
-      {
-        "date": "2026-03-25",
-        "won": false,
-        "opp": "heat",
-        "home": true
-      },
-      {
-        "date": "2026-03-21",
-        "won": true,
-        "opp": "pelicans",
-        "home": false
-      },
-      {
-        "date": "2026-03-20",
-        "won": true,
-        "opp": "bulls",
-        "home": false
-      },
-      {
-        "date": "2026-03-18",
-        "won": true,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-03-15",
-        "won": false,
-        "opp": "mavericks",
-        "home": true
-      },
-      {
-        "date": "2026-03-13",
-        "won": true,
-        "opp": "mavericks",
-        "home": false
-      },
-      {
-        "date": "2026-03-11",
-        "won": false,
-        "opp": "magic",
-        "home": false
-      },
-      {
-        "date": "2026-03-09",
-        "won": true,
-        "opp": "76ers",
-        "home": true
-      },
-      {
-        "date": "2026-03-08",
-        "won": false,
-        "opp": "celtics",
-        "home": true
-      },
-      {
-        "date": "2026-03-04",
-        "won": true,
-        "opp": "pistons",
-        "home": true
-      },
-      {
-        "date": "2026-03-01",
-        "won": true,
-        "opp": "nets",
-        "home": false
-      },
-      {
-        "date": "2026-02-28",
-        "won": false,
-        "opp": "pistons",
-        "home": false
-      },
-      {
-        "date": "2026-02-26",
-        "won": false,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-02-25",
-        "won": true,
-        "opp": "knicks",
-        "home": true
-      },
-      {
-        "date": "2026-02-22",
-        "won": false,
-        "opp": "thunder",
-        "home": false
-      },
-      {
-        "date": "2026-02-21",
-        "won": true,
-        "opp": "hornets",
-        "home": false
-      }
-    ],
-    "bulls": [
-      {
-        "date": "2026-03-31",
-        "won": false,
-        "opp": "spurs",
-        "home": false
-      },
-      {
-        "date": "2026-03-29",
-        "won": false,
-        "opp": "grizzlies",
-        "home": false
-      },
-      {
-        "date": "2026-03-28",
-        "won": false,
-        "opp": "thunder",
-        "home": false
-      },
-      {
-        "date": "2026-03-25",
-        "won": false,
-        "opp": "76ers",
-        "home": false
-      },
-      {
-        "date": "2026-03-24",
-        "won": true,
-        "opp": "rockets",
-        "home": true
-      },
-      {
-        "date": "2026-03-20",
-        "won": false,
-        "opp": "cavaliers",
-        "home": true
-      },
-      {
-        "date": "2026-03-19",
-        "won": false,
-        "opp": "raptors",
-        "home": true
-      },
-      {
-        "date": "2026-03-17",
-        "won": true,
-        "opp": "grizzlies",
-        "home": true
-      },
-      {
-        "date": "2026-03-14",
-        "won": false,
-        "opp": "la clippers",
-        "home": false
-      },
-      {
-        "date": "2026-03-13",
-        "won": false,
-        "opp": "lakers",
-        "home": false
-      },
-      {
-        "date": "2026-03-11",
-        "won": true,
-        "opp": "warriors",
-        "home": false
-      },
-      {
-        "date": "2026-03-09",
-        "won": false,
-        "opp": "kings",
-        "home": false
-      },
-      {
-        "date": "2026-03-06",
-        "won": true,
-        "opp": "suns",
-        "home": false
-      },
-      {
-        "date": "2026-03-04",
-        "won": false,
-        "opp": "thunder",
-        "home": true
-      },
-      {
-        "date": "2026-03-01",
-        "won": true,
-        "opp": "bucks",
-        "home": true
-      },
-      {
-        "date": "2026-02-27",
-        "won": false,
-        "opp": "trail blazers",
-        "home": true
-      },
-      {
-        "date": "2026-02-25",
-        "won": false,
-        "opp": "hornets",
-        "home": true
-      },
-      {
-        "date": "2026-02-23",
-        "won": false,
-        "opp": "knicks",
-        "home": true
-      },
-      {
-        "date": "2026-02-22",
-        "won": false,
-        "opp": "pistons",
-        "home": true
-      },
-      {
-        "date": "2026-02-20",
-        "won": false,
-        "opp": "raptors",
-        "home": true
-      }
-    ],
-    "pacers": [
-      {
-        "date": "2026-03-29",
-        "won": true,
-        "opp": "heat",
-        "home": true
-      },
-      {
-        "date": "2026-03-27",
-        "won": false,
-        "opp": "la clippers",
-        "home": true
-      },
-      {
-        "date": "2026-03-25",
-        "won": false,
-        "opp": "lakers",
-        "home": true
-      },
-      {
-        "date": "2026-03-23",
-        "won": true,
-        "opp": "magic",
-        "home": false
-      },
-      {
-        "date": "2026-03-22",
-        "won": false,
-        "opp": "spurs",
-        "home": false
-      },
-      {
-        "date": "2026-03-18",
-        "won": false,
-        "opp": "trail blazers",
-        "home": true
-      },
-      {
-        "date": "2026-03-17",
-        "won": false,
-        "opp": "knicks",
-        "home": false
-      },
-      {
-        "date": "2026-03-15",
-        "won": false,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-03-13",
-        "won": false,
-        "opp": "knicks",
-        "home": true
-      },
-      {
-        "date": "2026-03-12",
-        "won": false,
-        "opp": "suns",
-        "home": true
-      },
-      {
-        "date": "2026-03-11",
-        "won": false,
-        "opp": "kings",
-        "home": false
-      },
-      {
-        "date": "2026-03-09",
-        "won": false,
-        "opp": "trail blazers",
-        "home": false
-      },
-      {
-        "date": "2026-03-07",
-        "won": false,
-        "opp": "lakers",
-        "home": false
-      },
-      {
-        "date": "2026-03-05",
-        "won": false,
-        "opp": "la clippers",
-        "home": false
-      },
-      {
-        "date": "2026-03-01",
-        "won": false,
-        "opp": "grizzlies",
-        "home": true
-      },
-      {
-        "date": "2026-02-27",
-        "won": false,
-        "opp": "hornets",
-        "home": true
-      },
-      {
-        "date": "2026-02-25",
-        "won": false,
-        "opp": "76ers",
-        "home": true
-      },
-      {
-        "date": "2026-02-22",
-        "won": false,
-        "opp": "mavericks",
-        "home": true
-      },
-      {
-        "date": "2026-02-21",
-        "won": false,
-        "opp": "wizards",
-        "home": false
-      },
-      {
-        "date": "2026-02-20",
-        "won": false,
-        "opp": "wizards",
-        "home": false
-      }
-    ],
-    "jazz": [
-      {
-        "date": "2026-03-31",
-        "won": false,
-        "opp": "cavaliers",
-        "home": true
-      },
-      {
-        "date": "2026-03-29",
-        "won": false,
-        "opp": "suns",
-        "home": false
-      },
-      {
-        "date": "2026-03-28",
-        "won": false,
-        "opp": "nuggets",
-        "home": false
-      },
-      {
-        "date": "2026-03-26",
-        "won": false,
-        "opp": "wizards",
-        "home": true
-      },
-      {
-        "date": "2026-03-24",
-        "won": false,
-        "opp": "raptors",
-        "home": true
-      },
-      {
-        "date": "2026-03-22",
-        "won": false,
-        "opp": "76ers",
-        "home": true
-      },
-      {
-        "date": "2026-03-20",
-        "won": true,
-        "opp": "bucks",
-        "home": true
-      },
-      {
-        "date": "2026-03-19",
-        "won": false,
-        "opp": "timberwolves",
-        "home": false
-      },
-      {
-        "date": "2026-03-16",
-        "won": false,
-        "opp": "kings",
-        "home": false
-      },
-      {
-        "date": "2026-03-14",
-        "won": false,
-        "opp": "trail blazers",
-        "home": false
-      },
-      {
-        "date": "2026-03-12",
-        "won": false,
-        "opp": "knicks",
-        "home": true
-      },
-      {
-        "date": "2026-03-10",
-        "won": true,
-        "opp": "warriors",
-        "home": true
-      },
-      {
-        "date": "2026-03-08",
-        "won": false,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-03-06",
-        "won": true,
-        "opp": "wizards",
-        "home": false
-      },
-      {
-        "date": "2026-03-05",
-        "won": false,
-        "opp": "76ers",
-        "home": false
-      },
-      {
-        "date": "2026-03-03",
-        "won": false,
-        "opp": "nuggets",
-        "home": true
-      },
-      {
-        "date": "2026-03-01",
-        "won": false,
-        "opp": "pelicans",
-        "home": true
-      },
-      {
-        "date": "2026-02-27",
-        "won": false,
-        "opp": "pelicans",
-        "home": true
-      },
-      {
-        "date": "2026-02-24",
-        "won": false,
-        "opp": "rockets",
-        "home": false
-      },
-      {
-        "date": "2026-02-21",
-        "won": false,
-        "opp": "grizzlies",
-        "home": false
-      }
-    ],
-    "celtics": [
-      {
-        "date": "2026-03-30",
-        "won": false,
-        "opp": "hawks",
-        "home": false
-      },
-      {
-        "date": "2026-03-29",
-        "won": true,
-        "opp": "hornets",
-        "home": false
-      },
-      {
-        "date": "2026-03-27",
-        "won": true,
-        "opp": "hawks",
-        "home": true
-      },
-      {
-        "date": "2026-03-25",
-        "won": true,
-        "opp": "thunder",
-        "home": true
-      },
-      {
-        "date": "2026-03-23",
-        "won": false,
-        "opp": "timberwolves",
-        "home": true
-      },
-      {
-        "date": "2026-03-21",
-        "won": true,
-        "opp": "grizzlies",
-        "home": false
-      },
-      {
-        "date": "2026-03-18",
-        "won": true,
-        "opp": "warriors",
-        "home": true
-      },
-      {
-        "date": "2026-03-16",
-        "won": true,
-        "opp": "suns",
-        "home": true
-      },
-      {
-        "date": "2026-03-14",
-        "won": true,
-        "opp": "wizards",
-        "home": true
-      },
-      {
-        "date": "2026-03-13",
-        "won": false,
-        "opp": "thunder",
-        "home": false
-      },
-      {
-        "date": "2026-03-11",
-        "won": false,
-        "opp": "spurs",
-        "home": false
-      },
-      {
-        "date": "2026-03-08",
-        "won": true,
-        "opp": "cavaliers",
-        "home": false
-      },
-      {
-        "date": "2026-03-07",
-        "won": true,
-        "opp": "mavericks",
-        "home": true
-      },
-      {
-        "date": "2026-03-05",
-        "won": false,
-        "opp": "hornets",
-        "home": true
-      },
-      {
-        "date": "2026-03-03",
-        "won": true,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-03-02",
-        "won": true,
-        "opp": "76ers",
-        "home": true
-      },
-      {
-        "date": "2026-02-28",
-        "won": true,
-        "opp": "nets",
-        "home": true
-      },
-      {
-        "date": "2026-02-26",
-        "won": false,
-        "opp": "nuggets",
-        "home": false
-      },
-      {
-        "date": "2026-02-25",
-        "won": true,
-        "opp": "suns",
-        "home": false
-      },
-      {
-        "date": "2026-02-22",
-        "won": true,
-        "opp": "lakers",
-        "home": false
-      }
-    ],
-    "trail blazers": [
-      {
-        "date": "2026-03-29",
-        "won": true,
-        "opp": "wizards",
-        "home": true
-      },
-      {
-        "date": "2026-03-28",
-        "won": false,
-        "opp": "mavericks",
-        "home": true
-      },
-      {
-        "date": "2026-03-26",
-        "won": true,
-        "opp": "bucks",
-        "home": true
-      },
-      {
-        "date": "2026-03-24",
-        "won": true,
-        "opp": "nets",
-        "home": true
-      },
-      {
-        "date": "2026-03-22",
-        "won": false,
-        "opp": "nuggets",
-        "home": false
-      },
-      {
-        "date": "2026-03-21",
-        "won": true,
-        "opp": "timberwolves",
-        "home": false
-      },
-      {
-        "date": "2026-03-18",
-        "won": true,
-        "opp": "pacers",
-        "home": false
-      },
-      {
-        "date": "2026-03-16",
-        "won": true,
-        "opp": "nets",
-        "home": false
-      },
-      {
-        "date": "2026-03-15",
-        "won": false,
-        "opp": "76ers",
-        "home": false
-      },
-      {
-        "date": "2026-03-14",
-        "won": true,
-        "opp": "jazz",
-        "home": true
-      },
-      {
-        "date": "2026-03-11",
-        "won": false,
-        "opp": "hornets",
-        "home": true
-      },
-      {
-        "date": "2026-03-09",
-        "won": true,
-        "opp": "pacers",
-        "home": true
-      },
-      {
-        "date": "2026-03-07",
-        "won": false,
-        "opp": "rockets",
-        "home": false
-      },
-      {
-        "date": "2026-03-05",
-        "won": true,
-        "opp": "grizzlies",
-        "home": false
-      },
-      {
-        "date": "2026-03-01",
-        "won": false,
-        "opp": "hawks",
-        "home": false
-      },
-      {
-        "date": "2026-02-28",
-        "won": false,
-        "opp": "hornets",
-        "home": false
-      },
-      {
-        "date": "2026-02-27",
-        "won": true,
-        "opp": "bulls",
-        "home": false
-      },
-      {
-        "date": "2026-02-25",
-        "won": false,
-        "opp": "timberwolves",
-        "home": true
-      },
-      {
-        "date": "2026-02-23",
-        "won": true,
-        "opp": "suns",
-        "home": false
-      },
-      {
-        "date": "2026-02-21",
-        "won": false,
-        "opp": "nuggets",
-        "home": true
-      }
-    ],
-    "kings": [
-      {
-        "date": "2026-03-29",
-        "won": false,
-        "opp": "nets",
-        "home": false
-      },
-      {
-        "date": "2026-03-28",
-        "won": false,
-        "opp": "hawks",
-        "home": false
-      },
-      {
-        "date": "2026-03-26",
-        "won": false,
-        "opp": "magic",
-        "home": false
-      },
-      {
-        "date": "2026-03-24",
-        "won": false,
-        "opp": "hornets",
-        "home": false
-      },
-      {
-        "date": "2026-03-22",
-        "won": true,
-        "opp": "nets",
-        "home": true
-      },
-      {
-        "date": "2026-03-20",
-        "won": false,
-        "opp": "76ers",
-        "home": true
-      },
-      {
-        "date": "2026-03-18",
-        "won": false,
-        "opp": "spurs",
-        "home": true
-      },
-      {
-        "date": "2026-03-16",
-        "won": true,
-        "opp": "jazz",
-        "home": true
-      },
-      {
-        "date": "2026-03-15",
-        "won": true,
-        "opp": "la clippers",
-        "home": false
-      },
-      {
-        "date": "2026-03-12",
-        "won": false,
-        "opp": "hornets",
-        "home": true
-      },
-      {
-        "date": "2026-03-11",
-        "won": true,
-        "opp": "pacers",
-        "home": true
-      },
-      {
-        "date": "2026-03-09",
-        "won": true,
-        "opp": "bulls",
-        "home": true
-      },
-      {
-        "date": "2026-03-06",
-        "won": false,
-        "opp": "pelicans",
-        "home": true
-      },
-      {
-        "date": "2026-03-04",
-        "won": false,
-        "opp": "suns",
-        "home": true
-      },
-      {
-        "date": "2026-03-02",
-        "won": false,
-        "opp": "lakers",
-        "home": false
-      },
-      {
-        "date": "2026-02-27",
-        "won": true,
-        "opp": "mavericks",
-        "home": false
-      },
-      {
-        "date": "2026-02-26",
-        "won": false,
-        "opp": "rockets",
-        "home": false
-      },
-      {
-        "date": "2026-02-24",
-        "won": true,
-        "opp": "grizzlies",
-        "home": false
-      },
-      {
-        "date": "2026-02-22",
-        "won": false,
-        "opp": "spurs",
-        "home": false
-      },
-      {
-        "date": "2026-02-20",
-        "won": false,
-        "opp": "magic",
-        "home": true
-      }
-    ],
-    "la clippers": [
-      {
-        "date": "2026-03-29",
-        "won": true,
-        "opp": "bucks",
-        "home": false
-      },
-      {
-        "date": "2026-03-27",
-        "won": true,
-        "opp": "pacers",
-        "home": false
-      },
-      {
-        "date": "2026-03-26",
-        "won": true,
-        "opp": "raptors",
-        "home": true
-      },
-      {
-        "date": "2026-03-24",
-        "won": true,
-        "opp": "bucks",
-        "home": true
-      },
-      {
-        "date": "2026-03-22",
-        "won": true,
-        "opp": "mavericks",
-        "home": false
-      },
-      {
-        "date": "2026-03-20",
-        "won": false,
-        "opp": "pelicans",
-        "home": false
-      },
-      {
-        "date": "2026-03-19",
-        "won": false,
-        "opp": "pelicans",
-        "home": false
-      },
-      {
-        "date": "2026-03-17",
-        "won": false,
-        "opp": "spurs",
-        "home": true
-      },
-      {
-        "date": "2026-03-15",
-        "won": false,
-        "opp": "kings",
-        "home": true
-      },
-      {
-        "date": "2026-03-14",
-        "won": true,
-        "opp": "bulls",
-        "home": true
-      },
-      {
-        "date": "2026-03-12",
-        "won": true,
-        "opp": "timberwolves",
-        "home": true
-      },
-      {
-        "date": "2026-03-10",
-        "won": true,
-        "opp": "knicks",
-        "home": true
-      },
-      {
-        "date": "2026-03-08",
-        "won": true,
-        "opp": "grizzlies",
-        "home": false
-      },
-      {
-        "date": "2026-03-07",
-        "won": false,
-        "opp": "spurs",
-        "home": false
-      },
-      {
-        "date": "2026-03-05",
-        "won": true,
-        "opp": "pacers",
-        "home": true
-      },
-      {
-        "date": "2026-03-03",
-        "won": true,
-        "opp": "warriors",
-        "home": false
-      },
-      {
-        "date": "2026-03-02",
-        "won": true,
-        "opp": "pelicans",
-        "home": true
-      },
-      {
-        "date": "2026-02-27",
-        "won": false,
-        "opp": "timberwolves",
-        "home": true
-      },
-      {
-        "date": "2026-02-23",
-        "won": false,
-        "opp": "magic",
-        "home": true
-      },
-      {
-        "date": "2026-02-21",
-        "won": false,
-        "opp": "lakers",
-        "home": false
-      }
-    ],
-    "wizards": [
-      {
-        "date": "2026-03-31",
-        "won": false,
-        "opp": "lakers",
-        "home": false
-      },
-      {
-        "date": "2026-03-29",
-        "won": false,
-        "opp": "trail blazers",
-        "home": false
-      },
-      {
-        "date": "2026-03-28",
-        "won": false,
-        "opp": "warriors",
-        "home": false
-      },
-      {
-        "date": "2026-03-26",
-        "won": true,
-        "opp": "jazz",
-        "home": false
-      },
-      {
-        "date": "2026-03-22",
-        "won": false,
-        "opp": "knicks",
-        "home": false
-      },
-      {
-        "date": "2026-03-21",
-        "won": false,
-        "opp": "thunder",
-        "home": true
-      },
-      {
-        "date": "2026-03-19",
-        "won": false,
-        "opp": "pistons",
-        "home": true
-      },
-      {
-        "date": "2026-03-17",
-        "won": false,
-        "opp": "pistons",
-        "home": true
-      },
-      {
-        "date": "2026-03-16",
-        "won": false,
-        "opp": "warriors",
-        "home": true
-      },
-      {
-        "date": "2026-03-14",
-        "won": false,
-        "opp": "celtics",
-        "home": false
-      },
-      {
-        "date": "2026-03-12",
-        "won": false,
-        "opp": "magic",
-        "home": false
-      },
-      {
-        "date": "2026-03-10",
-        "won": false,
-        "opp": "heat",
-        "home": false
-      },
-      {
-        "date": "2026-03-08",
-        "won": false,
-        "opp": "pelicans",
-        "home": false
-      },
-      {
-        "date": "2026-03-06",
-        "won": false,
-        "opp": "jazz",
-        "home": true
-      },
-      {
-        "date": "2026-03-04",
-        "won": false,
-        "opp": "magic",
-        "home": false
-      },
-      {
-        "date": "2026-03-03",
-        "won": false,
-        "opp": "rockets",
-        "home": true
-      },
-      {
-        "date": "2026-03-01",
-        "won": false,
-        "opp": "raptors",
-        "home": true
-      },
-      {
-        "date": "2026-02-27",
-        "won": false,
-        "opp": "hawks",
-        "home": false
-      },
-      {
-        "date": "2026-02-25",
-        "won": false,
-        "opp": "hawks",
-        "home": false
-      },
-      {
-        "date": "2026-02-22",
-        "won": false,
-        "opp": "hornets",
-        "home": true
-      }
-    ],
-    "stars": [
-      {
-        "date": "2026-02-16",
-        "won": true,
-        "opp": "stripes",
-        "home": false
-      },
-      {
-        "date": "2026-02-15",
-        "won": true,
-        "opp": "world",
-        "home": true
-      },
-      {
-        "date": "2026-02-15",
-        "won": false,
-        "opp": "stripes",
-        "home": false
-      }
-    ],
-    "world": [
-      {
-        "date": "2026-02-15",
-        "won": false,
-        "opp": "stars",
-        "home": false
-      },
-      {
-        "date": "2026-02-15",
-        "won": false,
-        "opp": "stripes",
-        "home": false
-      }
-    ],
-    "stripes": [
-      {
-        "date": "2026-02-16",
-        "won": false,
-        "opp": "stars",
-        "home": true
-      },
-      {
-        "date": "2026-02-15",
-        "won": true,
-        "opp": "stars",
-        "home": true
-      },
-      {
-        "date": "2026-02-15",
-        "won": true,
-        "opp": "world",
-        "home": true
-      }
-    ]
-  },
   "soccer": {
     "liverpool": [
       {
@@ -78245,5 +74485,3721 @@
     ],
     "fire": [],
     "tempo": []
+  },
+  "nba": {
+    "thunder": [
+      {
+        "date": "2026-04-13",
+        "won": false,
+        "opp": "suns",
+        "home": true
+      },
+      {
+        "date": "2026-04-11",
+        "won": false,
+        "opp": "nuggets",
+        "home": false
+      },
+      {
+        "date": "2026-04-09",
+        "won": true,
+        "opp": "la clippers",
+        "home": false
+      },
+      {
+        "date": "2026-04-08",
+        "won": true,
+        "opp": "lakers",
+        "home": false
+      },
+      {
+        "date": "2026-04-05",
+        "won": true,
+        "opp": "jazz",
+        "home": true
+      },
+      {
+        "date": "2026-04-03",
+        "won": true,
+        "opp": "lakers",
+        "home": true
+      },
+      {
+        "date": "2026-03-31",
+        "won": true,
+        "opp": "pistons",
+        "home": true
+      },
+      {
+        "date": "2026-03-29",
+        "won": true,
+        "opp": "knicks",
+        "home": true
+      },
+      {
+        "date": "2026-03-28",
+        "won": true,
+        "opp": "bulls",
+        "home": true
+      },
+      {
+        "date": "2026-03-25",
+        "won": false,
+        "opp": "celtics",
+        "home": false
+      },
+      {
+        "date": "2026-03-23",
+        "won": true,
+        "opp": "76ers",
+        "home": false
+      },
+      {
+        "date": "2026-03-21",
+        "won": true,
+        "opp": "wizards",
+        "home": false
+      },
+      {
+        "date": "2026-03-18",
+        "won": true,
+        "opp": "nets",
+        "home": false
+      },
+      {
+        "date": "2026-03-17",
+        "won": true,
+        "opp": "magic",
+        "home": false
+      },
+      {
+        "date": "2026-03-15",
+        "won": true,
+        "opp": "timberwolves",
+        "home": true
+      },
+      {
+        "date": "2026-03-13",
+        "won": true,
+        "opp": "celtics",
+        "home": true
+      },
+      {
+        "date": "2026-03-09",
+        "won": true,
+        "opp": "nuggets",
+        "home": true
+      },
+      {
+        "date": "2026-03-08",
+        "won": true,
+        "opp": "warriors",
+        "home": true
+      },
+      {
+        "date": "2026-03-05",
+        "won": true,
+        "opp": "knicks",
+        "home": false
+      },
+      {
+        "date": "2026-03-04",
+        "won": true,
+        "opp": "bulls",
+        "home": false
+      }
+    ],
+    "rockets": [
+      {
+        "date": "2026-04-13",
+        "won": true,
+        "opp": "grizzlies",
+        "home": true
+      },
+      {
+        "date": "2026-04-11",
+        "won": false,
+        "opp": "timberwolves",
+        "home": true
+      },
+      {
+        "date": "2026-04-10",
+        "won": true,
+        "opp": "76ers",
+        "home": true
+      },
+      {
+        "date": "2026-04-08",
+        "won": true,
+        "opp": "suns",
+        "home": false
+      },
+      {
+        "date": "2026-04-06",
+        "won": true,
+        "opp": "warriors",
+        "home": false
+      },
+      {
+        "date": "2026-04-04",
+        "won": true,
+        "opp": "jazz",
+        "home": true
+      },
+      {
+        "date": "2026-04-02",
+        "won": true,
+        "opp": "bucks",
+        "home": true
+      },
+      {
+        "date": "2026-04-01",
+        "won": true,
+        "opp": "knicks",
+        "home": true
+      },
+      {
+        "date": "2026-03-29",
+        "won": true,
+        "opp": "pelicans",
+        "home": false
+      },
+      {
+        "date": "2026-03-28",
+        "won": true,
+        "opp": "grizzlies",
+        "home": false
+      },
+      {
+        "date": "2026-03-26",
+        "won": false,
+        "opp": "timberwolves",
+        "home": false
+      },
+      {
+        "date": "2026-03-24",
+        "won": false,
+        "opp": "bulls",
+        "home": false
+      },
+      {
+        "date": "2026-03-22",
+        "won": true,
+        "opp": "heat",
+        "home": true
+      },
+      {
+        "date": "2026-03-21",
+        "won": true,
+        "opp": "hawks",
+        "home": true
+      },
+      {
+        "date": "2026-03-19",
+        "won": false,
+        "opp": "lakers",
+        "home": true
+      },
+      {
+        "date": "2026-03-17",
+        "won": false,
+        "opp": "lakers",
+        "home": true
+      },
+      {
+        "date": "2026-03-14",
+        "won": true,
+        "opp": "pelicans",
+        "home": true
+      },
+      {
+        "date": "2026-03-12",
+        "won": false,
+        "opp": "nuggets",
+        "home": false
+      },
+      {
+        "date": "2026-03-11",
+        "won": true,
+        "opp": "raptors",
+        "home": true
+      },
+      {
+        "date": "2026-03-09",
+        "won": false,
+        "opp": "spurs",
+        "home": false
+      }
+    ],
+    "lakers": [
+      {
+        "date": "2026-04-13",
+        "won": true,
+        "opp": "jazz",
+        "home": true
+      },
+      {
+        "date": "2026-04-11",
+        "won": true,
+        "opp": "suns",
+        "home": true
+      },
+      {
+        "date": "2026-04-10",
+        "won": true,
+        "opp": "warriors",
+        "home": false
+      },
+      {
+        "date": "2026-04-08",
+        "won": false,
+        "opp": "thunder",
+        "home": true
+      },
+      {
+        "date": "2026-04-05",
+        "won": false,
+        "opp": "mavericks",
+        "home": false
+      },
+      {
+        "date": "2026-04-03",
+        "won": false,
+        "opp": "thunder",
+        "home": false
+      },
+      {
+        "date": "2026-04-01",
+        "won": true,
+        "opp": "cavaliers",
+        "home": true
+      },
+      {
+        "date": "2026-03-31",
+        "won": true,
+        "opp": "wizards",
+        "home": true
+      },
+      {
+        "date": "2026-03-28",
+        "won": true,
+        "opp": "nets",
+        "home": true
+      },
+      {
+        "date": "2026-03-25",
+        "won": true,
+        "opp": "pacers",
+        "home": false
+      },
+      {
+        "date": "2026-03-23",
+        "won": false,
+        "opp": "pistons",
+        "home": false
+      },
+      {
+        "date": "2026-03-21",
+        "won": true,
+        "opp": "magic",
+        "home": false
+      },
+      {
+        "date": "2026-03-20",
+        "won": true,
+        "opp": "heat",
+        "home": false
+      },
+      {
+        "date": "2026-03-19",
+        "won": true,
+        "opp": "rockets",
+        "home": false
+      },
+      {
+        "date": "2026-03-17",
+        "won": true,
+        "opp": "rockets",
+        "home": false
+      },
+      {
+        "date": "2026-03-15",
+        "won": true,
+        "opp": "nuggets",
+        "home": true
+      },
+      {
+        "date": "2026-03-13",
+        "won": true,
+        "opp": "bulls",
+        "home": true
+      },
+      {
+        "date": "2026-03-11",
+        "won": true,
+        "opp": "timberwolves",
+        "home": true
+      },
+      {
+        "date": "2026-03-08",
+        "won": true,
+        "opp": "knicks",
+        "home": true
+      },
+      {
+        "date": "2026-03-07",
+        "won": true,
+        "opp": "pacers",
+        "home": true
+      }
+    ],
+    "warriors": [
+      {
+        "date": "2026-04-13",
+        "won": false,
+        "opp": "la clippers",
+        "home": false
+      },
+      {
+        "date": "2026-04-11",
+        "won": false,
+        "opp": "kings",
+        "home": false
+      },
+      {
+        "date": "2026-04-10",
+        "won": false,
+        "opp": "lakers",
+        "home": true
+      },
+      {
+        "date": "2026-04-08",
+        "won": true,
+        "opp": "kings",
+        "home": true
+      },
+      {
+        "date": "2026-04-06",
+        "won": false,
+        "opp": "rockets",
+        "home": true
+      },
+      {
+        "date": "2026-04-03",
+        "won": false,
+        "opp": "cavaliers",
+        "home": true
+      },
+      {
+        "date": "2026-04-02",
+        "won": false,
+        "opp": "spurs",
+        "home": true
+      },
+      {
+        "date": "2026-03-30",
+        "won": false,
+        "opp": "nuggets",
+        "home": false
+      },
+      {
+        "date": "2026-03-28",
+        "won": true,
+        "opp": "wizards",
+        "home": true
+      },
+      {
+        "date": "2026-03-26",
+        "won": true,
+        "opp": "nets",
+        "home": true
+      },
+      {
+        "date": "2026-03-24",
+        "won": true,
+        "opp": "mavericks",
+        "home": false
+      },
+      {
+        "date": "2026-03-22",
+        "won": false,
+        "opp": "hawks",
+        "home": false
+      },
+      {
+        "date": "2026-03-20",
+        "won": false,
+        "opp": "pistons",
+        "home": false
+      },
+      {
+        "date": "2026-03-18",
+        "won": false,
+        "opp": "celtics",
+        "home": false
+      },
+      {
+        "date": "2026-03-16",
+        "won": false,
+        "opp": "knicks",
+        "home": false
+      },
+      {
+        "date": "2026-03-16",
+        "won": true,
+        "opp": "wizards",
+        "home": false
+      },
+      {
+        "date": "2026-03-14",
+        "won": false,
+        "opp": "timberwolves",
+        "home": true
+      },
+      {
+        "date": "2026-03-11",
+        "won": false,
+        "opp": "bulls",
+        "home": true
+      },
+      {
+        "date": "2026-03-10",
+        "won": false,
+        "opp": "jazz",
+        "home": false
+      },
+      {
+        "date": "2026-03-08",
+        "won": false,
+        "opp": "thunder",
+        "home": false
+      }
+    ],
+    "knicks": [
+      {
+        "date": "2026-04-12",
+        "won": false,
+        "opp": "hornets",
+        "home": true
+      },
+      {
+        "date": "2026-04-10",
+        "won": true,
+        "opp": "raptors",
+        "home": true
+      },
+      {
+        "date": "2026-04-09",
+        "won": true,
+        "opp": "celtics",
+        "home": true
+      },
+      {
+        "date": "2026-04-06",
+        "won": true,
+        "opp": "hawks",
+        "home": false
+      },
+      {
+        "date": "2026-04-03",
+        "won": true,
+        "opp": "bulls",
+        "home": true
+      },
+      {
+        "date": "2026-04-02",
+        "won": true,
+        "opp": "grizzlies",
+        "home": false
+      },
+      {
+        "date": "2026-04-01",
+        "won": false,
+        "opp": "rockets",
+        "home": false
+      },
+      {
+        "date": "2026-03-29",
+        "won": false,
+        "opp": "thunder",
+        "home": false
+      },
+      {
+        "date": "2026-03-26",
+        "won": false,
+        "opp": "hornets",
+        "home": false
+      },
+      {
+        "date": "2026-03-24",
+        "won": true,
+        "opp": "pelicans",
+        "home": true
+      },
+      {
+        "date": "2026-03-22",
+        "won": true,
+        "opp": "wizards",
+        "home": true
+      },
+      {
+        "date": "2026-03-20",
+        "won": true,
+        "opp": "nets",
+        "home": false
+      },
+      {
+        "date": "2026-03-17",
+        "won": true,
+        "opp": "pacers",
+        "home": true
+      },
+      {
+        "date": "2026-03-16",
+        "won": true,
+        "opp": "warriors",
+        "home": true
+      },
+      {
+        "date": "2026-03-13",
+        "won": true,
+        "opp": "pacers",
+        "home": false
+      },
+      {
+        "date": "2026-03-12",
+        "won": true,
+        "opp": "jazz",
+        "home": false
+      },
+      {
+        "date": "2026-03-10",
+        "won": false,
+        "opp": "la clippers",
+        "home": false
+      },
+      {
+        "date": "2026-03-08",
+        "won": false,
+        "opp": "lakers",
+        "home": false
+      },
+      {
+        "date": "2026-03-07",
+        "won": true,
+        "opp": "nuggets",
+        "home": false
+      },
+      {
+        "date": "2026-03-05",
+        "won": false,
+        "opp": "thunder",
+        "home": true
+      }
+    ],
+    "cavaliers": [
+      {
+        "date": "2026-04-12",
+        "won": true,
+        "opp": "wizards",
+        "home": true
+      },
+      {
+        "date": "2026-04-10",
+        "won": false,
+        "opp": "hawks",
+        "home": false
+      },
+      {
+        "date": "2026-04-08",
+        "won": true,
+        "opp": "hawks",
+        "home": true
+      },
+      {
+        "date": "2026-04-07",
+        "won": true,
+        "opp": "grizzlies",
+        "home": false
+      },
+      {
+        "date": "2026-04-05",
+        "won": true,
+        "opp": "pacers",
+        "home": true
+      },
+      {
+        "date": "2026-04-03",
+        "won": true,
+        "opp": "warriors",
+        "home": false
+      },
+      {
+        "date": "2026-04-01",
+        "won": false,
+        "opp": "lakers",
+        "home": false
+      },
+      {
+        "date": "2026-03-31",
+        "won": true,
+        "opp": "jazz",
+        "home": false
+      },
+      {
+        "date": "2026-03-27",
+        "won": true,
+        "opp": "heat",
+        "home": true
+      },
+      {
+        "date": "2026-03-25",
+        "won": true,
+        "opp": "magic",
+        "home": true
+      },
+      {
+        "date": "2026-03-25",
+        "won": false,
+        "opp": "heat",
+        "home": true
+      },
+      {
+        "date": "2026-03-21",
+        "won": true,
+        "opp": "pelicans",
+        "home": false
+      },
+      {
+        "date": "2026-03-20",
+        "won": true,
+        "opp": "bulls",
+        "home": false
+      },
+      {
+        "date": "2026-03-18",
+        "won": true,
+        "opp": "bucks",
+        "home": false
+      },
+      {
+        "date": "2026-03-15",
+        "won": false,
+        "opp": "mavericks",
+        "home": true
+      },
+      {
+        "date": "2026-03-13",
+        "won": true,
+        "opp": "mavericks",
+        "home": false
+      },
+      {
+        "date": "2026-03-11",
+        "won": false,
+        "opp": "magic",
+        "home": false
+      },
+      {
+        "date": "2026-03-09",
+        "won": true,
+        "opp": "76ers",
+        "home": true
+      },
+      {
+        "date": "2026-03-08",
+        "won": false,
+        "opp": "celtics",
+        "home": true
+      },
+      {
+        "date": "2026-03-04",
+        "won": true,
+        "opp": "pistons",
+        "home": true
+      }
+    ],
+    "hornets": [
+      {
+        "date": "2026-04-12",
+        "won": true,
+        "opp": "knicks",
+        "home": false
+      },
+      {
+        "date": "2026-04-10",
+        "won": false,
+        "opp": "pistons",
+        "home": true
+      },
+      {
+        "date": "2026-04-08",
+        "won": false,
+        "opp": "celtics",
+        "home": false
+      },
+      {
+        "date": "2026-04-05",
+        "won": true,
+        "opp": "timberwolves",
+        "home": false
+      },
+      {
+        "date": "2026-04-03",
+        "won": true,
+        "opp": "pacers",
+        "home": true
+      },
+      {
+        "date": "2026-04-02",
+        "won": true,
+        "opp": "suns",
+        "home": true
+      },
+      {
+        "date": "2026-03-31",
+        "won": true,
+        "opp": "nets",
+        "home": false
+      },
+      {
+        "date": "2026-03-29",
+        "won": false,
+        "opp": "celtics",
+        "home": true
+      },
+      {
+        "date": "2026-03-28",
+        "won": false,
+        "opp": "76ers",
+        "home": true
+      },
+      {
+        "date": "2026-03-26",
+        "won": true,
+        "opp": "knicks",
+        "home": true
+      },
+      {
+        "date": "2026-03-24",
+        "won": true,
+        "opp": "kings",
+        "home": true
+      },
+      {
+        "date": "2026-03-21",
+        "won": true,
+        "opp": "grizzlies",
+        "home": true
+      },
+      {
+        "date": "2026-03-19",
+        "won": true,
+        "opp": "magic",
+        "home": true
+      },
+      {
+        "date": "2026-03-17",
+        "won": true,
+        "opp": "heat",
+        "home": true
+      },
+      {
+        "date": "2026-03-14",
+        "won": false,
+        "opp": "spurs",
+        "home": false
+      },
+      {
+        "date": "2026-03-12",
+        "won": true,
+        "opp": "kings",
+        "home": false
+      },
+      {
+        "date": "2026-03-11",
+        "won": true,
+        "opp": "trail blazers",
+        "home": false
+      },
+      {
+        "date": "2026-03-09",
+        "won": false,
+        "opp": "suns",
+        "home": false
+      },
+      {
+        "date": "2026-03-07",
+        "won": false,
+        "opp": "heat",
+        "home": true
+      },
+      {
+        "date": "2026-03-05",
+        "won": true,
+        "opp": "celtics",
+        "home": false
+      }
+    ],
+    "nets": [
+      {
+        "date": "2026-04-12",
+        "won": false,
+        "opp": "raptors",
+        "home": false
+      },
+      {
+        "date": "2026-04-11",
+        "won": false,
+        "opp": "bucks",
+        "home": false
+      },
+      {
+        "date": "2026-04-09",
+        "won": false,
+        "opp": "pacers",
+        "home": true
+      },
+      {
+        "date": "2026-04-07",
+        "won": true,
+        "opp": "bucks",
+        "home": true
+      },
+      {
+        "date": "2026-04-05",
+        "won": true,
+        "opp": "wizards",
+        "home": true
+      },
+      {
+        "date": "2026-04-03",
+        "won": false,
+        "opp": "hawks",
+        "home": true
+      },
+      {
+        "date": "2026-03-31",
+        "won": false,
+        "opp": "hornets",
+        "home": true
+      },
+      {
+        "date": "2026-03-29",
+        "won": true,
+        "opp": "kings",
+        "home": true
+      },
+      {
+        "date": "2026-03-28",
+        "won": false,
+        "opp": "lakers",
+        "home": false
+      },
+      {
+        "date": "2026-03-26",
+        "won": false,
+        "opp": "warriors",
+        "home": false
+      },
+      {
+        "date": "2026-03-24",
+        "won": false,
+        "opp": "trail blazers",
+        "home": false
+      },
+      {
+        "date": "2026-03-22",
+        "won": false,
+        "opp": "kings",
+        "home": false
+      },
+      {
+        "date": "2026-03-20",
+        "won": false,
+        "opp": "knicks",
+        "home": true
+      },
+      {
+        "date": "2026-03-18",
+        "won": false,
+        "opp": "thunder",
+        "home": true
+      },
+      {
+        "date": "2026-03-16",
+        "won": false,
+        "opp": "trail blazers",
+        "home": true
+      },
+      {
+        "date": "2026-03-14",
+        "won": false,
+        "opp": "76ers",
+        "home": false
+      },
+      {
+        "date": "2026-03-12",
+        "won": false,
+        "opp": "hawks",
+        "home": false
+      },
+      {
+        "date": "2026-03-10",
+        "won": false,
+        "opp": "pistons",
+        "home": true
+      },
+      {
+        "date": "2026-03-09",
+        "won": true,
+        "opp": "grizzlies",
+        "home": true
+      },
+      {
+        "date": "2026-03-07",
+        "won": true,
+        "opp": "pistons",
+        "home": false
+      }
+    ],
+    "magic": [
+      {
+        "date": "2026-04-12",
+        "won": false,
+        "opp": "celtics",
+        "home": false
+      },
+      {
+        "date": "2026-04-11",
+        "won": true,
+        "opp": "bulls",
+        "home": false
+      },
+      {
+        "date": "2026-04-08",
+        "won": true,
+        "opp": "timberwolves",
+        "home": true
+      },
+      {
+        "date": "2026-04-06",
+        "won": true,
+        "opp": "pistons",
+        "home": true
+      },
+      {
+        "date": "2026-04-05",
+        "won": true,
+        "opp": "pelicans",
+        "home": false
+      },
+      {
+        "date": "2026-04-04",
+        "won": true,
+        "opp": "mavericks",
+        "home": false
+      },
+      {
+        "date": "2026-04-01",
+        "won": false,
+        "opp": "hawks",
+        "home": true
+      },
+      {
+        "date": "2026-03-31",
+        "won": true,
+        "opp": "suns",
+        "home": true
+      },
+      {
+        "date": "2026-03-29",
+        "won": false,
+        "opp": "raptors",
+        "home": false
+      },
+      {
+        "date": "2026-03-26",
+        "won": true,
+        "opp": "kings",
+        "home": true
+      },
+      {
+        "date": "2026-03-25",
+        "won": false,
+        "opp": "cavaliers",
+        "home": false
+      },
+      {
+        "date": "2026-03-23",
+        "won": false,
+        "opp": "pacers",
+        "home": true
+      },
+      {
+        "date": "2026-03-21",
+        "won": false,
+        "opp": "lakers",
+        "home": true
+      },
+      {
+        "date": "2026-03-19",
+        "won": false,
+        "opp": "hornets",
+        "home": false
+      },
+      {
+        "date": "2026-03-17",
+        "won": false,
+        "opp": "thunder",
+        "home": true
+      },
+      {
+        "date": "2026-03-16",
+        "won": false,
+        "opp": "hawks",
+        "home": false
+      },
+      {
+        "date": "2026-03-15",
+        "won": true,
+        "opp": "heat",
+        "home": false
+      },
+      {
+        "date": "2026-03-12",
+        "won": true,
+        "opp": "wizards",
+        "home": true
+      },
+      {
+        "date": "2026-03-11",
+        "won": true,
+        "opp": "cavaliers",
+        "home": true
+      },
+      {
+        "date": "2026-03-09",
+        "won": true,
+        "opp": "bucks",
+        "home": false
+      }
+    ],
+    "heat": [
+      {
+        "date": "2026-04-12",
+        "won": true,
+        "opp": "hawks",
+        "home": true
+      },
+      {
+        "date": "2026-04-10",
+        "won": true,
+        "opp": "wizards",
+        "home": false
+      },
+      {
+        "date": "2026-04-09",
+        "won": false,
+        "opp": "raptors",
+        "home": false
+      },
+      {
+        "date": "2026-04-07",
+        "won": false,
+        "opp": "raptors",
+        "home": false
+      },
+      {
+        "date": "2026-04-04",
+        "won": true,
+        "opp": "wizards",
+        "home": true
+      },
+      {
+        "date": "2026-04-01",
+        "won": false,
+        "opp": "celtics",
+        "home": true
+      },
+      {
+        "date": "2026-03-30",
+        "won": true,
+        "opp": "76ers",
+        "home": true
+      },
+      {
+        "date": "2026-03-29",
+        "won": false,
+        "opp": "pacers",
+        "home": false
+      },
+      {
+        "date": "2026-03-27",
+        "won": false,
+        "opp": "cavaliers",
+        "home": false
+      },
+      {
+        "date": "2026-03-25",
+        "won": true,
+        "opp": "cavaliers",
+        "home": false
+      },
+      {
+        "date": "2026-03-23",
+        "won": false,
+        "opp": "spurs",
+        "home": true
+      },
+      {
+        "date": "2026-03-22",
+        "won": false,
+        "opp": "rockets",
+        "home": false
+      },
+      {
+        "date": "2026-03-20",
+        "won": false,
+        "opp": "lakers",
+        "home": true
+      },
+      {
+        "date": "2026-03-17",
+        "won": false,
+        "opp": "hornets",
+        "home": false
+      },
+      {
+        "date": "2026-03-15",
+        "won": false,
+        "opp": "magic",
+        "home": true
+      },
+      {
+        "date": "2026-03-12",
+        "won": true,
+        "opp": "bucks",
+        "home": true
+      },
+      {
+        "date": "2026-03-10",
+        "won": true,
+        "opp": "wizards",
+        "home": true
+      },
+      {
+        "date": "2026-03-08",
+        "won": true,
+        "opp": "pistons",
+        "home": true
+      },
+      {
+        "date": "2026-03-07",
+        "won": true,
+        "opp": "hornets",
+        "home": false
+      },
+      {
+        "date": "2026-03-06",
+        "won": true,
+        "opp": "nets",
+        "home": true
+      }
+    ],
+    "hawks": [
+      {
+        "date": "2026-04-12",
+        "won": false,
+        "opp": "heat",
+        "home": false
+      },
+      {
+        "date": "2026-04-10",
+        "won": true,
+        "opp": "cavaliers",
+        "home": true
+      },
+      {
+        "date": "2026-04-08",
+        "won": false,
+        "opp": "cavaliers",
+        "home": false
+      },
+      {
+        "date": "2026-04-06",
+        "won": false,
+        "opp": "knicks",
+        "home": true
+      },
+      {
+        "date": "2026-04-03",
+        "won": true,
+        "opp": "nets",
+        "home": false
+      },
+      {
+        "date": "2026-04-01",
+        "won": true,
+        "opp": "magic",
+        "home": false
+      },
+      {
+        "date": "2026-03-30",
+        "won": true,
+        "opp": "celtics",
+        "home": true
+      },
+      {
+        "date": "2026-03-28",
+        "won": true,
+        "opp": "kings",
+        "home": true
+      },
+      {
+        "date": "2026-03-27",
+        "won": false,
+        "opp": "celtics",
+        "home": false
+      },
+      {
+        "date": "2026-03-25",
+        "won": true,
+        "opp": "pistons",
+        "home": false
+      },
+      {
+        "date": "2026-03-23",
+        "won": true,
+        "opp": "grizzlies",
+        "home": true
+      },
+      {
+        "date": "2026-03-22",
+        "won": true,
+        "opp": "warriors",
+        "home": true
+      },
+      {
+        "date": "2026-03-21",
+        "won": false,
+        "opp": "rockets",
+        "home": false
+      },
+      {
+        "date": "2026-03-19",
+        "won": true,
+        "opp": "mavericks",
+        "home": false
+      },
+      {
+        "date": "2026-03-16",
+        "won": true,
+        "opp": "magic",
+        "home": true
+      },
+      {
+        "date": "2026-03-14",
+        "won": true,
+        "opp": "bucks",
+        "home": true
+      },
+      {
+        "date": "2026-03-12",
+        "won": true,
+        "opp": "nets",
+        "home": true
+      },
+      {
+        "date": "2026-03-10",
+        "won": true,
+        "opp": "mavericks",
+        "home": true
+      },
+      {
+        "date": "2026-03-07",
+        "won": true,
+        "opp": "76ers",
+        "home": true
+      },
+      {
+        "date": "2026-03-05",
+        "won": true,
+        "opp": "bucks",
+        "home": false
+      }
+    ],
+    "raptors": [
+      {
+        "date": "2026-04-12",
+        "won": true,
+        "opp": "nets",
+        "home": true
+      },
+      {
+        "date": "2026-04-10",
+        "won": false,
+        "opp": "knicks",
+        "home": false
+      },
+      {
+        "date": "2026-04-09",
+        "won": true,
+        "opp": "heat",
+        "home": true
+      },
+      {
+        "date": "2026-04-07",
+        "won": true,
+        "opp": "heat",
+        "home": true
+      },
+      {
+        "date": "2026-04-05",
+        "won": false,
+        "opp": "celtics",
+        "home": false
+      },
+      {
+        "date": "2026-04-04",
+        "won": true,
+        "opp": "grizzlies",
+        "home": false
+      },
+      {
+        "date": "2026-04-02",
+        "won": false,
+        "opp": "kings",
+        "home": true
+      },
+      {
+        "date": "2026-04-01",
+        "won": false,
+        "opp": "pistons",
+        "home": false
+      },
+      {
+        "date": "2026-03-29",
+        "won": true,
+        "opp": "magic",
+        "home": true
+      },
+      {
+        "date": "2026-03-28",
+        "won": true,
+        "opp": "pelicans",
+        "home": true
+      },
+      {
+        "date": "2026-03-26",
+        "won": false,
+        "opp": "la clippers",
+        "home": false
+      },
+      {
+        "date": "2026-03-24",
+        "won": true,
+        "opp": "jazz",
+        "home": false
+      },
+      {
+        "date": "2026-03-23",
+        "won": false,
+        "opp": "suns",
+        "home": false
+      },
+      {
+        "date": "2026-03-21",
+        "won": false,
+        "opp": "nuggets",
+        "home": false
+      },
+      {
+        "date": "2026-03-19",
+        "won": true,
+        "opp": "bulls",
+        "home": false
+      },
+      {
+        "date": "2026-03-15",
+        "won": true,
+        "opp": "pistons",
+        "home": true
+      },
+      {
+        "date": "2026-03-13",
+        "won": true,
+        "opp": "suns",
+        "home": true
+      },
+      {
+        "date": "2026-03-12",
+        "won": false,
+        "opp": "pelicans",
+        "home": false
+      },
+      {
+        "date": "2026-03-11",
+        "won": false,
+        "opp": "rockets",
+        "home": false
+      },
+      {
+        "date": "2026-03-08",
+        "won": true,
+        "opp": "mavericks",
+        "home": true
+      }
+    ],
+    "celtics": [
+      {
+        "date": "2026-04-12",
+        "won": true,
+        "opp": "magic",
+        "home": true
+      },
+      {
+        "date": "2026-04-10",
+        "won": true,
+        "opp": "pelicans",
+        "home": true
+      },
+      {
+        "date": "2026-04-09",
+        "won": false,
+        "opp": "knicks",
+        "home": false
+      },
+      {
+        "date": "2026-04-08",
+        "won": true,
+        "opp": "hornets",
+        "home": true
+      },
+      {
+        "date": "2026-04-05",
+        "won": true,
+        "opp": "raptors",
+        "home": true
+      },
+      {
+        "date": "2026-04-04",
+        "won": true,
+        "opp": "bucks",
+        "home": false
+      },
+      {
+        "date": "2026-04-01",
+        "won": true,
+        "opp": "heat",
+        "home": false
+      },
+      {
+        "date": "2026-03-30",
+        "won": false,
+        "opp": "hawks",
+        "home": false
+      },
+      {
+        "date": "2026-03-29",
+        "won": true,
+        "opp": "hornets",
+        "home": false
+      },
+      {
+        "date": "2026-03-27",
+        "won": true,
+        "opp": "hawks",
+        "home": true
+      },
+      {
+        "date": "2026-03-25",
+        "won": true,
+        "opp": "thunder",
+        "home": true
+      },
+      {
+        "date": "2026-03-23",
+        "won": false,
+        "opp": "timberwolves",
+        "home": true
+      },
+      {
+        "date": "2026-03-21",
+        "won": true,
+        "opp": "grizzlies",
+        "home": false
+      },
+      {
+        "date": "2026-03-18",
+        "won": true,
+        "opp": "warriors",
+        "home": true
+      },
+      {
+        "date": "2026-03-16",
+        "won": true,
+        "opp": "suns",
+        "home": true
+      },
+      {
+        "date": "2026-03-14",
+        "won": true,
+        "opp": "wizards",
+        "home": true
+      },
+      {
+        "date": "2026-03-13",
+        "won": false,
+        "opp": "thunder",
+        "home": false
+      },
+      {
+        "date": "2026-03-11",
+        "won": false,
+        "opp": "spurs",
+        "home": false
+      },
+      {
+        "date": "2026-03-08",
+        "won": true,
+        "opp": "cavaliers",
+        "home": false
+      },
+      {
+        "date": "2026-03-07",
+        "won": true,
+        "opp": "mavericks",
+        "home": true
+      }
+    ],
+    "76ers": [
+      {
+        "date": "2026-04-12",
+        "won": true,
+        "opp": "bucks",
+        "home": true
+      },
+      {
+        "date": "2026-04-10",
+        "won": false,
+        "opp": "rockets",
+        "home": false
+      },
+      {
+        "date": "2026-04-10",
+        "won": true,
+        "opp": "pacers",
+        "home": false
+      },
+      {
+        "date": "2026-04-07",
+        "won": false,
+        "opp": "spurs",
+        "home": false
+      },
+      {
+        "date": "2026-04-04",
+        "won": false,
+        "opp": "pistons",
+        "home": true
+      },
+      {
+        "date": "2026-04-03",
+        "won": true,
+        "opp": "timberwolves",
+        "home": true
+      },
+      {
+        "date": "2026-04-01",
+        "won": true,
+        "opp": "wizards",
+        "home": false
+      },
+      {
+        "date": "2026-03-30",
+        "won": false,
+        "opp": "heat",
+        "home": false
+      },
+      {
+        "date": "2026-03-28",
+        "won": true,
+        "opp": "hornets",
+        "home": false
+      },
+      {
+        "date": "2026-03-25",
+        "won": true,
+        "opp": "bulls",
+        "home": true
+      },
+      {
+        "date": "2026-03-23",
+        "won": false,
+        "opp": "thunder",
+        "home": true
+      },
+      {
+        "date": "2026-03-22",
+        "won": true,
+        "opp": "jazz",
+        "home": false
+      },
+      {
+        "date": "2026-03-20",
+        "won": true,
+        "opp": "kings",
+        "home": false
+      },
+      {
+        "date": "2026-03-18",
+        "won": false,
+        "opp": "nuggets",
+        "home": false
+      },
+      {
+        "date": "2026-03-15",
+        "won": true,
+        "opp": "trail blazers",
+        "home": true
+      },
+      {
+        "date": "2026-03-14",
+        "won": true,
+        "opp": "nets",
+        "home": true
+      },
+      {
+        "date": "2026-03-12",
+        "won": false,
+        "opp": "pistons",
+        "home": false
+      },
+      {
+        "date": "2026-03-10",
+        "won": true,
+        "opp": "grizzlies",
+        "home": true
+      },
+      {
+        "date": "2026-03-09",
+        "won": false,
+        "opp": "cavaliers",
+        "home": false
+      },
+      {
+        "date": "2026-03-07",
+        "won": false,
+        "opp": "hawks",
+        "home": false
+      }
+    ],
+    "bulls": [
+      {
+        "date": "2026-04-13",
+        "won": false,
+        "opp": "mavericks",
+        "home": false
+      },
+      {
+        "date": "2026-04-11",
+        "won": false,
+        "opp": "magic",
+        "home": true
+      },
+      {
+        "date": "2026-04-09",
+        "won": true,
+        "opp": "wizards",
+        "home": false
+      },
+      {
+        "date": "2026-04-07",
+        "won": true,
+        "opp": "wizards",
+        "home": false
+      },
+      {
+        "date": "2026-04-05",
+        "won": false,
+        "opp": "suns",
+        "home": true
+      },
+      {
+        "date": "2026-04-03",
+        "won": false,
+        "opp": "knicks",
+        "home": false
+      },
+      {
+        "date": "2026-04-02",
+        "won": false,
+        "opp": "pacers",
+        "home": true
+      },
+      {
+        "date": "2026-03-31",
+        "won": false,
+        "opp": "spurs",
+        "home": false
+      },
+      {
+        "date": "2026-03-29",
+        "won": false,
+        "opp": "grizzlies",
+        "home": false
+      },
+      {
+        "date": "2026-03-28",
+        "won": false,
+        "opp": "thunder",
+        "home": false
+      },
+      {
+        "date": "2026-03-25",
+        "won": false,
+        "opp": "76ers",
+        "home": false
+      },
+      {
+        "date": "2026-03-24",
+        "won": true,
+        "opp": "rockets",
+        "home": true
+      },
+      {
+        "date": "2026-03-20",
+        "won": false,
+        "opp": "cavaliers",
+        "home": true
+      },
+      {
+        "date": "2026-03-19",
+        "won": false,
+        "opp": "raptors",
+        "home": true
+      },
+      {
+        "date": "2026-03-17",
+        "won": true,
+        "opp": "grizzlies",
+        "home": true
+      },
+      {
+        "date": "2026-03-14",
+        "won": false,
+        "opp": "la clippers",
+        "home": false
+      },
+      {
+        "date": "2026-03-13",
+        "won": false,
+        "opp": "lakers",
+        "home": false
+      },
+      {
+        "date": "2026-03-11",
+        "won": true,
+        "opp": "warriors",
+        "home": false
+      },
+      {
+        "date": "2026-03-09",
+        "won": false,
+        "opp": "kings",
+        "home": false
+      },
+      {
+        "date": "2026-03-06",
+        "won": true,
+        "opp": "suns",
+        "home": false
+      }
+    ],
+    "pistons": [
+      {
+        "date": "2026-04-12",
+        "won": true,
+        "opp": "pacers",
+        "home": false
+      },
+      {
+        "date": "2026-04-10",
+        "won": true,
+        "opp": "hornets",
+        "home": false
+      },
+      {
+        "date": "2026-04-08",
+        "won": true,
+        "opp": "bucks",
+        "home": true
+      },
+      {
+        "date": "2026-04-06",
+        "won": false,
+        "opp": "magic",
+        "home": false
+      },
+      {
+        "date": "2026-04-04",
+        "won": true,
+        "opp": "76ers",
+        "home": false
+      },
+      {
+        "date": "2026-04-02",
+        "won": true,
+        "opp": "timberwolves",
+        "home": true
+      },
+      {
+        "date": "2026-04-01",
+        "won": true,
+        "opp": "raptors",
+        "home": true
+      },
+      {
+        "date": "2026-03-31",
+        "won": false,
+        "opp": "thunder",
+        "home": false
+      },
+      {
+        "date": "2026-03-28",
+        "won": true,
+        "opp": "timberwolves",
+        "home": false
+      },
+      {
+        "date": "2026-03-26",
+        "won": true,
+        "opp": "pelicans",
+        "home": true
+      },
+      {
+        "date": "2026-03-25",
+        "won": false,
+        "opp": "hawks",
+        "home": true
+      },
+      {
+        "date": "2026-03-23",
+        "won": true,
+        "opp": "lakers",
+        "home": true
+      },
+      {
+        "date": "2026-03-20",
+        "won": true,
+        "opp": "warriors",
+        "home": true
+      },
+      {
+        "date": "2026-03-19",
+        "won": true,
+        "opp": "wizards",
+        "home": false
+      },
+      {
+        "date": "2026-03-17",
+        "won": true,
+        "opp": "wizards",
+        "home": false
+      },
+      {
+        "date": "2026-03-15",
+        "won": false,
+        "opp": "raptors",
+        "home": false
+      },
+      {
+        "date": "2026-03-13",
+        "won": true,
+        "opp": "grizzlies",
+        "home": true
+      },
+      {
+        "date": "2026-03-12",
+        "won": true,
+        "opp": "76ers",
+        "home": true
+      },
+      {
+        "date": "2026-03-10",
+        "won": true,
+        "opp": "nets",
+        "home": false
+      },
+      {
+        "date": "2026-03-08",
+        "won": false,
+        "opp": "heat",
+        "home": false
+      }
+    ],
+    "grizzlies": [
+      {
+        "date": "2026-04-13",
+        "won": false,
+        "opp": "rockets",
+        "home": false
+      },
+      {
+        "date": "2026-04-11",
+        "won": false,
+        "opp": "jazz",
+        "home": false
+      },
+      {
+        "date": "2026-04-09",
+        "won": false,
+        "opp": "nuggets",
+        "home": false
+      },
+      {
+        "date": "2026-04-07",
+        "won": false,
+        "opp": "cavaliers",
+        "home": true
+      },
+      {
+        "date": "2026-04-05",
+        "won": false,
+        "opp": "bucks",
+        "home": false
+      },
+      {
+        "date": "2026-04-04",
+        "won": false,
+        "opp": "raptors",
+        "home": true
+      },
+      {
+        "date": "2026-04-02",
+        "won": false,
+        "opp": "knicks",
+        "home": true
+      },
+      {
+        "date": "2026-03-31",
+        "won": false,
+        "opp": "suns",
+        "home": true
+      },
+      {
+        "date": "2026-03-29",
+        "won": true,
+        "opp": "bulls",
+        "home": true
+      },
+      {
+        "date": "2026-03-28",
+        "won": false,
+        "opp": "rockets",
+        "home": true
+      },
+      {
+        "date": "2026-03-26",
+        "won": false,
+        "opp": "spurs",
+        "home": true
+      },
+      {
+        "date": "2026-03-23",
+        "won": false,
+        "opp": "hawks",
+        "home": false
+      },
+      {
+        "date": "2026-03-21",
+        "won": false,
+        "opp": "celtics",
+        "home": true
+      },
+      {
+        "date": "2026-03-21",
+        "won": false,
+        "opp": "hornets",
+        "home": false
+      },
+      {
+        "date": "2026-03-19",
+        "won": true,
+        "opp": "nuggets",
+        "home": true
+      },
+      {
+        "date": "2026-03-17",
+        "won": false,
+        "opp": "bulls",
+        "home": false
+      },
+      {
+        "date": "2026-03-13",
+        "won": false,
+        "opp": "mavericks",
+        "home": true
+      },
+      {
+        "date": "2026-03-13",
+        "won": false,
+        "opp": "pistons",
+        "home": false
+      },
+      {
+        "date": "2026-03-10",
+        "won": false,
+        "opp": "76ers",
+        "home": false
+      },
+      {
+        "date": "2026-03-09",
+        "won": false,
+        "opp": "nets",
+        "home": false
+      }
+    ],
+    "pelicans": [
+      {
+        "date": "2026-04-13",
+        "won": false,
+        "opp": "timberwolves",
+        "home": false
+      },
+      {
+        "date": "2026-04-10",
+        "won": false,
+        "opp": "celtics",
+        "home": false
+      },
+      {
+        "date": "2026-04-08",
+        "won": true,
+        "opp": "jazz",
+        "home": true
+      },
+      {
+        "date": "2026-04-05",
+        "won": false,
+        "opp": "magic",
+        "home": true
+      },
+      {
+        "date": "2026-04-04",
+        "won": false,
+        "opp": "kings",
+        "home": false
+      },
+      {
+        "date": "2026-04-03",
+        "won": false,
+        "opp": "trail blazers",
+        "home": false
+      },
+      {
+        "date": "2026-03-29",
+        "won": false,
+        "opp": "rockets",
+        "home": true
+      },
+      {
+        "date": "2026-03-28",
+        "won": false,
+        "opp": "raptors",
+        "home": false
+      },
+      {
+        "date": "2026-03-26",
+        "won": false,
+        "opp": "pistons",
+        "home": false
+      },
+      {
+        "date": "2026-03-24",
+        "won": false,
+        "opp": "knicks",
+        "home": false
+      },
+      {
+        "date": "2026-03-21",
+        "won": false,
+        "opp": "cavaliers",
+        "home": true
+      },
+      {
+        "date": "2026-03-20",
+        "won": true,
+        "opp": "la clippers",
+        "home": true
+      },
+      {
+        "date": "2026-03-19",
+        "won": true,
+        "opp": "la clippers",
+        "home": true
+      },
+      {
+        "date": "2026-03-17",
+        "won": true,
+        "opp": "mavericks",
+        "home": true
+      },
+      {
+        "date": "2026-03-14",
+        "won": false,
+        "opp": "rockets",
+        "home": false
+      },
+      {
+        "date": "2026-03-12",
+        "won": true,
+        "opp": "raptors",
+        "home": true
+      },
+      {
+        "date": "2026-03-08",
+        "won": true,
+        "opp": "wizards",
+        "home": true
+      },
+      {
+        "date": "2026-03-07",
+        "won": false,
+        "opp": "suns",
+        "home": false
+      },
+      {
+        "date": "2026-03-06",
+        "won": true,
+        "opp": "kings",
+        "home": false
+      },
+      {
+        "date": "2026-03-04",
+        "won": false,
+        "opp": "lakers",
+        "home": false
+      }
+    ],
+    "bucks": [
+      {
+        "date": "2026-04-12",
+        "won": false,
+        "opp": "76ers",
+        "home": false
+      },
+      {
+        "date": "2026-04-11",
+        "won": true,
+        "opp": "nets",
+        "home": true
+      },
+      {
+        "date": "2026-04-08",
+        "won": false,
+        "opp": "pistons",
+        "home": false
+      },
+      {
+        "date": "2026-04-07",
+        "won": false,
+        "opp": "nets",
+        "home": false
+      },
+      {
+        "date": "2026-04-05",
+        "won": true,
+        "opp": "grizzlies",
+        "home": true
+      },
+      {
+        "date": "2026-04-04",
+        "won": false,
+        "opp": "celtics",
+        "home": true
+      },
+      {
+        "date": "2026-04-02",
+        "won": false,
+        "opp": "rockets",
+        "home": false
+      },
+      {
+        "date": "2026-04-01",
+        "won": true,
+        "opp": "mavericks",
+        "home": true
+      },
+      {
+        "date": "2026-03-29",
+        "won": false,
+        "opp": "la clippers",
+        "home": true
+      },
+      {
+        "date": "2026-03-28",
+        "won": false,
+        "opp": "spurs",
+        "home": true
+      },
+      {
+        "date": "2026-03-26",
+        "won": false,
+        "opp": "trail blazers",
+        "home": false
+      },
+      {
+        "date": "2026-03-24",
+        "won": false,
+        "opp": "la clippers",
+        "home": false
+      },
+      {
+        "date": "2026-03-22",
+        "won": true,
+        "opp": "suns",
+        "home": false
+      },
+      {
+        "date": "2026-03-20",
+        "won": false,
+        "opp": "jazz",
+        "home": false
+      },
+      {
+        "date": "2026-03-18",
+        "won": false,
+        "opp": "cavaliers",
+        "home": true
+      },
+      {
+        "date": "2026-03-15",
+        "won": true,
+        "opp": "pacers",
+        "home": true
+      },
+      {
+        "date": "2026-03-14",
+        "won": false,
+        "opp": "hawks",
+        "home": false
+      },
+      {
+        "date": "2026-03-12",
+        "won": false,
+        "opp": "heat",
+        "home": false
+      },
+      {
+        "date": "2026-03-11",
+        "won": false,
+        "opp": "suns",
+        "home": true
+      },
+      {
+        "date": "2026-03-09",
+        "won": false,
+        "opp": "magic",
+        "home": true
+      }
+    ],
+    "wizards": [
+      {
+        "date": "2026-04-12",
+        "won": false,
+        "opp": "cavaliers",
+        "home": false
+      },
+      {
+        "date": "2026-04-10",
+        "won": false,
+        "opp": "heat",
+        "home": true
+      },
+      {
+        "date": "2026-04-09",
+        "won": false,
+        "opp": "bulls",
+        "home": true
+      },
+      {
+        "date": "2026-04-07",
+        "won": false,
+        "opp": "bulls",
+        "home": true
+      },
+      {
+        "date": "2026-04-05",
+        "won": false,
+        "opp": "nets",
+        "home": false
+      },
+      {
+        "date": "2026-04-04",
+        "won": false,
+        "opp": "heat",
+        "home": false
+      },
+      {
+        "date": "2026-04-01",
+        "won": false,
+        "opp": "76ers",
+        "home": true
+      },
+      {
+        "date": "2026-03-31",
+        "won": false,
+        "opp": "lakers",
+        "home": false
+      },
+      {
+        "date": "2026-03-29",
+        "won": false,
+        "opp": "trail blazers",
+        "home": false
+      },
+      {
+        "date": "2026-03-28",
+        "won": false,
+        "opp": "warriors",
+        "home": false
+      },
+      {
+        "date": "2026-03-26",
+        "won": true,
+        "opp": "jazz",
+        "home": false
+      },
+      {
+        "date": "2026-03-22",
+        "won": false,
+        "opp": "knicks",
+        "home": false
+      },
+      {
+        "date": "2026-03-21",
+        "won": false,
+        "opp": "thunder",
+        "home": true
+      },
+      {
+        "date": "2026-03-19",
+        "won": false,
+        "opp": "pistons",
+        "home": true
+      },
+      {
+        "date": "2026-03-17",
+        "won": false,
+        "opp": "pistons",
+        "home": true
+      },
+      {
+        "date": "2026-03-16",
+        "won": false,
+        "opp": "warriors",
+        "home": true
+      },
+      {
+        "date": "2026-03-14",
+        "won": false,
+        "opp": "celtics",
+        "home": false
+      },
+      {
+        "date": "2026-03-12",
+        "won": false,
+        "opp": "magic",
+        "home": false
+      },
+      {
+        "date": "2026-03-10",
+        "won": false,
+        "opp": "heat",
+        "home": false
+      },
+      {
+        "date": "2026-03-08",
+        "won": false,
+        "opp": "pelicans",
+        "home": false
+      }
+    ],
+    "jazz": [
+      {
+        "date": "2026-04-13",
+        "won": false,
+        "opp": "lakers",
+        "home": false
+      },
+      {
+        "date": "2026-04-11",
+        "won": true,
+        "opp": "grizzlies",
+        "home": true
+      },
+      {
+        "date": "2026-04-08",
+        "won": false,
+        "opp": "pelicans",
+        "home": false
+      },
+      {
+        "date": "2026-04-05",
+        "won": false,
+        "opp": "thunder",
+        "home": false
+      },
+      {
+        "date": "2026-04-04",
+        "won": false,
+        "opp": "rockets",
+        "home": false
+      },
+      {
+        "date": "2026-04-02",
+        "won": false,
+        "opp": "nuggets",
+        "home": true
+      },
+      {
+        "date": "2026-03-31",
+        "won": false,
+        "opp": "cavaliers",
+        "home": true
+      },
+      {
+        "date": "2026-03-29",
+        "won": false,
+        "opp": "suns",
+        "home": false
+      },
+      {
+        "date": "2026-03-28",
+        "won": false,
+        "opp": "nuggets",
+        "home": false
+      },
+      {
+        "date": "2026-03-26",
+        "won": false,
+        "opp": "wizards",
+        "home": true
+      },
+      {
+        "date": "2026-03-24",
+        "won": false,
+        "opp": "raptors",
+        "home": true
+      },
+      {
+        "date": "2026-03-22",
+        "won": false,
+        "opp": "76ers",
+        "home": true
+      },
+      {
+        "date": "2026-03-20",
+        "won": true,
+        "opp": "bucks",
+        "home": true
+      },
+      {
+        "date": "2026-03-19",
+        "won": false,
+        "opp": "timberwolves",
+        "home": false
+      },
+      {
+        "date": "2026-03-16",
+        "won": false,
+        "opp": "kings",
+        "home": false
+      },
+      {
+        "date": "2026-03-14",
+        "won": false,
+        "opp": "trail blazers",
+        "home": false
+      },
+      {
+        "date": "2026-03-12",
+        "won": false,
+        "opp": "knicks",
+        "home": true
+      },
+      {
+        "date": "2026-03-10",
+        "won": true,
+        "opp": "warriors",
+        "home": true
+      },
+      {
+        "date": "2026-03-08",
+        "won": false,
+        "opp": "bucks",
+        "home": false
+      },
+      {
+        "date": "2026-03-06",
+        "won": true,
+        "opp": "wizards",
+        "home": false
+      }
+    ],
+    "la clippers": [
+      {
+        "date": "2026-04-13",
+        "won": true,
+        "opp": "warriors",
+        "home": true
+      },
+      {
+        "date": "2026-04-11",
+        "won": false,
+        "opp": "trail blazers",
+        "home": false
+      },
+      {
+        "date": "2026-04-09",
+        "won": false,
+        "opp": "thunder",
+        "home": true
+      },
+      {
+        "date": "2026-04-08",
+        "won": true,
+        "opp": "mavericks",
+        "home": true
+      },
+      {
+        "date": "2026-04-06",
+        "won": true,
+        "opp": "kings",
+        "home": false
+      },
+      {
+        "date": "2026-04-03",
+        "won": false,
+        "opp": "spurs",
+        "home": true
+      },
+      {
+        "date": "2026-04-01",
+        "won": false,
+        "opp": "trail blazers",
+        "home": true
+      },
+      {
+        "date": "2026-03-29",
+        "won": true,
+        "opp": "bucks",
+        "home": false
+      },
+      {
+        "date": "2026-03-27",
+        "won": true,
+        "opp": "pacers",
+        "home": false
+      },
+      {
+        "date": "2026-03-26",
+        "won": true,
+        "opp": "raptors",
+        "home": true
+      },
+      {
+        "date": "2026-03-24",
+        "won": true,
+        "opp": "bucks",
+        "home": true
+      },
+      {
+        "date": "2026-03-22",
+        "won": true,
+        "opp": "mavericks",
+        "home": false
+      },
+      {
+        "date": "2026-03-20",
+        "won": false,
+        "opp": "pelicans",
+        "home": false
+      },
+      {
+        "date": "2026-03-19",
+        "won": false,
+        "opp": "pelicans",
+        "home": false
+      },
+      {
+        "date": "2026-03-17",
+        "won": false,
+        "opp": "spurs",
+        "home": true
+      },
+      {
+        "date": "2026-03-15",
+        "won": false,
+        "opp": "kings",
+        "home": true
+      },
+      {
+        "date": "2026-03-14",
+        "won": true,
+        "opp": "bulls",
+        "home": true
+      },
+      {
+        "date": "2026-03-12",
+        "won": true,
+        "opp": "timberwolves",
+        "home": true
+      },
+      {
+        "date": "2026-03-10",
+        "won": true,
+        "opp": "knicks",
+        "home": true
+      },
+      {
+        "date": "2026-03-08",
+        "won": true,
+        "opp": "grizzlies",
+        "home": false
+      }
+    ],
+    "mavericks": [
+      {
+        "date": "2026-04-13",
+        "won": true,
+        "opp": "bulls",
+        "home": true
+      },
+      {
+        "date": "2026-04-11",
+        "won": false,
+        "opp": "spurs",
+        "home": false
+      },
+      {
+        "date": "2026-04-09",
+        "won": false,
+        "opp": "suns",
+        "home": false
+      },
+      {
+        "date": "2026-04-08",
+        "won": false,
+        "opp": "la clippers",
+        "home": false
+      },
+      {
+        "date": "2026-04-05",
+        "won": true,
+        "opp": "lakers",
+        "home": true
+      },
+      {
+        "date": "2026-04-04",
+        "won": false,
+        "opp": "magic",
+        "home": true
+      },
+      {
+        "date": "2026-04-01",
+        "won": false,
+        "opp": "bucks",
+        "home": false
+      },
+      {
+        "date": "2026-03-31",
+        "won": false,
+        "opp": "timberwolves",
+        "home": true
+      },
+      {
+        "date": "2026-03-28",
+        "won": true,
+        "opp": "trail blazers",
+        "home": false
+      },
+      {
+        "date": "2026-03-26",
+        "won": false,
+        "opp": "nuggets",
+        "home": false
+      },
+      {
+        "date": "2026-03-24",
+        "won": false,
+        "opp": "warriors",
+        "home": true
+      },
+      {
+        "date": "2026-03-22",
+        "won": false,
+        "opp": "la clippers",
+        "home": true
+      },
+      {
+        "date": "2026-03-19",
+        "won": false,
+        "opp": "hawks",
+        "home": true
+      },
+      {
+        "date": "2026-03-17",
+        "won": false,
+        "opp": "pelicans",
+        "home": false
+      },
+      {
+        "date": "2026-03-15",
+        "won": true,
+        "opp": "cavaliers",
+        "home": false
+      },
+      {
+        "date": "2026-03-13",
+        "won": true,
+        "opp": "grizzlies",
+        "home": false
+      },
+      {
+        "date": "2026-03-13",
+        "won": false,
+        "opp": "cavaliers",
+        "home": true
+      },
+      {
+        "date": "2026-03-10",
+        "won": false,
+        "opp": "hawks",
+        "home": false
+      },
+      {
+        "date": "2026-03-08",
+        "won": false,
+        "opp": "raptors",
+        "home": false
+      },
+      {
+        "date": "2026-03-07",
+        "won": false,
+        "opp": "celtics",
+        "home": false
+      }
+    ],
+    "spurs": [
+      {
+        "date": "2026-04-13",
+        "won": false,
+        "opp": "nuggets",
+        "home": true
+      },
+      {
+        "date": "2026-04-11",
+        "won": true,
+        "opp": "mavericks",
+        "home": true
+      },
+      {
+        "date": "2026-04-09",
+        "won": true,
+        "opp": "trail blazers",
+        "home": true
+      },
+      {
+        "date": "2026-04-07",
+        "won": true,
+        "opp": "76ers",
+        "home": true
+      },
+      {
+        "date": "2026-04-04",
+        "won": false,
+        "opp": "nuggets",
+        "home": false
+      },
+      {
+        "date": "2026-04-03",
+        "won": true,
+        "opp": "la clippers",
+        "home": false
+      },
+      {
+        "date": "2026-04-02",
+        "won": true,
+        "opp": "warriors",
+        "home": false
+      },
+      {
+        "date": "2026-03-31",
+        "won": true,
+        "opp": "bulls",
+        "home": true
+      },
+      {
+        "date": "2026-03-28",
+        "won": true,
+        "opp": "bucks",
+        "home": false
+      },
+      {
+        "date": "2026-03-26",
+        "won": true,
+        "opp": "grizzlies",
+        "home": false
+      },
+      {
+        "date": "2026-03-23",
+        "won": true,
+        "opp": "heat",
+        "home": false
+      },
+      {
+        "date": "2026-03-22",
+        "won": true,
+        "opp": "pacers",
+        "home": true
+      },
+      {
+        "date": "2026-03-20",
+        "won": true,
+        "opp": "suns",
+        "home": true
+      },
+      {
+        "date": "2026-03-18",
+        "won": true,
+        "opp": "kings",
+        "home": false
+      },
+      {
+        "date": "2026-03-17",
+        "won": true,
+        "opp": "la clippers",
+        "home": false
+      },
+      {
+        "date": "2026-03-14",
+        "won": true,
+        "opp": "hornets",
+        "home": true
+      },
+      {
+        "date": "2026-03-13",
+        "won": false,
+        "opp": "nuggets",
+        "home": true
+      },
+      {
+        "date": "2026-03-11",
+        "won": true,
+        "opp": "celtics",
+        "home": true
+      },
+      {
+        "date": "2026-03-09",
+        "won": true,
+        "opp": "rockets",
+        "home": true
+      },
+      {
+        "date": "2026-03-07",
+        "won": true,
+        "opp": "la clippers",
+        "home": true
+      }
+    ],
+    "suns": [
+      {
+        "date": "2026-04-13",
+        "won": true,
+        "opp": "thunder",
+        "home": false
+      },
+      {
+        "date": "2026-04-11",
+        "won": false,
+        "opp": "lakers",
+        "home": false
+      },
+      {
+        "date": "2026-04-09",
+        "won": true,
+        "opp": "mavericks",
+        "home": true
+      },
+      {
+        "date": "2026-04-08",
+        "won": false,
+        "opp": "rockets",
+        "home": true
+      },
+      {
+        "date": "2026-04-05",
+        "won": true,
+        "opp": "bulls",
+        "home": false
+      },
+      {
+        "date": "2026-04-02",
+        "won": false,
+        "opp": "hornets",
+        "home": false
+      },
+      {
+        "date": "2026-03-31",
+        "won": true,
+        "opp": "grizzlies",
+        "home": false
+      },
+      {
+        "date": "2026-03-31",
+        "won": false,
+        "opp": "magic",
+        "home": false
+      },
+      {
+        "date": "2026-03-29",
+        "won": true,
+        "opp": "jazz",
+        "home": true
+      },
+      {
+        "date": "2026-03-25",
+        "won": false,
+        "opp": "nuggets",
+        "home": true
+      },
+      {
+        "date": "2026-03-23",
+        "won": true,
+        "opp": "raptors",
+        "home": true
+      },
+      {
+        "date": "2026-03-22",
+        "won": false,
+        "opp": "bucks",
+        "home": true
+      },
+      {
+        "date": "2026-03-20",
+        "won": false,
+        "opp": "spurs",
+        "home": false
+      },
+      {
+        "date": "2026-03-18",
+        "won": false,
+        "opp": "timberwolves",
+        "home": false
+      },
+      {
+        "date": "2026-03-16",
+        "won": false,
+        "opp": "celtics",
+        "home": false
+      },
+      {
+        "date": "2026-03-13",
+        "won": false,
+        "opp": "raptors",
+        "home": false
+      },
+      {
+        "date": "2026-03-12",
+        "won": true,
+        "opp": "pacers",
+        "home": false
+      },
+      {
+        "date": "2026-03-11",
+        "won": true,
+        "opp": "bucks",
+        "home": false
+      },
+      {
+        "date": "2026-03-09",
+        "won": true,
+        "opp": "hornets",
+        "home": true
+      },
+      {
+        "date": "2026-03-07",
+        "won": true,
+        "opp": "pelicans",
+        "home": true
+      }
+    ],
+    "kings": [
+      {
+        "date": "2026-04-13",
+        "won": false,
+        "opp": "trail blazers",
+        "home": false
+      },
+      {
+        "date": "2026-04-11",
+        "won": true,
+        "opp": "warriors",
+        "home": true
+      },
+      {
+        "date": "2026-04-08",
+        "won": false,
+        "opp": "warriors",
+        "home": false
+      },
+      {
+        "date": "2026-04-06",
+        "won": false,
+        "opp": "la clippers",
+        "home": true
+      },
+      {
+        "date": "2026-04-04",
+        "won": true,
+        "opp": "pelicans",
+        "home": true
+      },
+      {
+        "date": "2026-04-02",
+        "won": true,
+        "opp": "raptors",
+        "home": false
+      },
+      {
+        "date": "2026-03-29",
+        "won": false,
+        "opp": "nets",
+        "home": false
+      },
+      {
+        "date": "2026-03-28",
+        "won": false,
+        "opp": "hawks",
+        "home": false
+      },
+      {
+        "date": "2026-03-26",
+        "won": false,
+        "opp": "magic",
+        "home": false
+      },
+      {
+        "date": "2026-03-24",
+        "won": false,
+        "opp": "hornets",
+        "home": false
+      },
+      {
+        "date": "2026-03-22",
+        "won": true,
+        "opp": "nets",
+        "home": true
+      },
+      {
+        "date": "2026-03-20",
+        "won": false,
+        "opp": "76ers",
+        "home": true
+      },
+      {
+        "date": "2026-03-18",
+        "won": false,
+        "opp": "spurs",
+        "home": true
+      },
+      {
+        "date": "2026-03-16",
+        "won": true,
+        "opp": "jazz",
+        "home": true
+      },
+      {
+        "date": "2026-03-15",
+        "won": true,
+        "opp": "la clippers",
+        "home": false
+      },
+      {
+        "date": "2026-03-12",
+        "won": false,
+        "opp": "hornets",
+        "home": true
+      },
+      {
+        "date": "2026-03-11",
+        "won": true,
+        "opp": "pacers",
+        "home": true
+      },
+      {
+        "date": "2026-03-09",
+        "won": true,
+        "opp": "bulls",
+        "home": true
+      },
+      {
+        "date": "2026-03-06",
+        "won": false,
+        "opp": "pelicans",
+        "home": true
+      },
+      {
+        "date": "2026-03-04",
+        "won": false,
+        "opp": "suns",
+        "home": true
+      }
+    ],
+    "trail blazers": [
+      {
+        "date": "2026-04-13",
+        "won": true,
+        "opp": "kings",
+        "home": true
+      },
+      {
+        "date": "2026-04-11",
+        "won": true,
+        "opp": "la clippers",
+        "home": true
+      },
+      {
+        "date": "2026-04-09",
+        "won": false,
+        "opp": "spurs",
+        "home": false
+      },
+      {
+        "date": "2026-04-07",
+        "won": false,
+        "opp": "nuggets",
+        "home": false
+      },
+      {
+        "date": "2026-04-03",
+        "won": true,
+        "opp": "pelicans",
+        "home": true
+      },
+      {
+        "date": "2026-04-01",
+        "won": true,
+        "opp": "la clippers",
+        "home": false
+      },
+      {
+        "date": "2026-03-29",
+        "won": true,
+        "opp": "wizards",
+        "home": true
+      },
+      {
+        "date": "2026-03-28",
+        "won": false,
+        "opp": "mavericks",
+        "home": true
+      },
+      {
+        "date": "2026-03-26",
+        "won": true,
+        "opp": "bucks",
+        "home": true
+      },
+      {
+        "date": "2026-03-24",
+        "won": true,
+        "opp": "nets",
+        "home": true
+      },
+      {
+        "date": "2026-03-22",
+        "won": false,
+        "opp": "nuggets",
+        "home": false
+      },
+      {
+        "date": "2026-03-21",
+        "won": true,
+        "opp": "timberwolves",
+        "home": false
+      },
+      {
+        "date": "2026-03-18",
+        "won": true,
+        "opp": "pacers",
+        "home": false
+      },
+      {
+        "date": "2026-03-16",
+        "won": true,
+        "opp": "nets",
+        "home": false
+      },
+      {
+        "date": "2026-03-15",
+        "won": false,
+        "opp": "76ers",
+        "home": false
+      },
+      {
+        "date": "2026-03-14",
+        "won": true,
+        "opp": "jazz",
+        "home": true
+      },
+      {
+        "date": "2026-03-11",
+        "won": false,
+        "opp": "hornets",
+        "home": true
+      },
+      {
+        "date": "2026-03-09",
+        "won": true,
+        "opp": "pacers",
+        "home": true
+      },
+      {
+        "date": "2026-03-07",
+        "won": false,
+        "opp": "rockets",
+        "home": false
+      },
+      {
+        "date": "2026-03-05",
+        "won": true,
+        "opp": "grizzlies",
+        "home": false
+      }
+    ],
+    "timberwolves": [
+      {
+        "date": "2026-04-13",
+        "won": true,
+        "opp": "pelicans",
+        "home": true
+      },
+      {
+        "date": "2026-04-11",
+        "won": true,
+        "opp": "rockets",
+        "home": false
+      },
+      {
+        "date": "2026-04-08",
+        "won": false,
+        "opp": "magic",
+        "home": false
+      },
+      {
+        "date": "2026-04-07",
+        "won": true,
+        "opp": "pacers",
+        "home": false
+      },
+      {
+        "date": "2026-04-05",
+        "won": false,
+        "opp": "hornets",
+        "home": true
+      },
+      {
+        "date": "2026-04-03",
+        "won": false,
+        "opp": "76ers",
+        "home": false
+      },
+      {
+        "date": "2026-04-02",
+        "won": false,
+        "opp": "pistons",
+        "home": false
+      },
+      {
+        "date": "2026-03-31",
+        "won": true,
+        "opp": "mavericks",
+        "home": false
+      },
+      {
+        "date": "2026-03-28",
+        "won": false,
+        "opp": "pistons",
+        "home": true
+      },
+      {
+        "date": "2026-03-26",
+        "won": true,
+        "opp": "rockets",
+        "home": true
+      },
+      {
+        "date": "2026-03-23",
+        "won": true,
+        "opp": "celtics",
+        "home": false
+      },
+      {
+        "date": "2026-03-21",
+        "won": false,
+        "opp": "trail blazers",
+        "home": true
+      },
+      {
+        "date": "2026-03-19",
+        "won": true,
+        "opp": "jazz",
+        "home": true
+      },
+      {
+        "date": "2026-03-18",
+        "won": true,
+        "opp": "suns",
+        "home": true
+      },
+      {
+        "date": "2026-03-15",
+        "won": false,
+        "opp": "thunder",
+        "home": false
+      },
+      {
+        "date": "2026-03-14",
+        "won": true,
+        "opp": "warriors",
+        "home": false
+      },
+      {
+        "date": "2026-03-12",
+        "won": false,
+        "opp": "la clippers",
+        "home": false
+      },
+      {
+        "date": "2026-03-11",
+        "won": false,
+        "opp": "lakers",
+        "home": false
+      },
+      {
+        "date": "2026-03-07",
+        "won": false,
+        "opp": "magic",
+        "home": true
+      },
+      {
+        "date": "2026-03-06",
+        "won": true,
+        "opp": "raptors",
+        "home": true
+      }
+    ],
+    "pacers": [
+      {
+        "date": "2026-04-12",
+        "won": false,
+        "opp": "pistons",
+        "home": true
+      },
+      {
+        "date": "2026-04-10",
+        "won": false,
+        "opp": "76ers",
+        "home": true
+      },
+      {
+        "date": "2026-04-09",
+        "won": true,
+        "opp": "nets",
+        "home": false
+      },
+      {
+        "date": "2026-04-07",
+        "won": false,
+        "opp": "timberwolves",
+        "home": true
+      },
+      {
+        "date": "2026-04-05",
+        "won": false,
+        "opp": "cavaliers",
+        "home": false
+      },
+      {
+        "date": "2026-04-03",
+        "won": false,
+        "opp": "hornets",
+        "home": false
+      },
+      {
+        "date": "2026-04-02",
+        "won": true,
+        "opp": "bulls",
+        "home": false
+      },
+      {
+        "date": "2026-03-29",
+        "won": true,
+        "opp": "heat",
+        "home": true
+      },
+      {
+        "date": "2026-03-27",
+        "won": false,
+        "opp": "la clippers",
+        "home": true
+      },
+      {
+        "date": "2026-03-25",
+        "won": false,
+        "opp": "lakers",
+        "home": true
+      },
+      {
+        "date": "2026-03-23",
+        "won": true,
+        "opp": "magic",
+        "home": false
+      },
+      {
+        "date": "2026-03-22",
+        "won": false,
+        "opp": "spurs",
+        "home": false
+      },
+      {
+        "date": "2026-03-18",
+        "won": false,
+        "opp": "trail blazers",
+        "home": true
+      },
+      {
+        "date": "2026-03-17",
+        "won": false,
+        "opp": "knicks",
+        "home": false
+      },
+      {
+        "date": "2026-03-15",
+        "won": false,
+        "opp": "bucks",
+        "home": false
+      },
+      {
+        "date": "2026-03-13",
+        "won": false,
+        "opp": "knicks",
+        "home": true
+      },
+      {
+        "date": "2026-03-12",
+        "won": false,
+        "opp": "suns",
+        "home": true
+      },
+      {
+        "date": "2026-03-11",
+        "won": false,
+        "opp": "kings",
+        "home": false
+      },
+      {
+        "date": "2026-03-09",
+        "won": false,
+        "opp": "trail blazers",
+        "home": false
+      },
+      {
+        "date": "2026-03-07",
+        "won": false,
+        "opp": "lakers",
+        "home": false
+      }
+    ],
+    "nuggets": [
+      {
+        "date": "2026-04-13",
+        "won": true,
+        "opp": "spurs",
+        "home": false
+      },
+      {
+        "date": "2026-04-11",
+        "won": true,
+        "opp": "thunder",
+        "home": true
+      },
+      {
+        "date": "2026-04-09",
+        "won": true,
+        "opp": "grizzlies",
+        "home": true
+      },
+      {
+        "date": "2026-04-07",
+        "won": true,
+        "opp": "trail blazers",
+        "home": true
+      },
+      {
+        "date": "2026-04-04",
+        "won": true,
+        "opp": "spurs",
+        "home": true
+      },
+      {
+        "date": "2026-04-02",
+        "won": true,
+        "opp": "jazz",
+        "home": false
+      },
+      {
+        "date": "2026-03-30",
+        "won": true,
+        "opp": "warriors",
+        "home": true
+      },
+      {
+        "date": "2026-03-28",
+        "won": true,
+        "opp": "jazz",
+        "home": true
+      },
+      {
+        "date": "2026-03-26",
+        "won": true,
+        "opp": "mavericks",
+        "home": true
+      },
+      {
+        "date": "2026-03-25",
+        "won": true,
+        "opp": "suns",
+        "home": false
+      },
+      {
+        "date": "2026-03-22",
+        "won": true,
+        "opp": "trail blazers",
+        "home": true
+      },
+      {
+        "date": "2026-03-21",
+        "won": true,
+        "opp": "raptors",
+        "home": true
+      },
+      {
+        "date": "2026-03-19",
+        "won": false,
+        "opp": "grizzlies",
+        "home": false
+      },
+      {
+        "date": "2026-03-18",
+        "won": true,
+        "opp": "76ers",
+        "home": true
+      },
+      {
+        "date": "2026-03-15",
+        "won": false,
+        "opp": "lakers",
+        "home": false
+      },
+      {
+        "date": "2026-03-13",
+        "won": true,
+        "opp": "spurs",
+        "home": false
+      },
+      {
+        "date": "2026-03-12",
+        "won": true,
+        "opp": "rockets",
+        "home": true
+      },
+      {
+        "date": "2026-03-09",
+        "won": false,
+        "opp": "thunder",
+        "home": false
+      },
+      {
+        "date": "2026-03-07",
+        "won": false,
+        "opp": "knicks",
+        "home": true
+      },
+      {
+        "date": "2026-03-06",
+        "won": true,
+        "opp": "lakers",
+        "home": true
+      }
+    ],
+    "stars": [
+      {
+        "date": "2026-02-16",
+        "won": true,
+        "opp": "stripes",
+        "home": false
+      },
+      {
+        "date": "2026-02-15",
+        "won": true,
+        "opp": "world",
+        "home": true
+      },
+      {
+        "date": "2026-02-15",
+        "won": false,
+        "opp": "stripes",
+        "home": false
+      }
+    ],
+    "world": [
+      {
+        "date": "2026-02-15",
+        "won": false,
+        "opp": "stars",
+        "home": false
+      },
+      {
+        "date": "2026-02-15",
+        "won": false,
+        "opp": "stripes",
+        "home": false
+      }
+    ],
+    "stripes": [
+      {
+        "date": "2026-02-16",
+        "won": false,
+        "opp": "stars",
+        "home": true
+      },
+      {
+        "date": "2026-02-15",
+        "won": true,
+        "opp": "stars",
+        "home": true
+      },
+      {
+        "date": "2026-02-15",
+        "won": true,
+        "opp": "world",
+        "home": true
+      }
+    ]
   }
 }

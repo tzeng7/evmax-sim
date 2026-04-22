@@ -42,17 +42,18 @@ WINS_TO_CLINCH: dict[str, int] = {"nba": 4, "nhl": 4, "wnba": 3}
 
 @dataclass
 class PlayoffSeries:
-    """Parsed playoff series context for a single game."""
+    """Parsed playoff/play-in context for a single game."""
 
     team_a: str  # home team (lowercased)
     team_b: str  # away team (lowercased)
     team_a_abbrev: str
     team_b_abbrev: str
-    series_wins_a: int  # home team's series wins
-    series_wins_b: int  # away team's series wins
-    round_num: int  # 1=first round, 2=semis, 3=conf finals, 4=finals
-    round_name: str  # e.g. "NBA Finals", "Conference Semifinals"
+    series_wins_a: int  # home team's series wins (0 for play-in)
+    series_wins_b: int  # away team's series wins (0 for play-in)
+    round_num: int  # 0=play-in, 1=first round, 2=semis, 3=conf finals, 4=finals
+    round_name: str  # e.g. "NBA Finals", "NBA Play-In - East - 8th Seed Game"
     sector: str
+    is_play_in: bool = False  # True for single-elimination play-in games
 
     @property
     def _clinch(self) -> int:
@@ -61,27 +62,37 @@ class PlayoffSeries:
     @property
     def is_elimination_for_a(self) -> bool:
         """Home team faces elimination (away leads clinch-1 to something)."""
+        if self.is_play_in:
+            return True  # play-in is single elimination for both
         return self.series_wins_b == self._clinch - 1 and self.series_wins_a < self._clinch - 1
 
     @property
     def is_elimination_for_b(self) -> bool:
         """Away team faces elimination."""
+        if self.is_play_in:
+            return True  # play-in is single elimination for both
         return self.series_wins_a == self._clinch - 1 and self.series_wins_b < self._clinch - 1
 
     @property
     def is_game_7(self) -> bool:
         """Both teams one win from elimination (Game 7 / Game 5 in WNBA)."""
+        if self.is_play_in:
+            return False
         c = self._clinch - 1
         return self.series_wins_a == c and self.series_wins_b == c
 
     @property
     def is_closeout_for_a(self) -> bool:
         """Home team can close out the series."""
+        if self.is_play_in:
+            return False
         return self.series_wins_a == self._clinch - 1 and self.series_wins_b < self._clinch - 1
 
     @property
     def is_closeout_for_b(self) -> bool:
         """Away team can close out the series."""
+        if self.is_play_in:
+            return False
         return self.series_wins_b == self._clinch - 1 and self.series_wins_a < self._clinch - 1
 
     @property
@@ -90,6 +101,8 @@ class PlayoffSeries:
 
     @property
     def game_number(self) -> int:
+        if self.is_play_in:
+            return 1
         return self.series_wins_a + self.series_wins_b + 1
 
     @property
@@ -155,16 +168,18 @@ class PlayoffAgent(Agent):
 
         for event in data.get("events", []):
             season_type = event.get("season", {}).get("type", 0)
-            # ESPN season type 3 = postseason/playoffs
-            if season_type != 3:
+            # ESPN season type 3 = postseason/playoffs, 5 = play-in tournament
+            if season_type not in (3, 5):
                 continue
+
+            is_play_in = season_type == 5
 
             for comp in event.get("competitions", []):
                 series_info = comp.get("series", {})
-                if not series_info:
+                # Play-in games have no series data — that's expected
+                if not series_info and not is_play_in:
                     continue
 
-                # Extract series summary (e.g. "Series tied 1-1", "BOS leads 3-2")
                 competitors = comp.get("competitors", [])
                 if len(competitors) < 2:
                     continue
@@ -182,34 +197,39 @@ class PlayoffAgent(Agent):
                 home_series_wins = 0
                 away_series_wins = 0
 
-                # Try series.competitors first (more reliable)
-                for sc in series_info.get("competitors", []):
-                    sc_id = sc.get("id", "")
-                    wins = int(sc.get("wins", 0))
-                    if sc_id == home.get("id", ""):
-                        home_series_wins = wins
-                    elif sc_id == away.get("id", ""):
-                        away_series_wins = wins
+                if not is_play_in and series_info:
+                    # Try series.competitors first (more reliable)
+                    for sc in series_info.get("competitors", []):
+                        sc_id = sc.get("id", "")
+                        wins = int(sc.get("wins", 0))
+                        if sc_id == home.get("id", ""):
+                            home_series_wins = wins
+                        elif sc_id == away.get("id", ""):
+                            away_series_wins = wins
 
-                # Fallback: parse series summary text
-                if home_series_wins == 0 and away_series_wins == 0:
-                    summary = series_info.get("summary", "")
-                    home_series_wins, away_series_wins = _parse_series_summary(
-                        summary, home_abbrev, away_abbrev,
-                    )
+                    # Fallback: parse series summary text
+                    if home_series_wins == 0 and away_series_wins == 0:
+                        summary = series_info.get("summary", "")
+                        home_series_wins, away_series_wins = _parse_series_summary(
+                            summary, home_abbrev, away_abbrev,
+                        )
 
                 # Determine round number from notes or series type
                 round_name = ""
-                round_num = 1
+                round_num = 0 if is_play_in else 1
                 for note in event.get("competitions", [{}])[0].get("notes", []):
                     headline = note.get("headline", "")
                     if headline:
                         round_name = headline
                         break
                 if not round_name:
-                    round_name = series_info.get("title", "")
+                    if series_info:
+                        round_name = series_info.get("title", "")
+                    if not round_name and is_play_in:
+                        round_name = "Play-In Tournament"
 
-                round_num = _infer_round_number(round_name, sector)
+                if not is_play_in:
+                    round_num = _infer_round_number(round_name, sector)
 
                 key = f"{home_name}_vs_{away_name}"
                 series_map[key] = PlayoffSeries(
@@ -222,6 +242,7 @@ class PlayoffAgent(Agent):
                     round_num=round_num,
                     round_name=round_name,
                     sector=sector,
+                    is_play_in=is_play_in,
                 )
 
         return series_map
@@ -286,8 +307,18 @@ class PlayoffAgent(Agent):
             adj_b += 0.015
             notes.append(f"playoff_hca:+1.5%→{team_b[:12]}")
 
-        # --- Elimination game boost ---
-        if series.is_game_7:
+        # --- Play-in: single elimination for both, enhanced HCA only ---
+        if series.is_play_in:
+            # Play-in is single elimination: both teams desperate, home court
+            # matters more. Add +2.0% to home team (similar to Game 7 dynamics).
+            if a_is_home:
+                adj_a += 0.020
+                notes.append(f"playin_hca:+2.0%→{team_a[:12]}")
+            else:
+                adj_b += 0.020
+                notes.append(f"playin_hca:+2.0%→{team_b[:12]}")
+        # --- Elimination game boost (series games only) ---
+        elif series.is_game_7:
             # Game 7: both teams desperate, home team gets massive edge
             # Historical Game 7 home win rate: ~78% vs ~64% regular season
             # Additional +2% to home team (on top of playoff HCA above)
@@ -325,9 +356,11 @@ class PlayoffAgent(Agent):
         if adj_a == 0.0 and adj_b == 0.0:
             return true_prob_a, true_prob_b, f"playoff:{series_str}", True
 
-        # Apply adjustments and renormalize
-        new_a = max(0.02, min(0.98, true_prob_a + adj_a - adj_b))
-        new_b = max(0.02, min(0.98, true_prob_b + adj_b - adj_a))
+        # Apply adjustments independently then renormalize.
+        # Each adj is a direct nudge to that team's probability — do NOT
+        # subtract the opponent's adj (that double-counts the swing).
+        new_a = max(0.02, min(0.98, true_prob_a + adj_a))
+        new_b = max(0.02, min(0.98, true_prob_b + adj_b))
 
         total = new_a + new_b
         new_a /= total

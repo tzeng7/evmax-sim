@@ -300,13 +300,15 @@
           <option value="cs2">CS2</option>
         </select>
         {% if unplaced_bets %}
-        <button class="btn btn-sm success" onclick="pickFromOpen()">Pick All</button>
+        <button class="btn btn-sm" onclick="selectAllOpen()" title="Select all visible">All</button>
+        <button class="btn btn-sm" onclick="deselectAllOpen()" title="Deselect all">None</button>
+        <button class="btn btn-sm success" id="openPickBtn" onclick="pickFromOpen()" disabled>Pick Selected</button>
         {% endif %}
       </div>
     </div>
     <div style="max-height:400px;overflow-y:auto">
     <table>
-      <thead><tr><th style="width:28px"></th><th></th><th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th><th class="num">Ask</th><th class="num">Fair Value</th><th class="num">EV</th><th class="num">Stake</th></tr></thead>
+      <thead><tr><th style="width:28px"></th><th></th><th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th><th class="num">Ask</th><th class="num">Fair Value</th><th class="num">EV</th><th class="num">Fill Odds</th><th class="num">Stake ($)</th></tr></thead>
       <tbody id="openBody">
       {% for b in unplaced_bets[:40] %}
         {% set stake = ((b.bankroll_used or 500) * (b.kelly_fraction or 0)) %}
@@ -320,7 +322,8 @@
           <td class="num">{{ probToAmerican(b.kalshi_yes_price) }} <span class="muted">({{ '%.0f'|format(b.kalshi_yes_price * 100) }}¢)</span></td>
           <td class="num">{{ probToAmerican(b.blended_true_prob) }} <span class="muted">({{ '%.0f'|format((b.blended_true_prob or 0) * 100) }}¢)</span></td>
           <td class="num green">{{ '%.1f'|format((b.ev_pct or 0) * 100) }}%</td>
-          <td class="num">${{ '%.2f'|format(stake) }}</td>
+          <td class="num"><input type="text" class="open-fill-odds" data-mid="{{ b.market_id }}" value="{{ probToAmerican(b.kalshi_yes_price) }}" style="width:64px" title="American odds (e.g. +181 or -150)"></td>
+          <td class="num"><input type="number" class="open-fill-stake" data-mid="{{ b.market_id }}" value="{{ '%.2f'|format(stake) }}" min="0.01" step="0.01" style="width:70px" title="Stake in $"></td>
         </tr>
       {% endfor %}
       </tbody>
@@ -696,7 +699,16 @@ async function pickSelected() {
       body: JSON.stringify({ bets })
     });
     const data = await resp.json();
-    toast(`Placed ${data.placed} bet(s) — refreshing...`, 'ok', 1500);
+    if (data.placed > 0) {
+      const skippedNote = data.skipped?.length ? ` · skipped ${data.skipped.length}` : '';
+      toast(`Placed ${data.placed} bet(s)${skippedNote} — refreshing...`, 'ok', 1500);
+    } else if (data.skipped?.length) {
+      const first = data.skipped[0];
+      const more = data.skipped.length > 1 ? ` (+${data.skipped.length - 1} more)` : '';
+      toast(`Placed 0 — ${first.reason}${more}`, 'err', 3000);
+    } else {
+      toast('Placed 0 bet(s)', 'err', 3000);
+    }
     setTimeout(() => location.reload(), 1500);
   } catch(e) {
     toast('Pick failed: ' + e.message, 'err');
@@ -862,23 +874,70 @@ async function removePlaced(btn) {
 }
 
 // ── Pick from open positions ──
+function updateOpenPickBtn() {
+  const checked = document.querySelectorAll('.open-check:checked').length;
+  const btn = document.getElementById('openPickBtn');
+  if (btn) {
+    btn.disabled = checked === 0;
+    btn.textContent = checked > 0 ? `Pick Selected (${checked})` : 'Pick Selected';
+  }
+}
+function selectAllOpen() {
+  document.querySelectorAll('#openBody tr[data-sector]').forEach(tr => {
+    if (tr.style.display !== 'none') {
+      const cb = tr.querySelector('.open-check');
+      if (cb) cb.checked = true;
+    }
+  });
+  updateOpenPickBtn();
+}
+function deselectAllOpen() { document.querySelectorAll('.open-check').forEach(c => c.checked = false); updateOpenPickBtn(); }
+
+// Attach change listeners to open checkboxes
+document.querySelectorAll('.open-check').forEach(cb => cb.addEventListener('change', updateOpenPickBtn));
+
 async function pickFromOpen() {
-  const checked = [...document.querySelectorAll('.open-check:checked')].map(c => c.dataset.mid);
+  const checked = [...document.querySelectorAll('.open-check:checked')];
   if (!checked.length) {
     toast('Select positions to pick first', 'info');
     return;
   }
+  const btn = document.getElementById('openPickBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Placing...';
+
+  const bets = checked.map(cb => {
+    const mid = cb.dataset.mid;
+    const oddsInput = document.querySelector(`.open-fill-odds[data-mid="${mid}"]`);
+    const stakeInput = document.querySelector(`.open-fill-stake[data-mid="${mid}"]`);
+    const prob = oddsInput ? americanToProb(oddsInput.value) : null;
+    const stake = stakeInput ? parseFloat(stakeInput.value) : null;
+    return { market_id: mid, fill_price: prob, fill_stake: stake };
+  });
+
   try {
     const resp = await fetch('/api/pick', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ market_ids: checked })
+      body: JSON.stringify({ bets })
     });
     const data = await resp.json();
-    toast(`Placed ${data.placed} bet(s) — refreshing...`, 'ok', 1500);
+    if (data.placed > 0) {
+      const skippedNote = data.skipped?.length ? ` · skipped ${data.skipped.length}` : '';
+      toast(`Placed ${data.placed} bet(s)${skippedNote} — refreshing...`, 'ok', 1500);
+    } else if (data.skipped?.length) {
+      const first = data.skipped[0];
+      const more = data.skipped.length > 1 ? ` (+${data.skipped.length - 1} more)` : '';
+      toast(`Placed 0 — ${first.reason}${more}`, 'err', 3000);
+    } else {
+      toast('Placed 0 bet(s)', 'err', 3000);
+    }
     setTimeout(() => location.reload(), 1500);
   } catch(e) {
     toast('Pick failed: ' + e.message, 'err');
+  } finally {
+    btn.textContent = 'Pick Selected';
+    updateOpenPickBtn();
   }
 }
 

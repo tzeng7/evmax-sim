@@ -1,4 +1,4 @@
-import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow } from './types'
+import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Portfolio, PortfolioDetail, PortfolioScanResult } from './types'
 
 const json = (r: Response) => r.json()
 
@@ -37,7 +37,10 @@ export async function runScan(params: {
   }).then(json)
 }
 
-export async function pickBets(bets: { market_id: string; fill_price: number | null; fill_stake: number | null }[]): Promise<{ placed: number }> {
+export interface PickSkip { market_id: string | null; reason: string }
+export interface PickResult { placed: number; skipped?: PickSkip[] }
+
+export async function pickBets(bets: { market_id: string; fill_price: number | null; fill_stake: number | null }[]): Promise<PickResult> {
   return fetch('/api/pick', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -45,7 +48,7 @@ export async function pickBets(bets: { market_id: string; fill_price: number | n
   }).then(json)
 }
 
-export async function pickByIds(market_ids: string[]): Promise<{ placed: number }> {
+export async function pickByIds(market_ids: string[]): Promise<PickResult> {
   return fetch('/api/pick', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -83,4 +86,32 @@ export async function unplaceBets(market_ids: string[]): Promise<{ removed: numb
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ market_ids }),
   }).then(json)
+}
+
+export async function fetchPortfolios(): Promise<Portfolio[]> {
+  return fetch('/api/portfolios').then(json)
+}
+
+export async function fetchPortfolioDetail(id: string): Promise<PortfolioDetail> {
+  return fetch(`/api/portfolios/${id}`).then(json)
+}
+
+export async function createDefaultPortfolios(): Promise<{ created: number; portfolios: Portfolio[] }> {
+  return fetch('/api/portfolios/create-defaults', { method: 'POST' }).then(json)
+}
+
+export async function deletePortfolio(id: string): Promise<{ deleted: boolean }> {
+  return fetch(`/api/portfolios/${id}`, { method: 'DELETE' }).then(json)
+}
+
+export async function scanPortfolios(portfolioIds?: string[]): Promise<PortfolioScanResult> {
+  return fetch('/api/portfolios/scan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ portfolio_ids: portfolioIds || [] }),
+  }).then(json)
+}
+
+export async function syncPortfolioOutcomes(): Promise<{ resolved: number }> {
+  return fetch('/api/portfolios/sync-outcomes', { method: 'POST' }).then(json)
 }

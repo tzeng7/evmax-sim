@@ -461,23 +461,36 @@ async def api_pick(request: Request) -> JSONResponse:
     now_str = datetime.now(timezone.utc).isoformat()
     conn = _conn()
     placed = 0
+    skipped: list[dict] = []
     for bet in bets_list:
         mid = bet.get("market_id")
         if not mid:
+            skipped.append({"market_id": None, "reason": "missing market_id"})
             continue
 
-        # Get scan-time defaults
-        row = conn.execute(
-            "SELECT kalshi_yes_price, kelly_fraction, bankroll_used FROM ev_predictions "
-            "WHERE market_id = ? AND voided = 0 AND mode = 'live' ORDER BY id DESC LIMIT 1",
+        # Diagnose why a market_id might not be pickable. Each branch is a
+        # distinct silent-skip this endpoint used to swallow.
+        diag = conn.execute(
+            "SELECT kalshi_yes_price, kelly_fraction, bankroll_used, voided, mode, placed "
+            "FROM ev_predictions WHERE market_id = ? ORDER BY id DESC LIMIT 1",
             (mid,),
         ).fetchone()
-        if not row:
+        if not diag:
+            skipped.append({"market_id": mid, "reason": "not in ev_predictions (try rescanning)"})
+            continue
+        if diag["placed"] == 1:
+            skipped.append({"market_id": mid, "reason": "already placed"})
+            continue
+        if diag["voided"] == 1:
+            skipped.append({"market_id": mid, "reason": "voided (run a fresh scan to un-stick)"})
+            continue
+        if diag["mode"] != "live":
+            skipped.append({"market_id": mid, "reason": f"mode={diag['mode']} (only live is pickable)"})
             continue
 
         # Use user-provided fill price/stake, fall back to scan defaults
-        fill_price = bet.get("fill_price") or row["kalshi_yes_price"]
-        default_stake = round((row["bankroll_used"] or 500.0) * (row["kelly_fraction"] or 0.0), 2)
+        fill_price = bet.get("fill_price") or diag["kalshi_yes_price"]
+        default_stake = round((diag["bankroll_used"] or 500.0) * (diag["kelly_fraction"] or 0.0), 2)
         fill_stake = bet.get("fill_stake") or default_stake
 
         conn.execute(
@@ -487,7 +500,7 @@ async def api_pick(request: Request) -> JSONResponse:
         placed += 1
     conn.commit()
     conn.close()
-    return JSONResponse({"placed": placed})
+    return JSONResponse({"placed": placed, "skipped": skipped})
 
 
 @app.post("/api/update-placed")
@@ -556,6 +569,156 @@ async def api_resolve(request: Request) -> JSONResponse:
         "failed": result["failed"],
         "unmatched": result.get("unmatched", [])[:20],
     })
+
+
+@app.get("/api/portfolios")
+def api_portfolios() -> JSONResponse:
+    from evmax.portfolios import list_portfolios, get_portfolio_stats
+    portfolios = list_portfolios(active_only=True)
+    result = []
+    for p in portfolios:
+        stats = get_portfolio_stats(p.id)
+        result.append({**p.to_dict(), **stats})
+    return JSONResponse(result)
+
+
+@app.post("/api/portfolios")
+async def api_create_portfolio(request: Request) -> JSONResponse:
+    from evmax.portfolios import create_portfolio
+    body = await request.json()
+    p = create_portfolio(
+        portfolio_id=body["id"],
+        name=body["name"],
+        sectors=body["sectors"],
+        bankroll=float(body["bankroll"]),
+        kelly_fraction=float(body.get("kelly_fraction", 0.5)),
+        scenario=body.get("scenario", "moderate"),
+    )
+    return JSONResponse(p.to_dict())
+
+
+@app.post("/api/portfolios/create-defaults")
+def api_create_defaults() -> JSONResponse:
+    from evmax.portfolios import create_default_portfolios
+    created = create_default_portfolios()
+    return JSONResponse({"created": len(created), "portfolios": [p.to_dict() for p in created]})
+
+
+@app.get("/api/portfolios/{portfolio_id}")
+def api_portfolio_detail(portfolio_id: str) -> JSONResponse:
+    from evmax.portfolios import get_portfolio, get_portfolio_stats, get_portfolio_bets
+    p = get_portfolio(portfolio_id)
+    if not p:
+        return JSONResponse({"error": "Portfolio not found"}, status_code=404)
+    stats = get_portfolio_stats(portfolio_id)
+    bets = get_portfolio_bets(portfolio_id)
+    return JSONResponse({**p.to_dict(), **stats, "bets": bets})
+
+
+@app.delete("/api/portfolios/{portfolio_id}")
+def api_delete_portfolio(portfolio_id: str) -> JSONResponse:
+    from evmax.portfolios import delete_portfolio
+    ok = delete_portfolio(portfolio_id)
+    return JSONResponse({"deleted": ok})
+
+
+@app.post("/api/portfolios/scan")
+async def api_portfolio_scan(request: Request) -> JSONResponse:
+    """Run a scan and fan out bets to all matching portfolios."""
+    from evmax.portfolios import list_portfolios, log_portfolio_bet
+
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    portfolio_ids: list[str] = body.get("portfolio_ids", [])
+    date_from = body.get("date_from", "")
+    date_to = body.get("date_to", "")
+
+    portfolios = list_portfolios(active_only=True)
+    if portfolio_ids:
+        portfolios = [p for p in portfolios if p.id in portfolio_ids]
+
+    if not portfolios:
+        return JSONResponse({"error": "No active portfolios"}, status_code=400)
+
+    all_sectors = sorted(set(s for p in portfolios for s in p.sectors))
+
+    from evmax.agents.coordinator import AgentCoordinator
+    coord = AgentCoordinator(sectors=all_sectors, bankroll=500, kelly_fraction=0.5)
+    cycle = await coord.run_cycle()
+
+    today_str = date.today().isoformat()
+    tomorrow_str = (date.today() + timedelta(days=1)).isoformat()
+    d_from = date_from or today_str
+    d_to = date_to or tomorrow_str
+
+    results = []
+    for portfolio in portfolios:
+        portfolio_gaps = []
+        for g in cycle.top_gaps:
+            if g.sector not in portfolio.sectors:
+                continue
+            if g.market_type == "map_handicap":
+                continue
+
+            event_date_str = str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else "")
+            if event_date_str < d_from or event_date_str > d_to:
+                continue
+
+            label_row = {
+                "market_type": g.market_type or "",
+                "yes_team": g.yes_team or "",
+                "line": g.line,
+                "prop_player_name": g.prop_player_name,
+                "prop_stat_type": g.prop_stat_type,
+                "prop_threshold": g.prop_threshold,
+            }
+
+            gap_dict = {
+                "market_id": g.market_id or "",
+                "event_id": g.event_id or "",
+                "event_title": g.event_title or "",
+                "yes_team": g.yes_team or "",
+                "market_type": g.market_type or "",
+                "display_label": _display_label_for_row(label_row),
+                "line": g.line if g.line is None else float(g.line) if isinstance(g.line, (int, float)) else str(g.line),
+                "sector": g.sector or "",
+                "kalshi_yes_price": round(g.kalshi_yes_price, 4),
+                "sharp_true_prob": round(getattr(g, 'sharp_true_prob', 0) or 0, 4),
+                "blended_true_prob": round(g.blended_true_prob, 4),
+                "ev_pct": round(g.ev_pct, 4),
+                "kelly_fraction": round(g.kelly_fraction, 4),
+                "event_date": event_date_str,
+                "volume_usd": g.volume_usd or 0,
+                "model_sources": g.model_sources or "",
+                "scan_date": today_str,
+            }
+
+            log_portfolio_bet(
+                portfolio_id=portfolio.id,
+                gap=gap_dict,
+                bankroll=portfolio.current_bankroll,
+                kelly=portfolio.kelly_fraction,
+            )
+            portfolio_gaps.append(gap_dict)
+
+        results.append({
+            "portfolio_id": portfolio.id,
+            "portfolio_name": portfolio.name,
+            "gaps_logged": len(portfolio_gaps),
+        })
+
+    return JSONResponse({
+        "portfolios_scanned": len(portfolios),
+        "markets_fetched": cycle.markets_fetched,
+        "markets_matched": cycle.markets_matched,
+        "results": results,
+    })
+
+
+@app.post("/api/portfolios/sync-outcomes")
+def api_sync_outcomes() -> JSONResponse:
+    from evmax.portfolios import sync_portfolio_outcomes
+    count = sync_portfolio_outcomes()
+    return JSONResponse({"resolved": count})
 
 
 @app.post("/api/metrics")

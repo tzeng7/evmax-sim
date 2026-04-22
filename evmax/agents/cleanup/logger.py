@@ -98,6 +98,7 @@ def log_gaps(
     sd = (scan_date or date.today()).isoformat()
     inserted = 0
     dropped_disabled = 0
+    unvoided = 0
     counts_by_mode: dict[str, int] = {"live": 0, "shadow": 0}
 
     with get_connection() as conn:
@@ -123,8 +124,11 @@ def log_gaps(
 
             event_date_str: Optional[str] = None
             if g.event_date is not None:
-                ed = g.event_date.date() if hasattr(g.event_date, "date") else g.event_date
-                event_date_str = ed.isoformat()
+                from evmax.clients.time_util import kalshi_game_day
+                if hasattr(g.event_date, "tzinfo"):
+                    event_date_str = kalshi_game_day(g.event_date, g.sector)
+                else:
+                    event_date_str = g.event_date.isoformat()
 
             try:
                 conn.execute(
@@ -162,6 +166,20 @@ def log_gaps(
                 if conn.execute("SELECT changes()").fetchone()[0]:
                     inserted += 1
                     counts_by_mode[mode] = counts_by_mode.get(mode, 0) + 1
+                elif mode == "live":
+                    # Row already existed (freeze-on-first-insert). If it was
+                    # marked voided by cleanup but Kalshi is quoting it again
+                    # (we just got a fresh EVGap), un-stick voided so the user
+                    # can still pick it. Don't touch placed rows — those were
+                    # a deliberate user action. Snapshot columns stay frozen.
+                    cur = conn.execute(
+                        "UPDATE ev_predictions SET voided = 0 "
+                        "WHERE market_id = ? AND voided = 1 AND placed = 0 "
+                        "AND mode = 'live'",
+                        (g.market_id,),
+                    )
+                    if cur.rowcount:
+                        unvoided += 1
             except Exception as e:
                 logger.warning("prediction_log_error", market_id=g.market_id, error=str(e))
 
@@ -173,6 +191,7 @@ def log_gaps(
         live=counts_by_mode.get("live", 0),
         shadow=counts_by_mode.get("shadow", 0),
         dropped_disabled=dropped_disabled,
+        unvoided=unvoided,
         total=len(gaps),
         date=sd,
     )
@@ -225,8 +244,11 @@ def log_prop_observations(
 
             event_date_str: Optional[str] = None
             if g.event_date is not None:
-                ed = g.event_date.date() if hasattr(g.event_date, "date") else g.event_date
-                event_date_str = ed.isoformat()
+                from evmax.clients.time_util import kalshi_game_day
+                if hasattr(g.event_date, "tzinfo"):
+                    event_date_str = kalshi_game_day(g.event_date, g.sector)
+                else:
+                    event_date_str = g.event_date.isoformat()
 
             try:
                 conn.execute(
@@ -294,8 +316,11 @@ def log_prop_from_sharp(
         for sharp, market in pairs:
             event_date_str: Optional[str] = None
             if sharp.event_date is not None:
-                ed = sharp.event_date.date() if hasattr(sharp.event_date, "date") else sharp.event_date
-                event_date_str = ed.isoformat()
+                from evmax.clients.time_util import kalshi_game_day
+                if hasattr(sharp.event_date, "tzinfo"):
+                    event_date_str = kalshi_game_day(sharp.event_date, sharp.sector)
+                else:
+                    event_date_str = sharp.event_date.isoformat()
 
             # EV vs Kalshi price (over side)
             kalshi_price = market.yes_price

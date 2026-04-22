@@ -549,6 +549,298 @@ def _poisson_update(
                 t_data["defense"] = max(0.3, min(2.5, avg_conceded / league_avg_scored))
 
 
+@dataclass
+class SpreadBacktestResult:
+    """One spread prediction from a single game × line combination."""
+    date: date
+    home: str
+    away: str
+    line: float
+    sim_cover_prob: float
+    cdf_cover_prob: float
+    actual_margin: float
+    covered: bool
+
+
+@dataclass
+class SpreadBacktestReport:
+    """Summary of spread backtest across all games and lines."""
+    n_games: int
+    n_predictions: int
+    # Sim-based
+    sim_brier: float = 0.0
+    sim_accuracy: float = 0.0
+    # Normal CDF baseline
+    cdf_brier: float = 0.0
+    cdf_accuracy: float = 0.0
+    # Calibration (sim)
+    calibration_bins: list = field(default_factory=list)
+    # Calibration (cdf)
+    cdf_calibration_bins: list = field(default_factory=list)
+    # Per-line breakdown
+    per_line: dict = field(default_factory=dict)
+    results: list[SpreadBacktestResult] = field(default_factory=list)
+
+
+SPREAD_LINES = [-1.5, -3.5, -5.5, -7.5, -9.5, -11.5, -13.5]
+
+
+def run_spread_backtest(months: list[str]) -> SpreadBacktestReport:
+    """Backtest PossessionSim spread predictions against actual NBA margins.
+
+    For each historical game, runs PossessionSim to get the margin distribution,
+    then tests cover probability at standard spread lines. Compares sim-based
+    predictions against normal CDF with σ=11.5.
+    """
+    from scipy.stats import norm as norm_dist
+
+    games = fetch_espn_games("nba", months)
+    if not games:
+        return SpreadBacktestReport(n_games=0, n_predictions=0)
+
+    logger.info("spread_backtest_start", n_games=len(games))
+
+    sim_agent = PossessionSimAgent()
+    norm_obj = NameNormalizer("nba")
+    sigma_cdf = 11.5
+
+    all_results: list[SpreadBacktestResult] = []
+    per_line_data: dict[float, list[tuple[float, float, bool]]] = {
+        line: [] for line in SPREAD_LINES
+    }
+
+    for g in games:
+        home = norm_obj.normalize(g["home"])
+        away = norm_obj.normalize(g["away"])
+        if not home or not away:
+            continue
+
+        actual_margin = g["home_score"] - g["away_score"]
+
+        market = PredictionMarket(
+            id="bt", market_id="bt", event_id=f"spread_{home}_{away}",
+            sector="nba", team_home=home, team_away=away,
+            source=MarketSource.kalshi, yes_price=0.55, no_price=0.45,
+        )
+        sharp = SharpOdds(
+            event_id=f"spread_{home}_{away}", book=SharpBook.pinnacle, sector="nba",
+            outcome_a_label=home, outcome_b_label=away,
+            outcome_a_decimal=1.82, outcome_b_decimal=2.22,
+            true_prob_a=0.55, true_prob_b=0.45,
+        )
+
+        try:
+            pred = asyncio.run(sim_agent.predict_pair(market, sharp))
+        except Exception:
+            continue
+
+        if pred is None:
+            continue
+
+        margins = sim_agent._margin_cache.get(sharp.event_id)
+        if margins is None:
+            continue
+
+        sim_mean = float(margins.mean())
+
+        for line in SPREAD_LINES:
+            sim_prob = sim_agent.cover_probability(sharp.event_id, line)
+            if sim_prob is None:
+                continue
+
+            z = (abs(line) - sim_mean) / sigma_cdf
+            cdf_prob = float(1.0 - norm_dist.cdf(z))
+            cdf_prob = max(0.01, min(0.99, cdf_prob))
+
+            covered = actual_margin > abs(line)
+
+            result = SpreadBacktestResult(
+                date=g["date"], home=home, away=away,
+                line=line, sim_cover_prob=sim_prob,
+                cdf_cover_prob=cdf_prob, actual_margin=actual_margin,
+                covered=covered,
+            )
+            all_results.append(result)
+            per_line_data[line].append((sim_prob, cdf_prob, covered))
+
+    if not all_results:
+        return SpreadBacktestReport(n_games=len(games), n_predictions=0)
+
+    sim_preds = [r.sim_cover_prob for r in all_results]
+    cdf_preds = [r.cdf_cover_prob for r in all_results]
+    actuals = [r.covered for r in all_results]
+
+    from evmax.backtest.metrics import brier_score, accuracy_score, calibration_bins
+
+    per_line_summary = {}
+    for line in SPREAD_LINES:
+        data = per_line_data[line]
+        if not data:
+            continue
+        s_preds = [d[0] for d in data]
+        c_preds = [d[1] for d in data]
+        acts = [d[2] for d in data]
+        per_line_summary[line] = {
+            "n": len(data),
+            "sim_brier": brier_score(s_preds, acts),
+            "sim_accuracy": accuracy_score(s_preds, acts),
+            "cdf_brier": brier_score(c_preds, acts),
+            "cdf_accuracy": accuracy_score(c_preds, acts),
+            "actual_cover_rate": sum(acts) / len(acts),
+            "sim_mean_prob": sum(s_preds) / len(s_preds),
+            "cdf_mean_prob": sum(c_preds) / len(c_preds),
+        }
+
+    return SpreadBacktestReport(
+        n_games=len(games),
+        n_predictions=len(all_results),
+        sim_brier=brier_score(sim_preds, actuals),
+        sim_accuracy=accuracy_score(sim_preds, actuals),
+        cdf_brier=brier_score(cdf_preds, actuals),
+        cdf_accuracy=accuracy_score(cdf_preds, actuals),
+        calibration_bins=calibration_bins(sim_preds, actuals),
+        cdf_calibration_bins=calibration_bins(cdf_preds, actuals),
+        per_line=per_line_summary,
+        results=all_results,
+    )
+
+
+@dataclass
+class TotalsBacktestResult:
+    """One totals prediction from a single game × line combination."""
+    date: date
+    home: str
+    away: str
+    line: float
+    sim_over_prob: float
+    cdf_over_prob: float
+    actual_total: float
+    went_over: bool
+
+
+@dataclass
+class TotalsBacktestReport:
+    """Summary of totals backtest across all games and lines."""
+    n_games: int
+    n_predictions: int
+    sim_brier: float = 0.0
+    sim_accuracy: float = 0.0
+    cdf_brier: float = 0.0
+    cdf_accuracy: float = 0.0
+    calibration_bins: list = field(default_factory=list)
+    cdf_calibration_bins: list = field(default_factory=list)
+    per_line: dict = field(default_factory=dict)
+    results: list[TotalsBacktestResult] = field(default_factory=list)
+
+
+# Typical NBA totals range (2025-26 median ~225)
+TOTALS_LINES = [210.5, 215.5, 220.5, 225.5, 230.5, 235.5, 240.5]
+TOTALS_SIGMA_CDF = 20.0  # empirical std of NBA game totals
+
+
+def run_totals_backtest(months: list[str]) -> TotalsBacktestReport:
+    """Backtest PossessionSim totals predictions against actual NBA game totals.
+
+    For each historical game, runs PossessionSim to get the total distribution,
+    then tests P(total > line) at standard lines. Compares sim-based predictions
+    against a normal CDF baseline anchored on the sim mean with σ=20.
+    """
+    from scipy.stats import norm as norm_dist
+
+    games = fetch_espn_games("nba", months)
+    if not games:
+        return TotalsBacktestReport(n_games=0, n_predictions=0)
+
+    logger.info("totals_backtest_start", n_games=len(games))
+
+    sim_agent = PossessionSimAgent()
+    norm_obj = NameNormalizer("nba")
+
+    all_results: list[TotalsBacktestResult] = []
+    per_line_data: dict[float, list[tuple[float, float, bool]]] = {
+        line: [] for line in TOTALS_LINES
+    }
+
+    for g in games:
+        home = norm_obj.normalize(g["home"])
+        away = norm_obj.normalize(g["away"])
+        if not home or not away:
+            continue
+
+        actual_total = g["home_score"] + g["away_score"]
+
+        event_id = f"totals_{home}_{away}_{g['date'].isoformat()}"
+        try:
+            sim = sim_agent.simulate_matchup(home, away, event_id=event_id)
+        except Exception:
+            continue
+        if sim is None:
+            continue
+
+        sim_total_mean = float(sim["total"].mean())
+
+        for line in TOTALS_LINES:
+            sim_prob = sim_agent.total_probability(event_id, line, is_over=True)
+            if sim_prob is None:
+                continue
+
+            z = (line - sim_total_mean) / TOTALS_SIGMA_CDF
+            cdf_prob = float(1.0 - norm_dist.cdf(z))
+            cdf_prob = max(0.01, min(0.99, cdf_prob))
+
+            went_over = actual_total > line
+
+            result = TotalsBacktestResult(
+                date=g["date"], home=home, away=away,
+                line=line, sim_over_prob=sim_prob,
+                cdf_over_prob=cdf_prob, actual_total=actual_total,
+                went_over=went_over,
+            )
+            all_results.append(result)
+            per_line_data[line].append((sim_prob, cdf_prob, went_over))
+
+    if not all_results:
+        return TotalsBacktestReport(n_games=len(games), n_predictions=0)
+
+    sim_preds = [r.sim_over_prob for r in all_results]
+    cdf_preds = [r.cdf_over_prob for r in all_results]
+    actuals = [r.went_over for r in all_results]
+
+    from evmax.backtest.metrics import brier_score, accuracy_score, calibration_bins
+
+    per_line_summary = {}
+    for line in TOTALS_LINES:
+        data = per_line_data[line]
+        if not data:
+            continue
+        s_preds = [d[0] for d in data]
+        c_preds = [d[1] for d in data]
+        acts = [d[2] for d in data]
+        per_line_summary[line] = {
+            "n": len(data),
+            "sim_brier": brier_score(s_preds, acts),
+            "sim_accuracy": accuracy_score(s_preds, acts),
+            "cdf_brier": brier_score(c_preds, acts),
+            "cdf_accuracy": accuracy_score(c_preds, acts),
+            "actual_over_rate": sum(acts) / len(acts),
+            "sim_mean_prob": sum(s_preds) / len(s_preds),
+            "cdf_mean_prob": sum(c_preds) / len(c_preds),
+        }
+
+    return TotalsBacktestReport(
+        n_games=len(games),
+        n_predictions=len(all_results),
+        sim_brier=brier_score(sim_preds, actuals),
+        sim_accuracy=accuracy_score(sim_preds, actuals),
+        cdf_brier=brier_score(cdf_preds, actuals),
+        cdf_accuracy=accuracy_score(cdf_preds, actuals),
+        calibration_bins=calibration_bins(sim_preds, actuals),
+        cdf_calibration_bins=calibration_bins(cdf_preds, actuals),
+        per_line=per_line_summary,
+        results=all_results,
+    )
+
+
 def _compute_metrics(
     sector: str,
     results: list[WalkForwardResult],

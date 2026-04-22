@@ -74,6 +74,62 @@ export interface ScanResult {
   sectors: string[]
 }
 
+export interface Portfolio {
+  id: string
+  name: string
+  sectors: string[]
+  initial_bankroll: number
+  current_bankroll: number
+  kelly_fraction: number
+  scenario: string
+  active: boolean
+  total_bets: number
+  open_bets: number
+  settled_bets: number
+  wins: number
+  losses: number
+  win_rate: number
+  total_pnl: number
+  total_staked: number
+  roi_pct: number
+  avg_ev: number
+}
+
+export interface PortfolioDetail extends Portfolio {
+  bets: PortfolioBet[]
+}
+
+export interface PortfolioBet {
+  id: number
+  portfolio_id: string
+  market_id: string
+  scan_date: string
+  event_date: string
+  sector: string
+  yes_team: string
+  market_type: string
+  event_title: string
+  display_label: string
+  kalshi_yes_price: number
+  blended_true_prob: number
+  ev_pct: number
+  kelly_fraction: number
+  stake: number
+  bankroll_at_scan: number
+  line: number | null
+  volume_usd: number
+  model_sources: string
+  outcome: number | null
+  pnl: number | null
+}
+
+export interface PortfolioScanResult {
+  portfolios_scanned: number
+  markets_fetched: number
+  markets_matched: number
+  results: { portfolio_id: string; portfolio_name: string; gaps_logged: number }[]
+}
+
 export interface MetricsResult {
   brier_model: number
   brier_sharp: number

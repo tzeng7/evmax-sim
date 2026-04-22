@@ -67,11 +67,13 @@ SECTOR_CONFIGS: dict[str, dict] = {
         "league": "nba",
         "months": _months("2025-10", "2026-06"),
         "use_daily": True,  # March+ has 200+ games/month; daily queries avoid ESPN's 200-game cap
+        "regular_season_only": True,  # Freeze ratings at end of regular season
     },
     "nfl": {
         "sport": "football",
         "league": "nfl",
         "months": _months("2025-09", "2026-02"),
+        "regular_season_only": True,
     },
     "ncaab": {
         "sport": "basketball",
@@ -89,6 +91,7 @@ SECTOR_CONFIGS: dict[str, dict] = {
         "sport": "baseball",
         "league": "mlb",
         "months": _months("2025-03", "2026-03"),  # 2025 season + 2026 spring
+        "regular_season_only": True,
     },
     "ufc": {
         "sport": "mma",
@@ -104,6 +107,7 @@ SECTOR_CONFIGS: dict[str, dict] = {
         "sport": "basketball",
         "league": "wnba",
         "months": _months("2025-05", "2025-10") + _months("2026-05", "2026-09"),
+        "regular_season_only": True,
     },
     "tennis": {
         "months": [],  # uses tennis-data.co.uk, not ESPN months
@@ -127,8 +131,15 @@ async def fetch_espn_games(
     sport: str,
     league: str,
     month: str,
+    *,
+    regular_season_only: bool = False,
 ) -> list[dict]:
-    """Fetch all completed games for a sport/league in a given YYYYMM month."""
+    """Fetch all completed games for a sport/league in a given YYYYMM month.
+
+    If *regular_season_only* is True, playoff / play-in / all-star games are
+    excluded.  ESPN season types: 1=preseason, 2=regular season, 3=postseason,
+    4=offseason, 5=play-in.
+    """
     url = f"{ESPN_BASE}/{sport}/{league}/scoreboard"
     games = []
     page = 1
@@ -150,6 +161,12 @@ async def fetch_espn_games(
             status = competition.get("status", {}).get("type", {})
             if not status.get("completed", False):
                 continue
+
+            # Filter out non-regular-season games (playoffs, play-in, preseason)
+            if regular_season_only:
+                season_type = event.get("season", {}).get("type", 2)
+                if season_type != 2:
+                    continue
 
             competitors = competition.get("competitors", [])
             if len(competitors) < 2:
@@ -315,10 +332,13 @@ async def seed_standard_sector(sector: str, cfg: dict, client: httpx.AsyncClient
     print(f"  Seeding {sector.upper()} from ESPN ({label})")
     print(f"{'='*60}")
 
+    # Freeze Elo/Form/Poisson at regular season — playoff dynamics distort ratings
+    reg_only = cfg.get("regular_season_only", False)
+
     all_games: list[dict] = []
     batch_count = 0
     for period in periods:
-        games = await fetch_espn_games(client, sport, league, period)
+        games = await fetch_espn_games(client, sport, league, period, regular_season_only=reg_only)
         all_games.extend(games)
         if games:
             batch_count += 1

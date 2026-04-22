@@ -46,6 +46,13 @@ N_SIMS = 10_000
 HOME_EDGE_ORTG = 1.5  # home team gets ~1.5 ORTG boost
 LEAGUE_AVG_ORTG = 114.5  # updated from fetched data
 
+# Playoff tightening factor (empirical: 17 NBA playoff games, Apr 14-20 2026).
+# Measured league ORTG dropped 114.79 → 110.46 (-4.33) while pace only moved
+# 100.22 → 99.39 (-0.83). Defensive intensity — not pace — is the real story.
+# Factor applied to both teams' off_factor; matches observed -10 pt total drop.
+PLAYOFF_ORTG_FACTOR = 110.46 / 114.79  # ≈ 0.9623
+PLAYOFF_PACE_DELTA = -0.83
+
 # Per-possession outcome probabilities (league averages, calibrated to 2025-26)
 AVG_TOV_RATE = 0.135      # ~13.5% of possessions end in turnover
 AVG_3PA_RATE = 0.40       # ~40% of FGA are 3-pointers
@@ -66,6 +73,54 @@ class PossessionSimAgent(ModelAgent):
         super().__init__()
         self._efficiency_data: Optional[dict] = None
         self._rng = np.random.default_rng(seed=42)
+        self._margin_cache: dict[str, np.ndarray] = {}
+        self._total_cache: dict[str, np.ndarray] = {}
+
+    def cover_probability(self, event_id: str, line: float, yes_is_underdog: bool = False) -> Optional[float]:
+        """P(team_a margin > line) using sim mean + calibrated normal CDF.
+
+        Uses the sim's matchup-specific mean margin but applies empirical
+        σ=11.5 for the spread distribution — the raw sim distribution is too
+        narrow, producing overconfident tail probabilities.
+
+        Args:
+            event_id: Must match the event_id from a prior predict_pair call.
+            line: Spread line from team_a's perspective (negative = favorite).
+                  e.g. -7.5 means team_a must win by >7.5.
+            yes_is_underdog: If True, compute P(team_b covers -line).
+        """
+        margins = self._margin_cache.get(event_id)
+        if margins is None:
+            return None
+        sim_mean = float(margins.mean())
+        sigma = 11.5
+        from scipy.stats import norm
+        if yes_is_underdog:
+            z = (line - sim_mean) / sigma
+            return float(norm.cdf(z))
+        else:
+            z = (-line - sim_mean) / sigma
+            return float(1.0 - norm.cdf(z))
+
+    def total_probability(self, event_id: str, line: float, is_over: bool = True) -> Optional[float]:
+        """P(total > line) or P(total < line) using sim mean + calibrated σ.
+
+        Uses the sim's matchup-specific total mean but applies empirical
+        σ=20.0 for the total distribution — the raw sim distribution is too
+        narrow (σ~16 from CLT on the per-possession model), producing
+        overconfident tail probabilities on totals markets.
+        """
+        totals = self._total_cache.get(event_id)
+        if totals is None:
+            return None
+        sim_mean = float(totals.mean())
+        sigma = 20.0
+        from scipy.stats import norm
+        if is_over:
+            z = (line - sim_mean) / sigma
+            return float(1.0 - norm.cdf(z))
+        z = (line - sim_mean) / sigma
+        return float(norm.cdf(z))
 
     def _load_efficiency_state(self) -> dict:
         """Load efficiency data from the shared state file."""
@@ -110,6 +165,7 @@ class PossessionSimAgent(ModelAgent):
         tov_a: float,
         tov_b: float,
         league_ortg: float,
+        is_playoff: bool = False,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Simulate N_SIMS games, return (scores_a, scores_b) arrays.
 
@@ -117,9 +173,14 @@ class PossessionSimAgent(ModelAgent):
         1. Determine total possessions from pace interaction
         2. For each possession, sample outcome based on team efficiency
         3. Sum points for each team
+
+        When ``is_playoff`` is True, apply empirically calibrated playoff
+        tightening (defensive ORTG haircut + small pace reduction).
         """
         # Expected possessions per game (average of both teams' pace)
         expected_pace = (pace_a + pace_b) / 2.0
+        if is_playoff:
+            expected_pace += PLAYOFF_PACE_DELTA
         # Add possession-count variance (~3 possessions std dev)
         possessions = self._rng.normal(expected_pace, 3.0, size=N_SIMS).astype(int)
         possessions = np.clip(possessions, 80, 120)
@@ -129,6 +190,11 @@ class PossessionSimAgent(ModelAgent):
         def_factor_a = drtg_a / league_ortg
         off_factor_b = ortg_b / league_ortg
         def_factor_b = drtg_b / league_ortg
+
+        if is_playoff:
+            # Tighter defense across the board — shrink both teams' offense.
+            off_factor_a *= PLAYOFF_ORTG_FACTOR
+            off_factor_b *= PLAYOFF_ORTG_FACTOR
 
         # Points per possession for each team (adjusted for opponent defense)
         # Team A's PPP = their offense × opponent's defensive weakness
@@ -141,46 +207,109 @@ class PossessionSimAgent(ModelAgent):
         scores_a = np.zeros(N_SIMS)
         scores_b = np.zeros(N_SIMS)
 
+        # Per-possession scoring std. NBA possessions are {0, 2, 3} mostly;
+        # empirical variance ≈ 1.2 (std ≈ 1.1). Do NOT clip the per-poss
+        # samples at 0 — that turns the negative tail of the Normal into mass
+        # at 0 and biased the per-game mean up by ~17 pts. The sum over ~100
+        # possessions is always safely positive; no clipping needed.
+        pts_std = 1.10
+
         for i in range(N_SIMS):
             n_poss = possessions[i]
 
-            # Team A possessions
-            # Each possession: draw points from a distribution centered on ppp_a
-            # Use a shifted/scaled distribution that captures the mix of outcomes
             tov_mask_a = self._rng.random(n_poss) < tov_a
             scoring_poss_a = n_poss - tov_mask_a.sum()
-
             if scoring_poss_a > 0:
-                # Points on scoring possessions: mix of 2s and 3s with variance
-                pts_per = self._rng.normal(ppp_a / (1 - tov_a), 0.45, size=scoring_poss_a)
-                pts_per = np.clip(pts_per, 0, 4.0)
+                # ORTG already folds in offensive rebounds (it's points per
+                # team possession, where a possession ends on made FG, FTs,
+                # defensive rebound, or turnover — NOT on an OREB). So we
+                # DO NOT add extra OREB "bonus" possessions here; doing so
+                # double-counts and was the source of a ~30-pt totals bias.
+                pts_per = self._rng.normal(ppp_a / (1 - tov_a), pts_std, size=scoring_poss_a)
                 scores_a[i] = pts_per.sum()
 
-                # Offensive rebounds → extra possessions (~27% of misses)
-                misses = int(scoring_poss_a * (1 - off_factor_a * 0.46))
-                orebs = int(misses * AVG_OREB_RATE)
-                if orebs > 0:
-                    extra_pts = self._rng.normal(ppp_a / (1 - tov_a), 0.5, size=orebs)
-                    extra_pts = np.clip(extra_pts, 0, 4.0)
-                    scores_a[i] += extra_pts.sum()
-
-            # Team B possessions (same logic)
             tov_mask_b = self._rng.random(n_poss) < tov_b
             scoring_poss_b = n_poss - tov_mask_b.sum()
-
             if scoring_poss_b > 0:
-                pts_per = self._rng.normal(ppp_b / (1 - tov_b), 0.45, size=scoring_poss_b)
-                pts_per = np.clip(pts_per, 0, 4.0)
+                pts_per = self._rng.normal(ppp_b / (1 - tov_b), pts_std, size=scoring_poss_b)
                 scores_b[i] = pts_per.sum()
 
-                misses = int(scoring_poss_b * (1 - off_factor_b * 0.46))
-                orebs = int(misses * AVG_OREB_RATE)
-                if orebs > 0:
-                    extra_pts = self._rng.normal(ppp_b / (1 - tov_b), 0.5, size=orebs)
-                    extra_pts = np.clip(extra_pts, 0, 4.0)
-                    scores_b[i] += extra_pts.sum()
-
         return scores_a, scores_b
+
+    def simulate_matchup(
+        self,
+        home_team: str,
+        away_team: str,
+        event_id: Optional[str] = None,
+        is_playoff: bool = False,
+    ) -> Optional[dict]:
+        """Synchronously run the possession-level sim for an NBA matchup.
+
+        Caches margin/total distributions under ``event_id`` (auto-generated if
+        None). Returns a dict with keys: scores_a/b, margin, total, prob_a,
+        stats_a/b, confidence, event_id. Returns None when efficiency state is
+        missing or either team has <20 games played.
+
+        ``home_team`` plays the team_a slot (HOME_EDGE_ORTG applied to them).
+        When ``is_playoff`` is True, applies playoff tightening factors.
+        """
+        eff_data = self._load_efficiency_state()
+        teams = eff_data.get("teams", {})
+        if not teams:
+            return None
+
+        team_a = home_team.lower().strip()
+        team_b = away_team.lower().strip()
+
+        stats_a = self._resolve_team(teams, team_a)
+        stats_b = self._resolve_team(teams, team_b)
+        if not stats_a or not stats_b:
+            return None
+        if stats_a.get("gp", 0) < 20 or stats_b.get("gp", 0) < 20:
+            return None
+
+        league_ortg = eff_data.get("league_avg_ortg", LEAGUE_AVG_ORTG)
+        tov_a = stats_a.get("tov_pct", AVG_TOV_RATE)
+        tov_b = stats_b.get("tov_pct", AVG_TOV_RATE)
+
+        seed_suffix = "_playoff" if is_playoff else ""
+        seed = hash(f"{team_a}_{team_b}_{date.today().isoformat()}{seed_suffix}") & 0xFFFFFFFF
+        self._rng = np.random.default_rng(seed=seed)
+
+        scores_a, scores_b = self._simulate_game(
+            ortg_a=stats_a["ortg"], drtg_a=stats_a["drtg"],
+            ortg_b=stats_b["ortg"], drtg_b=stats_b["drtg"],
+            pace_a=stats_a["pace"], pace_b=stats_b["pace"],
+            tov_a=tov_a, tov_b=tov_b,
+            league_ortg=league_ortg,
+            is_playoff=is_playoff,
+        )
+
+        wins_a = (scores_a > scores_b).sum()
+        ties = (scores_a == scores_b).sum()
+        prob_a = (wins_a + ties * 0.5) / N_SIMS
+        prob_a = max(0.02, min(0.98, prob_a))
+
+        margin_dist = scores_a - scores_b
+        total_dist = scores_a + scores_b
+
+        eid = event_id or f"sim_{team_a}_{team_b}"
+        self._margin_cache[eid] = margin_dist
+        self._total_cache[eid] = total_dist
+
+        confidence = 0.80 if min(stats_a["gp"], stats_b["gp"]) >= 60 else 0.65
+
+        return {
+            "event_id": eid,
+            "scores_a": scores_a,
+            "scores_b": scores_b,
+            "margin": margin_dist,
+            "total": total_dist,
+            "prob_a": prob_a,
+            "stats_a": stats_a,
+            "stats_b": stats_b,
+            "confidence": confidence,
+        }
 
     async def predict_pair(
         self,
@@ -191,59 +320,23 @@ class PossessionSimAgent(ModelAgent):
         if sector != "nba":
             return None
 
-        eff_data = self._load_efficiency_state()
-        teams = eff_data.get("teams", {})
-        if not teams:
-            return None
-
         team_a = (sharp_odds.outcome_a_label or market.team_home or "").lower().strip()
         team_b = (sharp_odds.outcome_b_label or market.team_away or "").lower().strip()
 
-        stats_a = self._resolve_team(teams, team_a)
-        stats_b = self._resolve_team(teams, team_b)
-
-        if not stats_a or not stats_b:
+        sim = self.simulate_matchup(team_a, team_b, event_id=sharp_odds.event_id)
+        if sim is None:
             return None
 
-        if stats_a.get("gp", 0) < 20 or stats_b.get("gp", 0) < 20:
-            return None
-
-        league_ortg = eff_data.get("league_avg_ortg", LEAGUE_AVG_ORTG)
-
-        # Use team TOV% if available, otherwise league average
-        tov_a = stats_a.get("tov_pct", AVG_TOV_RATE)
-        tov_b = stats_b.get("tov_pct", AVG_TOV_RATE)
-
-        # Reset RNG for deterministic results per matchup
-        seed = hash(f"{team_a}_{team_b}_{date.today().isoformat()}") & 0xFFFFFFFF
-        self._rng = np.random.default_rng(seed=seed)
-
-        scores_a, scores_b = self._simulate_game(
-            ortg_a=stats_a["ortg"], drtg_a=stats_a["drtg"],
-            ortg_b=stats_b["ortg"], drtg_b=stats_b["drtg"],
-            pace_a=stats_a["pace"], pace_b=stats_b["pace"],
-            tov_a=tov_a, tov_b=tov_b,
-            league_ortg=league_ortg,
-        )
-
-        # Win probability
-        wins_a = (scores_a > scores_b).sum()
-        ties = (scores_a == scores_b).sum()
-        prob_a = (wins_a + ties * 0.5) / N_SIMS
-        prob_a = max(0.02, min(0.98, prob_a))
+        scores_a = sim["scores_a"]
+        scores_b = sim["scores_b"]
+        prob_a = sim["prob_a"]
         prob_b = 1.0 - prob_a
 
-        # Score distribution stats
         avg_score_a = float(scores_a.mean())
         avg_score_b = float(scores_b.mean())
         avg_total = avg_score_a + avg_score_b
         avg_margin = avg_score_a - avg_score_b
-
-        # Spread cover probability (for spread markets)
-        # Stored in notes for EVGapAgent to use
-        margin_dist = scores_a - scores_b
-
-        confidence = 0.80 if min(stats_a["gp"], stats_b["gp"]) >= 60 else 0.65
+        margin_sigma = float(sim["margin"].std())
 
         return ModelAgentPrediction(
             event_id=sharp_odds.event_id,
@@ -251,13 +344,14 @@ class PossessionSimAgent(ModelAgent):
             true_prob_a=prob_a,
             true_prob_b=prob_b,
             true_prob_draw=None,
-            confidence=confidence,
+            confidence=sim["confidence"],
             weight=self.weight,
             sample_size=N_SIMS,
             notes=(
                 f"sim={N_SIMS} margin={avg_margin:+.1f} "
                 f"total={avg_total:.0f} "
-                f"score={avg_score_a:.0f}-{avg_score_b:.0f}"
+                f"score={avg_score_a:.0f}-{avg_score_b:.0f} "
+                f"sigma={margin_sigma:.1f}"
             ),
         )
 
