@@ -29,6 +29,25 @@ console = Console()
 
 SUPPORTED_SECTORS = ["nba", "nfl", "ncaab", "ncaaw", "soccer"]
 
+# Only NBA uses injury-driven ORTG adjustments for projections today.
+INJURY_ENABLED_SECTORS = {"nba"}
+
+
+async def _fetch_injury_reports(sector: str) -> dict:
+    """Fetch injury reports via InjuryReportAgent. Returns {} on any error."""
+    if sector not in INJURY_ENABLED_SECTORS:
+        return {}
+    try:
+        from evmax.agents.base import AgentRequest
+        from evmax.agents.intelligence.injury_agent import InjuryReportAgent
+
+        agent = InjuryReportAgent()
+        resp = await agent.run(AgentRequest(sector=sector, correlation_id="project-cli"))
+        return resp.data or {}
+    except Exception as e:
+        console.print(f"[yellow]Injury fetch failed ({e}); projecting without injury adjustments.[/yellow]")
+        return {}
+
 # ---------------------------------------------------------------------------
 # Projections database (separate from predictions.db — standalone tool)
 # ---------------------------------------------------------------------------
@@ -63,12 +82,26 @@ CREATE TABLE IF NOT EXISTS projections (
 );
 """
 
+_INJURY_COLUMN_MIGRATIONS: list[tuple[str, str]] = [
+    ("home_ortg_adj", "REAL"),
+    ("away_ortg_adj", "REAL"),
+    ("home_injury_notes", "TEXT"),
+    ("away_injury_notes", "TEXT"),
+]
+
 
 def _get_proj_db() -> sqlite3.Connection:
     _PROJ_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(_PROJ_DB_PATH))
     conn.row_factory = sqlite3.Row
     conn.executescript(_PROJ_SCHEMA)
+
+    # Additive migration for injury columns — safe to run on every open.
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(projections)")}
+    for col, typ in _INJURY_COLUMN_MIGRATIONS:
+        if col not in existing:
+            conn.execute(f"ALTER TABLE projections ADD COLUMN {col} {typ}")
+    conn.commit()
     return conn
 
 
@@ -81,14 +114,20 @@ def _log_projection(conn: sqlite3.Connection, result: dict, game_date: str, sect
                (game_date, sector, home_team, away_team,
                 proj_home_pts, proj_away_pts, proj_spread, proj_total,
                 book_spread, book_total, spread_play, total_play,
-                home_elo, away_elo, confidence)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                home_elo, away_elo, confidence,
+                home_ortg_adj, away_ortg_adj,
+                home_injury_notes, away_injury_notes)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 game_date, sector, proj.home_team, proj.away_team,
                 proj.home_points, proj.away_points, proj.projected_spread, proj.projected_total,
                 result.get("book_spread"), result.get("book_total"),
                 result.get("spread_play"), result.get("total_play"),
                 proj.home_elo, proj.away_elo, proj.confidence,
+                getattr(proj, "home_ortg_adj", 0.0),
+                getattr(proj, "away_ortg_adj", 0.0),
+                getattr(proj, "home_injury_notes", None),
+                getattr(proj, "away_injury_notes", None),
             ),
         )
         conn.commit()
@@ -177,6 +216,28 @@ def _render_game(result: dict) -> None:
     console.print(lines_table)
     console.print(f"[dim]Engine: {proj.engine}[/dim]")
 
+    # Injury note (only renders when someone is out/DTD on either team)
+    home_adj = getattr(proj, "home_ortg_adj", 0.0) or 0.0
+    away_adj = getattr(proj, "away_ortg_adj", 0.0) or 0.0
+    if home_adj or away_adj:
+        inj_table = Table(box=box.SIMPLE_HEAVY, show_header=True, width=64, title="[bold]Injury Adjustments[/bold]")
+        inj_table.add_column("Team", width=14)
+        inj_table.add_column("ORTG Δ", justify="right", width=10)
+        inj_table.add_column("Notes", no_wrap=False, min_width=36)
+        if home_adj:
+            inj_table.add_row(
+                proj.home_team,
+                f"[red]{home_adj:+.1f}[/red]",
+                (proj.home_injury_notes or "") or "—",
+            )
+        if away_adj:
+            inj_table.add_row(
+                proj.away_team,
+                f"[red]{away_adj:+.1f}[/red]",
+                (proj.away_injury_notes or "") or "—",
+            )
+        console.print(inj_table)
+
     # Recommended plays
     spread_play = result.get("spread_play")
     total_play = result.get("total_play")
@@ -217,6 +278,8 @@ def game(
     sector: Optional[str] = typer.Option(None, "--sector", "-s", help="Sport sector (auto-detected if omitted)"),
     book_spread: Optional[float] = typer.Option(None, "--spread", help="Sportsbook home spread (e.g. -7.5)"),
     book_total: Optional[float] = typer.Option(None, "--total", help="Sportsbook total (e.g. 146.5)"),
+    game_date: Optional[str] = typer.Option(None, "--date", "-d", help="Game date (YYYY-MM-DD). Enables NBA playoff tightening."),
+    injuries: bool = typer.Option(True, "--injuries/--no-injuries", help="Apply ESPN injury ORTG adjustments (NBA only)."),
 ) -> None:
     """Project scores for a specific matchup."""
     model = PointProjectionModel()
@@ -237,12 +300,16 @@ def game(
         console.print(f"[red]Unsupported sector: {sector}. Use one of: {', '.join(SUPPORTED_SECTORS)}[/red]")
         raise typer.Exit(1)
 
+    injury_reports = asyncio.run(_fetch_injury_reports(sector)) if injuries else {}
+
     result = model.project_from_sharp(
         home_team=home,
         away_team=away,
         sector=sector,
         book_spread=book_spread,
         book_total=book_total,
+        game_date=game_date,
+        injury_reports=injury_reports,
     )
 
     if result is None:
@@ -257,6 +324,7 @@ def game(
 def slate(
     sector: str = typer.Option("nba", "--sector", "-s", help="Sport sector"),
     log: bool = typer.Option(False, "--log", help="Save projections to projections.db for tracking."),
+    injuries: bool = typer.Option(True, "--injuries/--no-injuries", help="Apply ESPN injury ORTG adjustments (NBA only)."),
 ) -> None:
     """Project all games on today's Pinnacle slate for a sector."""
     sector = sector.lower()
@@ -266,6 +334,13 @@ def slate(
 
     async def _run() -> list[dict]:
         from evmax.clients.pinnacle import PinnacleClient
+
+        injury_reports: dict = {}
+        if injuries:
+            injury_reports = await _fetch_injury_reports(sector)
+            if injury_reports:
+                teams_flagged = sum(1 for r in injury_reports.values() if getattr(r, "players", None))
+                console.print(f"[dim]Loaded injuries for {teams_flagged} teams.[/dim]")
 
         async with PinnacleClient() as client:
             odds_list = await client.get_odds(sector)
@@ -314,6 +389,7 @@ def slate(
                 book_spread=ev.get("book_spread"),
                 book_total=ev.get("book_total"),
                 game_date=ev.get("event_date"),
+                injury_reports=injury_reports,
             )
             if result:
                 # Attach per-event date so logging + display use the real game day
@@ -350,6 +426,7 @@ def slate(
     summary.add_column("Book Spread", justify="right", width=12)
     summary.add_column("Proj Total", justify="right", width=11)
     summary.add_column("Book Total", justify="right", width=11)
+    summary.add_column("Inj", justify="right", width=10)
     summary.add_column("Plays", no_wrap=False, width=18)
     summary.add_column("Conf", width=6)
 
@@ -363,6 +440,13 @@ def slate(
 
         conf_color = _confidence_color(proj.confidence)
 
+        home_adj = getattr(proj, "home_ortg_adj", 0.0) or 0.0
+        away_adj = getattr(proj, "away_ortg_adj", 0.0) or 0.0
+        if home_adj or away_adj:
+            inj_str = f"H{home_adj:+.0f}/A{away_adj:+.0f}"
+        else:
+            inj_str = "[dim]—[/dim]"
+
         summary.add_row(
             f"{proj.away_team} @ {proj.home_team}",
             f"{proj.away_points:.1f}",
@@ -371,6 +455,7 @@ def slate(
             _spread_str(r["book_spread"]) if r.get("book_spread") is not None else "—",
             f"{proj.projected_total:.1f}",
             f"{r['book_total']:.1f}" if r.get("book_total") is not None else "—",
+            inj_str,
             ", ".join(plays) if plays else "[dim]—[/dim]",
             f"[{conf_color}]{proj.confidence[0].upper()}[/{conf_color}]",
         )

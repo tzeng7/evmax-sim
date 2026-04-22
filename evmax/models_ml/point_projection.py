@@ -53,6 +53,16 @@ ELO_BLEND_WEIGHT = 0.35
 # NBA playoff window (months). Play-in starts mid-April, Finals end mid-June.
 NBA_PLAYOFF_MONTHS = {4, 5, 6}
 
+# Injury-based ORTG deltas. Derived from the intuition that a star scorer
+# contributes ~4 ORTG above a replacement-level starter. Stars out = big
+# offensive hit; starters out = moderate; day-to-day = half impact; rotation
+# players left alone (they weren't meaningfully on the floor anyway).
+ORTG_DELTA_STAR_OUT = -4.0
+ORTG_DELTA_STARTER_OUT = -1.5
+ORTG_DELTA_STAR_DTD = -2.0
+ORTG_DELTA_STARTER_DTD = -0.75
+ORTG_DELTA_CAP = -8.0  # Per team; prevents runaway when ≥3 starters out
+
 
 def is_nba_playoff_date(game_date: Optional[str]) -> bool:
     """Return True if ``game_date`` (YYYY-MM-DD) falls in the NBA playoff window."""
@@ -63,6 +73,63 @@ def is_nba_playoff_date(game_date: Optional[str]) -> bool:
     except (ValueError, TypeError):
         return False
     return parsed.month in NBA_PLAYOFF_MONTHS
+
+
+def compute_injury_ortg_delta(injury_report) -> tuple[float, list[str]]:
+    """Compute ORTG delta (negative number) + human-readable notes for one team.
+
+    ``injury_report`` is an ``InjuryReport`` instance from ``InjuryReportAgent``
+    (or any object exposing ``.players`` with ``.name``, ``.status``, ``.tier``).
+    Returns (delta, notes). Delta is floored at ORTG_DELTA_CAP.
+    """
+    if injury_report is None or not getattr(injury_report, "players", None):
+        return 0.0, []
+
+    delta = 0.0
+    notes: list[str] = []
+    for p in injury_report.players:
+        status = (p.status or "").lower().strip()
+        tier = (p.tier or "").lower().strip()
+
+        if status == "out":
+            if tier == "star":
+                d = ORTG_DELTA_STAR_OUT
+            elif tier == "starter":
+                d = ORTG_DELTA_STARTER_OUT
+            else:
+                d = 0.0  # rotation players: ignore
+        elif status == "day-to-day":
+            if tier == "star":
+                d = ORTG_DELTA_STAR_DTD
+            elif tier == "starter":
+                d = ORTG_DELTA_STARTER_DTD
+            else:
+                d = 0.0
+        else:
+            d = 0.0
+
+        if d != 0.0:
+            delta += d
+            notes.append(f"{p.name} ({tier}/{status})")
+
+    # Cap at ORTG_DELTA_CAP (more negative than the cap → clamp).
+    delta = max(delta, ORTG_DELTA_CAP)
+    return delta, notes
+
+
+def _match_injury_team(reports: dict, team_name: str):
+    """Find the injury report matching ``team_name`` via substring match.
+
+    Mirrors the matching style of InjuryReportAgent.apply_adjustments.
+    """
+    if not reports or not team_name:
+        return None
+    key = team_name.lower().strip()
+    for team_key, report in reports.items():
+        tk = team_key.lower()
+        if key in tk or tk in key:
+            return report
+    return None
 
 # City → team name mapping for common lookups (lowercase)
 CITY_TO_TEAM: dict[str, str] = {
@@ -109,6 +176,10 @@ class GameProjection:
     engine: str               # "possession_sim" | "poisson_elo"
     sector: str
     is_playoff: bool = False  # whether playoff tightening was applied
+    home_ortg_adj: float = 0.0          # ORTG delta applied from injuries
+    away_ortg_adj: float = 0.0
+    home_injury_notes: Optional[str] = None  # "Luka Doncic (S/out); Austin Reaves (S/out)"
+    away_injury_notes: Optional[str] = None
 
     # Backwards-compat shim — legacy CLI/tests read ``elo_win_prob_home``.
     @property
@@ -200,19 +271,26 @@ class PointProjectionModel:
         away_team: str,
         sector: str,
         game_date: Optional[str] = None,
+        injury_reports: Optional[dict] = None,
     ) -> Optional[GameProjection]:
         """Generate a point projection. Returns None if required state is missing.
 
         ``game_date`` (YYYY-MM-DD) enables playoff detection for NBA. When the
         date falls inside the NBA playoff window the sim applies defensive
         tightening (see PossessionSimAgent.PLAYOFF_ORTG_FACTOR).
+
+        ``injury_reports`` is the dict produced by ``InjuryReportAgent`` (team
+        name → InjuryReport). NBA only; other sectors ignore it for now.
         """
         sector = sector.lower()
         home_key = self._normalize_team(sector, home_team)
         away_key = self._normalize_team(sector, away_team)
 
         if sector == "nba":
-            return self._project_nba(home_team, away_team, home_key, away_key, game_date)
+            return self._project_nba(
+                home_team, away_team, home_key, away_key,
+                game_date=game_date, injury_reports=injury_reports,
+            )
         return self._project_poisson_elo(home_team, away_team, home_key, away_key, sector)
 
     def _project_nba(
@@ -222,10 +300,27 @@ class PointProjectionModel:
         home_key: str,
         away_key: str,
         game_date: Optional[str] = None,
+        injury_reports: Optional[dict] = None,
     ) -> Optional[GameProjection]:
         agent = self._get_possession_agent()
         is_playoff = is_nba_playoff_date(game_date)
-        sim = agent.simulate_matchup(home_key, away_key, is_playoff=is_playoff)
+
+        home_ortg_adj = 0.0
+        away_ortg_adj = 0.0
+        home_notes: list[str] = []
+        away_notes: list[str] = []
+        if injury_reports:
+            home_report = _match_injury_team(injury_reports, home_display)
+            away_report = _match_injury_team(injury_reports, away_display)
+            home_ortg_adj, home_notes = compute_injury_ortg_delta(home_report)
+            away_ortg_adj, away_notes = compute_injury_ortg_delta(away_report)
+
+        sim = agent.simulate_matchup(
+            home_key, away_key,
+            is_playoff=is_playoff,
+            ortg_adj_a=home_ortg_adj,
+            ortg_adj_b=away_ortg_adj,
+        )
         if sim is None:
             logger.debug(
                 "point_projection_nba_sim_unavailable",
@@ -269,6 +364,10 @@ class PointProjectionModel:
             engine="possession_sim",
             sector="nba",
             is_playoff=is_playoff,
+            home_ortg_adj=round(home_ortg_adj, 2),
+            away_ortg_adj=round(away_ortg_adj, 2),
+            home_injury_notes="; ".join(home_notes) if home_notes else None,
+            away_injury_notes="; ".join(away_notes) if away_notes else None,
         )
 
     def _project_poisson_elo(
@@ -359,14 +458,19 @@ class PointProjectionModel:
         spread_threshold: float = 1.0,
         total_threshold: float = 1.5,
         game_date: Optional[str] = None,
+        injury_reports: Optional[dict] = None,
     ) -> Optional[dict]:
         """Project scores and compare against sportsbook lines.
 
         ``book_spread`` is expressed as the home team's handicap (negative = home fav).
         ``game_date`` (YYYY-MM-DD) enables playoff detection for NBA.
+        ``injury_reports`` (NBA only) applies ORTG deltas for OUT/DAY-TO-DAY players.
         Returns None if the projection itself is unavailable.
         """
-        proj = self.project(home_team, away_team, sector, game_date=game_date)
+        proj = self.project(
+            home_team, away_team, sector,
+            game_date=game_date, injury_reports=injury_reports,
+        )
         if proj is None:
             return None
 

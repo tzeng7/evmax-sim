@@ -166,6 +166,8 @@ class PossessionSimAgent(ModelAgent):
         tov_b: float,
         league_ortg: float,
         is_playoff: bool = False,
+        ortg_adj_a: float = 0.0,
+        ortg_adj_b: float = 0.0,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Simulate N_SIMS games, return (scores_a, scores_b) arrays.
 
@@ -176,6 +178,9 @@ class PossessionSimAgent(ModelAgent):
 
         When ``is_playoff`` is True, apply empirically calibrated playoff
         tightening (defensive ORTG haircut + small pace reduction).
+
+        ``ortg_adj_a`` / ``ortg_adj_b`` are additive ORTG deltas (typically
+        negative, from injuries) applied before the league-relative factor.
         """
         # Expected possessions per game (average of both teams' pace)
         expected_pace = (pace_a + pace_b) / 2.0
@@ -186,9 +191,9 @@ class PossessionSimAgent(ModelAgent):
         possessions = np.clip(possessions, 80, 120)
 
         # Efficiency factors relative to league average
-        off_factor_a = (ortg_a + HOME_EDGE_ORTG) / league_ortg
+        off_factor_a = (ortg_a + HOME_EDGE_ORTG + ortg_adj_a) / league_ortg
         def_factor_a = drtg_a / league_ortg
-        off_factor_b = ortg_b / league_ortg
+        off_factor_b = (ortg_b + ortg_adj_b) / league_ortg
         def_factor_b = drtg_b / league_ortg
 
         if is_playoff:
@@ -242,6 +247,8 @@ class PossessionSimAgent(ModelAgent):
         away_team: str,
         event_id: Optional[str] = None,
         is_playoff: bool = False,
+        ortg_adj_a: float = 0.0,
+        ortg_adj_b: float = 0.0,
     ) -> Optional[dict]:
         """Synchronously run the possession-level sim for an NBA matchup.
 
@@ -252,6 +259,8 @@ class PossessionSimAgent(ModelAgent):
 
         ``home_team`` plays the team_a slot (HOME_EDGE_ORTG applied to them).
         When ``is_playoff`` is True, applies playoff tightening factors.
+        ``ortg_adj_a`` / ``ortg_adj_b`` are additive ORTG deltas (typically
+        from missing starters / stars); callers compute them upstream.
         """
         eff_data = self._load_efficiency_state()
         teams = eff_data.get("teams", {})
@@ -273,7 +282,8 @@ class PossessionSimAgent(ModelAgent):
         tov_b = stats_b.get("tov_pct", AVG_TOV_RATE)
 
         seed_suffix = "_playoff" if is_playoff else ""
-        seed = hash(f"{team_a}_{team_b}_{date.today().isoformat()}{seed_suffix}") & 0xFFFFFFFF
+        adj_suffix = f"_adj{ortg_adj_a:+.1f}{ortg_adj_b:+.1f}" if (ortg_adj_a or ortg_adj_b) else ""
+        seed = hash(f"{team_a}_{team_b}_{date.today().isoformat()}{seed_suffix}{adj_suffix}") & 0xFFFFFFFF
         self._rng = np.random.default_rng(seed=seed)
 
         scores_a, scores_b = self._simulate_game(
@@ -283,6 +293,8 @@ class PossessionSimAgent(ModelAgent):
             tov_a=tov_a, tov_b=tov_b,
             league_ortg=league_ortg,
             is_playoff=is_playoff,
+            ortg_adj_a=ortg_adj_a,
+            ortg_adj_b=ortg_adj_b,
         )
 
         wins_a = (scores_a > scores_b).sum()

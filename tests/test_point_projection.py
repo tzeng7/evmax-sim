@@ -9,10 +9,12 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
+from evmax.agents.intelligence.injury_agent import InjuredPlayer, InjuryReport
 from evmax.agents.models.possession_sim_agent import PossessionSimAgent
 from evmax.models_ml.point_projection import (
     GameProjection,
     PointProjectionModel,
+    compute_injury_ortg_delta,
     is_nba_playoff_date,
 )
 
@@ -241,3 +243,132 @@ def test_playoff_projection_preserves_margin_direction(stub_model):
     proj_po = stub_model.project("celtics", "hawks", "nba", game_date="2026-04-20")
     assert proj_reg.projected_spread < 0  # Celtics favored
     assert proj_po.projected_spread < 0   # Celtics still favored in playoffs
+
+
+# ── Injury ORTG adjustment ─────────────────────────────────────────────────
+
+
+def _mk_report(team: str, players: list[tuple[str, str, str]]) -> InjuryReport:
+    """Build an InjuryReport from (name, status, tier) triples."""
+    report = InjuryReport(team=team, sector="nba")
+    for name, status, tier in players:
+        report.players.append(InjuredPlayer(
+            name=name, position="PG", status=status, tier=tier,
+            impact=0.045, injury_type="Hamstring", notes="",
+        ))
+    return report
+
+
+def test_compute_injury_ortg_delta_star_out():
+    """A single star OUT should drop ORTG by 4 points."""
+    report = _mk_report("lakers", [("Luka Doncic", "Out", "star")])
+    delta, notes = compute_injury_ortg_delta(report)
+    assert delta == -4.0
+    assert any("Luka" in n for n in notes)
+
+
+def test_compute_injury_ortg_delta_two_stars_caps_at_minus_eight():
+    """Two stars out = −8 ORTG (hits the cap exactly)."""
+    report = _mk_report("lakers", [
+        ("Luka Doncic", "Out", "star"),
+        ("Austin Reaves", "Out", "star"),
+    ])
+    delta, _ = compute_injury_ortg_delta(report)
+    assert delta == -8.0
+
+
+def test_compute_injury_ortg_delta_cap_prevents_runaway():
+    """Three stars out must not blow past the −8 cap."""
+    report = _mk_report("lakers", [
+        ("A", "Out", "star"),
+        ("B", "Out", "star"),
+        ("C", "Out", "star"),
+    ])
+    delta, _ = compute_injury_ortg_delta(report)
+    assert delta == -8.0
+
+
+def test_compute_injury_ortg_delta_day_to_day_half_impact():
+    """Day-to-day star = half of the OUT impact (−2.0 instead of −4.0)."""
+    report = _mk_report("lakers", [("X", "Day-To-Day", "star")])
+    delta, _ = compute_injury_ortg_delta(report)
+    assert delta == -2.0
+
+
+def test_compute_injury_ortg_delta_rotation_ignored():
+    """Rotation players don't move team ORTG at all."""
+    report = _mk_report("lakers", [("Bench Guy", "Out", "rotation")])
+    delta, notes = compute_injury_ortg_delta(report)
+    assert delta == 0.0
+    assert notes == []
+
+
+def test_compute_injury_ortg_delta_questionable_ignored():
+    """Questionable status is too noisy to adjust — leave as 0."""
+    report = _mk_report("lakers", [("X", "Questionable", "star")])
+    delta, _ = compute_injury_ortg_delta(report)
+    assert delta == 0.0
+
+
+def test_compute_injury_ortg_delta_no_report():
+    """No report / empty report → delta 0."""
+    assert compute_injury_ortg_delta(None) == (0.0, [])
+    assert compute_injury_ortg_delta(_mk_report("x", [])) == (0.0, [])
+
+
+def test_project_applies_injury_ortg_delta(stub_model):
+    """When home team loses stars, projected home score should drop materially."""
+    proj_healthy = stub_model.project("celtics", "hawks", "nba", game_date="2026-02-15")
+    assert proj_healthy is not None
+
+    reports = {
+        "boston celtics": _mk_report("boston celtics", [
+            ("Jayson Tatum", "Out", "star"),
+            ("Jaylen Brown", "Out", "star"),
+        ])
+    }
+    proj_injured = stub_model.project(
+        "celtics", "hawks", "nba",
+        game_date="2026-02-15",
+        injury_reports=reports,
+    )
+    assert proj_injured is not None
+
+    # The Celtics lose ~8 ORTG → ~8 points off their side of the score.
+    # Accept a generous window to tolerate sim noise.
+    drop = proj_healthy.home_points - proj_injured.home_points
+    assert 3.0 < drop < 12.0, f"Expected home drop from star injuries, got {drop:.2f}"
+
+    # The spread should shift toward home (less negative) because the home
+    # team's offense shrunk — the home team is now less favored.
+    assert proj_injured.projected_spread > proj_healthy.projected_spread
+    assert proj_injured.home_ortg_adj == -8.0
+    assert proj_injured.home_injury_notes is not None
+    assert "Tatum" in proj_injured.home_injury_notes
+    assert "star/" in proj_injured.home_injury_notes.lower()
+
+
+def test_project_injury_reports_none_is_noop(stub_model):
+    """Passing injury_reports=None (or empty) should behave like before."""
+    proj_a = stub_model.project("celtics", "hawks", "nba", game_date="2026-02-15")
+    proj_b = stub_model.project("celtics", "hawks", "nba", game_date="2026-02-15", injury_reports={})
+    assert proj_a.home_points == proj_b.home_points
+    assert proj_b.home_ortg_adj == 0.0
+    assert proj_b.home_injury_notes is None
+
+
+def test_simulate_matchup_accepts_ortg_adj(monkeypatch):
+    """PossessionSim should accept ortg_adj_a/b and produce lower team totals."""
+    agent = PossessionSimAgent()
+    monkeypatch.setattr(agent, "_load_efficiency_state", lambda: _stub_efficiency_state()["nba"])
+
+    sim_healthy = agent.simulate_matchup("celtics", "hawks")
+    sim_injured = agent.simulate_matchup("celtics", "hawks", ortg_adj_a=-8.0)
+    assert sim_healthy is not None and sim_injured is not None
+
+    mean_a_healthy = sim_healthy["scores_a"].mean()
+    mean_a_injured = sim_injured["scores_a"].mean()
+    assert mean_a_injured < mean_a_healthy
+    # −8 ORTG × ~100 possessions ≈ −8 points on the team's score
+    diff = mean_a_healthy - mean_a_injured
+    assert 3.0 < diff < 14.0, f"Expected ~8pt drop, got {diff:.2f}"
