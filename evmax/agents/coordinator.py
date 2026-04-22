@@ -52,6 +52,7 @@ from evmax.agents.models.tennis_model_agent import TennisModelAgent
 from evmax.agents.models.tennis_serve_return_agent import TennisServeReturnAgent
 from evmax.agents.models.tennis_h2h_agent import TennisH2HAgent
 from evmax.agents.models.tennis_ranking_trend_agent import TennisRankingTrendAgent
+from evmax.agents.models.tennis_form_agent import TennisFormAgent
 from evmax.agents.models.tennis_advanced_stats_agent import TennisAdvancedStatsAgent
 from evmax.agents.models.pitcher_agent import PitcherModelAgent
 from evmax.agents.models.soccer_xg_agent import SoccerXgAgent
@@ -269,6 +270,7 @@ class AgentCoordinator:
         self.tennis_serve_agent = TennisServeReturnAgent()
         self.tennis_h2h_agent = TennisH2HAgent()
         self.tennis_trend_agent = TennisRankingTrendAgent()
+        self.tennis_form_agent = TennisFormAgent()
         self.tennis_advanced_agent = TennisAdvancedStatsAgent()
         self.pitcher_agent = PitcherModelAgent()
         self.soccer_xg_agent = SoccerXgAgent()
@@ -281,7 +283,7 @@ class AgentCoordinator:
                 self.elo_agent, self.form_agent, self.poisson_agent,
                 self.tennis_agent, self.tennis_serve_agent,
                 self.tennis_h2h_agent, self.tennis_trend_agent,
-                self.tennis_advanced_agent,
+                self.tennis_form_agent, self.tennis_advanced_agent,
                 self.pitcher_agent,
                 self.soccer_xg_agent,
                 self.efficiency_agent,

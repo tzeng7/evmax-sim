@@ -87,11 +87,11 @@ soccer:
 tennis:
   display_name: "Tennis (ATP + WTA)"
   market_types: [moneyline]
-  models: [tennis_surface_elo, tennis_serve_return, tennis_h2h, tennis_ranking_trend, sharp]
+  models: [tennis_surface_elo, tennis_serve_return, tennis_h2h, tennis_ranking_trend, tennis_form, tennis_advanced, sharp]
   mode: live
   resolver: kalshi_settlement
   status: shipped
-  notes: "Court adjustment (indoor vs outdoor) deferred — see MODEL-6. Surface resolved from Kalshi event.product_metadata.competition (MODEL-1 / PR #5)."
+  notes: "Indoor court factor + bo5 amplification live (MODEL-6). Surface-specific SPW + recency weighting + opponent-adjusted form + fatigue signal."
 
 baseball:
   display_name: "Baseball (MLB)"

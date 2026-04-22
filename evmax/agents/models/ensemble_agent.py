@@ -76,6 +76,18 @@ class EnsembleModelAgent(Agent):
             "shot_quality": 0.10, "matchup": 0.10,
             "poisson": 0.0,
         },
+        # Tennis: Surface Elo + recency-weighted serve/return are primary signals.
+        # Form agent replaces ranking trend as the recency/momentum voice.
+        # H2H stays small. Advanced stats are a supporting signal.
+        # Ranking trend is vestigial (kept at 0.05 as tiebreaker).
+        "tennis": {
+            "tennis_surface": 0.30,
+            "tennis_serve_return": 0.25,
+            "tennis_form": 0.20,
+            "tennis_advanced": 0.15,
+            "tennis_h2h": 0.05,
+            "tennis_ranking_trend": 0.05,
+        },
     }
 
     def __init__(

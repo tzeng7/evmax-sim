@@ -27,6 +27,7 @@ from evmax.agents.models.tennis_model_agent import TennisModelAgent
 from evmax.agents.models.tennis_serve_return_agent import TennisServeReturnAgent
 from evmax.agents.models.tennis_h2h_agent import TennisH2HAgent
 from evmax.agents.models.tennis_ranking_trend_agent import TennisRankingTrendAgent
+from evmax.agents.models.tennis_form_agent import TennisFormAgent
 from evmax.agents.models.pitcher_agent import PitcherModelAgent
 
 __all__ = [
@@ -40,5 +41,6 @@ __all__ = [
     "TennisServeReturnAgent",
     "TennisH2HAgent",
     "TennisRankingTrendAgent",
+    "TennisFormAgent",
     "PitcherModelAgent",
 ]

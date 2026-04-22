@@ -62,6 +62,8 @@ KNOWN_MODELS: set[str] = {
     "tennis_serve_return",
     "tennis_h2h",
     "tennis_ranking_trend",
+    "tennis_form",
+    "tennis_advanced",
     # Prop caches
     "nba_props_cache",
     "nfl_props_cache_v1_qb_only",

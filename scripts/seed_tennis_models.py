@@ -1,17 +1,19 @@
-"""Seed the three new tennis model agents from Jeff Sackmann's public CSVs.
+"""Seed tennis model agents from Jeff Sackmann's public CSVs.
 
 Pulls match-level and ranking data from:
   - github.com/JeffSackmann/tennis_atp
   - github.com/JeffSackmann/tennis_wta
 
 Computes and seeds:
-  1. tennis_serve_return  — per-player serve-points-won % over the year window
-  2. tennis_h2h            — head-to-head win records (winner, loser counts)
+  1. tennis_serve_return  — per-match SPW with date + surface (recency-weighted at prediction time)
+  2. tennis_h2h           — head-to-head win records (winner, loser counts)
   3. tennis_ranking_trend  — weekly ranking snapshots from the current rankings file
+  4. tennis_advanced       — BP conversion, RPW, UE rate, W/UE ratio (logistic)
+  5. tennis_form           — recent match history with opponent rank, surface, minutes
 
 Usage:
     uv run python scripts/seed_tennis_models.py
-    uv run python scripts/seed_tennis_models.py --years 2023,2024
+    uv run python scripts/seed_tennis_models.py --years 2023,2024,2025,2026
     uv run python scripts/seed_tennis_models.py --tours atp           # ATP only
 
 Sackmann's repo updates on a delay; years that 404 are silently skipped so
@@ -33,6 +35,7 @@ from evmax.agents.models.tennis_advanced_stats_agent import TennisAdvancedStatsA
 from evmax.agents.models.tennis_serve_return_agent import TennisServeReturnAgent
 from evmax.agents.models.tennis_h2h_agent import TennisH2HAgent
 from evmax.agents.models.tennis_ranking_trend_agent import TennisRankingTrendAgent
+from evmax.agents.models.tennis_form_agent import TennisFormAgent
 
 REPO_BASE = {
     "atp": "https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master",
@@ -64,16 +67,74 @@ def _player_key(name: str) -> str:
     return name.strip().lower()
 
 
+def _safe_int(v) -> int:
+    try:
+        return int(v)
+    except (ValueError, TypeError):
+        return 0
+
+
+def _parse_date(raw: str) -> Optional[str]:
+    """Convert Sackmann date format '20240615' to ISO '2024-06-15'."""
+    raw = (raw or "").strip()
+    if len(raw) >= 8:
+        try:
+            return f"{raw[:4]}-{raw[4:6]}-{raw[6:8]}"
+        except (ValueError, IndexError):
+            pass
+    return None
+
+
+def _normalize_surface(surface: str) -> str:
+    """Normalize surface names from Sackmann CSVs."""
+    s = (surface or "").strip().lower()
+    if s in ("hard", "clay", "grass", "carpet"):
+        return s if s != "carpet" else "hard"  # carpet is extinct, treat as hard
+    return "hard"  # default
+
+
 # ---------------------------------------------------------------------------
-# Serve points won
+# Per-match serve stats (for recency-weighted SPW)
 # ---------------------------------------------------------------------------
 
-def aggregate_serve_stats(match_rows: Iterable[dict]) -> dict[str, tuple[float, int]]:
-    """For each player, compute career SPW from match rows.
+def aggregate_match_serve_stats(match_rows: Iterable[dict]) -> dict[str, list[dict]]:
+    """For each player, build per-match SPW entries with date and surface.
 
-    SPW = (1st serve points won + 2nd serve points won) / total serve points.
-    Aggregates across both winner and loser sides of every match.
+    Returns: {player → [{date, surface, won, svpt}, ...]}
     """
+    entries: dict[str, list[dict]] = defaultdict(list)
+
+    for row in match_rows:
+        match_date = _parse_date(row.get("tourney_date", ""))
+        surface = _normalize_surface(row.get("surface", ""))
+
+        for side in ("w", "l"):
+            name = row.get("winner_name" if side == "w" else "loser_name")
+            if not name:
+                continue
+            try:
+                first_won = _safe_int(row.get(f"{side}_1stWon"))
+                second_won = _safe_int(row.get(f"{side}_2ndWon"))
+                svpt = _safe_int(row.get(f"{side}_svpt"))
+            except ValueError:
+                continue
+            if svpt <= 0:
+                continue
+
+            key = _player_key(name)
+            entries[key].append({
+                "date": match_date,
+                "surface": surface,
+                "won": first_won + second_won,
+                "svpt": svpt,
+            })
+
+    return dict(entries)
+
+
+# Legacy flat aggregate for backward compat
+def aggregate_serve_stats(match_rows: Iterable[dict]) -> dict[str, tuple[float, int]]:
+    """For each player, compute career SPW from match rows."""
     won: dict[str, int] = defaultdict(int)
     pts: dict[str, int] = defaultdict(int)
 
@@ -102,16 +163,66 @@ def aggregate_serve_stats(match_rows: Iterable[dict]) -> dict[str, tuple[float, 
 
 
 # ---------------------------------------------------------------------------
+# Match history for form agent (opponent rank, surface, minutes)
+# ---------------------------------------------------------------------------
+
+def aggregate_match_history(match_rows: Iterable[dict]) -> dict[str, list[dict]]:
+    """Build per-player match history for the form agent.
+
+    Returns: {player → [{date, won, opp_rank, surface, minutes, tourney_level}, ...]}
+    """
+    history: dict[str, list[dict]] = defaultdict(list)
+
+    for row in match_rows:
+        match_date = _parse_date(row.get("tourney_date", ""))
+        surface = _normalize_surface(row.get("surface", ""))
+        minutes = _safe_int(row.get("minutes"))
+        tourney_level = (row.get("tourney_level") or "").strip()
+
+        winner = (row.get("winner_name") or "").strip()
+        loser = (row.get("loser_name") or "").strip()
+        if not winner or not loser:
+            continue
+
+        winner_rank = _safe_int(row.get("winner_rank")) or None
+        loser_rank = _safe_int(row.get("loser_rank")) or None
+
+        w_key = _player_key(winner)
+        l_key = _player_key(loser)
+
+        # Winner's entry: won=True, opp_rank = loser's rank
+        history[w_key].append({
+            "date": match_date,
+            "won": True,
+            "opp_rank": loser_rank,
+            "surface": surface,
+            "minutes": minutes if minutes > 0 else None,
+            "tourney_level": tourney_level,
+        })
+
+        # Loser's entry: won=False, opp_rank = winner's rank
+        history[l_key].append({
+            "date": match_date,
+            "won": False,
+            "opp_rank": winner_rank,
+            "surface": surface,
+            "minutes": minutes if minutes > 0 else None,
+            "tourney_level": tourney_level,
+        })
+
+    # Sort each player's history by date
+    for player in history:
+        history[player].sort(key=lambda m: m.get("date") or "")
+
+    return dict(history)
+
+
+# ---------------------------------------------------------------------------
 # Advanced stats (BP conversion, RPW, UE, winners)
 # ---------------------------------------------------------------------------
 
 def aggregate_advanced_stats(match_rows: Iterable[dict]) -> dict[str, dict]:
-    """Aggregate per-player advanced stats from Sackmann match rows.
-
-    Returns {player → {bp_won, bp_faced, return_pts, return_pts_won,
-    total_pts, matches, unforced, winners}} with UE/winners initialized to 0
-    (filled later from MCP if available).
-    """
+    """Aggregate per-player advanced stats from Sackmann match rows."""
     stats: dict[str, dict] = defaultdict(lambda: {
         "bp_won": 0, "bp_faced": 0,
         "return_pts": 0, "return_pts_won": 0,
@@ -158,13 +269,6 @@ def aggregate_advanced_stats(match_rows: Iterable[dict]) -> dict[str, dict]:
         l["matches"] += 1
 
     return dict(stats)
-
-
-def _safe_int(v) -> int:
-    try:
-        return int(v)
-    except (ValueError, TypeError):
-        return 0
 
 
 def augment_advanced_with_mcp(
@@ -240,10 +344,7 @@ def aggregate_h2h(match_rows: Iterable[dict]) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def load_ranking_history(tour: str) -> dict[str, list[dict]]:
-    """Load weekly ranking snapshots from {tour}_rankings_current.csv.
-
-    Joins on {tour}_players.csv so the keys are normalized "first last" lowercase.
-    """
+    """Load weekly ranking snapshots from {tour}_rankings_current.csv."""
     base = REPO_BASE[tour]
     rankings = _fetch_csv(f"{base}/{tour}_rankings_current.csv")
     players = _fetch_csv(f"{base}/{tour}_players.csv")
@@ -281,17 +382,16 @@ def load_ranking_history(tour: str) -> dict[str, list[dict]]:
 
 
 # ---------------------------------------------------------------------------
-# Main driver
+# MCP serve stats (SPW augmentation for 2025+)
 # ---------------------------------------------------------------------------
 
 def load_mcp_serve_stats(
     tour: str, years: set[int]
-) -> dict[str, tuple[float, int]]:
-    """Aggregate SPW per player from the Match Charting Project overview.
+) -> dict[str, list[dict]]:
+    """Aggregate per-match SPW from the Match Charting Project.
 
-    MCP has community-charted match stats through late 2025, filling the gap
-    where Sackmann's standard ATP/WTA match CSVs lag. We use *only* the SPW
-    signal — the matches file has no winner column, so H2H stays Sackmann-only.
+    Returns match-level entries (date, surface, won, svpt) for the new
+    recency-weighted format.
     """
     matches_file, stats_file = MCP_FILES[tour]
     matches = _fetch_csv(f"{MCP_BASE}/{matches_file}")
@@ -300,26 +400,28 @@ def load_mcp_serve_stats(
         print(f"  ! {tour} MCP: files unavailable")
         return {}
 
-    # Build match_id → year so we can filter by --years
-    match_year: dict[str, int] = {}
+    # Build match_id → (year, date, surface)
+    match_meta: dict[str, tuple[int, Optional[str], str]] = {}
     for m in matches:
         mid = m.get("match_id")
         raw_date = (m.get("Date") or "").strip()
+        surf = _normalize_surface(m.get("Surface") or "hard")
         if not mid or len(raw_date) < 4:
             continue
         try:
-            match_year[mid] = int(raw_date[:4])
+            year = int(raw_date[:4])
+            iso_date = _parse_date(raw_date.replace("-", "")) if "-" in raw_date else _parse_date(raw_date)
+            match_meta[mid] = (year, iso_date, surf)
         except ValueError:
             continue
 
-    won: dict[str, int] = defaultdict(int)
-    pts: dict[str, int] = defaultdict(int)
+    entries: dict[str, list[dict]] = defaultdict(list)
     for row in stats:
         if (row.get("set") or "").strip() != "Total":
             continue
         mid = row.get("match_id")
-        year = match_year.get(mid)
-        if year is None or year not in years:
+        meta = match_meta.get(mid)
+        if meta is None or meta[0] not in years:
             continue
         name = row.get("player")
         if not name:
@@ -333,12 +435,20 @@ def load_mcp_serve_stats(
         if svpt <= 0:
             continue
         key = _player_key(name)
-        won[key] += first_won + second_won
-        pts[key] += svpt
+        entries[key].append({
+            "date": meta[1],
+            "surface": meta[2],
+            "won": first_won + second_won,
+            "svpt": svpt,
+        })
 
-    print(f"  + MCP {tour}: {len(pts)} players from charted matches")
-    return {p: (won[p] / pts[p], pts[p]) for p in pts if pts[p] > 0}
+    print(f"  + MCP {tour}: {len(entries)} players from charted matches")
+    return dict(entries)
 
+
+# ---------------------------------------------------------------------------
+# Main driver
+# ---------------------------------------------------------------------------
 
 def collect_matches(tour: str, years: list[int]) -> list[dict]:
     """Pull match CSVs for every requested year. 404s are silently skipped."""
@@ -382,11 +492,13 @@ def main() -> None:
     h2h_agent = TennisH2HAgent()
     trend_agent = TennisRankingTrendAgent()
     advanced_agent = TennisAdvancedStatsAgent()
+    form_agent = TennisFormAgent()
 
-    combined_serve: dict[str, tuple[float, int]] = {}
+    combined_match_serve: dict[str, list[dict]] = {}
     combined_h2h: list[dict] = []
     combined_history: dict[str, list[dict]] = {}
     combined_advanced: dict[str, dict] = {}
+    combined_form: dict[str, list[dict]] = {}
 
     for tour in tours:
         print(f"\n=== {tour.upper()} ===")
@@ -395,27 +507,32 @@ def main() -> None:
             print(f"  ! no matches loaded for {tour}, skipping")
             continue
 
-        serve_stats = aggregate_serve_stats(matches)
+        # Per-match serve stats (new format)
+        match_serve = aggregate_match_serve_stats(matches)
+        # Match history for form agent
+        match_history = aggregate_match_history(matches)
+        # H2H
         h2h_records = aggregate_h2h(matches)
+        # Ranking history
         history = load_ranking_history(tour)
+        # Advanced stats
         advanced = aggregate_advanced_stats(matches)
 
         print(
-            f"  → {len(serve_stats)} players with serve stats, "
+            f"  → {len(match_serve)} players with serve stats, "
+            f"{len(match_history)} players with form history, "
             f"{len(h2h_records)} H2H pairs, "
             f"{len(history)} players with ranking history, "
             f"{len(advanced)} players with advanced stats"
         )
 
-        # Merge across tours. SPW: prefer the entry with more service points
-        # (largest sample). H2H: same pair across tours is impossible. History:
-        # ATP and WTA are disjoint by player, so simple update is fine.
-        for player, (spw, n) in serve_stats.items():
-            if player not in combined_serve or n > combined_serve[player][1]:
-                combined_serve[player] = (spw, n)
+        # Merge across tours (ATP + WTA are disjoint player sets)
+        for player, entries in match_serve.items():
+            combined_match_serve.setdefault(player, []).extend(entries)
+        for player, entries in match_history.items():
+            combined_form.setdefault(player, []).extend(entries)
         combined_h2h.extend(h2h_records)
         combined_history.update(history)
-        # Advanced: merge across tours (disjoint players)
         for player, st in advanced.items():
             if player not in combined_advanced:
                 combined_advanced[player] = st
@@ -424,31 +541,40 @@ def main() -> None:
                     combined_advanced[player][k] = combined_advanced[player].get(k, 0) + st[k]
 
         if not args.no_mcp:
-            mcp_stats = load_mcp_serve_stats(tour, year_set)
-            for player, (spw, n) in mcp_stats.items():
-                if player not in combined_serve or n > combined_serve[player][1]:
-                    combined_serve[player] = (spw, n)
+            mcp_serve = load_mcp_serve_stats(tour, year_set)
+            for player, entries in mcp_serve.items():
+                combined_match_serve.setdefault(player, []).extend(entries)
             augment_advanced_with_mcp(combined_advanced, tour, year_set)
+
+    # Sort match entries by date
+    for player in combined_match_serve:
+        combined_match_serve[player].sort(key=lambda e: e.get("date") or "")
+    for player in combined_form:
+        combined_form[player].sort(key=lambda e: e.get("date") or "")
 
     print(
         f"\n--- Seeding ---\n"
-        f"  serve_return: {len(combined_serve)} players\n"
-        f"  h2h:          {len(combined_h2h)} pairs\n"
-        f"  trend:        {len(combined_history)} players\n"
-        f"  advanced:     {len(combined_advanced)} players"
+        f"  serve_return (match-level): {len(combined_match_serve)} players\n"
+        f"  form (match history):       {len(combined_form)} players\n"
+        f"  h2h:                        {len(combined_h2h)} pairs\n"
+        f"  trend:                      {len(combined_history)} players\n"
+        f"  advanced:                   {len(combined_advanced)} players"
     )
 
-    if combined_serve:
-        serve_agent.seed_serve_stats(combined_serve)
+    if combined_match_serve:
+        serve_agent.seed_match_serve_stats(combined_match_serve)
     if combined_h2h:
         h2h_agent.seed_h2h(combined_h2h)
     if combined_history:
         trend_agent.seed_history(combined_history)
     if combined_advanced:
         advanced_agent.seed_stats(combined_advanced)
+    if combined_form:
+        form_agent.seed_match_history(combined_form)
 
     print("\n[done] Agents seeded. State files:")
     print("  data/models/tennis_serve_return_state.json")
+    print("  data/models/tennis_form_state.json")
     print("  data/models/tennis_h2h_state.json")
     print("  data/models/tennis_ranking_trend_state.json")
     print("  data/models/tennis_advanced_state.json")

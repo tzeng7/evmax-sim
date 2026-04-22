@@ -320,6 +320,25 @@ class TennisModelAgent(ModelAgent):
             return game_counts[resolved].get("overall", 0)
         return 0
 
+    # Slam keywords → best-of-5
+    _SLAM_KEYWORDS = (
+        "australian open", "french open", "roland garros",
+        "wimbledon", "us open",
+    )
+
+    # Bo5 amplifies the Elo gap: favorites win more often in longer formats.
+    # Empirically, bo5 win probability ≈ bo3 probability raised to ~1.15 power
+    # (renormalized). We implement this by scaling the Elo diff by 1.15x.
+    _BO5_ELO_SCALE = 1.15
+
+    # Indoor hard court Elo bonus: indoor conditions favor big servers
+    # (faster court, lower bounce). Apply a small bonus to players with
+    # serve-dominant profiles. For now, a fixed +15 Elo to both players'
+    # ratings isn't useful — instead we widen the Elo gap slightly when
+    # the higher-rated player is on indoor hard (rewarding serve dominance
+    # which correlates with higher Elo).
+    _INDOOR_ELO_BONUS = 8.0
+
     # ------------------------------------------------------------------
     # Prediction
     # ------------------------------------------------------------------
@@ -339,11 +358,7 @@ class TennisModelAgent(ModelAgent):
         if not player_a or not player_b:
             return None
 
-        # Resolve surface from Kalshi event.product_metadata.competition
-        # (primary) with title as a fallback. `_is_indoor` is computed but
-        # not yet consumed — it's an explicit seam for MODEL-6, which will
-        # use it as a court-adjustment factor on hard-court events.
-        surface, _is_indoor = self._resolve_surface(
+        surface, is_indoor = self._resolve_surface(
             competition=market.competition,
             title=market.title,
         )
@@ -351,7 +366,22 @@ class TennisModelAgent(ModelAgent):
         elo_a = self._get_rating(player_a, surface)
         elo_b = self._get_rating(player_b, surface)
 
-        prob_a = 1.0 / (1.0 + 10.0 ** ((elo_b - elo_a) / 400.0))
+        # Indoor hard court bonus: widen the gap slightly toward the favorite
+        if is_indoor and surface == "hard":
+            if elo_a > elo_b:
+                elo_a += self._INDOOR_ELO_BONUS
+            else:
+                elo_b += self._INDOOR_ELO_BONUS
+
+        elo_diff = elo_b - elo_a
+
+        # Bo5 amplification: scale Elo differential for Grand Slams
+        title_lower = (market.title or "").lower()
+        is_bo5 = any(kw in title_lower for kw in self._SLAM_KEYWORDS)
+        if is_bo5:
+            elo_diff *= self._BO5_ELO_SCALE
+
+        prob_a = 1.0 / (1.0 + 10.0 ** (elo_diff / 400.0))
         prob_b = 1.0 - prob_a
 
         # Confidence: how much surface-specific data do we have?
@@ -388,7 +418,7 @@ class TennisModelAgent(ModelAgent):
             weight=self.weight,
             sample_size=min_surf,
             notes=(
-                f"surface={surface} "
+                f"surface={surface} indoor={is_indoor} bo5={is_bo5} "
                 f"elo_a={elo_a:.0f} elo_b={elo_b:.0f} "
                 f"n_surf={min_surf} n_all={min_all}"
             ),
