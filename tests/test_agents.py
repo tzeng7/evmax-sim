@@ -11,7 +11,7 @@ import pytest
 from evmax.agents.base import Agent, AgentBus, AgentMessage, AgentRequest, AgentResponse, AgentStatus
 from evmax.agents.odds.ev_gap_agent import EVGapAgent, EVGap
 from evmax.agents.models.elo_agent import EloModelAgent
-from evmax.agents.models.form_agent import FormModelAgent
+from evmax.agents.models.form_agent import FormModelAgent, GameRecord
 from evmax.agents.models.poisson_agent import PoissonModelAgent, _poisson_pmf, _score_matrix, _win_draw_probs
 from evmax.agents.models.ensemble_agent import EnsembleModelAgent
 from evmax.models.market import PredictionMarket, MarketSource, MarketType
@@ -564,12 +564,15 @@ class TestFormModelAgent:
 
     @pytest.mark.asyncio
     async def test_prediction_after_seeding(self, tmp_path, monkeypatch):
+        from datetime import date, timedelta
         monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
         agent = FormModelAgent()
         agent._state_path = tmp_path / "form_state.json"
 
+        today = date.today()
         results = [
-            {"date": f"2026-01-{i:02d}", "home": "lakers", "away": "celtics", "score_home": 110, "score_away": 100}
+            {"date": (today - timedelta(days=i)).isoformat(),
+             "home": "lakers", "away": "celtics", "score_home": 110, "score_away": 100}
             for i in range(1, 8)
         ]
         agent.seed_results("nba", results)
@@ -589,6 +592,57 @@ class TestFormModelAgent:
         recs = agent._team_records("nba", "lakers")
         assert len(recs) == 1
         assert recs[0].won is True
+
+    @pytest.mark.asyncio
+    async def test_stale_records_return_none(self, tmp_path, monkeypatch):
+        """When the most recent record is > STALE_DAYS old relative to the
+        market's event_date, the form model skips."""
+        from datetime import date, timedelta
+        from evmax.agents.models import form_agent as fa
+
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = FormModelAgent()
+        agent._state_path = tmp_path / "form_state.json"
+
+        # make_market() uses event_date=2026-03-15. Seed records from >
+        # STALE_DAYS before that so the guard fires regardless of wall clock.
+        market_day = date(2026, 3, 15)
+        old_day = market_day - timedelta(days=fa.STALE_DAYS + 30)
+        results = [
+            {"date": (old_day - timedelta(days=i)).isoformat(),
+             "home": "lakers", "away": "celtics", "score_home": 110, "score_away": 100}
+            for i in range(0, 7)
+        ]
+        agent.seed_results("nba", results)
+
+        pred = await agent.predict_pair(make_market(), make_sharp())
+        assert pred is None, "Form should skip when data is older than STALE_DAYS"
+
+    def test_is_stale_uses_reference_date(self):
+        """Staleness check against a specified reference date (walk-forward replay)."""
+        from datetime import date, timedelta
+        from evmax.agents.models import form_agent as fa
+
+        # A record from 2025-06-01, referenced against 2025-06-15 → not stale
+        rec = [GameRecord(date="2025-06-01", won=True, opp="celtics", home=True)]
+        assert not FormModelAgent._is_stale(rec, reference=date(2025, 6, 15))
+
+        # Same record, referenced 90 days later → stale
+        assert FormModelAgent._is_stale(rec, reference=date(2025, 9, 1))
+
+        # Exactly STALE_DAYS old → not stale (boundary); one day past → stale
+        today = date(2026, 4, 1)
+        boundary = [GameRecord(
+            date=(today - timedelta(days=fa.STALE_DAYS)).isoformat(),
+            won=True, opp="celtics", home=True,
+        )]
+        assert not FormModelAgent._is_stale(boundary, reference=today)
+
+        past = [GameRecord(
+            date=(today - timedelta(days=fa.STALE_DAYS + 1)).isoformat(),
+            won=True, opp="celtics", home=True,
+        )]
+        assert FormModelAgent._is_stale(past, reference=today)
 
 
 # ---------------------------------------------------------------------------

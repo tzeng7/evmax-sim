@@ -1,0 +1,172 @@
+# WNBA 2026 season offseason recalibration
+#
+# Applied once to data/models/elo_state.json before opening day (2026-05-16)
+# via `python scripts/wnba_offseason_regress.py`.
+#
+# Pipeline:
+#   1. For each team with an existing 2025 Elo: new = 1500 + K × (old − 1500)
+#      where K = regression_coefficient below.
+#   2. Add the sum of all `moves[*].delta` entries for that team.
+#   3. For teams listed in `expansion_priors` the prior replaces the shrunk
+#      value entirely (expansion teams have no meaningful 2025 rating even
+#      if the state file carries a placeholder).
+#
+# Tier conventions for deltas (WNBA-calibrated, smaller than NBA due to
+# 12-player rosters + 40-game season):
+#   Superstar swap       ±50  (Wilson, Collier, Thomas, Stewart, Plum)
+#   All-Star swap        ±35  (Reese, Diggins, Clark, Ionescu, Sabally,
+#                              Howard-R, Ogunbowale, Gray-A, Griner, Copper)
+#   Quality starter      ±20
+#   Rotation / 6th       ±10
+#   Rookie #1 pick       +40
+#   Rookie #2 pick       +28
+#   Rookie #4 pick       +18
+#   Rookie #6 pick       +12
+
+regression_coefficient: 0.65   # 35% shrink toward 1500
+
+expansion_priors:
+  fire:  1470   # Mabrey/Sykes/Nurse/Sabally-N core — stronger than Valkyries Y1
+  tempo: 1440   # Carleton + Serah Williams rookie, thinner top end
+
+moves:
+  # -------- Aces (net −30) --------
+  - team: aces
+    delta: -50
+    reason: "Kelsey Plum traded to Los Angeles Sparks"
+  - team: aces
+    delta: 20
+    reason: "Added NaLyssa Smith"
+
+  # -------- Dream (net 0) --------
+  - team: dream
+    delta: 35
+    reason: "Acquired Angel Reese from Chicago Sky"
+  - team: dream
+    delta: -35
+    reason: "Brittney Griner departed to Connecticut Sun"
+
+  # -------- Lynx (net +28) --------
+  - team: lynx
+    delta: 28
+    reason: "Drafted Olivia Miles #2 overall"
+  - team: lynx
+    delta: 20
+    reason: "Acquired Natasha Howard from Dallas Wings"
+  - team: lynx
+    delta: -20
+    reason: "Alanna Smith departed to Dallas Wings"
+
+  # -------- Fever (net +30) --------
+  - team: fever
+    delta: 20
+    reason: "Acquired Sophie Cunningham from Phoenix Mercury"
+  - team: fever
+    delta: 10
+    reason: "Added Monique Billings"
+
+  # -------- Mercury (net −5) --------
+  - team: mercury
+    delta: 50
+    reason: "Acquired Alyssa Thomas from Connecticut Sun"
+  - team: mercury
+    delta: -35
+    reason: "Satou Sabally departed to New York Liberty"
+  - team: mercury
+    delta: -20
+    reason: "Sophie Cunningham departed to Indiana Fever"
+  # Copper and Bonner both re-signed — no delta
+
+  # -------- Liberty (net +35) --------
+  - team: liberty
+    delta: 35
+    reason: "Acquired Satou Sabally from Phoenix Mercury"
+
+  # -------- Storm (net 0) --------
+  - team: storm
+    delta: -35
+    reason: "Skylar Diggins departed to Chicago Sky"
+  - team: storm
+    delta: 15
+    reason: "Drafted Flau'jae Johnson"
+  - team: storm
+    delta: 10
+    reason: "Added Katie Lou Samuelson"
+  - team: storm
+    delta: 10
+    reason: "Dominique Malonga Y2 development bump"
+
+  # -------- Valkyries (net +5) --------
+  - team: valkyries
+    delta: 5
+    reason: "Y2 continuity and cohesion bump"
+
+  # -------- Sparks (net +75) --------
+  - team: sparks
+    delta: 50
+    reason: "Acquired Kelsey Plum from Las Vegas Aces"
+  - team: sparks
+    delta: 25
+    reason: "Acquired Ariel Atkins from Washington Mystics"
+
+  # -------- Wings (net +60) --------
+  - team: wings
+    delta: 40
+    reason: "Drafted Paige Bueckers #1 overall"
+  - team: wings
+    delta: 20
+    reason: "Drafted Azzi Fudd"
+  - team: wings
+    delta: 20
+    reason: "Acquired Alanna Smith from Minnesota Lynx"
+  - team: wings
+    delta: -20
+    reason: "Natasha Howard departed to Minnesota Lynx"
+
+  # -------- Sun (net +35) --------
+  - team: sun
+    delta: -55
+    reason: "Alyssa Thomas departed to Phoenix Mercury"
+  - team: sun
+    delta: 35
+    reason: "Acquired Brittney Griner from Atlanta Dream"
+  - team: sun
+    delta: 20
+    reason: "Added Diamond Miller"
+  - team: sun
+    delta: 15
+    reason: "Drafted Saniya Rivers"
+  - team: sun
+    delta: 10
+    reason: "Aaliyah Edwards sophomore development"
+  - team: sun
+    delta: 10
+    reason: "Drafted Aneesah Morrow"
+
+  # -------- Sky (net +50) --------
+  - team: sky
+    delta: -40
+    reason: "Angel Reese departed to Atlanta Dream"
+  - team: sky
+    delta: 35
+    reason: "Acquired Skylar Diggins from Seattle Storm"
+  - team: sky
+    delta: 20
+    reason: "Acquired Rickea Jackson from Los Angeles Sparks"
+  - team: sky
+    delta: 20
+    reason: "Added DiJonai Carrington"
+  - team: sky
+    delta: 15
+    reason: "Added Courtney Vandersloot"
+
+  # -------- Mystics (net +5) --------
+  - team: mystics
+    delta: -25
+    reason: "Ariel Atkins departed to Los Angeles Sparks"
+  - team: mystics
+    delta: 18
+    reason: "Drafted Lauren Betts #4 overall"
+  - team: mystics
+    delta: 12
+    reason: "Drafted Georgia Amoore #6 overall"

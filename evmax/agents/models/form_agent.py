@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
@@ -43,6 +43,12 @@ DECAY: float = 0.85
 
 # Window of recent games to consider
 WINDOW: int = 10
+
+# Skip the form model when the most recent record for either team is
+# older than this many days. Protects against carrying stale prior-season
+# form into a new season's opening games (see WNBA offseason case where
+# October 2025 records were being read as May 2026 signal).
+STALE_DAYS: int = 60
 
 # Home-side probability bonus (additive)
 HOME_ADJ: dict[str, float] = {
@@ -109,7 +115,14 @@ class FormModelAgent(ModelAgent):
         return [GameRecord(**r) for r in (team_data or [])]
 
     def _form_rate(self, records: list[GameRecord]) -> float:
-        """Exponentially-weighted win rate from most recent WINDOW games."""
+        """Exponentially-weighted win rate from most recent WINDOW games.
+
+        Opponent-quality weighting was tried (multiplying each game's win
+        value by (1 + elo_gap/400)) and backtested net-negative on WNBA
+        walk-forward — it double-counts opponent strength that Elo already
+        captures and adds variance without adding signal. The form model's
+        remaining job is pure recency; Elo handles opponent quality.
+        """
         recent = sorted(records, key=lambda r: r.date, reverse=True)[:WINDOW]
         if not recent:
             return 0.5  # unknown → assume 50/50
@@ -122,6 +135,23 @@ class FormModelAgent(ModelAgent):
             total_weight += w
 
         return weighted_wins / total_weight if total_weight > 0 else 0.5
+
+    @staticmethod
+    def _is_stale(records: list[GameRecord], reference: Optional[date] = None) -> bool:
+        """True when the most recent record is older than STALE_DAYS.
+
+        `reference` defaults to today (UTC). Accepting an override makes this
+        trivial to test without monkey-patching datetime.
+        """
+        if not records:
+            return True
+        ref = reference or datetime.now(timezone.utc).date()
+        most_recent = max(r.date for r in records)
+        try:
+            rec_date = date.fromisoformat(most_recent)
+        except ValueError:
+            return True  # unparseable date → treat as stale
+        return (ref - rec_date).days > STALE_DAYS
 
     @staticmethod
     def _log5(p_a: float, p_b: float) -> float:
@@ -156,6 +186,17 @@ class FormModelAgent(ModelAgent):
 
         if len(recs_a) < MIN_GAMES or len(recs_b) < MIN_GAMES:
             return None   # insufficient data — let ensemble skip this model
+
+        # Staleness guard: if either team's most recent record is older than
+        # STALE_DAYS relative to the game being predicted, the form signal
+        # is carrying prior-season data into a new season and is actively
+        # harmful (WNBA offseason was the smoking gun). Skip and let Elo +
+        # Efficiency drive the blend until fresh in-season games accumulate.
+        # Reference against the market's event_date when available so the
+        # check is meaningful during historical walk-forward replays.
+        reference = market.event_date.date() if market.event_date else None
+        if self._is_stale(recs_a, reference) or self._is_stale(recs_b, reference):
+            return None
 
         form_a = self._form_rate(recs_a)
         form_b = self._form_rate(recs_b)

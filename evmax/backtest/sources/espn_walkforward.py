@@ -23,6 +23,8 @@ from evmax.agents.models.elo_agent import EloModelAgent
 from evmax.agents.models.form_agent import FormModelAgent
 from evmax.agents.models.poisson_agent import PoissonModelAgent
 from evmax.agents.models.efficiency_agent import EfficiencyModelAgent
+from evmax.agents.models.wnba_efficiency_agent import WNBAEfficiencyModelAgent
+from evmax.agents.models.wnba_possession_sim_agent import WNBAPossessionSimAgent
 from evmax.agents.models.possession_sim_agent import PossessionSimAgent
 from evmax.agents.models.shot_quality_agent import ShotQualityAgent
 from evmax.agents.models.matchup_agent import MatchupAgent
@@ -195,6 +197,16 @@ NBA_WEIGHT_OVERRIDES: dict[str, float] = {
     "poisson": 0.0,
 }
 
+# Mirrors SECTOR_WEIGHT_OVERRIDES["wnba"] in ensemble_agent.py. Kept in sync
+# manually so the walk-forward evaluates the same blend the live scanner uses.
+WNBA_WEIGHT_OVERRIDES: dict[str, float] = {
+    "wnba_efficiency":     0.25,
+    "wnba_possession_sim": 0.25,
+    "elo":                 0.30,
+    "form":                0.15,
+    "poisson":             0.0,
+}
+
 
 def run_walkforward(
     sector: str,
@@ -223,7 +235,14 @@ def run_walkforward(
 
     # NBA advanced models — use current season stats (not walk-forward)
     is_nba = sector.lower() == "nba"
+    # WNBA advanced models — use prior-season stats loaded from the WNBA
+    # efficiency agent's seeded state file. Intentionally not walk-forward:
+    # efficiency stats stabilise slowly and opening-day predictions benefit
+    # from Y−1 priors, matching live behaviour.
+    is_wnba = sector.lower() == "wnba"
     efficiency_agent = None
+    wnba_efficiency_agent = None
+    wnba_possession_sim_agent = None
     possession_sim_agent = None
     shot_quality_agent = None
     matchup_agent = None
@@ -232,6 +251,9 @@ def run_walkforward(
         possession_sim_agent = PossessionSimAgent()
         shot_quality_agent = ShotQualityAgent()
         matchup_agent = MatchupAgent()
+    elif is_wnba:
+        wnba_efficiency_agent = WNBAEfficiencyModelAgent()
+        wnba_possession_sim_agent = WNBAPossessionSimAgent()
 
     norm = NameNormalizer(sector)
     results: list[WalkForwardResult] = []
@@ -249,7 +271,7 @@ def run_walkforward(
 
         # --- Predict with current state (before observing outcome) ---
         elo_prob = _elo_predict(elo, sector, home, away)
-        form_prob = _form_predict(form, sector, home, away)
+        form_prob = _form_predict(form, sector, home, away, game_date)
         poisson_prob = _poisson_predict(poisson, sector, home, away)
 
         eff_prob = None
@@ -261,6 +283,11 @@ def run_walkforward(
                 home, away, efficiency_agent, possession_sim_agent,
                 shot_quality_agent, matchup_agent,
             )
+        elif is_wnba:
+            eff_prob = _wnba_efficiency_predict(home, away, wnba_efficiency_agent)
+            possim_prob = _wnba_possession_sim_predict(
+                home, away, wnba_possession_sim_agent,
+            )
 
         # Ensemble: weighted average of available models
         if is_nba:
@@ -270,6 +297,14 @@ def run_walkforward(
                 (poisson_prob, w["poisson"]),
                 (eff_prob, w["efficiency"]), (possim_prob, w["possession_sim"]),
                 (sq_prob, w["shot_quality"]), (mu_prob, w["matchup"]),
+            ])
+        elif is_wnba:
+            w = WNBA_WEIGHT_OVERRIDES
+            ensemble_prob = _ensemble([
+                (elo_prob, w["elo"]), (form_prob, w["form"]),
+                (poisson_prob, w["poisson"]),
+                (eff_prob, w["wnba_efficiency"]),
+                (possim_prob, w["wnba_possession_sim"]),
             ])
         else:
             ensemble_prob = _ensemble(
@@ -341,6 +376,62 @@ def _nba_model_predict(
     return tuple(results)  # type: ignore[return-value]
 
 
+def _wnba_efficiency_predict(
+    home: str,
+    away: str,
+    agent: Optional[WNBAEfficiencyModelAgent],
+) -> Optional[float]:
+    """Get WNBA efficiency-model probability for home win. None if no data."""
+    if agent is None:
+        return None
+    prob_a_default = 0.55
+    prob_b_default = 0.45
+    market = PredictionMarket(
+        id="bt", market_id="bt", event_id=f"bt_{home}_{away}",
+        sector="wnba", team_home=home, team_away=away,
+        source=MarketSource.kalshi, yes_price=prob_a_default, no_price=prob_b_default,
+    )
+    sharp = SharpOdds(
+        event_id=f"bt_{home}_{away}", book=SharpBook.pinnacle, sector="wnba",
+        outcome_a_label=home, outcome_b_label=away,
+        outcome_a_decimal=1 / prob_a_default, outcome_b_decimal=1 / prob_b_default,
+        true_prob_a=prob_a_default, true_prob_b=prob_b_default,
+    )
+    try:
+        pred = asyncio.run(agent.predict_pair(market, sharp))
+        return pred.true_prob_a if pred else None
+    except Exception:
+        return None
+
+
+def _wnba_possession_sim_predict(
+    home: str,
+    away: str,
+    agent: Optional[WNBAPossessionSimAgent],
+) -> Optional[float]:
+    """Get WNBA possession-sim probability for home win. None if no data."""
+    if agent is None:
+        return None
+    prob_a_default = 0.55
+    prob_b_default = 0.45
+    market = PredictionMarket(
+        id="bt", market_id="bt", event_id=f"bt_{home}_{away}",
+        sector="wnba", team_home=home, team_away=away,
+        source=MarketSource.kalshi, yes_price=prob_a_default, no_price=prob_b_default,
+    )
+    sharp = SharpOdds(
+        event_id=f"bt_{home}_{away}", book=SharpBook.pinnacle, sector="wnba",
+        outcome_a_label=home, outcome_b_label=away,
+        outcome_a_decimal=1 / prob_a_default, outcome_b_decimal=1 / prob_b_default,
+        true_prob_a=prob_a_default, true_prob_b=prob_b_default,
+    )
+    try:
+        pred = asyncio.run(agent.predict_pair(market, sharp))
+        return pred.true_prob_a if pred else None
+    except Exception:
+        return None
+
+
 def _elo_predict(elo: EloModelAgent, sector: str, home: str, away: str) -> Optional[float]:
     """Get Elo prediction for home win probability. None if no data."""
     state = elo._state.get(sector, {})
@@ -355,40 +446,45 @@ def _elo_predict(elo: EloModelAgent, sector: str, home: str, away: str) -> Optio
     return prob
 
 
-def _form_predict(form: FormModelAgent, sector: str, home: str, away: str) -> Optional[float]:
-    """Get Form prediction. None if insufficient data."""
+def _form_predict(
+    form: FormModelAgent,
+    sector: str,
+    home: str,
+    away: str,
+    game_date: Optional[date] = None,
+) -> Optional[float]:
+    """Get Form prediction. None if insufficient data or records are stale.
+
+    Delegates to the agent's own _form_rate / _is_stale so the walk-forward
+    exercises the same staleness guard and opponent-quality weighting the
+    live scanner uses. `game_date` is the date of the game being predicted;
+    staleness is checked relative to it (not wall-clock today), which is
+    essential for historical replays.
+    """
+    from evmax.agents.models.form_agent import HOME_ADJ, GameRecord
+
     state = form._state.get(sector, {})
-    home_records = state.get(home, [])
-    away_records = state.get(away, [])
-    if len(home_records) < 3 or len(away_records) < 3:
+    home_records_raw = state.get(home, [])
+    away_records_raw = state.get(away, [])
+    if len(home_records_raw) < 3 or len(away_records_raw) < 3:
         return None
 
-    from evmax.agents.models.form_agent import DECAY, HOME_ADJ
+    home_records = [GameRecord(**r) for r in home_records_raw]
+    away_records = [GameRecord(**r) for r in away_records_raw]
 
-    def _weighted_rate(records: list[dict]) -> float:
-        recent = records[-10:]  # last 10
-        total_w = 0.0
-        win_w = 0.0
-        for i, rec in enumerate(recent):
-            w = DECAY ** (len(recent) - 1 - i)
-            total_w += w
-            if rec["won"]:
-                win_w += w
-        return win_w / total_w if total_w > 0 else 0.5
+    if form._is_stale(home_records, game_date) or form._is_stale(away_records, game_date):
+        return None
 
-    fa = _weighted_rate(home_records)
-    fb = _weighted_rate(away_records)
+    fa = form._form_rate(home_records)
+    fb = form._form_rate(away_records)
 
-    # Log5 formula
     if fa + fb == 0 or fa + fb == 2 * fa * fb:
         prob = 0.5
     else:
         prob = (fa - fa * fb) / (fa + fb - 2 * fa * fb)
 
-    # Home adjustment
     ha = HOME_ADJ.get(sector, 0.0)
-    prob = max(0.01, min(0.99, prob + ha))
-    return prob
+    return max(0.01, min(0.99, prob + ha))
 
 
 def _poisson_predict(poisson: PoissonModelAgent, sector: str, home: str, away: str) -> Optional[float]:

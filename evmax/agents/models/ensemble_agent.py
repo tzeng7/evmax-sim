@@ -76,6 +76,20 @@ class EnsembleModelAgent(Agent):
             "shot_quality": 0.10, "matchup": 0.10,
             "poisson": 0.0,
         },
+        # WNBA uses its own dedicated efficiency + possession-sim agents
+        # (wnba_efficiency, wnba_possession_sim) driven by ESPN box scores.
+        # See evmax/agents/models/wnba_efficiency_agent.py and
+        # evmax/agents/models/wnba_possession_sim_agent.py.
+        # Poisson zeroed for the same reason as NBA — basketball scoring is
+        # not a Poisson process and the bucketed matrix was distorting margin
+        # variance. Shot_quality / matchup still not ported (future work).
+        "wnba": {
+            "wnba_efficiency":     0.25,
+            "wnba_possession_sim": 0.25,
+            "elo":                 0.30,
+            "form":                0.15,
+            "poisson":             0.0,
+        },
         # Tennis: Surface Elo + recency-weighted serve/return are primary signals.
         # Form agent replaces ranking trend as the recency/momentum voice.
         # H2H stays small. Advanced stats are a supporting signal.

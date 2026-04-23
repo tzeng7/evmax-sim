@@ -57,6 +57,10 @@ KNOWN_MODELS: set[str] = {
     "shot_quality",
     "matchup",
     "possession_sim",
+    # WNBA-specific advanced agents (kept parallel to the NBA set so the
+    # two leagues can tune independently without risk of cross-contamination)
+    "wnba_efficiency",
+    "wnba_possession_sim",
     # Tennis-specific agents
     "tennis_surface_elo",
     "tennis_serve_return",

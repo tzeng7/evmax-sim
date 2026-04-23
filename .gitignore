@@ -58,3 +58,6 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Local state backups (auto-written by regression / seed scripts)
+data/models/*.backup.*.json
