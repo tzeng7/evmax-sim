@@ -8,6 +8,19 @@
 
 ## Recently Shipped
 
+### WNBA model ensemble for 2026 season (commit 266f152)
+Landed April 2026 ahead of the May 16 2026 WNBA season opener. Goal: get WNBA out of shadow-only and to NBA-parity Brier before opening day.
+- ✅ **Offseason Elo recalibration** — `scripts/wnba_offseason_regress.py` + `data/models/wnba_2026_offseason.yaml` apply 35% shrinkage toward 1500 plus 38 per-team roster-move deltas (Reese → Atlanta, Plum → LA, Thomas → Phoenix, Bueckers #1 / Fudd / Betts #4 / Amoore #6 / Miles #2 rookie deltas, Sabally → NYL, expansion priors for Fire 1470 / Tempo 1440). 2025-end Elo range (1335-1690) shrunk + churned to a 2026-opener range (1419-1609). Re-runnable per season by editing the YAML move list.
+- ✅ **`WNBAEfficiencyModelAgent`** (new file, `name="wnba_efficiency"`, own state file) — Normal-CDF margin model with WNBA-tuned `HOME_EDGE_PTS=2.6`, `SCORE_STDEV=12.5`, `MIN_GAMES=12`. Reads ORTG/DRTG/Pace/eFG%/TOV%/OREB%/FTr from `wnba_efficiency_state.json` seeded by `scripts/seed_wnba_efficiency.py` (walks 2025 WNBA ESPN scoreboard + box scores, derives stats via Dean Oliver formulas, filters All-Star / exhibition contamination). Seed produced 13 teams × ~47 games each; league avg ORtg 100.6, pace 81.1.
+- ✅ **`WNBAPossessionSimAgent`** (new file, `name="wnba_possession_sim"`, own cache) — Monte Carlo possession-level sim mirroring NBA's architecture but reading the WNBA efficiency state. 10k sims per matchup, pace clipped to [65, 100], margin σ=12.5, total σ=18.0. Exposes `cover_probability` / `total_probability` ahead of WNBA spread+total live promotion.
+- ✅ **Form staleness guard** (`STALE_DAYS=60`) — `FormModelAgent.predict_pair` now returns `None` when the most recent record for either team is older than 60 days relative to the game date. Fixes the WNBA offseason bug where October 2025 records were being read as May 2026 signal. Opponent-quality weighting was tried and backtested net-negative (Form Brier 0.2470 → 0.2615) — reverted; Elo already captures opponent strength, adding it to Form just adds variance.
+- ✅ **Ensemble override for WNBA** — `SECTOR_WEIGHT_OVERRIDES["wnba"]` blends wnba_efficiency 0.25 + wnba_possession_sim 0.25 + elo 0.30 + form 0.15, Poisson zeroed (basketball is not a Poisson process; same reason as NBA).
+- ✅ **Walk-forward result** (2025 WNBA, 323 games): ensemble Brier 0.2212 → **0.2056** (−0.0156), accuracy 63.7% → **68.8%** (+5.1pp). Gap to NBA ensemble (0.2032) now 0.0024 Brier — inside the sample-size noise floor of 321 games. Both standalone WNBA advanced models are near-tied with their NBA siblings: wnba_efficiency 0.2020 vs NBA efficiency 0.2030; wnba_possession_sim 0.2025 vs NBA possession_sim 0.2022.
+- ✅ **NBA regression check** — NBA walk-forward produces byte-identical Brier 0.2032 before and after the WNBA port. All NBA files / constants / state paths untouched by design (zero-shared-file architecture).
+- ✅ **Registry + categories wiring** — `KNOWN_MODELS` gained `wnba_efficiency`, `wnba_possession_sim`. `data/categories.yaml::wnba.models` updated to `[elo, form, wnba_efficiency, wnba_possession_sim, sharp]`. `validate_registry()` passes.
+- ✅ **Tennis backtest tool** — `scripts/backtest_tennis_model.py` replays tennis-data.co.uk xlsx (2024/2025/2026) through the full tennis ensemble for in-sample calibration diagnostics. Not production infra, but useful for spot-checking tennis-surface drift.
+- ✅ Tests: 1091 → 1093 passing (added `test_stale_records_return_none` + `test_is_stale_uses_reference_date`). Pre-existing 2 failures + 16 nfl_props_live errors are environmental, not from this work.
+
 ### NFL prop backtest infrastructure (Stage 4 of feat/nfl-prop-backtest)
 - ✅ Kalshi historical pull — `scripts/fetch_nfl_prop_history.py` pulls 31,869 settled NFL prop markets across 1,164 events, Dec 1 2025 – Feb 8 2026, via unauthenticated `/historical/markets?event_ticker=...`. Wrote to `data/backtest/nfl_props/kalshi_raw.json` (76 MB).
 - ✅ nflverse feature pull — `scripts/fetch_nfl_features.py` pulls weekly stats / schedules / weekly rosters direct from nflverse GitHub releases (ditched `nfl_data_py` — it hardcodes a dead URL). Writes parquet, spot check confirmed point-in-time filtering works.
@@ -88,7 +101,7 @@ Shipped via the Kalshi `event.product_metadata.competition` join — see Recentl
 
 ### MODEL-2 NCAAW and NHL Have No Calibrated K-Factor / Home Advantage [P2]
 **File:** `evmax/agents/models/elo_agent.py`
-`K_FACTORS` and `HOME_ADVANTAGE_ELO` have entries for `nba`, `nfl`, `ncaab`, `soccer`, `lol`, `cs2` but not for `ncaaw` or `nhl`. Both silently use NBA defaults (K=20.0, home_adv=0.055).
+`K_FACTORS` and `HOME_ADVANTAGE_ELO` have entries for `nba`, `nfl`, `ncaab`, `soccer`, `lol`, `cs2`, and now `wnba` (K=20, home_adv=60 Elo — shipped with the WNBA 2026 prep). NCAAW and NHL are the only remaining sectors silently using NBA defaults (K=20.0, home_adv=0.055).
 - Add calibrated values for NCAAW: home advantage is similar to NCAAB, K-factor should be higher (more variance)
 - Add NHL: K=16, home_adv=0.04 (puck-line markets exist)
 
@@ -249,6 +262,56 @@ Middle bins are well-calibrated. Tails miss by 10–18pp. The ROI filter picks e
 - **MODEL-7** (non-QB features — usage rate, target share, Vegas totals) is still the downstream improvement once MODEL-9 validates QB-only edge.
 
 **Blocker:** NFL regular season starts Sept 2026. Shadow validation requires at least 3-4 weeks of live NFL to be meaningful.
+
+### MODEL-11 WNBA Shadow Validation + Promotion to Live [P1 — blocks 2026 WNBA live betting]
+**Files:** `data/categories.yaml` (wnba block), `evmax/agents/cleanup/metrics.py`, `evmax/cli/commands/cleanup.py`
+
+**Context.** The 2026 WNBA ensemble lands in shadow mode (see "Recently Shipped" for the full walk-forward numbers — Brier 0.2056 / Acc 68.8%, within 0.0024 Brier of NBA). WNBA stays in shadow until live Kalshi markets confirm the walk-forward result transfers to real betting. Same MODEL-9 shadow-validation pattern as NFL props.
+
+**Validation steps (once the 2026 WNBA season opens May 16):**
+1. Accumulate ≥ 200 shadow bets across ≥ 3 distinct weeks of regular season.
+2. `evmax cleanup shadow metrics --days N --category wnba` computes Brier + ROI at ev≥2%.
+3. Promote / reject criteria:
+   - Shadow ensemble Brier ≤ 0.215 (allow 0.01 degradation from 0.2056 walk-forward for live-price / market-friction differences).
+   - Shadow ensemble accuracy ≥ 64%.
+   - Calibration tail miss ≤ 10pp at 80–90% and 10–20% buckets.
+   - ROI at ev≥2% is positive (doesn't need to be large; just sign-correct).
+4. If passes: `evmax cleanup shadow promote wnba` — flips YAML mode to `live` and enables Kelly sizing against bankroll.
+5. If fails: leave in shadow, diagnose via per-model Brier breakdown and per-bucket calibration, iterate on weights / tunable constants.
+
+**Weekly data refresh during the season:**
+- Re-run `python scripts/seed_wnba_efficiency.py --year 2026` weekly to roll 2026 games into the efficiency/possession_sim inputs. Current seed is 2025 priors only.
+- The `form_agent` and `elo_agent` update incrementally via `evmax agents update` + `evmax cleanup resolve`, no manual refresh needed.
+
+**Blocker:** season starts May 16 2026. Validation is meaningless before then.
+
+### MODEL-12 Port `shot_quality` and `matchup` Agents to WNBA [P3]
+**Files:** new `evmax/agents/models/wnba_shot_quality_agent.py`, new `evmax/agents/models/wnba_matchup_agent.py`
+
+**Context.** The WNBA ensemble currently runs only 2 of NBA's 4 advanced agents (efficiency + possession_sim). On the NBA walk-forward, `shot_quality` adds Brier 0.2319 and `matchup` adds 0.2355 — each small individually but diverse signal that tightens the ensemble. Porting them would close the last ~0.005 Brier gap to NBA parity.
+
+**Why P3 (not P2):**
+- Data access is harder. NBA's `shot_quality_agent` reads `stats.nba.com/LeagueDashTeamShotLocations` for per-zone FGA + FG%. `stats.wnba.com` has an equivalent endpoint but the `nba_api` package doesn't expose it — needs a custom httpx wrapper with the right headers. Same for `matchup_agent` (paint scoring + transition defense + turnover battle).
+- Marginal gain is small. Both NBA agents have Brier 0.23+, close to baseline. The 0.005 Brier improvement they unlock on the ensemble only matters once efficiency + possession_sim are already saturated with data, which won't happen until mid-2026 season.
+- Post-MODEL-11 ordering. No point building these until WNBA shadow validation clears, because shadow validation may surface different tuning needs that change what "diverse signal" means for the ensemble.
+
+**Design if/when done:** mirror the `wnba_efficiency_agent.py` + `wnba_possession_sim_agent.py` pattern — new standalone files, own state JSON, WNBA-tuned constants, zero shared file with NBA siblings.
+
+### MODEL-13 WNBA `player_impact_agent` [P2 — larger expected impact than MODEL-12]
+**Files:** new `evmax/agents/intelligence/wnba_player_impact_agent.py`
+
+**Context.** WNBA star dependency is markedly higher than NBA's because rosters are 12 (vs 15) and season is 40 games (vs 82). A single star out — Caitlin Clark, A'ja Wilson, Napheesa Collier, Breanna Stewart, Alyssa Thomas — is worth roughly an **8-10 point swing** in expected margin, vs NBA's more modest ~5-6 points for a comparable star. The current injury-probability adjustment is sector-flat and caps at -12% per team; WNBA calls for a sector-specific cap closer to -18% AND a per-player impact scaled by on/off net rating (same pattern as NBA's `player_impact_agent`).
+
+**Data source — same story as MODEL-12:** need `stats.wnba.com/LeagueDashPlayerStats?MeasureType=Advanced` which isn't exposed by `nba_api`. Custom httpx wrapper. Alternative: derive the per-player MIN × NET_RATING from aggregated ESPN box-score pulls (same source as efficiency seed), accepting slightly less accurate single-player impact estimates.
+
+**Why P2 (higher than MODEL-12):** the marginal gain is real. Porting `shot_quality` / `matchup` at P3 closes ~0.005 Brier; porting `player_impact` would realistically close 0.01-0.015 Brier during WNBA weeks with active injuries to stars (which is most weeks). Also: the current `InjuryReportAgent` has WNBA wired via ESPN already but the `KNOWN_STARS` set has only ~10 WNBA players and is stale — expanding it is a quick win independent of the full player_impact port.
+
+**Scope for v1:**
+1. Refresh `KNOWN_STARS` in `injury_agent.py` with 2026 WNBA top-25 (Bueckers, Clark, Wilson, Collier, Stewart, Ionescu, Thomas, Copper, Sabally, Reese, Howard, Gray, Plum, Ogunbowale, Loyd, Mitchell, Boston, Griner, Hamby, Ogwumike, etc.).
+2. Per-sector `MAX_ADJ` dict: NBA 0.20, WNBA 0.28, others 0.20.
+3. (Stretch) new agent that mirrors NBA's `player_impact_agent` using ESPN-derived per-player impact minutes.
+
+**Blocker:** needs a data source decision (stats.wnba.com direct vs ESPN aggregation) before implementation begins.
 
 ---
 
@@ -574,9 +637,11 @@ Solved by reading Kalshi's `event.product_metadata.competition` field instead of
 |----------|------|--------|
 | P1 | ARCH-11 Category mode config (live/shadow/disabled) | Prerequisite to MODEL-9 and general capability across all sectors |
 | P1 | MODEL-9 NFL prop shadow validation | Blocks Stage 5 live betting; distinguishes real edge from backtest leakage |
+| P1 | MODEL-11 WNBA shadow validation + promote to live | Blocks 2026 WNBA live betting; walk-forward passes but needs live-price confirmation |
 | P1 | PROPS-1 NFL props backend | Merged into MODEL-9 (kalshi.py typo fix ships with the shadow PR) |
-| P2 | MODEL-2 NCAAW/NHL Elo calibration | Uncalibrated K + home adv |
+| P2 | MODEL-2 NCAAW/NHL Elo calibration | Uncalibrated K + home adv (WNBA now calibrated) |
 | P2 | MODEL-6 Tennis indoor court modifier | Waits on live indoor-event data; `is_indoor` seam already in MODEL-1 |
+| P2 | MODEL-13 WNBA player_impact agent | WNBA star-out impact is ~8-10pt swing; bigger gain than MODEL-12. Needs data-source decision first. |
 | P2 | TEST-3 PinnacleGuestClient tests | Only live sharp source untested |
 | P2 | TEST-4 Coordinator integration test | Catches wiring regressions |
 | P2 | TEST-6 Prop pipeline — remaining | nba_stats.py still uncovered |
@@ -586,6 +651,24 @@ Solved by reading Kalshi's `event.product_metadata.competition` field instead of
 | P3 | MODEL-3 Form draw normalization | Cosmetic precision |
 | P3 | MODEL-4 Poisson EWMA | Long-term staleness |
 | P3 | MODEL-7 Non-QB NFL prop features | Downstream of MODEL-9 — usage decomposition + Vegas totals + position-aware defense |
+| P3 | MODEL-12 Port shot_quality/matchup to WNBA | ~0.005 Brier close-out; defer until post-MODEL-11 validation. |
 | P3 | ARCH-9 Resurrect TheOddsAPI as paid fallback | Alternative to ARCH-10; pay-to-resilience path |
 | P3 | ARCH-10 Authenticated ps3838 API | Long-term alternative to guest tier; requires real Pinnacle account |
 | P3 | All other ARCH-* (1–6) | Skipped for now |
+
+---
+
+## Things to keep in mind (WNBA 2026 season)
+
+Collected from the April 2026 WNBA prep pass — not "todo" items but recurring constraints / operational reminders.
+
+1. **The WNBA 2025 seed data has contamination.** ESPN's WNBA scoreboard surface includes the All-Star Game (Team Clark / Team Collier) and occasional international exhibitions (Team Brazil / Team Antelopes / Toyota Antelopes). `scripts/seed_wnba_efficiency.py` filters via `REAL_WNBA_TEAMS` allow-list; any new seed-style script must do the same or the league averages skew (Collier's 139.8 ORtg in a 1-game sample would distort the pace average badly).
+2. **Form staleness is reference-date-aware.** The guard uses `market.event_date` (or `game_date` in the walk-forward harness) as the reference, not wall-clock today. Historical replays stay meaningful. Do NOT revert this to `date.today()` — it silently breaks every walk-forward against past seasons.
+3. **Quality weighting in form does not work.** We tried multiplying each win by `(1 + elo_gap / 400)` and backtested net-negative on WNBA (Brier 0.2470 → 0.2615). Elo already captures opponent strength; adding it to Form double-counts. Do not re-propose this — refer to the April 2026 walk-forward if someone tries to revive it.
+4. **Offseason regression is manually triggered.** `scripts/wnba_offseason_regress.py` must be run once before each WNBA season opener. It backs up the current Elo state and applies 35% shrinkage + the YAML move list in one pass. Edit `data/models/wnba_2026_offseason.yaml` for 2027 — regeneration isn't automated.
+5. **`wnba_efficiency_state.json` is a seed, not a running update.** The agent's `update()` method is a no-op — game-level score pairs don't carry the FGA / FTA / TO / OREB detail needed to recompute ORtg/DRtg. Re-run `python scripts/seed_wnba_efficiency.py --year 2026` weekly during the 2026 season to roll new games into the efficiency inputs. Otherwise predictions stay frozen at 2025 stats.
+6. **WNBA playoff tightening is NOT calibrated.** `WNBAPossessionSimAgent._simulate_game` omits the `is_playoff` / `PLAYOFF_ORTG_FACTOR` branch that NBA uses. The NBA factor (0.9623) was derived from a specific sample of 17 NBA playoff games; blindly porting it to WNBA would add unmeasured bias. Leave off until WNBA has a comparable playoff-sample measurement.
+7. **Pace clip must match game length.** NBA clip `[80, 120]` and WNBA clip `[65, 100]` differ because WNBA games are 40 min vs NBA's 48 — same clip on both would push WNBA predictions into impossibly fast territory. If anyone adds a new basketball-league sim (EuroLeague? NCAAW?), adjust the clip by `game_minutes / 40` from WNBA or `/ 48` from NBA.
+8. **Expansion priors (Fire 1470 / Tempo 1440) are guesses based on Valkyries' Y1 trajectory.** Verify against their actual opening-day Pinnacle lines once those post. If Fire opens as a 1400-level team on Pinnacle, shrink the prior and re-seed before scanning.
+9. **WNBA is `shadow` mode on launch.** Kelly sizing against bankroll is disabled until MODEL-11 validation closes. The scanner still produces predictions and logs them to `prop_observations` / `ev_predictions` with `mode='shadow'` and `captured_yes_price` — that's the data MODEL-11 reads.
+10. **The existing NFL-prop shadow tooling (`evmax cleanup shadow metrics`) handles WNBA automatically.** No new CLI needed — just pass `--category wnba`. Promotion flips the YAML mode to `live` and re-enables bankroll sizing in one command.

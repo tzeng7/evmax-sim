@@ -270,36 +270,52 @@ KALSHI_WS_SNAPSHOT_TIMEOUT=8.0
 
 ## Statistical Models
 
-The system runs sector-specific model ensembles blended with Pinnacle sharp lines. NBA uses six dedicated agents; soccer relies on Poisson; tennis has four specialized agents; MLB has a pitcher agent. All outputs are blended by the EnsembleModelAgent. Models below the 0.45 confidence gate are silently dropped from the blend so missing coverage degrades gracefully.
+The system runs sector-specific model ensembles blended with Pinnacle sharp lines. NBA uses six dedicated agents; WNBA uses its own parallel efficiency + possession-sim stack (separate files, separate state, separate tuning); soccer relies on Poisson; tennis has four specialized agents; MLB has a pitcher agent. All outputs are blended by the EnsembleModelAgent. Models below the 0.45 confidence gate are silently dropped from the blend so missing coverage degrades gracefully.
 
 ### Per-Sector Ensemble Weights
 
-NBA uses dedicated advanced models that replace the generic Elo/Form/Poisson core. Other sectors use the default weights.
+NBA and WNBA use dedicated advanced models that replace the generic Elo/Form/Poisson core. Other sectors use the default weights.
 
-| Model | NBA | Soccer | Other |
-|-------|-----|--------|-------|
-| Efficiency | **0.30** | — | — |
-| PossessionSim | **0.30** | — | — |
-| Elo | 0.10 | 0.15 | 0.35 |
-| Form | 0.10 | 0.10 | 0.25 |
-| ShotQuality | 0.10 | — | — |
-| Matchup | 0.10 | — | — |
-| Poisson | 0.0 | **0.40** | 0.30 |
-| Soccer xG | — | 0.25 | — |
+| Model | NBA | WNBA | Soccer | Other |
+|-------|-----|------|--------|-------|
+| Efficiency | **0.30** | — | — | — |
+| PossessionSim | **0.30** | — | — | — |
+| WNBA Efficiency | — | **0.25** | — | — |
+| WNBA PossessionSim | — | **0.25** | — | — |
+| Elo | 0.10 | 0.30 | 0.15 | 0.35 |
+| Form | 0.10 | 0.15 | 0.10 | 0.25 |
+| ShotQuality | 0.10 | — | — | — |
+| Matchup | 0.10 | — | — | — |
+| Poisson | 0.0 | 0.0 | **0.40** | 0.30 |
+| Soccer xG | — | — | 0.25 | — |
 
-**Backtest results (2025-26 NBA, 1,221 games):**
+**NBA backtest (2025-26, 1,229 games):**
 
 | Model | Brier Score | Accuracy | vs Baseline |
 |-------|------------|----------|-------------|
-| Ensemble | **0.2005** | **69.2%** | -18.9% |
-| Efficiency | 0.2021 | 69.6% | -18.2% |
-| PossessionSim | 0.2054 | 68.6% | -16.9% |
-| Elo | 0.2202 | 63.4% | -10.9% |
+| Ensemble | **0.2032** | **69.2%** | -17.8% |
+| PossessionSim | 0.2022 | 68.7% | -18.2% |
+| Efficiency | 0.2030 | 69.4% | -17.8% |
+| Elo | 0.2208 | 63.3% | -10.6% |
+| Poisson | 0.2288 | 67.2% | -7.4% |
 | ShotQuality | 0.2319 | 60.1% | -6.2% |
-| Matchup | 0.2354 | 60.7% | -4.7% |
-| Form | 0.2415 | 62.3% | -2.3% |
-| Poisson | 0.2287 | 67.4% | -7.4% |
+| Matchup | 0.2355 | 60.7% | -4.7% |
+| Form | 0.2428 | 62.2% | -1.7% |
 | Baseline (always home) | 0.2471 | 55.4% | — |
+
+**WNBA backtest (2025, 323 games):**
+
+| Model | Brier Score | Accuracy | vs Baseline |
+|-------|------------|----------|-------------|
+| Ensemble | **0.2056** | **68.8%** | -16.3% |
+| WNBA Efficiency | 0.2020 | 69.5% | -17.8% |
+| WNBA PossessionSim | 0.2025 | 68.6% | -17.6% |
+| Elo | 0.2227 | 63.7% | -9.3% |
+| Poisson | 0.2286 | 61.9% | -6.9% |
+| Form | 0.2472 | 62.2% | +0.7% |
+| Baseline (always home) | 0.2456 | 56.7% | — |
+
+WNBA ensemble is within 0.0024 Brier of NBA — effectively at parity. WNBA ships in `shadow` mode for the 2026 season; live Kelly is gated on MODEL-11 shadow validation.
 
 ---
 
@@ -386,6 +402,66 @@ Each dimension capped at ±1.5 points, total capped at ±4 points → converted 
 
 ---
 
+### WNBA Models
+
+WNBA runs a parallel advanced stack to NBA — separate files, separate state, separate tuning. No code is shared between the two leagues' agents. Change one without risk to the other.
+
+#### WNBA Efficiency Model (`WNBAEfficiencyModelAgent`, weight=0.25)
+
+Normal-CDF margin model driven by team ORTG / DRTG / Pace. Mirrors NBA's efficiency agent architecturally but uses WNBA-tuned constants and reads its own state file.
+
+**How it works:**
+
+```
+off_factor_a = team_a_ortg / league_avg_ortg       # league avg ≈ 100.6
+def_factor_b = team_b_drtg / league_avg_drtg
+possessions = (pace_a + pace_b) / 2                 # pace avg ≈ 81.1
+
+proj_pts_a = off_factor_a × def_factor_b × league_ortg × possessions / 100
+margin = proj_pts_a − proj_pts_b + HOME_EDGE_PTS (2.6 pts)
+prob_a = normal_cdf(margin / SCORE_STDEV)           # σ = 12.5
+```
+
+**Tunable constants vs NBA:** `HOME_EDGE_PTS 2.6` (NBA 3.2), `SCORE_STDEV 12.5` (NBA 12.0), `MIN_GAMES 12` (NBA 20). WNBA's 40-game season warrants a lower games-played gate; the weaker home-court edge reflects the 2025 56.7% home win rate (NBA ~59%).
+
+**Seeding:** `scripts/seed_wnba_efficiency.py` walks ESPN's WNBA scoreboard for a season (e.g. 2025 May-October), pulls per-game box scores, and computes ORtg/DRtg/Pace/eFG%/TOV%/OREB%/FTr via Dean Oliver formulas:
+
+```
+POSS  = FGA + 0.44·FTA + TO − OREB
+ORtg  = 100 · PTS / POSS
+DRtg  = 100 · OPP_PTS / OPP_POSS
+Pace  = POSS per game (WNBA games are 40 min, not 48)
+```
+
+Exhibitions (All-Star, international) are filtered via a `REAL_WNBA_TEAMS` allow-list. Re-run weekly during the 2026 season to keep stats fresh — the agent's `update()` is a no-op because score pairs alone don't carry the box-score detail.
+
+**Confidence:** 0.80 (30+ GP), 0.70 (20+ GP), 0.55 (<20 GP, above the 12-GP gate).
+
+**State file:** `data/models/wnba_efficiency_state.json`
+
+---
+
+#### WNBA Possession Sim (`WNBAPossessionSimAgent`, weight=0.25)
+
+Monte Carlo possession-level WNBA game simulator. Same architecture as NBA's sim but reads the WNBA efficiency state and uses WNBA-tuned possession clips.
+
+**How it works:**
+
+For each of 10,000 simulated games:
+1. Draw possession count from `N(avg_pace, 3.0)`, clipped to **[65, 100]** (NBA uses [80, 120] — WNBA pace is ~82, NBA ~100)
+2. For each possession: sample turnover from team TOV%, then draw points from `N(ppp, 1.10)` where `ppp` is pace-adjusted points-per-possession
+3. Home team gets +1.5 ORTG boost (same as NBA)
+
+Win probability = fraction of sims where team A outscores team B. Deterministic seeding per matchup + date for reproducibility.
+
+**Spread / totals probabilities** (`cover_probability` / `total_probability`) use calibrated σs: margin σ = 12.5 (matches the efficiency agent), total σ = 18.0 (WNBA games are shorter → lower total variance than NBA's σ=20.0). These methods are ready for live spread + total promotion; WNBA spread/total markets stay in shadow until the 2026 season validates MODEL-11.
+
+**Playoff tightening is NOT enabled** for WNBA. NBA's `PLAYOFF_ORTG_FACTOR=0.9623` was derived from a specific NBA playoff sample; porting it blindly to WNBA would add unmeasured bias. Leave off until WNBA has a comparable playoff measurement.
+
+**State file:** Reuses `data/models/wnba_efficiency_state.json` (no extra fetches).
+
+---
+
 ### Shared Models (all sectors)
 
 #### Elo Model (`EloModelAgent`, default weight=0.35, NBA=0.10)
@@ -459,6 +535,8 @@ Home advantage is applied additively:
 | LoL / CS2 | 0% |
 
 **Minimum data requirement:** Both teams need at least 3 recorded results; otherwise the model returns `None` and is excluded from the blend.
+
+**Staleness guard:** The model also returns `None` when the most recent record for either team is more than `STALE_DAYS=60` old relative to the game's `event_date`. This protects against cross-season contamination — without the guard, May 2026 WNBA games would be priced against October 2025 form records that no longer reflect current rosters. The reference date is the game being predicted (not wall-clock today), so historical walk-forwards still work correctly.
 
 **State file:** `data/models/form_state.json`
 
@@ -661,6 +739,37 @@ evmax agents seed poisson --sector soccer --file data/seeds/epl_poisson.json
   }
 }
 ```
+
+### Seed / Refresh WNBA Efficiency
+
+WNBA's advanced agents read their state from `data/models/wnba_efficiency_state.json`, seeded by walking ESPN's scoreboard + box-score endpoints and deriving ORtg / DRtg / Pace / Four Factors via Dean Oliver formulas. Re-run weekly during the 2026 season to keep inputs fresh — the agent's `update()` is a no-op because per-game score pairs alone can't reconstruct possession counts.
+
+```bash
+# 2025 full season (the default at project start)
+python scripts/seed_wnba_efficiency.py
+
+# 2026 regular-season refresh once the season is underway
+python scripts/seed_wnba_efficiency.py --year 2026
+
+# Preview without writing
+python scripts/seed_wnba_efficiency.py --dry-run
+```
+
+Exhibitions (All-Star, international friendlies) are filtered out via the `REAL_WNBA_TEAMS` allow-list so league averages stay clean.
+
+### Run WNBA Offseason Elo Regression
+
+Once per offseason, shrink every WNBA team's Elo toward 1500 and apply the year's roster-move deltas from a YAML file. The deltas are tier-based (Superstar ±50, All-Star ±35, Quality Starter ±20, rookie-slot-specific).
+
+```bash
+# Preview
+python scripts/wnba_offseason_regress.py --dry-run
+
+# Apply + auto-backup of the existing state
+python scripts/wnba_offseason_regress.py
+```
+
+Config lives at `data/models/wnba_2026_offseason.yaml` — edit the `moves:` list and `expansion_priors` for each subsequent season. The script backs up `elo_state.json` as `elo_state.backup.wnba_offseason_{timestamp}.json` (gitignored) before writing.
 
 ### Seed Tennis Models
 
@@ -1246,17 +1355,22 @@ All settings live in `.env` (or environment variables):
 
 ## Sectors and Market Types
 
-| Sector | Sharp Source | Models | Injury Data |
-|--------|-------------|--------|-------------|
-| NBA | Pinnacle guest API (league 487) | Efficiency + PossessionSim + ShotQuality + Matchup + Elo + Form | ESPN |
-| NFL | Pinnacle guest API (league 258) | Elo + Form + Poisson | ESPN |
-| NCAAB | Pinnacle guest API (league 493) | Elo + Form + Poisson | ESPN |
-| NCAAW | TheOddsAPI (`basketball_wncaab`) | Elo + Form + Poisson | ESPN |
-| Soccer | Pinnacle guest API (EPL/UCL/La Liga/Bundesliga/Serie A/Ligue 1) | Poisson + xG + Elo + Form | ESPN |
-| Tennis | Pinnacle guest API (ATP/WTA) | Surface Elo + Serve/Return + Advanced + H2H + Ranking Trend | None |
-| Baseball | Pinnacle guest API (league 246) | Elo + Form + Poisson + Pitcher | ESPN |
-| LoL | Pinnacle guest API (esports, sport 12) | Elo + Form | None |
-| CS2 | Pinnacle guest API (esports, sport 12) | Elo + Form | None |
+| Sector | Sharp Source | Models | Injury Data | Mode |
+|--------|-------------|--------|-------------|------|
+| NBA | Pinnacle guest API (league 487) | Efficiency + PossessionSim + ShotQuality + Matchup + Elo + Form | ESPN | `live` |
+| WNBA | Pinnacle guest API (league 578) | WNBA Efficiency + WNBA PossessionSim + Elo + Form | ESPN | `shadow` until MODEL-11 validation |
+| NFL | Pinnacle guest API (league 258) | Elo + Form + Poisson | ESPN | `live` |
+| NCAAB | Pinnacle guest API (league 493) | Elo + Form + Poisson | ESPN | `live` |
+| NCAAW | TheOddsAPI (`basketball_wncaab`) | Elo + Form + Poisson | ESPN | `live` |
+| Soccer | Pinnacle guest API (EPL/UCL/La Liga/Bundesliga/Serie A/Ligue 1/MLS/UEL) | Poisson + xG + Elo + Form | ESPN | `live` |
+| Tennis | Pinnacle guest API (ATP/WTA) | Surface Elo + Serve/Return + Advanced + H2H + Ranking Trend + Form | None | `live` |
+| Baseball | Pinnacle guest API (league 246) | Elo + Form + Poisson + Pitcher | ESPN | `live` |
+| NHL | Pinnacle guest API | Form | ESPN | `live` |
+| LoL | Pinnacle guest API (esports) | Elo + Form | None | `live` |
+| CS2 | Pinnacle guest API (esports) | Elo + Form | None | `live` |
+| NFL Props | Pinnacle guest API | NFL Props Cache (QB only v1) | ESPN boxscore | `shadow` until MODEL-9 validation |
+
+**Mode legend:** `live` = EVGaps logged with `mode='live'`, Kelly sized against bankroll. `shadow` = predictions + pre-game prices logged with `mode='shadow'`, bankroll not touched. Flip via `evmax cleanup shadow promote <category>` after validation. Source of truth: `data/categories.yaml`.
 
 The Pinnacle guest API (`guest.api.arcadia.pinnacle.com/0.1`) requires no credentials and covers all sectors except NCAAW (which uses TheOddsAPI).
 

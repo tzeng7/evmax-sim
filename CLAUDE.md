@@ -118,8 +118,14 @@ evmax/
 | Model | Weight | Confidence Gate | State File |
 |-------|--------|----------------|------------|
 | Elo | 0.35 | 0.45 | `data/models/elo_state.json` |
-| Form | 0.25 | 0.45 | `data/models/form_state.json` |
+| Form | 0.25 | 0.45 | `data/models/form_state.json` (skipped entirely when the most recent record for either team is > STALE_DAYS=60 old relative to the game's event_date — protects against cross-season contamination; opponent-quality weighting was backtested net-negative and reverted) |
 | Poisson | 0.30 | 0.45 | `data/models/poisson_state.json` |
+| NBA Efficiency | 0.40 | 0.45 | `data/models/efficiency_state.json` (NBA only; ORTG/DRTG/Pace from `nba_api.LeagueDashTeamStats`) |
+| NBA Possession Sim | 0.35 | 0.45 | Reuses NBA efficiency state; 10k Monte Carlo possession sims per matchup |
+| NBA Shot Quality | 0.20 | 0.45 | `data/models/shot_quality_state.json` (NBA only; zone FGA + FG% from `nba_api`) |
+| NBA Matchup | 0.20 | 0.45 | `data/models/matchup_state.json` (NBA only; paint + transition + TOV battle) |
+| **WNBA Efficiency** | 0.30 | 0.45 | `data/models/wnba_efficiency_state.json` (seeded by `scripts/seed_wnba_efficiency.py` from 2025 ESPN box scores via Dean Oliver formulas; WNBA-tuned HOME_EDGE_PTS=2.6, SCORE_STDEV=12.5, MIN_GAMES=12) |
+| **WNBA Possession Sim** | 0.25 | 0.45 | Reuses `wnba_efficiency_state.json`; 10k Monte Carlo possession sims per matchup. Pace clipped to [65, 100] (WNBA has 40-min games + lower pace than NBA). `cover_probability` / `total_probability` ready for spread + total live promotion. |
 | Tennis Surface Elo | 0.35 | 0.45 | `data/models/tennis_surface_state.json` (surface resolved from Kalshi `event.product_metadata.competition` via MODEL-1; MODEL-5 trimmed weight from 0.45) |
 | Tennis Serve/Return | 0.15 | 0.45 | `data/models/tennis_serve_return_state.json` (logistic on SPW differential, bo3 k=14 / bo5 k=18; weight reduced from 0.40 — destructive at higher weight) |
 | Tennis Advanced Stats | 0.25 | 0.45 | `data/models/tennis_advanced_state.json` (logistic on BP conv, RPW, UE rate, W/UE ratio; full 4-feature model when MCP data available, RPW-only reduced model otherwise; fitted on 2023-2024 Sackmann + MCP, validated on 2025) |
@@ -129,6 +135,14 @@ evmax/
 | NBA Props Cache | — | — | `data/nba_props_cache.json` (daily L15 per-player; per-36 normalization + opponent adj) |
 | NFL Props Cache (QB only v1) | — | — | reuses `data/backtest/nfl_props/*.parquet`; live lookup via `evmax/clients/nfl_props_cache.py` (point-in-time history + schedule opponent adj). Wired to coordinator NFL branch for shadow scans (MODEL-9). Stage 5 live Kelly gated on 2026 shadow validation |
 | Sharp (Pinnacle) | 0.85 (CLI/config default) | always | auto-tuned in `data/model_config.json` |
+
+**Per-sector ensemble overrides** (`ensemble_agent.py::SECTOR_WEIGHT_OVERRIDES`):
+- **NBA:** efficiency 0.30 · possession_sim 0.30 · elo 0.10 · form 0.10 · shot_quality 0.10 · matchup 0.10 · poisson 0.0
+- **WNBA:** wnba_efficiency 0.25 · wnba_possession_sim 0.25 · elo 0.30 · form 0.15 · poisson 0.0
+- **Soccer:** poisson 0.40 · xg 0.25 · elo 0.15 · form 0.10
+- **Tennis:** tennis_surface 0.30 · tennis_serve_return 0.25 · tennis_form 0.20 · tennis_advanced 0.15 · tennis_h2h 0.05 · tennis_ranking_trend 0.05
+
+**NBA and WNBA are parallel stacks with zero shared files.** NBA's `efficiency_agent.py` uses `nba_api` + `efficiency_state.json`; WNBA's `wnba_efficiency_agent.py` uses ESPN box scores + `wnba_efficiency_state.json`. Same for possession sim. Change one without risk to the other. Do not merge them "for DRY" — the constants diverge (HOME_EDGE_PTS 3.2 vs 2.6, SCORE_STDEV 12.0 vs 12.5, pace clip [80,120] vs [65,100]), and the data sources are different.
 
 Tennis serve/return, H2H, and ranking-trend agents are seeded from Jeff Sackmann's `tennis_atp` / `tennis_wta` CSVs plus the Match Charting Project for 2025+ SPW augmentation via `scripts/seed_tennis_models.py`.
 
@@ -211,6 +225,33 @@ evmax cleanup shadow show --days 7                # recent shadow predictions
 evmax cleanup shadow metrics --days 30            # Brier + ROI per category
 evmax cleanup shadow promote nfl_props            # flip shadow → live once validated
 ```
+
+### WNBA-specific maintenance (2026 season)
+
+```bash
+# Once per offseason — regress 2025-end Elo toward 1500 and apply roster-move deltas
+# Edit data/models/wnba_2026_offseason.yaml if moves change; rerun before opening day
+python scripts/wnba_offseason_regress.py --dry-run      # preview
+python scripts/wnba_offseason_regress.py                # apply + auto-backup
+
+# Weekly during the season — refresh ORTG/DRTG/pace/eFG/TOV/OREB/FTr from ESPN box scores
+python scripts/seed_wnba_efficiency.py --year 2026      # regular-season refresh
+python scripts/seed_wnba_efficiency.py --dry-run        # preview without writing
+
+# One-time backtest check of the live WNBA ensemble against the 2025 season
+evmax backtest run --sectors wnba --seasons 2425        # walk-forward; ~30s
+
+# Post-launch — validate shadow mode before flipping to live (see MODEL-11)
+evmax cleanup shadow metrics --days 30 --category wnba
+evmax cleanup shadow promote wnba                       # once validation passes
+```
+
+**Things to keep in mind for WNBA:**
+- **Seeds are manual.** `scripts/seed_wnba_efficiency.py` re-walks ESPN; the agent's `update()` is a no-op because per-game (FGA, FTA, TO, OREB) can't be reconstructed from just a score pair. Re-run weekly or stats stay frozen at last seed date.
+- **Offseason regression is manual.** `scripts/wnba_offseason_regress.py` must be run once before each WNBA season opener and after any mid-season mega-trade. Backs up the old state automatically.
+- **Exhibition games contaminate seeds.** ESPN's WNBA scoreboard also carries the All-Star Game and international exhibitions. `REAL_WNBA_TEAMS` allow-list in the seed script filters them — any new WNBA data pipeline needs the same filter or league averages will skew.
+- **Form staleness protects opening day.** `FormModelAgent` returns `None` when records are >60 days old relative to the game date. On May 16 2026 the only WNBA records are from October 2025 — form skips automatically and Elo + Efficiency drive the blend. No manual toggle needed.
+- **WNBA stays in `shadow` mode** until MODEL-11 validation clears. Kelly stakes don't hit the bankroll even though predictions are logged. Promote via `evmax cleanup shadow promote wnba`.
 
 ### Scan Pipeline
 
