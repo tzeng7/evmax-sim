@@ -324,20 +324,31 @@ Middle bins are well-calibrated. Tails miss by 10–18pp. The ROI filter picks e
 
 **Blocker:** needs a data source decision (stats.wnba.com direct vs ESPN aggregation) before implementation begins.
 
-### MODEL-14 NBA props post-calibration validation + shadow → live promotion [P1]
-**Files:** `data/categories.yaml` (`nba_props` block currently `live` already, but the model behaviour just changed), `evmax/agents/cleanup/metrics.py`
+### MODEL-14 NBA props post-calibration validation via shadow [P1]
+**Files:** `data/categories.yaml` (flip `nba_props.mode: live → shadow`), `evmax/agents/cleanup/metrics.py`
 
-**Context.** Path A (commit fd2e650) re-tuned the NBA props model end-to-end — the manual shrinkage was zeroed and an isotonic calibration layer added. The Brier reduction is modest in aggregate (0.1969 → 0.1928) but the per-bucket calibration is fundamentally fixed (50–60% bucket from +12.9pp miss to +0.1pp). This is a behavioural change that needs validation in production before we treat it as the new baseline.
+**Context.** Path A (commit fd2e650) re-tuned the NBA props model end-to-end — the manual shrinkage was zeroed and an isotonic calibration layer added. The Brier reduction is modest in aggregate (0.1969 → 0.1928) but the per-bucket calibration is fundamentally fixed (50–60% bucket from +12.9pp miss to +0.1pp). The retroactive isotonic-only test on real Apr 9-23 prop_observations data confirmed real-world Brier 0.1709 → 0.1683 (small but in the right direction).
 
-**Validation plan (2-3 weeks of post-calibration shadow data):**
-1. Watch nba_props EVGap output for ~2 weeks. The +EV plays should look different from before — the false high-confidence signals from shrinkage-induced miscalibration should be gone.
-2. Brier on actual flagged + resolved bets ≤ 0.21 (slack from 0.1928 backtest for live-price differences and the opp_adj drift the calibration was fitted without — see "Things to keep in mind" below).
-3. Calibration tail miss ≤ 5pp at 60–80% bucket (the band the bookmakers most often price into).
-4. Some +EV at ev≥3% — even modest, just sign-correct over a 50-bet sample.
+**Why shadow now (not just "watch live").** We have 1,107 pre-calibration resolved rows in `prop_observations` from Apr 9-23 (model Brier 0.1709 vs Kalshi 0.1991 — model already beats market by 14% on this sample). Switching to shadow now gives us a clean before/after measurement on the same population (NBA playoffs), with zero bankroll exposure during the validation period. The data side is identical between live and shadow — `prop_observations` keeps logging with `mode='shadow'` tag. Only difference is Kelly stake doesn't touch the bankroll.
 
-**Status note**: nba_props mode is currently `live` in `data/categories.yaml` (it was promoted earlier in 2026). The user-side toggle here is whether to keep it live, NOT shadow → live. If validation surfaces a regression, the action is to demote back to shadow until we re-fit.
+**Validation plan (2-3 weeks):**
+1. Flip `nba_props.mode` to `shadow` in `data/categories.yaml` (or use `--shadow nba_props` per-scan).
+2. Run scans daily as usual. New rows accumulate in `prop_observations` tagged `mode='shadow'`.
+3. After ≥ 50 resolved post-calibration bets:
+   ```
+   evmax cleanup shadow show --days 14 --category nba_props
+   evmax cleanup shadow metrics --days 14 --category nba_props
+   ```
+4. Pass criteria (vs the pre-calibration baseline of Brier 0.1709 / model already beats Kalshi by 0.028):
+   - Post-calibration Brier on shadow rows ≤ 0.175 (no regression)
+   - Calibration buckets show 60–70% bucket within ±5pp of actual (was +17.8pp pre-calibration)
+   - Model still beats Kalshi-price predictor by ≥ 0.02 Brier
+   - +EV at ev≥3% remains sign-correct over a 50-bet sample
+5. Promote: `evmax cleanup shadow promote nba_props` (flips YAML back to live).
 
-**Blocker:** needs ~50 resolved nba_props bets post-calibration (achievable in 2 weeks of NBA play).
+**Status note**: nba_props mode is currently `live` in `data/categories.yaml`. To start MODEL-14 validation, flip to `shadow`. Action item lives in "What needs to occur now" below.
+
+**Blocker:** needs ~50 resolved post-calibration nba_props bets (achievable in 2 weeks of NBA play).
 
 ### MODEL-15 NBA props v2 — career-mean prior + shot-type variance [P3]
 **Files:** new model code in `evmax/clients/`, new training script in `scripts/`
@@ -715,12 +726,20 @@ Solved by reading Kalshi's `event.product_metadata.competition` field instead of
 
 The active list — ordered by deadline / blocker.
 
-### Now → next 2 weeks (NBA props live + WNBA opener prep)
+### Now → next 2 weeks (NBA props shadow validation + WNBA opener prep)
 
-1. **Watch NBA props perform post-calibration.** The Path A change is live. Each daily scan should be producing fewer false-high-confidence +EV signals (the 65%-was-actually-82% pathology is gone). Run `evmax cleanup show --sector nba_props --days 7` after a week of plays — the implied probabilities on flagged bets should now cluster more around true win rates. If you see a calibration regression, demote `nba_props` back to `shadow` in `data/categories.yaml` and we re-fit. This is **MODEL-14** — gates on having ~50 resolved bets, achievable in 2 weeks of play.
-2. **Stop running** `scripts/fetch_nba_game_logs.py` for prior seasons. nba_api is rate-limiting; recovering that needs proper backoff which is P3. Career-mean prior is closed-tabled until then.
-3. **WNBA opener prep — verify the Elo state holds**. We applied the offseason regression on Apr 23. If any major roster moves happened since (notable signings, injuries that materially change a team), rerun `python scripts/wnba_offseason_regress.py --dry-run` after editing `data/models/wnba_2026_offseason.yaml` to confirm the picture. Otherwise no action.
-4. **WNBA seed refresh once opening night happens (May 16).** Rerun `python scripts/seed_wnba_efficiency.py --year 2026` after Day 1, then weekly. Without this the agent's predictions stay frozen at 2025 stats.
+1. **Flip nba_props to shadow (~30 sec).** Edit `data/categories.yaml`, change `nba_props.mode: live → shadow`. Run `evmax categories validate` to confirm. This stops the new calibrated model from sizing real Kelly stakes during the validation window. Existing `prop_observations` rows (1,107 pre-calibration) stay untouched; new rows from this point forward will be tagged `mode='shadow'`. **MODEL-14 step 1.**
+2. **Run scans daily as usual.** Each scan adds calibrated-model rows to `prop_observations`. We have a clean before/after on the same population (NBA playoffs).
+3. **Check shadow metrics weekly.** After ~50 resolved post-calibration bets (probably 7-10 days of play):
+   ```
+   evmax cleanup shadow show --days 14 --category nba_props
+   evmax cleanup shadow metrics --days 14 --category nba_props
+   ```
+   Compare to the pre-calibration baseline (model Brier 0.1709 vs Kalshi 0.1991). Pass criteria in MODEL-14 above.
+4. **If validation passes, promote back to live**: `evmax cleanup shadow promote nba_props`. Otherwise, stay shadow and diagnose.
+5. **Stop running** `scripts/fetch_nba_game_logs.py` for prior seasons. nba_api is rate-limiting; recovering that needs proper backoff which is P3. Career-mean prior is closed-tabled until then.
+6. **WNBA opener prep — verify the Elo state holds**. We applied the offseason regression on Apr 23. If any major roster moves happened since (notable signings, injuries that materially change a team), rerun `python scripts/wnba_offseason_regress.py --dry-run` after editing `data/models/wnba_2026_offseason.yaml` to confirm the picture. Otherwise no action.
+7. **WNBA seed refresh once opening night happens (May 16).** Rerun `python scripts/seed_wnba_efficiency.py --year 2026` after Day 1, then weekly. Without this the agent's predictions stay frozen at 2025 stats.
 
 ### May 16 onward (WNBA shadow validation)
 
