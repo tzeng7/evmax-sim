@@ -33,6 +33,7 @@ from typing import Optional
 
 from evmax.agents.base import Agent, AgentBus, AgentRequest, AgentResponse
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
+from evmax.agents.models.calibration import ModelCalibrator
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
 
@@ -112,6 +113,13 @@ class EnsembleModelAgent(Agent):
         super().__init__()
         self._models = models
         self._sharp_weight = sharp_weight
+        # Per-sector isotonic calibration applied to the model-side blend
+        # before sharp blending. Calibrations are stored under the key
+        # "{sector}_ensemble" — fit by scripts/fit_tennis_calibration.py
+        # (and analogues for other sports) on a held-out backtest year.
+        # Missing entries → identity (no-op), so the ensemble still works
+        # for sports without a fitted calibration.
+        self._calibrator = ModelCalibrator()
 
     def attach_bus(self, bus: AgentBus) -> None:
         super().attach_bus(bus)
@@ -197,6 +205,29 @@ class EnsembleModelAgent(Agent):
     # ------------------------------------------------------------------
     # Blending logic
     # ------------------------------------------------------------------
+
+    def _apply_sector_calibration(
+        self,
+        sector: str,
+        prob_a: float,
+        prob_b: float,
+        prob_draw: Optional[float],
+    ) -> tuple[float, float, Optional[float]]:
+        """Apply isotonic calibration for sector_ensemble; identity when missing.
+
+        Calibration is fit on the YES-side outcome (prob_a vs actual win), so
+        for 2-way markets we calibrate prob_a and recover prob_b = 1 - prob_a.
+        For 3-way markets (soccer) the YES-side calibration doesn't compose
+        cleanly with a draw probability, so we skip — sharp dominance at
+        sharp_weight≈0.85 makes calibration there low-leverage anyway.
+        """
+        if prob_draw is not None:
+            return prob_a, prob_b, prob_draw
+        key = f"{sector.lower()}_ensemble"
+        calibrated_a = self._calibrator.calibrate(key, prob_a)
+        if calibrated_a == prob_a:
+            return prob_a, prob_b, prob_draw
+        return calibrated_a, 1.0 - calibrated_a, prob_draw
 
     @staticmethod
     def _flb_correct(
@@ -294,6 +325,11 @@ class EnsembleModelAgent(Agent):
             prob_b = sum(c[0] * c[2] for c in model_contribs) / total_w
             prob_draw = (sum(c[0] * (c[3] or 0.0) for c in model_contribs) / total_w
                          if any(c[3] is not None for c in model_contribs) else None)
+            # Apply per-sector isotonic calibration to the model output
+            # (no-op when no calibration is fitted for this sector).
+            prob_a, prob_b, prob_draw = self._apply_sector_calibration(
+                sector, prob_a, prob_b, prob_draw,
+            )
         else:
             # Blend: true sharp_weight fraction from Pinnacle, rest from models
             total_mw = sum(c[0] for c in model_contribs)
@@ -302,6 +338,14 @@ class EnsembleModelAgent(Agent):
             has_draw = any(c[3] is not None for c in model_contribs) or sharp.true_prob_draw is not None
             model_draw = (sum(c[0] * (c[3] or 0.0) for c in model_contribs) / total_mw
                           if any(c[3] is not None for c in model_contribs) else 0.0)
+            # Calibrate the model-side blend BEFORE combining with sharp.
+            # Sharp lines are already well-calibrated; running them through
+            # a model-side correction would double-correct and add noise.
+            _model_draw_or_none = model_draw if has_draw else None
+            model_a, model_b, _calibrated_draw = self._apply_sector_calibration(
+                sector, model_a, model_b, _model_draw_or_none,
+            )
+            model_draw = _calibrated_draw if _calibrated_draw is not None else model_draw
 
             model_weight = 1.0 - sharp_weight
             prob_a = sharp_weight * sharp.true_prob_a + model_weight * model_a
