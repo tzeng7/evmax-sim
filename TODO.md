@@ -8,6 +8,17 @@
 
 ## Recently Shipped
 
+### NBA player props calibration — Path A (commits d1eb000, fd2e650, 5f65ae5)
+Landed April 2026. Goal stated by user: improve NBA props enough to warrant promotion from shadow to live.
+- ✅ **Baseline measurement** — `scripts/backtest_nba_props.py` replays the production prop model math against 26k 2024-25 player game logs pulled via nba_api. Surfaced the actual problem: the model is dramatically under-confident in the 50–70% probability bucket. Predicted 65% bucket realizes 82%; predicted 60% bucket realizes 73%. Symptom of the manual `_BASE_RATE = 0.40, _SHRINKAGE = 0.20` shrinkage chain in `compute_prop_prob_cached` pulling genuine high-confidence overs back toward the league base rate.
+- ✅ **Calibration pipeline** — `scripts/calibrate_nba_props.py` precomputes the model's intermediate quantities (raw model_prob, weighted_hit_rate, avg_margin, last5_hits, minutes_volatile) once per row, then grid-searches `base_rate × shrinkage × blend_model` and fits an `IsotonicRegression` post-hoc layer. Train: Jan-Feb 2025 (130k rows). Test: Mar-Apr 2025 (109k rows).
+- ✅ **Tuned constants** — `data/models/nba_props_calibration.json` ships `base_rate=0.30`, `shrinkage=0.0`, `blend_model=0.80` plus a 182-breakpoint isotonic mapping. The fitted "shrinkage=0" finding is significant — the manual shrinkage was a workaround for the calibration miss; with isotonic doing real calibration it's no longer needed.
+- ✅ **Production wiring** — `evmax/clients/nba_props_cache.py` loads the JSON on first prop computation and caches in module state. Falls back to original constants when missing. `_apply_isotonic()` runs at the end of `compute_prop_prob_cached`, after volatility shrinkage and opp_adj. Implemented as binary-search piecewise-linear interpolation so we don't drag sklearn into the live scan path.
+- ✅ **Calibration result** (Mar-Apr 2025 test, n=108,559): Brier 0.1969 → 0.1928 (−2%). Pooled Brier movement is modest because miscalibration cancels at the population level. **The real win is bucket-level shape**: 50–60% bucket goes from +12.9pp miss to +0.1pp; 60–70% from +11.5pp to +0.2pp; every bucket within ±1.6pp of perfect calibration. Matters more for the live scanner's bet selection than for aggregate accuracy — when the calibrated model says 75% on a market priced at 70%, that's a real edge the un-calibrated 65% would have missed.
+- ✅ **Path B closed negative** — `scripts/backtest_nba_props_v2.py` tested adding career-mean prior + days-rest factor on top of Path A. Days-rest produced literally zero Brier movement (0.1226 with rest, 0.1226 without). Investigation: the empirical 2024-25 distribution shows long-rest games are load-management cases with minutes restrictions, not "freshness" cases — players with rest=4+ score 6.4 PTS on 14 MIN. The signal direction was wrong and per-36 normalization absorbs the residual. Career-mean was blocked on stats.nba.com rate-limiting; lives in P3 future work.
+- ✅ **Ancillary infrastructure** — `scripts/fetch_nba_game_logs.py` (nba_api LeagueGameLog → parquet); `evmax/backtest/sources/shufinskiy.py` + `scripts/fetch_shufinskiy.py` (5 seasons of shotdetail + pbpstats locally cached as parquet). Loader is sub-100ms after the first read. Useful for any future model iteration; not currently consumed by Path A.
+- ✅ Tests: 1129 passed, 1 pre-existing fail (`test_flb_correction_extreme_longshot`, unrelated). 0 new regressions.
+
 ### WNBA model ensemble for 2026 season (commit 266f152)
 Landed April 2026 ahead of the May 16 2026 WNBA season opener. Goal: get WNBA out of shadow-only and to NBA-parity Brier before opening day.
 - ✅ **Offseason Elo recalibration** — `scripts/wnba_offseason_regress.py` + `data/models/wnba_2026_offseason.yaml` apply 35% shrinkage toward 1500 plus 38 per-team roster-move deltas (Reese → Atlanta, Plum → LA, Thomas → Phoenix, Bueckers #1 / Fudd / Betts #4 / Amoore #6 / Miles #2 rookie deltas, Sabally → NYL, expansion priors for Fire 1470 / Tempo 1440). 2025-end Elo range (1335-1690) shrunk + churned to a 2026-opener range (1419-1609). Re-runnable per season by editing the YAML move list.
@@ -312,6 +323,45 @@ Middle bins are well-calibrated. Tails miss by 10–18pp. The ROI filter picks e
 3. (Stretch) new agent that mirrors NBA's `player_impact_agent` using ESPN-derived per-player impact minutes.
 
 **Blocker:** needs a data source decision (stats.wnba.com direct vs ESPN aggregation) before implementation begins.
+
+### MODEL-14 NBA props post-calibration validation + shadow → live promotion [P1]
+**Files:** `data/categories.yaml` (`nba_props` block currently `live` already, but the model behaviour just changed), `evmax/agents/cleanup/metrics.py`
+
+**Context.** Path A (commit fd2e650) re-tuned the NBA props model end-to-end — the manual shrinkage was zeroed and an isotonic calibration layer added. The Brier reduction is modest in aggregate (0.1969 → 0.1928) but the per-bucket calibration is fundamentally fixed (50–60% bucket from +12.9pp miss to +0.1pp). This is a behavioural change that needs validation in production before we treat it as the new baseline.
+
+**Validation plan (2-3 weeks of post-calibration shadow data):**
+1. Watch nba_props EVGap output for ~2 weeks. The +EV plays should look different from before — the false high-confidence signals from shrinkage-induced miscalibration should be gone.
+2. Brier on actual flagged + resolved bets ≤ 0.21 (slack from 0.1928 backtest for live-price differences and the opp_adj drift the calibration was fitted without — see "Things to keep in mind" below).
+3. Calibration tail miss ≤ 5pp at 60–80% bucket (the band the bookmakers most often price into).
+4. Some +EV at ev≥3% — even modest, just sign-correct over a 50-bet sample.
+
+**Status note**: nba_props mode is currently `live` in `data/categories.yaml` (it was promoted earlier in 2026). The user-side toggle here is whether to keep it live, NOT shadow → live. If validation surfaces a regression, the action is to demote back to shadow until we re-fit.
+
+**Blocker:** needs ~50 resolved nba_props bets post-calibration (achievable in 2 weeks of NBA play).
+
+### MODEL-15 NBA props v2 — career-mean prior + shot-type variance [P3]
+**Files:** new model code in `evmax/clients/`, new training script in `scripts/`
+
+**Context.** Path B was tested and closed as a partial negative — days-rest signal didn't move Brier (load-management masking + per-36 absorption). But two other v2 ideas remain unbuilt:
+
+1. **Career-mean prior** — blend in a player's prior-4-season per-stat mean to stabilize early-season L15 noise. Helps rookies (no career data → falls back to L15) and age-30+ vets (career mean is more stable than recent L15). Blocked when first attempted because nba_api rate-limited the bulk season pulls. Recoverable with chunked retry logic + exponential backoff. The fetch script (`scripts/fetch_nba_game_logs.py`) already supports 2020-21 through 2024-25.
+2. **Shot-type variance from shufinskiy shotdetail** — categorize shots into types (catch-and-shoot 3, pullup 3, paint, mid-range, FT trips), compute per-type rates per player, project total points more precisely than a simple Normal-CDF. Would only affect PTS / FG3M (2 of 9 stats) but those are the most-bet stats. Data is already on disk (`data/historical_nba/shotdetail_*.csv`); the work is the modeling itself.
+
+**Why P3 and not P2:** Path A delivered the actual fix that warranted the live promotion. v2 features are incremental on top. Pursue when (a) there's specific evidence Path A is leaving systematic edges on the table, OR (b) we have a quiet stretch and want to push Brier under 0.18.
+
+**Blocker for career-mean:** needs nba_api rate-limit handling. ~2 hours of retry-loop engineering.
+**Blocker for shot-type variance:** none — data is local. ~3-4 days of focused modelling.
+
+### MODEL-16 Refit NBA props isotonic with opp_adj backfilled [P3]
+**File:** `scripts/calibrate_nba_props.py`, new team-stats backfill script
+
+**Context.** The Path A calibration was fitted on a row set that did NOT include opp_adj because we don't have backfilled team defensive stats per game date. In production, opp_adj is applied between volatility shrinkage and isotonic — meaning isotonic operates on a slightly different distribution than what was fitted on. Opp_adj is bounded at ±15% so the drift is bounded, but the calibration would be tighter if we re-fit with opp_adj included.
+
+**Plan:** Pull point-in-time team defensive stats from `nba_api.LeagueDashTeamStats` for each game date in the 2024-25 holdout, compute opp_adj per (player, game), include it in the intermediates parquet, re-grid-search constants and re-fit isotonic. Replace `data/models/nba_props_calibration.json`. Same harness, more accurate fit.
+
+**Expected gain:** ~0.001-0.003 additional Brier improvement and slightly better per-bucket calibration. Modest.
+
+**Blocker:** ~half-day of work plus the nba_api rate-limit dance.
 
 ---
 
@@ -638,6 +688,7 @@ Solved by reading Kalshi's `event.product_metadata.competition` field instead of
 | P1 | ARCH-11 Category mode config (live/shadow/disabled) | Prerequisite to MODEL-9 and general capability across all sectors |
 | P1 | MODEL-9 NFL prop shadow validation | Blocks Stage 5 live betting; distinguishes real edge from backtest leakage |
 | P1 | MODEL-11 WNBA shadow validation + promote to live | Blocks 2026 WNBA live betting; walk-forward passes but needs live-price confirmation |
+| P1 | MODEL-14 NBA props post-calibration validation | Just landed — need 2-3 wks of live data to confirm Path A behaviour holds |
 | P1 | PROPS-1 NFL props backend | Merged into MODEL-9 (kalshi.py typo fix ships with the shadow PR) |
 | P2 | MODEL-2 NCAAW/NHL Elo calibration | Uncalibrated K + home adv (WNBA now calibrated) |
 | P2 | MODEL-6 Tennis indoor court modifier | Waits on live indoor-event data; `is_indoor` seam already in MODEL-1 |
@@ -652,9 +703,46 @@ Solved by reading Kalshi's `event.product_metadata.competition` field instead of
 | P3 | MODEL-4 Poisson EWMA | Long-term staleness |
 | P3 | MODEL-7 Non-QB NFL prop features | Downstream of MODEL-9 — usage decomposition + Vegas totals + position-aware defense |
 | P3 | MODEL-12 Port shot_quality/matchup to WNBA | ~0.005 Brier close-out; defer until post-MODEL-11 validation. |
+| P3 | MODEL-15 NBA props v2 features | Career-mean prior + shot-type variance. Days-rest tested, doesn't help. |
+| P3 | MODEL-16 Refit NBA props calibration with opp_adj | Modest gain (~0.002 Brier); needs team-stat backfill |
 | P3 | ARCH-9 Resurrect TheOddsAPI as paid fallback | Alternative to ARCH-10; pay-to-resilience path |
 | P3 | ARCH-10 Authenticated ps3838 API | Long-term alternative to guest tier; requires real Pinnacle account |
 | P3 | All other ARCH-* (1–6) | Skipped for now |
+
+---
+
+## What needs to occur now (April 25, 2026)
+
+The active list — ordered by deadline / blocker.
+
+### Now → next 2 weeks (NBA props live + WNBA opener prep)
+
+1. **Watch NBA props perform post-calibration.** The Path A change is live. Each daily scan should be producing fewer false-high-confidence +EV signals (the 65%-was-actually-82% pathology is gone). Run `evmax cleanup show --sector nba_props --days 7` after a week of plays — the implied probabilities on flagged bets should now cluster more around true win rates. If you see a calibration regression, demote `nba_props` back to `shadow` in `data/categories.yaml` and we re-fit. This is **MODEL-14** — gates on having ~50 resolved bets, achievable in 2 weeks of play.
+2. **Stop running** `scripts/fetch_nba_game_logs.py` for prior seasons. nba_api is rate-limiting; recovering that needs proper backoff which is P3. Career-mean prior is closed-tabled until then.
+3. **WNBA opener prep — verify the Elo state holds**. We applied the offseason regression on Apr 23. If any major roster moves happened since (notable signings, injuries that materially change a team), rerun `python scripts/wnba_offseason_regress.py --dry-run` after editing `data/models/wnba_2026_offseason.yaml` to confirm the picture. Otherwise no action.
+4. **WNBA seed refresh once opening night happens (May 16).** Rerun `python scripts/seed_wnba_efficiency.py --year 2026` after Day 1, then weekly. Without this the agent's predictions stay frozen at 2025 stats.
+
+### May 16 onward (WNBA shadow validation)
+
+5. **Watch WNBA in shadow.** Same drill as MODEL-9 for NFL props. Aim for ≥ 200 shadow bets across ≥ 3 distinct weeks. Then `evmax cleanup shadow metrics --days 30 --category wnba` and check the gate criteria in MODEL-11.
+6. **Promote WNBA to live** via `evmax cleanup shadow promote wnba` once it passes the gate.
+
+### Nothing happening here for a while
+
+- **NFL props** — season starts Sept 2026. MODEL-9 work is queued for then.
+- **NBA games** — already live, no action needed.
+- **Tennis** — live. Stable.
+- **Soccer / NHL / NCAAB** — live, stable.
+- **NCAAW** — live but Elo not calibrated (MODEL-2). Low priority.
+
+### What's NOT actionable right now
+
+These are tracked but waiting on something:
+- MODEL-15 (career-mean prior) — wait for nba_api rate-limit cooldown or write the retry loop.
+- MODEL-12 (WNBA shot_quality / matchup) — defer until post-MODEL-11 validation.
+- MODEL-13 (WNBA player_impact) — needs data-source decision, can wait until 2026 season has 30 games of injury data.
+- MODEL-16 (refit calibration with opp_adj) — modest gain, can wait.
+- ARCH-8 (Pinnacle maintenance handling) — only acutely needed during the next outage. File-and-wait.
 
 ---
 
