@@ -30,6 +30,7 @@ logger = structlog.get_logger(__name__)
 
 _CACHE_PATH = Path(__file__).resolve().parents[2] / "data" / "nba_props_cache.json"
 _CACHE_TTL = 8 * 3600  # 8 hours — refresh once per day is fine
+_CALIBRATION_PATH = Path(__file__).resolve().parents[2] / "data" / "models" / "nba_props_calibration.json"
 
 # Model params (match nba_stats.py)
 _LAST_N_GAMES = 15
@@ -40,6 +41,57 @@ _MAX_OPP_ADJ = 0.15
 # Stat column mapping
 _MIN_VOL_THRESHOLD = 1.5  # flag games with minutes > mean ± 1.5σ
 _VOL_DOWNWEIGHT = 0.25     # volatile games get 25% of their normal weight
+
+# Calibration loaded once on first prop computation. The JSON is fitted by
+# scripts/calibrate_nba_props.py against the 2024-25 holdout — see Path A
+# of TODO #24. When absent, we fall back to the original hand-tuned constants.
+_calibration: dict | None = None
+_calibration_loaded = False
+
+
+def _load_calibration() -> dict | None:
+    """Load fitted calibration once and cache. Returns None if missing/broken."""
+    global _calibration, _calibration_loaded
+    if _calibration_loaded:
+        return _calibration
+    _calibration_loaded = True
+    if not _CALIBRATION_PATH.exists():
+        return None
+    try:
+        _calibration = json.loads(_CALIBRATION_PATH.read_text())
+    except Exception as exc:
+        logger.warning("nba_props_calibration_load_failed", error=str(exc))
+        _calibration = None
+    return _calibration
+
+
+def _apply_isotonic(prob: float, x_thresh: list[float], y_thresh: list[float]) -> float:
+    """Piecewise-linear interpolation through the isotonic regression fit.
+
+    Replicates `sklearn.IsotonicRegression.predict([prob])` without dragging
+    in a sklearn import at scan time. Out-of-bounds clipping matches the
+    calibrator's `out_of_bounds="clip"` setting.
+    """
+    if not x_thresh or not y_thresh:
+        return prob
+    if prob <= x_thresh[0]:
+        return y_thresh[0]
+    if prob >= x_thresh[-1]:
+        return y_thresh[-1]
+    # Binary search for the segment
+    lo, hi = 0, len(x_thresh) - 1
+    while lo < hi - 1:
+        mid = (lo + hi) // 2
+        if x_thresh[mid] <= prob:
+            lo = mid
+        else:
+            hi = mid
+    x0, x1 = x_thresh[lo], x_thresh[hi]
+    y0, y1 = y_thresh[lo], y_thresh[hi]
+    if x1 == x0:
+        return y0
+    t = (prob - x0) / (x1 - x0)
+    return y0 + t * (y1 - y0)
 
 
 @dataclass
@@ -488,8 +540,20 @@ def compute_prop_prob_cached(
     # and shrink toward the empirical Kalshi base rate (~0.40).
     # ------------------------------------------------------------------
 
-    # 40/60 model/empirical — empirical is the stronger anchor
-    blended_prob = 0.40 * model_prob + 0.60 * weighted_hit_rate
+    # Calibration loaded from data/models/nba_props_calibration.json (fitted
+    # via scripts/calibrate_nba_props.py against 2024-25 holdout). When the
+    # file is present, its base_rate / shrinkage / blend_model override the
+    # legacy hand-tuned values, and an isotonic post-hoc layer applies at
+    # the very end. When absent, we fall back to the original constants.
+    cal = _load_calibration()
+    if cal is not None:
+        blend_model = cal.get("blend_model", 0.40)
+        base_rate = cal.get("base_rate", 0.40)
+        shrinkage = cal.get("shrinkage", 0.20)
+    else:
+        blend_model, base_rate, shrinkage = 0.40, 0.40, 0.20
+
+    blended_prob = blend_model * model_prob + (1 - blend_model) * weighted_hit_rate
 
     # Margin adjustment: conservative — +0.3% per point, capped ±3%
     margin_adj = np.clip(avg_margin * 0.003, -0.03, 0.03)
@@ -504,14 +568,9 @@ def compute_prop_prob_cached(
         streak_adj = 0.0
     blended_prob += streak_adj
 
-    # Shrink toward the empirical Kalshi over base rate (~0.40).
-    # The market-wide over hit rate is ~37%, but some of that is driven
-    # by extreme mispricing at 80-95c.  Use 0.40 as a conservative anchor.
-    # Shrinkage = 20% — strong enough to pull 80% down to 72%, mild enough
-    # that genuine 60% stays at 56%.
-    _BASE_RATE = 0.40
-    _SHRINKAGE = 0.20
-    blended_prob = blended_prob * (1 - _SHRINKAGE) + _BASE_RATE * _SHRINKAGE
+    # Shrink toward base rate. With the fitted calibration, shrinkage=0 and
+    # the isotonic layer below handles the actual probability adjustment.
+    blended_prob = blended_prob * (1 - shrinkage) + base_rate * shrinkage
 
     # ------------------------------------------------------------------
     # Opponent defensive adjustment
@@ -546,6 +605,16 @@ def compute_prop_prob_cached(
         _VOL_BASE = 0.25
         _VOL_SHRINK = 0.40
         prob = prob * (1 - _VOL_SHRINK) + _VOL_BASE * _VOL_SHRINK
+
+    # Isotonic post-hoc calibration. Fitted on 2024-25 train half, validated
+    # on test half — fixes the systematic +13pp under-prediction in the
+    # 50-70% bucket that the hand-tuned shrinkage was masking. When the
+    # calibration file is absent, this is a no-op.
+    if cal is not None:
+        x_thresh = cal.get("isotonic_x_thresholds") or []
+        y_thresh = cal.get("isotonic_y_thresholds") or []
+        if x_thresh and y_thresh:
+            prob = _apply_isotonic(prob, x_thresh, y_thresh)
 
     prob = max(0.01, min(0.99, prob))
 
