@@ -33,6 +33,7 @@ dependencies = [
     "fastapi>=0.135.3",
     "uvicorn>=0.44.0",
     "jinja2>=3.1.6",
+    "pyarrow>=15.0",
 ]
 
 [project.scripts]
