@@ -888,11 +888,17 @@ class EVGapAgent(Agent):
             return None
 
         # Opponent name = whichever sharp outcome the YES side did NOT cover.
+        # Normalize to the canonical short form (e.g. "Cleveland Cavaliers"
+        # → "cavaliers") so it matches how YES-side rows store yes_team
+        # (parsed from the Kalshi ticker via the same NameNormalizer).
         opp_label = (
             sharp.outcome_a_label if blend_payload["yes_is_outcome_b"]
             else sharp.outcome_b_label
         )
-        opp_team = (opp_label or "?").lower().strip() or "?"
+        from evmax.matching.normalizer import NameNormalizer
+        opp_team = NameNormalizer(sector).normalize(opp_label or "") or (
+            (opp_label or "?").lower().strip() or "?"
+        )
 
         payout = 1.0 / no_ask
         kelly = compute_kelly(

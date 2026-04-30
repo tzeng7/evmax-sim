@@ -1572,3 +1572,93 @@ class TestWnbaSpreadPath:
         assert "KXWNBAGAME" in wnba_series
         assert "KXWNBASPREAD" in wnba_series
         assert "KXWNBATOTAL" in wnba_series
+
+
+# ---------------------------------------------------------------------------
+# Web display_label_for_row — parallel to EVGap.display_label, used by the
+# dashboard / API for DB-backed rows. Must keep the same +/- spread sign
+# convention so NO-side rows render as "Cavaliers +9.5", not "Cavaliers 9.5".
+# ---------------------------------------------------------------------------
+
+class TestWebDisplayLabelForRow:
+    def test_positive_spread_renders_with_plus(self):
+        from evmax.web.app import _display_label_for_row
+        row = {"market_type": "spread", "yes_team": "cavaliers", "line": 9.5}
+        assert _display_label_for_row(row) == "Cavaliers +9.5"
+
+    def test_negative_spread_renders_without_plus(self):
+        from evmax.web.app import _display_label_for_row
+        row = {"market_type": "spread", "yes_team": "pistons", "line": -7.5}
+        assert _display_label_for_row(row) == "Pistons -7.5"
+
+    def test_moneyline_unchanged(self):
+        from evmax.web.app import _display_label_for_row
+        row = {"market_type": "moneyline", "yes_team": "lakers"}
+        assert _display_label_for_row(row) == "Lakers ML"
+
+    def test_total_unchanged(self):
+        from evmax.web.app import _display_label_for_row
+        row = {"market_type": "total", "yes_team": "over", "line": 220.5}
+        assert _display_label_for_row(row) == "O/U 220.5"
+
+    def test_invalid_line_string_falls_back(self):
+        from evmax.web.app import _display_label_for_row
+        # Ensure the new try/except still falls back gracefully on bad input.
+        row = {"market_type": "spread", "yes_team": "lakers", "line": "garbage"}
+        assert _display_label_for_row(row) == "Lakers garbage"
+
+
+class TestNoSideOpponentNameNormalized:
+    """The NO-side spread builder used to store the FULL Pinnacle outcome label
+    as yes_team (e.g. "cleveland cavaliers"), so the dashboard rendered
+    "Cleveland cavaliers +9.5". YES-side rows store the canonical short
+    name ("cavaliers") via NameNormalizer, so NO-side should match.
+    """
+
+    def setup_method(self):
+        self.agent = _make_ev_gap_agent()
+
+    def test_no_side_yes_team_uses_canonical_short_name(self):
+        """Even when sharp.outcome_a_label is the full Pinnacle name,
+        the NO-side gap should store the alias-normalized short form."""
+        from evmax.agents.base import AgentRequest
+        from unittest.mock import patch
+        import asyncio
+
+        # YES = pistons (favorite), pinnacle has full names. Force a
+        # high YES price so NO becomes +EV and the NO gap surfaces.
+        market = _market(
+            team_home="pistons", team_away="warriors",
+            yes_price=0.65, no_price=0.36,
+            yes_team="pistons",
+            market_type=MarketType.spread,
+            line=-7.5,
+            sector="nba",
+        )
+        sharp = _spread_sharp(
+            event_id="nba::2026-03-21::pistons_vs_warriors::spread",
+            outcome_a="Detroit Pistons",   # full name as Pinnacle returns
+            outcome_b="Golden State Warriors",
+            spread_line=-7.5,
+            true_prob_a=0.55,
+        )
+
+        with patch.object(
+            self.agent._matching, "match_all",
+            return_value=[(market, sharp, 95.0)],
+        ):
+            req = AgentRequest(
+                sector="nba",
+                params={"kalshi_markets": [market], "sharp_odds": [sharp]},
+            )
+            resp = asyncio.run(self.agent(req))
+
+        no_gaps = [g for g in resp.data if g.market_id.endswith(":no")]
+        if no_gaps:
+            ng = no_gaps[0]
+            # Opponent of pistons (YES favorite) is warriors.
+            # Must NOT be the long form "golden state warriors".
+            assert "golden state" not in ng.yes_team, (
+                f"Expected canonical short name, got long form: '{ng.yes_team}'"
+            )
+            assert "warriors" in ng.yes_team

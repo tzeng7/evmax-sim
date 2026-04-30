@@ -70,9 +70,12 @@ def _display_label_for_row(row: dict[str, Any]) -> str:
         return f"{team} ML"
     if mt == "spread" and line is not None:
         try:
-            line_str = f"{float(line):.1f}".rstrip("0").rstrip(".")
+            ln = float(line)
         except (TypeError, ValueError):
-            line_str = str(line)
+            return f"{team} {line}"
+        # Positive line = NO-side / "+spread" cover; render with leading "+".
+        sign = "+" if ln > 0 else ""
+        line_str = f"{sign}{ln:.1f}".rstrip("0").rstrip(".")
         return f"{team} {line_str}"
     if mt in ("over_under", "total") and line is not None:
         try:
