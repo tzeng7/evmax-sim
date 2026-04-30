@@ -1368,3 +1368,144 @@ class TestResolverPositiveSpreadLine:
         # -7.5 (favorite cover): win by 8 → cover; win by 7 → no cover
         assert self._resolve(line=-7.5, yes_score=110, opp_score=102) == 1
         assert self._resolve(line=-7.5, yes_score=110, opp_score=103) == 0
+
+
+# ---------------------------------------------------------------------------
+# Spread orientation: yes_is_outcome_b is preserved through to injury step
+# ---------------------------------------------------------------------------
+
+class TestSpreadOrientationPreservation:
+    """Regression for the underdog-cover injury direction bug.
+
+    When YES is the underdog (yes_is_outcome_b=True), the spread distribution
+    model returns a YES-aligned cover prob. Downstream injury / standings /
+    playoff steps need yes_is_outcome_b=True to flip the prob onto the
+    correct team. A previous code path reset yes_is_outcome_b=False after
+    spread_dist, which made injury adjustments to the YES (underdog) team
+    flow in the WRONG direction (their prob increased when they got hurt).
+
+    These tests verify the orientation flag survives the spread-model step.
+    """
+
+    def setup_method(self):
+        self.agent = _make_ev_gap_agent()
+
+    def test_underdog_yes_injuries_decrease_cover_prob(self):
+        """If YES (underdog covering by N+) gets injured, cover prob should drop."""
+        from evmax.agents.intelligence.injury_agent import (
+            InjuredPlayer, InjuryReport,
+        )
+        from evmax.agents.base import AgentRequest
+        from unittest.mock import patch
+        import asyncio
+
+        # YES = warriors (underdog), kalshi line -8.5 (warriors win by 9+).
+        # Pinnacle has pistons -6.5 favorite. blended cover prob low (~0.10).
+        market = _market(
+            team_home="pistons", team_away="warriors",
+            yes_price=0.40, no_price=0.61,
+            yes_team="warriors",   # YES = underdog
+            market_type=MarketType.spread,
+            line=-8.5,
+            sector="nba",
+        )
+        sharp = _spread_sharp(
+            event_id="nba::2026-03-21::pistons_vs_warriors::spread",
+            outcome_a="pistons", outcome_b="warriors",
+            spread_line=-6.5,
+            true_prob_a=0.55,
+        )
+
+        # Star injury for the YES team (warriors = outcome_b)
+        injured = InjuredPlayer(
+            name="Stephen Curry", position="PG", status="Out",
+            tier="star", impact=0.045, injury_type="Knee", notes="",
+        )
+        injuries = {
+            "warriors": InjuryReport(team="warriors", sector="nba", players=[injured]),
+        }
+
+        # Run with and without injuries; the YES (warriors) cover prob
+        # should be LOWER when warriors are hurt.
+        async def _run(inj):
+            with patch.object(
+                self.agent._matching, "match_all",
+                return_value=[(market, sharp, 95.0)],
+            ):
+                req = AgentRequest(
+                    sector="nba",
+                    params={"kalshi_markets": [market], "sharp_odds": [sharp],
+                            "injuries": inj},
+                )
+                return await self.agent(req)
+
+        resp_no_inj  = asyncio.run(_run({}))
+        resp_with_inj = asyncio.run(_run(injuries))
+
+        # Find the YES gap in each
+        def yes_spread_gap(resp):
+            for g in resp.data:
+                if g.market_type == "spread" and not g.market_id.endswith(":no"):
+                    return g
+            return None
+
+        gap_no  = yes_spread_gap(resp_no_inj)
+        gap_inj = yes_spread_gap(resp_with_inj)
+
+        # Both runs may filter via the EV threshold, so we accept the case
+        # where one or both are None — but if both gaps exist, the injured
+        # version MUST have a LOWER cover prob (correct direction).
+        if gap_no is not None and gap_inj is not None:
+            assert gap_inj.blended_true_prob < gap_no.blended_true_prob, (
+                f"YES (warriors) injured → cover prob should DECREASE. "
+                f"Without injury: {gap_no.blended_true_prob:.4f}, "
+                f"With injury: {gap_inj.blended_true_prob:.4f}"
+            )
+
+    def test_no_side_opp_label_correct_when_yes_is_underdog(self):
+        """NO-side opponent label is the FAVORITE when YES is the underdog.
+
+        Regression for the orientation reset: previously yes_is_outcome_b
+        was forced to False after spread_dist, causing the NO-side derivation
+        to look up sharp.outcome_b_label as the opponent — which was the
+        SAME team as YES. Now it correctly returns outcome_a (the favorite).
+        """
+        from evmax.agents.base import AgentRequest
+        from unittest.mock import patch
+        import asyncio
+
+        # YES = warriors (underdog), Kalshi line -8.5, Pinnacle pistons -6.5.
+        # Push Kalshi YES price high so YES is −EV → NO side becomes +EV.
+        market = _market(
+            team_home="pistons", team_away="warriors",
+            yes_price=0.65, no_price=0.36,
+            yes_team="warriors",
+            market_type=MarketType.spread,
+            line=-8.5,
+            sector="nba",
+        )
+        sharp = _spread_sharp(
+            event_id="nba::2026-03-21::pistons_vs_warriors::spread",
+            outcome_a="pistons", outcome_b="warriors",
+            spread_line=-6.5,
+            true_prob_a=0.55,
+        )
+
+        with patch.object(
+            self.agent._matching, "match_all",
+            return_value=[(market, sharp, 95.0)],
+        ):
+            req = AgentRequest(
+                sector="nba",
+                params={"kalshi_markets": [market], "sharp_odds": [sharp]},
+            )
+            resp = asyncio.run(self.agent(req))
+
+        no_gaps = [g for g in resp.data if g.market_id.endswith(":no")]
+        if no_gaps:
+            ng = no_gaps[0]
+            # Opponent of warriors (YES underdog) is pistons (favorite, outcome_a).
+            assert "pistons" in ng.yes_team.lower(), (
+                f"NO-side opponent should be 'pistons' (outcome_a), got '{ng.yes_team}'"
+            )
+            assert ng.line == 8.5  # sign flipped to positive

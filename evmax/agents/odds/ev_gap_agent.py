@@ -569,9 +569,17 @@ class EVGapAgent(Agent):
                         sharp_true_prob = (1.0 - sim_weight) * sharp_true_prob + sim_weight * sim_prob
                         used_spread_model = True
 
-                # Spread model returned a YES-aligned prob; reset so downstream
-                # blend / injury / standings / playoff steps don't double-swap.
-                yes_is_outcome_b = False
+                # Do NOT reset yes_is_outcome_b here. sharp_true_prob is now
+                # the YES-side cover prob (already aligned). Step 3 (model
+                # blend) is guarded by skip_blend=True for spreads, so no
+                # double-swap risk. Steps 4–4c (injury / standings / playoff)
+                # do their own orientation flip via:
+                #   true_prob_a = blended_prob if not yes_is_outcome_b else 1 - blended_prob
+                # which only puts the YES cover prob on the right team if
+                # yes_is_outcome_b reflects the actual alignment. Forcing it
+                # to False here previously caused underdog-cover injury
+                # adjustments to flow in the WRONG direction (e.g., PHI
+                # injured → P(PHI covers) went UP).
             else:
                 # Spread distribution model bailed (line too far) — blend is
                 # unreliable for both YES and NO. Skip the NO-side too.
