@@ -165,9 +165,66 @@ def _detect_steam(
     return steam
 
 
+def _base_event(event_id: str) -> str:
+    """Strip ::spread / ::total / etc. suffixes so ML + spread + total share a budget.
+
+    Prop events: "nba::2026-03-24::prop::player::stat::line" → group by player
+    Game events: "nba::2026-03-24::team_vs_team[::spread|total|...]" → group by matchup
+    """
+    parts = event_id.split("::")
+    if len(parts) > 3 and parts[2] == "prop":
+        return "::".join(parts[:4])
+    return "::".join(parts[:3])
+
+
+def _load_placed_exposure() -> dict[str, float]:
+    """Sum kelly_fraction of already-placed un-resolved live bets per base event.
+
+    Lets the exposure guard respect bets the user placed in EARLIER scans
+    today. Without this, repeated scans on the same game day can stack
+    multiple new bets on top of existing placements and silently breach
+    the 8% per-game cap.
+
+    Includes only:
+      - placed = 1     (user confirmed bet placement, not just flagged)
+      - voided = 0
+      - mode = 'live'  (shadow bets don't touch bankroll)
+      - outcome IS NULL (un-resolved — settled bets aren't active exposure)
+    """
+    try:
+        from evmax.agents.cleanup.db import get_connection
+
+        with get_connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT p.event_id, p.kelly_fraction
+                FROM ev_predictions p
+                LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
+                WHERE p.placed = 1
+                  AND p.voided = 0
+                  AND p.mode = 'live'
+                  AND (o.outcome IS NULL OR o.id IS NULL)
+                """
+            ).fetchall()
+    except Exception as e:
+        logger.warning("placed_exposure_load_failed", error=str(e))
+        return {}
+
+    exposure: dict[str, float] = {}
+    for r in rows:
+        eid = r["event_id"] if isinstance(r, dict) else r[0]
+        kf = r["kelly_fraction"] if isinstance(r, dict) else r[1]
+        if not eid:
+            continue
+        base = _base_event(eid)
+        exposure[base] = exposure.get(base, 0.0) + float(kf or 0.0)
+    return exposure
+
+
 def _apply_exposure_guard(
     gaps: list[EVGap],
     max_event_exposure: float = 0.08,
+    prior_exposure: dict[str, float] | None = None,
 ) -> list[EVGap]:
     """Cap total Kelly allocation per game to max_event_exposure (default 8%).
 
@@ -175,20 +232,24 @@ def _apply_exposure_guard(
     correlated — betting all at full Kelly compounds risk beyond the intended
     exposure. Best plays (by EV) consume budget first; lower-EV plays are
     scaled down or dropped when the cap is hit.
-    """
-    # Budget per base event (strip ::spread / ::total / ::spread::... suffixes)
-    def _base_event(event_id: str) -> str:
-        parts = event_id.split("::")
-        # Prop events: "nba::2026-03-24::prop::player::stat::line"
-        # Group by player (first 4 parts) so each player has its own budget
-        if len(parts) > 3 and parts[2] == "prop":
-            return "::".join(parts[:4])
-        # Game events: "nba::2026-03-24::team_vs_team[::spread|total|...]"
-        # Keep sector::date::matchup (first 3 parts)
-        return "::".join(parts[:3])
 
-    event_budget: dict[str, float] = {}
+    prior_exposure: per-base-event Kelly fractions already committed in
+      earlier scans today (placed un-resolved bets). When supplied, the
+      remaining budget for each game starts at (cap - prior), so a 4%
+      bet placed this morning leaves only 4% for new bets this afternoon.
+    """
+    event_budget: dict[str, float] = dict(prior_exposure or {})
     guarded: list[EVGap] = []
+
+    for base, used in event_budget.items():
+        if used > 0:
+            logger.debug(
+                "exposure_carried_over",
+                base_event=base,
+                used=round(used, 4),
+                cap=max_event_exposure,
+                remaining=round(max(0.0, max_event_exposure - used), 4),
+            )
 
     for gap in sorted(gaps, key=lambda g: g.ev_pct, reverse=True):
         base = _base_event(gap.event_id)
@@ -371,7 +432,20 @@ class AgentCoordinator:
             result.prop_sharp_pairs.extend(sr.get("prop_sharp_pairs", []))
 
         pre_guard = len(result.ev_gaps)
-        result.ev_gaps = _apply_exposure_guard(result.ev_gaps)
+        # Load Kelly fractions from bets the user already placed in earlier
+        # scans today so the per-game cap is cumulative across scans, not
+        # per-scan. A 4% morning placement leaves only 4% for new bets in
+        # the afternoon scan on the same game.
+        prior_exposure = _load_placed_exposure()
+        if prior_exposure:
+            self.log.info(
+                "exposure_prior_loaded",
+                games_with_prior=len(prior_exposure),
+                total_prior=round(sum(prior_exposure.values()), 4),
+            )
+        result.ev_gaps = _apply_exposure_guard(
+            result.ev_gaps, prior_exposure=prior_exposure,
+        )
         dropped = pre_guard - len(result.ev_gaps)
         if dropped > 0:
             self.log.info("exposure_guard_applied", dropped=dropped, remaining=len(result.ev_gaps))
