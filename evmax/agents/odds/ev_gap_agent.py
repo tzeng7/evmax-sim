@@ -550,10 +550,15 @@ class EVGapAgent(Agent):
             )
             if spread_result is not None:
                 sharp_true_prob = spread_result.true_prob
-                yes_is_outcome_b = False
                 used_spread_model = True
 
-                # Blend with PossessionSim margin distribution for NBA
+                # Blend with PossessionSim margin distribution for NBA. The
+                # possession sim's `cover_probability` is computed from the
+                # raw outcome_a-perspective margin distribution; we MUST pass
+                # the original `yes_is_outcome_b` so it flips correctly when
+                # YES is the underdog. (Earlier this read the post-reset
+                # value `False`, which silently fed the favorite's cover
+                # prob into underdog-cover spreads — inflating EVs by 30+pp.)
                 sim = getattr(self, "_possession_sim", None)
                 if sim is not None and sector == "nba":
                     sim_prob = sim.cover_probability(
@@ -563,6 +568,10 @@ class EVGapAgent(Agent):
                         sim_weight = 0.35
                         sharp_true_prob = (1.0 - sim_weight) * sharp_true_prob + sim_weight * sim_prob
                         used_spread_model = True
+
+                # Spread model returned a YES-aligned prob; reset so downstream
+                # blend / injury / standings / playoff steps don't double-swap.
+                yes_is_outcome_b = False
             else:
                 # Spread distribution model bailed (line too far) — blend is
                 # unreliable for both YES and NO. Skip the NO-side too.
