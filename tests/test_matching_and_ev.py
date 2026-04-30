@@ -1390,8 +1390,16 @@ class TestSpreadOrientationPreservation:
     def setup_method(self):
         self.agent = _make_ev_gap_agent()
 
-    def test_underdog_yes_injuries_decrease_cover_prob(self):
-        """If YES (underdog covering by N+) gets injured, cover prob should drop."""
+    def test_spread_injury_layer_skipped(self):
+        """Path B: spread bets bypass the injury adjustment entirely.
+
+        Pinnacle's spread line already prices known injuries (sharp book,
+        insider networks). Adding ESPN-derived shifts on top double-counts
+        the signal AND uses moneyline-shaped impact on a tail probability.
+        This test asserts that adding injuries does NOT change the spread
+        blended_prob — a regression in either direction (decrease OR
+        increase) signals the layer crept back in.
+        """
         from evmax.agents.intelligence.injury_agent import (
             InjuredPlayer, InjuryReport,
         )
@@ -1399,12 +1407,10 @@ class TestSpreadOrientationPreservation:
         from unittest.mock import patch
         import asyncio
 
-        # YES = warriors (underdog), kalshi line -8.5 (warriors win by 9+).
-        # Pinnacle has pistons -6.5 favorite. blended cover prob low (~0.10).
         market = _market(
             team_home="pistons", team_away="warriors",
             yes_price=0.40, no_price=0.61,
-            yes_team="warriors",   # YES = underdog
+            yes_team="warriors",
             market_type=MarketType.spread,
             line=-8.5,
             sector="nba",
@@ -1416,7 +1422,6 @@ class TestSpreadOrientationPreservation:
             true_prob_a=0.55,
         )
 
-        # Star injury for the YES team (warriors = outcome_b)
         injured = InjuredPlayer(
             name="Stephen Curry", position="PG", status="Out",
             tier="star", impact=0.045, injury_type="Knee", notes="",
@@ -1425,8 +1430,6 @@ class TestSpreadOrientationPreservation:
             "warriors": InjuryReport(team="warriors", sector="nba", players=[injured]),
         }
 
-        # Run with and without injuries; the YES (warriors) cover prob
-        # should be LOWER when warriors are hurt.
         async def _run(inj):
             with patch.object(
                 self.agent._matching, "match_all",
@@ -1442,7 +1445,6 @@ class TestSpreadOrientationPreservation:
         resp_no_inj  = asyncio.run(_run({}))
         resp_with_inj = asyncio.run(_run(injuries))
 
-        # Find the YES gap in each
         def yes_spread_gap(resp):
             for g in resp.data:
                 if g.market_type == "spread" and not g.market_id.endswith(":no"):
@@ -1452,14 +1454,17 @@ class TestSpreadOrientationPreservation:
         gap_no  = yes_spread_gap(resp_no_inj)
         gap_inj = yes_spread_gap(resp_with_inj)
 
-        # Both runs may filter via the EV threshold, so we accept the case
-        # where one or both are None — but if both gaps exist, the injured
-        # version MUST have a LOWER cover prob (correct direction).
+        # If either filtered out via threshold, can't compare — accept that.
         if gap_no is not None and gap_inj is not None:
-            assert gap_inj.blended_true_prob < gap_no.blended_true_prob, (
-                f"YES (warriors) injured → cover prob should DECREASE. "
-                f"Without injury: {gap_no.blended_true_prob:.4f}, "
-                f"With injury: {gap_inj.blended_true_prob:.4f}"
+            assert gap_inj.blended_true_prob == pytest.approx(
+                gap_no.blended_true_prob, abs=1e-6
+            ), (
+                "Path B: spread injury layer must be skipped, but blended_prob "
+                f"changed: {gap_no.blended_true_prob:.6f} → {gap_inj.blended_true_prob:.6f}"
+            )
+            assert "+injury" not in gap_inj.model_sources, (
+                f"model_sources should not contain +injury for spread bets, "
+                f"got: {gap_inj.model_sources}"
             )
 
     def test_no_side_opp_label_correct_when_yes_is_underdog(self):

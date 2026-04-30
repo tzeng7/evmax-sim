@@ -673,9 +673,18 @@ class EVGapAgent(Agent):
                 src = "sharp(capped)"
 
         # ------------------------------------------------------------------
-        # Step 4: Injury adjustment — skip for totals (affects both teams equally)
+        # Step 4: Injury adjustment.
+        # Skipped for:
+        #   - totals: injury impact on team scoring is symmetric in O/U math
+        #   - spreads: Pinnacle's spread line already prices in known injuries
+        #     (sharp book, fast reaction, insider networks). Adding ESPN-derived
+        #     adjustments on top double-counts the signal AND uses moneyline-
+        #     shaped impact (zero-sum, cap ±10pp) on a tail probability where
+        #     the relationship is non-linear. See commit `__PATH_B__` for the
+        #     Cavaliers +9.5 case study where this layer drove EV from +1.3%
+        #     (real model edge) to phantom +12.9%.
         # ------------------------------------------------------------------
-        if injuries and not is_total:
+        if injuries and not is_total and not used_spread_model:
             from evmax.agents.intelligence.injury_agent import InjuryReportAgent
             team_a = (sharp.outcome_a_label or "").lower()
             team_b = (sharp.outcome_b_label or "").lower()
@@ -685,16 +694,19 @@ class EVGapAgent(Agent):
                 true_prob_b=blended_prob if yes_is_outcome_b else 1.0 - blended_prob,
                 team_a=team_a,
                 team_b=team_b,
-                spread_multiplier=2.0 if used_spread_model else 1.0,
+                # spread_multiplier=2.0 was redundant under the old guard
+                # (the line was always reached with used_spread_model True).
+                # With Path B it can never fire, so default 1.0 is fine.
             )
             if inj_notes:
                 blended_prob = new_b if yes_is_outcome_b else new_a
                 src = f"{src}+injury"
 
         # ------------------------------------------------------------------
-        # Step 4b: Standings / rest-risk adjustment
+        # Step 4b: Standings / rest-risk adjustment. Skipped for totals and
+        # spreads (Pinnacle's line prices rest/standings already).
         # ------------------------------------------------------------------
-        if standings and not is_total:
+        if standings and not is_total and not used_spread_model:
             from evmax.agents.intelligence.standings_agent import StandingsAgent
             team_a = (sharp.outcome_a_label or "").lower()
             team_b = (sharp.outcome_b_label or "").lower()
@@ -710,9 +722,13 @@ class EVGapAgent(Agent):
                 src = f"{src}+rest"
 
         # ------------------------------------------------------------------
-        # Step 4c: Playoff adjustment — series score, elimination, home court
+        # Step 4c: Playoff adjustment — series score, elimination, home court.
+        # Skipped for spreads (Pinnacle's spread line already prices in
+        # playoff context — series-trailing teams' urgency, home court, etc.).
+        # Still applies to totals (different shape — affects pace/scoring,
+        # not relative team strength).
         # ------------------------------------------------------------------
-        if playoff_data:
+        if playoff_data and not used_spread_model:
             from evmax.agents.intelligence.playoff_agent import PlayoffAgent
             team_a = (sharp.outcome_a_label or "").lower()
             team_b = (sharp.outcome_b_label or "").lower()
