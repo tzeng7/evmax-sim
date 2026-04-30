@@ -32,6 +32,7 @@ logger = structlog.get_logger(__name__)
 # Empirical standard deviations of total game score per sector
 _TOTAL_SIGMA: dict[str, float] = {
     "nba":      22.0,
+    "wnba":     16.0,    # WNBA totals avg ~155-165; lower variance than NBA
     "nfl":      14.0,
     "ncaab":    14.0,
     "soccer":   2.5,
@@ -44,6 +45,7 @@ _TOTAL_SIGMA: dict[str, float] = {
 # Game total floors: NBA ~170 (team props ~100-120), NCAAB ~110 (team props ~60-75).
 _GAME_TOTAL_FLOOR: dict[str, float] = {
     "nba":      170.0,
+    "wnba":     130.0,   # WNBA team scores ~75-85, game totals ~155+
     "nfl":       35.0,
     "ncaab":    110.0,
     "soccer":     1.5,

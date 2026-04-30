@@ -1509,3 +1509,66 @@ class TestSpreadOrientationPreservation:
                 f"NO-side opponent should be 'pistons' (outcome_a), got '{ng.yes_team}'"
             )
             assert ng.line == 8.5  # sign flipped to positive
+
+
+# ---------------------------------------------------------------------------
+# WNBA spread / total path
+# ---------------------------------------------------------------------------
+
+class TestWnbaSpreadPath:
+    """WNBA was previously moneyline-only. After wiring KXWNBASPREAD/
+    KXWNBATOTAL series + WNBA-specific sigmas + WNBA possession sim
+    dispatch, WNBA spread/total Kalshi tickers (when they appear) get the
+    same EV pipeline as NBA — with WNBA-tuned constants."""
+
+    def test_spread_distribution_uses_wnba_sigma(self):
+        from evmax.models_ml.spread_distribution import (
+            SpreadDistributionModel, _SECTOR_SIGMA,
+        )
+        # Sigma should be 12.5 (matches WNBAPossessionSimAgent SCORE_STDEV).
+        assert _SECTOR_SIGMA["wnba"] == 12.5
+        assert _SECTOR_SIGMA["wnba"] != _SECTOR_SIGMA["nba"]
+
+        sharp = _spread_sharp(
+            event_id="wnba::2026-06-01::aces_vs_liberty::spread",
+            outcome_a="aces", outcome_b="liberty",
+            spread_line=-4.5, true_prob_a=0.55,
+        )
+        result = SpreadDistributionModel().predict(
+            sharp_odds=sharp, target_line=-4.5,
+            sector="wnba", yes_is_underdog=False,
+        )
+        assert result is not None
+        assert result.sigma == 12.5
+
+    def test_total_distribution_uses_wnba_sigma(self):
+        from evmax.models_ml.total_distribution import _TOTAL_SIGMA, _GAME_TOTAL_FLOOR
+        assert _TOTAL_SIGMA["wnba"] == 16.0
+        assert _GAME_TOTAL_FLOOR["wnba"] == 130.0
+
+    def test_sim_dispatch_routes_wnba_to_wnba_sim(self):
+        """_sim_for_sector should pick the WNBA agent for sector=wnba."""
+        from unittest.mock import MagicMock
+        agent = _make_ev_gap_agent()
+        agent._possession_sim = MagicMock(name="nba_sim")
+        agent._wnba_possession_sim = MagicMock(name="wnba_sim")
+
+        assert agent._sim_for_sector("nba") is agent._possession_sim
+        assert agent._sim_for_sector("wnba") is agent._wnba_possession_sim
+        assert agent._sim_for_sector("nfl") is None
+        assert agent._sim_for_sector("") is None
+
+    def test_kalshi_parser_recognizes_wnba_spread_prefix(self):
+        """The is_spread prefix list must include KXWNBASPREAD so parser
+        sets MarketType.spread and _extract_spread_line runs."""
+        from evmax.clients.kalshi import KalshiClient
+        client = KalshiClient.__new__(KalshiClient)
+        line = client._extract_spread_line("KXWNBASPREAD-26MAY16NYLLVA-LVA4")
+        assert line == pytest.approx(-4.5)
+
+    def test_wnba_in_sector_series_map(self):
+        from evmax.clients.kalshi import SECTOR_SERIES_MAP
+        wnba_series = SECTOR_SERIES_MAP["wnba"]
+        assert "KXWNBAGAME" in wnba_series
+        assert "KXWNBASPREAD" in wnba_series
+        assert "KXWNBATOTAL" in wnba_series

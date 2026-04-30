@@ -174,6 +174,7 @@ class EVGapAgent(Agent):
         kelly_base: float = request.params.get("kelly_base_fraction", 0.25)
         steam_events: set[str] = request.params.get("steam_events", set())
         self._possession_sim = request.params.get("possession_sim_agent")
+        self._wnba_possession_sim = request.params.get("wnba_possession_sim_agent")
 
         self.log.info(
             "ev_gap_start",
@@ -256,6 +257,24 @@ class EVGapAgent(Agent):
             sector=sector,
             data=gaps,
         )
+
+    # ------------------------------------------------------------------
+    # Possession-sim dispatch
+    # ------------------------------------------------------------------
+
+    def _sim_for_sector(self, sector: str):
+        """Return the possession-sim agent for a given sector, or None.
+
+        NBA and WNBA each have their own possession-sim agent with
+        sector-tuned constants (HOME_EDGE_PTS, SCORE_STDEV, pace clip).
+        Other sectors don't have a sim integration and return None.
+        """
+        s = (sector or "").lower()
+        if s == "nba":
+            return getattr(self, "_possession_sim", None)
+        if s == "wnba":
+            return getattr(self, "_wnba_possession_sim", None)
+        return None
 
     # ------------------------------------------------------------------
     # Line velocity
@@ -552,15 +571,15 @@ class EVGapAgent(Agent):
                 sharp_true_prob = spread_result.true_prob
                 used_spread_model = True
 
-                # Blend with PossessionSim margin distribution for NBA. The
-                # possession sim's `cover_probability` is computed from the
-                # raw outcome_a-perspective margin distribution; we MUST pass
+                # Blend with PossessionSim margin distribution for NBA/WNBA.
+                # The sim's `cover_probability` is computed from the raw
+                # outcome_a-perspective margin distribution; we MUST pass
                 # the original `yes_is_outcome_b` so it flips correctly when
-                # YES is the underdog. (Earlier this read the post-reset
-                # value `False`, which silently fed the favorite's cover
-                # prob into underdog-cover spreads — inflating EVs by 30+pp.)
-                sim = getattr(self, "_possession_sim", None)
-                if sim is not None and sector == "nba":
+                # YES is the underdog. (Earlier a post-reset value of False
+                # silently fed the favorite's cover prob into underdog-cover
+                # spreads — inflating EVs by 30+pp.)
+                sim = self._sim_for_sector(sector)
+                if sim is not None:
                     sim_prob = sim.cover_probability(
                         sharp.event_id, market.line, yes_is_underdog=yes_is_outcome_b,
                     )
@@ -600,8 +619,8 @@ class EVGapAgent(Agent):
                 sharp_true_prob = total_result.true_prob
                 used_total_model = True
 
-                sim = getattr(self, "_possession_sim", None)
-                if sim is not None and sector == "nba":
+                sim = self._sim_for_sector(sector)
+                if sim is not None:
                     sim_prob = sim.total_probability(
                         sharp.event_id, market.line, is_over=not yes_is_under,
                     )
@@ -629,9 +648,9 @@ class EVGapAgent(Agent):
         else:
             blended_prob = sharp_true_prob
             if used_spread_model:
-                sim = getattr(self, "_possession_sim", None)
+                sim = self._sim_for_sector(sector)
                 has_sim = sim is not None and sharp.event_id in getattr(sim, "_margin_cache", {})
-                src = "sharp+spread_dist+possession_sim" if has_sim and sector == "nba" else "sharp+spread_dist"
+                src = "sharp+spread_dist+possession_sim" if has_sim else "sharp+spread_dist"
             elif used_total_model:
                 src = "sharp+total_dist"
             else:

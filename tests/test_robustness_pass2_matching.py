@@ -198,6 +198,11 @@ class TestKalshiSpreadLineExtraction:
         result = self.client._extract_spread_line("KXNCAABGAME-26MAR09XYZABC-ABC51")
         assert result is None
 
+    def test_wnba_spread_line_extracted(self):
+        # KXWNBASPREAD-26MAY16NYLLVA-LVA5 → -5.5
+        result = self.client._extract_spread_line("KXWNBASPREAD-26MAY16NYLLVA-LVA5")
+        assert result == pytest.approx(-5.5)
+
 
 # ---------------------------------------------------------------------------
 # prop_matcher.py

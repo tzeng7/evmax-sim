@@ -27,6 +27,7 @@ logger = structlog.get_logger(__name__)
 # Empirical point-margin standard deviations per sector
 _SECTOR_SIGMA: dict[str, float] = {
     "nba": 11.5,
+    "wnba": 12.5,    # matches WNBAPossessionSimAgent SCORE_STDEV; ~40-min games
     "nfl": 14.0,
     "ncaab": 12.5,
     "soccer": 1.9,   # goals, not points

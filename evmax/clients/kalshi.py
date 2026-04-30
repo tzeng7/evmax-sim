@@ -51,7 +51,7 @@ SECTOR_SERIES_MAP: dict[str, list[str]] = {
     "ncaaw": ["KXNCAAWBGAME", "KXNCAAWBSPREAD", "KXNCAAWBTOTAL"],
     "baseball": ["KXMLBGAME", "KXMLBSPREAD", "KXMLBTOTAL"],
     "nhl": ["KXNHLGAME", "KXNHLSPREAD", "KXNHLTOTAL"],
-    "wnba": ["KXWNBAGAME"],
+    "wnba": ["KXWNBAGAME", "KXWNBASPREAD", "KXWNBATOTAL"],
     "nba_props": ["KXNBAPTS", "KXNBAREB", "KXNBAAST", "KXNBA3PT", "KXNBASTL", "KXNBABLK", "KXNBAPRA"],
     # NFL prop series verified live on Kalshi 2026-04 during PR #6 investigation.
     # The shorter KXNFLPAS / KXNFLRSH / KXNFLREC / KXNFLTD names that shipped
@@ -665,6 +665,7 @@ class KalshiClient(BaseAPIClient):
                 for s in [
                     "KXNBASPREAD", "KXNFLSPREAD", "KXNCAAWBSPREAD",
                     "KXNCAAMBSPREAD", "KXMLBSPREAD", "KXNHLSPREAD",
+                    "KXWNBASPREAD",
                 ]
             )
             market_type = MarketType.spread if is_spread else self._infer_market_type(title, sector)

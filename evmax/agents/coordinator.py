@@ -541,11 +541,25 @@ class AgentCoordinator:
             cfg = _load_cfg()
             by_sector = cfg.get("sharp_weight_by_sector") or {}
             sector_sharp_weight = float(by_sector.get(sector.lower(), self._sharp_weight))
+
+            # For soccer, override sharp_weight per event based on league tier.
+            # Top-5 European leagues get pushed toward pure sharp (Pinnacle is
+            # the ceiling there); secondary leagues keep the sector default.
+            # See data/soccer_league_tiers.yaml + evmax/sectors/soccer_tiers.py.
+            sharp_weight_by_event: dict[str, float] = {}
+            if sector.lower() == "soccer":
+                from evmax.sectors.soccer_tiers import sharp_weight_for_ticker
+                for pair in pairs:
+                    market = pair["market"]
+                    event_id = pair["sharp"].event_id
+                    sharp_weight_by_event[event_id] = sharp_weight_for_ticker(market.ticker)
+
             ensemble_req = AgentRequest(
                 sector=sector,
                 params={
                     "pairs": pairs,
                     "sharp_weight": sector_sharp_weight,
+                    "sharp_weight_by_event": sharp_weight_by_event,
                 },
                 correlation_id=correlation_id,
             )
@@ -571,6 +585,7 @@ class AgentCoordinator:
                 "kelly_base_fraction": self._kelly_fraction,
                 "steam_events": steam_events,
                 "possession_sim_agent": self.possession_sim_agent,
+                "wnba_possession_sim_agent": self.wnba_possession_sim_agent,
             },
             correlation_id=correlation_id,
         )
