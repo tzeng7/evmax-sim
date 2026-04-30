@@ -395,16 +395,22 @@ def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
         as_ = score.get("away_score")
 
         if market_type == "spread":
-            # Kalshi spreads always ask "does TEAM win by more than |line|".
-            # We store `line` as a negative float; the threshold is abs(line).
-            # The bet wins iff yes_team wins outright AND margin > threshold.
+            # Kalshi spread tickers ask "does TEAM win by over N.5". We store
+            # the ticker's line as a NEGATIVE float for YES bets (e.g. -7.5
+            # = "wins by over 7.5"). The synthesized NO-side bet (the +spread
+            # cover) is stored with a POSITIVE line (e.g. +7.5 = "doesn't
+            # lose by 8 or more").
+            #   line < 0  →  YES covers iff margin >  threshold (wins by N+)
+            #   line > 0  →  YES covers iff margin > -threshold (loses by < N or wins)
             if hs is None or as_ is None or pred.get("line") is None:
                 return None
-            threshold = abs(float(pred["line"]))
+            line_val = float(pred["line"])
+            threshold = abs(line_val)
             yes_score = hs if yes_is_home else as_
             opp_score = as_ if yes_is_home else hs
             margin = yes_score - opp_score
-            return 1 if margin > threshold else 0
+            cover_threshold = -threshold if line_val > 0 else threshold
+            return 1 if margin > cover_threshold else 0
 
         if market_type in ("total", "over_under"):
             # Kalshi totals ask "will combined score be > line" (yes=over)

@@ -544,8 +544,29 @@ def verify(
         async with KalshiClient() as client:
             return await client.get_market_asks_batch(tickers)
 
-    tickers = [dict(r)["market_id"] for r in rows]
-    live_prices = asyncio.run(_fetch_asks(tickers))
+    # NO-side spread bets are stored with `:no` suffix on market_id. Strip
+    # the suffix when fetching live Kalshi orderbook (Kalshi doesn't know
+    # about it), and remember which rows are NO so we can convert the
+    # returned YES ask to a NO ask below.
+    raw_market_ids = [dict(r)["market_id"] for r in rows]
+    fetch_tickers = list({mid.removesuffix(":no") for mid in raw_market_ids})
+    live_yes_asks = asyncio.run(_fetch_asks(fetch_tickers))
+
+    def _live_ask_for(market_id: str) -> Optional[float]:
+        """Return the live ask for the side this row represents (YES or NO).
+
+        For NO rows we lack the live YES bid, so we approximate the NO ask
+        as 1 - live_yes_ask. This understates the true NO ask by the
+        bid-ask spread, slightly inflating live NO EV — flag in display.
+        """
+        if market_id.endswith(":no"):
+            yes_ask = live_yes_asks.get(market_id.removesuffix(":no"))
+            if yes_ask is None:
+                return None
+            return max(0.0, min(1.0, 1.0 - yes_ask))
+        return live_yes_asks.get(market_id)
+
+    live_prices = {mid: _live_ask_for(mid) for mid in raw_market_ids}
 
     bankroll = effective_bankroll
     table = Table(

@@ -1158,3 +1158,213 @@ class TestEvaluatePair:
         if gap is not None:
             assert gap.model_sources == "sharp(capped)"
             assert gap.blended_true_prob == pytest.approx(gap.sharp_true_prob, abs=0.001)
+
+
+# ---------------------------------------------------------------------------
+# NO-side spread (synthesized "+spread" cover)
+# ---------------------------------------------------------------------------
+
+class TestNoSideSpread:
+    """NO-on-spread emission, display, and resolution.
+
+    Kalshi spread tickers ask "Team X wins by over N.5" (always a -spread).
+    The NO side is the only way to bet the corresponding +spread, since
+    Kalshi does not list "Team Y +N.5" as its own ticker. We synthesize
+    a paired EVGap with `:no` market_id, opponent yes_team, positive line,
+    and inverted price/prob.
+    """
+
+    def setup_method(self):
+        self.agent = _make_ev_gap_agent()
+
+    def test_display_label_renders_positive_spread_with_plus_prefix(self):
+        gap = EVGap(
+            market_id="kalshi:foo:no",
+            event_id="nba::2026-03-21::pistons_vs_warriors",
+            sector="nba",
+            yes_team="warriors",
+            market_type="spread",
+            kalshi_yes_price=0.55,
+            sharp_true_prob=0.60,
+            blended_true_prob=0.60,
+            ev_pct=0.05,
+            kelly_full=0.10,
+            kelly_fraction=0.025,
+            match_confidence=95.0,
+            volume_usd=5000.0,
+            spread_pct=0.02,
+            line=9.5,
+        )
+        assert gap.display_label == "Warriors +9.5"
+
+    def test_display_label_renders_negative_spread_without_plus(self):
+        gap = EVGap(
+            market_id="kalshi:foo",
+            event_id="nba::2026-03-21::pistons_vs_warriors",
+            sector="nba",
+            yes_team="pistons",
+            market_type="spread",
+            kalshi_yes_price=0.45,
+            sharp_true_prob=0.50,
+            blended_true_prob=0.50,
+            ev_pct=0.05,
+            kelly_full=0.10,
+            kelly_fraction=0.025,
+            match_confidence=95.0,
+            volume_usd=5000.0,
+            spread_pct=0.02,
+            line=-9.5,
+        )
+        assert gap.display_label == "Pistons -9.5"
+
+    def test_no_side_spread_emitted_when_yes_below_threshold(self):
+        """Deeply −EV YES → corresponding NO becomes +EV and is emitted."""
+        from evmax.agents.base import AgentRequest
+        from unittest.mock import patch
+        import asyncio
+
+        # Pistons -9.5 ticker priced at YES=0.65, NO=0.36. Pinnacle posts
+        # Pistons -7.5 implied cover prob 0.55 → spread distribution
+        # extrapolates to a much lower P(yes covers -9.5), forcing NO +EV.
+        market = _market(
+            team_home="pistons", team_away="warriors",
+            yes_price=0.65, no_price=0.36,
+            yes_team="pistons",
+            market_type=MarketType.spread,
+            line=-9.5,
+            sector="nba",
+        )
+        sharp = _spread_sharp(
+            event_id="nba::2026-03-21::pistons_vs_warriors::spread",
+            outcome_a="pistons", outcome_b="warriors",
+            spread_line=-7.5,
+            true_prob_a=0.55,
+        )
+
+        with patch.object(
+            self.agent._matching, "match_all",
+            return_value=[(market, sharp, 95.0)],
+        ):
+            req = AgentRequest(
+                sector="nba",
+                params={"kalshi_markets": [market], "sharp_odds": [sharp]},
+            )
+            resp = asyncio.run(self.agent(req))
+
+        no_gaps = [g for g in resp.data if g.market_id.endswith(":no")]
+        assert len(no_gaps) == 1, (
+            f"expected one NO-side gap, got: "
+            f"{[(g.market_id, g.ev_pct) for g in resp.data]}"
+        )
+        ng = no_gaps[0]
+        assert ng.yes_team == "warriors"
+        assert ng.line == 9.5  # sign flipped to positive
+        assert ng.kalshi_yes_price == pytest.approx(0.36, abs=0.001)
+        assert ng.market_type == "spread"
+        assert ng.ev_pct >= 0.02
+        assert "no_side" in ng.model_sources
+        assert ng.display_label == "Warriors +9.5"
+
+    def test_no_side_not_emitted_when_below_threshold(self):
+        """No edge in either direction → no NO gap."""
+        from evmax.agents.base import AgentRequest
+        from unittest.mock import patch
+        import asyncio
+
+        market = _market(
+            team_home="pistons", team_away="warriors",
+            yes_price=0.50, no_price=0.51,
+            yes_team="pistons",
+            market_type=MarketType.spread,
+            line=-7.5,
+            sector="nba",
+        )
+        sharp = _spread_sharp(
+            event_id="nba::2026-03-21::pistons_vs_warriors::spread",
+            outcome_a="pistons", outcome_b="warriors",
+            spread_line=-7.5,
+            true_prob_a=0.50,
+        )
+        with patch.object(
+            self.agent._matching, "match_all",
+            return_value=[(market, sharp, 95.0)],
+        ):
+            req = AgentRequest(
+                sector="nba",
+                params={"kalshi_markets": [market], "sharp_odds": [sharp]},
+            )
+            resp = asyncio.run(self.agent(req))
+
+        no_gaps = [g for g in resp.data if g.market_id.endswith(":no")]
+        assert len(no_gaps) == 0
+
+    def test_no_side_skipped_for_moneyline(self):
+        """Moneyline tickers have a separate YES per team — NO would double-count."""
+        from evmax.agents.base import AgentRequest
+        from unittest.mock import patch
+        import asyncio
+
+        market = _market(
+            team_home="pistons", team_away="warriors",
+            yes_price=0.65, no_price=0.36,
+            yes_team="pistons",
+            market_type=MarketType.moneyline,
+            sector="nba",
+        )
+        sharp = _moneyline_sharp(
+            event_id="nba::2026-03-21::pistons_vs_warriors",
+            outcome_a="pistons", outcome_b="warriors",
+            true_prob_a=0.45,
+        )
+        with patch.object(
+            self.agent._matching, "match_all",
+            return_value=[(market, sharp, 95.0)],
+        ):
+            req = AgentRequest(
+                sector="nba",
+                params={"kalshi_markets": [market], "sharp_odds": [sharp]},
+            )
+            resp = asyncio.run(self.agent(req))
+
+        no_gaps = [g for g in resp.data if g.market_id.endswith(":no")]
+        assert len(no_gaps) == 0
+
+
+# ---------------------------------------------------------------------------
+# Resolver — positive spread lines (NO-side cover)
+# ---------------------------------------------------------------------------
+
+class TestResolverPositiveSpreadLine:
+    """Resolver must treat line>0 as a +spread cover.
+
+    A bet stored with line=+9.5 means "yes_team doesn't lose by more than
+    9.5 points". Cover threshold flips: margin > -threshold instead of
+    margin > threshold.
+    """
+
+    def _resolve(self, line: float, yes_score: int, opp_score: int) -> int:
+        threshold = abs(float(line))
+        margin = yes_score - opp_score
+        cover_threshold = -threshold if line > 0 else threshold
+        return 1 if margin > cover_threshold else 0
+
+    def test_positive_line_yes_loses_by_less_than_threshold_covers(self):
+        # +9.5: yes loses by 5 → covers
+        assert self._resolve(line=+9.5, yes_score=110, opp_score=115) == 1
+
+    def test_positive_line_yes_loses_by_more_than_threshold_does_not_cover(self):
+        # +9.5: yes loses by 12 → does NOT cover
+        assert self._resolve(line=+9.5, yes_score=100, opp_score=112) == 0
+
+    def test_positive_line_yes_wins_outright_covers(self):
+        # +9.5: yes wins by 3 → covers
+        assert self._resolve(line=+9.5, yes_score=110, opp_score=107) == 1
+
+    def test_positive_line_loss_by_exactly_ten_does_not_cover(self):
+        # +9.5: yes loses by 10 (110 vs 100) → does NOT cover
+        assert self._resolve(line=+9.5, yes_score=100, opp_score=110) == 0
+
+    def test_negative_line_unchanged_behavior(self):
+        # -7.5 (favorite cover): win by 8 → cover; win by 7 → no cover
+        assert self._resolve(line=-7.5, yes_score=110, opp_score=102) == 1
+        assert self._resolve(line=-7.5, yes_score=110, opp_score=103) == 0

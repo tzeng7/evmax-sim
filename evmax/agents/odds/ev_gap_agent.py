@@ -88,8 +88,10 @@ class EVGap:
         if self.market_type == "moneyline":
             return f"{team} ML"
         if self.market_type == "spread" and self.line is not None:
-            # line is stored as negative (win by X); format without trailing zeros
-            line_str = f"{self.line:.1f}".rstrip("0").rstrip(".")
+            # Negative line = team wins by |line| (favorite-style cover);
+            # positive line = team loses by less than |line| (NO-side / +spread cover).
+            sign = "+" if self.line > 0 else ""
+            line_str = f"{sign}{self.line:.1f}".rstrip("0").rstrip(".")
             return f"{team} {line_str}"
         if self.market_type == "total" and self.line is not None:
             return f"O/U {self.line:.1f}"
@@ -192,7 +194,7 @@ class EVGapAgent(Agent):
         gaps: list[EVGap] = []
 
         for market, sharp, confidence in matched:
-            gap = self._evaluate_pair(
+            yes_gap, blend_payload = self._evaluate_pair(
                 market=market,
                 sharp=sharp,
                 confidence=confidence,
@@ -204,9 +206,32 @@ class EVGapAgent(Agent):
                 model_sources=model_sources,
                 kelly_base=kelly_base,
                 steam_events=steam_events,
+                return_blend=True,
             )
-            if gap is not None:
-                gaps.append(gap)
+            if yes_gap is not None:
+                gaps.append(yes_gap)
+
+            # For spreads, also evaluate the NO side (i.e. the opposing
+            # team's "+spread"). NO on a "Team X wins by N+" Kalshi ticker
+            # is the only way to get +spread exposure — there is no Kalshi
+            # ticker for "Team Y +N.5". Vig guarantees only one of YES / NO
+            # can be +EV at a given price/prob, so we never double-count.
+            if (
+                market.market_type == MarketType.spread
+                and market.line is not None
+                and blend_payload is not None
+            ):
+                no_gap = self._build_no_side_spread_gap(
+                    market=market,
+                    sharp=sharp,
+                    blend_payload=blend_payload,
+                    confidence=confidence,
+                    sector=sector,
+                    kelly_base=kelly_base,
+                    steam_events=steam_events,
+                )
+                if no_gap is not None:
+                    gaps.append(no_gap)
 
         for market, sharp, confidence in prop_matched:
             gap = self._evaluate_prop_pair(
@@ -394,9 +419,27 @@ class EVGapAgent(Agent):
         model_sources: dict[str, str] | None = None,
         kelly_base: float = 0.25,
         steam_events: Optional[set] = None,
-    ) -> Optional[EVGap]:
+        return_blend: bool = False,
+    ):
+        """Evaluate a Kalshi/Sharp pair for the YES side.
+
+        Default: returns the EVGap or None (legacy).
+
+        When return_blend=True: returns a 2-tuple (gap_or_none, blend_payload).
+        blend_payload is None when the YES blend itself could not be computed
+        (alignment failed, spread line too far, type mismatch) — caller MUST
+        skip NO-side derivation in that case. It is non-None as soon as the
+        full blend pipeline (alignment → spread/total dist → model blend →
+        drift cap → injuries / standings / playoff) has produced a sound
+        blended_prob, even if YES later fails the EV threshold or dead-book
+        guard. NO-side derivation is therefore safe to attempt whenever
+        blend_payload is not None.
+        """
+        def _ret(gap, payload):
+            return (gap, payload) if return_blend else gap
+
         if market.yes_price <= 0 or market.yes_price >= 1.0:
-            return None
+            return _ret(None, None)
 
         # ------------------------------------------------------------------
         # Type-mismatch guards: incompatible market/sharp combinations
@@ -406,17 +449,17 @@ class EVGapAgent(Agent):
 
         # Totals market must match totals sharp record and vice versa
         if is_total and not is_sharp_total:
-            return None
+            return _ret(None, None)
         if not is_total and is_sharp_total:
-            return None
+            return _ret(None, None)
 
         # Moneyline must not match spread record
         if market.market_type == MarketType.moneyline and sharp.spread_line is not None:
-            return None
+            return _ret(None, None)
 
         # Reject team scoring props mistakenly typed as totals (e.g. "Lakers O109.5")
         if is_total and market.line is not None and not is_game_total(market.line, sector):
-            return None
+            return _ret(None, None)
 
         # ------------------------------------------------------------------
         # Step 1: YES-team alignment (which sharp prob belongs to the YES side?)
@@ -460,12 +503,12 @@ class EVGapAgent(Agent):
         if is_total:
             yes_is_under = yes_team_norm == "under"
             if sharp.true_prob_over is None or sharp.true_prob_under is None:
-                return None
+                return _ret(None, None)
             sharp_true_prob = sharp.true_prob_under if yes_is_under else sharp.true_prob_over
             yes_is_outcome_b = False
         elif is_draw:
             if sharp.true_prob_draw is None:
-                return None
+                return _ret(None, None)
             sharp_true_prob = sharp.true_prob_draw
             yes_is_outcome_b = False
             yes_is_under = False
@@ -521,7 +564,9 @@ class EVGapAgent(Agent):
                         sharp_true_prob = (1.0 - sim_weight) * sharp_true_prob + sim_weight * sim_prob
                         used_spread_model = True
             else:
-                return None  # line too far — extrapolation unreliable
+                # Spread distribution model bailed (line too far) — blend is
+                # unreliable for both YES and NO. Skip the NO-side too.
+                return _ret(None, None)
 
         # ------------------------------------------------------------------
         # Step 2b: Total markets — use TotalDistributionModel (line-adjusted)
@@ -648,12 +693,26 @@ class EVGapAgent(Agent):
                 src = f"{src}+playoff"
 
         # ------------------------------------------------------------------
+        # Blend pipeline complete — capture the payload that the NO-side
+        # spread derivation needs. From this point on, blend_payload is
+        # available even if the YES side fails the dead-book or ev_floor
+        # filters below.
+        # ------------------------------------------------------------------
+        blend_payload = {
+            "blended_prob_yes": blended_prob,
+            "sharp_true_prob_yes": sharp_true_prob,
+            "src": src,
+            "yes_is_outcome_b": yes_is_outcome_b,
+            "used_spread_model": used_spread_model,
+        }
+
+        # ------------------------------------------------------------------
         # Step 5: EV and Kelly sizing
         # ------------------------------------------------------------------
         # Filter out dead orderbooks: 99¢ asks are Kalshi's default when all
         # orders have been pulled (common for live/in-game markets).
         if market.yes_price >= 0.99:
-            return None
+            return _ret(None, blend_payload)
 
         # Phantom-EV guard for esports: opaque Kalshi ticker codes ("th",
         # "dcg", "shg") can defeat the YES-alignment resolver and historically
@@ -667,7 +726,8 @@ class EVGapAgent(Agent):
             mirror_distance = abs(blended_prob - (1.0 - market.yes_price))
             face_edge = abs(blended_prob - market.yes_price)
             if mirror_distance < 0.05 and face_edge > 0.15:
-                return None
+                # Alignment is suspect — skip both YES and NO.
+                return _ret(None, None)
 
         ev, edge_pct = calculate_ev(market.yes_price, blended_prob)
 
@@ -681,7 +741,7 @@ class EVGapAgent(Agent):
             ev_floor = 0.05  # Baseball sharp-only needs bigger edge (stale model data)
 
         if ev < ev_floor:
-            return None
+            return _ret(None, blend_payload)
 
         payout = 1.0 / market.yes_price
         kelly = compute_kelly(
@@ -701,7 +761,7 @@ class EVGapAgent(Agent):
         if vel_flag == "STEAM":
             is_steam = True
 
-        return EVGap(
+        gap = EVGap(
             market_id=market.id,
             event_id=sharp.event_id,
             sector=sector,
@@ -728,6 +788,113 @@ class EVGapAgent(Agent):
                 ) if is_total and "::" in sharp.event_id
                 else f"{sharp.outcome_a_label or '?'} vs {sharp.outcome_b_label or '?'}"
             ),
+            steam_move=is_steam,
+            line_velocity=velocity,
+            velocity_flag=vel_flag,
+            book_count=getattr(sharp, "book_count", 1),
+        )
+        return _ret(gap, blend_payload)
+
+    # ------------------------------------------------------------------
+    # NO-side spread derivation
+    # ------------------------------------------------------------------
+
+    def _build_no_side_spread_gap(
+        self,
+        market: PredictionMarket,
+        sharp: SharpOdds,
+        blend_payload: dict,
+        confidence: float,
+        sector: str,
+        kelly_base: float = 0.25,
+        steam_events: Optional[set] = None,
+    ) -> Optional[EVGap]:
+        """Build the NO-side EVGap for a Kalshi spread market.
+
+        Kalshi spread tickers are phrased as "Team X wins by over N.5". The
+        NO side of such a ticker is the opposing team's "+spread" cover —
+        the only way to get +spread exposure on Kalshi. We synthesize an
+        EVGap as if it were a YES bet on the opponent at a positive line:
+
+          - market_id : original_id + ":no"  (avoids UNIQUE collision)
+          - yes_team  : opponent label
+          - line      : -market.line  (positive value, e.g. +9.5)
+          - kalshi_yes_price : market.no_price (actual NO ask, includes vig)
+          - true_prob : 1 - blended_yes_prob
+
+        Returns None if NO is below EV threshold or NO orderbook is dead.
+        """
+        # Determine the actual NO ask. Kalshi reports yes_price + no_price
+        # separately (sum > 1 due to vig). market.no_price is set by the
+        # Kalshi parser; only fall back if missing.
+        no_ask = market.no_price
+        if no_ask is None or no_ask <= 0 or no_ask >= 1.0:
+            no_ask = 1.0 - market.yes_price
+        if no_ask <= 0.01 or no_ask >= 0.99:
+            return None  # dead orderbook on the NO side
+
+        blended_no = max(0.01, min(0.99, 1.0 - blend_payload["blended_prob_yes"]))
+        sharp_no = max(0.01, min(0.99, 1.0 - blend_payload["sharp_true_prob_yes"]))
+
+        ev, edge_pct = calculate_ev(no_ask, blended_no)
+
+        # Use the same EV floor logic as the YES side. NO bets carry the
+        # same sharp-only risk profile so the elevated floor for tennis /
+        # baseball sharp-only signals applies symmetrically.
+        src_yes = blend_payload["src"]
+        ev_floor = self._settings.ev_threshold
+        sector_lower = (market.sector or "").lower()
+        if sector_lower == "tennis" and src_yes == "sharp":
+            ev_floor = 0.05
+        elif sector_lower == "baseball" and src_yes == "sharp":
+            ev_floor = 0.05
+        if ev < ev_floor:
+            return None
+
+        # Opponent name = whichever sharp outcome the YES side did NOT cover.
+        opp_label = (
+            sharp.outcome_a_label if blend_payload["yes_is_outcome_b"]
+            else sharp.outcome_b_label
+        )
+        opp_team = (opp_label or "?").lower().strip() or "?"
+
+        payout = 1.0 / no_ask
+        kelly = compute_kelly(
+            true_prob=blended_no,
+            payout_decimal=payout,
+            edge_pct=edge_pct,
+            spread_pct=market.spread_pct,
+            base_fraction=kelly_base,
+            max_kelly=self._settings.max_kelly_fraction,
+        )
+
+        is_steam = bool(steam_events and sharp.event_id in steam_events)
+        velocity, vel_flag = self._compute_velocity(sharp.event_id)
+        if vel_flag == "STEAM":
+            is_steam = True
+
+        # Flip sign so the line stored is positive (e.g. -9.5 → +9.5)
+        no_line = -market.line if market.line is not None else None
+
+        return EVGap(
+            market_id=f"{market.id}:no",
+            event_id=sharp.event_id,
+            sector=sector,
+            yes_team=opp_team,
+            market_type=MarketType.spread.value,
+            kalshi_yes_price=no_ask,
+            sharp_true_prob=sharp_no,
+            blended_true_prob=blended_no,
+            ev_pct=ev,
+            kelly_full=kelly.kelly_full,
+            kelly_fraction=kelly.kelly_fraction,
+            match_confidence=confidence,
+            volume_usd=market.volume_usd,
+            spread_pct=market.spread_pct,
+            event_date=sharp.event_date or market.event_date,
+            line=no_line,
+            model_sources=f"{src_yes}+no_side",
+            event_title=f"{sharp.outcome_a_label or '?'} vs {sharp.outcome_b_label or '?'}",
             steam_move=is_steam,
             line_velocity=velocity,
             velocity_flag=vel_flag,
