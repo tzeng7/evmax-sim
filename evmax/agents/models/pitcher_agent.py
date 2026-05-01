@@ -1,14 +1,20 @@
-"""PitcherModelAgent — ERA-based win probability for MLB games.
+"""PitcherModelAgent — pitcher-matchup win probability for MLB games.
 
 Uses the Pythagorean expectation formula (Pythagenpat, exponent=1.83):
     W% = RS^e / (RS^e + RA^e)
 
-For each team, RS = league average (assumes average offense), RA = opposing
-pitcher's ERA. This isolates the pitching matchup as the primary driver of
-game-level win probability.
+Each team scores at the rate the *opposing* starter allows and allows runs at
+the rate its own starter does. The "rate" defaults to ERA, but if FIP
+(Fielding Independent Pitching) is also seeded for a pitcher, the agent
+blends 60% FIP + 40% ERA. FIP strips out defense + sequencing luck and is
+more predictive of forward-looking run prevention than ERA — so the blend
+favors it. ERA-only pitchers fall back to current behavior.
 
 Live probable starters are fetched from ESPN's scoreboard API each scan
 cycle, replacing the static team_starters map with actual game-day pitching.
+ESPN's scoreboard provides ERA only — FIP must be seeded externally
+(scripts/seed_espn.py::seed_pitchers, or any future Statcast/pybaseball
+ingest path).
 
 Only activates for sector == "baseball". Returns None for all other sectors.
 """
@@ -30,6 +36,37 @@ logger = structlog.get_logger(__name__)
 PYTHAG_EXP = 1.83
 HOME_BONUS = 0.04  # ~54% baseline home win rate in MLB
 ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
+
+# When both FIP and ERA are seeded, blend them. FIP is more predictive of
+# future run-prevention because it strips defensive luck and sequencing,
+# but ERA still carries real signal (a pitcher who consistently outperforms
+# FIP via deception, weak contact, or pitching-from-the-stretch may have a
+# repeatable skill ERA captures and FIP doesn't). 60/40 in FIP's favor is
+# the textbook compromise — heavier than 50/50 because FIP wins on
+# year-over-year correlation, but not pure FIP because we don't want to
+# discard ERA's real-world result entirely.
+FIP_BLEND_WEIGHT = 0.60
+ERA_BLEND_WEIGHT = 0.40
+
+
+def _effective_era(pitcher: dict, league_avg: float) -> float:
+    """Compute the run-allowed rate to feed into Pythag.
+
+    Preference order:
+      1. Both FIP and ERA present → blend (FIP_BLEND_WEIGHT * FIP + ERA_BLEND_WEIGHT * ERA)
+      2. FIP only → return FIP
+      3. ERA only → return ERA
+      4. Neither → league average
+    """
+    fip = pitcher.get("fip")
+    era = pitcher.get("era")
+    if fip is not None and era is not None:
+        return FIP_BLEND_WEIGHT * float(fip) + ERA_BLEND_WEIGHT * float(era)
+    if fip is not None:
+        return float(fip)
+    if era is not None:
+        return float(era)
+    return league_avg
 
 # Cache ESPN probable starters for 30 minutes
 _probable_cache: dict[str, dict] = {}
@@ -93,7 +130,7 @@ async def _fetch_probable_starters() -> dict[str, dict]:
 
 class PitcherModelAgent(ModelAgent):
     name = "pitcher"
-    weight = 0.30
+    weight = 0.50
 
     def _league_avg_era(self) -> float:
         return self._state.get("league_avg_era", 4.08)
@@ -163,18 +200,18 @@ class PitcherModelAgent(ModelAgent):
             return None
 
         league_avg = self._league_avg_era()
-        home_era = home_pitcher.get("era", league_avg)
-        away_era = away_pitcher.get("era", league_avg)
+        home_rate = _effective_era(home_pitcher, league_avg)
+        away_rate = _effective_era(away_pitcher, league_avg)
 
         # Pythagorean matchup: each team scores at the rate the opposing
-        # starter gives up runs (opponent's ERA) and allows at its own
-        # starter's rate. league_avg is *not* used in the matchup formula —
-        # it only backstops pitchers with unknown ERA in the fallback above.
+        # starter gives up runs and allows at its own starter's rate.
+        # The "rate" here is FIP-blended ERA when FIP data is available
+        # (preferred — fielding-independent), else raw ERA.
         e = PYTHAG_EXP
-        home_rs = away_era  # we score at rate the opposing pitcher allows
-        home_ra = home_era  # we allow at rate our own pitcher allows
-        away_rs = home_era
-        away_ra = away_era
+        home_rs = away_rate  # we score at rate the opposing pitcher allows
+        home_ra = home_rate  # we allow at rate our own pitcher allows
+        away_rs = home_rate
+        away_ra = away_rate
 
         home_wp = (home_rs ** e) / (home_rs ** e + home_ra ** e)
         away_wp = (away_rs ** e) / (away_rs ** e + away_ra ** e)
@@ -189,31 +226,58 @@ class PitcherModelAgent(ModelAgent):
         prob_a = min(0.90, max(0.10, prob_a + HOME_BONUS))
         prob_b = 1.0 - prob_a
 
-        # Confidence: live starters with known ERA from our DB get high confidence.
-        # ESPN-only ERA (no IP context) gets moderate. Static fallback gets low.
+        # Confidence tiers — designed so the model fires (>= 0.45 gate) on
+        # any pitcher with FIP data, even early-season when IP totals are low.
+        # FIP itself is the data-quality signal; IP is a sample-size proxy
+        # that mattered more when seeds were prior-season totals (~150+ IP).
+        # With current-season FIP seeded, 30 IP of recent data is more
+        # informative than 200 IP of last-year data, so the FIP path gets
+        # a higher floor.
         home_ip = home_pitcher.get("ip", 0)
         away_ip = away_pitcher.get("ip", 0)
         min_ip = min(home_ip, away_ip)
         both_live = home_live and away_live
+        both_fip = (
+            home_pitcher.get("fip") is not None
+            and away_pitcher.get("fip") is not None
+        )
 
         if both_live and min_ip >= 150:
-            confidence = 0.80  # Live starters + deep ERA history
+            confidence = 0.80  # Live + deep history
         elif both_live and min_ip >= 100:
             confidence = 0.70
+        elif both_fip and min_ip >= 100:
+            confidence = 0.75  # FIP-armed + good sample
+        elif both_fip and min_ip >= 30:
+            confidence = 0.60  # FIP-armed early-season — above the 0.45 gate
         elif both_live:
-            confidence = 0.55  # Live starters but ERA from ESPN only (no IP)
+            confidence = 0.55  # Live but ESPN-only (no IP, no FIP)
         elif min_ip >= 150:
-            confidence = 0.65  # Static starters but good ERA data
+            confidence = 0.65  # ERA-only deep history
         elif min_ip >= 100:
-            confidence = 0.55
+            confidence = 0.55  # ERA-only moderate
         else:
-            confidence = 0.35  # Static + thin data — below gate, won't contribute
+            confidence = 0.35  # ERA-only thin — below gate, won't contribute
 
         pitcher_notes = []
         if home_live:
             pitcher_notes.append(f"home={home_pitcher.get('name', '?')}(live)")
         if away_live:
             pitcher_notes.append(f"away={away_pitcher.get('name', '?')}(live)")
+
+        def _rate_label(p: dict) -> str:
+            if p.get("fip") is not None and p.get("era") is not None:
+                return f"fip={p['fip']:.2f}/era={p['era']:.2f}"
+            if p.get("fip") is not None:
+                return f"fip={p['fip']:.2f}"
+            return f"era={p.get('era', league_avg):.2f}"
+
+        notes = (
+            f"home[{_rate_label(home_pitcher)}] "
+            f"away[{_rate_label(away_pitcher)}] "
+            f"effective_home={home_rate:.2f} effective_away={away_rate:.2f} "
+            f"{' '.join(pitcher_notes)}"
+        ).strip()
 
         return ModelAgentPrediction(
             event_id=sharp_odds.event_id,
@@ -223,7 +287,7 @@ class PitcherModelAgent(ModelAgent):
             confidence=confidence,
             weight=self.weight,
             sample_size=int(min_ip),
-            notes=f"home_era={home_era:.2f} away_era={away_era:.2f} {' '.join(pitcher_notes)}",
+            notes=notes,
         )
 
     def update(
@@ -239,11 +303,14 @@ class PitcherModelAgent(ModelAgent):
         pass
 
     def seed_pitchers(self, pitchers: dict[str, dict], league_avg_era: float = 4.08) -> None:
-        """Bulk-seed pitcher ERA data.
+        """Bulk-seed pitcher data.
 
         Args:
-            pitchers: {name: {"era": float, "ip": float, "team": str}}
-            league_avg_era: league average ERA for normalizing
+            pitchers: {name: {"era": float, "fip": float (optional), "ip": float, "team": str}}
+                ERA is required as the baseline rate. FIP is optional but
+                strongly preferred — when present, the agent blends 60% FIP
+                + 40% ERA, which is more predictive of future run prevention.
+            league_avg_era: league average ERA for normalizing fallback rates
         """
         self._state["league_avg_era"] = league_avg_era
         store = self._state.setdefault("pitchers", {})

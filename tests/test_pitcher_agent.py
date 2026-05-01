@@ -8,9 +8,12 @@ import pytest
 
 from evmax.agents.models import pitcher_agent as pitcher_mod
 from evmax.agents.models.pitcher_agent import (
+    ERA_BLEND_WEIGHT,
+    FIP_BLEND_WEIGHT,
     HOME_BONUS,
     PYTHAG_EXP,
     PitcherModelAgent,
+    _effective_era,
 )
 from evmax.models.market import MarketSource, MarketType, PredictionMarket
 from evmax.models.odds import SharpBook, SharpOdds
@@ -291,6 +294,148 @@ class TestTeamNameFallback:
         )
         pred = await agent.predict_pair(m, s)
         assert pred is not None
+
+
+# ---------------------------------------------------------------------------
+# FIP support
+# ---------------------------------------------------------------------------
+
+
+class TestEffectiveEra:
+    def test_fip_only_returns_fip(self):
+        assert _effective_era({"fip": 3.20}, league_avg=4.20) == 3.20
+
+    def test_era_only_returns_era(self):
+        assert _effective_era({"era": 3.80}, league_avg=4.20) == 3.80
+
+    def test_neither_returns_league_avg(self):
+        assert _effective_era({}, league_avg=4.20) == 4.20
+
+    def test_both_blends_60_40(self):
+        # 0.60 * 3.00 + 0.40 * 4.00 = 1.80 + 1.60 = 3.40
+        assert _effective_era({"fip": 3.00, "era": 4.00}, league_avg=4.20) == pytest.approx(3.40)
+
+    def test_blend_weights_sum_to_one(self):
+        assert FIP_BLEND_WEIGHT + ERA_BLEND_WEIGHT == pytest.approx(1.0)
+
+    def test_fip_weight_dominates(self):
+        """FIP should be weighted more than ERA in the blend (it's more predictive)."""
+        assert FIP_BLEND_WEIGHT > ERA_BLEND_WEIGHT
+
+
+class TestFipPrediction:
+    @pytest.mark.asyncio
+    async def test_fip_changes_predicted_probability(self, agent):
+        """A pitcher with bad ERA but good FIP should be projected stronger
+        than the ERA-only model would suggest. Compare two seedings: same
+        ERA pair, but only one carries FIP data."""
+        # Baseline: both have only ERA
+        agent.seed_pitchers(
+            {
+                "Lucky Home": {"era": 3.00, "ip": 180, "team": "yankees"},
+                "Unlucky Away": {"era": 5.00, "ip": 170, "team": "red sox"},
+            }
+        )
+        m = _market(team_home="yankees", team_away="red sox")
+        s = _sharp(team_a="yankees", team_b="red sox")
+        pred_era_only = await agent.predict_pair(m, s)
+        assert pred_era_only is not None
+
+        # Now flip the FIP picture: home pitcher's FIP says he's actually
+        # mediocre (4.20), away pitcher's FIP says he's actually decent (3.50).
+        # The blended rate brings them much closer, so home favoritism should drop.
+        agent.seed_pitchers(
+            {
+                "Lucky Home": {"era": 3.00, "fip": 4.20, "ip": 180, "team": "yankees"},
+                "Unlucky Away": {"era": 5.00, "fip": 3.50, "ip": 170, "team": "red sox"},
+            }
+        )
+        pred_with_fip = await agent.predict_pair(m, s)
+        assert pred_with_fip is not None
+
+        assert pred_with_fip.true_prob_a < pred_era_only.true_prob_a
+
+    @pytest.mark.asyncio
+    async def test_fip_only_pitcher_uses_fip_directly(self, agent):
+        """If FIP is present and ERA is not, the agent should use FIP."""
+        agent.seed_pitchers(
+            {
+                "FipOnly Home": {"fip": 3.00, "ip": 180, "team": "yankees"},
+                "FipOnly Away": {"fip": 5.00, "ip": 170, "team": "red sox"},
+            }
+        )
+        pred = await agent.predict_pair(_market(), _sharp())
+        assert pred is not None
+        # 3.00 vs 5.00 should heavily favor home — same as if those were ERAs.
+        assert pred.true_prob_a > 0.65
+
+    @pytest.mark.asyncio
+    async def test_fip_bumps_confidence_above_era_only(self, agent):
+        """When both starters carry FIP, confidence lands in the FIP tier
+        (0.75 for IP >= 100), strictly above the ERA-only equivalent (0.65)."""
+        agent.seed_pitchers(
+            {
+                "A": {"era": 3.10, "ip": 180, "team": "yankees"},
+                "B": {"era": 3.80, "ip": 170, "team": "red sox"},
+            }
+        )
+        pred_era = await agent.predict_pair(_market(), _sharp())
+        assert pred_era is not None
+        assert pred_era.confidence == pytest.approx(0.65, abs=1e-6)
+
+        agent.seed_pitchers(
+            {
+                "A": {"era": 3.10, "fip": 3.30, "ip": 180, "team": "yankees"},
+                "B": {"era": 3.80, "fip": 3.60, "ip": 170, "team": "red sox"},
+            }
+        )
+        pred_fip = await agent.predict_pair(_market(), _sharp())
+        assert pred_fip is not None
+        assert pred_fip.confidence == pytest.approx(0.75, abs=1e-6)
+        assert pred_fip.confidence > pred_era.confidence
+
+    @pytest.mark.asyncio
+    async def test_fip_only_one_side_falls_to_era_tier(self, agent):
+        """The FIP tier requires BOTH starters to carry FIP; partial coverage
+        falls back to the ERA-only tier."""
+        agent.seed_pitchers(
+            {
+                "A": {"era": 3.10, "fip": 3.30, "ip": 180, "team": "yankees"},
+                "B": {"era": 3.80, "ip": 170, "team": "red sox"},  # no FIP
+            }
+        )
+        pred = await agent.predict_pair(_market(), _sharp())
+        assert pred is not None
+        assert pred.confidence == pytest.approx(0.65, abs=1e-6)
+
+    @pytest.mark.asyncio
+    async def test_fip_fires_in_early_season_with_low_ip(self, agent):
+        """Critical for usefulness: with FIP data, even 30-50 IP of current-
+        season stats should produce confidence above the 0.45 ensemble gate.
+        Pre-FIP, 30 IP would have been static-thin (0.35, dropped)."""
+        agent.seed_pitchers(
+            {
+                "A": {"era": 2.70, "fip": 2.30, "ip": 40, "team": "yankees"},
+                "B": {"era": 2.90, "fip": 2.50, "ip": 35, "team": "red sox"},
+            }
+        )
+        pred = await agent.predict_pair(_market(), _sharp())
+        assert pred is not None
+        assert pred.confidence >= 0.45
+        assert pred.confidence == pytest.approx(0.60, abs=1e-6)
+
+    @pytest.mark.asyncio
+    async def test_notes_show_fip_when_present(self, agent):
+        agent.seed_pitchers(
+            {
+                "A": {"era": 3.10, "fip": 3.30, "ip": 180, "team": "yankees"},
+                "B": {"era": 3.80, "fip": 3.60, "ip": 170, "team": "red sox"},
+            }
+        )
+        pred = await agent.predict_pair(_market(), _sharp())
+        assert pred is not None
+        assert "fip" in pred.notes.lower()
+        assert "effective_home" in pred.notes
 
 
 # ---------------------------------------------------------------------------

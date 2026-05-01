@@ -704,8 +704,17 @@ def seed_pitchers() -> None:
 
     agent = PitcherModelAgent()
 
-    # 2025 MLB starting pitcher data (top starters per team)
-    # Format: {pitcher_name: {era, ip, team}}
+    # 2025 MLB starting pitcher data (top starters per team).
+    # Format: {pitcher_name: {era, ip, team, fip (optional)}}
+    #
+    # FIP support: PitcherModelAgent now blends 60% FIP + 40% ERA when both
+    # are present, falling back to ERA-only otherwise. Adding FIP here is
+    # the single biggest accuracy win available without rewriting the model
+    # — FIP strips defensive luck and is more predictive of forward run
+    # prevention. Source options when populating:
+    #   - FanGraphs leaderboards (manual, copy-paste)
+    #   - pybaseball (`pybaseball.pitching_stats(2025)` returns FIP per pitcher)
+    #   - Compute from box-score totals: (13·HR + 3·(BB+HBP) - 2·K) / IP + 3.10
     pitchers = {
         # AL East
         "corbin burnes": {"era": 2.92, "ip": 194.2, "team": "orioles"},

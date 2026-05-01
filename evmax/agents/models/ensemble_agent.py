@@ -103,6 +103,17 @@ class EnsembleModelAgent(Agent):
             "tennis_h2h": 0.05,
             "tennis_ranking_trend": 0.05,
         },
+        # Baseball: starter FIP/ERA matchup (Pythag) is the dominant non-sharp
+        # signal — one player drives ~50% of game outcome. Elo + form are
+        # supporting talent/recency voices. Poisson is intentionally absent
+        # from baseball's YAML model list (overdispersed runs distribution +
+        # bullpen-leverage shifts violate the independence assumption); the
+        # ensemble never instantiates it for baseball, so no override needed.
+        "baseball": {
+            "pitcher": 0.50,
+            "elo":     0.25,
+            "form":    0.25,
+        },
     }
 
     def __init__(
