@@ -1200,12 +1200,15 @@ class TestEnsembleModelAgent:
     def test_flb_correction_extreme_longshot(self):
         """FLB correction should suppress model inflation at extreme probs.
 
-        Uses sector='baseball' because FLB is intentionally skipped for NBA
-        (NBA-specific models — efficiency, possession_sim — already produce
-        well-calibrated extreme probabilities) and tennis now has
-        sharp_weight=1.00 which makes FLB a no-op. Baseball runs the standard
-        FLB path and isn't in SECTOR_WEIGHT_OVERRIDES, so the model weight
-        passes through cleanly.
+        Uses sector='nfl' because:
+          - FLB is skipped for NBA/WNBA (their advanced models produce
+            already-well-calibrated extremes)
+          - tennis has sharp_weight=1.00 which makes FLB a no-op
+          - baseball was in this slot historically but now has both a
+            SECTOR_WEIGHT_OVERRIDES entry AND an isotonic calibration that
+            shifts extreme outputs, both of which would confound the test
+        nfl runs the standard FLB path with no per-sector overrides and no
+        ensemble-level calibration, so the model weight passes through cleanly.
         """
         from evmax.agents.models.base import ModelAgentPrediction
 
@@ -1223,7 +1226,7 @@ class TestEnsembleModelAgent:
                 confidence=0.60, weight=0.35,
             ),
         }
-        blend = ensemble._blend("test", preds, sharp, 0.85, sector="baseball")
+        blend = ensemble._blend("test", preds, sharp, 0.85, sector="nfl")
         assert blend is not None
         # Without FLB: blend_b = 0.85*0.10 + 0.15*0.20 = 0.115
         # With FLB (S=1.5): effective sharp weight at 10% is ~88.6%

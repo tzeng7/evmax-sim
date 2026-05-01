@@ -238,22 +238,62 @@ def _parse_ip(ip_str: str) -> float:
             return 0.0
 
 
+def _parse_pc(pc_str: str) -> int:
+    """Pitch count is the 'PC' column. Sometimes the column is missing or
+    contains '--' for very-short relief outings; coerce safely to 0."""
+    try:
+        return int(pc_str)
+    except (ValueError, TypeError):
+        return 0
+
+
+def _parse_pitcher_line(labels: list[str], stats: list[str], name: str) -> Optional[dict]:
+    """Convert one ESPN pitching row to our internal stat dict. Returns None
+    if any required field can't be parsed."""
+    if len(stats) != len(labels):
+        return None
+    row = dict(zip(labels, stats))
+    try:
+        ip = _parse_ip(row.get("IP", "0"))
+        er = int(row.get("ER", 0) or 0)
+        bb = int(row.get("BB", 0) or 0)
+        so = int(row.get("K", 0) or 0)
+        hr = int(row.get("HR", 0) or 0)
+    except (ValueError, TypeError):
+        return None
+    pc = _parse_pc(row.get("PC", row.get("PC-ST", "0").split("-")[0] if "PC-ST" in row else "0"))
+    return {
+        "name": name.strip(),
+        "ip": ip,
+        "er": er,
+        "bb": bb,
+        "so": so,
+        "hr": hr,
+        "pc": pc,
+    }
+
+
 def _fetch_baseball_boxscore(
     client: httpx.Client,
     event_id: str,
 ) -> Optional[dict]:
-    """Fetch ESPN MLB boxscore and extract starting pitcher lines per team.
+    """Fetch ESPN MLB boxscore and extract starter + reliever lines per team.
 
     Returns:
         {
-          "home": {"team": str, "name": str, "ip": float, "er": int,
-                   "bb": int, "so": int, "hr": int},
+          "home": {
+              "team": str,
+              "starter": {"name", "ip", "er", "bb", "so", "hr", "pc"},
+              "relievers": [{...same shape...}, ...],
+          },
           "away": {...},
         }
         or None if the boxscore is missing/malformed.
 
-    The "home"/"away" keys are derived from the boxscore's team list — the
-    caller resolves them to the normalized team names from the scoreboard fetch.
+    The first pitcher in each team's pitching list is treated as the starter
+    by ESPN convention; all subsequent entries are relievers (in order of
+    appearance). Pitch count (PC) is preserved per appearance for downstream
+    fatigue tracking.
     """
     if not event_id:
         return None
@@ -299,30 +339,25 @@ def _fetch_baseball_boxscore(
             athletes = stat_grp.get("athletes", [])
             if not athletes:
                 continue
-            # First pitcher = starter
-            starter = athletes[0]
-            stats = starter.get("stats", [])
-            if len(stats) != len(labels):
-                continue
 
-            row = dict(zip(labels, stats))
-            try:
-                ip = _parse_ip(row.get("IP", "0"))
-                er = int(row.get("ER", 0) or 0)
-                bb = int(row.get("BB", 0) or 0)
-                so = int(row.get("K", 0) or 0)
-                hr = int(row.get("HR", 0) or 0)
-            except (ValueError, TypeError):
-                continue
+            starter_line: Optional[dict] = None
+            relievers: list[dict] = []
+            for idx, ath in enumerate(athletes):
+                name = (ath.get("athlete", {}).get("displayName") or "")
+                line = _parse_pitcher_line(labels, ath.get("stats", []), name)
+                if line is None:
+                    continue
+                if idx == 0:
+                    starter_line = line
+                else:
+                    relievers.append(line)
 
+            if starter_line is None:
+                continue
             out[slot] = {
                 "team": team_abbr,
-                "name": (starter.get("athlete", {}).get("displayName") or "").strip(),
-                "ip": ip,
-                "er": er,
-                "bb": bb,
-                "so": so,
-                "hr": hr,
+                "starter": starter_line,
+                "relievers": relievers,
             }
             break
 
@@ -363,16 +398,24 @@ def _pitcher_predict_walkforward(
     home_running: Optional[dict],
     away_running: Optional[dict],
     home_advantage: float = PITCHER_HOME_BONUS,
+    home_pen_fip: Optional[float] = None,
+    away_pen_fip: Optional[float] = None,
 ) -> Optional[float]:
     """Run the same Pythagenpat formula the live model uses, but with
-    point-in-time running totals from prior games this season.
+    point-in-time running totals from prior games this season. Now blends
+    starter rate (60%) + bullpen rate (40%) into the team's expected
+    runs-allowed rate when bullpen quality is available; falls back to
+    starter-only when the bullpen pool is too thin.
 
-    Returns None if either pitcher has < PITCHER_MIN_IP_FOR_PRED IP — same
+    Returns None if either starter has < PITCHER_MIN_IP_FOR_PRED IP — same
     floor the live model applies via its FIP+30 IP confidence tier.
 
     `home_advantage` is supplied by the caller from the running league-wide
-    home win rate; defaults to PITCHER_HOME_BONUS for back-compat with
-    callers that don't yet adapt.
+    home win rate; defaults to PITCHER_HOME_BONUS for back-compat.
+
+    `home_pen_fip` / `away_pen_fip` are the *fatigue-aware available* bullpen
+    qualities (avg FIP of top-N rested relievers), supplied by the caller.
+    None values trigger starter-only rate computation for that side.
     """
     if not home_running or not away_running:
         return None
@@ -386,10 +429,8 @@ def _pitcher_predict_walkforward(
     if math.isnan(home_fip) or math.isnan(away_fip):
         return None
 
-    # Use the same _effective_era helper the live agent uses, so any future
-    # tuning of the FIP/ERA blend weights flows through to backtest automatically.
-    home_rate = pitcher_effective_era({"fip": home_fip, "era": home_era}, league_avg=4.08)
-    away_rate = pitcher_effective_era({"fip": away_fip, "era": away_era}, league_avg=4.08)
+    home_rate = _team_rate_with_pen(home_running, home_pen_fip)
+    away_rate = _team_rate_with_pen(away_running, away_pen_fip)
 
     e = PITCHER_PYTHAG_EXP
     home_rs, home_ra = away_rate, home_rate
@@ -410,6 +451,135 @@ def _accumulate_pitcher_line(running: dict, line: dict) -> None:
     running["so"] += line["so"]
     running["hr"] += line["hr"]
     running["games"] += 1
+
+
+# --- Bullpen modeling -------------------------------------------------------
+#
+# Reliever quality + availability are the two signals that actually move
+# baseball lines past the static-quality info Pinnacle already prices.
+# Static quality (team's season bullpen FIP) is already in sharp lines —
+# the edge is *day-to-day availability*: a closer who threw 30 pitches in
+# back-to-back games likely isn't available today, but the line may not yet
+# reflect that until the lineup card / late news drops.
+#
+# Walk-forward implementation:
+# - bullpen_running: per-team aggregate FIP/ERA stats (relievers only)
+# - reliever_running: per-pitcher running stats
+# - reliever_appearances: per-pitcher list of (date, ip, pc) tuples
+# - On each game-day prediction, filter team's relievers by fatigue heuristic
+#   to get the "available" pool, average top-3 by FIP for the team's pen
+#   quality "right now."
+
+PEN_MIN_IP_FOR_PRED = 30.0  # team-aggregate IP floor — below this we don't have
+                            # enough sample for the bullpen to contribute.
+PEN_BLEND_STARTER_SHARE = 0.60  # starter handles ~5.5 of 9 IP on average
+PEN_BLEND_RELIEVER_SHARE = 0.40
+TOP_N_AVAILABLE_PEN = 3  # rank available relievers by FIP, take the top N
+                         # as the "high-leverage" available pool. Mirrors
+                         # closer + setup + 1 high-leverage reliever.
+FATIGUE_PC_THRESHOLD = 25  # threw 25+ pitches yesterday → unavailable
+
+
+def _is_reliever_available(
+    appearances: list[tuple],  # list of (date, ip, pc)
+    today: "date",
+) -> bool:
+    """Fatigue heuristic mirroring how MLB managers actually deploy relievers:
+
+    - Threw yesterday with 25+ pitches → unavailable today (full rest needed)
+    - Threw 2 of last 3 days (any usage) → unavailable today
+    - Otherwise → available
+
+    Note this is the rule-of-thumb version. Real availability also reflects
+    handedness matchups, leverage, and manager preference — out of scope for
+    a public-data backtest. The 25-pitch threshold matches MLB's typical
+    "15+ pitches → no back-to-back" line plus a buffer.
+    """
+    if not appearances:
+        return True
+
+    last_three: list[tuple] = []
+    for app in reversed(appearances):
+        days_ago = (today - app[0]).days
+        if days_ago > 3:
+            break
+        if days_ago > 0:
+            last_three.append(app)
+
+    yesterday = [a for a in last_three if (today - a[0]).days == 1]
+    if yesterday and yesterday[0][2] >= FATIGUE_PC_THRESHOLD:
+        return False
+
+    used_in_last_three = sum(1 for a in last_three if (today - a[0]).days <= 3)
+    if used_in_last_three >= 2:
+        return False
+
+    return True
+
+
+def _team_pen_quality(
+    team: str,
+    today: "date",
+    reliever_running: dict[str, dict],
+    reliever_appearances: dict[str, list],
+    reliever_team: dict[str, str],
+    league_pen_cfip: float,
+) -> Optional[float]:
+    """Compute today's available bullpen quality for a team as the average
+    FIP of the top-N available relievers. Returns None if fewer than N
+    relievers have IP >= 5 (too thin to be meaningful)."""
+    candidates: list[float] = []
+    for name, team_aff in reliever_team.items():
+        if team_aff != team:
+            continue
+        running = reliever_running.get(name)
+        if running is None or running["ip"] < 5.0:
+            continue
+        appearances = reliever_appearances.get(name, [])
+        if not _is_reliever_available(appearances, today):
+            continue
+        # FIP from this reliever's running totals using the league's reliever cFIP.
+        # ESPN box scores don't expose HBP, so we use BB-only FIP (consistent
+        # with starter calculation in this backtest — the calibration absorbs
+        # the systematic offset).
+        ip = running["ip"]
+        fip = (13 * running["hr"] + 3 * running["bb"] - 2 * running["so"]) / ip + league_pen_cfip
+        candidates.append(fip)
+
+    if len(candidates) < TOP_N_AVAILABLE_PEN:
+        return None
+    candidates.sort()
+    return sum(candidates[:TOP_N_AVAILABLE_PEN]) / TOP_N_AVAILABLE_PEN
+
+
+def _league_pen_cfip(totals: dict) -> float:
+    """League-wide reliever cFIP = league_ERA - league_FIP_raw. Falls back
+    to 3.10 (textbook) if we don't have enough data yet."""
+    ip = totals["ip"]
+    if ip < 100:  # not enough relief innings yet to compute meaningfully
+        return 3.10
+    league_era = (totals["er"] * 9.0) / ip
+    league_fip_raw = (13 * totals["hr"] + 3 * totals["bb"] - 2 * totals["so"]) / ip
+    return league_era - league_fip_raw
+
+
+def _team_rate_with_pen(
+    starter_running: dict,
+    pen_quality_fip: Optional[float],
+) -> float:
+    """Blend a team's expected runs-allowed rate from starter (60%) + pen (40%).
+
+    Falls back to starter-only if pen quality is unavailable (early-season,
+    not enough relievers with sample, or all relievers fatigued — though the
+    last is rare with N=3 and a 7-9 man pen).
+    """
+    starter_fip, starter_era = _running_to_rates(starter_running)
+    starter_rate = pitcher_effective_era(
+        {"fip": starter_fip, "era": starter_era}, league_avg=4.08
+    )
+    if pen_quality_fip is None:
+        return starter_rate
+    return PEN_BLEND_STARTER_SHARE * starter_rate + PEN_BLEND_RELIEVER_SHARE * pen_quality_fip
 
 # Mirrors SECTOR_WEIGHT_OVERRIDES["wnba"] in ensemble_agent.py. Kept in sync
 # manually so the walk-forward evaluates the same blend the live scanner uses.
@@ -474,8 +644,21 @@ def run_walkforward(
         wnba_possession_sim_agent = WNBAPossessionSimAgent()
 
     # Pitcher walk-forward state (baseball only).
-    # name (lowercased) → cumulative {ip, er, bb, so, hr, games}
+    # Starter running totals: name (lowercased) → {ip, er, bb, so, hr, games}
     pitcher_running: dict[str, dict] = {}
+    # Reliever running totals: same shape, separate dict so a swing-arm pitcher
+    # who occasionally starts gets bucketed correctly per appearance.
+    reliever_running: dict[str, dict] = {}
+    # Reliever appearance log: name → list of (date, ip, pc) tuples in chronological
+    # order. Used by the fatigue heuristic.
+    reliever_appearances: dict[str, list] = {}
+    # Reliever team affiliation: name → team_abbr (last known). Lets us pick
+    # the right relief pool per team without requiring a per-team roster fetch.
+    reliever_team: dict[str, str] = {}
+    # Running league-wide reliever cFIP — recomputed from accumulated totals so
+    # FIP values are scaled to actual reliever scoring environment, which
+    # tends to be tighter than starter ERA.
+    league_pen_totals = {"ip": 0.0, "er": 0, "bb": 0, "so": 0, "hr": 0}
     boxscore_client: Optional[httpx.Client] = httpx.Client() if is_baseball else None
     # Running league-wide home_wp tally (baseball only). Used for adaptive
     # home-field advantage in the pitcher prediction. Updated each game AFTER
@@ -523,11 +706,30 @@ def run_walkforward(
             event_id = g.get("event_id", "")
             box = _fetch_baseball_boxscore(boxscore_client, event_id)
             if box is not None:
-                home_starter_line = box["home"]
-                away_starter_line = box["away"]
+                home_box = box["home"]
+                away_box = box["away"]
+                home_starter_line = home_box["starter"]
+                away_starter_line = away_box["starter"]
+                home_relievers = home_box["relievers"]
+                away_relievers = away_box["relievers"]
+                home_team_abbr = home_box["team"]
+                away_team_abbr = away_box["team"]
                 home_name = home_starter_line["name"].lower().strip()
                 away_name = away_starter_line["name"].lower().strip()
                 home_advantage = _adaptive_home_bonus(league_home_games, league_home_wins)
+                # NOTE: bullpen quality wiring is intentionally disabled here.
+                # An earlier experiment passed _team_pen_quality() through to
+                # the prediction; result was Δ +0.0012 (2025) and +0.0001 (2024)
+                # WORSE Brier than starter-only after recalibration. Hypothesis:
+                # static team-bullpen aggregate (even with fatigue filtering)
+                # is already correlated with what Elo + Form capture, so it
+                # adds correlated noise rather than orthogonal signal. The
+                # real bullpen edge needs per-pitcher leverage-weighted info
+                # we don't have a clean public source for. The data-layer
+                # state tracking (reliever_running, reliever_appearances,
+                # league_pen_totals) and the helpers (_team_pen_quality,
+                # _is_reliever_available, _team_rate_with_pen, _league_pen_cfip)
+                # are kept in place as infrastructure for future experiments.
                 pitcher_prob = _pitcher_predict_walkforward(
                     pitcher_running.get(home_name),
                     pitcher_running.get(away_name),
@@ -589,15 +791,47 @@ def run_walkforward(
 
         # Update pitcher running totals AFTER prediction (no leak).
         if is_baseball and home_starter_line is not None and away_starter_line is not None:
-            for line in (home_starter_line, away_starter_line):
-                key = line["name"].lower().strip()
+            # Starters → pitcher_running (kept separate from relievers because
+            # a swing-arm pitcher's starter outings carry different leverage
+            # signal than their relief outings).
+            for starter_line, team_abbr in (
+                (home_starter_line, home_team_abbr),
+                (away_starter_line, away_team_abbr),
+            ):
+                key = starter_line["name"].lower().strip()
                 if not key:
                     continue
                 running = pitcher_running.setdefault(
                     key,
                     {"ip": 0.0, "er": 0, "bb": 0, "so": 0, "hr": 0, "games": 0},
                 )
-                _accumulate_pitcher_line(running, line)
+                _accumulate_pitcher_line(running, starter_line)
+
+            # Relievers → reliever_running + reliever_appearances + reliever_team.
+            # Also feed each line into the league_pen_totals so cFIP scales
+            # to the actual reliever environment (which differs from starters).
+            for relievers_list, team_abbr in (
+                (home_relievers, home_team_abbr),
+                (away_relievers, away_team_abbr),
+            ):
+                for line in relievers_list:
+                    key = line["name"].lower().strip()
+                    if not key:
+                        continue
+                    running = reliever_running.setdefault(
+                        key,
+                        {"ip": 0.0, "er": 0, "bb": 0, "so": 0, "hr": 0, "games": 0},
+                    )
+                    _accumulate_pitcher_line(running, line)
+                    reliever_team[key] = team_abbr
+                    reliever_appearances.setdefault(key, []).append(
+                        (game_date, line["ip"], line["pc"])
+                    )
+                    league_pen_totals["ip"] += line["ip"]
+                    league_pen_totals["er"] += line["er"]
+                    league_pen_totals["bb"] += line["bb"]
+                    league_pen_totals["so"] += line["so"]
+                    league_pen_totals["hr"] += line["hr"]
         # League home-WP tally — same no-leak discipline (post-prediction).
         if is_baseball:
             league_home_games += 1
