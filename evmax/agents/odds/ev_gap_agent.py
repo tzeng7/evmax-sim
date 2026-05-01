@@ -762,8 +762,12 @@ class EVGapAgent(Agent):
         # Step 5: EV and Kelly sizing
         # ------------------------------------------------------------------
         # Filter out dead orderbooks: 99¢ asks are Kalshi's default when all
-        # orders have been pulled (common for live/in-game markets).
-        if market.yes_price >= 0.99:
+        # orders have been pulled (common for live/in-game markets). The 1¢
+        # floor is the symmetric case — when all YES bids are pulled, ask
+        # collapses to the minimum tick. We saw this on 3 settled tennis
+        # markets where blended prob (~0.6-0.8) vs 1¢ price produced bogus
+        # 5000-7000% EVs (commit 3de2c26 diagnostic).
+        if market.yes_price >= 0.99 or market.yes_price <= 0.01:
             return _ret(None, blend_payload)
 
         # Filter out empty/stale orderbooks. spread_pct = |yes_ask - (1 -

@@ -230,6 +230,45 @@ class TestEVGapAgent:
 
         assert len(resp.data) == 0
 
+    @pytest.mark.asyncio
+    async def test_dead_orderbook_floor_filtered(self):
+        """Markets where YES ask has collapsed to the 1¢ floor are dead — all
+        bids pulled. Without this filter, the (sharp_prob / 0.01) − 1 EV
+        calculation produces bogus 5000-7000% edges (regression for the 3
+        $0.01 tennis rows surfaced in commit 3de2c26 diagnostic)."""
+        agent = EVGapAgent()
+        # YES at 1¢ floor; sharp says the team should be ~58% — would
+        # nominally be a 5700% edge if the filter didn't fire.
+        market = make_market(yes_price=0.01, yes_team="lakers")
+        sharp = make_sharp(prob_a=0.58, team_a="lakers")
+
+        with patch.object(agent._matching, "match_all", return_value=[(market, sharp, 95.0)]):
+            req = AgentRequest(
+                sector="nba",
+                params={"kalshi_markets": [market], "sharp_odds": [sharp]},
+            )
+            resp = await agent(req)
+
+        assert len(resp.data) == 0
+
+    @pytest.mark.asyncio
+    async def test_dead_orderbook_ceiling_filtered(self):
+        """Symmetric case: YES ask at 99¢ ceiling means all asks pulled."""
+        agent = EVGapAgent()
+        # YES at 99¢ ceiling with sharp at 50% — wouldn't actually trigger
+        # positive EV but verifies the filter short-circuits regardless.
+        market = make_market(yes_price=0.99, yes_team="lakers")
+        sharp = make_sharp(prob_a=0.50, prob_b=0.50, team_a="lakers")
+
+        with patch.object(agent._matching, "match_all", return_value=[(market, sharp, 95.0)]):
+            req = AgentRequest(
+                sector="nba",
+                params={"kalshi_markets": [market], "sharp_odds": [sharp]},
+            )
+            resp = await agent(req)
+
+        assert len(resp.data) == 0
+
     def test_prop_injury_boost_applies_via_player_team_lookup(self, monkeypatch):
         """Regression for BUG-5: prop event_ids have no game slug, so the
         boost used to fall through silently. The fix looks up the player's
@@ -1159,7 +1198,15 @@ class TestEnsembleModelAgent:
         assert overrides["poisson"] >= 0.40
 
     def test_flb_correction_extreme_longshot(self):
-        """FLB correction should suppress model inflation at extreme probs."""
+        """FLB correction should suppress model inflation at extreme probs.
+
+        Uses sector='baseball' because FLB is intentionally skipped for NBA
+        (NBA-specific models — efficiency, possession_sim — already produce
+        well-calibrated extreme probabilities) and tennis now has
+        sharp_weight=1.00 which makes FLB a no-op. Baseball runs the standard
+        FLB path and isn't in SECTOR_WEIGHT_OVERRIDES, so the model weight
+        passes through cleanly.
+        """
         from evmax.agents.models.base import ModelAgentPrediction
 
         ensemble = EnsembleModelAgent(models=[], sharp_weight=0.85)
@@ -1176,7 +1223,7 @@ class TestEnsembleModelAgent:
                 confidence=0.60, weight=0.35,
             ),
         }
-        blend = ensemble._blend("test", preds, sharp, 0.85, sector="nba")
+        blend = ensemble._blend("test", preds, sharp, 0.85, sector="baseball")
         assert blend is not None
         # Without FLB: blend_b = 0.85*0.10 + 0.15*0.20 = 0.115
         # With FLB (S=1.5): effective sharp weight at 10% is ~88.6%
