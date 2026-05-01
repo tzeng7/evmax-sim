@@ -130,6 +130,11 @@ class EnsembleModelAgent(Agent):
         sector = request.sector
         pairs: list[dict] = request.params.get("pairs", [])
         sharp_weight = request.params.get("sharp_weight", self._sharp_weight)
+        # Per-event override: callers can pass a dict of event_id → sharp_weight
+        # to differentiate within a sector. Used for the soccer league tier
+        # system (top-5 European leagues get ~0.85, secondary leagues keep
+        # the default). Missing events fall through to `sharp_weight`.
+        sharp_weight_by_event: dict[str, float] = request.params.get("sharp_weight_by_event") or {}
 
         if not pairs:
             return AgentResponse(agent_name=self.name, sector=sector, data={})
@@ -168,7 +173,8 @@ class EnsembleModelAgent(Agent):
         blended: dict[str, BlendedPrediction] = {}
         for event_id, model_preds in per_event.items():
             sharp = sharp_by_id.get(event_id)
-            blend = self._blend(event_id, model_preds, sharp, sharp_weight, sector)
+            event_sharp_weight = sharp_weight_by_event.get(event_id, sharp_weight)
+            blend = self._blend(event_id, model_preds, sharp, event_sharp_weight, sector)
             if blend is not None:
                 blended[event_id] = blend
 
@@ -215,19 +221,115 @@ class EnsembleModelAgent(Agent):
     ) -> tuple[float, float, Optional[float]]:
         """Apply isotonic calibration for sector_ensemble; identity when missing.
 
-        Calibration is fit on the YES-side outcome (prob_a vs actual win), so
-        for 2-way markets we calibrate prob_a and recover prob_b = 1 - prob_a.
-        For 3-way markets (soccer) the YES-side calibration doesn't compose
-        cleanly with a draw probability, so we skip — sharp dominance at
-        sharp_weight≈0.85 makes calibration there low-leverage anyway.
+        2-way markets: calibrate prob_a, recover prob_b = 1 - prob_a.
+
+        3-way markets (soccer): the bias signal lives on the team-win legs
+        (live data: 81 team-win bets at −6.9pp gap; 8 draw bets at +0.4pp),
+        so the calibration curve is fit on team-win pairs only. We apply it
+        symmetrically to home and away legs, leave draw untouched, and
+        renormalize so the three legs sum to 1. This composes correctly:
+        the curve is monotonic, so home > away ordering is preserved.
         """
-        if prob_draw is not None:
-            return prob_a, prob_b, prob_draw
         key = f"{sector.lower()}_ensemble"
-        calibrated_a = self._calibrator.calibrate(key, prob_a)
-        if calibrated_a == prob_a:
+        if prob_draw is None:
+            calibrated_a = self._calibrator.calibrate(key, prob_a)
+            if calibrated_a == prob_a:
+                return prob_a, prob_b, prob_draw
+            return calibrated_a, 1.0 - calibrated_a, prob_draw
+
+        cal_a = self._calibrator.calibrate(key, prob_a)
+        cal_b = self._calibrator.calibrate(key, prob_b)
+        if cal_a == prob_a and cal_b == prob_b:
             return prob_a, prob_b, prob_draw
-        return calibrated_a, 1.0 - calibrated_a, prob_draw
+        total = cal_a + cal_b + prob_draw
+        if total <= 1e-9:
+            return prob_a, prob_b, prob_draw
+        return cal_a / total, cal_b / total, prob_draw / total
+
+    # Per-sector ramp params for _disagreement_sharp_weight. Sectors not
+    # listed fall through to the global defaults (0.10 / 0.30 / 0.95).
+    #
+    # Soccer override (2026-04-30): the walk-forward disagreement profile
+    # (n=4406, 2324–2526) shows that across all five disagreement buckets
+    # sharp is 2-3× closer to the realized outcome than the stat blend:
+    #   model > sharp by 7+pts  (n=921):  model 40.7%, sharp 29.5%, actual 24.2%
+    #   model > sharp by 4-7pts (n=585):  model 39.8%, sharp 34.3%, actual 29.4%
+    #   model < sharp by 4-7pts (n=442):  model 50.2%, sharp 55.6%, actual 53.2%
+    #   model < sharp by 7+pts  (n=753):  model 51.4%, sharp 63.4%, actual 64.0%
+    # The default ramp (threshold 0.10, sat 0.30, cap 0.95) only kicks in
+    # at 10pt disagreement and tops out at 95% sharp — so on the 4-7pt
+    # subset where sharp is provably right, the blend keeps the model's
+    # bad view at full weight. The override starts the ramp at 4pts,
+    # saturates at 10pts (V4: more aggressive than the prior V3 sat=15),
+    # and goes to 100% sharp at saturation. Validated via the per-bucket
+    # diagnostic (scripts/per_bucket_disagreement_perf.py) with xG wired
+    # into the walk-forward: 2526 holdout binary Brier 0.19523 → 0.19506
+    # (Δ −0.00017 vs sharp-only ceiling of 0.19499). V4 narrows the gap
+    # to sharp-only further than V3 (0.04/0.15/0.99) did.
+    DISAGREEMENT_OVERRIDES: dict[str, tuple[float, float, float]] = {
+        # sector → (threshold, saturate_at, cap)
+        "soccer": (0.04, 0.10, 1.00),
+    }
+
+    @staticmethod
+    def _disagreement_sharp_weight(
+        model_a: float,
+        model_b: float,
+        model_draw: Optional[float],
+        sharp_a: float,
+        sharp_b: float,
+        sharp_draw: Optional[float],
+        base_sharp_weight: float,
+        threshold: float = 0.10,
+        saturate_at: float = 0.30,
+        cap: float = 0.95,
+        sector: Optional[str] = None,
+    ) -> float:
+        """Return a boosted sharp_weight when the stat blend disagrees with sharp.
+
+        Rationale: soccer walk-forward (2026-04-23, n=2606) showed that when the
+        stat ensemble's argmax differed from sharp's, sharp was right 41.6% of
+        the time vs stat's 30.6% — an 11pp gap on 13% of the corpus. Rather
+        than try to fix the stat models on those specific games, this helper
+        defers to sharp when the two sides visibly disagree.
+
+        Mechanism: compute the max per-leg |model - sharp| gap. Below
+        `threshold` the base weight is unchanged (normal blend). Above, we
+        linearly ramp toward `cap` so that at `saturate_at` disagreement the
+        blend is almost pure sharp. FLB correction still runs afterward and
+        composes with this.
+
+        Defaults: threshold=0.10, saturate_at=0.30, cap=0.95.
+          - diff=0.10 → no adjustment
+          - diff=0.20 → halfway to cap
+          - diff=0.30+ → saturated at cap
+
+        When `sector` is provided and listed in DISAGREEMENT_OVERRIDES, the
+        override values replace the defaults. Explicit threshold/saturate_at/
+        cap kwargs always win over the override (used by the A/B harness).
+        """
+        if sector is not None:
+            override = EnsembleModelAgent.DISAGREEMENT_OVERRIDES.get(sector.lower())
+            if override is not None:
+                # Only apply override values where the caller didn't pass an
+                # explicit non-default — explicit kwargs take precedence so
+                # the A/B script can sweep params without our overrides
+                # silently overriding the sweep.
+                if threshold == 0.10:
+                    threshold = override[0]
+                if saturate_at == 0.30:
+                    saturate_at = override[1]
+                if cap == 0.95:
+                    cap = override[2]
+        diffs = [abs(model_a - sharp_a), abs(model_b - sharp_b)]
+        if model_draw is not None and sharp_draw is not None:
+            diffs.append(abs(model_draw - sharp_draw))
+        max_diff = max(diffs)
+        if max_diff <= threshold:
+            return base_sharp_weight
+        span = max(saturate_at - threshold, 1e-9)
+        fraction = min(1.0, (max_diff - threshold) / span)
+        return base_sharp_weight + fraction * (cap - base_sharp_weight)
 
     @staticmethod
     def _flb_correct(
@@ -336,21 +438,30 @@ class EnsembleModelAgent(Agent):
             model_a = sum(c[0] * c[1] for c in model_contribs) / total_mw
             model_b = sum(c[0] * c[2] for c in model_contribs) / total_mw
             has_draw = any(c[3] is not None for c in model_contribs) or sharp.true_prob_draw is not None
-            model_draw = (sum(c[0] * (c[3] or 0.0) for c in model_contribs) / total_mw
-                          if any(c[3] is not None for c in model_contribs) else 0.0)
+            model_draw_val = (sum(c[0] * (c[3] or 0.0) for c in model_contribs) / total_mw
+                              if any(c[3] is not None for c in model_contribs) else None)
             # Calibrate the model-side blend BEFORE combining with sharp.
             # Sharp lines are already well-calibrated; running them through
             # a model-side correction would double-correct and add noise.
-            _model_draw_or_none = model_draw if has_draw else None
-            model_a, model_b, _calibrated_draw = self._apply_sector_calibration(
-                sector, model_a, model_b, _model_draw_or_none,
+            model_a, model_b, model_draw_val = self._apply_sector_calibration(
+                sector, model_a, model_b, model_draw_val,
             )
-            model_draw = _calibrated_draw if _calibrated_draw is not None else model_draw
 
-            model_weight = 1.0 - sharp_weight
-            prob_a = sharp_weight * sharp.true_prob_a + model_weight * model_a
-            prob_b = sharp_weight * sharp.true_prob_b + model_weight * model_b
-            prob_draw = (sharp_weight * (sharp.true_prob_draw or 0.0) + model_weight * model_draw
+            # Defer to sharp when the stat blend visibly disagrees with it —
+            # walk-forward showed sharp wins 41.6% vs stat 30.6% on argmax
+            # disagreements, so the blend should lean on sharp when the two
+            # sides pull apart.
+            effective_sharp_weight = self._disagreement_sharp_weight(
+                model_a, model_b, model_draw_val,
+                sharp.true_prob_a, sharp.true_prob_b, sharp.true_prob_draw,
+                base_sharp_weight=sharp_weight,
+                sector=sector,
+            )
+            model_weight = 1.0 - effective_sharp_weight
+            prob_a = effective_sharp_weight * sharp.true_prob_a + model_weight * model_a
+            prob_b = effective_sharp_weight * sharp.true_prob_b + model_weight * model_b
+            prob_draw = (effective_sharp_weight * (sharp.true_prob_draw or 0.0)
+                         + model_weight * (model_draw_val or 0.0)
                          if has_draw else None)
 
         # Favorite-longshot bias correction: at extreme probabilities,
