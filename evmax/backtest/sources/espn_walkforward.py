@@ -22,6 +22,11 @@ import structlog
 from evmax.agents.models.elo_agent import EloModelAgent
 from evmax.agents.models.form_agent import FormModelAgent
 from evmax.agents.models.poisson_agent import PoissonModelAgent
+from evmax.agents.models.pitcher_agent import (
+    PYTHAG_EXP as PITCHER_PYTHAG_EXP,
+    HOME_BONUS as PITCHER_HOME_BONUS,
+    _effective_era as pitcher_effective_era,
+)
 from evmax.agents.models.efficiency_agent import EfficiencyModelAgent
 from evmax.agents.models.wnba_efficiency_agent import WNBAEfficiencyModelAgent
 from evmax.agents.models.wnba_possession_sim_agent import WNBAPossessionSimAgent
@@ -66,6 +71,7 @@ class WalkForwardResult:
     possession_sim_prob_home: Optional[float] = None
     shot_quality_prob_home: Optional[float] = None
     matchup_prob_home: Optional[float] = None
+    pitcher_prob_home: Optional[float] = None
     ensemble_prob_home: Optional[float] = None
 
 
@@ -97,6 +103,9 @@ class WalkForwardReport:
     matchup_brier: float = 0.0
     matchup_accuracy: float = 0.0
     matchup_n: int = 0
+    pitcher_brier: float = 0.0
+    pitcher_accuracy: float = 0.0
+    pitcher_n: int = 0
     # Ensemble
     ensemble_brier: float = 0.0
     ensemble_accuracy: float = 0.0
@@ -142,6 +151,7 @@ def _fetch_espn_month(
 
         games.append({
             "date": game_date,
+            "event_id": str(e.get("id", "")),
             "home": home_t["team"]["displayName"],
             "away": away_t["team"]["displayName"],
             "home_score": int(home_t.get("score", 0)),
@@ -197,6 +207,189 @@ NBA_WEIGHT_OVERRIDES: dict[str, float] = {
     "poisson": 0.0,
 }
 
+# Mirrors SECTOR_WEIGHT_OVERRIDES["baseball"] in ensemble_agent.py.
+BASEBALL_WEIGHT_OVERRIDES: dict[str, float] = {
+    "pitcher": 0.50,
+    "elo":     0.25,
+    "form":    0.25,
+}
+
+# League-average cFIP constant. True cFIP = league_ERA - league_FIP_raw and
+# drifts ~±0.05 year over year, so 3.10 (the textbook value) is close enough
+# for backtest purposes. ESPN box scores don't expose HBP, so the FIP we
+# compute here is BB-only — slightly understated relative to the live
+# seeder's BR-based FIP, but the cFIP constant absorbs that bias as long as
+# we're consistent within a single backtest run.
+BACKTEST_CFIP = 3.10
+PITCHER_MIN_IP_FOR_PRED = 30.0  # mirrors live confidence-tier floor
+
+
+def _parse_ip(ip_str: str) -> float:
+    """ESPN reports innings as 'X.Y' where Y is outs (0/1/2). 6.2 = 6 + 2/3."""
+    try:
+        whole, frac = ip_str.split(".")
+        return float(whole) + float(frac) / 3.0
+    except (ValueError, AttributeError):
+        try:
+            return float(ip_str)
+        except (ValueError, TypeError):
+            return 0.0
+
+
+def _fetch_baseball_boxscore(
+    client: httpx.Client,
+    event_id: str,
+) -> Optional[dict]:
+    """Fetch ESPN MLB boxscore and extract starting pitcher lines per team.
+
+    Returns:
+        {
+          "home": {"team": str, "name": str, "ip": float, "er": int,
+                   "bb": int, "so": int, "hr": int},
+          "away": {...},
+        }
+        or None if the boxscore is missing/malformed.
+
+    The "home"/"away" keys are derived from the boxscore's team list — the
+    caller resolves them to the normalized team names from the scoreboard fetch.
+    """
+    if not event_id:
+        return None
+    url = f"{ESPN_BASE}/baseball/mlb/summary"
+    try:
+        r = client.get(url, params={"event": event_id}, timeout=12)
+        r.raise_for_status()
+        data = r.json()
+    except Exception:
+        return None
+
+    bs = data.get("boxscore", {})
+    players_by_team = bs.get("players", [])
+    if not players_by_team:
+        return None
+
+    teams_meta = bs.get("teams", [])
+    home_abbr = away_abbr = None
+    for tm in teams_meta:
+        ha = tm.get("homeAway")
+        abbr = tm.get("team", {}).get("abbreviation")
+        if ha == "home":
+            home_abbr = abbr
+        elif ha == "away":
+            away_abbr = abbr
+
+    out: dict[str, dict] = {}
+    for team_block in players_by_team:
+        team_abbr = team_block.get("team", {}).get("abbreviation")
+        if team_abbr is None:
+            continue
+        if team_abbr == home_abbr:
+            slot = "home"
+        elif team_abbr == away_abbr:
+            slot = "away"
+        else:
+            continue
+
+        for stat_grp in team_block.get("statistics", []):
+            if stat_grp.get("type") != "pitching":
+                continue
+            labels = stat_grp.get("labels", [])
+            athletes = stat_grp.get("athletes", [])
+            if not athletes:
+                continue
+            # First pitcher = starter
+            starter = athletes[0]
+            stats = starter.get("stats", [])
+            if len(stats) != len(labels):
+                continue
+
+            row = dict(zip(labels, stats))
+            try:
+                ip = _parse_ip(row.get("IP", "0"))
+                er = int(row.get("ER", 0) or 0)
+                bb = int(row.get("BB", 0) or 0)
+                so = int(row.get("K", 0) or 0)
+                hr = int(row.get("HR", 0) or 0)
+            except (ValueError, TypeError):
+                continue
+
+            out[slot] = {
+                "team": team_abbr,
+                "name": (starter.get("athlete", {}).get("displayName") or "").strip(),
+                "ip": ip,
+                "er": er,
+                "bb": bb,
+                "so": so,
+                "hr": hr,
+            }
+            break
+
+    if "home" not in out or "away" not in out:
+        return None
+    return out
+
+
+def _running_to_rates(running: dict) -> tuple[float, float]:
+    """Compute (FIP, ERA) from a pitcher's accumulated walk-forward totals.
+
+    Returns NaN-safe values; caller checks IP >= PITCHER_MIN_IP_FOR_PRED first.
+    """
+    ip = running["ip"]
+    if ip <= 0:
+        return float("nan"), float("nan")
+    era = (running["er"] * 9.0) / ip
+    # ESPN box scores don't include HBP, so FIP is computed without it.
+    fip = (13 * running["hr"] + 3 * running["bb"] - 2 * running["so"]) / ip + BACKTEST_CFIP
+    return fip, era
+
+
+def _pitcher_predict_walkforward(
+    home_running: Optional[dict],
+    away_running: Optional[dict],
+) -> Optional[float]:
+    """Run the same Pythagenpat formula the live model uses, but with
+    point-in-time running totals from prior games this season.
+
+    Returns None if either pitcher has < PITCHER_MIN_IP_FOR_PRED IP — same
+    floor the live model applies via its FIP+30 IP confidence tier.
+    """
+    if not home_running or not away_running:
+        return None
+    if home_running["ip"] < PITCHER_MIN_IP_FOR_PRED:
+        return None
+    if away_running["ip"] < PITCHER_MIN_IP_FOR_PRED:
+        return None
+
+    home_fip, home_era = _running_to_rates(home_running)
+    away_fip, away_era = _running_to_rates(away_running)
+    if math.isnan(home_fip) or math.isnan(away_fip):
+        return None
+
+    # Use the same _effective_era helper the live agent uses, so any future
+    # tuning of the FIP/ERA blend weights flows through to backtest automatically.
+    home_rate = pitcher_effective_era({"fip": home_fip, "era": home_era}, league_avg=4.08)
+    away_rate = pitcher_effective_era({"fip": away_fip, "era": away_era}, league_avg=4.08)
+
+    e = PITCHER_PYTHAG_EXP
+    home_rs, home_ra = away_rate, home_rate
+    away_rs, away_ra = home_rate, away_rate
+    home_wp = (home_rs ** e) / (home_rs ** e + home_ra ** e)
+    away_wp = (away_rs ** e) / (away_rs ** e + away_ra ** e)
+    total = home_wp + away_wp
+    prob_a = home_wp / total if total > 0 else 0.5
+    prob_a = min(0.90, max(0.10, prob_a + PITCHER_HOME_BONUS))
+    return prob_a
+
+
+def _accumulate_pitcher_line(running: dict, line: dict) -> None:
+    """Add a single game's pitching line into a pitcher's running totals."""
+    running["ip"] += line["ip"]
+    running["er"] += line["er"]
+    running["bb"] += line["bb"]
+    running["so"] += line["so"]
+    running["hr"] += line["hr"]
+    running["games"] += 1
+
 # Mirrors SECTOR_WEIGHT_OVERRIDES["wnba"] in ensemble_agent.py. Kept in sync
 # manually so the walk-forward evaluates the same blend the live scanner uses.
 WNBA_WEIGHT_OVERRIDES: dict[str, float] = {
@@ -240,6 +433,10 @@ def run_walkforward(
     # efficiency stats stabilise slowly and opening-day predictions benefit
     # from Y−1 priors, matching live behaviour.
     is_wnba = sector.lower() == "wnba"
+    # Baseball: walk-forward pitcher running totals. Each game's box score
+    # contributes to the pitcher's HR/BB/SO/IP/ER cumulative line, used to
+    # compute point-in-time FIP+ERA for prediction at game N+1. No future leak.
+    is_baseball = sector.lower() == "baseball"
     efficiency_agent = None
     wnba_efficiency_agent = None
     wnba_possession_sim_agent = None
@@ -254,6 +451,11 @@ def run_walkforward(
     elif is_wnba:
         wnba_efficiency_agent = WNBAEfficiencyModelAgent()
         wnba_possession_sim_agent = WNBAPossessionSimAgent()
+
+    # Pitcher walk-forward state (baseball only).
+    # name (lowercased) → cumulative {ip, er, bb, so, hr, games}
+    pitcher_running: dict[str, dict] = {}
+    boxscore_client: Optional[httpx.Client] = httpx.Client() if is_baseball else None
 
     norm = NameNormalizer(sector)
     results: list[WalkForwardResult] = []
@@ -278,6 +480,9 @@ def run_walkforward(
         possim_prob = None
         sq_prob = None
         mu_prob = None
+        pitcher_prob = None
+        home_starter_line: Optional[dict] = None
+        away_starter_line: Optional[dict] = None
         if is_nba:
             eff_prob, possim_prob, sq_prob, mu_prob = _nba_model_predict(
                 home, away, efficiency_agent, possession_sim_agent,
@@ -288,6 +493,18 @@ def run_walkforward(
             possim_prob = _wnba_possession_sim_predict(
                 home, away, wnba_possession_sim_agent,
             )
+        elif is_baseball and boxscore_client is not None:
+            event_id = g.get("event_id", "")
+            box = _fetch_baseball_boxscore(boxscore_client, event_id)
+            if box is not None:
+                home_starter_line = box["home"]
+                away_starter_line = box["away"]
+                home_name = home_starter_line["name"].lower().strip()
+                away_name = away_starter_line["name"].lower().strip()
+                pitcher_prob = _pitcher_predict_walkforward(
+                    pitcher_running.get(home_name),
+                    pitcher_running.get(away_name),
+                )
 
         # Ensemble: weighted average of available models
         if is_nba:
@@ -305,6 +522,13 @@ def run_walkforward(
                 (poisson_prob, w["poisson"]),
                 (eff_prob, w["wnba_efficiency"]),
                 (possim_prob, w["wnba_possession_sim"]),
+            ])
+        elif is_baseball:
+            w = BASEBALL_WEIGHT_OVERRIDES
+            ensemble_prob = _ensemble([
+                (pitcher_prob, w["pitcher"]),
+                (elo_prob, w["elo"]),
+                (form_prob, w["form"]),
             ])
         else:
             ensemble_prob = _ensemble(
@@ -325,6 +549,7 @@ def run_walkforward(
             possession_sim_prob_home=possim_prob,
             shot_quality_prob_home=sq_prob,
             matchup_prob_home=mu_prob,
+            pitcher_prob_home=pitcher_prob,
             ensemble_prob_home=ensemble_prob,
         )
         results.append(result)
@@ -333,6 +558,21 @@ def run_walkforward(
         _elo_update(elo, sector, home, away, home_won, game_date)
         _form_update(form, sector, home, away, home_won, game_date)
         _poisson_update(poisson, sector, home, away, g["home_score"], g["away_score"])
+
+        # Update pitcher running totals AFTER prediction (no leak).
+        if is_baseball and home_starter_line is not None and away_starter_line is not None:
+            for line in (home_starter_line, away_starter_line):
+                key = line["name"].lower().strip()
+                if not key:
+                    continue
+                running = pitcher_running.setdefault(
+                    key,
+                    {"ip": 0.0, "er": 0, "bb": 0, "so": 0, "hr": 0, "games": 0},
+                )
+                _accumulate_pitcher_line(running, line)
+
+    if boxscore_client is not None:
+        boxscore_client.close()
 
     # --- Compute metrics ---
     report = _compute_metrics(sector, results, elo_weight, form_weight, poisson_weight)
@@ -955,6 +1195,7 @@ def _compute_metrics(
     possim_pred, possim_actual = [], []
     sq_pred, sq_actual = [], []
     mu_pred, mu_actual = [], []
+    pitcher_pred, pitcher_actual = [], []
     ens_pred, ens_actual = [], []
 
     for r in results:
@@ -980,6 +1221,9 @@ def _compute_metrics(
         if r.matchup_prob_home is not None:
             mu_pred.append(r.matchup_prob_home)
             mu_actual.append(actual)
+        if r.pitcher_prob_home is not None:
+            pitcher_pred.append(r.pitcher_prob_home)
+            pitcher_actual.append(actual)
         if r.ensemble_prob_home is not None:
             ens_pred.append(r.ensemble_prob_home)
             ens_actual.append(actual)
@@ -1015,6 +1259,9 @@ def _compute_metrics(
         matchup_brier=brier_score(mu_pred, mu_actual),
         matchup_accuracy=accuracy_score(mu_pred, mu_actual),
         matchup_n=len(mu_pred),
+        pitcher_brier=brier_score(pitcher_pred, pitcher_actual),
+        pitcher_accuracy=accuracy_score(pitcher_pred, pitcher_actual),
+        pitcher_n=len(pitcher_pred),
         ensemble_brier=brier_score(ens_pred, ens_actual),
         ensemble_accuracy=accuracy_score(ens_pred, ens_actual),
         ensemble_n=len(ens_pred),

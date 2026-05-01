@@ -13,6 +13,7 @@ from evmax.backtest.sources.espn_walkforward import (
     TotalsBacktestReport,
     TOTALS_LINES,
 )
+from evmax.backtest.sources.soccer_walkforward import SoccerWalkForwardReport
 
 console = Console()
 
@@ -57,6 +58,7 @@ def summary_panel(report: WalkForwardReport) -> Panel:
         ("PossessionSim", report.possession_sim_brier, report.possession_sim_accuracy, report.possession_sim_n),
         ("ShotQuality", report.shot_quality_brier, report.shot_quality_accuracy, report.shot_quality_n),
         ("Matchup", report.matchup_brier, report.matchup_accuracy, report.matchup_n),
+        ("Pitcher", report.pitcher_brier, report.pitcher_accuracy, report.pitcher_n),
         ("Ensemble", report.ensemble_brier, report.ensemble_accuracy, report.ensemble_n),
     ]
     for name, brier, acc, n in models:
@@ -353,4 +355,198 @@ def print_walkforward_report(report: WalkForwardReport) -> None:
         console.print(calibration_table(report))
         console.print()
     console.print(model_convergence_table(report))
+    console.print()
+
+
+def soccer_walkforward_summary_panel(report: SoccerWalkForwardReport) -> Panel:
+    random_3way = 2.0 / 3.0  # Brier 3-way random baseline
+    random_bin = 0.25
+    home_bin = (1 - report.home_win_rate) ** 2 * report.home_win_rate + (
+        report.home_win_rate ** 2
+    ) * (1 - report.home_win_rate)
+
+    lines: list[str] = []
+    lines.append(f"  [bold]Games:[/bold]           {report.n_games}")
+    lines.append(f"  [bold]Home win rate:[/bold]   {report.home_win_rate:.1%}")
+    lines.append(f"  [bold]Draw rate:[/bold]       {report.draw_rate:.1%}")
+    lines.append("")
+    lines.append(
+        f"  [bold]Baselines:[/bold]  always-home Brier (bin) = {home_bin:.4f}  |  "
+        f"random 3-way Brier = {random_3way:.4f}"
+    )
+    lines.append("")
+    lines.append("  [bold underline]Per-model Brier (walk-forward, unfiltered)[/bold underline]")
+    lines.append(
+        f"  {'Model':14s}  {'N':>6s}  {'Brier(H)':>9s}  {'Brier(3w)':>10s}  "
+        f"{'Acc':>6s}  {'μ pred H':>9s}  {'μ actual H':>11s}"
+    )
+    order = ["sharp", "blended_ensemble", "blended_baseline", "stat_ensemble", "elo", "form", "poisson", "xg"]
+    for name in order:
+        m = report.by_model.get(name)
+        if not m or m.n == 0:
+            lines.append(f"  {name:14s}  [dim]no predictions[/dim]")
+            continue
+        bc = _brier_color(m.brier_binary, random_bin)
+        tc = _brier_color(m.brier_3way, random_3way)
+        lines.append(
+            f"  {name:14s}  {m.n:>6d}  "
+            f"[{bc}]{m.brier_binary:>9.4f}[/{bc}]  "
+            f"[{tc}]{m.brier_3way:>10.4f}[/{tc}]  "
+            f"{m.accuracy:>6.1%}  "
+            f"{m.mean_pred_home:>9.1%}  {m.mean_actual_home:>11.1%}"
+        )
+
+    return Panel(
+        "\n".join(lines),
+        title="[bold]SOCCER WALK-FORWARD — per-model Brier[/bold]  |  football-data.co.uk",
+        border_style="cyan",
+    )
+
+
+def soccer_walkforward_league_table(report: SoccerWalkForwardReport) -> Table:
+    t = Table(
+        title="Per-League Brier (binary, P(home)) — blended_ensemble is live blend w/ disagreement bump",
+        box=box.SIMPLE,
+        header_style="bold cyan",
+    )
+    t.add_column("League", width=14)
+    t.add_column("N", justify="right", width=5)
+    columns = ("sharp", "blended_ensemble", "blended_baseline", "elo", "form", "poisson")
+    headers = {
+        "sharp": "Sharp",
+        "blended_ensemble": "Blend+Bump",
+        "blended_baseline": "Blend Base",
+        "elo": "Elo",
+        "form": "Form",
+        "poisson": "Poisson",
+    }
+    for model in columns:
+        t.add_column(headers[model], justify="right", width=11)
+
+    for league in sorted(report.by_league.keys()):
+        data = report.by_league[league]
+        n = max((data[m]["n"] for m in data), default=0)
+        row = [league, str(n)]
+        sharp_brier = data.get("sharp", {}).get("brier_binary")
+        for model in columns:
+            mdata = data.get(model)
+            if not mdata or mdata["n"] == 0:
+                row.append("—")
+                continue
+            val = mdata["brier_binary"]
+            # Green if blended beats sharp (unlikely but possible in some leagues);
+            # yellow if within 0.005; red if significantly worse.
+            if model == "blended_ensemble" and sharp_brier is not None:
+                delta = val - sharp_brier
+                if delta <= 0:
+                    color = "green"
+                elif delta < 0.005:
+                    color = "yellow"
+                else:
+                    color = "red"
+                row.append(f"[{color}]{val:.4f}[/{color}]")
+            else:
+                row.append(f"{val:.4f}")
+        t.add_row(*row)
+    return t
+
+
+def soccer_walkforward_draw_table(report: SoccerWalkForwardReport) -> Table:
+    t = Table(
+        title="Draw allocation — predicted vs actual 25.2% baseline",
+        box=box.SIMPLE,
+        header_style="bold cyan",
+    )
+    t.add_column("Model", width=14)
+    t.add_column("μ pred D", justify="right", width=10)
+    t.add_column("μ actual D", justify="right", width=11)
+    t.add_column("Delta", justify="right", width=8)
+    for name in ("sharp", "stat_ensemble", "elo", "form", "poisson"):
+        m = report.by_model.get(name)
+        if not m or m.n == 0:
+            continue
+        delta = m.mean_actual_draw - m.mean_pred_draw
+        color = "green" if abs(delta) < 0.02 else ("red" if delta < 0 else "cyan")
+        t.add_row(
+            name,
+            f"{m.mean_pred_draw:.1%}",
+            f"{m.mean_actual_draw:.1%}",
+            f"[{color}]{delta:+.1%}[/{color}]",
+        )
+    return t
+
+
+def soccer_walkforward_calibration_table(
+    report: SoccerWalkForwardReport, model_name: str
+) -> Table:
+    t = Table(
+        title=f"{model_name} P(home) calibration — predicted vs actual by bucket",
+        box=box.SIMPLE,
+        header_style="bold cyan",
+    )
+    t.add_column("Bucket", width=12)
+    t.add_column("N", justify="right", width=6)
+    t.add_column("Mean Pred", justify="right", width=11)
+    t.add_column("Actual %", justify="right", width=10)
+    t.add_column("Delta", justify="right", width=8)
+    m = report.by_model.get(model_name)
+    if not m:
+        return t
+    for b in m.calibration:
+        delta = b.actual_rate - b.mean_pred
+        if b.n < 10:
+            color = "dim"
+        elif abs(delta) < 0.03:
+            color = "green"
+        else:
+            color = "red" if delta < 0 else "cyan"
+        t.add_row(
+            f"{b.prob_low:.0%}–{b.prob_high:.0%}",
+            str(b.n),
+            f"{b.mean_pred:.1%}",
+            f"{b.actual_rate:.1%}",
+            f"[{color}]{delta:+.1%}[/{color}]",
+        )
+    return t
+
+
+def soccer_walkforward_disagree_panel(report: SoccerWalkForwardReport) -> Panel:
+    n = report.n_disagree
+    if n == 0:
+        return Panel("no disagreements recorded", border_style="dim")
+    stat = report.stat_correct_on_disagree
+    sharp = report.sharp_correct_on_disagree
+    lines = [
+        f"  [bold]Games where stat-ensemble disagrees with sharp:[/bold] {n} ({n / report.n_games:.1%} of corpus)",
+        f"  [bold]Stat correct:[/bold]  {stat} ({stat/n:.1%})",
+        f"  [bold]Sharp correct:[/bold] {sharp} ({sharp/n:.1%})",
+    ]
+    if sharp > stat:
+        lines.append(
+            f"  [red]  → Sharp wins by {sharp - stat} games when they disagree. "
+            f"Stat ensemble is a net drag on these.[/red]"
+        )
+    elif stat > sharp:
+        lines.append(
+            f"  [green]  → Stat wins by {stat - sharp} games when they disagree — "
+            f"blending adds real signal on these.[/green]"
+        )
+    else:
+        lines.append("  [yellow]  → Break-even; blending is noise-neutral.[/yellow]")
+    return Panel("\n".join(lines), title="[bold]Sharp vs Stat-Ensemble Disagreement[/bold]", border_style="cyan")
+
+
+def print_soccer_walkforward_report(report: SoccerWalkForwardReport) -> None:
+    console.print()
+    console.print(soccer_walkforward_summary_panel(report))
+    console.print()
+    if report.by_league:
+        console.print(soccer_walkforward_league_table(report))
+        console.print()
+    console.print(soccer_walkforward_draw_table(report))
+    console.print()
+    for model in ("elo", "poisson", "form", "sharp"):
+        console.print(soccer_walkforward_calibration_table(report, model))
+        console.print()
+    console.print(soccer_walkforward_disagree_panel(report))
     console.print()
