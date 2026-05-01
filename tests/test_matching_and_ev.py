@@ -69,13 +69,18 @@ def _market(
     market_id: str = "kalshi:TEST-001",
     volume_usd: float = 10_000.0,
 ) -> PredictionMarket:
+    # Default no_price simulates a real liquid orderbook with ~2% vig
+    # (yes_ask + no_ask sums to ~1.02). Tests that need a specific spread_pct
+    # — including the empty-book regression — pass no_price explicitly.
+    if no_price is None:
+        no_price = round(min(0.99, max(0.01, (1.0 - yes_price) + 0.02)), 4)
     return PredictionMarket(
         id=market_id,
         source=MarketSource.kalshi,
         sector=sector,
         market_type=market_type,
         yes_price=yes_price,
-        no_price=no_price if no_price is not None else round(1.0 - yes_price, 4),
+        no_price=no_price,
         volume_usd=volume_usd,
         team_home=team_home,
         team_away=team_away,
@@ -590,7 +595,7 @@ class TestEvaluatePair:
             sector="soccer",
             market_type=MarketType.moneyline,
             yes_price=0.22,
-            no_price=0.78,
+            no_price=0.80,  # +2¢ vig → spread_pct > 0
             yes_team="draw",
             team_home="man city",
             team_away="arsenal",
@@ -642,7 +647,7 @@ class TestEvaluatePair:
             sector="soccer",
             market_type=MarketType.moneyline,
             yes_price=0.22,
-            no_price=0.78,
+            no_price=0.80,  # +2¢ vig → spread_pct > 0
             yes_team="x",
         )
         sharp = SharpOdds(
@@ -1667,3 +1672,93 @@ class TestNoSideOpponentNameNormalized:
                 f"Expected canonical short name, got long form: '{ng.yes_team}'"
             )
             assert "warriors" in ng.yes_team
+
+
+# ---------------------------------------------------------------------------
+# Empty-orderbook filter — spread_pct floor
+# ---------------------------------------------------------------------------
+
+class TestEmptyOrderbookFilter:
+    """Markets where yes_ask + no_ask sum to exactly 1.0 don't have a real
+    two-sided book (real markets have vig). spread_pct = 0 is the signal.
+    Filter such markets so we don't surface untradeable +EV phantoms.
+    """
+
+    def setup_method(self):
+        self.agent = _make_ev_gap_agent()
+
+    def test_yes_side_filtered_when_spread_pct_is_zero(self):
+        """yes_price + no_price == 1.0 → spread_pct=0 → drop the bet."""
+        from evmax.agents.base import AgentRequest
+        from unittest.mock import patch
+        import asyncio
+
+        # Construct a market with no_price = 1 - yes_price exactly (synthetic
+        # complement, no real two-sided book).
+        market = _market(
+            team_home="lakers", team_away="rockets",
+            yes_price=0.45, no_price=0.55,
+            yes_team="lakers",
+            market_type=MarketType.spread,
+            line=-7.5,
+            sector="nba",
+        )
+        # Sanity: spread_pct should be ~0 by construction
+        assert market.spread_pct < 0.005
+
+        sharp = _spread_sharp(
+            event_id="nba::2026-05-01::rockets_vs_lakers::spread",
+            outcome_a="lakers", outcome_b="rockets",
+            spread_line=-5.5, true_prob_a=0.55,
+        )
+
+        with patch.object(
+            self.agent._matching, "match_all",
+            return_value=[(market, sharp, 95.0)],
+        ):
+            req = AgentRequest(
+                sector="nba",
+                params={"kalshi_markets": [market], "sharp_odds": [sharp]},
+            )
+            resp = asyncio.run(self.agent(req))
+
+        # Both YES and NO should be filtered → no gaps emitted
+        assert len(resp.data) == 0, (
+            f"Empty-book market should not emit any gaps; got: "
+            f"{[(g.market_id, g.ev_pct) for g in resp.data]}"
+        )
+
+    def test_real_book_with_vig_passes_filter(self):
+        """yes_ask + no_ask > 1.0 (real vig) → spread_pct > 0 → not filtered."""
+        from evmax.agents.base import AgentRequest
+        from unittest.mock import patch
+        import asyncio
+
+        # Real book: yes=0.45, no=0.57 → sum 1.02 (2% vig), spread_pct ~ 4%
+        market = _market(
+            team_home="rockets", team_away="lakers",
+            yes_price=0.45, no_price=0.57,
+            yes_team="rockets",
+            market_type=MarketType.moneyline,
+            sector="nba",
+        )
+        assert market.spread_pct >= 0.005
+
+        sharp = _moneyline_sharp(
+            event_id="nba::2026-05-01::rockets_vs_lakers",
+            outcome_a="rockets", outcome_b="lakers",
+            true_prob_a=0.58,
+        )
+
+        with patch.object(
+            self.agent._matching, "match_all",
+            return_value=[(market, sharp, 95.0)],
+        ):
+            req = AgentRequest(
+                sector="nba",
+                params={"kalshi_markets": [market], "sharp_odds": [sharp]},
+            )
+            resp = asyncio.run(self.agent(req))
+
+        # Should produce a gap (price 0.45, true prob 0.58 → +EV)
+        assert len(resp.data) >= 1

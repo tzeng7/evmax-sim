@@ -65,7 +65,11 @@ def _report(team="detroit pistons", players=None, sector="nba") -> InjuryReport:
 
 def _market(yes_price=0.45, yes_team="pistons", market_type=MarketType.moneyline,
             line=None, yes_price_no=None) -> PredictionMarket:
-    no_price = yes_price_no if yes_price_no is not None else round(1 - yes_price, 4)
+    if yes_price_no is not None:
+        no_price = yes_price_no
+    else:
+        # Default to ~2% vig so spread_pct > 0 (empty-book filter passes).
+        no_price = round(min(0.99, max(0.01, (1.0 - yes_price) + 0.02)), 4)
     return PredictionMarket(
         id="kalshi:TEST-001",
         source=MarketSource.kalshi,
@@ -491,7 +495,7 @@ class TestEvaluatePair:
             sector="soccer",
             market_type=MarketType.moneyline,
             yes_price=0.25,
-            no_price=0.75,
+            no_price=0.77,  # +2¢ vig → spread_pct > 0
             yes_team="tie",
         )
         gap = agent._evaluate_pair(market_obj, sharp, 0.95, "soccer", {}, {}, model_sources={}, kelly_base=0.5)

@@ -31,6 +31,9 @@ def make_market(
     market_type: MarketType = MarketType.moneyline,
     volume: float = 10_000.0,
 ) -> PredictionMarket:
+    # Simulate a real liquid book with ~2% vig so spread_pct > 0 and the
+    # empty-orderbook filter doesn't drop these synthetic test markets.
+    no_price = round(min(0.99, max(0.01, (1.0 - yes_price) + 0.02)), 4)
     return PredictionMarket(
         id=f"kalshi:{team_home}_vs_{team_away}",
         source=MarketSource.kalshi,
@@ -39,7 +42,7 @@ def make_market(
         title=f"{team_home} vs {team_away}",
         ticker=f"KXNBAGAME-TEST-{team_home.upper()}",
         yes_price=yes_price,
-        no_price=1.0 - yes_price,
+        no_price=no_price,
         volume_usd=volume,
         open_interest_usd=5_000.0,
         team_home=team_home,
@@ -527,8 +530,13 @@ class TestEloModelAgent:
         assert pred_mis.true_prob_draw < pred_even.true_prob_draw
 
     @pytest.mark.asyncio
-    async def test_soccer_draw_never_exceeds_26pct(self, tmp_path, monkeypatch):
-        """Draw probability should cap at ~26% even for perfectly even teams."""
+    async def test_soccer_draw_never_exceeds_30pct(self, tmp_path, monkeypatch):
+        """Draw probability caps at 30% even for perfectly even teams.
+
+        Retuned 2026-04-23 after walk-forward calibration showed all three
+        stat models underpredicting draws by 2.5–7.9pp. Formula:
+            draw_prob = max(0.10, 0.30 - 0.40 * gap * gap)
+        """
         monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
         agent = EloModelAgent()
         agent._state_path = tmp_path / "elo_state.json"
@@ -543,7 +551,7 @@ class TestEloModelAgent:
         pred = await agent.predict_pair(market, sharp)
         assert pred is not None
         assert pred.true_prob_draw is not None
-        assert pred.true_prob_draw <= 0.27  # 26% + small rounding margin
+        assert pred.true_prob_draw <= 0.31  # 30% + small rounding margin
 
 
 # ---------------------------------------------------------------------------
@@ -643,6 +651,86 @@ class TestFormModelAgent:
             won=True, opp="celtics", home=True,
         )]
         assert FormModelAgent._is_stale(past, reference=today)
+
+    def test_update_records_draw(self, tmp_path, monkeypatch):
+        """Soccer draws must persist drew=True on both sides, not won=False."""
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = FormModelAgent()
+        agent._state_path = tmp_path / "form_state.json"
+
+        agent.update("arsenal", "chelsea", 1, 1, "soccer", "2026-02-10")
+        arsenal = agent._team_records("soccer", "arsenal")
+        chelsea = agent._team_records("soccer", "chelsea")
+
+        assert len(arsenal) == 1 and len(chelsea) == 1
+        assert arsenal[0].drew is True and arsenal[0].won is False
+        assert chelsea[0].drew is True and chelsea[0].won is False
+
+    def test_form_rate_points_per_game_with_shrinkage(self):
+        """Form rate is (W*3 + D*1 + L*0)/(3*N) shrunk toward 0.5 with PRIOR_N.
+
+        At WINDOW games (10 if seeded), shrinkage = 10/(10+6) = 0.625.
+        At MIN_GAMES (3), shrinkage = 3/(3+6) = 0.333 — strongly pulled to 0.5.
+        """
+        from evmax.agents.models import form_agent as fa
+
+        agent = FormModelAgent()
+        d = "2026-03-01"
+
+        # 3 wins, raw = 1.0, shrinkage 3/9 = 0.333 → 1.0*0.333 + 0.5*0.667 = 0.667
+        recs_wins = [GameRecord(date=d, won=True, opp="x", home=True) for _ in range(3)]
+        assert abs(agent._form_rate(recs_wins) - (2.0 / 3.0)) < 1e-9
+
+        # 3 draws, raw = 1/3, shrinkage 0.333 → 0.333*0.333 + 0.5*0.667 ≈ 0.444
+        recs_draws = [
+            GameRecord(date=d, won=False, opp="x", home=True, drew=True) for _ in range(3)
+        ]
+        assert abs(agent._form_rate(recs_draws) - ((1.0 / 3.0) * (1.0 / 3.0) + 0.5 * (2.0 / 3.0))) < 1e-9
+
+        # 3 losses, raw = 0.0 → 0 + 0.5*0.667 = 0.333
+        recs_losses = [GameRecord(date=d, won=False, opp="x", home=True) for _ in range(3)]
+        assert abs(agent._form_rate(recs_losses) - (1.0 / 3.0)) < 1e-9
+
+    def test_form_rate_shrinkage_weaker_at_larger_n(self):
+        """Larger N → weaker pull toward 0.5 (more trust in the data)."""
+        agent = FormModelAgent()
+        d = "2026-03-01"
+        short_streak = [GameRecord(date=d, won=True, opp="x", home=True) for _ in range(3)]
+        long_streak = [GameRecord(date=d, won=True, opp="x", home=True) for _ in range(10)]
+        # Decay is uniform when all dates equal → raw is still 1.0 for both.
+        # Shrinkage differs: 3/9=0.333 vs 10/16=0.625.
+        short_rate = agent._form_rate(short_streak)
+        long_rate = agent._form_rate(long_streak)
+        assert long_rate > short_rate  # larger N → closer to 1.0
+
+    def test_form_rate_distinguishes_draw_from_loss(self):
+        """A drawing team must rate higher than an equally-sized losing team.
+        This is the specific bug the points-per-game switch fixes."""
+        agent = FormModelAgent()
+        d = "2026-03-01"
+        drawing = [GameRecord(date=d, won=False, opp="x", home=True, drew=True) for _ in range(5)]
+        losing = [GameRecord(date=d, won=False, opp="x", home=True, drew=False) for _ in range(5)]
+        assert agent._form_rate(drawing) > agent._form_rate(losing)
+
+    def test_legacy_records_backward_compatible(self, tmp_path, monkeypatch):
+        """Pre-migration state dicts (no `drew` key) still deserialize and
+        behave exactly as before — wins → 1.0, non-wins → 0.0."""
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = FormModelAgent()
+        agent._state_path = tmp_path / "form_state.json"
+
+        agent._state["nba"] = {
+            "lakers": [
+                {"date": "2026-02-01", "won": True, "opp": "celtics", "home": True},
+                {"date": "2026-02-03", "won": False, "opp": "bulls", "home": False},
+                {"date": "2026-02-05", "won": True, "opp": "heat", "home": True},
+            ]
+        }
+        recs = agent._team_records("nba", "lakers")
+        # drew defaulted to False — wins score 1.0, losses 0.0 (NBA still binary)
+        assert all(r.drew is False for r in recs)
+        rate = agent._form_rate(recs)
+        assert 0.5 < rate < 0.8  # 2 wins out of 3, exponentially weighted
 
 
 # ---------------------------------------------------------------------------
@@ -746,12 +834,233 @@ class TestPoissonModelAgent:
         # (pre-existing: draw merge in non-soccer path leaves a small residual)
         assert pred.true_prob_a + pred.true_prob_b == pytest.approx(1.0, abs=0.01)
 
+    def test_shrink_pulls_extreme_ratios_toward_one(self):
+        """Bayesian shrinkage on attack/defense ratios: extreme values at low
+        sample size get pulled toward 1.0; many-game teams keep their signal."""
+        from evmax.agents.models.poisson_agent import _shrink, POISSON_PRIOR_GAMES
+
+        # Cold-start: 3 games + raw 2.0 → closer to 1.0 than to 2.0.
+        shrunk_cold = _shrink(2.0, games=3)
+        assert abs(shrunk_cold - 1.0) < abs(shrunk_cold - 2.0)
+
+        # Mid-season: 15 games + raw 2.0 → closer to 2.0 than to 1.0.
+        shrunk_mid = _shrink(2.0, games=15)
+        assert abs(shrunk_mid - 2.0) < abs(shrunk_mid - 1.0)
+
+        # Zero games returns baseline (avoids div-by-zero, mimics "no data").
+        assert _shrink(3.0, games=0) == 1.0
+
+        # Monotonic: more games = less shrinkage toward 1.0.
+        assert _shrink(2.0, games=30) > _shrink(2.0, games=10)
+
+    @pytest.mark.asyncio
+    async def test_shrinkage_compresses_predictions_at_low_sample(self, tmp_path, monkeypatch):
+        """A 3-game team with raw 2.0 attack should not produce the same
+        prediction as a 30-game team with the same rating — shrinkage should
+        pull the low-N team's P(home) closer to 0.5."""
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+
+        def _predict(home_games: int, away_games: int) -> float:
+            agent = PoissonModelAgent()
+            agent._state_path = tmp_path / f"poisson_{home_games}_{away_games}.json"
+            agent.seed_team_stats(
+                sector="soccer",
+                team_stats={
+                    "strong": {"attack": 2.0, "defense": 0.5, "games": home_games},
+                    "weak": {"attack": 0.5, "defense": 2.0, "games": away_games},
+                },
+                league_avg={"home": 1.55, "away": 1.15},
+            )
+            lam_h, lam_a = agent._expected_goals("soccer", "strong", "weak")
+            return lam_h, lam_a
+
+        lam_h_cold, lam_a_cold = _predict(3, 3)
+        lam_h_mid, lam_a_mid = _predict(30, 30)
+
+        # Same raw ratios but low-N should be much closer to league average.
+        # League avg is 1.55/1.15, raw λ_h = 2.0*2.0*1.55 = 6.20.
+        assert lam_h_mid > lam_h_cold
+        assert lam_a_mid < lam_a_cold
+
 
 # ---------------------------------------------------------------------------
 # EnsembleModelAgent
 # ---------------------------------------------------------------------------
 
 class TestEnsembleModelAgent:
+    @pytest.mark.asyncio
+    async def test_per_event_sharp_weight_override(self, tmp_path, monkeypatch):
+        """`sharp_weight_by_event` per-event override wins over the sector default.
+
+        Used for the soccer tier system: top-5 European leagues pass 0.85
+        here and secondary leagues pass 0.40.
+        """
+        from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
+
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+
+        class _StubModel(ModelAgent):
+            name = "stub"
+            weight = 1.0
+
+            def load_state(self) -> None:
+                self._state = {}
+
+            def save_state(self) -> None:
+                pass
+
+            async def update(self, *args, **kwargs):
+                return None
+
+            async def predict_pair(self, market, sharp_odds):
+                # Keep model/sharp disagreement at 0.05 so the base weight
+                # passes through without the disagreement bump saturating.
+                return ModelAgentPrediction(
+                    event_id=sharp_odds.event_id,
+                    model_name=self.name,
+                    true_prob_a=0.50,
+                    true_prob_b=0.50,
+                    true_prob_draw=None,
+                    confidence=0.80,
+                    weight=self.weight,
+                    sample_size=30,
+                    notes="",
+                )
+
+        # Route the stub through the soccer override table at w=1.0 so it
+        # actually contributes (override would otherwise zero it out).
+        monkeypatch.setitem(
+            EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES["soccer"], "stub", 1.0,
+        )
+
+        stub = _StubModel()
+        ensemble = EnsembleModelAgent(models=[stub], sharp_weight=0.40)
+
+        market = make_market(sector="soccer")
+        sharp_top = make_sharp(event_id="ev_topflight", sector="soccer",
+                               prob_a=0.55, prob_b=0.45)
+        sharp_sec = make_sharp(event_id="ev_secondary", sector="soccer",
+                               prob_a=0.55, prob_b=0.45)
+
+        pairs = [
+            {"market": market, "sharp": sharp_top},
+            {"market": market, "sharp": sharp_sec},
+        ]
+
+        req = AgentRequest(
+            sector="soccer",
+            params={
+                "pairs": pairs,
+                "sharp_weight": 0.40,
+                "sharp_weight_by_event": {"ev_topflight": 0.85},
+            },
+        )
+        resp = await ensemble(req)
+        blended = resp.data
+
+        # Topflight event used 0.85 → prob_a closer to sharp's 0.55.
+        # Secondary event used 0.40 → prob_a closer to model's 0.50.
+        topflight = blended["ev_topflight"].true_prob_a
+        secondary = blended["ev_secondary"].true_prob_a
+        assert topflight > secondary, (
+            f"Higher sharp_weight should push blend toward sharp's 0.55 "
+            f"(topflight={topflight:.3f}, secondary={secondary:.3f})"
+        )
+
+    def test_disagreement_sharp_weight_below_threshold(self):
+        """Small model/sharp gaps leave sharp_weight untouched."""
+        w = EnsembleModelAgent._disagreement_sharp_weight(
+            model_a=0.55, model_b=0.45, model_draw=None,
+            sharp_a=0.60, sharp_b=0.40, sharp_draw=None,
+            base_sharp_weight=0.40,
+        )
+        assert w == 0.40  # max gap = 0.05 ≤ 0.10 threshold
+
+    def test_disagreement_sharp_weight_ramps_between_threshold_and_saturation(self):
+        """At 0.20 gap (halfway between 0.10 threshold and 0.30 saturate), the
+        adjusted weight should be halfway between base (0.40) and cap (0.95)."""
+        w = EnsembleModelAgent._disagreement_sharp_weight(
+            model_a=0.30, model_b=0.70, model_draw=None,
+            sharp_a=0.50, sharp_b=0.50, sharp_draw=None,
+            base_sharp_weight=0.40,
+        )
+        assert 0.65 < w < 0.70  # ~0.40 + 0.5 * (0.95 - 0.40) = 0.675
+
+    def test_disagreement_sharp_weight_saturates_at_cap(self):
+        """A 0.40 gap saturates — use the full cap."""
+        w = EnsembleModelAgent._disagreement_sharp_weight(
+            model_a=0.10, model_b=0.90, model_draw=None,
+            sharp_a=0.50, sharp_b=0.50, sharp_draw=None,
+            base_sharp_weight=0.40,
+        )
+        assert w == 0.95
+
+    def test_disagreement_considers_draw_leg(self):
+        """Gap on the draw leg should trigger the bump even when H/A agree."""
+        w = EnsembleModelAgent._disagreement_sharp_weight(
+            model_a=0.40, model_b=0.40, model_draw=0.20,
+            sharp_a=0.40, sharp_b=0.40, sharp_draw=0.20,
+            base_sharp_weight=0.40,
+        )
+        assert w == 0.40  # no gap anywhere
+        w2 = EnsembleModelAgent._disagreement_sharp_weight(
+            model_a=0.40, model_b=0.40, model_draw=0.20,
+            sharp_a=0.40, sharp_b=0.30, sharp_draw=0.30,
+            base_sharp_weight=0.40,
+        )
+        assert w2 > 0.40  # draw gap 0.10, b gap 0.10 — at threshold or just above
+
+    def test_disagreement_soccer_override_lowers_threshold(self):
+        """Soccer override starts the ramp at 0.04 instead of the 0.10 default.
+        A 0.05 gap is below the global threshold but above the soccer one, so
+        the soccer call must boost while the default call must not."""
+        kwargs = dict(
+            model_a=0.55, model_b=0.45, model_draw=None,
+            sharp_a=0.60, sharp_b=0.40, sharp_draw=None,
+            base_sharp_weight=0.40,
+        )
+        # Default sector: 0.05 gap < 0.10 threshold → no boost
+        w_default = EnsembleModelAgent._disagreement_sharp_weight(**kwargs)
+        assert w_default == 0.40
+        # Soccer sector: 0.05 gap > 0.04 threshold → boost
+        w_soccer = EnsembleModelAgent._disagreement_sharp_weight(**kwargs, sector="soccer")
+        assert w_soccer > 0.40
+
+    def test_disagreement_soccer_override_saturates_at_higher_cap(self):
+        """At a 0.20 gap (well past the soccer 0.10 saturate_at), the weight
+        should be at the soccer cap (1.00), not the global cap (0.95)."""
+        w_soccer = EnsembleModelAgent._disagreement_sharp_weight(
+            model_a=0.30, model_b=0.70, model_draw=None,
+            sharp_a=0.50, sharp_b=0.50, sharp_draw=None,
+            base_sharp_weight=0.40,
+            sector="soccer",
+        )
+        assert w_soccer == pytest.approx(1.00)
+
+    def test_disagreement_unknown_sector_falls_through_to_defaults(self):
+        """Sectors not in DISAGREEMENT_OVERRIDES use the global ramp params."""
+        w = EnsembleModelAgent._disagreement_sharp_weight(
+            model_a=0.55, model_b=0.45, model_draw=None,
+            sharp_a=0.60, sharp_b=0.40, sharp_draw=None,
+            base_sharp_weight=0.40,
+            sector="nba",
+        )
+        assert w == 0.40  # 0.05 gap below global 0.10 threshold
+
+    def test_disagreement_explicit_kwargs_beat_sector_override(self):
+        """The A/B harness sweeps params explicitly — caller's non-default
+        values must win over the per-sector defaults."""
+        # Pass an explicit threshold of 0.20: a 0.05 gap should NOT trigger
+        # even though the soccer override would (0.04 threshold).
+        w = EnsembleModelAgent._disagreement_sharp_weight(
+            model_a=0.55, model_b=0.45, model_draw=None,
+            sharp_a=0.60, sharp_b=0.40, sharp_draw=None,
+            base_sharp_weight=0.40,
+            threshold=0.20,
+            sector="soccer",
+        )
+        assert w == 0.40
+
     @pytest.mark.asyncio
     async def test_blends_models(self, tmp_path, monkeypatch):
         monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)

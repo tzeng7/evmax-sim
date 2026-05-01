@@ -152,14 +152,33 @@ class KalshiWSClient:
 
         Returns dict mapping ticker → YES ask (0.0–1.0), or None if unavailable.
         Tickers that don't receive a snapshot within timeout fall through to REST.
+
+        Note: this is a YES-only projection of `fetch_quotes`. If you need both
+        yes_ask and no_ask (e.g. to preserve bid/ask spread), call
+        `fetch_quotes` directly so the no-side ladder isn't discarded.
+        """
+        quotes = await self.fetch_quotes(tickers)
+        return {t: q[0] for t, q in quotes.items()}
+
+    async def fetch_quotes(
+        self, tickers: list[str],
+    ) -> dict[str, tuple[Optional[float], Optional[float]]]:
+        """Subscribe to orderbook_delta, collect (yes_ask, no_ask) per ticker.
+
+        Returns dict[ticker, (yes_ask, no_ask)]. Either side may be None if
+        that side of the ladder is empty in the snapshot. Tickers that don't
+        receive a snapshot within timeout fall through to REST.
+
+        Both prices come from the SAME orderbook snapshot, so the resulting
+        bid/ask spread (yes_ask + no_ask − 1.0 = vig) reflects the live book.
         """
         try:
             import websockets.asyncio.client as ws_client
         except ImportError:
             logger.debug("kalshi_ws_import_failed", hint="pip install 'websockets>=12.0'")
-            return {t: None for t in tickers}
+            return {t: (None, None) for t in tickers}
 
-        results: dict[str, Optional[float]] = {}
+        results: dict[str, tuple[Optional[float], Optional[float]]] = {}
         remaining = set(tickers)
 
         try:
@@ -205,9 +224,9 @@ class KalshiWSClient:
                     try:
                         raw = await asyncio.wait_for(ws.recv(), timeout=wait)
                         msg = json.loads(raw)
-                        ticker, price = self._parse_message(msg)
-                        if ticker and ticker in remaining and price is not None:
-                            results[ticker] = price
+                        ticker, yes_ask, no_ask = self._parse_message(msg)
+                        if ticker and ticker in remaining and (yes_ask is not None or no_ask is not None):
+                            results[ticker] = (yes_ask, no_ask)
                             remaining.discard(ticker)
                     except asyncio.TimeoutError:
                         break
@@ -256,8 +275,10 @@ class KalshiWSClient:
             except asyncio.TimeoutError:
                 break
 
-    def _parse_message(self, msg: dict[str, Any]) -> tuple[Optional[str], Optional[float]]:
-        """Extract (ticker, yes_ask) from a WS orderbook snapshot.
+    def _parse_message(
+        self, msg: dict[str, Any],
+    ) -> tuple[Optional[str], Optional[float], Optional[float]]:
+        """Extract (ticker, yes_ask, no_ask) from a WS orderbook snapshot.
 
         WS v2 snapshot format:
           {"type": "orderbook_snapshot", "msg": {
@@ -266,31 +287,47 @@ class KalshiWSClient:
             "no_dollars_fp":  [["0.01", "2000.00"], ..., ["0.45", "5.00"]],
           }}
 
-        Both yes_dollars_fp and no_dollars_fp are BID ladders (buy orders),
-        sorted ascending by price. The YES ask price = 1 - best_no_bid
-        (highest entry in no_dollars_fp).
+        Both ladders are BID ladders (buy orders), sorted ascending by price.
+          - YES ask = 1 − best_no_bid  (highest entry in no_dollars_fp)
+          - NO ask  = 1 − best_yes_bid (highest entry in yes_dollars_fp)
+
+        Pulling both from the SAME snapshot preserves the bid/ask spread
+        (yes_ask + no_ask − 1.0 = vig). Returning only yes_ask and forcing
+        no_ask = 1 − yes_ask destroys this signal — the caller can no
+        longer distinguish a real liquid book from an empty/stale one.
         """
+        none = (None, None, None)
         msg_type = msg.get("type", "")
         if msg_type != "orderbook_snapshot":
-            return None, None
+            return none
 
         body = msg.get("msg", msg)
         ticker = body.get("market_ticker") or msg.get("market_ticker")
         if not ticker:
-            return None, None
+            return none
 
-        # YES ask = 1 - best NO bid (last/highest entry in no_dollars_fp)
-        no_entries = body.get("no_dollars_fp", [])
-        if no_entries:
+        def _best_top(entries) -> Optional[float]:
+            """Return the highest price (best bid) in a BID ladder, or None."""
+            if not entries:
+                return None
             try:
-                best_no_bid = float(no_entries[-1][0])
-                yes_ask = 1.0 - best_no_bid
-                if 0 < yes_ask < 1:
-                    return ticker, yes_ask
+                return float(entries[-1][0])
             except (ValueError, TypeError, IndexError):
-                pass
+                return None
 
-        return ticker, None
+        best_no_bid = _best_top(body.get("no_dollars_fp", []))
+        best_yes_bid = _best_top(body.get("yes_dollars_fp", []))
+
+        yes_ask = (1.0 - best_no_bid) if best_no_bid is not None else None
+        no_ask = (1.0 - best_yes_bid) if best_yes_bid is not None else None
+
+        # Sanity-clamp to (0, 1) — anything outside is a malformed snapshot.
+        if yes_ask is not None and not (0 < yes_ask < 1):
+            yes_ask = None
+        if no_ask is not None and not (0 < no_ask < 1):
+            no_ask = None
+
+        return ticker, yes_ask, no_ask
 
 
 class KalshiClient(BaseAPIClient):
@@ -441,14 +478,23 @@ class KalshiClient(BaseAPIClient):
             if tickers:
                 try:
                     async with self._ws_client() as ws:
-                        ws_prices = await ws.fetch_asks(tickers)
+                        ws_quotes = await ws.fetch_quotes(tickers)
                     refreshed = 0
                     for m in all_markets:
-                        ws_ask = ws_prices.get(m.ticker)
-                        if ws_ask is not None and 0 < ws_ask < 1:
-                            m.yes_price = ws_ask
-                            m.no_price = 1.0 - ws_ask
+                        quote = ws_quotes.get(m.ticker)
+                        if quote is None:
+                            continue
+                        ws_yes_ask, ws_no_ask = quote
+                        # Update yes_price ONLY if we got a real yes_ask.
+                        # Same for no_price. Don't synthesize one from the
+                        # other — that destroys the bid/ask spread, which
+                        # downstream uses (via spread_pct) as the empty-
+                        # orderbook signal.
+                        if ws_yes_ask is not None and 0 < ws_yes_ask < 1:
+                            m.yes_price = ws_yes_ask
                             refreshed += 1
+                        if ws_no_ask is not None and 0 < ws_no_ask < 1:
+                            m.no_price = ws_no_ask
                     if refreshed:
                         logger.debug("kalshi_ws_refresh", refreshed=refreshed, total=len(tickers))
                 except Exception as e:

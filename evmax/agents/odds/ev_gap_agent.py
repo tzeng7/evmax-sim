@@ -766,6 +766,16 @@ class EVGapAgent(Agent):
         if market.yes_price >= 0.99:
             return _ret(None, blend_payload)
 
+        # Filter out empty/stale orderbooks. spread_pct = |yes_ask - (1 -
+        # no_ask)| / mid. A real two-sided book always sums to >1.0 due to
+        # vig, so spread_pct < 0.5% means we're seeing a one-sided ladder,
+        # last-trade fallback, or computed complement — not fillable
+        # liquidity. volume_usd is CUMULATIVE LIFETIME (not current depth)
+        # and can show $thousands on a market with no live quotes, which
+        # is why we use spread_pct, not volume, as the floor.
+        if market.spread_pct < 0.005:
+            return _ret(None, blend_payload)
+
         # Phantom-EV guard for esports: opaque Kalshi ticker codes ("th",
         # "dcg", "shg") can defeat the YES-alignment resolver and historically
         # assigned the opposite team's devigged prob to the YES side — the
@@ -884,6 +894,12 @@ class EVGapAgent(Agent):
             no_ask = 1.0 - market.yes_price
         if no_ask <= 0.01 or no_ask >= 0.99:
             return None  # dead orderbook on the NO side
+
+        # Same empty-book filter as the YES side: spread_pct < 0.5% means
+        # the book isn't really two-sided, even if cumulative volume looks
+        # healthy. Don't surface a NO bet against a stale ladder.
+        if market.spread_pct < 0.005:
+            return None
 
         blended_no = max(0.01, min(0.99, 1.0 - blend_payload["blended_prob_yes"]))
         sharp_no = max(0.01, min(0.99, 1.0 - blend_payload["sharp_true_prob_yes"]))

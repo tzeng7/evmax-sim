@@ -63,7 +63,8 @@ def _make_market(
         title=f"{team_home} vs {team_away}",
         yes_team=yes_team,
         yes_price=yes_price,
-        no_price=round(1.0 - yes_price, 4),
+        # ~2% vig so spread_pct > 0 (empty-book filter passes).
+        no_price=round(min(0.99, max(0.01, (1.0 - yes_price) + 0.02)), 4),
         team_home=team_home,
         team_away=team_away,
         event_date=ed,
