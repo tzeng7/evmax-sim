@@ -25,6 +25,8 @@ from evmax.agents.models.poisson_agent import PoissonModelAgent
 from evmax.agents.models.pitcher_agent import (
     PYTHAG_EXP as PITCHER_PYTHAG_EXP,
     HOME_BONUS as PITCHER_HOME_BONUS,
+    HOME_BONUS_MIN as PITCHER_HOME_BONUS_MIN,
+    HOME_BONUS_MAX as PITCHER_HOME_BONUS_MAX,
     _effective_era as pitcher_effective_era,
 )
 from evmax.agents.models.efficiency_agent import EfficiencyModelAgent
@@ -343,15 +345,34 @@ def _running_to_rates(running: dict) -> tuple[float, float]:
     return fip, era
 
 
+def _adaptive_home_bonus(home_games: int, home_wins: int) -> float:
+    """Compute home-side probability bonus from a running estimate of league
+    home win rate. Mirrors PitcherModelAgent._home_advantage().
+
+    Below 200 games we don't have enough sample to override the static
+    default; using a noisy early-season estimate would be worse than the
+    long-run prior of ~54%.
+    """
+    if home_games < 200:
+        return PITCHER_HOME_BONUS
+    wp = home_wins / home_games
+    return max(PITCHER_HOME_BONUS_MIN, min(PITCHER_HOME_BONUS_MAX, wp - 0.50))
+
+
 def _pitcher_predict_walkforward(
     home_running: Optional[dict],
     away_running: Optional[dict],
+    home_advantage: float = PITCHER_HOME_BONUS,
 ) -> Optional[float]:
     """Run the same Pythagenpat formula the live model uses, but with
     point-in-time running totals from prior games this season.
 
     Returns None if either pitcher has < PITCHER_MIN_IP_FOR_PRED IP — same
     floor the live model applies via its FIP+30 IP confidence tier.
+
+    `home_advantage` is supplied by the caller from the running league-wide
+    home win rate; defaults to PITCHER_HOME_BONUS for back-compat with
+    callers that don't yet adapt.
     """
     if not home_running or not away_running:
         return None
@@ -377,7 +398,7 @@ def _pitcher_predict_walkforward(
     away_wp = (away_rs ** e) / (away_rs ** e + away_ra ** e)
     total = home_wp + away_wp
     prob_a = home_wp / total if total > 0 else 0.5
-    prob_a = min(0.90, max(0.10, prob_a + PITCHER_HOME_BONUS))
+    prob_a = min(0.90, max(0.10, prob_a + home_advantage))
     return prob_a
 
 
@@ -456,6 +477,11 @@ def run_walkforward(
     # name (lowercased) → cumulative {ip, er, bb, so, hr, games}
     pitcher_running: dict[str, dict] = {}
     boxscore_client: Optional[httpx.Client] = httpx.Client() if is_baseball else None
+    # Running league-wide home_wp tally (baseball only). Used for adaptive
+    # home-field advantage in the pitcher prediction. Updated each game AFTER
+    # prediction to avoid leak.
+    league_home_games = 0
+    league_home_wins = 0
 
     norm = NameNormalizer(sector)
     results: list[WalkForwardResult] = []
@@ -501,9 +527,11 @@ def run_walkforward(
                 away_starter_line = box["away"]
                 home_name = home_starter_line["name"].lower().strip()
                 away_name = away_starter_line["name"].lower().strip()
+                home_advantage = _adaptive_home_bonus(league_home_games, league_home_wins)
                 pitcher_prob = _pitcher_predict_walkforward(
                     pitcher_running.get(home_name),
                     pitcher_running.get(away_name),
+                    home_advantage=home_advantage,
                 )
 
         # Ensemble: weighted average of available models
@@ -570,6 +598,11 @@ def run_walkforward(
                     {"ip": 0.0, "er": 0, "bb": 0, "so": 0, "hr": 0, "games": 0},
                 )
                 _accumulate_pitcher_line(running, line)
+        # League home-WP tally — same no-leak discipline (post-prediction).
+        if is_baseball:
+            league_home_games += 1
+            if home_won:
+                league_home_wins += 1
 
     if boxscore_client is not None:
         boxscore_client.close()

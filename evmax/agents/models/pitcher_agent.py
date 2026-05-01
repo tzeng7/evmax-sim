@@ -34,7 +34,12 @@ from evmax.models.odds import SharpOdds
 logger = structlog.get_logger(__name__)
 
 PYTHAG_EXP = 1.83
-HOME_BONUS = 0.04  # ~54% baseline home win rate in MLB
+HOME_BONUS = 0.04  # Default ~54% baseline home win rate in MLB. Used when
+                   # state["home_wp_running"] is absent. See _home_advantage().
+HOME_BONUS_MIN = 0.01  # Floor — never go fully neutral or anti-home; even in
+                       # low-HFA seasons, home teams sleep at home.
+HOME_BONUS_MAX = 0.07  # Ceiling — caps over-aggressive correction in years
+                       # with unusually high home WP, which often regress.
 ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"
 
 # When both FIP and ERA are seeded, blend them. FIP is more predictive of
@@ -138,6 +143,28 @@ class PitcherModelAgent(ModelAgent):
     def _pitchers(self) -> dict[str, dict]:
         return self._state.get("pitchers", {})
 
+    def _home_advantage(self) -> float:
+        """Resolve the home-side probability bonus, preferring an adaptive
+        running estimate when one is recorded in state.
+
+        State shape (optional):
+            {"home_wp_running": {"games": int, "home_wins": int}, ...}
+
+        If at least 200 games of running data are available we compute
+        HFA = home_wp - 0.50, clamped to [HOME_BONUS_MIN, HOME_BONUS_MAX].
+        Below 200 games (very early-season), we fall back to the static
+        HOME_BONUS to avoid noisy small-sample HFA. This number can be
+        refreshed by `scripts/update_home_advantage.py` from resolved
+        outcomes in predictions.db.
+        """
+        running = self._state.get("home_wp_running") or {}
+        games = running.get("games", 0)
+        home_wins = running.get("home_wins", 0)
+        if games < 200:
+            return HOME_BONUS
+        wp = home_wins / games
+        return max(HOME_BONUS_MIN, min(HOME_BONUS_MAX, wp - 0.50))
+
     def _find_starter(self, team: str, live_starters: dict[str, dict] | None = None) -> tuple[Optional[dict], bool]:
         """Find the probable starter for a team.
 
@@ -222,8 +249,9 @@ class PitcherModelAgent(ModelAgent):
         total = home_wp + away_wp
         prob_a = home_wp / total if total > 0 else 0.5
 
-        # Apply home field advantage
-        prob_a = min(0.90, max(0.10, prob_a + HOME_BONUS))
+        # Apply home field advantage — adaptive when state carries a running
+        # estimate, else falls back to the static HOME_BONUS default.
+        prob_a = min(0.90, max(0.10, prob_a + self._home_advantage()))
         prob_b = 1.0 - prob_a
 
         # Confidence tiers — designed so the model fires (>= 0.45 gate) on

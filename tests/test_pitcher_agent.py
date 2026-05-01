@@ -11,6 +11,8 @@ from evmax.agents.models.pitcher_agent import (
     ERA_BLEND_WEIGHT,
     FIP_BLEND_WEIGHT,
     HOME_BONUS,
+    HOME_BONUS_MAX,
+    HOME_BONUS_MIN,
     PYTHAG_EXP,
     PitcherModelAgent,
     _effective_era,
@@ -472,6 +474,54 @@ class TestFipPrediction:
 # ---------------------------------------------------------------------------
 # Sanity: Pythag formula alignment
 # ---------------------------------------------------------------------------
+
+
+class TestAdaptiveHomeAdvantage:
+    """Adaptive HOME_BONUS pulled from running estimate of league home WP."""
+
+    def test_no_running_state_uses_default(self, agent):
+        assert agent._home_advantage() == HOME_BONUS
+
+    def test_thin_sample_uses_default(self, agent):
+        # Below 200 games: even a wildly skewed sample shouldn't override default.
+        agent._state["home_wp_running"] = {"games": 100, "home_wins": 80}
+        assert agent._home_advantage() == HOME_BONUS
+
+    def test_low_hwp_year_lowers_bonus(self, agent):
+        # 2024-style: 51.6% home WP → bonus = 0.016, clamped to floor 0.01.
+        agent._state["home_wp_running"] = {"games": 1300, "home_wins": int(1300 * 0.516)}
+        hfa = agent._home_advantage()
+        assert hfa < HOME_BONUS
+        assert hfa >= HOME_BONUS_MIN
+
+    def test_high_hwp_year_raises_bonus_with_ceiling(self, agent):
+        # 60% home WP → raw bonus 0.10, capped at HOME_BONUS_MAX (0.07).
+        agent._state["home_wp_running"] = {"games": 1300, "home_wins": int(1300 * 0.60)}
+        assert agent._home_advantage() == pytest.approx(HOME_BONUS_MAX, abs=1e-6)
+
+    def test_floor_applied_for_very_low_hwp(self, agent):
+        # 49% home WP → raw -0.01, clamped to floor 0.01.
+        agent._state["home_wp_running"] = {"games": 1300, "home_wins": int(1300 * 0.49)}
+        assert agent._home_advantage() == pytest.approx(HOME_BONUS_MIN, abs=1e-6)
+
+    @pytest.mark.asyncio
+    async def test_adaptive_bonus_flows_into_prediction(self, agent):
+        """Two predictions on identical pitcher data: one with default HFA,
+        one with low-HWP running state. The low-HFA prediction should
+        favor home less."""
+        seed = {
+            "Equal A": {"era": 4.00, "fip": 4.00, "ip": 100, "team": "yankees"},
+            "Equal B": {"era": 4.00, "fip": 4.00, "ip": 100, "team": "red sox"},
+        }
+        agent.seed_pitchers(seed)
+        pred_default = await agent.predict_pair(_market(), _sharp())
+
+        # Now apply 2024-style low-HWP override
+        agent._state["home_wp_running"] = {"games": 1300, "home_wins": int(1300 * 0.516)}
+        pred_adapted = await agent.predict_pair(_market(), _sharp())
+
+        assert pred_default is not None and pred_adapted is not None
+        assert pred_adapted.true_prob_a < pred_default.true_prob_a
 
 
 class TestPythagMath:
