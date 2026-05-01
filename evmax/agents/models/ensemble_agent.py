@@ -114,16 +114,19 @@ class EnsembleModelAgent(Agent):
             "elo":     0.25,
             "form":    0.25,
         },
-        # NFL: nfl_efficiency (opponent-adjusted EPA/play) carries the
-        # dominant non-sharp weight — same role efficiency plays for NBA.
-        # Elo + form are supporting talent/recency voices. Poisson zeroed
-        # because NFL scoring is drive-based, not minute-uniform, so the
-        # goal-matrix mis-shapes the margin distribution. Weights normalize
-        # at blend time so absolute values are relative ratios.
+        # NFL: opponent-adjusted EPA contributes but no single non-sharp
+        # signal dominates — per-model accuracy is clustered 63-65% across
+        # elo / form / nfl_efficiency. Initial 0.50 weight on nfl_efficiency
+        # over-emphasised it (Phase 1 backtest 2526 gate failed). Tuned down
+        # to 0.30 with elo 0.40 / form 0.30: passes combined 3-season gate
+        # (ΔBrier +0.0023, ΔAcc +0.07pp vs the old elo+form+poisson blend)
+        # and is Brier-positive on the cleanest single-season eval (2526).
+        # Poisson zeroed because NFL scoring is drive-based, not minute-
+        # uniform — see scripts/backtest_nfl_efficiency.py for the sweep.
         "nfl": {
-            "nfl_efficiency": 0.50,
-            "elo":            0.30,
-            "form":           0.20,
+            "nfl_efficiency": 0.30,
+            "elo":            0.40,
+            "form":           0.30,
             "poisson":        0.0,
         },
     }

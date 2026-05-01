@@ -60,8 +60,12 @@ WP_LOWER, WP_UPPER = 0.10, 0.90
 EXPLOSIVE_YARDS = 15  # plays gaining 15+ yards
 
 
-def _filter_valid(df: pl.DataFrame) -> pl.DataFrame:
-    """Apply the standard EPA-quality filter: real plays, not garbage time."""
+def filter_valid_pbp(df: pl.DataFrame) -> pl.DataFrame:
+    """Apply the standard EPA-quality filter: real plays, not garbage time.
+
+    Public so the backtest can call it directly on a once-loaded PBP frame
+    rather than re-loading per cutoff.
+    """
     return df.filter(
         pl.col("play_type").is_in(["pass", "run"])
         & pl.col("epa").is_not_null()
@@ -71,7 +75,11 @@ def _filter_valid(df: pl.DataFrame) -> pl.DataFrame:
     )
 
 
-def _compute_team_stats(df: pl.DataFrame, current_season: int) -> dict[str, dict]:
+# Backwards-compat alias for any in-tree callers
+_filter_valid = filter_valid_pbp
+
+
+def compute_team_stats(df: pl.DataFrame, current_season: int) -> dict[str, dict]:
     """Group by team and compute weighted, opponent-adjusted EPA stats.
 
     Returns: {full_lowercase_team_name: {off_epa_adj, def_epa_adj, ...}}
@@ -213,7 +221,7 @@ def main() -> int:
     print(f"  rows after filter: {len(df):,}")
 
     current_season = max(seasons)
-    teams = _compute_team_stats(df, current_season)
+    teams = compute_team_stats(df, current_season)
 
     if not teams:
         print("ERROR: no team rows produced — abort", file=sys.stderr)

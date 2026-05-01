@@ -132,7 +132,7 @@ evmax/
 | Tennis H2H | 0.10 | 0.45 | `data/models/tennis_h2h_state.json` (Laplace-smoothed nudge, ≥3 meetings, ±18pp cap) |
 | Tennis Ranking Trend | 0.10 | 0.45 | `data/models/tennis_ranking_trend_state.json` (12-week momentum, ±0.40 logit cap) |
 | MLB Pitcher | 0.50 | 0.45 | `data/models/pitcher_state.json` (raw ERA + Pythagenpat exp=1.83 + 4pp HOME_BONUS; live probable starters from ESPN scoreboard, 30-min cache; baseline weight bumped from 0.30 → 0.50 on 2026-05-01 alongside per-sector override that zeroes Poisson) |
-| **NFL Efficiency** | 0.50 | 0.45 | `data/models/nfl_efficiency_state.json` (NFL only; opponent-adjusted off/def EPA per play from `nflreadpy` PBP, garbage-time WP filter [0.10, 0.90], season-decay 0.45 over last 6 seasons; HOME_EDGE_PTS=2.0, SCORE_STDEV=13.5, PLAYS_PER_TEAM_GAME=64, MIN_GAMES=6. Replaces Poisson on NFL — see MODEL-13. Re-seed weekly via `scripts/seed_nfl_efficiency.py`.) |
+| **NFL Efficiency** | 0.30 | 0.45 | `data/models/nfl_efficiency_state.json` (NFL only; opponent-adjusted off/def EPA per play from `nflreadpy` PBP, garbage-time WP filter [0.10, 0.90], season-decay 0.45 over last 6 seasons; HOME_EDGE_PTS=2.0, SCORE_STDEV=13.5, PLAYS_PER_TEAM_GAME=64, MIN_GAMES=6. Replaces Poisson on NFL — see MODEL-13. Re-seed weekly during the season via `scripts/seed_nfl_efficiency.py`. Initial 0.50 ensemble weight tuned down to 0.30 after Phase 1 backtest sweep — see `scripts/backtest_nfl_efficiency.py`.) |
 | NBA Props Cache | — | — | `data/nba_props_cache.json` (daily L15 per-player; per-36 normalization + opponent adj) |
 | NFL Props Cache (QB only v1) | — | — | reuses `data/backtest/nfl_props/*.parquet`; live lookup via `evmax/clients/nfl_props_cache.py` (point-in-time history + schedule opponent adj). Wired to coordinator NFL branch for shadow scans (MODEL-9). Stage 5 live Kelly gated on 2026 shadow validation |
 | Sharp (Pinnacle) | 0.85 (CLI/config default) | always | auto-tuned in `data/model_config.json` |
@@ -143,7 +143,7 @@ evmax/
 - **Soccer:** poisson 0.40 · xg 0.25 · elo 0.15 · form 0.10
 - **Tennis:** tennis_surface 0.30 · tennis_serve_return 0.25 · tennis_form 0.20 · tennis_advanced 0.15 · tennis_h2h 0.05 · tennis_ranking_trend 0.05
 - **Baseball:** pitcher 0.50 · elo 0.25 · form 0.25 (poisson intentionally not listed in baseball YAML — never instantiated)
-- **NFL:** nfl_efficiency 0.50 · elo 0.30 · form 0.20 · poisson 0.0 (poisson zeroed 2026-05-01 — football scoring is drive-based, not minute-uniform)
+- **NFL:** nfl_efficiency 0.30 · elo 0.40 · form 0.30 · poisson 0.0 (poisson zeroed 2026-05-01 — football scoring is drive-based, not minute-uniform; nfl_efficiency weight tuned down from initial 0.50 after Phase 1 backtest sweep showed lower weights win on both combined and 2526 evals)
 
 **NBA and WNBA are parallel stacks with zero shared files.** NBA's `efficiency_agent.py` uses `nba_api` + `efficiency_state.json`; WNBA's `wnba_efficiency_agent.py` uses ESPN box scores + `wnba_efficiency_state.json`. Same for possession sim. Change one without risk to the other. Do not merge them "for DRY" — the constants diverge (HOME_EDGE_PTS 3.2 vs 2.6, SCORE_STDEV 12.0 vs 12.5, pace clip [80,120] vs [65,100]), and the data sources are different.
 
