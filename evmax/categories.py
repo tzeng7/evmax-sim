@@ -57,6 +57,8 @@ KNOWN_MODELS: set[str] = {
     "shot_quality",
     "matchup",
     "possession_sim",
+    # NFL-specific advanced agents
+    "nfl_efficiency",
     # WNBA-specific advanced agents (kept parallel to the NBA set so the
     # two leagues can tune independently without risk of cross-contamination)
     "wnba_efficiency",

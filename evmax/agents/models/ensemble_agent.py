@@ -114,14 +114,17 @@ class EnsembleModelAgent(Agent):
             "elo":     0.25,
             "form":    0.25,
         },
-        # NFL: Poisson zeroed 2026-05-01. Football scoring is drive-based, not
-        # a memoryless minute-uniform process, so Poisson's goal-matrix
-        # decomposition mis-shapes the margin distribution (especially for
-        # totals). Elo + form remain at their class defaults until Phase 1
-        # ships nfl_efficiency (EPA-based) — at which point this override is
-        # expanded to give nfl_efficiency the dominant non-sharp weight.
+        # NFL: nfl_efficiency (opponent-adjusted EPA/play) carries the
+        # dominant non-sharp weight — same role efficiency plays for NBA.
+        # Elo + form are supporting talent/recency voices. Poisson zeroed
+        # because NFL scoring is drive-based, not minute-uniform, so the
+        # goal-matrix mis-shapes the margin distribution. Weights normalize
+        # at blend time so absolute values are relative ratios.
         "nfl": {
-            "poisson": 0.0,
+            "nfl_efficiency": 0.50,
+            "elo":            0.30,
+            "form":           0.20,
+            "poisson":        0.0,
         },
     }
 
