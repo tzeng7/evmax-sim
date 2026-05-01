@@ -51,11 +51,11 @@ nba:
 nfl:
   display_name: "NFL"
   market_types: [moneyline, spread, total]
-  models: [elo, form, nfl_efficiency, sharp]
+  models: [elo, form, nfl_efficiency, nfl_qb_elo, sharp]
   mode: live
   resolver: espn_scoreboard
   status: shipped
-  notes: "Poisson dropped 2026-05-01: NFL is not a Poisson-distributed scoring process (drives, not minute-uniform events). Replaced by nfl_efficiency (opponent-adjusted EPA/play, seeded weekly from nflreadpy PBP via scripts/seed_nfl_efficiency.py) — see MODEL-13."
+  notes: "Poisson dropped 2026-05-01: NFL is not a Poisson-distributed scoring process. Replaced by nfl_efficiency (opponent-adjusted EPA/play) and nfl_qb_elo (team Elo split into team_base + per-QB delta to capture starter swaps), both seeded weekly from nflreadpy PBP — see MODEL-13."
 
 ncaab:
   display_name: "NCAAB (Men's College Basketball)"

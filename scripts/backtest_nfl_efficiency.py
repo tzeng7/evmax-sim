@@ -48,7 +48,13 @@ import nflreadpy as nfl
 from scripts.seed_nfl_efficiency import filter_valid_pbp, compute_team_stats
 from evmax.agents.models.nfl_efficiency_agent import (
     NflEfficiencyModelAgent,
+    NFL_ABBREV_TO_NAME,
     STATE_PATH as NFL_EFF_STATE_PATH,
+)
+from evmax.agents.models.nfl_qb_elo_agent import (
+    NflQbEloModelAgent,
+    apply_qb_elo_update,
+    STATE_PATH as NFL_QB_STATE_PATH,
 )
 from evmax.backtest.metrics import brier_score, accuracy_score, log_loss_score
 from evmax.backtest.sources.espn_walkforward import (
@@ -78,25 +84,35 @@ SEASON_MONTHS: dict[str, list[str]] = {
 
 # Old NFL blend (class defaults — what was running pre-Phase-0):
 #   elo 0.35 · form 0.25 · poisson 0.30  (sum 0.90; normalized at blend time)
-OLD_NFL_WEIGHTS = {"elo": 0.35, "form": 0.25, "poisson": 0.30, "nfl_efficiency": 0.0}
+OLD_NFL_WEIGHTS = {"elo": 0.35, "form": 0.25, "poisson": 0.30,
+                   "nfl_efficiency": 0.0, "nfl_qb_elo": 0.0}
 
-# Candidate new blends — sweep efficiency weight to find the best mix.
-# Names appear in the metric tables exactly as written here.
+# Candidate Phase 2 blends — sweep nfl_qb_elo weight (it overlaps with elo,
+# so when it's present, generic elo gets reduced). The "Phase 1 winner" is
+# kept as a baseline so we can see whether adding nfl_qb_elo helps at all.
 CANDIDATE_BLENDS: dict[str, dict[str, float]] = {
-    "NEW v1: nfl_eff 0.50 / elo 0.30 / form 0.20": {
-        "elo": 0.30, "form": 0.20, "poisson": 0.0, "nfl_efficiency": 0.50},
-    "NEW v2: nfl_eff 0.40 / elo 0.35 / form 0.25": {
-        "elo": 0.35, "form": 0.25, "poisson": 0.0, "nfl_efficiency": 0.40},
-    "NEW v3: nfl_eff 0.30 / elo 0.40 / form 0.30": {
-        "elo": 0.40, "form": 0.30, "poisson": 0.0, "nfl_efficiency": 0.30},
-    "NEW v4: nfl_eff 0.20 / elo 0.45 / form 0.35": {
-        "elo": 0.45, "form": 0.35, "poisson": 0.0, "nfl_efficiency": 0.20},
-    "ALT: elo+form only (no efficiency, no poisson)": {
-        "elo": 0.55, "form": 0.45, "poisson": 0.0, "nfl_efficiency": 0.0},
+    "P1: nfl_eff 0.30 / elo 0.40 / form 0.30 (no qb_elo)": {
+        "elo": 0.40, "form": 0.30, "poisson": 0.0,
+        "nfl_efficiency": 0.30, "nfl_qb_elo": 0.0},
+    "P2 v1: nfl_eff 0.25 / qb_elo 0.25 / elo 0.20 / form 0.30": {
+        "elo": 0.20, "form": 0.30, "poisson": 0.0,
+        "nfl_efficiency": 0.25, "nfl_qb_elo": 0.25},
+    "P2 v2: nfl_eff 0.20 / qb_elo 0.30 / elo 0.20 / form 0.30": {
+        "elo": 0.20, "form": 0.30, "poisson": 0.0,
+        "nfl_efficiency": 0.20, "nfl_qb_elo": 0.30},
+    "P2 v3: nfl_eff 0.30 / qb_elo 0.20 / elo 0.20 / form 0.30": {
+        "elo": 0.20, "form": 0.30, "poisson": 0.0,
+        "nfl_efficiency": 0.30, "nfl_qb_elo": 0.20},
+    "P2 v4: nfl_eff 0.25 / qb_elo 0.30 / elo 0.10 / form 0.35": {
+        "elo": 0.10, "form": 0.35, "poisson": 0.0,
+        "nfl_efficiency": 0.25, "nfl_qb_elo": 0.30},
+    "P2 v5: qb_elo replaces elo (eff 0.30 / qb_elo 0.40 / form 0.30, no elo)": {
+        "elo": 0.0, "form": 0.30, "poisson": 0.0,
+        "nfl_efficiency": 0.30, "nfl_qb_elo": 0.40},
 }
 
 # Backwards-compat: kept so any external code referencing this still works.
-NEW_NFL_WEIGHTS = CANDIDATE_BLENDS["NEW v1: nfl_eff 0.50 / elo 0.30 / form 0.20"]
+NEW_NFL_WEIGHTS = CANDIDATE_BLENDS["P2 v1: nfl_eff 0.25 / qb_elo 0.25 / elo 0.20 / form 0.30"]
 
 
 @dataclass
@@ -110,6 +126,7 @@ class GamePrediction:
     form: Optional[float] = None
     poisson: Optional[float] = None
     nfl_efficiency: Optional[float] = None
+    nfl_qb_elo: Optional[float] = None
 
 
 def _ensemble(probs: dict[str, Optional[float]], weights: dict[str, float]) -> Optional[float]:
@@ -126,12 +143,8 @@ def _ensemble(probs: dict[str, Optional[float]], weights: dict[str, float]) -> O
     return total_p / total_w
 
 
-def _nfl_efficiency_predict(
-    agent: NflEfficiencyModelAgent,
-    home: str,
-    away: str,
-) -> Optional[float]:
-    """Run the agent on a synthetic market/sharp pair and return P(home)."""
+def _agent_predict(agent, home: str, away: str) -> Optional[float]:
+    """Run any sector-gated NFL ModelAgent on a synthetic pair, return P(home)."""
     market = PredictionMarket(
         id="bt", market_id="bt", event_id=f"bt_{home}_{away}",
         sector="nfl", team_home=home, team_away=away,
@@ -150,23 +163,35 @@ def _nfl_efficiency_predict(
         return None
 
 
-def _backup_state() -> Optional[Path]:
-    """Save the current NFL efficiency state file to a sibling .backup so we
-    can restore it once the backtest is done. Returns the backup path."""
-    if not NFL_EFF_STATE_PATH.exists():
-        return None
-    backup = NFL_EFF_STATE_PATH.with_suffix(".json.backtest_backup")
-    shutil.copy(NFL_EFF_STATE_PATH, backup)
-    print(f"[backup] saved {NFL_EFF_STATE_PATH.name} → {backup.name}")
-    return backup
+# Backwards-compat alias for any callers
+_nfl_efficiency_predict = lambda agent, home, away: _agent_predict(agent, home, away)
 
 
-def _restore_state(backup: Optional[Path]) -> None:
-    if backup is None or not backup.exists():
-        print("[restore] no backup to restore (was state file missing before run?)")
-        return
-    shutil.move(backup, NFL_EFF_STATE_PATH)
-    print(f"[restore] restored {NFL_EFF_STATE_PATH.name} from backup")
+def _backup_state() -> dict[str, Optional[Path]]:
+    """Save current state files to sibling .backup paths so we can restore
+    them once the backtest is done. Returns a dict of {logical_name: path}."""
+    backups: dict[str, Optional[Path]] = {}
+    for name, path in [("nfl_efficiency", NFL_EFF_STATE_PATH),
+                       ("nfl_qb_elo", NFL_QB_STATE_PATH)]:
+        if path.exists():
+            backup = path.with_suffix(".json.backtest_backup")
+            shutil.copy(path, backup)
+            backups[name] = backup
+            print(f"[backup] saved {path.name} → {backup.name}")
+        else:
+            backups[name] = None
+    return backups
+
+
+def _restore_state(backups: dict[str, Optional[Path]]) -> None:
+    pairs = [("nfl_efficiency", NFL_EFF_STATE_PATH),
+             ("nfl_qb_elo", NFL_QB_STATE_PATH)]
+    for name, path in pairs:
+        backup = backups.get(name)
+        if backup is None or not backup.exists():
+            continue
+        shutil.move(backup, path)
+        print(f"[restore] restored {path.name} from backup")
 
 
 def _reseed(seasons: list[int]) -> None:
@@ -202,7 +227,7 @@ def _evaluate(
 
     out: dict[str, dict[str, float]] = {}
 
-    for model_name in ["elo", "form", "poisson", "nfl_efficiency"]:
+    for model_name in ["elo", "form", "poisson", "nfl_efficiency", "nfl_qb_elo"]:
         ps = []
         actuals = []
         for p in preds:
@@ -231,6 +256,7 @@ def _evaluate(
                 "form": p.form,
                 "poisson": p.poisson,
                 "nfl_efficiency": p.nfl_efficiency,
+                "nfl_qb_elo": p.nfl_qb_elo,
             }
             ens = _ensemble(probs, weights)
             if ens is not None:
@@ -283,6 +309,83 @@ def _reseed_from_pbp(
     return len(slice_df)
 
 
+def _build_games_with_starters(pbp: pl.DataFrame) -> pl.DataFrame:
+    """One row per game (game_id, home_team, away_team, home_starter,
+    away_starter, scores, date), sorted by date. Used to walk-forward derive
+    nfl_qb_elo state per cutoff. Computed once at startup."""
+    starters = (
+        pbp.filter(pl.col("passer_player_name").is_not_null())
+        .group_by(["game_id", "posteam", "passer_player_name"])
+        .agg(pl.len().alias("att"))
+        .sort(["game_id", "posteam", "att"], descending=[False, False, True])
+        .group_by(["game_id", "posteam"], maintain_order=True)
+        .first()
+        .select(["game_id", "posteam", "passer_player_name"])
+        .rename({"passer_player_name": "starter"})
+    )
+    games = (
+        pbp.group_by(["game_id", "home_team", "away_team", "season", "game_date"])
+        .agg([
+            pl.col("home_score").max().alias("home_score"),
+            pl.col("away_score").max().alias("away_score"),
+        ])
+    )
+    out = (
+        games
+        .join(starters.rename({"posteam": "home_team", "starter": "home_starter"}),
+              on=["game_id", "home_team"], how="left")
+        .join(starters.rename({"posteam": "away_team", "starter": "away_starter"}),
+              on=["game_id", "away_team"], how="left")
+        .sort("game_date")
+    )
+    return out
+
+
+def _reseed_qb_elo(
+    qb_agent: NflQbEloModelAgent,
+    games_df: pl.DataFrame,
+    cutoff: date,
+) -> int:
+    """Walk all games strictly before cutoff and rebuild QB-Elo state from
+    scratch. v1 — full rebuild per re-seed; cheap enough at NFL volume.
+    Returns the number of games processed."""
+    slice_df = games_df.filter(pl.col("game_date") < pl.lit(cutoff))
+    if len(slice_df) == 0:
+        return 0
+    state: dict = {
+        "team_base": {}, "qb_deltas": {}, "qb_games": {}, "current_starters": {},
+    }
+    for row in slice_df.iter_rows(named=True):
+        home_abbr = row["home_team"]
+        away_abbr = row["away_team"]
+        home_team = NFL_ABBREV_TO_NAME.get(home_abbr)
+        away_team = NFL_ABBREV_TO_NAME.get(away_abbr)
+        if home_team is None or away_team is None:
+            continue
+        if row["home_score"] is None or row["away_score"] is None:
+            continue
+        if row["home_score"] == row["away_score"]:
+            continue
+        home_won = row["home_score"] > row["away_score"]
+        home_starter = row.get("home_starter")
+        away_starter = row.get("away_starter")
+        apply_qb_elo_update(
+            state, home_team=home_team, away_team=away_team,
+            home_starter=home_starter, away_starter=away_starter,
+            home_won=home_won,
+        )
+        if home_starter:
+            state["current_starters"][home_team] = home_starter
+        if away_starter:
+            state["current_starters"][away_team] = away_starter
+
+    qb_agent._state["nfl"] = {
+        **state,
+        "fetched_at": cutoff.isoformat(),
+    }
+    return len(slice_df)
+
+
 def _season_of(game_date: date) -> int:
     """NFL season starts in September. A game on Jan/Feb belongs to the
     season that started in the prior calendar year."""
@@ -303,8 +406,13 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.restore_only:
-        backup = NFL_EFF_STATE_PATH.with_suffix(".json.backtest_backup")
-        _restore_state(backup if backup.exists() else None)
+        # Restore both backup files if present
+        backups = {
+            "nfl_efficiency": NFL_EFF_STATE_PATH.with_suffix(".json.backtest_backup"),
+            "nfl_qb_elo": NFL_QB_STATE_PATH.with_suffix(".json.backtest_backup"),
+        }
+        backups = {k: v if v.exists() else None for k, v in backups.items()}
+        _restore_state(backups)
         return 0
 
     seasons = args.seasons.split(",")
@@ -335,6 +443,17 @@ def main() -> int:
         # populates it before any predictions are made.
         nfl_eff = NflEfficiencyModelAgent()
         nfl_eff._state = {}
+        # Same for nfl_qb_elo — its state is rebuilt from games_with_starters
+        # at each cutoff via apply_qb_elo_update.
+        qb_elo = NflQbEloModelAgent()
+        qb_elo._state = {}
+        # Pre-build the per-game starter table once (~285 games × 6 seasons)
+        games_with_starters = _build_games_with_starters(pbp)
+        if games_with_starters.schema["game_date"] != pl.Date:
+            games_with_starters = games_with_starters.with_columns(
+                pl.col("game_date").cast(pl.Date)
+            )
+        print(f"[qb_elo] indexed {len(games_with_starters)} games with starters")
 
         # Walk-forward fresh elo / form / poisson
         elo = EloModelAgent(); elo._state = {}
@@ -379,24 +498,26 @@ def main() -> int:
                     need_reseed = True
 
                 if need_reseed:
-                    used = _reseed_from_pbp(
+                    _reseed_from_pbp(
                         nfl_eff, pbp, cutoff=game_date,
                         current_season=_season_of(game_date),
                     )
+                    _reseed_qb_elo(qb_elo, games_with_starters, cutoff=game_date)
                     last_seed_date = game_date
                     last_seed_season = s
-                    if used > 0:
-                        n_reseeds += 1
+                    n_reseeds += 1
 
                 elo_p = _elo_predict(elo, "nfl", home, away)
                 form_p = _form_predict(form, "nfl", home, away, game_date)
                 pois_p = _poisson_predict(poisson, "nfl", home, away)
-                nfl_eff_p = _nfl_efficiency_predict(nfl_eff, home, away)
+                nfl_eff_p = _agent_predict(nfl_eff, home, away)
+                qb_elo_p = _agent_predict(qb_elo, home, away)
 
                 all_preds.append(GamePrediction(
                     season=s, game_date=game_date, home=home, away=away,
                     home_won=home_won,
-                    elo=elo_p, form=form_p, poisson=pois_p, nfl_efficiency=nfl_eff_p,
+                    elo=elo_p, form=form_p, poisson=pois_p,
+                    nfl_efficiency=nfl_eff_p, nfl_qb_elo=qb_elo_p,
                 ))
 
                 # Walk-forward updates (after prediction, before next game)

@@ -58,6 +58,7 @@ from evmax.agents.models.pitcher_agent import PitcherModelAgent
 from evmax.agents.models.soccer_xg_agent import SoccerXgAgent
 from evmax.agents.models.efficiency_agent import EfficiencyModelAgent
 from evmax.agents.models.nfl_efficiency_agent import NflEfficiencyModelAgent
+from evmax.agents.models.nfl_qb_elo_agent import NflQbEloModelAgent
 from evmax.agents.models.wnba_efficiency_agent import WNBAEfficiencyModelAgent
 from evmax.agents.models.shot_quality_agent import ShotQualityAgent
 from evmax.agents.models.matchup_agent import MatchupAgent
@@ -340,6 +341,7 @@ class AgentCoordinator:
         self.soccer_xg_agent = SoccerXgAgent()
         self.efficiency_agent = EfficiencyModelAgent()
         self.nfl_efficiency_agent = NflEfficiencyModelAgent()
+        self.nfl_qb_elo_agent = NflQbEloModelAgent()
         self.wnba_efficiency_agent = WNBAEfficiencyModelAgent()
         self.shot_quality_agent = ShotQualityAgent()
         self.matchup_agent = MatchupAgent()
@@ -355,6 +357,7 @@ class AgentCoordinator:
                 self.soccer_xg_agent,
                 self.efficiency_agent,
                 self.nfl_efficiency_agent,
+                self.nfl_qb_elo_agent,
                 self.wnba_efficiency_agent,
                 self.shot_quality_agent,
                 self.matchup_agent,
@@ -383,7 +386,8 @@ class AgentCoordinator:
             self.tennis_agent, self.tennis_serve_agent,
             self.tennis_h2h_agent, self.tennis_trend_agent,
             self.pitcher_agent, self.soccer_xg_agent,
-            self.efficiency_agent, self.nfl_efficiency_agent, self.wnba_efficiency_agent,
+            self.efficiency_agent, self.nfl_efficiency_agent, self.nfl_qb_elo_agent,
+            self.wnba_efficiency_agent,
             self.shot_quality_agent, self.matchup_agent,
             self.possession_sim_agent, self.wnba_possession_sim_agent,
             self.ensemble_agent,
