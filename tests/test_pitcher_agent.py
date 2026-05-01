@@ -425,6 +425,37 @@ class TestFipPrediction:
         assert pred.confidence == pytest.approx(0.60, abs=1e-6)
 
     @pytest.mark.asyncio
+    async def test_fip_fires_with_thin_15_ip_sample(self, agent):
+        """Even thinner samples (15-30 IP, ~2-3 starts) get a 0.50 tier so
+        the model contributes through the first month of the season instead
+        of waiting until early May. Validated by backtest: pitcher is the
+        best single MLB model where it fires, so coverage > exact precision."""
+        agent.seed_pitchers(
+            {
+                "A": {"era": 2.50, "fip": 2.20, "ip": 18, "team": "yankees"},
+                "B": {"era": 2.80, "fip": 2.40, "ip": 16, "team": "red sox"},
+            }
+        )
+        pred = await agent.predict_pair(_market(), _sharp())
+        assert pred is not None
+        assert pred.confidence >= 0.45
+        assert pred.confidence == pytest.approx(0.50, abs=1e-6)
+
+    @pytest.mark.asyncio
+    async def test_fip_drops_below_15_ip(self, agent):
+        """Below 15 IP, FIP-armed predictions still drop to the ERA-only
+        thin tier (0.35), below the ensemble gate."""
+        agent.seed_pitchers(
+            {
+                "A": {"era": 2.50, "fip": 2.20, "ip": 8, "team": "yankees"},
+                "B": {"era": 2.80, "fip": 2.40, "ip": 6, "team": "red sox"},
+            }
+        )
+        pred = await agent.predict_pair(_market(), _sharp())
+        assert pred is not None
+        assert pred.confidence < 0.45
+
+    @pytest.mark.asyncio
     async def test_notes_show_fip_when_present(self, agent):
         agent.seed_pitchers(
             {

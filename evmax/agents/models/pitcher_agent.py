@@ -249,7 +249,13 @@ class PitcherModelAgent(ModelAgent):
         elif both_fip and min_ip >= 100:
             confidence = 0.75  # FIP-armed + good sample
         elif both_fip and min_ip >= 30:
-            confidence = 0.60  # FIP-armed early-season — above the 0.45 gate
+            confidence = 0.60  # FIP-armed early-season
+        elif both_fip and min_ip >= 15:
+            confidence = 0.50  # FIP-armed thin sample — barely above 0.45 gate.
+                               # Justified empirically: backtest shows pitcher
+                               # is the best single MLB model where it fires,
+                               # and a pitcher with FIP from 2-3 starts is more
+                               # informative than no signal at all.
         elif both_live:
             confidence = 0.55  # Live but ESPN-only (no IP, no FIP)
         elif min_ip >= 150:

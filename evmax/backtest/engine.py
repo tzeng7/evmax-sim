@@ -12,6 +12,7 @@ from evmax.backtest.metrics import compute_report
 from evmax.backtest.metrics_props import compute_prop_report
 from evmax.backtest.models import BacktestReport, BacktestRow, PropBacktestReport
 from evmax.backtest.sources.espn_walkforward import WalkForwardReport, ESPN_SECTORS
+from evmax.backtest.sources.soccer_walkforward import SoccerWalkForwardReport
 
 logger = structlog.get_logger(__name__)
 
@@ -25,6 +26,7 @@ def run_backtest(
     ev_threshold: float = 0.02,
     min_volume: float = 0.0,
     stats_filter: Optional[list[str]] = None,
+    walkforward: bool = False,
 ) -> list[BacktestReport | PropBacktestReport]:
     """
     Run historical backtest for the given sectors.
@@ -45,11 +47,15 @@ def run_backtest(
     if seasons is None:
         seasons = ["2425", "2526"]
 
-    reports: list[BacktestReport | PropBacktestReport | WalkForwardReport] = []
+    reports: list[
+        BacktestReport | PropBacktestReport | WalkForwardReport | SoccerWalkForwardReport
+    ] = []
 
     for sector in sectors:
         try:
-            if sector == "soccer":
+            if sector == "soccer" and walkforward:
+                report = _run_soccer_walkforward(seasons, leagues, force_refresh)
+            elif sector == "soccer":
                 report = _run_soccer(seasons, leagues, fetch_kalshi, force_refresh, ev_threshold)
             elif sector == "tennis":
                 years = _seasons_to_tennis_years(seasons)
@@ -70,6 +76,15 @@ def run_backtest(
 
 WALKFORWARD_MONTHS: dict[str, dict[str, list[str]]] = {
     # season code → sector → months
+    "2324": {
+        "wnba": [f"2024{m:02d}" for m in range(5, 10)],
+        "nba": [f"2023{m:02d}" for m in range(10, 13)] + [f"2024{m:02d}" for m in range(1, 7)],
+        "ncaab": [f"2023{m:02d}" for m in range(11, 13)] + [f"2024{m:02d}" for m in range(1, 4)],
+        "ncaaw": [f"2023{m:02d}" for m in range(11, 13)] + [f"2024{m:02d}" for m in range(1, 4)],
+        "baseball": [f"2024{m:02d}" for m in range(3, 11)],
+        "nhl": [f"2023{m:02d}" for m in range(10, 13)] + [f"2024{m:02d}" for m in range(1, 7)],
+        "nfl": [f"2023{m:02d}" for m in range(9, 13)] + [f"2024{m:02d}" for m in range(1, 3)],
+    },
     "2425": {
         "wnba": [f"2025{m:02d}" for m in range(5, 10)],  # 2025 season May-Sep
         "nba": [f"2024{m:02d}" for m in range(10, 13)] + [f"2025{m:02d}" for m in range(1, 7)],
@@ -145,6 +160,21 @@ def _run_soccer(
     league_names = [SOCCER_LEAGUES.get(c, c) for c in league_codes]
 
     return compute_report(rows, "soccer", league_names, seasons, ev_threshold)
+
+
+def _run_soccer_walkforward(
+    seasons: list[str],
+    leagues: Optional[list[str]],
+    force_refresh: bool,
+) -> SoccerWalkForwardReport:
+    """Walk-forward per-model Brier on historical soccer (football-data CSVs)."""
+    from evmax.backtest.sources.soccer_csv import load_soccer
+    from evmax.backtest.sources.soccer_walkforward import run_soccer_walkforward
+
+    logger.info("backtest_soccer_walkforward_start", seasons=seasons, leagues=leagues or "all")
+    rows = load_soccer(seasons, leagues=leagues, force=force_refresh)
+    logger.info("backtest_soccer_walkforward_loaded", n_rows=len(rows))
+    return run_soccer_walkforward(rows)
 
 
 def _run_tennis(

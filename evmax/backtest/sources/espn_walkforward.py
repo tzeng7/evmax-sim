@@ -221,7 +221,7 @@ BASEBALL_WEIGHT_OVERRIDES: dict[str, float] = {
 # seeder's BR-based FIP, but the cFIP constant absorbs that bias as long as
 # we're consistent within a single backtest run.
 BACKTEST_CFIP = 3.10
-PITCHER_MIN_IP_FOR_PRED = 30.0  # mirrors live confidence-tier floor
+PITCHER_MIN_IP_FOR_PRED = 15.0  # mirrors live confidence-tier floor (FIP+15 IP → 0.50)
 
 
 def _parse_ip(ip_str: str) -> float:
