@@ -114,6 +114,15 @@ class EnsembleModelAgent(Agent):
             "elo":     0.25,
             "form":    0.25,
         },
+        # NFL: Poisson zeroed 2026-05-01. Football scoring is drive-based, not
+        # a memoryless minute-uniform process, so Poisson's goal-matrix
+        # decomposition mis-shapes the margin distribution (especially for
+        # totals). Elo + form remain at their class defaults until Phase 1
+        # ships nfl_efficiency (EPA-based) — at which point this override is
+        # expanded to give nfl_efficiency the dominant non-sharp weight.
+        "nfl": {
+            "poisson": 0.0,
+        },
     }
 
     def __init__(

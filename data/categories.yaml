@@ -51,11 +51,11 @@ nba:
 nfl:
   display_name: "NFL"
   market_types: [moneyline, spread, total]
-  models: [elo, form, poisson, sharp]
+  models: [elo, form, sharp]
   mode: live
   resolver: espn_scoreboard
   status: shipped
-  notes: null
+  notes: "Poisson dropped 2026-05-01: NFL is not a Poisson-distributed scoring process (drives, not minute-uniform events). Replaced by nfl_efficiency (EPA-based) — see MODEL-13."
 
 ncaab:
   display_name: "NCAAB (Men's College Basketball)"

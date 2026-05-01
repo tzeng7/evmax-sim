@@ -27,6 +27,7 @@ dependencies = [
     "questionary>=2.0",
     "websockets>=12.0",
     "nba_api>=1.4",
+    "nflreadpy>=0.1.5",
     "pandas>=2.0",
     "aiolimiter>=1.1",
     "cryptography>=46.0.6",
