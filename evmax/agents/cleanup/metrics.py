@@ -29,8 +29,18 @@ CONFIG_PATH = Path(__file__).resolve().parents[3] / "data" / "model_config.json"
 # in the coordinator before this was factored out — see evmax/agents/coordinator.py.
 # Rationale: our statistical stack is thin for those sports, so we trust Pinnacle
 # more heavily to avoid phantom edges from vig removal alone.
+#
+# Tennis 1.00 (2026-05-01): production resolved data (n=112) showed the tennis
+# stat ensemble (surface_elo + serve_return + form + advanced + h2h + ranking)
+# net-subtracts ~3.77pp ROI on top of Pinnacle — +1.89% sharp-only counterfactual
+# vs −1.88% production. The 28 bets that triggered ONLY because tennis models
+# inflated EV averaged −13.2% ROI. Tennis flipped to shadow mode in
+# data/categories.yaml for 30d validation; promote back to live once shadow
+# metrics confirm positive ROI on 50+ new resolved bets.
+# NOTE: only `_DEFAULT_SHARP_WEIGHT_BY_SECTOR` is the seed default; the live
+# value lives in data/model_config.json under `sharp_weight_by_sector`.
 _DEFAULT_SHARP_WEIGHT_BY_SECTOR: dict[str, float] = {
-    "tennis":   0.92,
+    "tennis":   1.00,
     "baseball": 0.88,
     # All other sectors fall back to the top-level `sharp_weight`.
 }

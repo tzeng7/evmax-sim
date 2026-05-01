@@ -266,9 +266,22 @@ class EnsembleModelAgent(Agent):
     # into the walk-forward: 2526 holdout binary Brier 0.19523 → 0.19506
     # (Δ −0.00017 vs sharp-only ceiling of 0.19499). V4 narrows the gap
     # to sharp-only further than V3 (0.04/0.15/0.99) did.
+    # Tennis override (2026-05-01): production resolved bets (n=113 after
+    # excluding $0.01 dead-market rows) show the same pattern as soccer but
+    # at a tighter threshold. Bucketed by signed gap (blended − sharp) on
+    # the YES leg:
+    #   model > sharp by 2-5pp (n=10): hit 0.0%, sharp_pct 18.5%, model_pct 21.2%
+    #     → Brier(blended)=0.0509, Brier(sharp)=0.0400 (sharp +0.011)
+    #     → ROI proxy −19.2% (this single bucket accounts for ~all tennis bleed)
+    #   within 2pp (n=102):           hit 35.3%, Brier delta ≈ 0 (sharp +0.0004)
+    # Production data is selection-biased (only EV≥2% YES rows logged) so we
+    # have no rows in `model < sharp` direction; saturate_at and cap mirror
+    # soccer V4 because we lack the data to tune them. Validate via a
+    # tennis_walkforward.py rebuild before tightening further.
     DISAGREEMENT_OVERRIDES: dict[str, tuple[float, float, float]] = {
         # sector → (threshold, saturate_at, cap)
         "soccer": (0.04, 0.10, 1.00),
+        "tennis": (0.02, 0.10, 1.00),
     }
 
     @staticmethod

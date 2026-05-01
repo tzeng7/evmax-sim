@@ -88,10 +88,10 @@ tennis:
   display_name: "Tennis (ATP + WTA)"
   market_types: [moneyline]
   models: [tennis_surface_elo, tennis_serve_return, tennis_h2h, tennis_ranking_trend, tennis_form, tennis_advanced, sharp]
-  mode: live
+  mode: shadow
   resolver: kalshi_settlement
   status: shipped
-  notes: "Indoor court factor + bo5 amplification live (MODEL-6). Surface-specific SPW + recency weighting + opponent-adjusted form + fatigue signal."
+  notes: "Shadow 2026-05-01: production data (n=112) showed tennis stat models net-subtract ~3.77pp ROI on top of Pinnacle. sharp_weight bumped to 1.00 in model_config.json — predictions are now pure sharp. Re-validate after 30d (target: positive ROI on 50+ resolved shadow bets) before promoting back to live via `evmax cleanup shadow promote tennis`."
 
 baseball:
   display_name: "Baseball (MLB)"

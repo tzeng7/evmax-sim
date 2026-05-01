@@ -1037,6 +1037,55 @@ class TestEnsembleModelAgent:
         )
         assert w_soccer == pytest.approx(1.00)
 
+    def test_disagreement_tennis_override_lowers_threshold_to_two_pp(self):
+        """Tennis override starts the ramp at 0.02 — even tighter than soccer.
+        A 0.025 gap is below soccer's 0.04 threshold but above tennis's, so
+        the tennis call must boost while default and soccer must not."""
+        kwargs = dict(
+            model_a=0.215, model_b=0.785, model_draw=None,
+            sharp_a=0.190, sharp_b=0.810, sharp_draw=None,
+            base_sharp_weight=0.85,
+        )
+        # Default sector: 0.025 gap < 0.10 threshold → no boost
+        assert EnsembleModelAgent._disagreement_sharp_weight(**kwargs) == 0.85
+        # Soccer sector: 0.025 gap < 0.04 threshold → no boost
+        assert (
+            EnsembleModelAgent._disagreement_sharp_weight(**kwargs, sector="soccer")
+            == 0.85
+        )
+        # Tennis sector: 0.025 gap > 0.02 threshold → boost
+        w_tennis = EnsembleModelAgent._disagreement_sharp_weight(
+            **kwargs, sector="tennis"
+        )
+        assert w_tennis > 0.85
+
+    def test_disagreement_tennis_dog_disagreement_blends_to_full_sharp(self):
+        """Reproduces the production leak: tennis dog with model nudged ~3pp
+        above sharp goes to (almost) 100% sharp under the override, so the
+        downstream blend = sharp prediction and the EV filter drops the bet."""
+        # Mirror an actual losing bet shape: dog at ~19% implied, model says
+        # 22%, sharp says 19% — gap ≈ 0.03, well past tennis's 0.02 threshold
+        # and within the 0.02→0.10 ramp.
+        w = EnsembleModelAgent._disagreement_sharp_weight(
+            model_a=0.22, model_b=0.78, model_draw=None,
+            sharp_a=0.19, sharp_b=0.81, sharp_draw=None,
+            base_sharp_weight=0.85,
+            sector="tennis",
+        )
+        # 0.03 gap into a (0.02, 0.10) ramp is 1/8 of the way → effective sharp
+        # weight ~ 0.85 + (1/8) × (1.00 − 0.85) ≈ 0.869
+        assert 0.86 < w < 0.88
+
+    def test_disagreement_tennis_at_saturation_is_pure_sharp(self):
+        """At a 0.10+ gap, tennis cap=1.00 means the blend is fully sharp."""
+        w = EnsembleModelAgent._disagreement_sharp_weight(
+            model_a=0.30, model_b=0.70, model_draw=None,
+            sharp_a=0.18, sharp_b=0.82, sharp_draw=None,
+            base_sharp_weight=0.85,
+            sector="tennis",
+        )
+        assert w == pytest.approx(1.00)
+
     def test_disagreement_unknown_sector_falls_through_to_defaults(self):
         """Sectors not in DISAGREEMENT_OVERRIDES use the global ramp params."""
         w = EnsembleModelAgent._disagreement_sharp_weight(
