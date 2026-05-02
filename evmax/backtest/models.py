@@ -26,6 +26,16 @@ class BacktestRow:
     # Convenience
     home_won: Optional[bool] = None      # True if home team / winner won
     draw: Optional[bool] = None          # True if result is draw (soccer only)
+    # Goal counts (soccer) — needed for Poisson walk-forward updates
+    home_goals: Optional[int] = None
+    away_goals: Optional[int] = None
+    # Shot counts (soccer) — needed for xG walk-forward updates. Football-data
+    # CSVs carry HS/AS (total shots) and HST/AST (shots on target). The live
+    # SoccerXgAgent derives xG from these via xg_from_shots(sot, total).
+    home_shots: Optional[int] = None
+    away_shots: Optional[int] = None
+    home_sot: Optional[int] = None
+    away_sot: Optional[int] = None
     # Optional Kalshi join
     kalshi_ticker: Optional[str] = None
     kalshi_last_price: Optional[float] = None

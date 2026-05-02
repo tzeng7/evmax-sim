@@ -45,6 +45,11 @@ def run(
         None, "--stats",
         help="NFL props: comma-separated stat types to include (e.g. 'passing_yards,passing_tds'). Default: all stats.",
     ),
+    walkforward: bool = typer.Option(
+        False, "--walkforward",
+        help="Soccer: replay matches chronologically through Elo/Form/Poisson agents "
+             "and report per-model Brier. Unfiltered (every game, not just +EV picks).",
+    ),
 ) -> None:
     """
     Run historical backtest. Supports Pinnacle-odds backtests (soccer, tennis) and
@@ -62,10 +67,14 @@ def run(
     """
     from evmax.backtest.display import print_report
     from evmax.backtest.display_props import print_prop_report
-    from evmax.backtest.display_walkforward import print_walkforward_report
+    from evmax.backtest.display_walkforward import (
+        print_walkforward_report,
+        print_soccer_walkforward_report,
+    )
     from evmax.backtest.engine import run_backtest
     from evmax.backtest.models import PropBacktestReport
     from evmax.backtest.sources.espn_walkforward import WalkForwardReport
+    from evmax.backtest.sources.soccer_walkforward import SoccerWalkForwardReport
 
     sector_list = [s.strip().lower() for s in sectors.split(",") if s.strip()]
     season_list = [s.strip() for s in seasons.split(",") if s.strip()]
@@ -89,6 +98,7 @@ def run(
             ev_threshold=ev_threshold,
             min_volume=min_volume,
             stats_filter=stats_list,
+            walkforward=walkforward,
         )
 
     if not reports:
@@ -96,7 +106,9 @@ def run(
         raise typer.Exit(1)
 
     for report in reports:
-        if isinstance(report, WalkForwardReport):
+        if isinstance(report, SoccerWalkForwardReport):
+            print_soccer_walkforward_report(report)
+        elif isinstance(report, WalkForwardReport):
             print_walkforward_report(report)
         elif isinstance(report, PropBacktestReport):
             print_prop_report(report)

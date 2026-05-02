@@ -70,6 +70,27 @@ def parse_soccer_csv(path: Path, league_code: str, season: str) -> list[Backtest
                 skipped += 1
                 continue
 
+            # Goal counts (FTHG/FTAG) are optional — absent in a handful of
+            # older rows. Keep them as int or None; Poisson walk-forward skips
+            # rows without goals.
+            try:
+                home_goals = int(raw.get("FTHG", "").strip())
+                away_goals = int(raw.get("FTAG", "").strip())
+            except (ValueError, AttributeError):
+                home_goals = None
+                away_goals = None
+
+            def _opt_int(key: str) -> Optional[int]:
+                try:
+                    return int(raw.get(key, "").strip())
+                except (ValueError, AttributeError):
+                    return None
+
+            home_shots = _opt_int("HS")
+            away_shots = _opt_int("AS")
+            home_sot = _opt_int("HST")
+            away_sot = _opt_int("AST")
+
             row = BacktestRow(
                 sector="soccer",
                 league=league_name,
@@ -85,6 +106,12 @@ def parse_soccer_csv(path: Path, league_code: str, season: str) -> list[Backtest
                 true_prob_draw=prob_d,
                 home_won=(ftr == "H"),
                 draw=(ftr == "D"),
+                home_goals=home_goals,
+                away_goals=away_goals,
+                home_shots=home_shots,
+                away_shots=away_shots,
+                home_sot=home_sot,
+                away_sot=away_sot,
             )
             rows.append(row)
 
