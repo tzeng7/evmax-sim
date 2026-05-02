@@ -9,12 +9,14 @@ from typing import Any
 
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 PREDICTIONS_DB = ROOT / "data" / "predictions.db"
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+SPA_DIST = ROOT / "frontend" / "dist"
 
 app = FastAPI(title="evmax dashboard")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allow_methods=["*"], allow_headers=["*"])
@@ -254,8 +256,9 @@ def _sector_breakdown(bets: list[dict[str, Any]]) -> list[dict[str, Any]]:
 # Pages
 # ---------------------------------------------------------------------------
 
-@app.get("/", response_class=HTMLResponse)
-def index(request: Request) -> Any:
+@app.get("/legacy", response_class=HTMLResponse)
+def legacy_dashboard(request: Request) -> Any:
+    """Legacy Jinja-rendered dashboard. The React SPA at `/` is the default."""
     settled = _settled_bets()
     open_bets = _open_bets()
 
@@ -785,3 +788,32 @@ async def api_metrics(request: Request) -> JSONResponse:
         "brier_model": round(brier_model, 4), "brier_sharp": round(brier_sharp, 4),
         "calibration": calibration,
     })
+
+
+# ---------------------------------------------------------------------------
+# React SPA — must be last so /api/* routes match first
+# ---------------------------------------------------------------------------
+
+if (SPA_DIST / "index.html").exists():
+    app.mount("/assets", StaticFiles(directory=str(SPA_DIST / "assets")), name="spa-assets")
+
+    @app.get("/", response_class=HTMLResponse)
+    def spa_root() -> FileResponse:
+        return FileResponse(SPA_DIST / "index.html")
+
+    @app.get("/{path:path}", response_class=HTMLResponse)
+    def spa_catchall(path: str) -> FileResponse:
+        candidate = SPA_DIST / path
+        if candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(SPA_DIST / "index.html")
+else:
+    @app.get("/", response_class=HTMLResponse)
+    def spa_missing() -> HTMLResponse:
+        return HTMLResponse(
+            "<h1>frontend not built</h1>"
+            "<p>Run <code>cd frontend &amp;&amp; npm install &amp;&amp; npm run build</code>, "
+            "then restart <code>evmax dashboard serve</code>. "
+            "Or visit <a href='/legacy'>/legacy</a> for the old Jinja dashboard.</p>",
+            status_code=503,
+        )

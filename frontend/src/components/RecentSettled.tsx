@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import type { Bet } from '../lib/types'
 import { outcomeLabel } from '../lib/odds'
 
 interface Props { bets: Bet[] }
+
+type View = 'all' | 'placed'
 
 function pnl(b: Bet): number {
   const stake = b.placed_stake || (b.bankroll_used || 250) * (b.kelly_fraction || 0)
@@ -11,10 +14,24 @@ function pnl(b: Bet): number {
 }
 
 export function RecentSettled({ bets }: Props) {
+  const [view, setView] = useState<View>('all')
   if (!bets.length) return null
+  const visible = view === 'placed' ? bets.filter(b => b.placed === 1) : bets
   return (
     <div className="panel">
-      <h2>Recent Settled Bets</h2>
+      <div className="panel-header">
+        <h2>Recent Settled Bets</h2>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            className={`btn btn-sm settled-tab ${view === 'all' ? 'active' : ''}`}
+            onClick={() => setView('all')}
+          >All</button>
+          <button
+            className={`btn btn-sm settled-tab ${view === 'placed' ? 'active' : ''}`}
+            onClick={() => setView('placed')}
+          >Placed Only</button>
+        </div>
+      </div>
       <div style={{ maxHeight: 400, overflowY: 'auto' }}>
         <table>
           <thead>
@@ -25,7 +42,7 @@ export function RecentSettled({ bets }: Props) {
             </tr>
           </thead>
           <tbody>
-            {bets.map((b, i) => {
+            {visible.map((b, i) => {
               const p = pnl(b)
               return (
                 <tr key={i}>

@@ -38,7 +38,7 @@
     padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px;
     background: var(--panel); color: var(--text); font-size: 12px; font-family: inherit;
   }
-  .pnl-tab.active, .range-btn.active { background: #1a3a5c; border-color: var(--accent); color: var(--accent); }
+  .pnl-tab.active, .range-btn.active, .settled-tab.active { background: #1a3a5c; border-color: var(--accent); color: var(--accent); }
   .btn-del {
     background: none; border: 1px solid transparent; color: var(--muted); cursor: pointer;
     font-size: 16px; line-height: 1; padding: 2px 6px; border-radius: 4px;
@@ -334,9 +334,15 @@
 
 <!-- Recent settled -->
 <div class="panel">
-  <h2>Recent Settled Bets</h2>
+  <div class="panel-header">
+    <h2>Recent Settled Bets</h2>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-sm settled-tab active" data-view="all" onclick="switchSettledView('all')">All</button>
+      <button class="btn btn-sm settled-tab" data-view="placed" onclick="switchSettledView('placed')">Placed Only</button>
+    </div>
+  </div>
   <div style="max-height:400px;overflow-y:auto">
-  <table>
+  <table id="settled-table">
     <thead><tr>
       <th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th>
       <th class="num">Ask</th><th class="num">Model</th><th class="num">EV</th>
@@ -349,7 +355,7 @@
       {% set stake = b.placed_stake or (bankroll * kelly) %}
       {% set price = b.placed_price or b.kalshi_yes_price or 0.5 %}
       {% if b.outcome == 1 %}{% set pnl = stake * (1.0 / price - 1.0) %}{% else %}{% set pnl = -stake %}{% endif %}
-      <tr>
+      <tr data-placed="{{ 1 if b.placed else 0 }}">
         <td class="muted">{{ b.event_date }}</td>
         <td><span class="badge">{{ b.sector }}</span></td>
         <td>{{ b.event_title }}</td>
@@ -433,6 +439,14 @@ function switchPnlView(view) {
   profitChart.data.datasets[1].hidden = (view === 'all');
   profitChart.update();
   refreshKpis();
+}
+
+function switchSettledView(view) {
+  document.querySelectorAll('.settled-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+  const rows = document.querySelectorAll('#settled-table tbody tr');
+  rows.forEach(r => {
+    r.style.display = (view === 'placed' && r.dataset.placed !== '1') ? 'none' : '';
+  });
 }
 
 function setChartRange(days) {
