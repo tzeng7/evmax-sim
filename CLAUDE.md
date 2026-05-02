@@ -53,7 +53,7 @@ evmax agents scan --shadow X,Y --live Z --disabled W   # runtime overrides
 4. **Fuzzy-match** Kalshi markets to Pinnacle events using canonical keys + rapidfuzz (threshold=88)
 5. **Devig Pinnacle lines** using the Power Method (handles 2-way and 3-way markets)
 6. **Run statistical models** (Elo + Form + Poisson) in parallel, blend with sharp probability
-7. **Apply injury adjustments** — injured players reduce their team's win probability (capped at −12% per team)
+7. **Apply injury adjustments** — injured players reduce their team's win probability (capped at −10% per team in `apply_adjustments`, −20% at the report level via `MAX_ADJ`). NFL applies sector-aware **position weights** on top of the existing tier system: a QB-OUT counts ~10× a guard-OUT, an LT-OUT ~3× a TE-OUT — see `NFL_POSITION_WEIGHTS` in `injury_agent.py`. Star-tier Mahomes/Allen QB OUT lands at 10.1% (right at the per-team cap), matching the ~7-pt Vegas line shift on those scratches.
 8. **Compute EV** = (true_prob × payout) − 1. Flag any gap ≥ 2%
 9. **Kelly sizing** = Full Kelly × kelly_fraction × confidence_discount × liquidity_discount, hard capped at 5% of bankroll
 10. **Exposure guard** — total Kelly across all bets on the same game capped at 8% of bankroll

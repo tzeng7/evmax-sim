@@ -126,10 +126,78 @@ HIGH_IMPACT_POSITIONS = {
     "G", "F",
     # Soccer
     "GK", "CB", "LB", "RB", "CM", "CAM", "LW", "RW", "ST", "CF",
-    # NFL
-    "QB", "WR", "RB", "TE", "LT", "RT",
-    # NCAAB
+    # NFL — tier system says these are starters; the sector-aware position
+    # weight below differentiates *which* starter (a QB out is ~10x a guard out)
+    "QB", "WR", "RB", "TE", "LT", "RT", "C", "G", "OL",
+    "DE", "DT", "EDGE", "OLB", "ILB", "LB", "CB", "S", "FS", "SS",
 }
+
+
+# ---------------------------------------------------------------------------
+# Sector-aware position weights — multiply the existing tier-weighted impact.
+# Only NFL uses these today. Soccer / NBA / NCAAB / etc. fall through to a
+# flat 1.0 multiplier so behavior for those sectors is unchanged.
+#
+# Calibration intent: a starting QB (Mahomes/Allen-tier) being ruled OUT shifts
+# Vegas spreads ~5-7 points = ~12-15pp swing in win probability. Working
+# backward: 0.045 (OUT raw) × 1.5 (star tier) × 1.5 (QB position weight) ≈ 10pp
+# at the report level, which the apply_adjustments step then redistributes
+# between the two teams (≈ 12-14pp swing on the matchup). Aligned with sharps.
+#
+# Other positions are scaled relative to QB. A starting LT/RT (pass protection
+# anchor) is the second-biggest position swing, an EDGE is third (because they
+# warp the opposing offense's pass game). Specialty positions (K/P/LS) are
+# near-zero — their absence rarely moves a number more than a fraction of a pt.
+# ---------------------------------------------------------------------------
+
+NFL_POSITION_WEIGHTS: dict[str, float] = {
+    "QB":   1.50,
+    "LT":   0.50,
+    "RT":   0.40,
+    "EDGE": 0.40,
+    "DE":   0.40,
+    "OLB":  0.35,
+    "C":    0.30,
+    "WR":   0.30,
+    "CB":   0.30,
+    "RB":   0.25,
+    "S":    0.20,
+    "FS":   0.20,
+    "SS":   0.20,
+    "TE":   0.20,
+    "DT":   0.20,
+    "G":    0.15,
+    "OL":   0.15,
+    "LB":   0.15,
+    "ILB":  0.15,
+    "FB":   0.05,
+    "K":    0.05,
+    "P":    0.02,
+    "LS":   0.01,
+}
+
+# Default position weight for NFL when the position string isn't in the map
+# (typos, weird ESPN abbreviations, etc.). Conservative — better to under-
+# weight an unknown position than over-weight it.
+NFL_DEFAULT_POSITION_WEIGHT = 0.10
+
+SECTOR_POSITION_WEIGHTS: dict[str, dict[str, float]] = {
+    "nfl": NFL_POSITION_WEIGHTS,
+}
+
+
+def _position_weight(sector: str, position: str) -> float:
+    """Return the position-specific multiplier for a sector, or 1.0 when no
+    sector-specific weights are defined (preserves existing behavior)."""
+    if not sector:
+        return 1.0
+    table = SECTOR_POSITION_WEIGHTS.get(sector.lower())
+    if table is None:
+        return 1.0
+    if not position:
+        return NFL_DEFAULT_POSITION_WEIGHT if sector.lower() == "nfl" else 1.0
+    return table.get(position.upper(), NFL_DEFAULT_POSITION_WEIGHT
+                     if sector.lower() == "nfl" else 1.0)
 
 
 # ---------------------------------------------------------------------------
@@ -263,7 +331,7 @@ class InjuryReportAgent(Agent):
             for inj in team_entry.get("injuries", []):
                 if not isinstance(inj, dict):
                     continue
-                player = self._parse_player(inj)
+                player = self._parse_player(inj, sector=sector)
                 if player is not None and player.impact > 0:
                     report.players.append(player)
 
@@ -272,8 +340,19 @@ class InjuryReportAgent(Agent):
 
         return reports
 
-    def _parse_player(self, inj: dict, star_ids: set[str] | None = None) -> Optional[InjuredPlayer]:
-        """Parse a single injury entry from ESPN JSON."""
+    def _parse_player(
+        self,
+        inj: dict,
+        star_ids: set[str] | None = None,
+        sector: str = "",
+    ) -> Optional[InjuredPlayer]:
+        """Parse a single injury entry from ESPN JSON.
+
+        `sector` enables sector-aware position weighting (currently only NFL).
+        Defaults to empty string so existing call sites and tests keep their
+        original behavior — only sectors registered in SECTOR_POSITION_WEIGHTS
+        get the position multiplier applied.
+        """
         athlete = inj.get("athlete", {})
         name = athlete.get("displayName", "")
         # ESPN injuries API doesn't expose id directly — parse from playercard link href
@@ -307,7 +386,11 @@ class InjuryReportAgent(Agent):
 
         # Tier: use ESPN leader IDs if available, then known stars, then position
         tier = self._classify_tier(position, athlete_id=athlete_id, star_ids=star_ids, player_name=name)
-        impact = raw_impact * TIER_MULTIPLIER[tier]
+        # Sector-aware position multiplier — non-NFL sectors get 1.0 (no change).
+        # For NFL: a starting QB out hits the team much harder than a backup G,
+        # which the flat tier system can't express on its own.
+        pos_weight = _position_weight(sector, position)
+        impact = raw_impact * TIER_MULTIPLIER[tier] * pos_weight
 
         return InjuredPlayer(
             name=name,

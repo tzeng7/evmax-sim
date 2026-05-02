@@ -622,3 +622,111 @@ class TestEvaluatePair:
         assert gap.ev_pct > 0.02
         assert gap.sector == "nba"
         assert gap.yes_team == "pistons"
+
+
+# ---------------------------------------------------------------------------
+# NFL sector-aware position weights (Phase 3)
+# ---------------------------------------------------------------------------
+
+class TestNflPositionWeights:
+    """Position weighting only applies for NFL — every other sector behaves
+    identically to the pre-Phase-3 flat 1.0 multiplier."""
+
+    def _inj(self, status="Out", position="QB", name="Player X"):
+        return {
+            "athlete": {
+                "displayName": name,
+                "position": {"abbreviation": position},
+                "links": [],
+            },
+            "status": status,
+            "details": {"type": "Knee"},
+            "shortComment": "",
+        }
+
+    def test_qb_out_hits_harder_than_guard_out(self):
+        agent = InjuryReportAgent()
+        qb = agent._parse_player(self._inj(position="QB"), sector="nfl")
+        g = agent._parse_player(self._inj(position="G"), sector="nfl")
+        assert qb is not None and g is not None
+        # QB weight 1.50, Guard weight 0.15 → QB impact should be ~10x guard
+        assert qb.impact > g.impact * 5
+
+    def test_lt_higher_than_te(self):
+        agent = InjuryReportAgent()
+        lt = agent._parse_player(self._inj(position="LT"), sector="nfl")
+        te = agent._parse_player(self._inj(position="TE"), sector="nfl")
+        assert lt is not None and te is not None
+        # LT weight 0.50, TE weight 0.20 → LT > TE impact
+        assert lt.impact > te.impact
+
+    def test_kicker_near_zero(self):
+        agent = InjuryReportAgent()
+        k = agent._parse_player(self._inj(position="K"), sector="nfl")
+        # Kicker weight 0.05 → very small but nonzero impact for OUT status
+        assert k is None or k.impact < 0.005
+
+    def test_unknown_position_uses_default_weight(self):
+        agent = InjuryReportAgent()
+        # "ZZ" is gibberish — should fall back to NFL_DEFAULT_POSITION_WEIGHT (0.10)
+        p = agent._parse_player(self._inj(position="ZZ"), sector="nfl")
+        # With unknown position and fallback tier 'rotation' (since ZZ not in
+        # HIGH_IMPACT_POSITIONS): impact = 0.045 × 0.5 × 0.10 = 0.00225
+        assert p is not None
+        assert p.impact == pytest.approx(0.045 * 0.5 * 0.10, abs=1e-4)
+
+    def test_non_nfl_sector_unchanged(self):
+        """Soccer and NBA should produce identical impact whether we pass sector
+        or not — NFL is the only sector with weights configured today."""
+        agent = InjuryReportAgent()
+        with_sector = agent._parse_player(self._inj(position="GK"), sector="soccer")
+        without_sector = agent._parse_player(self._inj(position="GK"))
+        assert with_sector is not None and without_sector is not None
+        assert with_sector.impact == without_sector.impact
+
+    def test_star_qb_out_breaches_starter_qb_baseline(self):
+        """A KNOWN_STARS QB out should hit harder than a generic starter QB out
+        (star tier 1.5 vs starter tier 1.0)."""
+        agent = InjuryReportAgent()
+        starter_qb = agent._parse_player(
+            self._inj(position="QB", name="Generic Backup"),
+            sector="nfl",
+        )
+        # Use a name actually in KNOWN_STARS
+        star_qb = agent._parse_player(
+            self._inj(position="QB", name="Patrick Mahomes"),
+            sector="nfl",
+        )
+        assert starter_qb is not None and star_qb is not None
+        assert star_qb.impact > starter_qb.impact
+
+    def test_nfl_qb_out_drops_team_probability_more_than_te(self):
+        """End-to-end: apply_adjustments after a QB OUT shifts probability
+        further than apply_adjustments after a TE OUT, holding all else equal."""
+        # Build two reports differing only by injured player's position
+        qb_player = InjuredPlayer(
+            name="QB Player", position="QB", status="Out",
+            tier="starter", impact=0.045 * 1.0 * 1.50,  # raw × tier × QB weight
+            injury_type="Knee", notes="",
+        )
+        te_player = InjuredPlayer(
+            name="TE Player", position="TE", status="Out",
+            tier="starter", impact=0.045 * 1.0 * 0.20,  # raw × tier × TE weight
+            injury_type="Knee", notes="",
+        )
+        report_qb = InjuryReport(team="kansas city chiefs", sector="nfl",
+                                  players=[qb_player])
+        report_te = InjuryReport(team="kansas city chiefs", sector="nfl",
+                                  players=[te_player])
+
+        prob_a, prob_b = 0.55, 0.45
+        a_qb, b_qb, _ = InjuryReportAgent.apply_adjustments(
+            {"kansas city chiefs": report_qb}, prob_a, prob_b,
+            "kansas city chiefs", "buffalo bills",
+        )
+        a_te, b_te, _ = InjuryReportAgent.apply_adjustments(
+            {"kansas city chiefs": report_te}, prob_a, prob_b,
+            "kansas city chiefs", "buffalo bills",
+        )
+        # KC's probability should drop more after QB out than after TE out
+        assert a_qb < a_te
