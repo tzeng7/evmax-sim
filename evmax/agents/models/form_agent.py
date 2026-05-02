@@ -67,13 +67,23 @@ HOME_ADJ: dict[str, float] = {
 # Minimum games to produce any prediction
 MIN_GAMES: int = 3
 
+# Bayesian shrinkage prior — virtual game count pulling form_rate toward 0.5.
+# Addresses the small-sample overconfidence visible in walk-forward (Form's
+# 70-80% bucket predicted 75% but actual was 55%, and 80-100% bucket predicted
+# 85% but actual was 66% — extreme streaks of 3-5 games spuriously pushed
+# form to the rails). With PRIOR_N=6 and WINDOW=10, a max-window team sees
+# shrinkage = 10/(10+6) = 0.625 toward the 0.5 baseline.
+SHRINKAGE_PRIOR_N: float = 6.0
+SHRINKAGE_BASELINE: float = 0.5
+
 
 @dataclass
 class GameRecord:
     date: str    # ISO date string
-    won: bool    # did this team win?
+    won: bool    # did this team win? (ignored when drew=True)
     opp: str     # opponent name (normalized)
     home: bool   # was this team the home team?
+    drew: bool = False  # soccer only; legacy records default False (= L if won=False)
 
 
 class FormModelAgent(ModelAgent):
@@ -115,26 +125,43 @@ class FormModelAgent(ModelAgent):
         return [GameRecord(**r) for r in (team_data or [])]
 
     def _form_rate(self, records: list[GameRecord]) -> float:
-        """Exponentially-weighted win rate from most recent WINDOW games.
+        """Exponentially-weighted form over the most recent WINDOW games.
 
-        Opponent-quality weighting was tried (multiplying each game's win
-        value by (1 + elo_gap/400)) and backtested net-negative on WNBA
-        walk-forward — it double-counts opponent strength that Elo already
-        captures and adds variance without adding signal. The form model's
-        remaining job is pure recency; Elo handles opponent quality.
+        Per-game score: points-per-game normalized to [0, 1] — 3 for win,
+        1 for draw, 0 for loss, divided by 3. This matches standard football
+        table math and avoids the collapse where a drawing team looks
+        identical to a losing team (the pre-2026-04 behavior that pushed
+        Form's soccer Brier above the always-home baseline).
+
+        Non-soccer sectors (no draws): records have drew=False by default,
+        so the formula reduces to the old 0/1 win indicator — wins score
+        3/3=1.0 and losses score 0/3=0.0.
+
+        Opponent-quality weighting was tried (multiplying each game's value
+        by (1 + elo_gap/400)) and backtested net-negative on WNBA — it
+        double-counts opponent strength that Elo already captures.
         """
         recent = sorted(records, key=lambda r: r.date, reverse=True)[:WINDOW]
         if not recent:
             return 0.5  # unknown → assume 50/50
 
         total_weight = 0.0
-        weighted_wins = 0.0
+        weighted_points = 0.0
         for i, rec in enumerate(recent):
             w = DECAY ** i  # most recent = decay^0 = 1.0
-            weighted_wins += w * (1.0 if rec.won else 0.0)
+            if rec.drew:
+                pts = 1.0
+            elif rec.won:
+                pts = 3.0
+            else:
+                pts = 0.0
+            weighted_points += w * (pts / 3.0)
             total_weight += w
 
-        return weighted_wins / total_weight if total_weight > 0 else 0.5
+        raw = weighted_points / total_weight if total_weight > 0 else 0.5
+        n = len(recent)
+        shrinkage = n / (n + SHRINKAGE_PRIOR_N)
+        return raw * shrinkage + SHRINKAGE_BASELINE * (1.0 - shrinkage)
 
     @staticmethod
     def _is_stale(records: list[GameRecord], reference: Optional[date] = None) -> bool:
@@ -211,7 +238,8 @@ class FormModelAgent(ModelAgent):
             # Strength-dependent draw allocation (matches Elo model).
             # Quadratic decay: ~26% for even matches, ~10% for mismatches.
             gap = abs(prob_a - 0.5) * 2.0
-            prob_draw = max(0.08, 0.26 - 0.45 * gap * gap)
+            # Matches Elo draw allocator (retuned 2026-04-23 walk-forward).
+            prob_draw = max(0.10, 0.30 - 0.40 * gap * gap)
             scale = (1.0 - prob_draw) / (prob_a + prob_b)
             prob_a = prob_a * scale
             prob_b = prob_b * scale
@@ -252,13 +280,14 @@ class FormModelAgent(ModelAgent):
         team_a = team_a.lower().strip()
         team_b = team_b.lower().strip()
 
+        drew = score_a == score_b
         a_won = score_a > score_b
         b_won = score_b > score_a
 
         if sector not in self._state:
             self._state[sector] = {}
 
-        def _add_record(team: str, won: bool, opp: str, home: bool) -> None:
+        def _add_record(team: str, won: bool, opp: str, home: bool, drew: bool) -> None:
             if team not in self._state[sector]:
                 self._state[sector][team] = []
             existing = self._state[sector][team]
@@ -267,15 +296,15 @@ class FormModelAgent(ModelAgent):
             if any((r["date"], r["opp"], r["home"]) == key for r in existing):
                 return
             existing.append(
-                {"date": date_str, "won": won, "opp": opp, "home": home}
+                {"date": date_str, "won": won, "opp": opp, "home": home, "drew": drew}
             )
             # Keep only the most recent 2×WINDOW entries to control file size
             self._state[sector][team] = sorted(
                 existing, key=lambda r: r["date"], reverse=True
             )[: WINDOW * 2]
 
-        _add_record(team_a, a_won, team_b, home=True)
-        _add_record(team_b, b_won, team_a, home=False)
+        _add_record(team_a, a_won, team_b, home=True, drew=drew)
+        _add_record(team_b, b_won, team_a, home=False, drew=drew)
 
         self.log.debug("form_updated", team_a=team_a, team_b=team_b, a_won=a_won)
 

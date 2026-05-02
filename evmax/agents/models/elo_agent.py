@@ -390,7 +390,11 @@ class EloModelAgent(ModelAgent):
         if sector == "soccer":
             gap = abs(expected_a - 0.5) * 2.0  # 0 = even, 1 = total mismatch
             # Quadratic decay: 0.26 at gap=0, ~0.10 at gap=0.6
-            draw_prob = max(0.08, 0.26 - 0.45 * gap * gap)
+            # Draw allocation tuned against 2425+2526 walk-forward (2,654 games).
+            # Earlier constants (0.26, 0.45, 0.08) underpredicted draws by ~3pp
+            # across all stat models and pushed mass onto home/away wins, inflating
+            # home overconfidence. Bumped base 0.26→0.30 and floor 0.08→0.10.
+            draw_prob = max(0.10, 0.30 - 0.40 * gap * gap)
             scale = (1.0 - draw_prob) / (expected_a + expected_b)
             return expected_a * scale, expected_b * scale, draw_prob
 

@@ -78,6 +78,25 @@ DC_RHO = 0.1
 # Min games before model is trusted
 MIN_GAMES = 5
 
+# Bayesian shrinkage prior — virtual games pulling attack/defense ratios toward
+# 1.0 (league-average). Rationale: ratios computed from <15 games are noisy
+# and can reach the [0.3, 2.5] clip rails spuriously (one 5-goal game swings
+# attack_ratio +1.5 on a soccer team's third match). Walk-forward exposed
+# Poisson's 80-100% P(home) bucket at 87.2% predicted / 72.4% actual — a
+# −14.8pp overconfidence that originates from too-wide ratios on low-N teams.
+# With PRIOR=8 and a mid-season team at 15 games, shrinkage=15/23≈0.65 toward
+# data; a cold-start 3-game team gets 3/11≈0.27 (mostly prior).
+POISSON_PRIOR_GAMES: float = 8.0
+POISSON_BASELINE_RATIO: float = 1.0
+
+
+def _shrink(ratio: float, games: int, prior: float = POISSON_PRIOR_GAMES) -> float:
+    """Bayesian shrinkage of a team rate ratio toward 1.0 (league-average)."""
+    if games <= 0:
+        return POISSON_BASELINE_RATIO
+    w = games / (games + prior)
+    return ratio * w + POISSON_BASELINE_RATIO * (1.0 - w)
+
 
 def _poisson_pmf(lam: float, k: int) -> float:
     """Poisson probability P(X = k) = e^(-λ) × λ^k / k!"""
@@ -180,10 +199,13 @@ class PoissonModelAgent(ModelAgent):
         home_stats = self._team_stats(sector, home_team)
         away_stats = self._team_stats(sector, away_team)
 
-        home_attack = home_stats["attack"] if home_stats else 1.0
-        home_defense = home_stats["defense"] if home_stats else 1.0
-        away_attack = away_stats["attack"] if away_stats else 1.0
-        away_defense = away_stats["defense"] if away_stats else 1.0
+        home_games = home_stats.get("games", 0) if home_stats else 0
+        away_games = away_stats.get("games", 0) if away_stats else 0
+
+        home_attack = _shrink(home_stats["attack"], home_games) if home_stats else 1.0
+        home_defense = _shrink(home_stats["defense"], home_games) if home_stats else 1.0
+        away_attack = _shrink(away_stats["attack"], away_games) if away_stats else 1.0
+        away_defense = _shrink(away_stats["defense"], away_games) if away_stats else 1.0
 
         lam_h = home_attack * away_defense * avg_h
         lam_a = away_attack * home_defense * avg_a

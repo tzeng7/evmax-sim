@@ -60360,8 +60360,7 @@
         "date": "2026-03-15",
         "won": false,
         "opp": "tottenham",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-10",
@@ -60427,29 +60426,25 @@
         "date": "2026-01-17",
         "won": false,
         "opp": "burnley",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-08",
         "won": false,
         "opp": "arsenal",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-04",
         "won": false,
         "opp": "fulham",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-01",
         "won": false,
         "opp": "leeds",
-        "home": true,
-        "drew": true
+        "home": true
       }
     ],
     "bournemouth": [
@@ -60463,36 +60458,31 @@
         "date": "2026-03-20",
         "won": false,
         "opp": "man united",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-14",
         "won": false,
         "opp": "burnley",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-03",
         "won": false,
         "opp": "brentford",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-28",
         "won": false,
         "opp": "sunderland",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-21",
         "won": false,
         "opp": "west ham",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-10",
@@ -60504,8 +60494,7 @@
         "date": "2026-02-07",
         "won": false,
         "opp": "aston villa",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-31",
@@ -60523,8 +60512,7 @@
         "date": "2026-01-19",
         "won": false,
         "opp": "brighton hove albion",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-07",
@@ -60542,8 +60530,7 @@
         "date": "2025-12-30",
         "won": false,
         "opp": "chelsea",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-27",
@@ -60555,15 +60542,13 @@
         "date": "2025-12-20",
         "won": false,
         "opp": "burnley",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-15",
         "won": false,
         "opp": "man united",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-06",
@@ -60589,8 +60574,7 @@
         "date": "2026-04-10",
         "won": false,
         "opp": "real madrid",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-04-06",
@@ -60614,8 +60598,7 @@
         "date": "2026-03-07",
         "won": false,
         "opp": "levante",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-01",
@@ -60627,8 +60610,7 @@
         "date": "2026-02-23",
         "won": false,
         "opp": "alav\u00e9s",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-16",
@@ -60640,8 +60622,7 @@
         "date": "2026-02-08",
         "won": false,
         "opp": "sevilla",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-31",
@@ -60653,8 +60634,7 @@
         "date": "2026-01-26",
         "won": false,
         "opp": "getafe",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-16",
@@ -60702,8 +60682,7 @@
         "date": "2025-11-23",
         "won": false,
         "opp": "betis",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-08",
@@ -60735,15 +60714,13 @@
         "date": "2026-03-16",
         "won": false,
         "opp": "levante",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-08",
         "won": false,
         "opp": "sevilla",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-04",
@@ -60755,15 +60732,13 @@
         "date": "2026-02-28",
         "won": false,
         "opp": "athletic",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-21",
         "won": false,
         "opp": "betis",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-15",
@@ -60799,8 +60774,7 @@
         "date": "2026-01-02",
         "won": false,
         "opp": "getafe",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-21",
@@ -60812,8 +60786,7 @@
         "date": "2025-12-15",
         "won": false,
         "opp": "betis",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-07",
@@ -60825,15 +60798,13 @@
         "date": "2025-12-01",
         "won": false,
         "opp": "valencia",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-23",
         "won": false,
         "opp": "real oviedo",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-09",
@@ -60865,8 +60836,7 @@
         "date": "2026-03-13",
         "won": false,
         "opp": "alav\u00e9s",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-08",
@@ -60908,8 +60878,7 @@
         "date": "2026-01-31",
         "won": false,
         "opp": "osasuna",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-28",
@@ -60995,8 +60964,7 @@
         "date": "2026-03-09",
         "won": false,
         "opp": "espanyol",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-04",
@@ -61014,8 +60982,7 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "sociedad",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-15",
@@ -61045,22 +61012,19 @@
         "date": "2026-01-10",
         "won": false,
         "opp": "betis",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-04",
         "won": false,
         "opp": "alav\u00e9s",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-20",
         "won": false,
         "opp": "celta vigo",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-14",
@@ -61072,8 +61036,7 @@
         "date": "2025-12-05",
         "won": false,
         "opp": "mallorca",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-29",
@@ -61085,8 +61048,7 @@
         "date": "2025-11-23",
         "won": false,
         "opp": "rayo vallecano",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-09",
@@ -61112,8 +61074,7 @@
         "date": "2026-03-22",
         "won": false,
         "opp": "metz",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-15",
@@ -61167,8 +61128,7 @@
         "date": "2026-01-18",
         "won": false,
         "opp": "le havre",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-03",
@@ -61216,8 +61176,7 @@
         "date": "2025-10-29",
         "won": false,
         "opp": "toulouse",
-        "home": false,
-        "drew": true
+        "home": false
       }
     ],
     "marseille": [
@@ -61267,8 +61226,7 @@
         "date": "2026-02-14",
         "won": false,
         "opp": "strasbourg",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-08",
@@ -61280,8 +61238,7 @@
         "date": "2026-01-31",
         "won": false,
         "opp": "paris",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-28",
@@ -61335,8 +61292,7 @@
         "date": "2025-11-29",
         "won": false,
         "opp": "toulouse",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-25",
@@ -61350,8 +61306,7 @@
         "date": "2026-04-12",
         "won": false,
         "opp": "nottm forest",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-22",
@@ -61381,8 +61336,7 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "leeds",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-11",
@@ -61394,8 +61348,7 @@
         "date": "2026-02-07",
         "won": false,
         "opp": "bournemouth",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-01",
@@ -61419,8 +61372,7 @@
         "date": "2026-01-07",
         "won": false,
         "opp": "crystal palace",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-03",
@@ -61500,8 +61452,7 @@
         "date": "2026-03-10",
         "won": false,
         "opp": "barcelona",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-04",
@@ -61555,8 +61506,7 @@
         "date": "2026-01-28",
         "won": false,
         "opp": "psg",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-25",
@@ -61574,8 +61524,7 @@
         "date": "2026-01-18",
         "won": false,
         "opp": "wolves",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-07",
@@ -61649,8 +61598,7 @@
         "date": "2026-01-31",
         "won": false,
         "opp": "everton",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-24",
@@ -61662,15 +61610,13 @@
         "date": "2026-01-19",
         "won": false,
         "opp": "bournemouth",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-07",
         "won": false,
         "opp": "man city",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-03",
@@ -61682,8 +61628,7 @@
         "date": "2025-12-30",
         "won": false,
         "opp": "west ham",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-27",
@@ -61695,8 +61640,7 @@
         "date": "2025-12-20",
         "won": false,
         "opp": "sunderland",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-13",
@@ -61708,8 +61652,7 @@
         "date": "2025-12-07",
         "won": false,
         "opp": "west ham",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-03",
@@ -61741,8 +61684,7 @@
         "date": "2026-03-15",
         "won": false,
         "opp": "nottm forest",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-04",
@@ -61802,15 +61744,13 @@
         "date": "2026-01-04",
         "won": false,
         "opp": "liverpool",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-01",
         "won": false,
         "opp": "crystal palace",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-27",
@@ -61878,8 +61818,7 @@
         "date": "2026-02-28",
         "won": false,
         "opp": "bournemouth",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-22",
@@ -61927,29 +61866,25 @@
         "date": "2026-01-04",
         "won": false,
         "opp": "tottenham",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-01",
         "won": false,
         "opp": "man city",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-28",
         "won": false,
         "opp": "leeds",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-20",
         "won": false,
         "opp": "brighton hove albion",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-14",
@@ -61993,8 +61928,7 @@
         "date": "2026-03-14",
         "won": false,
         "opp": "man city",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-04",
@@ -62012,15 +61946,13 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "bournemouth",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-10",
         "won": false,
         "opp": "man united",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-07",
@@ -62062,8 +61994,7 @@
         "date": "2025-12-30",
         "won": false,
         "opp": "brighton hove albion",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-27",
@@ -62087,15 +62018,13 @@
         "date": "2025-12-07",
         "won": false,
         "opp": "brighton hove albion",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-04",
         "won": false,
         "opp": "man united",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-30",
@@ -62127,8 +62056,7 @@
         "date": "2026-03-15",
         "won": false,
         "opp": "liverpool",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-10",
@@ -62170,8 +62098,7 @@
         "date": "2026-02-01",
         "won": false,
         "opp": "man city",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-28",
@@ -62183,8 +62110,7 @@
         "date": "2026-01-24",
         "won": false,
         "opp": "burnley",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-20",
@@ -62208,15 +62134,13 @@
         "date": "2026-01-04",
         "won": false,
         "opp": "sunderland",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-01",
         "won": false,
         "opp": "brentford",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-28",
@@ -62248,8 +62172,7 @@
         "date": "2026-03-14",
         "won": false,
         "opp": "bournemouth",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-03",
@@ -62267,8 +62190,7 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "chelsea",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-11",
@@ -62292,22 +62214,19 @@
         "date": "2026-01-24",
         "won": false,
         "opp": "tottenham",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-17",
         "won": false,
         "opp": "liverpool",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-07",
         "won": false,
         "opp": "man united",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-03",
@@ -62325,15 +62244,13 @@
         "date": "2025-12-27",
         "won": false,
         "opp": "everton",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-20",
         "won": false,
         "opp": "bournemouth",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-13",
@@ -62371,8 +62288,7 @@
         "date": "2026-03-16",
         "won": false,
         "opp": "brentford",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-03",
@@ -62396,15 +62312,13 @@
         "date": "2026-02-18",
         "won": false,
         "opp": "arsenal",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-11",
         "won": false,
         "opp": "nottm forest",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-07",
@@ -62428,15 +62342,13 @@
         "date": "2026-01-18",
         "won": false,
         "opp": "newcastle",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-07",
         "won": false,
         "opp": "everton",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-03",
@@ -62448,8 +62360,7 @@
         "date": "2025-12-30",
         "won": false,
         "opp": "man united",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-27",
@@ -62505,8 +62416,7 @@
         "date": "2026-03-14",
         "won": false,
         "opp": "west ham",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-11",
@@ -62518,8 +62428,7 @@
         "date": "2026-03-04",
         "won": false,
         "opp": "nottm forest",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-28",
@@ -62549,8 +62458,7 @@
         "date": "2026-02-01",
         "won": false,
         "opp": "tottenham",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-28",
@@ -62580,22 +62488,19 @@
         "date": "2026-01-07",
         "won": false,
         "opp": "brighton hove albion",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-04",
         "won": false,
         "opp": "chelsea",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-01",
         "won": false,
         "opp": "sunderland",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-27",
@@ -62645,8 +62550,7 @@
         "date": "2026-03-07",
         "won": false,
         "opp": "osasuna",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-28",
@@ -62706,8 +62610,7 @@
         "date": "2025-12-19",
         "won": false,
         "opp": "valencia",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-13",
@@ -62719,15 +62622,13 @@
         "date": "2025-12-05",
         "won": false,
         "opp": "real oviedo",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-29",
         "won": false,
         "opp": "osasuna",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-22",
@@ -62789,8 +62690,7 @@
         "date": "2026-03-10",
         "won": false,
         "opp": "newcastle",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-07",
@@ -62870,15 +62770,13 @@
         "date": "2026-04-11",
         "won": false,
         "opp": "sociedad",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-04-05",
         "won": false,
         "opp": "osasuna",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-22",
@@ -62890,8 +62788,7 @@
         "date": "2026-03-13",
         "won": false,
         "opp": "villarreal",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-08",
@@ -62909,15 +62806,13 @@
         "date": "2026-02-23",
         "won": false,
         "opp": "girona",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-14",
         "won": false,
         "opp": "sevilla",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-08",
@@ -62953,8 +62848,7 @@
         "date": "2026-01-04",
         "won": false,
         "opp": "real oviedo",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-20",
@@ -63016,15 +62910,13 @@
         "date": "2026-03-16",
         "won": false,
         "opp": "rayo vallecano",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-07",
         "won": false,
         "opp": "girona",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-27",
@@ -63060,8 +62952,7 @@
         "date": "2026-01-31",
         "won": false,
         "opp": "atletico",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-23",
@@ -63079,8 +62970,7 @@
         "date": "2026-01-11",
         "won": false,
         "opp": "espanyol",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-04",
@@ -63092,8 +62982,7 @@
         "date": "2025-12-20",
         "won": false,
         "opp": "sociedad",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-08",
@@ -63197,8 +63086,7 @@
         "date": "2026-01-10",
         "won": false,
         "opp": "elche",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-03",
@@ -63210,8 +63098,7 @@
         "date": "2025-12-19",
         "won": false,
         "opp": "mallorca",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-13",
@@ -63223,15 +63110,13 @@
         "date": "2025-12-07",
         "won": false,
         "opp": "sevilla",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-01",
         "won": false,
         "opp": "rayo vallecano",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-21",
@@ -63243,8 +63128,7 @@
         "date": "2025-11-09",
         "won": false,
         "opp": "betis",
-        "home": true,
-        "drew": true
+        "home": true
       }
     ],
     "sociedad": [
@@ -63252,8 +63136,7 @@
         "date": "2026-04-11",
         "won": false,
         "opp": "alav\u00e9s",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-04-04",
@@ -63289,8 +63172,7 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "real oviedo",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-14",
@@ -63308,8 +63190,7 @@
         "date": "2026-02-01",
         "won": false,
         "opp": "athletic",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-25",
@@ -63339,8 +63220,7 @@
         "date": "2025-12-20",
         "won": false,
         "opp": "levante",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-12",
@@ -63370,8 +63250,7 @@
         "date": "2025-11-07",
         "won": false,
         "opp": "elche",
-        "home": false,
-        "drew": true
+        "home": false
       }
     ],
     "lens": [
@@ -63403,8 +63282,7 @@
         "date": "2026-02-27",
         "won": false,
         "opp": "strasbourg",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-21",
@@ -63508,8 +63386,7 @@
         "date": "2026-04-05",
         "won": false,
         "opp": "angers",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-22",
@@ -63521,15 +63398,13 @@
         "date": "2026-03-15",
         "won": false,
         "opp": "le havre",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-08",
         "won": false,
         "opp": "paris",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-01",
@@ -63601,8 +63476,7 @@
         "date": "2025-11-23",
         "won": false,
         "opp": "auxerre",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-09",
@@ -63614,15 +63488,13 @@
         "date": "2025-11-02",
         "won": false,
         "opp": "brest",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-10-29",
         "won": false,
         "opp": "paris",
-        "home": false,
-        "drew": true
+        "home": false
       }
     ],
     "monaco": [
@@ -63666,8 +63538,7 @@
         "date": "2026-02-25",
         "won": false,
         "opp": "psg",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-21",
@@ -63691,8 +63562,7 @@
         "date": "2026-02-08",
         "won": false,
         "opp": "nice",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-31",
@@ -63704,15 +63574,13 @@
         "date": "2026-01-28",
         "won": false,
         "opp": "juventus",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-24",
         "won": false,
         "opp": "le havre",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-20",
@@ -63756,15 +63624,13 @@
         "date": "2026-04-12",
         "won": false,
         "opp": "nice",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-04-05",
         "won": false,
         "opp": "auxerre",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-22",
@@ -63776,8 +63642,7 @@
         "date": "2026-03-15",
         "won": false,
         "opp": "lyon",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-08",
@@ -63819,15 +63684,13 @@
         "date": "2026-01-24",
         "won": false,
         "opp": "monaco",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-18",
         "won": false,
         "opp": "rennes",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-04",
@@ -63845,8 +63708,7 @@
         "date": "2025-12-07",
         "won": false,
         "opp": "paris",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-30",
@@ -63864,15 +63726,13 @@
         "date": "2025-11-08",
         "won": false,
         "opp": "nantes",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-02",
         "won": false,
         "opp": "toulouse",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-10-29",
@@ -63886,8 +63746,7 @@
         "date": "2026-04-12",
         "won": false,
         "opp": "le havre",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-04-04",
@@ -63923,8 +63782,7 @@
         "date": "2026-02-22",
         "won": false,
         "opp": "lorient",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-15",
@@ -63936,15 +63794,13 @@
         "date": "2026-02-08",
         "won": false,
         "opp": "monaco",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-01",
         "won": false,
         "opp": "brest",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-25",
@@ -63962,8 +63818,7 @@
         "date": "2026-01-03",
         "won": false,
         "opp": "strasbourg",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-14",
@@ -64049,8 +63904,7 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "paris",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-15",
@@ -64068,8 +63922,7 @@
         "date": "2026-02-01",
         "won": false,
         "opp": "auxerre",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-25",
@@ -64105,8 +63958,7 @@
         "date": "2025-11-29",
         "won": false,
         "opp": "marseille",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-23",
@@ -64118,22 +63970,19 @@
         "date": "2025-11-09",
         "won": false,
         "opp": "lorient",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-02",
         "won": false,
         "opp": "le havre",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-10-29",
         "won": false,
         "opp": "rennes",
-        "home": true,
-        "drew": true
+        "home": true
       }
     ],
     "chelsea": [
@@ -64183,15 +64032,13 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "burnley",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-10",
         "won": false,
         "opp": "leeds",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-07",
@@ -64239,15 +64086,13 @@
         "date": "2026-01-04",
         "won": false,
         "opp": "man city",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-30",
         "won": false,
         "opp": "bournemouth",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-27",
@@ -64273,8 +64118,7 @@
         "date": "2026-03-15",
         "won": false,
         "opp": "leeds",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-05",
@@ -64310,8 +64154,7 @@
         "date": "2026-02-01",
         "won": false,
         "opp": "nottm forest",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-25",
@@ -64329,8 +64172,7 @@
         "date": "2026-01-07",
         "won": false,
         "opp": "aston villa",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-04",
@@ -64342,8 +64184,7 @@
         "date": "2026-01-01",
         "won": false,
         "opp": "fulham",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-28",
@@ -64393,8 +64234,7 @@
         "date": "2026-04-12",
         "won": false,
         "opp": "aston villa",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-22",
@@ -64406,15 +64246,13 @@
         "date": "2026-03-15",
         "won": false,
         "opp": "fulham",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-04",
         "won": false,
         "opp": "man city",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-01",
@@ -64432,8 +64270,7 @@
         "date": "2026-02-11",
         "won": false,
         "opp": "wolves",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-06",
@@ -64445,8 +64282,7 @@
         "date": "2026-02-01",
         "won": false,
         "opp": "crystal palace",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-25",
@@ -64458,8 +64294,7 @@
         "date": "2026-01-17",
         "won": false,
         "opp": "arsenal",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-06",
@@ -64521,29 +64356,25 @@
         "date": "2026-04-11",
         "won": false,
         "opp": "everton",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-21",
         "won": false,
         "opp": "leeds",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-16",
         "won": false,
         "opp": "wolves",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-03",
         "won": false,
         "opp": "bournemouth",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-28",
@@ -64561,8 +64392,7 @@
         "date": "2026-02-12",
         "won": false,
         "opp": "arsenal",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-07",
@@ -64604,8 +64434,7 @@
         "date": "2026-01-01",
         "won": false,
         "opp": "tottenham",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-27",
@@ -64623,8 +64452,7 @@
         "date": "2025-12-14",
         "won": false,
         "opp": "leeds",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-06",
@@ -64656,8 +64484,7 @@
         "date": "2026-03-20",
         "won": false,
         "opp": "bournemouth",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-15",
@@ -64687,8 +64514,7 @@
         "date": "2026-02-10",
         "won": false,
         "opp": "west ham",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-07",
@@ -64718,22 +64544,19 @@
         "date": "2026-01-07",
         "won": false,
         "opp": "burnley",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-04",
         "won": false,
         "opp": "leeds",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-30",
         "won": false,
         "opp": "wolves",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-26",
@@ -64751,8 +64574,7 @@
         "date": "2025-12-15",
         "won": false,
         "opp": "bournemouth",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-08",
@@ -64764,8 +64586,7 @@
         "date": "2025-12-04",
         "won": false,
         "opp": "west ham",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-30",
@@ -64803,8 +64624,7 @@
         "date": "2026-03-11",
         "won": false,
         "opp": "leverkusen",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-04",
@@ -64828,15 +64648,13 @@
         "date": "2026-02-18",
         "won": false,
         "opp": "wolves",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-12",
         "won": false,
         "opp": "brentford",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-07",
@@ -64872,15 +64690,13 @@
         "date": "2026-01-17",
         "won": false,
         "opp": "nottm forest",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-08",
         "won": false,
         "opp": "liverpool",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-03",
@@ -64924,8 +64740,7 @@
         "date": "2026-03-15",
         "won": false,
         "opp": "betis",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-06",
@@ -64949,8 +64764,7 @@
         "date": "2026-02-14",
         "won": false,
         "opp": "espanyol",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-06",
@@ -64962,8 +64776,7 @@
         "date": "2026-02-01",
         "won": false,
         "opp": "getafe",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-25",
@@ -64993,8 +64806,7 @@
         "date": "2025-12-20",
         "won": false,
         "opp": "real oviedo",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-14",
@@ -65086,15 +64898,13 @@
         "date": "2026-02-01",
         "won": false,
         "opp": "celta vigo",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-26",
         "won": false,
         "opp": "girona",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-18",
@@ -65112,8 +64922,7 @@
         "date": "2026-01-02",
         "won": false,
         "opp": "rayo vallecano",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-21",
@@ -65187,8 +64996,7 @@
         "date": "2026-02-28",
         "won": false,
         "opp": "rayo vallecano",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-20",
@@ -65212,8 +65020,7 @@
         "date": "2026-02-01",
         "won": false,
         "opp": "sociedad",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-28",
@@ -65243,8 +65050,7 @@
         "date": "2026-01-03",
         "won": false,
         "opp": "osasuna",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-22",
@@ -65306,15 +65112,13 @@
         "date": "2026-03-08",
         "won": false,
         "opp": "rayo vallecano",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-01",
         "won": false,
         "opp": "betis",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-22",
@@ -65326,15 +65130,13 @@
         "date": "2026-02-14",
         "won": false,
         "opp": "alav\u00e9s",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-08",
         "won": false,
         "opp": "girona",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-02",
@@ -65352,8 +65154,7 @@
         "date": "2026-01-19",
         "won": false,
         "opp": "elche",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-12",
@@ -65383,8 +65184,7 @@
         "date": "2025-12-07",
         "won": false,
         "opp": "valencia",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-30",
@@ -65416,8 +65216,7 @@
         "date": "2026-04-04",
         "won": false,
         "opp": "betis",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-21",
@@ -65435,15 +65234,13 @@
         "date": "2026-03-09",
         "won": false,
         "opp": "real oviedo",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-01",
         "won": false,
         "opp": "elche",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-21",
@@ -65455,8 +65252,7 @@
         "date": "2026-02-14",
         "won": false,
         "opp": "celta vigo",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-09",
@@ -65486,8 +65282,7 @@
         "date": "2026-01-11",
         "won": false,
         "opp": "levante",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-03",
@@ -65609,8 +65404,7 @@
         "date": "2026-02-18",
         "won": false,
         "opp": "brugge",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-15",
@@ -65628,8 +65422,7 @@
         "date": "2026-01-31",
         "won": false,
         "opp": "levante",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-28",
@@ -65647,8 +65440,7 @@
         "date": "2026-01-21",
         "won": false,
         "opp": "galatasaray",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-18",
@@ -65698,8 +65490,7 @@
         "date": "2026-02-14",
         "won": false,
         "opp": "lille",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-07",
@@ -65711,8 +65502,7 @@
         "date": "2026-02-01",
         "won": false,
         "opp": "nice",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-25",
@@ -65766,8 +65556,7 @@
         "date": "2025-11-02",
         "won": false,
         "opp": "lyon",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-10-29",
@@ -65811,8 +65600,7 @@
         "date": "2026-03-08",
         "won": false,
         "opp": "lorient",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-01",
@@ -65830,15 +65618,13 @@
         "date": "2026-02-14",
         "won": false,
         "opp": "brest",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-06",
         "won": false,
         "opp": "metz",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-01",
@@ -65912,15 +65698,13 @@
         "date": "2026-04-11",
         "won": false,
         "opp": "nantes",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-04-05",
         "won": false,
         "opp": "le havre",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-21",
@@ -65938,15 +65722,13 @@
         "date": "2026-03-07",
         "won": false,
         "opp": "strasbourg",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-01",
         "won": false,
         "opp": "lorient",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-22",
@@ -65964,15 +65746,13 @@
         "date": "2026-02-08",
         "won": false,
         "opp": "paris",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-01",
         "won": false,
         "opp": "toulouse",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-23",
@@ -66008,15 +65788,13 @@
         "date": "2025-11-29",
         "won": false,
         "opp": "paris",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-23",
         "won": false,
         "opp": "lyon",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-09",
@@ -66048,8 +65826,7 @@
         "date": "2026-04-05",
         "won": false,
         "opp": "paris",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-21",
@@ -66067,22 +65844,19 @@
         "date": "2026-03-08",
         "won": false,
         "opp": "lille",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-01",
         "won": false,
         "opp": "auxerre",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-22",
         "won": false,
         "opp": "nice",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-15",
@@ -66118,15 +65892,13 @@
         "date": "2026-01-04",
         "won": false,
         "opp": "metz",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-14",
         "won": false,
         "opp": "strasbourg",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-07",
@@ -66144,15 +65916,13 @@
         "date": "2025-11-23",
         "won": false,
         "opp": "nantes",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-09",
         "won": false,
         "opp": "toulouse",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-02",
@@ -66178,8 +65948,7 @@
         "date": "2026-04-05",
         "won": false,
         "opp": "lyon",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-20",
@@ -66233,8 +66002,7 @@
         "date": "2026-01-25",
         "won": false,
         "opp": "paris",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-17",
@@ -66302,8 +66070,7 @@
         "date": "2026-04-05",
         "won": false,
         "opp": "lorient",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-22",
@@ -66315,15 +66082,13 @@
         "date": "2026-03-15",
         "won": false,
         "opp": "strasbourg",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-08",
         "won": false,
         "opp": "lyon",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-01",
@@ -66335,8 +66100,7 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "toulouse",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-14",
@@ -66348,22 +66112,19 @@
         "date": "2026-02-08",
         "won": false,
         "opp": "auxerre",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-31",
         "won": false,
         "opp": "marseille",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-25",
         "won": false,
         "opp": "angers",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-18",
@@ -66387,15 +66148,13 @@
         "date": "2025-12-07",
         "won": false,
         "opp": "le havre",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-29",
         "won": false,
         "opp": "auxerre",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-23",
@@ -66419,8 +66178,7 @@
         "date": "2025-10-29",
         "won": false,
         "opp": "lyon",
-        "home": true,
-        "drew": true
+        "home": true
       }
     ],
     "metz": [
@@ -66434,15 +66192,13 @@
         "date": "2026-04-05",
         "won": false,
         "opp": "nantes",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-22",
         "won": false,
         "opp": "rennes",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-15",
@@ -66478,8 +66234,7 @@
         "date": "2026-02-06",
         "won": false,
         "opp": "lille",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-01",
@@ -66503,8 +66258,7 @@
         "date": "2026-01-04",
         "won": false,
         "opp": "lorient",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-13",
@@ -66566,22 +66320,19 @@
         "date": "2026-03-15",
         "won": false,
         "opp": "paris",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-07",
         "won": false,
         "opp": "auxerre",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-27",
         "won": false,
         "opp": "lens",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-22",
@@ -66593,8 +66344,7 @@
         "date": "2026-02-14",
         "won": false,
         "opp": "marseille",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-08",
@@ -66624,15 +66374,13 @@
         "date": "2026-01-03",
         "won": false,
         "opp": "nice",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-14",
         "won": false,
         "opp": "lorient",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-06",
@@ -66682,15 +66430,13 @@
         "date": "2026-04-11",
         "won": false,
         "opp": "auxerre",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-04-05",
         "won": false,
         "opp": "metz",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-22",
@@ -66774,15 +66520,13 @@
         "date": "2025-11-23",
         "won": false,
         "opp": "lorient",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-08",
         "won": false,
         "opp": "le havre",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-02",
@@ -66856,8 +66600,7 @@
         "date": "2026-02-25",
         "won": false,
         "opp": "monaco",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-21",
@@ -66893,8 +66636,7 @@
         "date": "2026-01-28",
         "won": false,
         "opp": "newcastle",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-23",
@@ -66938,15 +66680,13 @@
         "date": "2026-03-21",
         "won": false,
         "opp": "brentford",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-15",
         "won": false,
         "opp": "crystal palace",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-03",
@@ -66964,15 +66704,13 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "aston villa",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-10",
         "won": false,
         "opp": "chelsea",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-06",
@@ -66990,8 +66728,7 @@
         "date": "2026-01-26",
         "won": false,
         "opp": "everton",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-17",
@@ -67009,22 +66746,19 @@
         "date": "2026-01-04",
         "won": false,
         "opp": "man united",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-01",
         "won": false,
         "opp": "liverpool",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-28",
         "won": false,
         "opp": "sunderland",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-20",
@@ -67036,8 +66770,7 @@
         "date": "2025-12-14",
         "won": false,
         "opp": "brentford",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-06",
@@ -67063,8 +66796,7 @@
         "date": "2026-04-11",
         "won": false,
         "opp": "brentford",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-21",
@@ -67112,15 +66844,13 @@
         "date": "2026-01-31",
         "won": false,
         "opp": "brighton hove albion",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-26",
         "won": false,
         "opp": "leeds",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-18",
@@ -67132,8 +66862,7 @@
         "date": "2026-01-07",
         "won": false,
         "opp": "wolves",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-04",
@@ -67151,8 +66880,7 @@
         "date": "2025-12-27",
         "won": false,
         "opp": "burnley",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-20",
@@ -67220,8 +66948,7 @@
         "date": "2026-03-01",
         "won": false,
         "opp": "espanyol",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-20",
@@ -67233,8 +66960,7 @@
         "date": "2026-02-13",
         "won": false,
         "opp": "osasuna",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-07",
@@ -67258,15 +66984,13 @@
         "date": "2026-01-19",
         "won": false,
         "opp": "sevilla",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-10",
         "won": false,
         "opp": "valencia",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-03",
@@ -67308,8 +67032,7 @@
         "date": "2025-11-07",
         "won": false,
         "opp": "sociedad",
-        "home": true,
-        "drew": true
+        "home": true
       }
     ],
     "betis": [
@@ -67317,15 +67040,13 @@
         "date": "2026-04-12",
         "won": false,
         "opp": "osasuna",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-04-04",
         "won": false,
         "opp": "espanyol",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-22",
@@ -67337,8 +67058,7 @@
         "date": "2026-03-15",
         "won": false,
         "opp": "celta vigo",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-08",
@@ -67350,15 +67070,13 @@
         "date": "2026-03-01",
         "won": false,
         "opp": "sevilla",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-21",
         "won": false,
         "opp": "rayo vallecano",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-15",
@@ -67394,8 +67112,7 @@
         "date": "2026-01-10",
         "won": false,
         "opp": "real oviedo",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-04",
@@ -67413,8 +67130,7 @@
         "date": "2025-12-15",
         "won": false,
         "opp": "rayo vallecano",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-06",
@@ -67432,15 +67148,13 @@
         "date": "2025-11-23",
         "won": false,
         "opp": "girona",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-09",
         "won": false,
         "opp": "valencia",
-        "home": false,
-        "drew": true
+        "home": false
       }
     ],
     "real madrid": [
@@ -67448,8 +67162,7 @@
         "date": "2026-04-10",
         "won": false,
         "opp": "girona",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-04-07",
@@ -67571,15 +67284,13 @@
         "date": "2026-04-12",
         "won": false,
         "opp": "betis",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-04-05",
         "won": false,
         "opp": "alav\u00e9s",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-21",
@@ -67597,8 +67308,7 @@
         "date": "2026-03-07",
         "won": false,
         "opp": "mallorca",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-01",
@@ -67616,8 +67326,7 @@
         "date": "2026-02-13",
         "won": false,
         "opp": "elche",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-06",
@@ -67629,8 +67338,7 @@
         "date": "2026-01-31",
         "won": false,
         "opp": "villarreal",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-24",
@@ -67654,8 +67362,7 @@
         "date": "2026-01-03",
         "won": false,
         "opp": "athletic",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-20",
@@ -67679,8 +67386,7 @@
         "date": "2025-11-29",
         "won": false,
         "opp": "mallorca",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-22",
@@ -67730,8 +67436,7 @@
         "date": "2026-03-14",
         "won": false,
         "opp": "leverkusen",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-10",
@@ -67773,8 +67478,7 @@
         "date": "2026-01-31",
         "won": false,
         "opp": "hamburg sv",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-28",
@@ -67860,15 +67564,13 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "dortmund",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-15",
         "won": false,
         "opp": "vfl wolfsburg",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-08",
@@ -67886,8 +67588,7 @@
         "date": "2026-01-27",
         "won": false,
         "opp": "st. pauli",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-24",
@@ -67929,8 +67630,7 @@
         "date": "2025-11-28",
         "won": false,
         "opp": "borussia m\u00f6nchengladbach",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-23",
@@ -67956,15 +67656,13 @@
         "date": "2026-04-04",
         "won": false,
         "opp": "borussia m\u00f6nchengladbach",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-21",
         "won": false,
         "opp": "leverkusen",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-14",
@@ -67988,8 +67686,7 @@
         "date": "2026-02-22",
         "won": false,
         "opp": "vfb stuttgart",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-15",
@@ -68019,8 +67716,7 @@
         "date": "2026-01-17",
         "won": false,
         "opp": "vfl wolfsburg",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-13",
@@ -68032,8 +67728,7 @@
         "date": "2026-01-10",
         "won": false,
         "opp": "cologne",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-21",
@@ -68095,8 +67790,7 @@
         "date": "2026-03-14",
         "won": false,
         "opp": "tsg hoffenheim",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-07",
@@ -68120,8 +67814,7 @@
         "date": "2026-02-15",
         "won": false,
         "opp": "leipzig",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-07",
@@ -68145,8 +67838,7 @@
         "date": "2026-01-17",
         "won": false,
         "opp": "heidenheim",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-14",
@@ -68208,8 +67900,7 @@
         "date": "2026-04-05",
         "won": false,
         "opp": "st. pauli",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-21",
@@ -68251,8 +67942,7 @@
         "date": "2026-02-06",
         "won": false,
         "opp": "frankfurt",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-31",
@@ -68270,22 +67960,19 @@
         "date": "2026-01-18",
         "won": false,
         "opp": "vfb stuttgart",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-15",
         "won": false,
         "opp": "augsburg",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-10",
         "won": false,
         "opp": "mainz",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-20",
@@ -68353,8 +68040,7 @@
         "date": "2026-03-07",
         "won": false,
         "opp": "mainz",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-01",
@@ -68366,8 +68052,7 @@
         "date": "2026-02-22",
         "won": false,
         "opp": "heidenheim",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-14",
@@ -68397,8 +68082,7 @@
         "date": "2026-01-18",
         "won": false,
         "opp": "union berlin",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-13",
@@ -68416,8 +68100,7 @@
         "date": "2025-12-20",
         "won": false,
         "opp": "tsg hoffenheim",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-14",
@@ -68467,8 +68150,7 @@
         "date": "2026-03-21",
         "won": false,
         "opp": "heidenheim",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-17",
@@ -68480,22 +68162,19 @@
         "date": "2026-03-14",
         "won": false,
         "opp": "bayern",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-11",
         "won": false,
         "opp": "arsenal",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-07",
         "won": false,
         "opp": "freiburg",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-04",
@@ -68507,15 +68186,13 @@
         "date": "2026-02-28",
         "won": false,
         "opp": "mainz",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-24",
         "won": false,
         "opp": "olympiacos",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-21",
@@ -68539,8 +68216,7 @@
         "date": "2026-02-07",
         "won": false,
         "opp": "borussia m\u00f6nchengladbach",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-31",
@@ -68584,8 +68260,7 @@
         "date": "2026-04-10",
         "won": false,
         "opp": "augsburg",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-04-04",
@@ -68603,8 +68278,7 @@
         "date": "2026-03-14",
         "won": false,
         "opp": "vfl wolfsburg",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-07",
@@ -68622,8 +68296,7 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "cologne",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-14",
@@ -68671,8 +68344,7 @@
         "date": "2025-12-20",
         "won": false,
         "opp": "vfb stuttgart",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-13",
@@ -68696,8 +68368,7 @@
         "date": "2025-11-21",
         "won": false,
         "opp": "mainz",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-08",
@@ -68717,8 +68388,7 @@
         "date": "2026-04-05",
         "won": false,
         "opp": "cologne",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-22",
@@ -68736,8 +68406,7 @@
         "date": "2026-03-08",
         "won": false,
         "opp": "st. pauli",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-01",
@@ -68761,8 +68430,7 @@
         "date": "2026-02-06",
         "won": false,
         "opp": "union berlin",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-31",
@@ -68792,8 +68460,7 @@
         "date": "2026-01-16",
         "won": false,
         "opp": "werder bremen",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-13",
@@ -68805,15 +68472,13 @@
         "date": "2026-01-09",
         "won": false,
         "opp": "dortmund",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-20",
         "won": false,
         "opp": "hamburg sv",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-13",
@@ -68893,8 +68558,7 @@
         "date": "2026-01-31",
         "won": false,
         "opp": "borussia m\u00f6nchengladbach",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-27",
@@ -68912,8 +68576,7 @@
         "date": "2026-01-16",
         "won": false,
         "opp": "frankfurt",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-13",
@@ -68925,8 +68588,7 @@
         "date": "2025-12-20",
         "won": false,
         "opp": "augsburg",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-14",
@@ -68944,8 +68606,7 @@
         "date": "2025-11-29",
         "won": false,
         "opp": "cologne",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-23",
@@ -68989,8 +68650,7 @@
         "date": "2026-03-07",
         "won": false,
         "opp": "leverkusen",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-01",
@@ -69032,8 +68692,7 @@
         "date": "2026-01-18",
         "won": false,
         "opp": "augsburg",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-14",
@@ -69057,8 +68716,7 @@
         "date": "2025-12-14",
         "won": false,
         "opp": "dortmund",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-06",
@@ -69090,15 +68748,13 @@
         "date": "2026-04-10",
         "won": false,
         "opp": "tsg hoffenheim",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-04-04",
         "won": false,
         "opp": "hamburg sv",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-22",
@@ -69158,15 +68814,13 @@
         "date": "2026-01-18",
         "won": false,
         "opp": "freiburg",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-15",
         "won": false,
         "opp": "union berlin",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-11",
@@ -69178,8 +68832,7 @@
         "date": "2025-12-20",
         "won": false,
         "opp": "werder bremen",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-13",
@@ -69223,8 +68876,7 @@
         "date": "2026-04-05",
         "won": false,
         "opp": "union berlin",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-22",
@@ -69242,8 +68894,7 @@
         "date": "2026-03-08",
         "won": false,
         "opp": "frankfurt",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-28",
@@ -69279,15 +68930,13 @@
         "date": "2026-01-27",
         "won": false,
         "opp": "leipzig",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-23",
         "won": false,
         "opp": "hamburg sv",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-17",
@@ -69305,8 +68954,7 @@
         "date": "2025-12-21",
         "won": false,
         "opp": "mainz",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-13",
@@ -69318,8 +68966,7 @@
         "date": "2025-12-06",
         "won": false,
         "opp": "cologne",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-29",
@@ -69387,8 +69034,7 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "leipzig",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-17",
@@ -69448,8 +69094,7 @@
         "date": "2026-01-09",
         "won": false,
         "opp": "frankfurt",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-19",
@@ -69461,8 +69106,7 @@
         "date": "2025-12-14",
         "won": false,
         "opp": "freiburg",
-        "home": false,
-        "drew": true
+        "home": false
       }
     ],
     "genoa": [
@@ -69512,8 +69156,7 @@
         "date": "2026-02-15",
         "won": false,
         "opp": "cremonese",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-07",
@@ -69537,8 +69180,7 @@
         "date": "2026-01-18",
         "won": false,
         "opp": "parma",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-12",
@@ -69550,15 +69192,13 @@
         "date": "2026-01-08",
         "won": false,
         "opp": "milan",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-03",
         "won": false,
         "opp": "pisa",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-29",
@@ -69656,8 +69296,7 @@
         "date": "2026-01-24",
         "won": false,
         "opp": "lazio",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-18",
@@ -69687,8 +69326,7 @@
         "date": "2026-01-03",
         "won": false,
         "opp": "juventus",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-27",
@@ -69732,8 +69370,7 @@
         "date": "2026-03-21",
         "won": false,
         "opp": "juventus",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-15",
@@ -69805,15 +69442,13 @@
         "date": "2026-01-03",
         "won": false,
         "opp": "parma",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-28",
         "won": false,
         "opp": "bologna",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-21",
@@ -69825,8 +69460,7 @@
         "date": "2025-12-14",
         "won": false,
         "opp": "milan",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-06",
@@ -69846,8 +69480,7 @@
         "date": "2026-04-12",
         "won": false,
         "opp": "parma",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-04-06",
@@ -69889,8 +69522,7 @@
         "date": "2026-02-15",
         "won": false,
         "opp": "roma",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-07",
@@ -69920,8 +69552,7 @@
         "date": "2026-01-20",
         "won": false,
         "opp": "f.c. k\u00f8benhavn",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-17",
@@ -69933,22 +69564,19 @@
         "date": "2026-01-14",
         "won": false,
         "opp": "parma",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-11",
         "won": false,
         "opp": "internazionale",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-07",
         "won": false,
         "opp": "hellas verona",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-04",
@@ -70016,8 +69644,7 @@
         "date": "2026-02-18",
         "won": false,
         "opp": "como",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-13",
@@ -70035,8 +69662,7 @@
         "date": "2026-01-25",
         "won": false,
         "opp": "roma",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-18",
@@ -70054,15 +69680,13 @@
         "date": "2026-01-11",
         "won": false,
         "opp": "fiorentina",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-08",
         "won": false,
         "opp": "genoa",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-02",
@@ -70080,8 +69704,7 @@
         "date": "2025-12-14",
         "won": false,
         "opp": "sassuolo",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-08",
@@ -70143,8 +69766,7 @@
         "date": "2026-02-15",
         "won": false,
         "opp": "genoa",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-09",
@@ -70168,8 +69790,7 @@
         "date": "2026-01-19",
         "won": false,
         "opp": "hellas verona",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-12",
@@ -70181,8 +69802,7 @@
         "date": "2026-01-08",
         "won": false,
         "opp": "cagliari",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-04",
@@ -70200,8 +69820,7 @@
         "date": "2025-12-20",
         "won": false,
         "opp": "lazio",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-13",
@@ -70257,8 +69876,7 @@
         "date": "2026-03-01",
         "won": false,
         "opp": "juventus",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-22",
@@ -70270,8 +69888,7 @@
         "date": "2026-02-15",
         "won": false,
         "opp": "napoli",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-09",
@@ -70289,8 +69906,7 @@
         "date": "2026-01-25",
         "won": false,
         "opp": "milan",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-18",
@@ -70430,8 +70046,7 @@
         "date": "2026-01-10",
         "won": false,
         "opp": "como",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-07",
@@ -70449,8 +70064,7 @@
         "date": "2025-12-28",
         "won": false,
         "opp": "sassuolo",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-14",
@@ -70462,8 +70076,7 @@
         "date": "2025-12-07",
         "won": false,
         "opp": "lazio",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-01",
@@ -70501,22 +70114,19 @@
         "date": "2026-03-07",
         "won": false,
         "opp": "vfb stuttgart",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-28",
         "won": false,
         "opp": "leverkusen",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-20",
         "won": false,
         "opp": "hamburg sv",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-13",
@@ -70558,15 +70168,13 @@
         "date": "2026-01-10",
         "won": false,
         "opp": "union berlin",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-21",
         "won": false,
         "opp": "st. pauli",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-14",
@@ -70590,8 +70198,7 @@
         "date": "2025-11-21",
         "won": false,
         "opp": "tsg hoffenheim",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-09",
@@ -70611,22 +70218,19 @@
         "date": "2026-04-05",
         "won": false,
         "opp": "frankfurt",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-21",
         "won": false,
         "opp": "borussia m\u00f6nchengladbach",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-14",
         "won": false,
         "opp": "hamburg sv",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-07",
@@ -70644,8 +70248,7 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "tsg hoffenheim",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-14",
@@ -70687,8 +70290,7 @@
         "date": "2026-01-10",
         "won": false,
         "opp": "heidenheim",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-20",
@@ -70706,15 +70308,13 @@
         "date": "2025-12-06",
         "won": false,
         "opp": "st. pauli",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-29",
         "won": false,
         "opp": "werder bremen",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-11-22",
@@ -70740,15 +70340,13 @@
         "date": "2026-04-04",
         "won": false,
         "opp": "heidenheim",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-21",
         "won": false,
         "opp": "cologne",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-13",
@@ -70784,15 +70382,13 @@
         "date": "2026-02-07",
         "won": false,
         "opp": "leverkusen",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-31",
         "won": false,
         "opp": "werder bremen",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-25",
@@ -70804,8 +70400,7 @@
         "date": "2026-01-17",
         "won": false,
         "opp": "hamburg sv",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-14",
@@ -70841,8 +70436,7 @@
         "date": "2025-11-28",
         "won": false,
         "opp": "leipzig",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-22",
@@ -70868,8 +70462,7 @@
         "date": "2026-04-04",
         "won": false,
         "opp": "augsburg",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-21",
@@ -70881,8 +70474,7 @@
         "date": "2026-03-14",
         "won": false,
         "opp": "cologne",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-07",
@@ -70906,8 +70498,7 @@
         "date": "2026-02-20",
         "won": false,
         "opp": "mainz",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-14",
@@ -70925,22 +70516,19 @@
         "date": "2026-01-31",
         "won": false,
         "opp": "bayern",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-23",
         "won": false,
         "opp": "st. pauli",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-17",
         "won": false,
         "opp": "borussia m\u00f6nchengladbach",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-10",
@@ -70952,8 +70540,7 @@
         "date": "2025-12-20",
         "won": false,
         "opp": "frankfurt",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-13",
@@ -71021,15 +70608,13 @@
         "date": "2026-02-27",
         "won": false,
         "opp": "parma",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-21",
         "won": false,
         "opp": "lazio",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-16",
@@ -71071,8 +70656,7 @@
         "date": "2026-01-08",
         "won": false,
         "opp": "cremonese",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-02",
@@ -71090,8 +70674,7 @@
         "date": "2025-12-21",
         "won": false,
         "opp": "pisa",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-13",
@@ -71129,8 +70712,7 @@
         "date": "2026-03-22",
         "won": false,
         "opp": "internazionale",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-16",
@@ -71142,8 +70724,7 @@
         "date": "2026-03-08",
         "won": false,
         "opp": "parma",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-02",
@@ -71167,8 +70748,7 @@
         "date": "2026-02-07",
         "won": false,
         "opp": "torino",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-31",
@@ -71192,15 +70772,13 @@
         "date": "2026-01-11",
         "won": false,
         "opp": "milan",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-07",
         "won": false,
         "opp": "lazio",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-04",
@@ -71250,8 +70828,7 @@
         "date": "2026-04-06",
         "won": false,
         "opp": "udinese",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-22",
@@ -71287,8 +70864,7 @@
         "date": "2026-02-18",
         "won": false,
         "opp": "milan",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-14",
@@ -71300,8 +70876,7 @@
         "date": "2026-02-01",
         "won": false,
         "opp": "atalanta",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-24",
@@ -71325,8 +70900,7 @@
         "date": "2026-01-10",
         "won": false,
         "opp": "bologna",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-06",
@@ -71376,8 +70950,7 @@
         "date": "2026-04-04",
         "won": false,
         "opp": "parma",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-22",
@@ -71407,8 +70980,7 @@
         "date": "2026-02-21",
         "won": false,
         "opp": "cagliari",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-14",
@@ -71420,8 +70992,7 @@
         "date": "2026-02-08",
         "won": false,
         "opp": "juventus",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-30",
@@ -71433,8 +71004,7 @@
         "date": "2026-01-24",
         "won": false,
         "opp": "lecce",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-19",
@@ -71452,8 +71022,7 @@
         "date": "2026-01-07",
         "won": false,
         "opp": "fiorentina",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-04",
@@ -71465,15 +71034,13 @@
         "date": "2025-12-27",
         "won": false,
         "opp": "udinese",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-20",
         "won": false,
         "opp": "cremonese",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-13",
@@ -71485,8 +71052,7 @@
         "date": "2025-12-07",
         "won": false,
         "opp": "bologna",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-11-29",
@@ -71524,8 +71090,7 @@
         "date": "2026-03-14",
         "won": false,
         "opp": "internazionale",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-10",
@@ -71537,8 +71102,7 @@
         "date": "2026-03-07",
         "won": false,
         "opp": "udinese",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-01",
@@ -71580,8 +71144,7 @@
         "date": "2026-02-01",
         "won": false,
         "opp": "como",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-28",
@@ -71605,8 +71168,7 @@
         "date": "2026-01-16",
         "won": false,
         "opp": "pisa",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-10",
@@ -71674,8 +71236,7 @@
         "date": "2026-02-06",
         "won": false,
         "opp": "hellas verona",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-31",
@@ -71693,15 +71254,13 @@
         "date": "2026-01-16",
         "won": false,
         "opp": "atalanta",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-10",
         "won": false,
         "opp": "udinese",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-06",
@@ -71713,8 +71272,7 @@
         "date": "2026-01-03",
         "won": false,
         "opp": "genoa",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-27",
@@ -71726,8 +71284,7 @@
         "date": "2025-12-21",
         "won": false,
         "opp": "cagliari",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-12",
@@ -71765,8 +71322,7 @@
         "date": "2026-03-21",
         "won": false,
         "opp": "sassuolo",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-14",
@@ -71784,8 +71340,7 @@
         "date": "2026-03-01",
         "won": false,
         "opp": "roma",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-25",
@@ -71815,8 +71370,7 @@
         "date": "2026-02-08",
         "won": false,
         "opp": "lazio",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-01",
@@ -71828,8 +71382,7 @@
         "date": "2026-01-28",
         "won": false,
         "opp": "monaco",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-25",
@@ -71865,8 +71418,7 @@
         "date": "2026-01-03",
         "won": false,
         "opp": "lecce",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-27",
@@ -71880,15 +71432,13 @@
         "date": "2026-04-12",
         "won": false,
         "opp": "napoli",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-04-04",
         "won": false,
         "opp": "lazio",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-21",
@@ -71906,15 +71456,13 @@
         "date": "2026-03-08",
         "won": false,
         "opp": "fiorentina",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-27",
         "won": false,
         "opp": "cagliari",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-02-22",
@@ -71950,15 +71498,13 @@
         "date": "2026-01-18",
         "won": false,
         "opp": "genoa",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-14",
         "won": false,
         "opp": "napoli",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-11",
@@ -71976,8 +71522,7 @@
         "date": "2026-01-03",
         "won": false,
         "opp": "sassuolo",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-12-27",
@@ -72015,8 +71560,7 @@
         "date": "2026-04-06",
         "won": false,
         "opp": "como",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-20",
@@ -72034,8 +71578,7 @@
         "date": "2026-03-07",
         "won": false,
         "opp": "atalanta",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-02",
@@ -72083,8 +71626,7 @@
         "date": "2026-01-10",
         "won": false,
         "opp": "pisa",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-07",
@@ -72102,8 +71644,7 @@
         "date": "2025-12-27",
         "won": false,
         "opp": "lazio",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-21",
@@ -72183,8 +71724,7 @@
         "date": "2026-02-06",
         "won": false,
         "opp": "pisa",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-31",
@@ -72202,8 +71742,7 @@
         "date": "2026-01-19",
         "won": false,
         "opp": "cremonese",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-15",
@@ -72221,8 +71760,7 @@
         "date": "2026-01-07",
         "won": false,
         "opp": "napoli",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-01-04",
@@ -72272,15 +71810,13 @@
         "date": "2026-03-22",
         "won": false,
         "opp": "fiorentina",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-03-14",
         "won": false,
         "opp": "atalanta",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-03-08",
@@ -72364,8 +71900,7 @@
         "date": "2026-01-11",
         "won": false,
         "opp": "napoli",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-07",
@@ -72433,8 +71968,7 @@
         "date": "2026-02-07",
         "won": false,
         "opp": "fiorentina",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-01",
@@ -72532,8 +72066,7 @@
         "date": "2025-11-04",
         "won": false,
         "opp": "olympiacos",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-10-21",
@@ -72733,8 +72266,7 @@
         "date": "2026-02-24",
         "won": false,
         "opp": "leverkusen",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2026-02-18",
@@ -72770,8 +72302,7 @@
         "date": "2025-11-04",
         "won": false,
         "opp": "psv eindhoven",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-10-21",
@@ -72789,8 +72320,7 @@
         "date": "2025-09-17",
         "won": false,
         "opp": "pafos",
-        "home": true,
-        "drew": true
+        "home": true
       }
     ],
     "pafos": [
@@ -72828,8 +72358,7 @@
         "date": "2025-10-21",
         "won": false,
         "opp": "kairat almaty",
-        "home": false,
-        "drew": true
+        "home": false
       },
       {
         "date": "2025-09-30",
@@ -72841,8 +72370,7 @@
         "date": "2025-09-17",
         "won": false,
         "opp": "olympiacos",
-        "home": false,
-        "drew": true
+        "home": false
       }
     ],
     "slavia prague": [
@@ -72892,8 +72420,7 @@
         "date": "2025-09-17",
         "won": false,
         "opp": "bodo glimt",
-        "home": true,
-        "drew": true
+        "home": true
       }
     ],
     "bodo glimt": [
@@ -72967,8 +72494,7 @@
         "date": "2025-09-17",
         "won": false,
         "opp": "slavia prague",
-        "home": false,
-        "drew": true
+        "home": false
       }
     ],
     "ajax amsterdam": [
@@ -73032,8 +72558,7 @@
         "date": "2026-02-18",
         "won": false,
         "opp": "atletico",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2026-01-28",
@@ -73095,8 +72620,7 @@
         "date": "2026-01-20",
         "won": false,
         "opp": "napoli",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-10",
@@ -73170,8 +72694,7 @@
         "date": "2026-01-21",
         "won": false,
         "opp": "atletico",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-12-09",
@@ -73313,8 +72836,7 @@
         "date": "2025-10-21",
         "won": false,
         "opp": "pafos",
-        "home": true,
-        "drew": true
+        "home": true
       },
       {
         "date": "2025-09-30",
