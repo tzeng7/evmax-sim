@@ -89,10 +89,20 @@ class EfficiencyModelAgent(ModelAgent):
         if sector != "nba":
             return {}
 
+        from evmax.agents.models._nba_freshness import (
+            state_is_fresh,
+            nba_api_in_backoff,
+            mark_nba_api_failure,
+        )
+
         sector_state = self._state.get("nba", {})
         fetched_at = sector_state.get("fetched_at", "")
 
-        if fetched_at == date.today().isoformat() and sector_state.get("teams"):
+        if sector_state.get("teams") and await state_is_fresh(fetched_at):
+            return sector_state
+
+        if nba_api_in_backoff() and sector_state.get("teams"):
+            self.log.info("efficiency_fetch_skipped_backoff", fetched_at=fetched_at)
             return sector_state
 
         try:
@@ -101,6 +111,7 @@ class EfficiencyModelAgent(ModelAgent):
             self.save_state()
             return stats
         except Exception as e:
+            mark_nba_api_failure()
             self.log.warning("efficiency_fetch_failed", error=str(e))
             return sector_state
 

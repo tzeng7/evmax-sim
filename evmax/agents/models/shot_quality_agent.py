@@ -87,19 +87,34 @@ class ShotQualityAgent(ModelAgent):
         self._fetched_date: str = ""
 
     async def _ensure_data(self) -> None:
-        if self._fetched_date == date.today().isoformat() and self._team_shooting:
+        from evmax.agents.models._nba_freshness import (
+            state_is_fresh,
+            nba_api_in_backoff,
+            mark_nba_api_failure,
+        )
+
+        if self._team_shooting and await state_is_fresh(self._fetched_date):
             return
 
         sector_state = self._state.get("nba", {})
-        if sector_state.get("fetched_date") == date.today().isoformat():
+        sector_fetched = sector_state.get("fetched_date", "")
+        if sector_fetched and await state_is_fresh(sector_fetched):
             self._team_shooting = sector_state.get("teams", {})
             self._league_avgs = sector_state.get("league_avgs", {})
-            self._fetched_date = sector_state["fetched_date"]
+            self._fetched_date = sector_fetched
+            return
+
+        if nba_api_in_backoff() and sector_state.get("teams"):
+            self._team_shooting = sector_state.get("teams", {})
+            self._league_avgs = sector_state.get("league_avgs", {})
+            self._fetched_date = sector_fetched
+            self.log.info("shot_quality_fetch_skipped_backoff", fetched_date=sector_fetched)
             return
 
         try:
             await self._fetch_shooting_data()
         except Exception as e:
+            mark_nba_api_failure()
             self.log.warning("shot_quality_fetch_failed", error=str(e))
 
     async def _fetch_shooting_data(self) -> None:
