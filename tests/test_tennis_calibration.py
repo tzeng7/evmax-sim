@@ -48,12 +48,41 @@ def test_calibration_applies_to_two_way_market():
     assert a + b == pytest.approx(1.0)
 
 
-def test_three_way_market_skips_calibration():
-    """Soccer-style markets with a draw probability bypass the YES-only calibrator."""
-    ens = _ensemble_with_calibrator({"soccer_ensemble": {0.5: 0.6}})
-    a, b, d = ens._apply_sector_calibration("soccer", 0.5, 0.3, 0.2)
-    # Even though a fitted entry exists, draw markets are passed through
-    assert (a, b, d) == (0.5, 0.3, 0.2)
+def test_three_way_market_calibrates_team_win_legs_and_renormalizes():
+    """Soccer-style 3-way markets: home and away legs go through the curve,
+    draw is left untouched, then all three are renormalized to sum to 1."""
+    # Curve squashes both team-win legs (mirrors live soccer overprediction)
+    ens = _ensemble_with_calibrator({"soccer_ensemble": {0.50: 0.40, 0.30: 0.20}})
+    a, b, d = ens._apply_sector_calibration("soccer", 0.50, 0.30, 0.20)
+    # Pre-norm: home 0.40, away 0.20, draw 0.20  → sum 0.80
+    assert a == pytest.approx(0.40 / 0.80)
+    assert b == pytest.approx(0.20 / 0.80)
+    assert d == pytest.approx(0.20 / 0.80)
+    assert a + b + d == pytest.approx(1.0)
+
+
+def test_three_way_identity_when_no_curve_change():
+    """If the curve returns inputs unchanged (no fit), pass through unchanged
+    without renormalizing — caller's draw probability is preserved exactly."""
+    ens = _ensemble_with_calibrator({"soccer_ensemble": {}})  # empty mapping
+    a, b, d = ens._apply_sector_calibration("soccer", 0.50, 0.30, 0.20)
+    assert (a, b, d) == (0.50, 0.30, 0.20)
+
+
+def test_three_way_no_entry_is_identity():
+    """When no soccer_ensemble entry exists at all, behave identically to
+    the unfitted case — no calibration, no renormalization."""
+    ens = _ensemble_with_calibrator({})
+    a, b, d = ens._apply_sector_calibration("soccer", 0.45, 0.30, 0.25)
+    assert (a, b, d) == (0.45, 0.30, 0.25)
+
+
+def test_three_way_preserves_home_advantage_ordering():
+    """Calibration is monotonic — if the model said home > away before, it
+    must still say home > away after, even with renormalization."""
+    ens = _ensemble_with_calibrator({"soccer_ensemble": {0.55: 0.45, 0.20: 0.15}})
+    a, b, d = ens._apply_sector_calibration("soccer", 0.55, 0.20, 0.25)
+    assert a > b
 
 
 def test_unfitted_identity_when_calibrate_returns_input():
