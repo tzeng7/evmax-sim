@@ -91,7 +91,7 @@ tennis:
   mode: shadow
   resolver: kalshi_settlement
   status: shipped
-  notes: "Shadow 2026-05-01: production data (n=112) showed tennis stat models net-subtract ~3.77pp ROI on top of Pinnacle. sharp_weight bumped to 1.00 in model_config.json — predictions are now pure sharp. Re-validate after 30d (target: positive ROI on 50+ resolved shadow bets) before promoting back to live via `evmax cleanup shadow promote tennis`."
+  notes: "Shadow 2026-05-01 → 2026-05-02: production data (n=112) initially pushed sharp_weight to 1.00, but a leak-free walk-forward (n=2576, 2025+2026, scripts/backtest_tennis_walkforward.py) showed flat 0.85 beats sharp_only by ΔBrier +0.40/1000 — the production sample was selection-biased (EV≥2% YES rows only). Reverted to 0.85 with no disagreement-ramp override; tennis_h2h alone beats sharp by 0.0077 Brier on its 863-game subset, which the ramp was wiping out. Watch n=30+ resolved shadow bets to confirm before promoting back to live via `evmax cleanup shadow promote tennis`."
 
 baseball:
   display_name: "Baseball (MLB)"
@@ -123,20 +123,20 @@ nhl:
 lol:
   display_name: "League of Legends"
   market_types: [moneyline, map_handicap]
-  models: [elo, form, sharp]
+  models: [sharp]
   mode: live
   resolver: bo3gg
   status: shipped
-  notes: null
+  notes: "sharp_weight bumped to 1.00 in model_config.json — predictions are pure sharp. Elo/form gated out (esports rosters churn too fast for team-level Elo to track real strength; Pinnacle prices in roster moves immediately)."
 
 cs2:
   display_name: "CS2"
   market_types: [moneyline, map_handicap]
-  models: [elo, form, sharp]
+  models: [sharp]
   mode: live
   resolver: bo3gg
   status: shipped
-  notes: null
+  notes: "sharp_weight bumped to 1.00 in model_config.json — predictions are pure sharp. Elo/form gated out (esports rosters churn too fast for team-level Elo to track real strength; Pinnacle prices in roster moves immediately)."
 
 # Valorant, UFC, F1 are in evmax/sectors/registry.py (latent sector handlers
 # with Elo K-factors wired in) but are NOT in kalshi.py::SECTOR_SERIES_MAP —

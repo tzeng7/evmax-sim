@@ -292,22 +292,27 @@ class EnsembleModelAgent(Agent):
     # into the walk-forward: 2526 holdout binary Brier 0.19523 → 0.19506
     # (Δ −0.00017 vs sharp-only ceiling of 0.19499). V4 narrows the gap
     # to sharp-only further than V3 (0.04/0.15/0.99) did.
-    # Tennis override (2026-05-01): production resolved bets (n=113 after
-    # excluding $0.01 dead-market rows) show the same pattern as soccer but
-    # at a tighter threshold. Bucketed by signed gap (blended − sharp) on
-    # the YES leg:
-    #   model > sharp by 2-5pp (n=10): hit 0.0%, sharp_pct 18.5%, model_pct 21.2%
-    #     → Brier(blended)=0.0509, Brier(sharp)=0.0400 (sharp +0.011)
-    #     → ROI proxy −19.2% (this single bucket accounts for ~all tennis bleed)
-    #   within 2pp (n=102):           hit 35.3%, Brier delta ≈ 0 (sharp +0.0004)
-    # Production data is selection-biased (only EV≥2% YES rows logged) so we
-    # have no rows in `model < sharp` direction; saturate_at and cap mirror
-    # soccer V4 because we lack the data to tune them. Validate via a
-    # tennis_walkforward.py rebuild before tightening further.
+    # Tennis override REMOVED 2026-05-02 after walk-forward (n=2576,
+    # 2025+2026 leak-free, scripts/backtest_tennis_walkforward.py with
+    # 5/6 agents firing from seeded state):
+    #   sharp-only Brier:    0.2091
+    #   flat 0.85 Brier:     0.2087  (ΔBrier +0.40/1000 vs sharp)
+    #   0.85+old override:   0.2091  (statistically tied with sharp_only)
+    #   model-only Brier:    0.2215
+    # The override `(0.02, 0.10, 1.00)` was actively wiping out the
+    # small but real model edge — the ramp aggressively defers to sharp
+    # on disagreements, leaving tennis's 0.85 base behaving exactly like
+    # 1.00 in practice. tennis_h2h alone beat sharp by 0.0077 Brier on
+    # its 863-game subset; flat 0.85 captures that.
+    # The earlier production-data justification (n=113, -19.2% ROI in
+    # 2-5pp bucket) was selection-biased — only EV≥2% YES rows logged.
+    # Walk-forward is unbiased and contradicts: 2-5pp gap bucket is
+    # essentially flat (model 0.2248 vs sharp 0.2253). Tennis falls
+    # through to default ramp params; sharp_weight_by_sector["tennis"]
+    # also reverted to 0.85 in data/model_config.json.
     DISAGREEMENT_OVERRIDES: dict[str, tuple[float, float, float]] = {
         # sector → (threshold, saturate_at, cap)
         "soccer": (0.04, 0.10, 1.00),
-        "tennis": (0.02, 0.10, 1.00),
     }
 
     @staticmethod
