@@ -1,0 +1,40 @@
+# Soccer league tier config — drives per-league `sharp_weight` overrides in the
+# ensemble blend. Rationale: walk-forward on 2,606 games (2024-2026) showed
+# that in top-5 European leagues, Pinnacle's closing Brier is the informational
+# ceiling (~0.1981–0.2097) and our stat blend drags it by 0.003–0.007 when
+# mixed in at the default sharp_weight=0.40. In those markets the stat models
+# are pure dead weight on calibration.
+#
+# The edge comes from Kalshi-vs-Pinnacle price deviations, not from our models
+# beating Pinnacle. So for top-tier leagues we want to bet cheap Pinnacle
+# imitation; for thinner leagues where Pinnacle is less adversarial, keep the
+# default blend.
+#
+# Fallback: tickers not matching any tier use the `default_sharp_weight`.
+#
+# Kalshi series prefixes come from evmax/clients/kalshi.py::SECTOR_SERIES_MAP.
+# When Kalshi adds new soccer series, add them here too.
+
+default_sharp_weight: 0.40
+
+tiers:
+  top_tier:
+    # Top-5 European leagues + UEFA competitions. Pinnacle is ceiling here.
+    # sharp_weight=0.85 keeps a 15% model contribution as a regularizer — the
+    # disagreement bump will push higher on wide gaps.
+    sharp_weight: 0.85
+    kalshi_series:
+      - KXEPLGAME         # English Premier League
+      - KXLALIGAGAME      # La Liga
+      - KXBUNDESLIGAGAME  # Bundesliga
+      - KXSERIEAGAME      # Serie A
+      - KXLIGUE1GAME      # Ligue 1
+      - KXUCLGAME         # UEFA Champions League
+      - KXUELGAME         # UEFA Europa League
+
+  secondary:
+    # Less liquid, less adversarial. Our models might actually help here, so
+    # keep the default blend.
+    sharp_weight: 0.40
+    kalshi_series:
+      - KXMLSGAME         # Major League Soccer
