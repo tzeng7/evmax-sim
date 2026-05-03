@@ -95,7 +95,7 @@ async def _scan_loop(
 @app.command("scan")
 def scan(
     sectors: str = typer.Option(
-        "nba,ncaab,ncaaw,soccer,lol,cs2,tennis,baseball",
+        "nba,wnba,ncaab,ncaaw,soccer,lol,cs2,tennis,baseball",
         "--sectors",
         "-s",
         help="Comma-separated sector list, e.g. 'nba,soccer'",
