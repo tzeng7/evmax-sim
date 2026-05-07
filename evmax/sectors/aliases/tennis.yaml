@@ -90,7 +90,14 @@ aliases:
   # Bautista Agut
   "roberto bautista agut": "bautista agut"
   "r. bautista agut": "bautista agut"
+  "bautista agut": "bautista agut"
   "bautista": "bautista agut"
+
+  # Merida Aguilar (Daniel) — Kalshi shortens to "Merida", Pinnacle uses "Daniel Merida Aguilar"
+  "daniel merida aguilar": "merida aguilar"
+  "merida aguilar": "merida aguilar"
+  "merida": "merida aguilar"
+  "aguilar": "merida aguilar"
 
   # Swiatek (WTA)
   "iga swiatek": "swiatek"
