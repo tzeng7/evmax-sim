@@ -770,6 +770,12 @@ class EVGapAgent(Agent):
         if market.yes_price >= 0.99 or market.yes_price <= 0.01:
             return _ret(None, blend_payload)
 
+        # Heavy-chalk guard: skip $22-to-win-$2 bets even when +EV. blend_payload
+        # is preserved so the NO side (which would NOT be chalk in this case)
+        # can still derive normally.
+        if market.yes_price > self._settings.chalk_price_ceiling:
+            return _ret(None, blend_payload)
+
         # Filter out empty/stale orderbooks. spread_pct = |yes_ask - (1 -
         # no_ask)| / mid. A real two-sided book always sums to >1.0 due to
         # vig, so spread_pct < 0.5% means we're seeing a one-sided ladder,
@@ -910,18 +916,16 @@ class EVGapAgent(Agent):
 
         ev, edge_pct = calculate_ev(no_ask, blended_no)
 
-        # Use the same EV floor logic as the YES side. NO bets carry the
-        # same sharp-only risk profile so the elevated floor for tennis /
-        # baseball sharp-only signals applies symmetrically.
-        src_yes = blend_payload["src"]
-        ev_floor = self._settings.ev_threshold
-        sector_lower = (market.sector or "").lower()
-        if sector_lower == "tennis" and src_yes == "sharp":
-            ev_floor = 0.05
-        elif sector_lower == "baseball" and src_yes == "sharp":
-            ev_floor = 0.05
+        # NO-side spreads run a 5% EV floor regardless of sector / model source.
+        # Normal-CDF cover-prob conversion under-estimates fat tails on alt-line
+        # covers, so the scanner's standard 2% threshold mostly surfaces tail
+        # mispricing rather than real edge. Backtest 2026-05-07 (sigma=14
+        # sharp-only, archive sample, scripts/backtest_no_side_spreads.py):
+        # EV>=2% NO-side ROI -11c/$1; EV>=5% cleared breakeven.
+        ev_floor = max(self._settings.ev_threshold, 0.05)
         if ev < ev_floor:
             return None
+        src_yes = blend_payload["src"]
 
         # Opponent name = whichever sharp outcome the YES side did NOT cover.
         # Normalize to the canonical short form (e.g. "Cleveland Cavaliers"
