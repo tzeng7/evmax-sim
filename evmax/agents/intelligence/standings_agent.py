@@ -81,7 +81,15 @@ class TeamStanding:
 
     @property
     def rest_risk(self) -> str:
-        """Categorize rest risk: 'high', 'medium', 'low', 'none'."""
+        """Categorize rest risk: 'high', 'medium', 'low', 'none'.
+
+        Rest risk is a regular-season concept (stars sitting in meaningless games,
+        tanking once eliminated). Once `games_remaining == 0` the regular season is
+        over — playoff teams get multi-day rest between games and don't load-manage,
+        so suppress all rest signals.
+        """
+        if self.games_remaining <= 0:
+            return "none"
         if self.is_clinched and self.games_remaining <= _REST_ZONE_GAMES:
             return "high"
         if self.is_clinched and self.games_remaining <= 5:
