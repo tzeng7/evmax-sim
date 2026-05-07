@@ -74,6 +74,7 @@ SCENARIOS = {
 
 SECTOR_GROUPS = {
     "nba":     {"sectors": ["nba", "nba_props"], "label": "NBA"},
+    "wnba":    {"sectors": ["wnba"],             "label": "WNBA"},
     "soccer":  {"sectors": ["soccer"],           "label": "Soccer"},
     "tennis":  {"sectors": ["tennis"],           "label": "Tennis"},
     "ncaab":   {"sectors": ["ncaab"],            "label": "NCAAB"},

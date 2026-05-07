@@ -6,7 +6,7 @@ export function useToast() {
   const [msg, setMsg] = useState('')
   const [type, setType] = useState<ToastType>('info')
   const [visible, setVisible] = useState(false)
-  const timer = useRef<ReturnType<typeof setTimeout>>()
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const toast = useCallback((message: string, toastType: ToastType = 'info', ms = 3000) => {
     setMsg(message)
