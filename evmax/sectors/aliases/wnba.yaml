@@ -2,62 +2,95 @@ aliases:
   # Atlanta Dream
   "atlanta dream": "dream"
   "atl dream": "dream"
+  "atlanta": "dream"
+  "atl": "dream"
 
   # Chicago Sky
   "chicago sky": "sky"
   "chi sky": "sky"
+  "chicago": "sky"
+  "chi": "sky"
 
   # Connecticut Sun
   "connecticut sun": "sun"
   "conn sun": "sun"
+  "connecticut": "sun"
+  "conn": "sun"
 
   # Dallas Wings
   "dallas wings": "wings"
   "dal wings": "wings"
+  "dallas": "wings"
+  "dal": "wings"
 
   # Indiana Fever
   "indiana fever": "fever"
   "ind fever": "fever"
+  "indiana": "fever"
+  "ind": "fever"
 
   # Las Vegas Aces
   "las vegas aces": "aces"
   "lv aces": "aces"
   "vegas aces": "aces"
+  "las vegas": "aces"
+  "vegas": "aces"
+  "lv": "aces"
 
   # Los Angeles Sparks
   "los angeles sparks": "sparks"
   "la sparks": "sparks"
+  "los angeles": "sparks"
+  "la": "sparks"
 
   # Minnesota Lynx
   "minnesota lynx": "lynx"
   "min lynx": "lynx"
+  "minnesota": "lynx"
+  "min": "lynx"
 
   # New York Liberty
   "new york liberty": "liberty"
   "ny liberty": "liberty"
+  "new york": "liberty"
+  "ny": "liberty"
+  "nyl": "liberty"
 
   # Phoenix Mercury
   "phoenix mercury": "mercury"
   "phx mercury": "mercury"
+  "phoenix": "mercury"
+  "phx": "mercury"
 
   # Seattle Storm
   "seattle storm": "storm"
   "sea storm": "storm"
+  "seattle": "storm"
+  "sea": "storm"
 
   # Washington Mystics
   "washington mystics": "mystics"
   "was mystics": "mystics"
   "wsh mystics": "mystics"
+  "washington": "mystics"
+  "was": "mystics"
+  "wsh": "mystics"
 
   # Golden State Valkyries (expansion 2025)
   "golden state valkyries": "valkyries"
   "gs valkyries": "valkyries"
   "gsv": "valkyries"
+  "golden state": "valkyries"
+  "gs": "valkyries"
 
   # Portland Fire (expansion 2026)
   "portland fire": "fire"
   "por fire": "fire"
+  "portland": "fire"
+  "por": "fire"
 
   # Toronto Tempo (expansion 2026)
   "toronto tempo": "tempo"
   "tor tempo": "tempo"
+  "toronto": "tempo"
+  "tor": "tempo"

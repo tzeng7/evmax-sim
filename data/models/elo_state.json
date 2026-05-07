@@ -23502,19 +23502,19 @@
   },
   "wnba": {
     "ratings": {
-      "aces": 1593.51,
-      "wings": 1464.72,
-      "sky": 1442.56,
-      "fever": 1582.32,
-      "mystics": 1426.18,
-      "storm": 1506.36,
-      "sun": 1451.56,
-      "lynx": 1608.96,
-      "valkyries": 1506.35,
-      "sparks": 1563.04,
-      "mercury": 1533.97,
-      "dream": 1583.32,
-      "liberty": 1557.16,
+      "aces": 1530.78,
+      "wings": 1537.07,
+      "sky": 1512.66,
+      "fever": 1583.51,
+      "mystics": 1457.02,
+      "storm": 1504.13,
+      "sun": 1503.51,
+      "lynx": 1598.82,
+      "valkyries": 1509.13,
+      "sparks": 1615.98,
+      "mercury": 1517.08,
+      "dream": 1554.16,
+      "liberty": 1572.15,
       "fire": 1470.0,
       "tempo": 1440.0
     },
@@ -23955,22 +23955,22 @@
   },
   "nba": {
     "ratings": {
-      "thunder": 1734.15,
-      "rockets": 1614.04,
-      "lakers": 1629.84,
+      "thunder": 1768.14,
+      "rockets": 1630.03,
+      "lakers": 1613.85,
       "warriors": 1379.77,
-      "knicks": 1625.59,
-      "cavaliers": 1615.8,
+      "knicks": 1673.72,
+      "cavaliers": 1600.11,
       "hornets": 1636.07,
       "nets": 1262.92,
-      "magic": 1553.76,
+      "magic": 1602.15,
       "heat": 1511.83,
-      "hawks": 1600.8,
-      "raptors": 1532.84,
-      "celtics": 1716.99,
-      "76ers": 1532.06,
+      "hawks": 1552.67,
+      "raptors": 1548.53,
+      "celtics": 1657.66,
+      "76ers": 1591.39,
       "bulls": 1324.08,
-      "pistons": 1715.1,
+      "pistons": 1666.71,
       "grizzlies": 1261.3,
       "pelicans": 1379.84,
       "bucks": 1344.3,
@@ -23978,31 +23978,37 @@
       "jazz": 1256.13,
       "la clippers": 1522.53,
       "mavericks": 1336.06,
-      "spurs": 1768.87,
-      "suns": 1533.78,
+      "spurs": 1786.84,
+      "suns": 1499.79,
       "kings": 1319.63,
-      "trail blazers": 1542.32,
-      "timberwolves": 1548.89,
+      "trail blazers": 1524.35,
+      "timberwolves": 1622.89,
       "pacers": 1293.62,
-      "nuggets": 1704.03
+      "nuggets": 1630.03,
+      "boston celtics": 1725.0,
+      "philadelphia 76ers": 1524.05,
+      "san antonio spurs": 1774.46,
+      "portland trail blazers": 1536.73,
+      "oklahoma city thunder": 1747.4,
+      "phoenix suns": 1520.53
     },
     "game_counts": {
-      "thunder": 82,
-      "rockets": 82,
-      "lakers": 82,
+      "thunder": 85,
+      "rockets": 86,
+      "lakers": 86,
       "warriors": 82,
-      "knicks": 83,
-      "cavaliers": 82,
+      "knicks": 88,
+      "cavaliers": 86,
       "hornets": 82,
       "nets": 82,
-      "magic": 82,
+      "magic": 87,
       "heat": 82,
-      "hawks": 82,
-      "raptors": 82,
-      "celtics": 82,
-      "76ers": 82,
+      "hawks": 87,
+      "raptors": 86,
+      "celtics": 87,
+      "76ers": 87,
       "bulls": 82,
-      "pistons": 82,
+      "pistons": 87,
       "grizzlies": 82,
       "pelicans": 82,
       "bucks": 82,
@@ -24010,13 +24016,19 @@
       "jazz": 82,
       "la clippers": 82,
       "mavericks": 82,
-      "spurs": 83,
-      "suns": 82,
+      "spurs": 87,
+      "suns": 85,
       "kings": 82,
-      "trail blazers": 82,
-      "timberwolves": 82,
+      "trail blazers": 86,
+      "timberwolves": 87,
       "pacers": 82,
-      "nuggets": 82
+      "nuggets": 87,
+      "boston celtics": 1,
+      "philadelphia 76ers": 1,
+      "san antonio spurs": 1,
+      "portland trail blazers": 1,
+      "oklahoma city thunder": 1,
+      "phoenix suns": 1
     },
     "h2h": {
       "rockets::thunder": {
@@ -24050,9 +24062,9 @@
         "games": 4
       },
       "76ers::celtics": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
       },
       "bulls::pistons": {
         "a_wins": 1,
@@ -24270,9 +24282,9 @@
         "games": 3
       },
       "nuggets::timberwolves": {
-        "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
       },
       "grizzlies::warriors": {
         "a_wins": 0,
@@ -24320,9 +24332,9 @@
         "games": 3
       },
       "magic::pistons": {
-        "a_wins": 2,
-        "b_wins": 2,
-        "games": 4
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
       },
       "hawks::nets": {
         "a_wins": 4,
@@ -24380,9 +24392,9 @@
         "games": 3
       },
       "cavaliers::raptors": {
-        "a_wins": 0,
-        "b_wins": 3,
-        "games": 3
+        "a_wins": 2,
+        "b_wins": 5,
+        "games": 7
       },
       "bulls::knicks": {
         "a_wins": 1,
@@ -25100,9 +25112,9 @@
         "games": 3
       },
       "spurs::trail blazers": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
+        "a_wins": 5,
+        "b_wins": 2,
+        "games": 7
       },
       "bulls::hornets": {
         "a_wins": 1,
@@ -25116,8 +25128,8 @@
       },
       "suns::thunder": {
         "a_wins": 2,
-        "b_wins": 3,
-        "games": 5
+        "b_wins": 6,
+        "games": 8
       },
       "nuggets::spurs": {
         "a_wins": 3,
@@ -25460,9 +25472,9 @@
         "games": 3
       },
       "lakers::rockets": {
-        "a_wins": 2,
-        "b_wins": 1,
-        "games": 3
+        "a_wins": 4,
+        "b_wins": 3,
+        "games": 7
       },
       "hawks::heat": {
         "a_wins": 1,
@@ -25480,9 +25492,9 @@
         "games": 3
       },
       "hawks::knicks": {
-        "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
+        "a_wins": 3,
+        "b_wins": 5,
+        "games": 8
       },
       "heat::pacers": {
         "a_wins": 1,
@@ -26208,6 +26220,21 @@
         "a_wins": 2,
         "b_wins": 0,
         "games": 2
+      },
+      "boston celtics::philadelphia 76ers": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "portland trail blazers::san antonio spurs": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "oklahoma city thunder::phoenix suns": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
       }
     }
   }

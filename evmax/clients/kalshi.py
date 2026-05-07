@@ -714,8 +714,25 @@ class KalshiClient(BaseAPIClient):
                     "KXWNBASPREAD",
                 ]
             )
-            market_type = MarketType.spread if is_spread else self._infer_market_type(title, sector)
-            spread_line = self._extract_spread_line(ticker) if is_spread else None
+            # Detect total series similarly. Outcome is the line itself
+            # (KXWNBATOTAL-26MAY08CONNNY-165 → line=165), not a team code.
+            is_total = any(
+                ticker.upper().startswith(s)
+                for s in [
+                    "KXNBATOTAL", "KXNFLTOTAL", "KXNCAAWBTOTAL",
+                    "KXNCAAMBTOTAL", "KXMLBTOTAL", "KXNHLTOTAL",
+                    "KXWNBATOTAL",
+                ]
+            )
+            if is_spread:
+                market_type = MarketType.spread
+                spread_line = self._extract_spread_line(ticker)
+            elif is_total:
+                market_type = MarketType.total
+                spread_line = self._extract_total_line(ticker)
+            else:
+                market_type = self._infer_market_type(title, sector)
+                spread_line = None
 
             competition: Optional[str] = None
             if competitions:
@@ -770,31 +787,49 @@ class KalshiClient(BaseAPIClient):
         """
         Extract away/home team codes from the ticker's team-pair segment.
 
-        Format: {SERIES}-{YYMONDD}{AWAY3}{HOME3}-{OUTCOME3}  (for 3-char code sports)
+        Format: {SERIES}-{YYMONDD}{AWAY}{HOME}-{OUTCOME[digits]}
         Example: KXNBAGAME-26FEB24ORLLAL-ORL  →  away=ORL, home=LAL
+        Example: KXWNBAGAME-26MAY08GSSEA-SEA  →  away=GS,  home=SEA  (mixed lengths)
+        Example: KXWNBAGAME-26MAY08CONNNY-NY →  away=CONN,home=NY   (mixed lengths)
 
-        Returns lowercase codes for alias resolution. For non-3-char sports,
-        returns (None, None) and falls back to title parsing.
+        Strategy: anchor on the OUTCOME suffix (always one of the two teams).
+        Whichever end of the pair the outcome matches identifies that team's
+        side; the remainder is the other team. Falls back to the legacy
+        3+3 split when outcome anchoring is ambiguous.
         """
         date_match = _TICKER_DATE_RE.search(ticker.upper())
         if not date_match:
             return None, None
 
-        # Everything after the date match up to the last '-'
         after_date = ticker.upper()[date_match.end():]
-        # Strip the outcome suffix (after last '-')
-        if "-" in after_date:
-            team_pair = after_date.rsplit("-", 1)[0]
-        else:
-            team_pair = after_date
+        if "-" not in after_date:
+            return None, None
+        team_pair, outcome = after_date.rsplit("-", 1)
+        # Strip trailing digits (spread tickers append the line, e.g. "OKC7").
+        outcome_code = re.sub(r"\d+$", "", outcome)
 
-        # Standard game tickers use two 3-letter codes (NBA, NFL, soccer, cs2, etc.)
+        # Total markets encode the line as a pure-number outcome (e.g. "159").
+        # outcome_code becomes empty → the 6-char fallback would mis-split
+        # "CONNNY" as "CON"/"NNY". Force the title fallback in that case.
+        if not outcome_code:
+            return None, None
+
+        if outcome_code and len(team_pair) > len(outcome_code):
+            ends_with = team_pair.endswith(outcome_code)
+            starts_with = team_pair.startswith(outcome_code)
+            # Prefer endswith (outcome = HOME); fall back to startswith (outcome = AWAY).
+            # If both match (e.g. palindromic codes — extremely unlikely), the 3+3
+            # legacy split below would tie-break, but we never observe this in real data.
+            if ends_with and not starts_with:
+                return outcome_code.lower(), team_pair[:-len(outcome_code)].lower()
+            if starts_with and not ends_with:
+                return team_pair[len(outcome_code):].lower(), outcome_code.lower()
+
+        # Legacy fallback: deterministic 3+3 split for sports with fixed-width codes.
         if len(team_pair) == 6:
-            away_code = team_pair[:3].lower()
-            home_code = team_pair[3:].lower()
-            return home_code, away_code  # (home, away)
+            return team_pair[3:].lower(), team_pair[:3].lower()  # (home, away)
 
-        # LoL/esports may use variable-length team names — fall back to title
+        # LoL/esports use variable-length team names — fall back to title
         return None, None
 
     def _extract_teams_from_title(self, title: str) -> tuple[Optional[str], Optional[str]]:
@@ -874,6 +909,26 @@ class KalshiClient(BaseAPIClient):
             logger.debug("kalshi_spread_line_out_of_bounds", ticker=ticker, line_int=line_int)
             return None
         return -(line_int + 0.5)
+
+    def _extract_total_line(self, ticker: str) -> Optional[float]:
+        """Extract the total (over/under) line from a totals ticker outcome.
+
+        KXWNBATOTAL-26MAY08CONNNY-165 → outcome="165" → line=165.5
+        Total outcomes encode the over/under threshold; YES = "OVER N.5",
+        which is canonically N+0.5 pts. Returns the over-line as a positive float.
+        """
+        parts = ticker.rsplit("-", 1)
+        if len(parts) < 2:
+            return None
+        digits = re.search(r"^(\d+)$", parts[-1])
+        if not digits:
+            return None
+        line_int = int(digits.group(1))
+        # Totals are bigger than spreads — sanity check: 50–400 pts
+        if line_int < 50 or line_int > 400:
+            logger.debug("kalshi_total_line_out_of_bounds", ticker=ticker, line_int=line_int)
+            return None
+        return line_int + 0.5
 
     def _infer_market_type(self, title: str, sector: str = "") -> MarketType:
         """Infer market type from title."""

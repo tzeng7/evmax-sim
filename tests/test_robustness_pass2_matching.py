@@ -204,6 +204,63 @@ class TestKalshiSpreadLineExtraction:
         assert result == pytest.approx(-5.5)
 
 
+class TestKalshiTeamExtractionVariableLength:
+    """Outcome-anchored team-pair splitter for variable-length codes (WNBA)."""
+
+    def setup_method(self):
+        from evmax.clients.kalshi import KalshiClient
+        self.client = KalshiClient.__new__(KalshiClient)
+
+    def test_wnba_outcome_at_end_2char(self):
+        # GSSEA-SEA → home=SEA, away=GS (outcome=HOME)
+        home, away = self.client._extract_teams_from_ticker("KXWNBAGAME-26MAY08GSSEA-SEA")
+        assert (home, away) == ("sea", "gs")
+
+    def test_wnba_outcome_at_end_4char(self):
+        # CONNNY-NY: 6-char pair would mis-split as CON/NNY under legacy logic.
+        # Outcome anchoring identifies NY at the end → home=NY, away=CONN.
+        home, away = self.client._extract_teams_from_ticker("KXWNBAGAME-26MAY08CONNNY-NY")
+        assert (home, away) == ("ny", "conn")
+
+    def test_wnba_outcome_at_start(self):
+        # WSHTOR-WSH → outcome=WSH, pair starts with WSH → away=WSH, home=TOR
+        home, away = self.client._extract_teams_from_ticker("KXWNBAGAME-26MAY08WSHTOR-WSH")
+        assert (home, away) == ("tor", "wsh")
+
+    def test_wnba_spread_outcome_with_digits(self):
+        # SPREAD outcomes append the line: "SEA4". Digits stripped before anchoring.
+        home, away = self.client._extract_teams_from_ticker("KXWNBASPREAD-26MAY08GSSEA-SEA4")
+        assert (home, away) == ("sea", "gs")
+
+    def test_wnba_total_outcome_numeric_falls_back(self):
+        # TOTAL outcome is the line itself ("159"). Stripping digits leaves "" —
+        # bail out so 6-char pairs don't get mis-split as 3+3.
+        home, away = self.client._extract_teams_from_ticker("KXWNBATOTAL-26MAY08CONNNY-165")
+        assert (home, away) == (None, None)
+
+    def test_nba_legacy_3char_still_works(self):
+        # Regression: don't break the existing NBA 3+3 path.
+        home, away = self.client._extract_teams_from_ticker("KXNBAGAME-26FEB24ORLLAL-ORL")
+        assert (home, away) == ("lal", "orl")
+
+
+class TestKalshiTotalLineExtraction:
+    def setup_method(self):
+        from evmax.clients.kalshi import KalshiClient
+        self.client = KalshiClient.__new__(KalshiClient)
+
+    def test_wnba_total_line(self):
+        # KXWNBATOTAL-...-159 → over 159.5
+        assert self.client._extract_total_line("KXWNBATOTAL-26MAY08GSSEA-159") == pytest.approx(159.5)
+
+    def test_below_50_rejected(self):
+        # Quarterly/half totals (~25–40) shouldn't be parsed as game totals
+        assert self.client._extract_total_line("KXWNBATOTAL-26MAY08GSSEA-40") is None
+
+    def test_above_400_rejected(self):
+        assert self.client._extract_total_line("KXWNBATOTAL-26MAY08GSSEA-500") is None
+
+
 # ---------------------------------------------------------------------------
 # prop_matcher.py
 # ---------------------------------------------------------------------------
