@@ -164,13 +164,13 @@ class TestSpreadDistributionModel:
         assert result is None
 
     def test_rejects_line_too_far_from_pinnacle(self):
-        # NBA sigma = 11.5; Pinnacle -7.5, Kalshi -22.5 → distance 15 > 11.5
+        # NBA sigma = 12.5; Pinnacle -7.5, Kalshi -22.5 → distance 15 > 12.5
         sharp = _sharp_spread(spread_line=-7.5, true_prob_a=0.55)
         result = self.model.predict(sharp, target_line=-22.5, sector="nba")
         assert result is None
 
     def test_accepts_line_within_one_sigma(self):
-        # NBA sigma = 11.5; Pinnacle -7.5, Kalshi -10.5 → distance 3 < 11.5
+        # NBA sigma = 12.5; Pinnacle -7.5, Kalshi -10.5 → distance 3 < 12.5
         sharp = _sharp_spread(spread_line=-7.5, true_prob_a=0.55)
         result = self.model.predict(sharp, target_line=-10.5, sector="nba")
         assert result is not None
@@ -212,7 +212,7 @@ class TestSpreadDistributionModel:
             assert result.true_prob <= 0.99
 
     def test_sector_sigma_lookup(self):
-        # Soccer has sigma 1.9; NBA has 11.5
+        # Soccer has sigma 1.9; NBA has 12.5
         # Line distance of 5 pts should be rejected for soccer but accepted for NBA
         sharp_soccer = SharpOdds(
             event_id="soccer::2026-03-20::test",
@@ -227,7 +227,7 @@ class TestSpreadDistributionModel:
         assert result_soccer is None
 
         sharp_nba = _sharp_spread(spread_line=-7.5, true_prob_a=0.55)
-        # Distance of 5 pts < NBA sigma 11.5
+        # Distance of 5 pts < NBA sigma 12.5
         result_nba = self.model.predict(sharp_nba, target_line=-12.5, sector="nba")
         assert result_nba is not None
 
@@ -236,7 +236,7 @@ class TestSpreadDistributionModel:
         result = self.model.predict(sharp, target_line=-7.5, sector="nba")
         assert result is not None
         assert isinstance(result.implied_mean, float)
-        assert result.sigma == 11.5  # NBA sigma
+        assert result.sigma == 12.5  # NBA sigma (bumped 11.5→12.5 on 2026-05-07)
 
     def test_invalid_true_prob_returns_none(self):
         # true_prob_a <= 0 should bail out

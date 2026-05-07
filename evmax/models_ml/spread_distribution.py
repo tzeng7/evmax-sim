@@ -26,7 +26,11 @@ logger = structlog.get_logger(__name__)
 
 # Empirical point-margin standard deviations per sector
 _SECTOR_SIGMA: dict[str, float] = {
-    "nba": 11.5,
+    "nba": 12.5,     # bumped 11.5→12.5 on 2026-05-07 — backtest_nba_score_stdev
+                     # found Brier −0.00077 on 82 resolved spread bets, fixed
+                     # tail over-confidence (>80% bucket bias +7.7→+8.4pp w/ no
+                     # change at sigma=14.0 was overfitting noise; 12.5 captures
+                     # ~60% of the gain and aligns with empirical NBA margin σ).
     "wnba": 12.5,    # matches WNBAPossessionSimAgent SCORE_STDEV; ~40-min games
     "nfl": 14.0,
     "ncaab": 12.5,

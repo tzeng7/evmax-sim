@@ -80,8 +80,10 @@ class PossessionSimAgent(ModelAgent):
         """P(team_a margin > line) using sim mean + calibrated normal CDF.
 
         Uses the sim's matchup-specific mean margin but applies empirical
-        σ=11.5 for the spread distribution — the raw sim distribution is too
-        narrow, producing overconfident tail probabilities.
+        σ=12.5 for the spread distribution — the raw sim distribution is too
+        narrow, producing overconfident tail probabilities. Bumped 11.5→12.5
+        on 2026-05-07 alongside _SECTOR_SIGMA["nba"] in spread_distribution.py;
+        see scripts/backtest_nba_score_stdev.py for the sweep.
 
         Args:
             event_id: Must match the event_id from a prior predict_pair call.
@@ -93,7 +95,7 @@ class PossessionSimAgent(ModelAgent):
         if margins is None:
             return None
         sim_mean = float(margins.mean())
-        sigma = 11.5
+        sigma = 12.5
         from scipy.stats import norm
         if yes_is_underdog:
             z = (line - sim_mean) / sigma

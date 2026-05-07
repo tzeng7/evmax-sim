@@ -459,16 +459,16 @@ class TestSpreadDistributionModel:
         assert result is None
 
     def test_returns_none_when_line_distance_exceeds_one_sigma(self):
-        """NBA sigma=11.5; target_line 20pts away should return None."""
+        """NBA sigma=12.5; target_line >12.5 pts away should return None."""
         sharp = _make_spread_sharp(spread_line=-7.5, true_prob_a=0.60)
-        # |target| - |pinnacle| = 30 - 7.5 = 22.5 > 11.5
+        # |target| - |pinnacle| = 30 - 7.5 = 22.5 > 12.5
         result = self.model.predict(sharp, target_line=-30.0, sector="nba")
         assert result is None
 
     def test_returns_none_when_line_distance_exactly_exceeds_sigma(self):
         """Distance of (sigma + 0.1) should be rejected."""
         sharp = _make_spread_sharp(spread_line=-7.5, true_prob_a=0.60)
-        sigma = 11.5
+        sigma = 12.5
         too_far = -(abs(-7.5) + sigma + 0.1)
         result = self.model.predict(sharp, target_line=too_far, sector="nba")
         assert result is None
@@ -507,12 +507,14 @@ class TestSpreadDistributionModel:
         if result is not None:
             assert result.true_prob <= 0.99
 
-    def test_nba_sigma_is_11_5(self):
-        """SpreadPrediction.sigma for NBA sector should be 11.5."""
+    def test_nba_sigma_is_12_5(self):
+        """SpreadPrediction.sigma for NBA sector is 12.5 (bumped 11.5→12.5
+        on 2026-05-07; backtest_nba_score_stdev showed Brier −0.00077 on
+        82 resolved spread bets, fixing tail over-confidence)."""
         sharp = _make_spread_sharp(spread_line=-7.5, true_prob_a=0.60)
         result = self.model.predict(sharp, target_line=-7.5, sector="nba")
         assert result is not None
-        assert result.sigma == 11.5
+        assert result.sigma == 12.5
 
     def test_nfl_sigma_is_14_0(self):
         """SpreadPrediction.sigma for NFL sector should be 14.0."""
@@ -525,7 +527,7 @@ class TestSpreadDistributionModel:
         """A Kalshi line 5 pts from Pinnacle should not be None for NBA."""
         sharp = _make_spread_sharp(spread_line=-7.5, true_prob_a=0.60)
         result = self.model.predict(sharp, target_line=-12.0, sector="nba")
-        # distance = |12 - 7.5| = 4.5, NBA sigma = 11.5 → within limit
+        # distance = |12 - 7.5| = 4.5, NBA sigma = 12.5 → within limit
         assert result is not None
 
     def test_implied_mean_is_set(self):
