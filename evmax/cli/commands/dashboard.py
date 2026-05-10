@@ -34,9 +34,9 @@ def serve(
 ) -> None:
     """Start the dashboard at http://HOST:PORT/.
 
-    Serves the React SPA (with Portfolios) at /. The legacy Jinja dashboard
-    is still available at /legacy. If frontend/dist is missing it is built
-    automatically; pass --rebuild to force a rebuild after frontend edits.
+    Serves the React SPA (with Portfolios) at /. If frontend/dist is missing
+    it is built automatically; pass --rebuild to force a rebuild after
+    frontend edits.
     """
     import uvicorn
 

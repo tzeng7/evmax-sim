@@ -73,7 +73,7 @@ SCENARIOS = {
 }
 
 SECTOR_GROUPS = {
-    "nba":     {"sectors": ["nba", "nba_props"], "label": "NBA"},
+    "nba":     {"sectors": ["nba"],              "label": "NBA"},
     "wnba":    {"sectors": ["wnba"],             "label": "WNBA"},
     "soccer":  {"sectors": ["soccer"],           "label": "Soccer"},
     "tennis":  {"sectors": ["tennis"],           "label": "Tennis"},
@@ -82,6 +82,23 @@ SECTOR_GROUPS = {
     "esports": {"sectors": ["lol", "cs2"],       "label": "Esports"},
     "nhl":     {"sectors": ["nhl"],              "label": "NHL"},
 }
+
+# Player-prop portfolio groups — kept separate from SECTOR_GROUPS so
+# game and prop performance can be evaluated independently. Bets get
+# simulated from prop_observations (resolved + ev_pct >= 2%) since
+# nba_props is in shadow mode and doesn't run through the live scan path.
+PROP_SECTOR_GROUPS = {
+    "nba_props":  {"sectors": ["nba_props"],  "label": "NBA Props"},
+    "nfl_props":  {"sectors": ["nfl_props"],  "label": "NFL Props"},
+}
+
+# Single source of truth for which prop probability source the simulation
+# trusts. Changes here also need to match validate_prop_pricing.py and the
+# log_prop_from_sharp model_version tag in cli/commands/agents.py. Legacy
+# rows (NULL or "pinnacle-v1") are preserved as historical record but
+# excluded from forward-looking simulations because their sharp_prob came
+# from the L15 model that bled −223u in shadow.
+ANCHOR_MODEL_VERSION = "pinnacle-anchor-v1"
 
 
 @dataclass
@@ -204,6 +221,163 @@ def create_default_portfolios() -> list[Portfolio]:
             )
             created.append(p)
     return created
+
+
+def create_prop_portfolios(backfill: bool = True) -> list[Portfolio]:
+    """Create prop-only portfolios (Conservative/Moderate/Aggressive × each
+    prop sector group), simulating performance from resolved prop_observations.
+
+    Safe to call repeatedly:
+      - INSERT OR IGNORE on the portfolios row → existing portfolios keep
+        their current_bankroll (won't trigger the create_default trap).
+      - INSERT OR IGNORE on portfolio_bets → re-running the backfill
+        appends new resolved props but doesn't disturb existing rows.
+
+    Pass backfill=False to create the empty portfolio rows without seeding
+    the simulated bet ledger (e.g. when you want to wire a different feed).
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    created: list[Portfolio] = []
+    conn = _get_conn()
+    for group_key, group in PROP_SECTOR_GROUPS.items():
+        for scenario_name, params in SCENARIOS.items():
+            pid = f"{group_key}_{scenario_name}"
+            name = f"{group['label']} {scenario_name.capitalize()}"
+            sectors_json = json.dumps(group["sectors"])
+            bankroll = params["bankroll"]
+            kelly = params["kelly"]
+
+            cur = conn.execute(
+                """INSERT OR IGNORE INTO portfolios
+                   (id, name, sectors, initial_bankroll, current_bankroll,
+                    kelly_fraction, scenario, active, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)""",
+                (pid, name, sectors_json, bankroll, bankroll, kelly,
+                 scenario_name, now, now),
+            )
+            row = conn.execute(
+                "SELECT * FROM portfolios WHERE id = ?", (pid,)
+            ).fetchone()
+            if row is not None:
+                created.append(_portfolio_from_row(row))
+    conn.commit()
+    conn.close()
+
+    if backfill:
+        for p in created:
+            backfill_portfolio_from_prop_observations(p.id)
+
+    return created
+
+
+def backfill_portfolio_from_prop_observations(portfolio_id: str) -> int:
+    """Simulate Kelly-sized prop bets from resolved prop_observations.
+
+    Walks every resolved row in prop_observations whose sector matches one
+    of the portfolio's sectors with ev_pct >= 2% and synthesizes a portfolio
+    bet sized at the portfolio's Kelly. Computes pnl from the row's outcome
+    and updates portfolio.current_bankroll = initial + sum(pnl).
+
+    Idempotent: portfolio_bets has a UNIQUE(portfolio_id, market_id) so
+    re-runs don't double-log.
+    """
+    portfolio = get_portfolio(portfolio_id)
+    if portfolio is None:
+        return 0
+
+    # Pull resolved props from the predictions DB. We import lazily to avoid
+    # a circular dep — predictions.db lives next door but uses a different
+    # connection object per its own schema migrations.
+    pred_db = DB_PATH.parent / "predictions.db"
+    if not pred_db.exists():
+        return 0
+
+    # Portfolio sectors are e.g. ["nba_props"], but prop_observations stores
+    # the base sector ("nba") — the "_props" tag is the category key, not the
+    # row's sector value. Strip the suffix when querying.
+    base_sectors = [
+        s[: -len("_props")] if s.endswith("_props") else s
+        for s in portfolio.sectors
+    ]
+    placeholders = ",".join("?" * len(base_sectors))
+    sql = f"""
+        SELECT id, scan_date, event_date, sector, player_name, stat_type,
+               line, kalshi_price, sharp_prob, ev_pct, outcome, market_id,
+               event_id, event_title
+        FROM prop_observations
+        WHERE outcome IS NOT NULL
+          AND sharp_prob IS NOT NULL
+          AND ev_pct >= 0.02
+          AND model_version = ?
+          AND sector IN ({placeholders})
+    """
+    src = sqlite3.connect(str(pred_db))
+    src.row_factory = sqlite3.Row
+    rows = src.execute(sql, (ANCHOR_MODEL_VERSION, *base_sectors)).fetchall()
+    src.close()
+
+    bankroll = portfolio.initial_bankroll
+    kelly_frac_setting = portfolio.kelly_fraction  # e.g. 0.25 / 0.50 / 1.00
+
+    inserted = 0
+    total_pnl = 0.0
+    now = datetime.now(timezone.utc).isoformat()
+    conn = _get_conn()
+    for r in rows:
+        d = dict(r)
+        yes_price = d["kalshi_price"] or 0.0
+        prob = d["sharp_prob"] or 0.0
+        if yes_price <= 0 or yes_price >= 1 or prob <= yes_price:
+            continue
+        # Half-Kelly per market, then scaled by the portfolio's Kelly setting.
+        # Cap at 5% of bankroll to mirror the live Kelly sizing.
+        b = 1.0 / yes_price - 1.0
+        f_full = (b * prob - (1.0 - prob)) / b
+        market_kelly = max(0.0, min(0.05, f_full * 0.5))
+        if market_kelly <= 0:
+            continue
+        stake = round(bankroll * kelly_frac_setting * market_kelly, 2)
+        if stake <= 0:
+            continue
+
+        outcome = int(d["outcome"])
+        pnl = round(stake * (1.0 / yes_price - 1.0), 2) if outcome == 1 else -stake
+        total_pnl += pnl
+
+        market_id = d["market_id"] or f"prop_obs::{d['id']}"
+        display = f"{d.get('player_name')} {d.get('line')}+ {d.get('stat_type')}"
+
+        cur = conn.execute(
+            """INSERT OR IGNORE INTO portfolio_bets
+               (portfolio_id, market_id, scan_date, event_id, sector, yes_team,
+                market_type, event_title, event_date, display_label,
+                kalshi_yes_price, sharp_true_prob, blended_true_prob,
+                ev_pct, kelly_fraction, stake, bankroll_at_scan,
+                line, volume_usd, model_sources,
+                outcome, pnl, resolved_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                portfolio_id, market_id, d["scan_date"], d["event_id"],
+                d["sector"], d.get("player_name"), "player_prop",
+                d.get("event_title") or display,
+                d["event_date"] or d["scan_date"], display,
+                yes_price, prob, prob, d["ev_pct"], market_kelly,
+                stake, bankroll, d.get("line"), None, "pinnacle-anchor-sim",
+                outcome, pnl, now,
+            ),
+        )
+        if cur.rowcount > 0:
+            inserted += 1
+
+    # Roll the simulated PnL into current_bankroll so the dashboard card
+    # shows initial + cumulative simulated profit.
+    conn.execute(
+        "UPDATE portfolios SET current_bankroll = ?, updated_at = ? WHERE id = ?",
+        (round(bankroll + total_pnl, 2), now, portfolio_id),
+    )
+    conn.commit()
+    conn.close()
+    return inserted
 
 
 def log_portfolio_bet(

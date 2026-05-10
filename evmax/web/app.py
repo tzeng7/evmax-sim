@@ -11,27 +11,13 @@ from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 PREDICTIONS_DB = ROOT / "data" / "predictions.db"
-TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 SPA_DIST = ROOT / "frontend" / "dist"
 
 app = FastAPI(title="evmax dashboard")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allow_methods=["*"], allow_headers=["*"])
-
-
-def _prob_to_american(prob: float) -> str:
-    """Convert probability (0-1) to American odds string."""
-    if prob <= 0 or prob >= 1:
-        return "+100"
-    if prob < 0.5:
-        return f"+{round((1 / prob - 1) * 100)}"
-    return f"-{round((prob / (1 - prob)) * 100)}"
-
-
-TEMPLATES.env.globals["probToAmerican"] = _prob_to_american
 
 
 _STAT_LABELS = {
@@ -183,6 +169,92 @@ def _open_bets() -> list[dict[str, Any]]:
     return out
 
 
+def _synth_kelly_fraction(yes_price: float | None, sharp_prob: float | None) -> float:
+    """Half-Kelly fraction from (yes_price, sharp_prob), capped at 5%.
+
+    Used for prop bets — prop_observations doesn't store a kelly_fraction since
+    nba_props is shadow-mode and was never sized in production. We compute the
+    same half-Kelly the live scanner would have applied so the simulation row
+    on the dashboard reflects what would have happened if the category had
+    been live.
+    """
+    if not yes_price or not sharp_prob:
+        return 0.0
+    if yes_price <= 0 or yes_price >= 1:
+        return 0.0
+    if sharp_prob <= yes_price:
+        return 0.0
+    b = 1.0 / yes_price - 1.0  # decimal odds - 1
+    p = float(sharp_prob)
+    f_full = (b * p - (1.0 - p)) / b
+    return max(0.0, min(0.05, f_full * 0.5))
+
+
+def _settled_prop_bets() -> list[dict[str, Any]]:
+    """Resolved prop_observations rows, shaped like settled game bets.
+
+    Sector is suffixed with '_props' so the breakdown table splits e.g.
+    'nba' (game markets) and 'nba_props'. Half-Kelly stake is synthesized
+    from (kalshi_price, sharp_prob) — see _synth_kelly_fraction.
+
+    Filters:
+      - outcome IS NOT NULL (resolved)
+      - sharp_prob IS NOT NULL (priced — excludes legacy unmatched rows)
+      - ev_pct >= 0.02 (matches the live scanner's actionable threshold; props
+        are logged for ALL lines for calibration, but only +EV ones would
+        have been bet on)
+      - model_version = ANCHOR_MODEL_VERSION (only the new anchor-pricing
+        model — legacy L15-era rows preserved as historical record but
+        excluded from the forward-looking simulation view)
+    """
+    from evmax.portfolios import ANCHOR_MODEL_VERSION
+
+    with _conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, scan_date, event_date, sector, player_name, stat_type,
+                   line, kalshi_price, sharp_prob, ev_pct, outcome, mode,
+                   model_version, event_title
+            FROM prop_observations
+            WHERE outcome IS NOT NULL
+              AND sharp_prob IS NOT NULL
+              AND ev_pct >= 0.02
+              AND model_version = ?
+            ORDER BY event_date ASC, id ASC
+            """,
+            (ANCHOR_MODEL_VERSION,),
+        ).fetchall()
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        d = dict(r)
+        kelly = _synth_kelly_fraction(d.get("kalshi_price"), d.get("sharp_prob"))
+        if kelly <= 0:
+            continue
+        out.append({
+            "id": d["id"],
+            "scan_date": d["scan_date"],
+            "event_date": d["event_date"] or d["scan_date"],
+            "sector": f"{d['sector']}_props",
+            "event_title": d.get("event_title") or f"{d.get('player_name')} {d.get('stat_type')}",
+            "yes_team": d.get("player_name"),
+            "market_type": "player_prop",
+            "kalshi_yes_price": d["kalshi_price"],
+            "blended_true_prob": d["sharp_prob"],
+            "sharp_true_prob": d["sharp_prob"],
+            "ev_pct": d["ev_pct"],
+            "kelly_fraction": kelly,
+            "bankroll_used": 250.0,  # standard simulation bankroll
+            "model_sources": d.get("model_version") or "",
+            "placed": 0,
+            "placed_stake": None,
+            "placed_price": None,
+            "line": d.get("line"),
+            "outcome": d["outcome"],
+            "display_label": f"{d.get('player_name')} {d.get('line')}+ {d.get('stat_type')}",
+        })
+    return out
+
+
 def _bet_pnl(bet: dict[str, Any]) -> float:
     bankroll = bet.get("bankroll_used") or 250.0
     kelly = bet.get("kelly_fraction") or 0.0
@@ -253,50 +325,22 @@ def _sector_breakdown(bets: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
-# Pages
-# ---------------------------------------------------------------------------
-
-@app.get("/legacy", response_class=HTMLResponse)
-def legacy_dashboard(request: Request) -> Any:
-    """Legacy Jinja-rendered dashboard. The React SPA at `/` is the default."""
-    settled = _settled_bets()
-    open_bets = _open_bets()
-
-    # All scanned bets
-    summary_all = _summary_stats(settled)
-    series_all = _profit_series(settled)
-    sectors_all = _sector_breakdown(settled)
-
-    # Placed-only subset
-    settled_placed = [b for b in settled if b.get("placed")]
-    summary_placed = _summary_stats(settled_placed)
-    series_placed = _profit_series(settled_placed)
-
-    recent = list(reversed(settled))[:50]
-    placed_bets = _placed_bets()
-    unplaced_bets = open_bets
-    return TEMPLATES.TemplateResponse(
-        request, "dashboard.html",
-        {"summary_all": summary_all, "summary_placed": summary_placed,
-         "sectors": sectors_all, "placed_bets": placed_bets,
-         "unplaced_bets": unplaced_bets, "recent": recent,
-         "series_all": series_all, "series_placed": series_placed},
-    )
-
-
-# ---------------------------------------------------------------------------
-# JSON APIs (for dashboard AJAX)
+# JSON APIs — consumed by the React SPA in frontend/
 # ---------------------------------------------------------------------------
 
 @app.get("/api/dashboard")
 def api_dashboard() -> JSONResponse:
     """Return all dashboard data as JSON for the React SPA."""
     settled = _settled_bets()
+    settled_props = _settled_prop_bets()
     open_bets = _open_bets()
 
+    # Game-only series + summary stay unchanged so the existing chart and KPI
+    # cards reflect actual placed bets only. The sector breakdown gets BOTH
+    # so '{sector}_props' rows appear alongside '{sector}' (simulation view).
     summary_all = _summary_stats(settled)
     series_all = _profit_series(settled)
-    sectors_all = _sector_breakdown(settled)
+    sectors_all = _sector_breakdown(settled + settled_props)
 
     settled_placed = [b for b in settled if b.get("placed")]
     summary_placed = _summary_stats(settled_placed)
@@ -330,7 +374,9 @@ def api_sectors(period: str = Query("all", alias="range")) -> JSONResponse:
     """
     days_map = {"1d": 1, "1w": 7, "1m": 30, "1y": 365, "all": 0}
     days = days_map.get(period, 0)
-    bets = _settled_bets()
+    # Include synthesized prop bets so '{sector}_props' rows appear alongside
+    # game sectors in the date-range filtered breakdown too.
+    bets = _settled_bets() + _settled_prop_bets()
     if days > 0:
         cutoff = (date.today() - timedelta(days=days - 1)).isoformat()
         bets = [b for b in bets if (b.get("event_date") or b.get("scan_date") or "") >= cutoff]
@@ -364,6 +410,8 @@ async def api_scan(request: Request) -> JSONResponse:
     date_to = body.get("date_to", "")
 
     from evmax.agents.coordinator import AgentCoordinator
+    from evmax.agents.cleanup.logger import _gap_category_key
+    from evmax.modes import get_mode
     sectors = [s.strip() for s in sectors_str.split(",") if s.strip()]
     coord = AgentCoordinator(
         sectors=sectors, bankroll=bankroll, kelly_fraction=kelly,
@@ -395,6 +443,10 @@ async def api_scan(request: Request) -> JSONResponse:
             "prop_stat_type": g.prop_stat_type,
             "prop_threshold": g.prop_threshold,
         }
+        try:
+            gap_mode = get_mode(_gap_category_key(g))
+        except Exception:
+            gap_mode = "live"
         gaps.append({
             "event_title": g.event_title or "",
             "yes_team": g.yes_team or "",
@@ -411,6 +463,7 @@ async def api_scan(request: Request) -> JSONResponse:
             "market_id": g.market_id or "",
             "event_date": str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else ""),
             "volume": g.volume_usd or 0,
+            "mode": gap_mode,
         })
 
     # Filter by requested date range (defaults to today + tomorrow)
@@ -607,6 +660,16 @@ async def api_create_portfolio(request: Request) -> JSONResponse:
 def api_create_defaults() -> JSONResponse:
     from evmax.portfolios import create_default_portfolios
     created = create_default_portfolios()
+    return JSONResponse({"created": len(created), "portfolios": [p.to_dict() for p in created]})
+
+
+@app.post("/api/portfolios/create-prop-defaults")
+def api_create_prop_defaults() -> JSONResponse:
+    """Create prop-only portfolios with simulated bets backfilled from
+    prop_observations. Safe to call repeatedly — INSERT OR IGNORE on both
+    portfolios and portfolio_bets means existing rows are preserved."""
+    from evmax.portfolios import create_prop_portfolios
+    created = create_prop_portfolios(backfill=True)
     return JSONResponse({"created": len(created), "portfolios": [p.to_dict() for p in created]})
 
 
@@ -813,7 +876,6 @@ else:
         return HTMLResponse(
             "<h1>frontend not built</h1>"
             "<p>Run <code>cd frontend &amp;&amp; npm install &amp;&amp; npm run build</code>, "
-            "then restart <code>evmax dashboard serve</code>. "
-            "Or visit <a href='/legacy'>/legacy</a> for the old Jinja dashboard.</p>",
+            "then restart <code>evmax dashboard serve</code>.</p>",
             status_code=503,
         )
