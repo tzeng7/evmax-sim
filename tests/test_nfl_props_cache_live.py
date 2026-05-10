@@ -229,21 +229,60 @@ class TestComputeCached:
 
 
 class TestCoordinatorFetchPropsNfl:
-    """Integration test: AgentCoordinator._fetch_props('nfl') must produce
-    SharpOdds via the NFL branch. Exercises the MODEL-9 wire-up from Kalshi
-    market fetch through to cached probability compute, without hitting
-    the network or the real parquets.
+    """Integration test: AgentCoordinator._fetch_props('nfl') must pair
+    Kalshi prop markets with Pinnacle devigged lines. Markets without a
+    matching Pinnacle line are dropped — Pinnacle is the sharp anchor for
+    every fired prop bet (the L15 cache is diagnostic only).
     """
 
-    def test_fetch_props_nfl_returns_sharp_odds(self, nfl_parquets, monkeypatch):
+    @staticmethod
+    def _patch_clients(monkeypatch, *, kalshi_markets, pinn_props):
+        """Wire fake Kalshi + Pinnacle clients into the coordinator imports."""
+        class _FakeKalshi:
+            async def __aenter__(self): return self
+            async def __aexit__(self, *a): return None
+            async def get_markets(self, sector):
+                return kalshi_markets if sector == "nfl_props" else []
+
+        class _FakePinn:
+            async def __aenter__(self): return self
+            async def __aexit__(self, *a): return None
+            async def get_prop_odds(self, sector):
+                return pinn_props
+
+        from evmax.clients import kalshi as kalshi_mod
+        from evmax.clients import esports_pinnacle as pinn_mod
+        monkeypatch.setattr(kalshi_mod, "KalshiClient", _FakeKalshi)
+        monkeypatch.setattr(pinn_mod, "PinnacleGuestClient", _FakePinn)
+
+    @staticmethod
+    def _pinn_prop(player, stat, line, prob_over):
+        from evmax.models.odds import SharpBook, SharpOdds
+        return SharpOdds(
+            event_id=f"nfl::2025-11-17::prop::{player}::{stat}::{line}",
+            book=SharpBook.pinnacle,
+            sector="nfl",
+            outcome_a_label="over",
+            outcome_b_label="under",
+            outcome_a_decimal=1.91,
+            outcome_b_decimal=1.91,
+            true_prob_a=0.0,
+            true_prob_b=0.0,
+            true_prob_over=prob_over,
+            true_prob_under=1.0 - prob_over,
+            total_line=line,
+            margin=0.04,
+            prop_player_name=player,
+            prop_stat_type=stat,
+        )
+
+    def test_fetch_props_nfl_returns_pinnacle_anchored_odds(self, nfl_parquets, monkeypatch):
         from datetime import datetime
-        from unittest.mock import AsyncMock
 
         from evmax.agents.coordinator import AgentCoordinator
         from evmax.models.market import MarketSource, MarketType, PredictionMarket
 
-        # Build two fake Kalshi prop markets for players in the synthetic
-        # parquet fixture so the cache can actually score them.
+        # Two Kalshi prop markets for players in the synthetic parquet fixture
         markets = [
             PredictionMarket(
                 id="KXNFLPASSYDS-25NOV17KC-B299.5",
@@ -281,33 +320,87 @@ class TestCoordinatorFetchPropsNfl:
             ),
         ]
 
-        # Mock KalshiClient so the coordinator doesn't touch the network
-        class _FakeKalshi:
-            async def __aenter__(self): return self
-            async def __aexit__(self, *a): return None
-            async def get_markets(self, sector):
-                return markets if sector == "nfl_props" else []
+        # Pinnacle returns matching lines for both — coordinator should pair them
+        pinn_props = [
+            self._pinn_prop("Big Passer", "passing_yards", 299.5, 0.55),
+            self._pinn_prop("Solid Rusher", "rushing_yards", 79.5, 0.48),
+        ]
 
-        from evmax.clients import kalshi as kalshi_mod
-        monkeypatch.setattr(kalshi_mod, "KalshiClient", _FakeKalshi)
+        self._patch_clients(monkeypatch, kalshi_markets=markets, pinn_props=pinn_props)
 
         coord = AgentCoordinator(sectors=["nfl"], enable_models=False)
         prop_markets, prop_sharp = _run(coord._fetch_props("nfl"))
 
-        # Both markets make it through dedupe
+        # Both markets make it through dedupe and find Pinnacle anchors
         assert len(prop_markets) == 2
-        # Both players score — the cache fixture has enough history for both
         assert len(prop_sharp) == 2
         names = {s.prop_player_name for s in prop_sharp}
         assert names == {"Big Passer", "Solid Rusher"}
 
-        # Every SharpOdds carries a valid true_prob_over from the model
+        # SharpOdds carry probs derived from Pinnacle's devigged anchor via
+        # the prop_pricing module (Normal for yardage stats). At Kalshi
+        # threshold == Pinnacle line, the priced prob round-trips back to the
+        # anchor prob_over within the continuity-correction tolerance.
+        by_player = {s.prop_player_name: s for s in prop_sharp}
+        assert by_player["Big Passer"].true_prob_over == pytest.approx(0.55, abs=0.02)
+        assert by_player["Solid Rusher"].true_prob_over == pytest.approx(0.48, abs=0.02)
+
+        # L15 metadata is augmented when the cache has the player
         for s in prop_sharp:
-            assert 0.0 < s.true_prob_over < 1.0
-            assert s.true_prob_under == 1.0 - s.true_prob_over
-            assert s.prop_l15_games >= 4  # MIN_GAMES
+            assert s.true_prob_under == pytest.approx(1.0 - s.true_prob_over)
             assert s.sector == "nfl"
             assert s.prop_stat_type in {"passing_yards", "rushing_yards"}
+            assert s.prop_l15_games >= 4  # cache-derived diagnostic
+
+    def test_fetch_props_nfl_prices_off_anchor_when_lines_differ(
+        self, nfl_parquets, monkeypatch,
+    ):
+        """Pinnacle posts ONE half-point line per (player, stat); Kalshi posts
+        many integer 'X+' thresholds. The coordinator must price each Kalshi
+        threshold off the single Pinnacle anchor via prop_pricing, so a Kalshi
+        market at 299.5 is still served by a Pinnacle anchor at 274.5."""
+        from datetime import datetime
+
+        from evmax.agents.coordinator import AgentCoordinator
+        from evmax.models.market import MarketSource, MarketType, PredictionMarket
+
+        markets = [
+            PredictionMarket(
+                id="KXNFLPASSYDS-25NOV17KC-B299.5",
+                source=MarketSource.kalshi,
+                sector="nfl",
+                market_type=MarketType.player_prop,
+                title="Big Passer 299.5 Passing Yards",
+                event_id="nfl::2025-11-17::prop::bigpasser::passing_yards::299.5",
+                team_home="KC",
+                team_away="LV",
+                yes_team="Big Passer",
+                yes_price=0.50,
+                no_price=0.50,
+                event_date=datetime(2025, 11, 17, 20, 0),
+                player_name="Big Passer",
+                stat_type="passing_yards",
+                threshold=299.5,
+            ),
+        ]
+
+        # Pinnacle anchor at a DIFFERENT line — anchor pricing must still apply
+        pinn_props = [
+            self._pinn_prop("Big Passer", "passing_yards", 274.5, 0.60),
+        ]
+
+        self._patch_clients(monkeypatch, kalshi_markets=markets, pinn_props=pinn_props)
+
+        coord = AgentCoordinator(sectors=["nfl"], enable_models=False)
+        prop_markets, prop_sharp = _run(coord._fetch_props("nfl"))
+
+        # Anchor exists for (player, stat) → Kalshi market gets a priced prob.
+        # The Pinnacle anchor implies μ > 274.5 (since prob_over > 0.5), so
+        # P(X >= 299.5) sits below the anchor's 0.60 — somewhere in 0.30-0.55.
+        assert len(prop_markets) == 1
+        assert len(prop_sharp) == 1
+        assert prop_sharp[0].true_prob_over < 0.60
+        assert prop_sharp[0].total_line == pytest.approx(299.5)
 
     def test_fetch_props_nfl_skips_unknown_player(self, nfl_parquets, monkeypatch):
         from datetime import datetime
@@ -335,19 +428,12 @@ class TestCoordinatorFetchPropsNfl:
             ),
         ]
 
-        class _FakeKalshi:
-            async def __aenter__(self): return self
-            async def __aexit__(self, *a): return None
-            async def get_markets(self, sector):
-                return markets if sector == "nfl_props" else []
-
-        from evmax.clients import kalshi as kalshi_mod
-        monkeypatch.setattr(kalshi_mod, "KalshiClient", _FakeKalshi)
+        # No Pinnacle data → unmatched → dropped
+        self._patch_clients(monkeypatch, kalshi_markets=markets, pinn_props=[])
 
         coord = AgentCoordinator(sectors=["nfl"], enable_models=False)
         prop_markets, prop_sharp = _run(coord._fetch_props("nfl"))
 
-        # Market dedupes through but nobody can be scored
         assert len(prop_markets) == 1
         assert len(prop_sharp) == 0
 

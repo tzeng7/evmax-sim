@@ -48,12 +48,20 @@ CREATE TABLE IF NOT EXISTS archived_sharp_odds (
     outcome_a_decimal    REAL    NOT NULL,
     outcome_b_decimal    REAL    NOT NULL,
     outcome_draw_decimal REAL,
-    true_prob_a          REAL    NOT NULL,
-    true_prob_b          REAL    NOT NULL,
+    true_prob_a          REAL    NOT NULL,   -- moneyline-style: 0.0 for props
+    true_prob_b          REAL    NOT NULL,   -- moneyline-style: 0.0 for props
     true_prob_draw       REAL,
     margin               REAL    NOT NULL,
     spread_line          REAL,
     event_date           TEXT,
+    -- Player-prop specific. Populated when prop_player_name IS NOT NULL.
+    -- The non-null prop columns are how we partition prop rows from
+    -- moneyline / spread rows in queries.
+    true_prob_over       REAL,
+    true_prob_under      REAL,
+    total_line           REAL,
+    prop_player_name     TEXT,
+    prop_stat_type       TEXT,
     UNIQUE(session_id, event_id, book)
 );
 
@@ -111,6 +119,15 @@ _MIGRATIONS = [
         source      TEXT    NOT NULL DEFAULT 'kalshi_api'
     )""",
     "CREATE INDEX IF NOT EXISTS idx_outcomes_ticker ON archived_outcomes(ticker)",
+    # Prop columns added 2026-05-10 — pre-existing rows will be NULL on these.
+    # Each ALTER is wrapped in try/except in _get_connection() so a second run
+    # against a freshly-created table (which already has the columns from
+    # SCHEMA) doesn't crash on "duplicate column".
+    "ALTER TABLE archived_sharp_odds ADD COLUMN true_prob_over REAL",
+    "ALTER TABLE archived_sharp_odds ADD COLUMN true_prob_under REAL",
+    "ALTER TABLE archived_sharp_odds ADD COLUMN total_line REAL",
+    "ALTER TABLE archived_sharp_odds ADD COLUMN prop_player_name TEXT",
+    "ALTER TABLE archived_sharp_odds ADD COLUMN prop_stat_type TEXT",
 ]
 
 
@@ -170,6 +187,12 @@ class DataArchiver:
                 o.margin,
                 o.spread_line,
                 _fmt(o.event_date),
+                # Prop fields — None for moneyline / spread / total rows
+                o.true_prob_over,
+                o.true_prob_under,
+                o.total_line,
+                o.prop_player_name,
+                o.prop_stat_type,
             )
             for o in odds
         ]
@@ -179,8 +202,10 @@ class DataArchiver:
                 "(session_id, fetched_at, sector, event_id, book, "
                 " outcome_a_label, outcome_b_label, outcome_a_decimal, outcome_b_decimal, "
                 " outcome_draw_decimal, true_prob_a, true_prob_b, true_prob_draw, "
-                " margin, spread_line, event_date) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                " margin, spread_line, event_date, "
+                " true_prob_over, true_prob_under, total_line, "
+                " prop_player_name, prop_stat_type) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 rows,
             )
         return len(rows)

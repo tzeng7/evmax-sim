@@ -42,6 +42,11 @@ _MAX_OPP_ADJ = 0.15
 _MIN_VOL_THRESHOLD = 1.5  # flag games with minutes > mean ± 1.5σ
 _VOL_DOWNWEIGHT = 0.25     # volatile games get 25% of their normal weight
 
+# Long-shot empirical replacement (see compute_prop_prob_cached).
+_LOW_TAIL_PROB = 0.15           # below this, swap Normal-CDF for empirical
+_LOW_TAIL_PRIOR_HITS = 1.0      # Beta α — 1 pseudo-hit
+_LOW_TAIL_PRIOR_MISSES = 4.0    # Beta β — 4 pseudo-misses (prior mean 0.20, n=5)
+
 # Calibration loaded once on first prop computation. The JSON is fitted by
 # scripts/calibrate_nba_props.py against the 2024-25 holdout — see Path A
 # of TODO #24. When absent, we fall back to the original hand-tuned constants.
@@ -63,6 +68,34 @@ def _load_calibration() -> dict | None:
         logger.warning("nba_props_calibration_load_failed", error=str(exc))
         _calibration = None
     return _calibration
+
+
+def _calibration_for_stat(stat_type: str) -> dict | None:
+    """Return the calibration block for one stat type, with fallback chain.
+
+    Schema-v2 calibrations have a `per_stat` map plus a `global` block.
+    Each per-stat block holds the same fields as the legacy top-level
+    schema (base_rate, shrinkage, blend_model, isotonic_x_thresholds,
+    isotonic_y_thresholds), fitted on rows for that stat only.
+
+    Resolution order:
+      1. per_stat[stat_type]  — stat-specific fit
+      2. global               — pooled fallback
+      3. legacy top-level     — v1 schema (single calibration for all stats)
+      4. None                 — falls through to hand-tuned constants
+    """
+    cal = _load_calibration()
+    if cal is None:
+        return None
+    per_stat = cal.get("per_stat") or {}
+    if stat_type in per_stat:
+        return per_stat[stat_type]
+    if "global" in cal and cal["global"] is not None:
+        return cal["global"]
+    # Legacy v1 schema: top-level dict already IS the calibration
+    if "isotonic_x_thresholds" in cal:
+        return cal
+    return None
 
 
 def _apply_isotonic(prob: float, x_thresh: list[float], y_thresh: list[float]) -> float:
@@ -105,6 +138,28 @@ class PropResult:
     avg_minutes: float = 0.0           # L15 average minutes
 
 
+@dataclass
+class PropDiagnostics:
+    """Cheap diagnostic-only L15 lookup — no probability math.
+
+    Production scan reads this via compute_prop_diagnostics() instead of
+    compute_prop_prob_cached(). The latter still exists for backtest scripts
+    and the `evmax cleanup replay-props` CLI command, which intentionally
+    re-runs the legacy L15 model on resolved rows.
+
+    Why split these: anchor-based pricing (evmax/ev/prop_pricing.py with a
+    Pinnacle anchor) is now the production source of probability. The L15
+    cache's projected probability is redundant with what line-setters already
+    know — that's the failure mode that took nba_props to shadow on 2026-05-01
+    (−223u, long-shot bias). We keep n_games and minutes_volatile because
+    they're cheap data-quality signals, not predictions.
+    """
+    n_games: int
+    minutes_volatile: bool = False
+    minutes_cv: float = 0.0
+    avg_minutes: float = 0.0
+
+
 STAT_COL: dict[str, str] = {
     "points": "PTS",
     "rebounds": "REB",
@@ -137,6 +192,16 @@ def _load_cache() -> dict | None:
                 return data
     except Exception as e:
         logger.debug("nba_props_cache_load_failed", error=str(e))
+    return None
+
+
+def _load_cache_any_age() -> dict | None:
+    """Load cache regardless of TTL — used for fallback when refresh fails."""
+    try:
+        if _CACHE_PATH.exists():
+            return json.loads(_CACHE_PATH.read_text())
+    except Exception as e:
+        logger.debug("nba_props_cache_load_any_failed", error=str(e))
     return None
 
 
@@ -186,6 +251,21 @@ async def refresh_props_cache(
         merged.update(players_data)
         players_data = merged
 
+    # Cache-safety: if the fetch produced zero players (network blocked,
+    # ESPN+nba_api both down) AND we have an existing non-empty cache,
+    # keep the prior cache instead of wiping it. Prevents a death-spiral
+    # where one bad refresh clears the cache and every subsequent prop
+    # scan returns empty.
+    if not players_data:
+        prior = existing or _load_cache_any_age()
+        prior_players = (prior or {}).get("players") or {}
+        if prior_players:
+            logger.warning(
+                "nba_props_cache_refresh_empty_keeping_prior",
+                prior_count=len(prior_players),
+            )
+            return len(prior_players)
+
     loop = asyncio.get_event_loop()
     team_stats = await loop.run_in_executor(None, _fetch_team_stats_sync)
     league_avg = _league_averages(team_stats)
@@ -227,33 +307,50 @@ async def _fetch_player_stats_async(
         logger.warning("nba_api_not_installed")
         return {}
 
-    # Resolve player name → ID
+    # Resolve player name → ID. nba_api ID is optional now — when missing
+    # (or stats.nba.com is in backoff), we fall through to ESPN using the
+    # name_key directly. Targets carry pid=0 as the sentinel for "ESPN-only".
     if player_names:
-        # Targeted: only players with Kalshi prop markets
         from evmax.clients.nba_stats import _find_player_id
-        targets = []
+        targets: list[tuple[str, int]] = []
         for name in set(player_names):
-            pid = _find_player_id(name)
-            if pid:
-                targets.append((name, pid))
+            pid = _find_player_id(name) or 0
+            targets.append((name, pid))
     else:
-        # All active players
         all_active = [p for p in nba_players.get_active_players()]
         targets = [
             (p["full_name"].lower().replace(" ", "_"), p["id"])
             for p in all_active
         ]
 
+    # Skip nba_api entirely when the circuit breaker is tripped — every call
+    # would just burn the per-player timeout (3 retries × 10s) before failing.
+    from evmax.agents.models._nba_freshness import nba_api_in_backoff, mark_nba_api_failure
+    nba_api_blocked = nba_api_in_backoff()
+    if nba_api_blocked:
+        logger.info("nba_props_skipping_nba_api_breaker_tripped", targets=len(targets))
+
     logger.info("nba_props_fetching_players", count=len(targets))
 
-    # Fetch game logs concurrently (semaphore-limited)
+    nba_failures = 0  # track failures to trip the breaker on first sign of trouble
+
     async def _fetch_one(name_key: str, player_id: int) -> tuple[str, dict | None]:
-        async with _SEM:
-            loop = asyncio.get_event_loop()
-            data = await loop.run_in_executor(
-                None, _fetch_single_player_sync, player_id,
-            )
-            return name_key, data
+        nonlocal nba_failures
+        loop = asyncio.get_event_loop()
+
+        if not nba_api_blocked and player_id:
+            async with _SEM:
+                data = await loop.run_in_executor(
+                    None, _fetch_single_player_sync, player_id,
+                )
+            if data is not None:
+                return name_key, data
+            nba_failures += 1
+
+        # ESPN fallback. No semaphore — ESPN handles concurrent requests fine
+        # and we want to recover the cache fast when stats.nba.com is down.
+        data = await loop.run_in_executor(None, _fetch_player_via_espn_sync, name_key)
+        return name_key, data
 
     results = await asyncio.gather(
         *(_fetch_one(name, pid) for name, pid in targets),
@@ -267,6 +364,12 @@ async def _fetch_player_stats_async(
         name_key, data = r
         if data is not None:
             players[name_key] = data
+
+    # If every nba_api call failed but ESPN saved us, trip the breaker so
+    # the next refresh skips nba_api straight away.
+    if not nba_api_blocked and nba_failures and nba_failures >= len(targets) // 2:
+        mark_nba_api_failure()
+        logger.warning("nba_props_nba_api_breaker_tripped", failures=nba_failures, total=len(targets))
 
     logger.info("nba_props_players_fetched", count=len(players))
     return players
@@ -318,6 +421,155 @@ def _fetch_single_player_sync(player_id: int) -> dict | None:
     except Exception as e:
         logger.debug("nba_props_player_fetch_failed", player_id=player_id, error=str(e))
         return None
+
+
+# ESPN fallback path. stats.nba.com routinely blocks scraping during playoffs;
+# ESPN's public gamelog API is unauthenticated, fast (~350ms), and exposes the
+# same per-game stat columns we need. Used when nba_api returns None.
+#
+# Stat indices come from the response's `labels` array, fixed across requests:
+#   ['MIN','FG','FG%','3PT','3P%','FT','FT%','REB','AST','BLK','STL','PF','TO','PTS']
+_ESPN_STAT_IDX = {"MIN": 0, "REB": 7, "AST": 8, "BLK": 9, "STL": 10, "TOV": 12, "PTS": 13}
+_ESPN_3PT_IDX = 3  # "made-attempted" string, e.g. "4-9"
+_ESPN_SEARCH_URL = "https://site.web.api.espn.com/apis/common/v3/search"
+_ESPN_GAMELOG_URL = "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/{id}/gamelog"
+_ESPN_SEASON_YEAR = 2026  # 2025-26 season; bump in offseason
+
+# In-memory cache of name → ESPN athlete ID so repeated scans don't re-search
+# (lookup costs ~300ms per player; cache survives the process lifetime).
+_espn_id_cache: dict[str, str] = {}
+
+
+def _resolve_espn_athlete_id(player_name: str) -> str | None:
+    """Resolve a name like 'lebron_james' to ESPN athlete id via search."""
+    cached = _espn_id_cache.get(player_name)
+    if cached is not None:
+        return cached or None
+    query = player_name.replace("_", " ").strip()
+    if not query:
+        return None
+    try:
+        import httpx
+        r = httpx.get(
+            _ESPN_SEARCH_URL,
+            params={"query": query, "limit": 5, "type": "player"},
+            timeout=8.0,
+        )
+        r.raise_for_status()
+        for item in (r.json() or {}).get("items", []):
+            if item.get("league") == "nba" and item.get("sport") == "basketball":
+                aid = str(item.get("id") or "")
+                if aid:
+                    _espn_id_cache[player_name] = aid
+                    return aid
+        _espn_id_cache[player_name] = ""  # negative-cache so we don't retry
+        return None
+    except Exception as e:
+        logger.debug("nba_props_espn_search_failed", player=player_name, error=str(e))
+        return None
+
+
+def _parse_espn_stat(stats_row: list, idx: int) -> float:
+    """Coerce ESPN stat-cell to float; '-' / '' → 0.0."""
+    try:
+        v = stats_row[idx]
+    except (IndexError, TypeError):
+        return 0.0
+    if v in (None, "", "-"):
+        return 0.0
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _parse_espn_made(stats_row: list, idx: int) -> float:
+    """Parse a 'made-attempted' cell like '4-9' → 4.0."""
+    try:
+        cell = str(stats_row[idx])
+    except (IndexError, TypeError):
+        return 0.0
+    if "-" not in cell:
+        return 0.0
+    try:
+        return float(cell.split("-", 1)[0])
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _fetch_player_via_espn_sync(player_name: str) -> dict | None:
+    """ESPN fallback. Returns same shape as _fetch_single_player_sync, or None.
+
+    Walks seasonTypes → categories → events in the order ESPN returns them
+    (postseason first, then regular season most-recent-month first), collects
+    up to _LAST_N_GAMES, parses stats by fixed label index.
+    """
+    aid = _resolve_espn_athlete_id(player_name)
+    if not aid:
+        return None
+    try:
+        import httpx
+        r = httpx.get(
+            _ESPN_GAMELOG_URL.format(id=aid),
+            params={"season": _ESPN_SEASON_YEAR},
+            timeout=10.0,
+        )
+        r.raise_for_status()
+        data = r.json() or {}
+    except Exception as e:
+        logger.debug("nba_props_espn_gamelog_failed", player=player_name, aid=aid, error=str(e))
+        return None
+
+    events_meta = data.get("events") or {}
+    collected: list[tuple[str, list]] = []  # (event_id, stats_row)
+    for st in data.get("seasonTypes") or []:
+        for cat in st.get("categories") or []:
+            for ev in cat.get("events") or []:
+                eid = str(ev.get("eventId") or "")
+                row = ev.get("stats") or []
+                if eid and row:
+                    collected.append((eid, row))
+
+    # ESPN returns most-recent-first within each category, but categories
+    # are ordered postseason→regular, recent→old. Sort by event gameDate
+    # descending using the events meta map so playoff-and-RS interleave
+    # is handled correctly.
+    def _date_key(eid: str) -> str:
+        return (events_meta.get(eid, {}) or {}).get("gameDate", "")
+    collected.sort(key=lambda p: _date_key(p[0]), reverse=True)
+    collected = collected[:_LAST_N_GAMES]
+
+    if len(collected) < _MIN_GAMES:
+        return None
+
+    stats: dict[str, list[float]] = {k: [] for k in ("PTS", "REB", "AST", "FG3M", "STL", "BLK", "TOV", "MIN")}
+    for _eid, row in collected:
+        stats["PTS"].append(_parse_espn_stat(row, _ESPN_STAT_IDX["PTS"]))
+        stats["REB"].append(_parse_espn_stat(row, _ESPN_STAT_IDX["REB"]))
+        stats["AST"].append(_parse_espn_stat(row, _ESPN_STAT_IDX["AST"]))
+        stats["STL"].append(_parse_espn_stat(row, _ESPN_STAT_IDX["STL"]))
+        stats["BLK"].append(_parse_espn_stat(row, _ESPN_STAT_IDX["BLK"]))
+        stats["TOV"].append(_parse_espn_stat(row, _ESPN_STAT_IDX["TOV"]))
+        stats["MIN"].append(_parse_espn_stat(row, _ESPN_STAT_IDX["MIN"]))
+        stats["FG3M"].append(_parse_espn_made(row, _ESPN_3PT_IDX))
+
+    if not stats["PTS"]:
+        return None
+
+    # Pull team + display name from the most recent event meta.
+    most_recent_eid = collected[0][0]
+    meta = events_meta.get(most_recent_eid, {}) or {}
+    team_abbrev = ((meta.get("team") or {}).get("abbreviation") or "").upper()
+    display_name = player_name.replace("_", " ").title()
+
+    return {
+        "player_name": display_name,
+        "player_id": 0,  # not an nba_api id; downstream only uses name keys
+        "team": team_abbrev,
+        "n_games": len(collected),
+        "stats": stats,
+        "source": "espn",
+    }
 
 
 def _fetch_team_stats_sync() -> dict[str, dict]:
@@ -520,8 +772,27 @@ def compute_prop_prob_cached(
     # Base probability from normal distribution
     # ------------------------------------------------------------------
     # No continuity correction — the old -0.5 inflated prob by ~5pp.
-    model_prob = float(1 - norm.cdf(eff_threshold, wmean, wstd))
-    model_prob = max(0.01, min(0.99, model_prob))
+    normal_prob = float(1 - norm.cdf(eff_threshold, wmean, wstd))
+    normal_prob = max(0.01, min(0.99, normal_prob))
+
+    # Long-shot empirical replacement. Counting stats (PTS/AST/3PM) are
+    # right-skewed, so Normal-CDF systematically overstates the upper tail
+    # at low probabilities. 2026-04→2026-05 production audit: <10c Kalshi
+    # bucket hit 1.9% (n=212) while the calibrated model said 14.1% — a
+    # −163u leak driven by Normal-CDF tail bias amplified by an isotonic
+    # floor of 12.4%. When raw Normal predicts <15%, replace with a
+    # Laplace-smoothed empirical CDF from the L15 game log: Beta(α=1, β=4)
+    # prior (mean 0.20, effective n=5). 0/15 → 5%, 1/15 → 10%, 3/15 → 20%.
+    if normal_prob < _LOW_TAIL_PROB:
+        n_hits_total = float(np.sum(hits))
+        n_games_total = float(len(hits))
+        model_prob = (n_hits_total + _LOW_TAIL_PRIOR_HITS) / (
+            n_games_total + _LOW_TAIL_PRIOR_HITS + _LOW_TAIL_PRIOR_MISSES
+        )
+        low_tail_empirical = True
+    else:
+        model_prob = normal_prob
+        low_tail_empirical = False
 
     # ------------------------------------------------------------------
     # Calibrated blend
@@ -545,7 +816,13 @@ def compute_prop_prob_cached(
     # file is present, its base_rate / shrinkage / blend_model override the
     # legacy hand-tuned values, and an isotonic post-hoc layer applies at
     # the very end. When absent, we fall back to the original constants.
-    cal = _load_calibration()
+    #
+    # Schema v2 (2026-05-03+): per-stat calibrations preferred over a single
+    # global. _calibration_for_stat handles the per-stat → global → legacy
+    # fallback chain. Each stat type sees its own isotonic mapping fitted on
+    # ~10–20k 2024-25 rows of just-that-stat (threes, points, assists are
+    # the biggest individual-fit improvements).
+    cal = _calibration_for_stat(stat_type)
     if cal is not None:
         blend_model = cal.get("blend_model", 0.40)
         base_rate = cal.get("base_rate", 0.40)
@@ -610,7 +887,11 @@ def compute_prop_prob_cached(
     # on test half — fixes the systematic +13pp under-prediction in the
     # 50-70% bucket that the hand-tuned shrinkage was masking. When the
     # calibration file is absent, this is a no-op.
-    if cal is not None:
+    #
+    # Skipped for low-tail empirical replacements: the 2024-25 isotonic
+    # floors any input ≤12% at 12.4%, which would re-introduce the long-shot
+    # bias the empirical replacement just removed.
+    if cal is not None and not low_tail_empirical:
         x_thresh = cal.get("isotonic_x_thresholds") or []
         y_thresh = cal.get("isotonic_y_thresholds") or []
         if x_thresh and y_thresh:
@@ -624,6 +905,53 @@ def compute_prop_prob_cached(
         minutes_volatile=minutes_volatile,
         minutes_cv=round(minutes_cv, 3),
         volatile_games=volatile_games,
+        avg_minutes=round(avg_min, 1),
+    )
+
+
+def compute_prop_diagnostics(player_name: str) -> PropDiagnostics | None:
+    """Cheap L15 diagnostic lookup — sample size + minutes volatility only.
+
+    Production scan path. Returns None if the player isn't in cache or has
+    fewer than _MIN_GAMES recent games. Otherwise returns a PropDiagnostics
+    with n_games / minutes_volatile / minutes_cv / avg_minutes — no
+    probability math, no opponent adjustment, no isotonic calibration.
+
+    See PropDiagnostics docstring for the design rationale.
+    """
+    cache = _load_cache()
+    if cache is None:
+        return None
+    player = (cache.get("players") or {}).get(player_name)
+    if player is None:
+        return None
+
+    n_games = player.get("n_games", 0)
+    if n_games < _MIN_GAMES:
+        return None
+
+    stats = player.get("stats", {})
+    minutes_list = stats.get("MIN", [])
+    if not minutes_list:
+        # No minutes data — return what we can.
+        return PropDiagnostics(n_games=n_games)
+
+    n = min(len(minutes_list), _LAST_N_GAMES)
+    minutes = np.array(minutes_list[:n])
+    avg_min = float(np.mean(minutes))
+    min_std = float(np.std(minutes)) if n >= 3 else 0.0
+    minutes_cv = min_std / avg_min if avg_min > 5.0 else 0.0
+
+    volatile_games = 0
+    if avg_min >= 5.0 and min_std > 1.0:
+        volatile_mask = np.abs(minutes - avg_min) > (_MIN_VOL_THRESHOLD * min_std)
+        volatile_games = int(np.sum(volatile_mask))
+    minutes_volatile = volatile_games >= 2 or (volatile_games >= 1 and minutes_cv > 0.25)
+
+    return PropDiagnostics(
+        n_games=n,
+        minutes_volatile=minutes_volatile,
+        minutes_cv=round(minutes_cv, 3),
         avg_minutes=round(avg_min, 1),
     )
 

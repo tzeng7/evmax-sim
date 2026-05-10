@@ -300,11 +300,16 @@ def log_prop_observations(
 def log_prop_from_sharp(
     pairs: list[tuple["SharpOdds", "PredictionMarket"]],
     scan_date: Optional[date] = None,
+    model_version: Optional[str] = None,
 ) -> int:
     """Log prop observations directly from SharpOdds + PredictionMarket pairs.
 
     Used when _evaluate_prop is disabled — props aren't turned into EVGaps but
     we still want calibration data in prop_observations.
+
+    `model_version` is written to the eponymous column so calibration queries
+    can partition rows by which probability source produced them (e.g.
+    `pinnacle-v1` for Pinnacle-anchored, NULL for the legacy L15 model).
     """
     if not pairs:
         return 0
@@ -332,8 +337,9 @@ def log_prop_from_sharp(
                     """INSERT OR IGNORE INTO prop_observations
                     (scan_date, event_date, sector, player_name, stat_type, line,
                      kalshi_price, sharp_prob, ev_pct, l15_games,
-                     market_id, event_id, event_title)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     market_id, event_id, event_title,
+                     captured_yes_price, model_version)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         sd,
                         event_date_str,
@@ -348,6 +354,8 @@ def log_prop_from_sharp(
                         market.id,
                         sharp.event_id,
                         market.title,
+                        kalshi_price,
+                        model_version,
                     ),
                 )
                 if conn.execute("SELECT changes()").fetchone()[0]:
@@ -357,5 +365,11 @@ def log_prop_from_sharp(
 
         conn.commit()
 
-    logger.info("props_logged_from_sharp", inserted=inserted, total=len(pairs), date=sd)
+    logger.info(
+        "props_logged_from_sharp",
+        inserted=inserted,
+        total=len(pairs),
+        date=sd,
+        model_version=model_version,
+    )
     return inserted

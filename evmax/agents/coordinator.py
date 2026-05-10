@@ -59,6 +59,7 @@ from evmax.agents.models.soccer_xg_agent import SoccerXgAgent
 from evmax.agents.models.efficiency_agent import EfficiencyModelAgent
 from evmax.agents.models.nfl_efficiency_agent import NflEfficiencyModelAgent
 from evmax.agents.models.nfl_qb_elo_agent import NflQbEloModelAgent
+from evmax.agents.models.nhl_xg_agent import NhlXgModelAgent
 from evmax.agents.models.wnba_efficiency_agent import WNBAEfficiencyModelAgent
 from evmax.agents.models.shot_quality_agent import ShotQualityAgent
 from evmax.agents.models.matchup_agent import MatchupAgent
@@ -70,6 +71,7 @@ from evmax.agents.intelligence.standings_agent import StandingsAgent, TeamStandi
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds, SharpBook
 from evmax.matching.engine import MatchingEngine
+from evmax.settings import get_settings
 
 logger = structlog.get_logger(__name__)
 
@@ -227,6 +229,7 @@ def _apply_exposure_guard(
     gaps: list[EVGap],
     max_event_exposure: float = 0.08,
     prior_exposure: dict[str, float] | None = None,
+    same_side_kelly_discount: float = 0.5,
 ) -> list[EVGap]:
     """Cap total Kelly allocation per game to max_event_exposure (default 8%).
 
@@ -235,12 +238,24 @@ def _apply_exposure_guard(
     exposure. Best plays (by EV) consume budget first; lower-EV plays are
     scaled down or dropped when the cap is hit.
 
+    Same-side discount: when a later gap covers the same yes_team as one
+    already in the budget for the event (ρ ≈ 0.8 territory — ML + same-team
+    spread, alt-spread stacks), its Kelly is multiplied by
+    same_side_kelly_discount before consuming budget. Naive independent
+    Kelly across correlated bets puts the bettor past the geometric-growth
+    peak; the discount pulls the joint position back toward 1x effective
+    Kelly. NO-side spread derivations naturally flip yes_team to the
+    opponent label, so an ML-on-favorite + spread-on-underdog pair (like
+    Sixers ML + Knicks +8.5) is recognized as opposite-side and gets no
+    discount — that pairing already hedges, no correction needed.
+
     prior_exposure: per-base-event Kelly fractions already committed in
       earlier scans today (placed un-resolved bets). When supplied, the
       remaining budget for each game starts at (cap - prior), so a 4%
       bet placed this morning leaves only 4% for new bets this afternoon.
     """
     event_budget: dict[str, float] = dict(prior_exposure or {})
+    event_sides: dict[str, set[str]] = {}
     guarded: list[EVGap] = []
 
     for base, used in event_budget.items():
@@ -267,20 +282,38 @@ def _apply_exposure_guard(
             )
             continue
 
-        if gap.kelly_fraction <= remaining:
-            event_budget[base] = used + gap.kelly_fraction
+        sides = event_sides.setdefault(base, set())
+        side_key = (gap.yes_team or "").lower().strip()
+        kelly = gap.kelly_fraction
+        if side_key and side_key in sides and same_side_kelly_discount < 1.0:
+            discounted = round(kelly * same_side_kelly_discount, 4)
+            logger.debug(
+                "same_side_kelly_discount",
+                event_id=gap.event_id,
+                yes_team=side_key,
+                original=round(kelly, 4),
+                discounted=discounted,
+            )
+            gap = dataclasses.replace(gap, kelly_fraction=discounted)
+            kelly = discounted
+
+        if kelly <= remaining:
+            event_budget[base] = used + kelly
             guarded.append(gap)
         else:
             # Scale down to fit remaining budget
             logger.debug(
                 "exposure_guard_capped",
                 event_id=gap.event_id,
-                original=round(gap.kelly_fraction, 4),
+                original=round(kelly, 4),
                 capped=round(remaining, 4),
             )
             capped = dataclasses.replace(gap, kelly_fraction=round(remaining, 4))
             event_budget[base] = max_event_exposure
             guarded.append(capped)
+
+        if side_key:
+            sides.add(side_key)
 
     return guarded
 
@@ -342,6 +375,7 @@ class AgentCoordinator:
         self.efficiency_agent = EfficiencyModelAgent()
         self.nfl_efficiency_agent = NflEfficiencyModelAgent()
         self.nfl_qb_elo_agent = NflQbEloModelAgent()
+        self.nhl_xg_agent = NhlXgModelAgent()
         self.wnba_efficiency_agent = WNBAEfficiencyModelAgent()
         self.shot_quality_agent = ShotQualityAgent()
         self.matchup_agent = MatchupAgent()
@@ -358,6 +392,7 @@ class AgentCoordinator:
                 self.efficiency_agent,
                 self.nfl_efficiency_agent,
                 self.nfl_qb_elo_agent,
+                self.nhl_xg_agent,
                 self.wnba_efficiency_agent,
                 self.shot_quality_agent,
                 self.matchup_agent,
@@ -387,6 +422,7 @@ class AgentCoordinator:
             self.tennis_h2h_agent, self.tennis_trend_agent,
             self.pitcher_agent, self.soccer_xg_agent,
             self.efficiency_agent, self.nfl_efficiency_agent, self.nfl_qb_elo_agent,
+            self.nhl_xg_agent,
             self.wnba_efficiency_agent,
             self.shot_quality_agent, self.matchup_agent,
             self.possession_sim_agent, self.wnba_possession_sim_agent,
@@ -451,7 +487,9 @@ class AgentCoordinator:
                 total_prior=round(sum(prior_exposure.values()), 4),
             )
         result.ev_gaps = _apply_exposure_guard(
-            result.ev_gaps, prior_exposure=prior_exposure,
+            result.ev_gaps,
+            prior_exposure=prior_exposure,
+            same_side_kelly_discount=get_settings().same_side_kelly_discount,
         )
         dropped = pre_guard - len(result.ev_gaps)
         if dropped > 0:
@@ -688,36 +726,85 @@ class AgentCoordinator:
         self,
         sector: str,
     ) -> tuple[list[PredictionMarket], list[SharpOdds]]:
-        """Fetch Kalshi player prop markets and compute true probabilities.
+        """Fetch Kalshi player prop markets paired with Pinnacle devigged lines.
 
-        Uses a daily-refreshed local cache of player L15 game logs + team
-        defensive stats. The cache is populated from stats.nba.com once per
-        day (auto-refreshed on first scan if stale). During scans, all prop
-        probabilities are computed from cached data with zero API calls.
+        For each Kalshi prop, we look up the matching Pinnacle player+stat+line
+        and use Pinnacle's devigged over-probability as the sharp anchor.
+        Kalshi props with no matching Pinnacle line are dropped — we don't
+        bet props without a sharp reference.
+
+        The local L15 game-log cache is still consulted, but only to attach
+        diagnostic metadata (sample size, minutes volatility) for display
+        and downstream analysis. It does NOT feed the EV calculation.
         """
         from evmax.clients.kalshi import KalshiClient
+        from evmax.clients.esports_pinnacle import PinnacleGuestClient
+        # Production reads compute_prop_diagnostics — sample size + minutes
+        # volatility only. The legacy compute_prop_prob_cached still exists
+        # for backtest scripts and `evmax cleanup replay-props` but is no
+        # longer in the live scan path. See nba_props_cache.PropDiagnostics
+        # docstring for the design rationale.
         from evmax.clients.nba_props_cache import (
-            PropResult,
-            compute_prop_prob_cached,
+            compute_prop_diagnostics,
             is_cache_fresh,
             refresh_props_cache,
         )
         from evmax.clients.nfl_props_cache import (
-            compute_nfl_prop_prob_cached,
+            compute_nfl_prop_diagnostics,
             is_nfl_cache_fresh,
             refresh_nfl_props_cache,
         )
 
         prop_sector = f"{sector}_props"
-        async with KalshiClient() as kalshi:
-            raw = await kalshi.get_markets(prop_sector)
 
-        prop_markets: list[PredictionMarket] = raw if not isinstance(raw, Exception) else []
+        # Fetch Kalshi prop markets and Pinnacle prop lines in parallel
+        async def _kalshi_fetch() -> list[PredictionMarket]:
+            async with KalshiClient() as kalshi:
+                raw = await kalshi.get_markets(prop_sector)
+            return raw if isinstance(raw, list) else []
+
+        async def _pinn_fetch() -> list[SharpOdds]:
+            async with PinnacleGuestClient() as pinn:
+                return await pinn.get_prop_odds(sector)
+
+        kalshi_res, pinn_res = await asyncio.gather(
+            _kalshi_fetch(), _pinn_fetch(), return_exceptions=True,
+        )
+        prop_markets: list[PredictionMarket] = (
+            kalshi_res if isinstance(kalshi_res, list) else []
+        )
+        pinn_lines: list[SharpOdds] = (
+            pinn_res if isinstance(pinn_res, list) else []
+        )
+
         if not prop_markets:
             self.log.debug("props_fetched", sector=sector, prop_markets=0, prop_sharp=0)
             return [], []
 
-        # Deduplicate (player, stat, threshold) so we only compute each prob once
+        # Index Pinnacle props by (player_norm, stat_type) — Pinnacle posts ONE
+        # half-point line per (player, stat); Kalshi posts MANY integer 'X+'
+        # thresholds. Distribution-based pricing (evmax/ev/prop_pricing.py) reads
+        # off P(stat >= K) for any K from the single anchor.
+        from evmax.ev.prop_pricing import price_kalshi_threshold
+
+        pinn_by_anchor: dict[tuple[str, str], SharpOdds] = {}
+        # Per-stat fallback index: { stat_type: [(player_norm, anchor), ...] }
+        # for fuzzy lookup when the exact (player, stat) key misses (accent /
+        # suffix / spelling variants between Kalshi and Pinnacle normalization).
+        pinn_by_stat: dict[str, list[tuple[str, SharpOdds]]] = {}
+        for p in pinn_lines:
+            if (
+                p.prop_player_name
+                and p.prop_stat_type
+                and p.total_line is not None
+                and p.true_prob_over is not None
+            ):
+                pinn_by_anchor[(p.prop_player_name, p.prop_stat_type)] = p
+                pinn_by_stat.setdefault(p.prop_stat_type, []).append(
+                    (p.prop_player_name, p)
+                )
+
+        # Deduplicate (player, stat, threshold) so we only emit each prob once
         seen: set[tuple] = set()
         unique: list[PredictionMarket] = []
         for m in prop_markets:
@@ -727,7 +814,7 @@ class AgentCoordinator:
                     seen.add(key)
                     unique.append(m)
 
-        # Auto-refresh cache with only the players who have Kalshi prop markets
+        # Auto-refresh L15 cache (used now only for diagnostic metadata)
         if sector == "nba" and not is_cache_fresh():
             player_names = list({m.player_name for m in unique if m.player_name})
             self.log.info("props_cache_refreshing", players=len(player_names))
@@ -741,57 +828,87 @@ class AgentCoordinator:
             self.log.info("nfl_props_cache_refreshing", players=len(player_names))
             await refresh_nfl_props_cache(force=True, player_names=player_names)
 
-        # Compute probabilities from cached data (instant, no API calls)
+        # Build SharpOdds list — for each Kalshi threshold, price off the
+        # Pinnacle anchor for the same (player, stat) via prop_pricing.
+        # Player-name fuzzy fallback: PropMatcher uses token_sort_ratio ≥85
+        # for the same reason — Kalshi and Pinnacle normalize accents /
+        # suffixes / spelling variants slightly differently. Try exact lookup
+        # first, then fuzzy within the same stat_type. Threshold mirrors
+        # evmax/matching/prop_matcher.py::PLAYER_MATCH_THRESHOLD.
+        from rapidfuzz import fuzz
+        FUZZY_PLAYER_THRESHOLD = 85
+
         prop_sharp: list[SharpOdds] = []
+        unmatched = 0
+        unpriced = 0
+        fuzzy_hits = 0
         for market in unique:
-            game_date = market.event_date.strftime("%Y-%m-%d") if market.event_date else None
-
-            if sector == "nba":
-                result = compute_prop_prob_cached(
-                    market.player_name, market.stat_type, market.threshold, game_date,
-                )
-            elif sector == "nfl":
-                result = compute_nfl_prop_prob_cached(
-                    market.player_name, market.stat_type, market.threshold, game_date,
-                )
-            else:
-                result = None
-
-            if result is None:
+            anchor = pinn_by_anchor.get((market.player_name, market.stat_type))
+            if anchor is None:
+                # Fuzzy fallback within the same stat type
+                candidates = pinn_by_stat.get(market.stat_type, [])
+                best_score = 0.0
+                for pinn_name, pinn_anchor in candidates:
+                    score = fuzz.token_sort_ratio(
+                        market.player_name.lower(),
+                        pinn_name.lower(),
+                    )
+                    if score >= FUZZY_PLAYER_THRESHOLD and score > best_score:
+                        best_score = score
+                        anchor = pinn_anchor
+                if anchor is not None:
+                    fuzzy_hits += 1
+            if anchor is None:
+                unmatched += 1
                 continue
 
-            date_str = game_date or "unknown"
-            event_id = (
-                f"{sector}::{date_str}::prop"
-                f"::{market.player_name}::{market.stat_type}::{market.threshold}"
+            prob_over = price_kalshi_threshold(
+                stat_type=market.stat_type,
+                pinn_line=anchor.total_line,
+                pinn_prob_over=anchor.true_prob_over,
+                kalshi_threshold=market.threshold,
             )
-            prop_sharp.append(SharpOdds(
-                event_id=event_id,
-                book=SharpBook.pinnacle,
-                sector=sector,
-                outcome_a_label="over",
-                outcome_b_label="under",
-                outcome_a_decimal=1.0,
-                outcome_b_decimal=1.0,
-                true_prob_a=0.0,
-                true_prob_b=0.0,
-                true_prob_over=result.prob,
-                true_prob_under=1.0 - result.prob,
-                total_line=market.threshold,
-                margin=0.0,
-                event_date=market.event_date,
-                prop_player_name=market.player_name,
-                prop_stat_type=market.stat_type,
-                prop_l15_games=result.n_games,
-                prop_minutes_volatile=result.minutes_volatile,
-                prop_minutes_cv=result.minutes_cv,
-            ))
+            if prob_over is None:
+                # Anchor present but stat unsupported by pricing module, or
+                # anchor probability degenerate. Counted separately so we can
+                # tell "no Pinnacle line" from "could not price" in logs.
+                unpriced += 1
+                continue
 
-        self.log.debug(
+            # Augment Pinnacle SharpOdds with L15 sample-size + minutes
+            # volatility diagnostics. No probability math — anchor pricing
+            # owns the prob estimate.
+            if sector == "nba":
+                l15 = compute_prop_diagnostics(market.player_name)
+            elif sector == "nfl":
+                l15 = compute_nfl_prop_diagnostics(market.player_name)
+            else:
+                l15 = None
+
+            # Synthesize SharpOdds at the Kalshi threshold using the priced prob.
+            # outcome_a/b decimal odds carry over from the anchor (they were the
+            # raw Pinnacle quote at 26.5, no longer meaningful at a different
+            # threshold) — downstream EV uses true_prob_over only.
+            prop_sharp.append(anchor.model_copy(update={
+                "total_line": market.threshold,
+                "true_prob_over": prob_over,
+                "true_prob_under": 1.0 - prob_over,
+                "prop_l15_games": l15.n_games if l15 else 0,
+                "prop_minutes_volatile": l15.minutes_volatile if l15 else False,
+                "prop_minutes_cv": l15.minutes_cv if l15 else 0.0,
+            }))
+
+        self.log.info(
             "props_fetched",
             sector=sector,
             prop_markets=len(prop_markets),
-            prop_sharp=len(prop_sharp),
+            prop_unique=len(unique),
+            pinn_lines=len(pinn_lines),
+            pinn_anchors=len(pinn_by_anchor),
+            matched=len(prop_sharp),
+            fuzzy_hits=fuzzy_hits,
+            unmatched_dropped=unmatched,
+            unpriced=unpriced,
         )
         return prop_markets, prop_sharp
 

@@ -23,9 +23,13 @@ from evmax.agents.cleanup.prop_resolver import (
     _normalize_for_match,
 )
 from evmax.clients import nba_props_cache
+from evmax.clients.esports_pinnacle import parse_prop_description
 from evmax.clients.nba_props_cache import (
+    PropDiagnostics,
     PropResult,
+    _calibration_for_stat,
     _opponent_adjustment,
+    compute_prop_diagnostics,
     compute_prop_prob_cached,
     lookup_player_team,
 )
@@ -254,6 +258,36 @@ class TestLookupPlayerTeam:
 
 
 # ===========================================================================
+# nba_props_cache — compute_prop_diagnostics (production scan path)
+# ===========================================================================
+
+
+class TestComputePropDiagnostics:
+    """Lean L15 lookup that returns sample-size + minutes-volatility only.
+    The production scan calls this; legacy compute_prop_prob_cached stays
+    available for backtest scripts and the replay-props CLI."""
+
+    def test_known_player_returns_diagnostics(self, fake_cache):
+        d = compute_prop_diagnostics("LeBron James")
+        assert isinstance(d, PropDiagnostics)
+        assert d.n_games == 15
+        assert d.avg_minutes == pytest.approx(35.1, abs=0.1)
+        assert d.minutes_volatile is False  # 35±1 minute, very stable
+        assert d.minutes_cv < 0.05
+
+    def test_unknown_player_returns_none(self, fake_cache):
+        assert compute_prop_diagnostics("Nobody") is None
+
+    def test_too_few_games_returns_none(self, fake_cache):
+        assert compute_prop_diagnostics("Rookie Guy") is None
+
+    def test_does_not_compute_probability(self, fake_cache):
+        """The whole point: this function must not have a probability field."""
+        d = compute_prop_diagnostics("LeBron James")
+        assert not hasattr(d, "prob")
+
+
+# ===========================================================================
 # nba_props_cache — compute_prop_prob_cached
 # ===========================================================================
 
@@ -378,6 +412,138 @@ class TestComputePropProbCached:
         assert volatile_result.minutes_volatile
         # Volatile player should have discounted probability
         assert volatile_result.prob < stable_result.prob
+
+    def test_long_shot_uses_empirical_not_isotonic_floor(self, monkeypatch):
+        """Regression: 0/15 hits at a long-shot line must return a low prob.
+
+        Pre-fix, the 2024-25 isotonic calibration floored any input ≤12% at
+        12.4%, so a player who never crossed the line still showed ~14%
+        probability — fueling false +EV signals on 5-10c Kalshi longshots
+        (2026-04→2026-05 audit: −163u from 212 sub-10c bets).
+
+        After the empirical-CDF replacement, the same fixture must yield a
+        prob comfortably below 0.12 — Beta(1,4) on 0/15 → (0+1)/(15+5) = 0.05.
+        """
+        data = {
+            "fetched_at": time.time(),
+            "players": {
+                "Bench Wing": {
+                    "team": "LAL",
+                    "n_games": 15,
+                    "stats": {
+                        # Average 8 pts on 18 min — never crosses 24.5
+                        "PTS": [9, 7, 10, 8, 6, 9, 8, 7, 11, 8, 9, 7, 10, 8, 9],
+                        "MIN": [18] * 15,
+                    },
+                },
+            },
+            "team_stats": {},
+            "league_avg": {},
+            "schedule": [],
+        }
+        monkeypatch.setattr(nba_props_cache, "_mem_cache", data)
+        monkeypatch.setattr(nba_props_cache, "_mem_cache_time", time.monotonic())
+
+        result = compute_prop_prob_cached("Bench Wing", "points", 24.5)
+        assert result is not None
+        # 0/15 hits with smoothed empirical → must be well below the old 12.4% floor
+        assert result.prob < 0.10, (
+            f"long-shot prob should be <10% but was {result.prob:.3f} — "
+            "isotonic floor regression"
+        )
+        assert result.prob >= 0.01  # bounded above the hard floor
+
+    def test_in_distribution_threshold_keeps_normal_cdf(self, fake_cache):
+        """When threshold is near the mean, Normal CDF still drives the model.
+
+        LeBron averages 27.8 PTS in the fixture; a 25.5 line should give
+        meaningful probability (>30%) — only sub-15% Normal outputs are
+        replaced with the empirical estimator.
+        """
+        result = compute_prop_prob_cached("LeBron James", "points", 25.5)
+        assert result is not None
+        assert result.prob > 0.30
+
+
+# ===========================================================================
+# nba_props_cache — calibration fallback chain
+# ===========================================================================
+
+
+class TestCalibrationFallbackChain:
+    """Per-stat (v2) → global → legacy v1 → None resolution order."""
+
+    def test_per_stat_block_returned_when_present(self, monkeypatch):
+        cal = {
+            "schema_version": 2,
+            "per_stat": {
+                "points": {
+                    "base_rate": 0.55,
+                    "shrinkage": 0.05,
+                    "blend_model": 0.8,
+                    "isotonic_x_thresholds": [0.0, 1.0],
+                    "isotonic_y_thresholds": [0.0, 1.0],
+                },
+            },
+            "global": {"base_rate": 0.30, "blend_model": 0.4},
+        }
+        monkeypatch.setattr(nba_props_cache, "_calibration", cal)
+        monkeypatch.setattr(nba_props_cache, "_calibration_loaded", True)
+        result = _calibration_for_stat("points")
+        assert result is not None
+        assert result["base_rate"] == 0.55
+        assert result["blend_model"] == 0.8
+
+    def test_falls_back_to_global_when_stat_missing(self, monkeypatch):
+        cal = {
+            "schema_version": 2,
+            "per_stat": {"points": {"base_rate": 0.55, "blend_model": 0.8}},
+            "global": {"base_rate": 0.30, "blend_model": 0.4},
+        }
+        monkeypatch.setattr(nba_props_cache, "_calibration", cal)
+        monkeypatch.setattr(nba_props_cache, "_calibration_loaded", True)
+        # threes not in per_stat → falls through to global
+        result = _calibration_for_stat("threes")
+        assert result is not None
+        assert result["base_rate"] == 0.30
+
+    def test_falls_back_to_legacy_v1_top_level(self, monkeypatch):
+        """A v1 calibration (no per_stat / global keys) is still honored."""
+        cal = {
+            "fitted_on": "2024-25",
+            "base_rate": 0.30,
+            "shrinkage": 0.0,
+            "blend_model": 0.8,
+            "isotonic_x_thresholds": [0.0, 0.5, 1.0],
+            "isotonic_y_thresholds": [0.0, 0.5, 1.0],
+        }
+        monkeypatch.setattr(nba_props_cache, "_calibration", cal)
+        monkeypatch.setattr(nba_props_cache, "_calibration_loaded", True)
+        result = _calibration_for_stat("points")
+        assert result is not None
+        assert result["base_rate"] == 0.30
+        assert result["isotonic_x_thresholds"] == [0.0, 0.5, 1.0]
+
+    def test_returns_none_when_calibration_missing(self, monkeypatch):
+        monkeypatch.setattr(nba_props_cache, "_calibration", None)
+        monkeypatch.setattr(nba_props_cache, "_calibration_loaded", True)
+        assert _calibration_for_stat("points") is None
+
+    def test_global_block_can_be_explicit_null(self, monkeypatch):
+        """If `global` is None (e.g. global fit was skipped), fall through to legacy."""
+        cal = {
+            "schema_version": 2,
+            "per_stat": {},
+            "global": None,
+            "isotonic_x_thresholds": [0.0, 1.0],
+            "isotonic_y_thresholds": [0.0, 1.0],
+            "base_rate": 0.40,
+        }
+        monkeypatch.setattr(nba_props_cache, "_calibration", cal)
+        monkeypatch.setattr(nba_props_cache, "_calibration_loaded", True)
+        result = _calibration_for_stat("points")
+        assert result is not None
+        assert result["base_rate"] == 0.40
 
 
 # ===========================================================================
@@ -738,6 +904,9 @@ class TestLogPropFromSharp:
             actual_value REAL,
             outcome TEXT,
             resolved_at TIMESTAMP,
+            mode TEXT NOT NULL DEFAULT 'live',
+            captured_yes_price REAL,
+            model_version TEXT,
             UNIQUE(scan_date, player_name, stat_type, line)
         )""")
         conn.commit()
@@ -788,7 +957,11 @@ class TestLogPropFromSharp:
             threshold=24.5,
         )
 
-        n = log_prop_from_sharp([(sharp, market)], scan_date=date(2026, 4, 15))
+        n = log_prop_from_sharp(
+            [(sharp, market)],
+            scan_date=date(2026, 4, 15),
+            model_version="pinnacle-v1",
+        )
         assert n == 1
 
         # Verify what was written
@@ -805,3 +978,68 @@ class TestLogPropFromSharp:
         assert row2["kalshi_price"] == pytest.approx(0.55, abs=1e-6)
         assert row2["player_name"] == "LeBron James"
         assert row2["stat_type"] == "points"
+        # ARCH-11 columns are now populated by log_prop_from_sharp
+        assert row2["captured_yes_price"] == pytest.approx(0.55, abs=1e-6)
+        assert row2["model_version"] == "pinnacle-v1"
+
+
+# ===========================================================================
+# parse_prop_description (Pinnacle special.description → player + stat_type)
+# ===========================================================================
+
+
+class TestParsePropDescription:
+    """Pinnacle posts player props in two description formats — the current
+    'Player Total <Stat>' form (May 2026 onward) and a legacy 'Player (Stat)'
+    form. parse_prop_description must handle both, plus the multi-stat labels
+    Pinnacle uses for combined-line markets."""
+
+    @pytest.mark.parametrize(
+        "description, expected",
+        [
+            # Current "Player Total <Stat>" format
+            ("Jalen Brunson Total Assists", ("Jalen Brunson", "assists")),
+            ("Cade Cunningham Total Points", ("Cade Cunningham", "points")),
+            ("Julian Champagnie Total Rebounds", ("Julian Champagnie", "rebounds")),
+            ("Dean Wade Total Threes Made", ("Dean Wade", "threes")),
+            (
+                "Isaiah Hartenstein Total Pts & Rebs & Asts",
+                ("Isaiah Hartenstein", "points_rebounds_assists"),
+            ),
+            # Hyphenated / multi-word names should round-trip
+            (
+                "Shai Gilgeous-Alexander Total Points",
+                ("Shai Gilgeous-Alexander", "points"),
+            ),
+            # Legacy paren format still works
+            ("Luka Doncic (Points)", ("Luka Doncic", "points")),
+            ("LeBron James (Rebounds)", ("LeBron James", "rebounds")),
+            ("Steph Curry (3-pointers)", ("Steph Curry", "threes")),
+            # Case-insensitive on the "Total" separator
+            ("Joel Embiid total Points", ("Joel Embiid", "points")),
+        ],
+    )
+    def test_known_formats(self, description, expected):
+        assert parse_prop_description(description) == expected
+
+    @pytest.mark.parametrize(
+        "description",
+        [
+            "",
+            "   ",
+            # Unknown stat label — must return None, not crash
+            "Some Player Total Dunks",
+            "Some Player (Dunks)",
+            # Garbage strings
+            "no separator",
+            "Total leading text but no player",  # group(1) would be empty after strip
+        ],
+    )
+    def test_unparseable_returns_none(self, description):
+        assert parse_prop_description(description) is None
+
+    def test_strips_whitespace(self):
+        assert parse_prop_description("  Jalen Brunson Total Assists  ") == (
+            "Jalen Brunson",
+            "assists",
+        )

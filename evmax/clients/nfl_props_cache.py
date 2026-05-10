@@ -595,6 +595,29 @@ def compute_nfl_prop_prob_cached(
     )
 
 
+def compute_nfl_prop_diagnostics(player_name: str):
+    """Cheap NFL L15 diagnostic — sample size only (no minutes data for NFL).
+
+    Production scan reads this instead of compute_nfl_prop_prob_cached().
+    See PropDiagnostics docstring in nba_props_cache for the design rationale.
+    """
+    from evmax.clients.nba_props_cache import PropDiagnostics
+
+    t = _load_tables()
+    if t is None:
+        return None
+    pid = t["name_to_id"].get(_normalize_name(player_name))
+    if pid is None:
+        return None
+    player_df = t["by_player"].get(pid)
+    if player_df is None or len(player_df) == 0:
+        return None
+
+    # n_games = weekly rows we have for this player. NFL has no per-game
+    # minutes column comparable to NBA — minutes_volatile / cv stay zero.
+    return PropDiagnostics(n_games=int(len(player_df)))
+
+
 def _reset_cache_for_tests() -> None:
     """Drop the in-memory cache so a test can reload from disk."""
     global _tables

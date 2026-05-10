@@ -18,6 +18,7 @@ Soccer three-way (draw) odds use devig_three_way().
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -83,6 +84,53 @@ def _name_matched_sector(league_name: str) -> Optional[str]:
     for keyword, sector in NAME_MATCHED_LEAGUE_MAP:
         if keyword.lower() in league_name.lower():
             return sector
+    return None
+
+
+# Pinnacle stat label → canonical evmax stat_type. Keep keys lowercase.
+_PROP_STAT_MAP: dict[str, str] = {
+    "points": "points", "pts": "points",
+    "rebounds": "rebounds", "reb": "rebounds", "rebs": "rebounds",
+    "assists": "assists", "ast": "assists", "asts": "assists",
+    "threes": "threes", "threes made": "threes",
+    "3-pointers": "threes", "3 pointers made": "threes",
+    "steals": "steals", "stl": "steals",
+    "blocks": "blocks", "blk": "blocks",
+    "pts+reb+ast": "points_rebounds_assists",
+    "points + rebounds + assists": "points_rebounds_assists",
+    "pts & rebs & asts": "points_rebounds_assists",
+    "pra": "points_rebounds_assists",
+    "passing yards": "passing_yards", "passing yds": "passing_yards",
+    "rushing yards": "rushing_yards", "rushing yds": "rushing_yards",
+    "receiving yards": "receiving_yards", "receiving yds": "receiving_yards",
+}
+
+# New format (May 2026 onward): "Jalen Brunson Total Assists"
+_PROP_DESC_TOTAL_RE = re.compile(r"^(.+?)\s+Total\s+(.+)$", re.IGNORECASE)
+# Legacy format: "Luka Doncic (Points)"
+_PROP_DESC_PAREN_RE = re.compile(r"^(.+?)\s*\((.+?)\)\s*$")
+
+
+def parse_prop_description(description: str) -> Optional[tuple[str, str]]:
+    """Parse a Pinnacle player-prop ``special.description`` into ``(player, stat_type)``.
+
+    Handles both the current "Player Name Total <Stat>" format and the legacy
+    "Player Name (Stat)" format. Returns ``None`` when the description cannot
+    be parsed or the stat label is not in :data:`_PROP_STAT_MAP`.
+    """
+    if not description:
+        return None
+    text = description.strip()
+    for pattern in (_PROP_DESC_TOTAL_RE, _PROP_DESC_PAREN_RE):
+        m = pattern.match(text)
+        if not m:
+            continue
+        player = m.group(1).strip()
+        stat_raw = m.group(2).strip().lower()
+        stat_type = _PROP_STAT_MAP.get(stat_raw)
+        if stat_type is None:
+            return None
+        return player, stat_type
     return None
 
 
@@ -222,35 +270,13 @@ class PinnacleGuestClient(BaseAPIClient):
         """Fetch and parse a single player prop special matchup."""
         matchup_id = matchup.get("id")
         special = matchup.get("special") or {}
-        description = special.get("description", "")  # e.g. "Luka Doncic (Points)"
+        description = special.get("description", "")
 
-        # Parse "Player Name (Stat Type)"
-        import re as _re
-        m = _re.match(r"^(.+?)\s*\((.+?)\)$", description.strip())
-        if not m:
+        parsed = parse_prop_description(description)
+        if parsed is None:
+            logger.debug("pinnacle_prop_unparsed", description=description)
             return None
-        player_raw = m.group(1).strip()
-        stat_raw = m.group(2).strip().lower()  # "Points", "Rebounds", etc.
-
-        # Map Pinnacle stat label → canonical stat_type
-        _STAT_MAP = {
-            "points": "points", "pts": "points",
-            "rebounds": "rebounds", "reb": "rebounds",
-            "assists": "assists", "ast": "assists",
-            "threes": "threes", "3-pointers": "threes", "3 pointers made": "threes",
-            "steals": "steals", "stl": "steals",
-            "blocks": "blocks", "blk": "blocks",
-            "pts+reb+ast": "points_rebounds_assists",
-            "points + rebounds + assists": "points_rebounds_assists",
-            "pra": "points_rebounds_assists",
-            "passing yards": "pass_yds", "passing yds": "pass_yds",
-            "rushing yards": "rush_yds", "rushing yds": "rush_yds",
-            "receiving yards": "reception_yds", "receiving yds": "reception_yds",
-        }
-        stat_type = _STAT_MAP.get(stat_raw)
-        if stat_type is None:
-            logger.debug("pinnacle_prop_unknown_stat", description=description)
-            return None
+        player_raw, stat_type = parsed
 
         # Normalize player name
         from evmax.players import normalize_player_name
@@ -278,9 +304,14 @@ class PinnacleGuestClient(BaseAPIClient):
         if not isinstance(markets_data, list):
             return None
 
-        # Find the over/under market — prop markets have status=None (not "open")
+        # /matchups/{id}/markets/related/straight also returns markets for the
+        # parent game (totals like 218.0, spreads, etc.). Filter to markets
+        # that belong to this prop matchup itself, otherwise the first
+        # type=='total' we'd pick is the parent game total — see the Randle
+        # assists case where matching against a 218.0 line wiped 50% of props.
+        own_markets = [mk for mk in markets_data if mk.get("matchupId") == matchup_id]
         ou_market = next(
-            (mk for mk in markets_data if mk.get("type") == "total"),
+            (mk for mk in own_markets if mk.get("type") == "total"),
             None,
         )
         if not ou_market:

@@ -231,6 +231,19 @@ def scan(
     except Exception as _maint_err:
         console.print(f"[dim yellow]  Warning: maintenance check failed: {_maint_err}[/dim yellow]")
 
+    try:
+        from evmax.agents.cleanup.resolver import backfill_clv
+        clv_result = backfill_clv()
+        if clv_result["updated"]:
+            avg = clv_result["avg_clv"]
+            color = "green" if avg > 0 else "red"
+            console.print(
+                f"[dim]  CLV backfilled: {clv_result['updated']} bet(s)  "
+                f"avg [{color}]{avg:+.1f}pp[/{color}][/dim]"
+            )
+    except Exception as _clv_err:
+        console.print(f"[dim yellow]  Warning: CLV backfill failed: {_clv_err}[/dim yellow]")
+
     # Parse date range: --date is shortcut for --date-from X --date-to X
     def _parse_date(s: str, label: str) -> date:
         try:
@@ -323,7 +336,12 @@ def scan(
     if result.prop_sharp_pairs:
         try:
             from evmax.agents.cleanup.logger import log_prop_from_sharp as _log_props
-            n_props = _log_props(result.prop_sharp_pairs)
+            # Anchor pricing landed 2026-05-10: every prop_sharp now carries a
+            # probability priced from a Pinnacle anchor through prop_pricing
+            # (Poisson for count stats, Normal for yardage/PRA). Tag rows so
+            # the validation gate can filter on this version when computing
+            # Brier vs Kalshi over the next 14 days.
+            n_props = _log_props(result.prop_sharp_pairs, model_version="pinnacle-anchor-v1")
             if n_props:
                 console.print(f"[dim]  Logged {n_props} prop line(s) to prop_observations[/dim]")
         except Exception as _log_err:
