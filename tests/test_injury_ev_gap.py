@@ -444,11 +444,12 @@ class TestEVGap:
 # ---------------------------------------------------------------------------
 
 class TestEvaluatePair:
-    def _agent(self):
+    def _agent(self, chalk_ceiling=0.90):
         with patch("evmax.agents.odds.ev_gap_agent.get_settings") as mock_settings:
             settings = MagicMock()
             settings.ev_threshold = 0.02
             settings.max_kelly_fraction = 0.05
+            settings.chalk_price_ceiling = chalk_ceiling
             mock_settings.return_value = settings
             agent = EVGapAgent()
         return agent
@@ -610,6 +611,22 @@ class TestEvaluatePair:
         # Injury reduces pistons' true prob → less EV
         if gap_no_inj is not None and gap_with_inj is not None:
             assert gap_with_inj.blended_true_prob < gap_no_inj.blended_true_prob
+
+    def test_chalk_yes_price_above_ceiling_returns_none(self):
+        """YES at 0.92 should be filtered even when sharp says 0.96 → +EV."""
+        agent = self._agent(chalk_ceiling=0.90)
+        market = _market(yes_price=0.92, yes_team="pistons")
+        sharp = _sharp(outcome_a="pistons", outcome_b="warriors", true_prob_a=0.96)
+        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
+        assert gap is None
+
+    def test_yes_price_at_ceiling_passes(self):
+        """0.90 exactly should NOT be filtered (strict > comparison)."""
+        agent = self._agent(chalk_ceiling=0.90)
+        market = _market(yes_price=0.90, yes_team="pistons")
+        sharp = _sharp(outcome_a="pistons", outcome_b="warriors", true_prob_a=0.95)
+        gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
+        assert gap is not None
 
     def test_positive_ev_gap_returned(self):
         """Core happy path: big EV gap → gap object created."""

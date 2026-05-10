@@ -129,6 +129,18 @@ class EnsembleModelAgent(Agent):
             "form":           0.30,
             "poisson":        0.0,
         },
+        # NHL ensemble — v1 ships with team 5v5 xG (MoneyPuck) as the
+        # dominant non-sharp signal. Generic Elo is held at 0 because its
+        # K-factor / home-advantage have never been calibrated for NHL
+        # (MODEL-2 / SECTOR-1). Form contributes a small recency voice.
+        # Poisson stays out; goalie GSAx and special-teams agents land
+        # in v2/v3 and will reduce nhl_xg / form weight when they ship.
+        "nhl": {
+            "nhl_xg":  0.30,
+            "form":    0.15,
+            "elo":     0.0,
+            "poisson": 0.0,
+        },
     }
 
     def __init__(

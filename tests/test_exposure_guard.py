@@ -35,12 +35,13 @@ def _gap(
     event_id: str,
     kelly: float = 0.025,
     ev: float = 0.05,
+    yes_team: str = "lakers",
 ) -> EVGap:
     return EVGap(
         market_id=market_id,
         event_id=event_id,
         sector="nba",
-        yes_team="lakers",
+        yes_team=yes_team,
         market_type="moneyline",
         kalshi_yes_price=0.45,
         sharp_true_prob=0.50,
@@ -140,14 +141,94 @@ class TestApplyExposureGuard:
         """When several new bets fit in remaining budget, highest-EV first."""
         prior = {"nba::2026-04-30::lakers_vs_warriors": 0.05}  # 3% remaining
         gaps = [
-            _gap("kalshi:LO_EV", "nba::2026-04-30::lakers_vs_warriors", kelly=0.02, ev=0.03),
-            _gap("kalshi:HI_EV", "nba::2026-04-30::lakers_vs_warriors", kelly=0.02, ev=0.10),
+            _gap("kalshi:LO_EV", "nba::2026-04-30::lakers_vs_warriors", kelly=0.02, ev=0.03,
+                 yes_team="warriors"),
+            _gap("kalshi:HI_EV", "nba::2026-04-30::lakers_vs_warriors", kelly=0.02, ev=0.10,
+                 yes_team="lakers"),
         ]
         out = _apply_exposure_guard(gaps, prior_exposure=prior)
         # HI_EV should fit (0.02 ≤ 0.03 remaining), LO_EV scales to 0.01
         markets = {g.market_id: g.kelly_fraction for g in out}
         assert markets["kalshi:HI_EV"] == pytest.approx(0.02, abs=1e-4)
         assert markets["kalshi:LO_EV"] == pytest.approx(0.01, abs=1e-4)
+
+
+# ---------------------------------------------------------------------------
+# Same-side correlation discount
+# ---------------------------------------------------------------------------
+
+
+class TestSameSideDiscount:
+    def test_same_side_second_gap_halved(self):
+        """ML + same-team spread → second-best gets 0.5x Kelly."""
+        gaps = [
+            _gap("kalshi:ML", "nba::2026-04-30::lakers_vs_warriors",
+                 kelly=0.04, ev=0.10, yes_team="lakers"),
+            _gap("kalshi:SPREAD", "nba::2026-04-30::lakers_vs_warriors::spread",
+                 kelly=0.03, ev=0.06, yes_team="lakers"),
+        ]
+        out = _apply_exposure_guard(gaps, prior_exposure={})
+        sized = {g.market_id: g.kelly_fraction for g in out}
+        assert sized["kalshi:ML"] == pytest.approx(0.04, abs=1e-4)
+        assert sized["kalshi:SPREAD"] == pytest.approx(0.015, abs=1e-4)
+
+    def test_opposite_side_no_discount(self):
+        """ML on team A + spread on team B → no discount (hedging pair)."""
+        gaps = [
+            _gap("kalshi:ML_FAV", "nba::2026-04-30::lakers_vs_warriors",
+                 kelly=0.04, ev=0.10, yes_team="lakers"),
+            _gap("kalshi:SPREAD_DOG", "nba::2026-04-30::lakers_vs_warriors::spread",
+                 kelly=0.03, ev=0.06, yes_team="warriors"),
+        ]
+        out = _apply_exposure_guard(gaps, prior_exposure={})
+        sized = {g.market_id: g.kelly_fraction for g in out}
+        assert sized["kalshi:ML_FAV"] == pytest.approx(0.04, abs=1e-4)
+        assert sized["kalshi:SPREAD_DOG"] == pytest.approx(0.03, abs=1e-4)
+
+    def test_three_same_side_gaps_each_discounted_off_original(self):
+        """Three same-side bets: leader keeps full, others each get 0.5x of own (not compound)."""
+        gaps = [
+            _gap("kalshi:A", "nba::2026-04-30::lakers_vs_warriors",
+                 kelly=0.03, ev=0.10, yes_team="lakers"),
+            _gap("kalshi:B", "nba::2026-04-30::lakers_vs_warriors::spread",
+                 kelly=0.02, ev=0.07, yes_team="lakers"),
+            _gap("kalshi:C", "nba::2026-04-30::lakers_vs_warriors::alt_spread",
+                 kelly=0.02, ev=0.05, yes_team="lakers"),
+        ]
+        out = _apply_exposure_guard(gaps, prior_exposure={})
+        sized = {g.market_id: g.kelly_fraction for g in out}
+        assert sized["kalshi:A"] == pytest.approx(0.03, abs=1e-4)
+        assert sized["kalshi:B"] == pytest.approx(0.01, abs=1e-4)
+        assert sized["kalshi:C"] == pytest.approx(0.01, abs=1e-4)
+
+    def test_discount_applies_before_cap(self):
+        """A 6% same-side bet behind a 4% leader becomes 3% (fits) — not 4% (capped)."""
+        gaps = [
+            _gap("kalshi:LEAD", "nba::2026-04-30::lakers_vs_warriors",
+                 kelly=0.04, ev=0.10, yes_team="lakers"),
+            _gap("kalshi:NEXT", "nba::2026-04-30::lakers_vs_warriors::spread",
+                 kelly=0.06, ev=0.06, yes_team="lakers"),
+        ]
+        out = _apply_exposure_guard(gaps, prior_exposure={})
+        sized = {g.market_id: g.kelly_fraction for g in out}
+        assert sized["kalshi:LEAD"] == pytest.approx(0.04, abs=1e-4)
+        # 0.06 × 0.5 = 0.03 → fits in remaining 0.04, doesn't get capped to 0.04
+        assert sized["kalshi:NEXT"] == pytest.approx(0.03, abs=1e-4)
+
+    def test_discount_disabled_at_one_keeps_original(self):
+        """same_side_kelly_discount=1.0 → no discount applied."""
+        gaps = [
+            _gap("kalshi:A", "nba::2026-04-30::lakers_vs_warriors",
+                 kelly=0.03, ev=0.10, yes_team="lakers"),
+            _gap("kalshi:B", "nba::2026-04-30::lakers_vs_warriors::spread",
+                 kelly=0.02, ev=0.06, yes_team="lakers"),
+        ]
+        out = _apply_exposure_guard(
+            gaps, prior_exposure={}, same_side_kelly_discount=1.0,
+        )
+        sized = {g.market_id: g.kelly_fraction for g in out}
+        assert sized["kalshi:A"] == pytest.approx(0.03, abs=1e-4)
+        assert sized["kalshi:B"] == pytest.approx(0.02, abs=1e-4)
 
 
 # ---------------------------------------------------------------------------

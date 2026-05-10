@@ -108,73 +108,90 @@ class MatchupAgent(ModelAgent):
 
     async def _fetch_data(self) -> None:
         from nba_api.stats.endpoints import LeagueDashTeamStats
-
-        loop = asyncio.get_event_loop()
-
-        # Fetch base + defense stats
-        base_task = loop.run_in_executor(
-            None,
-            lambda: LeagueDashTeamStats(
-                season="2025-26", per_mode_detailed="PerGame", timeout=15
-            ).get_dict(),
-        )
-        def_task = loop.run_in_executor(
-            None,
-            lambda: LeagueDashTeamStats(
-                season="2025-26", measure_type_detailed_defense="Defense",
-                per_mode_detailed="PerGame", timeout=15
-            ).get_dict(),
+        from evmax.agents.models._nba_playoff_blend import (
+            fetch_rs_and_po,
+            gp_weighted_blend,
+            parse_team_dash_rows,
         )
 
-        base_data, def_data = await asyncio.gather(base_task, def_task)
+        def base_factory(season_type: str):
+            return LeagueDashTeamStats(
+                season="2025-26",
+                season_type_all_star=season_type,
+                per_mode_detailed="PerGame",
+                timeout=15,
+            )
 
-        def _parse(data: dict) -> dict[str, dict]:
-            headers = data["resultSets"][0]["headers"]
-            rows = data["resultSets"][0]["rowSet"]
-            result = {}
-            for row in rows:
-                d = dict(zip(headers, row))
-                name = d["TEAM_NAME"].lower()
-                key = name.rsplit(" ", 1)[-1] if " " in name else name
-                if key == "blazers":
-                    key = "trail blazers"
-                elif key == "clippers":
-                    key = "la clippers"
-                result[key] = d
-            return result
+        def def_factory(season_type: str):
+            return LeagueDashTeamStats(
+                season="2025-26",
+                season_type_all_star=season_type,
+                measure_type_detailed_defense="Defense",
+                per_mode_detailed="PerGame",
+                timeout=15,
+            )
 
-        base = _parse(base_data)
-        defense = _parse(def_data)
+        # 4 calls in parallel: (base RS + base PO) + (def RS + def PO)
+        (base_rs_data, base_po_data), (def_rs_data, def_po_data) = await asyncio.gather(
+            fetch_rs_and_po(base_factory),
+            fetch_rs_and_po(def_factory),
+        )
+
+        base_rs = parse_team_dash_rows(base_rs_data)
+        base_po = parse_team_dash_rows(base_po_data)
+        def_rs = parse_team_dash_rows(def_rs_data)
+        def_po = parse_team_dash_rows(def_po_data)
+
+        if not base_rs and not base_po:
+            raise RuntimeError("nba_api returned no base rows for either season type")
+
+        base_blended = gp_weighted_blend(
+            base_rs, base_po,
+            ["PTS", "FG3A", "FG3_PCT", "TOV", "OREB"],
+        )
+        def_blended = gp_weighted_blend(
+            def_rs, def_po,
+            ["DEF_RATING", "BLK", "STL", "OPP_PTS_PAINT", "OPP_PTS_FB"],
+        )
 
         off_stats = {}
         def_stats = {}
-        totals = {"pts_paint": [], "fg3a": [], "tov": [], "blk": [], "stl": [], "opp_pts_paint": []}
+        totals = {"pts_paint": [], "fg3a": [], "tov": [], "blk": [], "stl": [],
+                  "opp_pts_paint": [], "opp_pts_fb": []}
 
-        for key, d in base.items():
+        for key, b in base_blended.items():
             off_stats[key] = {
-                "pts": d.get("PTS", 110),
-                "fg3a": d.get("FG3A", 35),
-                "fg3_pct": d.get("FG3_PCT", 0.36),
-                "tov": d.get("TOV", 13),
-                "oreb": d.get("OREB", 10),
+                "pts": b.get("PTS", 110),
+                "fg3a": b.get("FG3A", 35),
+                "fg3_pct": b.get("FG3_PCT", 0.36),
+                "tov": b.get("TOV", 13),
+                "oreb": b.get("OREB", 10),
+                "gp": b["gp"],
+                "rs_gp": b["rs_gp"],
+                "po_gp": b["po_gp"],
             }
-            totals["fg3a"].append(d.get("FG3A", 35))
-            totals["tov"].append(d.get("TOV", 13))
+            totals["fg3a"].append(b.get("FG3A", 35))
+            totals["tov"].append(b.get("TOV", 13))
 
-        for key, d in defense.items():
+        for key, b in def_blended.items():
             def_stats[key] = {
-                "drtg": d.get("DEF_RATING", 114),
-                "blk": d.get("BLK", 5),
-                "stl": d.get("STL", 8),
-                "opp_pts_paint": d.get("OPP_PTS_PAINT", 48),
-                "opp_pts_fb": d.get("OPP_PTS_FB", 14),
+                "drtg": b.get("DEF_RATING", 114),
+                "blk": b.get("BLK", 5),
+                "stl": b.get("STL", 8),
+                "opp_pts_paint": b.get("OPP_PTS_PAINT", 48),
+                "opp_pts_fb": b.get("OPP_PTS_FB", 14),
+                "gp": b["gp"],
+                "rs_gp": b["rs_gp"],
+                "po_gp": b["po_gp"],
             }
-            totals["blk"].append(d.get("BLK", 5))
-            totals["stl"].append(d.get("STL", 8))
-            totals["opp_pts_paint"].append(d.get("OPP_PTS_PAINT", 48))
-            totals["pts_paint"].append(d.get("OPP_PTS_PAINT", 48))
+            totals["blk"].append(b.get("BLK", 5))
+            totals["stl"].append(b.get("STL", 8))
+            totals["opp_pts_paint"].append(b.get("OPP_PTS_PAINT", 48))
+            totals["pts_paint"].append(b.get("OPP_PTS_PAINT", 48))
+            totals["opp_pts_fb"].append(b.get("OPP_PTS_FB", 14))
 
-        n = len(base)
+        n = len(base_blended)
+        po_count = sum(1 for v in off_stats.values() if v["po_gp"] > 0)
         self._league_avgs = {k: sum(v) / len(v) for k, v in totals.items() if v}
         self._off_stats = off_stats
         self._def_stats = def_stats
@@ -187,7 +204,7 @@ class MatchupAgent(ModelAgent):
             "league_avgs": self._league_avgs,
         }
         self.save_state()
-        self.log.info("matchup_fetched", teams=n)
+        self.log.info("matchup_fetched", teams=n, po_teams=po_count)
 
     def _resolve(self, team: str, store: dict) -> Optional[dict]:
         team = team.lower().strip()

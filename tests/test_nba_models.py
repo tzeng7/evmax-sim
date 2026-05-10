@@ -16,8 +16,17 @@ from evmax.agents.models.matchup_agent import MatchupAgent
 from evmax.agents.models.calibration import ModelCalibrator
 from evmax.agents.models.meta_model import MetaModel, _logit, _sigmoid
 from evmax.agents.models.possession_sim_agent import PossessionSimAgent
+from evmax.agents.models._nba_playoff_blend import (
+    parse_team_dash_rows,
+    gp_weighted_blend,
+)
 from evmax.models.market import PredictionMarket, MarketSource
 from evmax.models.odds import SharpOdds, SharpBook
+
+
+async def _async_true(*_args, **_kwargs) -> bool:
+    """Stub that mimics evmax.agents.models._nba_freshness.state_is_fresh."""
+    return True
 
 
 def _make_pair(home: str, away: str, prob_a: float = 0.6) -> tuple[PredictionMarket, SharpOdds]:
@@ -70,7 +79,8 @@ class TestEfficiencyModel:
             }
         }
         market, sharp = _make_pair("thunder", "suns", 0.90)
-        result = asyncio.run(agent.predict_pair(market, sharp))
+        with patch("evmax.agents.models._nba_freshness.state_is_fresh", new=_async_true):
+            result = asyncio.run(agent.predict_pair(market, sharp))
         assert result is not None
         assert result.true_prob_a > 0.70
         assert result.true_prob_b < 0.30
@@ -89,7 +99,8 @@ class TestEfficiencyModel:
             }
         }
         market, sharp = _make_pair("good", "bad", 0.85)
-        result = asyncio.run(agent.predict_pair(market, sharp))
+        with patch("evmax.agents.models._nba_freshness.state_is_fresh", new=_async_true):
+            result = asyncio.run(agent.predict_pair(market, sharp))
         assert result is not None
         assert result.true_prob_a > 0.85
 
@@ -144,6 +155,69 @@ class TestMatchup:
         def_a = {"blk": 7, "stl": 10, "opp_pts_paint": 42, "opp_pts_fb": 12, "drtg": 108}
         margin = agent._matchup_margin(off_a, def_b, off_b, def_a)
         assert -4.0 <= margin <= 4.0
+
+
+# ── NBA playoff blend helpers ───────────────────────────────────────────
+
+
+class TestPlayoffBlend:
+    def test_parse_handles_empty_payload(self):
+        assert parse_team_dash_rows(None) == {}
+        assert parse_team_dash_rows({}) == {}
+        assert parse_team_dash_rows({"resultSets": []}) == {}
+
+    def test_parse_normalizes_two_word_keys(self):
+        payload = {"resultSets": [{
+            "headers": ["TEAM_NAME", "GP", "OFF_RATING"],
+            "rowSet": [
+                ["Portland Trail Blazers", 80, 110.0],
+                ["LA Clippers", 80, 115.0],
+                ["Phoenix Suns", 80, 113.0],
+            ],
+        }]}
+        out = parse_team_dash_rows(payload)
+        assert "trail blazers" in out
+        assert "la clippers" in out
+        assert "suns" in out
+
+    def test_blend_falls_back_to_rs_when_no_playoffs(self):
+        rs = {"thunder": {"GP": 82, "OFF_RATING": 118.0, "TEAM_NAME": "Oklahoma City Thunder"}}
+        po = {}
+        out = gp_weighted_blend(rs, po, ["OFF_RATING"])
+        assert out["thunder"]["OFF_RATING"] == 118.0
+        assert out["thunder"]["gp"] == 82
+        assert out["thunder"]["po_gp"] == 0
+
+    def test_blend_falls_back_to_po_when_no_rs(self):
+        # Playoff-only row (off-season scenario where RS payload missing)
+        rs = {}
+        po = {"thunder": {"GP": 5, "OFF_RATING": 120.0, "TEAM_NAME": "Oklahoma City Thunder"}}
+        out = gp_weighted_blend(rs, po, ["OFF_RATING"])
+        assert out["thunder"]["OFF_RATING"] == 120.0
+        assert out["thunder"]["rs_gp"] == 0
+
+    def test_blend_weights_by_gp(self):
+        rs = {"thunder": {"GP": 80, "OFF_RATING": 115.0, "TEAM_NAME": "OKC"}}
+        po = {"thunder": {"GP": 4, "OFF_RATING": 125.0, "TEAM_NAME": "OKC"}}
+        out = gp_weighted_blend(rs, po, ["OFF_RATING"])
+        # Weighted mean: (115*80 + 125*4) / 84
+        expected = (115.0 * 80 + 125.0 * 4) / 84
+        assert out["thunder"]["OFF_RATING"] == pytest.approx(expected, abs=1e-6)
+        assert out["thunder"]["gp"] == 84
+        assert out["thunder"]["rs_gp"] == 80
+        assert out["thunder"]["po_gp"] == 4
+
+    def test_blend_drops_zero_gp_teams(self):
+        rs = {"team_a": {"GP": 0, "OFF_RATING": 0, "TEAM_NAME": "x"}}
+        po = {"team_a": {"GP": 0, "OFF_RATING": 0, "TEAM_NAME": "x"}}
+        out = gp_weighted_blend(rs, po, ["OFF_RATING"])
+        assert out == {}
+
+    def test_blend_unions_keys_from_both_inputs(self):
+        rs = {"a": {"GP": 82, "X": 1.0, "TEAM_NAME": "A"}}
+        po = {"b": {"GP": 5, "X": 2.0, "TEAM_NAME": "B"}}
+        out = gp_weighted_blend(rs, po, ["X"])
+        assert set(out) == {"a", "b"}
 
 
 # ── Calibration ──────────────────────────────────────────────────────────
@@ -343,6 +417,21 @@ class TestPossessionSim:
         agent = self._make_agent()
         assert agent.cover_probability("nonexistent", -5.0) is None
 
+    def test_cover_probability_uses_12_5_sigma(self):
+        """The NBA possession-sim cover_probability hard-codes sigma=12.5
+        (bumped 11.5→12.5 on 2026-05-07). Must stay in lockstep with
+        spread_distribution._SECTOR_SIGMA["nba"] — both layers feed the
+        same blended cover prob in ev_gap_agent step 2a."""
+        from evmax.models_ml.spread_distribution import _SECTOR_SIGMA
+        import inspect
+        from evmax.agents.models import possession_sim_agent
+        src = inspect.getsource(possession_sim_agent.PossessionSimAgent.cover_probability)
+        assert "sigma = 12.5" in src, (
+            "possession_sim cover_probability must use sigma=12.5 to match "
+            f"_SECTOR_SIGMA['nba']={_SECTOR_SIGMA['nba']}"
+        )
+        assert _SECTOR_SIGMA["nba"] == 12.5
+
     def test_total_probability(self):
         agent = self._make_agent()
         market, sharp = _make_pair("thunder", "suns", 0.75)
@@ -359,3 +448,135 @@ class TestPossessionSim:
         market, sharp = _make_pair("thunder", "suns", 0.75)
         result = asyncio.run(agent.predict_pair(market, sharp))
         assert "sigma=" in result.notes
+
+
+class TestNBAPropsESPNFallback:
+    """ESPN gamelog fallback path used when stats.nba.com is unreachable.
+
+    Stats.nba.com aggressively blocks scrapers during playoffs. When that
+    happens the existing nba_api pipe fails wholesale, the daily refresh
+    saves an empty cache, and every prop scan logs zero rows. The ESPN path
+    + cache-safety guard recover the pipeline.
+    """
+
+    @staticmethod
+    def _espn_search_payload(player_id: str = "4065648") -> dict:
+        return {
+            "items": [{
+                "id": player_id, "displayName": "Jayson Tatum",
+                "type": "player", "sport": "basketball", "league": "nba",
+            }]
+        }
+
+    @staticmethod
+    def _espn_gamelog_payload() -> dict:
+        # 6 events worth of stats — enough to clear _MIN_GAMES=5.
+        # labels: ['MIN','FG','FG%','3PT','3P%','FT','FT%','REB','AST','BLK','STL','PF','TO','PTS']
+        rows = [
+            ["35", "10-20", "50.0", "3-7", "42.9", "5-6", "83.3", "8", "5", "1", "2", "3", "2", "28"],
+            ["32", "8-18",  "44.4", "2-5", "40.0", "4-4", "100",  "7", "6", "0", "1", "2", "3", "22"],
+            ["38", "12-22", "54.5", "4-9", "44.4", "6-7", "85.7", "9", "8", "1", "1", "1", "1", "34"],
+            ["30", "9-19",  "47.4", "1-6", "16.7", "3-3", "100",  "11","4", "2", "1", "4", "2", "22"],
+            ["36", "11-21", "52.4", "3-8", "37.5", "7-8", "87.5", "6", "7", "0", "2", "3", "3", "32"],
+            ["33", "10-19", "52.6", "2-6", "33.3", "4-5", "80.0", "10","5", "1", "1", "2", "1", "26"],
+        ]
+        events_meta = {
+            f"e{i}": {"gameDate": f"2026-04-{20-i:02d}T00:00:00Z",
+                      "team": {"abbreviation": "BOS"}}
+            for i in range(6)
+        }
+        return {
+            "labels": ["MIN","FG","FG%","3PT","3P%","FT","FT%","REB","AST","BLK","STL","PF","TO","PTS"],
+            "events": events_meta,
+            "seasonTypes": [{
+                "displayName": "2025-26 Postseason",
+                "categories": [{
+                    "displayName": "Conference Quarterfinals",
+                    "events": [{"eventId": f"e{i}", "stats": rows[i]} for i in range(6)],
+                }],
+            }],
+        }
+
+    def test_fetch_via_espn_returns_player_dict(self):
+        from evmax.clients import nba_props_cache as npc
+
+        npc._espn_id_cache.clear()
+
+        def fake_get(url, params=None, **kwargs):
+            resp = MagicMock()
+            resp.raise_for_status = MagicMock()
+            if "search" in url:
+                resp.json = MagicMock(return_value=self._espn_search_payload())
+            else:
+                resp.json = MagicMock(return_value=self._espn_gamelog_payload())
+            return resp
+
+        with patch("httpx.get", side_effect=fake_get):
+            data = npc._fetch_player_via_espn_sync("jayson_tatum")
+
+        assert data is not None
+        assert data["team"] == "BOS"
+        assert data["n_games"] == 6
+        # Most recent date first (April 20 → April 15)
+        assert data["stats"]["PTS"][0] == 28.0
+        assert data["stats"]["FG3M"][0] == 3.0  # parsed from "3-7"
+        assert len(data["stats"]["MIN"]) == 6
+        assert data["source"] == "espn"
+
+    def test_fetch_via_espn_returns_none_when_search_misses(self):
+        from evmax.clients import nba_props_cache as npc
+
+        npc._espn_id_cache.clear()
+
+        def fake_get(url, params=None, **kwargs):
+            resp = MagicMock()
+            resp.raise_for_status = MagicMock()
+            resp.json = MagicMock(return_value={"items": []})
+            return resp
+
+        with patch("httpx.get", side_effect=fake_get):
+            assert npc._fetch_player_via_espn_sync("unknown_player") is None
+        # negative cache entry written
+        assert npc._espn_id_cache.get("unknown_player") == ""
+
+    def test_refresh_keeps_prior_cache_when_fetch_returns_empty(self, tmp_path, monkeypatch):
+        """Death-spiral guard: empty fetch must not clobber a non-empty cache."""
+        from evmax.clients import nba_props_cache as npc
+
+        # Redirect cache + reset memo
+        cache_path = tmp_path / "nba_props_cache.json"
+        monkeypatch.setattr(npc, "_CACHE_PATH", cache_path)
+        npc._mem_cache = None
+        npc._mem_cache_time = 0
+
+        # Seed prior cache with one player
+        prior = {
+            "fetched_at": 1.0,  # ancient → triggers refresh path, but still loadable any-age
+            "date": "2026-05-01",
+            "players": {"some_player": {"player_name": "Some Player", "n_games": 12, "stats": {}}},
+            "team_stats": {},
+            "league_avg": {},
+            "schedule": [],
+        }
+        cache_path.write_text(json.dumps(prior))
+
+        async def fake_fetch(_player_names=None):
+            return {}  # network blocked, nothing fetched
+
+        async def fake_team_stats():
+            return {}
+
+        def fake_schedule(_d):
+            return []
+
+        monkeypatch.setattr(npc, "_fetch_player_stats_async", fake_fetch)
+        monkeypatch.setattr(npc, "_fetch_team_stats_sync", lambda: {})
+        monkeypatch.setattr(npc, "_fetch_schedule_sync", lambda d: [])
+
+        n = asyncio.run(npc.refresh_props_cache(force=True, player_names=["new_player"]))
+
+        # Returned the prior count, did NOT overwrite the cache file.
+        assert n == 1
+        on_disk = json.loads(cache_path.read_text())
+        assert "some_player" in on_disk["players"]
+        assert on_disk["fetched_at"] == 1.0  # untouched

@@ -310,6 +310,61 @@ def calibration_bins(preds: np.ndarray, actuals: np.ndarray, n_bins: int = 10) -
 # Step 3-5: tuning pipeline
 # ----------------------------------------------------------------------------
 
+def fit_one(train: pd.DataFrame, test: pd.DataFrame, label: str) -> dict:
+    """Grid-search constants on TRAIN, fit isotonic, return everything needed
+    to serialize and a per-strategy test Brier. Returns None if either split
+    is too small (<200 rows) — per-stat fitting on tiny stats is meaningless.
+    """
+    if len(train) < 200 or len(test) < 200:
+        print(f"  [{label}] skipped — train={len(train)} test={len(test)} (need ≥200 each)")
+        return None
+
+    actuals_train = train.outcome.to_numpy(dtype=float)
+    actuals_test = test.outcome.to_numpy(dtype=float)
+
+    base_test = apply_blend(test, PROD_BASE_RATE, PROD_SHRINKAGE, PROD_BLEND_MODEL)
+    base_brier = brier(base_test, actuals_test)
+
+    base_rates = [0.30, 0.35, 0.40, 0.45, 0.50, 0.55]
+    shrinkages = [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
+    blend_models = [0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80]
+
+    best = None
+    for br, sh, bm in product(base_rates, shrinkages, blend_models):
+        preds = apply_blend(train, br, sh, bm)
+        b = brier(preds, actuals_train)
+        if best is None or b < best["brier"]:
+            best = {"brier": b, "base_rate": br, "shrinkage": sh, "blend_model": bm}
+
+    tuned_test = apply_blend(test, best["base_rate"], best["shrinkage"], best["blend_model"])
+    tuned_brier = brier(tuned_test, actuals_test)
+
+    tuned_train = apply_blend(train, best["base_rate"], best["shrinkage"], best["blend_model"])
+    iso = IsotonicRegression(out_of_bounds="clip", y_min=0.01, y_max=0.99)
+    iso.fit(tuned_train, actuals_train)
+    iso_test = iso.predict(tuned_test)
+    iso_brier = brier(iso_test, actuals_test)
+
+    print(f"  [{label}] n={len(train):,}/{len(test):,} | "
+          f"baseline {base_brier:.4f} → tuned {tuned_brier:.4f} → iso {iso_brier:.4f} "
+          f"(Δ {iso_brier - base_brier:+.4f})")
+
+    return {
+        "base_rate": best["base_rate"],
+        "shrinkage": best["shrinkage"],
+        "blend_model": best["blend_model"],
+        "isotonic_x_thresholds": iso.X_thresholds_.tolist(),
+        "isotonic_y_thresholds": iso.y_thresholds_.tolist(),
+        "test_brier": {
+            "baseline": base_brier,
+            "tuned": tuned_brier,
+            "isotonic": iso_brier,
+        },
+        "n_train": len(train),
+        "n_test": len(test),
+    }
+
+
 def run_pipeline(intermediates: pd.DataFrame) -> dict:
     intermediates = intermediates.copy()
     intermediates["game_date"] = pd.to_datetime(intermediates["game_date"])
@@ -323,66 +378,73 @@ def run_pipeline(intermediates: pd.DataFrame) -> dict:
     print(f"\nTrain (Jan-Feb 2025): {len(train):,} rows | "
           f"Test (Mar-Apr 2025): {len(test):,} rows")
 
-    # Baseline: production constants
-    base_test = apply_blend(test, PROD_BASE_RATE, PROD_SHRINKAGE, PROD_BLEND_MODEL)
-    base_brier_test = brier(base_test, actuals_test)
-    print(f"\nBaseline (production constants) on TEST: Brier {base_brier_test:.4f}")
+    # Global fit (all stats pooled) — keeps a single fallback calibration
+    # for any stat that's too small to refit on its own.
+    print("\nFitting GLOBAL calibration (all stats pooled)…")
+    global_fit = fit_one(train, test, "global")
 
-    # Grid search on TRAIN
-    print("\nGrid-searching constants on TRAIN…")
-    base_rates = [0.30, 0.35, 0.40, 0.45, 0.50, 0.55]
-    shrinkages = [0.0, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
-    blend_models = [0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80]
+    # Per-stat fits — one isotonic per stat type, on rows for that stat only.
+    # Each stat has its own distribution shape and bias, so a stat-specific
+    # mapping should outperform the global one wherever sample is sufficient.
+    print("\nFitting PER-STAT calibrations…")
+    per_stat: dict[str, dict] = {}
+    for stat in sorted(intermediates["stat"].unique()):
+        train_stat = train[train["stat"] == stat].reset_index(drop=True)
+        test_stat = test[test["stat"] == stat].reset_index(drop=True)
+        fit = fit_one(train_stat, test_stat, stat)
+        if fit is not None:
+            per_stat[stat] = fit
 
-    best = None
-    for br, sh, bm in product(base_rates, shrinkages, blend_models):
-        preds = apply_blend(train, br, sh, bm)
-        b = brier(preds, actuals_train)
-        if best is None or b < best["brier"]:
-            best = {"brier": b, "base_rate": br, "shrinkage": sh, "blend_model": bm}
-    print(f"  Best train Brier: {best['brier']:.4f} at "
-          f"base_rate={best['base_rate']}, shrinkage={best['shrinkage']}, "
-          f"blend_model={best['blend_model']}")
-
-    # Apply best constants to TEST
-    tuned_test = apply_blend(test, best["base_rate"], best["shrinkage"], best["blend_model"])
-    tuned_brier_test = brier(tuned_test, actuals_test)
-    print(f"  → Tuned constants on TEST: Brier {tuned_brier_test:.4f}  "
-          f"(Δ {tuned_brier_test - base_brier_test:+.4f})")
-
-    # Isotonic on top of tuned
-    print("\nFitting isotonic calibration on TRAIN raw → calibrated…")
-    tuned_train = apply_blend(train, best["base_rate"], best["shrinkage"], best["blend_model"])
-    iso = IsotonicRegression(out_of_bounds="clip", y_min=0.01, y_max=0.99)
-    iso.fit(tuned_train, actuals_train)
-    iso_test = iso.predict(tuned_test)
-    iso_brier_test = brier(iso_test, actuals_test)
-    print(f"  → Tuned + isotonic on TEST: Brier {iso_brier_test:.4f}  "
-          f"(Δ {iso_brier_test - base_brier_test:+.4f})")
-
-    # Calibration tables
-    def print_cal(label: str, preds: np.ndarray):
-        print(f"\nCalibration — {label}:")
-        print(f"{'Bucket':<12s} {'N':>7s} {'Mean pred':>10s} {'Actual %':>10s} {'Δ':>8s}")
-        for b in calibration_bins(preds, actuals_test):
-            bucket = f"{int(b['lo']*100):>3}–{int(b['hi']*100 + 0.5):>3}%"
-            print(f"{bucket:<12s} {b['n']:>7,d} {b['mean_pred']:>9.1%} "
-                  f"{b['actual']:>9.1%} {b['actual']-b['mean_pred']:>+7.1%}")
-
-    print_cal("baseline (production)", base_test)
-    print_cal(f"tuned constants", tuned_test)
-    print_cal(f"tuned + isotonic", iso_test)
+    # Compare global vs per-stat on the test split using each strategy's
+    # best (tuned + isotonic) — this is the number that production sees.
+    actuals_test = test.outcome.to_numpy(dtype=float)
+    if global_fit is not None:
+        global_iso_brier = global_fit["test_brier"]["isotonic"]
+        # Compute per-stat ensemble Brier — for each test row, use that stat's
+        # isotonic if available, else global.
+        per_stat_preds = np.empty(len(test), dtype=float)
+        for stat, fit in per_stat.items():
+            mask = (test["stat"] == stat).to_numpy()
+            if not mask.any():
+                continue
+            tuned = apply_blend(
+                test[mask], fit["base_rate"], fit["shrinkage"], fit["blend_model"]
+            )
+            per_stat_preds[mask] = _apply_isotonic_vec(
+                tuned, fit["isotonic_x_thresholds"], fit["isotonic_y_thresholds"]
+            )
+        # Stats that didn't refit (e.g. too small) fall back to global
+        unfilled = ~test["stat"].isin(per_stat).to_numpy()
+        if unfilled.any():
+            tuned = apply_blend(
+                test[unfilled], global_fit["base_rate"],
+                global_fit["shrinkage"], global_fit["blend_model"],
+            )
+            per_stat_preds[unfilled] = _apply_isotonic_vec(
+                tuned, global_fit["isotonic_x_thresholds"],
+                global_fit["isotonic_y_thresholds"],
+            )
+        per_stat_brier = brier(per_stat_preds, actuals_test)
+        print(f"\nGlobal-only iso Brier:  {global_iso_brier:.4f}")
+        print(f"Per-stat ensemble Brier: {per_stat_brier:.4f}  "
+              f"(Δ {per_stat_brier - global_iso_brier:+.4f})")
 
     return {
-        "baseline_brier_test": base_brier_test,
-        "tuned_brier_test": tuned_brier_test,
-        "isotonic_brier_test": iso_brier_test,
-        "best_constants": best,
-        "isotonic_x_thresh": iso.X_thresholds_.tolist(),
-        "isotonic_y_thresh": iso.y_thresholds_.tolist(),
+        "global": global_fit,
+        "per_stat": per_stat,
         "n_train": len(train),
         "n_test": len(test),
     }
+
+
+def _apply_isotonic_vec(probs: np.ndarray, x_thresh: list[float], y_thresh: list[float]) -> np.ndarray:
+    """Vectorized version of nba_props_cache._apply_isotonic — for the
+    pipeline test-Brier comparison only. Production code uses the scalar
+    version that ships in nba_props_cache.py.
+    """
+    if not x_thresh or not y_thresh:
+        return probs
+    return np.interp(probs, x_thresh, y_thresh)
 
 
 # ----------------------------------------------------------------------------
@@ -410,23 +472,30 @@ def main() -> int:
 
     if args.save:
         MODELS_DIR.mkdir(parents=True, exist_ok=True)
+        global_fit = result["global"]
+        if global_fit is None:
+            print("\nGlobal fit produced no result — refusing to save.")
+            return 1
         payload = {
             "fitted_on": args.season,
-            "base_rate": result["best_constants"]["base_rate"],
-            "shrinkage": result["best_constants"]["shrinkage"],
-            "blend_model": result["best_constants"]["blend_model"],
-            "isotonic_x_thresholds": result["isotonic_x_thresh"],
-            "isotonic_y_thresholds": result["isotonic_y_thresh"],
-            "test_brier": {
-                "baseline": result["baseline_brier_test"],
-                "tuned": result["tuned_brier_test"],
-                "isotonic": result["isotonic_brier_test"],
-            },
+            "schema_version": 2,
+            # Top-level keys preserved for backwards compatibility with
+            # nba_props_cache._load_calibration. New code should read from
+            # `per_stat[stat]` first and fall back to `global`.
+            "base_rate": global_fit["base_rate"],
+            "shrinkage": global_fit["shrinkage"],
+            "blend_model": global_fit["blend_model"],
+            "isotonic_x_thresholds": global_fit["isotonic_x_thresholds"],
+            "isotonic_y_thresholds": global_fit["isotonic_y_thresholds"],
+            "global": global_fit,
+            "per_stat": result["per_stat"],
+            "test_brier": global_fit["test_brier"],
             "n_train": result["n_train"],
             "n_test": result["n_test"],
         }
         CALIBRATION_OUT.write_text(json.dumps(payload, indent=2))
         print(f"\nSaved calibration to {CALIBRATION_OUT.relative_to(REPO_ROOT)}")
+        print(f"  global + {len(result['per_stat'])} per-stat blocks")
     return 0
 
 

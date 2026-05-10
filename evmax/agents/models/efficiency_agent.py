@@ -116,56 +116,60 @@ class EfficiencyModelAgent(ModelAgent):
             return sector_state
 
     async def _fetch_from_nba_api(self) -> dict:
-        """Fetch team advanced stats from stats.nba.com."""
+        """Fetch team advanced stats from stats.nba.com — Regular Season + Playoffs blended."""
         from nba_api.stats.endpoints import LeagueDashTeamStats
+        from evmax.agents.models._nba_playoff_blend import (
+            fetch_rs_and_po,
+            gp_weighted_blend,
+            parse_team_dash_rows,
+        )
 
-        loop = asyncio.get_event_loop()
-        data = await loop.run_in_executor(
-            None,
-            lambda: LeagueDashTeamStats(
+        def factory(season_type: str):
+            return LeagueDashTeamStats(
                 season="2025-26",
+                season_type_all_star=season_type,
                 measure_type_detailed_defense="Advanced",
                 per_mode_detailed="PerGame",
                 timeout=15,
-            ).get_dict(),
-        )
+            )
 
-        headers = data["resultSets"][0]["headers"]
-        rows = data["resultSets"][0]["rowSet"]
+        rs_data, po_data = await fetch_rs_and_po(factory)
+        rs_rows = parse_team_dash_rows(rs_data)
+        po_rows = parse_team_dash_rows(po_data)
+
+        if not rs_rows and not po_rows:
+            raise RuntimeError("nba_api returned no team rows for either season type")
+
+        fields = ["OFF_RATING", "DEF_RATING", "PACE", "NET_RATING",
+                  "EFG_PCT", "TS_PCT", "TM_TOV_PCT", "OREB_PCT"]
+        blended = gp_weighted_blend(rs_rows, po_rows, fields)
 
         teams = {}
         total_ortg = 0.0
         total_drtg = 0.0
         total_pace = 0.0
 
-        for row in rows:
-            d = dict(zip(headers, row))
-            name = d["TEAM_NAME"].lower()
-            # Extract last word for matching (e.g. "Oklahoma City Thunder" → "thunder")
-            key = name.rsplit(" ", 1)[-1] if " " in name else name
-            # Handle two-word team names
-            if key in ("blazers",):
-                key = "trail blazers"
-            elif key in ("clippers",):
-                key = "la clippers"
-
+        for key, b in blended.items():
             teams[key] = {
-                "ortg": d["OFF_RATING"],
-                "drtg": d["DEF_RATING"],
-                "pace": d["PACE"],
-                "net": d["NET_RATING"],
-                "efg": d["EFG_PCT"],
-                "ts": d["TS_PCT"],
-                "tov_pct": d["TM_TOV_PCT"],
-                "oreb_pct": d["OREB_PCT"],
-                "gp": d["GP"],
-                "full_name": d["TEAM_NAME"].lower(),
+                "ortg": round(b["OFF_RATING"], 2),
+                "drtg": round(b["DEF_RATING"], 2),
+                "pace": round(b["PACE"], 2),
+                "net": round(b["NET_RATING"], 2),
+                "efg": round(b["EFG_PCT"], 4),
+                "ts": round(b["TS_PCT"], 4),
+                "tov_pct": round(b["TM_TOV_PCT"], 4),
+                "oreb_pct": round(b["OREB_PCT"], 4),
+                "gp": b["gp"],
+                "rs_gp": b["rs_gp"],
+                "po_gp": b["po_gp"],
+                "full_name": b["TEAM_NAME"].lower(),
             }
-            total_ortg += d["OFF_RATING"]
-            total_drtg += d["DEF_RATING"]
-            total_pace += d["PACE"]
+            total_ortg += teams[key]["ortg"]
+            total_drtg += teams[key]["drtg"]
+            total_pace += teams[key]["pace"]
 
         n = len(teams)
+        po_team_count = sum(1 for v in teams.values() if v["po_gp"] > 0)
         result = {
             "league_avg_ortg": round(total_ortg / n, 2),
             "league_avg_drtg": round(total_drtg / n, 2),
@@ -174,7 +178,12 @@ class EfficiencyModelAgent(ModelAgent):
             "fetched_at": date.today().isoformat(),
         }
 
-        self.log.info("efficiency_fetched", teams=n, avg_ortg=result["league_avg_ortg"])
+        self.log.info(
+            "efficiency_fetched",
+            teams=n,
+            po_teams=po_team_count,
+            avg_ortg=result["league_avg_ortg"],
+        )
         return result
 
     def _resolve_team(self, teams: dict, team: str) -> Optional[dict]:

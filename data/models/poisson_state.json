@@ -2268,14 +2268,14 @@
         "games": 82
       },
       "celtics": {
-        "attack": 0.9956,
-        "defense": 0.9289,
-        "games": 82
+        "attack": 0.9905944082492312,
+        "defense": 0.927868081055763,
+        "games": 87
       },
       "lakers": {
-        "attack": 1.0085,
-        "defense": 0.9933,
-        "games": 82
+        "attack": 1.0021250486984912,
+        "defense": 0.9890100812830536,
+        "games": 86
       },
       "bucks": {
         "attack": 0.959,
@@ -2288,14 +2288,14 @@
         "games": 82
       },
       "pistons": {
-        "attack": 1.0208,
-        "defense": 0.9501,
-        "games": 82
+        "attack": 1.0126601732126368,
+        "defense": 0.9464853657977338,
+        "games": 87
       },
       "magic": {
-        "attack": 1.0033,
-        "defense": 0.9978,
-        "games": 82
+        "attack": 0.9966278945333661,
+        "defense": 0.9909820122930968,
+        "games": 87
       },
       "jazz": {
         "attack": 1.0193,
@@ -2303,9 +2303,9 @@
         "games": 82
       },
       "thunder": {
-        "attack": 1.0317,
-        "defense": 0.9351,
-        "games": 82
+        "attack": 1.0332250616870529,
+        "defense": 0.9341099087736046,
+        "games": 85
       },
       "nets": {
         "attack": 0.9182,
@@ -2318,9 +2318,9 @@
         "games": 82
       },
       "raptors": {
-        "attack": 0.9937,
-        "defense": 0.9692,
-        "games": 82
+        "attack": 0.9922409828908929,
+        "defense": 0.9677318023833651,
+        "games": 86
       },
       "warriors": {
         "attack": 0.9935,
@@ -2328,39 +2328,39 @@
         "games": 82
       },
       "nuggets": {
-        "attack": 1.0582,
-        "defense": 1.0136,
-        "games": 82
+        "attack": 1.0501320135337358,
+        "defense": 1.0117669363870518,
+        "games": 87
       },
       "knicks": {
-        "attack": 1.0102,
-        "defense": 0.9549,
-        "games": 83
+        "attack": 1.0114121890940082,
+        "defense": 0.9498310009445071,
+        "games": 88
       },
       "76ers": {
-        "attack": 1.0045,
-        "defense": 1.006,
-        "games": 82
+        "attack": 0.9991232534695563,
+        "defense": 1.000396707099806,
+        "games": 87
       },
       "timberwolves": {
-        "attack": 1.0229,
-        "defense": 0.9938,
-        "games": 82
+        "attack": 1.0205324536284313,
+        "defense": 0.989433162959023,
+        "games": 87
       },
       "hawks": {
-        "attack": 1.0269,
-        "defense": 1.0059,
-        "games": 82
+        "attack": 1.0176348055530646,
+        "defense": 1.007373248738767,
+        "games": 87
       },
       "rockets": {
-        "attack": 0.9989,
-        "defense": 0.9536,
-        "games": 82
+        "attack": 0.9943496161667745,
+        "defense": 0.9497785370705845,
+        "games": 86
       },
       "cavaliers": {
-        "attack": 1.0361,
-        "defense": 1.0004,
-        "games": 82
+        "attack": 1.0315201744763884,
+        "defense": 0.9986293549839161,
+        "games": 86
       },
       "hornets": {
         "attack": 1.0056,
@@ -2373,19 +2373,19 @@
         "games": 82
       },
       "trail blazers": {
-        "attack": 1.001,
-        "defense": 1.0035,
-        "games": 82
+        "attack": 0.9949633413586365,
+        "defense": 1.0022990518663204,
+        "games": 86
       },
       "suns": {
-        "attack": 0.9759,
-        "defense": 0.9632,
-        "games": 82
+        "attack": 0.9734699087736044,
+        "defense": 0.9671427087458762,
+        "games": 85
       },
       "spurs": {
-        "attack": 1.038,
-        "defense": 0.968,
-        "games": 83
+        "attack": 1.035226648971305,
+        "defense": 0.9635499696188821,
+        "games": 87
       },
       "grizzlies": {
         "attack": 0.994,
@@ -2411,6 +2411,36 @@
         "attack": 1.0477,
         "defense": 1.0275,
         "games": 82
+      },
+      "boston celtics": {
+        "attack": 1.0582921058292107,
+        "defense": 0.7947528842542859,
+        "games": 1
+      },
+      "philadelphia 76ers": {
+        "attack": 0.7947528842542859,
+        "defense": 1.0582921058292107,
+        "games": 1
+      },
+      "san antonio spurs": {
+        "attack": 0.9550440955044096,
+        "defense": 0.8558877215046157,
+        "games": 1
+      },
+      "portland trail blazers": {
+        "attack": 0.8558877215046157,
+        "defense": 0.9550440955044096,
+        "games": 1
+      },
+      "oklahoma city thunder": {
+        "attack": 1.0324801032480104,
+        "defense": 0.9344896551121824,
+        "games": 1
+      },
+      "phoenix suns": {
+        "attack": 0.9344896551121824,
+        "defense": 1.0324801032480104,
+        "games": 1
       }
     }
   }
