@@ -65,6 +65,7 @@ export interface ScanGap {
   market_id: string
   event_date: string
   volume: number
+  mode?: string
 }
 
 export interface ScanResult {

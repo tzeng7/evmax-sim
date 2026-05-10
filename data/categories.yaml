@@ -109,34 +109,34 @@ wnba:
   mode: shadow
   resolver: espn_scoreboard
   status: wip
-  notes: "Season starts May 16 2026. Shadow mode until Kalshi KXWNBAGAME markets appear. Efficiency seeded from 2025 ESPN box scores (scripts/seed_wnba_efficiency.py); Poisson zeroed in ensemble since basketball is not a Poisson process."
+  notes: "Season starts May 8 2026. Shadow mode until Kalshi KXWNBAGAME markets appear. Efficiency seeded from 2025 ESPN box scores (scripts/seed_wnba_efficiency.py); Poisson zeroed in ensemble since basketball is not a Poisson process."
 
 nhl:
   display_name: "NHL"
   market_types: [moneyline, spread, total]
-  models: [form, sharp]
-  mode: live
+  models: [form, nhl_xg, sharp]
+  mode: shadow
   resolver: espn_scoreboard
   status: shipped
-  notes: "Elo K-factor and home-advantage not calibrated for NHL — see MODEL-2 / SECTOR-1. Elo contributes 0 until then. Resolution wired via PR #1."
+  notes: "Shadow 2026-05-02: nhl_xg agent landed (MoneyPuck 5v5 xGF/60 + xGA/60 → projected goal margin → Φ via GOAL_STDEV=2.05, HOME_EDGE_GOALS=0.18). Ensemble override gives nhl_xg 0.30, form 0.15, sharp via sharp_weight (0.85 default). Elo K-factor still uncalibrated for NHL (see MODEL-2 / SECTOR-1) — kept out of NHL ensemble for now. Goalie GSAx + special teams + B2B fatigue layers tracked in TODO.md as v2/v3. Promote to live once shadow Brier validates against sharp baseline (~0.225)."
 
 lol:
   display_name: "League of Legends"
   market_types: [moneyline, map_handicap]
   models: [sharp]
-  mode: live
+  mode: shadow
   resolver: bo3gg
   status: shipped
-  notes: "sharp_weight bumped to 1.00 in model_config.json — predictions are pure sharp. Elo/form gated out (esports rosters churn too fast for team-level Elo to track real strength; Pinnacle prices in roster moves immediately)."
+  notes: "Shadow 2026-05-06: all esports demoted pending validation. sharp_weight bumped to 1.00 in model_config.json — predictions are pure sharp. Elo/form gated out (esports rosters churn too fast for team-level Elo to track real strength; Pinnacle prices in roster moves immediately)."
 
 cs2:
   display_name: "CS2"
   market_types: [moneyline, map_handicap]
   models: [sharp]
-  mode: live
+  mode: shadow
   resolver: bo3gg
   status: shipped
-  notes: "sharp_weight bumped to 1.00 in model_config.json — predictions are pure sharp. Elo/form gated out (esports rosters churn too fast for team-level Elo to track real strength; Pinnacle prices in roster moves immediately)."
+  notes: "Shadow 2026-05-06: all esports demoted pending validation. sharp_weight bumped to 1.00 in model_config.json — predictions are pure sharp. Elo/form gated out (esports rosters churn too fast for team-level Elo to track real strength; Pinnacle prices in roster moves immediately)."
 
 # Valorant, UFC, F1 are in evmax/sectors/registry.py (latent sector handlers
 # with Elo K-factors wired in) but are NOT in kalshi.py::SECTOR_SERIES_MAP —
@@ -155,10 +155,10 @@ nba_props:
   market_types: [player_prop]
   prop_stat_types: [points, rebounds, assists, threes, steals, blocks, points_rebounds_assists]
   models: [nba_props_cache]
-  mode: live
+  mode: shadow
   resolver: espn_boxscore
   status: shipped
-  notes: "Daily L15 game log cache at data/nba_props_cache.json; per-36-min normalization + opponent adjustment + streak/margin blends."
+  notes: "Demoted to shadow 2026-05-01: 2026-04-09→2026-05-01 actionable (ev>=2%) hit rate 15.3% vs model 25.6%, unit PnL -223u over 575 resolved bets, Brier 0.109 vs Kalshi 0.096 (worse than market). Largest leak in ev>=10% bucket (12.1% hit vs 25.0% predicted). Daily L15 game log cache at data/nba_props_cache.json; per-36-min normalization + opponent adjustment + streak/margin blends — root cause investigation pending."
 
 nfl_props:
   display_name: "NFL player props"

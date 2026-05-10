@@ -43,6 +43,25 @@ class Settings(BaseSettings):
     # Minimum market volume to place a simulated bet (filters stale/illiquid markets)
     min_volume_usd: float = Field(default=500.0, ge=0.0)
 
+    # Heavy-chalk filter for game-level markets (moneyline / spread / total).
+    # Skip any side whose ask is above this. Default 0.90 → never stake $9 to
+    # win <$1 even when the model says it's +EV. Reason: at this price level,
+    # tiny calibration drift swamps the edge (a 1pp miss on a 95% market is a
+    # 20% miss on the 5% NO side that holds your money), one loss undoes
+    # 10+ wins, and Kalshi liquidity is usually too thin to fill at the quote.
+    # Player props are unaffected — they go through a separate evaluator.
+    chalk_price_ceiling: float = Field(default=0.90, ge=0.5, le=1.0)
+
+    # Kelly multiplier applied to a same-side correlated bet. When two +EV
+    # gaps share the same `yes_team` on the same base event (ML + same-team
+    # spread, or alt-spread stacks), the second-best one's Kelly is scaled by
+    # this factor before consuming the per-game exposure budget. Default 0.5
+    # roughly cancels the over-allocation from naive independent Kelly on
+    # ρ ≈ 0.8 correlated positions — at full Kelly each you're effectively
+    # ~1.7x Kelly on a single position, which sits past the geometric-growth
+    # peak. Set to 1.0 to disable the discount.
+    same_side_kelly_discount: float = Field(default=0.5, ge=0.0, le=1.0)
+
     @field_validator("ev_threshold")
     @classmethod
     def ev_threshold_sane(cls, v: float) -> float:

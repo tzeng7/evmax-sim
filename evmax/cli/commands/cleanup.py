@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import subprocess
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
@@ -273,6 +273,20 @@ def resolve(
         f"  [green]Resolved:[/green] {result['resolved']}  "
         f"[yellow]Unmatched:[/yellow] {result['failed']}"
     )
+
+    try:
+        from evmax.agents.cleanup.resolver import backfill_clv
+        clv = backfill_clv()
+        if clv["updated"]:
+            avg = clv["avg_clv"]
+            color = "green" if avg > 0 else "red"
+            console.print(
+                f"  [green]CLV backfilled:[/green] {clv['updated']} bet(s)  "
+                f"avg [{color}]{avg:+.1f}pp[/{color}]  "
+                f"[dim]skipped: {clv['skipped']} (no archived close)[/dim]"
+            )
+    except Exception as _clv_err:
+        console.print(f"  [yellow]Warning: CLV backfill failed:[/yellow] {_clv_err}")
     unmatched = result.get("unmatched", [])
     if unmatched:
         console.print(f"\n  [yellow]Unmatched event IDs ({len(unmatched)}):[/yellow]")
@@ -373,6 +387,119 @@ def close_lines(
             f"  [dim]{len(rows) - updated} market(s) had no matching Pinnacle event "
             f"(may have already started or Pinnacle delisted).[/dim]"
         )
+
+
+@app.command("watch-closes")
+def watch_closes(
+    lookahead: int = typer.Option(
+        15, "--lookahead", "-l",
+        help="Capture Pinnacle close for any event tipping off within the next N minutes.",
+    ),
+    interval: int = typer.Option(
+        300, "--interval", "-i",
+        help="Seconds to sleep between sweeps (default 5 min).",
+    ),
+    once: bool = typer.Option(
+        False, "--once",
+        help="Run a single sweep and exit (skip the loop).",
+    ),
+) -> None:
+    """Watch upcoming events and capture Pinnacle close ~lookahead min before each tip-off.
+
+    Self-sufficient — pulls each cycle's queue from the DB, so you can scan at any
+    time of day and this loop will pick up the new events on the next sweep.
+
+    Recommended setup: run this as a launchd/systemd service that's always up.
+    Idempotent: only writes to ev_outcomes rows still missing pinnacle_close_prob.
+    """
+    import asyncio
+    import time
+    from evmax.agents.cleanup.db import get_connection
+    from evmax.archiver import _get_connection as get_archive_conn
+    from evmax.clients.esports_pinnacle import PinnacleGuestClient
+
+    async def _sweep() -> tuple[int, int]:
+        # 1. From archive.db: events tipping off in [now, now + lookahead]
+        with get_archive_conn() as ac:
+            upcoming = ac.execute(
+                """SELECT DISTINCT event_id, sector, event_date
+                   FROM archived_sharp_odds
+                   WHERE event_date IS NOT NULL
+                     AND datetime(event_date) >= datetime('now')
+                     AND datetime(event_date) <= datetime('now', ?)""",
+                (f"+{lookahead} minutes",),
+            ).fetchall()
+
+        if not upcoming:
+            return (0, 0)
+
+        event_ids = [r["event_id"] for r in upcoming]
+
+        # 2. From predictions.db: which of those still need a close
+        conn = get_connection()
+        placeholders = ",".join("?" * len(event_ids))
+        rows = conn.execute(
+            f"""SELECT o.market_id, o.event_id, o.sector
+                FROM ev_outcomes o
+                WHERE o.event_id IN ({placeholders})
+                  AND o.outcome IS NULL
+                  AND o.pinnacle_close_prob IS NULL""",
+            event_ids,
+        ).fetchall()
+
+        if not rows:
+            conn.close()
+            return (0, 0)
+
+        # 3. Group by sector, fetch Pinnacle once per sector
+        by_sector: dict[str, list] = {}
+        for r in rows:
+            by_sector.setdefault(r["sector"], []).append(dict(r))
+
+        updated = 0
+        async with PinnacleGuestClient() as client:
+            for sector, markets in by_sector.items():
+                try:
+                    sharp_odds = await client.get_odds(sector)
+                except Exception as fetch_err:
+                    console.print(f"[yellow]  [{sector}] fetch failed: {fetch_err}[/yellow]")
+                    continue
+                close_by_event = {so.event_id: so.true_prob_a for so in sharp_odds}
+                for m in markets:
+                    cp = close_by_event.get(m["event_id"])
+                    if cp is None:
+                        continue
+                    conn.execute(
+                        "UPDATE ev_outcomes SET pinnacle_close_prob = ? WHERE market_id = ?",
+                        (cp, m["market_id"]),
+                    )
+                    updated += 1
+
+        conn.commit()
+        conn.close()
+        return (updated, len(rows))
+
+    if once:
+        captured, queued = asyncio.run(_sweep())
+        console.print(f"[green]Captured {captured}/{queued} close(s).[/green]")
+        return
+
+    console.print(
+        f"[cyan]watch-closes running[/cyan]  lookahead={lookahead}m  interval={interval}s  "
+        f"[dim](Ctrl+C to stop)[/dim]"
+    )
+    try:
+        while True:
+            ts = datetime.now().strftime("%H:%M:%S")
+            try:
+                captured, queued = asyncio.run(_sweep())
+                if queued:
+                    console.print(f"[dim]{ts}[/dim]  captured {captured}/{queued}")
+            except Exception as sweep_err:
+                console.print(f"[red]{ts}  sweep failed:[/red] {sweep_err}")
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        console.print("\n[dim]watch-closes stopped.[/dim]")
 
 
 @app.command("void")

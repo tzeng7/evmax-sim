@@ -8,14 +8,11 @@ interface Props {
   onResolve: () => void
   onMetrics: () => void
   toast: (msg: string, type?: 'info' | 'ok' | 'err') => void
-  placedPnl: number
 }
 
-const BASE_BANKROLL = 500
-
-export function ActionBar({ onScanComplete, onResolve, onMetrics, toast, placedPnl }: Props) {
+export function ActionBar({ onScanComplete, onResolve, onMetrics, toast }: Props) {
   const [sectors, setSectors] = useState('nba,wnba,soccer,tennis,ncaab')
-  const [bankroll, setBankroll] = useState(() => Math.round((BASE_BANKROLL + placedPnl) * 100) / 100)
+  const [bankroll, setBankroll] = useState(250)
   const [kelly, setKelly] = useState(0.5)
   const [dateFrom, setDateFrom] = useState(fmtDate)
   const [dateTo, setDateTo] = useState(fmtTomorrow)

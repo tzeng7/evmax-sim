@@ -20,7 +20,7 @@ export function ScanResults({ gaps, meta, toast, onPicked }: Props) {
 
   // Reset selection when gaps change
   useMemo(() => {
-    setSelected(new Set(gaps.map(g => g.market_id)))
+    setSelected(new Set(gaps.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
     const f: Record<string, { odds: string; stake: string }> = {}
     for (const g of gaps) {
       f[g.market_id] = { odds: probToAmerican(g.kalshi_price), stake: g.stake.toFixed(2) }
@@ -44,7 +44,7 @@ export function ScanResults({ gaps, meta, toast, onPicked }: Props) {
     })
   }
 
-  const selectAll = () => setSelected(new Set(filtered.map(g => g.market_id)))
+  const selectAll = () => setSelected(new Set(filtered.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
   const deselectAll = () => setSelected(new Set())
 
   const updateFill = (mid: string, field: 'odds' | 'stake', value: string) => {
@@ -109,14 +109,27 @@ export function ScanResults({ gaps, meta, toast, onPicked }: Props) {
           {filtered.map(g => {
             const askOdds = probToAmerican(g.kalshi_price)
             const outcome = outcomeLabel(g)
+            const mode = g.mode || 'live'
+            const isLive = mode === 'live'
             return (
-              <tr key={g.market_id}>
+              <tr key={g.market_id} style={isLive ? undefined : { opacity: 0.55 }}>
                 <td>
                   <input type="checkbox" className="check" checked={selected.has(g.market_id)}
+                    disabled={!isLive}
+                    title={isLive ? '' : `${mode} mode — not pickable`}
                     onChange={() => toggle(g.market_id)} />
                 </td>
                 <td className="muted">{g.event_date}</td>
-                <td><span className="badge">{g.sector}</span></td>
+                <td>
+                  <span className="badge">{g.sector}</span>
+                  {!isLive && (
+                    <span
+                      className="badge"
+                      style={{ marginLeft: 4, background: '#4a3a1a', color: '#f0c060', borderColor: '#c48b2f' }}
+                      title={`mode=${mode} — logged for tracking, not pickable`}
+                    >{mode}</span>
+                  )}
+                </td>
                 <td>{g.event_title}</td>
                 <td>{outcome}</td>
                 <td className="num">{askOdds} <span className="muted">({Math.round(g.kalshi_price * 100)}c)</span></td>

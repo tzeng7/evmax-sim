@@ -1,8 +1,16 @@
 {
   "sharp_weight": 0.85,
-  "last_brier_model": 0.21907,
-  "last_brier_sharp": 0.22252,
-  "last_adjusted": "2026-03-16",
+  "sharp_weight_by_sector": {
+    "nba": 0.7,
+    "tennis": 0.85,
+    "baseball": 0.88,
+    "soccer": 0.88,
+    "lol": 1.0,
+    "cs2": 1.0
+  },
+  "last_brier_model": 0.22476,
+  "last_brier_sharp": 0.225037,
+  "last_adjusted": "2026-05-07",
   "brier_history": [
     {
       "date": "2026-03-16",
@@ -11,14 +19,14 @@
       "n": 146,
       "old_weight": 0.85,
       "new_weight": 0.85
+    },
+    {
+      "date": "2026-05-07",
+      "brier_model": 0.22476,
+      "brier_sharp": 0.225037,
+      "n": 254,
+      "old_weight": 0.85,
+      "new_weight": 0.85
     }
-  ],
-  "sharp_weight_by_sector": {
-    "nba": 0.70,
-    "tennis": 0.85,
-    "baseball": 0.88,
-    "soccer": 0.88,
-    "lol": 1.00,
-    "cs2": 1.00
-  }
+  ]
 }

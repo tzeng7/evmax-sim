@@ -34,18 +34,25 @@ export function useDashboard() {
   const refresh = useCallback(async () => {
     try {
       const data = await fetchDashboard()
-      setState(prev => ({
-        ...prev,
-        summaryAll: data.summary_all,
-        summaryPlaced: data.summary_placed,
-        seriesAll: data.series_all,
-        seriesPlaced: data.series_placed,
-        sectors: data.sectors,
-        placedBets: data.placed_bets,
-        openBets: data.unplaced_bets,
-        recent: data.recent,
-        loading: false,
-      }))
+      setState(prev => {
+        const excluded = new Set<string>([
+          ...data.placed_bets.map(b => b.market_id),
+          ...data.recent.map(b => b.market_id),
+        ])
+        return {
+          ...prev,
+          summaryAll: data.summary_all,
+          summaryPlaced: data.summary_placed,
+          seriesAll: data.series_all,
+          seriesPlaced: data.series_placed,
+          sectors: data.sectors,
+          placedBets: data.placed_bets,
+          openBets: data.unplaced_bets,
+          recent: data.recent,
+          scanGaps: prev.scanGaps.filter(g => !excluded.has(g.market_id)),
+          loading: false,
+        }
+      })
     } catch (e) {
       console.error('Failed to load dashboard', e)
       setState(prev => ({ ...prev, loading: false }))
@@ -55,7 +62,17 @@ export function useDashboard() {
   useEffect(() => { refresh() }, [refresh])
 
   const setScanResults = useCallback((gaps: ScanGap[], meta: { markets_fetched: number; markets_matched: number }) => {
-    setState(prev => ({ ...prev, scanGaps: gaps, scanMeta: meta }))
+    setState(prev => {
+      const excluded = new Set<string>([
+        ...prev.placedBets.map(b => b.market_id),
+        ...prev.recent.map(b => b.market_id),
+      ])
+      return {
+        ...prev,
+        scanGaps: gaps.filter(g => !excluded.has(g.market_id)),
+        scanMeta: meta,
+      }
+    })
   }, [])
 
   return { ...state, refresh, setScanResults }
