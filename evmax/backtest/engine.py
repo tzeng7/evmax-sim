@@ -60,8 +60,6 @@ def run_backtest(
             elif sector == "tennis":
                 years = _seasons_to_tennis_years(seasons)
                 report = _run_tennis(years, fetch_kalshi, force_refresh, ev_threshold)
-            elif sector == "nfl_props":
-                report = _run_nfl_props(min_volume, stats_filter)
             elif sector in ESPN_SECTORS:
                 report = _run_walkforward(sector, seasons)
             else:
@@ -126,18 +124,6 @@ def _run_walkforward(sector: str, seasons: list[str]) -> WalkForwardReport:
     months = sorted(set(months))
     logger.info("walkforward_run", sector=sector, months=len(months))
     return run_walkforward(sector, months)
-
-
-def _run_nfl_props(
-    min_volume: float,
-    stats_filter: Optional[list[str]] = None,
-) -> PropBacktestReport:
-    from evmax.backtest.sources.nfl_props import load_nfl_props
-
-    logger.info("backtest_nfl_props_start", stats_filter=stats_filter or "all")
-    rows = load_nfl_props(stats_filter=stats_filter)
-    logger.info("backtest_nfl_props_loaded", n_rows=len(rows))
-    return compute_prop_report(rows, min_volume=min_volume)
 
 
 def _run_soccer(

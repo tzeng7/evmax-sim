@@ -708,10 +708,18 @@ async def api_portfolio_scan(request: Request) -> JSONResponse:
     if not portfolios:
         return JSONResponse({"error": "No active portfolios"}, status_code=400)
 
-    all_sectors = sorted(set(s for p in portfolios for s in p.sectors))
+    # Coordinator scans by base sector (e.g. 'nba'); '{sector}_props' is the
+    # category key but EVGaps still carry sector='nba' with market_type=
+    # 'player_prop'. Strip the '_props' suffix when telling the coordinator
+    # what to fetch, then re-derive the categorical key when matching gaps
+    # to portfolios below.
+    base_sectors = sorted({
+        (s[: -len("_props")] if s.endswith("_props") else s)
+        for p in portfolios for s in p.sectors
+    })
 
     from evmax.agents.coordinator import AgentCoordinator
-    coord = AgentCoordinator(sectors=all_sectors, bankroll=500, kelly_fraction=0.5)
+    coord = AgentCoordinator(sectors=base_sectors, bankroll=500, kelly_fraction=0.5)
     cycle = await coord.run_cycle()
 
     today_str = date.today().isoformat()
@@ -719,11 +727,18 @@ async def api_portfolio_scan(request: Request) -> JSONResponse:
     d_from = date_from or today_str
     d_to = date_to or tomorrow_str
 
+    def _gap_category(g) -> str:
+        """Return the portfolio-matching sector for a gap. Props get a
+        '_props' suffix even though the EVGap.sector is the base sector."""
+        if g.market_type == "player_prop":
+            return f"{g.sector}_props"
+        return g.sector or ""
+
     results = []
     for portfolio in portfolios:
         portfolio_gaps = []
         for g in cycle.top_gaps:
-            if g.sector not in portfolio.sectors:
+            if _gap_category(g) not in portfolio.sectors:
                 continue
             if g.market_type == "map_handicap":
                 continue

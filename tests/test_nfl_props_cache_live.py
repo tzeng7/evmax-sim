@@ -180,53 +180,6 @@ class TestCacheLoad:
         assert nfl_props_cache._normalize_name("Dončić") == "doncic"
 
 
-class TestComputeCached:
-    def test_returns_none_for_unknown_player(self, nfl_parquets):
-        result = nfl_props_cache.compute_nfl_prop_prob_cached(
-            "Who Is This", "passing_yards", 249.5, None
-        )
-        assert result is None
-
-    def test_returns_none_for_thin_sample_player(self, nfl_parquets):
-        # Rookie QB only has 3 games; MIN_GAMES = 4
-        result = nfl_props_cache.compute_nfl_prop_prob_cached(
-            "Rookie QB", "passing_yards", 200, None
-        )
-        assert result is None
-
-    def test_scores_qb_passing_yards(self, nfl_parquets):
-        result = nfl_props_cache.compute_nfl_prop_prob_cached(
-            "Big Passer", "passing_yards", 249.5, None
-        )
-        assert result is not None
-        # He averages ~300 yds with a tight spread, so P(>= 249.5) must be
-        # very high but clamped under 0.99 by the model.
-        assert 0.70 <= result.prob <= 0.99
-        assert result.n_games >= 4
-
-    def test_scores_rb_rushing_yards(self, nfl_parquets):
-        result = nfl_props_cache.compute_nfl_prop_prob_cached(
-            "Solid Rusher", "rushing_yards", 69.5, None
-        )
-        assert result is not None
-        assert 0.50 <= result.prob <= 0.99
-
-    def test_scores_anytime_td_via_poisson_branch(self, nfl_parquets):
-        # Solid Rusher scored rushing TDs in 3 / 10 games → λ ≈ 0.3 →
-        # P(>= 1) ≈ 1 - e^-0.3 ≈ 0.26. The real answer depends on the
-        # poisson tail math; just assert it's in the believable middle.
-        result = nfl_props_cache.compute_nfl_prop_prob_cached(
-            "Solid Rusher", "anytime_td", 0.5, None
-        )
-        assert result is not None
-        assert 0.10 <= result.prob <= 0.80
-
-    def test_unknown_stat_type_returns_none(self, nfl_parquets):
-        result = nfl_props_cache.compute_nfl_prop_prob_cached(
-            "Big Passer", "not_a_stat", 100, None
-        )
-        assert result is None
-
 
 class TestCoordinatorFetchPropsNfl:
     """Integration test: AgentCoordinator._fetch_props('nfl') must pair
@@ -438,24 +391,3 @@ class TestCoordinatorFetchPropsNfl:
         assert len(prop_sharp) == 0
 
 
-class TestScheduleResolution:
-    def test_game_date_picks_correct_season_and_week(self, nfl_parquets):
-        # 2025-11-17 is week 11 in the synthetic schedule. Big Passer's
-        # history should be weeks 1-10 (< 11). With game_date set, the
-        # model uses the point-in-time history cleanly.
-        result = nfl_props_cache.compute_nfl_prop_prob_cached(
-            "Big Passer", "passing_yards", 249.5, "2025-11-17"
-        )
-        assert result is not None
-        assert result.n_games == 8  # LAST_N_GAMES cap
-
-    def test_opponent_adjustment_applies_when_schedule_resolves(self, nfl_parquets):
-        # With game_date → schedule lookup, opponent = LV (Big Passer's team
-        # is KC and KC plays LV on 2025-11-17 per the fixture). The defense
-        # table is sparse in the synthetic data so opp_adj may just be 1.0,
-        # but the call must still succeed and return a valid probability.
-        result = nfl_props_cache.compute_nfl_prop_prob_cached(
-            "Big Passer", "passing_tds", 1.5, "2025-11-17"
-        )
-        assert result is not None
-        assert 0.0 < result.prob < 1.0

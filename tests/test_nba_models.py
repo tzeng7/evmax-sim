@@ -563,15 +563,11 @@ class TestNBAPropsESPNFallback:
         async def fake_fetch(_player_names=None):
             return {}  # network blocked, nothing fetched
 
-        async def fake_team_stats():
-            return {}
-
-        def fake_schedule(_d):
-            return []
-
+        # Post-2026-05-10 the cache no longer fetches team-stats /
+        # schedules — those were inputs to the deleted L15 model. Only
+        # _fetch_player_stats_async needs stubbing to prove the
+        # keep-prior-cache logic.
         monkeypatch.setattr(npc, "_fetch_player_stats_async", fake_fetch)
-        monkeypatch.setattr(npc, "_fetch_team_stats_sync", lambda: {})
-        monkeypatch.setattr(npc, "_fetch_schedule_sync", lambda d: [])
 
         n = asyncio.run(npc.refresh_props_cache(force=True, player_names=["new_player"]))
 

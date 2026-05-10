@@ -81,142 +81,6 @@ MIN_STD_BY_STAT = {
 }
 
 
-def _exp_weights(n: int) -> np.ndarray:
-    w = np.array([DECAY ** i for i in range(n)], dtype=float)
-    return w / w.sum()
-
-
-def _yardage_prob(
-    threshold: float,
-    values: np.ndarray,
-    stat_type: str,
-    opp_adj: float,
-) -> float:
-    """Normal-CDF model for a continuous yardage stat.
-
-    `values` is ordered most-recent-first and has already been clipped to
-    LAST_N_GAMES. Returns a probability in [0.01, 0.99].
-    """
-    n = len(values)
-    weights = _exp_weights(n)
-
-    wmean = float(np.dot(weights, values))
-    wvar = float(np.dot(weights, (values - wmean) ** 2))
-    wstd = max(float(np.sqrt(wvar)), MIN_STD_BY_STAT.get(stat_type, MIN_STD))
-
-    # Continuity correction — mirror NBA (threshold - 0.5)
-    model_prob = float(1.0 - norm.cdf(threshold - 0.5, wmean, wstd))
-    model_prob = max(0.01, min(0.99, model_prob))
-
-    # Empirical hit-rate blend — MODEL-8 step 3 caps disagreement.
-    # When the empirical hit rate is far from the Gaussian prediction,
-    # it's usually because 1-2 outlier games are dominating the small
-    # sample. Clip the empirical signal to stay within ±EMPIRICAL_DISAGREE_CAP
-    # of the Gaussian so it can't amplify the model into the miscalibrated tails.
-    hits = (values >= threshold).astype(float)
-    weighted_hit_rate = float(np.dot(weights, hits))
-    clipped_empirical = float(
-        np.clip(
-            weighted_hit_rate,
-            model_prob - EMPIRICAL_DISAGREE_CAP,
-            model_prob + EMPIRICAL_DISAGREE_CAP,
-        )
-    )
-    blended = MODEL_EMPIRICAL_BLEND * model_prob + (1 - MODEL_EMPIRICAL_BLEND) * clipped_empirical
-
-    # Margin adjustment: average margin over the line tilts the probability
-    avg_margin = float(np.mean(values - threshold))
-    scale = MARGIN_SCALE / max(MIN_STD_BY_STAT.get(stat_type, MIN_STD) / 10.0, 0.1)
-    margin_adj = float(np.clip(avg_margin * scale, -MARGIN_CAP, MARGIN_CAP))
-    blended += margin_adj
-
-    # MODEL-8 step 2: streak adjustment removed. 3-game streaks at NFL's
-    # weekly cadence are mostly noise and they compound with the empirical
-    # blend to push the model into the miscalibrated tail buckets.
-
-    prob = blended * opp_adj
-    return max(0.01, min(0.99, float(prob)))
-
-
-def _poisson_prob(
-    threshold: float,
-    values: np.ndarray,
-    opp_adj: float,
-) -> float:
-    """Poisson tail for count-based TD props.
-
-    Uses weighted-mean expected value as λ. The standard NFL thresholds
-    are 0.5 (anytime), 1.5 (passing 2+), 2.5 (passing 3+) so we evaluate
-    P(X ≥ ceil(threshold)) = 1 - poisson.cdf(k-1, λ) where k = ceil.
-    """
-    n = len(values)
-    weights = _exp_weights(n)
-    lam = float(np.dot(weights, values)) * opp_adj
-    lam = max(0.01, lam)
-
-    # k = smallest integer strictly greater than threshold
-    # For threshold=0.5 → k=1 → P(X≥1); for 1.5 → k=2; for 2.5 → k=3
-    k = int(np.ceil(threshold))
-    if k <= 0:
-        k = 1
-
-    prob = float(1.0 - poisson.cdf(k - 1, lam))
-    return max(0.01, min(0.99, prob))
-
-
-def compute_nfl_prop_prob(
-    stat_type: str,
-    threshold: float,
-    values: np.ndarray | list[float],
-    opp_adj: float = 1.0,
-) -> Optional[tuple[float, int]]:
-    """Compute P(stat ≥ threshold) for an NFL player prop.
-
-    Args:
-      stat_type: canonical stat key (see STAT_TO_BRANCH).
-      threshold: the prop line (e.g. 249.5 for "250+ passing yards").
-      values: per-game observed stat values, ordered most-recent-first.
-              The function will use up to LAST_N_GAMES of these.
-      opp_adj: multiplicative opponent adjustment factor. 1.0 = neutral.
-
-    Returns:
-      (probability, n_games_used) or None if sample too thin.
-    """
-    branch = STAT_TO_BRANCH.get(stat_type)
-    if branch is None:
-        return None
-
-    arr = np.asarray(values, dtype=float)[:LAST_N_GAMES]
-    n = len(arr)
-    if n < MIN_GAMES:
-        return None
-
-    if branch in ("yardage", "count"):
-        prob = _yardage_prob(threshold, arr, stat_type, opp_adj)
-    elif branch == "poisson":
-        prob = _poisson_prob(threshold, arr, opp_adj)
-    else:
-        return None
-
-    return prob, n
-
-
-def compute_opponent_adjustment(
-    stat_type: str,
-    opponent_allowed_pg: float,
-    league_avg_allowed_pg: float,
-) -> float:
-    """Multiplicative adjustment factor based on opponent defense.
-
-    A team allowing more than league average → higher player prob
-    (factor > 1.0). A team allowing less → lower (factor < 1.0).
-    Clipped to [1 - MAX_OPP_ADJ, 1 + MAX_OPP_ADJ].
-    """
-    if league_avg_allowed_pg <= 0:
-        return 1.0
-    ratio = opponent_allowed_pg / league_avg_allowed_pg
-    return float(np.clip(ratio, 1.0 - MAX_OPP_ADJ, 1.0 + MAX_OPP_ADJ))
-
 
 # ---------------------------------------------------------------------------
 # Disk-backed cache layer (MODEL-9 / ARCH-4)
@@ -267,33 +131,25 @@ def _load_tables() -> Optional[dict]:
     global _tables
     if _tables is not None:
         return _tables
-    if not (_WEEKLY_PATH.exists() and _ROSTERS_PATH.exists() and _SCHEDULES_PATH.exists()):
+    if not (_WEEKLY_PATH.exists() and _ROSTERS_PATH.exists()):
         logger.warning(
             "nfl_props_cache_missing_parquets",
             weekly=_WEEKLY_PATH.exists(),
             rosters=_ROSTERS_PATH.exists(),
-            schedules=_SCHEDULES_PATH.exists(),
             hint="run scripts/fetch_nfl_features.py",
         )
         return None
 
     import pandas as pd
 
-    from evmax.backtest.sources.nfl_props import (
-        _build_defense_table,
-        _league_averages,
-        _prepare_weekly,
-    )
-
-    weekly = _prepare_weekly(pd.read_parquet(_WEEKLY_PATH))
+    weekly = pd.read_parquet(_WEEKLY_PATH).copy()
+    weekly["week"] = weekly["week"].astype(int)
+    weekly["season"] = weekly["season"].astype(int)
     rosters = pd.read_parquet(_ROSTERS_PATH)
-    schedules = pd.read_parquet(_SCHEDULES_PATH)
 
     by_player: dict[str, "pd.DataFrame"] = {
         pid: grp for pid, grp in weekly.groupby("player_id")
     }
-    defense = _build_defense_table(weekly)
-    league_avg = _league_averages(defense)
 
     # Normalize name → gsis_id map, preferring the most recent season to
     # handle team changes and rookies. Fall back to older seasons so
@@ -317,16 +173,12 @@ def _load_tables() -> Optional[dict]:
     _tables = {
         "weekly": weekly,
         "by_player": by_player,
-        "defense": defense,
-        "league_avg": league_avg,
-        "schedules": schedules,
         "name_to_id": name_to_id,
     }
     logger.info(
         "nfl_props_cache_loaded",
         players=len(name_to_id),
         weekly_rows=len(weekly),
-        defense_keys=len(defense),
     )
     return _tables
 
@@ -477,122 +329,6 @@ def _resolve_opponent_from_schedule(
     return None
 
 
-def compute_nfl_prop_prob_cached(
-    player_name: str,
-    stat_type: str,
-    threshold: float,
-    game_date: Optional[str],
-):
-    """Live-scan entry point — mirrors the NBA cached signature.
-
-    Returns an NBA-compatible `PropResult` (reused so the coordinator's
-    SharpOdds construction works unchanged), or None if the sample is too
-    thin or the player can't be resolved.
-
-    `game_date` is the ISO YYYY-MM-DD of the *target* game. The model looks
-    at every weekly row strictly before the target week in the same season.
-    If `game_date` is None we fall back to "next unplayed week for this
-    player," which is the right answer during an active season.
-    """
-    from evmax.clients.nba_props_cache import PropResult
-
-    t = _load_tables()
-    if t is None:
-        return None
-
-    pid = t["name_to_id"].get(_normalize_name(player_name))
-    if pid is None:
-        return None
-
-    player_df = t["by_player"].get(pid)
-    if player_df is None or len(player_df) == 0:
-        return None
-
-    # Pick target (season, week). For a known game_date we use the season
-    # and week from schedules.parquet if possible; otherwise we fall back
-    # to "most recent season in the weekly data + next unplayed week".
-    target_season: Optional[int] = None
-    target_week: Optional[int] = None
-    player_team: Optional[str] = None
-    opponent: Optional[str] = None
-
-    if game_date:
-        try:
-            sched = t["schedules"]
-            if "gameday" in sched.columns and "week" in sched.columns:
-                row = sched[sched["gameday"] == game_date].head(1)
-                if len(row) > 0:
-                    target_season = int(row.iloc[0]["season"])
-                    target_week = int(row.iloc[0]["week"])
-        except Exception:
-            pass
-
-    if target_season is None or target_week is None:
-        seasons = player_df["season"].dropna().unique().tolist()
-        if not seasons:
-            return None
-        target_season = int(max(seasons))
-        same_season = player_df[player_df["season"] == target_season]
-        if len(same_season) == 0:
-            return None
-        target_week = int(same_season["week"].max()) + 1
-
-    # Resolve team + opponent for the opponent adjustment.
-    # Prefer the player's most recent team in the target season.
-    try:
-        last_row = (
-            player_df[player_df["season"] == target_season]
-            .sort_values("week")
-            .tail(1)
-        )
-        if len(last_row) > 0:
-            player_team = str(last_row.iloc[0].get("team") or "")
-    except Exception:
-        player_team = None
-
-    if game_date and player_team:
-        opponent = _resolve_opponent_from_schedule(t["schedules"], player_team, game_date)
-
-    opp_adj = 1.0
-    if opponent:
-        from evmax.backtest.sources.nfl_props import OPP_STAT_PER_PROP
-
-        opp_key = (target_season, target_week, opponent)
-        league_key = (target_season, target_week)
-        opp_stat_name = OPP_STAT_PER_PROP.get(stat_type, "pass_yards_allowed")
-        opp_allowed = t["defense"].get(opp_key, {}).get(opp_stat_name, 0.0)
-        lg_allowed = t["league_avg"].get(league_key, {}).get(opp_stat_name, 0.0)
-        opp_adj = compute_opponent_adjustment(stat_type, opp_allowed, lg_allowed)
-
-    # Player history (strictly before target_week in target_season).
-    from evmax.backtest.sources.nfl_props import STAT_TO_COLUMN, _player_history
-
-    col = STAT_TO_COLUMN.get(stat_type)
-    if col is None:
-        return None
-    history_col = col if col != "__anytime_td__" else "anytime_td"
-    hist = _player_history(t["by_player"], pid, target_season, target_week, history_col)
-    if len(hist) < MIN_GAMES:
-        return None
-
-    result = compute_nfl_prop_prob(
-        stat_type=stat_type,
-        threshold=threshold,
-        values=hist,
-        opp_adj=opp_adj,
-    )
-    if result is None:
-        return None
-    prob, n_used = result
-
-    return PropResult(
-        prob=prob,
-        n_games=n_used,
-        minutes_volatile=False,
-        minutes_cv=0.0,
-        volatile_games=0,
-        avg_minutes=0.0,
-    )
 
 
 def compute_nfl_prop_diagnostics(player_name: str):

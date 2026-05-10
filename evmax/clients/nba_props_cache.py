@@ -1,16 +1,24 @@
-"""Daily NBA player stats cache for instant prop probability computation.
+"""Daily NBA player stats cache — sample-size + minutes diagnostics only.
 
-Pre-fetches L15 game logs + team defensive stats from stats.nba.com once per day,
-stores to disk (data/nba_props_cache.json). During scans, prop probabilities are
-computed from cached data with zero API calls — the full model (recency-weighted
-mean, opponent adjustment, streak detection) runs locally in <1ms per prop.
+Refreshes player game logs from stats.nba.com (or ESPN fallback) into
+data/nba_props_cache.json once per day. The production scan reads only
+sample-size and minutes-volatility metadata via :func:`compute_prop_diagnostics`;
+prop probabilities come from the Pinnacle-anchored pricing module
+:mod:`evmax.ev.prop_pricing`, not from this cache.
+
+Historical context: this module used to project a recency-weighted mean +
+opponent adjustment + isotonic calibration into a P(over) — that L15 model
+was demoted to shadow on 2026-05-01 after −223u over 575 bets, then ripped
+out entirely on 2026-05-10 once anchor pricing replaced it. Cache machinery
+stayed because :func:`lookup_player_team` (used by the injury boost) and the
+diagnostic columns still need it.
 
 Usage:
     # Daily refresh (run once, e.g. morning cron or first scan of the day):
     await refresh_props_cache()
 
     # During scan (instant):
-    prob, n_games = compute_prop_prob_cached("lebron_james", "points", 25.5, "2026-04-10")
+    diag = compute_prop_diagnostics("lebron_james")
 """
 
 from __future__ import annotations
@@ -24,153 +32,32 @@ from typing import Optional
 
 import numpy as np
 import structlog
-from scipy.stats import norm
 
 logger = structlog.get_logger(__name__)
 
 _CACHE_PATH = Path(__file__).resolve().parents[2] / "data" / "nba_props_cache.json"
 _CACHE_TTL = 8 * 3600  # 8 hours — refresh once per day is fine
-_CALIBRATION_PATH = Path(__file__).resolve().parents[2] / "data" / "models" / "nba_props_calibration.json"
 
-# Model params (match nba_stats.py)
+# Diagnostic params — kept lean
 _LAST_N_GAMES = 15
 _MIN_GAMES = 5
-_DECAY = 0.85
-_MAX_OPP_ADJ = 0.15
-
-# Stat column mapping
 _MIN_VOL_THRESHOLD = 1.5  # flag games with minutes > mean ± 1.5σ
-_VOL_DOWNWEIGHT = 0.25     # volatile games get 25% of their normal weight
-
-# Long-shot empirical replacement (see compute_prop_prob_cached).
-_LOW_TAIL_PROB = 0.15           # below this, swap Normal-CDF for empirical
-_LOW_TAIL_PRIOR_HITS = 1.0      # Beta α — 1 pseudo-hit
-_LOW_TAIL_PRIOR_MISSES = 4.0    # Beta β — 4 pseudo-misses (prior mean 0.20, n=5)
-
-# Calibration loaded once on first prop computation. The JSON is fitted by
-# scripts/calibrate_nba_props.py against the 2024-25 holdout — see Path A
-# of TODO #24. When absent, we fall back to the original hand-tuned constants.
-_calibration: dict | None = None
-_calibration_loaded = False
-
-
-def _load_calibration() -> dict | None:
-    """Load fitted calibration once and cache. Returns None if missing/broken."""
-    global _calibration, _calibration_loaded
-    if _calibration_loaded:
-        return _calibration
-    _calibration_loaded = True
-    if not _CALIBRATION_PATH.exists():
-        return None
-    try:
-        _calibration = json.loads(_CALIBRATION_PATH.read_text())
-    except Exception as exc:
-        logger.warning("nba_props_calibration_load_failed", error=str(exc))
-        _calibration = None
-    return _calibration
-
-
-def _calibration_for_stat(stat_type: str) -> dict | None:
-    """Return the calibration block for one stat type, with fallback chain.
-
-    Schema-v2 calibrations have a `per_stat` map plus a `global` block.
-    Each per-stat block holds the same fields as the legacy top-level
-    schema (base_rate, shrinkage, blend_model, isotonic_x_thresholds,
-    isotonic_y_thresholds), fitted on rows for that stat only.
-
-    Resolution order:
-      1. per_stat[stat_type]  — stat-specific fit
-      2. global               — pooled fallback
-      3. legacy top-level     — v1 schema (single calibration for all stats)
-      4. None                 — falls through to hand-tuned constants
-    """
-    cal = _load_calibration()
-    if cal is None:
-        return None
-    per_stat = cal.get("per_stat") or {}
-    if stat_type in per_stat:
-        return per_stat[stat_type]
-    if "global" in cal and cal["global"] is not None:
-        return cal["global"]
-    # Legacy v1 schema: top-level dict already IS the calibration
-    if "isotonic_x_thresholds" in cal:
-        return cal
-    return None
-
-
-def _apply_isotonic(prob: float, x_thresh: list[float], y_thresh: list[float]) -> float:
-    """Piecewise-linear interpolation through the isotonic regression fit.
-
-    Replicates `sklearn.IsotonicRegression.predict([prob])` without dragging
-    in a sklearn import at scan time. Out-of-bounds clipping matches the
-    calibrator's `out_of_bounds="clip"` setting.
-    """
-    if not x_thresh or not y_thresh:
-        return prob
-    if prob <= x_thresh[0]:
-        return y_thresh[0]
-    if prob >= x_thresh[-1]:
-        return y_thresh[-1]
-    # Binary search for the segment
-    lo, hi = 0, len(x_thresh) - 1
-    while lo < hi - 1:
-        mid = (lo + hi) // 2
-        if x_thresh[mid] <= prob:
-            lo = mid
-        else:
-            hi = mid
-    x0, x1 = x_thresh[lo], x_thresh[hi]
-    y0, y1 = y_thresh[lo], y_thresh[hi]
-    if x1 == x0:
-        return y0
-    t = (prob - x0) / (x1 - x0)
-    return y0 + t * (y1 - y0)
-
-
-@dataclass
-class PropResult:
-    """Result from compute_prop_prob_cached with volatility metadata."""
-    prob: float
-    n_games: int
-    minutes_volatile: bool = False     # True if recent games have abnormal minutes
-    minutes_cv: float = 0.0            # coefficient of variation (std/mean) of minutes
-    volatile_games: int = 0            # count of games flagged as outlier-minutes
-    avg_minutes: float = 0.0           # L15 average minutes
 
 
 @dataclass
 class PropDiagnostics:
-    """Cheap diagnostic-only L15 lookup — no probability math.
+    """Sample-size + minutes-volatility diagnostics from the daily L15 cache.
 
-    Production scan reads this via compute_prop_diagnostics() instead of
-    compute_prop_prob_cached(). The latter still exists for backtest scripts
-    and the `evmax cleanup replay-props` CLI command, which intentionally
-    re-runs the legacy L15 model on resolved rows.
-
-    Why split these: anchor-based pricing (evmax/ev/prop_pricing.py with a
-    Pinnacle anchor) is now the production source of probability. The L15
-    cache's projected probability is redundant with what line-setters already
-    know — that's the failure mode that took nba_props to shadow on 2026-05-01
-    (−223u, long-shot bias). We keep n_games and minutes_volatile because
-    they're cheap data-quality signals, not predictions.
+    No probability math — anchor-based pricing in :mod:`evmax.ev.prop_pricing`
+    owns the prob estimate. These columns ride along on each :class:`SharpOdds`
+    so downstream filters can gate on data quality (thin samples, erratic
+    minutes) without re-deriving them.
     """
     n_games: int
     minutes_volatile: bool = False
     minutes_cv: float = 0.0
     avg_minutes: float = 0.0
 
-
-STAT_COL: dict[str, str] = {
-    "points": "PTS",
-    "rebounds": "REB",
-    "assists": "AST",
-    "threes": "FG3M",
-    "steals": "STL",
-    "blocks": "BLK",
-    "points_rebounds_assists": "__pra__",
-    "turnovers": "TOV",
-    "blocks_steals": "__bs__",
-}
 
 # In-memory cache (loaded from disk on first access)
 _mem_cache: dict | None = None
@@ -266,21 +153,17 @@ async def refresh_props_cache(
             )
             return len(prior_players)
 
-    loop = asyncio.get_event_loop()
-    team_stats = await loop.run_in_executor(None, _fetch_team_stats_sync)
-    league_avg = _league_averages(team_stats)
-
     from datetime import date
     today = date.today().isoformat()
-    schedule = await loop.run_in_executor(None, _fetch_schedule_sync, today)
 
+    # Cache only stores per-player game logs now — opponent stats and the
+    # daily schedule were inputs to the deleted L15 model. Anchor pricing
+    # gets opponent context from Pinnacle's own line; schedule lookups for
+    # injury boost go through the live ESPN scoreboard fetch instead.
     cache_data = {
         "fetched_at": time.time(),
         "date": today,
         "players": players_data,
-        "team_stats": team_stats,
-        "league_avg": league_avg,
-        "schedule": schedule,
     }
     _save_cache(cache_data)
     logger.info("nba_props_cache_saved", players=len(players_data))
@@ -572,341 +455,8 @@ def _fetch_player_via_espn_sync(player_name: str) -> dict | None:
     }
 
 
-def _fetch_team_stats_sync() -> dict[str, dict]:
-    """Fetch team defensive stats for opponent adjustment."""
-    try:
-        from nba_api.stats.endpoints import leaguedashteamstats
-        _SEASON = "2025-26"
-        _TIMEOUT = 12
-
-        df_gen = leaguedashteamstats.LeagueDashTeamStats(
-            season=_SEASON,
-            per_mode_simple="PerGame",
-            measure_type_simple_defense="Base",
-            timeout=_TIMEOUT,
-        ).get_data_frames()[0]
-
-        df_opp = leaguedashteamstats.LeagueDashTeamStats(
-            season=_SEASON,
-            per_mode_simple="PerGame",
-            measure_type_simple_defense="Opponent",
-            timeout=_TIMEOUT,
-        ).get_data_frames()[0]
-
-        result: dict[str, dict] = {}
-        for _, row in df_gen.iterrows():
-            abbrev = row.get("TEAM_ABBREVIATION", "")
-            if not abbrev:
-                continue
-            result[abbrev] = {
-                "def_rating": float(row.get("DEF_RATING", 110.0)),
-                "pace": float(row.get("PACE", 98.0)),
-            }
-
-        for _, row in df_opp.iterrows():
-            abbrev = row.get("TEAM_ABBREVIATION", "")
-            if abbrev in result:
-                result[abbrev]["opp_fg3m"] = float(row.get("OPP_FG3M", 12.0))
-                result[abbrev]["opp_fg3a"] = float(row.get("OPP_FG3A", 34.0))
-                result[abbrev]["opp_fg3_pct"] = (
-                    float(row.get("OPP_FG3M", 12.0)) / max(float(row.get("OPP_FG3A", 34.0)), 1)
-                )
-                result[abbrev]["opp_reb"] = float(row.get("OPP_REB", 42.0))
-                result[abbrev]["opp_oreb"] = float(row.get("OPP_OREB", 10.0))
-                result[abbrev]["opp_pts"] = float(row.get("OPP_PTS", 110.0))
-
-        return result
-    except Exception as e:
-        logger.warning("nba_props_team_stats_failed", error=str(e))
-        return {}
 
 
-def _fetch_schedule_sync(game_date: str) -> list[dict]:
-    """Fetch NBA schedule from ESPN for a given date."""
-    try:
-        import httpx
-        espn_date = game_date.replace("-", "")
-        url = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"
-        r = httpx.get(url, params={"dates": espn_date}, timeout=8.0)
-        r.raise_for_status()
-        data = r.json()
-
-        matchups = []
-        for event in data.get("events", []):
-            comps = event.get("competitions", [])
-            if not comps:
-                continue
-            competitors = comps[0].get("competitors", [])
-            home = next((c for c in competitors if c.get("homeAway") == "home"), None)
-            away = next((c for c in competitors if c.get("homeAway") == "away"), None)
-            if home and away:
-                matchups.append({
-                    "home_abbrev": home.get("team", {}).get("abbreviation", ""),
-                    "away_abbrev": away.get("team", {}).get("abbreviation", ""),
-                })
-        return matchups
-    except Exception as e:
-        logger.debug("nba_props_schedule_failed", error=str(e))
-        return []
-
-
-def _league_averages(team_stats: dict[str, dict]) -> dict:
-    """Compute league averages from team stats."""
-    if not team_stats:
-        return {
-            "def_rating": 112.0, "pace": 98.5, "opp_fg3_pct": 0.362,
-            "opp_fg3m": 12.5, "opp_reb": 43.0, "opp_oreb": 10.5, "opp_pts": 112.0,
-        }
-    avgs: dict = {}
-    for key in ("def_rating", "pace", "opp_fg3_pct", "opp_fg3m", "opp_reb", "opp_oreb", "opp_pts"):
-        vals = [v[key] for v in team_stats.values() if key in v]
-        avgs[key] = float(np.mean(vals)) if vals else 0.0
-    return avgs
-
-
-def compute_prop_prob_cached(
-    player_name: str,
-    stat_type: str,
-    threshold: float,
-    game_date: str | None = None,
-) -> PropResult | None:
-    """Compute P(player stat >= threshold) from cached data. No API calls.
-
-    Same model as nba_stats.py: recency-weighted mean + opponent adjustment + streak.
-    Returns PropResult or None if player not in cache.
-
-    Minutes volatility: games where the player's minutes deviate more than 1.5σ
-    from their L15 average are downweighted to 25% of normal decay weight.  This
-    prevents rest-day blowups (e.g. a bench player getting 35 min because starters
-    sat) from inflating projected stats.
-    """
-    cache = _load_cache()
-    if cache is None:
-        return None
-
-    players = cache.get("players", {})
-    player = players.get(player_name)
-    if player is None:
-        return None
-
-    col = STAT_COL.get(stat_type)
-    if col is None:
-        return None
-
-    stats = player.get("stats", {})
-    n_games = player.get("n_games", 0)
-    if n_games < _MIN_GAMES:
-        return None
-
-    # Build raw stat series
-    if col == "__pra__":
-        pts = stats.get("PTS", [])
-        reb = stats.get("REB", [])
-        ast = stats.get("AST", [])
-        if not pts or not reb or not ast:
-            return None
-        n = min(len(pts), len(reb), len(ast), _LAST_N_GAMES)
-        raw = np.array([pts[i] + reb[i] + ast[i] for i in range(n)])
-    elif col == "__bs__":
-        blk = stats.get("BLK", [])
-        stl = stats.get("STL", [])
-        if not blk or not stl:
-            return None
-        n = min(len(blk), len(stl), _LAST_N_GAMES)
-        raw = np.array([blk[i] + stl[i] for i in range(n)])
-    else:
-        if col not in stats:
-            return None
-        raw = np.array(stats[col][:_LAST_N_GAMES])
-        n = len(raw)
-
-    if n < _MIN_GAMES:
-        return None
-
-    # Per-36-minute normalization
-    minutes = np.array(stats.get("MIN", [36.0] * n)[:n])
-    avg_min = float(np.mean(minutes))
-    min_std = float(np.std(minutes)) if n >= 3 else 0.0
-    minutes_cv = min_std / avg_min if avg_min > 5.0 else 0.0
-
-    # Detect minutes volatility: flag games where minutes deviate > 1.5σ
-    volatile_mask = np.zeros(n, dtype=bool)
-    if avg_min >= 5.0 and min_std > 1.0:
-        volatile_mask = np.abs(minutes - avg_min) > (_MIN_VOL_THRESHOLD * min_std)
-    volatile_games = int(np.sum(volatile_mask))
-    minutes_volatile = volatile_games >= 2 or (volatile_games >= 1 and minutes_cv > 0.25)
-
-    if avg_min >= 5.0:
-        per36 = raw / np.maximum(minutes, 1.0) * 36.0
-        eff_threshold = threshold / avg_min * 36.0
-    else:
-        per36 = raw
-        eff_threshold = float(threshold)
-
-    # Exponential decay weights — downweight volatile-minutes games
-    weights = np.array([_DECAY ** i for i in range(n)])
-    for i in range(n):
-        if volatile_mask[i]:
-            weights[i] *= _VOL_DOWNWEIGHT
-    weights /= weights.sum()
-
-    wmean = float(np.dot(weights, per36))
-    wvar = float(np.dot(weights, (per36 - wmean) ** 2))
-    wstd = max(float(np.sqrt(wvar)), 0.5)
-
-    # ------------------------------------------------------------------
-    # Line performance: empirical hit rate + margin over/under
-    # ------------------------------------------------------------------
-    hits = raw >= threshold
-    hit_rate = float(np.mean(hits))
-    avg_margin = float(np.mean(raw - threshold))  # positive = player beats line on avg
-
-    # Recency-weighted hit rate (recent games count more)
-    weighted_hit_rate = float(np.dot(weights, hits.astype(float)))
-
-    # Streak detection (last 5 games vs threshold)
-    last5 = raw[:5]
-    last5_hits = int(np.sum(last5 >= threshold))
-
-    # ------------------------------------------------------------------
-    # Base probability from normal distribution
-    # ------------------------------------------------------------------
-    # No continuity correction — the old -0.5 inflated prob by ~5pp.
-    normal_prob = float(1 - norm.cdf(eff_threshold, wmean, wstd))
-    normal_prob = max(0.01, min(0.99, normal_prob))
-
-    # Long-shot empirical replacement. Counting stats (PTS/AST/3PM) are
-    # right-skewed, so Normal-CDF systematically overstates the upper tail
-    # at low probabilities. 2026-04→2026-05 production audit: <10c Kalshi
-    # bucket hit 1.9% (n=212) while the calibrated model said 14.1% — a
-    # −163u leak driven by Normal-CDF tail bias amplified by an isotonic
-    # floor of 12.4%. When raw Normal predicts <15%, replace with a
-    # Laplace-smoothed empirical CDF from the L15 game log: Beta(α=1, β=4)
-    # prior (mean 0.20, effective n=5). 0/15 → 5%, 1/15 → 10%, 3/15 → 20%.
-    if normal_prob < _LOW_TAIL_PROB:
-        n_hits_total = float(np.sum(hits))
-        n_games_total = float(len(hits))
-        model_prob = (n_hits_total + _LOW_TAIL_PRIOR_HITS) / (
-            n_games_total + _LOW_TAIL_PRIOR_HITS + _LOW_TAIL_PRIOR_MISSES
-        )
-        low_tail_empirical = True
-    else:
-        model_prob = normal_prob
-        low_tail_empirical = False
-
-    # ------------------------------------------------------------------
-    # Calibrated blend
-    #
-    # Calibration replay (n=143, Apr 2026) revealed the Kalshi over market
-    # is systematically overpriced: avg implied 62%, actual hit rate 37%.
-    # Our old model was EVEN WORSE — predicting 75% average, producing
-    # illusory +EV signals.  Root causes:
-    #   1. Normal CDF overestimates upper tail (stats are right-skewed)
-    #   2. Per-36 normalization inflates short-minute games
-    #   3. Margin/streak adjustments stacked +6-11pp upward bias
-    #   4. No calibration against the base rate of prop overs (~37%)
-    #
-    # Fix: anchor on weighted empirical hit rate (most grounded signal),
-    # blend in model CDF at low weight, apply conservative adjustments,
-    # and shrink toward the empirical Kalshi base rate (~0.40).
-    # ------------------------------------------------------------------
-
-    # Calibration loaded from data/models/nba_props_calibration.json (fitted
-    # via scripts/calibrate_nba_props.py against 2024-25 holdout). When the
-    # file is present, its base_rate / shrinkage / blend_model override the
-    # legacy hand-tuned values, and an isotonic post-hoc layer applies at
-    # the very end. When absent, we fall back to the original constants.
-    #
-    # Schema v2 (2026-05-03+): per-stat calibrations preferred over a single
-    # global. _calibration_for_stat handles the per-stat → global → legacy
-    # fallback chain. Each stat type sees its own isotonic mapping fitted on
-    # ~10–20k 2024-25 rows of just-that-stat (threes, points, assists are
-    # the biggest individual-fit improvements).
-    cal = _calibration_for_stat(stat_type)
-    if cal is not None:
-        blend_model = cal.get("blend_model", 0.40)
-        base_rate = cal.get("base_rate", 0.40)
-        shrinkage = cal.get("shrinkage", 0.20)
-    else:
-        blend_model, base_rate, shrinkage = 0.40, 0.40, 0.20
-
-    blended_prob = blend_model * model_prob + (1 - blend_model) * weighted_hit_rate
-
-    # Margin adjustment: conservative — +0.3% per point, capped ±3%
-    margin_adj = np.clip(avg_margin * 0.003, -0.03, 0.03)
-    blended_prob += margin_adj
-
-    # Streak adjustment: very small nudge
-    if last5_hits >= 4:
-        streak_adj = 0.01 + 0.005 * (last5_hits - 4)  # +1% for 4/5, +1.5% for 5/5
-    elif last5_hits <= 1:
-        streak_adj = -0.01 - 0.005 * (1 - last5_hits)  # -1% for 1/5, -1.5% for 0/5
-    else:
-        streak_adj = 0.0
-    blended_prob += streak_adj
-
-    # Shrink toward base rate. With the fitted calibration, shrinkage=0 and
-    # the isotonic layer below handles the actual probability adjustment.
-    blended_prob = blended_prob * (1 - shrinkage) + base_rate * shrinkage
-
-    # ------------------------------------------------------------------
-    # Opponent defensive adjustment
-    # ------------------------------------------------------------------
-    opp_adj = 1.0
-    if game_date:
-        team_stats = cache.get("team_stats", {})
-        league_avg = cache.get("league_avg", {})
-        schedule = cache.get("schedule", [])
-
-        player_team = player.get("team", "")
-        opponent = None
-        for m in schedule:
-            if m.get("home_abbrev") == player_team:
-                opponent = m.get("away_abbrev")
-                break
-            if m.get("away_abbrev") == player_team:
-                opponent = m.get("home_abbrev")
-                break
-
-        if opponent and opponent in team_stats:
-            opp_stats = team_stats[opponent]
-            opp_adj = _opponent_adjustment(stat_type, opp_stats, league_avg)
-
-    prob = blended_prob * opp_adj
-
-    # Apply volatility discount: volatile players hit overs only ~18% of the
-    # time (calibration Apr 2026, n=28).  Shrink 40% toward the volatile base
-    # rate (0.25) — strong enough to kill false +EV signals from rest-day
-    # blowup games while still allowing genuinely high probs through.
-    if minutes_volatile:
-        _VOL_BASE = 0.25
-        _VOL_SHRINK = 0.40
-        prob = prob * (1 - _VOL_SHRINK) + _VOL_BASE * _VOL_SHRINK
-
-    # Isotonic post-hoc calibration. Fitted on 2024-25 train half, validated
-    # on test half — fixes the systematic +13pp under-prediction in the
-    # 50-70% bucket that the hand-tuned shrinkage was masking. When the
-    # calibration file is absent, this is a no-op.
-    #
-    # Skipped for low-tail empirical replacements: the 2024-25 isotonic
-    # floors any input ≤12% at 12.4%, which would re-introduce the long-shot
-    # bias the empirical replacement just removed.
-    if cal is not None and not low_tail_empirical:
-        x_thresh = cal.get("isotonic_x_thresholds") or []
-        y_thresh = cal.get("isotonic_y_thresholds") or []
-        if x_thresh and y_thresh:
-            prob = _apply_isotonic(prob, x_thresh, y_thresh)
-
-    prob = max(0.01, min(0.99, prob))
-
-    return PropResult(
-        prob=prob,
-        n_games=n,
-        minutes_volatile=minutes_volatile,
-        minutes_cv=round(minutes_cv, 3),
-        volatile_games=volatile_games,
-        avg_minutes=round(avg_min, 1),
-    )
 
 
 def compute_prop_diagnostics(player_name: str) -> PropDiagnostics | None:
@@ -956,42 +506,6 @@ def compute_prop_diagnostics(player_name: str) -> PropDiagnostics | None:
     )
 
 
-def _opponent_adjustment(stat_type: str, opp_stats: dict, league_avg: dict) -> float:
-    """Opponent defensive adjustment factor (same logic as nba_stats.py)."""
-    adj = 1.0
-    try:
-        if stat_type == "points":
-            opp_def = opp_stats.get("def_rating", league_avg.get("def_rating", 112))
-            lg_def = league_avg.get("def_rating", 112)
-            if lg_def > 0:
-                adj = 1.0 + (opp_def - lg_def) / lg_def
-        elif stat_type == "rebounds":
-            opp_oreb = opp_stats.get("opp_oreb", league_avg.get("opp_oreb", 10.5))
-            lg_oreb = league_avg.get("opp_oreb", 10.5)
-            if lg_oreb > 0:
-                adj = 1.0 - (opp_oreb - lg_oreb) / lg_oreb
-        elif stat_type == "threes":
-            opp_3pct = opp_stats.get("opp_fg3_pct", league_avg.get("opp_fg3_pct", 0.362))
-            lg_3pct = league_avg.get("opp_fg3_pct", 0.362)
-            if lg_3pct > 0:
-                adj = 1.0 + (opp_3pct - lg_3pct) / lg_3pct
-        elif stat_type == "assists":
-            opp_pace = opp_stats.get("pace", league_avg.get("pace", 98.5))
-            lg_pace = league_avg.get("pace", 98.5)
-            if lg_pace > 0:
-                adj = opp_pace / lg_pace
-        elif stat_type == "points_rebounds_assists":
-            opp_def = opp_stats.get("def_rating", league_avg.get("def_rating", 112))
-            opp_pace = opp_stats.get("pace", league_avg.get("pace", 98.5))
-            lg_def = league_avg.get("def_rating", 112)
-            lg_pace = league_avg.get("pace", 98.5)
-            pts_adj = 1.0 + (opp_def - lg_def) / lg_def if lg_def > 0 else 1.0
-            pace_adj = opp_pace / lg_pace if lg_pace > 0 else 1.0
-            adj = (pts_adj + pace_adj) / 2
-    except Exception:
-        adj = 1.0
-
-    return max(1.0 - _MAX_OPP_ADJ, min(1.0 + _MAX_OPP_ADJ, adj))
 
 
 def is_cache_fresh() -> bool:

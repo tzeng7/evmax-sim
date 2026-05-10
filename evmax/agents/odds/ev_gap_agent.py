@@ -994,24 +994,28 @@ class EVGapAgent(Agent):
     ) -> Optional[EVGap]:
         """Evaluate a matched player prop pair for EV.
 
-        YES side on Kalshi = player goes OVER the threshold.
+        YES side on Kalshi = player goes OVER the threshold. The probability
+        on ``sharp.true_prob_over`` comes from anchor pricing in
+        :mod:`evmax.ev.prop_pricing` — Pinnacle posts a single half-point line
+        per (player, stat) and the pricing module fits a Normal (high-mean
+        stats) or Negative Binomial (low-mean count stats) to that anchor,
+        then reads off P(stat >= K) for the Kalshi threshold ``K``.
 
-        DISABLED (Apr 2026): Backtest on 143 resolved prop observations showed
-        the L15-based model (Brier 0.253) loses to predicting 37% for everything
-        (Brier 0.233). Kalshi only offers overs, which are systematically
-        overpriced (62c implied, 37% actual). The model computes over-probability
-        from the same L15 stats the line-setters already know — zero information
-        edge. Non-volatile qualifying bets went 3/20 (-71% ROI).
+        Bankroll safety: production prop categories sit in ``mode='shadow'``
+        per ``data/categories.yaml``; shadow rows skip Kelly bankroll
+        accounting in the logger. Flipping a prop category from shadow → live
+        is the single point where real money becomes at risk.
 
-        Props are still logged to prop_observations for calibration data
-        via log_prop_from_sharp() in the CLI layer (uses raw SharpOdds pairs).
-        Re-enable when we have a model with genuine edge (real-time lineup
-        data, closing-line-value arbitrage, or cross-book sharp lines).
+        Pre-2026-05-10 this returned ``None`` unconditionally — the old L15
+        model that fed this evaluator was structurally bad (Brier 0.253 vs
+        0.233 baseline). Anchor pricing replaced L15; this evaluator is now
+        the standard School-1 (sharp-anchor + devig + threshold compare)
+        path, uniform with game-market evaluation.
         """
-        return None
-
         sharp_true_prob = sharp.true_prob_over
-        src = "nba_stats"
+        if sharp_true_prob is None:
+            return None
+        src = "pinnacle_anchor"
 
         # Injury boost: when TEAMMATES are OUT, this player absorbs usage.
         #
@@ -1045,7 +1049,7 @@ class EVGapAgent(Agent):
 
                 if injury_boost > 0:
                     sharp_true_prob = min(0.95, sharp_true_prob * (1 + injury_boost))
-                    src = f"nba_stats+inj({injury_boost:.0%})"
+                    src = f"pinnacle_anchor+inj({injury_boost:.0%})"
             except Exception:
                 pass
 

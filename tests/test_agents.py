@@ -337,8 +337,9 @@ class TestEVGapAgent:
             ),
         }
 
-        # _evaluate_prop_pair is DISABLED (Apr 2026) — backtest proved L15 model
-        # has no edge over naive baseline.  Verify it returns None.
+        # _evaluate_prop_pair was re-enabled 2026-05-10 once anchor pricing
+        # replaced the L15 model. The Pinnacle-anchored sharp prob (0.55)
+        # against a 0.48 Kalshi quote = ~14% EV, well above threshold.
         gap_no_inj = agent._evaluate_prop_pair(
             prop_market, prop_sharp, confidence=95.0, sector="nba", injuries=None
         )
@@ -346,8 +347,14 @@ class TestEVGapAgent:
             prop_market, prop_sharp, confidence=95.0, sector="nba", injuries=injuries
         )
 
-        assert gap_no_inj is None
-        assert gap_with_inj is None
+        # Both should produce EVGaps now. Injury boost should raise the
+        # blended prob since the OUT teammate (Davis) frees up usage.
+        assert gap_no_inj is not None
+        assert gap_with_inj is not None
+        assert gap_no_inj.sharp_true_prob == pytest.approx(0.55)
+        assert gap_no_inj.blended_true_prob == pytest.approx(0.55)
+        assert gap_with_inj.blended_true_prob > gap_no_inj.blended_true_prob
+        assert "inj" in (gap_with_inj.model_sources or "")
 
     @pytest.mark.asyncio
     async def test_model_prob_override(self):

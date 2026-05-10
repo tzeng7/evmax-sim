@@ -173,9 +173,17 @@ class TestNbaGameCycle:
         async def _standings_stub(req):
             return _resp("standings", req.sector, {})
 
+        # Stub the prop branch so this hermetic test doesn't hit live
+        # Kalshi / Pinnacle. Anchor-priced props flow through the same
+        # cycle.ev_gaps stream after 2026-05-10, but this fixture only
+        # asserts game-market behavior.
+        async def _no_props(self, sector):  # noqa: ARG001
+            return [], []
+
         coord.kalshi_agent = _kalshi_stub
         coord.sharp_agent = _sharp_stub
         coord.standings_agent = _standings_stub
+        coord._fetch_props = _no_props.__get__(coord, AgentCoordinator)
         coord._archiver = _noop_archiver()
         coord._notifier = MagicMock()
         return coord
@@ -248,9 +256,13 @@ class TestNoEdgeCycle:
         async def _standings_stub(req):
             return _resp("standings", req.sector, {})
 
+        async def _no_props(self, sector):  # noqa: ARG001
+            return [], []
+
         coord.kalshi_agent = _kalshi_stub
         coord.sharp_agent = _sharp_stub
         coord.standings_agent = _standings_stub
+        coord._fetch_props = _no_props.__get__(coord, AgentCoordinator)
         coord._archiver = _noop_archiver()
         coord._notifier = MagicMock()
         return coord
