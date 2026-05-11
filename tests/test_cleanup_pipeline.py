@@ -66,7 +66,8 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     placed_at           TEXT,
     placed_price        REAL,
     placed_stake        REAL,
-    clv_pct             REAL,
+    pinnacle_drift_pct  REAL,
+    kalshi_clv_pct      REAL,
     -- ARCH-11 mode columns:
     mode                TEXT    NOT NULL DEFAULT 'live',
     captured_yes_price  REAL,
@@ -1025,7 +1026,8 @@ class TestUniqueMarketIdMigration:
                 placed_at TEXT,
                 placed_price REAL,
                 placed_stake REAL,
-                clv_pct REAL,
+                pinnacle_drift_pct REAL,
+                kalshi_clv_pct REAL,
                 UNIQUE(market_id, scan_date)
             );
             CREATE TABLE ev_outcomes (

@@ -161,7 +161,8 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             placed_at           TEXT,
             placed_price        REAL,
             placed_stake        REAL,
-            clv_pct             REAL,
+            pinnacle_drift_pct  REAL,
+            kalshi_clv_pct      REAL,
             mode                TEXT    NOT NULL DEFAULT 'live',
             captured_yes_price  REAL,
             model_version       TEXT,
@@ -172,7 +173,8 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             market_type, event_title, event_date, kalshi_yes_price,
             sharp_true_prob, blended_true_prob, ev_pct, kelly_fraction,
             volume_usd, model_sources, sharp_weight_used, bankroll_used, line,
-            voided, placed, placed_at, placed_price, placed_stake, clv_pct,
+            voided, placed, placed_at, placed_price, placed_stake,
+            pinnacle_drift_pct, kalshi_clv_pct,
             mode, captured_yes_price, model_version
         )
         SELECT
@@ -180,7 +182,8 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             market_type, event_title, event_date, kalshi_yes_price,
             sharp_true_prob, blended_true_prob, ev_pct, kelly_fraction,
             volume_usd, model_sources, sharp_weight_used, bankroll_used, line,
-            voided, placed, placed_at, placed_price, placed_stake, clv_pct,
+            voided, placed, placed_at, placed_price, placed_stake,
+            pinnacle_drift_pct, kalshi_clv_pct,
             mode, captured_yes_price, model_version
         FROM ev_predictions_old;
         DROP TABLE ev_predictions_old;
@@ -228,6 +231,15 @@ def get_connection() -> sqlite3.Connection:
         "ALTER TABLE prop_observations ADD COLUMN mode TEXT NOT NULL DEFAULT 'live'",
         "ALTER TABLE prop_observations ADD COLUMN captured_yes_price REAL",
         "ALTER TABLE prop_observations ADD COLUMN model_version TEXT",
+        # 2026-05-10 — rename the old clv_pct to pinnacle_drift_pct (it was
+        # measuring Pinnacle's drift, not CLV in the betting sense). The
+        # rename only fires if the old column still exists; the ADD COLUMN
+        # below is a no-op once the rename has landed. Add kalshi_clv_pct
+        # alongside as the new primary edge metric (Kalshi-entry vs
+        # Kalshi-T-minus-30-min).
+        "ALTER TABLE ev_predictions RENAME COLUMN clv_pct TO pinnacle_drift_pct",
+        "ALTER TABLE ev_predictions ADD COLUMN pinnacle_drift_pct REAL",
+        "ALTER TABLE ev_predictions ADD COLUMN kalshi_clv_pct REAL",
     ]:
         try:
             conn.execute(migration)

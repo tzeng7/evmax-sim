@@ -191,13 +191,16 @@ def show(
             result_str = "[bold red]LOSS[/bold red]" + ("[dim] sim[/dim]" if is_sim else "")
             pnl_str = f"[red]-${stake:.2f}[/red]" + ("[dim]*[/dim]" if is_sim else "")
 
-        # CLV = entry sharp prob - Pinnacle closing prob (positive = bought value)
+        # Display Pinnacle drift here (legacy "CLV" column). This is NOT a
+        # clean edge metric for our system — see backfill_clv docstring for
+        # the selection-bias argument. The new kalshi_clv_pct column is the
+        # primary edge signal but isn't yet shown in this table.
         close_prob = r["pinnacle_close_prob"]
-        entry_prob = r["sharp_true_prob"]
-        if close_prob is not None and entry_prob is not None:
-            clv = entry_prob - close_prob
-            clv_color = "green" if clv >= 0.01 else "red" if clv <= -0.01 else "dim"
-            clv_str = f"[{clv_color}]{clv*100:+.1f}pp[/{clv_color}]"
+        entry_price = r["kalshi_yes_price"]
+        if close_prob is not None and entry_price is not None:
+            drift = close_prob - entry_price
+            clv_color = "green" if drift >= 0.01 else "red" if drift <= -0.01 else "dim"
+            clv_str = f"[{clv_color}]{drift*100:+.1f}pp[/{clv_color}]"
         else:
             clv_str = "[dim]—[/dim]"
 
@@ -278,12 +281,13 @@ def resolve(
         from evmax.agents.cleanup.resolver import backfill_clv
         clv = backfill_clv()
         if clv["updated"]:
-            avg = clv["avg_clv"]
-            color = "green" if avg > 0 else "red"
+            avg_kc = clv.get("avg_kalshi_clv", 0.0)
+            kc_color = "green" if avg_kc > 0 else "red" if avg_kc < 0 else "dim"
             console.print(
                 f"  [green]CLV backfilled:[/green] {clv['updated']} bet(s)  "
-                f"avg [{color}]{avg:+.1f}pp[/{color}]  "
-                f"[dim]skipped: {clv['skipped']} (no archived close)[/dim]"
+                f"Kalshi-CLV [{kc_color}]{avg_kc:+.1f}pp[/{kc_color}]  "
+                f"[dim]Pinn-drift {clv.get('avg_pinn_drift', 0.0):+.1f}pp  "
+                f"skipped: {clv['skipped']}[/dim]"
             )
     except Exception as _clv_err:
         console.print(f"  [yellow]Warning: CLV backfill failed:[/yellow] {_clv_err}")
@@ -312,7 +316,7 @@ def close_lines(
 
     Run this at or just before game start time. Stores pinnacle_close_prob in
     ev_outcomes (YES-aligned per the bet's yes_team) so backfill-clv can
-    populate ev_predictions.clv_pct later.
+    populate ev_predictions.pinnacle_drift_pct + kalshi_clv_pct later.
 
     CLV = pinnacle_close_prob - kalshi_yes_price (in pp).
     Positive CLV means the sharpest book's eventual truth said our YES side
@@ -1189,9 +1193,13 @@ def backfill_clv_cmd(
         None, "--until", help="YYYY-MM-DD end date (default: today)."
     ),
 ) -> None:
-    """Backfill CLV (Closing Line Value) for resolved bets.
+    """Backfill CLV metrics for resolved bets.
 
-    Compares entry price vs Pinnacle closing line. Positive CLV = real edge.
+    Populates two columns on ev_predictions:
+      - pinnacle_drift_pct  (Pinnacle pre-tipoff close vs Kalshi entry)
+                            Diagnostic only — biased positive for our system.
+      - kalshi_clv_pct      (Kalshi T-30-min snapshot vs Kalshi entry)
+                            Primary edge signal — Pinnacle-independent.
     """
     from datetime import date as _date
     from evmax.agents.cleanup.resolver import backfill_clv
@@ -1202,14 +1210,25 @@ def backfill_clv_cmd(
     result = backfill_clv(since=since_date, until=until_date)
     updated = result["updated"]
     skipped = result["skipped"]
-    avg_clv = result["avg_clv"]
+    avg_pd = result.get("avg_pinn_drift", 0.0)
+    avg_kc = result.get("avg_kalshi_clv", 0.0)
+    n_pd = result.get("n_pinn", 0)
+    n_kc = result.get("n_kalshi", 0)
 
     if updated:
-        clv_color = "green" if avg_clv > 0 else "red"
+        kc_color = "green" if avg_kc > 0 else "red" if avg_kc < 0 else "dim"
+        pd_color = "yellow"  # always dim — selection-biased metric
         console.print(
-            f"\n  Backfilled CLV for [bold]{updated}[/bold] bets.  "
-            f"Avg CLV: [{clv_color}]{avg_clv:+.1f}%[/{clv_color}]  "
-            f"Skipped: {skipped}"
+            f"\n  Backfilled CLV for [bold]{updated}[/bold] bet(s)  "
+            f"(skipped: {skipped})"
+        )
+        console.print(
+            f"  [{kc_color}]Kalshi-CLV    {avg_kc:+.2f}pp[/{kc_color}]  "
+            f"(n={n_kc})  ← primary edge signal"
+        )
+        console.print(
+            f"  [{pd_color}]Pinnacle drift {avg_pd:+.2f}pp[/{pd_color}]  "
+            f"(n={n_pd})  ← diagnostic only (selection-biased)"
         )
     else:
         console.print("[dim]No resolved bets found missing CLV.[/dim]")

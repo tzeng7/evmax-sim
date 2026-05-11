@@ -346,6 +346,50 @@ class DataArchiver:
             ).fetchone()
         return row["true_prob_a"] if row else None
 
+    def get_kalshi_close_price(
+        self,
+        ticker: str,
+        event_id: str,
+        minutes_before: int = 30,
+    ) -> float | None:
+        """Latest Kalshi yes_price snapshot at least ``minutes_before`` before tipoff.
+
+        Kalshi never truly closes — binary YES/NO markets trade continuously
+        until event resolution and the late-game / post-result prints are
+        dominated by information shocks. The industry convention is to use a
+        snapshot ~30 minutes before scheduled start as the "close" reference.
+
+        Tipoff timestamp comes from archived_sharp_odds.event_date (Pinnacle's
+        startTime, ISO with timezone). If no Pinnacle row exists for the
+        event_id we return None — without a tipoff anchor we'd be guessing
+        when the line was "fresh."
+        """
+        with _get_connection() as conn:
+            tip_row = conn.execute(
+                """SELECT event_date FROM archived_sharp_odds
+                   WHERE event_id = ?
+                     AND event_date IS NOT NULL
+                   ORDER BY fetched_at DESC LIMIT 1""",
+                (event_id,),
+            ).fetchone()
+            if not tip_row:
+                return None
+            try:
+                from datetime import datetime, timedelta
+                tipoff = datetime.fromisoformat(tip_row["event_date"])
+            except (ValueError, TypeError):
+                return None
+            cutoff = (tipoff - timedelta(minutes=minutes_before)).isoformat()
+
+            row = conn.execute(
+                """SELECT yes_price FROM archived_kalshi_markets
+                   WHERE ticker = ?
+                     AND fetched_at <= ?
+                   ORDER BY fetched_at DESC LIMIT 1""",
+                (ticker, cutoff),
+            ).fetchone()
+        return row["yes_price"] if row else None
+
     def get_closing_line_aligned(self, event_id: str, yes_team: str | None) -> float | None:
         """Return the closing Pinnacle prob aligned to the bet's YES side.
 

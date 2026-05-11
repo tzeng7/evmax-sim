@@ -1215,20 +1215,30 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
 
 
 def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> dict:
-    """Backfill CLV (Closing Line Value) for resolved bets from the archive.
+    """Backfill two distinct CLV measurements for resolved bets.
 
-    For each resolved bet missing pinnacle_close_prob, finds the last archived
-    Pinnacle closing line from archived_sharp_odds and populates both:
-      - ev_outcomes.pinnacle_close_prob (used by `cleanup show`)
-      - ev_predictions.clv_pct (close_prob - kalshi_entry_price in pp)
+    Both pull from data/archive.db (Pinnacle line snapshots + Kalshi market
+    snapshots) for the bet's event:
 
-    Convention: positive CLV means Pinnacle's closing prob was higher than
-    the Kalshi yes_price we paid — the sharp's eventual truth says our
-    side was more likely than what we paid for. Matches the standard
-    OddsJam / Unabated / Pikkit definition of CLV: did we get a sharp
-    price at the time we bet?
+      ev_predictions.pinnacle_drift_pct
+          = pinnacle_close_prob - kalshi_entry_price (in pp)
+          What it measures: how much Kalshi's quote at entry lagged Pinnacle's
+          eventual pre-tipoff prob. Positive by construction for our system
+          because we only pick bets where pinnacle_scan > kalshi_entry — so
+          this number mostly captures Kalshi's softness-vs-Pinnacle, not
+          model edge. Kept as a diagnostic; do not interpret as CLV.
 
-    Returns: {"updated": N, "skipped": M, "avg_clv": float}
+      ev_predictions.kalshi_clv_pct
+          = kalshi_close_yes_price - kalshi_entry_price (in pp)
+          What it measures: did Kalshi's OWN market move toward our YES side
+          between entry and T-30-minutes pre-tipoff? Pinnacle isn't in this
+          formula. This is the conventional sharp-bettor CLV adapted to the
+          fact that Kalshi never truly closes — T-30 is the industry proxy
+          for "last price before event-info corrupts the line."
+
+    Also populates ev_outcomes.pinnacle_close_prob (yes-aligned).
+
+    Returns: {"updated": N, "skipped": M, "avg_pinn_drift": x, "avg_kalshi_clv": y}
     """
     from evmax.archiver import DataArchiver
 
@@ -1238,63 +1248,87 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
     since_str = (since or date(2020, 1, 1)).isoformat()
     until_str = (until or date.today()).isoformat()
 
-    # Get resolved bets missing close prob — pull yes_team so we can align
-    # the captured Pinnacle prob to the side the bet was actually on, plus
-    # kalshi_yes_price as the entry reference for CLV.
+    # Pull all bets that need backfill — either missing pinn drift OR missing
+    # kalshi CLV. Resolved-only since both metrics are scored post-game.
     rows = conn.execute(
         """SELECT p.id, p.market_id, p.event_id, p.kalshi_yes_price,
-                  p.sharp_true_prob, p.market_type, p.yes_team
+                  p.yes_team, p.event_date, p.scan_date,
+                  p.pinnacle_drift_pct, p.kalshi_clv_pct
            FROM ev_predictions p
            INNER JOIN ev_outcomes o ON p.market_id = o.market_id
            WHERE o.outcome IS NOT NULL
-             AND o.pinnacle_close_prob IS NULL
+             AND (p.pinnacle_drift_pct IS NULL OR p.kalshi_clv_pct IS NULL)
              AND p.scan_date >= ? AND p.scan_date <= ?""",
         (since_str, until_str),
     ).fetchall()
 
     updated = skipped = 0
-    clv_values: list[float] = []
+    pinn_drift_values: list[float] = []
+    kalshi_clv_values: list[float] = []
 
-    # Pull yes-aligned closing line via the archive helper. The legacy
-    # get_closing_line returns outcome_a-aligned true_prob_a and inverts
-    # CLV on half the bets — use get_closing_line_aligned instead.
     for row in rows:
-        close_prob = archiver.get_closing_line_aligned(row["event_id"], row["yes_team"])
-        if close_prob is None:
-            skipped += 1
-            continue
-
         entry_price = row["kalshi_yes_price"]
         if entry_price is None or entry_price <= 0 or entry_price >= 1:
             skipped += 1
             continue
 
-        # CLV in pp: positive means Pinnacle's close said our YES side was
-        # MORE likely than the Kalshi price we paid — i.e. we got a sharp
-        # entry. Conventional sign: +CLV = good.
-        clv_pp = (close_prob - entry_price) * 100
+        market_id = row["market_id"]
+        ticker = market_id.removeprefix("kalshi:") if market_id else None
 
-        # Update ev_outcomes.pinnacle_close_prob (used by `cleanup show`)
-        conn.execute(
-            "UPDATE ev_outcomes SET pinnacle_close_prob = ? WHERE market_id = ?",
-            (close_prob, row["market_id"]),
-        )
-        # Update ev_predictions.clv_pct
-        conn.execute(
-            "UPDATE ev_predictions SET clv_pct = ? WHERE id = ?",
-            (round(clv_pp, 2), row["id"]),
-        )
-        updated += 1
-        clv_values.append(clv_pp)
+        # ---- 1. Pinnacle drift (legacy CLV) — pre-tipoff only ----
+        pinn_close = archiver.get_closing_line_aligned(row["event_id"], row["yes_team"])
+        pinn_drift_pp: Optional[float] = None
+        if pinn_close is not None:
+            pinn_drift_pp = (pinn_close - entry_price) * 100
+            conn.execute(
+                "UPDATE ev_outcomes SET pinnacle_close_prob = ? WHERE market_id = ?",
+                (pinn_close, market_id),
+            )
+            conn.execute(
+                "UPDATE ev_predictions SET pinnacle_drift_pct = ? WHERE id = ?",
+                (round(pinn_drift_pp, 2), row["id"]),
+            )
+            pinn_drift_values.append(pinn_drift_pp)
+
+        # ---- 2. Kalshi-CLV — T-30 pre-tipoff snapshot ----
+        # Use Pinnacle's archived tipoff timestamp as the anchor for "30 min
+        # pre-tipoff." If that's missing fall back to event_date midnight UTC
+        # (still better than the no-filter LIMIT 1 we had before).
+        kalshi_clv_pp: Optional[float] = None
+        if ticker:
+            kalshi_close = archiver.get_kalshi_close_price(ticker, row["event_id"])
+            if kalshi_close is not None:
+                kalshi_clv_pp = (kalshi_close - entry_price) * 100
+                conn.execute(
+                    "UPDATE ev_predictions SET kalshi_clv_pct = ? WHERE id = ?",
+                    (round(kalshi_clv_pp, 2), row["id"]),
+                )
+                kalshi_clv_values.append(kalshi_clv_pp)
+
+        if pinn_drift_pp is None and kalshi_clv_pp is None:
+            skipped += 1
+        else:
+            updated += 1
 
     conn.commit()
     conn.close()
 
-    avg_clv = sum(clv_values) / len(clv_values) if clv_values else 0.0
+    avg_pd = sum(pinn_drift_values) / len(pinn_drift_values) if pinn_drift_values else 0.0
+    avg_kc = sum(kalshi_clv_values) / len(kalshi_clv_values) if kalshi_clv_values else 0.0
     logger.info(
         "clv_backfill_done",
         updated=updated,
         skipped=skipped,
-        avg_clv=round(avg_clv, 2),
+        avg_pinn_drift=round(avg_pd, 2),
+        avg_kalshi_clv=round(avg_kc, 2),
+        n_pinn=len(pinn_drift_values),
+        n_kalshi=len(kalshi_clv_values),
     )
-    return {"updated": updated, "skipped": skipped, "avg_clv": round(avg_clv, 2)}
+    return {
+        "updated": updated,
+        "skipped": skipped,
+        "avg_pinn_drift": round(avg_pd, 2),
+        "avg_kalshi_clv": round(avg_kc, 2),
+        "n_pinn": len(pinn_drift_values),
+        "n_kalshi": len(kalshi_clv_values),
+    }
