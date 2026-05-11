@@ -97,10 +97,10 @@ baseball:
   display_name: "Baseball (MLB)"
   market_types: [moneyline, spread, total]
   models: [elo, form, pitcher, sharp]
-  mode: live
+  mode: shadow
   resolver: espn_scoreboard
   status: shipped
-  notes: "Pitcher Pythag model live (BUG-9 fixed in PR #2). Poisson dropped 2026-05-01: never earned its keep on MLB runs (overdispersion + bullpen-leverage violates independence). Pitcher promoted to 0.50 within model side via SECTOR_WEIGHT_OVERRIDES."
+  notes: "Pitcher Pythag model live (BUG-9 fixed in PR #2). Poisson dropped 2026-05-01: never earned its keep on MLB runs (overdispersion + bullpen-leverage violates independence). Pitcher promoted to 0.50 within model side via SECTOR_WEIGHT_OVERRIDES. Demoted to shadow 2026-05-10 pending Brier-vs-Kalshi validation."
 
 wnba:
   display_name: "WNBA"
