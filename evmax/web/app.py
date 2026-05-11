@@ -403,7 +403,7 @@ def api_summary(days: int = 0, view: str = "all") -> JSONResponse:
 async def api_scan(request: Request) -> JSONResponse:
     """Run a full agent scan and return EV gaps as JSON."""
     body = await request.json() if request.headers.get("content-type") == "application/json" else {}
-    sectors_str = body.get("sectors", "nba,soccer,tennis")
+    sectors_str = body.get("sectors", "nba,wnba,ncaab,ncaaw,soccer,lol,cs2,tennis,baseball")
     bankroll = float(body.get("bankroll", 500))
     kelly = float(body.get("kelly", 0.5))
     date_from = body.get("date_from", "")

@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function ActionBar({ onScanComplete, onResolve, onMetrics, toast }: Props) {
-  const [sectors, setSectors] = useState('nba,wnba,soccer,tennis,ncaab')
+  const [sectors, setSectors] = useState('nba,wnba,ncaab,ncaaw,soccer,lol,cs2,tennis,baseball')
   const [bankroll, setBankroll] = useState(250)
   const [kelly, setKelly] = useState(0.5)
   const [dateFrom, setDateFrom] = useState(fmtDate)
@@ -52,12 +52,13 @@ export function ActionBar({ onScanComplete, onResolve, onMetrics, toast }: Props
   return (
     <div className="actions">
       <select value={sectors} onChange={e => setSectors(e.target.value)}>
-        <option value="nba,wnba,soccer,tennis,ncaab">All Sectors</option>
+        <option value="nba,wnba,ncaab,ncaaw,soccer,lol,cs2,tennis,baseball">All Sectors</option>
         <option value="nba">NBA</option>
         <option value="wnba">WNBA</option>
         <option value="soccer">Soccer</option>
         <option value="tennis">Tennis</option>
         <option value="ncaab">NCAAB</option>
+        <option value="ncaaw">NCAAW</option>
         <option value="baseball">Baseball</option>
         <option value="lol,cs2">Esports</option>
       </select>
