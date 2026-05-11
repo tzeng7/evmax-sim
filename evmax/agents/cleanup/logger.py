@@ -301,21 +301,30 @@ def log_prop_from_sharp(
     pairs: list[tuple["SharpOdds", "PredictionMarket"]],
     scan_date: Optional[date] = None,
     model_version: Optional[str] = None,
+    mode_resolver: Optional[Callable[[str], str]] = None,
 ) -> int:
     """Log prop observations directly from SharpOdds + PredictionMarket pairs.
 
-    Used when _evaluate_prop is disabled — props aren't turned into EVGaps but
-    we still want calibration data in prop_observations.
+    Companion to log_prop_observations for the path where props haven't been
+    turned into EVGaps yet (still useful as a back-channel even after
+    _evaluate_prop_pair was re-enabled, e.g. for the raw anchor-priced log).
 
     `model_version` is written to the eponymous column so calibration queries
     can partition rows by which probability source produced them (e.g.
-    `pinnacle-v1` for Pinnacle-anchored, NULL for the legacy L15 model).
+    `pinnacle-anchor-v1` for the current model, NULL for the legacy L15).
+
+    Honors `data/categories.yaml` mode per (sector + "_props") just like
+    log_prop_observations — without this resolver, the `mode` column
+    defaulted to 'live' on every insert and bypassed the shadow firewall.
     """
     if not pairs:
         return 0
 
+    resolver = mode_resolver or _default_mode_resolver
     sd = (scan_date or date.today()).isoformat()
     inserted = 0
+    counts_by_mode: dict[str, int] = {"live": 0, "shadow": 0}
+    dropped_disabled = 0
 
     with get_connection() as conn:
         for sharp, market in pairs:
@@ -326,6 +335,25 @@ def log_prop_from_sharp(
                     event_date_str = kalshi_game_day(sharp.event_date, sharp.sector)
                 else:
                     event_date_str = sharp.event_date.isoformat()
+
+            # Categorical key for mode lookup. log_prop_observations uses
+            # _gap_category_key on EVGap; we don't have an EVGap here, but
+            # the categorical key for props is always "{sector}_props".
+            category = f"{sharp.sector}_props" if sharp.sector else ""
+            try:
+                mode = resolver(category)
+            except Exception as e:
+                logger.warning(
+                    "prop_mode_resolver_failed",
+                    category=category,
+                    market_id=market.id,
+                    error=str(e),
+                )
+                mode = "live"
+
+            if mode == "disabled":
+                dropped_disabled += 1
+                continue
 
             # EV vs Kalshi price (over side)
             kalshi_price = market.yes_price
@@ -338,8 +366,8 @@ def log_prop_from_sharp(
                     (scan_date, event_date, sector, player_name, stat_type, line,
                      kalshi_price, sharp_prob, ev_pct, l15_games,
                      market_id, event_id, event_title,
-                     captured_yes_price, model_version)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     mode, captured_yes_price, model_version)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         sd,
                         event_date_str,
@@ -354,12 +382,14 @@ def log_prop_from_sharp(
                         market.id,
                         sharp.event_id,
                         market.title,
+                        mode,
                         kalshi_price,
                         model_version,
                     ),
                 )
                 if conn.execute("SELECT changes()").fetchone()[0]:
                     inserted += 1
+                    counts_by_mode[mode] = counts_by_mode.get(mode, 0) + 1
             except Exception as e:
                 logger.warning("prop_log_error", market_id=market.id, error=str(e))
 
@@ -371,5 +401,8 @@ def log_prop_from_sharp(
         total=len(pairs),
         date=sd,
         model_version=model_version,
+        live=counts_by_mode.get("live", 0),
+        shadow=counts_by_mode.get("shadow", 0),
+        dropped_disabled=dropped_disabled,
     )
     return inserted
