@@ -887,9 +887,21 @@ class AgentCoordinator:
 
             # Synthesize SharpOdds at the Kalshi threshold using the priced prob.
             # outcome_a/b decimal odds carry over from the anchor (they were the
-            # raw Pinnacle quote at 26.5, no longer meaningful at a different
-            # threshold) — downstream EV uses true_prob_over only.
+            # raw Pinnacle quote at the anchor line, no longer meaningful at a
+            # different threshold) — downstream EV uses true_prob_over only.
+            #
+            # Rewrite event_id to encode the Kalshi threshold, not the anchor
+            # line. The cleanup resolver parses event_id parts[5] to extract the
+            # threshold for prop resolution; if we left the anchor's event_id
+            # in place, a 10+ market would be resolved against the anchor's
+            # 4.5 threshold and incorrectly marked WON.
+            new_event_id = (
+                f"{sector}::{anchor.event_id.split('::')[1]}"
+                f"::prop::{market.player_name}::{market.stat_type}"
+                f"::{market.threshold}"
+            )
             prop_sharp.append(anchor.model_copy(update={
+                "event_id": new_event_id,
                 "total_line": market.threshold,
                 "true_prob_over": prob_over,
                 "true_prob_under": 1.0 - prob_over,

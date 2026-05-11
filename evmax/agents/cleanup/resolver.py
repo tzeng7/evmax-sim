@@ -994,19 +994,32 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
     unmatched: list[str] = []
 
     # Resolve NBA player props synchronously (nba_api is blocking).
+    # Threshold authority: prefer pred["line"] (the Kalshi threshold the bet
+    # was placed at) over event_id::parts[5]. Pre-2026-05-11 the synthetic
+    # SharpOdds event_id encoded the Pinnacle anchor line (e.g. 4.5) while
+    # the bet itself was at a different Kalshi threshold (e.g. 10), so
+    # parsing event_id resolved a 10+ bet against a 4.5 cutoff and marked
+    # losers as WON. event_id stays the fallback for player/stat/date
+    # extraction since those don't drift the same way.
     for pred in prop_preds:
         parts = pred["event_id"].split("::")
         if len(parts) < 6:
             failed += 1
             unmatched.append(pred["event_id"])
             continue
-        _player, _stat, _thr_str = parts[3], parts[4], parts[5]
-        try:
-            _threshold = float(_thr_str)
-        except ValueError:
-            failed += 1
-            unmatched.append(pred["event_id"])
-            continue
+        _player, _stat = parts[3], parts[4]
+        # Prefer the explicit line column; fall back to event_id parsing for
+        # pre-line-column rows.
+        _threshold = pred.get("line") if pred.get("line") is not None else None
+        if _threshold is None:
+            try:
+                _threshold = float(parts[5])
+            except ValueError:
+                failed += 1
+                unmatched.append(pred["event_id"])
+                continue
+        else:
+            _threshold = float(_threshold)
         _event_date = date.fromisoformat(parts[1])
         outcome = _resolve_prop_outcome(_player, _stat, _threshold, _event_date)
         if outcome is not None:
