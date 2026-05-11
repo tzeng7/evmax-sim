@@ -354,6 +354,14 @@ class DataArchiver:
         for every bet where yes_team == outcome_b. This helper reads both
         labels + probs and picks the correct side via
         :func:`evmax.agents.cleanup.resolver.yes_aligned_close_prob`.
+
+        Filters snapshots to `fetched_at < event_date` (i.e. strictly
+        pre-tipoff) — Pinnacle keeps quoting odds during live games and
+        immediately after settlement, and the post-tipoff snapshots collapse
+        toward the eventual outcome (winners trending to 1.0, losers to 0.0).
+        Without this filter, ``ORDER BY fetched_at DESC LIMIT 1`` picks the
+        last archived sample which is almost always post-tipoff for any
+        event resolved before the next archive run.
         """
         from evmax.agents.cleanup.resolver import yes_aligned_close_prob
 
@@ -364,6 +372,8 @@ class DataArchiver:
                    FROM archived_sharp_odds
                    WHERE event_id = ?
                      AND spread_line IS NULL
+                     AND event_date IS NOT NULL
+                     AND fetched_at < event_date
                    ORDER BY fetched_at DESC
                    LIMIT 1""",
                 (event_id,),
