@@ -41,7 +41,7 @@ def _load(sector: str | None, since: str | None):
         SELECT p.id, p.event_id, p.sector, p.yes_team, p.market_type,
                p.kalshi_yes_price, p.sharp_true_prob, p.ev_pct,
                p.kalshi_clv_pct, p.pinnacle_drift_pct,
-               p.model_sources,
+               p.model_sources, p.minutes_to_tipoff,
                o.outcome
         FROM ev_predictions p
         JOIN ev_outcomes o ON p.market_id = o.market_id
@@ -141,34 +141,83 @@ def main() -> int:
             f"{s['kalshi_brier']:>8.4f} {s['model_brier']:>8.4f} {s['brier_delta']:>+8.4f}"
         )
 
-    # Late-news slice across all sectors — bets logged when a starter/star
-    # had a status change in the last 6 hours. Tagged by model_sources
-    # containing "late_news". If the late-news edge thesis is right, these
-    # rows should show systematically higher Kalshi-CLV than stale-news
-    # rows on the same sectors.
-    late = [r for r in rows if (r.get("model_sources") or "").find("late_news") >= 0
-            and r["kalshi_clv_pct"] is not None]
-    stale = [r for r in rows if (r.get("model_sources") or "").find("late_news") < 0
-             and r["kalshi_clv_pct"] is not None]
+    # Scan-timing stratification. Late-news edge can ONLY manifest in late
+    # scans — scans done close to tipoff have already absorbed any breaking
+    # news through Pinnacle's quick adjustment, leaving Kalshi as the lagging
+    # side we can catch. Scans done hours before tipoff are dominated by
+    # post-scan market drift, which is mostly noise from our perspective
+    # (the news happens BETWEEN scan and close, so we couldn't have
+    # anticipated it). If our late-news thesis holds, the <30 min bucket
+    # should show systematically higher Kalshi-CLV than the 24h+ bucket.
+    BUCKETS = [
+        ("<30 min",     0,    30),
+        ("30 min–6h",  30,   360),
+        ("6h–24h",    360,  1440),
+        ("24h+",      1440, None),
+    ]
+    clv_eligible = [r for r in rows if r["kalshi_clv_pct"] is not None]
     print()
-    print("Late-news slice (cross-sector):")
-    if late:
-        late_clv = mean(r["kalshi_clv_pct"] for r in late)
-        print(f"  with late-news tag  n={len(late):>4}  avg Kalshi-CLV  {late_clv:+.2f}pp")
+    print("Scan-timing stratification (cross-sector, Kalshi-CLV):")
+    print(f"  {'bucket':<14} {'n':>5} {'avg CLV':>10}")
+    for label, lo, hi in BUCKETS:
+        if hi is None:
+            sub = [r for r in clv_eligible
+                   if r.get("minutes_to_tipoff") is not None
+                   and r["minutes_to_tipoff"] >= lo]
+        else:
+            sub = [r for r in clv_eligible
+                   if r.get("minutes_to_tipoff") is not None
+                   and lo <= r["minutes_to_tipoff"] < hi]
+        if not sub:
+            print(f"  {label:<14} {0:>5}  {'—':>10}")
+            continue
+        avg = mean(r["kalshi_clv_pct"] for r in sub)
+        print(f"  {label:<14} {len(sub):>5}  {avg:>+9.2f}pp")
+    no_tipoff = [r for r in clv_eligible if r.get("minutes_to_tipoff") is None]
+    if no_tipoff:
+        avg = mean(r["kalshi_clv_pct"] for r in no_tipoff)
+        print(f"  (no timing)    {len(no_tipoff):>5}  {avg:>+9.2f}pp  ← pre-2026-05-10 rows")
+
+    # Late-news tag slice — only meaningful WHEN COMBINED with the
+    # <30 min bucket. The tag fires on news within 6 hours of scan, but
+    # if the scan itself was 24h pre-tipoff that news is already
+    # priced in by Kalshi long before close.
+    late_tagged_short = [
+        r for r in clv_eligible
+        if "late_news" in (r.get("model_sources") or "")
+        and r.get("minutes_to_tipoff") is not None
+        and r["minutes_to_tipoff"] < 60
+    ]
+    untagged_short = [
+        r for r in clv_eligible
+        if "late_news" not in (r.get("model_sources") or "")
+        and r.get("minutes_to_tipoff") is not None
+        and r["minutes_to_tipoff"] < 60
+    ]
+    print()
+    print("Late-news edge (conditional on late scan, < 60 min to tipoff):")
+    if late_tagged_short:
+        print(f"  tagged + late scan  n={len(late_tagged_short):>4}  "
+              f"avg Kalshi-CLV {mean(r['kalshi_clv_pct'] for r in late_tagged_short):+.2f}pp")
     else:
-        print(f"  with late-news tag  n=0  (no tagged bets resolved yet)")
-    stale_clv = mean(r["kalshi_clv_pct"] for r in stale) if stale else float("nan")
-    print(f"  stale-news (others) n={len(stale):>4}  avg Kalshi-CLV  {stale_clv:+.2f}pp")
+        print(f"  tagged + late scan  n=0  (no late-scan resolved bets yet)")
+    if untagged_short:
+        print(f"  untagged late scan  n={len(untagged_short):>4}  "
+              f"avg Kalshi-CLV {mean(r['kalshi_clv_pct'] for r in untagged_short):+.2f}pp")
+    else:
+        print(f"  untagged late scan  n=0")
 
     # Interpretation hints
     print()
     print("Reads:")
-    print("  raw_clv      — every CLV-eligible bet, naive aggregate (current dashboard number)")
-    print("  1-side CLV   — events where we bet only one side (cleanest signal, no cancellation)")
-    print("  top-side     — 2-sided events keep only the higher-EV bet (our primary pick)")
-    print("  Δ Brier      — positive means our model was more accurate than Kalshi's price")
-    print("                 (sample-size CI on Brier ≈ ±0.01 for n=100, ±0.003 for n=500)")
-    print("  late-news    — slice marking bets logged within 6h of a starter/star status change")
+    print("  raw_clv         — every CLV-eligible bet, naive aggregate")
+    print("  1-side CLV      — events where we bet only one side (no mutual cancellation)")
+    print("  top-side        — 2-sided events keep only the higher-EV bet")
+    print("  Δ Brier         — positive means model beats Kalshi's price as a predictor")
+    print("                    (CI on Brier ≈ ±0.01 for n=100, ±0.003 for n=500)")
+    print("  Scan timing     — Kalshi-CLV stratified by minutes-to-tipoff at scan")
+    print("                    If late-news edge is real, <30min bucket > 24h+ bucket")
+    print("  Late-news tag   — only meaningful in conjunction with late scan")
     return 0
 
 

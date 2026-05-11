@@ -63,6 +63,11 @@ class EVGap:
     prop_l15_games: int = 0   # number of games in the L15 sample (0 = unknown)
     prop_minutes_volatile: bool = False  # True if player had abnormal recent minutes
     prop_minutes_cv: float = 0.0         # minutes coefficient of variation
+    # Scan timing — minutes between scan time and tipoff. Drives the CLV
+    # stratification in scripts/clv_report.py: late scans (<30 min pre-tipoff)
+    # are when late-news edge can manifest; early scans (>6h) measure mostly
+    # post-scan market drift and are inherently noisy regardless of news flow.
+    minutes_to_tipoff: Optional[int] = None
 
     @property
     def edge_label(self) -> str:
@@ -121,6 +126,22 @@ class EVGap:
             f"| Kalshi={self.kalshi_yes_price:.2f} TrueP={self.blended_true_prob:.3f} "
             f"EV={self.ev_pct*100:.1f}% Kelly={self.kelly_fraction*100:.2f}% {self.stars_display}"
         )
+
+
+def _minutes_to_tipoff(event_date: Optional[datetime]) -> Optional[int]:
+    """Minutes between scan time and event start, or None if unknown.
+
+    Negative values are clamped to 0 — happens occasionally when scans
+    fire after a game already started but Kalshi still has the market
+    listed (pre-tipoff exclusives that resolved late, sport rescheduled,
+    etc.). For CLV stratification we only care about pre-tipoff windows.
+    """
+    if event_date is None:
+        return None
+    now = datetime.now(timezone.utc)
+    et = event_date if event_date.tzinfo else event_date.replace(tzinfo=timezone.utc)
+    delta = (et - now).total_seconds() / 60.0
+    return max(0, int(delta))
 
 
 def _dedup_mutually_exclusive_sides(gaps: "list[EVGap]") -> "list[EVGap]":
@@ -909,7 +930,8 @@ class EVGapAgent(Agent):
             match_confidence=confidence,
             volume_usd=market.volume_usd,
             spread_pct=market.spread_pct,
-            event_date=sharp.event_date or market.event_date,
+            event_date=sharp.event_date or market.event_date,\
+            minutes_to_tipoff=_minutes_to_tipoff(sharp.event_date or market.event_date),
             line=market.line,
             model_sources=src,
             event_title=(
@@ -1034,7 +1056,8 @@ class EVGapAgent(Agent):
             match_confidence=confidence,
             volume_usd=market.volume_usd,
             spread_pct=market.spread_pct,
-            event_date=sharp.event_date or market.event_date,
+            event_date=sharp.event_date or market.event_date,\
+            minutes_to_tipoff=_minutes_to_tipoff(sharp.event_date or market.event_date),
             line=no_line,
             model_sources=f"{src_yes}+no_side",
             event_title=f"{sharp.outcome_a_label or '?'} vs {sharp.outcome_b_label or '?'}",
@@ -1145,7 +1168,8 @@ class EVGapAgent(Agent):
             match_confidence=confidence,
             volume_usd=market.volume_usd,
             spread_pct=market.spread_pct,
-            event_date=sharp.event_date or market.event_date,
+            event_date=sharp.event_date or market.event_date,\
+            minutes_to_tipoff=_minutes_to_tipoff(sharp.event_date or market.event_date),
             line=market.threshold,
             model_sources=src,
             event_title=player_display,

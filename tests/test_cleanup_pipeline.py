@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     mode                TEXT    NOT NULL DEFAULT 'live',
     captured_yes_price  REAL,
     model_version       TEXT,
+    minutes_to_tipoff   INTEGER,
     UNIQUE(market_id)
 );
 """

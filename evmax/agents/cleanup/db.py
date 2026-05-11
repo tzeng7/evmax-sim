@@ -240,6 +240,12 @@ def get_connection() -> sqlite3.Connection:
         "ALTER TABLE ev_predictions RENAME COLUMN clv_pct TO pinnacle_drift_pct",
         "ALTER TABLE ev_predictions ADD COLUMN pinnacle_drift_pct REAL",
         "ALTER TABLE ev_predictions ADD COLUMN kalshi_clv_pct REAL",
+        # 2026-05-10 — capture minutes-to-tipoff at scan time so CLV can be
+        # stratified by scan timing. Late scans (<30 min) are where late-news
+        # edge can manifest; early scans (>6h) are dominated by post-scan
+        # drift noise regardless of news. Without this column the late_news
+        # tag is uninterpretable because scan timing is the dominant variable.
+        "ALTER TABLE ev_predictions ADD COLUMN minutes_to_tipoff INTEGER",
     ]:
         try:
             conn.execute(migration)

@@ -232,7 +232,8 @@ def test_migration_adds_columns_to_legacy_db(tmp_path, monkeypatch):
             placed_price        REAL,
             placed_stake        REAL,
             pinnacle_drift_pct  REAL,
-    kalshi_clv_pct      REAL,
+            kalshi_clv_pct      REAL,
+            minutes_to_tipoff   INTEGER,
             UNIQUE(market_id, scan_date)
         );
         CREATE TABLE prop_observations (

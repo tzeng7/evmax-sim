@@ -137,8 +137,8 @@ def log_gaps(
                      event_title, event_date, kalshi_yes_price, sharp_true_prob,
                      blended_true_prob, ev_pct, kelly_fraction, volume_usd,
                      model_sources, sharp_weight_used, bankroll_used, line,
-                     mode, captured_yes_price, model_version)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     mode, captured_yes_price, model_version, minutes_to_tipoff)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         sd,
                         g.market_id,
@@ -161,6 +161,7 @@ def log_gaps(
                         mode,
                         g.kalshi_yes_price,  # captured_yes_price == pre-game YES ask
                         model_version,
+                        getattr(g, "minutes_to_tipoff", None),
                     ),
                 )
                 if conn.execute("SELECT changes()").fetchone()[0]:
