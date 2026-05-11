@@ -1346,3 +1346,88 @@ class TestTennisWeightTrim:
         # prediction — the trim reduces dominance but doesn't flip the sign.
         assert blend_new > other_prob_a
         assert blend_new < blend_old
+
+
+class TestDedupMutuallyExclusiveSides:
+    """The no-middling rule: when two +EV bets cover opposite sides of the
+    same Kalshi market (same event, same market_type, same |line|), keep
+    only the higher-EV side. Logging both is a vig double-pay with zero
+    net edge — outcomes are mutually exclusive."""
+
+    def _gap(self, **overrides):
+        from evmax.agents.odds.ev_gap_agent import EVGap
+        defaults = dict(
+            market_id="m", event_id="nba::2026-05-11::lal_vs_gsw",
+            sector="nba", yes_team="lakers", market_type="moneyline",
+            kalshi_yes_price=0.5, sharp_true_prob=0.55,
+            blended_true_prob=0.55, ev_pct=0.10,
+            kelly_full=0.05, kelly_fraction=0.025, match_confidence=95.0,
+            volume_usd=10_000.0, spread_pct=0.02,
+            event_date=None, line=None,
+        )
+        defaults.update(overrides)
+        return EVGap(**defaults)
+
+    def test_keeps_higher_ev_side_of_moneyline(self):
+        from evmax.agents.odds.ev_gap_agent import _dedup_mutually_exclusive_sides
+        gaps = [
+            self._gap(yes_team="lakers", ev_pct=0.08),
+            self._gap(yes_team="warriors", ev_pct=0.12, market_id="m2"),
+        ]
+        result = _dedup_mutually_exclusive_sides(gaps)
+        assert len(result) == 1
+        assert result[0].yes_team == "warriors"
+
+    def test_keeps_both_when_different_market_types(self):
+        from evmax.agents.odds.ev_gap_agent import _dedup_mutually_exclusive_sides
+        gaps = [
+            self._gap(market_type="moneyline", ev_pct=0.08),
+            self._gap(market_type="spread", ev_pct=0.05, line=-7.5, market_id="m2"),
+        ]
+        assert len(_dedup_mutually_exclusive_sides(gaps)) == 2
+
+    def test_keeps_both_when_different_spread_lines(self):
+        """Lakers -3 and Lakers -7 are different markets, not opposite sides."""
+        from evmax.agents.odds.ev_gap_agent import _dedup_mutually_exclusive_sides
+        gaps = [
+            self._gap(market_type="spread", line=-3.0, ev_pct=0.05),
+            self._gap(market_type="spread", line=-7.5, ev_pct=0.08, market_id="m2"),
+        ]
+        assert len(_dedup_mutually_exclusive_sides(gaps)) == 2
+
+    def test_collapses_opposite_spread_sides(self):
+        """Lakers -7.5 and Warriors +7.5 have the same |line| — opposite sides."""
+        from evmax.agents.odds.ev_gap_agent import _dedup_mutually_exclusive_sides
+        gaps = [
+            self._gap(market_type="spread", yes_team="lakers",
+                      line=-7.5, ev_pct=0.04),
+            self._gap(market_type="spread", yes_team="warriors",
+                      line=7.5, ev_pct=0.06, market_id="m2"),
+        ]
+        result = _dedup_mutually_exclusive_sides(gaps)
+        assert len(result) == 1
+        assert result[0].yes_team == "warriors"
+
+    def test_collapses_over_under(self):
+        """Same total line, over vs under."""
+        from evmax.agents.odds.ev_gap_agent import _dedup_mutually_exclusive_sides
+        gaps = [
+            self._gap(market_type="total", yes_team="over",
+                      line=224.5, ev_pct=0.03),
+            self._gap(market_type="total", yes_team="under",
+                      line=224.5, ev_pct=0.07, market_id="m2"),
+        ]
+        result = _dedup_mutually_exclusive_sides(gaps)
+        assert len(result) == 1
+        assert result[0].yes_team == "under"
+
+    def test_props_are_pass_through(self):
+        """Player props with different thresholds are independent bets — Kalshi
+        posts 20+ / 25+ / 30+ separately, never as opposite sides."""
+        from evmax.agents.odds.ev_gap_agent import _dedup_mutually_exclusive_sides
+        gaps = [
+            self._gap(market_type="player_prop", line=20.0, ev_pct=0.05),
+            self._gap(market_type="player_prop", line=25.0, ev_pct=0.08, market_id="m2"),
+            self._gap(market_type="player_prop", line=30.0, ev_pct=0.03, market_id="m3"),
+        ]
+        assert len(_dedup_mutually_exclusive_sides(gaps)) == 3

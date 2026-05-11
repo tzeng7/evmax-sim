@@ -123,6 +123,31 @@ class EVGap:
         )
 
 
+def _dedup_mutually_exclusive_sides(gaps: "list[EVGap]") -> "list[EVGap]":
+    """Drop the lower-EV gap when two bets cover opposite sides of a market.
+
+    A Kalshi market quotes YES on each side independently — same event_id +
+    market_type + line, different yes_team. The outcomes are mutually
+    exclusive (only one can win), so logging both is a vig double-pay with
+    no net edge. Keep the higher-EV side per ``(event_id, market_type,
+    |line|)`` group. Player props are exempt: Kalshi posts each threshold
+    (e.g. 20+ / 25+ / 30+ points for the same player) as a separate market,
+    and those are independent bets, not opposite sides of the same market.
+    """
+    best: dict[tuple, "EVGap"] = {}
+    pass_through: list["EVGap"] = []
+    for g in gaps:
+        if g.market_type == "player_prop":
+            pass_through.append(g)
+            continue
+        line_key = abs(g.line) if g.line is not None else 0.0
+        key = (g.event_id, g.market_type, line_key)
+        prev = best.get(key)
+        if prev is None or (g.ev_pct or 0) > (prev.ev_pct or 0):
+            best[key] = g
+    return list(best.values()) + pass_through
+
+
 class EVGapAgent(Agent):
     """
     Matches Kalshi markets to sharp events and computes EV gaps.
@@ -246,6 +271,19 @@ class EVGapAgent(Agent):
             if gap is not None:
                 gaps.append(gap)
 
+        gaps.sort(key=lambda g: g.ev_pct, reverse=True)
+
+        # No-middling dedup: when Kalshi's vig is wide enough that BOTH
+        # sides of a market (Lakers ML vs Warriors ML; Lakers -7.5 vs
+        # Warriors +7.5; Over vs Under same line) pass our EV threshold,
+        # we used to log both. The outcomes are mutually exclusive so
+        # we're effectively arbing against ourselves and paying Kalshi
+        # vig twice. Industry-standard sharp-bettor convention (OddsJam,
+        # Unabated): keep only the higher-EV side per (event, market_type,
+        # |line|) group. Player props are exempt — different thresholds on
+        # the same player+stat are genuinely independent bets (Kalshi
+        # posts 20+ / 25+ / 30+ as separate markets, none are "opposites").
+        gaps = _dedup_mutually_exclusive_sides(gaps)
         gaps.sort(key=lambda g: g.ev_pct, reverse=True)
 
         self.log.info("ev_gaps_found", sector=sector, count=len(gaps))
