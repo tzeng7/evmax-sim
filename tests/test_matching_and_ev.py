@@ -227,6 +227,7 @@ class TestBuildMarketKey:
             no_price=0.50,
             team_home=None,
             team_away="celtics",
+            volume_usd=10_000.0,
             event_date=_EVENT_DATE,
         )
         key = self.engine.build_market_key(market)
@@ -241,6 +242,7 @@ class TestBuildMarketKey:
             no_price=0.50,
             team_home="lakers",
             team_away=None,
+            volume_usd=10_000.0,
             event_date=_EVENT_DATE,
         )
         key = self.engine.build_market_key(market)
@@ -255,6 +257,7 @@ class TestBuildMarketKey:
             no_price=0.50,
             team_home="lakers",
             team_away="celtics",
+            volume_usd=10_000.0,
             event_date=None,
         )
         key = self.engine.build_market_key(market)
@@ -599,6 +602,7 @@ class TestEvaluatePair:
             yes_team="draw",
             team_home="man city",
             team_away="arsenal",
+            volume_usd=10_000.0,
             event_date=_EVENT_DATE,
         )
         sharp = SharpOdds(
@@ -649,6 +653,7 @@ class TestEvaluatePair:
             yes_price=0.22,
             no_price=0.80,  # +2¢ vig → spread_pct > 0
             yes_team="x",
+            volume_usd=10_000.0,
         )
         sharp = SharpOdds(
             event_id="soccer::2026-03-21::barca_vs_madrid",

@@ -40,8 +40,13 @@ class Settings(BaseSettings):
     # EV threshold
     ev_threshold: float = Field(default=0.02, ge=0.0, le=1.0)  # 2%
 
-    # Minimum market volume to place a simulated bet (filters stale/illiquid markets)
-    min_volume_usd: float = Field(default=500.0, ge=0.0)
+    # Minimum cumulative Kalshi volume to count a market as bettable.
+    # Default 0 = disabled. Set per-sector or globally if you want to filter
+    # out low-volume markets, but be aware that thin-volume sectors (WNBA,
+    # mid-week MLB, early-week NFL) are where soft-vs-sharp gaps tend to be
+    # widest — raising this floor sacrifices edge opportunities in exchange
+    # for variance reduction. spread_pct < 0.5% already drops empty books.
+    min_volume_usd: float = Field(default=0.0, ge=0.0)
 
     # Heavy-chalk filter for game-level markets (moneyline / spread / total).
     # Skip any side whose ask is above this. Default 0.90 → never stake $9 to
