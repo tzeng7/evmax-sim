@@ -311,10 +311,12 @@ def close_lines(
     """Capture Pinnacle closing lines for unresolved markets.
 
     Run this at or just before game start time. Stores pinnacle_close_prob in
-    ev_outcomes so CLV (entry prob vs closing line) can be computed later.
+    ev_outcomes (YES-aligned per the bet's yes_team) so backfill-clv can
+    populate ev_predictions.clv_pct later.
 
-    CLV = sharp_true_prob (at scan time) - pinnacle_close_prob (at close).
-    Positive CLV means you got better odds than the sharpest book offered at close.
+    CLV = pinnacle_close_prob - kalshi_yes_price (in pp).
+    Positive CLV means the sharpest book's eventual truth said our YES side
+    was MORE likely than what we paid Kalshi — i.e. we got a sharp price.
     """
     import asyncio
     from evmax.agents.cleanup.db import get_connection

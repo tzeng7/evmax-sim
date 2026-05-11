@@ -1220,9 +1220,13 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
     For each resolved bet missing pinnacle_close_prob, finds the last archived
     Pinnacle closing line from archived_sharp_odds and populates both:
       - ev_outcomes.pinnacle_close_prob (used by `cleanup show`)
-      - ev_predictions.clv_pct (entry_prob - close_prob in pp)
+      - ev_predictions.clv_pct (close_prob - kalshi_entry_price in pp)
 
-    Positive CLV (entry_prob > close_prob) = we got a better price (real edge).
+    Convention: positive CLV means Pinnacle's closing prob was higher than
+    the Kalshi yes_price we paid — the sharp's eventual truth says our
+    side was more likely than what we paid for. Matches the standard
+    OddsJam / Unabated / Pikkit definition of CLV: did we get a sharp
+    price at the time we bet?
 
     Returns: {"updated": N, "skipped": M, "avg_clv": float}
     """
@@ -1235,10 +1239,11 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
     until_str = (until or date.today()).isoformat()
 
     # Get resolved bets missing close prob — pull yes_team so we can align
-    # the captured Pinnacle prob to the side the bet was actually on.
+    # the captured Pinnacle prob to the side the bet was actually on, plus
+    # kalshi_yes_price as the entry reference for CLV.
     rows = conn.execute(
-        """SELECT p.id, p.market_id, p.event_id, p.sharp_true_prob,
-                  p.market_type, p.yes_team
+        """SELECT p.id, p.market_id, p.event_id, p.kalshi_yes_price,
+                  p.sharp_true_prob, p.market_type, p.yes_team
            FROM ev_predictions p
            INNER JOIN ev_outcomes o ON p.market_id = o.market_id
            WHERE o.outcome IS NOT NULL
@@ -1259,13 +1264,15 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
             skipped += 1
             continue
 
-        entry_prob = row["sharp_true_prob"]
-        if entry_prob <= 0:
+        entry_price = row["kalshi_yes_price"]
+        if entry_price is None or entry_price <= 0 or entry_price >= 1:
             skipped += 1
             continue
 
-        # CLV in pp: positive means our entry price was better than close
-        clv_pp = (entry_prob - close_prob) * 100
+        # CLV in pp: positive means Pinnacle's close said our YES side was
+        # MORE likely than the Kalshi price we paid — i.e. we got a sharp
+        # entry. Conventional sign: +CLV = good.
+        clv_pp = (close_prob - entry_price) * 100
 
         # Update ev_outcomes.pinnacle_close_prob (used by `cleanup show`)
         conn.execute(
