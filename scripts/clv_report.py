@@ -41,6 +41,7 @@ def _load(sector: str | None, since: str | None):
         SELECT p.id, p.event_id, p.sector, p.yes_team, p.market_type,
                p.kalshi_yes_price, p.sharp_true_prob, p.ev_pct,
                p.kalshi_clv_pct, p.pinnacle_drift_pct,
+               p.model_sources,
                o.outcome
         FROM ev_predictions p
         JOIN ev_outcomes o ON p.market_id = o.market_id
@@ -140,14 +141,34 @@ def main() -> int:
             f"{s['kalshi_brier']:>8.4f} {s['model_brier']:>8.4f} {s['brier_delta']:>+8.4f}"
         )
 
+    # Late-news slice across all sectors — bets logged when a starter/star
+    # had a status change in the last 6 hours. Tagged by model_sources
+    # containing "late_news". If the late-news edge thesis is right, these
+    # rows should show systematically higher Kalshi-CLV than stale-news
+    # rows on the same sectors.
+    late = [r for r in rows if (r.get("model_sources") or "").find("late_news") >= 0
+            and r["kalshi_clv_pct"] is not None]
+    stale = [r for r in rows if (r.get("model_sources") or "").find("late_news") < 0
+             and r["kalshi_clv_pct"] is not None]
+    print()
+    print("Late-news slice (cross-sector):")
+    if late:
+        late_clv = mean(r["kalshi_clv_pct"] for r in late)
+        print(f"  with late-news tag  n={len(late):>4}  avg Kalshi-CLV  {late_clv:+.2f}pp")
+    else:
+        print(f"  with late-news tag  n=0  (no tagged bets resolved yet)")
+    stale_clv = mean(r["kalshi_clv_pct"] for r in stale) if stale else float("nan")
+    print(f"  stale-news (others) n={len(stale):>4}  avg Kalshi-CLV  {stale_clv:+.2f}pp")
+
     # Interpretation hints
     print()
     print("Reads:")
-    print("  raw_clv     — every CLV-eligible bet, naive aggregate (current dashboard number)")
-    print("  1-side CLV  — events where we bet only one side (cleanest signal, no cancellation)")
-    print("  top-side    — 2-sided events keep only the higher-EV bet (our primary pick)")
-    print("  Δ Brier     — positive means our model was more accurate than Kalshi's price")
-    print("                (sample-size CI on Brier ≈ ±0.01 for n=100, ±0.003 for n=500)")
+    print("  raw_clv      — every CLV-eligible bet, naive aggregate (current dashboard number)")
+    print("  1-side CLV   — events where we bet only one side (cleanest signal, no cancellation)")
+    print("  top-side     — 2-sided events keep only the higher-EV bet (our primary pick)")
+    print("  Δ Brier      — positive means our model was more accurate than Kalshi's price")
+    print("                 (sample-size CI on Brier ≈ ±0.01 for n=100, ±0.003 for n=500)")
+    print("  late-news    — slice marking bets logged within 6h of a starter/star status change")
     return 0
 
 

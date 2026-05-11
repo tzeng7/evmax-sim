@@ -740,6 +740,28 @@ class EVGapAgent(Agent):
                 blended_prob = new_b if yes_is_outcome_b else new_a
                 src = f"{src}+injury"
 
+            # Late-news edge detector. Pinnacle's algorithm typically adjusts
+            # on injury news within minutes, but Kalshi's retail-driven market
+            # can lag by hours. If a starter/star on either team had a status
+            # change reported in the last 6 hours AND the change is OUT or
+            # DOUBTFUL (the moves that actually shift lines), tag the gap so
+            # post-hoc CLV analysis can isolate whether we're capturing the
+            # edge there. Threshold from Pikkit/Unabated guidance: 6 hours
+            # is the window where soft books historically haven't caught up.
+            from datetime import datetime, timezone, timedelta
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=6)).isoformat()
+            late_news = False
+            for tname in (team_a, team_b):
+                report = injuries.get(tname)
+                if not report or not report.has_significant_out:
+                    continue
+                stamp = report.latest_report_at
+                if stamp and stamp >= cutoff:
+                    late_news = True
+                    break
+            if late_news:
+                src = f"{src}+late_news"
+
         # ------------------------------------------------------------------
         # Step 4b: Standings / rest-risk adjustment. Skipped for totals and
         # spreads (Pinnacle's line prices rest/standings already).
@@ -823,6 +845,7 @@ class EVGapAgent(Agent):
         # is why we use spread_pct, not volume, as the floor.
         if market.spread_pct < 0.005:
             return _ret(None, blend_payload)
+
 
         # Phantom-EV guard for esports: opaque Kalshi ticker codes ("th",
         # "dcg", "shg") can defeat the YES-alignment resolver and historically

@@ -213,6 +213,8 @@ class InjuredPlayer:
     impact: float           # probability reduction for their team (0.0–0.05)
     injury_type: str        # "Knee", "Ankle", "Back", etc.
     notes: str              # short human-readable note
+    reported_at: Optional[str] = None  # ISO timestamp of latest ESPN update,
+                                       # used for late-news edge detection
 
 
 @dataclass
@@ -230,6 +232,26 @@ class InjuryReport:
     @property
     def has_significant_injuries(self) -> bool:
         return any(p.status.lower() in ("out", "doubtful", "day-to-day") for p in self.players)
+
+    @property
+    def latest_report_at(self) -> Optional[str]:
+        """ISO timestamp of the most recent status change across all listed
+        players. Drives the "late news" tagging in EVGapAgent — bets logged
+        within a few hours of this timestamp are flagged as potentially
+        anticipating Pinnacle's adjustment to the news."""
+        stamps = [p.reported_at for p in self.players if p.reported_at]
+        return max(stamps) if stamps else None
+
+    @property
+    def has_significant_out(self) -> bool:
+        """True if any star/starter is OUT or DOUBTFUL — the cases where a
+        late status change is most likely to move the line. Filters out
+        deep-bench day-to-day churn that doesn't move books."""
+        return any(
+            p.status.lower() in ("out", "doubtful")
+            and p.tier in ("star", "starter")
+            for p in self.players
+        )
 
     def summary(self) -> str:
         if not self.players:
@@ -392,6 +414,13 @@ class InjuryReportAgent(Agent):
         pos_weight = _position_weight(sector, position)
         impact = raw_impact * TIER_MULTIPLIER[tier] * pos_weight
 
+        # ESPN's injuries endpoint includes a `date` field (ISO timestamp)
+        # for each entry — when the status was last updated. Capture it so
+        # late-news edge detection can flag bets logged shortly after a
+        # status change. Format varies: usually "2026-05-11T18:45Z" or
+        # similar; pass through as-is.
+        reported_at = inj.get("date")
+
         return InjuredPlayer(
             name=name,
             position=position,
@@ -400,6 +429,7 @@ class InjuryReportAgent(Agent):
             impact=round(impact, 4),
             injury_type=injury_type,
             notes=short_comment[:120],
+            reported_at=reported_at,
         )
 
     @staticmethod
