@@ -481,6 +481,12 @@ async def api_scan(request: Request) -> JSONResponse:
     # Drop esports map handicaps (LoL/CS2 set handicaps not on Kalshi).
     gaps = [g for g in gaps if g["market_type"] != "map_handicap"]
 
+    # Hide player props from the scan UI — anchor pricing produces hundreds
+    # of prop gaps per cycle which clutter the game-market display. Props
+    # still flow into prop_observations + portfolio_bets via the underlying
+    # cycle, just not surfaced in the dashboard's scan list.
+    gaps = [g for g in gaps if g["market_type"] != "player_prop"]
+
     # Exclude markets already placed
     with _conn() as conn:
         placed_mids = {r[0] for r in conn.execute(
