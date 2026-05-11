@@ -802,6 +802,11 @@ class KalshiClient(BaseAPIClient):
             return None, None
 
         after_date = ticker.upper()[date_match.end():]
+        # MLB tickers embed a 4-digit first-pitch time (HHMM) between the
+        # date and the team pair — e.g. KXMLBGAME-26MAY121907TBTOR-TOR.
+        # No other series ships this prefix today; strip it so team_pair
+        # is just the two-team segment.
+        after_date = re.sub(r"^\d{4}(?=[A-Z])", "", after_date)
         if "-" not in after_date:
             return None, None
         team_pair, outcome = after_date.rsplit("-", 1)
