@@ -609,6 +609,52 @@ def _resolve_prop_outcome_with_value(
         return None
 
 
+def yes_aligned_close_prob(
+    yes_team: Optional[str],
+    outcome_a_label: Optional[str],
+    outcome_b_label: Optional[str],
+    true_prob_a: float,
+    true_prob_b: Optional[float] = None,
+    true_prob_draw: Optional[float] = None,
+) -> Optional[float]:
+    """Return the YES-aligned Pinnacle close prob given a bet's yes_team.
+
+    Pinnacle's snapshot stores probabilities for (outcome_a, outcome_b)
+    where outcome_a is whichever team Pinnacle picked as side A. Kalshi
+    bets have a `yes_team` that may be either side. Storing true_prob_a
+    blindly inverts the CLV calculation for half the bets in any 2-team
+    market — see the WNBA Tempo/Mystics case where both ev_outcomes rows
+    ended up with the same pinnacle_close_prob = 0.491 even though one
+    side closed at 49.1% and the other at 50.9%.
+
+    Returns None when no alignment can be determined (caller should skip
+    the bet rather than pollute CLV with the wrong side).
+    """
+    if not yes_team:
+        return None
+    yt = yes_team.lower().strip()
+
+    # Draw / tie / over / under shortcuts
+    if yt in ("draw", "tie", "x") and true_prob_draw is not None:
+        return float(true_prob_draw)
+    if yt == "over" and true_prob_b is None and true_prob_a > 0:
+        # Some sports use a/b for over/under — caller should ideally pass
+        # over/under probs; fall back to a as "over".
+        return float(true_prob_a)
+    if yt == "under" and true_prob_b is not None:
+        return float(true_prob_b)
+
+    a = (outcome_a_label or "").lower().strip()
+    b = (outcome_b_label or "").lower().strip()
+    # Substring match either direction handles minor normalization drift
+    # ("indiana fever" vs "fever", etc.).
+    if a and (yt == a or yt in a or a in yt):
+        return float(true_prob_a)
+    if b and (yt == b or yt in b or b in yt) and true_prob_b is not None:
+        return float(true_prob_b)
+    return None
+
+
 def _write_outcome(conn: sqlite3.Connection, pred: dict, outcome: int, source: str) -> None:
     conn.execute(
         """INSERT OR REPLACE INTO ev_outcomes
@@ -1188,9 +1234,11 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
     since_str = (since or date(2020, 1, 1)).isoformat()
     until_str = (until or date.today()).isoformat()
 
-    # Get resolved bets missing close prob
+    # Get resolved bets missing close prob — pull yes_team so we can align
+    # the captured Pinnacle prob to the side the bet was actually on.
     rows = conn.execute(
-        """SELECT p.id, p.market_id, p.event_id, p.sharp_true_prob, p.market_type
+        """SELECT p.id, p.market_id, p.event_id, p.sharp_true_prob,
+                  p.market_type, p.yes_team
            FROM ev_predictions p
            INNER JOIN ev_outcomes o ON p.market_id = o.market_id
            WHERE o.outcome IS NOT NULL
@@ -1202,8 +1250,11 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
     updated = skipped = 0
     clv_values: list[float] = []
 
+    # Pull yes-aligned closing line via the archive helper. The legacy
+    # get_closing_line returns outcome_a-aligned true_prob_a and inverts
+    # CLV on half the bets — use get_closing_line_aligned instead.
     for row in rows:
-        close_prob = archiver.get_closing_line(row["event_id"])
+        close_prob = archiver.get_closing_line_aligned(row["event_id"], row["yes_team"])
         if close_prob is None:
             skipped += 1
             continue

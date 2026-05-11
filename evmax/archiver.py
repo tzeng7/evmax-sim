@@ -330,7 +330,9 @@ class DataArchiver:
         """Return the last archived Pinnacle true_prob_a for an event (moneyline only).
 
         This is the 'closing line' — the last snapshot before the game started.
-        Used for CLV calculation.
+        Used for CLV calculation. DEPRECATED for ev_outcomes writes — prefer
+        :meth:`get_closing_line_aligned` so CLV reflects the YES side actually
+        bet on rather than always-side-a.
         """
         with _get_connection() as conn:
             row = conn.execute(
@@ -343,6 +345,39 @@ class DataArchiver:
                 (event_id,),
             ).fetchone()
         return row["true_prob_a"] if row else None
+
+    def get_closing_line_aligned(self, event_id: str, yes_team: str | None) -> float | None:
+        """Return the closing Pinnacle prob aligned to the bet's YES side.
+
+        Pinnacle records (outcome_a, outcome_b) by its own convention; Kalshi
+        bets can be on either side. Returning true_prob_a blindly inverts CLV
+        for every bet where yes_team == outcome_b. This helper reads both
+        labels + probs and picks the correct side via
+        :func:`evmax.agents.cleanup.resolver.yes_aligned_close_prob`.
+        """
+        from evmax.agents.cleanup.resolver import yes_aligned_close_prob
+
+        with _get_connection() as conn:
+            row = conn.execute(
+                """SELECT outcome_a_label, outcome_b_label,
+                          true_prob_a, true_prob_b, true_prob_draw
+                   FROM archived_sharp_odds
+                   WHERE event_id = ?
+                     AND spread_line IS NULL
+                   ORDER BY fetched_at DESC
+                   LIMIT 1""",
+                (event_id,),
+            ).fetchone()
+        if not row:
+            return None
+        return yes_aligned_close_prob(
+            yes_team=yes_team,
+            outcome_a_label=row["outcome_a_label"],
+            outcome_b_label=row["outcome_b_label"],
+            true_prob_a=row["true_prob_a"],
+            true_prob_b=row["true_prob_b"],
+            true_prob_draw=row["true_prob_draw"],
+        )
 
     def close_session(
         self,

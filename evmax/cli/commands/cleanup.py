@@ -332,9 +332,11 @@ def close_lines(
     date_str = d.isoformat()
     conn = get_connection()
 
-    # Get unresolved markets for this date that don't yet have a closing line
+    # Get unresolved markets for this date that don't yet have a closing line.
+    # yes_team is needed to align Pinnacle's outcome_a/_b probs to the YES side
+    # we actually bet — without it, half the rows store the inverted prob.
     rows = conn.execute(
-        """SELECT o.market_id, o.event_id, o.sector, p.sharp_true_prob
+        """SELECT o.market_id, o.event_id, o.sector, p.sharp_true_prob, p.yes_team
            FROM ev_outcomes o
            JOIN ev_predictions p ON o.market_id = p.market_id
            WHERE o.event_date = ?
@@ -356,17 +358,25 @@ def close_lines(
         by_sector.setdefault(r["sector"], []).append(dict(r))
 
     async def _fetch_and_store() -> int:
+        from evmax.agents.cleanup.resolver import yes_aligned_close_prob
         updated = 0
         async with PinnacleGuestClient() as client:
             for sector, markets in by_sector.items():
                 sharp_odds = await client.get_odds(sector)
-                sharp_by_event: dict[str, float] = {}
-                for so in sharp_odds:
-                    # Store true_prob_a as the closing prob reference (YES-aligned per entry)
-                    sharp_by_event[so.event_id] = so.true_prob_a
+                sharp_by_event: dict[str, "SharpOdds"] = {so.event_id: so for so in sharp_odds}
 
                 for m in markets:
-                    close_prob = sharp_by_event.get(m["event_id"])
+                    so = sharp_by_event.get(m["event_id"])
+                    if so is None:
+                        continue
+                    close_prob = yes_aligned_close_prob(
+                        yes_team=m.get("yes_team"),
+                        outcome_a_label=so.outcome_a_label,
+                        outcome_b_label=so.outcome_b_label,
+                        true_prob_a=so.true_prob_a,
+                        true_prob_b=so.true_prob_b,
+                        true_prob_draw=so.true_prob_draw,
+                    )
                     if close_prob is None:
                         continue
                     conn.execute(
@@ -435,12 +445,15 @@ def watch_closes(
 
         event_ids = [r["event_id"] for r in upcoming]
 
-        # 2. From predictions.db: which of those still need a close
+        # 2. From predictions.db: which of those still need a close.
+        # Pull yes_team via ev_predictions so the close prob can be
+        # aligned to the YES side actually bet on.
         conn = get_connection()
         placeholders = ",".join("?" * len(event_ids))
         rows = conn.execute(
-            f"""SELECT o.market_id, o.event_id, o.sector
+            f"""SELECT o.market_id, o.event_id, o.sector, p.yes_team
                 FROM ev_outcomes o
+                JOIN ev_predictions p ON o.market_id = p.market_id
                 WHERE o.event_id IN ({placeholders})
                   AND o.outcome IS NULL
                   AND o.pinnacle_close_prob IS NULL""",
@@ -457,6 +470,7 @@ def watch_closes(
             by_sector.setdefault(r["sector"], []).append(dict(r))
 
         updated = 0
+        from evmax.agents.cleanup.resolver import yes_aligned_close_prob
         async with PinnacleGuestClient() as client:
             for sector, markets in by_sector.items():
                 try:
@@ -464,9 +478,19 @@ def watch_closes(
                 except Exception as fetch_err:
                     console.print(f"[yellow]  [{sector}] fetch failed: {fetch_err}[/yellow]")
                     continue
-                close_by_event = {so.event_id: so.true_prob_a for so in sharp_odds}
+                so_by_event = {so.event_id: so for so in sharp_odds}
                 for m in markets:
-                    cp = close_by_event.get(m["event_id"])
+                    so = so_by_event.get(m["event_id"])
+                    if so is None:
+                        continue
+                    cp = yes_aligned_close_prob(
+                        yes_team=m.get("yes_team"),
+                        outcome_a_label=so.outcome_a_label,
+                        outcome_b_label=so.outcome_b_label,
+                        true_prob_a=so.true_prob_a,
+                        true_prob_b=so.true_prob_b,
+                        true_prob_draw=so.true_prob_draw,
+                    )
                     if cp is None:
                         continue
                     conn.execute(
