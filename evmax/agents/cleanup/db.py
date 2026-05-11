@@ -189,10 +189,24 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
 
 
 def get_connection() -> sqlite3.Connection:
-    """Open (and initialize) the predictions database."""
+    """Open (and initialize) the predictions database.
+
+    Concurrency: WAL journal mode (set persistently on the DB file) lets
+    readers and writers run without blocking each other. A 5-second
+    busy_timeout makes writers retry briefly on contention instead of
+    failing immediately with "database is locked" — the original
+    delete-mode + 0ms-timeout combination produced spurious
+    prediction_log_error warnings whenever the dashboard scan ran
+    concurrently with a CLI scan.
+    """
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), timeout=5.0)
     conn.row_factory = sqlite3.Row
+    # journal_mode is persistent (sticks to the file); busy_timeout is per-
+    # connection. Set both on every open — cheap and idempotent.
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=5000")
+    conn.execute("PRAGMA synchronous=NORMAL")
     conn.executescript(SCHEMA)
     # Migrate: add voided column to existing databases that predate it
     for migration in [

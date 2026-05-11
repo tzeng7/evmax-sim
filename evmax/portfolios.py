@@ -131,8 +131,12 @@ class Portfolio:
 
 def _get_conn() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), timeout=5.0)
     conn.row_factory = sqlite3.Row
+    # WAL is set persistently by evmax/agents/cleanup/db.py::get_connection,
+    # which shares this DB file; we just need busy_timeout to keep retries
+    # working when the dashboard scan races a CLI write.
+    conn.execute("PRAGMA busy_timeout=5000")
     conn.executescript(PORTFOLIO_SCHEMA)
     return conn
 
