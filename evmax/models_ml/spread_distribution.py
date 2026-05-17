@@ -34,9 +34,21 @@ _SECTOR_SIGMA: dict[str, float] = {
     "wnba": 12.5,    # matches WNBAPossessionSimAgent SCORE_STDEV; ~40-min games
     "nfl": 14.0,
     "ncaab": 12.5,
-    "soccer": 1.9,   # goals, not points
+    "baseball": 4.0, # MLB run-margin σ — defense-in-depth; gated below
+    "nhl": 2.0,      # NHL goal-margin σ — defense-in-depth; gated below
+    "soccer": 1.9,   # goals, not points — gated below
     "default": 11.5,
 }
+
+# Low-scoring sports where margin distributions are non-Gaussian (Poisson/Skellam-
+# like, with mass concentrated near 0 and a long thin tail). The normal-CDF
+# extrapolation in this model is unreliable for these sectors: a 3-run jump from
+# Pinnacle's MLB run line (−1.5) to a Kalshi alt-spread (−4.5) produced 165%+ EV
+# at the default σ because Φ overstates tail mass. For these sectors, only allow
+# predictions where the Kalshi line directly matches Pinnacle's posted line
+# (within LOW_SCORING_LINE_TOLERANCE).
+_LOW_SCORING_SECTORS: set[str] = {"baseball", "nhl", "soccer"}
+LOW_SCORING_LINE_TOLERANCE: float = 0.5
 
 
 @dataclass
@@ -82,11 +94,25 @@ class SpreadDistributionModel:
         if true_prob_a <= 0 or true_prob_a >= 1:
             return None
 
+        sigma = _SECTOR_SIGMA.get(sector, _SECTOR_SIGMA["default"])
+        line_distance = abs(abs(target_line) - abs(pinnacle_line))
+
+        # Low-scoring sports: margin distribution is not Gaussian, so extrapolation
+        # is unsafe even within 1σ. Require a direct line match (±0.5).
+        if sector in _LOW_SCORING_SECTORS and line_distance > LOW_SCORING_LINE_TOLERANCE:
+            logger.debug(
+                "spread_model_low_scoring_alt_line_skipped",
+                event_id=sharp_odds.event_id,
+                sector=sector,
+                pinnacle_line=pinnacle_line,
+                target_line=target_line,
+                distance=line_distance,
+            )
+            return None
+
         # Reject Kalshi lines that are more than 1 sigma away from Pinnacle's line.
         # Beyond this range the normal distribution extrapolation becomes unreliable
         # (tail probabilities are very sensitive to small errors in the inferred mean).
-        sigma = _SECTOR_SIGMA.get(sector, _SECTOR_SIGMA["default"])
-        line_distance = abs(abs(target_line) - abs(pinnacle_line))
         if line_distance > 1.0 * sigma:
             logger.debug(
                 "spread_model_line_too_far",

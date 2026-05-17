@@ -258,6 +258,48 @@ class TestSpreadDistributionModel:
         if result is not None:
             assert result.sigma == 11.5  # default
 
+    def test_baseball_alt_spread_rejected(self):
+        # Regression: Kalshi −4.5 alt run-line vs Pinnacle's standard −1.5 run line.
+        # Before the fix, baseball fell through to default σ=11.5 and the model
+        # returned ~40% cover prob, producing 165%+ EV against Kalshi at 15c.
+        sharp = SharpOdds(
+            event_id="baseball::2026-05-11::yankees_vs_orioles",
+            book=SharpBook.pinnacle, sector="baseball",
+            outcome_a_label="orioles", outcome_b_label="yankees",
+            outcome_a_decimal=2.0, outcome_b_decimal=2.0,
+            true_prob_a=0.50, true_prob_b=0.50,
+            spread_line=-1.5,
+        )
+        result = self.model.predict(sharp, target_line=-4.5, sector="baseball")
+        assert result is None
+
+    def test_baseball_matching_line_accepted(self):
+        # Direct line match (within ±0.5) should still go through.
+        sharp = SharpOdds(
+            event_id="baseball::2026-05-11::yankees_vs_orioles",
+            book=SharpBook.pinnacle, sector="baseball",
+            outcome_a_label="orioles", outcome_b_label="yankees",
+            outcome_a_decimal=2.0, outcome_b_decimal=2.0,
+            true_prob_a=0.55, true_prob_b=0.45,
+            spread_line=-1.5,
+        )
+        result = self.model.predict(sharp, target_line=-1.5, sector="baseball")
+        assert result is not None
+        assert result.sigma == 4.0  # baseball-specific σ
+
+    def test_nhl_alt_puck_line_rejected(self):
+        # NHL puck line is typically ±1.5; alt-spreads at −2.5 should be skipped.
+        sharp = SharpOdds(
+            event_id="nhl::2026-05-11::oilers_vs_kings",
+            book=SharpBook.pinnacle, sector="nhl",
+            outcome_a_label="oilers", outcome_b_label="kings",
+            outcome_a_decimal=2.0, outcome_b_decimal=2.0,
+            true_prob_a=0.55, true_prob_b=0.45,
+            spread_line=-1.5,
+        )
+        result = self.model.predict(sharp, target_line=-2.5, sector="nhl")
+        assert result is None
+
 
 # ---------------------------------------------------------------------------
 # PredictionLogger
