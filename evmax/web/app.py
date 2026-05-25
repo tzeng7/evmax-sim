@@ -66,10 +66,11 @@ def _display_label_for_row(row: dict[str, Any]) -> str:
         line_str = f"{sign}{ln:.1f}".rstrip("0").rstrip(".")
         return f"{team} {line_str}"
     if mt in ("over_under", "total") and line is not None:
+        side = "Under" if yes_team.lower().startswith("u") else "Over"
         try:
-            return f"O/U {float(line):.1f}"
+            return f"{side} {float(line):.1f}"
         except (TypeError, ValueError):
-            return f"O/U {line}"
+            return f"{side} {line}"
     return team
 
 
@@ -399,28 +400,90 @@ def api_summary(days: int = 0, view: str = "all") -> JSONResponse:
     return JSONResponse(_summary_stats(bets))
 
 
-@app.post("/api/scan")
-async def api_scan(request: Request) -> JSONResponse:
-    """Run a full agent scan and return EV gaps as JSON."""
-    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
-    sectors_str = body.get("sectors", "nba,wnba,ncaab,ncaaw,soccer,lol,cs2,tennis,baseball")
-    bankroll = float(body.get("bankroll", 500))
-    kelly = float(body.get("kelly", 0.5))
-    date_from = body.get("date_from", "")
-    date_to = body.get("date_to", "")
-
-    from evmax.agents.coordinator import AgentCoordinator
+def _gap_to_dict(g, bankroll: float) -> dict[str, Any]:
+    """Shape a single EVGap into the canonical dict used by both the dashboard
+    scan view and the portfolio fan-out. Carries both ``kalshi_yes_price`` /
+    ``blended_true_prob`` (portfolio names) and ``kalshi_price`` / ``true_prob``
+    (display names) so downstream consumers can read either."""
     from evmax.agents.cleanup.logger import _gap_category_key
     from evmax.modes import get_mode
-    sectors = [s.strip() for s in sectors_str.split(",") if s.strip()]
-    coord = AgentCoordinator(
-        sectors=sectors, bankroll=bankroll, kelly_fraction=kelly,
+
+    label_row = {
+        "market_type": g.market_type or "",
+        "yes_team": g.yes_team or "",
+        "line": g.line,
+        "prop_player_name": g.prop_player_name,
+        "prop_stat_type": g.prop_stat_type,
+        "prop_threshold": g.prop_threshold,
+    }
+    try:
+        gap_mode = get_mode(_gap_category_key(g))
+    except Exception:
+        gap_mode = "live"
+    line_val = (
+        None if g.line is None
+        else float(g.line) if isinstance(g.line, (int, float))
+        else str(g.line)
     )
+    return {
+        "event_title": g.event_title or "",
+        "event_id": g.event_id or "",
+        "yes_team": g.yes_team or "",
+        "market_type": g.market_type or "",
+        "display_label": _display_label_for_row(label_row),
+        "line": line_val,
+        "sector": g.sector or "",
+        "kalshi_price": round(g.kalshi_yes_price, 2),
+        "kalshi_yes_price": round(g.kalshi_yes_price, 4),
+        "true_prob": round(g.blended_true_prob, 3),
+        "blended_true_prob": round(g.blended_true_prob, 4),
+        "sharp_true_prob": round(getattr(g, "sharp_true_prob", 0) or 0, 4),
+        "ev_pct_raw": round(g.ev_pct, 4),
+        "ev_pct": round(g.ev_pct * 100, 2),
+        "kelly_pct": round(g.kelly_fraction * 100, 2),
+        "kelly_fraction": round(g.kelly_fraction, 4),
+        "stake": round(bankroll * g.kelly_fraction, 2),
+        "model_sources": g.model_sources or "",
+        "market_id": g.market_id or "",
+        "event_date": str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else ""),
+        "volume": g.volume_usd or 0,
+        "volume_usd": g.volume_usd or 0,
+        "mode": gap_mode,
+    }
+
+
+def _portfolio_gap_category(gap: dict[str, Any]) -> str:
+    """Portfolio-matching key for a gap dict. Props use a '_props' suffix even
+    though gap['sector'] is the base sector (e.g. 'nba')."""
+    if gap.get("market_type") == "player_prop":
+        return f"{gap.get('sector') or ''}_props"
+    return gap.get("sector") or ""
+
+
+async def _run_unified_scan(
+    sectors: list[str],
+    bankroll: float,
+    kelly: float,
+    fan_out_portfolio_ids: list[str] | None,
+) -> tuple[Any, list[dict[str, Any]], list[dict[str, Any]]]:
+    """Single shared scan path. Runs the coordinator once, logs game gaps to
+    ``ev_predictions``, and (if requested) fans the same gaps out to active
+    portfolios via ``log_portfolio_bet``.
+
+    ``fan_out_portfolio_ids``:
+      - ``None``  → skip portfolio fan-out entirely
+      - ``[]``    → fan out to ALL active portfolios
+      - ``[...]`` → fan out only to the listed portfolio ids
+
+    Returns ``(cycle, gap_dicts, portfolio_results)``.
+    """
+    from evmax.agents.coordinator import AgentCoordinator
+
+    coord = AgentCoordinator(sectors=sectors, bankroll=bankroll, kelly_fraction=kelly)
     cycle = await coord.run_cycle()
 
-    # Persist game-level gaps to ev_predictions so "Pick Selected" can find
-    # them by market_id. Props are excluded (scan shows them but they aren't
-    # logged as tradeable predictions).
+    # Log game-level gaps to ev_predictions so "Pick Selected" can resolve by
+    # market_id. Props live in prop_observations via the underlying cycle.
     try:
         from evmax.agents.cleanup.logger import log_gaps as _log_gaps
         loggable = [g for g in cycle.top_gaps if "::prop::" not in (g.event_id or "")]
@@ -430,43 +493,76 @@ async def api_scan(request: Request) -> JSONResponse:
         import structlog
         structlog.get_logger(__name__).warning("web_scan_log_failed", error=str(_log_err))
 
-    gaps = []
-    for g in cycle.top_gaps:
-        # Use the same helper as DB-backed rows so scan + history labels
-        # match and props render as "Mathurin 4+ AST" instead of
-        # "Assists O4.0" (EVGap.display_label omits the player name).
-        label_row = {
-            "market_type": g.market_type or "",
-            "yes_team": g.yes_team or "",
-            "line": g.line,
-            "prop_player_name": g.prop_player_name,
-            "prop_stat_type": g.prop_stat_type,
-            "prop_threshold": g.prop_threshold,
-        }
-        try:
-            gap_mode = get_mode(_gap_category_key(g))
-        except Exception:
-            gap_mode = "live"
-        gaps.append({
-            "event_title": g.event_title or "",
-            "yes_team": g.yes_team or "",
-            "market_type": g.market_type or "",
-            "display_label": _display_label_for_row(label_row),
-            "line": g.line if g.line is None else float(g.line) if isinstance(g.line, (int, float)) else str(g.line),
-            "sector": g.sector or "",
-            "kalshi_price": round(g.kalshi_yes_price, 2),
-            "true_prob": round(g.blended_true_prob, 3),
-            "ev_pct": round(g.ev_pct * 100, 2),
-            "kelly_pct": round(g.kelly_fraction * 100, 2),
-            "stake": round(bankroll * g.kelly_fraction, 2),
-            "model_sources": g.model_sources or "",
-            "market_id": g.market_id or "",
-            "event_date": str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else ""),
-            "volume": g.volume_usd or 0,
-            "mode": gap_mode,
-        })
+    gap_dicts = [_gap_to_dict(g, bankroll) for g in cycle.top_gaps]
 
-    # Filter by requested date range (defaults to today + tomorrow)
+    portfolio_results: list[dict[str, Any]] = []
+    if fan_out_portfolio_ids is not None:
+        from evmax.portfolios import list_portfolios, log_portfolio_bet
+        portfolios = list_portfolios(active_only=True)
+        if fan_out_portfolio_ids:
+            wanted = set(fan_out_portfolio_ids)
+            portfolios = [p for p in portfolios if p.id in wanted]
+
+        today_str = date.today().isoformat()
+        tomorrow_str = (date.today() + timedelta(days=1)).isoformat()
+
+        for portfolio in portfolios:
+            logged = 0
+            for gap in gap_dicts:
+                if _portfolio_gap_category(gap) not in portfolio.sectors:
+                    continue
+                if gap.get("market_type") == "map_handicap":
+                    continue
+                if gap.get("event_date") not in (today_str, tomorrow_str):
+                    continue
+                gap_for_log = dict(gap)
+                gap_for_log["scan_date"] = today_str
+                log_portfolio_bet(
+                    portfolio_id=portfolio.id,
+                    gap=gap_for_log,
+                    bankroll=portfolio.current_bankroll,
+                    kelly=portfolio.kelly_fraction,
+                )
+                logged += 1
+            portfolio_results.append({
+                "portfolio_id": portfolio.id,
+                "portfolio_name": portfolio.name,
+                "gaps_logged": logged,
+            })
+
+    return cycle, gap_dicts, portfolio_results
+
+
+@app.post("/api/scan")
+async def api_scan(request: Request) -> JSONResponse:
+    """Run a full agent scan and return EV gaps.
+
+    Also fans the scan out to all active portfolios by default so the placement
+    table and the portfolio cards are guaranteed to come from the same cycle.
+    Set ``fan_out_portfolios: false`` to opt out, or pass ``portfolio_ids`` to
+    target a subset.
+    """
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    sectors_str = body.get("sectors", "nba,wnba,ncaab,ncaaw,soccer,lol,cs2,tennis,baseball")
+    bankroll = float(body.get("bankroll", 500))
+    kelly = float(body.get("kelly", 0.5))
+    date_from = body.get("date_from", "")
+    date_to = body.get("date_to", "")
+    fan_out = body.get("fan_out_portfolios", True)
+    portfolio_ids = body.get("portfolio_ids", []) or []
+
+    sectors = [s.strip() for s in sectors_str.split(",") if s.strip()]
+    fan_out_arg: list[str] | None = list(portfolio_ids) if fan_out else None
+
+    cycle, gap_dicts, portfolio_results = await _run_unified_scan(
+        sectors=sectors,
+        bankroll=bankroll,
+        kelly=kelly,
+        fan_out_portfolio_ids=fan_out_arg,
+    )
+
+    # Filter for the placement table view
+    gaps = list(gap_dicts)
     if date_from and date_to:
         gaps = [g for g in gaps if date_from <= g["event_date"] <= date_to]
     elif date_from:
@@ -500,6 +596,7 @@ async def api_scan(request: Request) -> JSONResponse:
         "markets_fetched": cycle.markets_fetched,
         "markets_matched": cycle.markets_matched,
         "sectors": sectors,
+        "portfolio_results": portfolio_results,
     })
 
 
@@ -699,13 +796,14 @@ def api_delete_portfolio(portfolio_id: str) -> JSONResponse:
 
 @app.post("/api/portfolios/scan")
 async def api_portfolio_scan(request: Request) -> JSONResponse:
-    """Run a scan and fan out bets to all matching portfolios."""
-    from evmax.portfolios import list_portfolios, log_portfolio_bet
+    """Thin alias over ``/api/scan`` for the PortfolioGrid "Scan All" button.
+    Runs the same unified scan path so portfolio-card results and the
+    placement table always come from the same coordinator cycle.
+    """
+    from evmax.portfolios import list_portfolios
 
     body = await request.json() if request.headers.get("content-type") == "application/json" else {}
     portfolio_ids: list[str] = body.get("portfolio_ids", [])
-    date_from = body.get("date_from", "")
-    date_to = body.get("date_to", "")
 
     portfolios = list_portfolios(active_only=True)
     if portfolio_ids:
@@ -714,93 +812,26 @@ async def api_portfolio_scan(request: Request) -> JSONResponse:
     if not portfolios:
         return JSONResponse({"error": "No active portfolios"}, status_code=400)
 
-    # Coordinator scans by base sector (e.g. 'nba'); '{sector}_props' is the
-    # category key but EVGaps still carry sector='nba' with market_type=
-    # 'player_prop'. Strip the '_props' suffix when telling the coordinator
-    # what to fetch, then re-derive the categorical key when matching gaps
-    # to portfolios below.
+    # Coordinator scans by base sector — strip the '_props' suffix from
+    # portfolio sector keys when telling it what to fetch. The fan-out helper
+    # re-derives the '{sector}_props' key when matching gaps to portfolios.
     base_sectors = sorted({
         (s[: -len("_props")] if s.endswith("_props") else s)
         for p in portfolios for s in p.sectors
     })
 
-    from evmax.agents.coordinator import AgentCoordinator
-    coord = AgentCoordinator(sectors=base_sectors, bankroll=500, kelly_fraction=0.5)
-    cycle = await coord.run_cycle()
-
-    today_str = date.today().isoformat()
-    tomorrow_str = (date.today() + timedelta(days=1)).isoformat()
-    d_from = date_from or today_str
-    d_to = date_to or tomorrow_str
-
-    def _gap_category(g) -> str:
-        """Return the portfolio-matching sector for a gap. Props get a
-        '_props' suffix even though the EVGap.sector is the base sector."""
-        if g.market_type == "player_prop":
-            return f"{g.sector}_props"
-        return g.sector or ""
-
-    results = []
-    for portfolio in portfolios:
-        portfolio_gaps = []
-        for g in cycle.top_gaps:
-            if _gap_category(g) not in portfolio.sectors:
-                continue
-            if g.market_type == "map_handicap":
-                continue
-
-            event_date_str = str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else "")
-            if event_date_str < d_from or event_date_str > d_to:
-                continue
-
-            label_row = {
-                "market_type": g.market_type or "",
-                "yes_team": g.yes_team or "",
-                "line": g.line,
-                "prop_player_name": g.prop_player_name,
-                "prop_stat_type": g.prop_stat_type,
-                "prop_threshold": g.prop_threshold,
-            }
-
-            gap_dict = {
-                "market_id": g.market_id or "",
-                "event_id": g.event_id or "",
-                "event_title": g.event_title or "",
-                "yes_team": g.yes_team or "",
-                "market_type": g.market_type or "",
-                "display_label": _display_label_for_row(label_row),
-                "line": g.line if g.line is None else float(g.line) if isinstance(g.line, (int, float)) else str(g.line),
-                "sector": g.sector or "",
-                "kalshi_yes_price": round(g.kalshi_yes_price, 4),
-                "sharp_true_prob": round(getattr(g, 'sharp_true_prob', 0) or 0, 4),
-                "blended_true_prob": round(g.blended_true_prob, 4),
-                "ev_pct": round(g.ev_pct, 4),
-                "kelly_fraction": round(g.kelly_fraction, 4),
-                "event_date": event_date_str,
-                "volume_usd": g.volume_usd or 0,
-                "model_sources": g.model_sources or "",
-                "scan_date": today_str,
-            }
-
-            log_portfolio_bet(
-                portfolio_id=portfolio.id,
-                gap=gap_dict,
-                bankroll=portfolio.current_bankroll,
-                kelly=portfolio.kelly_fraction,
-            )
-            portfolio_gaps.append(gap_dict)
-
-        results.append({
-            "portfolio_id": portfolio.id,
-            "portfolio_name": portfolio.name,
-            "gaps_logged": len(portfolio_gaps),
-        })
+    cycle, _gap_dicts, portfolio_results = await _run_unified_scan(
+        sectors=base_sectors,
+        bankroll=500,
+        kelly=0.5,
+        fan_out_portfolio_ids=[p.id for p in portfolios],
+    )
 
     return JSONResponse({
         "portfolios_scanned": len(portfolios),
         "markets_fetched": cycle.markets_fetched,
         "markets_matched": cycle.markets_matched,
-        "results": results,
+        "results": portfolio_results,
     })
 
 

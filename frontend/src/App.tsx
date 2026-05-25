@@ -13,6 +13,7 @@ import { MetricsPanel } from './components/MetricsPanel'
 import { PortfolioGrid } from './components/PortfolioGrid'
 import { PortfolioDetail } from './components/PortfolioDetail'
 import { Toast } from './components/Toast'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { fetchMetrics } from './lib/api'
 import type { MetricsResult } from './lib/types'
 import './App.css'
@@ -25,6 +26,11 @@ export default function App() {
   const [view, setView] = useState<'all' | 'placed'>('all')
   const [metrics, setMetrics] = useState<MetricsResult | null>(null)
   const [page, setPage] = useState<Page>({ kind: 'dashboard' })
+  // Lifted to App so ScanResults can re-size stakes live when these change
+  // without forcing a re-scan. ActionBar still owns the inputs.
+  const [bankrollStr, setBankrollStr] = useState('250')
+  const [kelly, setKelly] = useState(0.5)
+  const bankroll = Number(bankrollStr) || 0
 
   const handleMetrics = useCallback(async () => {
     toast('Loading metrics...', 'info')
@@ -65,6 +71,10 @@ export default function App() {
         </nav>
         {page.kind === 'dashboard' && (
           <ActionBar
+            bankrollStr={bankrollStr}
+            setBankrollStr={setBankrollStr}
+            kelly={kelly}
+            setKelly={setKelly}
             onScanComplete={dash.setScanResults}
             onResolve={dash.refresh}
             onMetrics={handleMetrics}
@@ -73,50 +83,55 @@ export default function App() {
         )}
       </div>
 
-      {page.kind === 'dashboard' && (
-        <>
-          <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-            <button className={`btn btn-sm pnl-tab ${view === 'all' ? 'active' : ''}`} onClick={() => setView('all')}>All Scanned</button>
-            <button className={`btn btn-sm pnl-tab ${view === 'placed' ? 'active' : ''}`} onClick={() => setView('placed')}>Placed Only</button>
-          </div>
+      <ErrorBoundary>
+        {page.kind === 'dashboard' && (
+          <>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+              <button className={`btn btn-sm pnl-tab ${view === 'all' ? 'active' : ''}`} onClick={() => setView('all')}>All Scanned</button>
+              <button className={`btn btn-sm pnl-tab ${view === 'placed' ? 'active' : ''}`} onClick={() => setView('placed')}>Placed Only</button>
+            </div>
 
-          <KpiCards summary={summary} />
-          <ProfitChart seriesAll={dash.seriesAll} seriesPlaced={dash.seriesPlaced} view={view} />
+            <KpiCards summary={summary} />
+            <ProfitChart seriesAll={dash.seriesAll} seriesPlaced={dash.seriesPlaced} view={view} />
 
-          <ScanResults
-            gaps={dash.scanGaps}
-            meta={dash.scanMeta}
+            <ScanResults
+              gaps={dash.scanGaps}
+              meta={dash.scanMeta}
+              bankroll={bankroll}
+              kelly={kelly}
+              scanKelly={dash.scanKelly}
+              toast={toast}
+              onPicked={dash.refresh}
+            />
+
+            <MetricsPanel data={metrics} />
+
+            <PlacedBets bets={dash.placedBets} toast={toast} onChanged={dash.refresh} />
+
+            <div className="two-col">
+              <SectorPerformance sectors={dash.sectors} />
+              <OpenPositions bets={dash.openBets} scanGaps={dash.scanGaps} toast={toast} onPicked={dash.refresh} />
+            </div>
+
+            <RecentSettled bets={dash.recent} />
+          </>
+        )}
+
+        {page.kind === 'portfolios' && (
+          <PortfolioGrid
+            onSelect={(id) => setPage({ kind: 'portfolio', id })}
             toast={toast}
-            onPicked={dash.refresh}
           />
+        )}
 
-          <MetricsPanel data={metrics} />
-
-          <PlacedBets bets={dash.placedBets} toast={toast} onChanged={dash.refresh} />
-
-          <div className="two-col">
-            <SectorPerformance sectors={dash.sectors} />
-            <OpenPositions bets={dash.openBets} scanGaps={dash.scanGaps} toast={toast} onPicked={dash.refresh} />
-          </div>
-
-          <RecentSettled bets={dash.recent} />
-        </>
-      )}
-
-      {page.kind === 'portfolios' && (
-        <PortfolioGrid
-          onSelect={(id) => setPage({ kind: 'portfolio', id })}
-          toast={toast}
-        />
-      )}
-
-      {page.kind === 'portfolio' && (
-        <PortfolioDetail
-          portfolioId={page.id}
-          onBack={() => setPage({ kind: 'portfolios' })}
-          toast={toast}
-        />
-      )}
+        {page.kind === 'portfolio' && (
+          <PortfolioDetail
+            portfolioId={page.id}
+            onBack={() => setPage({ kind: 'portfolios' })}
+            toast={toast}
+          />
+        )}
+      </ErrorBoundary>
 
       <Toast {...toastProps} />
     </>

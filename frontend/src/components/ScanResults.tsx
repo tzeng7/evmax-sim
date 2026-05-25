@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import type { ScanGap } from '../lib/types'
 import { probToAmerican, americanToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
@@ -7,11 +7,25 @@ import { pickBets } from '../lib/api'
 interface Props {
   gaps: ScanGap[]
   meta: { markets_fetched: number; markets_matched: number } | null
+  bankroll: number
+  kelly: number
+  scanKelly: number
   toast: (msg: string, type?: 'info' | 'ok' | 'err') => void
   onPicked: () => void
 }
 
-export function ScanResults({ gaps, meta, toast, onPicked }: Props) {
+// Approximate re-sizing of a gap's stake when bankroll / Kelly multiplier
+// diverge from the scan-time snapshot. The stored kelly_fraction is
+// K_full × scan_kelly × liquidity_discount, capped at 5%, so scaling by
+// (current_kelly / scan_kelly) recovers the position size for the new knob
+// without a rescan. Re-applies the 5% per-bet cap. The 8% per-event exposure
+// guard isn't reproduced here — for canonical sizing, rescan.
+function recomputedStake(g: ScanGap, bankroll: number, kelly: number, scanKelly: number): number {
+  const scaled = scanKelly > 0 ? g.kelly_fraction * (kelly / scanKelly) : g.kelly_fraction
+  return bankroll * Math.min(scaled, 0.05)
+}
+
+export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
   const [sector, setSector] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [selected, setSelected] = useState<Set<string>>(() => new Set(gaps.map(g => g.market_id)))
@@ -23,10 +37,28 @@ export function ScanResults({ gaps, meta, toast, onPicked }: Props) {
     setSelected(new Set(gaps.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
     const f: Record<string, { odds: string; stake: string }> = {}
     for (const g of gaps) {
-      f[g.market_id] = { odds: probToAmerican(g.kalshi_price), stake: g.stake.toFixed(2) }
+      f[g.market_id] = { odds: probToAmerican(g.kalshi_price), stake: recomputedStake(g, bankroll, kelly, scanKelly).toFixed(2) }
     }
     setFills(f)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gaps])
+
+  // When the user changes bankroll or Kelly after a scan, refresh the stake
+  // column to the rescaled value. Manually-edited odds are preserved.
+  useEffect(() => {
+    if (!gaps.length) return
+    setFills(prev => {
+      const next: Record<string, { odds: string; stake: string }> = {}
+      for (const g of gaps) {
+        const stake = recomputedStake(g, bankroll, kelly, scanKelly).toFixed(2)
+        next[g.market_id] = {
+          odds: prev[g.market_id]?.odds ?? probToAmerican(g.kalshi_price),
+          stake,
+        }
+      }
+      return next
+    })
+  }, [bankroll, kelly, scanKelly, gaps])
 
   const filtered = useMemo(() => {
     return gaps.filter(g => {
