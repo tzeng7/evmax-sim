@@ -95,7 +95,15 @@ class TestExtractTeamsFromTicker:
         assert (home, away) == ("bal", "nyy")
 
     def test_mlb_total_ticker_no_team_outcome(self) -> None:
-        # Totals encode the line as the outcome (e.g. "-9"); team-pair parser
-        # cannot anchor and returns (None, None) so the title fallback kicks in.
-        home, away = _client()._extract_teams_from_ticker("KXMLBTOTAL-26MAY111835NYYBAL-9")
+        # Totals encode the line as the outcome (e.g. "-9"); outcome anchoring
+        # is impossible. For fixed-width sectors (MLB/NBA/NFL/NHL/NCAAM) we
+        # fall through to the deterministic 3+3 split. WNBA bails to the
+        # title fallback because its codes are variable-length (CONN, etc.).
+        home, away = _client()._extract_teams_from_ticker(
+            "KXMLBTOTAL-26MAY111835NYYBAL-9", sector="baseball",
+        )
+        assert (home, away) == ("bal", "nyy")
+        home, away = _client()._extract_teams_from_ticker(
+            "KXWNBATOTAL-26MAY08CONNNY-165", sector="wnba",
+        )
         assert (home, away) == (None, None)

@@ -57,8 +57,12 @@ def apply_offseason(state: dict, cfg: dict) -> dict:
     `state` is mutated in place for the wnba section; callers that need
     the pre-change snapshot should copy first.
     """
-    wnba = state.setdefault("wnba", {"ratings": {}, "game_counts": {}, "h2h": {}})
+    wnba = state.setdefault(
+        "wnba",
+        {"ratings": {}, "game_counts": {}, "season_games": {}, "h2h": {}},
+    )
     ratings = wnba.setdefault("ratings", {})
+    season_games = wnba.setdefault("season_games", {})
     k = cfg["regression_coefficient"]
     expansion = cfg.get("expansion_priors") or {}
 
@@ -84,6 +88,10 @@ def apply_offseason(state: dict, cfg: dict) -> dict:
         shrunk[team] = round(shrunk_elo, 2)
         after[team] = round(new_elo, 2)
         ratings[team] = after[team]
+        # Reset post-regression game counter so EloModelAgent's early-season
+        # K boost kicks in for the new season. Without this the regressed
+        # prior dominates the first ~month at baseline K=20.
+        season_games[team] = 0
 
     return {"before": before, "shrunk": shrunk, "after": after, "deltas": deltas}
 

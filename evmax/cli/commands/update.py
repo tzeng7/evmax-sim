@@ -28,10 +28,13 @@ def update_scores(
         help="Date to fetch scores for (YYYY-MM-DD). Defaults to yesterday.",
     ),
     sectors: str = typer.Option(
-        "soccer,nba,nfl,ncaab",
+        "soccer,nba,wnba,nfl,ncaab,nhl,baseball",
         "--sectors",
         "-s",
-        help="Comma-separated sectors to update (ESPN-supported: soccer,nba,nfl,ncaab).",
+        help=(
+            "Comma-separated sectors to update. ESPN-supported: "
+            "soccer, nba, wnba, nfl, ncaab, ncaaw, nhl, baseball."
+        ),
     ),
     dry_run: bool = typer.Option(
         False,
@@ -105,6 +108,15 @@ async def _run_update(
         # Match ESPN game → our stored event_id slug for team name extraction
         processed: set[tuple[str, str]] = set()
 
+        # Sector-aware normalizer for the no-DB-match fallback. Without this
+        # the fallback was `home_n.lower()` ("indiana fever"), which split
+        # state into two buckets for the same team — one keyed by the
+        # canonical slug ("fever", from prior seeds) and one keyed by the
+        # raw ESPN name. Caught after a WNBA backfill produced duplicate
+        # entries for nearly every team.
+        from evmax.matching.normalizer import NameNormalizer
+        _normalizer = NameNormalizer(sector)
+
         for score in scores:
             home_n = score["home_name"]
             away_n = score["away_name"]
@@ -112,8 +124,8 @@ async def _run_update(
             away_s = int(score["away_score"])
 
             # Find best-matching DB event to get slug-based team names
-            team_a = home_n.lower()
-            team_b = away_n.lower()
+            team_a = _normalizer.normalize(home_n) or home_n.lower()
+            team_b = _normalizer.normalize(away_n) or away_n.lower()
 
             for row in db_rows:
                 slug_a, slug_b = _slug_teams(row["event_id"])

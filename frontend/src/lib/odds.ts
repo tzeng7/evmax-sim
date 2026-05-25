@@ -1,4 +1,10 @@
-export function probToAmerican(p: number): string {
+export function probToAmerican(p: number | null | undefined): string {
+  // Bets that come back from the dashboard after Pick can carry null
+  // kalshi_yes_price for the brief window before the server backfills it,
+  // and React would happily render the resulting "-NaN" string. Guard at
+  // the conversion site so downstream rows render "-" instead of crashing
+  // on subsequent math.
+  if (p == null || !Number.isFinite(p)) return '-'
   if (p <= 0 || p >= 1) return '+100'
   if (p < 0.5) return '+' + Math.round((1 / p - 1) * 100)
   return '-' + Math.round((p / (1 - p)) * 100)
@@ -64,7 +70,13 @@ export function outcomeLabel(row: {
   }
   if ((mt === 'over_under' || mt === 'total') && line != null) {
     const n = typeof line === 'number' ? line : parseFloat(String(line))
-    return Number.isFinite(n) ? `O/U ${n.toFixed(1)}` : `O/U ${line}`
+    const lineStr = Number.isFinite(n) ? n.toFixed(1) : String(line)
+    // Kalshi totals are YES = OVER (the per-line market threshold lives in
+    // floor_strike, not in the outcome code). yes_team is set to "over"
+    // upstream in kalshi.py — fall back to "Under" if a future source ever
+    // posts an under-side YES market.
+    const side = (row.yes_team || '').toLowerCase().startsWith('u') ? 'Under' : 'Over'
+    return `${side} ${lineStr}`
   }
   return team
 }

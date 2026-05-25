@@ -45,8 +45,8 @@ _TICKER_DATE_RE = re.compile(r"(\d{2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|N
 # Map sector names → Kalshi series tickers for per-game/match markets
 # Verified against live Kalshi series API (2026-02-23)
 SECTOR_SERIES_MAP: dict[str, list[str]] = {
-    "nfl": ["KXNFLGAME"],
-    "nba": ["KXNBAGAME", "KXNBASPREAD"],
+    "nfl": ["KXNFLGAME", "KXNFLTOTAL"],
+    "nba": ["KXNBAGAME", "KXNBASPREAD", "KXNBATOTAL"],
     "ncaab": ["KXNCAABGAME", "KXNCAAMBGAME", "KXNCAAMBSPREAD", "KXNCAAMBTOTAL"],
     "ncaaw": ["KXNCAAWBGAME", "KXNCAAWBSPREAD", "KXNCAAWBTOTAL"],
     "baseball": ["KXMLBGAME", "KXMLBSPREAD", "KXMLBTOTAL"],
@@ -694,17 +694,6 @@ class KalshiClient(BaseAPIClient):
             # close_time is the market resolution deadline (~2wks after game)
             event_date = self._parse_ticker_date(ticker)
 
-            # --- Teams: for tennis use title (ticker codes are 3-letter abbreviations);
-            # for other sectors parse 3-letter codes from ticker, fall back to title ---
-            if sector == "tennis":
-                team_home, team_away = self._extract_teams_from_title(title)
-                yes_team = self._extract_tennis_yes_player(title, sector)
-            else:
-                team_home, team_away = self._extract_teams_from_ticker(ticker)
-                if not team_home:
-                    team_home, team_away = self._extract_teams_from_title(title)
-                yes_team = self._extract_yes_team(ticker, sector)
-
             # Detect spread series by ticker prefix and extract line
             is_spread = any(
                 ticker.upper().startswith(s)
@@ -724,12 +713,59 @@ class KalshiClient(BaseAPIClient):
                     "KXWNBATOTAL",
                 ]
             )
+
+            # --- Teams: for tennis use title (ticker codes are 3-letter abbreviations);
+            # for other sectors parse 3-letter codes from ticker, fall back to title ---
+            if sector == "tennis":
+                team_home, team_away = self._extract_teams_from_title(title)
+                yes_team = self._extract_tennis_yes_player(title, sector)
+            else:
+                team_home, team_away = self._extract_teams_from_ticker(ticker, sector)
+                if not team_home:
+                    # Totals titles carry noise like "Game 4:" prefix or
+                    # ": Total Points/Goals/Runs" suffix that confuses the
+                    # plain " vs "/" at " splitter — strip first.
+                    parse_title = self._strip_totals_title_noise(title) if is_total else title
+                    team_home, team_away = self._extract_teams_from_title(parse_title)
+                    # Kalshi titles follow "AWAY vs HOME" convention (sports
+                    # standard — visitors listed first), but the title splitter
+                    # returns the " vs " sides as (team_a, team_b) which it
+                    # assigns to (home, away). For totals, where matching keys
+                    # are home_vs_away, this swap fixes WNBA's title-only path
+                    # (e.g. Kalshi "Washington vs Seattle" → away=Mystics,
+                    # home=Storm, matching Pinnacle's storm_vs_mystics key).
+                    if is_total and team_home and team_away:
+                        team_home, team_away = team_away, team_home
+                # Kalshi totals tickers encode YES = OVER (the per-line market
+                # threshold lives in `floor_strike`, not in the outcome code),
+                # so there's no team-side YES for totals — set "over" so the
+                # EV gap agent's yes_team_norm == "under" check resolves to False.
+                yes_team = "over" if is_total else self._extract_yes_team(ticker, sector)
+            # Prefer Kalshi's authoritative `floor_strike` field over parsing
+            # the integer suffix out of the ticker. Kalshi uses different
+            # ticker conventions per series — NBA encodes ticker_int = floor(line)
+            # so SAS7 → floor_strike 7.5 → line -7.5 (matches the old +0.5
+            # heuristic), but WNBA encodes ticker_int = ceil(line) so GS8 →
+            # floor_strike 7.5 → line -7.5 (the +0.5 heuristic produced -8.5,
+            # one full point too long). Same divergence on totals (NBA 233 →
+            # 233.5, WNBA 192 → 191.5). The `floor_strike` field is set by
+            # Kalshi server-side and matches the market title's "wins by over
+            # X.5" / "scores over X.5" wording exactly, so we treat it as
+            # ground truth and only fall back to ticker parsing for
+            # WebSocket update messages that don't carry market metadata.
+            floor_strike = raw.get("floor_strike")
             if is_spread:
                 market_type = MarketType.spread
-                spread_line = self._extract_spread_line(ticker)
+                if floor_strike is not None:
+                    spread_line = -float(floor_strike)
+                else:
+                    spread_line = self._extract_spread_line(ticker)
             elif is_total:
                 market_type = MarketType.total
-                spread_line = self._extract_total_line(ticker)
+                if floor_strike is not None:
+                    spread_line = float(floor_strike)
+                else:
+                    spread_line = self._extract_total_line(ticker)
             else:
                 market_type = self._infer_market_type(title, sector)
                 spread_line = None
@@ -783,7 +819,9 @@ class KalshiClient(BaseAPIClient):
         except (ValueError, KeyError):
             return None
 
-    def _extract_teams_from_ticker(self, ticker: str) -> tuple[Optional[str], Optional[str]]:
+    def _extract_teams_from_ticker(
+        self, ticker: str, sector: Optional[str] = None,
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Extract away/home team codes from the ticker's team-pair segment.
 
@@ -796,6 +834,12 @@ class KalshiClient(BaseAPIClient):
         Whichever end of the pair the outcome matches identifies that team's
         side; the remainder is the other team. Falls back to the legacy
         3+3 split when outcome anchoring is ambiguous.
+
+        Totals tickers have a numeric outcome (the line), so outcome anchoring
+        is impossible. For sectors with fixed-width 3-char codes (NBA/NFL/MLB/
+        NHL/NCAAM) we fall through to the deterministic 3+3 split. For WNBA
+        (variable-width codes like CONN) we bail to the title fallback because
+        a blind 3+3 would mis-split CONNNY as CON/NNY.
         """
         date_match = _TICKER_DATE_RE.search(ticker.upper())
         if not date_match:
@@ -814,10 +858,13 @@ class KalshiClient(BaseAPIClient):
         outcome_code = re.sub(r"\d+$", "", outcome)
 
         # Total markets encode the line as a pure-number outcome (e.g. "159").
-        # outcome_code becomes empty → the 6-char fallback would mis-split
-        # "CONNNY" as "CON"/"NNY". Force the title fallback in that case.
+        # WNBA's variable-width codes (CONN, etc.) would mis-split under the
+        # 3+3 fallback, so bail to title parsing. Other sectors use fixed
+        # 3-char codes and can safely 3+3.
         if not outcome_code:
-            return None, None
+            if sector and sector.lower() == "wnba":
+                return None, None
+            # Fall through to the 3+3 fallback below.
 
         if outcome_code and len(team_pair) > len(outcome_code):
             ends_with = team_pair.endswith(outcome_code)
@@ -836,6 +883,29 @@ class KalshiClient(BaseAPIClient):
 
         # LoL/esports use variable-length team names — fall back to title
         return None, None
+
+    def _strip_totals_title_noise(self, title: str) -> str:
+        """Remove totals-specific noise from a market title before team-splitting.
+
+        Kalshi titles for totals series carry extra context that breaks the
+        plain " vs "/" at " splitter in `_extract_teams_from_title`:
+          - `Game 4: Oklahoma City at San Antonio: Total Points` (NBA playoffs)
+          - `Colorado vs Vegas: Total Goals`                      (NHL)
+          - `Tampa Bay vs New York Y Total Runs?`                 (MLB)
+        Stripping the `Game N:` prefix and the trailing `: Total <Stat>` /
+        ` Total <Stat>` suffix leaves a clean `TeamA vs/at TeamB` for the
+        existing parser to split.
+        """
+        if not title:
+            return title
+        cleaned = re.sub(r"^Game\s+\d+\s*:\s*", "", title, flags=re.IGNORECASE)
+        cleaned = re.sub(
+            r"\s*:?\s*Total\s+(?:Points|Goals|Runs|Yards)\s*\??\s*$",
+            "",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+        return cleaned.strip()
 
     def _extract_teams_from_title(self, title: str) -> tuple[Optional[str], Optional[str]]:
         """Fall-back: extract teams from market title text."""

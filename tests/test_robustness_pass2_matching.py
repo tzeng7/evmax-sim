@@ -198,10 +198,166 @@ class TestKalshiSpreadLineExtraction:
         result = self.client._extract_spread_line("KXNCAABGAME-26MAR09XYZABC-ABC51")
         assert result is None
 
-    def test_wnba_spread_line_extracted(self):
-        # KXWNBASPREAD-26MAY16NYLLVA-LVA5 → -5.5
+    def test_wnba_spread_line_extracted_fallback(self):
+        # WNBA ticker fallback when floor_strike is missing from the API
+        # payload (only happens for WebSocket updates that omit metadata).
+        # Note: Kalshi's WNBA convention is actually ticker_int=ceil(line)
+        # (LVA5 → line=-4.5), but the legacy ticker-only extractor uses the
+        # NBA-style ticker_int=floor(line) heuristic. This test locks in
+        # that fallback shape; the live REST path is now driven by
+        # floor_strike and produces the correct -4.5 instead.
         result = self.client._extract_spread_line("KXWNBASPREAD-26MAY16NYLLVA-LVA5")
         assert result == pytest.approx(-5.5)
+
+
+class TestKalshiFloorStrikeAuthoritative:
+    """floor_strike from the Kalshi REST payload beats the ticker int.
+
+    Regression for the WNBA/NBA ticker-convention divergence: Kalshi encodes
+    ``ticker_int = floor(line)`` for NBA series and ``ticker_int = ceil(line)``
+    for WNBA series, so a naïve "ticker int + 0.5" parse undershoots NBA but
+    overshoots WNBA by a full point. ``floor_strike`` is the authoritative
+    line field set by Kalshi server-side; preferring it eliminates the bug.
+    """
+
+    def setup_method(self):
+        from evmax.clients.kalshi import KalshiClient
+        self.client = KalshiClient.__new__(KalshiClient)
+
+    @staticmethod
+    def _raw(ticker, floor_strike, *, title="X"):
+        return {
+            "ticker": ticker,
+            "title": title,
+            "yes_bid_dollars": 0.42,
+            "yes_ask_dollars": 0.44,
+            "no_bid_dollars": 0.56,
+            "no_ask_dollars": 0.58,
+            "volume_fp": 254.82,
+            "open_interest_fp": 248.82,
+            "floor_strike": floor_strike,
+        }
+
+    def test_wnba_spread_uses_floor_strike_not_ticker(self):
+        # KXWNBASPREAD-...-GS8 with floor_strike=7.5 → line MUST be -7.5,
+        # not the -8.5 the legacy ticker parser produced.
+        m = self.client._parse_market(
+            self._raw("KXWNBASPREAD-26MAY13CHIGS-GS8", 7.5,
+                      title="Golden State wins by over 7.5 points?"),
+            sector="wnba",
+        )
+        assert m is not None
+        assert m.line == pytest.approx(-7.5)
+
+    def test_nba_spread_uses_floor_strike(self):
+        # KXNBASPREAD-...-SAS7 with floor_strike=7.5 → line -7.5.
+        m = self.client._parse_market(
+            self._raw("KXNBASPREAD-26MAY15SASMIN-SAS7", 7.5,
+                      title="San Antonio wins by over 7.5 points?"),
+            sector="nba",
+        )
+        assert m is not None
+        assert m.line == pytest.approx(-7.5)
+
+    def test_wnba_total_uses_floor_strike(self):
+        # KXWNBATOTAL-...-192 with floor_strike=191.5 → line 191.5,
+        # not the 192.5 the legacy parser produced.
+        m = self.client._parse_market(
+            self._raw("KXWNBATOTAL-26MAY13INDLA-192", 191.5,
+                      title="Indiana vs Los Angeles"),
+            sector="wnba",
+        )
+        assert m is not None
+        assert m.line == pytest.approx(191.5)
+
+    def test_nba_total_uses_floor_strike(self):
+        # KXNBATOTAL-...-233 with floor_strike=233.5 → line 233.5.
+        m = self.client._parse_market(
+            self._raw("KXNBATOTAL-26MAY15SASMIN-233", 233.5,
+                      title="Total Points"),
+            sector="nba",
+        )
+        assert m is not None
+        assert m.line == pytest.approx(233.5)
+
+    def test_total_yes_team_is_over(self):
+        # Kalshi totals tickers have a numeric outcome (line, not team), so
+        # the YES side is canonically OVER. yes_team must be set to "over"
+        # rather than empty — the EV gap agent's yes_is_under check is
+        # `yes_team_norm == "under"`, so empty silently looked like over,
+        # but downstream matching needs a non-empty value.
+        m = self.client._parse_market(
+            self._raw("KXNBATOTAL-26MAY24OKCSAS-233", 233.5,
+                      title="Game 4: Oklahoma City at San Antonio: Total Points"),
+            sector="nba",
+        )
+        assert m is not None
+        assert m.yes_team == "over"
+
+    def test_nba_total_uses_ticker_team_codes(self):
+        # Totals tickers carry numeric outcomes (no team anchor) — for
+        # fixed-width sectors we 3+3 split the team-pair so downstream alias
+        # normalization (sas → spurs, okc → thunder) can resolve them. Title
+        # parsing would otherwise yield "Game 4: Oklahoma City" / "San
+        # Antonio: Total Points" which the NBA aliases don't cover.
+        m = self.client._parse_market(
+            self._raw("KXNBATOTAL-26MAY24OKCSAS-233", 233.5,
+                      title="Game 4: Oklahoma City at San Antonio: Total Points"),
+            sector="nba",
+        )
+        assert m is not None
+        assert m.team_home == "sas"
+        assert m.team_away == "okc"
+
+    def test_nhl_total_uses_ticker_team_codes(self):
+        m = self.client._parse_market(
+            self._raw("KXNHLTOTAL-26MAY26COLVGK-7", 7.5,
+                      title="Colorado vs Vegas: Total Goals"),
+            sector="nhl",
+        )
+        assert m is not None
+        assert m.team_home == "vgk"
+        assert m.team_away == "col"
+
+    def test_mlb_total_uses_ticker_team_codes(self):
+        # MLB ticker "TBNYY" is 5 chars (TB=2, NYY=3) so the 3+3 fallback
+        # doesn't fire — falls through to title. Kalshi titles follow
+        # "AWAY vs HOME" convention, so the totals path swaps to make
+        # team_home=NYY (home) / team_away=Tampa Bay (away). That swap is
+        # what makes WNBA's "Washington vs Seattle" (Mystics @ Storm) match
+        # Pinnacle's storm_vs_mystics canonical key.
+        m = self.client._parse_market(
+            self._raw("KXMLBTOTAL-26MAY241335TBNYY-7", 6.5,
+                      title="Tampa Bay vs New York Y Total Runs?"),
+            sector="baseball",
+        )
+        assert m is not None
+        assert m.team_away == "Tampa Bay"
+        assert "Total" not in (m.team_home or "")
+
+    def test_wnba_total_title_swaps_to_away_vs_home(self):
+        # Regression for the WNBA totals bug: Kalshi title "Washington vs
+        # Seattle" means Mystics (away) @ Storm (home). Without the swap the
+        # canonical key would be "mystics_vs_storm" which never matches
+        # Pinnacle's "storm_vs_mystics". The fix lives in the totals-only
+        # branch of _parse_market.
+        m = self.client._parse_market(
+            self._raw("KXWNBATOTAL-26MAY24WSHSEA-160", 159.5,
+                      title="Washington vs Seattle"),
+            sector="wnba",
+        )
+        assert m is not None
+        assert m.team_home == "Seattle"
+        assert m.team_away == "Washington"
+
+    def test_falls_back_to_ticker_when_floor_strike_missing(self):
+        # WebSocket update messages don't carry floor_strike — the legacy
+        # parser still kicks in so we don't regress to None.
+        raw = self._raw("KXNBASPREAD-26MAY15SASMIN-SAS7", None)
+        del raw["floor_strike"]
+        m = self.client._parse_market(raw, sector="nba")
+        assert m is not None
+        assert m.line == pytest.approx(-7.5)
 
 
 class TestKalshiTeamExtractionVariableLength:
@@ -234,8 +390,12 @@ class TestKalshiTeamExtractionVariableLength:
 
     def test_wnba_total_outcome_numeric_falls_back(self):
         # TOTAL outcome is the line itself ("159"). Stripping digits leaves "" —
-        # bail out so 6-char pairs don't get mis-split as 3+3.
-        home, away = self.client._extract_teams_from_ticker("KXWNBATOTAL-26MAY08CONNNY-165")
+        # for WNBA we bail to the title fallback so 6-char pairs like CONNNY
+        # don't get mis-split as CON/NNY. Other sectors (fixed-width codes)
+        # fall through to the 3+3 split deliberately.
+        home, away = self.client._extract_teams_from_ticker(
+            "KXWNBATOTAL-26MAY08CONNNY-165", sector="wnba",
+        )
         assert (home, away) == (None, None)
 
     def test_nba_legacy_3char_still_works(self):
