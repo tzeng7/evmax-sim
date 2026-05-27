@@ -417,7 +417,7 @@ def _gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         "prop_threshold": g.prop_threshold,
     }
     try:
-        gap_mode = get_mode(_gap_category_key(g))
+        gap_mode = get_mode(_gap_category_key(g), g.market_type)
     except Exception:
         gap_mode = "live"
     line_val = (

@@ -108,6 +108,12 @@ class CategorySpec:
     status: Status
     prop_stat_types: tuple[str, ...] = field(default_factory=tuple)
     notes: Optional[str] = None
+    # Market types within this category that should be forced to 'shadow' even
+    # when the sector mode is 'live'. Lets us promote a category for some bet
+    # types (ML, spread) while keeping others under validation (totals). Empty
+    # = sector mode applies to every market type. Validated against the
+    # category's market_types list at parse time.
+    shadow_market_types: tuple[str, ...] = field(default_factory=tuple)
 
     @property
     def is_prop(self) -> bool:
@@ -171,6 +177,17 @@ def _parse_entry(key: str, raw: dict) -> CategorySpec:
     if notes is not None and not isinstance(notes, str):
         raise ValueError(f"category {key!r}: notes must be null or a string")
 
+    raw_shadow_mts = raw.get("shadow_market_types") or ()
+    shadow_market_types = tuple(raw_shadow_mts)
+    if shadow_market_types:
+        legal = {mt.value for mt in market_types}
+        for mt in shadow_market_types:
+            if mt not in legal:
+                raise ValueError(
+                    f"category {key!r}: shadow_market_types entry {mt!r} is "
+                    f"not in this category's market_types {sorted(legal)}"
+                )
+
     return CategorySpec(
         key=key,
         display_name=display_name,
@@ -181,6 +198,7 @@ def _parse_entry(key: str, raw: dict) -> CategorySpec:
         status=status,  # type: ignore[arg-type]
         prop_stat_types=prop_stat_types,
         notes=notes,
+        shadow_market_types=shadow_market_types,
     )
 
 

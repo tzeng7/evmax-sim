@@ -1253,7 +1253,8 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
     rows = conn.execute(
         """SELECT p.id, p.market_id, p.event_id, p.kalshi_yes_price,
                   p.yes_team, p.event_date, p.scan_date,
-                  p.pinnacle_drift_pct, p.kalshi_clv_pct
+                  p.pinnacle_drift_pct, p.kalshi_clv_pct,
+                  p.market_type, p.line
            FROM ev_predictions p
            INNER JOIN ev_outcomes o ON p.market_id = o.market_id
            WHERE o.outcome IS NOT NULL
@@ -1276,7 +1277,20 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
         ticker = market_id.removeprefix("kalshi:") if market_id else None
 
         # ---- 1. Pinnacle drift (legacy CLV) — pre-tipoff only ----
-        pinn_close = archiver.get_closing_line_aligned(row["event_id"], row["yes_team"])
+        # Dispatch by market_type so spread bets get spread snapshots instead
+        # of an unrelated moneyline close. Totals stay unhandled for now
+        # (total CLV needs over/under alignment, not yes/no team alignment).
+        mt = (row["market_type"] or "").lower()
+        if mt == "spread":
+            pinn_close = archiver.get_spread_closing_line_aligned(
+                row["event_id"], row["yes_team"], row["line"]
+            )
+        elif mt in ("moneyline", "ml", ""):
+            pinn_close = archiver.get_closing_line_aligned(
+                row["event_id"], row["yes_team"]
+            )
+        else:
+            pinn_close = None
         pinn_drift_pp: Optional[float] = None
         if pinn_close is not None:
             pinn_drift_pp = (pinn_close - entry_price) * 100

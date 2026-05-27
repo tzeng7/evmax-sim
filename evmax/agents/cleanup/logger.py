@@ -105,7 +105,14 @@ def log_gaps(
         for g in gaps:
             category = _gap_category_key(g)
             try:
-                mode = resolver(category)
+                # The default resolver supports per-market-type downgrades
+                # (shadow_market_types). Custom resolvers stay single-arg so
+                # legacy callers / tests work unchanged.
+                if mode_resolver is None:
+                    from evmax.modes import get_mode as _get_mode
+                    mode = _get_mode(category, g.market_type)
+                else:
+                    mode = resolver(category)
             except Exception as e:
                 # Unknown category / broken registry → default to 'live'
                 # to preserve pre-ARCH-11 behavior. Log loudly so the

@@ -433,6 +433,66 @@ class DataArchiver:
             true_prob_draw=row["true_prob_draw"],
         )
 
+    def get_spread_closing_line_aligned(
+        self,
+        event_id: str,
+        yes_team: str | None,
+        line: float | None = None,
+    ) -> float | None:
+        """Return the latest pre-tipoff Pinnacle spread cover prob aligned to
+        the bet's YES side.
+
+        Mirrors :meth:`get_closing_line_aligned` but filters to
+        ``spread_line IS NOT NULL`` so it picks up spread snapshots instead of
+        moneylines. When ``line`` is provided we prefer the snapshot whose
+        absolute spread matches (Pinnacle stores the favorite's line as a
+        negative number; the underdog's bet line is the positive mirror).
+        If no exact match is found we fall back to the latest spread snapshot
+        — line drift of ±0.5pt happens routinely pre-tipoff and isn't a
+        reason to drop CLV measurement.
+        """
+        from evmax.agents.cleanup.resolver import yes_aligned_close_prob
+
+        with _get_connection() as conn:
+            row = None
+            if line is not None:
+                row = conn.execute(
+                    """SELECT outcome_a_label, outcome_b_label,
+                              true_prob_a, true_prob_b, true_prob_draw
+                       FROM archived_sharp_odds
+                       WHERE event_id = ?
+                         AND spread_line IS NOT NULL
+                         AND ABS(ABS(spread_line) - ABS(?)) < 0.01
+                         AND event_date IS NOT NULL
+                         AND fetched_at < event_date
+                       ORDER BY fetched_at DESC
+                       LIMIT 1""",
+                    (event_id, float(line)),
+                ).fetchone()
+            if row is None:
+                row = conn.execute(
+                    """SELECT outcome_a_label, outcome_b_label,
+                              true_prob_a, true_prob_b, true_prob_draw
+                       FROM archived_sharp_odds
+                       WHERE event_id = ?
+                         AND spread_line IS NOT NULL
+                         AND event_date IS NOT NULL
+                         AND fetched_at < event_date
+                       ORDER BY fetched_at DESC
+                       LIMIT 1""",
+                    (event_id,),
+                ).fetchone()
+        if not row:
+            return None
+        return yes_aligned_close_prob(
+            yes_team=yes_team,
+            outcome_a_label=row["outcome_a_label"],
+            outcome_b_label=row["outcome_b_label"],
+            true_prob_a=row["true_prob_a"],
+            true_prob_b=row["true_prob_b"],
+            true_prob_draw=row["true_prob_draw"],
+        )
+
     def close_session(
         self,
         session_id: str,

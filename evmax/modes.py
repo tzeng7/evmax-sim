@@ -97,14 +97,29 @@ def clear_runtime_overrides() -> None:
     set_runtime_overrides({})
 
 
-def get_mode(category: str) -> Mode:
-    """Return the effective mode for `category` — runtime > env > YAML."""
+def get_mode(category: str, market_type: Optional[str] = None) -> Mode:
+    """Return the effective mode for `category` — runtime > env > YAML.
+
+    If `market_type` is provided and the category's YAML spec lists it in
+    ``shadow_market_types``, the result is downgraded to ``shadow`` even when
+    the sector-level mode is ``live``. This lets us keep one or two market
+    types under validation while the rest of the category goes live.
+    Runtime + env overrides take precedence — they apply uniformly to all
+    market types within a category (no per-market-type override there).
+    """
     if category in _runtime_overrides:
         return _runtime_overrides[category]
     env = _load_env_overrides()
     if category in env:
         return env[category]
-    return get_category(category).mode
+    spec = get_category(category)
+    if (
+        spec.mode == "live"
+        and market_type
+        and market_type in spec.shadow_market_types
+    ):
+        return "shadow"
+    return spec.mode
 
 
 def is_live(category: str) -> bool:
