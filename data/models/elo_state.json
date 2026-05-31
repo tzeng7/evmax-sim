@@ -24022,12 +24022,12 @@
   },
   "nba": {
     "ratings": {
-      "thunder": 1768.14,
+      "thunder": 1740.49,
       "rockets": 1630.03,
       "lakers": 1613.85,
       "warriors": 1379.77,
-      "knicks": 1673.72,
-      "cavaliers": 1600.11,
+      "knicks": 1700.17,
+      "cavaliers": 1573.66,
       "hornets": 1636.07,
       "nets": 1262.92,
       "magic": 1602.15,
@@ -24045,7 +24045,7 @@
       "jazz": 1256.13,
       "la clippers": 1522.53,
       "mavericks": 1336.06,
-      "spurs": 1786.84,
+      "spurs": 1814.49,
       "suns": 1499.79,
       "kings": 1319.63,
       "trail blazers": 1524.35,
@@ -24060,12 +24060,12 @@
       "phoenix suns": 1520.53
     },
     "game_counts": {
-      "thunder": 85,
+      "thunder": 88,
       "rockets": 86,
       "lakers": 86,
       "warriors": 82,
-      "knicks": 88,
-      "cavaliers": 86,
+      "knicks": 89,
+      "cavaliers": 87,
       "hornets": 82,
       "nets": 82,
       "magic": 87,
@@ -24083,7 +24083,7 @@
       "jazz": 82,
       "la clippers": 82,
       "mavericks": 82,
-      "spurs": 87,
+      "spurs": 90,
       "suns": 85,
       "kings": 82,
       "trail blazers": 86,
@@ -24110,8 +24110,8 @@
       },
       "cavaliers::knicks": {
         "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
+        "b_wins": 3,
+        "games": 4
       },
       "hornets::nets": {
         "a_wins": 2,
@@ -25414,9 +25414,9 @@
         "games": 4
       },
       "spurs::thunder": {
-        "a_wins": 4,
-        "b_wins": 1,
-        "games": 5
+        "a_wins": 6,
+        "b_wins": 2,
+        "games": 8
       },
       "cavaliers::hornets": {
         "a_wins": 3,
@@ -26303,6 +26303,44 @@
         "b_wins": 0,
         "games": 1
       }
+    },
+    "season_games": {
+      "thunder": 3,
+      "rockets": 0,
+      "lakers": 0,
+      "warriors": 0,
+      "knicks": 1,
+      "cavaliers": 1,
+      "hornets": 0,
+      "nets": 0,
+      "magic": 0,
+      "heat": 0,
+      "hawks": 0,
+      "raptors": 0,
+      "celtics": 0,
+      "76ers": 0,
+      "bulls": 0,
+      "pistons": 0,
+      "grizzlies": 0,
+      "pelicans": 0,
+      "bucks": 0,
+      "wizards": 0,
+      "jazz": 0,
+      "la clippers": 0,
+      "mavericks": 0,
+      "spurs": 3,
+      "suns": 0,
+      "kings": 0,
+      "trail blazers": 0,
+      "timberwolves": 0,
+      "pacers": 0,
+      "nuggets": 0,
+      "boston celtics": 0,
+      "philadelphia 76ers": 0,
+      "san antonio spurs": 0,
+      "portland trail blazers": 0,
+      "oklahoma city thunder": 0,
+      "phoenix suns": 0
     }
   }
 }

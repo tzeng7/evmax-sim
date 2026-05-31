@@ -56,7 +56,83 @@ logger = structlog.get_logger(__name__)
 #   estimates have stabilised enough to trust.
 HOME_EDGE_PTS = 2.6
 SCORE_STDEV = 12.5
-MIN_GAMES = 12
+# Lowered from 12 → 4 on 2026-05-30: empirical-Bayes shrinkage (see
+# SHRINK_K below) handles the small-sample noise that MIN_GAMES used to
+# guard against. With shrinkage active the model contributes lightly
+# from week 1 instead of going dark for the first 3+ weeks of each season.
+MIN_GAMES = 4
+
+# Empirical-Bayes pseudo-count for shrinking team ORTG/DRTG/pace toward
+# the league average. shrunk = (gp · raw + k · league_avg) / (gp + k).
+# k=8 means at gp=8 we're 50/50 raw-vs-prior; at gp=24 raw dominates 75/25.
+# Tuned to be aggressive early-season (when ratings are noisy from roster
+# turnover + small samples) and naturally relax as the season progresses.
+SHRINK_K = 8.0
+
+# Months during which the WNBA regular season + playoffs can run.
+# Outside this window (Nov-Apr) there are no games to predict, so the
+# staleness guard relaxes and prior-year state is treated as fresh enough.
+_WNBA_SEASON_MONTHS = range(5, 11)
+
+
+def shrink_team_stats(stats: dict, league: dict, k: float = SHRINK_K) -> dict:
+    """Empirical-Bayes shrinkage of team efficiency stats toward league means.
+
+    With few games the team's raw ORTG/DRTG/pace are noisy; this pulls them
+    toward the league average by a factor that decays as gp grows. Returns a
+    new dict (does not mutate `stats`). Keys not in `league` pass through
+    unchanged.
+
+    league must carry: league_avg_ortg, league_avg_drtg, league_avg_pace, and
+    optionally league_avg_tov_pct (defaults to 0.17 for WNBA when missing).
+    """
+    gp = stats.get("gp", 0)
+    if gp <= 0:
+        return dict(stats)
+    weight = gp / (gp + k)   # weight on team's own data
+    prior = 1.0 - weight     # weight on league prior
+
+    def _shrunk(val: float, prior_val: float) -> float:
+        return weight * val + prior * prior_val
+
+    league_tov = league.get("league_avg_tov_pct", 0.17)
+    out = dict(stats)
+    out["ortg"] = _shrunk(stats.get("ortg", league["league_avg_ortg"]), league["league_avg_ortg"])
+    out["drtg"] = _shrunk(stats.get("drtg", league["league_avg_drtg"]), league["league_avg_drtg"])
+    out["pace"] = _shrunk(stats.get("pace", league["league_avg_pace"]), league["league_avg_pace"])
+    if "tov_pct" in stats:
+        out["tov_pct"] = _shrunk(stats["tov_pct"], league_tov)
+    return out
+
+
+def smooth_confidence(min_gp: int) -> float:
+    """Ramp confidence from 0.40 (gp=0) to 0.80 (gp≥40).
+
+    Replaces the prior step thresholds (>=30 → 0.80, >=20 → 0.70, else 0.55)
+    so confidence tracks sample size smoothly instead of jumping at arbitrary
+    boundaries. Clears the ensemble's 0.45 gate at gp >= 6.
+    """
+    return 0.40 + 0.40 * min(min_gp / 40.0, 1.0)
+
+
+def state_is_stale_for_today(state: dict, today: Optional[date] = None) -> bool:
+    """Return True when the state's source_season is older than the current WNBA season.
+
+    Prevents the May-2026-using-2025-ratings failure mode that produced
+    +24pp chalk bias on the 2026 opening month. During offseason (Nov-Apr)
+    we treat last year's state as fresh, since there are no games to score.
+    """
+    today = today or date.today()
+    if today.month not in _WNBA_SEASON_MONTHS:
+        return False
+    raw = state.get("source_season")
+    if raw is None:
+        return False
+    try:
+        source_year = int(raw)
+    except (TypeError, ValueError):
+        return False
+    return source_year < today.year
 
 # League-average fallbacks (used only when the state file has no seeded data).
 # Real values get overwritten by the seed script from 2025 box scores.
@@ -100,6 +176,15 @@ class WNBAEfficiencyModelAgent(ModelAgent):
         if sector != "wnba":
             return None
 
+        if state_is_stale_for_today(self._state):
+            logger.warning(
+                "wnba_efficiency_stale_source_season",
+                source_season=self._state.get("source_season"),
+                current_year=date.today().year,
+                hint="re-run scripts/seed_wnba_efficiency.py --year <current>",
+            )
+            return None
+
         teams: dict = self._state.get("teams", {})
         if not teams:
             return None
@@ -118,6 +203,17 @@ class WNBAEfficiencyModelAgent(ModelAgent):
 
         league_ortg = self._state.get("league_avg_ortg", LEAGUE_AVG_ORTG_FALLBACK)
         league_drtg = self._state.get("league_avg_drtg", LEAGUE_AVG_DRTG_FALLBACK)
+        league_pace = self._state.get("league_avg_pace", LEAGUE_AVG_PACE_FALLBACK)
+        league = {
+            "league_avg_ortg": league_ortg,
+            "league_avg_drtg": league_drtg,
+            "league_avg_pace": league_pace,
+        }
+        # Empirical-Bayes shrinkage: at gp=8 both halves carry equal weight,
+        # by gp=24 the team's own data dominates 75/25. Prevents the raw-ratings
+        # explosion that drove +24pp chalk bias in May 2026 (see MEMORY).
+        stats_a = shrink_team_stats(stats_a, league)
+        stats_b = shrink_team_stats(stats_b, league)
 
         # Offensive / defensive efficiency factors relative to league average
         off_factor_a = stats_a["ortg"] / league_ortg
@@ -137,12 +233,7 @@ class WNBAEfficiencyModelAgent(ModelAgent):
         prob_b = 1.0 - prob_a
 
         min_gp = min(stats_a["gp"], stats_b["gp"])
-        if min_gp >= 30:
-            confidence = 0.80
-        elif min_gp >= 20:
-            confidence = 0.70
-        else:
-            confidence = 0.55
+        confidence = smooth_confidence(min_gp)
 
         return ModelAgentPrediction(
             event_id=sharp_odds.event_id,
