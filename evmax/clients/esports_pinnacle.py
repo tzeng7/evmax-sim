@@ -74,6 +74,11 @@ ALL_SECTORS = set(SECTOR_SPORT_LEAGUES.keys())
 # Sectors resolved by league name (not league ID list)
 NAME_MATCHED_SECTORS = {"cs2", "lol", "valorant", "ufc", "f1", "tennis"}
 ESPORTS_SECTORS = {"cs2", "lol", "valorant"}  # kept for backward compat
+# Scoring team sports that publish a Pinnacle game-total market. Anything
+# outside this set will have its `type == "total"` Pinnacle markets ignored,
+# which makes downstream KXxxxTOTAL Kalshi alternates unmatchable. Add a
+# sector here when its totals model goes live (e.g. wnba_possession_sim).
+TOTALS_SECTORS = {"nba", "wnba", "nfl", "ncaab", "ncaaw", "soccer", "baseball", "nhl"}
 
 # Soccer leagues that have draws (all of them); MLS uses draws too
 SOCCER_DRAW_LEAGUES = {1980, 2196, 1842, 2436, 2036, 2186, 2630, 2663}
@@ -533,18 +538,23 @@ class PinnacleGuestClient(BaseAPIClient):
                     results.append(spread_odds)
 
         # --- Totals (scoring team sports only — excludes esports, UFC, F1, tennis) ---
-        _TOTALS_SECTORS = {"nba", "nfl", "ncaab", "ncaaw", "soccer", "baseball", "nhl"}
-        if sector in _TOTALS_SECTORS:
-            totals_market = next(
-                (m for m in markets_data
-                 if m.get("matchupId") == matchup_id
-                 and m.get("type") == "total"
-                 and m.get("period") == 0
-                 and not m.get("isAlternate", False)
-                 and m.get("status") == "open"),
-                None,
-            )
-            if totals_market:
+        # Pinnacle exposes the main total plus a long ladder of alternate
+        # totals (isAlternate=True) at ±0.5/±1 intervals around the main line.
+        # Kalshi's totals series carries ~10 alternate lines per game, only
+        # one or two of which sit within 2pts of the Pinnacle main line —
+        # without alternates, the matching engine's nearest-line fallback
+        # drops the rest. Fetch ALL period-0 totals so each Kalshi line can
+        # match its exact Pinnacle counterpart and devig from that book's
+        # own juice rather than via extrapolation off a distant main line.
+        if sector in TOTALS_SECTORS:
+            totals_markets = [
+                m for m in markets_data
+                if m.get("matchupId") == matchup_id
+                and m.get("type") == "total"
+                and m.get("period") == 0
+                and m.get("status") == "open"
+            ]
+            for totals_market in totals_markets:
                 totals_odds = self._parse_totals(totals_market, base_event_id, sector, event_date)
                 if totals_odds:
                     results.append(totals_odds)

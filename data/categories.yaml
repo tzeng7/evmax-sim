@@ -88,7 +88,7 @@ tennis:
   display_name: "Tennis (ATP + WTA)"
   market_types: [moneyline]
   models: [tennis_surface_elo, tennis_serve_return, tennis_h2h, tennis_ranking_trend, tennis_form, tennis_advanced, sharp]
-  mode: shadow
+  mode: live
   resolver: kalshi_settlement
   status: shipped
   notes: "Shadow 2026-05-01 → 2026-05-02: production data (n=112) initially pushed sharp_weight to 1.00, but a leak-free walk-forward (n=2576, 2025+2026, scripts/backtest_tennis_walkforward.py) showed flat 0.85 beats sharp_only by ΔBrier +0.40/1000 — the production sample was selection-biased (EV≥2% YES rows only). Reverted to 0.85 with no disagreement-ramp override; tennis_h2h alone beats sharp by 0.0077 Brier on its 863-game subset, which the ramp was wiping out. Watch n=30+ resolved shadow bets to confirm before promoting back to live via `evmax cleanup shadow promote tennis`."
@@ -96,20 +96,22 @@ tennis:
 baseball:
   display_name: "Baseball (MLB)"
   market_types: [moneyline, spread, total]
+  shadow_market_types: [total]
   models: [elo, form, pitcher, sharp]
   mode: shadow
   resolver: espn_scoreboard
   status: shipped
-  notes: "Pitcher Pythag model live (BUG-9 fixed in PR #2). Poisson dropped 2026-05-01: never earned its keep on MLB runs (overdispersion + bullpen-leverage violates independence). Pitcher promoted to 0.50 within model side via SECTOR_WEIGHT_OVERRIDES. Demoted to shadow 2026-05-10 pending Brier-vs-Kalshi validation."
+  notes: "Pitcher Pythag model live (BUG-9 fixed in PR #2). Poisson dropped 2026-05-01: never earned its keep on MLB runs (overdispersion + bullpen-leverage violates independence). Pitcher promoted to 0.50 within model side via SECTOR_WEIGHT_OVERRIDES. Demoted to shadow 2026-05-10 pending Brier-vs-Kalshi validation. shadow_market_types: [total] is declared ahead-of-time: when ML/spread eventually clear n≥75 with positive CLV, flipping `mode: live` keeps totals in shadow automatically (no-op while base mode is shadow). Totals enabled 2026-05-22 (c91d50b) showed −41.9% ROI on n=13 with no measurable CLV until the 2026-05-26 totals close-prob fix — re-evaluate after n=30+ resolved totals."
 
 wnba:
   display_name: "WNBA"
   market_types: [moneyline, spread, total]
   models: [elo, form, wnba_efficiency, wnba_possession_sim, sharp]
-  mode: shadow
+  mode: live
+  shadow_market_types: [total]
   resolver: espn_scoreboard
   status: wip
-  notes: "Season starts May 8 2026. Shadow mode until Kalshi KXWNBAGAME markets appear. Efficiency seeded from 2025 ESPN box scores (scripts/seed_wnba_efficiency.py); Poisson zeroed in ensemble since basketball is not a Poisson process."
+  notes: "Promoted 2026-05-26 — ML and spread live, total kept in shadow until ~30 resolved bets (wnba_possession_sim totals output is newer to live). Efficiency seeded from 2025 ESPN box scores (scripts/seed_wnba_efficiency.py); Poisson zeroed in ensemble since basketball is not a Poisson process."
 
 nhl:
   display_name: "NHL"

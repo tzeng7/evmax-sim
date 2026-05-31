@@ -72,7 +72,7 @@ export async function fetchMetrics(weeks: number): Promise<MetricsResult> {
   }).then(json)
 }
 
-export async function updatePlaced(edits: { market_id: string; fill_price: number | null; fill_stake: number }[]): Promise<{ updated: number }> {
+export async function updatePlaced(edits: { market_id: string; fill_price: number | null; fill_stake: number | null }[]): Promise<{ updated: number }> {
   return fetch('/api/update-placed', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -59,6 +59,42 @@ K_FACTORS: dict[str, float] = {
     "cs2": 20.0,
 }
 
+# Early-season K boost — sector-aware multiplier on the base K-factor that
+# decays linearly to 1.0 as a team plays more post-regression games. Without
+# this, the first month after the offseason regression is dominated by the
+# regressed prior: at K=20 each result moves the rating ~5 pts, so 5 games of
+# new evidence shifts a team by ~25 pts vs a regression that pulled them 50+
+# pts toward the mean. 538-style boost: multiplier `BOOST` at season_games=0,
+# decays linearly to 1.0 by season_games=DECAY, then stays at baseline.
+#
+# Only enabled for sectors with both (a) short seasons (≤40 games) AND (b)
+# annual offseason regression. NBA/NFL would benefit too, but their elo state
+# never gets regressed mid-cycle, so season_games would never reset — boosting
+# would just amplify late-season noise. Add a sector here only when you also
+# wire its offseason script to reset `season_games`.
+EARLY_K_BOOST: dict[str, float] = {
+    "wnba": 3.0,   # K=60 at opener, decays to K=20 by game 20
+}
+EARLY_K_DECAY_GAMES: dict[str, int] = {
+    "wnba": 20,
+}
+
+
+def early_season_multiplier(sector: str, season_games_min: int) -> float:
+    """Return the K-factor multiplier given the fewer-games team's `season_games`.
+
+    Uses the less-informed team's count so the boost lasts as long as either
+    side is still calibrating. Sectors without a config entry get 1.0 (no
+    boost), which is the safe default for any future state file that lacks
+    the `season_games` field entirely (treated as "all teams past decay").
+    """
+    boost = EARLY_K_BOOST.get(sector)
+    decay = EARLY_K_DECAY_GAMES.get(sector)
+    if not boost or not decay or boost <= 1.0:
+        return 1.0
+    # Linear decay from `boost` at games=0 to 1.0 at games=decay, then floor.
+    return max(1.0, boost - (boost - 1.0) * (season_games_min / decay))
+
 # Home Elo advantage in Elo points (added to home team effective rating)
 HOME_ADVANTAGE_ELO: dict[str, float] = {
     "nfl": 48.0,      # ~3 pts / ~55% win rate
@@ -103,7 +139,8 @@ class EloModelAgent(ModelAgent):
       _state = {
         "{sector}": {
           "ratings": {"{team}": float, ...},
-          "game_counts": {"{team}": int, ...},
+          "game_counts": {"{team}": int, ...},      # lifetime counter
+          "season_games": {"{team}": int, ...},     # reset on offseason regression
           "h2h": {"{team_a}::{team_b}": {"a_wins": int, "b_wins": int, "games": int}, ...},
         },
         ...
@@ -115,10 +152,20 @@ class EloModelAgent(ModelAgent):
 
     def _sector_state(self, sector: str) -> dict:
         if sector not in self._state:
-            self._state[sector] = {"ratings": {}, "game_counts": {}, "h2h": {}}
+            self._state[sector] = {
+                "ratings": {}, "game_counts": {}, "season_games": {}, "h2h": {},
+            }
         state = self._state[sector]
         if "h2h" not in state:
             state["h2h"] = {}
+        if "season_games" not in state:
+            # Missing on legacy state files. Treat all existing teams as
+            # past-decay so the early-K boost can't accidentally fire on
+            # mid-season elo that was never offseason-regressed.
+            decay = EARLY_K_DECAY_GAMES.get(sector, 0)
+            state["season_games"] = {
+                team: decay for team in state.get("ratings", {})
+            }
         return state
 
     def _resolve_team(self, sector: str, team: str, store: dict) -> str:
@@ -222,8 +269,21 @@ class EloModelAgent(ModelAgent):
         return {"team_a_wins": rec["a_wins"], "team_b_wins": rec["b_wins"], "games": rec["games"]}
 
     def _increment_count(self, sector: str, team: str) -> None:
-        gc = self._sector_state(sector)["game_counts"]
+        state = self._sector_state(sector)
+        gc = state["game_counts"]
         gc[team] = gc.get(team, 0) + 1
+        sg = state["season_games"]
+        sg[team] = sg.get(team, 0) + 1
+
+    def _get_season_games(self, sector: str, team: str) -> int:
+        sg = self._sector_state(sector).get("season_games", {})
+        team = self._resolve_team(sector, team, sg)
+        # Missing team → 0 (full boost). Legacy state-on-disk teams get
+        # initialized to `decay` in `_sector_state` back-compat, so this
+        # only fires for genuinely new teams (expansion, first-ever game in
+        # a fresh test agent). For boost-disabled sectors the multiplier is
+        # 1.0 regardless of count, so this is moot there.
+        return sg.get(team, 0)
 
     # ------------------------------------------------------------------
     # Rest-day adjustment
@@ -497,6 +557,16 @@ class EloModelAgent(ModelAgent):
         home_bonus = HOME_ADVANTAGE_ELO.get(sector, 0.0)
         base_k = K_FACTORS.get(sector, 20.0)
         k = self._recency_k(base_k, event_date)
+
+        # Early-season K boost: amplify K-factor when teams have few
+        # post-regression games on record. Uses the less-informed team's
+        # season_games count so the boost lasts as long as either side is
+        # still calibrating. No-op for sectors not in EARLY_K_BOOST.
+        season_min = min(
+            self._get_season_games(sector, team_a),
+            self._get_season_games(sector, team_b),
+        )
+        k *= early_season_multiplier(sector, season_min)
 
         # Actual score: 1=A wins, 0=B wins, 0.5=draw
         if score_a > score_b:

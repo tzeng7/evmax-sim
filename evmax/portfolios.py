@@ -418,7 +418,7 @@ def log_portfolio_bet(
             gap.get("kalshi_yes_price") or gap.get("kalshi_price"),
             gap.get("sharp_true_prob") or gap.get("true_prob"),
             gap.get("blended_true_prob") or gap.get("true_prob"),
-            gap.get("ev_pct"),
+            gap.get("ev_pct_raw", (gap.get("ev_pct") or 0) / 100),
             gap.get("kelly_fraction") or (gap.get("kelly_pct", 0) / 100),
             stake,
             bankroll,

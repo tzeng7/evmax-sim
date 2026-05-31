@@ -108,10 +108,38 @@ class CategorySpec:
     status: Status
     prop_stat_types: tuple[str, ...] = field(default_factory=tuple)
     notes: Optional[str] = None
+    # Market types within this category that should be forced to 'shadow' even
+    # when the sector mode is 'live'. Lets us promote a category for some bet
+    # types (ML, spread) while keeping others under validation (totals). Empty
+    # = sector mode applies to every market type. Validated against the
+    # category's market_types list at parse time.
+    shadow_market_types: tuple[str, ...] = field(default_factory=tuple)
+    # Optional (start, end) MM-DD pair bounding the regular season. When set,
+    # is_in_season() returns False outside the window so the coordinator can
+    # skip dead sectors (saves Kalshi rate-limit + Pinnacle API tokens).
+    # Wrap-around windows (end < start, e.g. NFL "09-04" → "02-15") supported.
+    season_window: Optional[tuple[str, str]] = None
 
     @property
     def is_prop(self) -> bool:
         return self.market_types == (MarketType.player_prop,)
+
+    def is_in_season(self, today=None) -> bool:
+        """True if `today` (date, default today) falls inside season_window.
+
+        Categories without a declared window are always in season.
+        """
+        if self.season_window is None:
+            return True
+        from datetime import date as _date
+        d = today if isinstance(today, _date) else _date.today()
+        mmdd = (d.month, d.day)
+        start_m, start_d = (int(x) for x in self.season_window[0].split("-"))
+        end_m, end_d = (int(x) for x in self.season_window[1].split("-"))
+        start, end = (start_m, start_d), (end_m, end_d)
+        if start <= end:
+            return start <= mmdd <= end
+        return mmdd >= start or mmdd <= end
 
 
 # ---------------------------------------------------------------------------
@@ -171,6 +199,40 @@ def _parse_entry(key: str, raw: dict) -> CategorySpec:
     if notes is not None and not isinstance(notes, str):
         raise ValueError(f"category {key!r}: notes must be null or a string")
 
+    raw_shadow_mts = raw.get("shadow_market_types") or ()
+    shadow_market_types = tuple(raw_shadow_mts)
+    if shadow_market_types:
+        legal = {mt.value for mt in market_types}
+        for mt in shadow_market_types:
+            if mt not in legal:
+                raise ValueError(
+                    f"category {key!r}: shadow_market_types entry {mt!r} is "
+                    f"not in this category's market_types {sorted(legal)}"
+                )
+
+    season_window: Optional[tuple[str, str]] = None
+    raw_window = raw.get("season_window")
+    if raw_window is not None:
+        if not isinstance(raw_window, dict) or "start" not in raw_window or "end" not in raw_window:
+            raise ValueError(
+                f"category {key!r}: season_window must be a mapping with 'start' and 'end' MM-DD strings"
+            )
+        for fld in ("start", "end"):
+            val = raw_window[fld]
+            if not (isinstance(val, str) and len(val) == 5 and val[2] == "-"):
+                raise ValueError(
+                    f"category {key!r}: season_window.{fld}={val!r} must be MM-DD"
+                )
+            try:
+                m, d = int(val[:2]), int(val[3:])
+                if not (1 <= m <= 12 and 1 <= d <= 31):
+                    raise ValueError
+            except ValueError:
+                raise ValueError(
+                    f"category {key!r}: season_window.{fld}={val!r} has illegal month/day"
+                )
+        season_window = (raw_window["start"], raw_window["end"])
+
     return CategorySpec(
         key=key,
         display_name=display_name,
@@ -181,6 +243,8 @@ def _parse_entry(key: str, raw: dict) -> CategorySpec:
         status=status,  # type: ignore[arg-type]
         prop_stat_types=prop_stat_types,
         notes=notes,
+        shadow_market_types=shadow_market_types,
+        season_window=season_window,
     )
 
 

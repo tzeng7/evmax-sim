@@ -40,6 +40,11 @@ import numpy as np
 import structlog
 
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
+from evmax.agents.models.wnba_efficiency_agent import (
+    shrink_team_stats,
+    smooth_confidence,
+    state_is_stale_for_today,
+)
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
 
@@ -66,8 +71,11 @@ LEAGUE_AVG_ORTG = 100.6
 AVG_TOV_RATE = 0.17
 
 # Games-played gate — minimum per team before we trust the simulation.
-# 12 ≈ 30% of a 40-game regular season; matches efficiency agent's gate.
-MIN_GAMES = 12
+# Lowered 12 → 4 on 2026-05-30: empirical-Bayes shrinkage handles small-
+# sample noise (see shrink_team_stats() in wnba_efficiency_agent). With
+# shrinkage active the sim contributes lightly from week 1 instead of
+# going dark for 3+ weeks at each season start.
+MIN_GAMES = 4
 
 # Possession count clipping: WNBA pace is 78-84, so clip to [65, 100] to
 # allow ±15 variance without unreasonable tails.
@@ -222,6 +230,14 @@ class WNBAPossessionSimAgent(ModelAgent):
     ) -> Optional[dict]:
         """Run one matchup's possession sim synchronously; cache margin/total."""
         eff_data = self._load_efficiency_state()
+        if state_is_stale_for_today(eff_data):
+            logger.warning(
+                "wnba_possession_sim_stale_source_season",
+                source_season=eff_data.get("source_season"),
+                current_year=date.today().year,
+                hint="re-run scripts/seed_wnba_efficiency.py --year <current>",
+            )
+            return None
         teams = eff_data.get("teams", {})
         if not teams:
             return None
@@ -237,6 +253,19 @@ class WNBAPossessionSimAgent(ModelAgent):
             return None
 
         league_ortg = eff_data.get("league_avg_ortg", LEAGUE_AVG_ORTG)
+        # Use the same league dict shape the efficiency agent uses so
+        # shrink_team_stats can be shared. league_avg_pace falls back to
+        # the average of seeded paces when missing.
+        league = {
+            "league_avg_ortg": league_ortg,
+            "league_avg_drtg": eff_data.get("league_avg_drtg", league_ortg),
+            "league_avg_pace": eff_data.get("league_avg_pace", 82.0),
+            "league_avg_tov_pct": AVG_TOV_RATE,
+        }
+        # Empirical-Bayes shrinkage matches the efficiency agent so both
+        # consumers of this state file see the same regularized inputs.
+        stats_a = shrink_team_stats(stats_a, league)
+        stats_b = shrink_team_stats(stats_b, league)
         tov_a = stats_a.get("tov_pct", AVG_TOV_RATE)
         tov_b = stats_b.get("tov_pct", AVG_TOV_RATE)
 
@@ -270,7 +299,7 @@ class WNBAPossessionSimAgent(ModelAgent):
         self._margin_cache[eid] = margin_dist
         self._total_cache[eid] = total_dist
 
-        confidence = 0.80 if min(stats_a["gp"], stats_b["gp"]) >= 30 else 0.65
+        confidence = smooth_confidence(min(stats_a["gp"], stats_b["gp"]))
 
         return {
             "event_id": eid,

@@ -8,9 +8,9 @@
     "lol": 1.0,
     "cs2": 1.0
   },
-  "last_brier_model": 0.22476,
-  "last_brier_sharp": 0.225037,
-  "last_adjusted": "2026-05-07",
+  "last_brier_model": 0.186431,
+  "last_brier_sharp": 0.185496,
+  "last_adjusted": "2026-05-30",
   "brier_history": [
     {
       "date": "2026-03-16",
@@ -25,6 +25,14 @@
       "brier_model": 0.22476,
       "brier_sharp": 0.225037,
       "n": 254,
+      "old_weight": 0.85,
+      "new_weight": 0.85
+    },
+    {
+      "date": "2026-05-30",
+      "brier_model": 0.186431,
+      "brier_sharp": 0.185496,
+      "n": 180,
       "old_weight": 0.85,
       "new_weight": 0.85
     }

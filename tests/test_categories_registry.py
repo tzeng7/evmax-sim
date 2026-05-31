@@ -269,3 +269,148 @@ def test_validator_catches_unknown_market_type(tmp_path):
     with pytest.raises(ValueError, match="unknown MarketType"):
         reload_registry(bad)
     reload_registry()
+
+
+# -------------------------------------------------------------------------
+# Season windows — is_in_season + SeasonWindow.contains
+# -------------------------------------------------------------------------
+
+
+def test_season_window_contains_simple_range():
+    """Non-wrapping window (MLB Mar 20 → Nov 5)."""
+    from datetime import date
+
+    from evmax.categories import SeasonWindow
+
+    mlb = SeasonWindow(start_month=3, start_day=20, end_month=11, end_day=5)
+    assert mlb.contains(date(2026, 5, 23)) is True
+    assert mlb.contains(date(2026, 3, 20)) is True   # start inclusive
+    assert mlb.contains(date(2026, 11, 5)) is True   # end inclusive
+    assert mlb.contains(date(2026, 3, 19)) is False  # one day before
+    assert mlb.contains(date(2026, 11, 6)) is False  # one day after
+    assert mlb.contains(date(2026, 1, 15)) is False  # deep winter
+
+
+def test_season_window_wraps_year_end():
+    """Wrapping window (NFL Sep 1 → Feb 15)."""
+    from datetime import date
+
+    from evmax.categories import SeasonWindow
+
+    nfl = SeasonWindow(start_month=9, start_day=1, end_month=2, end_day=15)
+    assert nfl.contains(date(2026, 9, 1)) is True    # start inclusive
+    assert nfl.contains(date(2026, 12, 25)) is True  # late season
+    assert nfl.contains(date(2026, 1, 10)) is True   # playoffs
+    assert nfl.contains(date(2026, 2, 15)) is True   # end inclusive
+    assert nfl.contains(date(2026, 5, 23)) is False  # offseason
+    assert nfl.contains(date(2026, 8, 31)) is False  # day before preseason gate
+    assert nfl.contains(date(2026, 2, 16)) is False  # day after Super Bowl
+
+
+def test_is_in_season_year_round_categories_always_true():
+    """Tennis, LoL, CS2, soccer have no season_window — always in season."""
+    from datetime import date
+
+    from evmax.categories import get_category, is_in_season
+
+    for key in ("tennis", "lol", "cs2", "soccer"):
+        spec = get_category(key)
+        assert spec.season_window is None, (
+            f"{key} should be year-round (no season_window) but has one"
+        )
+        # Both summer and dead of winter — always in season.
+        assert is_in_season(key, date(2026, 1, 5)) is True
+        assert is_in_season(key, date(2026, 7, 15)) is True
+
+
+def test_seasonal_categories_have_windows():
+    """The four sectors the user wants gated MUST have a season_window."""
+    from evmax.categories import get_category
+
+    for key in ("nfl", "nfl_props", "ncaab", "ncaaw"):
+        assert get_category(key).season_window is not None, (
+            f"{key} must have season_window to be gated out of season"
+        )
+
+
+def test_nfl_out_of_season_in_may():
+    """Today is 2026-05-23 — NFL/NCAAB/NCAAW must be out of season."""
+    from datetime import date
+
+    from evmax.categories import is_in_season
+
+    may_23 = date(2026, 5, 23)
+    assert is_in_season("nfl", may_23) is False
+    assert is_in_season("nfl_props", may_23) is False
+    assert is_in_season("ncaab", may_23) is False
+    assert is_in_season("ncaaw", may_23) is False
+    # And the in-season ones for sanity
+    assert is_in_season("baseball", may_23) is True
+    assert is_in_season("wnba", may_23) is True
+
+
+def test_is_in_season_unknown_category_raises():
+    from evmax.categories import is_in_season
+
+    with pytest.raises(KeyError):
+        is_in_season("not_a_sector")
+
+
+def test_in_season_keys_filters_correctly():
+    from datetime import date
+
+    from evmax.categories import in_season_keys
+
+    may_23 = date(2026, 5, 23)
+    kept = in_season_keys(["nfl", "baseball", "ncaab", "tennis"], today=may_23)
+    assert kept == ["baseball", "tennis"]  # order preserved, off-season dropped
+
+
+def test_season_window_str_format():
+    from evmax.categories import SeasonWindow
+
+    w = SeasonWindow(start_month=9, start_day=1, end_month=2, end_day=15)
+    assert str(w) == "09-01 → 02-15"
+
+
+# -------------------------------------------------------------------------
+# Season-window YAML parser — negative tests
+# -------------------------------------------------------------------------
+
+
+def test_validator_catches_bad_season_window_mmdd(tmp_path):
+    bad = tmp_path / "broken.yaml"
+    _write_yaml(
+        bad,
+        _full_yaml(
+            "nba",
+            _base_entry(extra='  season_window: {start: "13-01", end: "02-15"}\n'),
+        ),
+    )
+    with pytest.raises(ValueError, match="season_window"):
+        reload_registry(bad)
+    reload_registry()
+
+
+def test_validator_catches_season_window_missing_end(tmp_path):
+    bad = tmp_path / "broken.yaml"
+    _write_yaml(
+        bad,
+        _full_yaml(
+            "nba",
+            _base_entry(extra='  season_window: {start: "09-01"}\n'),
+        ),
+    )
+    with pytest.raises(ValueError, match="season_window missing fields"):
+        reload_registry(bad)
+    reload_registry()
+
+
+def test_validator_accepts_omitted_season_window(tmp_path):
+    """Categories without a season_window key parse to None (year-round)."""
+    bad = tmp_path / "no_window.yaml"
+    _write_yaml(bad, _full_yaml("nba", _base_entry()))
+    reload_registry(bad)
+    from evmax.categories import get_category as _gc
+    assert _gc("nba").season_window is None
+    reload_registry()

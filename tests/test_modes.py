@@ -149,3 +149,83 @@ def test_effective_modes_reflects_overrides():
     assert snap["nba"] == "disabled"
     # And the unaffected ones stay at YAML base
     assert snap["ncaab"] == "live"
+
+
+# -------------------------------------------------------------------------
+# Per-market-type shadow downgrade (shadow_market_types)
+# -------------------------------------------------------------------------
+
+
+def test_shadow_market_types_downgrades_listed_type(monkeypatch):
+    """When a category lists a market type in shadow_market_types, get_mode
+    returns 'shadow' for that type even though the sector is live."""
+    from evmax.categories import CategorySpec, MarketType
+
+    fake = CategorySpec(
+        key="testcat",
+        display_name="Test",
+        market_types=(MarketType.moneyline, MarketType.spread, MarketType.total),
+        models=("sharp",),
+        mode="live",
+        resolver="none",
+        status="wip",
+        shadow_market_types=("total",),
+    )
+    monkeypatch.setattr("evmax.modes.get_category", lambda k: fake)
+
+    assert get_mode("testcat", "moneyline") == "live"
+    assert get_mode("testcat", "spread") == "live"
+    assert get_mode("testcat", "total") == "shadow"
+    # No market_type → sector default
+    assert get_mode("testcat") == "live"
+
+
+def test_shadow_market_types_inert_when_sector_already_shadow(monkeypatch):
+    """If sector is shadow already, the downgrade is a no-op (still shadow)."""
+    from evmax.categories import CategorySpec, MarketType
+
+    fake = CategorySpec(
+        key="testcat2",
+        display_name="Test",
+        market_types=(MarketType.moneyline, MarketType.total),
+        models=("sharp",),
+        mode="shadow",
+        resolver="none",
+        status="wip",
+        shadow_market_types=("total",),
+    )
+    monkeypatch.setattr("evmax.modes.get_category", lambda k: fake)
+
+    assert get_mode("testcat2", "moneyline") == "shadow"
+    assert get_mode("testcat2", "total") == "shadow"
+
+
+def test_runtime_override_beats_shadow_market_types(monkeypatch):
+    """Runtime override is highest precedence — it applies uniformly across
+    all market types and ignores shadow_market_types."""
+    from evmax.categories import CategorySpec, MarketType
+
+    fake = CategorySpec(
+        key="testcat3",
+        display_name="Test",
+        market_types=(MarketType.moneyline, MarketType.total),
+        models=("sharp",),
+        mode="live",
+        resolver="none",
+        status="wip",
+        shadow_market_types=("total",),
+    )
+    monkeypatch.setattr("evmax.modes.get_category", lambda k: fake)
+
+    set_runtime_overrides({"testcat3": "disabled"})
+    assert get_mode("testcat3", "moneyline") == "disabled"
+    assert get_mode("testcat3", "total") == "disabled"  # override wins, not shadow
+
+
+def test_wnba_shipped_yaml_has_total_in_shadow():
+    """The shipped categories.yaml should keep WNBA total in shadow while ML
+    and spread are live. Regression guard so a future YAML edit doesn't
+    silently flip total to live without an explicit decision."""
+    assert get_mode("wnba", "moneyline") == "live"
+    assert get_mode("wnba", "spread") == "live"
+    assert get_mode("wnba", "total") == "shadow"

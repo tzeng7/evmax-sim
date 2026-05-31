@@ -1186,6 +1186,36 @@ class TestEnsembleModelAgent:
         # Poisson should be the dominant model for soccer
         assert overrides["poisson"] >= 0.40
 
+    def test_wnba_weight_overrides_post_sweep(self):
+        """Lock in the post-sweep WNBA blend (2026-05-14, scripts/sweep_wnba_weights.py).
+
+        The sweep over 321 walk-forward 2025 games found that:
+          - form was the worst standalone model (Brier 0.2303); every top-20
+            combo had form=0
+          - generic Elo (0.2227) was weaker than the two WNBA-specific models
+            (~0.202 each), so WNBA-specific weight should dominate
+          - poisson stays out (basketball isn't a Poisson process)
+
+        Regression test ensures these properties hold so a future edit can't
+        silently re-introduce form/poisson or starve the WNBA-specific stack
+        without the sweep showing it's safe.
+        """
+        overrides = EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES.get("wnba")
+        assert overrides is not None, "WNBA must have SECTOR_WEIGHT_OVERRIDES"
+        assert overrides["form"] == 0.0, (
+            "form must be zeroed for WNBA — worst standalone model in sweep"
+        )
+        assert overrides["poisson"] == 0.0, (
+            "poisson must stay zero for WNBA (basketball ≠ Poisson)"
+        )
+        wnba_specific = overrides["wnba_efficiency"] + overrides["wnba_possession_sim"]
+        assert wnba_specific >= 0.80, (
+            f"WNBA-specific stack should carry ≥80% of model weight, got {wnba_specific:.2f}"
+        )
+        assert wnba_specific > overrides["elo"], (
+            "WNBA-specific stack should outweigh generic Elo"
+        )
+
     def test_flb_correction_extreme_longshot(self):
         """FLB correction should suppress model inflation at extreme probs.
 

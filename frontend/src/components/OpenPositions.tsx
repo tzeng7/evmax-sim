@@ -7,11 +7,24 @@ import { pickByIds } from '../lib/api'
 interface Props {
   bets: Bet[]
   scanGaps: ScanGap[]
+  bankroll: number
+  kelly: number
   toast: (msg: string, type?: 'info' | 'ok' | 'err') => void
   onPicked: () => void
 }
 
-export function OpenPositions({ bets, scanGaps, toast, onPicked }: Props) {
+// Stored kelly_fraction = K_full × scan_kelly × discounts, capped at 5%.
+// Dashboard scans default to kelly=0.5, so scale by (current_kelly / 0.5) to
+// preview a different kelly multiplier. Bankroll scales linearly.
+const SCAN_KELLY_BASELINE = 0.5
+
+function previewStake(b: Bet, bankroll: number, kelly: number): number {
+  const stored = b.kelly_fraction || 0
+  const scaled = stored * (kelly / SCAN_KELLY_BASELINE)
+  return bankroll * Math.min(scaled, 0.05)
+}
+
+export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked }: Props) {
   const [sector, setSector] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
@@ -71,7 +84,7 @@ export function OpenPositions({ bets, scanGaps, toast, onPicked }: Props) {
           </thead>
           <tbody>
             {filtered.slice(0, 40).map(b => {
-              const stake = (b.bankroll_used || 500) * (b.kelly_fraction || 0)
+              const stake = previewStake(b, bankroll, kelly)
               return (
                 <tr key={b.market_id}>
                   <td><input type="checkbox" className="check" checked={selected.has(b.market_id)} onChange={() => toggle(b.market_id)} /></td>

@@ -84,11 +84,18 @@ class EnsembleModelAgent(Agent):
         # Poisson zeroed for the same reason as NBA — basketball scoring is
         # not a Poisson process and the bucketed matrix was distorting margin
         # variance. Shot_quality / matchup still not ported (future work).
+        # Form zeroed 2026-05-14 after sweep on 2025 walk-forward (321 games):
+        # form was the worst standalone model (Brier 0.2303) and every top-20
+        # weight combo had form=0. Elo trimmed 0.30 → 0.15 because generic
+        # Elo (Brier 0.2227) is also weaker than the WNBA-specific stack
+        # (wnba_efficiency 0.2020, wnba_possession_sim 0.2022) — pushing
+        # weight onto those two cut blend Brier from 0.2061 → 0.2019.
+        # See scripts/sweep_wnba_weights.py.
         "wnba": {
-            "wnba_efficiency":     0.25,
-            "wnba_possession_sim": 0.25,
-            "elo":                 0.30,
-            "form":                0.15,
+            "wnba_efficiency":     0.40,
+            "wnba_possession_sim": 0.45,
+            "elo":                 0.15,
+            "form":                0.0,
             "poisson":             0.0,
         },
         # Tennis: Surface Elo + recency-weighted serve/return are primary signals.

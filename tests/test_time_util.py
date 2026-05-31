@@ -52,5 +52,18 @@ def test_none_returns_unknown():
 def test_us_sectors_coverage():
     """Every US game sector must be routed through US/Eastern."""
     commence = datetime(2026, 4, 21, 1, 30, tzinfo=timezone.utc)
-    for sector in ("nba", "nfl", "mlb", "nhl", "ncaab", "ncaaw"):
+    # NOTE: "baseball" is the actual sector key for MLB across the codebase
+    # (sectors/registry.py, data/categories.yaml). "mlb" is kept as an alias
+    # for legacy callers but the production path goes through "baseball".
+    for sector in ("nba", "wnba", "nfl", "mlb", "baseball", "nhl", "ncaab", "ncaaw"):
         assert kalshi_game_day(commence, sector) == "2026-04-20", sector
+
+
+def test_baseball_evening_game_uses_eastern_calendar():
+    """Regression: MLB sector key is 'baseball', not 'mlb'. An 8:10pm CT
+    Astros home game (May 12) = 01:10 UTC May 13. Under the buggy mapping
+    this returned '2026-05-13', so Pinnacle's game-1 event_id was off-by-one
+    relative to Kalshi's 'MAY12' ticker — causing the matching engine to
+    pair Kalshi's game 1 with Pinnacle's game 2 in a back-to-back series."""
+    commence = datetime(2026, 5, 13, 1, 10, tzinfo=timezone.utc)
+    assert kalshi_game_day(commence, "baseball") == "2026-05-12"

@@ -159,7 +159,11 @@ def show_category(
         f"[bold]Resolver:[/bold]     {spec.resolver}",
         "",
         f"[bold]Market types[/bold] ({len(spec.market_types)}):",
-        "  " + ", ".join(mt.value for mt in spec.market_types),
+        "  " + ", ".join(
+            f"{mt.value} [yellow](shadow)[/yellow]" if mt.value in spec.shadow_market_types
+            else mt.value
+            for mt in spec.market_types
+        ),
     ]
     if spec.prop_stat_types:
         lines.append("")

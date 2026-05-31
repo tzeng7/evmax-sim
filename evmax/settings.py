@@ -67,6 +67,20 @@ class Settings(BaseSettings):
     # peak. Set to 1.0 to disable the discount.
     same_side_kelly_discount: float = Field(default=0.5, ge=0.0, le=1.0)
 
+    # Correlation-aware joint Kelly sizing (per-event). When enabled, legs that
+    # share a game outcome (ML/spread on the same margin, over/under on the same
+    # total) are sized jointly via a Gaussian-copula log-growth optimization
+    # instead of independently + the proportional exposure guard. The per-event
+    # gross cap is variance-scaled: it expands from exposure_guard (0.08) toward
+    # joint_kelly_max_gross_pct only as hedging cuts portfolio variance below the
+    # naive independent sum; redundant (positively correlated) legs stay pinned
+    # at the base cap. Single-leg events reduce exactly to fractional Kelly.
+    # See evmax/ev/joint_kelly.py and AgentCoordinator._apply_joint_kelly.
+    joint_kelly_enabled: bool = False
+    joint_kelly_max_gross_pct: float = Field(default=0.15, ge=0.08, le=0.5)
+    joint_kelly_rho_margin_total: float = Field(default=0.0, ge=-0.9, le=0.9)
+    joint_kelly_samples: int = Field(default=20000, ge=2000, le=200000)
+
     @field_validator("ev_threshold")
     @classmethod
     def ev_threshold_sane(cls, v: float) -> float:

@@ -1660,10 +1660,16 @@ class TestWebDisplayLabelForRow:
         row = {"market_type": "moneyline", "yes_team": "lakers"}
         assert _display_label_for_row(row) == "Lakers ML"
 
-    def test_total_unchanged(self):
+    def test_total_renders_side_explicitly(self):
+        # Totals used to render as "O/U 220.5" which left users guessing
+        # which side the YES market represented. Kalshi totals are YES = OVER,
+        # so the label must say it explicitly. yes_team starting with "u"
+        # falls back to "Under" if a future source ever posts under-side YES.
         from evmax.web.app import _display_label_for_row
-        row = {"market_type": "total", "yes_team": "over", "line": 220.5}
-        assert _display_label_for_row(row) == "O/U 220.5"
+        over_row = {"market_type": "total", "yes_team": "over", "line": 220.5}
+        assert _display_label_for_row(over_row) == "Over 220.5"
+        under_row = {"market_type": "total", "yes_team": "under", "line": 220.5}
+        assert _display_label_for_row(under_row) == "Under 220.5"
 
     def test_invalid_line_string_falls_back(self):
         from evmax.web.app import _display_label_for_row

@@ -60,6 +60,7 @@ export interface ScanGap {
   true_prob: number
   ev_pct: number
   kelly_pct: number
+  kelly_fraction: number
   stake: number
   model_sources: string
   market_id: string
@@ -73,6 +74,7 @@ export interface ScanResult {
   markets_fetched: number
   markets_matched: number
   sectors: string[]
+  portfolio_results?: { portfolio_id: string; portfolio_name: string; gaps_logged: number }[]
 }
 
 export interface Portfolio {

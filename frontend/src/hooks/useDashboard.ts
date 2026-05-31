@@ -13,6 +13,8 @@ export interface DashboardState {
   recent: Bet[]
   scanGaps: ScanGap[]
   scanMeta: { markets_fetched: number; markets_matched: number } | null
+  scanBankroll: number
+  scanKelly: number
   loading: boolean
 }
 
@@ -28,6 +30,8 @@ export function useDashboard() {
     recent: [],
     scanGaps: [],
     scanMeta: null,
+    scanBankroll: 250,
+    scanKelly: 0.5,
     loading: true,
   })
 
@@ -61,7 +65,11 @@ export function useDashboard() {
 
   useEffect(() => { refresh() }, [refresh])
 
-  const setScanResults = useCallback((gaps: ScanGap[], meta: { markets_fetched: number; markets_matched: number }) => {
+  const setScanResults = useCallback((
+    gaps: ScanGap[],
+    meta: { markets_fetched: number; markets_matched: number },
+    snapshot: { bankroll: number; kelly: number },
+  ) => {
     setState(prev => {
       const excluded = new Set<string>([
         ...prev.placedBets.map(b => b.market_id),
@@ -71,6 +79,8 @@ export function useDashboard() {
         ...prev,
         scanGaps: gaps.filter(g => !excluded.has(g.market_id)),
         scanMeta: meta,
+        scanBankroll: snapshot.bankroll,
+        scanKelly: snapshot.kelly,
       }
     })
   }, [])
