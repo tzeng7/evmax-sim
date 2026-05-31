@@ -13,13 +13,14 @@ evmax uses a multi-agent pipeline to find positive expected value (+EV) opportun
 5. [Statistical Models](#statistical-models)
 6. [Seeding and Updating Models](#seeding-and-updating-models)
 7. [Cleanup Agent: Logging, Resolution, and Calibration](#cleanup-agent-logging-resolution-and-calibration)
-8. [Player Prop Pipeline](#player-prop-pipeline)
-9. [Web Dashboard](#web-dashboard)
-10. [Data Archive and Backtest](#data-archive-and-backtest)
-11. [Core EV and Kelly Math](#core-ev-and-kelly-math)
-12. [CLI Reference](#cli-reference)
-13. [Configuration](#configuration)
-14. [Sectors and Market Types](#sectors-and-market-types)
+8. [Closing Line Value (CLV)](#closing-line-value-clv)
+9. [Player Prop Pipeline](#player-prop-pipeline)
+10. [Web Dashboard](#web-dashboard)
+11. [Data Archive and Backtest](#data-archive-and-backtest)
+12. [Core EV and Kelly Math](#core-ev-and-kelly-math)
+13. [CLI Reference](#cli-reference)
+14. [Configuration](#configuration)
+15. [Sectors and Market Types](#sectors-and-market-types)
 
 ---
 
@@ -276,18 +277,25 @@ The system runs sector-specific model ensembles blended with Pinnacle sharp line
 
 NBA and WNBA use dedicated advanced models that replace the generic Elo/Form/Poisson core. Other sectors use the default weights.
 
-| Model | NBA | WNBA | Soccer | Other |
-|-------|-----|------|--------|-------|
-| Efficiency | **0.30** | — | — | — |
-| PossessionSim | **0.30** | — | — | — |
-| WNBA Efficiency | — | **0.25** | — | — |
-| WNBA PossessionSim | — | **0.25** | — | — |
-| Elo | 0.10 | 0.30 | 0.15 | 0.35 |
-| Form | 0.10 | 0.15 | 0.10 | 0.25 |
-| ShotQuality | 0.10 | — | — | — |
-| Matchup | 0.10 | — | — | — |
-| Poisson | 0.0 | 0.0 | **0.40** | 0.30 |
-| Soccer xG | — | — | 0.25 | — |
+| Model | NBA | WNBA | NFL | Soccer | Baseball | Other |
+|-------|-----|------|-----|--------|----------|-------|
+| Efficiency | **0.30** | — | — | — | — | — |
+| PossessionSim | **0.30** | — | — | — | — | — |
+| WNBA Efficiency | — | **0.40** | — | — | — | — |
+| WNBA PossessionSim | — | **0.45** | — | — | — | — |
+| NFL Efficiency | — | — | **0.25** | — | — | — |
+| NFL QB Elo | — | — | **0.25** | — | — | — |
+| Pitcher | — | — | — | — | **0.50** | — |
+| Elo | 0.10 | 0.15 | 0.20 | 0.15 | 0.25 | 0.35 |
+| Form | 0.10 | 0.0 | 0.30 | 0.10 | 0.25 | 0.25 |
+| ShotQuality | 0.10 | — | — | — | — | — |
+| Matchup | 0.10 | — | — | — | — | — |
+| Poisson | 0.0 | 0.0 | 0.0 | **0.40** | 0.0 | 0.30 |
+| Soccer xG | — | — | — | 0.25 | — | — |
+
+**WNBA weights re-tuned 2026-05-14** via walk-forward sweep over 321 games (`scripts/sweep_wnba_weights.py`) — dropped blend Brier 0.2061 → 0.2019. Form was worst standalone (0.2303) and every top-20 combo zeroed it; generic Elo also weaker than the WNBA-specific stack.
+
+**NFL Phase 2 weights** (validated 2026-05-01 via walk-forward backtest): nfl_efficiency 0.25 · nfl_qb_elo 0.25 · elo 0.20 · form 0.30 · poisson 0.0. nfl_qb_elo carries a per-QB delta layer on top of team Elo so starter swaps shift effective rating without retraining team strength.
 
 **NBA backtest (2025-26, 1,229 games):**
 
@@ -404,27 +412,37 @@ Each dimension capped at ±1.5 points, total capped at ±4 points → converted 
 
 ### WNBA Models
 
-WNBA runs a parallel advanced stack to NBA — separate files, separate state, separate tuning. No code is shared between the two leagues' agents. Change one without risk to the other.
+WNBA runs a parallel advanced stack to NBA — separate files, separate state, separate tuning. No code is shared between the two leagues' agents. Change one without risk to the other. ML and spread are **live** as of 2026-05-26; totals stay in shadow until ~30 resolved bets validate the totals output.
 
-#### WNBA Efficiency Model (`WNBAEfficiencyModelAgent`, weight=0.25)
+#### WNBA Efficiency Model (`WNBAEfficiencyModelAgent`, weight=0.40)
 
-Normal-CDF margin model driven by team ORTG / DRTG / Pace. Mirrors NBA's efficiency agent architecturally but uses WNBA-tuned constants and reads its own state file.
+Normal-CDF margin model driven by team ORTG / DRTG / Pace. Mirrors NBA's efficiency agent architecturally but uses WNBA-tuned constants, reads its own state file, and **regularizes inputs with empirical-Bayes shrinkage at predict time**.
 
 **How it works:**
 
 ```
-off_factor_a = team_a_ortg / league_avg_ortg       # league avg ≈ 100.6
-def_factor_b = team_b_drtg / league_avg_drtg
-possessions = (pace_a + pace_b) / 2                 # pace avg ≈ 81.1
+# 1. Pull raw team stats from wnba_efficiency_state.json, then SHRINK toward league mean
+shrunk = (gp · raw + k · league_avg) / (gp + k)    # k = 8
+
+# 2. Compute projected margin using shrunk stats
+off_factor_a = shrunk_ortg_a / league_avg_ortg     # league avg ≈ 100.6 (refreshed each season)
+def_factor_b = shrunk_drtg_b / league_avg_drtg
+possessions = (shrunk_pace_a + shrunk_pace_b) / 2
 
 proj_pts_a = off_factor_a × def_factor_b × league_ortg × possessions / 100
 margin = proj_pts_a − proj_pts_b + HOME_EDGE_PTS (2.6 pts)
 prob_a = normal_cdf(margin / SCORE_STDEV)           # σ = 12.5
 ```
 
-**Tunable constants vs NBA:** `HOME_EDGE_PTS 2.6` (NBA 3.2), `SCORE_STDEV 12.5` (NBA 12.0), `MIN_GAMES 12` (NBA 20). WNBA's 40-game season warrants a lower games-played gate; the weaker home-court edge reflects the 2025 56.7% home win rate (NBA ~59%).
+**Why shrinkage:** without it, an early-season team with 8 games gets full credit for noisy ORTG/DRTG samples. At gp=8 the EB formula splits 50/50 between team-specific and league prior; at gp=24 the team dominates 75/25. This regularization replaced the old hard `MIN_GAMES=12` gate (now `MIN_GAMES=4`) — the model now contributes lightly from week 1 instead of going dark for 3+ weeks at each season start. See `shrink_team_stats` in `wnba_efficiency_agent.py`.
 
-**Seeding:** `scripts/seed_wnba_efficiency.py` walks ESPN's WNBA scoreboard for a season (e.g. 2025 May-October), pulls per-game box scores, and computes ORtg/DRtg/Pace/eFG%/TOV%/OREB%/FTr via Dean Oliver formulas:
+**Staleness guard:** the agent calls `state_is_stale_for_today()` and returns `None` whenever `source_season < today.year` during May-Oct, so prior-season ratings can't silently leak into a new season. Background: the 2026 opener saw +24pp ML chalk bias (Aces predicted 74%, went 0/3) because `wnba_offseason_regress.py` regresses Elo but **not** efficiency state — that gap is now caught by the guard and resolved by re-running the seed each May.
+
+**Confidence ramp:** smooth instead of stepped — `smooth_confidence(min_gp)` returns 0.40 (gp=0) → 0.80 (gp≥40). Clears the ensemble's 0.45 confidence gate at gp ≥ 6.
+
+**Tunable constants vs NBA:** `HOME_EDGE_PTS 2.6` (NBA 3.2), `SCORE_STDEV 12.5` (NBA 12.5), `MIN_GAMES 4` (NBA 20), `SHRINK_K 8`. WNBA's 40-game season warrants a lower games-played gate and shrinkage; the weaker home-court edge reflects the 2025 56.7% home win rate (NBA ~59%).
+
+**Seeding:** `scripts/seed_wnba_efficiency.py` walks ESPN's WNBA scoreboard for a season (e.g. 2025 or 2026 May-October), pulls per-game box scores, and computes ORtg/DRtg/Pace/eFG%/TOV%/OREB%/FTr via Dean Oliver formulas:
 
 ```
 POSS  = FGA + 0.44·FTA + TO − OREB
@@ -433,28 +451,31 @@ DRtg  = 100 · OPP_PTS / OPP_POSS
 Pace  = POSS per game (WNBA games are 40 min, not 48)
 ```
 
-Exhibitions (All-Star, international) are filtered via a `REAL_WNBA_TEAMS` allow-list. Re-run weekly during the 2026 season to keep stats fresh — the agent's `update()` is a no-op because score pairs alone don't carry the box-score detail.
+Exhibitions (All-Star, international) are filtered via a `REAL_WNBA_TEAMS` allow-list. **Re-run at the start of each season** (`--year 2026`, `--year 2027`, etc.) to overwrite the `source_season` marker and reset rating gaps. Mid-season re-runs are optional — the agent's `update()` is a no-op (score pairs alone don't carry box-score detail), so weekly re-seeds keep stats fresh.
 
-**Confidence:** 0.80 (30+ GP), 0.70 (20+ GP), 0.55 (<20 GP, above the 12-GP gate).
+**Backtest validation (post-shrinkage):** replay of 44 resolved ML bets from May 2026 gives Brier 0.2856 — beats the historical broken blend (0.2980), Pinnacle sharp alone (0.2956), and Kalshi listing (0.2926). See `scripts/backtest_wnba_recalibration.py`.
 
 **State file:** `data/models/wnba_efficiency_state.json`
 
 ---
 
-#### WNBA Possession Sim (`WNBAPossessionSimAgent`, weight=0.25)
+#### WNBA Possession Sim (`WNBAPossessionSimAgent`, weight=0.45)
 
-Monte Carlo possession-level WNBA game simulator. Same architecture as NBA's sim but reads the WNBA efficiency state and uses WNBA-tuned possession clips.
+Monte Carlo possession-level WNBA game simulator. Same architecture as NBA's sim but reads the WNBA efficiency state, applies the same EB shrinkage as the efficiency agent, and uses WNBA-tuned possession clips.
 
 **How it works:**
 
-For each of 10,000 simulated games:
-1. Draw possession count from `N(avg_pace, 3.0)`, clipped to **[65, 100]** (NBA uses [80, 120] — WNBA pace is ~82, NBA ~100)
-2. For each possession: sample turnover from team TOV%, then draw points from `N(ppp, 1.10)` where `ppp` is pace-adjusted points-per-possession
-3. Home team gets +1.5 ORTG boost (same as NBA)
+1. Apply `shrink_team_stats()` to ORTG / DRTG / Pace / TOV% before simulating (shared helper from the efficiency agent — keeps both consumers of the state file consistent)
+2. For each of 10,000 simulated games:
+   - Draw possession count from `N(avg_pace, 3.0)`, clipped to **[65, 100]** (NBA uses [80, 120] — WNBA pace is ~82, NBA ~100)
+   - For each possession: sample turnover from team TOV%, then draw points from `N(ppp, 1.10)` where `ppp` is pace-adjusted points-per-possession
+   - Home team gets +1.5 ORTG boost (same as NBA)
 
 Win probability = fraction of sims where team A outscores team B. Deterministic seeding per matchup + date for reproducibility.
 
-**Spread / totals probabilities** (`cover_probability` / `total_probability`) use calibrated σs: margin σ = 12.5 (matches the efficiency agent), total σ = 18.0 (WNBA games are shorter → lower total variance than NBA's σ=20.0). These methods are ready for live spread + total promotion; WNBA spread/total markets stay in shadow until the 2026 season validates MODEL-11.
+**Same gates as efficiency:** `MIN_GAMES=4`, staleness guard, smooth confidence ramp. Returns `None` if either team falls below the gate or the state is stale.
+
+**Spread / totals probabilities** (`cover_probability` / `total_probability`) use calibrated σs: margin σ = 12.5 (matches the efficiency agent), total σ = 18.0 (WNBA games are shorter → lower total variance than NBA's σ=20.0). Spread is live; totals stay in shadow until ~30 resolved bets land.
 
 **Playoff tightening is NOT enabled** for WNBA. NBA's `PLAYOFF_ORTG_FACTOR=0.9623` was derived from a specific NBA playoff sample; porting it blindly to WNBA would add unmeasured bias. Leave off until WNBA has a comparable playoff measurement.
 
@@ -666,16 +687,24 @@ For spread markets (e.g., "Lakers win by more than 5.5"), Pinnacle posts one lin
 
 **Assumption:** Final point margin is normally distributed `N(μ, σ²)`.
 
-| Sector | σ (standard deviation) |
-|--------|----------------------|
-| NBA | 11.5 pts |
-| NFL | 14.0 pts |
-| NCAAB | 12.5 pts |
-| Soccer | 1.9 goals |
+| Sector | σ (standard deviation) | Notes |
+|--------|----------------------|-------|
+| NBA | 12.5 pts | Bumped 11.5→12.5 on 2026-05-07 (Brier improvement on 82 resolved spread bets) |
+| WNBA | 12.5 pts | Matches WNBA possession sim's spread σ; 40-min games |
+| NFL | 14.0 pts | |
+| NCAAB | 12.5 pts | |
+| Baseball | 4.0 runs | **Gated** — direct line matches only |
+| NHL | 2.0 goals | **Gated** — direct line matches only |
+| Soccer | 1.9 goals | **Gated** — direct line matches only |
+| Default | 11.5 pts | Fallback for unconfigured sectors |
 
 1. Infer implied mean `μ` from Pinnacle's posted line and its cover probability.
 2. Estimate `P(margin > target_line)` using the normal CDF.
-3. Only evaluate Kalshi lines within 1.5 points of Pinnacle's line (accuracy degrades and liquidity thins further out).
+3. Only evaluate Kalshi lines within 1 sigma of Pinnacle's line (accuracy degrades and liquidity thins further out).
+
+**Low-scoring sport gating** (`_LOW_SCORING_SECTORS = {baseball, nhl, soccer}`): for sports where the margin distribution is Skellam-shaped (mass concentrated near 0, fat thin tails) rather than Gaussian, the normal-CDF extrapolation is unreliable. A 3-run jump from MLB's posted run line to a Kalshi alt-spread previously produced 165%+ false EVs at default σ. For these sectors the model only fires when the Kalshi line matches Pinnacle's within `LOW_SCORING_LINE_TOLERANCE=0.5` — alt-lines are dropped entirely.
+
+**Spread is also blended with PossessionSim** for NBA/WNBA: the cover prob is `0.65 × spread_dist + 0.35 × possession_sim` margin distribution. PossessionSim contributes a real empirical margin CDF (not a normal approximation), so it picks up pace interaction and fat-tail variance the Gaussian misses.
 
 ---
 
@@ -854,6 +883,18 @@ The difference tells you whether the statistical models are adding value:
 
 Bounds: `sharp_weight` stays in `[0.40, 0.95]`. Adjustments happen at most once per 7 days and require 30+ resolved predictions.
 
+**Per-sector overrides** in `data/model_config.json::sharp_weight_by_sector` let sectors with different model maturity diverge from the global. Current values:
+
+| Sector | sharp_weight | Why |
+|--------|--------------|-----|
+| NBA | 0.70 | Mature dedicated stack (efficiency + possession_sim) — lean more on models |
+| WNBA | (global 0.85) | Re-seed + EB shrinkage proved itself in May 2026; sharp_weight may be tuned down after more 2026 resolved sample |
+| Tennis | 0.85 | |
+| Soccer | 0.88 | |
+| Baseball | 0.88 | |
+| LoL / CS2 | 1.00 | No competitive statistical model yet — pure sharp |
+| Global default | 0.85 | Applied to sectors not listed above |
+
 ### Exposure Guard
 
 To prevent over-concentration on a single game, the pipeline enforces a hard cap: total Kelly exposure across all bets on the same game cannot exceed **8% of bankroll**. If multiple +EV plays reference the same event (e.g., a moneyline + spread on the same game), bets are scaled proportionally until the combined stake stays within the cap. Bets that cannot fit are dropped. The scan output shows a warning when plays are dropped or capped.
@@ -929,6 +970,58 @@ All predictions and outcomes are stored in `data/predictions.db` (SQLite).
 | `ev_outcomes` | One row per resolved market — outcome (1/0), result source, timestamps |
 
 `data/model_config.json` persists `sharp_weight`, Brier score history, and adjustment timestamps.
+
+---
+
+## Closing Line Value (CLV)
+
+CLV is the primary leading indicator for whether a betting strategy is genuinely +EV. Win-rate noise is high over weeks-to-months samples, but **closing-line CLV stabilizes much faster**: if you consistently take prices the market then moves toward, the long-run profit follows even before realized win rate confirms it. evmax captures CLV automatically alongside every resolved bet.
+
+### What's measured
+
+Each row in `ev_predictions` carries three CLV-related columns, populated when outcomes resolve:
+
+| Column | Formula | Interpretation |
+|--------|---------|---------------|
+| `kalshi_clv_pct` | `kalshi_close − kalshi_entry` | Did Kalshi's own price drift toward your side after you logged the bet? Positive = good entry vs the market's eventual close. |
+| `pinnacle_drift_pct` | `pinnacle_close_prob − pinnacle_entry_prob` | How much Pinnacle's sharp line moved between scan time and pre-tipoff close. Independent signal of *market* movement (not our model). |
+| `clv_pct` | `pinnacle_close_prob − kalshi_entry_price` | The conventional CLV: how Pinnacle's closing fair-value compares to what we paid on Kalshi. Positive = beat the sharp close. |
+
+All three use the **conventional sign convention** (positive = good for our side). For NO-side bets the calculator flips signs automatically before storing.
+
+### Closing-line snapshot capture
+
+The closing line is the last Pinnacle snapshot strictly **before tipoff** — not the post-game settlement price. This is enforced in `evmax/archiver.py`:
+
+- Closing snapshots are written to `archive.db::archived_sharp_odds` continuously by every scan
+- At resolution time the resolver queries the latest snapshot with `fetched_at < event_start_utc` for each `event_id`
+- Snapshots fetched *after* tipoff are excluded (they would leak in-game line movement and corrupt CLV)
+
+### Minutes-to-tipoff stratification
+
+Each bet also captures `minutes_to_tipoff` — how far in advance of game start we logged it. This lets us slice CLV by scan timing to validate the "late beats early" hypothesis (sharper prices closer to tip, but also tighter liquidity windows).
+
+```bash
+python scripts/clv_report.py                  # all sectors, full window
+python scripts/clv_report.py --sector wnba    # WNBA only
+python scripts/clv_report.py --since 2026-05-01 --until 2026-05-31
+```
+
+The report strips out **both-sides cancellation** automatically — when two markets on opposite sides of the same event both resolve, their CLV averages to zero and adds noise to the headline number. The script also pairs CLV with a Brier-score check so you can spot the case where CLV is positive but Brier is bad (model finding mispriced markets that still lose — possible but suspicious; usually means an inflated probability cap somewhere).
+
+### Late-news tagging
+
+Bets logged within 6 hours of a starter-status change get a `late_news` tag on the `model_sources` field. These rows often have outsized CLV because they catch the market mid-adjustment — but they're also higher-variance, so the report breaks them out separately. See `b78df1b` for the implementation.
+
+### What "good" CLV looks like
+
+| CLV (`clv_pct`) over N bets | Interpretation |
+|---|---|
+| > +1.5% sustained over 100+ bets | Strong indicator of genuine edge; expect ROI to follow |
+| 0 to +1.5% | Marginal; could be noise, but Brier-corroborated CLV here usually still profitable |
+| < 0% over 100+ bets | Strategy is taking prices that drift away from you — reassess model or selection |
+
+CLV is more informative than win-rate for the first 50-200 bets because it's a measurement of *every* bet's price quality, not just a binary win/loss sample.
 
 ---
 
@@ -1204,6 +1297,19 @@ K_final = clamp(K_adjusted, 1%, 5%)
 
 The 5% hard cap prevents any single bet from exceeding 5% of bankroll regardless of model output.
 
+### Joint Kelly (Optional, Correlation-Aware)
+
+Set `EVMAX_JOINT_KELLY_ENABLED=true` in `.env` to replace fractional-Kelly + exposure-guard with a single correlation-aware optimization (`evmax/ev/joint_kelly.py`).
+
+Legs sharing a game outcome are sized **jointly** using a two-factor Gaussian copula:
+- Moneyline + spread → share a *margin* axis (high correlation)
+- Over/under totals → share a *total* axis
+- Cross-market (e.g. moneyline vs total) → private axes
+
+The optimizer expands the per-event gross cap from 8% toward `joint_kelly_max_gross_pct` (default 15%) **only when portfolio variance drops below the naive independent sum** — that is, when contradictory legs genuinely hedge. Same-direction (redundant) legs stay pinned at 8%. Single-leg events reduce exactly to fractional Kelly, so this is safe to flip on/off without regressing existing behavior.
+
+This is the right way to size the kind of multi-leg setup you see when a model finds value on both an alt-spread blowout (longshot) and the underdog ML (hedge) — fractional Kelly per leg overcaps because it ignores the negative covariance between them.
+
 ---
 
 ## CLI Reference
@@ -1358,8 +1464,8 @@ All settings live in `.env` (or environment variables):
 | Sector | Sharp Source | Models | Injury Data | Mode |
 |--------|-------------|--------|-------------|------|
 | NBA | Pinnacle guest API (league 487) | Efficiency + PossessionSim + ShotQuality + Matchup + Elo + Form | ESPN | `live` |
-| WNBA | Pinnacle guest API (league 578) | WNBA Efficiency + WNBA PossessionSim + Elo + Form | ESPN | `shadow` until MODEL-11 validation |
-| NFL | Pinnacle guest API (league 258) | Elo + Form + Poisson | ESPN | `live` |
+| WNBA | Pinnacle guest API (league 578) | WNBA Efficiency + WNBA PossessionSim + Elo (totals stay `shadow`) | ESPN | `live` (ML + spread, promoted 2026-05-26) |
+| NFL | Pinnacle guest API (league 258) | NFL Efficiency + NFL QB Elo + Elo + Form | ESPN | `live` |
 | NCAAB | Pinnacle guest API (league 493) | Elo + Form + Poisson | ESPN | `live` |
 | NCAAW | TheOddsAPI (`basketball_wncaab`) | Elo + Form + Poisson | ESPN | `live` |
 | Soccer | Pinnacle guest API (EPL/UCL/La Liga/Bundesliga/Serie A/Ligue 1/MLS/UEL) | Poisson + xG + Elo + Form | ESPN | `live` |
