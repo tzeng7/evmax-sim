@@ -225,6 +225,94 @@ def _load_placed_exposure() -> dict[str, float]:
     return exposure
 
 
+def _apply_joint_kelly(
+    gaps: list[EVGap],
+    kelly_multiplier: float = 0.25,
+    max_kelly_fraction: float = 0.05,
+    base_gross_cap: float = 0.08,
+    max_gross_cap: float = 0.15,
+    rho_margin_total: float = 0.0,
+    n_samples: int = 20000,
+    prior_exposure: dict[str, float] | None = None,
+) -> list[EVGap]:
+    """Correlation-aware per-event sizing (replaces _compute-then-guard when
+    settings.joint_kelly_enabled).
+
+    Legs sharing a game outcome are sized jointly so contradictory legs (which
+    hedge) and same-direction legs (which overlap) are sized on the portfolio,
+    not leg-by-leg. The per-event gross cap is variance-scaled inside the
+    optimizer (expands toward max_gross_cap only as hedging cuts variance), so
+    no separate exposure guard is needed afterward. Single-leg events reduce
+    exactly to fractional Kelly. prior_exposure (Kelly already committed on a
+    game in earlier scans) shrinks that game's remaining gross budget.
+    """
+    from evmax.ev.joint_kelly import (
+        JointKellyConfig,
+        JointLeg,
+        infer_axis_and_sign,
+        joint_kelly_fractions,
+    )
+
+    base_event_key = lambda g: (g.event_id or "").split("::prop::")[0]
+    prior = dict(prior_exposure or {})
+
+    by_event: dict[str, list[EVGap]] = {}
+    for g in gaps:
+        by_event.setdefault(base_event_key(g), []).append(g)
+
+    guarded: list[EVGap] = []
+    for base, group in by_event.items():
+        # The first margin leg's team orients the event; the opposing team's
+        # margin legs get the opposite sign so they anti-correlate.
+        reference_team = None
+        for g in group:
+            if (g.market_type or "").lower() in ("moneyline", "spread"):
+                reference_team = g.yes_team
+                break
+
+        legs: list[JointLeg] = []
+        for g in group:
+            axis, sign = infer_axis_and_sign(g.market_type, g.yes_team, reference_team)
+            decimal_odds = (
+                1.0 / g.kalshi_yes_price
+                if getattr(g, "kalshi_yes_price", 0) and g.kalshi_yes_price > 0
+                else 0.0
+            )
+            # Match compute_kelly's liquidity discount so single legs reduce
+            # exactly to the independent fractional-Kelly stake.
+            liquidity = max(0.25, 1.0 - (getattr(g, "spread_pct", 0.0) or 0.0) * 5.0)
+            legs.append(
+                JointLeg(
+                    win_prob=g.blended_true_prob,
+                    decimal_odds=decimal_odds,
+                    axis=axis,
+                    sign=sign,
+                    confidence=1.0,
+                    liquidity=liquidity,
+                    label=g.yes_team,
+                )
+            )
+
+        used = prior.get(base, 0.0)
+        config = JointKellyConfig(
+            kelly_multiplier=kelly_multiplier,
+            max_fraction=max_kelly_fraction,
+            base_gross_cap=max(0.0, base_gross_cap - used),
+            max_gross_cap=max(0.0, max_gross_cap - used),
+            rho_margin_total=rho_margin_total,
+            n_samples=n_samples,
+        )
+        result = joint_kelly_fractions(legs, config)
+
+        for g, frac in zip(group, result.fractions):
+            if frac <= 0:
+                logger.info("joint_kelly_dropped", base_event=base, yes_team=g.yes_team)
+                continue
+            guarded.append(dataclasses.replace(g, kelly_fraction=round(frac, 4)))
+
+    return guarded
+
+
 def _apply_exposure_guard(
     gaps: list[EVGap],
     max_event_exposure: float = 0.08,
@@ -339,9 +427,38 @@ class AgentCoordinator:
         enable_injuries: bool = True,
         bankroll: float = 250.0,
         kelly_fraction: float = 0.5,
+        respect_season_window: bool = True,
     ) -> None:
         from evmax.sectors.registry import ALL_SECTORS
-        self._sectors = [s.lower() for s in (sectors or ALL_SECTORS)]
+        from evmax.categories import get_category
+
+        requested = [s.lower() for s in (sectors or ALL_SECTORS)]
+
+        # Drop out-of-season sectors so we don't burn Kalshi rate-limit
+        # tokens (one call per series prefix) and Pinnacle calls (one
+        # /matchups call per sector) on dead sectors. Skipped when
+        # `respect_season_window=False`, which the CLI sets whenever the
+        # user passes --sectors explicitly so they can still hit dormant
+        # sectors for testing.
+        self._skipped_off_season: list[str] = []
+        if respect_season_window:
+            kept: list[str] = []
+            for s in requested:
+                try:
+                    spec = get_category(s)
+                except KeyError:
+                    # Unknown sectors (e.g. latent registry entries) — pass
+                    # through and let downstream raise the usual error.
+                    kept.append(s)
+                    continue
+                if spec.is_in_season():
+                    kept.append(s)
+                else:
+                    self._skipped_off_season.append(s)
+            self._sectors = kept
+        else:
+            self._sectors = requested
+
         self._enable_models = enable_models
         self._sharp_weight = sharp_weight
         self._enable_injuries = enable_injuries
@@ -439,6 +556,12 @@ class AgentCoordinator:
         result = CycleResult(bankroll=self._bankroll, kelly_fraction=self._kelly_fraction)
 
         self.log.info("cycle_start", correlation_id=correlation_id, sectors=self._sectors)
+        if self._skipped_off_season:
+            self.log.info(
+                "sectors_skipped_off_season",
+                correlation_id=correlation_id,
+                skipped=self._skipped_off_season,
+            )
         self._archiver.open_session(correlation_id, self._sectors, "agents")
 
         # All sectors run in parallel — Kalshi rate limiting is handled by the
@@ -486,11 +609,23 @@ class AgentCoordinator:
                 games_with_prior=len(prior_exposure),
                 total_prior=round(sum(prior_exposure.values()), 4),
             )
-        result.ev_gaps = _apply_exposure_guard(
-            result.ev_gaps,
-            prior_exposure=prior_exposure,
-            same_side_kelly_discount=get_settings().same_side_kelly_discount,
-        )
+        if get_settings().joint_kelly_enabled:
+            _jk = get_settings()
+            result.ev_gaps = _apply_joint_kelly(
+                result.ev_gaps,
+                kelly_multiplier=self._kelly_fraction,
+                max_kelly_fraction=_jk.max_kelly_fraction,
+                max_gross_cap=_jk.joint_kelly_max_gross_pct,
+                rho_margin_total=_jk.joint_kelly_rho_margin_total,
+                n_samples=_jk.joint_kelly_samples,
+                prior_exposure=prior_exposure,
+            )
+        else:
+            result.ev_gaps = _apply_exposure_guard(
+                result.ev_gaps,
+                prior_exposure=prior_exposure,
+                same_side_kelly_discount=get_settings().same_side_kelly_discount,
+            )
         dropped = pre_guard - len(result.ev_gaps)
         if dropped > 0:
             self.log.info("exposure_guard_applied", dropped=dropped, remaining=len(result.ev_gaps))

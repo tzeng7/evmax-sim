@@ -110,7 +110,7 @@ export default function App() {
 
             <div className="two-col">
               <SectorPerformance sectors={dash.sectors} />
-              <OpenPositions bets={dash.openBets} scanGaps={dash.scanGaps} toast={toast} onPicked={dash.refresh} />
+              <OpenPositions bets={dash.openBets} scanGaps={dash.scanGaps} bankroll={bankroll} kelly={kelly} toast={toast} onPicked={dash.refresh} />
             </div>
 
             <RecentSettled bets={dash.recent} />

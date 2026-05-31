@@ -584,10 +584,10 @@ def _team_rate_with_pen(
 # Mirrors SECTOR_WEIGHT_OVERRIDES["wnba"] in ensemble_agent.py. Kept in sync
 # manually so the walk-forward evaluates the same blend the live scanner uses.
 WNBA_WEIGHT_OVERRIDES: dict[str, float] = {
-    "wnba_efficiency":     0.25,
-    "wnba_possession_sim": 0.25,
-    "elo":                 0.30,
-    "form":                0.15,
+    "wnba_efficiency":     0.40,
+    "wnba_possession_sim": 0.45,
+    "elo":                 0.15,
+    "form":                0.0,
     "poisson":             0.0,
 }
 

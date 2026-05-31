@@ -2176,83 +2176,153 @@
     },
     "teams": {
       "wings": {
-        "attack": 1.0078,
-        "defense": 1.0727,
-        "games": 46
+        "attack": 1.0330985953530212,
+        "defense": 1.0604573676213844,
+        "games": 66
       },
       "mystics": {
-        "attack": 0.9406,
-        "defense": 0.9964,
-        "games": 46
+        "attack": 0.9640943762334476,
+        "defense": 1.0215464489306245,
+        "games": 61
       },
       "sparks": {
-        "attack": 1.0468,
-        "defense": 1.0772,
-        "games": 45
+        "attack": 1.0614646708218787,
+        "defense": 1.106910447106439,
+        "games": 61
       },
       "dream": {
-        "attack": 1.0215,
-        "defense": 0.9386,
-        "games": 49
+        "attack": 1.0211887046651413,
+        "defense": 0.9456779913430714,
+        "games": 62
       },
       "valkyries": {
-        "attack": 0.9508,
-        "defense": 0.9419,
-        "games": 48
+        "attack": 0.9635547274470091,
+        "defense": 0.9416592091769274,
+        "games": 61
       },
       "sun": {
-        "attack": 0.9278,
-        "defense": 1.0493,
-        "games": 46
+        "attack": 0.934147477293358,
+        "defense": 1.0646970857594804,
+        "games": 65
       },
       "mercury": {
-        "attack": 1.0097,
-        "defense": 0.9852,
-        "games": 57
+        "attack": 1.024816344313478,
+        "defense": 1.0019656747653665,
+        "games": 75
       },
       "liberty": {
-        "attack": 1.0213,
-        "defense": 0.9791,
-        "games": 49
+        "attack": 1.0410468289317358,
+        "defense": 1.0016414314554754,
+        "games": 65
       },
       "lynx": {
-        "attack": 1.0395,
-        "defense": 0.9419,
-        "games": 53
+        "attack": 1.0498108660407037,
+        "defense": 0.9552342879614883,
+        "games": 69
       },
       "storm": {
-        "attack": 1.001,
-        "defense": 0.9788,
-        "games": 48
+        "attack": 1.0002352576565352,
+        "defense": 0.9835515549493602,
+        "games": 68
       },
       "fever": {
-        "attack": 1.0318,
-        "defense": 0.9829,
-        "games": 56
+        "attack": 1.0555173972391394,
+        "defense": 1.0075126486880697,
+        "games": 73
       },
       "sky": {
-        "attack": 0.9328,
-        "defense": 1.0408,
-        "games": 47
+        "attack": 0.9545543379035607,
+        "defense": 1.0340453331042394,
+        "games": 64
       },
       "aces": {
-        "attack": 1.0416,
-        "defense": 0.992,
-        "games": 58
+        "attack": 1.0604968320071277,
+        "defense": 1.011836503325578,
+        "games": 75
       },
       "fire": {
-        "attack": 0.92,
-        "defense": 1.02,
-        "games": 0,
+        "attack": 1.049339022893987,
+        "defense": 1.1213379544912399,
+        "games": 12,
         "total_scored": 0,
         "total_conceded": 0
       },
       "tempo": {
-        "attack": 0.95,
-        "defense": 1.05,
-        "games": 0,
+        "attack": 1.0551740612093883,
+        "defense": 1.074384886446247,
+        "games": 19,
         "total_scored": 0,
         "total_conceded": 0
+      },
+      "seattle storm": {
+        "attack": 0.9598541021764692,
+        "defense": 1.134677489744261,
+        "games": 1
+      },
+      "golden state valkyries": {
+        "attack": 1.137252118039409,
+        "defense": 0.9724518955376666,
+        "games": 2
+      },
+      "minnesota lynx": {
+        "attack": 1.0885532022407198,
+        "defense": 1.0712621485147769,
+        "games": 2
+      },
+      "atlanta dream": {
+        "attack": 1.0473946059177794,
+        "defense": 0.971852278453675,
+        "games": 2
+      },
+      "portland fire": {
+        "attack": 1.0493390228939867,
+        "defense": 1.1213379544912399,
+        "games": 6
+      },
+      "chicago sky": {
+        "attack": 1.2219603735707427,
+        "defense": 0.9958486310080867,
+        "games": 1
+      },
+      "phoenix mercury": {
+        "attack": 1.0162453361927577,
+        "defense": 1.1488628920114763,
+        "games": 3
+      },
+      "dallas wings": {
+        "attack": 0.8638686919588222,
+        "defense": 0.9601117220912979,
+        "games": 1
+      },
+      "new york liberty": {
+        "attack": 1.221960373570743,
+        "defense": 1.0798358649485278,
+        "games": 2
+      },
+      "connecticut sun": {
+        "attack": 0.925165401118709,
+        "defense": 1.1089045022894148,
+        "games": 2
+      },
+      "las vegas aces": {
+        "attack": 1.2219603735707427,
+        "defense": 0.8278741631272046,
+        "games": 1
+      },
+      "los angeles sparks": {
+        "attack": 1.1986554208051703,
+        "defense": 1.1201964678767546,
+        "games": 2
+      },
+      "toronto tempo": {
+        "attack": 1.0722037627679313,
+        "defense": 1.2111244042089533,
+        "games": 2
+      },
+      "indiana fever": {
+        "attack": 1.0798358649485278,
+        "defense": 0.9102357884761656,
+        "games": 1
       }
     }
   },
@@ -2303,9 +2373,9 @@
         "games": 82
       },
       "thunder": {
-        "attack": 1.0332250616870529,
-        "defense": 0.9341099087736046,
-        "games": 85
+        "attack": 1.029520492335748,
+        "defense": 0.9361325305394633,
+        "games": 88
       },
       "nets": {
         "attack": 0.9182,
@@ -2333,9 +2403,9 @@
         "games": 87
       },
       "knicks": {
-        "attack": 1.0114121890940082,
-        "defense": 0.9498310009445071,
-        "games": 88
+        "attack": 1.0128048753201475,
+        "defense": 0.9481494400352116,
+        "games": 89
       },
       "76ers": {
         "attack": 0.9991232534695563,
@@ -2358,9 +2428,9 @@
         "games": 86
       },
       "cavaliers": {
-        "attack": 1.0315201744763884,
-        "defense": 0.9986293549839161,
-        "games": 86
+        "attack": 1.0288610009768575,
+        "defense": 1.0002009861130712,
+        "games": 87
       },
       "hornets": {
         "attack": 1.0056,
@@ -2383,9 +2453,9 @@
         "games": 85
       },
       "spurs": {
-        "attack": 1.035226648971305,
-        "defense": 0.9635499696188821,
-        "games": 87
+        "attack": 1.0338337655802212,
+        "defense": 0.9622502270998783,
+        "games": 90
       },
       "grizzlies": {
         "attack": 0.994,

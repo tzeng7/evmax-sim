@@ -504,7 +504,6 @@ async def _run_unified_scan(
             portfolios = [p for p in portfolios if p.id in wanted]
 
         today_str = date.today().isoformat()
-        tomorrow_str = (date.today() + timedelta(days=1)).isoformat()
 
         for portfolio in portfolios:
             logged = 0
@@ -513,8 +512,10 @@ async def _run_unified_scan(
                     continue
                 if gap.get("market_type") == "map_handicap":
                     continue
-                if gap.get("event_date") not in (today_str, tomorrow_str):
-                    continue
+                # No event-date floor: the scanner only emits gaps for games
+                # Kalshi has actually listed, so anything that reaches here is
+                # a real bettable market — restricting to today+tomorrow would
+                # silently drop Finals/series games 2-4 days out.
                 gap_for_log = dict(gap)
                 gap_for_log["scan_date"] = today_str
                 log_portfolio_bet(
@@ -679,13 +680,27 @@ async def api_update_placed(request: Request) -> JSONResponse:
         mid = edit.get("market_id")
         price = edit.get("fill_price")
         stake = edit.get("fill_stake")
-        if not mid or price is None or stake is None:
+        if not mid:
             continue
-        conn.execute(
-            "UPDATE ev_predictions SET placed_price = ?, placed_stake = ? WHERE market_id = ? AND placed = 1",
-            (price, stake, mid),
+        # Partial updates: only set columns the caller provided. If the user
+        # only edits stake (odds left blank), price comes through as None and
+        # we must not overwrite the existing placed_price with NULL.
+        sets, params = [], []
+        if price is not None:
+            sets.append("placed_price = ?")
+            params.append(price)
+        if stake is not None:
+            sets.append("placed_stake = ?")
+            params.append(stake)
+        if not sets:
+            continue
+        params.append(mid)
+        cur = conn.execute(
+            f"UPDATE ev_predictions SET {', '.join(sets)} WHERE market_id = ? AND placed = 1",
+            params,
         )
-        updated += 1
+        if cur.rowcount > 0:
+            updated += 1
     conn.commit()
     conn.close()
     return JSONResponse({"updated": updated})

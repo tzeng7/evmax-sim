@@ -15,8 +15,6 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
   const [edits, setEdits] = useState<Record<string, { odds: string; stake: string }>>({})
   const [dirty, setDirty] = useState(false)
 
-  if (!bets.length) return null
-
   const filtered = sector ? bets.filter(b => b.sector === sector) : bets
 
   const getFill = (b: Bet) => b.placed_price || b.kalshi_yes_price || 0.5
@@ -42,11 +40,14 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
   }
 
   const handleSave = useCallback(async () => {
+    // Only send fields the user actually edited (non-empty string). Backend
+    // does a partial UPDATE so untouched columns keep their existing values
+    // — sending null/0 for an un-edited field would clobber it.
     const items = Object.entries(edits).map(([mid, e]) => ({
       market_id: mid,
-      fill_price: americanToProb(e.odds || ''),
-      fill_stake: parseFloat(e.stake || '0'),
-    }))
+      fill_price: e.odds && e.odds.trim() !== '' ? americanToProb(e.odds) : null,
+      fill_stake: e.stake !== undefined && e.stake !== '' ? parseFloat(e.stake) : null,
+    })).filter(it => it.fill_price !== null || it.fill_stake !== null)
     if (!items.length) return
     try {
       const res = await updatePlaced(items)
@@ -73,6 +74,12 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
   }, [toast, onChanged])
 
   const totalExposure = filtered.reduce((sum, b) => sum + (parseFloat(getStakeVal(b)) || 0), 0)
+
+  // Guard placed AFTER every hook so the hook count is identical whether bets
+  // is empty or populated. An early return above the useCallbacks made React
+  // run fewer hooks on the empty render and more once a bet was placed →
+  // error #310 "rendered more hooks than during the previous render".
+  if (!bets.length) return null
 
   return (
     <div className="panel">

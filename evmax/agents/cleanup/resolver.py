@@ -549,35 +549,158 @@ def _resolve_prop_outcome(
     return result[0]
 
 
+# ESPN box-score → stat_type label map. Mirrors LABEL_MAP in
+# _resolve_prop_observations; kept local so the two prop-resolution code paths
+# stay independently editable. "labels" come from the per-team stat_block's
+# `labels` list (display-facing) — ESPN doesn't publish a `keys` array for NBA
+# the way it does for NFL, so labels are the stable join key here.
+_ESPN_NBA_LABEL: dict[str, str] = {
+    "points": "PTS",
+    "rebounds": "REB",
+    "assists": "AST",
+    "steals": "STL",
+    "blocks": "BLK",
+    "threes": "3PT",
+    "turnovers": "TO",
+}
+
+
+def _norm_prop_player(s: str) -> str:
+    """Normalize player name: strip accents, lowercase, collapse to underscores."""
+    nfkd = unicodedata.normalize("NFKD", s)
+    ascii_only = "".join(c for c in nfkd if not unicodedata.combining(c))
+    return (
+        ascii_only.lower().strip()
+        .replace(" ", "_").replace(".", "")
+        .replace("’", "'").replace("‘", "'")
+    )
+
+
+def _fetch_espn_nba_player_stats(target_date: date) -> dict[str, dict[str, float]]:
+    """Pull NBA box scores for `target_date` and return normalized_player→stats.
+
+    One scoreboard call + N summary calls (N = games on the slate). Cached
+    nowhere — caller is responsible for caching per resolution run.
+    """
+    espn_date = target_date.isoformat().replace("-", "")
+    player_stats: dict[str, dict[str, float]] = {}
+    try:
+        with httpx.Client(timeout=15.0, follow_redirects=True) as client:
+            r = client.get(
+                "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
+                params={"dates": espn_date},
+            )
+            r.raise_for_status()
+            events = r.json().get("events", [])
+
+            for event in events:
+                eid = event.get("id")
+                if not eid:
+                    continue
+                comp = event.get("competitions", [{}])[0]
+                if not comp.get("status", {}).get("type", {}).get("completed", False):
+                    continue
+                try:
+                    box_resp = client.get(
+                        "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary",
+                        params={"event": eid},
+                    )
+                    box_resp.raise_for_status()
+                    box = box_resp.json()
+                except Exception as exc:
+                    logger.debug("prop_pred_espn_box_fail", event=eid, error=str(exc))
+                    continue
+
+                for team_box in box.get("boxscore", {}).get("players", []):
+                    for stat_block in team_box.get("statistics", []):
+                        labels = stat_block.get("labels", [])
+                        for athlete in stat_block.get("athletes", []):
+                            name = athlete.get("athlete", {}).get("displayName", "")
+                            vals = athlete.get("stats", [])
+                            if not name or not vals:
+                                continue
+                            stat_dict: dict[str, float] = {}
+                            for lbl, val in zip(labels, vals):
+                                try:
+                                    if "-" in str(val) and lbl in ("FG", "3PT", "FT"):
+                                        stat_dict[lbl] = float(str(val).split("-")[0])
+                                    else:
+                                        stat_dict[lbl] = float(val)
+                                except (ValueError, TypeError):
+                                    pass
+                            player_stats[_norm_prop_player(name)] = stat_dict
+    except Exception as exc:
+        logger.warning("prop_pred_espn_scoreboard_fail", date=str(target_date), error=str(exc))
+    return player_stats
+
+
+def _resolve_prop_from_espn(
+    espn_stats: dict[str, dict[str, float]],
+    player_name: str,
+    stat_type: str,
+    threshold: float,
+) -> Optional[tuple[int, float]]:
+    """Resolve a single prop from a prefetched ESPN lookup, or return None."""
+    norm = _norm_prop_player(player_name)
+    stats = espn_stats.get(norm)
+    if stats is None:
+        last = norm.rsplit("_", 1)[-1] if "_" in norm else norm
+        for pname, pstats in espn_stats.items():
+            if pname.endswith(last):
+                stats = pstats
+                break
+    if stats is None:
+        return None
+
+    if stat_type == "points_rebounds_assists":
+        if not all(k in stats for k in ("PTS", "REB", "AST")):
+            return None
+        actual = stats["PTS"] + stats["REB"] + stats["AST"]
+    elif stat_type == "blocks_steals":
+        if not all(k in stats for k in ("BLK", "STL")):
+            return None
+        actual = stats["BLK"] + stats["STL"]
+    else:
+        label = _ESPN_NBA_LABEL.get(stat_type)
+        if label is None:
+            return None
+        actual = stats.get(label)
+        if actual is None:
+            return None
+
+    outcome = 1 if actual >= threshold else 0
+    return outcome, float(actual)
+
+
 def _resolve_prop_outcome_with_value(
     player_name: str,
     stat_type: str,
     threshold: float,
     target_date: date,
 ) -> Optional[tuple[int, float]]:
-    """Look up a player's actual stat and return (outcome, actual_value).
+    """nba_api fallback path. ESPN should resolve the vast majority of props.
 
-    Returns (1, value) for over, (0, value) for under, or None if not found.
+    Uses the LRU-cached `_fetch_gamelog_sync` so repeat lookups on the same
+    player (e.g. Donovan Mitchell's points + rebounds + assists + threes) share
+    a single network roundtrip instead of firing four full-season pulls
+    against stats.nba.com.
     """
     try:
-        from evmax.clients.nba_stats import _find_player_id, STAT_COL, _SEASON
+        from evmax.clients.nba_stats import (
+            _find_player_id, _fetch_gamelog_sync, STAT_COL,
+        )
         import pandas as pd
-        from nba_api.stats.endpoints import playergamelogs
 
         player_id = _find_player_id(player_name)
         if player_id is None:
             logger.debug("prop_player_not_found", player=player_name)
             return None
 
-        df = playergamelogs.PlayerGameLogs(
-            player_id_nullable=player_id,
-            season_nullable=_SEASON,
-            last_n_games_nullable=0,
-        ).get_data_frames()[0]
-
+        df = _fetch_gamelog_sync(player_id)
         if df is None or df.empty:
             return None
 
+        df = df.copy()
         df["GAME_DATE"] = pd.to_datetime(df["GAME_DATE"]).dt.date
         lo = target_date - timedelta(days=1)
         hi = target_date + timedelta(days=1)
@@ -673,6 +796,13 @@ def _write_outcome(conn: sqlite3.Connection, pred: dict, outcome: int, source: s
             source,
         ),
     )
+    # Commit immediately so the WAL write lock is released between rows.
+    # Resolution spans tens of seconds across NBA + soccer + tennis + esports
+    # while making HTTP calls between writes; holding one transaction across
+    # all of that starves concurrent writers (dashboard `sync_portfolio_outcomes`,
+    # CLI cleanup) and produces "database is locked" once their 5s busy_timeout
+    # expires. WAL commits are cheap.
+    conn.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -1039,7 +1169,13 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
     failed = 0
     unmatched: list[str] = []
 
-    # Resolve NBA player props synchronously (nba_api is blocking).
+    # Resolve NBA player props. ESPN box scores cover the slate in one
+    # scoreboard + N summary calls per date — far cheaper than the previous
+    # per-(player, stat) stats.nba.com hammering that was timing out at 30s
+    # under the load of a full prop slate. nba_api stays as a fallback for
+    # players/stats ESPN doesn't surface, with `_fetch_gamelog_sync` LRU-
+    # cached so repeat stats on the same player share one roundtrip.
+    #
     # Threshold authority: prefer pred["line"] (the Kalshi threshold the bet
     # was placed at) over event_id::parts[5]. Pre-2026-05-11 the synthetic
     # SharpOdds event_id encoded the Pinnacle anchor line (e.g. 4.5) while
@@ -1047,6 +1183,8 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
     # parsing event_id resolved a 10+ bet against a 4.5 cutoff and marked
     # losers as WON. event_id stays the fallback for player/stat/date
     # extraction since those don't drift the same way.
+    espn_stats_cache: dict[date, dict[str, dict[str, float]]] = {}
+
     for pred in prop_preds:
         parts = pred["event_id"].split("::")
         if len(parts) < 6:
@@ -1067,9 +1205,25 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
         else:
             _threshold = float(_threshold)
         _event_date = date.fromisoformat(parts[1])
-        outcome = _resolve_prop_outcome(_player, _stat, _threshold, _event_date)
+
+        outcome = None
+        source = "nba_api"
+
+        if pred.get("sector") == "nba" or pred.get("sector") is None:
+            if _event_date not in espn_stats_cache:
+                espn_stats_cache[_event_date] = _fetch_espn_nba_player_stats(_event_date)
+            espn_outcome = _resolve_prop_from_espn(
+                espn_stats_cache[_event_date], _player, _stat, _threshold,
+            )
+            if espn_outcome is not None:
+                outcome = espn_outcome[0]
+                source = "espn_boxscore"
+
+        if outcome is None:
+            outcome = _resolve_prop_outcome(_player, _stat, _threshold, _event_date)
+
         if outcome is not None:
-            _write_outcome(conn, pred, outcome, "nba_api")
+            _write_outcome(conn, pred, outcome, source)
             resolved += 1
         else:
             failed += 1

@@ -88,7 +88,7 @@ tennis:
   display_name: "Tennis (ATP + WTA)"
   market_types: [moneyline]
   models: [tennis_surface_elo, tennis_serve_return, tennis_h2h, tennis_ranking_trend, tennis_form, tennis_advanced, sharp]
-  mode: shadow
+  mode: live
   resolver: kalshi_settlement
   status: shipped
   notes: "Shadow 2026-05-01 → 2026-05-02: production data (n=112) initially pushed sharp_weight to 1.00, but a leak-free walk-forward (n=2576, 2025+2026, scripts/backtest_tennis_walkforward.py) showed flat 0.85 beats sharp_only by ΔBrier +0.40/1000 — the production sample was selection-biased (EV≥2% YES rows only). Reverted to 0.85 with no disagreement-ramp override; tennis_h2h alone beats sharp by 0.0077 Brier on its 863-game subset, which the ramp was wiping out. Watch n=30+ resolved shadow bets to confirm before promoting back to live via `evmax cleanup shadow promote tennis`."

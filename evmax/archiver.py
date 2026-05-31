@@ -493,6 +493,54 @@ class DataArchiver:
             true_prob_draw=row["true_prob_draw"],
         )
 
+    def get_total_closing_line_aligned(
+        self,
+        event_id: str,
+        yes_team: str | None,
+        line: float | None = None,
+    ) -> float | None:
+        """Return the latest pre-tipoff Pinnacle total prob aligned to YES.
+
+        For totals, ``yes_team`` is ``"over"`` or ``"under"`` (the scanner
+        normalizes the YES side label). Matches the snapshot with the same
+        total_line when possible, else falls back to the latest pre-tipoff
+        total snapshot for the event.
+        """
+        side = (yes_team or "").strip().lower()
+        if side not in ("over", "under"):
+            return None
+
+        with _get_connection() as conn:
+            row = None
+            if line is not None:
+                row = conn.execute(
+                    """SELECT true_prob_over, true_prob_under
+                       FROM archived_sharp_odds
+                       WHERE event_id = ?
+                         AND total_line IS NOT NULL
+                         AND ABS(total_line - ?) < 0.01
+                         AND event_date IS NOT NULL
+                         AND fetched_at < event_date
+                       ORDER BY fetched_at DESC
+                       LIMIT 1""",
+                    (event_id, float(line)),
+                ).fetchone()
+            if row is None:
+                row = conn.execute(
+                    """SELECT true_prob_over, true_prob_under
+                       FROM archived_sharp_odds
+                       WHERE event_id = ?
+                         AND total_line IS NOT NULL
+                         AND event_date IS NOT NULL
+                         AND fetched_at < event_date
+                       ORDER BY fetched_at DESC
+                       LIMIT 1""",
+                    (event_id,),
+                ).fetchone()
+        if not row:
+            return None
+        return row["true_prob_over"] if side == "over" else row["true_prob_under"]
+
     def close_session(
         self,
         session_id: str,

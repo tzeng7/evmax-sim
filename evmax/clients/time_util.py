@@ -19,7 +19,14 @@ from zoneinfo import ZoneInfo
 # Sectors whose Kalshi ticker date follows US calendar day (most US sports).
 # For these, convert commence_time to US/Eastern before formatting so a
 # 10pm ET game on April 20 is "2026-04-20", not "2026-04-21".
-_US_SECTORS = frozenset({"nba", "nfl", "mlb", "nhl", "ncaab", "ncaaw"})
+#
+# IMPORTANT: keys must match the *sector* names used throughout the codebase
+# (see evmax/sectors/registry.py and data/categories.yaml), not the league
+# brand. MLB is sector="baseball" — using "mlb" here silently fell through
+# to the UTC branch and caused 8pm+ ET MLB games to land on the next calendar
+# day on the Pinnacle side, so Kalshi's game 1 in a series matched Pinnacle's
+# game 2 (off-by-one date in the canonical event key).
+_US_SECTORS = frozenset({"nba", "wnba", "nfl", "mlb", "baseball", "nhl", "ncaab", "ncaaw"})
 _US_TZ = ZoneInfo("America/New_York")
 
 

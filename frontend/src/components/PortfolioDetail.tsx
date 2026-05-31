@@ -136,7 +136,7 @@ export function PortfolioDetail({ portfolioId, onBack, toast }: Props) {
                 <th>Outcome</th>
                 <th>Sector</th>
                 <th className="num">Odds</th>
-                <th className="num">True Prob</th>
+                <th className="num">Fair Value</th>
                 <th className="num">EV</th>
                 <th className="num">Stake</th>
                 {tab !== 'open' && <th className="num">P&L</th>}
@@ -165,7 +165,7 @@ function BetRow({ bet, showResult }: { bet: PortfolioBet; showResult: boolean })
       <td>{label}</td>
       <td><span className="badge">{bet.sector}</span></td>
       <td className="num">{probToAmerican(bet.kalshi_yes_price || 0)}</td>
-      <td className="num">{((bet.blended_true_prob || 0) * 100).toFixed(0)}%</td>
+      <td className="num">{probToAmerican(bet.blended_true_prob || 0)}</td>
       <td className="num green">{((bet.ev_pct || 0) * 100).toFixed(1)}%</td>
       <td className="num">${(bet.stake || 0).toFixed(2)}</td>
       {showResult && (

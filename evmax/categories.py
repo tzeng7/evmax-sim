@@ -114,10 +114,32 @@ class CategorySpec:
     # = sector mode applies to every market type. Validated against the
     # category's market_types list at parse time.
     shadow_market_types: tuple[str, ...] = field(default_factory=tuple)
+    # Optional (start, end) MM-DD pair bounding the regular season. When set,
+    # is_in_season() returns False outside the window so the coordinator can
+    # skip dead sectors (saves Kalshi rate-limit + Pinnacle API tokens).
+    # Wrap-around windows (end < start, e.g. NFL "09-04" → "02-15") supported.
+    season_window: Optional[tuple[str, str]] = None
 
     @property
     def is_prop(self) -> bool:
         return self.market_types == (MarketType.player_prop,)
+
+    def is_in_season(self, today=None) -> bool:
+        """True if `today` (date, default today) falls inside season_window.
+
+        Categories without a declared window are always in season.
+        """
+        if self.season_window is None:
+            return True
+        from datetime import date as _date
+        d = today if isinstance(today, _date) else _date.today()
+        mmdd = (d.month, d.day)
+        start_m, start_d = (int(x) for x in self.season_window[0].split("-"))
+        end_m, end_d = (int(x) for x in self.season_window[1].split("-"))
+        start, end = (start_m, start_d), (end_m, end_d)
+        if start <= end:
+            return start <= mmdd <= end
+        return mmdd >= start or mmdd <= end
 
 
 # ---------------------------------------------------------------------------
@@ -188,6 +210,29 @@ def _parse_entry(key: str, raw: dict) -> CategorySpec:
                     f"not in this category's market_types {sorted(legal)}"
                 )
 
+    season_window: Optional[tuple[str, str]] = None
+    raw_window = raw.get("season_window")
+    if raw_window is not None:
+        if not isinstance(raw_window, dict) or "start" not in raw_window or "end" not in raw_window:
+            raise ValueError(
+                f"category {key!r}: season_window must be a mapping with 'start' and 'end' MM-DD strings"
+            )
+        for fld in ("start", "end"):
+            val = raw_window[fld]
+            if not (isinstance(val, str) and len(val) == 5 and val[2] == "-"):
+                raise ValueError(
+                    f"category {key!r}: season_window.{fld}={val!r} must be MM-DD"
+                )
+            try:
+                m, d = int(val[:2]), int(val[3:])
+                if not (1 <= m <= 12 and 1 <= d <= 31):
+                    raise ValueError
+            except ValueError:
+                raise ValueError(
+                    f"category {key!r}: season_window.{fld}={val!r} has illegal month/day"
+                )
+        season_window = (raw_window["start"], raw_window["end"])
+
     return CategorySpec(
         key=key,
         display_name=display_name,
@@ -199,6 +244,7 @@ def _parse_entry(key: str, raw: dict) -> CategorySpec:
         prop_stat_types=prop_stat_types,
         notes=notes,
         shadow_market_types=shadow_market_types,
+        season_window=season_window,
     )
 
 

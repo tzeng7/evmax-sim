@@ -94,11 +94,15 @@ async def _scan_loop(
 
 @app.command("scan")
 def scan(
-    sectors: str = typer.Option(
-        "nba,wnba,ncaab,ncaaw,soccer,lol,cs2,tennis,baseball",
+    sectors: Optional[str] = typer.Option(
+        None,
         "--sectors",
         "-s",
-        help="Comma-separated sector list, e.g. 'nba,soccer'",
+        help="Comma-separated sector list, e.g. 'nba,soccer'. "
+             "Default: every sector in data/categories.yaml that is "
+             "currently in season (out-of-season sectors are dropped so "
+             "we don't burn API calls on dead leagues). Passing this flag "
+             "explicitly bypasses the seasonality gate.",
     ),
     no_models: bool = typer.Option(False, "--no-models", help="Skip model agents (sharp probs only)."),
     no_injuries: bool = typer.Option(False, "--no-injuries", help="Skip injury report agent."),
@@ -145,8 +149,19 @@ def scan(
     from evmax.agents.coordinator import AgentCoordinator
     from evmax.settings import get_settings as _get_settings
     from evmax.sectors.registry import ALL_SECTORS
+    from evmax.categories import get_category as _get_category
 
-    sector_list = [s.strip().lower() for s in sectors.split(",") if s.strip()]
+    # Whether the user passed --sectors explicitly. Explicit selection
+    # bypasses the seasonality gate so you can test/debug a dormant
+    # league without removing its season_window.
+    sectors_explicit = sectors is not None
+
+    if sectors_explicit:
+        sector_list = [s.strip().lower() for s in sectors.split(",") if s.strip()]
+    else:
+        # Default: every registered sector in SECTOR_SERIES_MAP. The
+        # coordinator will drop out-of-season ones via season_window.
+        sector_list = list(ALL_SECTORS)
 
     # Validate sector names upfront
     invalid = [s for s in sector_list if s not in ALL_SECTORS]
@@ -154,6 +169,30 @@ def scan(
         console.print(f"[red]Unknown sector(s):[/red] {', '.join(invalid)}")
         console.print(f"[dim]Valid sectors: {', '.join(ALL_SECTORS)}[/dim]")
         raise typer.Exit(1)
+
+    # Print which sectors are being dropped on the default-all path so the
+    # user can see why NFL/NCAAB went missing in May. Explicit selection
+    # bypasses the gate entirely.
+    skipped_off_season: list[str] = []
+    if not sectors_explicit:
+        kept: list[str] = []
+        for s in sector_list:
+            try:
+                spec = _get_category(s)
+            except KeyError:
+                kept.append(s)
+                continue
+            if spec.is_in_season():
+                kept.append(s)
+            else:
+                skipped_off_season.append(s)
+        sector_list = kept
+        if skipped_off_season:
+            console.print(
+                f"[dim]Skipping out-of-season sectors: "
+                f"{', '.join(skipped_off_season)} "
+                f"(pass --sectors {','.join(skipped_off_season)} to force).[/dim]"
+            )
 
     # ARCH-11 category-mode overrides. Compose a single runtime-override
     # dict and install it before any scan output or logging happens so
@@ -202,6 +241,7 @@ def scan(
         enable_injuries=not no_injuries,
         bankroll=bankroll,
         kelly_fraction=kelly,
+        respect_season_window=not sectors_explicit,
     )
 
     console.print(f"\n[bold cyan]evmax agent scan[/bold cyan] — sectors: {', '.join(sector_list)}\n")
@@ -1153,7 +1193,7 @@ def update_result(
         )
         raise typer.Exit(1)
     from evmax.agents.coordinator import AgentCoordinator
-    c = AgentCoordinator(sectors=[sector], enable_models=True)
+    c = AgentCoordinator(sectors=[sector], enable_models=True, respect_season_window=False)
     c.update_models(team_a, team_b, score_a, score_b, sector, date, surface=surface or "overall")
     console.print(
         f"[green]Updated models:[/green] {team_a} {score_a:.0f} – {score_b:.0f} {team_b} ({sector})"

@@ -28,6 +28,8 @@ from evmax.agents.cleanup.resolver import (
     _to_fuzz,
     _write_outcome,
     _fetch_espn_scores,
+    _norm_prop_player,
+    _resolve_prop_from_espn,
     FUZZY_THRESHOLD,
     _ACRONYM_EXPAND,
 )
@@ -699,6 +701,61 @@ class TestWriteOutcome:
         assert len(rows) == 1
         assert rows[0]["outcome"] == 1
 
+    def test_commit_per_write_releases_lock(self, tmp_path):
+        """Each _write_outcome commits, so a second connection can immediately read.
+
+        Regression for 'database is locked' from portfolios.sync_portfolio_outcomes:
+        if the resolver held one giant transaction across all writes + HTTP work,
+        a concurrent writer (the dashboard sync button) would hit the 5s
+        busy_timeout and 500 with OperationalError.
+        """
+        db_path = tmp_path / "test.db"
+        # Writer connection initializes the schema.
+        writer = sqlite3.connect(str(db_path))
+        writer.row_factory = sqlite3.Row
+        writer.execute("PRAGMA journal_mode=WAL")
+        writer.execute("""
+            CREATE TABLE ev_outcomes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                market_id TEXT UNIQUE,
+                event_id TEXT,
+                event_date TEXT,
+                sector TEXT,
+                yes_team TEXT,
+                outcome INTEGER,
+                sharp_true_prob REAL,
+                blended_true_prob REAL,
+                resolved_at TEXT,
+                result_source TEXT
+            )
+        """)
+        writer.commit()
+
+        pred = {
+            "market_id": "kalshi:LOCKTEST",
+            "event_id": "nba::2026-05-10::test",
+            "sector": "nba",
+            "yes_team": "lakers",
+            "event_date": "2026-05-10",
+            "sharp_true_prob": 0.55,
+            "blended_true_prob": 0.58,
+        }
+        _write_outcome(writer, pred, 1, "espn_boxscore")
+
+        # Independent reader connection — would see no row if the writer hadn't
+        # committed (and would block on a non-WAL DB until busy_timeout expires).
+        reader = sqlite3.connect(str(db_path), timeout=0.5)
+        reader.row_factory = sqlite3.Row
+        row = reader.execute(
+            "SELECT outcome, result_source FROM ev_outcomes WHERE market_id = ?",
+            ("kalshi:LOCKTEST",),
+        ).fetchone()
+        reader.close()
+        writer.close()
+        assert row is not None
+        assert row["outcome"] == 1
+        assert row["result_source"] == "espn_boxscore"
+
 
 # ---------------------------------------------------------------------------
 # Pending deduplication helper (unit test for the dedup logic)
@@ -784,3 +841,167 @@ class TestOffByOneDateMatching:
         prev_scores = [_make_score("FC Barcelona", 3, "Rayo Vallecano", 0)]
         pred = _make_pred("soccer::2026-03-22::barcelona_vs_rayo_vallecano", "barcelona")
         assert _match_espn(pred, prev_scores) == 1
+
+
+# ---------------------------------------------------------------------------
+# Prop resolution — ESPN-first path keeps stats.nba.com out of the hot loop.
+# ---------------------------------------------------------------------------
+
+class TestNormPropPlayer:
+    def test_lowercase_underscores(self):
+        assert _norm_prop_player("Jalen Duren") == "jalen_duren"
+
+    def test_strips_accents(self):
+        assert _norm_prop_player("Luka Dončić") == "luka_doncic"
+
+    def test_strips_periods(self):
+        assert _norm_prop_player("P.J. Washington") == "pj_washington"
+
+
+class TestResolvePropFromEspn:
+    """ESPN lookup hands back (outcome, value) when player+stat are present.
+
+    These directly exercise the helper that replaced per-bet stats.nba.com
+    calls. The 30s timeouts in the logs were one PlayerGameLogs call PER
+    (player, stat); this path lets one ESPN summary call serve every prop
+    for that player on the slate.
+    """
+
+    @staticmethod
+    def _stats():
+        return {
+            "donovan_mitchell": {"PTS": 28.0, "REB": 6.0, "AST": 9.0, "3PT": 4.0,
+                                 "STL": 2.0, "BLK": 0.0, "TO": 3.0},
+            "jalen_duren":      {"PTS": 18.0, "REB": 14.0, "AST": 1.0, "3PT": 0.0,
+                                 "STL": 1.0, "BLK": 2.0, "TO": 2.0},
+        }
+
+    def test_points_over(self):
+        out = _resolve_prop_from_espn(self._stats(), "donovan_mitchell", "points", 24.5)
+        assert out == (1, 28.0)
+
+    def test_points_under(self):
+        out = _resolve_prop_from_espn(self._stats(), "jalen_duren", "points", 19.5)
+        assert out == (0, 18.0)
+
+    def test_threes(self):
+        out = _resolve_prop_from_espn(self._stats(), "donovan_mitchell", "threes", 2.5)
+        assert out == (1, 4.0)
+
+    def test_points_rebounds_assists_derived(self):
+        out = _resolve_prop_from_espn(
+            self._stats(), "donovan_mitchell", "points_rebounds_assists", 40.5,
+        )
+        assert out == (1, 43.0)
+
+    def test_blocks_steals_derived(self):
+        out = _resolve_prop_from_espn(
+            self._stats(), "jalen_duren", "blocks_steals", 2.5,
+        )
+        assert out == (1, 3.0)
+
+    def test_last_name_fallback(self):
+        # Query name doesn't match the cache exactly but last token does.
+        out = _resolve_prop_from_espn(self._stats(), "d_mitchell", "points", 25.0)
+        assert out == (1, 28.0)
+
+    def test_player_not_in_espn_returns_none(self):
+        # Caller falls back to nba_api when ESPN doesn't have the player.
+        assert _resolve_prop_from_espn(self._stats(), "ghost_player", "points", 10.0) is None
+
+    def test_unknown_stat_type_returns_none(self):
+        assert _resolve_prop_from_espn(self._stats(), "donovan_mitchell", "fouls", 2.5) is None
+
+
+class TestPropResolutionEspnFirst:
+    """End-to-end: when ESPN has the data, nba_api is never called.
+
+    Regression for the 2026-05-11 timeout flood — per-bet PlayerGameLogs
+    calls were exhausting the stats.nba.com quota and 30s-timing-out on
+    multi-stat players like Mitchell, Duren, Hachimura.
+    """
+
+    class _NoCloseConn:
+        """Wraps a sqlite3 connection so `.close()` is a no-op. resolve_outcomes_for_date
+        closes its connection at the end; in-memory DBs die with the connection,
+        so this lets the test still query ev_outcomes after the resolver returns."""
+        def __init__(self, conn):
+            self._conn = conn
+        def __getattr__(self, item):
+            return getattr(self._conn, item)
+        def close(self):
+            pass
+
+    def _make_db(self):
+        from evmax.agents.cleanup.db import SCHEMA
+        raw = sqlite3.connect(":memory:")
+        raw.row_factory = sqlite3.Row
+        raw.executescript(SCHEMA)
+        return self._NoCloseConn(raw)
+
+    def _seed_prop_pred(self, conn, market_id, player, stat, threshold, event_date="2026-05-10"):
+        conn.execute(
+            """INSERT INTO ev_predictions
+               (scan_date, market_id, event_id, sector, yes_team, market_type,
+                event_title, event_date, kalshi_yes_price, sharp_true_prob,
+                blended_true_prob, ev_pct, kelly_fraction, bankroll_used, line)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                event_date, market_id,
+                f"nba::{event_date}::prop::{player}::{stat}::{threshold}",
+                "nba", "yes", "player_prop",
+                f"{player} {stat}", event_date,
+                0.40, 0.45, 0.48, 0.05, 0.01, 500.0, threshold,
+            ),
+        )
+        conn.commit()
+
+    def test_espn_resolves_without_nba_api(self):
+        from evmax.agents.cleanup import resolver
+
+        conn = self._make_db()
+        self._seed_prop_pred(conn, "kalshi:M1", "donovan_mitchell", "points", 24.5)
+        self._seed_prop_pred(conn, "kalshi:M2", "donovan_mitchell", "rebounds", 5.5)
+        self._seed_prop_pred(conn, "kalshi:M3", "donovan_mitchell", "assists", 7.5)
+
+        espn_payload = {
+            "donovan_mitchell": {"PTS": 28.0, "REB": 6.0, "AST": 9.0,
+                                 "3PT": 4.0, "STL": 2.0, "BLK": 0.0, "TO": 3.0},
+        }
+
+        with patch.object(resolver, "get_connection", return_value=conn), \
+             patch.object(resolver, "_fetch_espn_nba_player_stats", return_value=espn_payload) as espn_fetch, \
+             patch.object(resolver, "_resolve_prop_outcome") as nba_api_fallback:
+            asyncio.run(resolver.resolve_outcomes_for_date(date(2026, 5, 10)))
+
+        # ESPN is called exactly once per (sector, date), not once per (player, stat).
+        assert espn_fetch.call_count == 1
+        # nba_api fallback should never fire when ESPN resolves all rows.
+        assert nba_api_fallback.call_count == 0
+
+        outcomes = conn.execute(
+            "SELECT market_id, outcome, result_source FROM ev_outcomes ORDER BY market_id"
+        ).fetchall()
+        assert len(outcomes) == 3
+        for row in outcomes:
+            assert row["outcome"] == 1
+            assert row["result_source"] == "espn_boxscore"
+
+    def test_falls_back_to_nba_api_when_espn_misses(self):
+        from evmax.agents.cleanup import resolver
+
+        conn = self._make_db()
+        self._seed_prop_pred(conn, "kalshi:M9", "obscure_rookie", "points", 9.5)
+
+        with patch.object(resolver, "get_connection", return_value=conn), \
+             patch.object(resolver, "_fetch_espn_nba_player_stats", return_value={}), \
+             patch.object(resolver, "_resolve_prop_outcome", return_value=1) as nba_api_fallback:
+            asyncio.run(resolver.resolve_outcomes_for_date(date(2026, 5, 10)))
+
+        assert nba_api_fallback.call_count == 1
+        row = conn.execute(
+            "SELECT outcome, result_source FROM ev_outcomes WHERE market_id = ?",
+            ("kalshi:M9",),
+        ).fetchone()
+        assert row["outcome"] == 1
+        assert row["result_source"] == "nba_api"
