@@ -747,3 +747,73 @@ class TestNflPositionWeights:
         )
         # KC's probability should drop more after QB out than after TE out
         assert a_qb < a_te
+
+
+# ---------------------------------------------------------------------------
+# NO-side total derivation: Kalshi frames totals YES = OVER, so the UNDER is
+# only reachable via the NO side. Before _build_no_side_total_gap, the under
+# was structurally unbettable (the NO-side path was spread-only) — which is why
+# 100% of logged baseball totals were overs.
+# ---------------------------------------------------------------------------
+
+class TestNoSideTotalGap:
+    def _agent(self):
+        with patch("evmax.agents.odds.ev_gap_agent.get_settings") as mock_settings:
+            settings = MagicMock()
+            settings.ev_threshold = 0.02
+            settings.max_kelly_fraction = 0.05
+            settings.chalk_price_ceiling = 0.90
+            mock_settings.return_value = settings
+            return EVGapAgent()
+
+    def _payload(self, blended_over, sharp_over):
+        return {
+            "blended_prob_yes": blended_over,
+            "sharp_true_prob_yes": sharp_over,
+            "src": "sharp+pitcher",
+            "yes_is_outcome_b": False,
+            "used_spread_model": False,
+        }
+
+    def test_under_gap_built_when_positive_ev(self):
+        agent = self._agent()
+        # Over priced rich (under NO ask = 0.33) but model says over only 0.55,
+        # so under = 0.45 → EV = 0.45/0.33 - 1 ≈ +36%.
+        market = _market(yes_price=0.70, yes_team="over",
+                         market_type=MarketType.total, line=8.5, yes_price_no=0.33)
+        sharp = _sharp(outcome_a="over", outcome_b="under", true_prob_a=0.50)
+        gap = agent._build_no_side_total_gap(
+            market, sharp, self._payload(0.55, 0.52), 0.95, "baseball", kelly_base=0.5,
+        )
+        assert gap is not None
+        assert gap.yes_team == "under"
+        assert gap.market_type == MarketType.total.value
+        assert gap.line == 8.5                      # totals line NOT flipped
+        assert gap.market_id.endswith(":no")
+        assert gap.kalshi_yes_price == pytest.approx(0.33)
+        assert gap.blended_true_prob == pytest.approx(0.45)
+        assert gap.ev_pct > 0
+        assert gap.model_sources.endswith("+no_side")
+
+    def test_no_under_gap_when_model_loves_over(self):
+        """If the model projects a high over prob, the under is -EV → None."""
+        agent = self._agent()
+        market = _market(yes_price=0.70, yes_team="over",
+                         market_type=MarketType.total, line=8.5, yes_price_no=0.33)
+        sharp = _sharp(outcome_a="over", outcome_b="under", true_prob_a=0.50)
+        # blended over 0.80 → under 0.20; 0.20/0.33 - 1 ≈ -39% → no gap
+        gap = agent._build_no_side_total_gap(
+            market, sharp, self._payload(0.80, 0.78), 0.95, "baseball", kelly_base=0.5,
+        )
+        assert gap is None
+
+    def test_dead_under_book_returns_none(self):
+        agent = self._agent()
+        # NO ask at the 1¢ floor = dead book
+        market = _market(yes_price=0.99, yes_team="over",
+                         market_type=MarketType.total, line=8.5, yes_price_no=0.005)
+        sharp = _sharp(outcome_a="over", outcome_b="under", true_prob_a=0.50)
+        gap = agent._build_no_side_total_gap(
+            market, sharp, self._payload(0.30, 0.30), 0.95, "baseball", kelly_base=0.5,
+        )
+        assert gap is None

@@ -342,7 +342,8 @@ def close_lines(
     # yes_team is needed to align Pinnacle's outcome_a/_b probs to the YES side
     # we actually bet — without it, half the rows store the inverted prob.
     rows = conn.execute(
-        """SELECT o.market_id, o.event_id, o.sector, p.sharp_true_prob, p.yes_team
+        """SELECT o.market_id, o.event_id, o.sector, p.sharp_true_prob,
+                  p.yes_team, p.market_type
            FROM ev_outcomes o
            JOIN ev_predictions p ON o.market_id = p.market_id
            WHERE o.event_date = ?
@@ -375,14 +376,25 @@ def close_lines(
                     so = sharp_by_event.get(m["event_id"])
                     if so is None:
                         continue
-                    close_prob = yes_aligned_close_prob(
-                        yes_team=m.get("yes_team"),
-                        outcome_a_label=so.outcome_a_label,
-                        outcome_b_label=so.outcome_b_label,
-                        true_prob_a=so.true_prob_a,
-                        true_prob_b=so.true_prob_b,
-                        true_prob_draw=so.true_prob_draw,
-                    )
+                    mt = (m.get("market_type") or "").lower()
+                    if mt == "total":
+                        # Totals align by over/under side, not team label.
+                        side = (m.get("yes_team") or "").strip().lower()
+                        if side == "under":
+                            close_prob = so.true_prob_under
+                        elif side == "over":
+                            close_prob = so.true_prob_over
+                        else:
+                            close_prob = None
+                    else:
+                        close_prob = yes_aligned_close_prob(
+                            yes_team=m.get("yes_team"),
+                            outcome_a_label=so.outcome_a_label,
+                            outcome_b_label=so.outcome_b_label,
+                            true_prob_a=so.true_prob_a,
+                            true_prob_b=so.true_prob_b,
+                            true_prob_draw=so.true_prob_draw,
+                        )
                     if close_prob is None:
                         continue
                     conn.execute(
@@ -457,7 +469,7 @@ def watch_closes(
         conn = get_connection()
         placeholders = ",".join("?" * len(event_ids))
         rows = conn.execute(
-            f"""SELECT o.market_id, o.event_id, o.sector, p.yes_team
+            f"""SELECT o.market_id, o.event_id, o.sector, p.yes_team, p.market_type
                 FROM ev_outcomes o
                 JOIN ev_predictions p ON o.market_id = p.market_id
                 WHERE o.event_id IN ({placeholders})
@@ -489,14 +501,24 @@ def watch_closes(
                     so = so_by_event.get(m["event_id"])
                     if so is None:
                         continue
-                    cp = yes_aligned_close_prob(
-                        yes_team=m.get("yes_team"),
-                        outcome_a_label=so.outcome_a_label,
-                        outcome_b_label=so.outcome_b_label,
-                        true_prob_a=so.true_prob_a,
-                        true_prob_b=so.true_prob_b,
-                        true_prob_draw=so.true_prob_draw,
-                    )
+                    mt = (m.get("market_type") or "").lower()
+                    if mt == "total":
+                        side = (m.get("yes_team") or "").strip().lower()
+                        if side == "under":
+                            cp = so.true_prob_under
+                        elif side == "over":
+                            cp = so.true_prob_over
+                        else:
+                            cp = None
+                    else:
+                        cp = yes_aligned_close_prob(
+                            yes_team=m.get("yes_team"),
+                            outcome_a_label=so.outcome_a_label,
+                            outcome_b_label=so.outcome_b_label,
+                            true_prob_a=so.true_prob_a,
+                            true_prob_b=so.true_prob_b,
+                            true_prob_draw=so.true_prob_draw,
+                        )
                     if cp is None:
                         continue
                     conn.execute(

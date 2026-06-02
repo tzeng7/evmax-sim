@@ -1432,11 +1432,15 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
 
         # ---- 1. Pinnacle drift (legacy CLV) — pre-tipoff only ----
         # Dispatch by market_type so spread bets get spread snapshots instead
-        # of an unrelated moneyline close. Totals stay unhandled for now
-        # (total CLV needs over/under alignment, not yes/no team alignment).
+        # of an unrelated moneyline close. Totals align by over/under side
+        # (yes_team is "over"/"under") rather than team label.
         mt = (row["market_type"] or "").lower()
         if mt == "spread":
             pinn_close = archiver.get_spread_closing_line_aligned(
+                row["event_id"], row["yes_team"], row["line"]
+            )
+        elif mt == "total":
+            pinn_close = archiver.get_total_closing_line_aligned(
                 row["event_id"], row["yes_team"], row["line"]
             )
         elif mt in ("moneyline", "ml", ""):

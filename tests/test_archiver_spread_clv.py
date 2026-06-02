@@ -166,3 +166,71 @@ def test_spread_close_returns_none_when_no_snapshots(temp_archive_db):
     archiver.open_session("s5", ["wnba"], "test")
     p = archiver.get_spread_closing_line_aligned("nonexistent::event", "mercury", -5.5)
     assert p is None
+
+
+# ---------------------------------------------------------------------------
+# Totals close-line alignment. Baseball totals are framed YES = OVER on Kalshi,
+# so the close prob must align by over/under side (yes_team "over"/"under"),
+# NOT by team label. Before this wiring, totals fell into resolver.py's
+# `else: pinn_close = None` branch and every totals CLV stayed NULL.
+# ---------------------------------------------------------------------------
+
+def _total_sharp(
+    event_id: str,
+    total_line: float,
+    prob_over: float,
+    fetched_at: datetime,
+    event_date: datetime,
+) -> SharpOdds:
+    return SharpOdds(
+        event_id=event_id,
+        book=SharpBook.pinnacle,
+        sector="baseball",
+        outcome_a_label="over",
+        outcome_b_label="under",
+        outcome_a_decimal=1.91,
+        outcome_b_decimal=1.91,
+        true_prob_a=0.0,  # totals-only record: ML probs zeroed (validator skips sum check)
+        true_prob_b=0.0,
+        margin=0.04,
+        total_line=total_line,
+        true_prob_over=prob_over,
+        true_prob_under=1.0 - prob_over,
+        event_date=event_date,
+        fetched_at=fetched_at,
+    )
+
+
+def test_total_close_returns_over_under_aligned_prob(temp_archive_db):
+    archiver = DataArchiver()
+    event_id = "baseball::2026-05-25::yankees_vs_redsox::total::8.5"
+    event_date = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+
+    archiver.open_session("t1a", ["baseball"], "test")
+    archiver.archive_sharp_odds("t1a", "baseball", [
+        _total_sharp(event_id, 8.5, 0.58, event_date - timedelta(hours=3), event_date),
+    ])
+    archiver.open_session("t1b", ["baseball"], "test")
+    archiver.archive_sharp_odds("t1b", "baseball", [
+        _total_sharp(event_id, 8.5, 0.63, event_date - timedelta(minutes=20), event_date),
+    ])
+
+    # OVER side → latest pre-tipoff true_prob_over (0.63)
+    p_over = archiver.get_total_closing_line_aligned(event_id, "over", 8.5)
+    assert p_over == pytest.approx(0.63)
+
+    # UNDER side (the Kalshi NO side) → 1 - over (0.37)
+    p_under = archiver.get_total_closing_line_aligned(event_id, "under", 8.5)
+    assert p_under == pytest.approx(0.37)
+
+
+def test_total_close_returns_none_for_non_over_under_label(temp_archive_db):
+    """A team label (not over/under) must not resolve a totals close."""
+    archiver = DataArchiver()
+    event_id = "baseball::2026-05-25::yankees_vs_redsox::total::8.5"
+    event_date = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+    archiver.open_session("t2", ["baseball"], "test")
+    archiver.archive_sharp_odds("t2", "baseball", [
+        _total_sharp(event_id, 8.5, 0.58, event_date - timedelta(hours=2), event_date),
+    ])
+    assert archiver.get_total_closing_line_aligned(event_id, "yankees", 8.5) is None
