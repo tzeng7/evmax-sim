@@ -794,6 +794,12 @@ class TestNoSideTotalGap:
         assert gap.blended_true_prob == pytest.approx(0.45)
         assert gap.ev_pct > 0
         assert gap.model_sources.endswith("+no_side")
+        # Event title must be the team matchup, NOT "over vs under" — totals
+        # outcome labels are over/under, so the title is derived from the
+        # event_id slug. Regression for the dashboard showing "over vs under"
+        # in the Event column for under bets.
+        assert gap.event_title == "Pistons vs Warriors"
+        assert "over" not in gap.event_title.lower()
 
     def test_no_under_gap_when_model_loves_over(self):
         """If the model projects a high over prob, the under is -EV → None."""

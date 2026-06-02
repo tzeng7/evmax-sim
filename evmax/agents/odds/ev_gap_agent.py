@@ -144,6 +144,22 @@ def _minutes_to_tipoff(event_date: Optional[datetime]) -> Optional[int]:
     return max(0, int(delta))
 
 
+def _total_event_title(sharp: SharpOdds) -> str:
+    """Display title for a totals market.
+
+    Totals SharpOdds carry ``outcome_a_label`` / ``outcome_b_label`` of
+    "over" / "under", so using them as the matchup yields a useless
+    "over vs under" event title. Derive the team matchup from the event_id
+    slug instead (e.g. ``baseball::2026-06-02::redsox_vs_orioles::total::6.5``
+    → "Redsox vs Orioles"). Falls back to the outcome labels if the slug
+    can't be parsed.
+    """
+    parts = (sharp.event_id or "").split("::")
+    if len(parts) >= 3 and "_vs_" in parts[2]:
+        return " vs ".join(p.replace("_", " ").title() for p in parts[2].split("_vs_"))
+    return f"{sharp.outcome_a_label or '?'} vs {sharp.outcome_b_label or '?'}"
+
+
 def _dedup_mutually_exclusive_sides(gaps: "list[EVGap]") -> "list[EVGap]":
     """Drop the lower-EV gap when two bets cover opposite sides of a market.
 
@@ -954,12 +970,7 @@ class EVGapAgent(Agent):
             line=market.line,
             model_sources=src,
             event_title=(
-                # For totals, outcome_a/b_label is "over"/"under" — extract team names
-                # from the event_id slug instead so the title shows "Lakers vs Celtics"
-                " vs ".join(
-                    p.replace("_", " ").title()
-                    for p in sharp.event_id.split("::")[2].split("::")[0].split("_vs_")
-                ) if is_total and "::" in sharp.event_id
+                _total_event_title(sharp) if is_total
                 else f"{sharp.outcome_a_label or '?'} vs {sharp.outcome_b_label or '?'}"
             ),
             steam_move=is_steam,
@@ -1168,7 +1179,7 @@ class EVGapAgent(Agent):
             minutes_to_tipoff=_minutes_to_tipoff(sharp.event_date or market.event_date),
             line=market.line,
             model_sources=f"{src_yes}+no_side",
-            event_title=f"{sharp.outcome_a_label or '?'} vs {sharp.outcome_b_label or '?'}",
+            event_title=_total_event_title(sharp),
             steam_move=is_steam,
             line_velocity=velocity,
             velocity_flag=vel_flag,
