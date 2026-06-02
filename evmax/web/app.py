@@ -497,7 +497,9 @@ async def _run_unified_scan(
 
     portfolio_results: list[dict[str, Any]] = []
     if fan_out_portfolio_ids is not None:
-        from evmax.portfolios import list_portfolios, log_portfolio_bet
+        from evmax.portfolios import (
+            list_portfolios, log_portfolio_bet, is_excluded_from_portfolio,
+        )
         portfolios = list_portfolios(active_only=True)
         if fan_out_portfolio_ids:
             wanted = set(fan_out_portfolio_ids)
@@ -511,6 +513,8 @@ async def _run_unified_scan(
                 if _portfolio_gap_category(gap) not in portfolio.sectors:
                     continue
                 if gap.get("market_type") == "map_handicap":
+                    continue
+                if is_excluded_from_portfolio(gap.get("sector"), gap.get("market_type")):
                     continue
                 # No event-date floor: the scanner only emits gaps for games
                 # Kalshi has actually listed, so anything that reaches here is

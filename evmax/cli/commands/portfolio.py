@@ -153,7 +153,9 @@ def scan_portfolios(
 
 async def _scan_portfolios(portfolio_id: str | None) -> None:
     from evmax.agents.coordinator import AgentCoordinator
-    from evmax.portfolios import list_portfolios, log_portfolio_bet
+    from evmax.portfolios import (
+        list_portfolios, log_portfolio_bet, is_excluded_from_portfolio,
+    )
 
     portfolios = list_portfolios(active_only=True)
     if portfolio_id:
@@ -177,6 +179,8 @@ async def _scan_portfolios(portfolio_id: str | None) -> None:
             if g.sector not in portfolio.sectors:
                 continue
             if g.market_type == "map_handicap":
+                continue
+            if is_excluded_from_portfolio(g.sector, g.market_type):
                 continue
 
             event_date_str = str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else "")

@@ -384,6 +384,28 @@ def backfill_portfolio_from_prop_observations(portfolio_id: str) -> int:
     return inserted
 
 
+# (sector, market_type) pairs intentionally kept OUT of the portfolio
+# simulation while still being scanned/logged (shadow) for data collection.
+# Baseball totals are −CLV from a night-before-only workflow: the over-bias is
+# selection on a noisy stale sharp line, not real edge, and the archive shows
+# no exploitable open→close drift. See the baseball `notes:` in
+# data/categories.yaml for the full diagnosis. Excluded 2026-06-02 per user.
+_PORTFOLIO_EXCLUDED_MARKETS: set[tuple[str, str]] = {
+    ("baseball", "total"),
+}
+
+
+def is_excluded_from_portfolio(
+    sector: Optional[str], market_type: Optional[str]
+) -> bool:
+    """True when a (sector, market_type) is barred from portfolio simulation.
+
+    Such gaps still scan and log to ev_predictions in shadow; they just don't
+    enter any simulated portfolio's bet ledger or bankroll P&L.
+    """
+    return ((sector or "").lower(), (market_type or "").lower()) in _PORTFOLIO_EXCLUDED_MARKETS
+
+
 def log_portfolio_bet(
     portfolio_id: str,
     gap: dict[str, Any],
