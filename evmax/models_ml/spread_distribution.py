@@ -50,6 +50,21 @@ _SECTOR_SIGMA: dict[str, float] = {
 _LOW_SCORING_SECTORS: set[str] = {"baseball", "nhl", "soccer"}
 LOW_SCORING_LINE_TOLERANCE: float = 0.5
 
+# Maximum absolute alt-line magnitude we will price for a low-scoring sport, even
+# when the sharp book posts that exact ladder (line_distance == 0 defeats the
+# tolerance gate above). Empirical motivation: baseball −4.5 alt run lines went
+# 2-for-15 live+shadow (Apr–Jun 2026) while the model predicted 27–46% cover.
+# Devigging Pinnacle's own thin −4.5 ladder still overstates cover mass because
+# the run-margin distribution is skewed/fat-tailed, not Gaussian, and the alt
+# ladder itself is low-liquidity. We only price the standard line (run line /
+# puck line / standard Asian handicap = 1.5) and tighter. This is the gate the
+# `fix/baseball-alt-runline-gate` branch was meant to ship but never did.
+_LOW_SCORING_MAX_ABS_LINE: dict[str, float] = {
+    "baseball": 1.5,  # standard MLB run line; reject −2.5/−4.5 alt ladders
+    "nhl": 1.5,       # standard puck line
+    "soccer": 1.5,    # standard Asian handicap ceiling
+}
+
 
 @dataclass
 class SpreadPrediction:
@@ -96,6 +111,23 @@ class SpreadDistributionModel:
 
         sigma = _SECTOR_SIGMA.get(sector, _SECTOR_SIGMA["default"])
         line_distance = abs(abs(target_line) - abs(pinnacle_line))
+
+        # Low-scoring sports: cap the absolute alt-line magnitude we will price.
+        # The tolerance gate below keys off distance from Pinnacle's posted line,
+        # but sharp books post their own −4.5 alt ladders (distance == 0), so a
+        # far-from-pickem runline sails through. The normal-CDF cover prob is
+        # unreliable that deep into a skewed margin distribution regardless of
+        # where the sharp line sits — reject it outright.
+        max_abs = _LOW_SCORING_MAX_ABS_LINE.get(sector)
+        if max_abs is not None and abs(target_line) > max_abs:
+            logger.debug(
+                "spread_model_low_scoring_alt_line_too_large",
+                event_id=sharp_odds.event_id,
+                sector=sector,
+                target_line=target_line,
+                max_abs=max_abs,
+            )
+            return None
 
         # Low-scoring sports: margin distribution is not Gaussian, so extrapolation
         # is unsafe even within 1σ. Require a direct line match (±0.5).

@@ -546,6 +546,38 @@ class TestSpreadDistributionModel:
         assert result_big is not None and result_small is not None
         assert result_big.true_prob < result_small.true_prob
 
+    def test_baseball_alt_runline_rejected_even_when_sharp_posts_it(self):
+        """Baseball −4.5 alt run line must be rejected even when Pinnacle posts
+        the exact −4.5 ladder (line_distance == 0 defeats the tolerance gate).
+
+        Regression for the alt-runline leak: −4.5 covers went 2-for-15 live+
+        shadow (Apr–Jun 2026) while the model predicted 27–46%. The absolute
+        line-magnitude cap (1.5 for baseball) is the gate the
+        fix/baseball-alt-runline-gate branch was meant to ship.
+        """
+        sharp = _make_spread_sharp(spread_line=-4.5, true_prob_a=0.40, sector="baseball")
+        result = self.model.predict(sharp, target_line=-4.5, sector="baseball")
+        assert result is None
+
+    def test_baseball_standard_runline_allowed(self):
+        """The standard −1.5 MLB run line is within the cap and still prices."""
+        sharp = _make_spread_sharp(spread_line=-1.5, true_prob_a=0.45, sector="baseball")
+        result = self.model.predict(sharp, target_line=-1.5, sector="baseball")
+        assert result is not None
+        assert 0.01 <= result.true_prob <= 0.99
+
+    def test_nhl_alt_puckline_rejected(self):
+        """NHL −2.5 alt puck line is past the 1.5 cap → rejected."""
+        sharp = _make_spread_sharp(spread_line=-2.5, true_prob_a=0.40, sector="nhl")
+        result = self.model.predict(sharp, target_line=-2.5, sector="nhl")
+        assert result is None
+
+    def test_nba_alt_line_unaffected_by_low_scoring_cap(self):
+        """The magnitude cap is low-scoring-only — NBA alt lines still price."""
+        sharp = _make_spread_sharp(spread_line=-7.5, true_prob_a=0.60)
+        result = self.model.predict(sharp, target_line=-10.5, sector="nba")
+        assert result is not None
+
 
 # ===========================================================================
 # TotalDistributionModel
