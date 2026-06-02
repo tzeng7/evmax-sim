@@ -119,7 +119,7 @@ evmax/
 |-------|--------|----------------|------------|
 | Elo | 0.35 | 0.45 | `data/models/elo_state.json` |
 | Form | 0.25 | 0.45 | `data/models/form_state.json` (skipped entirely when the most recent record for either team is > STALE_DAYS=60 old relative to the game's event_date — protects against cross-season contamination; opponent-quality weighting was backtested net-negative and reverted) |
-| Poisson | 0.30 | 0.45 | `data/models/poisson_state.json` |
+| Poisson | 0.40 (soccer only) | 0.45 | `data/models/poisson_state.json` (SOCCER-ONLY as of 2026-06-01 — `SUPPORTED_SECTORS = {"soccer"}` in `poisson_agent.py`. `predict_pair` returns `None` for every other sector, so poisson never enters the blend or `model_sources`. This is enforced at the agent, not via ensemble weight: the per-sector override only re-weights *listed* models, so an unlisted poisson would otherwise fall back to its 0.30 class weight — that's how it was silently contributing 0.30 to NCAAB and ~0.30 to baseball before the cleanup. The `poisson: 0.0` entries left in the NBA/WNBA/NFL overrides are now redundant no-ops.) |
 | NBA Efficiency | 0.40 | 0.45 | `data/models/efficiency_state.json` (NBA only; ORTG/DRTG/Pace from `nba_api.LeagueDashTeamStats`) |
 | NBA Possession Sim | 0.35 | 0.45 | Reuses NBA efficiency state; 10k Monte Carlo possession sims per matchup |
 | NBA Shot Quality | 0.20 | 0.45 | `data/models/shot_quality_state.json` (NBA only; zone FGA + FG% from `nba_api`) |
@@ -143,7 +143,7 @@ evmax/
 - **WNBA:** wnba_efficiency 0.40 · wnba_possession_sim 0.45 · elo 0.15 · form 0.0 · poisson 0.0 (re-tuned 2026-05-14 via `scripts/sweep_wnba_weights.py` over 321 walk-forward 2025 games — drops blend Brier 0.2061 → 0.2019. Form was worst standalone (Brier 0.2303) and every top-20 combo zeroed it; generic Elo also weaker than the WNBA-specific stack.)
 - **Soccer:** poisson 0.40 · xg 0.25 · elo 0.15 · form 0.10
 - **Tennis:** tennis_surface 0.30 · tennis_serve_return 0.25 · tennis_form 0.20 · tennis_advanced 0.15 · tennis_h2h 0.05 · tennis_ranking_trend 0.05
-- **Baseball:** pitcher 0.50 · elo 0.25 · form 0.25 (poisson intentionally not listed in baseball YAML — never instantiated)
+- **Baseball:** pitcher 0.50 · elo 0.25 · form 0.25 (poisson is genuinely excluded now — `baseball` was removed from `SUPPORTED_SECTORS` in `poisson_agent.py` on 2026-06-01. Until then the "not listed = never instantiated" assumption was wrong: poisson ran and contributed at its 0.30 class-weight fallback to every baseball blend. See the Poisson row above.)
 - **NFL:** nfl_efficiency 0.25 · nfl_qb_elo 0.25 · elo 0.20 · form 0.30 · poisson 0.0 (Phase 2 weights validated 2026-05-01: best combined-3-season blend by ΔBrier +0.0030 / ΔAcc +1.01pp vs the old elo+form+poisson blend, with positive 2526-only delta on both metrics. Generic elo down-weighted to 0.20 because nfl_qb_elo overlaps it.)
 
 **NBA and WNBA are parallel stacks with zero shared files.** NBA's `efficiency_agent.py` uses `nba_api` + `efficiency_state.json`; WNBA's `wnba_efficiency_agent.py` uses ESPN box scores + `wnba_efficiency_state.json`. Same for possession sim. Change one without risk to the other. Do not merge them "for DRY" — the constants diverge (HOME_EDGE_PTS 3.2 vs 2.6, SCORE_STDEV 12.0 vs 12.5, pace clip [80,120] vs [65,100]), and the data sources are different.

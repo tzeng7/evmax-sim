@@ -63,7 +63,11 @@ class TestWNBAModelParameters:
         assert "wnba" in LEAGUE_AVG_DEFAULTS
         assert LEAGUE_AVG_DEFAULTS["wnba"]["home"] == 83.0
         assert LEAGUE_AVG_DEFAULTS["wnba"]["away"] == 81.0
-        assert "wnba" in SUPPORTED_SECTORS
+        # Poisson is soccer-only now (the WNBA ensemble override already zeroed
+        # it; keeping it out of SUPPORTED_SECTORS stops the wasted prediction
+        # pass and the misleading model_sources entry). League-avg constants are
+        # retained for reference but the agent no longer runs on WNBA.
+        assert "wnba" not in SUPPORTED_SECTORS
 
     def test_poisson_max_score_and_bucket(self):
         from evmax.agents.models.poisson_agent import MAX_SCORE, BUCKET_SIZE

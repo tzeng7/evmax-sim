@@ -847,38 +847,46 @@ class TestPoissonModelAgent:
         assert pred is not None
         assert pred.true_prob_a > 0.5   # Man City strong attack vs weak Bournemouth defense
 
+    def test_poisson_is_soccer_only(self):
+        """Poisson is intentionally soccer-only. Membership in SUPPORTED_SECTORS
+        — not the ensemble override weight — is what keeps it out of other
+        sectors: an unlisted model falls back to its 0.30 class weight in the
+        blend (ensemble_agent.py:469), so baseball/ncaab/nba/wnba/nfl must be
+        excluded here, not merely zeroed downstream."""
+        from evmax.agents.models.poisson_agent import SUPPORTED_SECTORS
+        assert SUPPORTED_SECTORS == {"soccer"}
+
     @pytest.mark.asyncio
-    async def test_nba_score_matrix_is_bucketed(self, tmp_path, monkeypatch):
-        """Regression for BUG-4: NBA lambdas (~113 pts/game) must be bucketed
-        before going into the score matrix, otherwise the Poisson mass lives
-        far above MAX_SCORE=25 and the distribution collapses to a degenerate
-        region where small λ differences produce overconfident predictions."""
+    @pytest.mark.parametrize("sector", ["baseball", "ncaab", "nba", "wnba", "nfl"])
+    async def test_unsupported_sector_predict_pair_returns_none(
+        self, sector, tmp_path, monkeypatch
+    ):
+        """Even with teams seeded in state, predict_pair must short-circuit to
+        None for any non-soccer sector so poisson never enters model_preds."""
         monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
         agent = PoissonModelAgent()
         agent._state_path = tmp_path / "poisson_state.json"
-
-        # Seed a modest favorite: 5% stronger offense, 5% weaker defense.
         agent.seed_team_stats(
-            sector="nba",
+            sector=sector,
             team_stats={
-                "lakers": {"attack": 1.05, "defense": 0.95, "games": 20},
-                "celtics": {"attack": 1.00, "defense": 1.00, "games": 20},
+                "team a": {"attack": 1.1, "defense": 0.9, "games": 30},
+                "team b": {"attack": 1.0, "defense": 1.0, "games": 30},
             },
-            league_avg={"home": 113.5, "away": 111.0},
+            league_avg={"home": 4.65, "away": 4.37},
         )
+        market = make_market(sector=sector, team_home="team a", team_away="team b")
+        market = market.model_copy(update={"sector": sector})
+        sharp = make_sharp(team_a="team a", team_b="team b", sector=sector)
 
-        market = make_market(sector="nba", team_home="lakers", team_away="celtics")
-        sharp = make_sharp(team_a="lakers", team_b="celtics", sector="nba")
         pred = await agent.predict_pair(market, sharp)
+        assert pred is None
 
-        assert pred is not None
-        # A ~5% rating edge should produce a moderate favorite, not a lock.
-        # Without bucketing the matrix was truncated and this agent returned
-        # values near 0.5 or pushed into extremes depending on λ alignment;
-        # with bucketing we expect a sane favorite somewhere in (0.52, 0.80).
-        assert 0.52 < pred.true_prob_a < 0.80
-        # (pre-existing: draw merge in non-soccer path leaves a small residual)
-        assert pred.true_prob_a + pred.true_prob_b == pytest.approx(1.0, abs=0.01)
+    # NOTE: the former BUG-4 regression (test_nba_score_matrix_is_bucketed) was
+    # removed when poisson became soccer-only (2026-06-01). It routed through
+    # predict_pair("nba"), which now returns None; NBA exclusion is covered by
+    # test_unsupported_sector_predict_pair_returns_none. The high-λ bucketing
+    # path it guarded is only reachable for soccer, where BUCKET_SIZE == 1 (a
+    # no-op), so the scenario is no longer live.
 
     def test_shrink_pulls_extreme_ratios_toward_one(self):
         """Bayesian shrinkage on attack/defense ratios: extreme values at low
