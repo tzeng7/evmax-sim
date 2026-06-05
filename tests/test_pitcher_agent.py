@@ -297,6 +297,64 @@ class TestTeamNameFallback:
         pred = await agent.predict_pair(m, s)
         assert pred is not None
 
+    @pytest.mark.asyncio
+    async def test_multiword_nickname_resolves_live_not_static(self, agent, monkeypatch):
+        """Regression: ESPN keys probable starters by nickname ("red sox",
+        "blue jays") while Pinnacle passes full names ("boston red sox").
+
+        The old last-word fallback ("boston red sox" -> "sox") missed the
+        multi-word nicknames, so Red Sox / White Sox / Blue Jays games silently
+        lost the pitcher model (predict_pair returns None if either starter is
+        unresolved) and fell to a generic blend that went -23% ROI live. The
+        suffix match must resolve them from the LIVE feed (confidence 0.55 +
+        "live" note), not the stale static fallback.
+        """
+        # Static fallback intentionally has DIFFERENT (stale) pitchers so a
+        # live match is observably distinct from the fallback.
+        agent.seed_pitchers(
+            {
+                "Stale Sox": {"era": 9.99, "ip": 200, "team": "red sox"},
+                "Stale Jays": {"era": 9.99, "ip": 200, "team": "blue jays"},
+            }
+        )
+
+        async def _live():
+            return {
+                "red sox": {"name": "live sox arm", "era": 2.90, "ip": 0},
+                "blue jays": {"name": "live jays arm", "era": 3.10, "ip": 0},
+            }
+
+        monkeypatch.setattr(pitcher_mod, "_fetch_probable_starters", _live)
+        m = _market(team_home="boston red sox", team_away="toronto blue jays")
+        s = SharpOdds(
+            event_id="baseball::2026-05-16::bos_tor",
+            book=SharpBook.pinnacle,
+            sector="baseball",
+            outcome_a_label="boston red sox",
+            outcome_b_label="toronto blue jays",
+            outcome_a_decimal=2.0,
+            outcome_b_decimal=2.0,
+            true_prob_a=0.50,
+            true_prob_b=0.50,
+        )
+        pred = await agent.predict_pair(m, s)
+        assert pred is not None
+        # Live path → 0.55 confidence tier and a "live" note (the stale static
+        # entries carry ip=200 which would land a different tier).
+        assert pred.confidence == pytest.approx(0.55, abs=1e-6)
+        assert "live" in pred.notes
+
+    def test_match_live_starter_disambiguates_red_vs_white_sox(self, agent):
+        """Suffix match must not confuse the two Sox: "chicago white sox" has
+        to resolve "white sox", never "red sox". The last-word ("sox") is in
+        neither key, so the full-nickname suffix is what disambiguates."""
+        live = {
+            "red sox": {"name": "boston arm", "era": 3.0, "ip": 0},
+            "white sox": {"name": "chicago arm", "era": 4.0, "ip": 0},
+        }
+        assert agent._match_live_starter("chicago white sox", "sox", live)["name"] == "chicago arm"
+        assert agent._match_live_starter("boston red sox", "sox", live)["name"] == "boston arm"
+
 
 # ---------------------------------------------------------------------------
 # FIP support

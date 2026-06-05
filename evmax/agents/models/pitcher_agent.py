@@ -80,7 +80,24 @@ _CACHE_TTL = 1800
 
 
 async def _fetch_probable_starters() -> dict[str, dict]:
-    """Fetch today's probable starters from ESPN.
+    """Today's probable starters, MLB Stats API primary, ESPN fallback.
+
+    The official MLB Stats API keys teams by stable integer ID, so it never
+    suffers the nickname mismatch that dropped Red Sox / White Sox / Blue Jays
+    games from the pitcher blend. ESPN remains a fallback for the rare case the
+    Stats API is unreachable or hasn't populated probables yet.
+    """
+    from evmax.clients.mlb_statsapi import fetch_probable_starters as _mlb_fetch
+
+    mlb = await _mlb_fetch()
+    if mlb:
+        return mlb
+    logger.info("probable_starters_fallback_espn")
+    return await _fetch_probable_starters_espn()
+
+
+async def _fetch_probable_starters_espn() -> dict[str, dict]:
+    """Fetch today's probable starters from ESPN (fallback source).
 
     Returns: {team_short_name: {"name": str, "era": float, "ip": float}}
     """
@@ -165,6 +182,32 @@ class PitcherModelAgent(ModelAgent):
         wp = home_wins / games
         return max(HOME_BONUS_MIN, min(HOME_BONUS_MAX, wp - 0.50))
 
+    @staticmethod
+    def _match_live_starter(
+        team: str, team_short: str, live_starters: dict[str, dict]
+    ) -> Optional[dict]:
+        """Resolve an ESPN probable-starter entry for a team label.
+
+        Pinnacle passes full names ("boston red sox") while ESPN keys by
+        nickname ("red sox"). The last-word fallback ("sox") fails for the
+        multi-word nicknames — Red Sox, White Sox, Blue Jays — so any game
+        involving them silently lost the pitcher model (predict_pair returns
+        None if either starter is unresolved). Match the ESPN nickname key as
+        a suffix of the full label to recover them. Suffix (not substring)
+        avoids the "sox" ambiguity between Red Sox and White Sox.
+        """
+        # Exact / last-word first (cheapest, unambiguous).
+        for key in (team, team_short):
+            if key in live_starters:
+                return live_starters[key]
+        # Nickname-suffix: "boston red sox".endswith("red sox"). Prefer the
+        # longest matching key so "red sox" wins over a hypothetical "sox".
+        best_key = None
+        for espn_key in live_starters:
+            if team.endswith(espn_key) and (best_key is None or len(espn_key) > len(best_key)):
+                best_key = espn_key
+        return live_starters[best_key] if best_key else None
+
     def _find_starter(self, team: str, live_starters: dict[str, dict] | None = None) -> tuple[Optional[dict], bool]:
         """Find the probable starter for a team.
 
@@ -176,16 +219,15 @@ class PitcherModelAgent(ModelAgent):
 
         # 1) Live ESPN probable starters (today's actual starter)
         if live_starters:
-            for key in (team, team_short):
-                if key in live_starters:
-                    live = live_starters[key]
-                    # Check if we have this pitcher in our ERA database
-                    pitcher_name = live["name"]
-                    stored = self._pitchers().get(pitcher_name)
-                    if stored:
-                        return stored, True
-                    # Use ESPN's ERA directly
-                    return live, True
+            live = self._match_live_starter(team, team_short, live_starters)
+            if live is not None:
+                # Check if we have this pitcher in our ERA database
+                pitcher_name = live["name"]
+                stored = self._pitchers().get(pitcher_name)
+                if stored:
+                    return stored, True
+                # Use ESPN's ERA directly
+                return live, True
 
         # 2) Static team_starters (fallback)
         team_starters = self._state.get("team_starters", {})

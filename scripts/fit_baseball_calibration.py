@@ -21,6 +21,19 @@ Promotion rule: ≥0.001 holdout Brier improvement to keep the fitted
 calibration. Below that, the previous state is restored. This protects
 against overfit-on-train-but-broken-on-holdout outcomes.
 
+NEGATIVE RESULT (2026-06-05): `--train 2324 --validate 2425` was run as a true
+out-of-sample test. Isotonic fit on 2024 improved 2024 in-sample (0.2548 →
+0.2476, Δ +0.0072) but made the 2025 holdout WORSE (0.24331 → 0.24399,
+Δ −0.00068; accuracy 57.3% → 54.1%). The 2024 correction overfits that year's
+idiosyncratic low-home-field-advantage bias and does not transfer. Script
+auto-reverted; baseball stays UNCALIBRATED. Do not promote a single-season fit.
+A combined `--train 2324+2425` fit only "passes" in-sample (no holdout), so it
+is not evidence of generalization — leave it off until a 3rd season exists to
+hold out. Baseball ML value is a thin Kalshi-vs-Pinnacle arb, not a Brier-edge
+problem (model move off sharp is only +0.3pp); calibration can't manufacture
+edge that isn't there. See also the bullpen negative result in
+evmax/backtest/sources/espn_walkforward.py (Δ −0.0012, correlated noise).
+
 Usage:
     # Single-season train + holdout (recommended once you have 3+ seasons)
     .venv/bin/python scripts/fit_baseball_calibration.py --train 2324 --validate 2425

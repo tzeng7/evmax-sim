@@ -767,6 +767,29 @@ class EVGapAgent(Agent):
                 src = "sharp(capped)"
 
         # ------------------------------------------------------------------
+        # Step 3c: Baseball moneyline requires the pitcher model.
+        # ------------------------------------------------------------------
+        # When ESPN hasn't posted the probable starter (night-before / early
+        # scans) or a name-match miss drops it, the pitcher agent returns None
+        # and the baseball ML blend degrades to a generic elo+form devig with
+        # no independent edge. Those pitcher-less bets went -23% flat ROI live
+        # (n=13, Apr-Jun 2026) vs +18% when the pitcher contributed. Skip the
+        # bet rather than fire blind. Scoped to moneyline: spread uses the
+        # cover-prob model and total is pure sharp devig — neither consumes the
+        # pitcher agent, so requiring it there would wrongly zero them out.
+        if (
+            (market.sector or "").lower() == "baseball"
+            and market.market_type == MarketType.moneyline
+            and "pitcher" not in src
+        ):
+            self.log.debug(
+                "baseball_ml_skipped_no_pitcher",
+                event_id=sharp.event_id,
+                src=src,
+            )
+            return _ret(None, None)
+
+        # ------------------------------------------------------------------
         # Step 4: Injury adjustment.
         # Skipped for:
         #   - totals: injury impact on team scoring is symmetric in O/U math

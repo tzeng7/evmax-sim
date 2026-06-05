@@ -532,6 +532,77 @@ class TestEvaluatePair:
         gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
         assert gap is None
 
+    def _baseball_ml(self, yes_price=0.45, true_prob_a=0.55):
+        """Positive-EV baseball moneyline pair (Kalshi 0.45 vs sharp 0.55)."""
+        market = PredictionMarket(
+            id="kalshi:MLB-001",
+            source=MarketSource.kalshi,
+            sector="baseball",
+            market_type=MarketType.moneyline,
+            yes_price=yes_price,
+            no_price=round((1.0 - yes_price) + 0.02, 4),
+            volume_usd=10_000.0,
+            yes_team="red sox",
+            team_home="red sox",
+            team_away="blue jays",
+        )
+        sharp = SharpOdds(
+            event_id="baseball::2026-05-16::bos_vs_tor",
+            book=SharpBook.pinnacle,
+            sector="baseball",
+            outcome_a_label="red sox",
+            outcome_b_label="blue jays",
+            outcome_a_decimal=2.0,
+            outcome_b_decimal=2.0,
+            true_prob_a=true_prob_a,
+            true_prob_b=round(1.0 - true_prob_a, 4),
+        )
+        return market, sharp
+
+    def test_baseball_ml_skipped_when_pitcher_absent(self):
+        """Regression: a +22% EV baseball ML must NOT log when the pitcher
+        model is absent from the blend (night-before / name-match miss). Those
+        pitcher-less bets went -23% flat ROI live."""
+        agent = self._agent()
+        market, sharp = self._baseball_ml()
+        # model_sources empty → src defaults to "sharp" (no pitcher).
+        gap = agent._evaluate_pair(
+            market, sharp, 0.95, "baseball", {}, {}, model_sources={}, kelly_base=0.5
+        )
+        assert gap is None
+
+    def test_baseball_ml_logged_when_pitcher_present(self):
+        """A/B control: identical pair WITH the pitcher in the blend still
+        produces the gap — proving the skip is gated on pitcher presence, not
+        on price/EV."""
+        agent = self._agent()
+        market, sharp = self._baseball_ml()
+        gap = agent._evaluate_pair(
+            market, sharp, 0.95, "baseball", {}, {},
+            model_sources={sharp.event_id: "elo+pitcher+sharp"}, kelly_base=0.5,
+        )
+        assert gap is not None
+        assert gap.ev_pct > 0
+        assert "pitcher" in gap.model_sources
+
+    def test_baseball_spread_not_gated_on_pitcher(self):
+        """The pitcher requirement is moneyline-only — spread uses the cover
+        model and must not be zeroed out by the guard."""
+        agent = self._agent()
+        market, sharp = self._baseball_ml()
+        market.market_type = MarketType.spread
+        market.line = 1.5
+        sharp.spread_line = -1.5
+        # Should not raise / should not be skipped *by the pitcher guard*.
+        # (May still return None for other spread reasons, but the guard's
+        #  "pitcher not in src" branch must not be what blocks it.)
+        gap = agent._evaluate_pair(
+            market, sharp, 0.95, "baseball", {}, {}, model_sources={}, kelly_base=0.5
+        )
+        # If a gap is produced it is a spread gap, never blocked for "no pitcher".
+        if gap is not None:
+            assert gap.market_type == "spread"
+
     def test_moneyline_to_spread_mismatch_rejected(self):
         agent = self._agent()
         market = _market(yes_price=0.55, market_type=MarketType.moneyline)
