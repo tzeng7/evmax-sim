@@ -290,8 +290,10 @@ NBA and WNBA use dedicated advanced models that replace the generic Elo/Form/Poi
 | Form | 0.10 | 0.0 | 0.30 | 0.10 | 0.25 | 0.25 |
 | ShotQuality | 0.10 | — | — | — | — | — |
 | Matchup | 0.10 | — | — | — | — | — |
-| Poisson | 0.0 | 0.0 | 0.0 | **0.40** | 0.0 | 0.30 |
+| Poisson | — | — | — | **0.40** | — | — |
 | Soccer xG | — | — | — | 0.25 | — | — |
+
+> **Poisson is soccer-only** (as of 2026-06-01, `SUPPORTED_SECTORS = {"soccer"}` in `poisson_agent.py`): `predict_pair` returns `None` for every other sector, so it never enters the blend or `model_sources` — the weight is irrelevant outside soccer. Previously it silently contributed at a 0.30 class-weight fallback to NCAAB and baseball; it was found net-negative on MLB runs (overdispersion + bullpen-leverage violate the independence assumption) and was removed.
 
 **WNBA weights re-tuned 2026-05-14** via walk-forward sweep over 321 games (`scripts/sweep_wnba_weights.py`) — dropped blend Brier 0.2061 → 0.2019. Form was worst standalone (0.2303) and every top-20 combo zeroed it; generic Elo also weaker than the WNBA-specific stack.
 
@@ -563,9 +565,9 @@ Home advantage is applied additively:
 
 ---
 
-#### Poisson Model (`PoissonModelAgent`, default weight=0.30, NBA=0.0)
+#### Poisson Model (`PoissonModelAgent`, soccer-only, weight=0.40)
 
-Models scoring as a Poisson process — each team has attack and defense strength parameters that combine to predict expected goals/points. Primary model for soccer (weight 0.40); **zeroed for NBA** where the PossessionSimAgent provides better score distributions.
+Models scoring as a Poisson process — each team has attack and defense strength parameters that combine to predict expected goals/points. **Soccer-only** (`SUPPORTED_SECTORS = {"soccer"}`): `predict_pair` returns `None` for every other sector, so it never enters the blend elsewhere. Basketball is not a Poisson process (PossessionSim provides better score distributions for NBA/WNBA), and it was net-negative on MLB runs — see the Poisson note in the per-sector weights table above.
 
 **How it works:**
 
@@ -665,7 +667,13 @@ The serve/return, H2H, and ranking-trend agents are seeded from Jeff Sackmann's 
 
 ### MLB Pitcher Agent (`PitcherAgent`)
 
-Adapts the starting pitcher's recent ERA / WHIP / K-rate into a moneyline edge for MLB game markets. Falls back to `None` for non-baseball markets and when no probable pitcher is set.
+Turns the matchup of probable starters into a moneyline prob for MLB game markets via Pythagenpat expectation (exp=1.83) on each starter's run-allowed rate — a **60% FIP / 40% ERA blend** when FIP is seeded, ERA-only otherwise — plus an adaptive home-field bonus. Returns `None` for non-baseball markets and when no probable starter can be resolved.
+
+**Live probable starters: official MLB Stats API** (`evmax/clients/mlb_statsapi.py`, `statsapi.mlb.com`, free/no key). Teams are keyed by **stable integer ID**, so resolution no longer depends on fuzzy nickname matching — the multi-word nicknames (Red Sox / White Sox / Blue Jays) that the old ESPN-scoreboard name match dropped now resolve cleanly. ESPN scoreboard remains a fallback if the Stats API is unreachable. Pitcher ERA/FIP come from the seeded DB (`scripts/seed_pitcher_fip.py`, Baseball-Reference via pybaseball), keyed by accent-folded name.
+
+**Pitcher is required for a baseball moneyline bet.** When the starter still can't be resolved (e.g. a night-before scan before probables post), the ML bet is **skipped** rather than logged on a generic Elo+Form blend — those pitcher-less bets backtested at −23% flat ROI vs +18% when the pitcher contributed. Spread/total are unaffected (they don't consume the pitcher model).
+
+> **Why MLB ML has thin value (measured 2026-06):** the model moves only ~+0.3pp off the sharp devig, so ~90% of the apparent edge is a Kalshi-vs-Pinnacle price gap, not model insight. Two avenues to add orthogonal signal were tested and rejected: a bullpen quality/fatigue component (Δ −0.0012 Brier — correlated with Elo+Form, not orthogonal) and ensemble isotonic calibration (overfits a single season; −0.00068 on holdout). Baseball ML is treated as a thin arb, not a model-edge play.
 
 **State file:** `data/models/pitcher_state.json`
 
@@ -702,7 +710,9 @@ For spread markets (e.g., "Lakers win by more than 5.5"), Pinnacle posts one lin
 2. Estimate `P(margin > target_line)` using the normal CDF.
 3. Only evaluate Kalshi lines within 1 sigma of Pinnacle's line (accuracy degrades and liquidity thins further out).
 
-**Low-scoring sport gating** (`_LOW_SCORING_SECTORS = {baseball, nhl, soccer}`): for sports where the margin distribution is Skellam-shaped (mass concentrated near 0, fat thin tails) rather than Gaussian, the normal-CDF extrapolation is unreliable. A 3-run jump from MLB's posted run line to a Kalshi alt-spread previously produced 165%+ false EVs at default σ. For these sectors the model only fires when the Kalshi line matches Pinnacle's within `LOW_SCORING_LINE_TOLERANCE=0.5` — alt-lines are dropped entirely.
+**Low-scoring sport gating** (`_LOW_SCORING_SECTORS = {baseball, nhl, soccer}`): for sports where the margin distribution is Skellam-shaped (mass concentrated near 0, fat thin tails) rather than Gaussian, the normal-CDF extrapolation is unreliable. A 3-run jump from MLB's posted run line to a Kalshi alt-spread previously produced 165%+ false EVs at default σ. Two gates apply:
+- **Distance gate** — the model only fires when the Kalshi line matches Pinnacle's within `LOW_SCORING_LINE_TOLERANCE=0.5`.
+- **Absolute-magnitude cap** (`_LOW_SCORING_MAX_ABS_LINE = {baseball: 1.5, nhl: 1.5, soccer: 1.5}`) — never price an alt line past the standard run line / puck line / Asian-handicap ceiling, even when a sharp book posts its own −4.5 ladder (distance == 0 in that case, so the distance gate alone let it through). MLB −4.5 alt run lines went 2-for-15 live+shadow while the model predicted 27–46% cover; this cap rejects them outright.
 
 **Spread is also blended with PossessionSim** for NBA/WNBA: the cover prob is `0.65 × spread_dist + 0.35 × possession_sim` margin distribution. PossessionSim contributes a real empirical margin CDF (not a normal approximation), so it picks up pace interaction and fat-tail variance the Gaussian misses.
 
@@ -1466,11 +1476,11 @@ All settings live in `.env` (or environment variables):
 | NBA | Pinnacle guest API (league 487) | Efficiency + PossessionSim + ShotQuality + Matchup + Elo + Form | ESPN | `live` |
 | WNBA | Pinnacle guest API (league 578) | WNBA Efficiency + WNBA PossessionSim + Elo (totals stay `shadow`) | ESPN | `live` (ML + spread, promoted 2026-05-26) |
 | NFL | Pinnacle guest API (league 258) | NFL Efficiency + NFL QB Elo + Elo + Form | ESPN | `live` |
-| NCAAB | Pinnacle guest API (league 493) | Elo + Form + Poisson | ESPN | `live` |
-| NCAAW | TheOddsAPI (`basketball_wncaab`) | Elo + Form + Poisson | ESPN | `live` |
+| NCAAB | Pinnacle guest API (league 493) | Elo + Form | ESPN | `live` |
+| NCAAW | TheOddsAPI (`basketball_wncaab`) | Elo + Form | ESPN | `live` |
 | Soccer | Pinnacle guest API (EPL/UCL/La Liga/Bundesliga/Serie A/Ligue 1/MLS/UEL) | Poisson + xG + Elo + Form | ESPN | `live` |
 | Tennis | Pinnacle guest API (ATP/WTA) | Surface Elo + Serve/Return + Advanced + H2H + Ranking Trend + Form | None | `live` |
-| Baseball | Pinnacle guest API (league 246) | Elo + Form + Poisson + Pitcher | ESPN | `live` |
+| Baseball | Pinnacle guest API (league 246) | Pitcher + Elo + Form (probables via MLB Stats API) | ESPN | `shadow` (pending Brier-vs-Kalshi validation) |
 | NHL | Pinnacle guest API | Form | ESPN | `live` |
 | LoL | Pinnacle guest API (esports) | Elo + Form | None | `live` |
 | CS2 | Pinnacle guest API (esports) | Elo + Form | None | `live` |
