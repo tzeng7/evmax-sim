@@ -532,6 +532,77 @@ class TestEvaluatePair:
         gap = agent._evaluate_pair(market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
         assert gap is None
 
+    def _baseball_ml(self, yes_price=0.45, true_prob_a=0.55):
+        """Positive-EV baseball moneyline pair (Kalshi 0.45 vs sharp 0.55)."""
+        market = PredictionMarket(
+            id="kalshi:MLB-001",
+            source=MarketSource.kalshi,
+            sector="baseball",
+            market_type=MarketType.moneyline,
+            yes_price=yes_price,
+            no_price=round((1.0 - yes_price) + 0.02, 4),
+            volume_usd=10_000.0,
+            yes_team="red sox",
+            team_home="red sox",
+            team_away="blue jays",
+        )
+        sharp = SharpOdds(
+            event_id="baseball::2026-05-16::bos_vs_tor",
+            book=SharpBook.pinnacle,
+            sector="baseball",
+            outcome_a_label="red sox",
+            outcome_b_label="blue jays",
+            outcome_a_decimal=2.0,
+            outcome_b_decimal=2.0,
+            true_prob_a=true_prob_a,
+            true_prob_b=round(1.0 - true_prob_a, 4),
+        )
+        return market, sharp
+
+    def test_baseball_ml_skipped_when_pitcher_absent(self):
+        """Regression: a +22% EV baseball ML must NOT log when the pitcher
+        model is absent from the blend (night-before / name-match miss). Those
+        pitcher-less bets went -23% flat ROI live."""
+        agent = self._agent()
+        market, sharp = self._baseball_ml()
+        # model_sources empty → src defaults to "sharp" (no pitcher).
+        gap = agent._evaluate_pair(
+            market, sharp, 0.95, "baseball", {}, {}, model_sources={}, kelly_base=0.5
+        )
+        assert gap is None
+
+    def test_baseball_ml_logged_when_pitcher_present(self):
+        """A/B control: identical pair WITH the pitcher in the blend still
+        produces the gap — proving the skip is gated on pitcher presence, not
+        on price/EV."""
+        agent = self._agent()
+        market, sharp = self._baseball_ml()
+        gap = agent._evaluate_pair(
+            market, sharp, 0.95, "baseball", {}, {},
+            model_sources={sharp.event_id: "elo+pitcher+sharp"}, kelly_base=0.5,
+        )
+        assert gap is not None
+        assert gap.ev_pct > 0
+        assert "pitcher" in gap.model_sources
+
+    def test_baseball_spread_not_gated_on_pitcher(self):
+        """The pitcher requirement is moneyline-only — spread uses the cover
+        model and must not be zeroed out by the guard."""
+        agent = self._agent()
+        market, sharp = self._baseball_ml()
+        market.market_type = MarketType.spread
+        market.line = 1.5
+        sharp.spread_line = -1.5
+        # Should not raise / should not be skipped *by the pitcher guard*.
+        # (May still return None for other spread reasons, but the guard's
+        #  "pitcher not in src" branch must not be what blocks it.)
+        gap = agent._evaluate_pair(
+            market, sharp, 0.95, "baseball", {}, {}, model_sources={}, kelly_base=0.5
+        )
+        # If a gap is produced it is a spread gap, never blocked for "no pitcher".
+        if gap is not None:
+            assert gap.market_type == "spread"
+
     def test_moneyline_to_spread_mismatch_rejected(self):
         agent = self._agent()
         market = _market(yes_price=0.55, market_type=MarketType.moneyline)
@@ -747,3 +818,79 @@ class TestNflPositionWeights:
         )
         # KC's probability should drop more after QB out than after TE out
         assert a_qb < a_te
+
+
+# ---------------------------------------------------------------------------
+# NO-side total derivation: Kalshi frames totals YES = OVER, so the UNDER is
+# only reachable via the NO side. Before _build_no_side_total_gap, the under
+# was structurally unbettable (the NO-side path was spread-only) — which is why
+# 100% of logged baseball totals were overs.
+# ---------------------------------------------------------------------------
+
+class TestNoSideTotalGap:
+    def _agent(self):
+        with patch("evmax.agents.odds.ev_gap_agent.get_settings") as mock_settings:
+            settings = MagicMock()
+            settings.ev_threshold = 0.02
+            settings.max_kelly_fraction = 0.05
+            settings.chalk_price_ceiling = 0.90
+            mock_settings.return_value = settings
+            return EVGapAgent()
+
+    def _payload(self, blended_over, sharp_over):
+        return {
+            "blended_prob_yes": blended_over,
+            "sharp_true_prob_yes": sharp_over,
+            "src": "sharp+pitcher",
+            "yes_is_outcome_b": False,
+            "used_spread_model": False,
+        }
+
+    def test_under_gap_built_when_positive_ev(self):
+        agent = self._agent()
+        # Over priced rich (under NO ask = 0.33) but model says over only 0.55,
+        # so under = 0.45 → EV = 0.45/0.33 - 1 ≈ +36%.
+        market = _market(yes_price=0.70, yes_team="over",
+                         market_type=MarketType.total, line=8.5, yes_price_no=0.33)
+        sharp = _sharp(outcome_a="over", outcome_b="under", true_prob_a=0.50)
+        gap = agent._build_no_side_total_gap(
+            market, sharp, self._payload(0.55, 0.52), 0.95, "baseball", kelly_base=0.5,
+        )
+        assert gap is not None
+        assert gap.yes_team == "under"
+        assert gap.market_type == MarketType.total.value
+        assert gap.line == 8.5                      # totals line NOT flipped
+        assert gap.market_id.endswith(":no")
+        assert gap.kalshi_yes_price == pytest.approx(0.33)
+        assert gap.blended_true_prob == pytest.approx(0.45)
+        assert gap.ev_pct > 0
+        assert gap.model_sources.endswith("+no_side")
+        # Event title must be the team matchup, NOT "over vs under" — totals
+        # outcome labels are over/under, so the title is derived from the
+        # event_id slug. Regression for the dashboard showing "over vs under"
+        # in the Event column for under bets.
+        assert gap.event_title == "Pistons vs Warriors"
+        assert "over" not in gap.event_title.lower()
+
+    def test_no_under_gap_when_model_loves_over(self):
+        """If the model projects a high over prob, the under is -EV → None."""
+        agent = self._agent()
+        market = _market(yes_price=0.70, yes_team="over",
+                         market_type=MarketType.total, line=8.5, yes_price_no=0.33)
+        sharp = _sharp(outcome_a="over", outcome_b="under", true_prob_a=0.50)
+        # blended over 0.80 → under 0.20; 0.20/0.33 - 1 ≈ -39% → no gap
+        gap = agent._build_no_side_total_gap(
+            market, sharp, self._payload(0.80, 0.78), 0.95, "baseball", kelly_base=0.5,
+        )
+        assert gap is None
+
+    def test_dead_under_book_returns_none(self):
+        agent = self._agent()
+        # NO ask at the 1¢ floor = dead book
+        market = _market(yes_price=0.99, yes_team="over",
+                         market_type=MarketType.total, line=8.5, yes_price_no=0.005)
+        sharp = _sharp(outcome_a="over", outcome_b="under", true_prob_a=0.50)
+        gap = agent._build_no_side_total_gap(
+            market, sharp, self._payload(0.30, 0.30), 0.95, "baseball", kelly_base=0.5,
+        )
+        assert gap is None

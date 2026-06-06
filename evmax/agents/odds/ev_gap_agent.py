@@ -144,6 +144,22 @@ def _minutes_to_tipoff(event_date: Optional[datetime]) -> Optional[int]:
     return max(0, int(delta))
 
 
+def _total_event_title(sharp: SharpOdds) -> str:
+    """Display title for a totals market.
+
+    Totals SharpOdds carry ``outcome_a_label`` / ``outcome_b_label`` of
+    "over" / "under", so using them as the matchup yields a useless
+    "over vs under" event title. Derive the team matchup from the event_id
+    slug instead (e.g. ``baseball::2026-06-02::redsox_vs_orioles::total::6.5``
+    → "Redsox vs Orioles"). Falls back to the outcome labels if the slug
+    can't be parsed.
+    """
+    parts = (sharp.event_id or "").split("::")
+    if len(parts) >= 3 and "_vs_" in parts[2]:
+        return " vs ".join(p.replace("_", " ").title() for p in parts[2].split("_vs_"))
+    return f"{sharp.outcome_a_label or '?'} vs {sharp.outcome_b_label or '?'}"
+
+
 def _dedup_mutually_exclusive_sides(gaps: "list[EVGap]") -> "list[EVGap]":
     """Drop the lower-EV gap when two bets cover opposite sides of a market.
 
@@ -269,6 +285,25 @@ class EVGapAgent(Agent):
                 and blend_payload is not None
             ):
                 no_gap = self._build_no_side_spread_gap(
+                    market=market,
+                    sharp=sharp,
+                    blend_payload=blend_payload,
+                    confidence=confidence,
+                    sector=sector,
+                    kelly_base=kelly_base,
+                    steam_events=steam_events,
+                )
+                if no_gap is not None:
+                    gaps.append(no_gap)
+
+            # Totals are framed YES = OVER on Kalshi, so the UNDER is only
+            # reachable as the NO side — mirror the spread NO-side derivation.
+            if (
+                market.market_type == MarketType.total
+                and market.line is not None
+                and blend_payload is not None
+            ):
+                no_gap = self._build_no_side_total_gap(
                     market=market,
                     sharp=sharp,
                     blend_payload=blend_payload,
@@ -732,6 +767,29 @@ class EVGapAgent(Agent):
                 src = "sharp(capped)"
 
         # ------------------------------------------------------------------
+        # Step 3c: Baseball moneyline requires the pitcher model.
+        # ------------------------------------------------------------------
+        # When ESPN hasn't posted the probable starter (night-before / early
+        # scans) or a name-match miss drops it, the pitcher agent returns None
+        # and the baseball ML blend degrades to a generic elo+form devig with
+        # no independent edge. Those pitcher-less bets went -23% flat ROI live
+        # (n=13, Apr-Jun 2026) vs +18% when the pitcher contributed. Skip the
+        # bet rather than fire blind. Scoped to moneyline: spread uses the
+        # cover-prob model and total is pure sharp devig — neither consumes the
+        # pitcher agent, so requiring it there would wrongly zero them out.
+        if (
+            (market.sector or "").lower() == "baseball"
+            and market.market_type == MarketType.moneyline
+            and "pitcher" not in src
+        ):
+            self.log.debug(
+                "baseball_ml_skipped_no_pitcher",
+                event_id=sharp.event_id,
+                src=src,
+            )
+            return _ret(None, None)
+
+        # ------------------------------------------------------------------
         # Step 4: Injury adjustment.
         # Skipped for:
         #   - totals: injury impact on team scoring is symmetric in O/U math
@@ -935,12 +993,7 @@ class EVGapAgent(Agent):
             line=market.line,
             model_sources=src,
             event_title=(
-                # For totals, outcome_a/b_label is "over"/"under" — extract team names
-                # from the event_id slug instead so the title shows "Lakers vs Celtics"
-                " vs ".join(
-                    p.replace("_", " ").title()
-                    for p in sharp.event_id.split("::")[2].split("::")[0].split("_vs_")
-                ) if is_total and "::" in sharp.event_id
+                _total_event_title(sharp) if is_total
                 else f"{sharp.outcome_a_label or '?'} vs {sharp.outcome_b_label or '?'}"
             ),
             steam_move=is_steam,
@@ -1061,6 +1114,95 @@ class EVGapAgent(Agent):
             line=no_line,
             model_sources=f"{src_yes}+no_side",
             event_title=f"{sharp.outcome_a_label or '?'} vs {sharp.outcome_b_label or '?'}",
+            steam_move=is_steam,
+            line_velocity=velocity,
+            velocity_flag=vel_flag,
+            book_count=getattr(sharp, "book_count", 1),
+        )
+
+    # ------------------------------------------------------------------
+    # NO-side total derivation
+    # ------------------------------------------------------------------
+
+    def _build_no_side_total_gap(
+        self,
+        market: PredictionMarket,
+        sharp: SharpOdds,
+        blend_payload: dict,
+        confidence: float,
+        sector: str,
+        kelly_base: float = 0.25,
+        steam_events: Optional[set] = None,
+    ) -> Optional[EVGap]:
+        """Build the NO-side EVGap for a Kalshi total market.
+
+        Kalshi totals tickers are framed YES = OVER (``kalshi.py`` sets
+        ``yes_team = "over"`` for every total series), so the NO side is the
+        UNDER — the only way to get under exposure on Kalshi. We synthesize an
+        EVGap as if it were a YES bet on the under at the same line:
+
+          - market_id : original_id + ":no"  (avoids UNIQUE collision)
+          - yes_team  : "under"
+          - line      : market.line  (totals line is side-agnostic, NOT flipped)
+          - kalshi_yes_price : market.no_price (actual UNDER ask, includes vig)
+          - true_prob : 1 - blended_over_prob
+
+        Returns None if UNDER is below the EV threshold or the NO book is dead.
+        Mirrors :meth:`_build_no_side_spread_gap`; vig guarantees only one of
+        OVER (YES) / UNDER (NO) can be +EV at a given price, so no double-count.
+        """
+        no_ask = market.no_price
+        if no_ask is None or no_ask <= 0 or no_ask >= 1.0:
+            no_ask = 1.0 - market.yes_price
+        if no_ask <= 0.01 or no_ask >= 0.99:
+            return None  # dead orderbook on the UNDER side
+
+        if market.spread_pct < 0.005:
+            return None  # one-sided / stale ladder
+
+        blended_under = max(0.01, min(0.99, 1.0 - blend_payload["blended_prob_yes"]))
+        sharp_under = max(0.01, min(0.99, 1.0 - blend_payload["sharp_true_prob_yes"]))
+
+        ev, edge_pct = calculate_ev(no_ask, blended_under)
+        if ev < self._settings.ev_threshold:
+            return None
+        src_yes = blend_payload["src"]
+
+        payout = 1.0 / no_ask
+        kelly = compute_kelly(
+            true_prob=blended_under,
+            payout_decimal=payout,
+            edge_pct=edge_pct,
+            spread_pct=market.spread_pct,
+            base_fraction=kelly_base,
+            max_kelly=self._settings.max_kelly_fraction,
+        )
+
+        is_steam = bool(steam_events and sharp.event_id in steam_events)
+        velocity, vel_flag = self._compute_velocity(sharp.event_id)
+        if vel_flag == "STEAM":
+            is_steam = True
+
+        return EVGap(
+            market_id=f"{market.id}:no",
+            event_id=sharp.event_id,
+            sector=sector,
+            yes_team="under",
+            market_type=MarketType.total.value,
+            kalshi_yes_price=no_ask,
+            sharp_true_prob=sharp_under,
+            blended_true_prob=blended_under,
+            ev_pct=ev,
+            kelly_full=kelly.kelly_full,
+            kelly_fraction=kelly.kelly_fraction,
+            match_confidence=confidence,
+            volume_usd=market.volume_usd,
+            spread_pct=market.spread_pct,
+            event_date=sharp.event_date or market.event_date,
+            minutes_to_tipoff=_minutes_to_tipoff(sharp.event_date or market.event_date),
+            line=market.line,
+            model_sources=f"{src_yes}+no_side",
+            event_title=_total_event_title(sharp),
             steam_move=is_steam,
             line_velocity=velocity,
             velocity_flag=vel_flag,

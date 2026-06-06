@@ -18,6 +18,7 @@ from evmax.portfolios import (
     get_portfolio,
     get_portfolio_bets,
     get_portfolio_stats,
+    is_excluded_from_portfolio,
     list_portfolios,
     log_portfolio_bet,
     resolve_portfolio_bet,
@@ -186,3 +187,24 @@ class TestPortfolioModel:
         assert d["id"] == "test"
         assert d["current_bankroll"] == 105.50
         assert d["sectors"] == ["nba"]
+
+
+class TestPortfolioExclusions:
+    """Baseball totals are kept out of portfolio simulation (−CLV from a
+    night-before-only scan workflow; see categories.yaml baseball notes)."""
+
+    def test_baseball_total_excluded(self):
+        assert is_excluded_from_portfolio("baseball", "total") is True
+        assert is_excluded_from_portfolio("BASEBALL", "Total") is True  # case-insensitive
+
+    def test_baseball_other_markets_not_excluded(self):
+        assert is_excluded_from_portfolio("baseball", "moneyline") is False
+        assert is_excluded_from_portfolio("baseball", "spread") is False
+
+    def test_other_sectors_totals_not_excluded(self):
+        # The exclusion is baseball-specific, not a blanket totals ban.
+        assert is_excluded_from_portfolio("nba", "total") is False
+        assert is_excluded_from_portfolio("soccer", "total") is False
+
+    def test_none_inputs_safe(self):
+        assert is_excluded_from_portfolio(None, None) is False

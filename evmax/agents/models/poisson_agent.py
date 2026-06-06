@@ -46,8 +46,19 @@ LEAGUE_AVG_DEFAULTS: dict[str, dict[str, float]] = {
     "wnba":     {"home": 83.0,  "away": 81.0},   # WNBA 2023-2024 averages
 }
 
-# Supported sectors (Poisson makes most sense for goal/point-scoring games)
-SUPPORTED_SECTORS = {"soccer", "nba", "nfl", "ncaab", "baseball", "wnba"}
+# Supported sectors. Poisson is intentionally SOCCER-ONLY: a low-count
+# goal-scoring distribution with weak inter-event dependence is exactly what the
+# Poisson / Dixon-Coles model is built for (soccer weight 0.40). Every other
+# sector was either explicitly zeroed in the ensemble override (nba/wnba/nfl) or
+# is a poor fit for the independence assumption (baseball run overdispersion +
+# bullpen leverage; ncaab possession-level correlation).
+#
+# Membership here — not the override weight — is what truly keeps poisson out:
+# the ensemble's per-sector override only re-weights *listed* models, so an
+# unlisted model silently falls back to its 0.30 class weight
+# (ensemble_agent.py:469). Excluding a sector here means predict_pair returns
+# None, so poisson never enters model_preds and never shows in `model_sources`.
+SUPPORTED_SECTORS = {"soccer"}
 
 # Maximum *bucket* count in the score matrix. Units depend on BUCKET_SIZE.
 MAX_SCORE: dict[str, int] = {
