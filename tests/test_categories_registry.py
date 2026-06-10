@@ -414,3 +414,38 @@ def test_validator_accepts_omitted_season_window(tmp_path):
     from evmax.categories import get_category as _gc
     assert _gc("nba").season_window is None
     reload_registry()
+
+
+def test_validator_catches_disabled_market_type_not_in_market_types(tmp_path):
+    bad = tmp_path / "broken.yaml"
+    _write_yaml(
+        bad,
+        _full_yaml("nba", _base_entry(
+            market_types=["moneyline", "spread"],
+            extra="  disabled_market_types: [total]\n",
+        )),
+    )
+    with pytest.raises(ValueError, match="disabled_market_types entry"):
+        reload_registry(bad)
+    reload_registry()
+
+
+def test_validator_catches_disabled_shadow_overlap(tmp_path):
+    bad = tmp_path / "broken.yaml"
+    _write_yaml(
+        bad,
+        _full_yaml("nba", _base_entry(
+            extra="  shadow_market_types: [total]\n  disabled_market_types: [total]\n",
+        )),
+    )
+    with pytest.raises(ValueError, match="both"):
+        reload_registry(bad)
+    reload_registry()
+
+
+def test_baseball_spec_has_totals_disabled():
+    """Shipped YAML: baseball totals moved from shadow_market_types to
+    disabled_market_types on 2026-06-10."""
+    spec = get_category("baseball")
+    assert "total" in spec.disabled_market_types
+    assert "total" not in spec.shadow_market_types

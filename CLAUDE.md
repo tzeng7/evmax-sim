@@ -16,6 +16,10 @@ You are an expert in acquiring expected value for specific predictions found on 
 
 **Override precedence (highest wins):** runtime CLI flag > env var `EVMAX_CATEGORY_MODES` > YAML base.
 
+**Per-market-type refinements** (YAML fields on a category, validated at parse time):
+- `shadow_market_types: [total]` — downgrades the listed types to shadow when the sector mode is `live` (inert under a shadow base).
+- `disabled_market_types: [total]` — drops the listed types before persistence regardless of base mode (live OR shadow). Stronger than the shadow list and must be disjoint from it. Added 2026-06-10 to kill baseball totals (n=102 NO-side unders went −15.2% ROI; stale-line selection, see the baseball notes in the YAML). Runtime/env overrides still win and apply uniformly to all market types.
+
 - Permanent change → edit `data/categories.yaml`
 - One-process change → `EVMAX_CATEGORY_MODES='{"nba":"disabled"}' evmax agents scan`
 - One-command change → `evmax agents scan --shadow nfl_props --disabled nhl`

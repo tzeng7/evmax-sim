@@ -365,3 +365,52 @@ def test_log_prop_observations_disabled_category_dropped(patched_db):
         "SELECT COUNT(*) AS n FROM prop_observations"
     ).fetchone()
     assert rows["n"] == 0
+
+
+# -------------------------------------------------------------------------
+# model_version code-provenance stamping (2026-06-10)
+# -------------------------------------------------------------------------
+
+
+def test_log_gaps_stamps_code_version_when_none(patched_db):
+    """When no explicit model_version is passed, rows are stamped with the
+    git code version so mixed-code scan periods are identifiable from the
+    DB (the 2026-06 baseball contamination had to be diagnosed via reflog)."""
+    with patch("evmax.version.code_version", return_value="abc1234@feat/x-dirty"):
+        log_gaps([_gap("g1")], mode_resolver=lambda c: "live")
+    rows = patched_db.execute(
+        "SELECT model_version FROM ev_predictions"
+    ).fetchall()
+    assert len(rows) == 1
+    assert rows[0]["model_version"] == "abc1234@feat/x-dirty"
+
+
+def test_log_gaps_explicit_model_version_wins(patched_db):
+    """An explicit model_version overrides the provenance stamp."""
+    with patch("evmax.version.code_version", return_value="abc1234"):
+        log_gaps([_gap("g1")], mode_resolver=lambda c: "live",
+                 model_version="custom-v9")
+    row = patched_db.execute("SELECT model_version FROM ev_predictions").fetchone()
+    assert row["model_version"] == "custom-v9"
+
+
+def test_log_prop_observations_stamps_code_version_when_none(patched_db):
+    with patch("evmax.version.code_version", return_value="abc1234"):
+        log_prop_observations([_prop_gap()], mode_resolver=lambda c: "shadow")
+    row = patched_db.execute(
+        "SELECT model_version FROM prop_observations"
+    ).fetchone()
+    assert row["model_version"] == "abc1234"
+
+
+def test_code_version_shape():
+    """code_version() returns a non-empty string and is stable in-process.
+    In a git checkout it starts with a short SHA; outside one it's 'unknown'."""
+    from evmax.version import code_version
+
+    v = code_version()
+    assert isinstance(v, str) and v
+    assert v == code_version()  # cached
+    if v != "unknown":
+        sha = v.split("@")[0].replace("-dirty", "")
+        assert 6 <= len(sha) <= 12 and all(c in "0123456789abcdef" for c in sha)

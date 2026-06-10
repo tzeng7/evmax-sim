@@ -88,11 +88,19 @@ def log_gaps(
     Disabled categories are dropped before insert. Live and shadow rows are
     written to the same table with different values in the `mode` column.
 
+    `model_version` defaults to the git code version (short SHA + branch +
+    dirty flag) so every row records which code state produced it — pass an
+    explicit value only to override that provenance stamp.
+
     Returns the number of newly inserted rows (sum of live + shadow;
     excludes dropped-disabled and duplicate-ignored rows).
     """
     if not gaps:
         return 0
+
+    if model_version is None:
+        from evmax.version import code_version
+        model_version = code_version()
 
     resolver = mode_resolver or _default_mode_resolver
     sd = (scan_date or date.today()).isoformat()
@@ -225,6 +233,10 @@ def log_prop_observations(
     prop_gaps = [g for g in gaps if g.event_id and "::prop::" in g.event_id]
     if not prop_gaps:
         return 0
+
+    if model_version is None:
+        from evmax.version import code_version
+        model_version = code_version()
 
     resolver = mode_resolver or _default_mode_resolver
     sd = (scan_date or date.today()).isoformat()

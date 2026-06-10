@@ -1469,3 +1469,95 @@ class TestDedupMutuallyExclusiveSides:
             self._gap(market_type="player_prop", line=30.0, ev_pct=0.03, market_id="m3"),
         ]
         assert len(_dedup_mutually_exclusive_sides(gaps)) == 3
+
+
+class TestBlendSourcesAndConfidence:
+    """Regression tests for the 2026-06-10 _blend fixes: model_sources must
+    reflect override-resolved contributions, and avg_conf must not misalign
+    when models are filtered out of the blend."""
+
+    def test_model_sources_excludes_sector_override_zeroed_model(self):
+        """A model whose sector override weight is 0.0 contributes nothing to
+        the blend and must NOT appear in model_sources (downstream gates like
+        the tennis REQUIRED_BLEND_MODELS check parse this string)."""
+        from evmax.agents.models.base import ModelAgentPrediction
+        from evmax.agents.models.ensemble_agent import EnsembleModelAgent
+
+        ensemble = EnsembleModelAgent(models=[], sharp_weight=0.85)
+        # NFL override zeroes poisson; elo stays weighted.
+        preds = {
+            "elo": ModelAgentPrediction(
+                event_id="test", model_name="elo",
+                true_prob_a=0.55, true_prob_b=0.45,
+                confidence=0.60, weight=0.35,
+            ),
+            "poisson": ModelAgentPrediction(
+                event_id="test", model_name="poisson",
+                true_prob_a=0.70, true_prob_b=0.30,
+                confidence=0.60, weight=0.30,
+            ),
+        }
+        sharp = make_sharp()
+        blend = ensemble._blend("test", preds, sharp, 0.85, sector="nfl")
+        assert blend is not None
+        assert "elo" in blend.model_sources
+        assert "sharp" in blend.model_sources
+        assert "poisson" not in blend.model_sources, (
+            "poisson is zeroed by the NFL sector override and must not be "
+            f"listed as a source: {blend.model_sources}"
+        )
+
+    def test_model_sources_excludes_low_confidence_model(self):
+        """Below the 0.45 confidence gate → out of blend AND out of sources."""
+        from evmax.agents.models.base import ModelAgentPrediction
+        from evmax.agents.models.ensemble_agent import EnsembleModelAgent
+
+        ensemble = EnsembleModelAgent(models=[], sharp_weight=0.85)
+        preds = {
+            "elo": ModelAgentPrediction(
+                event_id="test", model_name="elo",
+                true_prob_a=0.55, true_prob_b=0.45,
+                confidence=0.60, weight=0.35,
+            ),
+            "form": ModelAgentPrediction(
+                event_id="test", model_name="form",
+                true_prob_a=0.52, true_prob_b=0.48,
+                confidence=0.30, weight=0.25,  # below the 0.45 gate
+            ),
+        }
+        sharp = make_sharp()
+        blend = ensemble._blend("test", preds, sharp, 0.85, sector="nfl")
+        assert blend is not None
+        assert "form" not in blend.model_sources
+
+    def test_avg_conf_uses_contributing_model_confidences(self):
+        """avg_conf must weight the confidences of the models that actually
+        contributed — not whatever sits at the same index of the unfiltered
+        prediction list. Here the first dict entry (form) is filtered out by
+        the confidence gate; the old index-zip would have paired elo's weight
+        with form's confidence."""
+        from evmax.agents.models.base import ModelAgentPrediction
+        from evmax.agents.models.ensemble_agent import EnsembleModelAgent
+
+        ensemble = EnsembleModelAgent(models=[], sharp_weight=0.85)
+        preds = {
+            # Filtered out (confidence below gate) — sits at index 0.
+            "form": ModelAgentPrediction(
+                event_id="test", model_name="form",
+                true_prob_a=0.52, true_prob_b=0.48,
+                confidence=0.10, weight=0.25,
+            ),
+            # Sole contributor — avg_conf must equal ITS confidence.
+            "elo": ModelAgentPrediction(
+                event_id="test", model_name="elo",
+                true_prob_a=0.55, true_prob_b=0.45,
+                confidence=0.80, weight=0.35,
+            ),
+        }
+        sharp = make_sharp()
+        blend = ensemble._blend("test", preds, sharp, 0.85, sector="nfl")
+        assert blend is not None
+        assert blend.confidence == pytest.approx(0.80, abs=1e-6), (
+            f"avg_conf should be elo's 0.80, got {blend.confidence} "
+            "(index misalignment would yield form's 0.10)"
+        )

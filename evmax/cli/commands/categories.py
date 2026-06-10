@@ -160,7 +160,8 @@ def show_category(
         "",
         f"[bold]Market types[/bold] ({len(spec.market_types)}):",
         "  " + ", ".join(
-            f"{mt.value} [yellow](shadow)[/yellow]" if mt.value in spec.shadow_market_types
+            f"{mt.value} [red](disabled)[/red]" if mt.value in spec.disabled_market_types
+            else f"{mt.value} [yellow](shadow)[/yellow]" if mt.value in spec.shadow_market_types
             else mt.value
             for mt in spec.market_types
         ),
