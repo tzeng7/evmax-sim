@@ -107,10 +107,13 @@ class CycleResult:
         return round(self.bankroll * gap.kelly_fraction, 2)
 
     def print_plays(self, min_ev: float = 0.02, max_plays: int = 30) -> None:
-        """Pretty-print +EV plays."""
-        gaps = [g for g in self.top_gaps if g.ev_pct >= min_ev][:max_plays]
+        """Pretty-print +EV plays. Partial-blend gaps are shadow-bound — not plays."""
+        n_partial = sum(1 for g in self.ev_gaps if not g.full_blend and g.ev_pct >= min_ev)
+        gaps = [g for g in self.top_gaps if g.ev_pct >= min_ev and g.full_blend][:max_plays]
         if not gaps:
             print("No +EV plays found.")
+            if n_partial:
+                print(f"({n_partial} gap(s) hidden — partial model blend, logged as shadow)")
             return
         print(f"\n{'='*80}")
         print(f"  +EV PLAYS  |  Bankroll: ${self.bankroll:.0f}  |  Kelly: {self.kelly_fraction:.0%}")
@@ -127,6 +130,8 @@ class CycleResult:
         print(f"{'='*80}")
         total_stake = sum(self.stake_for(g) for g in gaps)
         print(f"  Total at risk: ${total_stake:.2f} / ${self.bankroll:.0f} ({total_stake/self.bankroll*100:.1f}%)")
+        if n_partial:
+            print(f"  ({n_partial} gap(s) hidden — partial model blend, logged as shadow)")
         print()
 
 
@@ -597,6 +602,23 @@ class AgentCoordinator:
                 result.injury_reports[sector] = sr["injuries"]
             result.prop_sharp_pairs.extend(sr.get("prop_sharp_pairs", []))
 
+        # Partial-blend gaps (full_blend=False, see REQUIRED_BLEND_MODELS in
+        # ev_gap_agent.py) are shadow-bound: log_gaps demotes them to
+        # mode='shadow'. They never consume Kelly or the per-game exposure
+        # budget, so pull them out before sizing and re-attach after with
+        # kelly zeroed.
+        partial_blend_gaps = [
+            dataclasses.replace(g, kelly_fraction=0.0)
+            for g in result.ev_gaps if not g.full_blend
+        ]
+        if partial_blend_gaps:
+            result.ev_gaps = [g for g in result.ev_gaps if g.full_blend]
+            self.log.info(
+                "partial_blend_gaps_shadowed",
+                count=len(partial_blend_gaps),
+                sectors=sorted({g.sector for g in partial_blend_gaps}),
+            )
+
         pre_guard = len(result.ev_gaps)
         # Load Kelly fractions from bets the user already placed in earlier
         # scans today so the per-game cap is cumulative across scans, not
@@ -630,6 +652,8 @@ class AgentCoordinator:
         if dropped > 0:
             self.log.info("exposure_guard_applied", dropped=dropped, remaining=len(result.ev_gaps))
         result.exposure_guard_dropped = dropped
+        # Re-attach shadow-bound partial-blend gaps so they reach persistence.
+        result.ev_gaps.extend(partial_blend_gaps)
         result.cycle_duration_s = time.perf_counter() - t0
 
         # Archive all raw fetched data for historical analysis

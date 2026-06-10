@@ -68,6 +68,11 @@ class EVGap:
     # are when late-news edge can manifest; early scans (>6h) measure mostly
     # post-scan market drift and are inherently noisy regardless of news flow.
     minutes_to_tipoff: Optional[int] = None
+    # False when the sector requires a full model blend (REQUIRED_BLEND_MODELS)
+    # and this gap's model_sources is missing a required model. Partial-blend
+    # gaps are hidden from the play table, excluded from the exposure budget,
+    # and demoted to mode='shadow' at persistence — never bankroll-sized.
+    full_blend: bool = True
 
     @property
     def edge_label(self) -> str:
@@ -126,6 +131,37 @@ class EVGap:
             f"| Kalshi={self.kalshi_yes_price:.2f} TrueP={self.blended_true_prob:.3f} "
             f"EV={self.ev_pct*100:.1f}% Kelly={self.kelly_fraction*100:.2f}% {self.stars_display}"
         )
+
+
+# Sectors listed here only produce LIVE plays when every required model
+# contributed to the blend. Tennis requires the four primary signal models;
+# tennis_h2h (needs ≥3 prior meetings) and tennis_ranking_trend (needs fresh
+# weekly snapshots for both players) are deliberately optional — they
+# structurally can't fire on most matches. Walk-forward evidence
+# (scripts/compare_tennis_blend_buckets.py, n=2576 leak-free 2025+2026):
+# the full blend beats sharp by +2.6 Brier/1000 while a sparse blend is a
+# wash — sharp-passthrough "edges" are thin Kalshi-vs-Pinnacle arb, not
+# model edge.
+REQUIRED_BLEND_MODELS: dict[str, frozenset] = {
+    "tennis": frozenset({
+        "tennis_surface",
+        "tennis_serve_return",
+        "tennis_form",
+        "tennis_advanced",
+    }),
+}
+
+
+def has_full_blend(sector: Optional[str], model_sources: Optional[str]) -> bool:
+    """True when every model the sector requires contributed to the blend.
+
+    Sectors without an entry in REQUIRED_BLEND_MODELS always pass.
+    """
+    required = REQUIRED_BLEND_MODELS.get((sector or "").lower())
+    if not required:
+        return True
+    contributing = {tok.strip() for tok in (model_sources or "").split("+")}
+    return required <= contributing
 
 
 def _minutes_to_tipoff(event_date: Optional[datetime]) -> Optional[int]:
@@ -1000,6 +1036,7 @@ class EVGapAgent(Agent):
             line_velocity=velocity,
             velocity_flag=vel_flag,
             book_count=getattr(sharp, "book_count", 1),
+            full_blend=has_full_blend(sector, src),
         )
         return _ret(gap, blend_payload)
 

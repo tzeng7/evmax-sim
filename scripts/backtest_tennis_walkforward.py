@@ -180,17 +180,25 @@ class TennisWalkRow:
     advanced_conf: Optional[float] = None
 
 
-def _pair(player_a: str, player_b: str, sharp_a: float, surface: str):
+def _pair(player_a: str, player_b: str, sharp_a: float, surface: str,
+          event_date: Optional[date] = None):
     """Construct a (market, sharp) pair the agents will accept. Surface is
     embedded in `competition` via SURFACE_TO_COMP — the agents' resolver
     keys off well-known city names. Title also carries a surface hint as a
-    backup so resolution doesn't rely on a single channel."""
+    backup so resolution doesn't rely on a single channel.
+
+    `event_date` is set on the market so date-aware agents (form staleness,
+    ranking-trend anchoring) evaluate relative to the match date instead of
+    falling back to date.today() — without it the replay leaks future state
+    and misjudges staleness."""
     market = PredictionMarket(
         id="bt", market_id="bt", event_id=f"bt::{player_a}::{player_b}",
         sector="tennis", team_home=player_a, team_away=player_b,
         source=MarketSource.kalshi, yes_price=sharp_a, no_price=1.0 - sharp_a,
         competition=SURFACE_TO_COMP.get(surface, "ATP melbourne"),
         title=f"{player_a} vs {player_b} ({surface})",
+        event_date=datetime(event_date.year, event_date.month, event_date.day, 12)
+        if event_date else None,
     )
     sharp = SharpOdds(
         event_id=f"bt::{player_a}::{player_b}", book=SharpBook.pinnacle, sector="tennis",
@@ -257,7 +265,8 @@ def walk_forward(matches: list[TennisMatch], cold_start: bool = False) -> list[T
             player_a, player_b, a_won = m.loser, m.winner, False
             sharp_a = 1.0 - m.sharp_winner_prob
 
-        market, sharp = _pair(player_a, player_b, sharp_a, m.surface)
+        market, sharp = _pair(player_a, player_b, sharp_a, m.surface,
+                              event_date=m.date)
 
         async def _all():
             return await asyncio.gather(
