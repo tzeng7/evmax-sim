@@ -326,6 +326,52 @@ def test_log_gaps_empty_list_is_noop(patched_db):
 
 
 # -------------------------------------------------------------------------
+# model_version — git code provenance default
+# -------------------------------------------------------------------------
+
+
+def test_log_gaps_defaults_model_version_to_code_provenance(patched_db, monkeypatch):
+    """When the caller omits model_version, every row is stamped with the
+    git code provenance of the running checkout — so cron scans from a
+    feature branch or stale main are identifiable after the fact."""
+    monkeypatch.setattr(
+        logger_module, "code_version", lambda: "abc1234-dirty@fix/branch"
+    )
+    inserted = log_gaps([_gap("g1"), _gap("g2")], mode_resolver=lambda c: "live")
+    assert inserted == 2
+    rows = patched_db.execute("SELECT model_version FROM ev_predictions").fetchall()
+    assert all(r["model_version"] == "abc1234-dirty@fix/branch" for r in rows)
+
+
+def test_log_gaps_explicit_model_version_overrides_provenance(patched_db, monkeypatch):
+    monkeypatch.setattr(logger_module, "code_version", lambda: "abc1234")
+    log_gaps([_gap("g1")], mode_resolver=lambda c: "live", model_version="custom_v2")
+    row = patched_db.execute("SELECT model_version FROM ev_predictions").fetchone()
+    assert row["model_version"] == "custom_v2"
+
+
+def test_log_gaps_model_version_null_when_git_unavailable(patched_db, monkeypatch):
+    """Provenance must never break a scan — no git means a NULL column."""
+    monkeypatch.setattr(logger_module, "code_version", lambda: None)
+    inserted = log_gaps([_gap("g1")], mode_resolver=lambda c: "live")
+    assert inserted == 1
+    row = patched_db.execute("SELECT model_version FROM ev_predictions").fetchone()
+    assert row["model_version"] is None
+
+
+def test_log_prop_observations_defaults_model_version_to_code_provenance(
+    patched_db, monkeypatch
+):
+    monkeypatch.setattr(logger_module, "code_version", lambda: "abc1234")
+    inserted = log_prop_observations(
+        [_prop_gap("LeBron James")], mode_resolver=lambda c: "live"
+    )
+    assert inserted == 1
+    row = patched_db.execute("SELECT model_version FROM prop_observations").fetchone()
+    assert row["model_version"] == "abc1234"
+
+
+# -------------------------------------------------------------------------
 # log_prop_observations — mode routing + prop filter
 # -------------------------------------------------------------------------
 
