@@ -40,12 +40,17 @@ State file: data/models/nfl_efficiency_state.json
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 from typing import Optional
+
+import structlog
 
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
+
+logger = structlog.get_logger(__name__)
 
 STATE_PATH = Path(__file__).resolve().parents[3] / "data" / "models" / "nfl_efficiency_state.json"
 
@@ -56,6 +61,52 @@ PLAYS_PER_TEAM_GAME = 64.0   # offensive plays per team per game (league avg)
 MIN_GAMES = 6                # ~4 weeks; below this confidence collapses
 LOW_CONF_GAMES = 9           # ~9 games → moderate confidence
 HIGH_CONF_GAMES = 13         # ~13 games → full confidence
+
+# Months during which the NFL regular season + playoffs run (Sep-Feb). Outside
+# this window there are no games to predict, so the staleness guard relaxes and
+# prior-season state is treated as fresh enough. Unlike WNBA's single-calendar-
+# year season, NFL wraps the year boundary, so this is an explicit month set,
+# not a range().
+_NFL_SEASON_MONTHS = {9, 10, 11, 12, 1, 2}
+
+
+def active_nfl_season(today: Optional[date] = None) -> int:
+    """The NFL season that is active on `today`.
+
+    NFL season N runs Sep(N) → Feb(N+1), so a Jan/Feb date belongs to the
+    season that started the prior calendar year. Mirrors `_season_of` in
+    scripts/backtest_nfl_efficiency.py so the live guard and the backtest agree.
+    """
+    today = today or date.today()
+    return today.year if today.month >= 7 else today.year - 1
+
+
+def nfl_state_is_stale_for_today(state: dict, today: Optional[date] = None) -> bool:
+    """Return True when the NFL state's source season is behind the active
+    NFL season during the Sep-Feb window.
+
+    Prevents the WNBA-style "predict the current season on last season's seed"
+    failure mode (which produced +24pp chalk bias on the 2026 WNBA opener) from
+    silently recurring on NFL across the offseason. Both NFL agents have a no-op
+    update() and seed-driven state, so without this guard a frozen prior-season
+    seed would keep firing once a new season starts.
+
+    `state` is the agent's full _state dict ({"nfl": {...}}). The source season
+    is derived from max(seasons_used) — NFL state files carry a seasons_used
+    list, not WNBA's source_season int. Missing/empty seasons_used → not stale
+    (backward compatible with un-seeded or older state files).
+    """
+    today = today or date.today()
+    if today.month not in _NFL_SEASON_MONTHS:
+        return False
+    seasons_used = (state.get("nfl") or {}).get("seasons_used")
+    if not seasons_used:
+        return False
+    try:
+        source_season = max(int(s) for s in seasons_used)
+    except (TypeError, ValueError):
+        return False
+    return source_season < active_nfl_season(today)
 
 
 def _normal_cdf(x: float) -> float:
@@ -166,6 +217,15 @@ class NflEfficiencyModelAgent(ModelAgent):
     ) -> Optional[ModelAgentPrediction]:
         sector = (market.sector or "").lower()
         if sector != "nfl":
+            return None
+
+        if nfl_state_is_stale_for_today(self._state):
+            logger.warning(
+                "nfl_efficiency_stale_seasons_used",
+                seasons_used=self._sector_state().get("seasons_used"),
+                active_season=active_nfl_season(),
+                hint="re-run scripts/seed_nfl_efficiency.py",
+            )
             return None
 
         sector_state = self._sector_state()

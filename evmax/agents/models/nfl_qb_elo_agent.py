@@ -31,16 +31,23 @@ PBP weekly instead. Same pattern as nfl_efficiency.
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Optional
+
+import structlog
 
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.agents.models.nfl_efficiency_agent import (
     NFL_ABBREV_TO_NAME,
     NFL_NICKNAME_TO_NAME,
+    active_nfl_season,
+    nfl_state_is_stale_for_today,
 )
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
+
+logger = structlog.get_logger(__name__)
 
 STATE_PATH = Path(__file__).resolve().parents[3] / "data" / "models" / "nfl_qb_elo_state.json"
 
@@ -146,6 +153,15 @@ class NflQbEloModelAgent(ModelAgent):
         if sector != "nfl":
             return None
 
+        if nfl_state_is_stale_for_today(self._state):
+            logger.warning(
+                "nfl_qb_elo_stale_seasons_used",
+                seasons_used=self._sector_state().get("seasons_used"),
+                active_season=active_nfl_season(),
+                hint="re-run scripts/seed_nfl_qb_elo.py",
+            )
+            return None
+
         sector_state = self._sector_state()
         teams = sector_state.get("team_base", {})
         qb_deltas = sector_state.get("qb_deltas", {})
@@ -245,6 +261,28 @@ def _expected_home_prob(
     return 1.0 / (1.0 + 10.0 ** ((away_eff - home_eff) / 400.0))
 
 
+def _mov_multiplier(margin: float, elo_diff: float) -> float:
+    """Margin-of-victory K multiplier (FiveThirtyEight-inspired).
+
+    Blowouts move ratings more than squeakers, but the effect is dampened when
+    the winner was already heavily favored (prevents Elo autocorrelation — a
+    strong team running up the score against a weak one shouldn't keep
+    compounding its rating). Mirrors EloModelAgent._mov_multiplier so the QB-Elo
+    math stays consistent with the generic Elo agent.
+
+    `elo_diff` is the pre-game effective-Elo edge of the WINNER over the loser.
+
+    Calibrated so (at elo_diff≈0):
+      1-pt win  → ~0.85x · 5-pt → ~1.0x · 10-pt → ~1.15x · 20-pt → ~1.35x
+    Clamped to [0.75, 1.5].
+    """
+    if margin <= 0:
+        return 1.0
+    raw = math.log(margin + 1.0) / math.log(6.0)  # margin=5 ≈ 1.0
+    dampener = 2.2 / (abs(elo_diff) * 0.001 + 2.2)
+    return max(0.75, min(1.5, raw * dampener))
+
+
 def apply_qb_elo_update(
     state: dict,
     home_team: str,
@@ -256,6 +294,9 @@ def apply_qb_elo_update(
     k_factor: float = K_FACTOR,
     home_advantage: float = HOME_ADVANTAGE_ELO,
     qb_share: float = QB_UPDATE_SHARE,
+    home_score: Optional[float] = None,
+    away_score: Optional[float] = None,
+    use_mov: bool = False,
 ) -> None:
     """Mutate `state` (a sector_state dict) with the Elo update for one game.
 
@@ -264,9 +305,14 @@ def apply_qb_elo_update(
     DEFAULT_ELO / DEFAULT_QB_DELTA so the very first game involving a team
     or QB lands cleanly.
 
-    Mirrors EloModelAgent's basic update math, minus MOV/SOS scaling — those
-    add complexity that should be tuned in a follow-up if backtest gains
-    warrant it.
+    Mirrors EloModelAgent's basic update math. Margin-of-victory scaling is
+    opt-in via `use_mov=True` (requires home_score/away_score): the per-game
+    delta is multiplied by a blowout-aware multiplier dampened when the winner
+    was already favored (see `_mov_multiplier`). Default off so the seed script,
+    backtest, and tests can toggle it explicitly and the no-score call path
+    reduces exactly to the prior behaviour. Strength-of-schedule is implicitly
+    handled by the dampener (it keys on the pre-game effective-Elo edge), so no
+    separate SOS term is needed here.
     """
     team_base = state.setdefault("team_base", {})
     qb_deltas = state.setdefault("qb_deltas", {})
@@ -283,6 +329,12 @@ def apply_qb_elo_update(
     expected_home = _expected_home_prob(home_eff, away_eff)
     actual_home = 1.0 if home_won else 0.0
     delta = k_factor * (actual_home - expected_home)
+
+    if use_mov and home_score is not None and away_score is not None:
+        margin = abs(float(home_score) - float(away_score))
+        # elo_diff = winner's pre-game effective edge over the loser
+        winner_edge = (home_eff - away_eff) if home_won else (away_eff - home_eff)
+        delta *= _mov_multiplier(margin, winner_edge)
 
     # Team base gets (1 - qb_share); QB rating gets qb_share.
     team_base[home_team] = home_base + delta * (1.0 - qb_share)

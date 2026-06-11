@@ -698,6 +698,69 @@ class TestFormModelAgent:
         )]
         assert FormModelAgent._is_stale(past, reference=today)
 
+    @pytest.mark.asyncio
+    async def test_nfl_fresh_records_predicts_with_home_adj(self, tmp_path, monkeypatch):
+        """Characterization: with fresh NFL records the form model fires and the
+        home side (team_a) carries the NFL home probability bump (HOME_ADJ['nfl']
+        = 0.03). team_a here won every seeded game, so prob_a > 0.5."""
+        from datetime import date, timedelta
+        from evmax.agents.models import form_agent as fa
+
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = FormModelAgent()
+        agent._state_path = tmp_path / "form_state.json"
+
+        game_day = date(2025, 11, 16)  # mid-NFL-season
+        # NFL plays weekly — space records 7 days apart so they stay within
+        # STALE_DAYS of the game date.
+        results = [
+            {"date": (game_day - timedelta(days=7 * i)).isoformat(),
+             "home": "chiefs", "away": "broncos", "score_home": 27, "score_away": 17}
+            for i in range(1, 6)
+        ]
+        agent.seed_results("nfl", results)
+
+        market = make_market(sector="nfl", team_home="chiefs", team_away="broncos")
+        market.event_date = datetime(2025, 11, 16, 20, 0, tzinfo=timezone.utc)
+        sharp = make_sharp(
+            event_id="nfl::2025-11-16::chiefs_vs_broncos",
+            team_a="chiefs", team_b="broncos", sector="nfl",
+        )
+        pred = await agent.predict_pair(market, sharp)
+        assert pred is not None
+        assert pred.true_prob_a > 0.5  # chiefs won every seeded game
+
+    @pytest.mark.asyncio
+    async def test_nfl_prior_season_records_return_none(self, tmp_path, monkeypatch):
+        """Characterization: a September game whose only records are from the
+        prior February (> STALE_DAYS) must skip — cross-season contamination
+        guard, the same one that protected the WNBA opener."""
+        from datetime import date, timedelta
+        from evmax.agents.models import form_agent as fa
+
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = FormModelAgent()
+        agent._state_path = tmp_path / "form_state.json"
+
+        # Game is Sep 2025; records are from Feb 2025 (prior season playoffs),
+        # ~200+ days stale relative to the game date.
+        feb_day = date(2025, 2, 2)
+        results = [
+            {"date": (feb_day - timedelta(days=7 * i)).isoformat(),
+             "home": "chiefs", "away": "broncos", "score_home": 24, "score_away": 21}
+            for i in range(0, 5)
+        ]
+        agent.seed_results("nfl", results)
+
+        market = make_market(sector="nfl", team_home="chiefs", team_away="broncos")
+        market.event_date = datetime(2025, 9, 7, 20, 0, tzinfo=timezone.utc)
+        sharp = make_sharp(
+            event_id="nfl::2025-09-07::chiefs_vs_broncos",
+            team_a="chiefs", team_b="broncos", sector="nfl",
+        )
+        pred = await agent.predict_pair(market, sharp)
+        assert pred is None, "Prior-season NFL form must skip via STALE_DAYS guard"
+
     def test_update_records_draw(self, tmp_path, monkeypatch):
         """Soccer draws must persist drew=True on both sides, not won=False."""
         monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)

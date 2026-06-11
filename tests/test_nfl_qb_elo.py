@@ -255,6 +255,149 @@ class TestApplyUpdate:
         assert state["qb_games"] == {}
 
 
+# ── MOV scaling (opt-in, default off) ─────────────────────────────────────
+
+class TestApplyUpdateMov:
+    def test_no_score_call_reduces_to_baseline(self):
+        """Without scores (or with use_mov=False) the update is identical to
+        the prior no-MOV behaviour — regression guard for the existing tests."""
+        base = {"team_base": {}, "qb_deltas": {}, "qb_games": {}}
+        mov = {"team_base": {}, "qb_deltas": {}, "qb_games": {}}
+        apply_qb_elo_update(
+            base, home_team="A", away_team="B",
+            home_starter="qb_a", away_starter="qb_b", home_won=True,
+        )
+        apply_qb_elo_update(
+            mov, home_team="A", away_team="B",
+            home_starter="qb_a", away_starter="qb_b", home_won=True,
+            home_score=27, away_score=24, use_mov=False,
+        )
+        assert base["team_base"]["A"] == pytest.approx(mov["team_base"]["A"])
+        assert base["qb_deltas"]["qb_a"] == pytest.approx(mov["qb_deltas"]["qb_a"])
+
+    def test_blowout_moves_more_than_close_win(self):
+        """With use_mov=True a 28-point win should move Elo more than a 1-pt win
+        for the same matchup (even pre-game ratings)."""
+        close = {"team_base": {}, "qb_deltas": {}, "qb_games": {}}
+        blowout = {"team_base": {}, "qb_deltas": {}, "qb_games": {}}
+        apply_qb_elo_update(
+            close, home_team="A", away_team="B",
+            home_starter="qb_a", away_starter="qb_b", home_won=True,
+            home_score=24, away_score=23, use_mov=True,
+        )
+        apply_qb_elo_update(
+            blowout, home_team="A", away_team="B",
+            home_starter="qb_a", away_starter="qb_b", home_won=True,
+            home_score=42, away_score=14, use_mov=True,
+        )
+        assert blowout["qb_deltas"]["qb_a"] > close["qb_deltas"]["qb_a"]
+        assert blowout["team_base"]["A"] > close["team_base"]["A"]
+
+    def test_mov_disabled_ignores_scores(self):
+        """use_mov defaults False, so passing scores without the flag has no
+        effect — the multiplier is strictly opt-in."""
+        with_scores = {"team_base": {}, "qb_deltas": {}, "qb_games": {}}
+        without = {"team_base": {}, "qb_deltas": {}, "qb_games": {}}
+        apply_qb_elo_update(
+            with_scores, home_team="A", away_team="B",
+            home_starter="qb_a", away_starter="qb_b", home_won=True,
+            home_score=42, away_score=0,
+        )
+        apply_qb_elo_update(
+            without, home_team="A", away_team="B",
+            home_starter="qb_a", away_starter="qb_b", home_won=True,
+        )
+        assert with_scores["qb_deltas"]["qb_a"] == pytest.approx(without["qb_deltas"]["qb_a"])
+
+
+# ── Staleness guard (Gap-3: prior-season seed must not leak in-season) ──────
+
+class TestNflQbEloStalenessGuard:
+    """A frozen prior-season seed must not keep firing once a new NFL season
+    starts. Both NFL agents have a no-op update() + seed-driven state, so
+    without this guard a stale seed silently persists across the offseason —
+    the same failure mode that caused +24pp WNBA chalk bias.
+    """
+
+    def test_stale_state_returns_none_during_season(self):
+        from datetime import date
+        agent = _agent_with({
+            "team_base": {"kansas city chiefs": 1550.0, "buffalo bills": 1540.0},
+            "seasons_used": [2023, 2024],
+        })
+        import evmax.agents.models.nfl_qb_elo_agent as mod
+        orig = mod.nfl_state_is_stale_for_today
+        # Pin "today" to Nov 2025 (active season 2025 > max(seasons_used)=2024)
+        mod.nfl_state_is_stale_for_today = lambda s, today=date(2025, 11, 1): orig(s, today)
+        try:
+            market, sharp = _pair("kansas city chiefs", "buffalo bills")
+            assert asyncio.run(agent.predict_pair(market, sharp)) is None
+        finally:
+            mod.nfl_state_is_stale_for_today = orig
+
+    def test_fresh_state_still_predicts(self):
+        from datetime import date
+        agent = _agent_with({
+            "team_base": {"kansas city chiefs": 1600.0, "buffalo bills": 1500.0},
+            "seasons_used": [2024, 2025],
+        })
+        import evmax.agents.models.nfl_qb_elo_agent as mod
+        orig = mod.nfl_state_is_stale_for_today
+        mod.nfl_state_is_stale_for_today = lambda s, today=date(2025, 11, 1): orig(s, today)
+        try:
+            market, sharp = _pair("kansas city chiefs", "buffalo bills")
+            pred = asyncio.run(agent.predict_pair(market, sharp))
+            assert pred is not None
+            assert pred.true_prob_a > 0.5  # higher-rated home favored
+        finally:
+            mod.nfl_state_is_stale_for_today = orig
+
+
+# ── nfl_state_is_stale_for_today — the freshness helper ────────────────────
+
+class TestNflStaleHelper:
+    def test_stale_during_active_window(self):
+        from datetime import date
+        from evmax.agents.models.nfl_efficiency_agent import nfl_state_is_stale_for_today
+        state = {"nfl": {"seasons_used": [2023, 2024]}}
+        # Sep-Feb window, max(seasons_used)=2024 < active season 2025
+        assert nfl_state_is_stale_for_today(state, today=date(2025, 9, 15)) is True
+        assert nfl_state_is_stale_for_today(state, today=date(2025, 12, 1)) is True
+
+    def test_january_belongs_to_prior_season(self):
+        from datetime import date
+        from evmax.agents.models.nfl_efficiency_agent import nfl_state_is_stale_for_today
+        # Jan 2026 is part of the 2025 season — a 2025-seed is FRESH even though
+        # 2025 < 2026 calendar year (the WNBA single-year logic would mis-flag this).
+        state = {"nfl": {"seasons_used": [2024, 2025]}}
+        assert nfl_state_is_stale_for_today(state, today=date(2026, 1, 20)) is False
+
+    def test_fresh_state_not_stale(self):
+        from datetime import date
+        from evmax.agents.models.nfl_efficiency_agent import nfl_state_is_stale_for_today
+        state = {"nfl": {"seasons_used": [2024, 2025]}}
+        assert nfl_state_is_stale_for_today(state, today=date(2025, 11, 1)) is False
+
+    def test_offseason_does_not_trigger(self):
+        from datetime import date
+        from evmax.agents.models.nfl_efficiency_agent import nfl_state_is_stale_for_today
+        # Mar-Aug: no NFL games, prior-season state is fine.
+        state = {"nfl": {"seasons_used": [2023, 2024]}}
+        assert nfl_state_is_stale_for_today(state, today=date(2025, 3, 15)) is False
+        assert nfl_state_is_stale_for_today(state, today=date(2025, 7, 1)) is False
+        assert nfl_state_is_stale_for_today(state, today=date(2025, 8, 31)) is False
+
+    def test_missing_or_bad_seasons_used_does_not_block(self):
+        from datetime import date
+        from evmax.agents.models.nfl_efficiency_agent import nfl_state_is_stale_for_today
+        assert nfl_state_is_stale_for_today({}, today=date(2025, 11, 1)) is False
+        assert nfl_state_is_stale_for_today({"nfl": {}}, today=date(2025, 11, 1)) is False
+        assert nfl_state_is_stale_for_today(
+            {"nfl": {"seasons_used": []}}, today=date(2025, 11, 1)) is False
+        assert nfl_state_is_stale_for_today(
+            {"nfl": {"seasons_used": ["bad"]}}, today=date(2025, 11, 1)) is False
+
+
 # ── update() is no-op (state is seed-driven) ──────────────────────────────
 
 class TestUpdateNoop:
