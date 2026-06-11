@@ -249,6 +249,7 @@ class TestCalibration:
         assert result is False
 
     def test_retrain_sufficient_data(self):
+        pytest.importorskip("sklearn")  # retrain() returns False without it
         import numpy as np
         np.random.seed(42)
         probs = list(np.random.uniform(0.1, 0.9, 50))
