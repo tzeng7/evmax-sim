@@ -121,7 +121,7 @@ evmax/
 
 | Model | Weight | Confidence Gate | State File |
 |-------|--------|----------------|------------|
-| Elo | 0.35 | 0.45 | `data/models/elo_state.json` |
+| Elo | 0.35 | 0.45 | `data/models/elo_state.json` (per-sector `last_updated` stamp, written by `update()`; the agent returns `None` when the sector's state is > STALE_DAYS=60 older than the game's event_date — same protection as form, added 2026-06-10 after frozen March baseball ratings fired at 0.25 weight into June blends. Legacy states without the stamp are never gated.) |
 | Form | 0.25 | 0.45 | `data/models/form_state.json` (skipped entirely when the most recent record for either team is > STALE_DAYS=60 old relative to the game's event_date — protects against cross-season contamination; opponent-quality weighting was backtested net-negative and reverted) |
 | Poisson | 0.40 (soccer only) | 0.45 | `data/models/poisson_state.json` (SOCCER-ONLY as of 2026-06-01 — `SUPPORTED_SECTORS = {"soccer"}` in `poisson_agent.py`. `predict_pair` returns `None` for every other sector, so poisson never enters the blend or `model_sources`. This is enforced at the agent, not via ensemble weight: the per-sector override only re-weights *listed* models, so an unlisted poisson would otherwise fall back to its 0.30 class weight — that's how it was silently contributing 0.30 to NCAAB and ~0.30 to baseball before the cleanup. The `poisson: 0.0` entries left in the NBA/WNBA/NFL overrides are now redundant no-ops.) |
 | NBA Efficiency | 0.40 | 0.45 | `data/models/efficiency_state.json` (NBA only; ORTG/DRTG/Pace from `nba_api.LeagueDashTeamStats`) |
@@ -218,6 +218,9 @@ evmax agents scan --bankroll 500 --kelly 0.5
 evmax agents verify --date YYYY-MM-DD
 
 # Next morning — resolve yesterday's outcomes
+# (resolve also feeds the date's completed ESPN scores into elo/form/poisson/xg
+#  state for the 7 game sectors — pass --no-update-models to skip. This is what
+#  keeps model state fresh; `evmax update scores` remains for manual backfills.)
 evmax cleanup resolve --date YYYY-MM-DD
 evmax archive resolve --date YYYY-MM-DD
 

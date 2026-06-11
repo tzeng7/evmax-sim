@@ -37,7 +37,7 @@ from __future__ import annotations
 
 import json
 import math
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -129,6 +129,16 @@ REST_ELO_ADJ: dict[str, dict[int, float]] = {
     "soccer": {0: -40.0, 1: -15.0, 2: 0.0, 3: 10.0},  # soccer baseline is 2 days
 }
 FORM_STATE_PATH = Path(__file__).resolve().parents[3] / "data" / "models" / "form_state.json"
+
+# Skip the Elo model when the sector's state hasn't been refreshed in this many
+# days relative to the game being predicted. Mirrors FormModelAgent.STALE_DAYS.
+# Without this guard, a sector whose `evmax update scores` cron silently stopped
+# (e.g. baseball form froze 2026-03-08) keeps contributing near-seed ratings at
+# full ensemble weight instead of dropping out and letting fresh models drive.
+# A per-sector `last_updated` ISO date is stamped in `update()`; legacy state
+# files that predate this field have the guard disabled (treated as never
+# stale) so they keep contributing exactly as before.
+STALE_DAYS: int = 60
 
 
 class EloModelAgent(ModelAgent):
@@ -285,6 +295,33 @@ class EloModelAgent(ModelAgent):
         # 1.0 regardless of count, so this is moot there.
         return sg.get(team, 0)
 
+    def _last_updated(self, sector: str) -> Optional[str]:
+        """ISO date of the sector's most recent `update()`, or None if unknown.
+
+        None means the state predates the staleness-tracking field (legacy
+        seed) — the caller treats that as "never stale" for back-compat.
+        """
+        return self._sector_state(sector).get("last_updated")
+
+    @staticmethod
+    def _is_stale(last_updated: Optional[str], reference: Optional[date] = None) -> bool:
+        """True when `last_updated` is older than STALE_DAYS before `reference`.
+
+        Mirrors FormModelAgent._is_stale. A missing `last_updated` (legacy
+        state) is NOT stale — the guard is disabled so legacy seeds keep
+        contributing. An unparseable date is treated as stale. `reference`
+        defaults to today (UTC); the override makes this testable without
+        monkey-patching datetime.
+        """
+        if not last_updated:
+            return False
+        ref = reference or datetime.now(timezone.utc).date()
+        try:
+            upd_date = date.fromisoformat(last_updated)
+        except ValueError:
+            return True
+        return (ref - upd_date).days > STALE_DAYS
+
     # ------------------------------------------------------------------
     # Rest-day adjustment
     # ------------------------------------------------------------------
@@ -373,6 +410,17 @@ class EloModelAgent(ModelAgent):
         team_b = (sharp_odds.outcome_b_label or market.team_away or "").lower().strip()
 
         if not team_a or not team_b:
+            return None
+
+        # Staleness guard: if this sector's state hasn't been refreshed within
+        # STALE_DAYS of the game being predicted, the ratings are carrying
+        # frozen prior-period data into a live blend at full weight. Drop out
+        # and let fresher models drive. Disabled for legacy state without a
+        # `last_updated` field (returns not-stale), so seeds keep contributing.
+        # Reference the market's event_date when available so historical
+        # walk-forward replays stay meaningful.
+        reference = market.event_date.date() if market.event_date else None
+        if self._is_stale(self._last_updated(sector), reference):
             return None
 
         prob_a, prob_b, prob_draw = self._win_probs(sector, team_a, team_b)
@@ -551,6 +599,15 @@ class EloModelAgent(ModelAgent):
         """Update Elo ratings from a completed game result."""
         team_a = team_a.lower().strip()
         team_b = team_b.lower().strip()
+
+        # Stamp the sector's last-updated date so the staleness guard in
+        # predict_pair knows how fresh this sector's ratings are. Tracks the
+        # most recent event_date seen (falls back to today when unprovided).
+        new_stamp = event_date or datetime.now(timezone.utc).date().isoformat()
+        state = self._sector_state(sector)
+        prev_stamp = state.get("last_updated")
+        if prev_stamp is None or new_stamp > prev_stamp:
+            state["last_updated"] = new_stamp
 
         elo_a = self._get_rating(sector, team_a)
         elo_b = self._get_rating(sector, team_b)

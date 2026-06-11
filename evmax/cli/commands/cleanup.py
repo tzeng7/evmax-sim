@@ -250,11 +250,25 @@ def show(
     print()
 
 
+# Default sectors refreshed by the resolve-time model-update hook. Mirrors the
+# `evmax update scores` default; ESPN-supported game sectors only.
+_UPDATE_HOOK_SECTORS = ["soccer", "nba", "wnba", "nfl", "ncaab", "nhl", "baseball"]
+
+
 @app.command("resolve")
 def resolve(
     target_date: Optional[str] = typer.Option(
         None, "--date", "-d",
         help="Date to resolve (YYYY-MM-DD). Defaults to yesterday.",
+    ),
+    update_models: bool = typer.Option(
+        True, "--update-models/--no-update-models",
+        help=(
+            "After resolving, feed the date's completed ESPN scores into the "
+            "Elo/Form/Poisson/xG models so in-season state stays fresh. On by "
+            "default — this is what keeps the daily cron from letting states go "
+            "stale. Failures here never break resolution."
+        ),
     ),
 ) -> None:
     """Fetch actual game outcomes for +EV predictions logged on a date."""
@@ -291,6 +305,24 @@ def resolve(
             )
     except Exception as _clv_err:
         console.print(f"  [yellow]Warning: CLV backfill failed:[/yellow] {_clv_err}")
+
+    # Refresh model state from the same date's completed scores. Wrapped in
+    # try/except so a fetch/model failure can never break resolution (the cron
+    # depends on resolve always exiting cleanly). Off via --no-update-models.
+    if update_models:
+        try:
+            from evmax.agents.cleanup.model_updater import update_models_for_date
+
+            upd = asyncio.run(update_models_for_date(_UPDATE_HOOK_SECTORS, d))
+            console.print(
+                f"  [green]Model state refreshed:[/green] {upd.updated} game(s) "
+                f"across {len(_UPDATE_HOOK_SECTORS)} sector(s)"
+            )
+        except Exception as _upd_err:
+            console.print(
+                f"  [yellow]Warning: model update failed:[/yellow] {_upd_err}"
+            )
+
     unmatched = result.get("unmatched", [])
     if unmatched:
         console.print(f"\n  [yellow]Unmatched event IDs ({len(unmatched)}):[/yellow]")
