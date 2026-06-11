@@ -1326,6 +1326,76 @@ class TestEnsembleModelAgent:
         # NBA blend has Elo 0.35 vs Poisson 0.30 — more balanced
         assert blend_soccer.true_prob_a != blend_nba.true_prob_a
 
+    def test_sector_override_zeroed_model_excluded_from_model_sources(self):
+        """A model zeroed by SECTOR_WEIGHT_OVERRIDES must not appear in
+        model_sources — downstream consumers (tennis REQUIRED_BLEND_MODELS
+        gate, blend-composition analysis) parse that string as the set of
+        models that actually contributed to the blend."""
+        from evmax.agents.models.base import ModelAgentPrediction
+
+        ensemble = EnsembleModelAgent(models=[], sharp_weight=0.50)
+
+        # NFL overrides zero out poisson; elo stays at 0.20. Poisson's
+        # class-level weight (0.30) × confidence (0.60) > 0, so the old
+        # class-weight filter wrongly listed it as contributing.
+        preds = {
+            "elo": ModelAgentPrediction(
+                event_id="test", model_name="elo",
+                true_prob_a=0.55, true_prob_b=0.45, true_prob_draw=None,
+                confidence=0.60, weight=0.35,
+            ),
+            "poisson": ModelAgentPrediction(
+                event_id="test", model_name="poisson",
+                true_prob_a=0.70, true_prob_b=0.30, true_prob_draw=None,
+                confidence=0.60, weight=0.30,
+            ),
+        }
+        sharp = make_sharp(sector="nfl")
+        sharp = sharp.model_copy(update={"sector": "nfl"})
+
+        assert EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES["nfl"]["poisson"] == 0.0
+        blend = ensemble._blend("test", preds, sharp, 0.50, sector="nfl")
+
+        assert blend is not None
+        sources = blend.model_sources.split("+")
+        assert "poisson" not in sources
+        assert "elo" in sources
+        assert "sharp" in sources
+
+    def test_avg_conf_correct_when_model_filtered_out(self):
+        """Blend confidence must use the confidences of the models that
+        actually contributed. The old code indexed list(model_preds.values())
+        with the model_contribs index — misaligned whenever an earlier model
+        was filtered, attaching the wrong confidence to each weight."""
+        from evmax.agents.models.base import ModelAgentPrediction
+
+        ensemble = EnsembleModelAgent(models=[], sharp_weight=0.50)
+
+        # First model in dict order fails the confidence gate (0.30 ≤ 0.45)
+        # and is filtered out; only elo (confidence 0.80) contributes. The
+        # old indexing bug attached form's 0.30 to elo's weight → 0.30.
+        preds = {
+            "form": ModelAgentPrediction(
+                event_id="test", model_name="form",
+                true_prob_a=0.50, true_prob_b=0.50, true_prob_draw=None,
+                confidence=0.30, weight=0.25,
+            ),
+            "elo": ModelAgentPrediction(
+                event_id="test", model_name="elo",
+                true_prob_a=0.55, true_prob_b=0.45, true_prob_draw=None,
+                confidence=0.80, weight=0.35,
+            ),
+        }
+        sharp = make_sharp(sector="nfl")
+        sharp = sharp.model_copy(update={"sector": "nfl"})
+
+        blend = ensemble._blend("test", preds, sharp, 0.50, sector="nfl")
+
+        assert blend is not None
+        # Single contributor → weighted average of confidences is exactly 0.80
+        assert blend.confidence == pytest.approx(0.80, abs=1e-3)
+        assert "form" not in blend.model_sources.split("+")
+
 
 # ---------------------------------------------------------------------------
 # MODEL-5: tennis weight trim (0.45 → 0.35)
