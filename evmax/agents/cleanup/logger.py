@@ -24,6 +24,7 @@ import structlog
 
 from evmax.agents.cleanup.db import get_connection
 from evmax.agents.odds.ev_gap_agent import EVGap
+from evmax.provenance import code_version
 
 logger = structlog.get_logger(__name__)
 
@@ -88,12 +89,20 @@ def log_gaps(
     Disabled categories are dropped before insert. Live and shadow rows are
     written to the same table with different values in the `mode` column.
 
+    When `model_version` is not given it defaults to the git code provenance
+    of the running checkout (`evmax.provenance.code_version()`, e.g.
+    "5901aa1-dirty@feature-branch") so every row records which code state
+    produced it. Pass an explicit value to override; NULL only when git is
+    unavailable.
+
     Returns the number of newly inserted rows (sum of live + shadow;
     excludes dropped-disabled and duplicate-ignored rows).
     """
     if not gaps:
         return 0
 
+    if model_version is None:
+        model_version = code_version()
     resolver = mode_resolver or _default_mode_resolver
     sd = (scan_date or date.today()).isoformat()
     inserted = 0
@@ -220,12 +229,17 @@ def log_prop_observations(
     Honors the same category mode rules as log_gaps: disabled categories
     are dropped, live/shadow use the `mode` column on the table.
 
+    `model_version` defaults to git code provenance like log_gaps; pass an
+    explicit tag to override.
+
     Returns the number of newly inserted rows.
     """
     prop_gaps = [g for g in gaps if g.event_id and "::prop::" in g.event_id]
     if not prop_gaps:
         return 0
 
+    if model_version is None:
+        model_version = code_version()
     resolver = mode_resolver or _default_mode_resolver
     sd = (scan_date or date.today()).isoformat()
     inserted = 0
