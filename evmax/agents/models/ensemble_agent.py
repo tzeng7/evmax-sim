@@ -462,11 +462,7 @@ class EnsembleModelAgent(Agent):
         """
         # --- Step 1: Confidence-weighted average of model predictions ---
         weight_overrides = self.SECTOR_WEIGHT_OVERRIDES.get(sector.lower(), {})
-        # (eff_w, prob_a, prob_b, prob_draw, confidence) — confidence rides
-        # along in the tuple so avg_conf below stays aligned with the
-        # filtered contribution list, and contributing names are collected
-        # in the same pass so model_sources can't list a model the sector
-        # override zeroed out.
+        # (eff_weight, prob_a, prob_b, prob_draw, confidence)
         model_contribs: list[tuple[float, float, float, Optional[float], float]] = []
         contributing_models: list[str] = []
         for name, pred in model_preds.items():
@@ -477,8 +473,7 @@ class EnsembleModelAgent(Agent):
             if eff_w <= 0:
                 continue
             model_contribs.append(
-                (eff_w, pred.true_prob_a, pred.true_prob_b, pred.true_prob_draw,
-                 pred.confidence)
+                (eff_w, pred.true_prob_a, pred.true_prob_b, pred.true_prob_draw, pred.confidence)
             )
             contributing_models.append(name)
 
@@ -565,9 +560,6 @@ class EnsembleModelAgent(Agent):
         else:
             avg_conf = max(0.5, 1.0 - (sharp.margin * 10 if sharp else 0.5))
 
-        # contributing_models was collected in the Step-1 loop — it holds
-        # exactly the models whose (override-resolved) weight × confidence
-        # entered the blend, so model_sources never lists a zeroed model.
         model_sources = "+".join(sorted(contributing_models) + (["sharp"] if sharp else []))
 
         return BlendedPrediction(
