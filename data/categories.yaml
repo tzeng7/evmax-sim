@@ -24,6 +24,12 @@
 #                        disabled → scanner skips the category entirely
 #   resolver         : where outcome resolution reads from
 #   status           : one of "shipped" | "wip" | "unresolved" | "blocked"
+#   season_window    : (optional) {start: "MM-DD", end: "MM-DD"} inclusive
+#                      regular-season bounds; wraps the year boundary when
+#                      end < start (e.g. NFL). Omitted = year-round. The
+#                      coordinator drops out-of-season sectors on default
+#                      scans (saves Kalshi/Pinnacle rate-limit tokens);
+#                      explicit --sectors bypasses the gate.
 #   notes            : (optional) free-text caveats, TODO.md cross-references
 #
 # Validation (evmax/categories.py::validate_registry):
@@ -55,6 +61,7 @@ nfl:
   mode: live
   resolver: espn_scoreboard
   status: shipped
+  season_window: {start: "09-04", end: "02-15"}
   notes: "Poisson dropped 2026-05-01: NFL is not a Poisson-distributed scoring process. Replaced by nfl_efficiency (opponent-adjusted EPA/play) and nfl_qb_elo (team Elo split into team_base + per-QB delta to capture starter swaps), both seeded weekly from nflreadpy PBP — see MODEL-13."
 
 ncaab:
@@ -64,6 +71,7 @@ ncaab:
   mode: live
   resolver: espn_scoreboard
   status: shipped
+  season_window: {start: "11-01", end: "04-10"}
   notes: null
 
 ncaaw:
@@ -73,6 +81,7 @@ ncaaw:
   mode: live
   resolver: espn_scoreboard
   status: shipped
+  season_window: {start: "11-01", end: "04-10"}
   notes: "Elo K-factor and home-advantage not calibrated for NCAAW — see MODEL-2 / SECTOR-2. Elo contributes 0 until then."
 
 soccer:
@@ -101,6 +110,7 @@ baseball:
   mode: shadow
   resolver: espn_scoreboard
   status: shipped
+  season_window: {start: "03-20", end: "11-05"}
   notes: "Pitcher Pythag model live (BUG-9 fixed in PR #2). Poisson dropped 2026-05-01: never earned its keep on MLB runs (overdispersion + bullpen-leverage violates independence). Pitcher promoted to 0.50 within model side via SECTOR_WEIGHT_OVERRIDES. Demoted to shadow 2026-05-10 pending Brier-vs-Kalshi validation. shadow_market_types: [total] is declared ahead-of-time: when ML/spread eventually clear n≥75 with positive CLV, flipping `mode: live` keeps totals in shadow automatically (no-op while base mode is shadow). Totals enabled 2026-05-22 (c91d50b) showed −41.9% ROI on n=13 with no measurable CLV until the 2026-05-26 totals close-prob fix. 2026-06-01: totals CLV capture finally wired end-to-end (resolver/capture/sweep now dispatch market_type=='total' to get_total_closing_line_aligned) + NO-side UNDER evaluation added (Kalshi frames totals YES=OVER, so unders were structurally unbettable before). Result on n=27 resolved: over-side CLV −2.9pp (7/27 beat close). Root cause is NOT model bias — totals are pure sharp devig (blended==sharp) and the over-bias is stale-line noise + selection: our night-before Pinnacle snapshot is noisy, the EV filter selects the upward noise, and it reverts by close. The archive shows ZERO systematic open→close total drift (950 events: −0.5pp), so there's no exploitable under-side drift and no valid −5pp shade. Night-before-only scan workflow can't support totals (apparent edge 2–4% < ~5pp noise; can't re-scan late). Moneyline by contrast is +2.9pp CLV with 0.3pp scan→close drift. Totals left in shadow as-is per user 2026-06-01 (revisit; leading candidate is to disable baseball totals). 2026-06-10: totals DISABLED via disabled_market_types — the NO-side UNDER stream resolved n=102 (scans 06-01→06-06, run from the alt-runline feature branch): hit 59.8% vs predicted 71.2%, −15.2% flat-stake ROI, blended 8.7pp above Pinnacle close. Over side was +18% ROI (n=76) but also +5.4pp above close — same stale-line selection, lucky side. Confirms the 06-01 diagnosis at 4× the sample; night-before workflow cannot support totals. Re-enable only with a near-close re-scan workflow."
 
 wnba:
@@ -170,4 +180,5 @@ nfl_props:
   mode: shadow
   resolver: espn_boxscore
   status: blocked
+  season_window: {start: "09-04", end: "02-15"}
   notes: "Stage 4 backtest shipped (PR #6) — QB-only NO-side ROI +79% at ev>=3% vol>=1000. Live betting blocked on MODEL-9 (shadow validation against pre-game prices). kalshi.py SECTOR_SERIES_MAP still has phantom series names (KXNFLPAS etc.); the fix ships with MODEL-9 so no NFL prop markets are fetched in scan today."
