@@ -7,18 +7,20 @@ Covers:
   - Overrides visible via evmax.modes.get_mode after CLI invocation
   - Empty / omitted flags produce no overrides
 
-The scan loop itself hits the network and is not exercised here — we
-just verify that the mode-override hook runs before any
-scan/persistence step so the rest of the pipeline sees the right mode.
+The scan cycle itself is stubbed out (no network, no model-state or
+predictions.db writes) — we just verify that the mode-override hook
+runs before any scan/persistence step so the rest of the pipeline sees
+the right mode.
 """
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
 
+from evmax.agents.coordinator import AgentCoordinator, CycleResult
 from evmax.cli.commands.agents import app
 from evmax.modes import clear_runtime_overrides, get_mode
 
@@ -33,9 +35,32 @@ def _reset_overrides():
     clear_runtime_overrides()
 
 
+@pytest.fixture(autouse=True)
+def _stub_scan_pipeline():
+    """Replace the real scan cycle with an empty result.
+
+    Without this every test here ran a full live cycle: Kalshi +
+    Pinnacle fetches, and — whenever the seeded NBA state was older
+    than the last completed game — live nba_api refreshes that rewrote
+    data/models/{efficiency,matchup,shot_quality}_state.json on disk.
+    The post-cycle maintenance/CLV steps are stubbed too so the tests
+    never open predictions.db.
+    """
+    maint = MagicMock()
+    maint.summary.return_value = "maintenance stubbed"
+    maint.errors = []
+    maint.warnings = []
+    with (
+        patch.object(AgentCoordinator, "run_cycle", new=AsyncMock(return_value=CycleResult())),
+        patch("evmax.agents.cleanup.maintenance.run_maintenance", return_value=maint),
+        patch("evmax.agents.cleanup.resolver.backfill_clv", return_value={"updated": 0, "avg_clv": 0.0}),
+    ):
+        yield
+
+
 def _invoke(*args):
-    """Invoke `evmax agents scan` with a tiny sector list so the rest of
-    the pipeline runs (with network calls) but doesn't take forever."""
+    """Invoke `evmax agents scan` with a tiny sector list; the cycle
+    itself is stubbed by _stub_scan_pipeline."""
     return runner.invoke(app, ["scan", "--sectors", "nba", *args])
 
 
