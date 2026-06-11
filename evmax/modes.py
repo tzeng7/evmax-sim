@@ -104,6 +104,12 @@ def get_mode(category: str, market_type: Optional[str] = None) -> Mode:
     ``shadow_market_types``, the result is downgraded to ``shadow`` even when
     the sector-level mode is ``live``. This lets us keep one or two market
     types under validation while the rest of the category goes live.
+
+    A `market_type` listed in ``disabled_market_types`` resolves to
+    ``disabled`` regardless of the sector-level mode (live OR shadow) —
+    used to stop persisting a measured-negative market type (e.g. baseball
+    totals) without disabling the whole category.
+
     Runtime + env overrides take precedence — they apply uniformly to all
     market types within a category (no per-market-type override there).
     """
@@ -113,6 +119,8 @@ def get_mode(category: str, market_type: Optional[str] = None) -> Mode:
     if category in env:
         return env[category]
     spec = get_category(category)
+    if market_type and market_type in spec.disabled_market_types:
+        return "disabled"
     if (
         spec.mode == "live"
         and market_type

@@ -114,6 +114,15 @@ class CategorySpec:
     # = sector mode applies to every market type. Validated against the
     # category's market_types list at parse time.
     shadow_market_types: tuple[str, ...] = field(default_factory=tuple)
+    # Market types within this category that are dropped before persistence
+    # regardless of the sector mode (live OR shadow). Stronger than
+    # shadow_market_types: the gap still prints in the CLI table for the
+    # session, but nothing lands in ev_predictions / prop_observations.
+    # Used when a market type is measured net-negative and we want to stop
+    # accumulating rows without disabling the whole category (e.g. baseball
+    # totals). Validated against market_types and must be disjoint from
+    # shadow_market_types at parse time.
+    disabled_market_types: tuple[str, ...] = field(default_factory=tuple)
     # Optional (start, end) MM-DD pair bounding the regular season. When set,
     # is_in_season() returns False outside the window so the coordinator can
     # skip dead sectors (saves Kalshi rate-limit + Pinnacle API tokens).
@@ -210,6 +219,23 @@ def _parse_entry(key: str, raw: dict) -> CategorySpec:
                     f"not in this category's market_types {sorted(legal)}"
                 )
 
+    raw_disabled_mts = raw.get("disabled_market_types") or ()
+    disabled_market_types = tuple(raw_disabled_mts)
+    if disabled_market_types:
+        legal = {mt.value for mt in market_types}
+        for mt in disabled_market_types:
+            if mt not in legal:
+                raise ValueError(
+                    f"category {key!r}: disabled_market_types entry {mt!r} is "
+                    f"not in this category's market_types {sorted(legal)}"
+                )
+        overlap = set(disabled_market_types) & set(shadow_market_types)
+        if overlap:
+            raise ValueError(
+                f"category {key!r}: {sorted(overlap)} appear in both "
+                f"shadow_market_types and disabled_market_types — pick one"
+            )
+
     season_window: Optional[tuple[str, str]] = None
     raw_window = raw.get("season_window")
     if raw_window is not None:
@@ -244,6 +270,7 @@ def _parse_entry(key: str, raw: dict) -> CategorySpec:
         prop_stat_types=prop_stat_types,
         notes=notes,
         shadow_market_types=shadow_market_types,
+        disabled_market_types=disabled_market_types,
         season_window=season_window,
     )
 

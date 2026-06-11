@@ -229,3 +229,64 @@ def test_wnba_shipped_yaml_has_total_in_shadow():
     assert get_mode("wnba", "moneyline") == "live"
     assert get_mode("wnba", "spread") == "live"
     assert get_mode("wnba", "total") == "shadow"
+
+
+# -------------------------------------------------------------------------
+# Per-market-type hard disable (disabled_market_types)
+# -------------------------------------------------------------------------
+
+
+def test_disabled_market_types_drops_listed_type(monkeypatch):
+    """A market type in disabled_market_types resolves to 'disabled' even
+    when the sector is live; other types are untouched."""
+    from evmax.categories import CategorySpec, MarketType
+
+    fake = CategorySpec(
+        key="testcat4",
+        display_name="Test",
+        market_types=(MarketType.moneyline, MarketType.spread, MarketType.total),
+        models=("sharp",),
+        mode="live",
+        resolver="none",
+        status="wip",
+        disabled_market_types=("total",),
+    )
+    monkeypatch.setattr("evmax.modes.get_category", lambda k: fake)
+
+    assert get_mode("testcat4", "moneyline") == "live"
+    assert get_mode("testcat4", "spread") == "live"
+    assert get_mode("testcat4", "total") == "disabled"
+    # No market_type → sector default
+    assert get_mode("testcat4") == "live"
+
+
+def test_disabled_market_types_applies_under_shadow_base(monkeypatch):
+    """Unlike shadow_market_types (inert when base mode is shadow), the
+    disable applies regardless of base mode — a shadow sector still drops
+    the disabled market type before persistence."""
+    from evmax.categories import CategorySpec, MarketType
+
+    fake = CategorySpec(
+        key="testcat5",
+        display_name="Test",
+        market_types=(MarketType.moneyline, MarketType.total),
+        models=("sharp",),
+        mode="shadow",
+        resolver="none",
+        status="wip",
+        disabled_market_types=("total",),
+    )
+    monkeypatch.setattr("evmax.modes.get_category", lambda k: fake)
+
+    assert get_mode("testcat5", "moneyline") == "shadow"
+    assert get_mode("testcat5", "total") == "disabled"
+
+
+def test_baseball_shipped_yaml_disables_totals():
+    """Regression guard for the 2026-06-10 decision: baseball totals are
+    disabled (n=102 NO-side unders went -15.2% ROI, 8.7pp above Pinnacle
+    close — stale-line selection, not model bias). ML/spread stay at the
+    sector base mode."""
+    assert get_mode("baseball", "total") == "disabled"
+    assert get_mode("baseball", "moneyline") != "disabled"
+    assert get_mode("baseball", "spread") != "disabled"
