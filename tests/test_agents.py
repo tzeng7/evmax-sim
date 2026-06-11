@@ -1456,6 +1456,95 @@ class TestTennisWeightTrim:
         assert blend_new < blend_old
 
 
+# ---------------------------------------------------------------------------
+# NFL ensemble weight lock-in (Phase 2, validated 2026-05-01)
+# ---------------------------------------------------------------------------
+
+class TestNflWeightOverrides:
+    """Lock-in guard for SECTOR_WEIGHT_OVERRIDES['nfl'].
+
+    The NFL blend weights (nfl_efficiency 0.25 · nfl_qb_elo 0.25 · elo 0.20 ·
+    form 0.30 · poisson 0.0) were validated via scripts/backtest_nfl_efficiency.py
+    (Phase 2, 2026-05-01) but had NO test asserting the numbers — any weight
+    iteration could edit them with zero deterministic guard. These tests pin
+    the values and the documented structural invariants so a future weight
+    sweep must update both the override AND this test's rationale together
+    (same pattern as TestTennisWeightTrim).
+    """
+
+    def test_nfl_override_values_locked(self):
+        nfl = EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES["nfl"]
+        assert nfl == {
+            "nfl_efficiency": 0.25,
+            "nfl_qb_elo":     0.25,
+            "elo":            0.20,
+            "form":           0.30,
+            "poisson":        0.0,
+        }, (
+            "SECTOR_WEIGHT_OVERRIDES['nfl'] drifted from the Phase 2 weights. "
+            "If you're re-tuning, re-run scripts/backtest_nfl_efficiency.py on "
+            "the in-sample seasons (2324,2425), confirm the 2526 holdout, and "
+            "update this test's docstring with the new ΔBrier/ΔAcc rationale."
+        )
+
+    def test_generic_elo_downweighted_vs_qb_elo(self):
+        """Documented rationale (ensemble_agent.py): generic elo overlaps
+        nfl_qb_elo (both Elo-shaped team strength), so generic elo is held
+        BELOW nfl_qb_elo when the QB-Elo layer is present. Guards the overlap
+        invariant, not just the literal value."""
+        nfl = EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES["nfl"]
+        assert nfl["elo"] < nfl["nfl_qb_elo"]
+
+    def test_poisson_zeroed_for_nfl(self):
+        """NFL scoring is drive-based, not minute-uniform — poisson must stay
+        zeroed so it never contributes to or appears in the NFL blend."""
+        assert EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES["nfl"]["poisson"] == 0.0
+
+    def test_nfl_effective_weights_applied_in_blend(self):
+        """End-to-end: _blend must use the NFL override weights, so the
+        model-side blend is the confidence-weighted average over the override
+        weights — NOT the class-level weights. Construct two NFL models with
+        equal confidence and verify the blended model prob matches the
+        override-weighted average to the documented Step-1 formula."""
+        from evmax.agents.models.base import ModelAgentPrediction
+
+        ensemble = EnsembleModelAgent(models=[], sharp_weight=0.0)
+
+        conf = 0.60  # > 0.45 gate; equal for both so eff_w ∝ override weight
+        preds = {
+            # class-level weights deliberately wrong (0.35) to prove the
+            # override (0.20) is what _blend actually uses.
+            "elo": ModelAgentPrediction(
+                event_id="test", model_name="elo",
+                true_prob_a=0.40, true_prob_b=0.60, true_prob_draw=None,
+                confidence=conf, weight=0.35,
+            ),
+            "nfl_qb_elo": ModelAgentPrediction(
+                event_id="test", model_name="nfl_qb_elo",
+                true_prob_a=0.70, true_prob_b=0.30, true_prob_draw=None,
+                confidence=conf, weight=0.30,
+            ),
+        }
+        # sharp_weight=0 → blend is pure model side (no FLB since no sharp lean)
+        sharp = make_sharp(sector="nfl").model_copy(update={
+            "sector": "nfl", "true_prob_a": 0.50, "true_prob_b": 0.50,
+        })
+
+        blend = ensemble._blend("test", preds, sharp, 0.0, sector="nfl")
+        assert blend is not None
+
+        nfl = EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES["nfl"]
+        w_elo = nfl["elo"] * conf
+        w_qb = nfl["nfl_qb_elo"] * conf
+        expected_model_a = (w_elo * 0.40 + w_qb * 0.70) / (w_elo + w_qb)
+        # With sharp_weight=0 the model side passes through (FLB is skipped
+        # when sharp_weight is 0 → no model-weight scaling), then normalized.
+        assert blend.true_prob_a == pytest.approx(expected_model_a, abs=1e-3)
+        # nfl_qb_elo (0.25) outweighs elo (0.20), so the blend leans toward
+        # qb_elo's higher prob_a — confirming the override is in force.
+        assert blend.true_prob_a > 0.50
+
+
 class TestDedupMutuallyExclusiveSides:
     """The no-middling rule: when two +EV bets cover opposite sides of the
     same Kalshi market (same event, same market_type, same |line|), keep

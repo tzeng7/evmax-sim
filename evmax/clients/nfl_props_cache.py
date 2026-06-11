@@ -40,8 +40,9 @@ from scipy.stats import norm, poisson
 
 logger = structlog.get_logger(__name__)
 
-# Constants — CLAUDE.md testing policy requires tests; tune values live in
-# tests/test_nfl_props_cache.py which calls the pure functions directly.
+# Constants — CLAUDE.md testing policy requires tests; tune values are
+# exercised in tests/test_nfl_props_cache_live.py, which drives
+# compute_nfl_prop_diagnostics() end-to-end over a synthetic parquet fixture.
 LAST_N_GAMES = 8
 MIN_GAMES = 4
 DECAY = 0.80
@@ -93,9 +94,9 @@ MIN_STD_BY_STAT = {
 #
 # Process-level memoization: the first call loads and prepares all tables
 # (~40k rows), and every subsequent call hits the in-memory objects directly.
-# Live scans call compute_nfl_prop_prob_cached(player_name, stat_type, line,
-# game_date) — the same signature as the NBA cached function — so the
-# coordinator can branch symmetrically on sector.
+# Live scans call compute_nfl_prop_diagnostics(player_name) — the coordinator
+# branches symmetrically on sector and reads the returned per-player history /
+# anchor diagnostics.
 
 
 _NFL_DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "backtest" / "nfl_props"
@@ -334,7 +335,7 @@ def _resolve_opponent_from_schedule(
 def compute_nfl_prop_diagnostics(player_name: str):
     """Cheap NFL L15 diagnostic — sample size only (no minutes data for NFL).
 
-    Production scan reads this instead of compute_nfl_prop_prob_cached().
+    Production scan reads this for the per-player history / anchor diagnostics.
     See PropDiagnostics docstring in nba_props_cache for the design rationale.
     """
     from evmax.clients.nba_props_cache import PropDiagnostics

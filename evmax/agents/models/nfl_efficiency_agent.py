@@ -40,7 +40,6 @@ State file: data/models/nfl_efficiency_state.json
 
 from __future__ import annotations
 
-from datetime import date
 from pathlib import Path
 from typing import Optional
 
