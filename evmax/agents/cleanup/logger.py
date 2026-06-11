@@ -137,6 +137,19 @@ def log_gaps(
                 dropped_disabled += 1
                 continue
 
+            # Partial-blend demotion: sectors with a REQUIRED_BLEND_MODELS
+            # entry (e.g. tennis) only bet when the full model blend
+            # contributed. Gaps flagged full_blend=False still get logged —
+            # they're calibration data — but never as live bankroll rows.
+            if mode == "live" and not getattr(g, "full_blend", True):
+                mode = "shadow"
+                logger.info(
+                    "prediction_demoted_partial_blend",
+                    market_id=g.market_id,
+                    sector=g.sector,
+                    model_sources=g.model_sources,
+                )
+
             event_date_str: Optional[str] = None
             if g.event_date is not None:
                 from evmax.clients.time_util import kalshi_game_day

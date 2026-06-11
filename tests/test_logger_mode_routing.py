@@ -414,3 +414,83 @@ def test_code_version_shape():
     if v != "unknown":
         sha = v.split("@")[0].replace("-dirty", "")
         assert 6 <= len(sha) <= 12 and all(c in "0123456789abcdef" for c in sha)
+
+
+# -------------------------------------------------------------------------
+# Partial-blend demotion (REQUIRED_BLEND_MODELS gate) — full_blend flag
+# -------------------------------------------------------------------------
+
+from dataclasses import replace
+
+from evmax.agents.odds.ev_gap_agent import has_full_blend
+
+_FULL_TENNIS_SOURCES = (
+    "tennis_advanced+tennis_form+tennis_serve_return+tennis_surface+sharp"
+)
+
+
+class TestHasFullBlend:
+    def test_tennis_full_coverage_passes(self):
+        assert has_full_blend("tennis", _FULL_TENNIS_SOURCES) is True
+
+    def test_tennis_extra_models_still_pass(self):
+        assert has_full_blend(
+            "tennis", _FULL_TENNIS_SOURCES + "+tennis_h2h+tennis_ranking_trend"
+        ) is True
+
+    def test_tennis_missing_core_model_fails(self):
+        # No tennis_surface
+        assert has_full_blend(
+            "tennis", "tennis_advanced+tennis_form+tennis_serve_return+sharp"
+        ) is False
+
+    def test_tennis_sharp_only_fails(self):
+        assert has_full_blend("tennis", "sharp") is False
+
+    def test_unlisted_sector_always_passes(self):
+        assert has_full_blend("nba", "sharp") is True
+        assert has_full_blend(None, None) is True
+
+
+class TestPartialBlendDemotion:
+    def test_partial_blend_live_gap_demoted_to_shadow(self, patched_db):
+        gap = replace(
+            _gap("t-partial", sector="tennis"),
+            model_sources="tennis_ranking_trend+sharp",
+            full_blend=False,
+        )
+        inserted = log_gaps([gap], mode_resolver=lambda c: "live")
+        assert inserted == 1
+        row = patched_db.execute(
+            "SELECT mode FROM ev_predictions WHERE market_id = 't-partial'"
+        ).fetchone()
+        assert row["mode"] == "shadow"
+
+    def test_full_blend_live_gap_stays_live(self, patched_db):
+        gap = replace(
+            _gap("t-full", sector="tennis"),
+            model_sources=_FULL_TENNIS_SOURCES,
+            full_blend=True,
+        )
+        log_gaps([gap], mode_resolver=lambda c: "live")
+        row = patched_db.execute(
+            "SELECT mode FROM ev_predictions WHERE market_id = 't-full'"
+        ).fetchone()
+        assert row["mode"] == "live"
+
+    def test_demotion_does_not_promote_shadow_categories(self, patched_db):
+        # A shadow-mode category stays shadow regardless of the flag.
+        gap = replace(_gap("t-shadowcat", sector="tennis"), full_blend=True)
+        log_gaps([gap], mode_resolver=lambda c: "shadow")
+        row = patched_db.execute(
+            "SELECT mode FROM ev_predictions WHERE market_id = 't-shadowcat'"
+        ).fetchone()
+        assert row["mode"] == "shadow"
+
+    def test_default_full_blend_true_keeps_other_sectors_live(self, patched_db):
+        gap = _gap("nba-default", sector="nba")  # full_blend defaults True
+        log_gaps([gap], mode_resolver=lambda c: "live")
+        row = patched_db.execute(
+            "SELECT mode FROM ev_predictions WHERE market_id = 'nba-default'"
+        ).fetchone()
+        assert row["mode"] == "live"
