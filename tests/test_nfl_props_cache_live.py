@@ -391,3 +391,77 @@ class TestCoordinatorFetchPropsNfl:
         assert len(prop_sharp) == 0
 
 
+
+
+class TestResolveOpponentFromSchedule:
+    """Direct coverage of _resolve_opponent_from_schedule — the pure pandas
+    lookup the live scan uses to fill the opponent for a player's game.
+    Previously only transitively exercised via _fetch_props.
+    """
+
+    def _schedules(self):
+        # Mirrors the fixture's schedules table: two week-11 games on 2025-11-17.
+        return pd.DataFrame([
+            {"season": 2025, "week": 11, "gameday": "2025-11-17",
+             "home_team": "KC", "away_team": "LV"},
+            {"season": 2025, "week": 11, "gameday": "2025-11-17",
+             "home_team": "SF", "away_team": "SEA"},
+        ])
+
+    def test_home_team_resolves_to_away_opponent(self):
+        sched = self._schedules()
+        assert nfl_props_cache._resolve_opponent_from_schedule(
+            sched, "KC", "2025-11-17") == "LV"
+
+    def test_away_team_resolves_to_home_opponent(self):
+        sched = self._schedules()
+        assert nfl_props_cache._resolve_opponent_from_schedule(
+            sched, "SEA", "2025-11-17") == "SF"
+
+    def test_no_game_on_date_returns_none(self):
+        sched = self._schedules()
+        assert nfl_props_cache._resolve_opponent_from_schedule(
+            sched, "KC", "2025-12-25") is None
+
+    def test_team_not_playing_returns_none(self):
+        sched = self._schedules()
+        # NE has no game on this date in the schedule.
+        assert nfl_props_cache._resolve_opponent_from_schedule(
+            sched, "NE", "2025-11-17") is None
+
+    def test_missing_gameday_column_returns_none(self):
+        sched = pd.DataFrame([{"home_team": "KC", "away_team": "LV"}])
+        assert nfl_props_cache._resolve_opponent_from_schedule(
+            sched, "KC", "2025-11-17") is None
+
+
+class TestComputeNflPropDiagnostics:
+    """Direct coverage of compute_nfl_prop_diagnostics — the per-player L15
+    sample-size diagnostic read by the production scan. Uses the hermetic
+    parquet fixture so n_games is deterministic.
+    """
+
+    def test_known_player_returns_n_games(self, nfl_parquets):
+        # "Big Passer" has 10 weekly rows in the fixture.
+        diag = nfl_props_cache.compute_nfl_prop_diagnostics("Big Passer")
+        assert diag is not None
+        assert diag.n_games == 10
+
+    def test_name_normalization_applies(self, nfl_parquets):
+        # Case + suffix variations resolve to the same player.
+        diag = nfl_props_cache.compute_nfl_prop_diagnostics("BIG PASSER Jr.")
+        assert diag is not None
+        assert diag.n_games == 10
+
+    def test_thin_sample_player_counts_only_logged_weeks(self, nfl_parquets):
+        # "Rookie QB" has just 3 weekly rows.
+        diag = nfl_props_cache.compute_nfl_prop_diagnostics("Rookie QB")
+        assert diag is not None
+        assert diag.n_games == 3
+
+    def test_unknown_player_returns_none(self, nfl_parquets):
+        assert nfl_props_cache.compute_nfl_prop_diagnostics("Nobody Here") is None
+
+    def test_roster_only_player_without_gamelog_returns_none(self, nfl_parquets):
+        # "Unknown Vet" is in rosters but has no weekly rows → no by_player df.
+        assert nfl_props_cache.compute_nfl_prop_diagnostics("Unknown Vet") is None

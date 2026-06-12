@@ -214,6 +214,52 @@ class TestProbabilitySemantics:
         assert result.true_prob_a == pytest.approx(expected_prob, abs=0.001)
 
 
+# ── Staleness guard (Gap-3) ────────────────────────────────────────────────
+
+class TestNflEfficiencyStalenessGuard:
+    """Prior-season EPA seed must not leak into in-season predictions once a
+    new NFL season has started — mirrors the WNBA efficiency staleness guard.
+    """
+
+    def test_stale_seed_returns_none_during_season(self):
+        from datetime import date
+        import evmax.agents.models.nfl_efficiency_agent as mod
+        agent = mod.NflEfficiencyModelAgent()
+        agent._state = {"nfl": {
+            "teams": {
+                "kansas city chiefs": _team_stats(0.10, -0.05),
+                "buffalo bills": _team_stats(0.05, -0.02),
+            },
+            "seasons_used": [2023, 2024],  # behind active 2025
+        }}
+        orig = mod.nfl_state_is_stale_for_today
+        mod.nfl_state_is_stale_for_today = lambda s, today=date(2025, 11, 1): orig(s, today)
+        try:
+            market, sharp = _pair("kansas city chiefs", "buffalo bills")
+            assert asyncio.run(agent.predict_pair(market, sharp)) is None
+        finally:
+            mod.nfl_state_is_stale_for_today = orig
+
+    def test_fresh_seed_still_predicts(self):
+        from datetime import date
+        import evmax.agents.models.nfl_efficiency_agent as mod
+        agent = mod.NflEfficiencyModelAgent()
+        agent._state = {"nfl": {
+            "teams": {
+                "kansas city chiefs": _team_stats(0.10, -0.05),
+                "buffalo bills": _team_stats(0.05, -0.02),
+            },
+            "seasons_used": [2024, 2025],
+        }}
+        orig = mod.nfl_state_is_stale_for_today
+        mod.nfl_state_is_stale_for_today = lambda s, today=date(2025, 11, 1): orig(s, today)
+        try:
+            market, sharp = _pair("kansas city chiefs", "buffalo bills")
+            assert asyncio.run(agent.predict_pair(market, sharp)) is not None
+        finally:
+            mod.nfl_state_is_stale_for_today = orig
+
+
 # ── Update is no-op ────────────────────────────────────────────────────────
 
 class TestUpdateIsNoOp:

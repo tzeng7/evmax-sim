@@ -698,6 +698,69 @@ class TestFormModelAgent:
         )]
         assert FormModelAgent._is_stale(past, reference=today)
 
+    @pytest.mark.asyncio
+    async def test_nfl_fresh_records_predicts_with_home_adj(self, tmp_path, monkeypatch):
+        """Characterization: with fresh NFL records the form model fires and the
+        home side (team_a) carries the NFL home probability bump (HOME_ADJ['nfl']
+        = 0.03). team_a here won every seeded game, so prob_a > 0.5."""
+        from datetime import date, timedelta
+        from evmax.agents.models import form_agent as fa
+
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = FormModelAgent()
+        agent._state_path = tmp_path / "form_state.json"
+
+        game_day = date(2025, 11, 16)  # mid-NFL-season
+        # NFL plays weekly — space records 7 days apart so they stay within
+        # STALE_DAYS of the game date.
+        results = [
+            {"date": (game_day - timedelta(days=7 * i)).isoformat(),
+             "home": "chiefs", "away": "broncos", "score_home": 27, "score_away": 17}
+            for i in range(1, 6)
+        ]
+        agent.seed_results("nfl", results)
+
+        market = make_market(sector="nfl", team_home="chiefs", team_away="broncos")
+        market.event_date = datetime(2025, 11, 16, 20, 0, tzinfo=timezone.utc)
+        sharp = make_sharp(
+            event_id="nfl::2025-11-16::chiefs_vs_broncos",
+            team_a="chiefs", team_b="broncos", sector="nfl",
+        )
+        pred = await agent.predict_pair(market, sharp)
+        assert pred is not None
+        assert pred.true_prob_a > 0.5  # chiefs won every seeded game
+
+    @pytest.mark.asyncio
+    async def test_nfl_prior_season_records_return_none(self, tmp_path, monkeypatch):
+        """Characterization: a September game whose only records are from the
+        prior February (> STALE_DAYS) must skip — cross-season contamination
+        guard, the same one that protected the WNBA opener."""
+        from datetime import date, timedelta
+        from evmax.agents.models import form_agent as fa
+
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = FormModelAgent()
+        agent._state_path = tmp_path / "form_state.json"
+
+        # Game is Sep 2025; records are from Feb 2025 (prior season playoffs),
+        # ~200+ days stale relative to the game date.
+        feb_day = date(2025, 2, 2)
+        results = [
+            {"date": (feb_day - timedelta(days=7 * i)).isoformat(),
+             "home": "chiefs", "away": "broncos", "score_home": 24, "score_away": 21}
+            for i in range(0, 5)
+        ]
+        agent.seed_results("nfl", results)
+
+        market = make_market(sector="nfl", team_home="chiefs", team_away="broncos")
+        market.event_date = datetime(2025, 9, 7, 20, 0, tzinfo=timezone.utc)
+        sharp = make_sharp(
+            event_id="nfl::2025-09-07::chiefs_vs_broncos",
+            team_a="chiefs", team_b="broncos", sector="nfl",
+        )
+        pred = await agent.predict_pair(market, sharp)
+        assert pred is None, "Prior-season NFL form must skip via STALE_DAYS guard"
+
     def test_update_records_draw(self, tmp_path, monkeypatch):
         """Soccer draws must persist drew=True on both sides, not won=False."""
         monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
@@ -1454,6 +1517,95 @@ class TestTennisWeightTrim:
         # prediction — the trim reduces dominance but doesn't flip the sign.
         assert blend_new > other_prob_a
         assert blend_new < blend_old
+
+
+# ---------------------------------------------------------------------------
+# NFL ensemble weight lock-in (Phase 2, validated 2026-05-01)
+# ---------------------------------------------------------------------------
+
+class TestNflWeightOverrides:
+    """Lock-in guard for SECTOR_WEIGHT_OVERRIDES['nfl'].
+
+    The NFL blend weights (nfl_efficiency 0.25 · nfl_qb_elo 0.25 · elo 0.20 ·
+    form 0.30 · poisson 0.0) were validated via scripts/backtest_nfl_efficiency.py
+    (Phase 2, 2026-05-01) but had NO test asserting the numbers — any weight
+    iteration could edit them with zero deterministic guard. These tests pin
+    the values and the documented structural invariants so a future weight
+    sweep must update both the override AND this test's rationale together
+    (same pattern as TestTennisWeightTrim).
+    """
+
+    def test_nfl_override_values_locked(self):
+        nfl = EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES["nfl"]
+        assert nfl == {
+            "nfl_efficiency": 0.25,
+            "nfl_qb_elo":     0.25,
+            "elo":            0.20,
+            "form":           0.30,
+            "poisson":        0.0,
+        }, (
+            "SECTOR_WEIGHT_OVERRIDES['nfl'] drifted from the Phase 2 weights. "
+            "If you're re-tuning, re-run scripts/backtest_nfl_efficiency.py on "
+            "the in-sample seasons (2324,2425), confirm the 2526 holdout, and "
+            "update this test's docstring with the new ΔBrier/ΔAcc rationale."
+        )
+
+    def test_generic_elo_downweighted_vs_qb_elo(self):
+        """Documented rationale (ensemble_agent.py): generic elo overlaps
+        nfl_qb_elo (both Elo-shaped team strength), so generic elo is held
+        BELOW nfl_qb_elo when the QB-Elo layer is present. Guards the overlap
+        invariant, not just the literal value."""
+        nfl = EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES["nfl"]
+        assert nfl["elo"] < nfl["nfl_qb_elo"]
+
+    def test_poisson_zeroed_for_nfl(self):
+        """NFL scoring is drive-based, not minute-uniform — poisson must stay
+        zeroed so it never contributes to or appears in the NFL blend."""
+        assert EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES["nfl"]["poisson"] == 0.0
+
+    def test_nfl_effective_weights_applied_in_blend(self):
+        """End-to-end: _blend must use the NFL override weights, so the
+        model-side blend is the confidence-weighted average over the override
+        weights — NOT the class-level weights. Construct two NFL models with
+        equal confidence and verify the blended model prob matches the
+        override-weighted average to the documented Step-1 formula."""
+        from evmax.agents.models.base import ModelAgentPrediction
+
+        ensemble = EnsembleModelAgent(models=[], sharp_weight=0.0)
+
+        conf = 0.60  # > 0.45 gate; equal for both so eff_w ∝ override weight
+        preds = {
+            # class-level weights deliberately wrong (0.35) to prove the
+            # override (0.20) is what _blend actually uses.
+            "elo": ModelAgentPrediction(
+                event_id="test", model_name="elo",
+                true_prob_a=0.40, true_prob_b=0.60, true_prob_draw=None,
+                confidence=conf, weight=0.35,
+            ),
+            "nfl_qb_elo": ModelAgentPrediction(
+                event_id="test", model_name="nfl_qb_elo",
+                true_prob_a=0.70, true_prob_b=0.30, true_prob_draw=None,
+                confidence=conf, weight=0.30,
+            ),
+        }
+        # sharp_weight=0 → blend is pure model side (no FLB since no sharp lean)
+        sharp = make_sharp(sector="nfl").model_copy(update={
+            "sector": "nfl", "true_prob_a": 0.50, "true_prob_b": 0.50,
+        })
+
+        blend = ensemble._blend("test", preds, sharp, 0.0, sector="nfl")
+        assert blend is not None
+
+        nfl = EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES["nfl"]
+        w_elo = nfl["elo"] * conf
+        w_qb = nfl["nfl_qb_elo"] * conf
+        expected_model_a = (w_elo * 0.40 + w_qb * 0.70) / (w_elo + w_qb)
+        # With sharp_weight=0 the model side passes through (FLB is skipped
+        # when sharp_weight is 0 → no model-weight scaling), then normalized.
+        assert blend.true_prob_a == pytest.approx(expected_model_a, abs=1e-3)
+        # nfl_qb_elo (0.25) outweighs elo (0.20), so the blend leans toward
+        # qb_elo's higher prob_a — confirming the override is in force.
+        assert blend.true_prob_a > 0.50
 
 
 class TestDedupMutuallyExclusiveSides:
