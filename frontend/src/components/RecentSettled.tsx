@@ -32,7 +32,7 @@ export function RecentSettled({ bets }: Props) {
           >Placed Only</button>
         </div>
       </div>
-      <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+      <div className="scroll-area">
         <table>
           <thead>
             <tr>

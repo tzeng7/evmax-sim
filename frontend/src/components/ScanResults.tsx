@@ -121,7 +121,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <h2>Scan Results — {gaps.length} plays ({meta?.markets_fetched} markets, {meta?.markets_matched} matched)</h2>
         <div className="actions" style={{ gap: 4 }}>
           <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
-            style={{ fontSize: 11, padding: '4px 6px', background: '#1a1a2e', color: '#e0e0e0', border: '1px solid #333', borderRadius: 4 }} />
+            style={{ fontSize: 11 }} />
           <SectorFilter value={sector} onChange={setSector} />
           <button className="btn btn-sm" onClick={() => { setSector(''); setDateFilter('') }}>Clear</button>
           <button className="btn btn-sm" onClick={selectAll}>Select All</button>
