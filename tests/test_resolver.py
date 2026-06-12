@@ -454,6 +454,100 @@ class TestMatchEspn:
         )
         assert _match_espn(pred, scores) == 1
 
+    # ------------------------------------------------------------------
+    # Total / over-under resolution — regression for BUG where _match_espn
+    # required resolving the YES *side* before grading. yes_team for totals
+    # is "over"/"under", which never fuzzy-matches a team slug; whenever
+    # over/under tied against both team slugs (e.g. "guardians"/"nationals",
+    # "red sox"/"orioles") the side resolver set yes_is_team_a=None and
+    # `continue`d past the already-matched game, leaving every team-name-
+    # symmetric total permanently unresolved. Totals are side-independent:
+    # the combined score decides them once the event gate confirms the game.
+    # ------------------------------------------------------------------
+
+    def test_total_over_wins(self):
+        scores = [_make_score("Houston Astros", 6, "Los Angeles Angels", 7)]
+        pred = _make_pred(
+            "baseball::2026-06-10::angels_vs_astros::total::6.5",
+            "over", market_type="total", line=12.5,
+        )
+        assert _match_espn(pred, scores) == 1  # total 13 > 12.5
+
+    def test_total_over_loses(self):
+        scores = [_make_score("Houston Astros", 2, "Los Angeles Angels", 3)]
+        pred = _make_pred(
+            "baseball::2026-06-10::angels_vs_astros::total::6.5",
+            "over", market_type="total", line=6.5,
+        )
+        assert _match_espn(pred, scores) == 0  # total 5 < 6.5
+
+    def test_total_under_wins(self):
+        scores = [_make_score("Baltimore Orioles", 3, "Boston Red Sox", 3)]
+        pred = _make_pred(
+            "baseball::2026-06-02::red_sox_vs_orioles::total::10.5",
+            "under", market_type="total", line=10.5,
+        )
+        assert _match_espn(pred, scores) == 1  # total 6 < 10.5
+
+    def test_total_under_loses(self):
+        scores = [_make_score("Baltimore Orioles", 8, "Boston Red Sox", 7)]
+        pred = _make_pred(
+            "baseball::2026-06-02::red_sox_vs_orioles::total::10.5",
+            "under", market_type="total", line=10.5,
+        )
+        assert _match_espn(pred, scores) == 0  # total 15 > 10.5
+
+    def test_total_resolves_when_over_under_ties_both_slugs(self):
+        # The exact regression case: "over" fuzzy-scores identically against
+        # "guardians" and "nationals", which used to set yes_is_team_a=None
+        # and silently drop the bet. Must now resolve from the combined score.
+        scores = [_make_score("Cleveland Guardians", 2, "Washington Nationals", 10)]
+        pred = _make_pred(
+            "baseball::2026-05-25::guardians_vs_nationals::total::7.0",
+            "over", market_type="total", line=6.5,
+        )
+        assert _match_espn(pred, scores) == 1  # total 12 > 6.5
+
+    def test_total_wnba_portland_fire_resolves(self):
+        # WNBA expansion team "Portland Fire" — same over/under-tie path that
+        # left "Fire vs Aces" totals unresolved in the user's portfolio.
+        scores = [_make_score("Portland Fire", 89, "Las Vegas Aces", 105)]
+        pred = _make_pred(
+            "wnba::2026-06-11::fire_vs_aces::total::171.5",
+            "over", market_type="total", line=169.5,
+        )
+        assert _match_espn(pred, scores) == 1  # total 194 > 169.5
+
+    def test_total_missing_line_returns_none(self):
+        scores = [_make_score("Cleveland Guardians", 2, "Washington Nationals", 10)]
+        pred = _make_pred(
+            "baseball::2026-05-25::guardians_vs_nationals::total::7.0",
+            "over", market_type="total", line=None,
+        )
+        assert _match_espn(pred, scores) is None
+
+    # ------------------------------------------------------------------
+    # Cross-day series — the right game in a multi-day series must win.
+    # Regression: a Mon-night game whose UTC comp.date rolled forward to Tue
+    # collided with the Tue game of the same series; the first one in the
+    # fetch list won and graded the bet against the wrong score. _match_espn
+    # now evaluates the game closest to the prediction date first.
+    # ------------------------------------------------------------------
+
+    def test_series_matches_closest_date_game(self):
+        mon = {**_make_score("Colorado Rockies", 1, "Milwaukee Brewers", 7),
+               "game_date": "2026-06-06"}   # total 8
+        tue = {**_make_score("Colorado Rockies", 4, "Milwaukee Brewers", 12),
+               "game_date": "2026-06-07"}   # total 16
+        pred = _make_pred(
+            "baseball::2026-06-07::rockies_vs_brewers::total::9.5",
+            "over", market_type="total", line=9.5, event_date="2026-06-07",
+        )
+        # Tue game (total 16) is ours — over 9.5 → 1. The Mon game (total 8)
+        # appearing first in the list must NOT win the match.
+        assert _match_espn(pred, [mon, tue]) == 1
+        assert _match_espn(pred, [tue, mon]) == 1  # order-independent
+
 
 # ---------------------------------------------------------------------------
 # _match_bo3
@@ -556,6 +650,17 @@ class TestFetchEspnScores:
         assert results[0]["home_name"] == "Detroit Pistons"
         assert results[0]["home_score"] == 117
         assert results[0]["home_won"] is True
+
+    def test_game_date_uses_queried_slate_not_utc(self):
+        # comp.date is UTC and rolls a night game to the next day; the stored
+        # game_date must instead be the queried US slate date, otherwise a
+        # Mon-night game collides with the Tue game of the same series and the
+        # wrong game resolves a bet. Regression for cross-day series mismatch.
+        event = _build_espn_event("Colorado Rockies", 7, "Milwaukee Brewers", 9)
+        event["competitions"][0]["date"] = "2026-06-07T01:10Z"  # UTC = next day
+        client = self._make_mock_client(_build_espn_response([event]))
+        results = asyncio.run(_fetch_espn_scores(client, "baseball", "mlb", "20260606"))
+        assert results[0]["game_date"] == "2026-06-06"
 
     def test_skips_incomplete_games(self):
         data = _build_espn_response([
