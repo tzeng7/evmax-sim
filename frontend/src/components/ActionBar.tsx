@@ -107,10 +107,10 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
         <option value={1}>Full Kelly</option>
       </select>
       <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-        style={{ width: 130, fontSize: 11, padding: '4px 6px', background: '#1a1a2e', color: '#e0e0e0', border: '1px solid #333', borderRadius: 4 }} />
-      <span style={{ color: '#888' }}>–</span>
+        style={{ width: 138, fontSize: 11 }} title="From date" />
+      <span className="muted">–</span>
       <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-        style={{ width: 130, fontSize: 11, padding: '4px 6px', background: '#1a1a2e', color: '#e0e0e0', border: '1px solid #333', borderRadius: 4 }} />
+        style={{ width: 138, fontSize: 11 }} title="To date" />
       <button className="btn primary" onClick={handleScan} disabled={scanning}>
         {scanning ? 'Scanning...' : 'Scan'}
       </button>

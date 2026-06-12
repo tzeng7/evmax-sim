@@ -61,24 +61,19 @@ export function ProfitChart({ seriesAll, seriesPlaced, view }: Props) {
     return { dates: allDates, dataAll: filledAll, dataPlaced: filledPlaced }
   }, [seriesAll, seriesPlaced, range])
 
+  const isPlaced = view === 'placed'
+  const lineColor = isPlaced ? '#3ddc97' : '#5b9dff'
+  const fillColor = isPlaced ? 'rgba(61,220,151,0.12)' : 'rgba(91,157,255,0.14)'
+
   const chartData = {
     labels: dates,
     datasets: [
       {
-        label: 'All Scanned P&L ($)',
-        data: dataAll,
-        borderColor: '#60a5fa',
-        backgroundColor: 'rgba(96,165,250,0.1)',
-        fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5, borderWidth: 2,
-        hidden: view === 'placed',
-      },
-      {
-        label: 'Placed Only P&L ($)',
-        data: dataPlaced,
-        borderColor: '#4ade80',
-        backgroundColor: 'rgba(74,222,128,0.08)',
-        fill: true, tension: 0.3, pointRadius: 2, pointHoverRadius: 5, borderWidth: 2,
-        hidden: view === 'all',
+        label: isPlaced ? 'Placed Only P&L ($)' : 'All Scanned P&L ($)',
+        data: isPlaced ? dataPlaced : dataAll,
+        borderColor: lineColor,
+        backgroundColor: fillColor,
+        fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5,
       },
     ],
   }
@@ -86,13 +81,18 @@ export function ProfitChart({ seriesAll, seriesPlaced, view }: Props) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
+    interaction: { mode: 'index' as const, intersect: false },
     plugins: {
-      legend: { labels: { color: '#d6deeb' } },
-      tooltip: { mode: 'index' as const, intersect: false },
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#171b25', borderColor: '#232936', borderWidth: 1,
+        titleColor: '#aab4c5', bodyColor: '#e7ecf4', padding: 10, cornerRadius: 8,
+        displayColors: false,
+      },
     },
     scales: {
-      x: { ticks: { color: '#7a8aa0' }, grid: { color: '#1f2530' } },
-      y: { ticks: { color: '#7a8aa0', callback: (v: unknown) => '$' + v }, grid: { color: '#1f2530' } },
+      x: { ticks: { color: '#6f7c92', maxRotation: 0, autoSkipPadding: 16 }, grid: { display: false }, border: { color: '#232936' } },
+      y: { ticks: { color: '#6f7c92', callback: (v: unknown) => '$' + v }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } },
     },
   }
 

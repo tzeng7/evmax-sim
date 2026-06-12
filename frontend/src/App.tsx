@@ -42,33 +42,31 @@ export default function App() {
     }
   }, [toast])
 
-  if (dash.loading && page.kind === 'dashboard') {
-    return <div style={{ padding: 40, color: '#7a8aa0' }}>Loading dashboard...</div>
-  }
-
   const summary = view === 'placed' ? dash.summaryPlaced : dash.summaryAll
+  const loadingDash = dash.loading && page.kind === 'dashboard'
 
   return (
-    <>
-      <div className="header">
+    <div className="app">
+      <header className="header">
         <div className="header-left">
           <h1 style={{ cursor: 'pointer' }} onClick={() => setPage({ kind: 'dashboard' })}>evmax</h1>
           <span className="subtitle">+EV prediction market dashboard</span>
         </div>
-        <nav className="nav-tabs">
+        <nav className="segmented">
           <button
-            className={`btn btn-sm pnl-tab ${page.kind === 'dashboard' ? 'active' : ''}`}
+            className={`seg ${page.kind === 'dashboard' ? 'active' : ''}`}
             onClick={() => setPage({ kind: 'dashboard' })}
           >
             Dashboard
           </button>
           <button
-            className={`btn btn-sm pnl-tab ${page.kind === 'portfolios' || page.kind === 'portfolio' ? 'active' : ''}`}
+            className={`seg ${page.kind === 'portfolios' || page.kind === 'portfolio' ? 'active' : ''}`}
             onClick={() => setPage({ kind: 'portfolios' })}
           >
             Portfolios
           </button>
         </nav>
+        <div style={{ flex: 1 }} />
         {page.kind === 'dashboard' && (
           <ActionBar
             bankrollStr={bankrollStr}
@@ -81,14 +79,16 @@ export default function App() {
             toast={toast}
           />
         )}
-      </div>
+      </header>
 
+      <div className="content">
       <ErrorBoundary>
-        {page.kind === 'dashboard' && (
+        {loadingDash && <DashboardSkeleton />}
+        {!loadingDash && page.kind === 'dashboard' && (
           <>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-              <button className={`btn btn-sm pnl-tab ${view === 'all' ? 'active' : ''}`} onClick={() => setView('all')}>All Scanned</button>
-              <button className={`btn btn-sm pnl-tab ${view === 'placed' ? 'active' : ''}`} onClick={() => setView('placed')}>Placed Only</button>
+            <div className="segmented" style={{ marginBottom: 16 }}>
+              <button className={`seg ${view === 'all' ? 'active' : ''}`} onClick={() => setView('all')}>All Scanned</button>
+              <button className={`seg ${view === 'placed' ? 'active' : ''}`} onClick={() => setView('placed')}>Placed Only</button>
             </div>
 
             <KpiCards summary={summary} />
@@ -132,8 +132,23 @@ export default function App() {
           />
         )}
       </ErrorBoundary>
+      </div>
 
       <Toast {...toastProps} />
+    </div>
+  )
+}
+
+function DashboardSkeleton() {
+  return (
+    <>
+      <div className="grid-kpi">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="skeleton" style={{ height: 74 }} />
+        ))}
+      </div>
+      <div className="skeleton" style={{ height: 320, marginBottom: 18 }} />
+      <div className="skeleton" style={{ height: 200 }} />
     </>
   )
 }

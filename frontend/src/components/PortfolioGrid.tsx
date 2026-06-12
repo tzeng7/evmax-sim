@@ -110,9 +110,9 @@ export function PortfolioGrid({ onSelect, toast }: Props) {
               {group.sort((a, b) => a.initial_bankroll - b.initial_bankroll).map(p => (
                 <div
                   key={p.id}
-                  className="panel"
+                  className="panel card-clickable"
                   onClick={() => onSelect(p.id)}
-                  style={{ cursor: 'pointer', borderLeft: `3px solid ${SCENARIO_COLORS[p.scenario] || '#60a5fa'}` }}
+                  style={{ cursor: 'pointer', borderLeft: `3px solid ${SCENARIO_COLORS[p.scenario] || '#60a5fa'}`, marginBottom: 0 }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <span style={{ fontWeight: 600, textTransform: 'capitalize', color: SCENARIO_COLORS[p.scenario] }}>

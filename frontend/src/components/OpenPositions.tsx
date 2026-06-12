@@ -73,7 +73,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
           {bets.length > 0 && <button className="btn btn-sm success" onClick={handlePick}>Pick All</button>}
         </div>
       </div>
-      <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+      <div className="scroll-area">
         <table>
           <thead>
             <tr>
