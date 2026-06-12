@@ -62,15 +62,19 @@ export function ProfitChart({ seriesAll, seriesPlaced, view }: Props) {
   }, [seriesAll, seriesPlaced, range])
 
   const isPlaced = view === 'placed'
-  const lineColor = isPlaced ? '#57c98a' : '#c4cbd6'
-  const fillColor = isPlaced ? 'rgba(87,201,138,0.12)' : 'rgba(196,203,214,0.10)'
+  const series = isPlaced ? dataPlaced : dataAll
+  // Color the whole line by the sign of the final cumulative P&L:
+  // green when the period closes in profit, red when it closes at a loss.
+  const isProfit = (series.length ? series[series.length - 1] : 0) >= 0
+  const lineColor = isProfit ? '#57c98a' : '#e8736e'
+  const fillColor = isProfit ? 'rgba(87,201,138,0.13)' : 'rgba(232,115,110,0.12)'
 
   const chartData = {
     labels: dates,
     datasets: [
       {
         label: isPlaced ? 'Placed Only P&L ($)' : 'All Scanned P&L ($)',
-        data: isPlaced ? dataPlaced : dataAll,
+        data: series,
         borderColor: lineColor,
         backgroundColor: fillColor,
         fill: true, tension: 0.35, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2.5,
