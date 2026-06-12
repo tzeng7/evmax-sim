@@ -99,7 +99,7 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
         style={{ width: 80 }}
         title="Bankroll ($)"
       />
-      <select value={kelly} onChange={e => setKelly(+e.target.value)} title="Kelly fraction" style={{ width: 90 }}>
+      <select value={kelly} onChange={e => setKelly(+e.target.value)} title="Kelly fraction" style={{ width: 112 }}>
         <option value={0.1}>0.1× Kelly</option>
         <option value={0.25}>0.25× Kelly</option>
         <option value={0.5}>0.5× Kelly</option>
