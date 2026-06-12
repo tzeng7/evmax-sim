@@ -62,8 +62,8 @@ export function ProfitChart({ seriesAll, seriesPlaced, view }: Props) {
   }, [seriesAll, seriesPlaced, range])
 
   const isPlaced = view === 'placed'
-  const lineColor = isPlaced ? '#3ddc97' : '#5b9dff'
-  const fillColor = isPlaced ? 'rgba(61,220,151,0.12)' : 'rgba(91,157,255,0.14)'
+  const lineColor = isPlaced ? '#57c98a' : '#c4cbd6'
+  const fillColor = isPlaced ? 'rgba(87,201,138,0.12)' : 'rgba(196,203,214,0.10)'
 
   const chartData = {
     labels: dates,
@@ -85,14 +85,16 @@ export function ProfitChart({ seriesAll, seriesPlaced, view }: Props) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#171b25', borderColor: '#232936', borderWidth: 1,
-        titleColor: '#aab4c5', bodyColor: '#e7ecf4', padding: 10, cornerRadius: 8,
+        backgroundColor: '#191c21', borderColor: '#2b2f37', borderWidth: 1,
+        titleColor: '#b1b7c2', bodyColor: '#e9ebef', padding: 10, cornerRadius: 6,
+        titleFont: { family: "'IBM Plex Mono', monospace", size: 10 },
+        bodyFont: { family: "'IBM Plex Mono', monospace", size: 12 },
         displayColors: false,
       },
     },
     scales: {
-      x: { ticks: { color: '#6f7c92', maxRotation: 0, autoSkipPadding: 16 }, grid: { display: false }, border: { color: '#232936' } },
-      y: { ticks: { color: '#6f7c92', callback: (v: unknown) => '$' + v }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } },
+      x: { ticks: { color: '#7b818c', font: { family: "'IBM Plex Mono', monospace", size: 10 }, maxRotation: 0, autoSkipPadding: 16 }, grid: { display: false }, border: { color: '#2b2f37' } },
+      y: { ticks: { color: '#7b818c', font: { family: "'IBM Plex Mono', monospace", size: 10 }, callback: (v: unknown) => '$' + v }, grid: { color: 'rgba(255,255,255,0.045)' }, border: { display: false } },
     },
   }
 

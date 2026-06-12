@@ -7,10 +7,11 @@ interface Props {
   toast: (msg: string, type?: 'info' | 'ok' | 'err') => void
 }
 
+// Risk-escalation ramp, neutralized: safe → green, mid → slate, hot → coral.
 const SCENARIO_COLORS: Record<string, string> = {
-  conservative: '#4ade80',
-  moderate: '#60a5fa',
-  aggressive: '#fbbf24',
+  conservative: '#57c98a',
+  moderate: '#94a3b8',
+  aggressive: '#e8736e',
 }
 
 export function PortfolioGrid({ onSelect, toast }: Props) {
@@ -123,13 +124,13 @@ export function PortfolioGrid({ onSelect, toast }: Props) {
                     </span>
                   </div>
 
-                  <div style={{ fontSize: 22, fontWeight: 600, marginBottom: 6 }}>
+                  <div style={{ fontSize: 23, fontWeight: 600, marginBottom: 6, fontFamily: 'var(--mono)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
                     <span className={p.current_bankroll >= p.initial_bankroll ? 'green' : 'red'}>
                       ${p.current_bankroll.toFixed(2)}
                     </span>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, fontSize: 11 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, fontSize: 11, fontFamily: 'var(--mono)' }}>
                     <div>
                       <span className="muted">P&L </span>
                       <span className={p.total_pnl >= 0 ? 'green' : 'red'}>
