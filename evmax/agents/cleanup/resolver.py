@@ -207,9 +207,14 @@ async def _fetch_espn_scores(
         except (ValueError, TypeError):
             continue
 
-        # Extract actual game date from ESPN for cross-day series dedup
-        game_date_str = comp.get("date", "") or event.get("date", "")
-        game_date = game_date_str[:10] if game_date_str else espn_date[:4] + "-" + espn_date[4:6] + "-" + espn_date[6:8]
+        # Game date for cross-day series matching. Use the queried `?dates=`
+        # slate date (`espn_date`), NOT comp.date: ESPN groups the scoreboard
+        # by US calendar date, but comp.date is UTC and rolls night games
+        # forward a day — which makes a Mon-night game collide with the Tue
+        # game of the same series and lets the wrong game resolve a bet. The
+        # queried date is the authoritative US slate date and partitions the
+        # series cleanly.
+        game_date = f"{espn_date[:4]}-{espn_date[4:6]}-{espn_date[6:8]}"
 
         # Extract box-score statistics (soccer: shotsOnTarget, totalShots)
         def _stat(competitor: dict, name: str) -> Optional[int]:
@@ -338,6 +343,34 @@ def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
     # Prediction date for cross-day series guard
     pred_date = pred.get("event_date", "")
 
+    # Total / over-under markets are side-independent: the combined score
+    # resolves them once the event gate confirms the game. yes_team here is
+    # "over"/"under", which never fuzzy-matches a team slug, so the per-side
+    # resolution below must be skipped — otherwise an over/under that ties
+    # against both slugs leaves yes_is_team_a=None and the bet is silently
+    # dropped (regression that left team-name-symmetric totals unresolved).
+    market_type = (pred.get("market_type") or "moneyline").lower()
+    side_independent = market_type in ("total", "over_under")
+
+    # In a multi-day series the 3-day fetch window holds several games for the
+    # same matchup. Evaluate the game closest to the prediction date first so
+    # "first gate-passing match wins" resolves the right game (e.g. Tue's game,
+    # not Mon's). The ±1-day guard below still absorbs off-by-one stored dates.
+    if pred_date and len(pred_date) >= 10:
+        try:
+            _pred_d = date.fromisoformat(pred_date[:10])
+
+            def _date_distance(s: dict) -> int:
+                sd = s.get("game_date", "")
+                try:
+                    return abs((date.fromisoformat(sd[:10]) - _pred_d).days)
+                except (ValueError, TypeError):
+                    return 99
+
+            scores = sorted(scores, key=_date_distance)
+        except ValueError:
+            pass
+
     for score in scores:
         home_n = score["home_name"]
         away_n = score["away_name"]
@@ -374,7 +407,11 @@ def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
                 return 1 if is_draw else 0
 
             # Resolve yes team side
-            if yes_is_team_a is True:
+            if side_independent:
+                # total/over_under: event gate already confirmed the game;
+                # the combined score (not the YES side) decides the outcome.
+                yes_is_home = None
+            elif yes_is_team_a is True:
                 yes_is_home = a_home
             elif yes_is_team_a is False:
                 yes_is_home = b_home
@@ -390,7 +427,6 @@ def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
                 if _fuzzy_team_match(yes_raw, away_n) < FUZZY_THRESHOLD:
                     continue  # this score doesn't involve our team
 
-        market_type = (pred.get("market_type") or "moneyline").lower()
         hs = score.get("home_score")
         as_ = score.get("away_score")
 
