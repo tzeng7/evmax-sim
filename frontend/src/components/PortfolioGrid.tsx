@@ -9,9 +9,9 @@ interface Props {
 
 // Risk-escalation ramp, neutralized: safe → green, mid → slate, hot → coral.
 const SCENARIO_COLORS: Record<string, string> = {
-  conservative: '#57c98a',
-  moderate: '#94a3b8',
-  aggressive: '#e8736e',
+  conservative: '#00d082',
+  moderate: '#b3b8c0',
+  aggressive: '#f0616d',
 }
 
 export function PortfolioGrid({ onSelect, toast }: Props) {
@@ -69,7 +69,7 @@ export function PortfolioGrid({ onSelect, toast }: Props) {
     }
   }
 
-  if (loading) return <div style={{ color: '#7a8aa0', padding: 20 }}>Loading portfolios...</div>
+  if (loading) return <div style={{ color: '#767b85', padding: 20 }}>Loading portfolios...</div>
 
   const grouped = new Map<string, Portfolio[]>()
   for (const p of portfolios) {
@@ -97,7 +97,7 @@ export function PortfolioGrid({ onSelect, toast }: Props) {
 
       {portfolios.length === 0 ? (
         <div className="panel" style={{ textAlign: 'center', padding: 40 }}>
-          <p style={{ color: '#7a8aa0', marginBottom: 12 }}>No portfolios yet. Create default portfolios to get started.</p>
+          <p style={{ color: '#767b85', marginBottom: 12 }}>No portfolios yet. Create default portfolios to get started.</p>
           <button className="btn primary" onClick={handleCreateDefaults}>Create Default Portfolios</button>
         </div>
       ) : (
@@ -105,7 +105,7 @@ export function PortfolioGrid({ onSelect, toast }: Props) {
           <div key={key} style={{ marginBottom: 24 }}>
             <h2 style={{ marginBottom: 10 }}>
               {group[0].name.replace(/ (Conservative|Moderate|Aggressive)$/, '')}
-              <span style={{ color: '#7a8aa0', fontSize: 11, marginLeft: 8 }}>{group[0].sectors.join(', ')}</span>
+              <span style={{ color: '#767b85', fontSize: 11, marginLeft: 8 }}>{group[0].sectors.join(', ')}</span>
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               {group.sort((a, b) => a.initial_bankroll - b.initial_bankroll).map(p => (
@@ -113,13 +113,13 @@ export function PortfolioGrid({ onSelect, toast }: Props) {
                   key={p.id}
                   className="panel card-clickable"
                   onClick={() => onSelect(p.id)}
-                  style={{ cursor: 'pointer', borderLeft: `3px solid ${SCENARIO_COLORS[p.scenario] || '#60a5fa'}`, marginBottom: 0 }}
+                  style={{ cursor: 'pointer', borderLeft: `3px solid ${SCENARIO_COLORS[p.scenario] || '#00d082'}`, marginBottom: 0 }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <span style={{ fontWeight: 600, textTransform: 'capitalize', color: SCENARIO_COLORS[p.scenario] }}>
                       {p.scenario}
                     </span>
-                    <span style={{ fontSize: 10, color: '#7a8aa0' }}>
+                    <span style={{ fontSize: 10, color: '#767b85' }}>
                       ${p.initial_bankroll} / {(p.kelly_fraction * 100).toFixed(0)}% Kelly
                     </span>
                   </div>
