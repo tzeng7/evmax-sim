@@ -62,8 +62,8 @@ export function ProfitChart({ seriesAll, seriesPlaced, view }: Props) {
   }, [seriesAll, seriesPlaced, range])
 
   const isPlaced = view === 'placed'
-  const lineColor = isPlaced ? '#57c98a' : '#c4cbd6'
-  const fillColor = isPlaced ? 'rgba(87,201,138,0.12)' : 'rgba(196,203,214,0.10)'
+  const lineColor = isPlaced ? '#00d082' : '#c4cbd6'
+  const fillColor = isPlaced ? 'rgba(0,208,130,0.12)' : 'rgba(196,203,214,0.10)'
 
   const chartData = {
     labels: dates,
@@ -85,16 +85,16 @@ export function ProfitChart({ seriesAll, seriesPlaced, view }: Props) {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#191c21', borderColor: '#2b2f37', borderWidth: 1,
-        titleColor: '#b1b7c2', bodyColor: '#e9ebef', padding: 10, cornerRadius: 6,
-        titleFont: { family: "'IBM Plex Mono', monospace", size: 10 },
-        bodyFont: { family: "'IBM Plex Mono', monospace", size: 12 },
+        backgroundColor: '#1a1c20', borderColor: '#292c32', borderWidth: 1,
+        titleColor: '#b3b8c0', bodyColor: '#ffffff', padding: 10, cornerRadius: 8,
+        titleFont: { family: "'Inter', sans-serif", size: 10 },
+        bodyFont: { family: "'Inter', sans-serif", size: 12, weight: 600 },
         displayColors: false,
       },
     },
     scales: {
-      x: { ticks: { color: '#7b818c', font: { family: "'IBM Plex Mono', monospace", size: 10 }, maxRotation: 0, autoSkipPadding: 16 }, grid: { display: false }, border: { color: '#2b2f37' } },
-      y: { ticks: { color: '#7b818c', font: { family: "'IBM Plex Mono', monospace", size: 10 }, callback: (v: unknown) => '$' + v }, grid: { color: 'rgba(255,255,255,0.045)' }, border: { display: false } },
+      x: { ticks: { color: '#767b85', font: { family: "'Inter', sans-serif", size: 10 }, maxRotation: 0, autoSkipPadding: 16 }, grid: { display: false }, border: { color: '#292c32' } },
+      y: { ticks: { color: '#767b85', font: { family: "'Inter', sans-serif", size: 10 }, callback: (v: unknown) => '$' + v }, grid: { color: 'rgba(255,255,255,0.045)' }, border: { display: false } },
     },
   }
 

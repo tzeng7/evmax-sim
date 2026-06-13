@@ -50,7 +50,7 @@ export function PortfolioDetail({ portfolioId, onBack, toast }: Props) {
     }
   }
 
-  if (!data) return <div style={{ color: '#7a8aa0', padding: 20 }}>Loading...</div>
+  if (!data) return <div style={{ color: '#767b85', padding: 20 }}>Loading...</div>
 
   const filteredBets = data.bets.filter(b => {
     if (tab === 'open') return b.outcome === null
@@ -67,7 +67,7 @@ export function PortfolioDetail({ portfolioId, onBack, toast }: Props) {
           <button className="btn btn-sm" onClick={onBack}>&larr; Back</button>
           <h2 style={{ margin: 0, textTransform: 'none', fontSize: 16 }}>{data.name}</h2>
           <span className="badge">{data.scenario}</span>
-          <span style={{ color: '#7a8aa0', fontSize: 11 }}>{data.sectors.join(', ')}</span>
+          <span style={{ color: '#767b85', fontSize: 11 }}>{data.sectors.join(', ')}</span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn primary" onClick={handleScan} disabled={scanning}>
@@ -126,7 +126,7 @@ export function PortfolioDetail({ portfolioId, onBack, toast }: Props) {
         </div>
 
         {filteredBets.length === 0 ? (
-          <div style={{ color: '#7a8aa0', textAlign: 'center', padding: 20 }}>No bets in this view</div>
+          <div style={{ color: '#767b85', textAlign: 'center', padding: 20 }}>No bets in this view</div>
         ) : (
           <table>
             <thead>

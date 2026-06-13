@@ -157,7 +157,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
                   {!isLive && (
                     <span
                       className="badge"
-                      style={{ marginLeft: 4, background: '#4a3a1a', color: '#f0c060', borderColor: '#c48b2f' }}
+                      style={{ marginLeft: 4, background: 'rgba(224,179,65,0.13)', color: '#e0b341', borderColor: 'rgba(224,179,65,0.32)' }}
                       title={`mode=${mode} — logged for tracking, not pickable`}
                     >{mode}</span>
                   )}
