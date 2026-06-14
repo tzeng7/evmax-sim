@@ -24,6 +24,12 @@ export interface SectorRow {
   roi_pct: number
 }
 
+export interface Category {
+  key: string
+  display_name: string
+  mode: string
+}
+
 export interface Bet {
   id: number
   scan_date: string

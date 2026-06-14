@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { runScan, resolve } from '../lib/api'
+import { useCategories } from '../lib/useCategories'
 import { fmtDate, fmtTomorrow, yesterday } from '../lib/odds'
 import type { ScanGap } from '../lib/types'
 
@@ -19,7 +20,15 @@ interface Props {
 }
 
 export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScanComplete, onResolve, onMetrics, toast }: Props) {
-  const [sectors, setSectors] = useState('nba,wnba,ncaab,ncaaw,soccer,worldcup,lol,cs2,tennis,baseball')
+  const cats = useCategories()
+  const allSectors = cats.map(c => c.key).join(',')
+  // Sector list comes from the registry via /api/categories. Default the
+  // selection to "all sectors" once the list loads, but never clobber a choice
+  // the user has already made.
+  const [sectors, setSectors] = useState('')
+  useEffect(() => {
+    setSectors(prev => prev || allSectors)
+  }, [allSectors])
   // Bankroll stored as a string so leading zeros the user types get stripped
   // explicitly. The previous Number-typed state had a known React bug where
   // typing "0" before an existing number left the visual "0…" in place
@@ -82,16 +91,10 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
   return (
     <div className="actions">
       <select value={sectors} onChange={e => setSectors(e.target.value)}>
-        <option value="nba,wnba,ncaab,ncaaw,soccer,worldcup,lol,cs2,tennis,baseball">All Sectors</option>
-        <option value="nba">NBA</option>
-        <option value="wnba">WNBA</option>
-        <option value="soccer">Soccer</option>
-        <option value="worldcup">World Cup</option>
-        <option value="tennis">Tennis</option>
-        <option value="ncaab">NCAAB</option>
-        <option value="ncaaw">NCAAW</option>
-        <option value="baseball">Baseball</option>
-        <option value="lol,cs2">Esports</option>
+        <option value={allSectors}>All Sectors</option>
+        {cats.map(c => (
+          <option key={c.key} value={c.key} title={c.display_name}>{c.key.toUpperCase()}</option>
+        ))}
       </select>
       <input
         type="number"
