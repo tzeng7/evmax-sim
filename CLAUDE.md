@@ -4,7 +4,9 @@ You are an expert in acquiring expected value for specific predictions found on 
 
 **Single source of truth:** [`data/categories.yaml`](data/categories.yaml). Every bettable category on evmax — its models, mode, resolver, status, and notes — lives in that one file. Don't list sectors in docs or settings; read them from the registry at runtime via `evmax.categories.all_categories()` or from the CLI via `evmax categories list`.
 
-**Current catalog (13 categories):** `nba`, `nfl`, `ncaab`, `ncaaw`, `soccer`, `tennis`, `baseball`, `nhl`, `lol`, `cs2` (game markets) · `nba_props`, `nfl_props` (player props) · and `valorant` was removed because there's no Kalshi product for it (sector handler still exists in `evmax/sectors/registry.py` as a latent sector, same for `ufc` and `f1`, but none of them appear in `SECTOR_SERIES_MAP` so they can't be bet on today).
+**Current catalog (14 categories):** `nba`, `nfl`, `ncaab`, `ncaaw`, `soccer`, `worldcup`, `tennis`, `baseball`, `wnba`, `nhl`, `lol`, `cs2` (game markets) · `nba_props`, `nfl_props` (player props) · and `valorant` was removed because there's no Kalshi product for it (sector handler still exists in `evmax/sectors/registry.py` as a latent sector, same for `ufc` and `f1`, but none of them appear in `SECTOR_SERIES_MAP` so they can't be bet on today).
+
+**`worldcup` (national-team World Cup, added 2026-06-14, shadow):** a SEPARATE sector from club `soccer`, not a reuse — national teams never appear in the club Elo pool and club strength is meaningless for them. It has its own Elo namespace (`elo_state.json['worldcup']`, K=40, `HOME_ADVANTAGE_ELO=0` for neutral venues), its own alias map ([`evmax/sectors/aliases/worldcup.yaml`](evmax/sectors/aliases/worldcup.yaml) — FIFA 3-letter codes + the Pinnacle/ESPN name spellings → one canonical per nation), Kalshi series `KXWCGAME` (3-way: TeamA/TeamB/TIE), and Pinnacle league `2686` (auto-3-way-devigged off the draw price). Models are `[elo, sharp]`; Form/Poisson don't fire (unseeded namespace / soccer-only). The national-team Elo is the genuinely new model — seed it via [`scripts/seed_national_team_elo.py`](scripts/seed_national_team_elo.py) (walk-forward over ESPN international results: WC + qualifiers + friendlies + continental cups). Resolves via ESPN `fifa.world`. Promote with `evmax cleanup shadow promote worldcup` once n≥30 resolved with CLV ≥ 0.
 
 **Three modes** (per category, per invocation):
 
@@ -47,7 +49,7 @@ evmax agents scan --shadow X,Y --live Z --disabled W   # runtime overrides
 - any `mode` / `status` / `market_types` value is illegal
 - a prop category is missing `prop_stat_types` or a game category has them
 
-**Outcome resolution** is specified per-category via the `resolver` field. The shipped values are `espn_scoreboard` (NBA/NFL/NCAAB/NCAAW/soccer/baseball/nhl), `espn_boxscore` (NBA/NFL props), `bo3gg` (LoL/CS2), `kalshi_settlement` (tennis), and `none` (no auto-resolution wired yet). Do not maintain a separate "resolution table" in docs — this field is authoritative.
+**Outcome resolution** is specified per-category via the `resolver` field. The shipped values are `espn_scoreboard` (NBA/NFL/NCAAB/NCAAW/soccer/worldcup/baseball/nhl/wnba — worldcup reads ESPN `fifa.world`), `espn_boxscore` (NBA/NFL props), `bo3gg` (LoL/CS2), `kalshi_settlement` (tennis), and `none` (no auto-resolution wired yet). Do not maintain a separate "resolution table" in docs — this field is authoritative.
 
 ### Key Pipeline
 

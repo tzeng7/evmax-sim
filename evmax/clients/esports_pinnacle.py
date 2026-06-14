@@ -49,6 +49,7 @@ SECTOR_SPORT_LEAGUES: dict[str, tuple[int, list[int]]] = {
     "f1":       (44, []),       # Formula 1 — matched by league name
     "soccer":   (29, [1980, 2196, 1842, 2436, 2036, 2186, 2630, 2663]),
     #                EPL  LaLiga Bundes SerieA Ligue1 UCL   UEL   MLS
+    "worldcup": (29, [2686]),   # FIFA - World Cup (national teams, 3-way w/ draw)
     "cs2":      (12, []),       # Esports — matched by league name
     "lol":      (12, []),
     "valorant": (12, []),
@@ -534,7 +535,9 @@ class PinnacleGuestClient(BaseAPIClient):
                 results.append(ml_odds)
 
         # --- Spread (only for team sports with meaningful point spreads) ---
-        if sector not in NAME_MATCHED_SECTORS and sector != "soccer":
+        # Soccer + World Cup use Asian-handicap goal lines we don't model and
+        # whose Kalshi spread series aren't wired, so skip them like club soccer.
+        if sector not in NAME_MATCHED_SECTORS and sector not in ("soccer", "worldcup"):
             spread_market = next(
                 (m for m in markets_data
                  if m.get("matchupId") == matchup_id

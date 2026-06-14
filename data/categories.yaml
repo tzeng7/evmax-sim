@@ -93,6 +93,16 @@ soccer:
   status: shipped
   notes: "Draw markets handled as separate TIE outcomes. MLS + UEL resolution added in PR #1."
 
+worldcup:
+  display_name: "World Cup (national teams)"
+  market_types: [moneyline]
+  models: [elo, sharp]
+  mode: shadow
+  resolver: espn_scoreboard
+  status: wip
+  season_window: {start: "06-11", end: "07-19"}
+  notes: "Added 2026-06-14 for the 2026 World Cup. Kalshi series KXWCGAME (3-way: TeamA/TeamB/TIE); Pinnacle league 2686 (FIFA - World Cup), auto-3-way-devigged off the draw price. SEPARATE sector from `soccer`: its own Elo namespace (data/models/elo_state.json['worldcup'], K=40, HOME_ADVANTAGE_ELO=0 for neutral venues), its own alias map (evmax/sectors/aliases/worldcup.yaml — FIFA 3-letter codes + Pinnacle/ESPN name variants → one canonical/nation). National-team Elo is the genuinely new model: club ratings are meaningless for national sides. Seed via scripts/seed_national_team_elo.py (walk-forward over ESPN international results). Form/Poisson don't fire (unseeded worldcup namespace / soccer-only). Starts SHADOW: validates live wiring (KXWCGAME matching, 2686 devig, draw handling, fifa.world resolution) + national-team Elo edge before any bankroll. Moneyline only — WC spread/total series exist (KXWCSPREAD/KXWCTOTAL) but stale-line totals on a night-before workflow are a known trap (see baseball notes). Promote via `evmax cleanup shadow promote worldcup` once n>=30 resolved with CLV >= 0."
+
 tennis:
   display_name: "Tennis (ATP + WTA)"
   market_types: [moneyline]

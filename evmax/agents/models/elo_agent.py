@@ -51,6 +51,7 @@ K_FACTORS: dict[str, float] = {
     "nba": 20.0,
     "ncaab": 20.0,
     "soccer": 30.0,
+    "worldcup": 40.0,  # national teams play ~10 games/yr → larger K to move on sparse data
     "baseball": 6.0,   # 162-game season → smaller K to avoid overreaction per game
     "ufc": 32.0,       # fighters have few bouts/year → larger K for faster updates
     "f1": 16.0,        # ~24 races/season, pairwise head-to-head updates per race
@@ -101,6 +102,7 @@ HOME_ADVANTAGE_ELO: dict[str, float] = {
     "nba": 100.0,     # ~6 pts / ~60% win rate
     "ncaab": 70.0,
     "soccer": 60.0,
+    "worldcup": 0.0,  # neutral venues (2026 hosts aside) — no generic home edge
     "baseball": 32.0, # ~54% home win rate historically
     "wnba": 60.0,    # ~54% home win rate (weaker than NBA's 60%)
     "ufc": 0.0,       # neutral venue
@@ -495,7 +497,7 @@ class EloModelAgent(ModelAgent):
         # Draw rate is strength-dependent: evenly matched teams draw ~26%,
         # heavily mismatched teams draw ~10%.  Calibrated against EPL/La Liga
         # historical averages (overall ~25%, but conditional on strength gap).
-        if sector == "soccer":
+        if sector in ("soccer", "worldcup"):
             gap = abs(expected_a - 0.5) * 2.0  # 0 = even, 1 = total mismatch
             # Quadratic decay: 0.26 at gap=0, ~0.10 at gap=0.6
             # Draw allocation tuned against 2425+2526 walk-forward (2,654 games).

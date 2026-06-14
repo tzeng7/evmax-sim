@@ -252,7 +252,7 @@ def show(
 
 # Default sectors refreshed by the resolve-time model-update hook. Mirrors the
 # `evmax update scores` default; ESPN-supported game sectors only.
-_UPDATE_HOOK_SECTORS = ["soccer", "nba", "wnba", "nfl", "ncaab", "nhl", "baseball"]
+_UPDATE_HOOK_SECTORS = ["soccer", "worldcup", "nba", "wnba", "nfl", "ncaab", "nhl", "baseball"]
 
 
 @app.command("resolve")

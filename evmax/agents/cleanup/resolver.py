@@ -61,6 +61,15 @@ ESPN_SOCCER_LEAGUES = [
     "usa.1",          # MLS
 ]
 
+# Sectors resolved via the ESPN *soccer* scoreboard API (sport path "soccer"),
+# each with its own list of league slugs. World Cup is soccer-shaped on ESPN
+# but lives under a single league slug; reuse the entire soccer fetch/parse
+# path (3-way, shotsOnTarget stats, etc.) by mapping the sector → its slugs.
+ESPN_SOCCER_LIKE_LEAGUES: dict[str, list[str]] = {
+    "soccer": ESPN_SOCCER_LEAGUES,
+    "worldcup": ["fifa.world"],
+}
+
 # bo3.gg discipline IDs
 BO3_BASE = "https://api.bo3.gg/api/v1"
 BO3_DISCIPLINE: dict[str, int] = {"cs2": 1, "valorant": 2, "lol": 3}
@@ -880,8 +889,8 @@ async def fetch_live_scores_for_sector(sector: str) -> list[dict]:
 
     Empty list if sector has no ESPN mapping or request fails.
     """
-    if sector == "soccer":
-        leagues = ESPN_SOCCER_LEAGUES
+    if sector in ESPN_SOCCER_LIKE_LEAGUES:
+        leagues = ESPN_SOCCER_LIKE_LEAGUES[sector]
     elif sector in ESPN_SPORT_MAP:
         leagues = [(ESPN_SPORT_MAP[sector][0], ESPN_SPORT_MAP[sector][1])]
     else:
@@ -893,7 +902,7 @@ async def fetch_live_scores_for_sector(sector: str) -> list[dict]:
         headers={"User-Agent": "evmax-live/1.0"},
         follow_redirects=True,
     ) as client:
-        if sector == "soccer":
+        if sector in ESPN_SOCCER_LIKE_LEAGUES:
             for espn_league in leagues:
                 url = f"https://site.api.espn.com/apis/site/v2/sports/soccer/{espn_league}/scoreboard"
                 try:
@@ -975,9 +984,9 @@ async def fetch_completed_scores(sector: str, target_date: date) -> list[dict]:
         headers={"User-Agent": "evmax-update/1.0"},
         follow_redirects=True,
     ) as client:
-        if sector == "soccer":
+        if sector in ESPN_SOCCER_LIKE_LEAGUES:
             results: list[dict] = []
-            for espn_league in ESPN_SOCCER_LEAGUES:
+            for espn_league in ESPN_SOCCER_LIKE_LEAGUES[sector]:
                 results.extend(
                     await _fetch_espn_scores(client, "soccer", espn_league, espn_date)
                 )
@@ -1332,7 +1341,7 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
                             failed += 1
                             unmatched.append(pred["event_id"])
 
-            elif sector == "soccer":
+            elif sector in ESPN_SOCCER_LIKE_LEAGUES:
                 for group_date, rows in date_groups.items():
                     group_date_obj = date.fromisoformat(group_date)
                     espn_dates = [
@@ -1341,7 +1350,7 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
                         (group_date_obj + timedelta(days=1)).isoformat().replace("-", ""),
                     ]
                     all_scores: list[dict] = []
-                    for espn_league in ESPN_SOCCER_LEAGUES:
+                    for espn_league in ESPN_SOCCER_LIKE_LEAGUES[sector]:
                         for d in espn_dates:
                             all_scores.extend(
                                 await _fetch_espn_scores(client, "soccer", espn_league, d)
