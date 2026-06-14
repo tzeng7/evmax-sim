@@ -234,8 +234,8 @@ evmax cleanup adjust
 # Shadow-mode validation (MODEL-9 pattern)
 evmax categories list --mode shadow               # see what's in shadow today
 evmax cleanup shadow show --days 7                # recent shadow predictions
-evmax cleanup shadow metrics --days 30            # Brier + ROI per category
-evmax cleanup shadow promote nfl_props            # flip shadow → live once validated
+evmax cleanup shadow metrics --days 30            # Brier + ROI per category (excludes superseded-code rows by default; `Excl` column + footer report the drop; --include-contaminated to score them)
+evmax cleanup shadow promote nfl_props            # flip shadow → live once validated (refuses if < 30 clean current-code resolved rows; --force overrides)
 ```
 
 ### WNBA-specific maintenance (2026 season)
