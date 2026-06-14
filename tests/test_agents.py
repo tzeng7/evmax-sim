@@ -910,14 +910,16 @@ class TestPoissonModelAgent:
         assert pred is not None
         assert pred.true_prob_a > 0.5   # Man City strong attack vs weak Bournemouth defense
 
-    def test_poisson_is_soccer_only(self):
-        """Poisson is intentionally soccer-only. Membership in SUPPORTED_SECTORS
-        — not the ensemble override weight — is what keeps it out of other
-        sectors: an unlisted model falls back to its 0.30 class weight in the
-        blend (ensemble_agent.py:469), so baseball/ncaab/nba/wnba/nfl must be
-        excluded here, not merely zeroed downstream."""
+    def test_poisson_is_football_only(self):
+        """Poisson serves only the two football sectors — club `soccer` and
+        national-team `worldcup`, both genuine low-count goal processes.
+        Membership in SUPPORTED_SECTORS — not the ensemble override weight — is
+        what keeps it out of other sectors: an unlisted model falls back to its
+        0.30 class weight in the blend (ensemble_agent.py:469), so
+        baseball/ncaab/nba/wnba/nfl must be excluded here, not merely zeroed
+        downstream."""
         from evmax.agents.models.poisson_agent import SUPPORTED_SECTORS
-        assert SUPPORTED_SECTORS == {"soccer"}
+        assert SUPPORTED_SECTORS == {"soccer", "worldcup"}
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("sector", ["baseball", "ncaab", "nba", "wnba", "nfl"])

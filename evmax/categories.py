@@ -51,6 +51,7 @@ KNOWN_MODELS: set[str] = {
     "elo",
     "form",
     "poisson",
+    "xg",  # SoccerXgAgent — xG-regressed Poisson; soccer + worldcup namespaces
     "sharp",
     "pitcher",
     # NBA-specific advanced agents

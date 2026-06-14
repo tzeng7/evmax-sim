@@ -152,6 +152,62 @@ def test_worldcup_elo_allocates_draw_and_is_neutral():
 
 
 # ---------------------------------------------------------------------------
+# Advanced metrics (Poisson + xG) — the soccer-like blend on the WC namespace
+# ---------------------------------------------------------------------------
+
+def test_worldcup_poisson_supported_and_neutral():
+    from evmax.agents.models.poisson_agent import (
+        LEAGUE_AVG_DEFAULTS,
+        SUPPORTED_SECTORS,
+    )
+
+    assert "worldcup" in SUPPORTED_SECTORS
+    # Neutral venue → symmetric home/away league average (no home edge),
+    # mirroring the worldcup Elo's HOME_ADVANTAGE_ELO=0.
+    avg = LEAGUE_AVG_DEFAULTS["worldcup"]
+    assert avg["home"] == avg["away"]
+
+
+def test_worldcup_poisson_fires_with_draw_mass():
+    import asyncio
+    from unittest.mock import MagicMock
+
+    from evmax.agents.models.poisson_agent import PoissonModelAgent
+
+    agent = PoissonModelAgent()
+    # Seed a strong attack vs a weak defense in the worldcup namespace only.
+    agent._state["worldcup"] = {
+        "league_avg": {"home": 1.30, "away": 1.30},
+        "teams": {
+            "spain":  {"attack": 1.6, "defense": 0.7, "games": 20},
+            "panama": {"attack": 0.7, "defense": 1.5, "games": 20},
+        },
+    }
+    market = MagicMock(sector="worldcup", team_home="spain", team_away="panama")
+    sharp = MagicMock(
+        outcome_a_label="spain", outcome_b_label="panama", event_id="worldcup::p",
+    )
+    result = asyncio.run(agent.predict_pair(market, sharp))
+    assert result is not None
+    assert result.model_name == "poisson"
+    # 3-way market: draw mass kept (not merged into home/away).
+    assert result.true_prob_draw is not None and result.true_prob_draw > 0.0
+    assert result.true_prob_a > result.true_prob_b  # Spain favored
+    total = result.true_prob_a + result.true_prob_b + result.true_prob_draw
+    assert abs(total - 1.0) < 1e-6
+
+
+def test_worldcup_ensemble_override_mirrors_soccer():
+    from evmax.agents.models.ensemble_agent import EnsembleModelAgent
+
+    wc = EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES["worldcup"]
+    soccer = EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES["soccer"]
+    # Same model families AND same weights as club soccer.
+    assert wc == soccer
+    assert wc == {"elo": 0.15, "form": 0.10, "poisson": 0.40, "xg": 0.25}
+
+
+# ---------------------------------------------------------------------------
 # Registry / wiring consistency
 # ---------------------------------------------------------------------------
 
@@ -161,7 +217,9 @@ def test_worldcup_registry_consistent():
     cats.validate_registry()  # raises on drift
     spec = next(c for c in cats.all_categories() if c.key == "worldcup")
     assert spec.mode == "shadow"
-    assert set(spec.models) == {"elo", "sharp"}
+    # WC blend mirrors club soccer's: elo + form + poisson + xg + sharp, each on
+    # the worldcup national-team namespace (never the club `soccer` pool).
+    assert set(spec.models) == {"elo", "form", "poisson", "xg", "sharp"}
     assert spec.market_types == (MarketType.moneyline,)
 
 
