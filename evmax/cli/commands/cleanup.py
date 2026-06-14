@@ -289,6 +289,7 @@ def resolve(
     console.print(
         f"  [green]Resolved:[/green] {result['resolved']}  "
         f"[yellow]Unmatched:[/yellow] {result['failed']}"
+        + (f"  [dim]Voided:[/dim] {result['voided']}" if result.get("voided") else "")
     )
 
     try:

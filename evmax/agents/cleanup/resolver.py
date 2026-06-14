@@ -538,34 +538,43 @@ def _match_bo3(pred: dict, scores: list[dict]) -> Optional[int]:
     return None
 
 
-async def _resolve_via_kalshi(preds: list[dict]) -> dict[str, Optional[int]]:
-    """Resolve predictions by fetching their Kalshi market settlement prices.
+async def _resolve_via_kalshi(
+    preds: list[dict],
+) -> tuple[dict[str, Optional[int]], set[str]]:
+    """Resolve predictions by fetching their Kalshi market settlement.
 
-    Returns market_id → 1 (YES) / 0 (NO) / None (still open or error).
-    Settled markets have result="yes" or result="no" in the Kalshi API.
+    Returns ``(outcomes, voided)``:
+      * ``outcomes`` — market_id → 1 (YES) / 0 (NO) / None (still open or error).
+        Settled markets have result="yes" or result="no" in the Kalshi API.
+      * ``voided`` — market_ids Kalshi finalized as a *scalar* fair-price refund
+        (match cancelled / walkover / withdrawal before a ball was played).
+        These have no binary outcome; the caller marks the ``ev_predictions``
+        row voided=1 instead of writing an ``ev_outcomes`` row.
     """
     from evmax.clients.kalshi import KalshiClient
 
     out: dict[str, Optional[int]] = {}
+    voided: set[str] = set()
     async with KalshiClient() as client:
-        async def _fetch_one(pred: dict) -> tuple[str, Optional[int]]:
+        async def _fetch_one(pred: dict) -> tuple[str, Optional[str]]:
             ticker = pred["market_id"].removeprefix("kalshi:")
-            price = await client.get_market_price(ticker)
-            if price is None:
-                return pred["market_id"], None
-            if price >= 0.99:
-                return pred["market_id"], 1
-            if price <= 0.01:
-                return pred["market_id"], 0
-            return pred["market_id"], None  # still open
+            verdict = await client.get_market_settlement(ticker)
+            return pred["market_id"], verdict
 
         results = await asyncio.gather(*(_fetch_one(p) for p in preds), return_exceptions=True)
         for r in results:
             if isinstance(r, Exception):
                 continue
-            mid, outcome = r
-            out[mid] = outcome
-    return out
+            mid, verdict = r
+            if verdict == "yes":
+                out[mid] = 1
+            elif verdict == "no":
+                out[mid] = 0
+            elif verdict == "void":
+                voided.add(mid)
+            else:
+                out[mid] = None
+    return out, voided
 
 
 def _resolve_prop_outcome(
@@ -838,6 +847,20 @@ def _write_outcome(conn: sqlite3.Connection, pred: dict, outcome: int, source: s
     # all of that starves concurrent writers (dashboard `sync_portfolio_outcomes`,
     # CLI cleanup) and produces "database is locked" once their 5s busy_timeout
     # expires. WAL commits are cheap.
+    conn.commit()
+
+
+def _void_prediction(conn: sqlite3.Connection, pred: dict) -> None:
+    """Mark a prediction voided (cancelled match — no binary outcome).
+
+    Used for Kalshi *scalar* fair-price settlements (walkover / withdrawal
+    before play). Voided rows are excluded from P&L and Brier but kept for
+    audit; no ``ev_outcomes`` row is written. Idempotent.
+    """
+    conn.execute(
+        "UPDATE ev_predictions SET voided = 1 WHERE market_id = ?",
+        (pred["market_id"],),
+    )
     conn.commit()
 
 
@@ -1135,7 +1158,9 @@ def _resolve_prop_observations(conn: sqlite3.Connection, target_date: date) -> i
 async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
     """Fetch and store outcomes for all pending predictions on target_date.
 
-    Returns {"resolved": int, "failed": int, "unmatched": list[event_id]}.
+    Returns {"resolved": int, "failed": int, "voided": int,
+    "unmatched": list[event_id]}. ``voided`` counts markets Kalshi finalized as
+    a scalar fair-price refund (cancelled match / walkover before play).
     """
     target_date = target_date or (date.today() - timedelta(days=1))
     date_str = target_date.isoformat()
@@ -1203,6 +1228,7 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
 
     resolved = 0
     failed = 0
+    voided = 0
     unmatched: list[str] = []
 
     # Resolve NBA player props. ESPN box scores cover the slate in one
@@ -1334,10 +1360,14 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
                 # (e.g. "th", "shg", "dcg") don't reliably fuzzy-match bo3.gg team
                 # names. Fall back to bo3.gg only for markets Kalshi hasn't settled.
                 all_rows = [r for rows in date_groups.values() for r in rows]
-                kalshi_results = await _resolve_via_kalshi(all_rows)
+                kalshi_results, kalshi_voided = await _resolve_via_kalshi(all_rows)
 
                 bo3_pending: dict[str, list[dict]] = {}
                 for pred in all_rows:
+                    if pred["market_id"] in kalshi_voided:
+                        _void_prediction(conn, pred)
+                        voided += 1
+                        continue
                     outcome = kalshi_results.get(pred["market_id"])
                     if outcome is not None:
                         _write_outcome(conn, pred, outcome, "kalshi_settlement")
@@ -1365,8 +1395,14 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
                 # ESPN tennis doesn't return completed match results in a usable format.
                 # Use Kalshi market settlement as ground truth: result="yes"→1.0, "no"→0.0.
                 all_rows = [r for rows in date_groups.values() for r in rows]
-                kalshi_results = await _resolve_via_kalshi(all_rows)
+                kalshi_results, kalshi_voided = await _resolve_via_kalshi(all_rows)
                 for pred in all_rows:
+                    if pred["market_id"] in kalshi_voided:
+                        # Scalar fair-price refund — match cancelled / walkover /
+                        # withdrawal before play. Void rather than score.
+                        _void_prediction(conn, pred)
+                        voided += 1
+                        continue
                     outcome = kalshi_results.get(pred["market_id"])
                     if outcome is not None:
                         _write_outcome(conn, pred, outcome, "kalshi_settlement")
@@ -1400,8 +1436,9 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
         )
 
     logger.info("resolve_done", date=date_str, resolved=resolved, failed=failed,
-                prop_obs_resolved=prop_obs_resolved)
-    return {"resolved": resolved, "failed": failed, "unmatched": unmatched}
+                voided=voided, prop_obs_resolved=prop_obs_resolved)
+    return {"resolved": resolved, "failed": failed, "voided": voided,
+            "unmatched": unmatched}
 
 
 def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> dict:
