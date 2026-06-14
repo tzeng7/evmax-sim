@@ -120,7 +120,23 @@ class ModelAgent(Agent, ModelBase):
         for pair in pairs:
             market: PredictionMarket = pair["market"]
             sharp: SharpOdds = pair["sharp"]
-            pred = await self.predict_pair(market, sharp)
+            # Isolate per-pair failures: a single bad matchup (e.g. degenerate
+            # inputs raising ZeroDivisionError) must not take down the whole
+            # batch. Before this guard, one such pair made the entire model
+            # error out — and for baseball that silently dropped every
+            # moneyline via the pitcher-required guard. Skip the pair, keep the
+            # rest.
+            try:
+                pred = await self.predict_pair(market, sharp)
+            except Exception as exc:  # noqa: BLE001 — one pair must not sink the batch
+                self.log.warning(
+                    "predict_pair_failed",
+                    model=self.name,
+                    sector=sector,
+                    event_id=getattr(sharp, "event_id", None),
+                    error=str(exc),
+                )
+                pred = None
             if pred is not None:
                 predictions[sharp.event_id] = pred
 
