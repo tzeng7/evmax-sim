@@ -622,6 +622,21 @@ class TestTotalDistributionModel:
         result = self.model.predict(sharp, target_line=225.5 + 22.1, sector="nba")
         assert result is None
 
+    def test_baseball_accepts_line_within_one_run_of_main(self):
+        """Baseball caps the alt-line distance at 1.0 run (not 1*sigma=3.0)."""
+        sharp = _make_total_sharp(total_line=8.5, prob_over=0.50)
+        result = self.model.predict(sharp, target_line=9.5, sector="baseball")
+        assert result is not None  # 1.0 run away → kept (the standard ±1)
+
+    def test_baseball_rejects_deep_alternate_line(self):
+        """An alt total 2.5 runs off the main line is rejected even though it
+        sits inside 1*sigma=3.0 — this is the flood we're capping."""
+        sharp = _make_total_sharp(total_line=8.5, prob_over=0.50)
+        result = self.model.predict(sharp, target_line=11.0, sector="baseball")
+        assert result is None
+        # Sanity: the same 2.5-distance line would survive the default sigma rule.
+        assert abs(11.0 - 8.5) < 1.0 * 3.0
+
     def test_predict_at_same_line_returns_close_to_true_prob_over(self):
         """When target_line == pinnacle total_line, predicted over_prob ≈ true_prob_over."""
         prob_over = 0.52
