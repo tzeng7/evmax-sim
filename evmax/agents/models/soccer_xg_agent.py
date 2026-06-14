@@ -1,4 +1,4 @@
-"""SoccerXgAgent — xG regression model for soccer.
+"""SoccerXgAgent — xG regression model for soccer and national-team World Cup.
 
 Tracks a rolling window of per-team shot data (shots on target, total shots,
 goals scored/conceded) from ESPN box scores.  At prediction time it computes a
@@ -11,6 +11,12 @@ The agent adjusts attack/defense lambdas accordingly, then runs a Poisson score
 matrix (with Dixon-Coles correction) to produce win/draw/loss probabilities.
 
 State file: data/models/soccer_xg_state.json
+
+Per-sector namespaces share one file but NEVER share teams — club `soccer` and
+national-team `worldcup` are separate pools (a club's xG says nothing about a
+national side and vice-versa). For backward compatibility the `soccer` pool
+stays at the top-level `teams` key (the legacy flat format); every other sector
+lives under `state[sector]["teams"]`. See `_teams_for()`.
 """
 
 from __future__ import annotations
@@ -32,6 +38,19 @@ SOT_CONVERSION = 0.30
 OFF_TARGET_CONVERSION = 0.03
 LEAGUE_AVG_HOME = 1.55
 LEAGUE_AVG_AWAY = 1.15
+
+# Sectors this agent serves. `worldcup` reuses the identical xG-regression model
+# on the national-team namespace (seeded from international results), mirroring
+# how the soccer ensemble leans on xG. Membership here gates predict_pair.
+SUPPORTED_SECTORS = {"soccer", "worldcup"}
+
+# Per-sector mean goals used as the opponent-defense baseline. Club soccer skews
+# higher than international football; the World Cup baseline is the symmetric
+# neutral-venue average that the Poisson agent uses for `worldcup`.
+SECTOR_LEAGUE_AVG: dict[str, float] = {
+    "soccer":   LEAGUE_AVG_HOME,
+    "worldcup": 1.30,
+}
 
 DC_RHO = 0.1
 MAX_GOALS = 8
@@ -122,8 +141,22 @@ class SoccerXgAgent(ModelAgent):
                 self._state = json.loads(self._state_path.read_text())
             except Exception:
                 self._state = {}
+        # `soccer` keeps the legacy flat layout at the top-level "teams" key.
         if "teams" not in self._state:
             self._state["teams"] = {}
+
+    def _teams_for(self, sector: str) -> dict:
+        """Return the team store for a sector, creating it if absent.
+
+        `soccer` maps to the legacy flat top-level "teams" dict (so existing
+        state files and callers keep working unchanged); every other sector is
+        namespaced under state[sector]["teams"]. Pools never overlap, so club
+        and national-team xG can't contaminate each other.
+        """
+        sector = (sector or "soccer").lower()
+        if sector == "soccer":
+            return self._state.setdefault("teams", {})
+        return self._state.setdefault(sector, {}).setdefault("teams", {})
 
     def save_state(self) -> None:
         self._state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -140,9 +173,10 @@ class SoccerXgAgent(ModelAgent):
         opponent_shots: int,
         match_date: str,
         is_home: bool,
+        sector: str = "soccer",
     ) -> None:
         """Record one side of a match result with shot data."""
-        teams = self._state["teams"]
+        teams = self._teams_for(sector)
         key = team.lower().strip()
         if key not in teams:
             teams[key] = {"matches": []}
@@ -163,9 +197,9 @@ class SoccerXgAgent(ModelAgent):
         # Keep only last WINDOW * 2 matches (generous buffer)
         teams[key]["matches"] = teams[key]["matches"][:WINDOW * 2]
 
-    def _team_xg_stats(self, team: str) -> Optional[dict]:
+    def _team_xg_stats(self, team: str, sector: str = "soccer") -> Optional[dict]:
         """Compute rolling xG averages for a team over the last WINDOW matches."""
-        data = self._state.get("teams", {}).get(team.lower().strip())
+        data = self._teams_for(sector).get(team.lower().strip())
         if not data:
             return None
         matches = data.get("matches", [])[:WINDOW]
@@ -189,7 +223,7 @@ class SoccerXgAgent(ModelAgent):
         }
 
     def _regressed_lambda(
-        self, team: str, is_home: bool, opponent: str,
+        self, team: str, is_home: bool, opponent: str, sector: str = "soccer",
     ) -> Optional[float]:
         """Compute xG-regressed expected goals for a team.
 
@@ -197,22 +231,22 @@ class SoccerXgAgent(ModelAgent):
         finishing above expectation and will regress. We blend actual and xG
         rates with a 40/60 regression weight (lean toward xG).
         """
-        stats = self._team_xg_stats(team)
+        stats = self._team_xg_stats(team, sector)
         if stats is None:
             return None
 
-        opp_stats = self._team_xg_stats(opponent)
+        opp_stats = self._team_xg_stats(opponent, sector)
 
         # Blend actual goals with xG — 40% actual, 60% xG (regression toward xG)
         regressed_attack = 0.40 * stats["goals_per_game"] + 0.60 * stats["xg_per_game"]
 
-        # Opponent defensive quality relative to league average
+        # Opponent defensive quality relative to the sector's baseline goal rate.
+        baseline = SECTOR_LEAGUE_AVG.get(sector, LEAGUE_AVG_HOME)
         if opp_stats:
-            opp_defensive_factor = opp_stats["xga_per_game"] / LEAGUE_AVG_HOME
+            opp_defensive_factor = opp_stats["xga_per_game"] / baseline
         else:
             opp_defensive_factor = 1.0
 
-        league_avg = LEAGUE_AVG_HOME if is_home else LEAGUE_AVG_AWAY
         lam = regressed_attack * opp_defensive_factor
 
         # Clamp to reasonable range
@@ -224,7 +258,7 @@ class SoccerXgAgent(ModelAgent):
         sharp_odds: SharpOdds,
     ) -> Optional[ModelAgentPrediction]:
         sector = (market.sector or "").lower()
-        if sector != "soccer":
+        if sector not in SUPPORTED_SECTORS:
             return None
 
         team_a = (sharp_odds.outcome_a_label or market.team_home or "").lower().strip()
@@ -232,8 +266,8 @@ class SoccerXgAgent(ModelAgent):
         if not team_a or not team_b:
             return None
 
-        lam_a = self._regressed_lambda(team_a, is_home=True, opponent=team_b)
-        lam_b = self._regressed_lambda(team_b, is_home=False, opponent=team_a)
+        lam_a = self._regressed_lambda(team_a, is_home=True, opponent=team_b, sector=sector)
+        lam_b = self._regressed_lambda(team_b, is_home=False, opponent=team_a, sector=sector)
 
         if lam_a is None or lam_b is None:
             return None
@@ -241,8 +275,8 @@ class SoccerXgAgent(ModelAgent):
         matrix = _score_matrix(lam_a, lam_b)
         p_home, p_draw, p_away = _win_draw_probs(matrix)
 
-        stats_a = self._team_xg_stats(team_a)
-        stats_b = self._team_xg_stats(team_b)
+        stats_a = self._team_xg_stats(team_a, sector)
+        stats_b = self._team_xg_stats(team_b, sector)
         min_n = min(
             (stats_a["n"] if stats_a else 0),
             (stats_b["n"] if stats_b else 0),

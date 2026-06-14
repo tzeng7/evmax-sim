@@ -39,6 +39,12 @@ from evmax.models.odds import SharpOdds
 # Default league-average goals per game (home / away)
 LEAGUE_AVG_DEFAULTS: dict[str, dict[str, float]] = {
     "soccer":   {"home": 1.55, "away": 1.15},
+    # National-team World Cup: SYMMETRIC home/away avg because WC matches are
+    # at neutral venues (no home edge — mirrors the worldcup Elo's
+    # HOME_ADVANTAGE_ELO=0). ~1.30 each ≈ the ~2.6 goals/game seen across modern
+    # international competition. The home/away *labels* are just side A / side B
+    # here, so a flat average makes the score matrix venue-neutral.
+    "worldcup": {"home": 1.30, "away": 1.30},
     "nba":      {"home": 113.5, "away": 111.0},
     "nfl":      {"home": 23.5,  "away": 21.5},
     "ncaab":    {"home": 72.0,  "away": 70.0},
@@ -58,11 +64,23 @@ LEAGUE_AVG_DEFAULTS: dict[str, dict[str, float]] = {
 # unlisted model silently falls back to its 0.30 class weight
 # (ensemble_agent.py:469). Excluding a sector here means predict_pair returns
 # None, so poisson never enters model_preds and never shows in `model_sources`.
-SUPPORTED_SECTORS = {"soccer"}
+#
+# `worldcup` (national-team World Cup) is included for the SAME reason soccer is:
+# international football is the canonical low-count, weakly-dependent goal process
+# the Poisson / Dixon-Coles model is built for. It uses its OWN namespace
+# (poisson_state.json['worldcup'], seeded from international results — never the
+# club `soccer` pool) and symmetric neutral-venue league averages.
+SUPPORTED_SECTORS = {"soccer", "worldcup"}
+
+# Sectors whose goal process is soccer-like (low count, draws are real outcomes):
+# apply the Dixon-Coles low-score correction and KEEP the draw mass for the
+# 3-way market instead of merging it into home/away.
+SOCCER_LIKE_SECTORS = {"soccer", "worldcup"}
 
 # Maximum *bucket* count in the score matrix. Units depend on BUCKET_SIZE.
 MAX_SCORE: dict[str, int] = {
     "soccer":   8,
+    "worldcup": 8,
     "nba":      25,   # with bucket=5 → effectively 0-125 points
     "nfl":      20,   # with bucket=4 → effectively 0-80 points
     "ncaab":    20,   # with bucket=5 → effectively 0-100 points
@@ -76,6 +94,7 @@ MAX_SCORE: dict[str, int] = {
 # the MAX_SCORE window: win is decided by comparing *buckets scored*.
 BUCKET_SIZE: dict[str, int] = {
     "soccer":   1,
+    "worldcup": 1,
     "nba":      5,
     "nfl":      4,
     "ncaab":    5,
@@ -262,12 +281,12 @@ class PoissonModelAgent(ModelAgent):
             lam_h_bucketed,
             lam_a_bucketed,
             max_g=max_g,
-            rho=DC_RHO if sector == "soccer" else 0.0,
+            rho=DC_RHO if sector in SOCCER_LIKE_SECTORS else 0.0,
         )
         p_home, p_draw, p_away = _win_draw_probs(matrix)
 
-        # For non-soccer: merge draw into proportional split
-        if sector != "soccer":
+        # For non-soccer-like sectors: merge draw into proportional split
+        if sector not in SOCCER_LIKE_SECTORS:
             p_home += p_draw * (p_home / (p_home + p_away + 1e-9))
             p_away += p_draw * (p_away / (p_home + p_away + 1e-9))
             p_draw = None  # type: ignore

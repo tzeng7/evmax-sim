@@ -152,6 +152,65 @@ class TestPredict:
         assert stats["n"] == 6
 
 
+class TestWorldcupNamespace:
+    """xG now also serves the national-team `worldcup` sector on its OWN pool."""
+
+    def test_worldcup_pool_is_separate_from_soccer(self, tmp_path: Path):
+        agent = _fresh_agent(tmp_path)
+        # Same canonical name recorded under both sectors must NOT collide.
+        agent.record_match(
+            team="brazil", goals_for=3, goals_against=0,
+            shots_on_target=8, total_shots=18,
+            opponent_sot=2, opponent_shots=6,
+            match_date="2026-03-10", is_home=True, sector="worldcup",
+        )
+        agent.record_match(
+            team="brazil", goals_for=0, goals_against=1,
+            shots_on_target=1, total_shots=4,
+            opponent_sot=5, opponent_shots=10,
+            match_date="2026-03-10", is_home=True, sector="soccer",
+        )
+        # soccer stays at the flat legacy key; worldcup is namespaced under itself.
+        assert "brazil" in agent._state["teams"]
+        assert "brazil" in agent._state["worldcup"]["teams"]
+        wc = agent._state["worldcup"]["teams"]["brazil"]["matches"][0]
+        sc = agent._state["teams"]["brazil"]["matches"][0]
+        assert wc["goals_for"] == 3 and sc["goals_for"] == 0
+
+    def test_predict_fires_for_worldcup(self, tmp_path: Path):
+        agent = _fresh_agent(tmp_path)
+        _record_n_matches(agent, "spain", 8, goals=3, sot=7, shots=15)
+        # _record_n_matches defaults to sector="soccer" — re-record for worldcup.
+        for i in range(8):
+            agent.record_match(
+                team="spain", goals_for=3, goals_against=0,
+                shots_on_target=7, total_shots=15,
+                opponent_sot=3, opponent_shots=8,
+                match_date=f"2026-03-{10+i:02d}", is_home=(i % 2 == 0),
+                sector="worldcup",
+            )
+            agent.record_match(
+                team="panama", goals_for=1, goals_against=2,
+                shots_on_target=3, total_shots=9,
+                opponent_sot=6, opponent_shots=14,
+                match_date=f"2026-03-{10+i:02d}", is_home=(i % 2 == 1),
+                sector="worldcup",
+            )
+
+        from unittest.mock import MagicMock
+        market = MagicMock(sector="worldcup", team_home="spain", team_away="panama")
+        sharp = MagicMock(
+            outcome_a_label="spain", outcome_b_label="panama",
+            event_id="worldcup::test",
+        )
+        import asyncio
+        result = asyncio.run(agent.predict_pair(market, sharp))
+        assert result is not None
+        assert result.model_name == "xg"
+        assert result.true_prob_a > result.true_prob_b  # Spain stronger
+        assert result.true_prob_draw is not None  # 3-way draw mass retained
+
+
 class TestCongestionPenalty:
     """Test fixture congestion penalty in EloModelAgent."""
 

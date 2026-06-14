@@ -143,6 +143,32 @@ def test_soccer_records_xg_for_both_teams():
     assert xg.save_state.call_count == 1
 
 
+def test_worldcup_records_xg_with_sector():
+    """National-team WC carries shotsOnTarget/totalShots from ESPN too, so the
+    xG feed must fire for `worldcup` — and pass sector='worldcup' so the agent
+    writes to the WC namespace, not the club `soccer` pool."""
+    coord = MagicMock()
+    xg = MagicMock()
+    coord.soccer_xg_agent = xg
+    scores = [
+        _score(
+            "Spain", "Argentina", 2, 1,
+            home_sot=7, away_sot=4, home_shots=15, away_shots=11,
+        )
+    ]
+
+    with patch.object(model_updater, "fetch_completed_scores", return_value=scores), \
+         patch.object(model_updater, "get_connection", return_value=_empty_conn()):
+        asyncio.run(
+            model_updater.update_models_for_date(["worldcup"], date(2026, 6, 25), coordinator=coord)
+        )
+
+    assert xg.record_match.call_count == 2
+    assert xg.save_state.call_count == 1
+    # Every record_match call must be tagged with the worldcup namespace.
+    assert all(c.kwargs.get("sector") == "worldcup" for c in xg.record_match.call_args_list)
+
+
 def test_non_soccer_does_not_touch_xg():
     coord = MagicMock()
     xg = MagicMock()

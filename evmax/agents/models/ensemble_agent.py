@@ -71,6 +71,15 @@ class EnsembleModelAgent(Agent):
     # allocations were historically overconfident.
     SECTOR_WEIGHT_OVERRIDES: dict[str, dict[str, float]] = {
         "soccer": {"elo": 0.15, "form": 0.10, "poisson": 0.40, "xg": 0.25},
+        # World Cup (national teams) mirrors the soccer blend — same model
+        # families, same weights — but every model reads its OWN national-team
+        # namespace (elo_state['worldcup'], poisson_state['worldcup'],
+        # soccer_xg_state['worldcup'], form_state['worldcup']), never the club
+        # `soccer` pool. Poisson + xG are the "advanced metrics" carried over;
+        # both have the stats (international goals + ESPN shots/SOT). Models that
+        # can't fire on a national side (no data / wrong sector) simply return
+        # None and drop out of the blend, exactly as in soccer.
+        "worldcup": {"elo": 0.15, "form": 0.10, "poisson": 0.40, "xg": 0.25},
         "nba": {
             "efficiency": 0.30, "possession_sim": 0.30,
             "elo": 0.10, "form": 0.10,

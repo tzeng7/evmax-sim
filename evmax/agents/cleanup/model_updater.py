@@ -171,8 +171,9 @@ async def update_models_for_date(
                     game.applied = True
                     updated += 1
 
-                    # Feed shot stats into xG agent (soccer only).
-                    if sector == "soccer":
+                    # Feed shot stats into xG agent (soccer + national-team WC,
+                    # both of which carry shotsOnTarget/totalShots from ESPN).
+                    if sector in ("soccer", "worldcup"):
                         home_sot = score.get("home_sot")
                         away_sot = score.get("away_sot")
                         home_shots = score.get("home_shots")
@@ -187,12 +188,14 @@ async def update_models_for_date(
                                 shots_on_target=home_sot, total_shots=home_shots,
                                 opponent_sot=away_sot, opponent_shots=away_shots,
                                 match_date=target_date.isoformat(), is_home=True,
+                                sector=sector,
                             )
                             xg.record_match(
                                 team=team_b, goals_for=away_s, goals_against=home_s,
                                 shots_on_target=away_sot, total_shots=away_shots,
                                 opponent_sot=home_sot, opponent_shots=home_shots,
                                 match_date=target_date.isoformat(), is_home=False,
+                                sector=sector,
                             )
                             xg.save_state()
                 except Exception as exc:  # noqa: BLE001 — one bad game must not abort the run
