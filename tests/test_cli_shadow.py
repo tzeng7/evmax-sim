@@ -115,6 +115,10 @@ def temp_yaml(tmp_path, monkeypatch):
     path = tmp_path / "categories.yaml"
     path.write_text(_SAMPLE_YAML)
     monkeypatch.setattr(shadow, "_CATEGORIES_YAML", path)
+    # The promote contamination gate counts clean resolved rows against the
+    # real predictions.db; these tests exercise only the YAML-flip mechanics,
+    # so stub the count above the floor to isolate the flip from the gate.
+    monkeypatch.setattr(shadow, "_clean_resolved_count", lambda *_a, **_k: 9999)
     # Also make reload_registry + validate_registry no-ops so we don't
     # need a valid full registry during the helper test
     with patch("evmax.categories.reload_registry", lambda *a, **k: None):

@@ -167,13 +167,25 @@ def metrics(
     category: Optional[str] = typer.Option(
         None, "--category", "-c", help="Filter by category key. Default: all shadow categories."
     ),
+    include_contaminated: bool = typer.Option(
+        False,
+        "--include-contaminated",
+        help="Include rows produced by a superseded code state (default: excluded). "
+        "Off by default so the promotion gate only scores current-code rows.",
+    ),
 ) -> None:
     """Compute Brier score, accuracy, and ROI for shadow predictions.
 
     Used by MODEL-9 validation — compare these numbers against the
     Stage 4 backtest to decide whether a category's edge is real or
     was retrospective leakage.
+
+    By default, rows produced by a superseded code state are excluded (see
+    evmax/agents/cleanup/contamination.py) so a contaminated sample can't drive
+    a wrong promote decision. The count of excluded rows is reported; pass
+    --include-contaminated to score the raw sample instead.
     """
+    from evmax.agents.cleanup.contamination import is_contaminated
     from evmax.agents.cleanup.db import get_connection
 
     since = (date.today() - timedelta(days=days)).isoformat()
@@ -188,7 +200,8 @@ def metrics(
             params.append(category)
 
     sql = f"""
-        SELECT p.sector, p.event_id, p.captured_yes_price, p.blended_true_prob,
+        SELECT p.sector, p.event_id, p.market_type, p.model_sources, p.line,
+               p.captured_yes_price, p.blended_true_prob,
                p.ev_pct, p.kelly_fraction, p.volume_usd, o.outcome
         FROM ev_predictions p
         INNER JOIN ev_outcomes o ON p.market_id = o.market_id
@@ -197,12 +210,34 @@ def metrics(
     with get_connection() as conn:
         rows = conn.execute(sql, params).fetchall()
 
+    # Drop rows from superseded code states unless explicitly included, and
+    # tally how many were excluded per category for transparency.
+    excluded_by_category: dict[str, int] = {}
+    if not include_contaminated:
+        kept = []
+        for r in rows:
+            if is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"]):
+                key = r["sector"] or "unknown"
+                if r["event_id"] and "::prop::" in r["event_id"]:
+                    key = f"{key}_props"
+                excluded_by_category[key] = excluded_by_category.get(key, 0) + 1
+            else:
+                kept.append(r)
+        rows = kept
+
     if not rows:
-        console.print(
+        msg = (
             f"[yellow]No resolved shadow predictions in the last {days} day(s)"
             + (f" for {category}" if category else "")
             + ".[/yellow]"
         )
+        console.print(msg)
+        if excluded_by_category:
+            n_excl = sum(excluded_by_category.values())
+            console.print(
+                f"[dim]({n_excl} contaminated row(s) excluded — superseded code "
+                f"state. Pass --include-contaminated to score them.)[/dim]"
+            )
         return
 
     # Group by category key (game vs prop)
@@ -220,6 +255,7 @@ def metrics(
     )
     table.add_column("Category", width=14)
     table.add_column("N", justify="right", width=6)
+    table.add_column("Excl", justify="right", width=6)
     table.add_column("Accuracy", justify="right", width=10)
     table.add_column("Brier", justify="right", width=9)
     table.add_column("LogLoss", justify="right", width=9)
@@ -267,9 +303,13 @@ def metrics(
         roi_color = "green" if roi > 0 else "red"
         brier_color = "green" if brier < 0.22 else ("yellow" if brier < 0.25 else "red")
 
+        excl = excluded_by_category.get(cat_key, 0)
+        excl_str = f"[yellow]{excl}[/yellow]" if excl else "[dim]0[/dim]"
+
         table.add_row(
             cat_key,
             str(n),
+            excl_str,
             f"{acc * 100:.1f}%",
             f"[{brier_color}]{brier:.4f}[/{brier_color}]",
             f"{log_loss:.4f}",
@@ -277,16 +317,69 @@ def metrics(
             f"{win_rate * 100:.1f}%",
         )
 
+    # Categories that were *entirely* contaminated have no surviving rows, so
+    # they never reach the table above — surface them explicitly so a wiped-out
+    # sample doesn't look like "no data."
+    for cat_key, n_excl in sorted(excluded_by_category.items()):
+        if cat_key not in by_category:
+            table.add_row(
+                cat_key, "0", f"[yellow]{n_excl}[/yellow]",
+                "—", "—", "—", "—", "—",
+            )
+
     console.print(table)
-    console.print(
+    footer = (
         "[dim]ROI uses captured_yes_price at scan time on rows with EV ≥ 2%. "
-        "Compare against the Stage 4 backtest number in TODO.md MODEL-9.[/dim]"
+        "Compare against the Stage 4 backtest number in TODO.md MODEL-9."
     )
+    if excluded_by_category and not include_contaminated:
+        n_excl = sum(excluded_by_category.values())
+        footer += (
+            f"\nExcl = rows from a superseded code state, dropped from scoring "
+            f"({n_excl} total). Pass --include-contaminated to score them."
+        )
+    console.print(footer + "[/dim]")
 
 
 # ---------------------------------------------------------------------------
 # promote
 # ---------------------------------------------------------------------------
+
+
+# Minimum current-code (non-contaminated) resolved rows required before a
+# category may be promoted to live. The MODEL-9 / WNBA gates cite n≥75 (ML) or
+# ~30 for a model already backtested; we use 30 as a floor that catches the
+# "3 clean rows out of 49" baseball case while staying out of the way of a
+# genuinely validated category. Override with --force.
+MIN_CLEAN_RESOLVED = 30
+
+
+def _clean_resolved_count(category: str) -> int:
+    """Count resolved shadow rows for a category that survive the contamination
+    filter — i.e. were produced by the current code state."""
+    from evmax.agents.cleanup.contamination import is_contaminated
+    from evmax.agents.cleanup.db import get_connection
+
+    where = ["p.mode = 'shadow'", "o.outcome IS NOT NULL"]
+    params: list = []
+    if category.endswith("_props"):
+        where.append("(p.sector = ? AND p.event_id LIKE '%::prop::%')")
+        params.append(category[: -len("_props")])
+    else:
+        where.append("p.sector = ?")
+        params.append(category)
+    sql = f"""
+        SELECT p.sector, p.market_type, p.model_sources, p.line
+        FROM ev_predictions p
+        INNER JOIN ev_outcomes o ON p.market_id = o.market_id
+        WHERE {' AND '.join(where)}
+    """
+    with get_connection() as conn:
+        rows = conn.execute(sql, params).fetchall()
+    return sum(
+        1 for r in rows
+        if not is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"])
+    )
 
 
 @app.command("promote")
@@ -295,12 +388,22 @@ def promote(
     yes: bool = typer.Option(
         False, "--yes", "-y", help="Skip the confirmation prompt."
     ),
+    force: bool = typer.Option(
+        False, "--force",
+        help="Promote even if the clean (current-code) resolved sample is below "
+        f"the {MIN_CLEAN_RESOLVED}-row floor.",
+    ),
 ) -> None:
     """Flip a category from `shadow` to `live` in data/categories.yaml.
 
     Uses targeted text replacement to preserve comments and formatting.
     Validates current mode is 'shadow' before flipping — errors out if
     the category is already live or if mode detection fails.
+
+    Refuses to promote when fewer than MIN_CLEAN_RESOLVED resolved rows
+    survive the contamination filter (so a sample dominated by superseded
+    code — e.g. baseball's 3-clean-of-49 — can't trigger a live flip).
+    Override with --force.
 
     After this command runs:
       - `evmax categories show <category>` reports mode=live
@@ -333,6 +436,26 @@ def promote(
             f"if this is intentional.[/red]"
         )
         raise typer.Exit(1)
+
+    # Contamination gate: only promote on a sample that reflects current code.
+    try:
+        clean_n = _clean_resolved_count(category)
+    except Exception as _count_err:  # noqa: BLE001 — DB shape varies in tests
+        clean_n = None
+    if clean_n is not None and clean_n < MIN_CLEAN_RESOLVED:
+        msg = (
+            f"[red]Only {clean_n} current-code resolved row(s) for "
+            f"{category} (need ≥ {MIN_CLEAN_RESOLVED}).[/red] "
+            f"The rest are from a superseded code state — promoting now would "
+            f"validate old code. Accumulate clean shadow data first "
+            f"(see `evmax cleanup shadow metrics --category {category}`)."
+        )
+        if not force:
+            console.print(msg)
+            console.print("[dim]Override with --force if this is intentional.[/dim]")
+            raise typer.Exit(1)
+        console.print(msg.replace("[red]", "[yellow]").replace("[/red]", "[/yellow]"))
+        console.print("[yellow]--force set — promoting anyway.[/yellow]")
 
     if not yes:
         console.print(

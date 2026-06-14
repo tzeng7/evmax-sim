@@ -16,6 +16,7 @@ from evmax.agents.models.pitcher_agent import (
     PYTHAG_EXP,
     PitcherModelAgent,
     _effective_era,
+    _has_real_rate,
 )
 from evmax.models.market import MarketSource, MarketType, PredictionMarket
 from evmax.models.odds import SharpBook, SharpOdds
@@ -128,6 +129,74 @@ class TestSeedPitchers:
             }
         )
         assert agent._state["team_starters"]["yankees"] == "gerrit cole"
+
+
+# ---------------------------------------------------------------------------
+# Unseeded-starter handling (regression: ZeroDivisionError wiped the batch)
+# ---------------------------------------------------------------------------
+
+
+def _live_starters(monkeypatch, mapping):
+    """Patch the agent's probable-starter fetch to return `mapping`."""
+    async def _fetch():
+        return mapping
+    monkeypatch.setattr(pitcher_mod, "_fetch_probable_starters", _fetch)
+
+
+class TestEffectiveEraNonPositive:
+    def test_zero_era_falls_back_to_league_avg(self):
+        # 0.0 is the MLB-API placeholder for an unseeded starter — not a rate.
+        assert _effective_era({"era": 0.0}, league_avg=4.08) == 4.08
+
+    def test_negative_rate_falls_back_to_league_avg(self):
+        assert _effective_era({"era": -1.0, "fip": -2.0}, league_avg=4.08) == 4.08
+
+    def test_zero_fip_with_real_era_uses_era(self):
+        # Bad fip is ignored; the real era still drives the rate.
+        assert _effective_era({"fip": 0.0, "era": 3.50}, league_avg=4.08) == 3.50
+
+
+class TestHasRealRate:
+    def test_true_when_positive_era(self):
+        assert _has_real_rate({"era": 3.5}) is True
+
+    def test_true_when_positive_fip_only(self):
+        assert _has_real_rate({"fip": 3.9}) is True
+
+    def test_false_when_placeholder_zero(self):
+        assert _has_real_rate({"era": 0.0, "ip": 0}) is False
+
+    def test_false_when_empty(self):
+        assert _has_real_rate({}) is False
+
+
+class TestUnseededStarterAbstains:
+    @pytest.mark.asyncio
+    async def test_both_unseeded_starters_do_not_crash(self, agent, monkeypatch):
+        """Regression: two live starters absent from the seeded DB (era=0.0)
+        made the Pythag denominator 0**e + 0**e == 0 → ZeroDivisionError, which
+        killed the whole pitcher batch and dropped every baseball moneyline.
+        The agent must now abstain (return None), not raise."""
+        _live_starters(monkeypatch, {
+            "yankees": {"name": "rookie a", "era": 0.0, "ip": 0},
+            "red sox": {"name": "rookie b", "era": 0.0, "ip": 0},
+        })
+        pred = await agent.predict_pair(_market(), _sharp())
+        assert pred is None  # abstained, no exception
+
+    @pytest.mark.asyncio
+    async def test_one_unseeded_starter_abstains(self, agent, monkeypatch):
+        # Yankees ace is seeded; Red Sox starter is an unseeded live call-up.
+        agent.seed_pitchers(
+            {"Ace": {"era": 2.80, "ip": 180, "team": "yankees"}},
+            league_avg_era=4.20,
+        )
+        _live_starters(monkeypatch, {
+            "yankees": {"name": "ace", "era": 2.80, "ip": 180},
+            "red sox": {"name": "rookie b", "era": 0.0, "ip": 0},
+        })
+        pred = await agent.predict_pair(_market(), _sharp())
+        assert pred is None
 
 
 # ---------------------------------------------------------------------------

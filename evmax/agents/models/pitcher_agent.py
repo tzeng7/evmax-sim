@@ -62,16 +62,44 @@ def _effective_era(pitcher: dict, league_avg: float) -> float:
       2. FIP only → return FIP
       3. ERA only → return ERA
       4. Neither → league average
+
+    A non-positive era/fip is treated as MISSING, not as a real rate. The MLB
+    Stats API seeds ``era: 0.0`` as a placeholder for "look this pitcher up in
+    the seeded DB"; when the starter isn't in our seed, that 0.0 leaks through.
+    Feeding 0.0 into the Pythag formula makes the denominator
+    ``0**e + 0**e == 0`` for a both-unseeded matchup → ZeroDivisionError, which
+    (with no per-pair guard upstream) used to kill the entire pitcher batch and,
+    via the pitcher-required guard, drop every baseball moneyline. Falling back
+    to league average keeps the math finite. ``predict_pair`` separately
+    abstains (returns None) when a starter has no real rate, so an info-less
+    matchup never masquerades as a pitcher contributor.
     """
     fip = pitcher.get("fip")
     era = pitcher.get("era")
+    fip = float(fip) if fip is not None and float(fip) > 0 else None
+    era = float(era) if era is not None and float(era) > 0 else None
     if fip is not None and era is not None:
-        return FIP_BLEND_WEIGHT * float(fip) + ERA_BLEND_WEIGHT * float(era)
+        return FIP_BLEND_WEIGHT * fip + ERA_BLEND_WEIGHT * era
     if fip is not None:
-        return float(fip)
+        return fip
     if era is not None:
-        return float(era)
+        return era
     return league_avg
+
+
+def _has_real_rate(pitcher: dict) -> bool:
+    """True if the pitcher carries a usable ERA or FIP (positive value).
+
+    A starter resolved from the live MLB feed but absent from the seeded DB
+    arrives with era=0.0 — that's a placeholder, not a real rate, so it returns
+    False and the matchup is treated as having no pitcher signal.
+    """
+    for key in ("fip", "era"):
+        val = pitcher.get(key)
+        if val is not None and float(val) > 0:
+            return True
+    return False
+
 
 # Cache ESPN probable starters for 30 minutes
 _probable_cache: dict[str, dict] = {}
@@ -268,6 +296,15 @@ class PitcherModelAgent(ModelAgent):
         if not home_pitcher or not away_pitcher:
             return None
 
+        # Abstain when either starter lacks a real rate. Live probable starters
+        # from the MLB Stats API arrive with era=0.0 until matched to our seeded
+        # ERA/FIP DB; an unseeded starter therefore carries no signal. Returning
+        # None here (rather than predicting off a league-average placeholder)
+        # keeps "pitcher" out of model_sources, so the pitcher-required guard
+        # correctly drops the moneyline instead of betting blind.
+        if not _has_real_rate(home_pitcher) or not _has_real_rate(away_pitcher):
+            return None
+
         league_avg = self._league_avg_era()
         home_rate = _effective_era(home_pitcher, league_avg)
         away_rate = _effective_era(away_pitcher, league_avg)
@@ -282,8 +319,15 @@ class PitcherModelAgent(ModelAgent):
         away_rs = home_rate
         away_ra = away_rate
 
-        home_wp = (home_rs ** e) / (home_rs ** e + home_ra ** e)
-        away_wp = (away_rs ** e) / (away_rs ** e + away_ra ** e)
+        # Defensive guard: with _effective_era's non-positive fallback the
+        # denominators are always positive, but never let a degenerate rate
+        # pair raise — skip the matchup instead of crashing the batch.
+        home_denom = home_rs ** e + home_ra ** e
+        away_denom = away_rs ** e + away_ra ** e
+        if home_denom <= 0 or away_denom <= 0:
+            return None
+        home_wp = (home_rs ** e) / home_denom
+        away_wp = (away_rs ** e) / away_denom
 
         # home_wp and away_wp are already complements by construction
         # (home_wp = away_era^e / (away_era^e + home_era^e) = 1 - away_wp),
