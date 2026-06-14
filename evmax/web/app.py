@@ -548,7 +548,7 @@ async def api_scan(request: Request) -> JSONResponse:
     target a subset.
     """
     body = await request.json() if request.headers.get("content-type") == "application/json" else {}
-    sectors_str = body.get("sectors", "nba,wnba,ncaab,ncaaw,soccer,lol,cs2,tennis,baseball")
+    sectors_str = body.get("sectors", "nba,wnba,ncaab,ncaaw,soccer,worldcup,lol,cs2,tennis,baseball")
     bankroll = float(body.get("bankroll", 500))
     kelly = float(body.get("kelly", 0.5))
     date_from = body.get("date_from", "")
