@@ -1,4 +1,4 @@
-const SECTORS = ['nba', 'wnba', 'ncaab', 'soccer', 'tennis', 'baseball', 'lol', 'cs2']
+import { useCategories } from '../lib/useCategories'
 
 interface Props {
   value: string
@@ -6,11 +6,12 @@ interface Props {
 }
 
 export function SectorFilter({ value, onChange }: Props) {
+  const cats = useCategories()
   return (
     <select value={value} onChange={e => onChange(e.target.value)} style={{ fontSize: 11, padding: '4px 8px' }}>
       <option value="">All Sectors</option>
-      {SECTORS.map(s => (
-        <option key={s} value={s}>{s.toUpperCase()}</option>
+      {cats.map(c => (
+        <option key={c.key} value={c.key} title={c.display_name}>{c.key.toUpperCase()}</option>
       ))}
     </select>
   )

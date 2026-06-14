@@ -1,6 +1,10 @@
-import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Portfolio, PortfolioDetail, PortfolioScanResult } from './types'
+import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult } from './types'
 
 const json = (r: Response) => r.json()
+
+export async function fetchCategories(): Promise<Category[]> {
+  return fetch('/api/categories').then(json).then((d: { categories: Category[] }) => d.categories)
+}
 
 export async function fetchDashboard(): Promise<{
   summary_all: Summary

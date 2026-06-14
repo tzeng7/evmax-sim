@@ -538,6 +538,39 @@ async def _run_unified_scan(
     return cycle, gap_dicts, portfolio_results
 
 
+def _scan_sector_specs() -> list[Any]:
+    """Game (non-prop) categories eligible for the dashboard sector pickers.
+
+    Sourced from the category registry (``data/categories.yaml``) so the
+    frontend dropdowns and the scan default stay in sync with the one source
+    of truth — no hardcoded sector lists. Props are excluded because the scan
+    UI hides player-prop gaps, and ``disabled`` categories are dropped because
+    nothing persists for them.
+    """
+    from evmax.categories import all_categories
+
+    return [c for c in all_categories() if not c.is_prop and c.mode != "disabled"]
+
+
+def _default_scan_sectors() -> str:
+    """Comma-joined default sector string for a scan with no explicit sectors."""
+    return ",".join(c.key for c in _scan_sector_specs())
+
+
+@app.get("/api/categories")
+async def api_categories() -> JSONResponse:
+    """Sector options for the dashboard, sourced from the category registry.
+
+    Keeps the frontend's sector dropdowns driven by ``data/categories.yaml``
+    instead of duplicated hardcoded arrays.
+    """
+    cats = [
+        {"key": c.key, "display_name": c.display_name, "mode": c.mode}
+        for c in _scan_sector_specs()
+    ]
+    return JSONResponse({"categories": cats})
+
+
 @app.post("/api/scan")
 async def api_scan(request: Request) -> JSONResponse:
     """Run a full agent scan and return EV gaps.
@@ -548,7 +581,7 @@ async def api_scan(request: Request) -> JSONResponse:
     target a subset.
     """
     body = await request.json() if request.headers.get("content-type") == "application/json" else {}
-    sectors_str = body.get("sectors", "nba,wnba,ncaab,ncaaw,soccer,lol,cs2,tennis,baseball")
+    sectors_str = body.get("sectors") or _default_scan_sectors()
     bankroll = float(body.get("bankroll", 500))
     kelly = float(body.get("kelly", 0.5))
     date_from = body.get("date_from", "")
