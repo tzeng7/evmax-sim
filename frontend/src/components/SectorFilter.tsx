@@ -1,4 +1,4 @@
-const SECTORS = ['nba', 'wnba', 'ncaab', 'soccer', 'tennis', 'baseball', 'lol', 'cs2']
+const SECTORS = ['nba', 'wnba', 'ncaab', 'soccer', 'worldcup', 'tennis', 'baseball', 'lol', 'cs2']
 
 interface Props {
   value: string

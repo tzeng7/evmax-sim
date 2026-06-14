@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScanComplete, onResolve, onMetrics, toast }: Props) {
-  const [sectors, setSectors] = useState('nba,wnba,ncaab,ncaaw,soccer,lol,cs2,tennis,baseball')
+  const [sectors, setSectors] = useState('nba,wnba,ncaab,ncaaw,soccer,worldcup,lol,cs2,tennis,baseball')
   // Bankroll stored as a string so leading zeros the user types get stripped
   // explicitly. The previous Number-typed state had a known React bug where
   // typing "0" before an existing number left the visual "0…" in place
@@ -82,10 +82,11 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
   return (
     <div className="actions">
       <select value={sectors} onChange={e => setSectors(e.target.value)}>
-        <option value="nba,wnba,ncaab,ncaaw,soccer,lol,cs2,tennis,baseball">All Sectors</option>
+        <option value="nba,wnba,ncaab,ncaaw,soccer,worldcup,lol,cs2,tennis,baseball">All Sectors</option>
         <option value="nba">NBA</option>
         <option value="wnba">WNBA</option>
         <option value="soccer">Soccer</option>
+        <option value="worldcup">World Cup</option>
         <option value="tennis">Tennis</option>
         <option value="ncaab">NCAAB</option>
         <option value="ncaaw">NCAAW</option>
