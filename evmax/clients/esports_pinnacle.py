@@ -80,6 +80,18 @@ ESPORTS_SECTORS = {"cs2", "lol", "valorant"}  # kept for backward compat
 # sector here when its totals model goes live (e.g. wnba_possession_sim).
 TOTALS_SECTORS = {"nba", "wnba", "nfl", "ncaab", "ncaaw", "soccer", "baseball", "nhl"}
 
+# Sectors that price ONLY the main total line, not Pinnacle's alternate ladder.
+# Mirrors how spreads already take only the non-alternate line (see _parse).
+# Kalshi lists ~10 alternate O/U strikes per baseball game; matching each to its
+# exact Pinnacle alt counterpart floods the scan with deep-tail lines whose
+# normal-CDF cover prob is unreliable (skewed/fat-tailed run distribution) and
+# whose alt ladders are low-liquidity. Emitting only the main total collapses
+# each game to its standard line; the totals model's distance cap then rejects
+# any Kalshi strike that sits too far from it. Baseball totals are also disabled
+# for persistence, so this is purely display-noise reduction there — but the
+# same skew argument means alt totals were never bettable signal anyway.
+TOTALS_MAIN_LINE_ONLY_SECTORS = {"baseball"}
+
 # Soccer leagues that have draws (all of them); MLS uses draws too
 SOCCER_DRAW_LEAGUES = {1980, 2196, 1842, 2436, 2036, 2186, 2630, 2663}
 
@@ -547,12 +559,14 @@ class PinnacleGuestClient(BaseAPIClient):
         # match its exact Pinnacle counterpart and devig from that book's
         # own juice rather than via extrapolation off a distant main line.
         if sector in TOTALS_SECTORS:
+            main_line_only = sector in TOTALS_MAIN_LINE_ONLY_SECTORS
             totals_markets = [
                 m for m in markets_data
                 if m.get("matchupId") == matchup_id
                 and m.get("type") == "total"
                 and m.get("period") == 0
                 and m.get("status") == "open"
+                and not (main_line_only and m.get("isAlternate", False))
             ]
             for totals_market in totals_markets:
                 totals_odds = self._parse_totals(totals_market, base_event_id, sector, event_date)

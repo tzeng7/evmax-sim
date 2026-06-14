@@ -40,6 +40,18 @@ _TOTAL_SIGMA: dict[str, float] = {
     "default":  18.0,
 }
 
+# Per-sector cap on how far a target (Kalshi) line may sit from Pinnacle's
+# posted line before we refuse to price it. Defaults to 1.0 * sigma (the
+# extrapolation gets unreliable in the tails). Baseball overrides to a tight
+# absolute 1.0 run: combined with main-line-only ingestion
+# (TOTALS_MAIN_LINE_ONLY_SECTORS), this keeps each game to its standard total
+# and rejects the deep alternate O/U ladder rather than flooding the scan with
+# tail lines off a skewed run distribution. Sectors not listed fall through to
+# the sigma-based default.
+_MAX_LINE_DISTANCE: dict[str, float] = {
+    "baseball": 1.0,
+}
+
 # Minimum total line to be a game total (not a team scoring prop).
 # e.g. "Will Lakers score over 109.5?" → team prop, not game total.
 # Game total floors: NBA ~170 (team props ~100-120), NCAAB ~110 (team props ~60-75).
@@ -100,15 +112,20 @@ class TotalDistributionModel:
         sigma = _TOTAL_SIGMA.get(sector, _TOTAL_SIGMA["default"])
         pinnacle_line = sharp_odds.total_line
 
-        # Reject lines that are too far from Pinnacle's posted line
+        # Reject lines that are too far from Pinnacle's posted line. Most
+        # sectors use 1*sigma (tail extrapolation gets unreliable); capped
+        # sectors (baseball) use a tight absolute distance so only the standard
+        # total survives — see _MAX_LINE_DISTANCE.
+        max_distance = _MAX_LINE_DISTANCE.get(sector, 1.0 * sigma)
         distance = abs(target_line - pinnacle_line)
-        if distance > 1.0 * sigma:
+        if distance > max_distance:
             logger.debug(
                 "total_model_line_too_far",
                 event_id=sharp_odds.event_id,
                 pinnacle_line=pinnacle_line,
                 target_line=target_line,
                 distance=distance,
+                max_distance=max_distance,
             )
             return None
 
