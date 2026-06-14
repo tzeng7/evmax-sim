@@ -24,8 +24,10 @@ from evmax.agents.cleanup.resolver import (
     _fuzzy_team_match,
     _match_bo3,
     _match_espn,
+    _resolve_via_kalshi,
     _slug_teams,
     _to_fuzz,
+    _void_prediction,
     _write_outcome,
     _fetch_espn_scores,
     _norm_prop_player,
@@ -1110,3 +1112,182 @@ class TestPropResolutionEspnFirst:
         ).fetchone()
         assert row["outcome"] == 1
         assert row["result_source"] == "nba_api"
+
+
+# ---------------------------------------------------------------------------
+# Scalar settlement → void (cancelled match / walkover before play)
+#
+# Regression for Paul vs Mpetshi Perricard (2026 ATP Stuttgart R32): Tommy Paul
+# withdrew with a neck injury before a ball was played, so Kalshi finalized the
+# binary market to a scalar fair-price refund (result="scalar") instead of a
+# Yes/No. The old resolver only handled result in {"yes","no"} and left these
+# rows unresolved forever. They must now be voided.
+# ---------------------------------------------------------------------------
+
+class _FakeKalshiClient:
+    """Async-context stub exposing get_market_settlement keyed by ticker."""
+
+    def __init__(self, verdicts: dict[str, str | None]):
+        self._verdicts = verdicts
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def get_market_settlement(self, ticker: str):
+        return self._verdicts.get(ticker)
+
+
+class TestGetMarketSettlement:
+    """KalshiClient.get_market_settlement verdict classification."""
+
+    def _verdict(self, market: dict) -> str | None:
+        from evmax.clients.kalshi import KalshiClient
+
+        client = KalshiClient.__new__(KalshiClient)  # skip RSA-auth __init__
+        client._get = AsyncMock(return_value={"market": market})
+        return asyncio.run(client.get_market_settlement("KXSOME-TICKER"))
+
+    def test_result_yes(self):
+        assert self._verdict({"result": "yes", "status": "finalized"}) == "yes"
+
+    def test_result_no(self):
+        assert self._verdict({"result": "no", "status": "finalized"}) == "no"
+
+    def test_scalar_is_void(self):
+        # Real shape from the Paul/Perricard market: finalized + result="scalar".
+        market = {
+            "result": "scalar",
+            "status": "finalized",
+            "settlement_value_dollars": "0.3300",
+            "yes_bid_dollars": "0.0000",
+            "yes_ask_dollars": "1.0000",
+        }
+        assert self._verdict(market) == "void"
+
+    def test_finalized_without_binary_result_is_void(self):
+        assert self._verdict({"result": "", "status": "finalized"}) == "void"
+
+    def test_open_near_one_is_yes(self):
+        market = {"result": "", "status": "active",
+                  "yes_bid_dollars": "0.99", "yes_ask_dollars": "1.0000"}
+        assert self._verdict(market) == "yes"
+
+    def test_open_near_zero_is_no(self):
+        market = {"result": "", "status": "active",
+                  "yes_bid_dollars": "0.0000", "yes_ask_dollars": "0.0100"}
+        assert self._verdict(market) == "no"
+
+    def test_open_mid_is_none(self):
+        market = {"result": "", "status": "active",
+                  "yes_bid_dollars": "0.40", "yes_ask_dollars": "0.42"}
+        assert self._verdict(market) is None
+
+    def test_legacy_cents_fields(self):
+        market = {"result": "", "status": "active", "yes_bid": 99, "yes_ask": 100}
+        assert self._verdict(market) == "yes"
+
+    def test_fetch_error_is_none(self):
+        from evmax.clients.kalshi import KalshiClient
+
+        client = KalshiClient.__new__(KalshiClient)
+        client._get = AsyncMock(side_effect=RuntimeError("boom"))
+        assert asyncio.run(client.get_market_settlement("KXSOME")) is None
+
+
+class TestResolveViaKalshi:
+    """_resolve_via_kalshi splits outcomes from scalar-void settlements."""
+
+    def test_classifies_yes_no_void_open(self):
+        preds = [
+            {"market_id": "kalshi:T_YES"},
+            {"market_id": "kalshi:T_NO"},
+            {"market_id": "kalshi:T_VOID"},
+            {"market_id": "kalshi:T_OPEN"},
+        ]
+        verdicts = {"T_YES": "yes", "T_NO": "no", "T_VOID": "void", "T_OPEN": None}
+        with patch("evmax.clients.kalshi.KalshiClient",
+                   lambda: _FakeKalshiClient(verdicts)):
+            out, voided = asyncio.run(_resolve_via_kalshi(preds))
+
+        assert out["kalshi:T_YES"] == 1
+        assert out["kalshi:T_NO"] == 0
+        assert out["kalshi:T_OPEN"] is None
+        assert "kalshi:T_VOID" not in out  # voids never become a binary outcome
+        assert voided == {"kalshi:T_VOID"}
+
+
+class TestScalarSettlementVoidIntegration:
+    """End-to-end: a scalar settlement voids the row and writes no outcome."""
+
+    class _NoCloseConn:
+        def __init__(self, conn):
+            self._conn = conn
+
+        def __getattr__(self, item):
+            return getattr(self._conn, item)
+
+        def close(self):
+            pass
+
+    def _make_db(self):
+        from evmax.agents.cleanup.db import SCHEMA
+        raw = sqlite3.connect(":memory:")
+        raw.row_factory = sqlite3.Row
+        raw.executescript(SCHEMA)
+        return self._NoCloseConn(raw)
+
+    def _seed_tennis_pred(self, conn, market_id, event_date="2026-06-08"):
+        conn.execute(
+            """INSERT INTO ev_predictions
+               (scan_date, market_id, event_id, sector, yes_team, market_type,
+                event_title, event_date, kalshi_yes_price, sharp_true_prob,
+                blended_true_prob, ev_pct, kelly_fraction, bankroll_used, line)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                event_date, market_id,
+                "tennis::2026-06-08::paul_vs_perricard",
+                "tennis", "perricard", "moneyline",
+                "Tommy Paul vs Giovanni Mpetshi Perricard", event_date,
+                0.32, 0.33, 0.33, 0.03, 0.01, 500.0, None,
+            ),
+        )
+        conn.commit()
+
+    def test_tennis_scalar_settlement_voids_row(self):
+        from evmax.agents.cleanup import resolver
+
+        conn = self._make_db()
+        mid = "kalshi:KXATPMATCH-26JUN08PAUMPE-MPE"
+        self._seed_tennis_pred(conn, mid)
+
+        with patch.object(resolver, "get_connection", return_value=conn), \
+             patch.object(resolver, "_resolve_via_kalshi",
+                          AsyncMock(return_value=({}, {mid}))):
+            result = asyncio.run(resolver.resolve_outcomes_for_date(date(2026, 6, 8)))
+
+        row = conn.execute(
+            "SELECT voided FROM ev_predictions WHERE market_id = ?", (mid,)
+        ).fetchone()
+        assert row["voided"] == 1
+        # No binary outcome is written for a voided match.
+        assert conn.execute("SELECT COUNT(*) AS c FROM ev_outcomes").fetchone()["c"] == 0
+        assert result["voided"] == 1
+        assert result["resolved"] == 0
+
+    def test_void_prediction_is_idempotent(self):
+        conn = self._make_db()
+        mid = "kalshi:X1"
+        self._seed_tennis_pred(conn, mid)
+
+        _void_prediction(conn, {"market_id": mid})
+        _void_prediction(conn, {"market_id": mid})  # second call must not error
+
+        row = conn.execute(
+            "SELECT voided FROM ev_predictions WHERE market_id = ?", (mid,)
+        ).fetchone()
+        assert row["voided"] == 1
+        # No ev_outcomes side effect.
+        assert conn.execute("SELECT COUNT(*) AS c FROM ev_outcomes").fetchone()["c"] == 0

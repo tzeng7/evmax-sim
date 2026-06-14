@@ -639,6 +639,53 @@ class KalshiClient(BaseAPIClient):
             logger.warning("kalshi_get_market_failed", ticker=ticker, error=str(e))
             return None
 
+    async def get_market_settlement(self, ticker: str) -> Optional[str]:
+        """Classify a market's settlement for outcome resolution.
+
+        Like :meth:`get_market_price` but returns a discrete verdict instead of
+        a price, and recognizes Kalshi *scalar* settlements — when a match is
+        cancelled / walkover / withdrawal before a ball is played, Kalshi
+        finalizes the binary market to a fair refund price (``result="scalar"``)
+        rather than resolving Yes/No. Those have no binary outcome and must be
+        voided, not scored.
+
+        Returns:
+            "yes"  — settled YES (or open but ≥0.99, effectively decided)
+            "no"   — settled NO  (or open but ≤0.01 with a real price)
+            "void" — finalized without a Yes/No result (scalar fair-price refund)
+            None   — still open with no decisive price, or fetch error
+        """
+        api_ticker = ticker.split(":", 1)[-1] if ":" in ticker else ticker
+        try:
+            data = await self._get(f"/markets/{api_ticker}")
+            market = data.get("market", {})
+            result = market.get("result", "")
+            if result == "yes":
+                return "yes"
+            if result == "no":
+                return "no"
+            # Finalized but not Yes/No → scalar fair-price refund (cancelled
+            # match / walkover / withdrawal before play). No binary outcome.
+            if result == "scalar" or market.get("status") == "finalized":
+                return "void"
+            # Still open — use mid-price to catch effectively-decided markets.
+            # Prefer the new _dollars decimals; fall back to legacy cents.
+            if market.get("yes_bid_dollars") is not None:
+                yes_bid = float(market.get("yes_bid_dollars") or 0)
+                yes_ask = float(market.get("yes_ask_dollars") or 0)
+            else:
+                yes_bid = (market.get("yes_bid") or 0) / 100.0
+                yes_ask = (market.get("yes_ask") or 0) / 100.0
+            mid = (yes_bid + yes_ask) / 2.0 if yes_ask > 0 else yes_bid
+            if mid >= 0.99:
+                return "yes"
+            if 0 < mid <= 0.01:
+                return "no"
+            return None
+        except Exception as e:
+            logger.warning("kalshi_get_settlement_failed", ticker=ticker, error=str(e))
+            return None
+
     def _parse_market(
         self,
         raw: dict[str, Any],
