@@ -74,6 +74,12 @@ SECTOR_SERIES_MAP: dict[str, list[str]] = {
         "KXLIGUE1GAME",     # Ligue 1
         "KXUELGAME",        # UEFA Europa League
     ],
+    # National-team World Cup — 3-way match winner (TeamA / TeamB / TIE).
+    # Tickers encode 3-letter FIFA codes (KXWCGAME-26JUN27CODUZB-COD); the
+    # worldcup alias map normalizes those onto the same canonical the Pinnacle
+    # full names resolve to. Spread/total WC series exist (KXWCSPREAD/KXWCTOTAL)
+    # but are intentionally not wired — v1 is moneyline-only, shadow mode.
+    "worldcup": ["KXWCGAME"],
     "lol": ["KXLOLGAME"],
     "cs2": ["KXCS2GAME", "KXCS2GAMES"],
     "tennis": ["KXATPMATCH", "KXWTAMATCH"],

@@ -1,0 +1,90 @@
+# World Cup (national-team) name aliases.
+#
+# Three naming systems must collapse to ONE canonical per nation so the
+# matching engine, the Elo state, the yes_team extractor, and the ESPN
+# resolver all agree:
+#   - Kalshi ticker: 3-letter FIFA code (COD, UZB, USA, ...) AND the title
+#     full name ("Congo DR", "IR Iran", "Korea Republic", "Turkiye", "USA")
+#   - Pinnacle (league 2686): full name ("DR Congo", "Iran", "South Korea")
+#   - ESPN (fifa.world, resolver only — fuzzy, NFKD-stripped): "United States",
+#     "Türkiye", "Curaçao", "Bosnia-Herzegovina"  (diacritics handled by the
+#     resolver's NFKD fuzz, so they need no alias here)
+#
+# Canonical is the clean lowercase common name. The ONLY place the canonical
+# diverges from a clean lowercase of the source is USA → "united states": the
+# resolver fuzzy-matches yes_team against ESPN's "United States", which shares
+# zero tokens with "usa", so the canonical is "united states" and "usa"/"states"
+# alias into it. ("united" is a NameNormalizer noise word, hence the explicit
+# "states" → "united states" key so a raw "United States" can't strip down to
+# "states" and miss.)
+#
+# Every nation lists its FIFA code so the Kalshi ticker path (team codes +
+# yes_team) normalizes identically to the Pinnacle full-name path.
+aliases:
+  # --- nations whose canonical == clean lowercase name (code-only alias) ---
+  arg: "argentina"
+  aus: "australia"
+  aut: "austria"
+  bel: "belgium"
+  bih: "bosnia and herzegovina"
+  bra: "brazil"
+  can: "canada"
+  civ: "ivory coast"
+  col: "colombia"
+  cpv: "cape verde"
+  cro: "croatia"
+  cuw: "curacao"
+  cze: "czechia"
+  dza: "algeria"
+  ecu: "ecuador"
+  egy: "egypt"
+  eng: "england"
+  esp: "spain"
+  fra: "france"
+  ger: "germany"
+  gha: "ghana"
+  hti: "haiti"
+  irq: "iraq"
+  jor: "jordan"
+  jpn: "japan"
+  ksa: "saudi arabia"
+  mar: "morocco"
+  mex: "mexico"
+  ned: "netherlands"
+  nor: "norway"
+  nzl: "new zealand"
+  pan: "panama"
+  par: "paraguay"
+  por: "portugal"
+  qat: "qatar"
+  rsa: "south africa"
+  sco: "scotland"
+  sen: "senegal"
+  sui: "switzerland"
+  swe: "sweden"
+  tun: "tunisia"
+  tur: "turkiye"
+  uru: "uruguay"
+  uzb: "uzbekistan"
+
+  # --- nations where source spellings diverge (multiple keys → 1 canonical) ---
+  # DR Congo: Kalshi "Congo DR" / code COD; Pinnacle "DR Congo"
+  cod: "dr congo"
+  "congo dr": "dr congo"
+  # Iran: Kalshi "IR Iran" / code IRI; Pinnacle/ESPN "Iran"
+  iri: "iran"
+  "ir iran": "iran"
+  # South Korea: Kalshi "Korea Republic" / code KOR; Pinnacle/ESPN "South Korea"
+  kor: "south korea"
+  "korea republic": "south korea"
+  # United States: Kalshi/Pinnacle "USA" / code USA; ESPN "United States"
+  usa: "united states"
+  states: "united states"
+
+  # --- ESPN-only spelling variants (seed script reads ESPN international
+  #     results; diacritics are NFKD-stripped by the caller before lookup) ---
+  "bosnia-herzegovina": "bosnia and herzegovina"
+  "cabo verde": "cape verde"
+  "cote divoire": "ivory coast"      # Côte d'Ivoire, apostrophe already stripped
+  "cote d ivoire": "ivory coast"
+  "czech republic": "czechia"

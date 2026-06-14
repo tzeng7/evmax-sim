@@ -26342,5 +26342,7530 @@
       "oklahoma city thunder": 0,
       "phoenix suns": 0
     }
+  },
+  "worldcup": {
+    "ratings": {
+      "mexico": 1693.37,
+      "guatemala": 1460.71,
+      "qatar": 1497.97,
+      "croatia": 1614.13,
+      "luxembourg": 1424.19,
+      "malta": 1416.05,
+      "panama": 1563.36,
+      "nicaragua": 1427.3,
+      "cameroon": 1560.34,
+      "mauritius": 1441.33,
+      "pakistan": 1450.14,
+      "uzbekistan": 1589.42,
+      "oman": 1531.78,
+      "trinidad and tobago": 1428.36,
+      "chile": 1527.77,
+      "cuba": 1436.0,
+      "germany": 1679.85,
+      "ukraine": 1525.99,
+      "kuwait": 1450.29,
+      "zambia": 1413.72,
+      "morocco": 1736.14,
+      "cape verde": 1605.31,
+      "curacao": 1528.94,
+      "puerto rico": 1491.87,
+      "kenya": 1508.56,
+      "indonesia": 1527.04,
+      "palestine": 1468.76,
+      "malaysia": 1544.4,
+      "solomon islands": 1411.29,
+      "tajikistan": 1514.14,
+      "djibouti": 1393.31,
+      "turkmenistan": 1422.93,
+      "uruguay": 1583.4,
+      "netherlands": 1632.82,
+      "japan": 1736.86,
+      "el salvador": 1426.33,
+      "philippines": 1466.47,
+      "nepal": 1443.42,
+      "argentina": 1727.76,
+      "australia": 1648.07,
+      "cambodia": 1457.35,
+      "bangladesh": 1432.8,
+      "vietnam": 1455.62,
+      "hong kong": 1485.93,
+      "jamaica": 1535.72,
+      "spain": 1718.32,
+      "italy": 1621.48,
+      "venezuela": 1517.03,
+      "honduras": 1501.49,
+      "costa rica": 1490.91,
+      "china": 1497.62,
+      "myanmar": 1427.33,
+      "chinese taipei": 1427.65,
+      "thailand": 1528.76,
+      "south korea": 1675.93,
+      "peru": 1466.01,
+      "singapore": 1429.61,
+      "papua new guinea": 1423.6,
+      "sweden": 1546.31,
+      "new zealand": 1470.5,
+      "serbia": 1491.77,
+      "jordan": 1489.73,
+      "poland": 1544.52,
+      "colombia": 1654.08,
+      "iraq": 1581.67,
+      "dominican republic": 1452.46,
+      "brazil": 1675.88,
+      "guinea": 1496.54,
+      "ecuador": 1651.87,
+      "bolivia": 1418.62,
+      "paraguay": 1552.79,
+      "egypt": 1652.73,
+      "south sudan": 1442.38,
+      "syria": 1441.58,
+      "kyrgyz republic": 1463.91,
+      "iran": 1664.43,
+      "montenegro": 1464.25,
+      "czechia": 1591.04,
+      "algeria": 1706.94,
+      "tunisia": 1553.57,
+      "senegal": 1643.87,
+      "united states": 1617.95,
+      "st. kitts and nevis": 1423.53,
+      "haiti": 1489.51,
+      "martinique": 1450.09,
+      "canada": 1616.15,
+      "guadeloupe": 1455.92,
+      "ethiopia": 1489.6,
+      "guyana": 1516.79,
+      "tahiti": 1528.53,
+      "cook islands": 1449.45,
+      "afghanistan": 1396.01,
+      "macau": 1409.9,
+      "bhutan": 1427.11,
+      "gibraltar": 1384.15,
+      "india": 1436.26,
+      "lebanon": 1518.54,
+      "bahrain": 1415.1,
+      "bulgaria": 1438.53,
+      "norway": 1666.59,
+      "austria": 1650.97,
+      "moldova": 1381.03,
+      "wales": 1507.0,
+      "saudi arabia": 1555.13,
+      "south africa": 1548.18,
+      "namibia": 1455.32,
+      "hungary": 1530.66,
+      "brunei darussalam": 1437.95,
+      "turkiye": 1625.38,
+      "arab emirates": 1587.41,
+      "dr congo": 1588.2,
+      "russia": 1644.14,
+      "angola": 1526.34,
+      "azerbaijan": 1390.3,
+      "ghana": 1509.0,
+      "liberia": 1488.34,
+      "burkina faso": 1549.53,
+      "scotland": 1561.44,
+      "england": 1674.96,
+      "france": 1646.63,
+      "botswana": 1428.25,
+      "zimbabwe": 1446.81,
+      "new caledonia": 1545.4,
+      "vanuatu": 1432.83,
+      "georgia": 1516.28,
+      "timor-leste": 1452.54,
+      "maldives": 1441.45,
+      "guam": 1445.39,
+      "laos": 1455.99,
+      "mongolia": 1404.78,
+      "yemen": 1495.29,
+      "sri lanka": 1452.79,
+      "mozambique": 1429.57,
+      "equatorial guinea": 1436.78,
+      "guinea-bissau": 1417.34,
+      "nigeria": 1652.24,
+      "eswatini": 1415.28,
+      "mali": 1543.69,
+      "uganda": 1478.62,
+      "benin": 1479.99,
+      "sierra leone": 1467.58,
+      "niger": 1507.69,
+      "somalia": 1392.25,
+      "ivory coast": 1696.51,
+      "libya": 1568.26,
+      "mauritania": 1428.13,
+      "madagascar": 1540.94,
+      "sudan": 1464.93,
+      "tanzania": 1448.64,
+      "comoros": 1501.32,
+      "north macedonia": 1481.02,
+      "armenia": 1375.38,
+      "albania": 1459.4,
+      "estonia": 1396.53,
+      "chad": 1378.79,
+      "gabon": 1495.47,
+      "belgium": 1630.42,
+      "rwanda": 1493.18,
+      "faroe islands": 1494.5,
+      "north korea": 1454.55,
+      "burundi": 1440.93,
+      "gambia": 1493.13,
+      "lesotho": 1438.35,
+      "togo": 1514.38,
+      "greece": 1514.58,
+      "central african republic": 1462.49,
+      "malawi": 1454.57,
+      "congo": 1415.17,
+      "seychelles": 1355.39,
+      "sao tome and principe": 1401.06,
+      "cyprus": 1451.41,
+      "lithuania": 1382.99,
+      "latvia": 1430.11,
+      "republic of ireland": 1567.55,
+      "iceland": 1449.88,
+      "slovenia": 1509.82,
+      "fiji": 1513.18,
+      "san marino": 1301.11,
+      "bonaire": 1450.96,
+      "belarus": 1501.84,
+      "portugal": 1671.9,
+      "andorra": 1341.24,
+      "belize": 1455.66,
+      "kosovo": 1576.75,
+      "liechtenstein": 1309.02,
+      "bermuda": 1425.3,
+      "romania": 1538.01,
+      "northern ireland": 1501.78,
+      "anguilla": 1407.05,
+      "turks and caicos islands": 1500.0,
+      "us virgin islands": 1485.59,
+      "british virgin islands": 1446.22,
+      "slovakia": 1525.94,
+      "denmark": 1610.62,
+      "switzerland": 1607.66,
+      "french guiana": 1499.1,
+      "aruba": 1475.48,
+      "suriname": 1521.24,
+      "cayman islands": 1436.11,
+      "finland": 1424.07,
+      "kazakhstan": 1409.75,
+      "northern mariana islands": 1470.01,
+      "grenada": 1465.21,
+      "st. vincent and the grenadines": 1511.51,
+      "bosnia and herzegovina": 1526.87,
+      "antigua and barbuda": 1441.37,
+      "barbados": 1431.28,
+      "dominica": 1428.45,
+      "montserrat": 1469.67,
+      "st. lucia": 1431.25,
+      "israel": 1506.81,
+      "bahamas": 1369.99,
+      "tonga": 1497.78,
+      "american samoa": 1449.83,
+      "samoa": 1472.61,
+      "zanzibar": 1532.8,
+      "st. martin": 1516.59,
+      "sint maarten": 1517.25
+    },
+    "game_counts": {
+      "mexico": 45,
+      "guatemala": 37,
+      "qatar": 37,
+      "croatia": 30,
+      "luxembourg": 24,
+      "malta": 25,
+      "panama": 37,
+      "nicaragua": 20,
+      "cameroon": 28,
+      "mauritius": 14,
+      "pakistan": 14,
+      "uzbekistan": 33,
+      "oman": 32,
+      "trinidad and tobago": 30,
+      "chile": 35,
+      "cuba": 18,
+      "germany": 38,
+      "ukraine": 27,
+      "kuwait": 28,
+      "zambia": 27,
+      "morocco": 36,
+      "cape verde": 29,
+      "curacao": 21,
+      "puerto rico": 14,
+      "kenya": 28,
+      "indonesia": 33,
+      "palestine": 23,
+      "malaysia": 21,
+      "solomon islands": 16,
+      "tajikistan": 16,
+      "djibouti": 13,
+      "turkmenistan": 10,
+      "uruguay": 36,
+      "netherlands": 32,
+      "japan": 33,
+      "el salvador": 30,
+      "philippines": 16,
+      "nepal": 17,
+      "argentina": 37,
+      "australia": 32,
+      "cambodia": 18,
+      "bangladesh": 20,
+      "vietnam": 18,
+      "hong kong": 26,
+      "jamaica": 33,
+      "spain": 33,
+      "italy": 30,
+      "venezuela": 35,
+      "honduras": 26,
+      "costa rica": 33,
+      "china": 29,
+      "myanmar": 18,
+      "chinese taipei": 15,
+      "thailand": 21,
+      "south korea": 34,
+      "peru": 35,
+      "singapore": 21,
+      "papua new guinea": 11,
+      "sweden": 27,
+      "new zealand": 27,
+      "serbia": 29,
+      "jordan": 36,
+      "poland": 27,
+      "colombia": 40,
+      "iraq": 29,
+      "dominican republic": 19,
+      "brazil": 37,
+      "guinea": 29,
+      "ecuador": 37,
+      "bolivia": 39,
+      "paraguay": 33,
+      "egypt": 35,
+      "south sudan": 12,
+      "syria": 16,
+      "kyrgyz republic": 26,
+      "iran": 31,
+      "montenegro": 26,
+      "czechia": 30,
+      "algeria": 35,
+      "tunisia": 35,
+      "senegal": 39,
+      "united states": 40,
+      "st. kitts and nevis": 15,
+      "haiti": 23,
+      "martinique": 8,
+      "canada": 34,
+      "guadeloupe": 6,
+      "ethiopia": 15,
+      "guyana": 13,
+      "tahiti": 6,
+      "cook islands": 3,
+      "afghanistan": 16,
+      "macau": 7,
+      "bhutan": 9,
+      "gibraltar": 26,
+      "india": 16,
+      "lebanon": 19,
+      "bahrain": 27,
+      "bulgaria": 26,
+      "norway": 26,
+      "austria": 29,
+      "moldova": 26,
+      "wales": 24,
+      "saudi arabia": 40,
+      "south africa": 36,
+      "namibia": 19,
+      "hungary": 28,
+      "brunei darussalam": 9,
+      "turkiye": 32,
+      "arab emirates": 27,
+      "dr congo": 34,
+      "russia": 24,
+      "angola": 28,
+      "azerbaijan": 25,
+      "ghana": 27,
+      "liberia": 16,
+      "burkina faso": 34,
+      "scotland": 30,
+      "england": 33,
+      "france": 32,
+      "botswana": 19,
+      "zimbabwe": 23,
+      "new caledonia": 9,
+      "vanuatu": 10,
+      "georgia": 26,
+      "timor-leste": 3,
+      "maldives": 9,
+      "guam": 10,
+      "laos": 5,
+      "mongolia": 8,
+      "yemen": 10,
+      "sri lanka": 13,
+      "mozambique": 26,
+      "equatorial guinea": 27,
+      "guinea-bissau": 18,
+      "nigeria": 42,
+      "eswatini": 12,
+      "mali": 29,
+      "uganda": 24,
+      "benin": 23,
+      "sierra leone": 16,
+      "niger": 21,
+      "somalia": 13,
+      "ivory coast": 35,
+      "libya": 20,
+      "mauritania": 24,
+      "madagascar": 18,
+      "sudan": 22,
+      "tanzania": 31,
+      "comoros": 21,
+      "north macedonia": 25,
+      "armenia": 24,
+      "albania": 28,
+      "estonia": 22,
+      "chad": 15,
+      "gabon": 21,
+      "belgium": 29,
+      "rwanda": 16,
+      "faroe islands": 20,
+      "north korea": 18,
+      "burundi": 16,
+      "gambia": 17,
+      "lesotho": 18,
+      "togo": 16,
+      "greece": 23,
+      "central african republic": 14,
+      "malawi": 17,
+      "congo": 9,
+      "seychelles": 10,
+      "sao tome and principe": 10,
+      "cyprus": 25,
+      "lithuania": 21,
+      "latvia": 21,
+      "republic of ireland": 26,
+      "iceland": 25,
+      "slovenia": 29,
+      "fiji": 11,
+      "san marino": 24,
+      "bonaire": 6,
+      "belarus": 24,
+      "portugal": 30,
+      "andorra": 25,
+      "belize": 10,
+      "kosovo": 23,
+      "liechtenstein": 24,
+      "bermuda": 13,
+      "romania": 28,
+      "northern ireland": 24,
+      "anguilla": 14,
+      "turks and caicos islands": 2,
+      "us virgin islands": 5,
+      "british virgin islands": 13,
+      "slovakia": 28,
+      "denmark": 28,
+      "switzerland": 30,
+      "french guiana": 1,
+      "aruba": 11,
+      "suriname": 14,
+      "cayman islands": 10,
+      "finland": 23,
+      "kazakhstan": 25,
+      "northern mariana islands": 4,
+      "grenada": 16,
+      "st. vincent and the grenadines": 15,
+      "bosnia and herzegovina": 23,
+      "antigua and barbuda": 6,
+      "barbados": 9,
+      "dominica": 9,
+      "montserrat": 4,
+      "st. lucia": 7,
+      "israel": 20,
+      "bahamas": 8,
+      "tonga": 2,
+      "american samoa": 3,
+      "samoa": 5,
+      "zanzibar": 3,
+      "st. martin": 6,
+      "sint maarten": 4
+    },
+    "season_games": {
+      "mexico": 45,
+      "guatemala": 37,
+      "qatar": 37,
+      "croatia": 30,
+      "luxembourg": 24,
+      "malta": 25,
+      "panama": 37,
+      "nicaragua": 20,
+      "cameroon": 28,
+      "mauritius": 14,
+      "pakistan": 14,
+      "uzbekistan": 33,
+      "oman": 32,
+      "trinidad and tobago": 30,
+      "chile": 35,
+      "cuba": 18,
+      "germany": 38,
+      "ukraine": 27,
+      "kuwait": 28,
+      "zambia": 27,
+      "morocco": 36,
+      "cape verde": 29,
+      "curacao": 21,
+      "puerto rico": 14,
+      "kenya": 28,
+      "indonesia": 33,
+      "palestine": 23,
+      "malaysia": 21,
+      "solomon islands": 16,
+      "tajikistan": 16,
+      "djibouti": 13,
+      "turkmenistan": 10,
+      "uruguay": 36,
+      "netherlands": 32,
+      "japan": 33,
+      "el salvador": 30,
+      "philippines": 16,
+      "nepal": 17,
+      "argentina": 37,
+      "australia": 32,
+      "cambodia": 18,
+      "bangladesh": 20,
+      "vietnam": 18,
+      "hong kong": 26,
+      "jamaica": 33,
+      "spain": 33,
+      "italy": 30,
+      "venezuela": 35,
+      "honduras": 26,
+      "costa rica": 33,
+      "china": 29,
+      "myanmar": 18,
+      "chinese taipei": 15,
+      "thailand": 21,
+      "south korea": 34,
+      "peru": 35,
+      "singapore": 21,
+      "papua new guinea": 11,
+      "sweden": 27,
+      "new zealand": 27,
+      "serbia": 29,
+      "jordan": 36,
+      "poland": 27,
+      "colombia": 40,
+      "iraq": 29,
+      "dominican republic": 19,
+      "brazil": 37,
+      "guinea": 29,
+      "ecuador": 37,
+      "bolivia": 39,
+      "paraguay": 33,
+      "egypt": 35,
+      "south sudan": 12,
+      "syria": 16,
+      "kyrgyz republic": 26,
+      "iran": 31,
+      "montenegro": 26,
+      "czechia": 30,
+      "algeria": 35,
+      "tunisia": 35,
+      "senegal": 39,
+      "united states": 40,
+      "st. kitts and nevis": 15,
+      "haiti": 23,
+      "martinique": 8,
+      "canada": 34,
+      "guadeloupe": 6,
+      "ethiopia": 15,
+      "guyana": 13,
+      "tahiti": 6,
+      "cook islands": 3,
+      "afghanistan": 16,
+      "macau": 7,
+      "bhutan": 9,
+      "gibraltar": 26,
+      "india": 16,
+      "lebanon": 19,
+      "bahrain": 27,
+      "bulgaria": 26,
+      "norway": 26,
+      "austria": 29,
+      "moldova": 26,
+      "wales": 24,
+      "saudi arabia": 40,
+      "south africa": 36,
+      "namibia": 19,
+      "hungary": 28,
+      "brunei darussalam": 9,
+      "turkiye": 32,
+      "arab emirates": 27,
+      "dr congo": 34,
+      "russia": 24,
+      "angola": 28,
+      "azerbaijan": 25,
+      "ghana": 27,
+      "liberia": 16,
+      "burkina faso": 34,
+      "scotland": 30,
+      "england": 33,
+      "france": 32,
+      "botswana": 19,
+      "zimbabwe": 23,
+      "new caledonia": 9,
+      "vanuatu": 10,
+      "georgia": 26,
+      "timor-leste": 3,
+      "maldives": 9,
+      "guam": 10,
+      "laos": 5,
+      "mongolia": 8,
+      "yemen": 10,
+      "sri lanka": 13,
+      "mozambique": 26,
+      "equatorial guinea": 27,
+      "guinea-bissau": 18,
+      "nigeria": 42,
+      "eswatini": 12,
+      "mali": 29,
+      "uganda": 24,
+      "benin": 23,
+      "sierra leone": 16,
+      "niger": 21,
+      "somalia": 13,
+      "ivory coast": 35,
+      "libya": 20,
+      "mauritania": 24,
+      "madagascar": 18,
+      "sudan": 22,
+      "tanzania": 31,
+      "comoros": 21,
+      "north macedonia": 25,
+      "armenia": 24,
+      "albania": 28,
+      "estonia": 22,
+      "chad": 15,
+      "gabon": 21,
+      "belgium": 29,
+      "rwanda": 16,
+      "faroe islands": 20,
+      "north korea": 18,
+      "burundi": 16,
+      "gambia": 17,
+      "lesotho": 18,
+      "togo": 16,
+      "greece": 23,
+      "central african republic": 14,
+      "malawi": 17,
+      "congo": 9,
+      "seychelles": 10,
+      "sao tome and principe": 10,
+      "cyprus": 25,
+      "lithuania": 21,
+      "latvia": 21,
+      "republic of ireland": 26,
+      "iceland": 25,
+      "slovenia": 29,
+      "fiji": 11,
+      "san marino": 24,
+      "bonaire": 6,
+      "belarus": 24,
+      "portugal": 30,
+      "andorra": 25,
+      "belize": 10,
+      "kosovo": 23,
+      "liechtenstein": 24,
+      "bermuda": 13,
+      "romania": 28,
+      "northern ireland": 24,
+      "anguilla": 14,
+      "turks and caicos islands": 2,
+      "us virgin islands": 5,
+      "british virgin islands": 13,
+      "slovakia": 28,
+      "denmark": 28,
+      "switzerland": 30,
+      "french guiana": 1,
+      "aruba": 11,
+      "suriname": 14,
+      "cayman islands": 10,
+      "finland": 23,
+      "kazakhstan": 25,
+      "northern mariana islands": 4,
+      "grenada": 16,
+      "st. vincent and the grenadines": 15,
+      "bosnia and herzegovina": 23,
+      "antigua and barbuda": 6,
+      "barbados": 9,
+      "dominica": 9,
+      "montserrat": 4,
+      "st. lucia": 7,
+      "israel": 20,
+      "bahamas": 8,
+      "tonga": 2,
+      "american samoa": 3,
+      "samoa": 5,
+      "zanzibar": 3,
+      "st. martin": 6,
+      "sint maarten": 4
+    },
+    "h2h": {
+      "guatemala::mexico": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "croatia::qatar": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "luxembourg::malta": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "nicaragua::panama": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "mauritius::pakistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "oman::uzbekistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guatemala::trinidad and tobago": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chile::cuba": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kuwait::zambia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kenya::pakistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "malaysia::solomon islands": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "djibouti::mauritius": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "turkmenistan::uzbekistan": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "nicaragua::uruguay": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "croatia::netherlands": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "el salvador::japan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nepal::philippines": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "argentina::australia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bangladesh::cambodia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hong kong::vietnam": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jamaica::qatar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "italy::spain": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "honduras::venezuela": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "costa rica::guatemala": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "china::myanmar": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "peru::south korea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "new zealand::sweden": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jordan::serbia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "germany::poland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "colombia::iraq": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chile::dominican republic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "oman::turkmenistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "djibouti::pakistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "tajikistan::uzbekistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brazil::guinea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bolivia::ecuador": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "kenya::mauritius": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nicaragua::paraguay": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "egypt::south sudan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "guatemala::venezuela": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "italy::netherlands": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chinese taipei::philippines": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hong kong::thailand": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jamaica::jordan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "argentina::indonesia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "japan::peru": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "china::palestine": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "syria::vietnam": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "malaysia::papua new guinea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kyrgyz republic::oman": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "iran::uzbekistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "czechia::montenegro": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "colombia::germany": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brazil::senegal": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cuba::uruguay": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "costa rica::ecuador": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "st. kitts and nevis::trinidad and tobago": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "haiti::qatar": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "honduras::mexico": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "el salvador::martinique": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "costa rica::panama": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cuba::guatemala": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jamaica::trinidad and tobago": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "st. kitts and nevis::united states": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "haiti::mexico": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "martinique::panama": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cuba::guadeloupe": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jamaica::st. kitts and nevis": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "trinidad and tobago::united states": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "haiti::honduras": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "mexico::qatar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "canada::cuba": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "guadeloupe::guatemala": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "costa rica::martinique": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "panama::qatar": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "costa rica::mexico": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guatemala::jamaica": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "jamaica::mexico": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "mexico::panama": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "ethiopia::guyana": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bolivia::panama": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "cook islands::tahiti": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bhutan::macau": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gibraltar::malta": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lebanon::thailand": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bahrain::kuwait": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kenya::qatar": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bulgaria::iran": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jordan::norway": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "colombia::venezuela": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "singapore::tajikistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "indonesia::turkmenistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "costa rica::saudi arabia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "argentina::ecuador": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "chile::uruguay": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "germany::japan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "united states::uzbekistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bolivia::brazil": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "india::lebanon": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "myanmar::nepal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cambodia::macau": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brunei darussalam::hong kong": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "palestine::vietnam": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kuwait::kyrgyz republic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "afghanistan::philippines": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chinese taipei::singapore": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "china::syria": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "japan::turkiye": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kenya::south sudan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "arab emirates::costa rica": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dr congo::south africa": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "angola::iran": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "azerbaijan::jordan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ghana::liberia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "saudi arabia::south korea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "egypt::tunisia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "burkina faso::morocco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "england::scotland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "france::germany": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "algeria::senegal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "argentina::bolivia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "ecuador::uruguay": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "paraguay::venezuela": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "oman::united states": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brazil::peru": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "papua new guinea::solomon islands": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "new caledonia::vanuatu": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "china::vietnam": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "solomon islands::vanuatu": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "new caledonia::papua new guinea": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "gibraltar::wales": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bahrain::kyrgyz republic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "egypt::zambia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "georgia::thailand": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lebanon::montenegro": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cameroon::russia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "arab emirates::kuwait": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "moldova::sweden": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "algeria::cape verde": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "argentina::paraguay": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "macau::myanmar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chinese taipei::timor-leste": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "guam::singapore": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bhutan::hong kong": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "brunei darussalam::indonesia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "afghanistan::mongolia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "sri lanka::yemen": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "canada::japan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "south korea::tunisia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "uzbekistan::vietnam": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "india::malaysia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guinea::guinea-bissau": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "iran::jordan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "australia::england": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mali::uganda": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chile::peru": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "papua new guinea::vanuatu": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "new caledonia::solomon islands": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "niger::somalia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "liberia::libya": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "madagascar::mauritania": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "germany::united states": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "ghana::mexico": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kyrgyz republic::philippines": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "china::uzbekistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "botswana::eswatini": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mozambique::nigeria": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "cameroon::senegal": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "japan::tunisia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "south korea::vietnam": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cape verde::comoros": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "malaysia::tajikistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "armenia::north macedonia": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "mali::saudi arabia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "uganda::zambia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "benin::madagascar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "sierra leone::somalia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "albania::bulgaria": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bahrain::philippines": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chad::sudan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kuwait::syria": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arab emirates::lebanon": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "iran::qatar": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "burkina faso::mauritania": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "australia::new zealand": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "france::scotland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chile::venezuela": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bolivia::paraguay": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cambodia::pakistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bangladesh::maldives": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "laos::nepal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ghana::united states": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brazil::uruguay": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "argentina::peru": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "belgium::serbia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "equatorial guinea::namibia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dr congo::mauritania": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "faroe islands::norway": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bolivia::peru": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "australia::bangladesh": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "japan::myanmar": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "philippines::vietnam": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "singapore::south korea": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "china::thailand": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kyrgyz republic::malaysia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hong kong::iran": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "indonesia::iraq": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "chinese taipei::oman": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "afghanistan::qatar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "arab emirates::nepal": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "india::kuwait": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "pakistan::saudi arabia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "north korea::syria": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bahrain::yemen": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "botswana::mozambique": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "burundi::gambia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "algeria::somalia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "djibouti::egypt": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "gabon::kenya": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "greece::new zealand": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "argentina::uruguay": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "brazil::colombia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "central african republic::comoros": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "eswatini::libya": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "guinea::uganda": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "ghana::madagascar": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "liberia::malawi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "congo::zambia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "cameroon::mauritius": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "ivory coast::seychelles": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "chad::mali": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "sao tome and principe::tunisia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "germany::turkiye": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "benin::south africa": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "niger::tanzania": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "senegal::south sudan": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cyprus::lithuania": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "burundi::gabon": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "algeria::mozambique": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "egypt::sierra leone": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "dr congo::sudan": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cuba::russia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "djibouti::guinea-bissau": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "gambia::ivory coast": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "equatorial guinea::liberia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chad::madagascar": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kenya::seychelles": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "austria::germany": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "latvia::poland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "colombia::paraguay": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "chile::ecuador": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bolivia::uruguay": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "pakistan::tajikistan": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "myanmar::north korea": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "chinese taipei::malaysia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "china::south korea": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "singapore::thailand": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "iraq::vietnam": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "nepal::yemen": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "india::qatar": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "australia::palestine": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "japan::syria": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "arab emirates::bahrain": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "jordan::saudi arabia": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "afghanistan::kuwait": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "botswana::guinea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cape verde::eswatini": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "burkina faso::ethiopia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "malawi::tunisia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "rwanda::south africa": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "somalia::uganda": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "comoros::ghana": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "namibia::sao tome and principe": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "niger::zambia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "morocco::tanzania": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "argentina::brazil": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "colombia::mexico": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "china::oman": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "arab emirates::kyrgyz republic": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cambodia::qatar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "japan::thailand": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "china::hong kong": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "indonesia::libya": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "hong kong::tajikistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lebanon::saudi arabia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "burkina faso::iran": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jordan::qatar": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "algeria::togo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "iraq::south korea": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "australia::bahrain": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "arab emirates::oman": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "ivory coast::sierra leone": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "guinea-bissau::mali": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lesotho::mozambique": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "egypt::tanzania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "palestine::uzbekistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guinea::nigeria": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "niger::senegal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "japan::jordan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kyrgyz republic::vietnam": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "algeria::burundi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "indonesia::iran": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "burkina faso::dr congo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "angola::bahrain": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hong kong::saudi arabia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cape verde::tunisia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "morocco::sierra leone": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kuwait::libya": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "estonia::sweden": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "guinea-bissau::ivory coast": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guatemala::iceland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cape verde::ghana": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gambia::senegal": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "namibia::tunisia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "mali::south africa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "honduras::iceland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "equatorial guinea::guinea-bissau": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ivory coast::nigeria": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "kuwait::uganda": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cape verde::mozambique": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gambia::guinea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "slovenia::united states": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "angola::mauritania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "namibia::south africa": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "equatorial guinea::ivory coast": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "guinea-bissau::nigeria": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cameroon::gambia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "guinea::senegal": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "angola::burkina faso": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "algeria::mauritania": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "morocco::zambia": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "angola::namibia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cameroon::nigeria": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "equatorial guinea::guinea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cape verde::mauritania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "burkina faso::mali": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "morocco::south africa": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "angola::nigeria": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dr congo::guinea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "costa rica::el salvador": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ivory coast::mali": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dr congo::ivory coast": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bangladesh::sudan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "fiji::solomon islands": {
+        "a_wins": 4,
+        "b_wins": 1,
+        "games": 5
+      },
+      "san marino::st. kitts and nevis": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ethiopia::lesotho": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "belarus::montenegro": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "russia::serbia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cape verde::guyana": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "guinea::vanuatu": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "portugal::sweden": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "italy::venezuela": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chinese taipei::kyrgyz republic": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "jordan::pakistan": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "australia::lebanon": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "japan::north korea": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "hong kong::uzbekistan": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "indonesia::vietnam": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "iran::turkmenistan": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "malaysia::oman": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "arab emirates::yemen": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bangladesh::palestine": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kuwait::qatar": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "iraq::philippines": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bahrain::nepal": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "saudi arabia::tajikistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gibraltar::lithuania": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "ecuador::guatemala": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bhutan::central african republic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "burundi::madagascar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bulgaria::tanzania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "armenia::kosovo": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "azerbaijan::mongolia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ghana::nigeria": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "faroe islands::liechtenstein": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "czechia::norway": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bermuda::brunei darussalam": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cambodia::equatorial guinea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gabon::senegal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "albania::chile": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hungary::turkiye": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "netherlands::scotland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "egypt::new zealand": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "colombia::spain": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "algeria::bolivia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "comoros::uganda": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "niger::togo": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "burkina faso::libya": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mali::mauritania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "angola::morocco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "argentina::el salvador": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nicaragua::peru": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kenya::malawi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "austria::slovakia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brazil::england": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aruba::dominican republic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ecuador::italy": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "belize::puerto rico": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "central african republic::papua new guinea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "madagascar::rwanda": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mongolia::tanzania": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bhutan::sri lanka": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cyprus::serbia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "montenegro::north macedonia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "albania::sweden": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cape verde::equatorial guinea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bermuda::guinea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "andorra::bolivia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guinea-bissau::sudan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "malawi::zambia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cayman islands::moldova": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kenya::zimbabwe": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "estonia::finland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hungary::kosovo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brunei darussalam::vanuatu": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cambodia::guyana": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "armenia::czechia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "denmark::faroe islands": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "colombia::romania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ivory coast::uruguay": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benin::senegal": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "austria::turkiye": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "germany::netherlands": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "kazakhstan::luxembourg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "republic of ireland::switzerland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "northern ireland::scotland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "portugal::slovenia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "croatia::egypt": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chile::france": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mali::nigeria": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "china::singapore": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "south korea::thailand": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "afghanistan::india": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "myanmar::syria": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cuba::nicaragua": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dominican republic::peru": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "argentina::costa rica": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "guam::northern mariana islands": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "guyana::trinidad and tobago": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "sudan::tanzania": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "grenada::st. vincent and the grenadines": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bolivia::mexico": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "gibraltar::scotland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "croatia::north macedonia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "albania::liechtenstein": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bosnia and herzegovina::england": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "armenia::slovenia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "estonia::switzerland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "austria::serbia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "finland::portugal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hungary::republic of ireland": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "san marino::slovakia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "denmark::sweden": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kosovo::norway": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "belgium::montenegro": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "france::luxembourg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "andorra::spain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "st. vincent and the grenadines::suriname": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "barbados::curacao": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "central african republic::chad": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "djibouti::sierra leone": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "equatorial guinea::tunisia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "mexico::uruguay": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "canada::netherlands": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dominica::guatemala": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "montserrat::nicaragua": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dominican republic::jamaica": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "haiti::st. lucia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "jordan::tajikistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "malawi::sao tome and principe": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "congo::niger": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "libya::mauritius": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mauritania::sudan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "algeria::guinea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "benin::rwanda": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "burkina faso::egypt": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ghana::mali": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cambodia::mongolia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "czechia::malta": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "armenia::kazakhstan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "albania::azerbaijan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belarus::russia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "england::iceland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "germany::greece": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "poland::ukraine": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cuba::honduras": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guyana::panama": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "costa rica::st. kitts and nevis": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mozambique::somalia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "lesotho::zimbabwe": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "angola::eswatini": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "comoros::madagascar": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "botswana::uganda": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "gabon::ivory coast": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "brunei darussalam::sri lanka": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "hungary::israel": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cyprus::moldova": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "serbia::sweden": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "croatia::portugal": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "denmark::norway": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belgium::luxembourg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "northern ireland::spain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "colombia::united states": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "british virgin islands::guatemala": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "anguilla::suriname": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bahamas::trinidad and tobago": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cameroon::cape verde": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "gambia::seychelles": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "brazil::mexico": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bosnia and herzegovina::italy": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "georgia::montenegro": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "slovakia::wales": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aruba::curacao": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "belize::nicaragua": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "antigua and barbuda::cayman islands": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dominica::jamaica": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "el salvador::st. vincent and the grenadines": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "barbados::haiti": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "costa rica::grenada": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bermuda::honduras": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liberia::sao tome and principe": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "dr congo::togo": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "mauritania::senegal": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "czechia::north macedonia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "iceland::netherlands": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "poland::turkiye": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "montserrat::panama": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "equatorial guinea::malawi": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "botswana::somalia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "benin::nigeria": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "algeria::uganda": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "central african republic::ghana": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "guinea::mozambique": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "azerbaijan::kazakhstan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belarus::israel": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "greece::malta": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "moldova::ukraine": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cyprus::san marino": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "andorra::northern ireland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "portugal::republic of ireland": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "cayman islands::cuba": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bahamas::st. kitts and nevis": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "belize::guyana": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "indonesia::philippines": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bangladesh::lebanon": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "eswatini::mauritius": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "south sudan::sudan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cape verde::libya": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chad::comoros": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "lesotho::rwanda": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "south africa::zimbabwe": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "tanzania::zambia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "congo::morocco": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "gabon::gambia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "burundi::seychelles": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "chile::paraguay": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "british virgin islands::dominican republic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "anguilla::puerto rico": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "germany::scotland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "argentina::guatemala": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "el salvador::peru": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bolivia::colombia": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "hungary::switzerland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "croatia::spain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "albania::italy": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ecuador::honduras": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "panama::paraguay": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "netherlands::poland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "england::serbia": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "romania::ukraine": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belgium::slovakia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "austria::france": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "georgia::turkiye": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "czechia::portugal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "germany::hungary": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "slovakia::ukraine": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "austria::poland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "argentina::canada": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "portugal::turkiye": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belgium::romania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ecuador::venezuela": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "hungary::scotland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bolivia::united states": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "albania::spain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "panama::uruguay": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "austria::netherlands": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "canada::peru": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "czechia::turkiye": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "georgia::portugal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "argentina::chile": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "ecuador::jamaica": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mexico::venezuela": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "panama::united states": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "colombia::costa rica": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "italy::switzerland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "denmark::germany": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brazil::paraguay": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "england::slovakia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "georgia::spain": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "belgium::france": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "jamaica::venezuela": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "netherlands::romania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "united states::uruguay": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "costa rica::paraguay": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "germany::spain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "netherlands::turkiye": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "colombia::panama": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "france::spain": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "england::netherlands": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "colombia::uruguay": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "england::spain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "argentina::colombia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lebanon::tajikistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "malaysia::philippines": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "andorra::gibraltar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hong kong::solomon islands": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bangladesh::bhutan": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "russia::vietnam": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bolivia::venezuela": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "china::japan": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "north korea::uzbekistan": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "iran::kyrgyz republic": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "iraq::oman": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "arab emirates::qatar": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "cook islands::tonga": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "azerbaijan::sweden": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "denmark::switzerland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "estonia::slovakia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "luxembourg::northern ireland": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "liechtenstein::san marino": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "poland::scotland": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "american samoa::samoa": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "belgium::israel": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "france::italy": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "iceland::montenegro": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "kosovo::romania": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "canada::united states": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brazil::ecuador": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "armenia::latvia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "czechia::georgia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "malta::moldova": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "england::republic of ireland": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "finland::greece": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bosnia and herzegovina::netherlands": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "albania::ukraine": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "mexico::new zealand": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belarus::luxembourg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bulgaria::northern ireland": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "denmark::serbia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "azerbaijan::slovakia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "croatia::poland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "portugal::scotland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "spain::switzerland": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "samoa::tonga": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cyprus::kosovo": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "israel::italy": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "montenegro::wales": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "austria::norway": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lithuania::romania": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kazakhstan::slovenia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "iceland::turkiye": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "thailand::vietnam": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "moldova::san marino": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bolivia::chile": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "ecuador::peru": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "china::saudi arabia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kyrgyz republic::uzbekistan": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "oman::south korea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jordan::palestine": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bahrain::japan": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "arab emirates::iran": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "faroe islands::latvia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "albania::georgia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "andorra::malta": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "czechia::ukraine": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "england::finland": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "greece::republic of ireland": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "myanmar::sri lanka": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hong kong::liechtenstein": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "australia::china": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "jordan::south korea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kuwait::oman": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kyrgyz republic::qatar": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "iraq::palestine": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "japan::saudi arabia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "latvia::north macedonia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "andorra::moldova": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "austria::kazakhstan": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "england::greece": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "finland::republic of ireland": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "gibraltar::san marino": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "france::israel": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "norway::slovenia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "cambodia::chinese taipei": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brazil::chile": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "new zealand::tahiti": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "azerbaijan::estonia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bosnia and herzegovina::germany": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "albania::czechia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "montenegro::turkiye": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "georgia::ukraine": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "peru::uruguay": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "samoa::vanuatu": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kosovo::lithuania": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "croatia::scotland": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cyprus::romania": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "poland::portugal": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "serbia::switzerland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "denmark::spain": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "andorra::san marino": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "malaysia::new zealand": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bosnia and herzegovina::hungary": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cambodia::hong kong": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "canada::panama": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chile::colombia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "china::indonesia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "kyrgyz republic::north korea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "arab emirates::uzbekistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jordan::oman": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "serbia::spain": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "mexico::united states": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "nepal::tajikistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hong kong::philippines": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "myanmar::singapore": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "laos::malaysia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liechtenstein::malta": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "iran::north korea": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bahrain::china": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kuwait::south korea": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "oman::palestine": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "qatar::uzbekistan": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "armenia::faroe islands": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "belgium::italy": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brunei darussalam::russia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "indonesia::japan": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "samoa::tahiti": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "new zealand::vanuatu": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bulgaria::luxembourg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belarus::northern ireland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "afghanistan::nepal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hungary::netherlands": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "slovakia::sweden": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "faroe islands::north macedonia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kazakhstan::norway": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "tahiti::vanuatu": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "new zealand::samoa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lebanon::myanmar": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hong kong::mauritius": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "afghanistan::tajikistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "russia::syria": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "colombia::ecuador": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "indonesia::saudi arabia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "iceland::wales": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kuwait::lebanon": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guinea::ivory coast": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "saudi arabia::trinidad and tobago": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kenya::tanzania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "burkina faso::tanzania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kenya::zanzibar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "burkina faso::zanzibar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "united states::venezuela": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "costa rica::united states": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chile::panama": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kazakhstan::north korea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guatemala::honduras": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "congo::tanzania": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hong kong::macau": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cambodia::vietnam": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "india::maldives": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "curacao::kazakhstan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "grenada::russia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "central african republic::madagascar": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "liberia::tunisia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "laos::sri lanka": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "belarus::tajikistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lebanon::timor-leste": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "australia::indonesia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "north korea::qatar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mozambique::uganda": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cape verde::mauritius": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "malawi::namibia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "guinea-bissau::sierra leone": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gabon::seychelles": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "comoros::mali": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "armenia::georgia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bulgaria::republic of ireland": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "croatia::france": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "denmark::portugal": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "greece::scotland": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "germany::italy": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "iceland::kosovo": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "belgium::ukraine": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "nepal::singapore": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "afghanistan::thailand": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "andorra::latvia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "albania::england": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "finland::malta": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lithuania::poland": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bosnia and herzegovina::romania": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "algeria::botswana": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "equatorial guinea::sao tome and principe": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "burkina faso::djibouti": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "dr congo::south sudan": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "nigeria::rwanda": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "lesotho::south africa": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "burundi::ivory coast": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "chad::ghana": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "egypt::ethiopia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "morocco::niger": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "new caledonia::tahiti": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fiji::new zealand": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "luxembourg::sweden": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "azerbaijan::haiti": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liechtenstein::north macedonia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "moldova::norway": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "gibraltar::montenegro": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "czechia::faroe islands": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "estonia::israel": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kazakhstan::wales": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "slovakia::slovenia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "albania::andorra": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bosnia and herzegovina::cyprus": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "england::latvia": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "malta::poland": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "romania::san marino": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "burkina faso::guinea-bissau": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "djibouti::ethiopia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "new caledonia::new zealand": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aruba::cambodia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "russia::zambia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "azerbaijan::belarus": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "northern ireland::sweden": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "luxembourg::switzerland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bonaire::niger": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "estonia::moldova": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "czechia::gibraltar": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "israel::norway": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kazakhstan::liechtenstein": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "faroe islands::montenegro": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bahrain::indonesia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "arab emirates::north korea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "angola::cape verde": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cameroon::libya": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "senegal::togo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dominican republic::puerto rico": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "peru::venezuela": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "niger::oman": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "st. kitts and nevis::st. vincent and the grenadines": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "anguilla::st. martin": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "anguilla::st. kitts and nevis": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lebanon::oman": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ghana::trinidad and tobago": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "anguilla::grenada": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "burkina faso::tunisia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cape verde::malaysia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "india::thailand": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "british virgin islands::dominica": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "belize::montserrat": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bermuda::cayman islands": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bahamas::grenada": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "anguilla::st. vincent and the grenadines": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "germany::portugal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "maldives::singapore": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cambodia::tajikistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "algeria::rwanda": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "faroe islands::georgia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "belarus::kazakhstan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dr congo::mali": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "paraguay::uruguay": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "australia::japan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bahrain::saudi arabia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kuwait::palestine": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "equatorial guinea::gambia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "central african republic::mauritania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "burkina faso::zimbabwe": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "luxembourg::slovenia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hungary::sweden": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "moldova::poland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "iceland::scotland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "burundi::guinea-bissau": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gabon::niger": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cameroon::uganda": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "morocco::tunisia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "croatia::gibraltar": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "italy::norway": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "liechtenstein::wales": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "antigua and barbuda::cuba": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "puerto rico::suriname": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "curacao::st. lucia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "denmark::northern ireland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "greece::slovakia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "turkiye::united states": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "canada::ukraine": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mexico::switzerland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ivory coast::new zealand": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bosnia and herzegovina::san marino": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "andorra::england": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "austria::romania": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "finland::netherlands": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "dominican republic::guatemala": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guyana::nicaragua": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "anguilla::el salvador": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "british virgin islands::jamaica": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cayman islands::honduras": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aruba::haiti": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bahamas::costa rica": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dr congo::madagascar": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belize::panama": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liechtenstein::scotland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "comoros::kosovo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "gabon::guinea-bissau": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benin::morocco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kazakhstan::north macedonia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "belgium::wales": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "croatia::czechia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "estonia::norway": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "faroe islands::gibraltar": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "italy::moldova": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "azerbaijan::hungary": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bosnia and herzegovina::slovenia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "denmark::lithuania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chad::kenya": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "algeria::sweden": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mozambique::south africa": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "england::senegal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bulgaria::greece": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "israel::slovakia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "iceland::northern ireland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "new zealand::ukraine": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "finland::poland": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "malta::netherlands": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "austria::san marino": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "andorra::serbia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "uruguay::venezuela": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "grenada::st. kitts and nevis": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bermuda::cuba": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "curacao::haiti": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "barbados::st. lucia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dominica::dominican republic": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "iraq::jordan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "australia::saudi arabia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "switzerland::united states": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mexico::turkiye": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "guyana::montserrat": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "costa rica::trinidad and tobago": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "puerto rico::st. vincent and the grenadines": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "antigua and barbuda::honduras": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dominican republic::mexico": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "haiti::saudi arabia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "costa rica::suriname": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "guadeloupe::panama": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "canada::honduras": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "costa rica::dominican republic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mexico::suriname": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "saudi arabia::united states": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guadeloupe::jamaica": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guatemala::panama": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "el salvador::honduras": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "haiti::united states": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jamaica::panama": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "canada::el salvador": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "curacao::honduras": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mexico::saudi arabia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "guatemala::united states": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "tanzania::uganda": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "senegal::uganda": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "senegal::tanzania": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lebanon::qatar": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "malaysia::singapore": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "north macedonia::saudi arabia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "arab emirates::syria": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "albania::gibraltar": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "finland::norway": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bulgaria::spain": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "belgium::liechtenstein": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "germany::slovakia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "argentina::venezuela": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "angola::libya": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cameroon::eswatini": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chinese taipei::indonesia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "canada::romania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "croatia::faroe islands": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "belarus::greece": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "azerbaijan::iceland": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "estonia::italy": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "israel::moldova": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "kosovo::switzerland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "france::ukraine": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "el salvador::guatemala": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "bermuda::jamaica": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "guinea::somalia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gambia::kenya": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benin::zimbabwe": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mauritania::togo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "senegal::sudan": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "maldives::sri lanka": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "south korea::united states": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "latvia::serbia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "armenia::portugal": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "austria::cyprus": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "qatar::russia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bulgaria::georgia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "lithuania::netherlands": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "belgium::kazakhstan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "germany::northern ireland": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "luxembourg::slovakia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "spain::turkiye": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "malaysia::palestine": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belarus::scotland": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "croatia::montenegro": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "denmark::greece": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "kosovo::sweden": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "slovenia::switzerland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dominican republic::jordan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "canada::wales": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "malta::san marino": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "japan::united states": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "armenia::republic of ireland": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "albania::latvia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "austria::bosnia and herzegovina": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "france::iceland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hungary::portugal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "paraguay::peru": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "el salvador::suriname": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "ethiopia::sierra leone": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "rwanda::zimbabwe": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dr congo::senegal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "sudan::togo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "angola::mauritius": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benin::lesotho": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bermuda::curacao": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "honduras::nicaragua": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "cuba::st. vincent and the grenadines": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "gibraltar::new caledonia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "british virgin islands::grenada": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ethiopia::guinea-bissau": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "burkina faso::sierra leone": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "moldova::romania": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "england::wales": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "new zealand::poland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bahrain::morocco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "finland::lithuania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belarus::denmark": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "burundi::kenya": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liberia::namibia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brazil::south korea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dominican republic::uruguay": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bolivia::jordan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "iran::russia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "australia::canada": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "azerbaijan::france": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "germany::luxembourg": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "iceland::ukraine": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "northern ireland::slovakia": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "sweden::switzerland": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "haiti::nicaragua": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "bermuda::trinidad and tobago": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "curacao::jamaica": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lesotho::nigeria": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cuba::grenada": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "armenia::hungary": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bulgaria::turkiye": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "albania::serbia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "el salvador::panama": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bosnia and herzegovina::malta": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "egypt::guinea-bissau": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "madagascar::mali": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "uruguay::uzbekistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "liechtenstein::montenegro": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "azerbaijan::ukraine": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brazil::japan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "paraguay::south korea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "iran::tanzania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "albania::jordan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bolivia::russia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "costa rica::nicaragua": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ivory coast::kenya": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "argentina::puerto rico": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "australia::united states": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "barbados::bonaire": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dominica::st. martin": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cuba::st. lucia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "anguilla::bahamas": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "british virgin islands::cayman islands": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dominican republic::st. vincent and the grenadines": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bhutan::india": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "algeria::zimbabwe": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "czechia::san marino": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gabon::nigeria": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cameroon::dr congo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ghana::japan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bolivia::south korea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "equatorial guinea::kenya": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "oman::sudan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "angola::argentina": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "comoros::namibia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "egypt::uzbekistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ivory coast::saudi arabia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jordan::tunisia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chad::uganda": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "burkina faso::niger": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "morocco::mozambique": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "costa rica::haiti": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "grenada::us virgin islands": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "australia::venezuela": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "south africa::zambia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "libya::mauritania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chile::russia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kuwait::tanzania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "guinea::liberia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "aruba::barbados": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dominica::sint maarten": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bahamas::british virgin islands": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "paraguay::united states": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bonaire::guyana": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "belize::st. martin": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kosovo::slovenia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "anguilla::cayman islands": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cuba::martinique": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "st. lucia::st. vincent and the grenadines": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "colombia::new zealand": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "fiji::vanuatu": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "equatorial guinea::madagascar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bahrain::somalia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "qatar::zimbabwe": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "andorra::finland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bolivia::japan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ghana::south korea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "lesotho::malawi": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ivory coast::oman": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kenya::senegal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "angola::zambia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benin::burkina faso": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "algeria::saudi arabia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cyprus::estonia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "faroe islands::kazakhstan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "morocco::uganda": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belize::st. kitts and nevis": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "antigua and barbuda::guyana": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "denmark::scotland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "north macedonia::wales": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "arab emirates::iraq": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "australia::colombia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ecuador::new zealand": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mexico::paraguay": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "canada::venezuela": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "guatemala::suriname": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dr congo::zambia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "egypt::nigeria": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "botswana::tunisia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "comoros::morocco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "angola::south africa": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "egypt::zimbabwe": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benin::dr congo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "botswana::senegal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nigeria::tanzania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "tunisia::uganda": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "burkina faso::equatorial guinea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "algeria::sudan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ivory coast::mozambique": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cameroon::gabon": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "egypt::south africa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benin::botswana": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nigeria::tunisia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gabon::mozambique": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "equatorial guinea::sudan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "algeria::burkina faso": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nigeria::uganda": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "botswana::dr congo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "algeria::equatorial guinea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "burkina faso::sudan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cameroon::mozambique": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cameroon::south africa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benin::egypt": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "algeria::dr congo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "burkina faso::ivory coast": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mali::senegal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "cameroon::morocco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "algeria::nigeria": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "egypt::ivory coast": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "egypt::senegal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "canada::guatemala": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "grenada::jamaica": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "morocco::senegal": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "iceland::mexico": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bolivia::trinidad and tobago": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kazakhstan::namibia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "equatorial guinea::kyrgyz republic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "american samoa::us virgin islands": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bermuda::dr congo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guam::puerto rico": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aruba::macau": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bangladesh::vietnam": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liechtenstein::tanzania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "lithuania::moldova": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belarus::cyprus": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brazil::france": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "barbados::st. martin": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "colombia::croatia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "romania::turkiye": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "denmark::north macedonia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "italy::northern ireland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "albania::poland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "kosovo::slovakia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "sweden::ukraine": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gibraltar::latvia": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "bonaire::st. vincent and the grenadines": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cape verde::chile": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "china::curacao": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "finland::new zealand": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bulgaria::solomon islands": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "australia::cameroon": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "trinidad and tobago::venezuela": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "iran::nigeria": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "indonesia::st. kitts and nevis": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "gabon::uzbekistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "azerbaijan::st. lucia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benin::liberia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "nicaragua::russia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "austria::ghana": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "andorra::montenegro": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "egypt::saudi arabia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "greece::paraguay": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "dominica::guyana": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "grenada::rwanda": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "algeria::guatemala": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "netherlands::norway": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "germany::switzerland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belize::sint maarten": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "argentina::mauritania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kyrgyz republic::madagascar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "faroe islands::san marino": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ivory coast::south korea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "peru::senegal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hungary::slovenia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "japan::scotland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belgium::united states": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "american samoa::guam": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "haiti::tunisia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "puerto rico::us virgin islands": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "georgia::lithuania": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "macau::tanzania": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "armenia::belarus": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "aruba::liechtenstein": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "colombia::france": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "barbados::st. vincent and the grenadines": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "anguilla::british virgin islands": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bahamas::cayman islands": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bonaire::st. martin": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chile::new zealand": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "solomon islands::st. kitts and nevis": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bulgaria::indonesia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "grenada::kenya": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "estonia::rwanda": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "germany::ghana": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cameroon::china": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "australia::curacao": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "comoros::kazakhstan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "costa rica::iran": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "montenegro::slovenia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "saudi arabia::serbia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "zambia::zimbabwe": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "panama::south africa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benin::guinea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "morocco::paraguay": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ivory coast::scotland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "austria::south korea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "england::japan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "romania::slovakia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "portugal::united states": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "argentina::zambia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "kosovo::turkiye": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "poland::sweden": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brazil::croatia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "grenada::republic of ireland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "burundi::morocco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nigeria::zimbabwe": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "india::jamaica": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "egypt::russia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "qatar::republic of ireland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "andorra::iraq": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "curacao::scotland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "india::zimbabwe": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jamaica::nigeria": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "ecuador::saudi arabia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "south korea::trinidad and tobago": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "australia::mexico": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "iceland::japan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mongolia::singapore": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "jordan::switzerland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "czechia::kosovo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cape verde::serbia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "finland::germany": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "senegal::united states": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brazil::panama": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bulgaria::montenegro": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "malta::slovakia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "norway::sweden": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "north macedonia::turkiye": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "austria::tunisia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "canada::uzbekistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belgium::croatia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "madagascar::morocco": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "haiti::new zealand": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "guam::philippines": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "british virgin islands::gibraltar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "albania::israel": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "italy::luxembourg": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "algeria::netherlands": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "dominican republic::panama": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "el salvador::south korea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "maldives::pakistan": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bhutan::cambodia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guinea::northern ireland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "iran::mali": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "andorra::liechtenstein": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "france::ivory coast": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "czechia::guatemala": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mexico::serbia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hong kong::mongolia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "indonesia::oman": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "belarus::syria": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "bahrain::georgia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "burkina faso::russia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bangladesh::san marino": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "finland::hungary": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "azerbaijan::malta": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "puerto rico::saudi arabia": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "haiti::peru": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "guam::myanmar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "belgium::tunisia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "ethiopia::malawi": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cayman islands::gibraltar": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "chile::portugal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "romania::wales": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "albania::luxembourg": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "bolivia::scotland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "england::new zealand": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "jamaica::south africa": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "brazil::egypt": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "turkiye::venezuela": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "argentina::honduras": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "afghanistan::pakistan": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "kenya::lesotho": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "cyprus::liechtenstein": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "mozambique::oman": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "denmark::ukraine": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "andorra::kosovo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "croatia::slovenia": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "greece::italy": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "colombia::jordan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "netherlands::uzbekistan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "france::northern ireland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "peru::spain": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "myanmar::philippines": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "indonesia::mozambique": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "chile::dr congo": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "comoros::equatorial guinea": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "angola::central african republic": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "hungary::kazakhstan": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "russia::trinidad and tobago": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "azerbaijan::san marino": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "benin::togo": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "liberia::sierra leone": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "argentina::iceland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "iraq::venezuela": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "nigeria::portugal": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "costa rica::england": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mexico::south africa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "czechia::south korea": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "haiti::scotland": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "australia::turkiye": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      }
+    },
+    "last_updated": "2026-06-14"
   }
 }
