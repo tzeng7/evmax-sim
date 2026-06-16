@@ -73,14 +73,15 @@ SCENARIOS = {
 }
 
 SECTOR_GROUPS = {
-    "nba":     {"sectors": ["nba"],              "label": "NBA"},
-    "wnba":    {"sectors": ["wnba"],             "label": "WNBA"},
-    "soccer":  {"sectors": ["soccer"],           "label": "Soccer"},
-    "tennis":  {"sectors": ["tennis"],           "label": "Tennis"},
-    "ncaab":   {"sectors": ["ncaab"],            "label": "NCAAB"},
-    "baseball":{"sectors": ["baseball"],         "label": "Baseball"},
-    "esports": {"sectors": ["lol", "cs2"],       "label": "Esports"},
-    "nhl":     {"sectors": ["nhl"],              "label": "NHL"},
+    "nba":      {"sectors": ["nba"],              "label": "NBA"},
+    "wnba":     {"sectors": ["wnba"],             "label": "WNBA"},
+    "soccer":   {"sectors": ["soccer"],           "label": "Soccer"},
+    "worldcup": {"sectors": ["worldcup"],         "label": "World Cup"},
+    "tennis":   {"sectors": ["tennis"],           "label": "Tennis"},
+    "ncaab":    {"sectors": ["ncaab"],            "label": "NCAAB"},
+    "baseball": {"sectors": ["baseball"],         "label": "Baseball"},
+    "esports":  {"sectors": ["lol", "cs2"],       "label": "Esports"},
+    "nhl":      {"sectors": ["nhl"],              "label": "NHL"},
 }
 
 # Player-prop portfolio groups — kept separate from SECTOR_GROUPS so
