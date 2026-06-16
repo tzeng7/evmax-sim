@@ -210,21 +210,36 @@ def delete_portfolio(portfolio_id: str) -> bool:
 
 
 def create_default_portfolios() -> list[Portfolio]:
-    """Create 3 scenarios × each sector group."""
-    created = []
+    """Create 3 scenarios × each sector group.
+
+    Safe to call repeatedly: uses INSERT OR IGNORE so existing portfolios
+    keep their current_bankroll intact. Only missing portfolios are inserted.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    created: list[Portfolio] = []
+    conn = _get_conn()
     for group_key, group in SECTOR_GROUPS.items():
         for scenario_name, params in SCENARIOS.items():
             pid = f"{group_key}_{scenario_name}"
             name = f"{group['label']} {scenario_name.capitalize()}"
-            p = create_portfolio(
-                portfolio_id=pid,
-                name=name,
-                sectors=group["sectors"],
-                bankroll=params["bankroll"],
-                kelly_fraction=params["kelly"],
-                scenario=scenario_name,
+            sectors_json = json.dumps(group["sectors"])
+            bankroll = params["bankroll"]
+            kelly = params["kelly"]
+            conn.execute(
+                """INSERT OR IGNORE INTO portfolios
+                   (id, name, sectors, initial_bankroll, current_bankroll,
+                    kelly_fraction, scenario, active, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)""",
+                (pid, name, sectors_json, bankroll, bankroll, kelly,
+                 scenario_name, now, now),
             )
-            created.append(p)
+            row = conn.execute(
+                "SELECT * FROM portfolios WHERE id = ?", (pid,)
+            ).fetchone()
+            if row is not None:
+                created.append(_portfolio_from_row(row))
+    conn.commit()
+    conn.close()
     return created
 
 
