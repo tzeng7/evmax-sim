@@ -24,6 +24,8 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
+from evmax.formatting import format_outcome_label
+
 app = typer.Typer(no_args_is_help=True)
 console = Console()
 
@@ -161,17 +163,6 @@ def show(
     table.add_column("Src",     style="dim", width=10)
     table.add_column("Result",  justify="center", width=7)
 
-    def _display_label(yes_team: str, market_type: str, line) -> str:
-        team = (yes_team or "?").capitalize()
-        if market_type == "moneyline":
-            return f"{team} ML"
-        if market_type == "spread" and line is not None:
-            line_str = f"{line:.1f}".rstrip("0").rstrip(".")
-            return f"{team} {line_str}"
-        if market_type in ("over_under", "total") and line is not None:
-            return f"O/U {line:.1f}"
-        return team
-
     for i, r in enumerate(rows, 1):
         ev_color = "bold green" if r["ev_pct"] >= 0.10 else "green" if r["ev_pct"] >= 0.05 else "yellow"
         # Use actual placed stake/price if available, else estimated
@@ -208,7 +199,11 @@ def show(
             r["event_date"] or r["scan_date"] or "",
             (r["sector"] or "").upper(),
             (r["event_title"] or "")[:24],
-            _display_label(r["yes_team"], r["market_type"] or "moneyline", r["line"]) + placed_marker,
+            format_outcome_label(
+                yes_team=r["yes_team"],
+                market_type=r["market_type"] or "moneyline",
+                line=r["line"],
+            ) + placed_marker,
             f"{price:.2f}",
             f"{r['blended_true_prob']:.3f}",
             clv_str,
