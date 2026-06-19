@@ -35,7 +35,6 @@ NBA is never read, never modified, never referenced by this agent.
 
 from __future__ import annotations
 
-import math
 from datetime import date
 from typing import Optional
 
