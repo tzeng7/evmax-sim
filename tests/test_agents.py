@@ -1001,6 +1001,58 @@ class TestPoissonModelAgent:
         assert lam_h_mid > lam_h_cold
         assert lam_a_mid < lam_a_cold
 
+    def test_update_is_opponent_adjusted(self):
+        """update() credits goals relative to the OPPONENT's strength, not a
+        flat league average.
+
+        This is the fix for the World Cup underdog-bias bug: the old update
+        divided goals only by the league average, so scoring 3 against a stingy
+        defense earned the same attack credit as scoring 3 against a leaky one.
+        On a balanced league schedule that washes out, but national-team
+        schedules are split by confederation strength — minnows that beat up on
+        weak opponents (Japan/Russia/Iran in AFC/friendly play) were ranked
+        above Brazil/France, inflating underdog win probs and +EV flags.
+        """
+        agent = PoissonModelAgent()
+        agent._state = {
+            "worldcup": {
+                "league_avg": {"home": 1.30, "away": 1.30},
+                "teams": {
+                    # Stable, high-N reference opponents with known defenses.
+                    "stingy": {"attack": 1.0, "defense": 0.4, "games": 50},
+                    "leaky": {"attack": 1.0, "defense": 1.8, "games": 50},
+                },
+            }
+        }
+        # Two fresh teams each score 3 at home — one vs the stingy defense,
+        # one vs the leaky defense. Identical scorelines, different opponents.
+        agent.update("beat_stingy", "stingy", 3, 0, "worldcup")
+        agent.update("beat_leaky", "leaky", 3, 0, "worldcup")
+
+        teams = agent._state["worldcup"]["teams"]
+        # Scoring 3 on a stingy defense implies a far stronger attack than the
+        # same 3 on a leaky one. The OLD (SOS-blind) update made these EQUAL.
+        assert teams["beat_stingy"]["attack"] > teams["beat_leaky"]["attack"]
+
+    def test_update_clamps_extreme_single_game_implied_rating(self):
+        """A freak result against an extreme opponent can't blow past the clamp.
+
+        Scoring 4 on a def≈0.3 elite defense implies attack ≈ 4/(1.30·0.3) ≈ 10;
+        IMPLIED_RATING_CLAMP keeps one game from dominating a team's rating.
+        """
+        from evmax.agents.models.poisson_agent import IMPLIED_RATING_CLAMP
+
+        agent = PoissonModelAgent()
+        agent._state = {
+            "worldcup": {
+                "league_avg": {"home": 1.30, "away": 1.30},
+                "teams": {"elite_def": {"attack": 1.0, "defense": 0.3, "games": 50}},
+            }
+        }
+        agent.update("freak", "elite_def", 4, 0, "worldcup")
+        # First game → rating == the single-game implied value, capped at hi.
+        assert agent._state["worldcup"]["teams"]["freak"]["attack"] <= IMPLIED_RATING_CLAMP[1]
+
 
 # ---------------------------------------------------------------------------
 # EnsembleModelAgent

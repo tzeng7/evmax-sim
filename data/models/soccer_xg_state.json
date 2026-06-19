@@ -27986,6 +27986,16 @@
       "mexico": {
         "matches": [
           {
+            "date": "2026-06-19",
+            "goals_for": 1,
+            "goals_against": 0,
+            "sot": 4,
+            "shots": 8,
+            "xg": 1.32,
+            "xga": 0.81,
+            "is_home": true
+          },
+          {
             "date": "2026-06-11",
             "goals_for": 2,
             "goals_against": 0,
@@ -28174,16 +28184,6 @@
             "xg": 1.47,
             "xga": 0.18,
             "is_home": true
-          },
-          {
-            "date": "2025-06-19",
-            "goals_for": 2,
-            "goals_against": 0,
-            "sot": 6,
-            "shots": 16,
-            "xg": 2.1,
-            "xga": 0.69,
-            "is_home": false
           }
         ]
       },
@@ -28394,6 +28394,16 @@
       "panama": {
         "matches": [
           {
+            "date": "2026-06-17",
+            "goals_for": 0,
+            "goals_against": 1,
+            "sot": 4,
+            "shots": 11,
+            "xg": 1.41,
+            "xga": 0.75,
+            "is_home": false
+          },
+          {
             "date": "2026-05-31",
             "goals_for": 2,
             "goals_against": 6,
@@ -28581,16 +28591,6 @@
             "shots": 13,
             "xg": 1.2,
             "xga": 1.41,
-            "is_home": false
-          },
-          {
-            "date": "2024-07-06",
-            "goals_for": 0,
-            "goals_against": 5,
-            "sot": 3,
-            "shots": 14,
-            "xg": 1.23,
-            "xga": 1.56,
             "is_home": false
           }
         ]
@@ -28966,6 +28966,16 @@
       "uzbekistan": {
         "matches": [
           {
+            "date": "2026-06-18",
+            "goals_for": 1,
+            "goals_against": 3,
+            "sot": 2,
+            "shots": 8,
+            "xg": 0.78,
+            "xga": 1.53,
+            "is_home": true
+          },
+          {
             "date": "2026-06-08",
             "goals_for": 1,
             "goals_against": 2,
@@ -29154,16 +29164,6 @@
             "xg": 0.6,
             "xga": 0.6,
             "is_home": true
-          },
-          {
-            "date": "2023-11-16",
-            "goals_for": 3,
-            "goals_against": 1,
-            "sot": 3,
-            "shots": 3,
-            "xg": 0.9,
-            "xga": 0.3,
-            "is_home": false
           }
         ]
       },
@@ -29672,6 +29672,16 @@
       "germany": {
         "matches": [
           {
+            "date": "2026-06-14",
+            "goals_for": 7,
+            "goals_against": 1,
+            "sot": 12,
+            "shots": 26,
+            "xg": 4.02,
+            "xga": 0.78,
+            "is_home": true
+          },
+          {
             "date": "2026-06-06",
             "goals_for": 2,
             "goals_against": 1,
@@ -29860,16 +29870,6 @@
             "xg": 1.98,
             "xga": 1.41,
             "is_home": false
-          },
-          {
-            "date": "2024-09-07",
-            "goals_for": 5,
-            "goals_against": 0,
-            "sot": 9,
-            "shots": 23,
-            "xg": 3.12,
-            "xga": 0.45,
-            "is_home": true
           }
         ]
       },
@@ -30874,6 +30874,16 @@
       "uruguay": {
         "matches": [
           {
+            "date": "2026-06-15",
+            "goals_for": 1,
+            "goals_against": 1,
+            "sot": 10,
+            "shots": 27,
+            "xg": 3.51,
+            "xga": 1.02,
+            "is_home": false
+          },
+          {
             "date": "2026-03-31",
             "goals_for": 0,
             "goals_against": 0,
@@ -31062,21 +31072,21 @@
             "xg": 1.53,
             "xga": 0.81,
             "is_home": true
-          },
-          {
-            "date": "2024-07-14",
-            "goals_for": 2,
-            "goals_against": 2,
-            "sot": 5,
-            "shots": 12,
-            "xg": 1.71,
-            "xga": 2.04,
-            "is_home": false
           }
         ]
       },
       "netherlands": {
         "matches": [
+          {
+            "date": "2026-06-14",
+            "goals_for": 2,
+            "goals_against": 2,
+            "sot": 6,
+            "shots": 10,
+            "xg": 1.92,
+            "xga": 1.11,
+            "is_home": true
+          },
           {
             "date": "2026-06-08",
             "goals_for": 2,
@@ -31266,21 +31276,21 @@
             "xg": 1.41,
             "xga": 1.98,
             "is_home": true
-          },
-          {
-            "date": "2024-09-07",
-            "goals_for": 5,
-            "goals_against": 2,
-            "sot": 9,
-            "shots": 28,
-            "xg": 3.27,
-            "xga": 0.93,
-            "is_home": true
           }
         ]
       },
       "croatia": {
         "matches": [
+          {
+            "date": "2026-06-17",
+            "goals_for": 2,
+            "goals_against": 4,
+            "sot": 5,
+            "shots": 10,
+            "xg": 1.65,
+            "xga": 3.63,
+            "is_home": false
+          },
           {
             "date": "2026-06-07",
             "goals_for": 2,
@@ -31470,21 +31480,21 @@
             "xg": 2.31,
             "xga": 0.87,
             "is_home": true
-          },
-          {
-            "date": "2024-09-05",
-            "goals_for": 1,
-            "goals_against": 2,
-            "sot": 4,
-            "shots": 13,
-            "xg": 1.47,
-            "xga": 2.07,
-            "is_home": false
           }
         ]
       },
       "japan": {
         "matches": [
+          {
+            "date": "2026-06-14",
+            "goals_for": 2,
+            "goals_against": 2,
+            "sot": 3,
+            "shots": 10,
+            "xg": 1.11,
+            "xga": 1.92,
+            "is_home": false
+          },
           {
             "date": "2026-05-31",
             "goals_for": 1,
@@ -31674,16 +31684,6 @@
             "xg": 3.06,
             "xga": 0.36,
             "is_home": false
-          },
-          {
-            "date": "2024-03-21",
-            "goals_for": 1,
-            "goals_against": 0,
-            "sot": 5,
-            "shots": 16,
-            "xg": 1.83,
-            "xga": 0.99,
-            "is_home": true
           }
         ]
       },
@@ -31894,6 +31894,16 @@
       "argentina": {
         "matches": [
           {
+            "date": "2026-06-17",
+            "goals_for": 3,
+            "goals_against": 0,
+            "sot": 6,
+            "shots": 10,
+            "xg": 1.92,
+            "xga": 0.48,
+            "is_home": true
+          },
+          {
             "date": "2026-06-10",
             "goals_for": 3,
             "goals_against": 0,
@@ -32081,16 +32091,6 @@
             "shots": 16,
             "xg": 2.64,
             "xga": 0.42,
-            "is_home": true
-          },
-          {
-            "date": "2024-07-15",
-            "goals_for": 1,
-            "goals_against": 0,
-            "sot": 6,
-            "shots": 11,
-            "xg": 1.95,
-            "xga": 1.65,
             "is_home": true
           }
         ]
@@ -32506,6 +32506,16 @@
       "qatar": {
         "matches": [
           {
+            "date": "2026-06-18",
+            "goals_for": 0,
+            "goals_against": 6,
+            "sot": 0,
+            "shots": 2,
+            "xg": 0.06,
+            "xga": 3.66,
+            "is_home": false
+          },
+          {
             "date": "2026-06-13",
             "goals_for": 1,
             "goals_against": 1,
@@ -32694,21 +32704,21 @@
             "xg": 0.51,
             "xga": 1.35,
             "is_home": true
-          },
-          {
-            "date": "2024-06-11",
-            "goals_for": 2,
-            "goals_against": 1,
-            "sot": 8,
-            "shots": 18,
-            "xg": 2.7,
-            "xga": 0.81,
-            "is_home": true
           }
         ]
       },
       "spain": {
         "matches": [
+          {
+            "date": "2026-06-15",
+            "goals_for": 0,
+            "goals_against": 0,
+            "sot": 7,
+            "shots": 27,
+            "xg": 2.7,
+            "xga": 0.45,
+            "is_home": true
+          },
           {
             "date": "2026-06-09",
             "goals_for": 3,
@@ -32897,16 +32907,6 @@
             "shots": 9,
             "xg": 2.43,
             "xga": 1.41,
-            "is_home": false
-          },
-          {
-            "date": "2024-09-05",
-            "goals_for": 0,
-            "goals_against": 0,
-            "sot": 5,
-            "shots": 21,
-            "xg": 1.98,
-            "xga": 0.54,
             "is_home": false
           }
         ]
@@ -34008,6 +34008,16 @@
       "south korea": {
         "matches": [
           {
+            "date": "2026-06-19",
+            "goals_for": 0,
+            "goals_against": 1,
+            "sot": 2,
+            "shots": 9,
+            "xg": 0.81,
+            "xga": 1.32,
+            "is_home": false
+          },
+          {
             "date": "2026-06-12",
             "goals_for": 2,
             "goals_against": 1,
@@ -34195,16 +34205,6 @@
             "shots": 12,
             "xg": 1.71,
             "xga": 0.93,
-            "is_home": false
-          },
-          {
-            "date": "2024-09-10",
-            "goals_for": 3,
-            "goals_against": 1,
-            "sot": 9,
-            "shots": 17,
-            "xg": 2.94,
-            "xga": 0.18,
             "is_home": false
           }
         ]
@@ -34416,6 +34416,16 @@
       "sweden": {
         "matches": [
           {
+            "date": "2026-06-15",
+            "goals_for": 5,
+            "goals_against": 1,
+            "sot": 7,
+            "shots": 13,
+            "xg": 2.28,
+            "xga": 0.72,
+            "is_home": true
+          },
+          {
             "date": "2026-06-04",
             "goals_for": 2,
             "goals_against": 2,
@@ -34604,21 +34614,21 @@
             "xg": 3.99,
             "xga": 0.69,
             "is_home": true
-          },
-          {
-            "date": "2024-09-05",
-            "goals_for": 3,
-            "goals_against": 1,
-            "sot": 11,
-            "shots": 30,
-            "xg": 3.87,
-            "xga": 2.85,
-            "is_home": false
           }
         ]
       },
       "new zealand": {
         "matches": [
+          {
+            "date": "2026-06-16",
+            "goals_for": 2,
+            "goals_against": 2,
+            "sot": 8,
+            "shots": 14,
+            "xg": 2.58,
+            "xga": 1.59,
+            "is_home": false
+          },
           {
             "date": "2026-06-06",
             "goals_for": 0,
@@ -34807,16 +34817,6 @@
             "shots": 9,
             "xg": 0.27,
             "xga": 1.86,
-            "is_home": false
-          },
-          {
-            "date": "2023-06-16",
-            "goals_for": 1,
-            "goals_against": 4,
-            "sot": 3,
-            "shots": 7,
-            "xg": 1.02,
-            "xga": 2.1,
             "is_home": false
           }
         ]
@@ -35028,6 +35028,16 @@
       "jordan": {
         "matches": [
           {
+            "date": "2026-06-17",
+            "goals_for": 1,
+            "goals_against": 3,
+            "sot": 4,
+            "shots": 11,
+            "xg": 1.41,
+            "xga": 1.41,
+            "is_home": false
+          },
+          {
             "date": "2026-06-07",
             "goals_for": 0,
             "goals_against": 2,
@@ -35216,16 +35226,6 @@
             "xg": 2.4,
             "xga": 0.66,
             "is_home": false
-          },
-          {
-            "date": "2023-11-21",
-            "goals_for": 0,
-            "goals_against": 2,
-            "sot": 4,
-            "shots": 17,
-            "xg": 1.59,
-            "xga": 0.75,
-            "is_home": true
           }
         ]
       },
@@ -35436,6 +35436,16 @@
       "colombia": {
         "matches": [
           {
+            "date": "2026-06-18",
+            "goals_for": 3,
+            "goals_against": 1,
+            "sot": 4,
+            "shots": 15,
+            "xg": 1.53,
+            "xga": 0.78,
+            "is_home": false
+          },
+          {
             "date": "2026-06-07",
             "goals_for": 2,
             "goals_against": 0,
@@ -35624,21 +35634,21 @@
             "xg": 1.62,
             "xga": 0.66,
             "is_home": true
-          },
-          {
-            "date": "2024-09-07",
-            "goals_for": 1,
-            "goals_against": 1,
-            "sot": 5,
-            "shots": 16,
-            "xg": 1.83,
-            "xga": 1.08,
-            "is_home": false
           }
         ]
       },
       "iraq": {
         "matches": [
+          {
+            "date": "2026-06-16",
+            "goals_for": 1,
+            "goals_against": 4,
+            "sot": 1,
+            "shots": 11,
+            "xg": 0.6,
+            "xga": 1.71,
+            "is_home": true
+          },
           {
             "date": "2026-06-04",
             "goals_for": 1,
@@ -35827,16 +35837,6 @@
             "shots": 1,
             "xg": 0.3,
             "xga": 0.0,
-            "is_home": true
-          },
-          {
-            "date": "2024-01-06",
-            "goals_for": 0,
-            "goals_against": 1,
-            "sot": 4,
-            "shots": 6,
-            "xg": 1.26,
-            "xga": 2.25,
             "is_home": true
           }
         ]
@@ -36296,6 +36296,16 @@
       "ecuador": {
         "matches": [
           {
+            "date": "2026-06-14",
+            "goals_for": 0,
+            "goals_against": 1,
+            "sot": 1,
+            "shots": 12,
+            "xg": 0.63,
+            "xga": 1.53,
+            "is_home": false
+          },
+          {
             "date": "2026-06-07",
             "goals_for": 3,
             "goals_against": 0,
@@ -36484,16 +36494,6 @@
             "xg": 1.68,
             "xga": 0.33,
             "is_home": true
-          },
-          {
-            "date": "2024-09-07",
-            "goals_for": 0,
-            "goals_against": 1,
-            "sot": 2,
-            "shots": 9,
-            "xg": 0.81,
-            "xga": 1.11,
-            "is_home": false
           }
         ]
       },
@@ -36992,6 +36992,16 @@
       "egypt": {
         "matches": [
           {
+            "date": "2026-06-15",
+            "goals_for": 1,
+            "goals_against": 1,
+            "sot": 3,
+            "shots": 14,
+            "xg": 1.23,
+            "xga": 1.26,
+            "is_home": false
+          },
+          {
             "date": "2026-06-06",
             "goals_for": 1,
             "goals_against": 2,
@@ -37180,16 +37190,6 @@
             "xg": 2.7,
             "xga": 0.99,
             "is_home": false
-          },
-          {
-            "date": "2024-01-18",
-            "goals_for": 2,
-            "goals_against": 2,
-            "sot": 5,
-            "shots": 11,
-            "xg": 1.68,
-            "xga": 0.99,
-            "is_home": true
           }
         ]
       },
@@ -38090,6 +38090,16 @@
       "iran": {
         "matches": [
           {
+            "date": "2026-06-16",
+            "goals_for": 2,
+            "goals_against": 2,
+            "sot": 4,
+            "shots": 17,
+            "xg": 1.59,
+            "xga": 2.58,
+            "is_home": true
+          },
+          {
             "date": "2025-10-10",
             "goals_for": 1,
             "goals_against": 2,
@@ -38278,21 +38288,21 @@
             "xg": 2.25,
             "xga": 0.06,
             "is_home": false
-          },
-          {
-            "date": "2023-10-13",
-            "goals_for": 3,
-            "goals_against": 1,
-            "sot": 3,
-            "shots": 3,
-            "xg": 0.9,
-            "xga": 0.33,
-            "is_home": false
           }
         ]
       },
       "algeria": {
         "matches": [
+          {
+            "date": "2026-06-17",
+            "goals_for": 0,
+            "goals_against": 3,
+            "sot": 1,
+            "shots": 7,
+            "xg": 0.48,
+            "xga": 1.92,
+            "is_home": false
+          },
           {
             "date": "2026-06-03",
             "goals_for": 1,
@@ -38482,21 +38492,21 @@
             "xg": 0.0,
             "xga": 0.6,
             "is_home": true
-          },
-          {
-            "date": "2024-03-26",
-            "goals_for": 3,
-            "goals_against": 3,
-            "sot": 7,
-            "shots": 13,
-            "xg": 2.28,
-            "xga": 1.71,
-            "is_home": true
           }
         ]
       },
       "tunisia": {
         "matches": [
+          {
+            "date": "2026-06-15",
+            "goals_for": 1,
+            "goals_against": 5,
+            "sot": 2,
+            "shots": 6,
+            "xg": 0.72,
+            "xga": 2.28,
+            "is_home": false
+          },
           {
             "date": "2026-06-06",
             "goals_for": 0,
@@ -38686,21 +38696,21 @@
             "xg": 0.3,
             "xga": 1.32,
             "is_home": false
-          },
-          {
-            "date": "2024-03-23",
-            "goals_for": 0,
-            "goals_against": 0,
-            "sot": 1,
-            "shots": 5,
-            "xg": 0.42,
-            "xga": 1.5,
-            "is_home": true
           }
         ]
       },
       "senegal": {
         "matches": [
+          {
+            "date": "2026-06-16",
+            "goals_for": 1,
+            "goals_against": 3,
+            "sot": 2,
+            "shots": 6,
+            "xg": 0.72,
+            "xga": 2.49,
+            "is_home": false
+          },
           {
             "date": "2026-06-09",
             "goals_for": 0,
@@ -38890,16 +38900,6 @@
             "xg": 1.44,
             "xga": 1.05,
             "is_home": false
-          },
-          {
-            "date": "2025-03-25",
-            "goals_for": 2,
-            "goals_against": 0,
-            "sot": 1,
-            "shots": 1,
-            "xg": 0.3,
-            "xga": 0.0,
-            "is_home": true
           }
         ]
       },
@@ -39626,6 +39626,16 @@
       "canada": {
         "matches": [
           {
+            "date": "2026-06-18",
+            "goals_for": 6,
+            "goals_against": 0,
+            "sot": 10,
+            "shots": 32,
+            "xg": 3.66,
+            "xga": 0.06,
+            "is_home": true
+          },
+          {
             "date": "2026-06-12",
             "goals_for": 1,
             "goals_against": 1,
@@ -39814,16 +39824,6 @@
             "xg": 3.15,
             "xga": 0.45,
             "is_home": true
-          },
-          {
-            "date": "2024-09-11",
-            "goals_for": 0,
-            "goals_against": 0,
-            "sot": 1,
-            "shots": 5,
-            "xg": 0.42,
-            "xga": 1.11,
-            "is_home": false
           }
         ]
       },
@@ -40098,6 +40098,16 @@
       "austria": {
         "matches": [
           {
+            "date": "2026-06-17",
+            "goals_for": 3,
+            "goals_against": 1,
+            "sot": 4,
+            "shots": 11,
+            "xg": 1.41,
+            "xga": 1.41,
+            "is_home": true
+          },
+          {
             "date": "2026-06-01",
             "goals_for": 1,
             "goals_against": 0,
@@ -40286,16 +40296,6 @@
             "xg": 1.41,
             "xga": 0.51,
             "is_home": false
-          },
-          {
-            "date": "2024-07-02",
-            "goals_for": 1,
-            "goals_against": 2,
-            "sot": 5,
-            "shots": 21,
-            "xg": 1.98,
-            "xga": 0.99,
-            "is_home": true
           }
         ]
       },
@@ -40680,6 +40680,16 @@
       "saudi arabia": {
         "matches": [
           {
+            "date": "2026-06-15",
+            "goals_for": 1,
+            "goals_against": 1,
+            "sot": 3,
+            "shots": 7,
+            "xg": 1.02,
+            "xga": 3.51,
+            "is_home": true
+          },
+          {
             "date": "2026-06-09",
             "goals_for": 0,
             "goals_against": 0,
@@ -40868,16 +40878,6 @@
             "xg": 1.5,
             "xga": 2.01,
             "is_home": false
-          },
-          {
-            "date": "2024-11-14",
-            "goals_for": 0,
-            "goals_against": 0,
-            "sot": 1,
-            "shots": 3,
-            "xg": 0.36,
-            "xga": 0.93,
-            "is_home": false
           }
         ]
       },
@@ -40957,6 +40957,16 @@
       },
       "south africa": {
         "matches": [
+          {
+            "date": "2026-06-18",
+            "goals_for": 1,
+            "goals_against": 1,
+            "sot": 4,
+            "shots": 17,
+            "xg": 1.59,
+            "xga": 1.23,
+            "is_home": false
+          },
           {
             "date": "2026-06-11",
             "goals_for": 0,
@@ -41145,16 +41155,6 @@
             "shots": 8,
             "xg": 1.32,
             "xga": 1.8,
-            "is_home": false
-          },
-          {
-            "date": "2024-03-26",
-            "goals_for": 3,
-            "goals_against": 3,
-            "sot": 5,
-            "shots": 12,
-            "xg": 1.71,
-            "xga": 2.28,
             "is_home": false
           }
         ]
@@ -41490,6 +41490,16 @@
       "czechia": {
         "matches": [
           {
+            "date": "2026-06-18",
+            "goals_for": 1,
+            "goals_against": 1,
+            "sot": 3,
+            "shots": 14,
+            "xg": 1.23,
+            "xga": 1.59,
+            "is_home": true
+          },
+          {
             "date": "2026-06-12",
             "goals_for": 1,
             "goals_against": 2,
@@ -41678,16 +41688,6 @@
             "xg": 2.25,
             "xga": 1.89,
             "is_home": true
-          },
-          {
-            "date": "2024-06-22",
-            "goals_for": 1,
-            "goals_against": 1,
-            "sot": 12,
-            "shots": 27,
-            "xg": 4.05,
-            "xga": 0.42,
-            "is_home": false
           }
         ]
       },
@@ -42186,6 +42186,16 @@
       "dr congo": {
         "matches": [
           {
+            "date": "2026-06-17",
+            "goals_for": 1,
+            "goals_against": 1,
+            "sot": 2,
+            "shots": 8,
+            "xg": 0.78,
+            "xga": 0.48,
+            "is_home": false
+          },
+          {
             "date": "2026-06-09",
             "goals_for": 1,
             "goals_against": 2,
@@ -42373,16 +42383,6 @@
             "shots": 25,
             "xg": 2.37,
             "xga": 0.36,
-            "is_home": true
-          },
-          {
-            "date": "2023-11-15",
-            "goals_for": 2,
-            "goals_against": 0,
-            "sot": 2,
-            "shots": 2,
-            "xg": 0.6,
-            "xga": 0.0,
             "is_home": true
           }
         ]
@@ -42768,6 +42768,16 @@
       "ghana": {
         "matches": [
           {
+            "date": "2026-06-17",
+            "goals_for": 1,
+            "goals_against": 0,
+            "sot": 2,
+            "shots": 7,
+            "xg": 0.75,
+            "xga": 1.41,
+            "is_home": true
+          },
+          {
             "date": "2026-06-02",
             "goals_for": 1,
             "goals_against": 1,
@@ -42956,16 +42966,6 @@
             "xg": 0.57,
             "xga": 1.8,
             "is_home": true
-          },
-          {
-            "date": "2023-11-21",
-            "goals_for": 0,
-            "goals_against": 1,
-            "sot": 0,
-            "shots": 0,
-            "xg": 0.0,
-            "xga": 0.3,
-            "is_home": false
           }
         ]
       },
@@ -43668,6 +43668,16 @@
       "england": {
         "matches": [
           {
+            "date": "2026-06-17",
+            "goals_for": 4,
+            "goals_against": 2,
+            "sot": 11,
+            "shots": 22,
+            "xg": 3.63,
+            "xga": 1.65,
+            "is_home": true
+          },
+          {
             "date": "2026-06-10",
             "goals_for": 3,
             "goals_against": 0,
@@ -43856,21 +43866,21 @@
             "xg": 2.82,
             "xga": 0.06,
             "is_home": true
-          },
-          {
-            "date": "2024-09-07",
-            "goals_for": 2,
-            "goals_against": 0,
-            "sot": 9,
-            "shots": 16,
-            "xg": 2.91,
-            "xga": 0.45,
-            "is_home": false
           }
         ]
       },
       "france": {
         "matches": [
+          {
+            "date": "2026-06-16",
+            "goals_for": 3,
+            "goals_against": 1,
+            "sot": 8,
+            "shots": 11,
+            "xg": 2.49,
+            "xga": 0.72,
+            "is_home": true
+          },
           {
             "date": "2026-06-08",
             "goals_for": 3,
@@ -44059,16 +44069,6 @@
             "shots": 25,
             "xg": 3.18,
             "xga": 1.35,
-            "is_home": true
-          },
-          {
-            "date": "2024-09-06",
-            "goals_for": 1,
-            "goals_against": 3,
-            "sot": 3,
-            "shots": 12,
-            "xg": 1.17,
-            "xga": 1.95,
             "is_home": true
           }
         ]
@@ -44577,6 +44577,16 @@
       },
       "cape verde": {
         "matches": [
+          {
+            "date": "2026-06-15",
+            "goals_for": 0,
+            "goals_against": 0,
+            "sot": 1,
+            "shots": 6,
+            "xg": 0.45,
+            "xga": 2.7,
+            "is_home": false
+          },
           {
             "date": "2026-03-30",
             "goals_for": 1,
@@ -45776,6 +45786,16 @@
       "ivory coast": {
         "matches": [
           {
+            "date": "2026-06-14",
+            "goals_for": 1,
+            "goals_against": 0,
+            "sot": 4,
+            "shots": 15,
+            "xg": 1.53,
+            "xga": 0.63,
+            "is_home": true
+          },
+          {
             "date": "2026-06-04",
             "goals_for": 2,
             "goals_against": 1,
@@ -45963,16 +45983,6 @@
             "shots": 11,
             "xg": 1.14,
             "xga": 1.41,
-            "is_home": false
-          },
-          {
-            "date": "2024-01-29",
-            "goals_for": 1,
-            "goals_against": 1,
-            "sot": 4,
-            "shots": 8,
-            "xg": 1.32,
-            "xga": 1.47,
             "is_home": false
           }
         ]
@@ -46934,6 +46944,16 @@
       "belgium": {
         "matches": [
           {
+            "date": "2026-06-15",
+            "goals_for": 1,
+            "goals_against": 1,
+            "sot": 3,
+            "shots": 15,
+            "xg": 1.26,
+            "xga": 1.23,
+            "is_home": true
+          },
+          {
             "date": "2026-06-06",
             "goals_for": 5,
             "goals_against": 0,
@@ -47122,16 +47142,6 @@
             "xg": 1.35,
             "xga": 3.18,
             "is_home": false
-          },
-          {
-            "date": "2024-09-06",
-            "goals_for": 3,
-            "goals_against": 1,
-            "sot": 8,
-            "shots": 25,
-            "xg": 2.91,
-            "xga": 0.84,
-            "is_home": true
           }
         ]
       },
@@ -47426,6 +47436,16 @@
       "norway": {
         "matches": [
           {
+            "date": "2026-06-16",
+            "goals_for": 4,
+            "goals_against": 1,
+            "sot": 5,
+            "shots": 12,
+            "xg": 1.71,
+            "xga": 0.6,
+            "is_home": false
+          },
+          {
             "date": "2026-06-07",
             "goals_for": 1,
             "goals_against": 1,
@@ -47614,16 +47634,6 @@
             "xg": 1.26,
             "xga": 1.08,
             "is_home": true
-          },
-          {
-            "date": "2024-09-06",
-            "goals_for": 0,
-            "goals_against": 0,
-            "sot": 2,
-            "shots": 19,
-            "xg": 1.11,
-            "xga": 0.12,
-            "is_home": false
           }
         ]
       },
@@ -51594,6 +51604,16 @@
       "portugal": {
         "matches": [
           {
+            "date": "2026-06-17",
+            "goals_for": 1,
+            "goals_against": 1,
+            "sot": 1,
+            "shots": 7,
+            "xg": 0.48,
+            "xga": 0.78,
+            "is_home": true
+          },
+          {
             "date": "2026-06-10",
             "goals_for": 2,
             "goals_against": 1,
@@ -51781,16 +51801,6 @@
             "shots": 26,
             "xg": 2.67,
             "xga": 0.69,
-            "is_home": true
-          },
-          {
-            "date": "2024-09-05",
-            "goals_for": 2,
-            "goals_against": 1,
-            "sot": 6,
-            "shots": 15,
-            "xg": 2.07,
-            "xga": 1.47,
             "is_home": true
           }
         ]
@@ -53040,6 +53050,16 @@
       "switzerland": {
         "matches": [
           {
+            "date": "2026-06-18",
+            "goals_for": 4,
+            "goals_against": 1,
+            "sot": 7,
+            "shots": 13,
+            "xg": 2.28,
+            "xga": 0.96,
+            "is_home": true
+          },
+          {
             "date": "2026-06-13",
             "goals_for": 1,
             "goals_against": 1,
@@ -53228,16 +53248,6 @@
             "xg": 1.41,
             "xga": 1.29,
             "is_home": false
-          },
-          {
-            "date": "2024-09-08",
-            "goals_for": 1,
-            "goals_against": 4,
-            "sot": 3,
-            "shots": 20,
-            "xg": 1.41,
-            "xga": 2.43,
-            "is_home": true
           }
         ]
       },
@@ -54540,6 +54550,16 @@
       "bosnia and herzegovina": {
         "matches": [
           {
+            "date": "2026-06-18",
+            "goals_for": 1,
+            "goals_against": 4,
+            "sot": 3,
+            "shots": 5,
+            "xg": 0.96,
+            "xga": 2.28,
+            "is_home": false
+          },
+          {
             "date": "2026-06-12",
             "goals_for": 1,
             "goals_against": 1,
@@ -55561,6 +55581,16 @@
       },
       "curacao": {
         "matches": [
+          {
+            "date": "2026-06-14",
+            "goals_for": 1,
+            "goals_against": 7,
+            "sot": 2,
+            "shots": 8,
+            "xg": 0.78,
+            "xga": 4.02,
+            "is_home": false
+          },
           {
             "date": "2026-05-30",
             "goals_for": 1,

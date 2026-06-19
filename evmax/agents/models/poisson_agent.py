@@ -119,6 +119,13 @@ MIN_GAMES = 5
 POISSON_PRIOR_GAMES: float = 8.0
 POISSON_BASELINE_RATIO: float = 1.0
 
+# Per-game implied attack/defense are clamped to this band before folding into
+# the moving average. The opponent-adjusted single-game value can spike when the
+# opponent's rating is extreme (scoring 3 on a def≈0.3 elite defense implies an
+# attack ≈ 7); the clamp keeps one freak result from dominating a team's rating
+# while preserving the directional signal.
+IMPLIED_RATING_CLAMP: tuple[float, float] = (0.2, 3.0)
+
 
 def _shrink(ratio: float, games: int, prior: float = POISSON_PRIOR_GAMES) -> float:
     """Bayesian shrinkage of a team rate ratio toward 1.0 (league-average)."""
@@ -330,7 +337,25 @@ class PoissonModelAgent(ModelAgent):
         sector: str,
         event_date: Optional[str] = None,
     ) -> None:
-        """Update attack/defense strengths via simple moving average of per-game rates."""
+        """Update attack/defense strengths, adjusting for opponent quality.
+
+        Strengths are latent rates in the Poisson model:
+            goals = own_attack × opp_defense × league_avg
+        so the strength *implied* by a single result must divide out the
+        opponent's rating, not just the flat league average:
+            implied_attack  = scored   / (league_avg_for     × opp_defense)
+            implied_defense = conceded / (league_avg_against  × opp_attack)
+
+        Without the opponent term, beating a weak side inflates a team's
+        attack/defense identically to beating a strong one — harmless for a
+        balanced round-robin (club leagues, where every team faces the same
+        opponents) but badly broken for national teams, whose schedules are
+        split by confederation strength. That SOS-blindness ranked AFC/friendly
+        minnows (Japan, Russia, Iran) above Brazil/France and pushed underdog
+        win probabilities — hence +EV flags — systematically too high. The
+        opponent's PRE-game rating is snapshotted first so the two sides of one
+        match don't contaminate each other's adjustment.
+        """
         sector = sector.lower()
         if sector not in self._state:
             self._state[sector] = {"league_avg": dict(LEAGUE_AVG_DEFAULTS.get(sector, {"home": 1.5, "away": 1.2})), "teams": {}}
@@ -338,7 +363,20 @@ class PoissonModelAgent(ModelAgent):
         avg = self._league_avg(sector)
         teams = self._state[sector]["teams"]
 
-        def _update_team(team: str, scored: float, conceded: float, is_home: bool) -> None:
+        def _rating(team: str, key: str) -> float:
+            t = teams.get(team.lower().strip())
+            return t.get(key, POISSON_BASELINE_RATIO) if t else POISSON_BASELINE_RATIO
+
+        # Snapshot both opponents' pre-game ratings before either side updates.
+        a_attack_pre, a_defense_pre = _rating(team_a, "attack"), _rating(team_a, "defense")
+        b_attack_pre, b_defense_pre = _rating(team_b, "attack"), _rating(team_b, "defense")
+
+        lo, hi = IMPLIED_RATING_CLAMP
+
+        def _update_team(
+            team: str, scored: float, conceded: float, is_home: bool,
+            opp_attack: float, opp_defense: float,
+        ) -> None:
             team = team.lower().strip()
             if team not in teams:
                 teams[team] = {"attack": 1.0, "defense": 1.0, "games": 0}
@@ -347,16 +385,25 @@ class PoissonModelAgent(ModelAgent):
             avg_for = avg["home"] if is_home else avg["away"]
             avg_against = avg["away"] if is_home else avg["home"]
 
-            # Incremental average of strength ratios
-            new_attack = scored / max(avg_for, 0.1)
-            new_defense = conceded / max(avg_against, 0.1)
+            # Opponent-adjusted implied strengths (see docstring), clamped so a
+            # single freak result against an extreme opponent can't dominate.
+            new_attack = scored / max(avg_for * opp_defense, 0.1)
+            new_defense = conceded / max(avg_against * opp_attack, 0.1)
+            new_attack = max(lo, min(hi, new_attack))
+            new_defense = max(lo, min(hi, new_defense))
 
             t["attack"] = (t["attack"] * n + new_attack) / (n + 1)
             t["defense"] = (t["defense"] * n + new_defense) / (n + 1)
             t["games"] = n + 1
 
-        _update_team(team_a, score_a, score_b, is_home=True)
-        _update_team(team_b, score_b, score_a, is_home=False)
+        _update_team(
+            team_a, score_a, score_b, is_home=True,
+            opp_attack=b_attack_pre, opp_defense=b_defense_pre,
+        )
+        _update_team(
+            team_b, score_b, score_a, is_home=False,
+            opp_attack=a_attack_pre, opp_defense=a_defense_pre,
+        )
 
     # ------------------------------------------------------------------
     # Seeding
