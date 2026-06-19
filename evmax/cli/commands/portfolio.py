@@ -187,7 +187,9 @@ async def _scan_portfolios(portfolio_id: str | None) -> None:
                 continue
 
             event_date_str = str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else "")
-            # Today-and-future: drop only past games (matches the web fan-out).
+            # Drop only strictly-past games (keep today + future). The old
+            # "== today" silently dropped Finals/series games Kalshi lists 2-4
+            # days out; the web fan-out has no date floor at all.
             if event_date_str and event_date_str < today_str:
                 continue
 

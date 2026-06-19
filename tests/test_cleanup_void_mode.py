@@ -70,3 +70,18 @@ def test_void_candidates_respect_cutoff():
 
     ids = {r["market_id"] for r in _stale_unmatched_candidates(conn, "2026-06-01")}
     assert ids == {"past"}
+
+
+def test_void_command_is_registered_with_its_own_options():
+    # Guards against the helper accidentally stealing the @app.command("void")
+    # decorator (which would expose CONN/CUTOFF_STR args instead of the real
+    # --before/--days/--dry-run command).
+    from typer.testing import CliRunner
+
+    from evmax.cli.commands.cleanup import app
+
+    result = CliRunner().invoke(app, ["void", "--help"])
+    assert result.exit_code == 0
+    assert "--before" in result.output
+    assert "--dry-run" in result.output
+    assert "CUTOFF_STR" not in result.output

@@ -582,7 +582,6 @@ def watch_closes(
         console.print("\n[dim]watch-closes stopped.[/dim]")
 
 
-@app.command("void")
 def _stale_unmatched_candidates(conn, cutoff_str: str):
     """Live, unresolved, not-yet-voided predictions before the cutoff.
 
@@ -607,6 +606,7 @@ def _stale_unmatched_candidates(conn, cutoff_str: str):
     ).fetchall()
 
 
+@app.command("void")
 def void(
     before: Optional[str] = typer.Option(
         None, "--before",
