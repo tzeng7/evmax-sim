@@ -250,7 +250,6 @@ class DataArchiver:
     def get_latest_sharp_odds(self, sector: str, event_date: str) -> list[dict]:
         """Return the most recent archived Pinnacle odds for a sector + event_date.
 
-        Used by LiveScanner when Pinnacle closes pre-game lines once a game starts.
         Returns one row per event_id (latest fetched_at snapshot).
         """
         with _get_connection() as conn:

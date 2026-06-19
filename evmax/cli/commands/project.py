@@ -333,7 +333,7 @@ def slate(
         raise typer.Exit(1)
 
     async def _run() -> list[dict]:
-        from evmax.clients.pinnacle import PinnacleClient
+        from evmax.clients.esports_pinnacle import PinnacleGuestClient
 
         injury_reports: dict = {}
         if injuries:
@@ -342,7 +342,7 @@ def slate(
                 teams_flagged = sum(1 for r in injury_reports.values() if getattr(r, "players", None))
                 console.print(f"[dim]Loaded injuries for {teams_flagged} teams.[/dim]")
 
-        async with PinnacleClient() as client:
+        async with PinnacleGuestClient() as client:
             odds_list = await client.get_odds(sector)
 
         model = PointProjectionModel()

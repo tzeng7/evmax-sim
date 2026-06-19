@@ -25,7 +25,7 @@ class SectorHandler(ABC):
     """
 
     name: str  # e.g. "nfl"
-    sharp_source: str  # "pinnacle" (all sectors use Pinnacle via TheOddsAPI)
+    sharp_source: str  # "pinnacle" (all sectors use the Pinnacle guest API)
 
     def __init__(self) -> None:
         self._aliases: dict[str, str] = {}

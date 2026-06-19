@@ -25,11 +25,9 @@ class ModelBase(ABC):
     """
     Abstract base class for probability prediction models.
 
-    Phase 1: SharpBooksModel (devigged sharp lines only)
-    Phase 2+: ML models (Elo, regression, neural nets)
-
-    Each model returns probabilities and a weight/confidence.
-    The pipeline blends multiple models' outputs.
+    Concrete models (Elo, Form, Poisson, efficiency, etc.) live in agents/models/
+    via ModelAgent, which mixes this interface in. Each model returns probabilities
+    and a weight/confidence; the ensemble blends multiple models' outputs.
     """
 
     name: str

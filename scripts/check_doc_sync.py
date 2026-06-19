@@ -105,12 +105,6 @@ DOC_RULES: list[tuple[str, list[tuple[str, str]]]] = [
         ],
     ),
     (
-        "evmax/pipeline/",
-        [
-            ("evmax/pipeline/__init__.py", "active vs legacy module note"),
-        ],
-    ),
-    (
         "evmax/cli/commands/",
         [
             ("CLAUDE.md", "Daily Workflow, CLI Output Requirements"),

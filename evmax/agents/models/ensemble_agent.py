@@ -4,7 +4,7 @@ Blending approach:
   - Each model produces a ModelAgentPrediction with a weight and confidence score.
   - Effective weight = model.weight × prediction.confidence
   - Final prob_a = Σ(prob_a_i × eff_weight_i) / Σ(eff_weight_i)
-  - When only SharpBooksModel is available (Phase 1), just returns sharp probs.
+  - When no statistical model clears the confidence gate, just returns sharp probs.
 
 Configuration (request.params):
   pairs         : list of {"market": PredictionMarket, "sharp": SharpOdds}

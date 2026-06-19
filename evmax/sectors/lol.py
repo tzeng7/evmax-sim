@@ -1,6 +1,6 @@
 """League of Legends sector handler.
 
-Sharp source: Pinnacle via TheOddsAPI (esports_lol sport key).
+Sharp source: Pinnacle guest API (via PinnacleGuestClient).
 Market types include match winner, map handicap, series winner.
 """
 
