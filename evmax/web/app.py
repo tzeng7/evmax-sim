@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from evmax.formatting import format_outcome_label_for_row
 from evmax.models.market import is_prop_event
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -22,58 +23,9 @@ app = FastAPI(title="evmax dashboard")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allow_methods=["*"], allow_headers=["*"])
 
 
-_STAT_LABELS = {
-    "points": "PTS", "assists": "AST", "rebounds": "REB",
-    "threes": "3PM", "pra": "PRA", "pts_reb": "P+R", "pts_ast": "P+A",
-    "reb_ast": "R+A", "steals": "STL", "blocks": "BLK",
-    "strikeouts": "K", "hits": "H", "total_bases": "TB",
-}
-
-
-def _display_label_for_row(row: dict[str, Any]) -> str:
-    """Render a human-readable outcome label for one predictions.db row or scan gap.
-
-    Mirrors EVGap.display_label but works off a plain dict so we can use it for
-    both DB-backed bets and live scan gaps. Props show as "Mathurin 4+ AST"
-    instead of the old "bennedict_mathurin player_prop 4".
-    """
-    mt = (row.get("market_type") or "").lower()
-    yes_team = (row.get("yes_team") or "?").strip()
-    line = row.get("line")
-
-    if mt == "player_prop":
-        player = (row.get("prop_player_name") or yes_team or "?").replace("_", " ")
-        player = " ".join(p.capitalize() for p in player.split())
-        stat_raw = (row.get("prop_stat_type") or "").lower()
-        stat = _STAT_LABELS.get(stat_raw, stat_raw.replace("_", " ").upper() or "PROP")
-        thr = row.get("prop_threshold") if row.get("prop_threshold") is not None else line
-        if thr is not None:
-            try:
-                thr_str = f"{float(thr):g}+"
-            except (TypeError, ValueError):
-                thr_str = str(thr)
-            return f"{player} {thr_str} {stat}"
-        return f"{player} {stat}"
-
-    team = yes_team.capitalize() if yes_team else "?"
-    if mt == "moneyline":
-        return f"{team} ML"
-    if mt == "spread" and line is not None:
-        try:
-            ln = float(line)
-        except (TypeError, ValueError):
-            return f"{team} {line}"
-        # Positive line = NO-side / "+spread" cover; render with leading "+".
-        sign = "+" if ln > 0 else ""
-        line_str = f"{sign}{ln:.1f}".rstrip("0").rstrip(".")
-        return f"{team} {line_str}"
-    if mt in ("over_under", "total") and line is not None:
-        side = "Under" if yes_team.lower().startswith("u") else "Over"
-        try:
-            return f"{side} {float(line):.1f}"
-        except (TypeError, ValueError):
-            return f"{side} {line}"
-    return team
+# Outcome-label rendering moved to evmax.formatting (single source). Thin
+# wrapper kept so existing call sites and tests importing it from here work.
+_display_label_for_row = format_outcome_label_for_row
 
 
 # ---------------------------------------------------------------------------

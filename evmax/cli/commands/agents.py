@@ -21,6 +21,7 @@ from rich import box
 
 from evmax.ev.calculator import tiered_min_ev
 from evmax.ev.odds_format import american_odds as _american
+from evmax.formatting import format_outcome_label
 from evmax.models.market import is_prop_event
 
 app = typer.Typer(no_args_is_help=True)
@@ -28,17 +29,8 @@ console = Console()
 
 
 def _display_label(yes_team: str, market_type: str, line) -> str:
-    """Mirror EVGap.display_label: team + market type + line."""
-    team = (yes_team or "?").capitalize()
-    mt = (market_type or "").lower()
-    if mt == "moneyline":
-        return f"{team} ML"
-    if mt == "spread" and line is not None:
-        line_str = f"{line:.1f}".rstrip("0").rstrip(".")
-        return f"{team} {line_str}"
-    if mt in ("over_under", "total") and line is not None:
-        return f"O/U {line:.1f}"
-    return team
+    """Outcome label for a game-market row — delegates to the canonical formatter."""
+    return format_outcome_label(yes_team=yes_team, market_type=market_type, line=line)
 
 
 async def _scan_loop(
@@ -845,17 +837,6 @@ def pick(
             "is_live": is_live,
             "stake": scan_stake,
         })
-
-    def _display_label(yes_team, market_type, line):
-        team = (yes_team or "?").capitalize()
-        if market_type == "moneyline":
-            return f"{team} ML"
-        if market_type == "spread" and line is not None:
-            line_str = f"{line:.1f}".rstrip("0").rstrip(".")
-            return f"{team} {line_str}"
-        if market_type in ("over_under", "total") and line is not None:
-            return f"O/U {line:.1f}"
-        return team
 
     # Show a summary table first
     table = Table(
