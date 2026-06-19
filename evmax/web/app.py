@@ -493,7 +493,16 @@ async def _run_unified_scan(
         import structlog
         structlog.get_logger(__name__).warning("web_scan_log_failed", error=str(_log_err))
 
-    gap_dicts = [_gap_to_dict(g, bankroll) for g in cycle.top_gaps]
+    # Partial-blend gaps (full_blend=False, e.g. tennis sans the full model
+    # blend) are demoted to mode='shadow' with Kelly zeroed — they are NOT
+    # actionable plays. They're still logged above (loggable), but exclude them
+    # from the dashboard scan view and the portfolio fan-out; surfacing a
+    # blocked, $0.00-stake row is just noise. Mirrors the CLI scan behavior.
+    gap_dicts = [
+        _gap_to_dict(g, bankroll)
+        for g in cycle.top_gaps
+        if getattr(g, "full_blend", True)
+    ]
 
     portfolio_results: list[dict[str, Any]] = []
     if fan_out_portfolio_ids is not None:
