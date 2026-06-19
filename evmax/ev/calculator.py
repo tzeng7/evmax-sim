@@ -15,6 +15,22 @@ from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
 
 
+def tiered_min_ev(true_prob: float, *, min_ev: float, min_prob: float) -> float:
+    """Scale the minimum EV up for low-probability bets.
+
+    Formula: ``min_ev + max(0, min_prob - true_prob) * 0.5``. Examples
+    (min_ev=2%, min_prob=15%):
+      true_prob=0.08 → 2% + (0.15-0.08)*0.5 = 5.5%
+      true_prob=0.12 → 2% + (0.15-0.12)*0.5 = 3.5%
+      true_prob≥0.15 → 2% (floor, no scaling)
+
+    Single source for the scan/verify/pick commands, which all gate on the
+    same ramp. Takes the floors explicitly (the CLI copies closed over their
+    command's ``min_ev``/``min_prob`` params).
+    """
+    return min_ev + max(0.0, min_prob - true_prob) * 0.5
+
+
 @dataclass
 class EVResult:
     outcome: str  # "yes" or "no"

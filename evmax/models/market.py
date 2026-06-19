@@ -13,6 +13,19 @@ from sqlalchemy.orm import Mapped, mapped_column
 from evmax.db import Base
 
 
+# Player-prop event_ids embed this marker:
+# "{sector}::{date}::prop::{player}::{stat}::{threshold}". It's how prop gaps
+# are routed to prop_observations (vs game markets to ev_predictions). Defined
+# here (a dependency leaf imported by agents/web/cli alike) so the check has a
+# single source instead of a copy-pasted literal at every call site.
+PROP_MARKER = "::prop::"
+
+
+def is_prop_event(event_id: Optional[str]) -> bool:
+    """True if an event_id is a player prop (vs a game market)."""
+    return bool(event_id) and PROP_MARKER in event_id
+
+
 class MarketSource(str, enum.Enum):
     kalshi = "kalshi"
     polymarket = "polymarket"

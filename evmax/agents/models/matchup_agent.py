@@ -46,18 +46,8 @@ TEAM_ABBREV: dict[str, str] = {
 }
 
 
-def _normal_cdf(x: float) -> float:
-    import math
-    if x < -6:
-        return 0.0
-    if x > 6:
-        return 1.0
-    t = 1.0 / (1.0 + 0.2316419 * abs(x))
-    d = 0.3989422804014327
-    p = d * math.exp(-x * x / 2.0) * t * (
-        0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.8212560 + t * 1.3302744)))
-    )
-    return 1.0 - p if x > 0 else p
+# Shared Abramowitz & Stegun normal CDF (single source in models_ml).
+from evmax.models_ml._math import normal_cdf as _normal_cdf
 
 
 class MatchupAgent(ModelAgent):

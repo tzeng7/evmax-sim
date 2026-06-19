@@ -22,19 +22,12 @@ from typing import TYPE_CHECKING
 
 import structlog
 
+from evmax.ev.odds_format import american_odds as _american
+
 if TYPE_CHECKING:
     from evmax.agents.coordinator import CycleResult
 
 logger = structlog.get_logger(__name__)
-
-
-def _american(prob: float) -> str:
-    """Convert implied probability to American odds string."""
-    if prob <= 0 or prob >= 1:
-        return "N/A"
-    if prob >= 0.5:
-        return f"{-round(prob / (1 - prob) * 100)}"
-    return f"+{round((1 - prob) / prob * 100)}"
 
 
 class Notifier:
