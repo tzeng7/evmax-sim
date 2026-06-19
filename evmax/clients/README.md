@@ -18,7 +18,7 @@ The file was originally written for esports but was extended to cover every spor
 - `get_odds(sector)` — fetches moneyline, spread, and total odds for any sector
 - Sport/league IDs are hardcoded; see the module docstring for the full mapping
 - 3-way soccer markets are devigged with `devig_three_way()`
-- Used by: `SharpOddsAgent`
+- Used by: `SharpOddsAgent` (scan pipeline) and `evmax project slate` (standalone projections)
 
 ### `mlb_statsapi.py` — `MLBStatsClient`
 - Official MLB Stats API (`statsapi.mlb.com`) — free, no credentials
@@ -29,14 +29,6 @@ The file was originally written for esports but was extended to cover every spor
 - Module-level `fetch_probable_starters()` adds a 30-min cache and degrades to `{}`
   on error so the agent falls back cleanly
 - Structured to add lineups / bullpen (the same schedule endpoint hydrates both)
-
-## Legacy (NOT used in the live scan pipeline)
-
-### `pinnacle.py` — `PinnacleClient`
-- TheOddsAPI wrapper (`api.the-odds-api.com`)
-- Superseded by `PinnacleGuestClient` which gives direct Pinnacle lines without an API key
-- `SECTOR_SPORT_KEYS` dict and `get_odds()` method are dead code in the live pipeline
-- Still imported by `pipeline/runner.py` (also legacy)
 
 ## `base.py` — `BaseAPIClient`
 Thin async HTTP base class using `httpx.AsyncClient`. Handles retries and shared headers.

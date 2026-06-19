@@ -1,6 +1,6 @@
 """Valorant sector handler.
 
-Sharp source: Pinnacle guest API (via EsportsPinnacleClient).
+Sharp source: Pinnacle guest API (via PinnacleGuestClient).
 Market types: series/match winner (moneyline).
 """
 

@@ -1,6 +1,6 @@
 """CS2 sector handler.
 
-Sharp source: Pinnacle via TheOddsAPI (esports_csgo sport key).
+Sharp source: Pinnacle guest API (via PinnacleGuestClient).
 Market types include match winner, map handicap, series winner.
 """
 

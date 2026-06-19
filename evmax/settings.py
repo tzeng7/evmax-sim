@@ -19,10 +19,6 @@ class Settings(BaseSettings):
     kalshi_private_key_path: str = ""
     kalshi_base_url: str = "https://api.elections.kalshi.com/trade-api/v2"
 
-    # TheOddsAPI (Pinnacle lines)
-    the_odds_api_key: str = ""
-    the_odds_api_base_url: str = "https://api.the-odds-api.com/v4"
-
     # Database
     database_url: str = "sqlite+aiosqlite:///./evmax.db"
 
@@ -100,8 +96,6 @@ class Settings(BaseSettings):
             # PEM key only needed for trading and WebSocket auth.
             # Market reads are unauthenticated — not a blocker for scanning.
             missing.append("KALSHI_PRIVATE_KEY_PATH (optional — needed for WS price refresh + trading, not scanning)")
-        if not self.the_odds_api_key:
-            missing.append("THE_ODDS_API_KEY (required to fetch Pinnacle sharp lines)")
         return missing
 
     # Matching

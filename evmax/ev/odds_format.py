@@ -1,9 +1,7 @@
 """American-odds formatting — single source for the CLI table and notifications.
 
 `evmax.ev` is a dependency leaf, so both the CLI and the notifier can import
-this without a cycle. (Note: `cli/commands/opportunities.py` has a separate,
-intentionally different decimal-odds formatter with truncation semantics — it
-is NOT replaced by this and should not be, see the drift audit.)
+this without a cycle.
 """
 
 from __future__ import annotations

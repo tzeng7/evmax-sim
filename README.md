@@ -1,6 +1,8 @@
 # evmax — Agent-Based +EV Prediction Market System
 
-evmax uses a multi-agent pipeline to find positive expected value (+EV) opportunities on Kalshi and Polymarket by comparing market prices against sharp sportsbook lines, statistical models, and real-time injury data. The system recommends Kelly-fractioned bet sizes for each opportunity it surfaces.
+evmax uses a multi-agent pipeline to find positive expected value (+EV) opportunities on Kalshi by comparing market prices against sharp Pinnacle lines, statistical models, and real-time injury data. The system recommends Kelly-fractioned bet sizes for each opportunity it surfaces.
+
+Sharp odds come from the **Pinnacle guest API** (`guest.api.arcadia.pinnacle.com`), which is keyless — the only API credential you need is a Kalshi key for live price refresh and trading. Every bettable category, its models, mode, and resolver are declared in one registry: [`data/categories.yaml`](data/categories.yaml).
 
 ---
 
@@ -47,12 +49,11 @@ cp .env.example .env
 Edit `.env` and fill in:
 
 ```env
-# Kalshi (RSA key auth)
+# Kalshi (RSA key auth) — needed for WebSocket price refresh + trading.
+# Market reads and the Pinnacle guest API are unauthenticated, so scanning
+# works read-only even without these.
 KALSHI_API_KEY_ID=your-key-id
 KALSHI_PRIVATE_KEY_PATH=/path/to/kalshi.pem
-
-# TheOddsAPI — covers Pinnacle lines for all sectors
-THE_ODDS_API_KEY=your-odds-api-key
 
 # Optional
 EV_THRESHOLD=0.02          # minimum EV to report (default 2%)
@@ -61,6 +62,8 @@ MAX_KELLY_FRACTION=0.05    # hard cap per bet (default 5%)
 # Optional — disable WebSocket and force REST-only price fetching
 # KALSHI_WS_ENABLED=false
 ```
+
+> Sharp lines come from the keyless Pinnacle guest API — there is no sharp-odds API key to set.
 
 ### 3. Initialize the Database
 
@@ -246,7 +249,6 @@ evmax connects to Kalshi's WebSocket API (`wss://api.elections.kalshi.com/trade-
 | Command | Price source |
 |---------|-------------|
 | `evmax agents verify` | WebSocket (all tickers in one session) |
-| `evmax opps` live scanner | WebSocket (all matched markets per sector) |
 | `get_market_ask` fallback | REST orderbook → market snapshot |
 
 ### Kill-switch
@@ -271,14 +273,16 @@ KALSHI_WS_SNAPSHOT_TIMEOUT=8.0
 
 ## Statistical Models
 
-The system runs sector-specific model ensembles blended with Pinnacle sharp lines. NBA uses six dedicated agents; WNBA uses its own parallel efficiency + possession-sim stack (separate files, separate state, separate tuning); soccer relies on Poisson; tennis has four specialized agents; MLB has a pitcher agent. All outputs are blended by the EnsembleModelAgent. Models below the 0.45 confidence gate are silently dropped from the blend so missing coverage degrades gracefully.
+The system runs sector-specific model ensembles blended with Pinnacle sharp lines. NBA uses four dedicated advanced agents plus Elo/Form; WNBA uses its own parallel efficiency + possession-sim stack (separate files, separate state, separate tuning); NFL has efficiency + QB-Elo agents; soccer and the national-team World Cup share a Poisson + xG blend; tennis has six specialized agents; MLB has a pitcher agent; NHL has a MoneyPuck xG agent. All outputs are blended by the EnsembleModelAgent. Models below the 0.45 confidence gate are silently dropped from the blend so missing coverage degrades gracefully.
+
+The per-sector weight overrides live in `SECTOR_WEIGHT_OVERRIDES` in [`ensemble_agent.py`](evmax/agents/models/ensemble_agent.py); the `models:` list per category in [`data/categories.yaml`](data/categories.yaml) decides which agents are even instantiated.
 
 ### Per-Sector Ensemble Weights
 
-NBA and WNBA use dedicated advanced models that replace the generic Elo/Form/Poisson core. Other sectors use the default weights.
+Most sectors replace some or all of the generic Elo/Form/Poisson core with dedicated models. Sectors not listed (NCAAB, NCAAW, LoL, CS2) fall back to the default class weights (Elo 0.35 · Form 0.25 · Poisson 0.40-where-supported) — or to sharp-only where no model clears the confidence gate.
 
-| Model | NBA | WNBA | NFL | Soccer | Baseball | Other |
-|-------|-----|------|-----|--------|----------|-------|
+| Model | NBA | WNBA | NFL | Soccer / World Cup | Baseball | NHL |
+|-------|-----|------|-----|--------------------|----------|-----|
 | Efficiency | **0.30** | — | — | — | — | — |
 | PossessionSim | **0.30** | — | — | — | — | — |
 | WNBA Efficiency | — | **0.40** | — | — | — | — |
@@ -286,14 +290,17 @@ NBA and WNBA use dedicated advanced models that replace the generic Elo/Form/Poi
 | NFL Efficiency | — | — | **0.25** | — | — | — |
 | NFL QB Elo | — | — | **0.25** | — | — | — |
 | Pitcher | — | — | — | — | **0.50** | — |
-| Elo | 0.10 | 0.15 | 0.20 | 0.15 | 0.25 | 0.35 |
-| Form | 0.10 | 0.0 | 0.30 | 0.10 | 0.25 | 0.25 |
+| NHL xG (MoneyPuck) | — | — | — | — | — | **0.30** |
+| Elo | 0.10 | 0.15 | 0.20 | 0.15 | 0.25 | 0.0 |
+| Form | 0.10 | 0.0 | 0.30 | 0.10 | 0.25 | 0.15 |
 | ShotQuality | 0.10 | — | — | — | — | — |
 | Matchup | 0.10 | — | — | — | — | — |
-| Poisson | — | — | — | **0.40** | — | — |
+| Poisson | 0.0 | 0.0 | 0.0 | **0.40** | — | 0.0 |
 | Soccer xG | — | — | — | 0.25 | — | — |
 
-> **Poisson is soccer-only** (as of 2026-06-01, `SUPPORTED_SECTORS = {"soccer"}` in `poisson_agent.py`): `predict_pair` returns `None` for every other sector, so it never enters the blend or `model_sources` — the weight is irrelevant outside soccer. Previously it silently contributed at a 0.30 class-weight fallback to NCAAB and baseball; it was found net-negative on MLB runs (overdispersion + bullpen-leverage violate the independence assumption) and was removed.
+> **World Cup** mirrors soccer's weights exactly but reads its own national-team namespaces (`elo_state['worldcup']`, `poisson_state['worldcup']`, `soccer_xg_state['worldcup']`, `form_state['worldcup']`) — never the club soccer pool.
+
+> **Poisson is football-only** (`SUPPORTED_SECTORS = {"soccer", "worldcup"}` in `poisson_agent.py`): `predict_pair` returns `None` for every other sector, so it never enters the blend or `model_sources`. Tennis weights: surface 0.30 · serve/return 0.25 · form 0.20 · advanced 0.15 · h2h 0.05 · ranking trend 0.05.
 
 **WNBA weights re-tuned 2026-05-14** via walk-forward sweep over 321 games (`scripts/sweep_wnba_weights.py`) — dropped blend Brier 0.2061 → 0.2019. Form was worst standalone (0.2303) and every top-20 combo zeroed it; generic Elo also weaker than the WNBA-specific stack.
 
@@ -565,9 +572,9 @@ Home advantage is applied additively:
 
 ---
 
-#### Poisson Model (`PoissonModelAgent`, soccer-only, weight=0.40)
+#### Poisson Model (`PoissonModelAgent`, football-only, weight=0.40)
 
-Models scoring as a Poisson process — each team has attack and defense strength parameters that combine to predict expected goals/points. **Soccer-only** (`SUPPORTED_SECTORS = {"soccer"}`): `predict_pair` returns `None` for every other sector, so it never enters the blend elsewhere. Basketball is not a Poisson process (PossessionSim provides better score distributions for NBA/WNBA), and it was net-negative on MLB runs — see the Poisson note in the per-sector weights table above.
+Models scoring as a Poisson process — each team has attack and defense strength parameters that combine to predict expected goals/points. **Football-only** (`SUPPORTED_SECTORS = {"soccer", "worldcup"}`): `predict_pair` returns `None` for every other sector, so it never enters the blend elsewhere. Basketball is not a Poisson process (PossessionSim provides better score distributions for NBA/WNBA), and it was net-negative on MLB runs — see the Poisson note in the per-sector weights table above. The `worldcup` namespace uses symmetric neutral-venue league averages (1.30/1.30, no home edge); both football sectors keep the Dixon-Coles correction and explicit draw mass for the 3-way market.
 
 **How it works:**
 
@@ -594,6 +601,24 @@ A score matrix is computed up to `max_g` goals/points (8 for soccer, 20–25 for
 | Full data for both teams | 0.65–0.80 |
 
 **State file:** `data/models/poisson_state.json`
+
+---
+
+#### Soccer xG Model (`SoccerXgModelAgent`, soccer + worldcup, weight=0.25)
+
+Expected-goals model driven by ESPN shot data (`shotsOnTarget` / `totalShots`). Each team carries an attacking and defensive xG profile that combines into a match win/draw/loss probability, complementing the goals-based Poisson model with a shot-quality view. The agent is **sector-namespaced** inside one state file: club `soccer` lives at the legacy flat `teams` key; every other sector (currently `worldcup`) lives under `state[sector]['teams']`, so national-team xG never mixes with club xG.
+
+**State file:** `data/models/soccer_xg_state.json`
+
+---
+
+#### NHL xG Model (`NhlXgModelAgent`, NHL-only, weight=0.30)
+
+Team 5-on-5 expected goals for/against per 60 (xGF/60, xGA/60), score-and-venue adjusted, sourced from MoneyPuck's public team CSVs. This is NHL's dominant non-sharp signal; generic Elo is held at 0 for NHL because its K-factor / home-advantage have never been calibrated for hockey, and Form contributes a small recency voice (0.15). Goalie GSAx and special-teams agents are planned for v2/v3.
+
+**Seeding:** `scripts/seed_nhl_xg.py` (MoneyPuck team CSVs). NHL ships in `shadow` mode.
+
+**State file:** `data/models/nhl_xg_state.json`
 
 ---
 
@@ -651,17 +676,18 @@ Find exponent `k` where `Σ(raw_prob_i ^ k) = 1.0` (solved via Brent's method). 
 
 ### Tennis Models
 
-Tennis runs four independent agents alongside the Elo/Form/Poisson core. Each returns `None` when its store has no coverage for the players in question, so unseeded matchups fall back to the remaining models.
+Tennis runs six dedicated agents (the four primary signals plus form and H2H). Each returns `None` when its store has no coverage for the players in question, so unseeded matchups fall back to the remaining models.
 
 | Agent | Weight | Signal | State file |
 |---|---|---|---|
-| `TennisModelAgent` (surface Elo) | 0.35 | Surface-specific Elo (hard / clay / grass) seeded from ATP rankings | `data/models/tennis_surface_state.json` |
-| `TennisServeReturnAgent` | 0.15 | Logistic on serve-points-won differential, calibrated for bo3 (`k=14`) and bo5 (`k=18`); slam detection from market title | `data/models/tennis_serve_return_state.json` |
-| `TennisAdvancedStatsAgent` | 0.25 | Logistic on BP conv, RPW, UE rate, W/UE ratio; full 4-feature model when MCP data available, RPW-only reduced model otherwise | `data/models/tennis_advanced_state.json` |
-| `TennisH2HAgent` | 0.10 | Head-to-head record nudge with Laplace smoothing + sample-size shrinkage; capped at ±18pp from 0.5; requires ≥3 meetings | `data/models/tennis_h2h_state.json` |
-| `TennisRankingTrendAgent` | 0.10 | 12-week ranking-momentum log-odds nudge; positive = climbing the rankings; capped at ±0.40 logit | `data/models/tennis_ranking_trend_state.json` |
+| `TennisModelAgent` (surface Elo) | 0.30 | Surface-specific Elo (hard / clay / grass) seeded from ATP rankings | `data/models/tennis_surface_state.json` |
+| `TennisServeReturnAgent` | 0.25 | Logistic on serve-points-won differential, calibrated for bo3 (`k=14`) and bo5 (`k=18`); slam detection from market title | `data/models/tennis_serve_return_state.json` |
+| `TennisFormAgent` | 0.20 | Recency-weighted match form (the momentum voice) | `data/models/tennis_form_state.json` |
+| `TennisAdvancedStatsAgent` | 0.15 | Logistic on BP conv, RPW, UE rate, W/UE ratio; full 4-feature model when MCP data available, RPW-only reduced model otherwise | `data/models/tennis_advanced_state.json` |
+| `TennisH2HAgent` | 0.05 | Head-to-head record nudge with Laplace smoothing + sample-size shrinkage; capped at ±18pp from 0.5; requires ≥3 meetings | `data/models/tennis_h2h_state.json` |
+| `TennisRankingTrendAgent` | 0.05 | 12-week ranking-momentum log-odds nudge; positive = climbing the rankings; capped at ±0.40 logit | `data/models/tennis_ranking_trend_state.json` |
 
-The serve/return, H2H, and ranking-trend agents are seeded from Jeff Sackmann's public CSVs (`tennis_atp`, `tennis_wta`) plus the Match Charting Project for 2025+ SPW augmentation. See [Seed Tennis Models](#seed-tennis-models) below.
+A tennis gap is only treated as a **live play** when `model_sources` contains all four primary models (`tennis_surface`, `tennis_serve_return`, `tennis_form`, `tennis_advanced`); h2h / ranking-trend are optional since they can't fire on most matches. Partial-blend gaps are demoted to `shadow` (Kelly zeroed, hidden from the play table) — see `REQUIRED_BLEND_MODELS` in `ev_gap_agent.py`. The serve/return, advanced, H2H, and ranking-trend agents are seeded from Jeff Sackmann's public CSVs (`tennis_atp`, `tennis_wta`) plus the Match Charting Project for 2025+ SPW augmentation. See [Seed Tennis Models](#seed-tennis-models) below.
 
 ---
 
@@ -898,12 +924,13 @@ Bounds: `sharp_weight` stays in `[0.40, 0.95]`. Adjustments happen at most once 
 | Sector | sharp_weight | Why |
 |--------|--------------|-----|
 | NBA | 0.70 | Mature dedicated stack (efficiency + possession_sim) — lean more on models |
-| WNBA | (global 0.85) | Re-seed + EB shrinkage proved itself in May 2026; sharp_weight may be tuned down after more 2026 resolved sample |
 | Tennis | 0.85 | |
 | Soccer | 0.88 | |
 | Baseball | 0.88 | |
 | LoL / CS2 | 1.00 | No competitive statistical model yet — pure sharp |
-| Global default | 0.85 | Applied to sectors not listed above |
+| Global default | 0.85 | Applied to every sector not listed above (incl. WNBA, NFL, NHL, NCAAB) |
+
+These values live in `data/model_config.json::sharp_weight_by_sector`.
 
 ### Exposure Guard
 
@@ -929,15 +956,14 @@ As models mature and accumulate more resolved predictions, the expected path is:
 
 ### Data Sources for Outcome Resolution
 
-| Sector | Source |
-|--------|--------|
-| NBA | ESPN scoreboard API |
-| NFL | ESPN scoreboard API |
-| NCAAB | ESPN scoreboard API |
-| Soccer (EPL, La Liga, etc.) | ESPN soccer scoreboards |
-| CS2 | bo3.gg matches API |
-| Valorant | bo3.gg matches API |
-| LoL | bo3.gg matches API |
+Resolution is configured per-category via the `resolver` field in [`data/categories.yaml`](data/categories.yaml) — that field is authoritative, not this table.
+
+| Resolver | Source | Categories |
+|----------|--------|-----------|
+| `espn_scoreboard` | ESPN scoreboard API (World Cup reads `fifa.world`) | NBA, NFL, NCAAB, NCAAW, Soccer, World Cup, Baseball, WNBA, NHL |
+| `espn_boxscore` | ESPN boxscore API | NBA props, NFL props |
+| `bo3gg` | bo3.gg matches API | LoL, CS2 |
+| `kalshi_settlement` | Kalshi settlement (`result` field) | Tennis |
 
 ### Recommended Daily Workflow
 
@@ -967,7 +993,7 @@ evmax cleanup metrics --weeks 4
 evmax cleanup adjust
 
 # Weekly — re-seed models with fresh data
-evmax cleanup train --sectors lol,cs2,valorant
+evmax cleanup train --sectors lol,cs2
 ```
 
 ### Storage
@@ -1131,7 +1157,7 @@ Scan rows display `event_date` (the actual game date), not `scan_date`. Kalshi t
 
 ## Data Archive and Backtest
 
-Every scan automatically snapshots **all** fetched Pinnacle odds and Kalshi market prices to `data/archive.db` — not just the 2%+ EV plays. This builds a free historical dataset over time so you never need to pay TheOddsAPI's historical data tier.
+Every scan automatically snapshots **all** fetched Pinnacle odds and Kalshi market prices to `data/archive.db` — not just the 2%+ EV plays. This builds a free historical dataset over time so you never need to pay for a commercial historical-odds data tier.
 
 ### Why archive everything?
 
@@ -1394,7 +1420,7 @@ evmax cleanup adjust
 evmax cleanup adjust --force   # override 7-day cooldown
 
 # Re-seed models from live data
-evmax cleanup train --sectors lol,cs2,valorant
+evmax cleanup train --sectors lol,cs2
 evmax cleanup train --sectors nba,soccer
 ```
 
@@ -1419,20 +1445,41 @@ evmax archive export --sector soccer --since 2026-03-01 --format jsonl
 evmax archive export --sector tennis --source pinnacle --format csv --out /tmp/tennis.csv
 ```
 
-### Legacy Pipeline (Original Scanner)
+### Categories and Modes
 
 ```bash
-# Scan once
-evmax scan scan --sectors soccer,nba --once
+# Inspect the betting-category registry (data/categories.yaml)
+evmax categories list                       # all categories + base mode
+evmax categories list --mode shadow         # filter by mode
+evmax categories list --effective           # show effective mode after overrides
+evmax categories show wnba                   # detail for one category
+evmax categories modes                       # effective mode per category
+evmax categories validate                    # fail non-zero on registry inconsistency
 
-# Continuous scan every 5 minutes
-evmax scan scan --sectors nfl --interval 300
+# Shadow-mode validation (promote to live once validated)
+evmax cleanup shadow show --days 7
+evmax cleanup shadow metrics --days 30 --category wnba
+evmax cleanup shadow promote wnba            # flip shadow → live in the YAML
 
-# Simulation tracking
+# Runtime mode overrides on a scan (flag > env var > YAML base)
+evmax agents scan --shadow nfl_props --live wnba --disabled nhl
+```
+
+### Simulation, Reporting, and Projections
+
+```bash
+# Monte Carlo simulation + paper-bet tracking
 evmax sim list --status open
 evmax sim resolve
 evmax report
 evmax report bankroll
+
+# Multi-portfolio management and comparison
+evmax portfolio list
+
+# Standalone point projections (not the EV pipeline) — backs the /nba-proj skill
+evmax project slate --sector nba --log
+evmax project resolve --date 2026-03-20 --sector nba
 ```
 
 ---
@@ -1443,9 +1490,8 @@ All settings live in `.env` (or environment variables):
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `KALSHI_API_KEY_ID` | required | Kalshi API key ID |
-| `KALSHI_PRIVATE_KEY_PATH` | required | Path to RSA .pem key file |
-| `THE_ODDS_API_KEY` | required | TheOddsAPI key (Pinnacle lines) |
+| `KALSHI_API_KEY_ID` | optional | Kalshi API key ID — needed for WebSocket price refresh + trading, not for scanning |
+| `KALSHI_PRIVATE_KEY_PATH` | optional | Path to RSA .pem key file (same scope as above) |
 | `EV_THRESHOLD` | `0.02` | Minimum EV to report (2%) |
 | `MAX_KELLY_FRACTION` | `0.05` | Hard cap per bet (5% of bankroll) |
 | `KALSHI_WS_ENABLED` | `true` | WebSocket real-time prices; set `false` for REST-only |
@@ -1471,44 +1517,67 @@ All settings live in `.env` (or environment variables):
 
 ## Sectors and Market Types
 
-| Sector | Sharp Source | Models | Injury Data | Mode |
-|--------|-------------|--------|-------------|------|
-| NBA | Pinnacle guest API (league 487) | Efficiency + PossessionSim + ShotQuality + Matchup + Elo + Form | ESPN | `live` |
-| WNBA | Pinnacle guest API (league 578) | WNBA Efficiency + WNBA PossessionSim + Elo (totals stay `shadow`) | ESPN | `live` (ML + spread, promoted 2026-05-26) |
-| NFL | Pinnacle guest API (league 258) | NFL Efficiency + NFL QB Elo + Elo + Form | ESPN | `live` |
-| NCAAB | Pinnacle guest API (league 493) | Elo + Form | ESPN | `live` |
-| NCAAW | TheOddsAPI (`basketball_wncaab`) | Elo + Form | ESPN | `live` |
-| Soccer | Pinnacle guest API (EPL/UCL/La Liga/Bundesliga/Serie A/Ligue 1/MLS/UEL) | Poisson + xG + Elo + Form | ESPN | `live` |
-| Tennis | Pinnacle guest API (ATP/WTA) | Surface Elo + Serve/Return + Advanced + H2H + Ranking Trend + Form | None | `live` |
-| Baseball | Pinnacle guest API (league 246) | Pitcher + Elo + Form (probables via MLB Stats API) | ESPN | `shadow` (pending Brier-vs-Kalshi validation) |
-| NHL | Pinnacle guest API | Form | ESPN | `live` |
-| LoL | Pinnacle guest API (esports) | Elo + Form | None | `live` |
-| CS2 | Pinnacle guest API (esports) | Elo + Form | None | `live` |
-| NFL Props | Pinnacle guest API | NFL Props Cache (QB only v1) | ESPN boxscore | `shadow` until MODEL-9 validation |
+The full catalog — every bettable category, its models, mode, resolver, and status — lives in one registry: [`data/categories.yaml`](data/categories.yaml). Read it at runtime via `evmax.categories.all_categories()` or `evmax categories list`. The table below is a snapshot for orientation; the YAML is authoritative.
 
-**Mode legend:** `live` = EVGaps logged with `mode='live'`, Kelly sized against bankroll. `shadow` = predictions + pre-game prices logged with `mode='shadow'`, bankroll not touched. Flip via `evmax cleanup shadow promote <category>` after validation. Source of truth: `data/categories.yaml`.
+All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api.arcadia.pinnacle.com/0.1`). 14 categories ship today:
 
-The Pinnacle guest API (`guest.api.arcadia.pinnacle.com/0.1`) requires no credentials and covers all sectors except NCAAW (which uses TheOddsAPI).
+| Category | Models | Market Types | Resolver | Mode |
+|----------|--------|--------------|----------|------|
+| `nba` | Efficiency + PossessionSim + ShotQuality + Matchup + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
+| `nfl` | NFL Efficiency + NFL QB Elo + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
+| `ncaab` | Elo + Form + Poisson | moneyline, spread, total | espn_scoreboard | `live` |
+| `ncaaw` | Form | moneyline, spread, total | espn_scoreboard | `live` |
+| `soccer` | Poisson + xG + Elo + Form | moneyline, total | espn_scoreboard | `live` |
+| `worldcup` | Poisson + xG + Elo + Form (national-team namespaces) | moneyline | espn_scoreboard (`fifa.world`) | `shadow` |
+| `tennis` | Surface Elo + Serve/Return + Form + Advanced + H2H + Ranking Trend | moneyline | kalshi_settlement | `live` |
+| `baseball` | Pitcher + Elo + Form (probables via MLB Stats API) | moneyline, spread (`total` disabled) | espn_scoreboard | `shadow` |
+| `wnba` | WNBA Efficiency + WNBA PossessionSim + Elo | moneyline, spread (`total` → shadow) | espn_scoreboard | `live` |
+| `nhl` | NHL xG (MoneyPuck) + Form | moneyline, spread, total | espn_scoreboard | `shadow` |
+| `lol` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
+| `cs2` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
+| `nba_props` | NBA Props Cache | player_prop | espn_boxscore | `shadow` |
+| `nfl_props` | NFL Props Cache (QB only v1) | player_prop | espn_boxscore | `shadow` (blocked) |
 
-**Kalshi series tickers per sector:**
+> Injury data (ESPN) is applied to NBA / NFL / NCAAB / NCAAW / soccer / worldcup / baseball / WNBA / NHL. `valorant`, `ufc`, and `f1` sector handlers exist in the registry as **latent** sectors but have no Kalshi product, so they're absent from `SECTOR_SERIES_MAP` and cannot be bet today.
+
+### Modes
+
+Every category runs in one of three modes (`evmax.modes.get_mode`):
+
+| Mode | What happens |
+|------|--------------|
+| `live` | EVGaps persisted with `mode='live'`, Kelly sized against bankroll. |
+| `shadow` | EVGaps + pre-game YES ask persisted with `mode='shadow'`; **bankroll untouched** (Kelly skipped). Used for live-wiring validation before promotion. |
+| `disabled` | Scanner skips persistence entirely (gap still shows in the session's in-memory CLI output). |
+
+**Override precedence (highest wins):** runtime CLI flag (`--shadow`/`--live`/`--disabled`) > env var `EVMAX_CATEGORY_MODES` > YAML base. Per-market-type refinements `shadow_market_types` and `disabled_market_types` narrow a category to specific market types (e.g. baseball `total` is disabled; WNBA `total` stays shadow). Promote a category with `evmax cleanup shadow promote <category>` once validation passes.
+
+**Kalshi series tickers per sector** (from `SECTOR_SERIES_MAP` in `kalshi.py`):
 
 | Sector | Kalshi Series |
 |--------|--------------|
-| NBA | `KXNBAGAME`, `KXNBASPREAD` |
-| NFL | `KXNFLGAME` |
-| NCAAB | `KXNCAAMBGAME`, `KXNCAABGAME` |
+| NBA | `KXNBAGAME`, `KXNBASPREAD`, `KXNBATOTAL` |
+| NFL | `KXNFLGAME`, `KXNFLTOTAL` |
+| NCAAB | `KXNCAABGAME`, `KXNCAAMBGAME`, `KXNCAAMBSPREAD`, `KXNCAAMBTOTAL` |
 | NCAAW | `KXNCAAWBGAME`, `KXNCAAWBSPREAD`, `KXNCAAWBTOTAL` |
+| Baseball | `KXMLBGAME`, `KXMLBSPREAD`, `KXMLBTOTAL` |
+| NHL | `KXNHLGAME`, `KXNHLSPREAD`, `KXNHLTOTAL` |
+| WNBA | `KXWNBAGAME`, `KXWNBASPREAD`, `KXWNBATOTAL` |
 | Soccer | `KXEPLGAME`, `KXUCLGAME`, `KXMLSGAME`, `KXLALIGAGAME`, `KXBUNDESLIGAGAME`, `KXSERIEAGAME`, `KXLIGUE1GAME`, `KXUELGAME` |
+| World Cup | `KXWCGAME` |
 | Tennis | `KXATPMATCH`, `KXWTAMATCH` |
-| LoL | `KXLOLGAME`, `KXLOLGAMES` |
-| CS2 | `KXCS2GAME`, `KXCS2GAMES`, `KXCSGOGAME` |
+| LoL | `KXLOLGAME` |
+| CS2 | `KXCS2GAME`, `KXCS2GAMES` |
+| NBA Props | `KXNBAPTS`, `KXNBAREB`, `KXNBAAST`, `KXNBA3PT`, `KXNBASTL`, `KXNBABLK`, `KXNBAPRA` |
+| NFL Props | `KXNFLPASSYDS`, `KXNFLRSHYDS`, `KXNFLRECYDS`, `KXNFLANYTD`, `KXNFLPASSTDS`, `KXNFLREC` |
 
 **Market types supported:**
 
 - **Moneyline** — team A or team B wins
 - **Spread** — team A wins by more/less than X points (SpreadDistributionModel)
-- **Three-way (soccer)** — home / draw / away with three-way devig
-- **Totals (NCAAW)** — over/under point total
+- **Three-way (soccer / World Cup)** — home / draw / away with three-way devig
+- **Totals** — over/under point total
+- **Player props** — over/under a player stat line (NBA / NFL props)
 
 ---
 
@@ -1516,8 +1585,8 @@ The Pinnacle guest API (`guest.api.arcadia.pinnacle.com/0.1`) requires no creden
 
 ### Parallel API Fetching
 
-All three data sources run concurrently per sector using `asyncio.gather`:
-- **Kalshi**: All series prefix requests fired in parallel, throttled to **3 concurrent requests** via a semaphore to respect Kalshi's rate limits (prevents 429 errors).
+Data sources run concurrently per sector using `asyncio.gather`:
+- **Kalshi**: All series-prefix requests fired in parallel, throttled by a single token-bucket `AsyncLimiter(10, 1.0)` (10 req/s) to respect Kalshi's rate limits and prevent 429s.
 - **Pinnacle**: All `(sport_key × market_type)` combinations fetched simultaneously.
 - **ESPN injury agent**: Shares a single `httpx.AsyncClient` across all parallel endpoint fetches to reuse TCP/TLS connections.
 

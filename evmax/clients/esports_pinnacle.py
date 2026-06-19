@@ -720,7 +720,3 @@ class PinnacleGuestClient(BaseAPIClient):
         from evmax.matching.normalizer import NameNormalizer
         normalized = NameNormalizer(sector).normalize(name)
         return normalized.replace(" ", "_").replace(".", "")
-
-
-# Keep old name as alias for backward compatibility
-EsportsPinnacleClient = PinnacleGuestClient

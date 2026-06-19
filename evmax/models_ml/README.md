@@ -15,17 +15,11 @@ Used by `EloModelAgent` and `PoissonModelAgent` for spread market cover probabil
 Converts projected total points + standard deviation into over/under probability.
 Uses Normal CDF. Used by `PoissonModelAgent` for totals markets.
 
-### `live_win_prob.py`
-In-game win probability model. Takes prior Elo rating + current score differential + time
-remaining → outputs real-time win probability. Used by `pipeline/live_scanner.py`.
-
 ### `point_projection.py`
 Projects points-per-game for each team using attack/defense ratings from `poisson_state.json`.
-Used as input to `total_distribution.py` for over/under markets.
+Used as input to `total_distribution.py` for over/under markets, and by the standalone
+`evmax project` projection workflow.
 
-## Legacy (not used in the live pipeline)
-
-### `sharp_only.py`
-Phase 1 placeholder model that returned the Pinnacle sharp line as the "prediction".
-Superseded by the full `EnsembleModelAgent` blend. Only imported by `pipeline/runner.py`
-(also legacy). Safe to delete once runner.py is removed.
+### `base.py`
+`ModelBase` ABC + `ModelPrediction` dataclass — the prediction interface that
+`agents/models/base.py::ModelAgent` mixes in.

@@ -496,21 +496,10 @@ def scan(
         f"  [yellow]⚠ {result.exposure_guard_dropped} play(s) dropped/capped by exposure guard "
         f"(>8% per game)[/yellow]" if result.exposure_guard_dropped else ""
     )
-    # TheOddsAPI quota
-    from evmax.clients.pinnacle import PinnacleClient
-    quota = PinnacleClient.get_quota()
-    quota_str = ""
-    if quota["remaining"] is not None:
-        remaining = quota["remaining"]
-        used = quota["used"] or 0
-        color = "green" if remaining > 100 else "yellow" if remaining > 25 else "red"
-        quota_str = f"  |  TheOddsAPI: [{color}]{remaining:,} remaining[/{color}] ({used:,} used)"
-
     console.print(
         f"\n  [bold]Total at risk:[/bold] ${total_stake:.2f} / ${bankroll:.0f} "
         f"({total_stake/bankroll*100:.1f}%)  |  "
         f"Matched {result.markets_matched}/{result.markets_fetched} markets"
-        + quota_str
         + (f"\n{guard_note}" if guard_note else "") + "\n"
     )
 
