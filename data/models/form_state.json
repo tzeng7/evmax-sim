@@ -79211,6 +79211,13 @@
   "worldcup": {
     "mexico": [
       {
+        "date": "2026-06-19",
+        "won": true,
+        "opp": "south korea",
+        "home": true,
+        "drew": false
+      },
+      {
         "date": "2026-06-11",
         "won": true,
         "opp": "south africa",
@@ -79342,13 +79349,6 @@
         "opp": "costa rica",
         "home": true,
         "drew": true
-      },
-      {
-        "date": "2025-06-19",
-        "won": true,
-        "opp": "suriname",
-        "home": false,
-        "drew": false
       }
     ],
     "guatemala": [
@@ -79495,6 +79495,13 @@
     ],
     "qatar": [
       {
+        "date": "2026-06-18",
+        "won": false,
+        "opp": "canada",
+        "home": false,
+        "drew": false
+      },
+      {
         "date": "2026-06-13",
         "won": false,
         "opp": "switzerland",
@@ -79626,16 +79633,16 @@
         "opp": "arab emirates",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2024-06-11",
-        "won": true,
-        "opp": "india",
-        "home": true,
-        "drew": false
       }
     ],
     "croatia": [
+      {
+        "date": "2026-06-17",
+        "won": false,
+        "opp": "england",
+        "home": false,
+        "drew": false
+      },
       {
         "date": "2026-06-07",
         "won": true,
@@ -79767,13 +79774,6 @@
         "won": true,
         "opp": "poland",
         "home": true,
-        "drew": false
-      },
-      {
-        "date": "2024-09-05",
-        "won": false,
-        "opp": "portugal",
-        "home": false,
         "drew": false
       }
     ],
@@ -80063,6 +80063,13 @@
     ],
     "panama": [
       {
+        "date": "2026-06-17",
+        "won": false,
+        "opp": "ghana",
+        "home": false,
+        "drew": false
+      },
+      {
         "date": "2026-06-06",
         "won": false,
         "opp": "bosnia and herzegovina",
@@ -80192,13 +80199,6 @@
         "date": "2025-06-08",
         "won": true,
         "opp": "belize",
-        "home": false,
-        "drew": false
-      },
-      {
-        "date": "2025-02-08",
-        "won": false,
-        "opp": "chile",
         "home": false,
         "drew": false
       }
@@ -80689,6 +80689,13 @@
     ],
     "uzbekistan": [
       {
+        "date": "2026-06-18",
+        "won": false,
+        "opp": "colombia",
+        "home": true,
+        "drew": false
+      },
+      {
         "date": "2026-06-08",
         "won": false,
         "opp": "netherlands",
@@ -80820,13 +80827,6 @@
         "opp": "iran",
         "home": false,
         "drew": true
-      },
-      {
-        "date": "2024-06-06",
-        "won": true,
-        "opp": "turkmenistan",
-        "home": true,
-        "drew": false
       }
     ],
     "oman": [
@@ -81385,6 +81385,13 @@
     ],
     "germany": [
       {
+        "date": "2026-06-14",
+        "won": true,
+        "opp": "curacao",
+        "home": true,
+        "drew": false
+      },
+      {
         "date": "2026-06-06",
         "won": true,
         "opp": "united states",
@@ -81516,13 +81523,6 @@
         "opp": "netherlands",
         "home": false,
         "drew": true
-      },
-      {
-        "date": "2024-09-07",
-        "won": true,
-        "opp": "hungary",
-        "home": true,
-        "drew": false
       }
     ],
     "ukraine": [
@@ -82095,6 +82095,13 @@
     ],
     "cape verde": [
       {
+        "date": "2026-06-15",
+        "won": false,
+        "opp": "spain",
+        "home": false,
+        "drew": true
+      },
+      {
         "date": "2026-05-31",
         "won": true,
         "opp": "serbia",
@@ -82226,16 +82233,16 @@
         "opp": "south africa",
         "home": true,
         "drew": true
-      },
-      {
-        "date": "2024-01-29",
-        "won": true,
-        "opp": "mauritania",
-        "home": true,
-        "drew": false
       }
     ],
     "curacao": [
+      {
+        "date": "2026-06-14",
+        "won": false,
+        "opp": "germany",
+        "home": false,
+        "drew": false
+      },
       {
         "date": "2026-06-07",
         "won": true,
@@ -82364,13 +82371,6 @@
       },
       {
         "date": "2023-11-21",
-        "won": false,
-        "opp": "el salvador",
-        "home": true,
-        "drew": true
-      },
-      {
-        "date": "2023-11-17",
         "won": false,
         "opp": "el salvador",
         "home": true,
@@ -83440,6 +83440,13 @@
     ],
     "uruguay": [
       {
+        "date": "2026-06-15",
+        "won": false,
+        "opp": "saudi arabia",
+        "home": false,
+        "drew": true
+      },
+      {
         "date": "2026-03-31",
         "won": false,
         "opp": "algeria",
@@ -83571,16 +83578,16 @@
         "opp": "guatemala",
         "home": true,
         "drew": true
-      },
-      {
-        "date": "2024-07-14",
-        "won": false,
-        "opp": "canada",
-        "home": false,
-        "drew": true
       }
     ],
     "netherlands": [
+      {
+        "date": "2026-06-14",
+        "won": false,
+        "opp": "japan",
+        "home": true,
+        "drew": true
+      },
       {
         "date": "2026-06-08",
         "won": true,
@@ -83713,16 +83720,16 @@
         "opp": "germany",
         "home": true,
         "drew": true
-      },
-      {
-        "date": "2024-09-07",
-        "won": true,
-        "opp": "bosnia and herzegovina",
-        "home": true,
-        "drew": false
       }
     ],
     "japan": [
+      {
+        "date": "2026-06-14",
+        "won": false,
+        "opp": "netherlands",
+        "home": false,
+        "drew": true
+      },
       {
         "date": "2026-05-31",
         "won": true,
@@ -83853,13 +83860,6 @@
         "date": "2024-09-05",
         "won": true,
         "opp": "china",
-        "home": true,
-        "drew": false
-      },
-      {
-        "date": "2024-06-11",
-        "won": true,
-        "opp": "syria",
         "home": true,
         "drew": false
       }
@@ -84243,6 +84243,13 @@
     ],
     "argentina": [
       {
+        "date": "2026-06-17",
+        "won": true,
+        "opp": "algeria",
+        "home": true,
+        "drew": false
+      },
+      {
         "date": "2026-06-10",
         "won": true,
         "opp": "iceland",
@@ -84372,13 +84379,6 @@
         "date": "2024-09-06",
         "won": true,
         "opp": "chile",
-        "home": true,
-        "drew": false
-      },
-      {
-        "date": "2024-07-15",
-        "won": true,
-        "opp": "colombia",
         "home": true,
         "drew": false
       }
@@ -85209,6 +85209,13 @@
     ],
     "spain": [
       {
+        "date": "2026-06-15",
+        "won": false,
+        "opp": "cape verde",
+        "home": true,
+        "drew": true
+      },
+      {
         "date": "2026-06-09",
         "won": true,
         "opp": "peru",
@@ -85340,13 +85347,6 @@
         "opp": "switzerland",
         "home": false,
         "drew": false
-      },
-      {
-        "date": "2024-09-05",
-        "won": false,
-        "opp": "serbia",
-        "home": false,
-        "drew": true
       }
     ],
     "italy": [
@@ -86438,6 +86438,13 @@
     ],
     "south korea": [
       {
+        "date": "2026-06-19",
+        "won": false,
+        "opp": "mexico",
+        "home": false,
+        "drew": false
+      },
+      {
         "date": "2026-06-12",
         "won": true,
         "opp": "czechia",
@@ -86567,13 +86574,6 @@
         "date": "2024-10-10",
         "won": true,
         "opp": "jordan",
-        "home": false,
-        "drew": false
-      },
-      {
-        "date": "2024-09-10",
-        "won": true,
-        "opp": "oman",
         "home": false,
         "drew": false
       }
@@ -86943,6 +86943,13 @@
     ],
     "sweden": [
       {
+        "date": "2026-06-15",
+        "won": true,
+        "opp": "tunisia",
+        "home": true,
+        "drew": false
+      },
+      {
         "date": "2026-06-04",
         "won": false,
         "opp": "greece",
@@ -87074,16 +87081,16 @@
         "opp": "estonia",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2024-09-05",
-        "won": true,
-        "opp": "azerbaijan",
-        "home": false,
-        "drew": false
       }
     ],
     "new zealand": [
+      {
+        "date": "2026-06-16",
+        "won": false,
+        "opp": "iran",
+        "home": false,
+        "drew": true
+      },
       {
         "date": "2026-06-06",
         "won": false,
@@ -87216,13 +87223,6 @@
         "opp": "united states",
         "home": false,
         "drew": true
-      },
-      {
-        "date": "2024-09-08",
-        "won": false,
-        "opp": "mexico",
-        "home": false,
-        "drew": false
       }
     ],
     "serbia": [
@@ -87369,6 +87369,13 @@
     ],
     "jordan": [
       {
+        "date": "2026-06-17",
+        "won": false,
+        "opp": "austria",
+        "home": false,
+        "drew": false
+      },
+      {
         "date": "2026-06-07",
         "won": false,
         "opp": "colombia",
@@ -87498,13 +87505,6 @@
         "date": "2024-10-15",
         "won": true,
         "opp": "oman",
-        "home": true,
-        "drew": false
-      },
-      {
-        "date": "2024-10-10",
-        "won": false,
-        "opp": "south korea",
         "home": true,
         "drew": false
       }
@@ -87653,6 +87653,13 @@
     ],
     "colombia": [
       {
+        "date": "2026-06-18",
+        "won": true,
+        "opp": "uzbekistan",
+        "home": false,
+        "drew": false
+      },
+      {
         "date": "2026-06-07",
         "won": true,
         "opp": "jordan",
@@ -87784,16 +87791,16 @@
         "opp": "argentina",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2024-09-07",
-        "won": false,
-        "opp": "peru",
-        "home": false,
-        "drew": true
       }
     ],
     "iraq": [
+      {
+        "date": "2026-06-16",
+        "won": false,
+        "opp": "norway",
+        "home": true,
+        "drew": false
+      },
       {
         "date": "2026-06-10",
         "won": false,
@@ -87924,13 +87931,6 @@
         "date": "2024-06-06",
         "won": true,
         "opp": "indonesia",
-        "home": false,
-        "drew": false
-      },
-      {
-        "date": "2024-03-26",
-        "won": true,
-        "opp": "philippines",
         "home": false,
         "drew": false
       }
@@ -88356,6 +88356,13 @@
     ],
     "ecuador": [
       {
+        "date": "2026-06-14",
+        "won": false,
+        "opp": "ivory coast",
+        "home": false,
+        "drew": false
+      },
+      {
         "date": "2026-06-07",
         "won": true,
         "opp": "guatemala",
@@ -88486,13 +88493,6 @@
         "won": true,
         "opp": "peru",
         "home": true,
-        "drew": false
-      },
-      {
-        "date": "2024-09-07",
-        "won": false,
-        "opp": "brazil",
-        "home": false,
         "drew": false
       }
     ],
@@ -88782,6 +88782,13 @@
     ],
     "egypt": [
       {
+        "date": "2026-06-15",
+        "won": false,
+        "opp": "belgium",
+        "home": false,
+        "drew": true
+      },
+      {
         "date": "2026-06-06",
         "won": false,
         "opp": "brazil",
@@ -88912,13 +88919,6 @@
         "won": true,
         "opp": "sierra leone",
         "home": true,
-        "drew": false
-      },
-      {
-        "date": "2025-03-21",
-        "won": true,
-        "opp": "ethiopia",
-        "home": false,
         "drew": false
       }
     ],
@@ -89266,6 +89266,13 @@
     ],
     "iran": [
       {
+        "date": "2026-06-16",
+        "won": false,
+        "opp": "new zealand",
+        "home": true,
+        "drew": true
+      },
+      {
         "date": "2026-06-04",
         "won": true,
         "opp": "mali",
@@ -89397,13 +89404,6 @@
         "opp": "uzbekistan",
         "home": true,
         "drew": true
-      },
-      {
-        "date": "2024-06-06",
-        "won": true,
-        "opp": "hong kong",
-        "home": false,
-        "drew": false
       }
     ],
     "montenegro": [
@@ -89550,6 +89550,13 @@
     ],
     "czechia": [
       {
+        "date": "2026-06-18",
+        "won": false,
+        "opp": "south africa",
+        "home": true,
+        "drew": true
+      },
+      {
         "date": "2026-06-12",
         "won": false,
         "opp": "south korea",
@@ -89681,16 +89688,16 @@
         "opp": "albania",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2024-09-10",
-        "won": true,
-        "opp": "ukraine",
-        "home": true,
-        "drew": false
       }
     ],
     "algeria": [
+      {
+        "date": "2026-06-17",
+        "won": false,
+        "opp": "argentina",
+        "home": false,
+        "drew": false
+      },
       {
         "date": "2026-06-11",
         "won": true,
@@ -89823,16 +89830,16 @@
         "opp": "mozambique",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2025-03-21",
-        "won": true,
-        "opp": "botswana",
-        "home": false,
-        "drew": false
       }
     ],
     "tunisia": [
+      {
+        "date": "2026-06-15",
+        "won": false,
+        "opp": "sweden",
+        "home": false,
+        "drew": false
+      },
       {
         "date": "2026-06-06",
         "won": false,
@@ -89965,16 +89972,16 @@
         "opp": "malawi",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2025-03-19",
-        "won": true,
-        "opp": "liberia",
-        "home": false,
-        "drew": false
       }
     ],
     "senegal": [
+      {
+        "date": "2026-06-16",
+        "won": false,
+        "opp": "france",
+        "home": false,
+        "drew": false
+      },
       {
         "date": "2026-06-09",
         "won": false,
@@ -90106,13 +90113,6 @@
         "won": false,
         "opp": "uganda",
         "home": false,
-        "drew": false
-      },
-      {
-        "date": "2025-07-07",
-        "won": true,
-        "opp": "guinea",
-        "home": true,
         "drew": false
       }
     ],
@@ -90567,6 +90567,13 @@
     ],
     "canada": [
       {
+        "date": "2026-06-18",
+        "won": true,
+        "opp": "qatar",
+        "home": true,
+        "drew": false
+      },
+      {
         "date": "2026-06-12",
         "won": false,
         "opp": "bosnia and herzegovina",
@@ -90698,13 +90705,6 @@
         "opp": "panama",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2024-09-11",
-        "won": false,
-        "opp": "mexico",
-        "home": false,
-        "drew": true
       }
     ],
     "guadeloupe": [
@@ -91925,6 +91925,13 @@
     ],
     "norway": [
       {
+        "date": "2026-06-16",
+        "won": true,
+        "opp": "iraq",
+        "home": false,
+        "drew": false
+      },
+      {
         "date": "2026-06-07",
         "won": false,
         "opp": "morocco",
@@ -92056,16 +92063,16 @@
         "opp": "austria",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2024-09-06",
-        "won": false,
-        "opp": "kazakhstan",
-        "home": false,
-        "drew": true
       }
     ],
     "austria": [
+      {
+        "date": "2026-06-17",
+        "won": true,
+        "opp": "jordan",
+        "home": true,
+        "drew": false
+      },
       {
         "date": "2026-06-01",
         "won": true,
@@ -92198,13 +92205,6 @@
         "opp": "slovenia",
         "home": false,
         "drew": true
-      },
-      {
-        "date": "2024-07-02",
-        "won": false,
-        "opp": "turkiye",
-        "home": true,
-        "drew": false
       }
     ],
     "moldova": [
@@ -92493,6 +92493,13 @@
     ],
     "saudi arabia": [
       {
+        "date": "2026-06-15",
+        "won": false,
+        "opp": "uruguay",
+        "home": true,
+        "drew": true
+      },
+      {
         "date": "2026-06-09",
         "won": false,
         "opp": "senegal",
@@ -92624,16 +92631,16 @@
         "opp": "japan",
         "home": false,
         "drew": true
-      },
-      {
-        "date": "2025-03-20",
-        "won": true,
-        "opp": "china",
-        "home": true,
-        "drew": false
       }
     ],
     "south africa": [
+      {
+        "date": "2026-06-18",
+        "won": false,
+        "opp": "czechia",
+        "home": false,
+        "drew": true
+      },
       {
         "date": "2026-06-11",
         "won": false,
@@ -92766,13 +92773,6 @@
         "opp": "zimbabwe",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2024-06-07",
-        "won": false,
-        "opp": "nigeria",
-        "home": false,
-        "drew": true
       }
     ],
     "namibia": [
@@ -93403,6 +93403,13 @@
     ],
     "dr congo": [
       {
+        "date": "2026-06-17",
+        "won": false,
+        "opp": "portugal",
+        "home": false,
+        "drew": true
+      },
+      {
         "date": "2026-06-09",
         "won": false,
         "opp": "chile",
@@ -93534,13 +93541,6 @@
         "opp": "togo",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2024-06-06",
-        "won": false,
-        "opp": "senegal",
-        "home": false,
-        "drew": true
       }
     ],
     "russia": [
@@ -93971,6 +93971,13 @@
     ],
     "ghana": [
       {
+        "date": "2026-06-17",
+        "won": true,
+        "opp": "panama",
+        "home": true,
+        "drew": false
+      },
+      {
         "date": "2026-06-02",
         "won": false,
         "opp": "wales",
@@ -94100,13 +94107,6 @@
         "date": "2024-01-22",
         "won": false,
         "opp": "mozambique",
-        "home": false,
-        "drew": true
-      },
-      {
-        "date": "2024-01-18",
-        "won": false,
-        "opp": "egypt",
         "home": false,
         "drew": true
       }
@@ -94511,6 +94511,13 @@
     ],
     "england": [
       {
+        "date": "2026-06-17",
+        "won": true,
+        "opp": "croatia",
+        "home": true,
+        "drew": false
+      },
+      {
         "date": "2026-06-10",
         "won": true,
         "opp": "costa rica",
@@ -94642,16 +94649,16 @@
         "opp": "finland",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2024-09-07",
-        "won": true,
-        "opp": "republic of ireland",
-        "home": false,
-        "drew": false
       }
     ],
     "france": [
+      {
+        "date": "2026-06-16",
+        "won": true,
+        "opp": "senegal",
+        "home": true,
+        "drew": false
+      },
       {
         "date": "2026-06-08",
         "won": true,
@@ -94782,13 +94789,6 @@
         "date": "2024-09-09",
         "won": true,
         "opp": "belgium",
-        "home": true,
-        "drew": false
-      },
-      {
-        "date": "2024-09-06",
-        "won": false,
-        "opp": "italy",
         "home": true,
         "drew": false
       }
@@ -97186,6 +97186,13 @@
     ],
     "ivory coast": [
       {
+        "date": "2026-06-14",
+        "won": true,
+        "opp": "ecuador",
+        "home": true,
+        "drew": false
+      },
+      {
         "date": "2026-06-04",
         "won": true,
         "opp": "france",
@@ -97317,13 +97324,6 @@
         "opp": "guinea",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2024-06-11",
-        "won": false,
-        "opp": "kenya",
-        "home": false,
-        "drew": true
       }
     ],
     "libya": [
@@ -98983,6 +98983,13 @@
     ],
     "belgium": [
       {
+        "date": "2026-06-15",
+        "won": false,
+        "opp": "egypt",
+        "home": true,
+        "drew": true
+      },
+      {
         "date": "2026-06-06",
         "won": true,
         "opp": "tunisia",
@@ -99113,13 +99120,6 @@
         "won": false,
         "opp": "france",
         "home": false,
-        "drew": false
-      },
-      {
-        "date": "2024-09-06",
-        "won": true,
-        "opp": "israel",
-        "home": true,
         "drew": false
       }
     ],
@@ -101817,6 +101817,13 @@
     ],
     "portugal": [
       {
+        "date": "2026-06-17",
+        "won": false,
+        "opp": "dr congo",
+        "home": true,
+        "drew": true
+      },
+      {
         "date": "2026-06-10",
         "won": true,
         "opp": "nigeria",
@@ -101946,13 +101953,6 @@
         "date": "2024-09-08",
         "won": true,
         "opp": "scotland",
-        "home": true,
-        "drew": false
-      },
-      {
-        "date": "2024-09-05",
-        "won": true,
-        "opp": "croatia",
         "home": true,
         "drew": false
       }
@@ -103364,6 +103364,13 @@
     ],
     "switzerland": [
       {
+        "date": "2026-06-18",
+        "won": true,
+        "opp": "bosnia and herzegovina",
+        "home": true,
+        "drew": false
+      },
+      {
         "date": "2026-06-13",
         "won": false,
         "opp": "qatar",
@@ -103494,13 +103501,6 @@
         "won": false,
         "opp": "serbia",
         "home": false,
-        "drew": false
-      },
-      {
-        "date": "2024-09-08",
-        "won": false,
-        "opp": "spain",
-        "home": true,
         "drew": false
       }
     ],
@@ -104301,6 +104301,13 @@
     ],
     "bosnia and herzegovina": [
       {
+        "date": "2026-06-18",
+        "won": false,
+        "opp": "switzerland",
+        "home": false,
+        "drew": false
+      },
+      {
         "date": "2026-06-12",
         "won": false,
         "opp": "canada",
@@ -104432,13 +104439,6 @@
         "opp": "germany",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2024-09-10",
-        "won": false,
-        "opp": "hungary",
-        "home": false,
-        "drew": true
       }
     ],
     "antigua and barbuda": [
