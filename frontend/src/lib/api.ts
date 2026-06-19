@@ -60,11 +60,14 @@ export async function pickByIds(market_ids: string[]): Promise<PickResult> {
   }).then(json)
 }
 
-export async function resolve(date: string): Promise<{ resolved: number }> {
+export async function resolve(
+  date: string,
+  syncPortfolios = true,
+): Promise<{ resolved: number; portfolio_resolved?: number }> {
   return fetch('/api/resolve', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ date }),
+    body: JSON.stringify({ date, sync_portfolios: syncPortfolios }),
   }).then(json)
 }
 

@@ -76,10 +76,15 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
     setResolving(true)
     toast('Resolving outcomes...', 'info')
     try {
-      const r1 = await resolve(yesterday())
-      const r2 = await resolve(fmtDate())
+      // Resolve yesterday + today, then sync portfolios once on the second
+      // call (after both dates' ev_outcomes are populated). One click now
+      // covers both dashboard and portfolio outcomes.
+      const r1 = await resolve(yesterday(), false)
+      const r2 = await resolve(fmtDate(), true)
       const total = (r1.resolved || 0) + (r2.resolved || 0)
-      toast(`Resolved ${total} outcome(s)`, 'ok')
+      const portfolio = r2.portfolio_resolved || 0
+      const portfolioSuffix = portfolio ? ` · synced ${portfolio} portfolio bet(s)` : ''
+      toast(`Resolved ${total} outcome(s)${portfolioSuffix}`, 'ok')
       onResolve()
     } catch (e) {
       toast('Resolve failed: ' + (e as Error).message, 'err')
