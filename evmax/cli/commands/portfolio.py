@@ -172,19 +172,23 @@ async def _scan_portfolios(portfolio_id: str | None) -> None:
     cycle = await coord.run_cycle()
     today_str = date.today().isoformat()
 
+    # plays() drops partial-blend (shadow, $0.00-stake) gaps + map_handicap —
+    # the canonical actionable-play definition shared with the CLI scan,
+    # dashboard, and cron portfolio scanner.
+    playable = cycle.plays(require_full_blend=True, drop_map_handicap=True)
+
     total_logged = 0
     for portfolio in portfolios:
         count = 0
-        for g in cycle.top_gaps:
+        for g in playable:
             if g.sector not in portfolio.sectors:
-                continue
-            if g.market_type == "map_handicap":
                 continue
             if is_excluded_from_portfolio(g.sector, g.market_type):
                 continue
 
             event_date_str = str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else "")
-            if event_date_str != today_str:
+            # Today-and-future: drop only past games (matches the web fan-out).
+            if event_date_str and event_date_str < today_str:
                 continue
 
             gap_dict = {

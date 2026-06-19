@@ -13,7 +13,6 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from evmax.formatting import format_outcome_label_for_row
-from evmax.models.market import is_prop_event
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 PREDICTIONS_DB = ROOT / "data" / "predictions.db"
@@ -440,23 +439,18 @@ async def _run_unified_scan(
     # market_id. Props live in prop_observations via the underlying cycle.
     try:
         from evmax.agents.cleanup.logger import log_gaps as _log_gaps
-        loggable = [g for g in cycle.top_gaps if not is_prop_event(g.event_id)]
+        loggable = cycle.loggable_gaps()
         if loggable:
             _log_gaps(loggable, bankroll_used=bankroll)
     except Exception as _log_err:
         import structlog
         structlog.get_logger(__name__).warning("web_scan_log_failed", error=str(_log_err))
 
-    # Partial-blend gaps (full_blend=False, e.g. tennis sans the full model
-    # blend) are demoted to mode='shadow' with Kelly zeroed — they are NOT
-    # actionable plays. They're still logged above (loggable), but exclude them
-    # from the dashboard scan view and the portfolio fan-out; surfacing a
-    # blocked, $0.00-stake row is just noise. Mirrors the CLI scan behavior.
-    gap_dicts = [
-        _gap_to_dict(g, bankroll)
-        for g in cycle.top_gaps
-        if getattr(g, "full_blend", True)
-    ]
+    # The dashboard scan view + portfolio fan-out show only actionable plays:
+    # cycle.plays() drops partial-blend (shadow, $0.00-stake) gaps. They're
+    # still logged above via loggable_gaps(). The dashboard deliberately does
+    # NOT apply the CLI's min_prob/tiered-EV floor (it shows all ≥2% gaps).
+    gap_dicts = [_gap_to_dict(g, bankroll) for g in cycle.plays(require_full_blend=True)]
 
     portfolio_results: list[dict[str, Any]] = []
     if fan_out_portfolio_ids is not None:

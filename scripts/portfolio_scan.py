@@ -25,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 async def main() -> None:
     from evmax.agents.coordinator import AgentCoordinator
     from evmax.portfolios import (
+        is_excluded_from_portfolio,
         list_portfolios,
         log_portfolio_bet,
         sync_portfolio_outcomes,
@@ -55,17 +56,25 @@ async def main() -> None:
     print(f"Markets fetched: {cycle.markets_fetched}, matched: {cycle.markets_matched}")
     print(f"Total +EV gaps: {len(cycle.top_gaps)}")
 
+    # plays() drops partial-blend (shadow, $0.00-stake) gaps + map_handicap —
+    # the same actionable-play definition the CLI and dashboard use, so the
+    # cron path can't silently log blocked tennis gaps as real stake.
+    playable = cycle.plays(require_full_blend=True, drop_map_handicap=True)
+
     total_logged = 0
     for portfolio in portfolios:
         count = 0
-        for g in cycle.top_gaps:
+        for g in playable:
             if g.sector not in portfolio.sectors:
                 continue
-            if g.market_type == "map_handicap":
+            if is_excluded_from_portfolio(g.sector, g.market_type):
                 continue
 
             event_date_str = str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else "")
-            if event_date_str != today_str:
+            # Today-and-future: drop only past games (matches the web fan-out,
+            # which has no floor). A strict "== today" silently dropped
+            # Finals/series games Kalshi lists 2-4 days out.
+            if event_date_str and event_date_str < today_str:
                 continue
 
             gap_dict = {

@@ -337,19 +337,14 @@ def scan(
     except Exception:
         pass  # DB unavailable — show all
 
-    # Partial-blend gaps (full_blend=False — sector requires the full model
-    # blend, e.g. tennis) are persisted for calibration but are NOT plays:
-    # log_gaps demotes them to mode='shadow' and they stay off the table.
-    # These are still logged as shadow (see loggable_gaps below) but we don't
-    # surface them in the scan output at all — they're blocked plays capped at
-    # zero stake, just noise on the table.
-    partial_blend_gaps = [g for g in qualifying_gaps if not getattr(g, "full_blend", True)]
-    qualifying_gaps = [g for g in qualifying_gaps if getattr(g, "full_blend", True)]
-
-    # Log game-level +EV gaps to ev_predictions (bankroll tracking)
-    loggable_gaps = [
-        g for g in qualifying_gaps + partial_blend_gaps if not is_prop_event(g.event_id)
-    ]
+    # Log every qualifying game-market gap — full- AND partial-blend — to
+    # ev_predictions; log_gaps demotes partial-blend gaps (full_blend=False,
+    # e.g. tennis sans the full model blend) to mode='shadow' with zero stake.
+    # The play table below shows only full-blend gaps (g.full_blend is the same
+    # field CycleResult.plays() gates on), so blocked $0.00-stake rows stay off
+    # the table entirely.
+    loggable_gaps = [g for g in qualifying_gaps if not is_prop_event(g.event_id)]
+    qualifying_gaps = [g for g in qualifying_gaps if g.full_blend]
     if loggable_gaps:
         try:
             from evmax.agents.cleanup.logger import log_gaps as _log_gaps
