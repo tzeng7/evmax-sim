@@ -27,6 +27,8 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
+from evmax.models.market import is_prop_event
+
 app = typer.Typer(
     help="Inspect shadow-mode predictions and promote categories to live."
 )
@@ -218,7 +220,7 @@ def metrics(
         for r in rows:
             if is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"]):
                 key = r["sector"] or "unknown"
-                if r["event_id"] and "::prop::" in r["event_id"]:
+                if is_prop_event(r["event_id"]):
                     key = f"{key}_props"
                 excluded_by_category[key] = excluded_by_category.get(key, 0) + 1
             else:
@@ -244,7 +246,7 @@ def metrics(
     by_category: dict[str, list] = {}
     for r in rows:
         key = r["sector"] or "unknown"
-        if r["event_id"] and "::prop::" in r["event_id"]:
+        if is_prop_event(r["event_id"]):
             key = f"{key}_props"
         by_category.setdefault(key, []).append(r)
 

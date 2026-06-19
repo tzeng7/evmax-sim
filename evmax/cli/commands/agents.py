@@ -19,6 +19,10 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
+from evmax.ev.calculator import tiered_min_ev
+from evmax.ev.odds_format import american_odds as _american
+from evmax.models.market import is_prop_event
+
 app = typer.Typer(no_args_is_help=True)
 console = Console()
 
@@ -35,15 +39,6 @@ def _display_label(yes_team: str, market_type: str, line) -> str:
     if mt in ("over_under", "total") and line is not None:
         return f"O/U {line:.1f}"
     return team
-
-
-def _american(prob: float) -> str:
-    """Convert implied probability to American odds string (+185, -108)."""
-    if prob <= 0 or prob >= 1:
-        return "N/A"
-    if prob >= 0.5:
-        return f"{-round(prob / (1 - prob) * 100)}"
-    return f"+{round((1 - prob) / prob * 100)}"
 
 
 async def _scan_loop(
@@ -322,16 +317,7 @@ def scan(
         return range_start <= ed <= range_end
 
     def _tiered_min_ev(true_prob: float) -> float:
-        """Scale minimum EV up for low-probability bets.
-
-        Formula: base_min_ev + max(0, min_prob_floor - true_prob) * 0.5
-        Examples (base=2%, floor=15%):
-          true_prob=0.08 → min_ev = 2% + (0.15-0.08)*0.5 = 5.5%
-          true_prob=0.12 → min_ev = 2% + (0.15-0.12)*0.5 = 3.5%
-          true_prob=0.15 → min_ev = 2% (floor, no scaling)
-          true_prob=0.50 → min_ev = 2% (unchanged)
-        """
-        return min_ev + max(0.0, min_prob - true_prob) * 0.5
+        return tiered_min_ev(true_prob, min_ev=min_ev, min_prob=min_prob)
 
     # All gaps that pass display filters (no top-N cap yet) — these are what get logged.
     # Logging uses the same date + min_prob + tiered EV as the display so that
@@ -370,7 +356,7 @@ def scan(
 
     # Log game-level +EV gaps to ev_predictions (bankroll tracking)
     loggable_gaps = [
-        g for g in qualifying_gaps + partial_blend_gaps if "::prop::" not in g.event_id
+        g for g in qualifying_gaps + partial_blend_gaps if not is_prop_event(g.event_id)
     ]
     if loggable_gaps:
         try:
@@ -605,7 +591,7 @@ def verify(
     console.print(f"\n[bold cyan]evmax verify[/bold cyan] — re-checking {len(rows)} bets for games on {target_date} ...\n")
 
     def _tiered_min_ev(true_prob: float) -> float:
-        return min_ev + max(0.0, min_prob - true_prob) * 0.5
+        return tiered_min_ev(true_prob, min_ev=min_ev, min_prob=min_prob)
 
     # Fetch all live ask prices via WebSocket (one connection for all tickers)
     # with automatic REST fallback for any ticker missed by WS.
@@ -838,7 +824,7 @@ def pick(
     console.print(f"\n[bold cyan]evmax pick[/bold cyan] — {len(rows)} bets from scan\n")
 
     def _tiered_min_ev(true_prob: float) -> float:
-        return min_ev + max(0.0, min_prob - true_prob) * 0.5
+        return tiered_min_ev(true_prob, min_ev=min_ev, min_prob=min_prob)
 
     settings = get_settings()
 
