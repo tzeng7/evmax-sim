@@ -767,21 +767,40 @@ async def api_unplace(request: Request) -> JSONResponse:
 
 @app.post("/api/resolve")
 async def api_resolve(request: Request) -> JSONResponse:
-    """Resolve outcomes for a given date (defaults to yesterday)."""
+    """Resolve outcomes for a given date (defaults to yesterday).
+
+    Symmetric with ``/api/scan``'s portfolio fan-out: after resolving the
+    date's ev_outcomes, this also syncs portfolio bets against those freshly
+    resolved outcomes (unless ``sync_portfolios=false``), so the dashboard
+    "Resolve" button is one click for both dashboard *and* portfolio outcomes —
+    no separate "Sync Outcomes" trip required.
+    """
     body = await request.json() if request.headers.get("content-type") == "application/json" else {}
     target = body.get("date")
     if target:
         d = date.fromisoformat(target)
     else:
         d = date.today() - timedelta(days=1)
+    sync_portfolios = body.get("sync_portfolios", True)
 
     from evmax.agents.cleanup.resolver import resolve_outcomes_for_date
     result = await resolve_outcomes_for_date(d)
+
+    portfolio_resolved = 0
+    if sync_portfolios:
+        # sync_portfolio_outcomes() calls asyncio.run() internally, so it
+        # cannot run inside this already-running event loop — hand it to a
+        # worker thread (same way Starlette runs the sync /sync-outcomes route).
+        from starlette.concurrency import run_in_threadpool
+        from evmax.portfolios import sync_portfolio_outcomes
+        portfolio_resolved = await run_in_threadpool(sync_portfolio_outcomes)
+
     return JSONResponse({
         "date": d.isoformat(),
         "resolved": result["resolved"],
         "failed": result["failed"],
         "unmatched": result.get("unmatched", [])[:20],
+        "portfolio_resolved": portfolio_resolved,
     })
 
 
