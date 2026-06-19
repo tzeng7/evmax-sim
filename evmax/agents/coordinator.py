@@ -68,7 +68,7 @@ from evmax.agents.models.wnba_possession_sim_agent import WNBAPossessionSimAgent
 from evmax.agents.intelligence.injury_agent import InjuryReportAgent, InjuryReport
 from evmax.agents.intelligence.playoff_agent import PlayoffAgent, PlayoffSeries
 from evmax.agents.intelligence.standings_agent import StandingsAgent, TeamStanding
-from evmax.models.market import PredictionMarket, PROP_MARKER
+from evmax.models.market import PredictionMarket, PROP_MARKER, is_prop_event
 from evmax.models.odds import SharpOdds, SharpBook
 from evmax.matching.engine import MatchingEngine
 from evmax.settings import get_settings
@@ -102,13 +102,56 @@ class CycleResult:
     def top_gaps(self) -> list[EVGap]:
         return sorted(self.ev_gaps, key=lambda g: g.ev_pct, reverse=True)
 
+    def loggable_gaps(self) -> list[EVGap]:
+        """Game-market gaps to persist to ``ev_predictions``.
+
+        Player props are routed to ``prop_observations`` separately, so they're
+        excluded here. Partial-blend gaps ARE included — ``log_gaps`` demotes
+        them to ``mode='shadow'``.
+        """
+        return [g for g in self.ev_gaps if not is_prop_event(g.event_id)]
+
+    def plays(
+        self,
+        *,
+        require_full_blend: bool = True,
+        drop_props: bool = False,
+        drop_map_handicap: bool = False,
+    ) -> list[EVGap]:
+        """The canonical "actionable plays" list, sorted by EV descending.
+
+        Every surface that DISPLAYS or SIZES bets (CLI scan, dashboard,
+        portfolio fan-out) must start here rather than from raw
+        ``ev_gaps``/``top_gaps`` — that's what keeps each from re-deriving (and
+        forgetting) the play-selection rules, the drift this accessor exists to
+        prevent.
+
+        - ``require_full_blend``: drop partial-blend gaps (``full_blend=False``).
+          These are shadow-bound with Kelly zeroed (see ``run_cycle``) and are
+          never plays.
+        - ``drop_props``: drop player-prop gaps (``event_id`` carries the prop
+          marker).
+        - ``drop_map_handicap``: drop esports map-handicap markets not on Kalshi.
+
+        Surface-specific policy (min_prob floors, tiered-EV ramps, date windows,
+        placed-exclusion, per-type caps) stays at the call site.
+        """
+        gaps = self.top_gaps
+        if require_full_blend:
+            gaps = [g for g in gaps if g.full_blend]
+        if drop_props:
+            gaps = [g for g in gaps if not is_prop_event(g.event_id)]
+        if drop_map_handicap:
+            gaps = [g for g in gaps if g.market_type != "map_handicap"]
+        return gaps
+
     def stake_for(self, gap: EVGap) -> float:
         """Dollar stake for a gap given the bankroll and Kelly fraction."""
         return round(self.bankroll * gap.kelly_fraction, 2)
 
     def print_plays(self, min_ev: float = 0.02, max_plays: int = 30) -> None:
         """Pretty-print +EV plays. Partial-blend gaps are shadow-bound — not plays."""
-        gaps = [g for g in self.top_gaps if g.ev_pct >= min_ev and g.full_blend][:max_plays]
+        gaps = [g for g in self.plays() if g.ev_pct >= min_ev][:max_plays]
         if not gaps:
             print("No +EV plays found.")
             return
