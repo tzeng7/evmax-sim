@@ -68,7 +68,7 @@ from evmax.agents.models.wnba_possession_sim_agent import WNBAPossessionSimAgent
 from evmax.agents.intelligence.injury_agent import InjuryReportAgent, InjuryReport
 from evmax.agents.intelligence.playoff_agent import PlayoffAgent, PlayoffSeries
 from evmax.agents.intelligence.standings_agent import StandingsAgent, TeamStanding
-from evmax.models.market import PredictionMarket
+from evmax.models.market import PredictionMarket, PROP_MARKER
 from evmax.models.odds import SharpOdds, SharpBook
 from evmax.matching.engine import MatchingEngine
 from evmax.settings import get_settings
@@ -253,7 +253,7 @@ def _apply_joint_kelly(
         joint_kelly_fractions,
     )
 
-    base_event_key = lambda g: (g.event_id or "").split("::prop::")[0]
+    base_event_key = lambda g: (g.event_id or "").split(PROP_MARKER)[0]
     prior = dict(prior_exposure or {})
 
     by_event: dict[str, list[EVGap]] = {}

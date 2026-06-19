@@ -12,6 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from evmax.models.market import is_prop_event
+
 ROOT = Path(__file__).resolve().parent.parent.parent
 PREDICTIONS_DB = ROOT / "data" / "predictions.db"
 SPA_DIST = ROOT / "frontend" / "dist"
@@ -486,7 +488,7 @@ async def _run_unified_scan(
     # market_id. Props live in prop_observations via the underlying cycle.
     try:
         from evmax.agents.cleanup.logger import log_gaps as _log_gaps
-        loggable = [g for g in cycle.top_gaps if "::prop::" not in (g.event_id or "")]
+        loggable = [g for g in cycle.top_gaps if not is_prop_event(g.event_id)]
         if loggable:
             _log_gaps(loggable, bankroll_used=bankroll)
     except Exception as _log_err:
