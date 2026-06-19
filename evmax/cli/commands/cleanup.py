@@ -583,6 +583,30 @@ def watch_closes(
 
 
 @app.command("void")
+def _stale_unmatched_candidates(conn, cutoff_str: str):
+    """Live, unresolved, not-yet-voided predictions before the cutoff.
+
+    The ``mode = 'live'`` guard is load-bearing: without it, ``void`` would
+    sweep up stale unresolved SHADOW rows too, shrinking the MODEL-9 promotion
+    sample (shadow markets that go unresolved past the cutoff before their ESPN
+    result lands would be silently voided out of the validation set).
+    """
+    return conn.execute(
+        """
+        SELECT p.market_id, p.event_id, p.sector, p.yes_team,
+               p.event_date, p.scan_date, p.ev_pct
+        FROM   ev_predictions p
+        LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
+        WHERE  p.voided = 0
+          AND  p.mode = 'live'
+          AND  o.market_id IS NULL
+          AND  COALESCE(p.event_date, p.scan_date) < ?
+        ORDER  BY COALESCE(p.event_date, p.scan_date) DESC
+        """,
+        (cutoff_str,),
+    ).fetchall()
+
+
 def void(
     before: Optional[str] = typer.Option(
         None, "--before",
@@ -616,20 +640,9 @@ def void(
     cutoff_str = cutoff.isoformat()
     conn = get_connection()
 
-    # Find predictions that are: past the cutoff, still unresolved, and not already voided
-    candidates = conn.execute(
-        """
-        SELECT p.market_id, p.event_id, p.sector, p.yes_team,
-               p.event_date, p.scan_date, p.ev_pct
-        FROM   ev_predictions p
-        LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
-        WHERE  p.voided = 0
-          AND  o.market_id IS NULL
-          AND  COALESCE(p.event_date, p.scan_date) < ?
-        ORDER  BY COALESCE(p.event_date, p.scan_date) DESC
-        """,
-        (cutoff_str,),
-    ).fetchall()
+    # Find predictions that are: past the cutoff, still unresolved, not already
+    # voided, and live (never void shadow rows — see helper docstring).
+    candidates = _stale_unmatched_candidates(conn, cutoff_str)
 
     if not candidates:
         console.print(f"[green]No stale unmatched predictions before {cutoff_str}.[/green]")
