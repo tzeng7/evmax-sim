@@ -24,6 +24,7 @@ import structlog
 
 from evmax.agents.cleanup.db import get_connection
 from evmax.agents.odds.ev_gap_agent import EVGap
+from evmax.models.market import is_prop_event
 from evmax.provenance import code_version
 
 logger = structlog.get_logger(__name__)
@@ -48,7 +49,7 @@ def _gap_category_key(gap: EVGap) -> str:
     player props use the `{sector}_props` variant that matches the
     Kalshi suffix convention in SECTOR_SERIES_MAP and data/categories.yaml.
     """
-    if gap.event_id and "::prop::" in gap.event_id:
+    if is_prop_event(gap.event_id):
         return f"{gap.sector}_props"
     return gap.sector
 
@@ -247,7 +248,7 @@ def log_prop_observations(
 
     Returns the number of newly inserted rows.
     """
-    prop_gaps = [g for g in gaps if g.event_id and "::prop::" in g.event_id]
+    prop_gaps = [g for g in gaps if is_prop_event(g.event_id)]
     if not prop_gaps:
         return 0
 

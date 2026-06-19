@@ -19,31 +19,18 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
+from evmax.ev.calculator import tiered_min_ev
+from evmax.ev.odds_format import american_odds as _american
+from evmax.formatting import format_outcome_label
+from evmax.models.market import is_prop_event
+
 app = typer.Typer(no_args_is_help=True)
 console = Console()
 
 
 def _display_label(yes_team: str, market_type: str, line) -> str:
-    """Mirror EVGap.display_label: team + market type + line."""
-    team = (yes_team or "?").capitalize()
-    mt = (market_type or "").lower()
-    if mt == "moneyline":
-        return f"{team} ML"
-    if mt == "spread" and line is not None:
-        line_str = f"{line:.1f}".rstrip("0").rstrip(".")
-        return f"{team} {line_str}"
-    if mt in ("over_under", "total") and line is not None:
-        return f"O/U {line:.1f}"
-    return team
-
-
-def _american(prob: float) -> str:
-    """Convert implied probability to American odds string (+185, -108)."""
-    if prob <= 0 or prob >= 1:
-        return "N/A"
-    if prob >= 0.5:
-        return f"{-round(prob / (1 - prob) * 100)}"
-    return f"+{round((1 - prob) / prob * 100)}"
+    """Outcome label for a game-market row — delegates to the canonical formatter."""
+    return format_outcome_label(yes_team=yes_team, market_type=market_type, line=line)
 
 
 async def _scan_loop(
@@ -322,16 +309,7 @@ def scan(
         return range_start <= ed <= range_end
 
     def _tiered_min_ev(true_prob: float) -> float:
-        """Scale minimum EV up for low-probability bets.
-
-        Formula: base_min_ev + max(0, min_prob_floor - true_prob) * 0.5
-        Examples (base=2%, floor=15%):
-          true_prob=0.08 → min_ev = 2% + (0.15-0.08)*0.5 = 5.5%
-          true_prob=0.12 → min_ev = 2% + (0.15-0.12)*0.5 = 3.5%
-          true_prob=0.15 → min_ev = 2% (floor, no scaling)
-          true_prob=0.50 → min_ev = 2% (unchanged)
-        """
-        return min_ev + max(0.0, min_prob - true_prob) * 0.5
+        return tiered_min_ev(true_prob, min_ev=min_ev, min_prob=min_prob)
 
     # All gaps that pass display filters (no top-N cap yet) — these are what get logged.
     # Logging uses the same date + min_prob + tiered EV as the display so that
@@ -359,19 +337,14 @@ def scan(
     except Exception:
         pass  # DB unavailable — show all
 
-    # Partial-blend gaps (full_blend=False — sector requires the full model
-    # blend, e.g. tennis) are persisted for calibration but are NOT plays:
-    # log_gaps demotes them to mode='shadow' and they stay off the table.
-    # These are still logged as shadow (see loggable_gaps below) but we don't
-    # surface them in the scan output at all — they're blocked plays capped at
-    # zero stake, just noise on the table.
-    partial_blend_gaps = [g for g in qualifying_gaps if not getattr(g, "full_blend", True)]
-    qualifying_gaps = [g for g in qualifying_gaps if getattr(g, "full_blend", True)]
-
-    # Log game-level +EV gaps to ev_predictions (bankroll tracking)
-    loggable_gaps = [
-        g for g in qualifying_gaps + partial_blend_gaps if "::prop::" not in g.event_id
-    ]
+    # Log every qualifying game-market gap — full- AND partial-blend — to
+    # ev_predictions; log_gaps demotes partial-blend gaps (full_blend=False,
+    # e.g. tennis sans the full model blend) to mode='shadow' with zero stake.
+    # The play table below shows only full-blend gaps (g.full_blend is the same
+    # field CycleResult.plays() gates on), so blocked $0.00-stake rows stay off
+    # the table entirely.
+    loggable_gaps = [g for g in qualifying_gaps if not is_prop_event(g.event_id)]
+    qualifying_gaps = [g for g in qualifying_gaps if g.full_blend]
     if loggable_gaps:
         try:
             from evmax.agents.cleanup.logger import log_gaps as _log_gaps
@@ -605,7 +578,7 @@ def verify(
     console.print(f"\n[bold cyan]evmax verify[/bold cyan] — re-checking {len(rows)} bets for games on {target_date} ...\n")
 
     def _tiered_min_ev(true_prob: float) -> float:
-        return min_ev + max(0.0, min_prob - true_prob) * 0.5
+        return tiered_min_ev(true_prob, min_ev=min_ev, min_prob=min_prob)
 
     # Fetch all live ask prices via WebSocket (one connection for all tickers)
     # with automatic REST fallback for any ticker missed by WS.
@@ -838,7 +811,7 @@ def pick(
     console.print(f"\n[bold cyan]evmax pick[/bold cyan] — {len(rows)} bets from scan\n")
 
     def _tiered_min_ev(true_prob: float) -> float:
-        return min_ev + max(0.0, min_prob - true_prob) * 0.5
+        return tiered_min_ev(true_prob, min_ev=min_ev, min_prob=min_prob)
 
     settings = get_settings()
 
@@ -859,17 +832,6 @@ def pick(
             "is_live": is_live,
             "stake": scan_stake,
         })
-
-    def _display_label(yes_team, market_type, line):
-        team = (yes_team or "?").capitalize()
-        if market_type == "moneyline":
-            return f"{team} ML"
-        if market_type == "spread" and line is not None:
-            line_str = f"{line:.1f}".rstrip("0").rstrip(".")
-            return f"{team} {line_str}"
-        if market_type in ("over_under", "total") and line is not None:
-            return f"O/U {line:.1f}"
-        return team
 
     # Show a summary table first
     table = Table(

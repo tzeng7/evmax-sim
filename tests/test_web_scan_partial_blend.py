@@ -10,6 +10,7 @@ from datetime import date, datetime
 
 import evmax.agents.cleanup.logger as logger_module
 import evmax.agents.coordinator as coordinator_module
+from evmax.agents.coordinator import CycleResult
 from evmax.agents.odds.ev_gap_agent import EVGap
 from evmax.web.app import _run_unified_scan
 
@@ -38,13 +39,6 @@ def _gap(market_id: str, *, full_blend: bool, model_sources: str) -> EVGap:
     )
 
 
-class _FakeCycle:
-    def __init__(self, gaps):
-        self.top_gaps = gaps
-        self.markets_fetched = len(gaps)
-        self.markets_matched = len(gaps)
-
-
 def test_partial_blend_gap_excluded_from_scan(monkeypatch):
     full = _gap("kalshi:full", full_blend=True,
                 model_sources="tennis_surface+tennis_serve_return+tennis_form+tennis_advanced+sharp")
@@ -56,7 +50,7 @@ def test_partial_blend_gap_excluded_from_scan(monkeypatch):
             pass
 
         async def run_cycle(self):
-            return _FakeCycle([full, partial])
+            return CycleResult(ev_gaps=[full, partial], bankroll=500.0, kelly_fraction=0.5)
 
     monkeypatch.setattr(coordinator_module, "AgentCoordinator", _FakeCoord)
     # Keep the partial gap's shadow logging path intact but inert (no DB write).

@@ -12,6 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from evmax.formatting import format_outcome_label_for_row
+
 ROOT = Path(__file__).resolve().parent.parent.parent
 PREDICTIONS_DB = ROOT / "data" / "predictions.db"
 SPA_DIST = ROOT / "frontend" / "dist"
@@ -20,58 +22,9 @@ app = FastAPI(title="evmax dashboard")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allow_methods=["*"], allow_headers=["*"])
 
 
-_STAT_LABELS = {
-    "points": "PTS", "assists": "AST", "rebounds": "REB",
-    "threes": "3PM", "pra": "PRA", "pts_reb": "P+R", "pts_ast": "P+A",
-    "reb_ast": "R+A", "steals": "STL", "blocks": "BLK",
-    "strikeouts": "K", "hits": "H", "total_bases": "TB",
-}
-
-
-def _display_label_for_row(row: dict[str, Any]) -> str:
-    """Render a human-readable outcome label for one predictions.db row or scan gap.
-
-    Mirrors EVGap.display_label but works off a plain dict so we can use it for
-    both DB-backed bets and live scan gaps. Props show as "Mathurin 4+ AST"
-    instead of the old "bennedict_mathurin player_prop 4".
-    """
-    mt = (row.get("market_type") or "").lower()
-    yes_team = (row.get("yes_team") or "?").strip()
-    line = row.get("line")
-
-    if mt == "player_prop":
-        player = (row.get("prop_player_name") or yes_team or "?").replace("_", " ")
-        player = " ".join(p.capitalize() for p in player.split())
-        stat_raw = (row.get("prop_stat_type") or "").lower()
-        stat = _STAT_LABELS.get(stat_raw, stat_raw.replace("_", " ").upper() or "PROP")
-        thr = row.get("prop_threshold") if row.get("prop_threshold") is not None else line
-        if thr is not None:
-            try:
-                thr_str = f"{float(thr):g}+"
-            except (TypeError, ValueError):
-                thr_str = str(thr)
-            return f"{player} {thr_str} {stat}"
-        return f"{player} {stat}"
-
-    team = yes_team.capitalize() if yes_team else "?"
-    if mt == "moneyline":
-        return f"{team} ML"
-    if mt == "spread" and line is not None:
-        try:
-            ln = float(line)
-        except (TypeError, ValueError):
-            return f"{team} {line}"
-        # Positive line = NO-side / "+spread" cover; render with leading "+".
-        sign = "+" if ln > 0 else ""
-        line_str = f"{sign}{ln:.1f}".rstrip("0").rstrip(".")
-        return f"{team} {line_str}"
-    if mt in ("over_under", "total") and line is not None:
-        side = "Under" if yes_team.lower().startswith("u") else "Over"
-        try:
-            return f"{side} {float(line):.1f}"
-        except (TypeError, ValueError):
-            return f"{side} {line}"
-    return team
+# Outcome-label rendering moved to evmax.formatting (single source). Thin
+# wrapper kept so existing call sites and tests importing it from here work.
+_display_label_for_row = format_outcome_label_for_row
 
 
 # ---------------------------------------------------------------------------
@@ -486,23 +439,18 @@ async def _run_unified_scan(
     # market_id. Props live in prop_observations via the underlying cycle.
     try:
         from evmax.agents.cleanup.logger import log_gaps as _log_gaps
-        loggable = [g for g in cycle.top_gaps if "::prop::" not in (g.event_id or "")]
+        loggable = cycle.loggable_gaps()
         if loggable:
             _log_gaps(loggable, bankroll_used=bankroll)
     except Exception as _log_err:
         import structlog
         structlog.get_logger(__name__).warning("web_scan_log_failed", error=str(_log_err))
 
-    # Partial-blend gaps (full_blend=False, e.g. tennis sans the full model
-    # blend) are demoted to mode='shadow' with Kelly zeroed — they are NOT
-    # actionable plays. They're still logged above (loggable), but exclude them
-    # from the dashboard scan view and the portfolio fan-out; surfacing a
-    # blocked, $0.00-stake row is just noise. Mirrors the CLI scan behavior.
-    gap_dicts = [
-        _gap_to_dict(g, bankroll)
-        for g in cycle.top_gaps
-        if getattr(g, "full_blend", True)
-    ]
+    # The dashboard scan view + portfolio fan-out show only actionable plays:
+    # cycle.plays() drops partial-blend (shadow, $0.00-stake) gaps. They're
+    # still logged above via loggable_gaps(). The dashboard deliberately does
+    # NOT apply the CLI's min_prob/tiered-EV floor (it shows all ≥2% gaps).
+    gap_dicts = [_gap_to_dict(g, bankroll) for g in cycle.plays(require_full_blend=True)]
 
     portfolio_results: list[dict[str, Any]] = []
     if fan_out_portfolio_ids is not None:

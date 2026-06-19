@@ -24,6 +24,8 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
+from evmax.formatting import format_outcome_label
+
 app = typer.Typer(no_args_is_help=True)
 console = Console()
 
@@ -161,17 +163,6 @@ def show(
     table.add_column("Src",     style="dim", width=10)
     table.add_column("Result",  justify="center", width=7)
 
-    def _display_label(yes_team: str, market_type: str, line) -> str:
-        team = (yes_team or "?").capitalize()
-        if market_type == "moneyline":
-            return f"{team} ML"
-        if market_type == "spread" and line is not None:
-            line_str = f"{line:.1f}".rstrip("0").rstrip(".")
-            return f"{team} {line_str}"
-        if market_type in ("over_under", "total") and line is not None:
-            return f"O/U {line:.1f}"
-        return team
-
     for i, r in enumerate(rows, 1):
         ev_color = "bold green" if r["ev_pct"] >= 0.10 else "green" if r["ev_pct"] >= 0.05 else "yellow"
         # Use actual placed stake/price if available, else estimated
@@ -208,7 +199,11 @@ def show(
             r["event_date"] or r["scan_date"] or "",
             (r["sector"] or "").upper(),
             (r["event_title"] or "")[:24],
-            _display_label(r["yes_team"], r["market_type"] or "moneyline", r["line"]) + placed_marker,
+            format_outcome_label(
+                yes_team=r["yes_team"],
+                market_type=r["market_type"] or "moneyline",
+                line=r["line"],
+            ) + placed_marker,
             f"{price:.2f}",
             f"{r['blended_true_prob']:.3f}",
             clv_str,
@@ -587,6 +582,30 @@ def watch_closes(
         console.print("\n[dim]watch-closes stopped.[/dim]")
 
 
+def _stale_unmatched_candidates(conn, cutoff_str: str):
+    """Live, unresolved, not-yet-voided predictions before the cutoff.
+
+    The ``mode = 'live'`` guard is load-bearing: without it, ``void`` would
+    sweep up stale unresolved SHADOW rows too, shrinking the MODEL-9 promotion
+    sample (shadow markets that go unresolved past the cutoff before their ESPN
+    result lands would be silently voided out of the validation set).
+    """
+    return conn.execute(
+        """
+        SELECT p.market_id, p.event_id, p.sector, p.yes_team,
+               p.event_date, p.scan_date, p.ev_pct
+        FROM   ev_predictions p
+        LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
+        WHERE  p.voided = 0
+          AND  p.mode = 'live'
+          AND  o.market_id IS NULL
+          AND  COALESCE(p.event_date, p.scan_date) < ?
+        ORDER  BY COALESCE(p.event_date, p.scan_date) DESC
+        """,
+        (cutoff_str,),
+    ).fetchall()
+
+
 @app.command("void")
 def void(
     before: Optional[str] = typer.Option(
@@ -621,20 +640,9 @@ def void(
     cutoff_str = cutoff.isoformat()
     conn = get_connection()
 
-    # Find predictions that are: past the cutoff, still unresolved, and not already voided
-    candidates = conn.execute(
-        """
-        SELECT p.market_id, p.event_id, p.sector, p.yes_team,
-               p.event_date, p.scan_date, p.ev_pct
-        FROM   ev_predictions p
-        LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
-        WHERE  p.voided = 0
-          AND  o.market_id IS NULL
-          AND  COALESCE(p.event_date, p.scan_date) < ?
-        ORDER  BY COALESCE(p.event_date, p.scan_date) DESC
-        """,
-        (cutoff_str,),
-    ).fetchall()
+    # Find predictions that are: past the cutoff, still unresolved, not already
+    # voided, and live (never void shadow rows — see helper docstring).
+    candidates = _stale_unmatched_candidates(conn, cutoff_str)
 
     if not candidates:
         console.print(f"[green]No stale unmatched predictions before {cutoff_str}.[/green]")

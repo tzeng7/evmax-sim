@@ -21,6 +21,7 @@ from typing import Optional, TYPE_CHECKING
 from evmax.agents.base import Agent, AgentRequest, AgentResponse
 from evmax.ev.calculator import calculate_ev
 from evmax.ev.kelly import compute_kelly
+from evmax.formatting import format_outcome_label
 from evmax.matching.engine import MatchingEngine
 from evmax.matching.prop_matcher import PropMatcher
 from evmax.models.market import PredictionMarket, MarketType
@@ -88,24 +89,19 @@ class EVGap:
 
     @property
     def display_label(self) -> str:
-        """Human-readable label: team + market type + line where applicable."""
-        # Capitalize first letter only to avoid "76Ers" -> "76ers" style issues
-        team = self.yes_team.capitalize()
-        if self.market_type == "player_prop":
-            stat = (self.prop_stat_type or "prop").replace("_", " ").title()
-            thr = f"{self.prop_threshold:.1f}" if self.prop_threshold is not None else "?"
-            return f"{stat} O{thr}"
-        if self.market_type == "moneyline":
-            return f"{team} ML"
-        if self.market_type == "spread" and self.line is not None:
-            # Negative line = team wins by |line| (favorite-style cover);
-            # positive line = team loses by less than |line| (NO-side / +spread cover).
-            sign = "+" if self.line > 0 else ""
-            line_str = f"{sign}{self.line:.1f}".rstrip("0").rstrip(".")
-            return f"{team} {line_str}"
-        if self.market_type == "total" and self.line is not None:
-            return f"O/U {self.line:.1f}"
-        return team
+        """Human-readable label: team + market type + line where applicable.
+
+        Delegates to the canonical formatter so every surface (CLI, web,
+        notifier) renders outcomes identically.
+        """
+        return format_outcome_label(
+            yes_team=self.yes_team,
+            market_type=self.market_type,
+            line=self.line,
+            prop_player_name=self.prop_player_name,
+            prop_stat_type=self.prop_stat_type,
+            prop_threshold=self.prop_threshold,
+        )
 
     @property
     def confidence_stars(self) -> int:
