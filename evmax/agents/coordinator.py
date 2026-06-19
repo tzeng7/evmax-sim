@@ -108,12 +108,9 @@ class CycleResult:
 
     def print_plays(self, min_ev: float = 0.02, max_plays: int = 30) -> None:
         """Pretty-print +EV plays. Partial-blend gaps are shadow-bound — not plays."""
-        n_partial = sum(1 for g in self.ev_gaps if not g.full_blend and g.ev_pct >= min_ev)
         gaps = [g for g in self.top_gaps if g.ev_pct >= min_ev and g.full_blend][:max_plays]
         if not gaps:
             print("No +EV plays found.")
-            if n_partial:
-                print(f"({n_partial} gap(s) hidden — partial model blend, logged as shadow)")
             return
         print(f"\n{'='*80}")
         print(f"  +EV PLAYS  |  Bankroll: ${self.bankroll:.0f}  |  Kelly: {self.kelly_fraction:.0%}")
@@ -130,8 +127,6 @@ class CycleResult:
         print(f"{'='*80}")
         total_stake = sum(self.stake_for(g) for g in gaps)
         print(f"  Total at risk: ${total_stake:.2f} / ${self.bankroll:.0f} ({total_stake/self.bankroll*100:.1f}%)")
-        if n_partial:
-            print(f"  ({n_partial} gap(s) hidden — partial model blend, logged as shadow)")
         print()
 
 
