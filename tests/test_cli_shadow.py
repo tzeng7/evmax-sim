@@ -119,6 +119,13 @@ def temp_yaml(tmp_path, monkeypatch):
     # real predictions.db; these tests exercise only the YAML-flip mechanics,
     # so stub the count above the floor to isolate the flip from the gate.
     monkeypatch.setattr(shadow, "_clean_resolved_count", lambda *_a, **_k: 9999)
+    # Likewise isolate the CLV gate: default to a clearing sample so the
+    # flip-mechanics tests don't depend on the real predictions.db. The CLV
+    # gate itself is exercised in TestPromoteClvGate below.
+    monkeypatch.setattr(
+        shadow, "clv_stats",
+        lambda *_a, **_k: {"n": 50, "mean_clv_pp": 2.0, "frac_positive": 0.7, "clears": True},
+    )
     # Also make reload_registry + validate_registry no-ops so we don't
     # need a valid full registry during the helper test
     with patch("evmax.categories.reload_registry", lambda *a, **k: None):
@@ -294,3 +301,169 @@ def test_shadow_show_empty_prints_friendly_message(tmp_path, monkeypatch):
     result = runner.invoke(app, ["show", "--days", "7"])
     assert result.exit_code == 0
     assert "No shadow predictions" in result.stdout
+
+
+# -------------------------------------------------------------------------
+# CLV promotion gate — clv_clears (pure) + clv_stats (DB) + promote wiring
+# -------------------------------------------------------------------------
+from evmax.cli.commands.shadow import (  # noqa: E402
+    CLV_MIN_FRAC_POSITIVE,
+    MIN_CLV_RESOLVED,
+    clv_clears,
+    clv_stats,
+)
+
+
+class TestClvClears:
+    def test_clears_with_positive_mean_and_majority(self):
+        assert clv_clears(n=40, mean_clv_pp=1.5, frac_positive=0.70) is True
+
+    def test_small_positive_mean_but_minority_positive_is_noise(self):
+        # Mirrors the real WNBA-spread recent sample: +0.2pp mean but only 44%
+        # of bets beat the close — a few outliers, not edge. Must NOT clear.
+        assert clv_clears(n=34, mean_clv_pp=0.21, frac_positive=0.44) is False
+
+    def test_negative_mean_never_clears(self):
+        assert clv_clears(n=100, mean_clv_pp=-0.46, frac_positive=0.35) is False
+
+    def test_too_few_rows_never_clears(self):
+        assert clv_clears(n=MIN_CLV_RESOLVED - 1, mean_clv_pp=5.0, frac_positive=0.9) is False
+
+    def test_frac_at_threshold_clears(self):
+        assert clv_clears(n=30, mean_clv_pp=0.0, frac_positive=CLV_MIN_FRAC_POSITIVE) is True
+
+
+def _make_clv_db(tmp_path: Path, rows: list[tuple]) -> Path:
+    """rows: (market_id, scan_date, market_type, mode, kalshi_clv_pct, outcome).
+
+    Deliberately omits the old `UNIQUE(market_id, scan_date)` constraint so
+    get_connection()'s table-rebuild migration is skipped (it references base
+    columns like logged_at this minimal fixture doesn't carry). kalshi_clv_pct
+    is created directly; the additive ALTER for it then no-ops.
+    """
+    db_path = tmp_path / "predictions.db"
+    conn = sqlite3.connect(str(db_path))
+    conn.executescript(
+        """
+        CREATE TABLE ev_predictions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scan_date TEXT, market_id TEXT, event_id TEXT, sector TEXT,
+            market_type TEXT, line REAL, model_sources TEXT, mode TEXT,
+            kalshi_clv_pct REAL
+        );
+        CREATE TABLE ev_outcomes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            market_id TEXT UNIQUE, outcome INTEGER
+        );
+        """
+    )
+    for mid, sd, mt, mode, clv, outcome in rows:
+        conn.execute(
+            """INSERT INTO ev_predictions
+               (scan_date, market_id, event_id, sector, market_type, mode, kalshi_clv_pct)
+               VALUES (?,?,?,?,?,?,?)""",
+            (sd, mid, f"wnba::{sd}::a_vs_b::spread", "wnba", mt, mode, clv),
+        )
+        if outcome is not None:
+            conn.execute(
+                "INSERT INTO ev_outcomes (market_id, outcome) VALUES (?, ?)",
+                (mid, outcome),
+            )
+    conn.commit()
+    conn.close()
+    return db_path
+
+
+@pytest.fixture
+def _patch_db(monkeypatch):
+    def _apply(db_path):
+        from evmax.agents.cleanup import db as db_module
+        monkeypatch.setattr(db_module, "DB_PATH", db_path)
+    return _apply
+
+
+class TestClvStats:
+    def test_breakeven_sample_does_not_clear(self, tmp_path, _patch_db):
+        # 32 resolved spread rows: 14 positive CLV (44%), small positive mean.
+        rows = []
+        for i in range(14):
+            rows.append((f"p{i}", "2026-06-10", "spread", "live", 2.0, 1))
+        for i in range(18):
+            rows.append((f"n{i}", "2026-06-10", "spread", "live", -1.0, 0))
+        _patch_db(_make_clv_db(tmp_path, rows))
+        s = clv_stats("wnba", market_type="spread")
+        assert s["n"] == 32
+        assert round(s["frac_positive"], 2) == 0.44
+        assert s["clears"] is False  # positive mean but minority => noise
+
+    def test_since_filter_drops_old_stale_rows(self, tmp_path, _patch_db):
+        # Old rows are strongly negative; recent rows are clean positives.
+        rows = [(f"old{i}", "2026-05-10", "spread", "live", -5.0, 0) for i in range(20)]
+        rows += [(f"new{i}", "2026-06-15", "spread", "live", 3.0, 1) for i in range(30)]
+        _patch_db(_make_clv_db(tmp_path, rows))
+        pooled = clv_stats("wnba", market_type="spread")
+        recent = clv_stats("wnba", market_type="spread", since="2026-06-01")
+        assert pooled["mean_clv_pp"] < 0           # dragged down by stale rows
+        assert recent["n"] == 30
+        assert recent["frac_positive"] == 1.0
+        assert recent["clears"] is True            # clean recent edge clears
+
+    def test_market_type_filter_isolates_spread(self, tmp_path, _patch_db):
+        rows = [("s1", "2026-06-10", "spread", "live", 1.0, 1),
+                ("ml1", "2026-06-10", "moneyline", "live", -9.0, 0)]
+        _patch_db(_make_clv_db(tmp_path, rows))
+        s = clv_stats("wnba", market_type="spread")
+        assert s["n"] == 1 and s["mean_clv_pp"] == 1.0
+
+
+class TestPromoteClvGate:
+    """The promote command refuses a category whose CLV does not clear."""
+
+    def _yaml(self, tmp_path, monkeypatch):
+        from evmax.cli.commands import shadow
+        path = tmp_path / "categories.yaml"
+        path.write_text(_SAMPLE_YAML)
+        monkeypatch.setattr(shadow, "_CATEGORIES_YAML", path)
+        monkeypatch.setattr(shadow, "_clean_resolved_count", lambda *_a, **_k: 9999)
+        monkeypatch.setattr("evmax.categories.reload_registry", lambda *a, **k: None)
+        monkeypatch.setattr("evmax.categories.validate_registry", lambda *a, **k: None)
+        return path
+
+    def test_refuses_when_clv_does_not_clear(self, tmp_path, monkeypatch):
+        from evmax.cli.commands import shadow
+        path = self._yaml(tmp_path, monkeypatch)
+        monkeypatch.setattr(
+            shadow, "clv_stats",
+            lambda *_a, **_k: {"n": 48, "mean_clv_pp": -0.46,
+                               "frac_positive": 0.35, "clears": False},
+        )
+        result = runner.invoke(app, ["promote", "nfl_props", "--yes"])
+        assert result.exit_code == 1
+        assert "CLV does not clear" in result.stdout
+        assert "mode: shadow" in path.read_text()  # unchanged
+
+    def test_force_overrides_weak_clv(self, tmp_path, monkeypatch):
+        from evmax.cli.commands import shadow
+        path = self._yaml(tmp_path, monkeypatch)
+        monkeypatch.setattr(
+            shadow, "clv_stats",
+            lambda *_a, **_k: {"n": 48, "mean_clv_pp": -0.46,
+                               "frac_positive": 0.35, "clears": False},
+        )
+        result = runner.invoke(app, ["promote", "nfl_props", "--yes", "--force"])
+        assert result.exit_code == 0
+        assert "promoted to live" in result.stdout
+
+    def test_no_clv_data_falls_through_to_count_gate(self, tmp_path, monkeypatch):
+        # n < MIN_CLV_RESOLVED → CLV gate is not enforced (count gate already
+        # passed via the 9999 stub), so the promote proceeds.
+        from evmax.cli.commands import shadow
+        path = self._yaml(tmp_path, monkeypatch)
+        monkeypatch.setattr(
+            shadow, "clv_stats",
+            lambda *_a, **_k: {"n": 5, "mean_clv_pp": -3.0,
+                               "frac_positive": 0.2, "clears": False},
+        )
+        result = runner.invoke(app, ["promote", "nfl_props", "--yes"])
+        assert result.exit_code == 0
+        assert "promoted to live" in result.stdout

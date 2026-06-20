@@ -84,6 +84,33 @@ def test_sector_case_insensitive():
 
 
 # -------------------------------------------------------------------------
+# WNBA spread — possession_sim in the blend dates the row to the retired
+# sim_weight=0.35 pricing (SPREAD_SIM_WEIGHT_OVERRIDES, 2026-06-19).
+# -------------------------------------------------------------------------
+
+
+def test_wnba_spread_with_possession_sim_is_contaminated():
+    assert is_contaminated("wnba", "spread", "sharp+spread_dist+possession_sim", -5.5)
+
+
+def test_wnba_spread_market_anchored_is_clean():
+    # Current code: pure sharp+spread_dist, no possession_sim.
+    assert not is_contaminated("wnba", "spread", "sharp+spread_dist", -5.5)
+
+
+def test_wnba_moneyline_with_possession_sim_is_clean():
+    # The rule is spread-only — WNBA ML legitimately blends possession_sim.
+    assert not is_contaminated(
+        "wnba", "moneyline", "wnba_possession_sim+wnba_efficiency+sharp"
+    )
+
+
+def test_wnba_total_with_possession_sim_is_clean():
+    # Totals are a separate (shadow) market; the spread-pricing rule doesn't touch them.
+    assert not is_contaminated("wnba", "total", "sharp+total_dist+possession_sim", 165.5)
+
+
+# -------------------------------------------------------------------------
 # metrics / promote — command level against a baseball fixture DB
 # -------------------------------------------------------------------------
 

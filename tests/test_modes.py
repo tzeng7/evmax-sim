@@ -222,12 +222,15 @@ def test_runtime_override_beats_shadow_market_types(monkeypatch):
     assert get_mode("testcat3", "total") == "disabled"  # override wins, not shadow
 
 
-def test_wnba_shipped_yaml_has_total_in_shadow():
-    """The shipped categories.yaml should keep WNBA total in shadow while ML
-    and spread are live. Regression guard so a future YAML edit doesn't
-    silently flip total to live without an explicit decision."""
+def test_wnba_shipped_yaml_has_total_and_spread_in_shadow():
+    """The shipped categories.yaml keeps WNBA total AND spread in shadow while
+    only ML is live. Spread was demoted 2026-06-19: it does not clear the CLV
+    gate (model trails Kalshi-at-close on Brier by construction; kalshi_clv_pct
+    is the +EV yardstick and the live sample was break-even). Regression guard
+    so a future YAML edit doesn't silently re-promote either without an explicit
+    decision via `evmax cleanup shadow clv`."""
     assert get_mode("wnba", "moneyline") == "live"
-    assert get_mode("wnba", "spread") == "live"
+    assert get_mode("wnba", "spread") == "shadow"
     assert get_mode("wnba", "total") == "shadow"
 
 

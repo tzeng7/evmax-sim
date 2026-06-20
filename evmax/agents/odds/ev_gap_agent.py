@@ -147,6 +147,30 @@ REQUIRED_BLEND_MODELS: dict[str, frozenset] = {
     }),
 }
 
+# How much of the possession-sim cover probability to mix into the market-anchored
+# spread price (the remainder is the Pinnacle-CDF SpreadDistributionModel). Default
+# 0.35; per-sector overrides win.
+#
+# wnba=0.0: the WNBA spread walk-forward (scripts/backtest_wnba_spread_walkforward.py,
+# leak-free, n=89 main-line games over 2026-to-date) shows the sim is strictly behind
+# the market and the blend Brier is MONOTONIC in sim weight — every increment hurts
+# (main-line Brier vs Kalshi 0.2394@w=0 -> 0.2465@w=0.35; vs Pinnacle 0.2518 -> 0.2562).
+# Early-season Bayesian shrinkage compresses team margins, so favorites are under-
+# priced — the same variance-dominated story as WNBA totals (project_wnba_totals_no_edge).
+# Keep WNBA spread market-anchored; re-run the walk-forward once a fuller season has
+# accrued before reintroducing any sim weight. NBA stays at 0.35 (untested here).
+SPREAD_SIM_WEIGHT_DEFAULT: float = 0.35
+SPREAD_SIM_WEIGHT_OVERRIDES: dict[str, float] = {
+    "wnba": 0.0,
+}
+
+
+def spread_sim_weight(sector: Optional[str]) -> float:
+    """Sim blend weight for a sector's spread price (see SPREAD_SIM_WEIGHT_*)."""
+    return SPREAD_SIM_WEIGHT_OVERRIDES.get(
+        (sector or "").lower(), SPREAD_SIM_WEIGHT_DEFAULT
+    )
+
 
 def has_full_blend(sector: Optional[str], model_sources: Optional[str]) -> bool:
     """True when every model the sector requires contributed to the blend.
@@ -704,13 +728,13 @@ class EVGapAgent(Agent):
                 # YES is the underdog. (Earlier a post-reset value of False
                 # silently fed the favorite's cover prob into underdog-cover
                 # spreads — inflating EVs by 30+pp.)
-                sim = self._sim_for_sector(sector)
+                sim_weight = spread_sim_weight(sector)
+                sim = self._sim_for_sector(sector) if sim_weight > 0 else None
                 if sim is not None:
                     sim_prob = sim.cover_probability(
                         sharp.event_id, market.line, yes_is_underdog=yes_is_outcome_b,
                     )
                     if sim_prob is not None:
-                        sim_weight = 0.35
                         sharp_true_prob = (1.0 - sim_weight) * sharp_true_prob + sim_weight * sim_prob
                         used_spread_model = True
 
@@ -774,7 +798,7 @@ class EVGapAgent(Agent):
         else:
             blended_prob = sharp_true_prob
             if used_spread_model:
-                sim = self._sim_for_sector(sector)
+                sim = self._sim_for_sector(sector) if spread_sim_weight(sector) > 0 else None
                 has_sim = sim is not None and sharp.event_id in getattr(sim, "_margin_cache", {})
                 src = "sharp+spread_dist+possession_sim" if has_sim else "sharp+spread_dist"
             elif used_total_model:
