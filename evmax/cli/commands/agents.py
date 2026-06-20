@@ -20,7 +20,7 @@ from rich.table import Table
 from rich import box
 
 from evmax.ev.calculator import tiered_min_ev
-from evmax.ev.odds_format import american_odds as _american
+from evmax.ev.odds_format import cents as _cents
 from evmax.formatting import format_outcome_label
 from evmax.models.market import is_prop_event
 
@@ -450,8 +450,8 @@ def scan(
             else "green" if gap.ev_pct >= 0.05
             else "yellow"
         )
-        ask_odds = _american(gap.kalshi_yes_price)
-        fair_odds = _american(gap.blended_true_prob)
+        ask_odds = _cents(gap.kalshi_yes_price)
+        fair_odds = _cents(gap.blended_true_prob)
         # Edge in cents: how much cheaper the ask is vs fair value
         # e.g. ask=42¢, fair=48¢ → edge=6¢ — you can pay up to 48¢ and still be +EV
         edge_cents = round((gap.blended_true_prob - gap.kalshi_yes_price) * 100)
@@ -843,8 +843,8 @@ def pick(
 
     for i, b in enumerate(displayable, 1):
         ev_color = "bold green" if b["live_ev"] >= 0.10 else "green" if b["is_live"] else "red dim"
-        live_ask_american = _american(b["live_ask"]) if b["live_ask"] else "—"
-        fair_american = _american(b["blended_true_prob"])
+        live_ask_str = _cents(b["live_ask"]) if b["live_ask"] else "—"
+        fair_str = _cents(b["blended_true_prob"])
         # Edge in cents (ask prob vs fair prob)
         edge_cents = f"{(b['blended_true_prob'] - (b['live_ask'] or b['kalshi_yes_price'])) * 100:+.0f}\u00a2" if b["live_ask"] else "—"
         if b["is_live"]:
@@ -856,8 +856,8 @@ def pick(
             b["sector"].upper(),
             (b["event_title"] or "")[:22],
             _display_label(b["yes_team"], b["market_type"], b["line"])[:18],
-            live_ask_american,
-            fair_american,
+            live_ask_str,
+            fair_str,
             edge_cents,
             f"[{ev_color}]{b['live_ev']*100:+.1f}%[/{ev_color}]",
             f"${b['stake']:.2f}",
@@ -876,10 +876,10 @@ def pick(
     for b in live_bets:
         label = _display_label(b["yes_team"], b["market_type"], b["line"])
         event = (b["event_title"] or b["yes_team"] or "?")[:30]
-        ask_odds = _american(b["live_ask"]) if b["live_ask"] else "?"
-        fair_odds = _american(b["blended_true_prob"])
+        ask_odds = _cents(b["live_ask"]) if b["live_ask"] else "?"
+        fair_odds = _cents(b["blended_true_prob"])
         choices.append(questionary.Choice(
-            title=f"{b['sector'].upper():6s} | {event:30s} | {label:18s} | Ask {ask_odds:>5s}  Fair {fair_odds:>5s}  EV={b['live_ev']*100:+.1f}%  ${b['stake']:.2f}",
+            title=f"{b['sector'].upper():6s} | {event:30s} | {label:18s} | Ask {ask_odds:>6s}  Fair {fair_odds:>6s}  EV={b['live_ev']*100:+.1f}%  ${b['stake']:.2f}",
             value=b,
             checked=True,  # default: all live bets selected
         ))
@@ -900,16 +900,16 @@ def pick(
         return
 
     # Ask for actual fill price and stake per bet
-    console.print("\n[bold]For each bet, enter your fill odds and stake. Press Enter to use defaults.[/bold]\n")
+    console.print("\n[bold]For each bet, enter your fill price (¢) and stake. Press Enter to use defaults.[/bold]\n")
     filled_bets = []
     for b in selected:
         label = _display_label(b["yes_team"], b["market_type"], b["line"])
         event = (b["event_title"] or "?")[:35]
-        default_odds = _american(b["live_ask"]) if b["live_ask"] else "N/A"
+        default_odds = _cents(b["live_ask"]) if b["live_ask"] else "N/A"
         default_stake = b["stake"]
 
         fill_input = questionary.text(
-            f"  {event} | {label}\n    Odds [default {default_odds}]:",
+            f"  {event} | {label}\n    Price ¢ [default {default_odds}]:",
             default="",
         ).ask()
         if fill_input is None:
@@ -924,18 +924,18 @@ def pick(
             console.print("\n[dim]Cancelled. Nothing recorded.[/dim]\n")
             return
 
-        # Parse odds
-        fill_input = fill_input.strip()
+        # Parse fill price in cents (Kalshi's native unit). Accept "12", "12.7",
+        # or "12.7¢" — strip the symbol and clamp to the open (0, 100) range.
+        fill_input = fill_input.strip().replace("¢", "").replace("c", "")
         if fill_input:
             try:
-                odds_val = int(fill_input.replace("+", ""))
-                if odds_val > 0:
-                    fill_prob = 100.0 / (odds_val + 100.0)
-                else:
-                    fill_prob = abs(odds_val) / (abs(odds_val) + 100.0)
-                fill_odds_str = fill_input
+                cents_val = float(fill_input)
+                if not (0 < cents_val < 100):
+                    raise ValueError(f"{cents_val}¢ out of range")
+                fill_prob = cents_val / 100.0
+                fill_odds_str = _cents(fill_prob)
             except ValueError:
-                console.print(f"[yellow]  Invalid odds '{fill_input}', using live ask.[/yellow]")
+                console.print(f"[yellow]  Invalid price '{fill_input}', using live ask.[/yellow]")
                 fill_prob = b["live_ask"]
                 fill_odds_str = default_odds
         else:
@@ -978,7 +978,7 @@ def pick(
     summary_table = Table(box=box.SIMPLE, show_header=True, title="Placed Bets")
     summary_table.add_column("Event", min_width=24)
     summary_table.add_column("Outcome", width=18)
-    summary_table.add_column("Fill Odds", justify="right", width=10)
+    summary_table.add_column("Fill ¢", justify="right", width=8)
     summary_table.add_column("Stake", justify="right", width=8)
     for b in filled_bets:
         summary_table.add_row(

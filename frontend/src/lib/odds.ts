@@ -1,21 +1,19 @@
-export function probToAmerican(p: number | null | undefined): string {
-  // Bets that come back from the dashboard after Pick can carry null
-  // kalshi_yes_price for the brief window before the server backfills it,
-  // and React would happily render the resulting "-NaN" string. Guard at
-  // the conversion site so downstream rows render "-" instead of crashing
-  // on subsequent math.
+export function probToCents(p: number | null | undefined): string {
+  // Kalshi is denominated in cents — that's the unit you place limit orders
+  // in, so it's what the dashboard shows. Bets coming back after Pick can
+  // briefly carry a null price before the server backfills it; guard here so
+  // rows render "-" instead of "NaN¢". Plain markets quote whole cents, but
+  // combo/spread asks can be sub-cent — keep one decimal and trim a trailing
+  // ".0" so 0.12 → "12¢" and 0.127 → "12.7¢".
   if (p == null || !Number.isFinite(p)) return '-'
-  if (p <= 0 || p >= 1) return '+100'
-  if (p < 0.5) return '+' + Math.round((1 / p - 1) * 100)
-  return '-' + Math.round((p / (1 - p)) * 100)
+  if (p <= 0 || p >= 1) return '-'
+  return (p * 100).toFixed(1).replace(/\.0$/, '') + '¢'
 }
 
-export function americanToProb(s: string): number | null {
-  s = s.toString().trim()
-  const n = parseFloat(s.replace('+', ''))
-  if (isNaN(n) || n === 0) return null
-  if (n > 0) return 100 / (n + 100)
-  return Math.abs(n) / (Math.abs(n) + 100)
+export function centsToProb(s: string): number | null {
+  const n = parseFloat(s.toString().replace(/[¢c]/gi, '').trim())
+  if (isNaN(n) || n <= 0 || n >= 100) return null
+  return n / 100
 }
 
 export function fmtDate(): string {

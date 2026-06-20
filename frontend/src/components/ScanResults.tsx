@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import type { ScanGap } from '../lib/types'
-import { probToAmerican, americanToProb, outcomeLabel } from '../lib/odds'
+import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { pickBets } from '../lib/api'
 
@@ -37,7 +37,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     setSelected(new Set(gaps.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
     const f: Record<string, { odds: string; stake: string }> = {}
     for (const g of gaps) {
-      f[g.market_id] = { odds: probToAmerican(g.kalshi_price), stake: recomputedStake(g, bankroll, kelly, scanKelly).toFixed(2) }
+      f[g.market_id] = { odds: probToCents(g.kalshi_price), stake: recomputedStake(g, bankroll, kelly, scanKelly).toFixed(2) }
     }
     setFills(f)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -52,7 +52,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
       for (const g of gaps) {
         const stake = recomputedStake(g, bankroll, kelly, scanKelly).toFixed(2)
         next[g.market_id] = {
-          odds: prev[g.market_id]?.odds ?? probToAmerican(g.kalshi_price),
+          odds: prev[g.market_id]?.odds ?? probToCents(g.kalshi_price),
           stake,
         }
       }
@@ -86,7 +86,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
   const handlePick = useCallback(async () => {
     const bets = [...selected].map(mid => ({
       market_id: mid,
-      fill_price: americanToProb(fills[mid]?.odds || ''),
+      fill_price: centsToProb(fills[mid]?.odds || ''),
       fill_stake: parseFloat(fills[mid]?.stake || '0'),
     }))
     if (!bets.length) return
@@ -134,12 +134,12 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
             <th style={{ width: 30 }}></th>
             <th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th>
             <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">Model</th><th className="num">EV</th>
-            <th className="num">Fill Odds</th><th className="num">Stake ($)</th><th>Models</th>
+            <th className="num">Fill ¢</th><th className="num">Stake ($)</th><th>Models</th>
           </tr>
         </thead>
         <tbody>
           {filtered.map(g => {
-            const askOdds = probToAmerican(g.kalshi_price)
+            const askOdds = probToCents(g.kalshi_price)
             const outcome = outcomeLabel(g)
             const mode = g.mode || 'live'
             const isLive = mode === 'live'
@@ -164,8 +164,8 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
                 </td>
                 <td>{g.event_title}</td>
                 <td>{outcome}</td>
-                <td className="num">{askOdds} <span className="muted">({Math.round(g.kalshi_price * 100)}c)</span></td>
-                <td className="num">{probToAmerican(g.true_prob)} <span className="muted">({Math.round(g.true_prob * 100)}c)</span></td>
+                <td className="num">{askOdds}</td>
+                <td className="num">{probToCents(g.true_prob)}</td>
                 <td className="num">{(g.true_prob * 100).toFixed(1)}%</td>
                 <td className="num green">{g.ev_pct.toFixed(1)}%</td>
                 <td className="num">
