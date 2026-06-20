@@ -564,15 +564,68 @@ def resolve_portfolio_bet(portfolio_id: str, market_id: str, outcome: int) -> No
     conn.close()
 
 
-def sync_portfolio_outcomes() -> int:
-    """Resolve portfolio bets from ev_outcomes. Returns count resolved.
+def drop_voided_portfolio_bets() -> int:
+    """Drop open portfolio bets whose underlying Kalshi market was voided.
 
-    Two-stage:
+    When a match is cancelled / walkover / withdrawal before a ball is
+    played, Kalshi finalizes the binary market to a *scalar* fair-price
+    refund. The cleanup resolver records this as ``ev_predictions.voided=1``
+    and writes NO ``ev_outcomes`` row — there is no binary outcome to score.
+    Those bets can never resolve through :func:`sync_portfolio_outcomes`'
+    ``ev_outcomes`` JOIN, so without this they sit "open" forever in every
+    portfolio's ledger (the symptom the user hit on Paul vs Mpetshi
+    Perricard, 2026-06-08).
+
+    A void is a refund: stake returned, no win/loss. An open portfolio bet
+    has not yet touched ``current_bankroll`` (that only moves on resolution),
+    so deleting the row is bankroll-neutral — and mirrors how voided rows are
+    excluded from ``ev_predictions`` metrics (``WHERE voided = 0``).
+
+    Returns the number of ``portfolio_bets`` rows dropped.
+    """
+    conn = _get_conn()
+    # ev_predictions / ev_outcomes share this DB file (DB_PATH). Guard against
+    # a fresh portfolio-only DB where the predictions schema isn't present yet.
+    has_preds = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='ev_predictions'"
+    ).fetchone()
+    if not has_preds:
+        conn.close()
+        return 0
+
+    ids = [
+        r["id"]
+        for r in conn.execute(
+            """SELECT DISTINCT pb.id
+               FROM portfolio_bets pb
+               JOIN ev_predictions ep ON pb.market_id = ep.market_id
+               LEFT JOIN ev_outcomes o ON pb.market_id = o.market_id
+               WHERE pb.outcome IS NULL
+                 AND ep.voided = 1
+                 AND o.market_id IS NULL"""
+        ).fetchall()
+    ]
+    if ids:
+        conn.executemany(
+            "DELETE FROM portfolio_bets WHERE id = ?", [(i,) for i in ids]
+        )
+        conn.commit()
+    conn.close()
+    return len(ids)
+
+
+def sync_portfolio_outcomes() -> int:
+    """Resolve portfolio bets from ev_outcomes. Returns count resolved/dropped.
+
+    Three-stage:
       1. For any unresolved portfolio_bets with event_date <= today that
          don't yet have an ev_outcomes row, call the ESPN resolver first
          so ev_outcomes gets populated. This is what makes the web "Sync"
          button one-click: you don't have to hit "Resolve" first.
       2. JOIN portfolio_bets → ev_outcomes and copy outcome + compute pnl.
+      3. Drop open bets whose Kalshi market voided (scalar refund) — they
+         have no ev_outcomes row and would otherwise never leave the open
+         pool. See :func:`drop_voided_portfolio_bets`.
     """
     import asyncio
     from datetime import date as _date
@@ -641,4 +694,7 @@ def sync_portfolio_outcomes() -> int:
     if count:
         conn.commit()
     conn.close()
-    return count
+
+    # Stage 3: drop voided markets that can never produce an ev_outcomes row.
+    dropped = drop_voided_portfolio_bets()
+    return count + dropped
