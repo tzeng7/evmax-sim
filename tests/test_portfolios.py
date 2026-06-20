@@ -15,6 +15,7 @@ from evmax.portfolios import (
     create_default_portfolios,
     create_portfolio,
     delete_portfolio,
+    drop_voided_portfolio_bets,
     get_portfolio,
     get_portfolio_bets,
     get_portfolio_stats,
@@ -208,3 +209,87 @@ class TestPortfolioExclusions:
 
     def test_none_inputs_safe(self):
         assert is_excluded_from_portfolio(None, None) is False
+
+
+class TestVoidedBetDrop:
+    """A cancelled match settles on Kalshi as a scalar fair-price refund:
+    the cleanup resolver marks ev_predictions.voided=1 and writes NO
+    ev_outcomes row. Such portfolio bets can never resolve through the
+    ev_outcomes JOIN, so they must be dropped from the open ledger.
+    Regression for the Paul vs Mpetshi Perricard (2026-06-08) stuck-open bug.
+    """
+
+    def _seed_prediction(self, market_id, *, voided, with_outcome):
+        """Create the predictions schema and a matching ev_predictions row."""
+        from evmax.agents.cleanup.db import get_connection
+
+        conn = get_connection()
+        conn.execute(
+            """INSERT OR REPLACE INTO ev_predictions
+               (scan_date, market_id, event_id, sector, yes_team, market_type,
+                kalshi_yes_price, sharp_true_prob, blended_true_prob, ev_pct,
+                kelly_fraction, voided)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("2026-06-08", market_id, "tennis::x", "tennis", "perricard",
+             "moneyline", 0.4, 0.5, 0.5, 0.05, 0.02, 1 if voided else 0),
+        )
+        if with_outcome:
+            conn.execute(
+                """INSERT OR REPLACE INTO ev_outcomes
+                   (market_id, event_id, event_date, sector, yes_team, outcome)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (market_id, "tennis::x", "2026-06-08", "tennis", "perricard", 1),
+            )
+        conn.commit()
+        conn.close()
+
+    def _open_bet(self, market_id):
+        log_portfolio_bet(
+            "tennis_aggressive",
+            {
+                "market_id": market_id,
+                "event_id": "tennis::x",
+                "sector": "tennis",
+                "yes_team": "perricard",
+                "market_type": "moneyline",
+                "event_title": "Tommy Paul vs Giovanni Mpetshi Perricard",
+                "event_date": "2026-06-08",
+                "kalshi_yes_price": 0.4,
+                "kelly_fraction": 0.02,
+            },
+            bankroll=500,
+            kelly=1.0,
+        )
+
+    def test_drops_voided_open_bet(self):
+        create_portfolio("tennis_aggressive", "Tennis Agg", ["tennis"], 500, 1.0)
+        self._seed_prediction("kalshi:VOID", voided=True, with_outcome=False)
+        self._open_bet("kalshi:VOID")
+
+        assert len(get_portfolio_bets("tennis_aggressive", "open")) == 1
+        dropped = drop_voided_portfolio_bets()
+        assert dropped == 1
+        assert get_portfolio_bets("tennis_aggressive", "open") == []
+
+    def test_keeps_live_open_bet(self):
+        """A non-voided market still pending must NOT be dropped."""
+        create_portfolio("tennis_aggressive", "Tennis Agg", ["tennis"], 500, 1.0)
+        self._seed_prediction("kalshi:LIVE", voided=False, with_outcome=False)
+        self._open_bet("kalshi:LIVE")
+
+        assert drop_voided_portfolio_bets() == 0
+        assert len(get_portfolio_bets("tennis_aggressive", "open")) == 1
+
+    def test_keeps_voided_bet_that_has_outcome(self):
+        """If an ev_outcomes row exists, normal resolution owns it — not drop."""
+        create_portfolio("tennis_aggressive", "Tennis Agg", ["tennis"], 500, 1.0)
+        self._seed_prediction("kalshi:BOTH", voided=True, with_outcome=True)
+        self._open_bet("kalshi:BOTH")
+
+        assert drop_voided_portfolio_bets() == 0
+        assert len(get_portfolio_bets("tennis_aggressive", "open")) == 1
+
+    def test_no_predictions_table_is_safe(self):
+        """Fresh portfolio-only DB (no predictions schema) returns 0, no error."""
+        create_portfolio("tennis_aggressive", "Tennis Agg", ["tennis"], 500, 1.0)
+        assert drop_voided_portfolio_bets() == 0
