@@ -312,3 +312,30 @@ class TestWNBAEfficiencyStalenessGuard:
         )
         pred = await agent.predict_pair(market, sharp)
         assert pred is None, "stale source_season should silence the agent in-season"
+
+
+class TestWNBASpreadSimWeight:
+    """ARCH: the WNBA spread price stays market-anchored (sim weight = 0).
+
+    Justified by scripts/backtest_wnba_spread_walkforward.py — the leak-free
+    walk-forward shows the possession-sim cover prob is strictly behind the
+    market and the blend Brier is monotonic in the sim weight (every increment
+    hurts). NBA keeps the 0.35 default (untested by that backtest).
+    """
+
+    def test_wnba_spread_sim_weight_is_zero(self):
+        from evmax.agents.odds.ev_gap_agent import spread_sim_weight
+
+        assert spread_sim_weight("wnba") == 0.0
+        assert spread_sim_weight("WNBA") == 0.0  # case-insensitive
+
+    def test_other_sectors_keep_default(self):
+        from evmax.agents.odds.ev_gap_agent import (
+            SPREAD_SIM_WEIGHT_DEFAULT,
+            spread_sim_weight,
+        )
+
+        assert spread_sim_weight("nba") == SPREAD_SIM_WEIGHT_DEFAULT
+        assert spread_sim_weight(None) == SPREAD_SIM_WEIGHT_DEFAULT
+        assert spread_sim_weight("") == SPREAD_SIM_WEIGHT_DEFAULT
+        assert SPREAD_SIM_WEIGHT_DEFAULT > 0.0

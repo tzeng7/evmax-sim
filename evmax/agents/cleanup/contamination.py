@@ -34,6 +34,19 @@ Baseball (see data/categories.yaml notes + CLAUDE.md):
     27–46%). Current code would never place these, so any resolved −2.5/−4.5
     row in the DB is pre-gate.
 
+WNBA (see data/categories.yaml notes + project_wnba_spread_no_edge memory):
+  - ``spread`` with ``possession_sim`` in ``model_sources``:
+    ``SPREAD_SIM_WEIGHT_OVERRIDES{wnba:0}`` (2026-06-19, ``ev_gap_agent.py``)
+    retired the possession-sim blend from WNBA spread pricing. Current code
+    prices spread as the pure Pinnacle-CDF ``SpreadDistributionModel``
+    (``model_sources == "sharp+spread_dist"``, no ``possession_sim``). A wnba
+    spread row whose blend still lists ``possession_sim`` was priced by the old
+    ``sim_weight=0.35`` regime, which the leak-free walk-forward
+    (``scripts/backtest_wnba_spread_walkforward.py``) showed was behind the
+    market and degraded both Brier and bet selection. Excluding these is what
+    lets ``evmax cleanup shadow clv wnba -m spread`` score only current pricing
+    without a manual ``--since``.
+
 To add a sector rule later, append to ``CONTAMINATION_RULES`` — the metrics
 command and any SQL caller pick it up automatically.
 """
@@ -72,6 +85,13 @@ CONTAMINATION_RULES: dict[str, list[RowRule]] = {
         lambda mt, src, line: (
             mt == "spread" and line is not None and abs(line) > _BASEBALL_MAX_ABS_SPREAD
         ),
+    ],
+    "wnba": [
+        # WNBA spread sim weight zeroed 2026-06-19 (SPREAD_SIM_WEIGHT_OVERRIDES).
+        # Current code prices spread as pure sharp+spread_dist; a row that still
+        # lists possession_sim in its blend was priced by the retired
+        # sim_weight=0.35 regime.
+        lambda mt, src, line: mt == "spread" and _has(src, "possession_sim"),
     ],
 }
 
