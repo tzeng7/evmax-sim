@@ -18,3 +18,20 @@ def american_odds(prob: float) -> str:
     if prob >= 0.5:
         return f"{-round(prob / (1 - prob) * 100)}"
     return f"+{round((1 - prob) / prob * 100)}"
+
+
+def cents(prob: float) -> str:
+    """Format an implied probability (0–1) as a Kalshi cent price.
+
+    Kalshi is denominated in cents (1–99¢) — that's the unit you actually
+    trade and place limit orders in, so it's what the CLI and dashboard show.
+    Plain binary markets quote whole cents, but combo/spread markets price
+    continuously and the true ask can be sub-cent (e.g. a displayed 12¢ that
+    really fills at 12.7¢). We keep one decimal and trim a trailing ``.0`` so
+    ``0.12 → "12¢"`` while a fixed-point ask reads ``"12.7¢"``. Returns "N/A"
+    outside the open interval (0, 1).
+    """
+    if prob <= 0 or prob >= 1:
+        return "N/A"
+    s = f"{prob * 100:.1f}".rstrip("0").rstrip(".")
+    return f"{s}¢"

@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 
-from evmax.ev.odds_format import american_odds as _american
+from evmax.ev.odds_format import cents as _cents
 
 if TYPE_CHECKING:
     from evmax.agents.coordinator import CycleResult
@@ -69,8 +69,8 @@ class Notifier:
 
         lines = [header]
         for g in gaps[:10]:  # cap at 10 lines
-            k_odds = _american(g.kalshi_yes_price)
-            true_odds = _american(g.blended_true_prob)
+            k_odds = _cents(g.kalshi_yes_price)
+            true_odds = _cents(g.blended_true_prob)
             stake = result.stake_for(g)
             lines.append(
                 f"• [{g.sector.upper()}] {g.display_label[:25]}  "

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { Bet } from '../lib/types'
-import { probToAmerican, americanToProb, outcomeLabel } from '../lib/odds'
+import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { updatePlaced, unplaceBets } from '../lib/api'
 
@@ -28,13 +28,13 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
     setDirty(true)
   }
 
-  const getOdds = (b: Bet) => edits[b.market_id]?.odds ?? probToAmerican(getFill(b))
+  const getOdds = (b: Bet) => edits[b.market_id]?.odds ?? probToCents(getFill(b))
   const getStakeVal = (b: Bet) => edits[b.market_id]?.stake ?? getStake(b).toFixed(2)
 
   const toWin = (b: Bet) => {
     const odds = getOdds(b)
     const stake = parseFloat(getStakeVal(b)) || 0
-    const prob = americanToProb(odds)
+    const prob = centsToProb(odds)
     if (prob && prob > 0 && prob < 1) return stake * (1 / prob - 1)
     return 0
   }
@@ -45,7 +45,7 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
     // — sending null/0 for an un-edited field would clobber it.
     const items = Object.entries(edits).map(([mid, e]) => ({
       market_id: mid,
-      fill_price: e.odds && e.odds.trim() !== '' ? americanToProb(e.odds) : null,
+      fill_price: e.odds && e.odds.trim() !== '' ? centsToProb(e.odds) : null,
       fill_stake: e.stake !== undefined && e.stake !== '' ? parseFloat(e.stake) : null,
     })).filter(it => it.fill_price !== null || it.fill_stake !== null)
     if (!items.length) return
@@ -96,7 +96,7 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
             <th style={{ width: 30 }}></th>
             <th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th>
             <th className="num">Model</th><th className="num">EV</th>
-            <th className="num">Fill Odds</th><th className="num">Stake ($)</th><th className="num">To Win</th>
+            <th className="num">Fill ¢</th><th className="num">Stake ($)</th><th className="num">To Win</th>
           </tr>
         </thead>
         <tbody>
