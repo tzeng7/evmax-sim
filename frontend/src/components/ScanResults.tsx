@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import type { ScanGap } from '../lib/types'
-import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
+import { probToCents, probToAmerican, centsToProb, centsStrToAmerican, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { pickBets } from '../lib/api'
 
@@ -164,14 +164,15 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
                 </td>
                 <td>{g.event_title}</td>
                 <td>{outcome}</td>
-                <td className="num">{askOdds}</td>
-                <td className="num">{probToCents(g.true_prob)}</td>
+                <td className="num">{askOdds} <span className="muted">({probToAmerican(g.kalshi_price)})</span></td>
+                <td className="num">{probToCents(g.true_prob)} <span className="muted">({probToAmerican(g.true_prob)})</span></td>
                 <td className="num">{(g.true_prob * 100).toFixed(1)}%</td>
                 <td className="num green">{g.ev_pct.toFixed(1)}%</td>
                 <td className="num">
                   <input type="text" value={fills[g.market_id]?.odds || askOdds}
                     onChange={e => updateFill(g.market_id, 'odds', e.target.value)}
                     style={{ width: 64 }} />
+                  {' '}<span className="muted">{centsStrToAmerican(fills[g.market_id]?.odds || askOdds)}</span>
                 </td>
                 <td className="num">
                   <input type="number" value={fills[g.market_id]?.stake || ''}

@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 
 from evmax.ev.calculator import tiered_min_ev
-from evmax.ev.odds_format import american_odds, cents
+from evmax.ev.odds_format import american_odds, cents, cents_american
 
 
 class TestTieredMinEv:
@@ -62,3 +62,17 @@ class TestCents:
         assert cents(0.12349) == "12.3¢"
         assert cents(0.12350) == "12.3¢"  # banker's rounding on .5 → 12.3
         assert cents(0.12361) == "12.4¢"
+
+
+class TestCentsAmerican:
+    def test_out_of_range_is_na(self):
+        assert cents_american(0.0) == "N/A"
+        assert cents_american(1.0) == "N/A"
+
+    def test_cents_primary_american_in_parens(self):
+        # Underdog: cents first, American reference in parens.
+        assert cents_american(0.127) == "12.7¢ (+687)"
+        assert cents_american(0.4) == "40¢ (+150)"
+
+    def test_favorite_renders_negative_american(self):
+        assert cents_american(0.6) == "60¢ (-150)"

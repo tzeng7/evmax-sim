@@ -20,7 +20,7 @@ from rich.table import Table
 from rich import box
 
 from evmax.ev.calculator import tiered_min_ev
-from evmax.ev.odds_format import cents as _cents
+from evmax.ev.odds_format import cents as _cents, cents_american as _ca
 from evmax.formatting import format_outcome_label
 from evmax.models.market import is_prop_event
 
@@ -424,8 +424,8 @@ def scan(
     table.add_column("Sec", style="dim", width=5)
     table.add_column("Event", style="dim", no_wrap=False, max_width=26)
     table.add_column("Outcome", style="bold white", no_wrap=False, max_width=20)
-    table.add_column("Ask", justify="right", width=6)
-    table.add_column("Fair", justify="right", width=6)
+    table.add_column("Ask", justify="right", width=13)
+    table.add_column("Fair", justify="right", width=13)
     table.add_column("Edge", justify="right", width=5)
     table.add_column("EV%", justify="right", style="green bold", width=6)
     table.add_column("K%", justify="right", width=6)
@@ -450,8 +450,8 @@ def scan(
             else "green" if gap.ev_pct >= 0.05
             else "yellow"
         )
-        ask_odds = _cents(gap.kalshi_yes_price)
-        fair_odds = _cents(gap.blended_true_prob)
+        ask_odds = _ca(gap.kalshi_yes_price)
+        fair_odds = _ca(gap.blended_true_prob)
         # Edge in cents: how much cheaper the ask is vs fair value
         # e.g. ask=42¢, fair=48¢ → edge=6¢ — you can pay up to 48¢ and still be +EV
         edge_cents = round((gap.blended_true_prob - gap.kalshi_yes_price) * 100)
@@ -832,8 +832,8 @@ def pick(
     table.add_column("Sector", style="dim", width=6)
     table.add_column("Event", style="dim", min_width=20)
     table.add_column("Outcome", style="bold white", min_width=16)
-    table.add_column("Ask", justify="right", width=7)
-    table.add_column("Fair", justify="right", width=7)
+    table.add_column("Ask", justify="right", width=13)
+    table.add_column("Fair", justify="right", width=13)
     table.add_column("Edge", justify="right", width=7)
     table.add_column("EV%", justify="right", width=8)
     table.add_column("Stake $", justify="right", style="cyan", width=8)
@@ -843,8 +843,8 @@ def pick(
 
     for i, b in enumerate(displayable, 1):
         ev_color = "bold green" if b["live_ev"] >= 0.10 else "green" if b["is_live"] else "red dim"
-        live_ask_str = _cents(b["live_ask"]) if b["live_ask"] else "—"
-        fair_str = _cents(b["blended_true_prob"])
+        live_ask_str = _ca(b["live_ask"]) if b["live_ask"] else "—"
+        fair_str = _ca(b["blended_true_prob"])
         # Edge in cents (ask prob vs fair prob)
         edge_cents = f"{(b['blended_true_prob'] - (b['live_ask'] or b['kalshi_yes_price'])) * 100:+.0f}\u00a2" if b["live_ask"] else "—"
         if b["is_live"]:
@@ -876,10 +876,10 @@ def pick(
     for b in live_bets:
         label = _display_label(b["yes_team"], b["market_type"], b["line"])
         event = (b["event_title"] or b["yes_team"] or "?")[:30]
-        ask_odds = _cents(b["live_ask"]) if b["live_ask"] else "?"
-        fair_odds = _cents(b["blended_true_prob"])
+        ask_odds = _ca(b["live_ask"]) if b["live_ask"] else "?"
+        fair_odds = _ca(b["blended_true_prob"])
         choices.append(questionary.Choice(
-            title=f"{b['sector'].upper():6s} | {event:30s} | {label:18s} | Ask {ask_odds:>6s}  Fair {fair_odds:>6s}  EV={b['live_ev']*100:+.1f}%  ${b['stake']:.2f}",
+            title=f"{b['sector'].upper():6s} | {event:30s} | {label:18s} | Ask {ask_odds:>13s}  Fair {fair_odds:>13s}  EV={b['live_ev']*100:+.1f}%  ${b['stake']:.2f}",
             value=b,
             checked=True,  # default: all live bets selected
         ))
@@ -905,7 +905,7 @@ def pick(
     for b in selected:
         label = _display_label(b["yes_team"], b["market_type"], b["line"])
         event = (b["event_title"] or "?")[:35]
-        default_odds = _cents(b["live_ask"]) if b["live_ask"] else "N/A"
+        default_odds = _ca(b["live_ask"]) if b["live_ask"] else "N/A"
         default_stake = b["stake"]
 
         fill_input = questionary.text(
@@ -933,7 +933,7 @@ def pick(
                 if not (0 < cents_val < 100):
                     raise ValueError(f"{cents_val}¢ out of range")
                 fill_prob = cents_val / 100.0
-                fill_odds_str = _cents(fill_prob)
+                fill_odds_str = _ca(fill_prob)
             except ValueError:
                 console.print(f"[yellow]  Invalid price '{fill_input}', using live ask.[/yellow]")
                 fill_prob = b["live_ask"]
@@ -978,7 +978,7 @@ def pick(
     summary_table = Table(box=box.SIMPLE, show_header=True, title="Placed Bets")
     summary_table.add_column("Event", min_width=24)
     summary_table.add_column("Outcome", width=18)
-    summary_table.add_column("Fill ¢", justify="right", width=8)
+    summary_table.add_column("Fill", justify="right", width=14)
     summary_table.add_column("Stake", justify="right", width=8)
     for b in filled_bets:
         summary_table.add_row(

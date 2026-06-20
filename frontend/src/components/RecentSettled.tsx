@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Bet } from '../lib/types'
-import { outcomeLabel } from '../lib/odds'
+import { outcomeLabel, probToCents, probToAmerican } from '../lib/odds'
 
 interface Props { bets: Bet[] }
 
@@ -50,7 +50,7 @@ export function RecentSettled({ bets }: Props) {
                   <td><span className="badge">{b.sector}</span></td>
                   <td>{b.event_title}</td>
                   <td>{outcomeLabel(b)}</td>
-                  <td className="num">{Math.round(b.kalshi_yes_price * 100)}c</td>
+                  <td className="num">{probToCents(b.kalshi_yes_price)} <span className="muted">({probToAmerican(b.kalshi_yes_price)})</span></td>
                   <td className="num">{Math.round((b.blended_true_prob || 0) * 100)}%</td>
                   <td className="num">{((b.ev_pct || 0) * 100).toFixed(1)}%</td>
                   <td><span className={`badge ${b.outcome === 1 ? 'won' : 'lost'}`}>{b.outcome === 1 ? 'WON' : 'LOST'}</span></td>

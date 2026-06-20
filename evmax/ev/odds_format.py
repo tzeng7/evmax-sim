@@ -35,3 +35,16 @@ def cents(prob: float) -> str:
         return "N/A"
     s = f"{prob * 100:.1f}".rstrip("0").rstrip(".")
     return f"{s}¢"
+
+
+def cents_american(prob: float) -> str:
+    """Both units: Kalshi cents (primary) with the American-odds equivalent.
+
+    e.g. ``0.127 → "12.7¢ (+685)"``. Cents is the unit you place limit orders
+    in; the American figure is the familiar reference. Returns "N/A" outside
+    the open interval (0, 1).
+    """
+    c = cents(prob)
+    if c == "N/A":
+        return "N/A"
+    return f"{c} ({american_odds(prob)})"

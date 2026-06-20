@@ -1,8 +1,8 @@
 export function probToCents(p: number | null | undefined): string {
   // Kalshi is denominated in cents — that's the unit you place limit orders
-  // in, so it's what the dashboard shows. Bets coming back after Pick can
-  // briefly carry a null price before the server backfills it; guard here so
-  // rows render "-" instead of "NaN¢". Plain markets quote whole cents, but
+  // in, so it's the primary unit on the dashboard. Bets coming back after Pick
+  // can briefly carry a null price before the server backfills it; guard here
+  // so rows render "-" instead of "NaN¢". Plain markets quote whole cents, but
   // combo/spread asks can be sub-cent — keep one decimal and trim a trailing
   // ".0" so 0.12 → "12¢" and 0.127 → "12.7¢".
   if (p == null || !Number.isFinite(p)) return '-'
@@ -10,10 +10,33 @@ export function probToCents(p: number | null | undefined): string {
   return (p * 100).toFixed(1).replace(/\.0$/, '') + '¢'
 }
 
+export function probToAmerican(p: number | null | undefined): string {
+  // Familiar reference unit, shown muted alongside cents. Same null/range
+  // guard as probToCents so a backfilling row renders "-" not "-NaN".
+  if (p == null || !Number.isFinite(p)) return '-'
+  if (p <= 0 || p >= 1) return '+100'
+  if (p < 0.5) return '+' + Math.round((1 / p - 1) * 100)
+  return '-' + Math.round((p / (1 - p)) * 100)
+}
+
+export function probToBoth(p: number | null | undefined): string {
+  // Cents primary with the American-odds equivalent in parens, e.g.
+  // "12.7¢ (+685)". Used where styling isn't needed (plain string).
+  const c = probToCents(p)
+  if (c === '-') return '-'
+  return `${c} (${probToAmerican(p)})`
+}
+
 export function centsToProb(s: string): number | null {
   const n = parseFloat(s.toString().replace(/[¢c]/gi, '').trim())
   if (isNaN(n) || n <= 0 || n >= 100) return null
   return n / 100
+}
+
+export function centsStrToAmerican(s: string): string {
+  // Live American-odds label for whatever cents value sits in a fill input.
+  const prob = centsToProb(s)
+  return prob == null ? '' : probToAmerican(prob)
 }
 
 export function fmtDate(): string {

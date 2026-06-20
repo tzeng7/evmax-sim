@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { fetchPortfolioDetail, scanPortfolios, syncPortfolioOutcomes } from '../lib/api'
-import { outcomeLabel, probToCents } from '../lib/odds'
+import { outcomeLabel, probToCents, probToAmerican } from '../lib/odds'
 import type { PortfolioDetail as PortfolioDetailType, PortfolioBet } from '../lib/types'
 
 interface Props {
@@ -164,8 +164,8 @@ function BetRow({ bet, showResult }: { bet: PortfolioBet; showResult: boolean })
       <td style={{ maxWidth: 220 }}>{bet.event_title}</td>
       <td>{label}</td>
       <td><span className="badge">{bet.sector}</span></td>
-      <td className="num">{probToCents(bet.kalshi_yes_price || 0)}</td>
-      <td className="num">{probToCents(bet.blended_true_prob || 0)}</td>
+      <td className="num">{probToCents(bet.kalshi_yes_price || 0)} <span className="muted">({probToAmerican(bet.kalshi_yes_price || 0)})</span></td>
+      <td className="num">{probToCents(bet.blended_true_prob || 0)} <span className="muted">({probToAmerican(bet.blended_true_prob || 0)})</span></td>
       <td className="num green">{((bet.ev_pct || 0) * 100).toFixed(1)}%</td>
       <td className="num">${(bet.stake || 0).toFixed(2)}</td>
       {showResult && (

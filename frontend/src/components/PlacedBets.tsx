@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { Bet } from '../lib/types'
-import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
+import { probToCents, centsToProb, centsStrToAmerican, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { updatePlaced, unplaceBets } from '../lib/api'
 
@@ -113,6 +113,7 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
                 <input type="text" value={getOdds(b)}
                   onChange={e => updateField(b.market_id, 'odds', e.target.value)}
                   style={{ width: 64 }} />
+                {' '}<span className="muted">{centsStrToAmerican(getOdds(b))}</span>
               </td>
               <td className="num">
                 <input type="number" value={getStakeVal(b)}
