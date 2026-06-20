@@ -1,757 +1,1555 @@
 {
-  "league_avg_era": 4.08,
+  "league_avg_era": 3.92,
   "pitchers": {
-    "yusei kikuchi": {
-      "era": 5.81,
-      "fip": 3.5062811691181115,
-      "ip": 31.0,
+    "reid detmers": {
+      "era": 3.68,
+      "fip": 2.729851243520108,
+      "ip": 88.0,
       "team": "angels"
     },
     "jose soriano": {
-      "era": 0.84,
-      "fip": 2.6649725007187843,
-      "ip": 42.2,
-      "team": "angels"
-    },
-    "reid detmers": {
-      "era": 4.5,
-      "ip": 140.0,
+      "era": 2.79,
+      "fip": 3.795551348013316,
+      "ip": 87.0,
       "team": "angels"
     },
     "jack kochanowicz": {
-      "era": 3.09,
-      "fip": 3.5542074363992175,
-      "ip": 35.0,
+      "era": 6.19,
+      "fip": 4.888942152611017,
+      "ip": 64.0,
+      "team": "angels"
+    },
+    "walbert urena": {
+      "era": 2.6,
+      "fip": 4.076744084978167,
+      "ip": 62.1,
+      "team": "angels"
+    },
+    "yusei kikuchi": {
+      "era": 5.81,
+      "fip": 3.59458731390134,
+      "ip": 31.0,
+      "team": "angels"
+    },
+    "brent suter": {
+      "era": 4.01,
+      "fip": 3.5115724843645717,
+      "ip": 42.2,
+      "team": "angels"
+    },
+    "sam bachman": {
+      "era": 3.31,
+      "fip": 4.22512227683462,
+      "ip": 32.2,
+      "team": "angels"
+    },
+    "ryan zeferjahn": {
+      "era": 4.76,
+      "fip": 4.5433539173168995,
+      "ip": 34.0,
       "team": "angels"
     },
     "mike burrows": {
-      "era": 6.25,
-      "fip": 4.97691805910984,
-      "ip": 31.2,
+      "era": 5.86,
+      "fip": 5.613173906772349,
+      "ip": 78.1,
+      "team": "astros"
+    },
+    "spencer arrighetti": {
+      "era": 2.57,
+      "fip": 3.7282278668967317,
+      "ip": 63.0,
+      "team": "astros"
+    },
+    "peter lambert": {
+      "era": 3.23,
+      "fip": 3.8264421526110173,
+      "ip": 64.0,
+      "team": "astros"
+    },
+    "tatsuya imai": {
+      "era": 6.43,
+      "fip": 5.15679929546816,
+      "ip": 35.0,
       "team": "astros"
     },
     "lance mccullers jr.": {
-      "era": 6.32,
-      "fip": 4.308272663776342,
+      "era": 6.86,
+      "fip": 4.983251615526618,
+      "ip": 39.1,
+      "team": "astros"
+    },
+    "kai-wei teng": {
+      "era": 4.31,
+      "fip": 4.806918123036156,
+      "ip": 54.1,
+      "team": "astros"
+    },
+    "steven okert": {
+      "era": 2.7,
+      "fip": 3.5879602794992347,
+      "ip": 33.1,
+      "team": "astros"
+    },
+    "aj blubaugh": {
+      "era": 3.86,
+      "fip": 4.464158602827467,
+      "ip": 46.2,
+      "team": "astros"
+    },
+    "enyel de los santos": {
+      "era": 4.22,
+      "fip": 2.6389421526110173,
+      "ip": 32.0,
+      "team": "astros"
+    },
+    "bryan king": {
+      "era": 2.59,
+      "fip": 3.5284116059872233,
       "ip": 31.1,
       "team": "astros"
     },
-    "luis severino": {
-      "era": 4.46,
-      "fip": 4.1592318083527235,
-      "ip": 38.1,
+    "jeffrey springs": {
+      "era": 5.13,
+      "fip": 5.368372532357853,
+      "ip": 79.0,
       "team": "athletics"
     },
-    "jeffrey springs": {
-      "era": 3.96,
-      "fip": 4.234536531387999,
-      "ip": 38.2,
+    "j.t. ginn": {
+      "era": 2.91,
+      "fip": 3.999674967137606,
+      "ip": 77.1,
       "team": "athletics"
     },
     "aaron civale": {
-      "era": 3.23,
-      "fip": 3.521662497894014,
-      "ip": 30.2,
+      "era": 4.91,
+      "fip": 5.316347650892804,
+      "ip": 58.2,
+      "team": "athletics"
+    },
+    "luis severino": {
+      "era": 4.16,
+      "fip": 4.39657880855957,
+      "ip": 62.2,
+      "team": "athletics"
+    },
+    "jacob lopez": {
+      "era": 6.75,
+      "fip": 6.320715060977551,
+      "ip": 50.2,
+      "team": "athletics"
+    },
+    "gage jump": {
+      "era": 2.37,
+      "fip": 2.3827129167306187,
+      "ip": 30.1,
+      "team": "athletics"
+    },
+    "jack perkins": {
+      "era": 6.15,
+      "fip": 3.672478737976871,
+      "ip": 41.0,
+      "team": "athletics"
+    },
+    "luis medina": {
+      "era": 4.54,
+      "fip": 3.7368337188760776,
+      "ip": 33.2,
+      "team": "athletics"
+    },
+    "scott barlow": {
+      "era": 6.25,
+      "fip": 6.763942152611017,
+      "ip": 31.2,
+      "team": "athletics"
+    },
+    "hogan harris": {
+      "era": 3.03,
+      "fip": 3.8946239707928356,
+      "ip": 35.2,
+      "team": "athletics"
+    },
+    "justin sterner": {
+      "era": 3.18,
+      "fip": 3.6315892114345467,
+      "ip": 34.0,
       "team": "athletics"
     },
     "kevin gausman": {
-      "era": 3.75,
-      "ip": 180.0,
+      "era": 3.41,
+      "fip": 3.1173904284730862,
+      "ip": 87.0,
       "team": "blue jays"
     },
     "dylan cease": {
-      "era": 3.42,
-      "ip": 187.0,
-      "team": "padres"
+      "era": 2.71,
+      "fip": 2.2879147553507435,
+      "ip": 73.0,
+      "team": "blue jays"
+    },
+    "patrick corbin": {
+      "era": 4.57,
+      "fip": 4.3254175624470825,
+      "ip": 61.0,
+      "team": "blue jays"
+    },
+    "trey yesavage": {
+      "era": 3.76,
+      "fip": 3.68666942533829,
+      "ip": 55.0,
+      "team": "blue jays"
+    },
+    "braydon fisher": {
+      "era": 3.26,
+      "fip": 3.8516384876895513,
+      "ip": 38.2,
+      "team": "blue jays"
+    },
+    "spencer miles": {
+      "era": 3.3,
+      "fip": 3.2091699183376985,
+      "ip": 46.1,
+      "team": "blue jays"
+    },
+    "jeff hoffman": {
+      "era": 5.29,
+      "fip": 2.6401103769100827,
+      "ip": 32.1,
+      "team": "blue jays"
+    },
+    "tyler rogers": {
+      "era": 1.8,
+      "fip": 2.7282278668967317,
+      "ip": 35.0,
+      "team": "blue jays"
+    },
+    "louis varland": {
+      "era": 0.9,
+      "fip": 1.4139421526110172,
+      "ip": 40.0,
+      "team": "blue jays"
     },
     "bryce elder": {
-      "era": 1.88,
-      "fip": 2.9023801938743006,
-      "ip": 43.0,
+      "era": 3.15,
+      "fip": 3.6715385244931036,
+      "ip": 88.2,
       "team": "braves"
     },
     "grant holmes": {
-      "era": 3.62,
-      "fip": 4.701336942407228,
-      "ip": 32.1,
+      "era": 4.33,
+      "fip": 5.198692885748847,
+      "ip": 68.2,
       "team": "braves"
     },
     "chris sale": {
-      "era": 2.38,
-      "ip": 177.2,
-      "team": "red sox"
+      "era": 2.3,
+      "fip": 2.732252011765947,
+      "ip": 78.1,
+      "team": "braves"
+    },
+    "martin perez": {
+      "era": 2.9,
+      "fip": 3.7397486042239203,
+      "ip": 62.0,
+      "team": "braves"
+    },
+    "spencer strider": {
+      "era": 5.31,
+      "fip": 5.270352409021274,
+      "ip": 39.0,
+      "team": "braves"
+    },
+    "jr ritchie": {
+      "era": 4.54,
+      "fip": 5.940078516247381,
+      "ip": 35.2,
+      "team": "braves"
+    },
+    "reynaldo lopez": {
+      "era": 3.76,
+      "fip": 4.730360063058779,
+      "ip": 40.2,
+      "team": "braves"
+    },
+    "dylan lee": {
+      "era": 1.14,
+      "fip": 1.3472754859443505,
+      "ip": 31.2,
+      "team": "braves"
+    },
+    "robert suarez": {
+      "era": 0.59,
+      "fip": 2.2192401658560503,
+      "ip": 30.2,
+      "team": "braves"
     },
     "jacob misiorowski": {
-      "era": 3.31,
-      "fip": 3.049859610312261,
-      "ip": 32.2,
+      "era": 1.34,
+      "fip": 1.6001490491627415,
+      "ip": 87.0,
+      "team": "brewers"
+    },
+    "kyle harrison": {
+      "era": 2.47,
+      "fip": 2.967929882672367,
+      "ip": 65.2,
+      "team": "brewers"
+    },
+    "brandon sproat": {
+      "era": 5.94,
+      "fip": 5.450651013370511,
+      "ip": 63.2,
+      "team": "brewers"
+    },
+    "chad patrick": {
+      "era": 3.16,
+      "fip": 3.59288952103207,
+      "ip": 57.0,
       "team": "brewers"
     },
     "brandon woodruff": {
       "era": 3.6,
-      "fip": 3.7923026744944557,
+      "fip": 3.880608819277684,
       "ip": 30.0,
       "team": "brewers"
     },
+    "shane drohan": {
+      "era": 3.4,
+      "fip": 3.0775014746449156,
+      "ip": 47.2,
+      "team": "brewers"
+    },
+    "aaron ashby": {
+      "era": 2.8,
+      "fip": 2.769497708166573,
+      "ip": 45.0,
+      "team": "brewers"
+    },
+    "dl hall": {
+      "era": 2.03,
+      "fip": 3.7881357009981143,
+      "ip": 31.0,
+      "team": "brewers"
+    },
+    "grant anderson": {
+      "era": 3.19,
+      "fip": 4.304264733256178,
+      "ip": 31.0,
+      "team": "brewers"
+    },
     "matthew liberatore": {
-      "era": 4.75,
-      "fip": 6.214672552678287,
-      "ip": 30.1,
+      "era": 5.23,
+      "fip": 4.983428976466773,
+      "ip": 72.1,
+      "team": "cardinals"
+    },
+    "kyle leahy": {
+      "era": 4.63,
+      "fip": 4.285370724039589,
+      "ip": 70.0,
       "team": "cardinals"
     },
     "dustin may": {
-      "era": 5.28,
-      "fip": 3.654112829019842,
-      "ip": 30.2,
+      "era": 3.75,
+      "fip": 2.927735256059293,
+      "ip": 81.2,
       "team": "cardinals"
     },
     "michael mcgreevy": {
-      "era": 2.97,
-      "fip": 4.073672261604224,
-      "ip": 33.1,
+      "era": 2.99,
+      "fip": 4.268743689102695,
+      "ip": 78.1,
       "team": "cardinals"
     },
     "andre pallante": {
+      "era": 3.76,
+      "fip": 4.103180997755374,
+      "ip": 76.2,
+      "team": "cardinals"
+    },
+    "justin bruihl": {
+      "era": 4.41,
+      "fip": 4.163010475592383,
+      "ip": 32.2,
+      "team": "cardinals"
+    },
+    "gordon graceffo": {
+      "era": 3.06,
+      "fip": 4.979754118422983,
+      "ip": 35.1,
+      "team": "cardinals"
+    },
+    "riley o'brien": {
       "era": 3.73,
-      "fip": 4.469044367956406,
+      "fip": 2.9174791301029788,
       "ip": 31.1,
       "team": "cardinals"
     },
-    "edward cabrera": {
-      "era": 3.06,
-      "fip": 3.4954365776283587,
-      "ip": 35.1,
-      "team": "cubs"
+    "jojo romero": {
+      "era": 3.94,
+      "fip": 4.045192152611017,
+      "ip": 32.0,
+      "team": "cardinals"
+    },
+    "george soriano": {
+      "era": 2.97,
+      "fip": 4.043842484836931,
+      "ip": 30.1,
+      "team": "cardinals"
+    },
+    "matt svanson": {
+      "era": 7.11,
+      "fip": 4.648557537226402,
+      "ip": 31.2,
+      "team": "cardinals"
     },
     "shota imanaga": {
-      "era": 2.91,
-      "ip": 172.0,
+      "era": 4.26,
+      "fip": 4.4988609461144975,
+      "ip": 86.2,
+      "team": "cubs"
+    },
+    "edward cabrera": {
+      "era": 5.21,
+      "fip": 5.070574045308484,
+      "ip": 67.1,
       "team": "cubs"
     },
     "jameson taillon": {
-      "era": 4.41,
-      "fip": 5.761893317769309,
-      "ip": 34.2,
+      "era": 5.19,
+      "fip": 6.243108819277683,
+      "ip": 67.2,
       "team": "cubs"
     },
-    "eduardo rodriguez": {
-      "era": 3.03,
-      "fip": 4.664766442610397,
+    "colin rea": {
+      "era": 5.35,
+      "fip": 4.94637458504345,
+      "ip": 74.0,
+      "team": "cubs"
+    },
+    "ben brown": {
+      "era": 1.74,
+      "fip": 2.2720066687400493,
+      "ip": 62.0,
+      "team": "cubs"
+    },
+    "javier assad": {
+      "era": 3.89,
+      "fip": 4.332123970792836,
+      "ip": 44.0,
+      "team": "cubs"
+    },
+    "hoby milner": {
+      "era": 3.58,
+      "fip": 4.22512227683462,
       "ip": 32.2,
+      "team": "cubs"
+    },
+    "jacob webb": {
+      "era": 3.13,
+      "fip": 3.6870190756879406,
+      "ip": 31.2,
+      "team": "cubs"
+    },
+    "zac gallen": {
+      "era": 5.35,
+      "fip": 4.96872938665357,
+      "ip": 75.2,
+      "team": "diamondbacks"
+    },
+    "ryne nelson": {
+      "era": 4.97,
+      "fip": 5.3123777723462755,
+      "ip": 83.1,
+      "team": "diamondbacks"
+    },
+    "eduardo rodriguez": {
+      "era": 2.45,
+      "fip": 4.058210030023049,
+      "ip": 88.1,
       "team": "diamondbacks"
     },
     "michael soroka": {
-      "era": 4.7,
-      "fip": 3.0249737561721597,
+      "era": 3.11,
+      "fip": 2.841102646438178,
+      "ip": 81.0,
+      "team": "diamondbacks"
+    },
+    "merrill kelly": {
+      "era": 5.81,
+      "fip": 5.918566430067664,
+      "ip": 69.2,
+      "team": "diamondbacks"
+    },
+    "brandon pfaadt": {
+      "era": 5.92,
+      "fip": 5.356047415768912,
+      "ip": 38.0,
+      "team": "diamondbacks"
+    },
+    "taylor clarke": {
+      "era": 2.05,
+      "fip": 3.146392483736845,
       "ip": 30.2,
       "team": "diamondbacks"
     },
-    "tyler glasnow": {
-      "era": 3.32,
-      "ip": 134.0,
+    "emmet sheehan": {
+      "era": 4.76,
+      "fip": 4.183988954483092,
+      "ip": 64.1,
       "team": "dodgers"
     },
     "yoshinobu yamamoto": {
-      "era": 3.0,
-      "ip": 140.0,
+      "era": 2.52,
+      "fip": 3.2956322934560878,
+      "ip": 85.2,
       "team": "dodgers"
     },
     "shohei ohtani": {
-      "era": 0.6,
-      "fip": 1.7589693411611222,
-      "ip": 30.0,
+      "era": 1.47,
+      "fip": 2.5631224804798696,
+      "ip": 73.2,
+      "team": "dodgers"
+    },
+    "roki sasaki": {
+      "era": 4.76,
+      "fip": 4.608145051161742,
+      "ip": 62.1,
       "team": "dodgers"
     },
     "justin wrobleski": {
-      "era": 1.5,
-      "fip": 2.925636007827789,
-      "ip": 30.0,
+      "era": 2.72,
+      "fip": 3.418493353622395,
+      "ip": 79.1,
       "team": "dodgers"
     },
-    "logan webb": {
-      "era": 3.25,
-      "ip": 212.0,
-      "team": "giants"
+    "tyler glasnow": {
+      "era": 2.72,
+      "fip": 3.167003377100813,
+      "ip": 39.2,
+      "team": "dodgers"
+    },
+    "tanner scott": {
+      "era": 2.32,
+      "fip": 2.530071184869082,
+      "ip": 31.0,
+      "team": "dodgers"
     },
     "adrian houser": {
-      "era": 7.12,
-      "fip": 5.5502207254357625,
-      "ip": 30.1,
-      "team": "giants"
-    },
-    "tyler mahle": {
-      "era": 5.87,
-      "fip": 5.276629385311233,
-      "ip": 30.2,
+      "era": 5.73,
+      "fip": 5.241214879883744,
+      "ip": 66.0,
       "team": "giants"
     },
     "robbie ray": {
-      "era": 2.7,
-      "fip": 4.043460781241686,
-      "ip": 33.1,
+      "era": 4.07,
+      "fip": 4.882629021297886,
+      "ip": 79.2,
       "team": "giants"
     },
     "landen roupp": {
-      "era": 2.55,
-      "fip": 2.5552656374574187,
-      "ip": 35.1,
+      "era": 4.24,
+      "fip": 2.8789893860793034,
+      "ip": 74.1,
+      "team": "giants"
+    },
+    "logan webb": {
+      "era": 3.46,
+      "fip": 2.8941019395617498,
+      "ip": 75.1,
+      "team": "giants"
+    },
+    "tyler mahle": {
+      "era": 6.04,
+      "fip": 4.811095177522049,
+      "ip": 56.2,
+      "team": "giants"
+    },
+    "trevor mcdonald": {
+      "era": 4.64,
+      "fip": 3.7959326739380312,
+      "ip": 42.2,
+      "team": "giants"
+    },
+    "jt brubaker": {
+      "era": 2.92,
+      "fip": 3.6896178282866927,
+      "ip": 37.0,
+      "team": "giants"
+    },
+    "caleb kilian": {
+      "era": 3.06,
+      "fip": 4.166590127688899,
+      "ip": 32.1,
+      "team": "giants"
+    },
+    "keaton winn": {
+      "era": 3.23,
+      "fip": 3.146392483736845,
+      "ip": 30.2,
       "team": "giants"
     },
     "tanner bibee": {
-      "era": 3.45,
-      "ip": 175.0,
-      "team": "guardians"
-    },
-    "gavin williams": {
-      "era": 2.7,
-      "fip": 3.668095404579529,
-      "ip": 43.1,
+      "era": 3.96,
+      "fip": 4.609180247849112,
+      "ip": 84.0,
       "team": "guardians"
     },
     "joey cantillo": {
-      "era": 2.97,
-      "fip": 3.7894233832430713,
-      "ip": 30.1,
+      "era": 4.38,
+      "fip": 4.680608819277684,
+      "ip": 72.0,
       "team": "guardians"
     },
     "slade cecconi": {
-      "era": 6.23,
-      "fip": 5.450552951349383,
-      "ip": 30.1,
+      "era": 4.6,
+      "fip": 4.255939591791555,
+      "ip": 78.1,
       "team": "guardians"
     },
     "parker messick": {
-      "era": 1.73,
-      "fip": 2.0946110770798665,
-      "ip": 36.1,
+      "era": 2.7,
+      "fip": 3.118350505279231,
+      "ip": 86.2,
+      "team": "guardians"
+    },
+    "gavin williams": {
+      "era": 3.83,
+      "fip": 3.9459596964706662,
+      "ip": 91.2,
+      "team": "guardians"
+    },
+    "matt festa": {
+      "era": 4.15,
+      "fip": 4.176732850285436,
+      "ip": 30.1,
+      "team": "guardians"
+    },
+    "cade smith": {
+      "era": 2.38,
+      "fip": 1.1021774467286642,
+      "ip": 34.0,
       "team": "guardians"
     },
     "logan gilbert": {
-      "era": 3.23,
-      "ip": 190.0,
+      "era": 3.43,
+      "fip": 3.7099978370657736,
+      "ip": 86.2,
       "team": "mariners"
     },
     "george kirby": {
-      "era": 3.35,
-      "ip": 185.0,
-      "team": "mariners"
-    },
-    "emerson hancock": {
-      "era": 2.86,
-      "fip": 4.416864078003227,
-      "ip": 34.2,
+      "era": 4.1,
+      "fip": 3.325053263722128,
+      "ip": 90.0,
       "team": "mariners"
     },
     "bryan woo": {
-      "era": 3.86,
-      "fip": 3.5542074363992175,
+      "era": 3.96,
+      "fip": 2.991266415649566,
+      "ip": 88.2,
+      "team": "mariners"
+    },
+    "emerson hancock": {
+      "era": 3.28,
+      "fip": 3.7210128596817245,
+      "ip": 79.2,
+      "team": "mariners"
+    },
+    "luis castillo": {
+      "era": 5.0,
+      "fip": 4.177084146568721,
+      "ip": 66.2,
+      "team": "mariners"
+    },
+    "bryce miller": {
+      "era": 1.54,
+      "fip": 2.8710850097538745,
       "ip": 35.0,
       "team": "mariners"
     },
-    "sandy alcantara": {
-      "era": 4.2,
-      "ip": 140.0,
-      "team": "marlins"
+    "eduard bazardo": {
+      "era": 2.16,
+      "fip": 3.134788074061168,
+      "ip": 33.1,
+      "team": "mariners"
     },
-    "janson junk": {
-      "era": 3.0,
-      "fip": 3.2589693411611225,
-      "ip": 33.0,
+    "cooper criswell": {
+      "era": 3.52,
+      "fip": 3.676193808240156,
+      "ip": 30.2,
+      "team": "mariners"
+    },
+    "jose a. ferrer": {
+      "era": 2.87,
+      "fip": 3.1747138567910818,
+      "ip": 31.1,
+      "team": "mariners"
+    },
+    "sandy alcantara": {
+      "era": 4.18,
+      "fip": 3.906279688983471,
+      "ip": 103.1,
       "team": "marlins"
     },
     "max meyer": {
-      "era": 3.3,
-      "fip": 3.0923026744944555,
-      "ip": 30.0,
+      "era": 2.75,
+      "fip": 3.190412740846311,
+      "ip": 85.0,
       "team": "marlins"
     },
     "eury perez": {
       "era": 4.6,
-      "fip": 4.854896457988561,
-      "ip": 31.1,
+      "fip": 4.589504853575647,
+      "ip": 62.2,
       "team": "marlins"
     },
-    "freddy peralta": {
-      "era": 3.68,
-      "ip": 185.0,
-      "team": "brewers"
+    "janson junk": {
+      "era": 4.8,
+      "fip": 4.013942152611017,
+      "ip": 60.0,
+      "team": "marlins"
     },
-    "clay holmes": {
-      "era": 1.75,
-      "fip": 3.6200804522722336,
-      "ip": 36.0,
-      "team": "mets"
+    "tyler phillips": {
+      "era": 3.1,
+      "fip": 4.1463797725726295,
+      "ip": 52.1,
+      "team": "marlins"
+    },
+    "lake bachar": {
+      "era": 2.97,
+      "fip": 3.6021774467286645,
+      "ip": 39.1,
+      "team": "marlins"
+    },
+    "john king": {
+      "era": 2.32,
+      "fip": 3.8203937655142433,
+      "ip": 31.0,
+      "team": "marlins"
+    },
+    "michael petersen": {
+      "era": 2.97,
+      "fip": 2.4823806908169974,
+      "ip": 30.1,
+      "team": "marlins"
     },
     "nolan mclean": {
-      "era": 2.55,
-      "fip": 2.042445124636906,
-      "ip": 35.1,
+      "era": 3.67,
+      "fip": 3.411054065968418,
+      "ip": 83.1,
+      "team": "mets"
+    },
+    "freddy peralta": {
+      "era": 3.9,
+      "fip": 3.9657493815266798,
+      "ip": 83.0,
+      "team": "mets"
+    },
+    "clay holmes": {
+      "era": 2.39,
+      "fip": 3.1288846813466495,
+      "ip": 52.2,
+      "team": "mets"
+    },
+    "christian scott": {
+      "era": 3.1,
+      "fip": 3.760210809327435,
+      "ip": 40.2,
       "team": "mets"
     },
     "david peterson": {
-      "era": 6.53,
-      "fip": 3.457197469621809,
-      "ip": 30.1,
+      "era": 5.91,
+      "fip": 3.6701921526110173,
+      "ip": 64.0,
       "team": "mets"
     },
-    "cade cavalli": {
-      "era": 3.82,
-      "fip": 2.6276227627946764,
-      "ip": 30.2,
-      "team": "nationals"
-    },
-    "foster griffin": {
-      "era": 2.67,
-      "fip": 4.160575766863934,
-      "ip": 33.2,
-      "team": "nationals"
-    },
-    "shane baz": {
-      "era": 4.5,
-      "fip": 3.513871301945436,
-      "ip": 34.0,
-      "team": "orioles"
-    },
-    "kyle bradish": {
-      "era": 4.2,
-      "fip": 3.8589693411611226,
-      "ip": 30.0,
-      "team": "orioles"
-    },
-    "trevor rogers": {
-      "era": 4.75,
-      "fip": 3.5236426523460613,
-      "ip": 30.1,
-      "team": "orioles"
-    },
-    "michael king": {
-      "era": 2.41,
-      "fip": 3.7690095018036924,
-      "ip": 33.2,
-      "team": "padres"
-    },
-    "randy vasquez": {
-      "era": 2.94,
-      "fip": 3.2268408271048976,
-      "ip": 33.2,
-      "team": "padres"
-    },
-    "cristopher sanchez": {
-      "era": 2.9,
-      "fip": 2.377007578900108,
-      "ip": 40.1,
-      "team": "phillies"
-    },
-    "jesus luzardo": {
-      "era": 5.5,
-      "fip": 2.5444043362735367,
-      "ip": 34.1,
-      "team": "phillies"
-    },
-    "aaron nola": {
-      "era": 3.57,
-      "ip": 195.0,
-      "team": "phillies"
-    },
-    "paul skenes": {
-      "era": 1.96,
-      "ip": 133.0,
-      "team": "pirates"
-    },
-    "braxton ashcraft": {
-      "era": 3.71,
-      "fip": 2.925636007827789,
-      "ip": 34.0,
-      "team": "pirates"
-    },
-    "mitch keller": {
-      "era": 3.18,
-      "fip": 2.8962242431219067,
-      "ip": 34.0,
-      "team": "pirates"
-    },
-    "nathan eovaldi": {
-      "era": 3.35,
-      "ip": 170.0,
-      "team": "rangers"
-    },
-    "jacob degrom": {
-      "era": 2.01,
-      "fip": 2.700555621975699,
-      "ip": 31.1,
-      "team": "rangers"
-    },
-    "mackenzie gore": {
-      "era": 3.9,
-      "ip": 155.0,
-      "team": "nationals"
-    },
-    "jack leiter": {
-      "era": 5.17,
-      "fip": 4.661970412972483,
-      "ip": 31.1,
-      "team": "rangers"
-    },
-    "nick martinez": {
-      "era": 1.7,
-      "fip": 3.4121224943142754,
-      "ip": 37.0,
-      "team": "rays"
-    },
-    "steven matz": {
-      "era": 4.31,
-      "fip": 4.854896457988561,
-      "ip": 31.1,
-      "team": "rays"
-    },
-    "drew rasmussen": {
-      "era": 2.64,
-      "fip": 3.4554373323311003,
-      "ip": 30.2,
-      "team": "rays"
-    },
-    "garrett crochet": {
-      "era": 3.58,
-      "ip": 146.0,
-      "team": "white sox"
-    },
-    "connelly early": {
-      "era": 2.84,
-      "fip": 4.432046264238045,
-      "ip": 31.2,
-      "team": "red sox"
-    },
-    "ranger suarez": {
-      "era": 3.09,
-      "fip": 3.1542074363992176,
-      "ip": 35.0,
-      "team": "red sox"
-    },
-    "andrew abbott": {
-      "era": 3.66,
-      "ip": 140.0,
-      "team": "reds"
-    },
-    "chase burns": {
-      "era": 2.65,
-      "fip": 3.6021065960630834,
-      "ip": 34.0,
-      "team": "reds"
-    },
-    "rhett lowder": {
-      "era": 3.18,
-      "fip": 2.7197536548866124,
-      "ip": 34.0,
-      "team": "reds"
-    },
-    "michael lorenzen": {
-      "era": 6.09,
-      "fip": 4.8668124784160245,
-      "ip": 34.0,
-      "team": "rockies"
-    },
-    "tomoyuki sugano": {
-      "era": 2.84,
-      "fip": 4.528200110391891,
-      "ip": 31.2,
-      "team": "rockies"
-    },
-    "chase dollander": {
-      "era": 2.25,
-      "fip": 2.831886007827789,
-      "ip": 32.0,
-      "team": "rockies"
-    },
-    "kris bubic": {
-      "era": 3.74,
-      "fip": 3.618407092165138,
-      "ip": 33.2,
-      "team": "royals"
-    },
-    "noah cameron": {
-      "era": 5.4,
-      "fip": 4.271789853981636,
-      "ip": 31.2,
-      "team": "royals"
-    },
-    "seth lugo": {
-      "era": 3.0,
-      "ip": 206.2,
-      "team": "royals"
-    },
-    "michael wacha": {
-      "era": 3.13,
-      "fip": 3.761215522652587,
-      "ip": 37.1,
-      "team": "royals"
-    },
-    "tarik skubal": {
-      "era": 2.39,
-      "ip": 192.0,
-      "team": "tigers"
-    },
-    "framber valdez": {
-      "era": 3.38,
-      "ip": 195.0,
-      "team": "astros"
-    },
-    "casey mize": {
-      "era": 2.9,
-      "fip": 2.667571491698757,
-      "ip": 31.0,
-      "team": "tigers"
-    },
-    "taj bradley": {
-      "era": 2.85,
-      "fip": 3.608562837096082,
-      "ip": 41.0,
-      "team": "twins"
-    },
-    "bailey ober": {
-      "era": 3.55,
-      "fip": 3.951951797301473,
-      "ip": 38.0,
-      "team": "twins"
-    },
-    "joe ryan": {
-      "era": 3.7,
-      "ip": 165.0,
-      "team": "twins"
-    },
-    "simeon woods richardson": {
-      "era": 6.3,
-      "fip": 5.825636007827789,
-      "ip": 30.0,
-      "team": "twins"
-    },
-    "davis martin": {
-      "era": 1.95,
-      "fip": 2.655365737557519,
-      "ip": 37.0,
-      "team": "white sox"
-    },
-    "sean burke": {
-      "era": 3.21,
-      "fip": 3.3774432367434515,
-      "ip": 33.2,
-      "team": "white sox"
-    },
-    "erick fedde": {
-      "era": 3.24,
-      "fip": 4.738324829580055,
-      "ip": 33.1,
-      "team": "white sox"
-    },
-    "max fried": {
-      "era": 2.09,
-      "fip": 2.52223898022694,
-      "ip": 47.1,
-      "team": "yankees"
-    },
-    "cam schlittler": {
-      "era": 1.51,
-      "fip": 1.2994224155947793,
-      "ip": 41.2,
-      "team": "yankees"
-    },
-    "will warren": {
-      "era": 2.59,
-      "fip": 2.5719382586316475,
-      "ip": 31.1,
-      "team": "yankees"
-    },
-    "ryan weathers": {
-      "era": 3.21,
-      "fip": 3.1967203451771864,
-      "ip": 33.2,
-      "team": "yankees"
-    },
-    "corbin burnes": {
-      "era": 2.92,
-      "ip": 194.2,
-      "team": "orioles"
-    },
-    "grayson rodriguez": {
-      "era": 3.58,
-      "ip": 170.1,
-      "team": "orioles"
-    },
-    "gerrit cole": {
-      "era": 3.41,
-      "ip": 185.0,
-      "team": "yankees"
-    },
-    "carlos rodon": {
-      "era": 4.2,
-      "ip": 150.0,
-      "team": "yankees"
-    },
-    "brayan bello": {
-      "era": 4.5,
-      "ip": 170.0,
-      "team": "red sox"
-    },
-    "jose berrios": {
-      "era": 3.65,
-      "ip": 175.0,
-      "team": "blue jays"
-    },
-    "zack littell": {
-      "era": 3.8,
-      "ip": 165.0,
-      "team": "rays"
-    },
-    "ryan pepiot": {
-      "era": 3.5,
-      "ip": 140.0,
-      "team": "rays"
-    },
-    "reese olson": {
-      "era": 3.5,
-      "ip": 160.0,
-      "team": "tigers"
-    },
-    "cole ragans": {
-      "era": 3.14,
-      "ip": 186.1,
-      "team": "royals"
-    },
-    "shane bieber": {
-      "era": 3.8,
-      "ip": 120.0,
-      "team": "guardians"
-    },
-    "pablo lopez": {
-      "era": 4.08,
-      "ip": 180.0,
-      "team": "twins"
-    },
-    "tyler anderson": {
-      "era": 4.1,
-      "ip": 155.0,
-      "team": "angels"
-    },
-    "jon gray": {
-      "era": 4.2,
-      "ip": 155.0,
-      "team": "rangers"
-    },
-    "jp sears": {
-      "era": 4.15,
-      "ip": 160.0,
-      "team": "athletics"
-    },
-    "hunter brown": {
-      "era": 3.49,
-      "ip": 175.0,
-      "team": "astros"
-    },
-    "zack wheeler": {
-      "era": 2.57,
-      "ip": 200.0,
-      "team": "phillies"
-    },
-    "spencer strider": {
-      "era": 3.1,
-      "ip": 130.0,
-      "team": "braves"
-    },
-    "reynaldo lopez": {
-      "era": 1.83,
-      "ip": 160.0,
-      "team": "braves"
-    },
-    "kodai senga": {
-      "era": 3.0,
-      "ip": 100.0,
+    "huascar brazoban": {
+      "era": 1.91,
+      "fip": 3.3902862386325228,
+      "ip": 37.2,
+      "team": "mets"
+    },
+    "tobias myers": {
+      "era": 5.71,
+      "fip": 4.973006480096397,
+      "ip": 34.2,
       "team": "mets"
     },
     "sean manaea": {
-      "era": 3.47,
-      "ip": 181.2,
+      "era": 4.64,
+      "fip": 3.660892245032459,
+      "ip": 54.1,
       "team": "mets"
     },
-    "jared jones": {
-      "era": 3.48,
-      "ip": 130.0,
+    "luke weaver": {
+      "era": 2.25,
+      "fip": 2.6076921526110173,
+      "ip": 32.0,
+      "team": "mets"
+    },
+    "cade cavalli": {
+      "era": 3.98,
+      "fip": 3.3373922873819066,
+      "ip": 74.2,
+      "team": "nationals"
+    },
+    "foster griffin": {
+      "era": 3.32,
+      "fip": 4.502037390706255,
+      "ip": 84.0,
+      "team": "nationals"
+    },
+    "jake irvin": {
+      "era": 5.23,
+      "fip": 4.166285902611017,
+      "ip": 51.2,
+      "team": "nationals"
+    },
+    "zack littell": {
+      "era": 5.45,
+      "fip": 6.577322434301158,
+      "ip": 71.0,
+      "team": "nationals"
+    },
+    "miles mikolas": {
+      "era": 5.29,
+      "fip": 5.190412740846311,
+      "ip": 68.0,
+      "team": "nationals"
+    },
+    "brad lord": {
+      "era": 2.44,
+      "fip": 3.5972754859443508,
+      "ip": 48.0,
+      "team": "nationals"
+    },
+    "mitchell parker": {
+      "era": 6.09,
+      "fip": 5.396295093787488,
+      "ip": 34.0,
+      "team": "nationals"
+    },
+    "shane baz": {
+      "era": 4.04,
+      "fip": 3.721807321150343,
+      "ip": 89.0,
+      "team": "orioles"
+    },
+    "kyle bradish": {
+      "era": 4.0,
+      "fip": 4.23616437483324,
+      "ip": 81.0,
+      "team": "orioles"
+    },
+    "trevor rogers": {
+      "era": 5.86,
+      "fip": 4.377578516247381,
+      "ip": 66.0,
+      "team": "orioles"
+    },
+    "brandon young": {
+      "era": 3.18,
+      "fip": 4.012331846652885,
+      "ip": 62.1,
+      "team": "orioles"
+    },
+    "chris bassitt": {
+      "era": 5.27,
+      "fip": 4.689521475249164,
+      "ip": 56.1,
+      "team": "orioles"
+    },
+    "rico garcia": {
+      "era": 1.76,
+      "fip": 3.5437434771143286,
+      "ip": 30.2,
+      "team": "orioles"
+    },
+    "anthony nunez": {
+      "era": 4.98,
+      "fip": 4.011009601291369,
+      "ip": 34.1,
+      "team": "orioles"
+    },
+    "albert suarez": {
+      "era": 4.4,
+      "fip": 5.530498444001745,
+      "ip": 30.2,
+      "team": "orioles"
+    },
+    "tyler wells": {
+      "era": 3.55,
+      "fip": 3.468487607156472,
+      "ip": 33.0,
+      "team": "orioles"
+    },
+    "michael king": {
+      "era": 3.6,
+      "fip": 4.272765682022782,
+      "ip": 85.0,
+      "team": "padres"
+    },
+    "walker buehler": {
+      "era": 4.14,
+      "fip": 3.37161726438449,
+      "ip": 67.1,
+      "team": "padres"
+    },
+    "randy vasquez": {
+      "era": 3.63,
+      "fip": 4.390460371234499,
+      "ip": 74.1,
+      "team": "padres"
+    },
+    "griffin canning": {
+      "era": 6.64,
+      "fip": 5.323465962134827,
+      "ip": 42.0,
+      "team": "padres"
+    },
+    "bradgley rodriguez": {
+      "era": 2.1,
+      "fip": 2.574059454663803,
+      "ip": 34.1,
+      "team": "padres"
+    },
+    "wandy peralta": {
+      "era": 2.06,
+      "fip": 4.385370724039589,
+      "ip": 35.0,
+      "team": "padres"
+    },
+    "ron marinaccio": {
+      "era": 3.82,
+      "fip": 4.169856131105641,
+      "ip": 37.2,
+      "team": "padres"
+    },
+    "mason miller": {
+      "era": 0.9,
+      "fip": 0.2806088192776839,
+      "ip": 30.0,
+      "team": "padres"
+    },
+    "adrian morejon": {
+      "era": 3.89,
+      "fip": 2.1490772877461524,
+      "ip": 37.0,
+      "team": "padres"
+    },
+    "jesus luzardo": {
+      "era": 4.2,
+      "fip": 3.2369468474466982,
+      "ip": 85.2,
+      "team": "phillies"
+    },
+    "aaron nola": {
+      "era": 5.71,
+      "fip": 4.556495344100378,
+      "ip": 75.2,
+      "team": "phillies"
+    },
+    "cristopher sanchez": {
+      "era": 1.82,
+      "fip": 2.064447203116068,
+      "ip": 99.0,
+      "team": "phillies"
+    },
+    "andrew painter": {
+      "era": 7.06,
+      "fip": 5.429326767995633,
+      "ip": 65.0,
+      "team": "phillies"
+    },
+    "zack wheeler": {
+      "era": 2.01,
+      "fip": 3.3033312201351333,
+      "ip": 62.2,
+      "team": "phillies"
+    },
+    "tim mayza": {
+      "era": 2.97,
+      "fip": 3.316056956236395,
+      "ip": 33.1,
+      "team": "phillies"
+    },
+    "brad keller": {
+      "era": 4.15,
+      "fip": 4.077065076199057,
+      "ip": 30.1,
+      "team": "phillies"
+    },
+    "braxton ashcraft": {
+      "era": 3.18,
+      "fip": 2.9474233056043655,
+      "ip": 90.2,
       "team": "pirates"
     },
-    "justin steele": {
-      "era": 3.06,
-      "ip": 173.0,
-      "team": "cubs"
+    "mitch keller": {
+      "era": 5.25,
+      "fip": 3.8909214461554753,
+      "ip": 82.1,
+      "team": "pirates"
     },
-    "hunter greene": {
-      "era": 2.83,
-      "ip": 170.2,
-      "team": "reds"
+    "paul skenes": {
+      "era": 2.85,
+      "fip": 2.599308006269554,
+      "ip": 82.0,
+      "team": "pirates"
     },
-    "tobias myers": {
-      "era": 3.11,
-      "ip": 135.0,
-      "team": "brewers"
+    "bubba chandler": {
+      "era": 4.76,
+      "fip": 4.440412740846312,
+      "ip": 68.0,
+      "team": "pirates"
+    },
+    "carmen mlodzinski": {
+      "era": 3.84,
+      "fip": 3.7501384716294224,
+      "ip": 65.2,
+      "team": "pirates"
+    },
+    "yohan ramirez": {
+      "era": 4.24,
+      "fip": 4.235887289768124,
+      "ip": 40.1,
+      "team": "pirates"
+    },
+    "dennis santana": {
+      "era": 4.5,
+      "fip": 4.380608819277684,
+      "ip": 30.0,
+      "team": "pirates"
+    },
+    "evan sisk": {
+      "era": 1.97,
+      "fip": 2.7951921526110173,
+      "ip": 32.0,
+      "team": "pirates"
+    },
+    "gregory soto": {
+      "era": 3.16,
+      "fip": 2.8210161075949403,
+      "ip": 31.1,
+      "team": "pirates"
+    },
+    "mackenzie gore": {
+      "era": 4.27,
+      "fip": 3.5652242038930684,
+      "ip": 78.0,
+      "team": "rangers"
+    },
+    "jack leiter": {
+      "era": 5.29,
+      "fip": 4.676442152611017,
+      "ip": 80.0,
+      "team": "rangers"
+    },
+    "jacob degrom": {
+      "era": 3.17,
+      "fip": 3.486383097492907,
+      "ip": 76.2,
+      "team": "rangers"
+    },
+    "nathan eovaldi": {
+      "era": 4.23,
+      "fip": 4.575365803586907,
+      "ip": 87.1,
+      "team": "rangers"
+    },
+    "kumar rocker": {
+      "era": 4.17,
+      "fip": 4.289304471451597,
+      "ip": 69.0,
+      "team": "rangers"
+    },
+    "tyler alexander": {
+      "era": 3.0,
+      "fip": 3.447275485944351,
+      "ip": 30.0,
+      "team": "rangers"
+    },
+    "jacob latz": {
+      "era": 1.62,
+      "fip": 2.3190781042726485,
+      "ip": 33.1,
+      "team": "rangers"
+    },
+    "nick martinez": {
+      "era": 2.6,
+      "fip": 3.4838216706833065,
+      "ip": 83.0,
+      "team": "rays"
+    },
+    "shane mcclanahan": {
+      "era": 3.33,
+      "fip": 2.835370724039589,
+      "ip": 67.2,
+      "team": "rays"
+    },
+    "drew rasmussen": {
+      "era": 2.59,
+      "fip": 2.938942152611017,
+      "ip": 80.0,
+      "team": "rays"
+    },
+    "steven matz": {
+      "era": 5.84,
+      "fip": 5.600500197417535,
+      "ip": 49.1,
+      "team": "rays"
+    },
+    "griffin jax": {
+      "era": 3.68,
+      "fip": 4.445760334429199,
+      "ip": 44.0,
+      "team": "rays"
+    },
+    "jesse scholtens": {
+      "era": 3.82,
+      "fip": 5.325770109600264,
+      "ip": 37.2,
+      "team": "rays"
+    },
+    "ian seymour": {
+      "era": 4.93,
+      "fip": 4.562498583057211,
+      "ip": 38.1,
+      "team": "rays"
+    },
+    "kevin kelly": {
+      "era": 2.7,
+      "fip": 3.436902877686546,
+      "ip": 33.1,
+      "team": "rays"
+    },
+    "connelly early": {
+      "era": 3.81,
+      "fip": 4.915537897291868,
+      "ip": 75.2,
+      "team": "red sox"
     },
     "sonny gray": {
-      "era": 3.84,
-      "ip": 180.0,
-      "team": "cardinals"
+      "era": 3.12,
+      "fip": 3.7954182741739695,
+      "ip": 69.1,
+      "team": "red sox"
     },
-    "yu darvish": {
-      "era": 3.2,
-      "ip": 175.0,
-      "team": "padres"
+    "ranger suarez": {
+      "era": 3.21,
+      "fip": 2.742513581182446,
+      "ip": 70.0,
+      "team": "red sox"
     },
-    "joe musgrove": {
-      "era": 3.8,
-      "ip": 120.0,
-      "team": "padres"
+    "payton tolle": {
+      "era": 2.93,
+      "fip": 2.9967304486523254,
+      "ip": 58.1,
+      "team": "red sox"
     },
-    "zac gallen": {
-      "era": 3.65,
-      "ip": 180.0,
-      "team": "diamondbacks"
+    "brayan bello": {
+      "era": 6.34,
+      "fip": 4.931974939496263,
+      "ip": 61.0,
+      "team": "red sox"
     },
-    "merrill kelly": {
-      "era": 3.37,
-      "ip": 175.0,
-      "team": "diamondbacks"
+    "garrett crochet": {
+      "era": 6.3,
+      "fip": 4.2139421526110175,
+      "ip": 30.0,
+      "team": "red sox"
     },
-    "cal quantrill": {
-      "era": 3.9,
-      "ip": 170.0,
+    "jovani moran": {
+      "era": 3.0,
+      "fip": 4.135154273823138,
+      "ip": 33.0,
+      "team": "red sox"
+    },
+    "ryan watson": {
+      "era": 5.06,
+      "fip": 5.028160162089691,
+      "ip": 42.2,
+      "team": "red sox"
+    },
+    "andrew abbott": {
+      "era": 3.95,
+      "fip": 4.718487607156472,
+      "ip": 79.2,
+      "team": "reds"
+    },
+    "chase burns": {
+      "era": 2.01,
+      "fip": 3.07628629226189,
+      "ip": 80.2,
+      "team": "reds"
+    },
+    "brady singer": {
+      "era": 5.32,
+      "fip": 6.059396698065562,
+      "ip": 66.0,
+      "team": "reds"
+    },
+    "rhett lowder": {
+      "era": 4.6,
+      "fip": 3.9926655568663363,
+      "ip": 47.0,
+      "team": "reds"
+    },
+    "nick lodolo": {
+      "era": 6.12,
+      "fip": 5.739060636023339,
+      "ip": 42.2,
+      "team": "reds"
+    },
+    "brock burke": {
+      "era": 2.83,
+      "fip": 4.413942152611018,
+      "ip": 35.0,
+      "team": "reds"
+    },
+    "sam moll": {
+      "era": 3.3,
+      "fip": 4.447275485944351,
+      "ip": 30.0,
+      "team": "reds"
+    },
+    "michael lorenzen": {
+      "era": 7.13,
+      "fip": 4.766078904747769,
+      "ip": 70.2,
       "team": "rockies"
+    },
+    "tomoyuki sugano": {
+      "era": 4.54,
+      "fip": 5.189044751790224,
+      "ip": 73.1,
+      "team": "rockies"
+    },
+    "kyle freeland": {
+      "era": 7.98,
+      "fip": 5.539715348487306,
+      "ip": 58.2,
+      "team": "rockies"
+    },
+    "ryan feltner": {
+      "era": 5.05,
+      "fip": 4.867600689196383,
+      "ip": 41.0,
+      "team": "rockies"
+    },
+    "jose quintana": {
+      "era": 5.27,
+      "fip": 5.257844591635408,
+      "ip": 41.0,
+      "team": "rockies"
+    },
+    "chase dollander": {
+      "era": 3.89,
+      "fip": 4.082123970792836,
+      "ip": 44.0,
+      "team": "rockies"
+    },
+    "zach agnos": {
+      "era": 7.29,
+      "fip": 5.425446577389778,
+      "ip": 45.2,
+      "team": "rockies"
+    },
+    "tanner gordon": {
+      "era": 6.37,
+      "fip": 4.011093149762014,
+      "ip": 35.1,
+      "team": "rockies"
+    },
+    "juan mejia": {
+      "era": 6.19,
+      "fip": 3.5764421526110173,
+      "ip": 32.0,
+      "team": "rockies"
+    },
+    "antonio senzatela": {
+      "era": 2.29,
+      "fip": 3.371998418595672,
+      "ip": 39.1,
+      "team": "rockies"
+    },
+    "michael wacha": {
+      "era": 3.64,
+      "fip": 3.886282578142932,
+      "ip": 94.0,
+      "team": "royals"
+    },
+    "noah cameron": {
+      "era": 4.2,
+      "fip": 3.333942152611017,
+      "ip": 75.0,
+      "team": "royals"
+    },
+    "seth lugo": {
+      "era": 3.86,
+      "fip": 3.481704478780423,
+      "ip": 79.1,
+      "team": "royals"
+    },
+    "kris bubic": {
+      "era": 4.11,
+      "fip": 3.6327046276609174,
+      "ip": 50.1,
+      "team": "royals"
+    },
+    "stephen kolek": {
+      "era": 2.68,
+      "fip": 3.612744547820598,
+      "ip": 50.1,
+      "team": "royals"
+    },
+    "cole ragans": {
+      "era": 4.84,
+      "fip": 6.119355258024123,
+      "ip": 35.1,
+      "team": "royals"
+    },
+    "luinder avila": {
+      "era": 5.5,
+      "fip": 4.492436776266931,
+      "ip": 37.2,
+      "team": "royals"
+    },
+    "alex lange": {
+      "era": 4.01,
+      "fip": 3.7669542008037884,
+      "ip": 33.2,
+      "team": "royals"
+    },
+    "daniel lynch iv": {
+      "era": 2.61,
+      "fip": 3.1752324751916623,
+      "ip": 31.0,
+      "team": "royals"
+    },
+    "jack flaherty": {
+      "era": 5.35,
+      "fip": 4.010874667948441,
+      "ip": 65.2,
+      "team": "tigers"
+    },
+    "framber valdez": {
+      "era": 4.09,
+      "fip": 4.251922921841786,
+      "ip": 83.2,
+      "team": "tigers"
+    },
+    "keider montero": {
+      "era": 3.67,
+      "fip": 3.8472754859443503,
+      "ip": 73.2,
+      "team": "tigers"
+    },
+    "casey mize": {
+      "era": 2.58,
+      "fip": 2.572483419405643,
+      "ip": 52.1,
+      "team": "tigers"
+    },
+    "tarik skubal": {
+      "era": 2.81,
+      "fip": 2.3472754859443508,
+      "ip": 48.0,
+      "team": "tigers"
+    },
+    "drew anderson": {
+      "era": 3.88,
+      "fip": 3.4911655799429044,
+      "ip": 46.1,
+      "team": "tigers"
+    },
+    "tyler holton": {
+      "era": 3.82,
+      "fip": 3.741214879883745,
+      "ip": 33.0,
+      "team": "tigers"
+    },
+    "kyle finnegan": {
+      "era": 2.08,
+      "fip": 4.651369053195813,
+      "ip": 34.2,
+      "team": "tigers"
+    },
+    "joe ryan": {
+      "era": 2.99,
+      "fip": 2.726915746181626,
+      "ip": 87.1,
+      "team": "twins"
+    },
+    "taj bradley": {
+      "era": 4.14,
+      "fip": 4.12349271440877,
+      "ip": 71.2,
+      "team": "twins"
+    },
+    "bailey ober": {
+      "era": 4.59,
+      "fip": 4.887053935088359,
+      "ip": 66.2,
+      "team": "twins"
+    },
+    "connor prielipp": {
+      "era": 5.26,
+      "fip": 3.664348656676058,
+      "ip": 49.2,
+      "team": "twins"
+    },
+    "zebby matthews": {
+      "era": 4.78,
+      "fip": 4.614870226856957,
+      "ip": 43.1,
+      "team": "twins"
+    },
+    "andrew morris": {
+      "era": 4.68,
+      "fip": 2.7033831463998372,
+      "ip": 32.2,
+      "team": "twins"
+    },
+    "anthony banda": {
+      "era": 4.5,
+      "fip": 4.080608819277684,
+      "ip": 30.0,
+      "team": "twins"
+    },
+    "eric orze": {
+      "era": 4.67,
+      "fip": 2.6923047257104327,
+      "ip": 34.2,
+      "team": "twins"
+    },
+    "davis martin": {
+      "era": 3.31,
+      "fip": 2.816897817635648,
+      "ip": 81.2,
+      "team": "white sox"
+    },
+    "anthony kay": {
+      "era": 4.61,
+      "fip": 5.2393344493299905,
+      "ip": 70.1,
+      "team": "white sox"
+    },
+    "sean burke": {
+      "era": 3.89,
+      "fip": 3.8781396834752146,
+      "ip": 81.0,
+      "team": "white sox"
+    },
+    "erick fedde": {
+      "era": 4.5,
+      "fip": 5.7563663950352595,
+      "ip": 66.0,
+      "team": "white sox"
+    },
+    "noah schultz": {
+      "era": 5.82,
+      "fip": 4.689334822768085,
+      "ip": 38.2,
+      "team": "white sox"
+    },
+    "bryan hudson": {
+      "era": 2.34,
+      "fip": 3.1309012169385024,
+      "ip": 34.2,
+      "team": "white sox"
+    },
+    "grant taylor": {
+      "era": 2.21,
+      "fip": 1.6051023736054926,
+      "ip": 36.2,
+      "team": "white sox"
+    },
+    "sean newcomb": {
+      "era": 2.76,
+      "fip": 2.5626357393093544,
+      "ip": 42.1,
+      "team": "white sox"
+    },
+    "cam schlittler": {
+      "era": 1.82,
+      "fip": 2.227425298678433,
+      "ip": 89.0,
+      "team": "yankees"
+    },
+    "will warren": {
+      "era": 3.47,
+      "fip": 3.249399216322929,
+      "ip": 72.2,
+      "team": "yankees"
+    },
+    "ryan weathers": {
+      "era": 4.13,
+      "fip": 4.248356117698299,
+      "ip": 80.2,
+      "team": "yankees"
+    },
+    "max fried": {
+      "era": 3.21,
+      "fip": 2.6217852898659193,
+      "ip": 61.2,
+      "team": "yankees"
+    },
+    "carlos rodon": {
+      "era": 3.5,
+      "fip": 3.5694977081665726,
+      "ip": 36.0,
+      "team": "yankees"
+    },
+    "paul blackburn": {
+      "era": 3.03,
+      "fip": 4.007730972486794,
+      "ip": 32.2,
+      "team": "yankees"
+    },
+    "fernando cruz": {
+      "era": 2.25,
+      "fip": 3.2326921526110173,
+      "ip": 32.0,
+      "team": "yankees"
+    },
+    "brent headrick": {
+      "era": 1.83,
+      "fip": 2.77933804703917,
+      "ip": 34.1,
+      "team": "yankees"
     }
   },
   "team_starters": {
-    "angels": "yusei kikuchi",
+    "angels": "reid detmers",
     "astros": "mike burrows",
-    "athletics": "luis severino",
+    "athletics": "jeffrey springs",
     "blue jays": "kevin gausman",
     "braves": "bryce elder",
     "brewers": "jacob misiorowski",
     "cardinals": "matthew liberatore",
-    "cubs": "edward cabrera",
-    "diamondbacks": "eduardo rodriguez",
-    "dodgers": "tyler glasnow",
-    "giants": "logan webb",
+    "cubs": "shota imanaga",
+    "diamondbacks": "zac gallen",
+    "dodgers": "emmet sheehan",
+    "giants": "adrian houser",
     "guardians": "tanner bibee",
     "mariners": "logan gilbert",
     "marlins": "sandy alcantara",
-    "mets": "freddy peralta",
+    "mets": "nolan mclean",
     "nationals": "cade cavalli",
     "orioles": "shane baz",
     "padres": "michael king",
-    "phillies": "cristopher sanchez",
-    "pirates": "paul skenes",
-    "rangers": "nathan eovaldi",
+    "phillies": "jesus luzardo",
+    "pirates": "braxton ashcraft",
+    "rangers": "mackenzie gore",
     "rays": "nick martinez",
-    "red sox": "garrett crochet",
+    "red sox": "connelly early",
     "reds": "andrew abbott",
     "rockies": "michael lorenzen",
-    "royals": "kris bubic",
-    "tigers": "tarik skubal",
-    "twins": "taj bradley",
+    "royals": "michael wacha",
+    "tigers": "jack flaherty",
+    "twins": "joe ryan",
     "white sox": "davis martin",
-    "yankees": "max fried"
+    "yankees": "cam schlittler"
   }
 }
