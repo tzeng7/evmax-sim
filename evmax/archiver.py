@@ -257,6 +257,70 @@ class DataArchiver:
             )
         return len(rows)
 
+    def archive_kalshi_snapshot(
+        self,
+        session_id: str,
+        sector: str,
+        snapshots: list[dict],
+        fetched_at: object = None,
+    ) -> int:
+        """Lightweight near-tipoff Kalshi price capture for CLV close anchoring.
+
+        The full ``archive_kalshi_markets`` path needs PredictionMarket objects;
+        a near-tip price sweep (see ``cleanup watch-closes``) only has live asks,
+        so this writes just the columns ``get_kalshi_close_price`` reads (ticker,
+        yes_price, fetched_at) plus event context, defaulting the rest to NULL.
+
+        Each sweep MUST pass a fresh ``session_id`` — the table's UNIQUE
+        constraint is (session_id, ticker), so reusing a scan's session_id would
+        be IGNORE'd and no post-entry snapshot would land. ``snapshots`` is a
+        list of dicts with at least ``ticker`` and ``yes_price``; optional keys
+        mirror the full-market columns.
+        """
+        if not snapshots:
+            return 0
+        fa = _fmt(fetched_at) or datetime.now(timezone.utc).isoformat()
+
+        def _no_price(s: dict) -> object:
+            # no_price is NOT NULL in the schema; derive from yes if absent so the
+            # INSERT OR IGNORE doesn't silently drop the row.
+            if s.get("no_price") is not None:
+                return s["no_price"]
+            yp = s.get("yes_price")
+            return (1.0 - yp) if yp is not None else None
+
+        rows = [
+            (
+                session_id,
+                fa,
+                sector,
+                s["ticker"],
+                s.get("title"),
+                s.get("market_type") or "moneyline",  # NOT NULL in schema
+                s.get("yes_price"),
+                _no_price(s),
+                s.get("volume_usd"),
+                s.get("open_interest_usd"),
+                s.get("team_home"),
+                s.get("team_away"),
+                s.get("yes_team"),
+                s.get("line"),
+                _fmt(s.get("event_date")),
+                s.get("event_id"),
+            )
+            for s in snapshots
+        ]
+        with _get_connection() as conn:
+            conn.executemany(
+                "INSERT OR IGNORE INTO archived_kalshi_markets "
+                "(session_id, fetched_at, sector, ticker, title, market_type, "
+                " yes_price, no_price, volume_usd, open_interest_usd, "
+                " team_home, team_away, yes_team, line, event_date, event_id) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                rows,
+            )
+        return len(rows)
+
     def get_latest_sharp_odds(self, sector: str, event_date: str) -> list[dict]:
         """Return the most recent archived Pinnacle odds for a sector + event_date.
 
@@ -360,6 +424,7 @@ class DataArchiver:
         ticker: str,
         event_id: str,
         minutes_before: int = 30,
+        not_before: object = None,
     ) -> float | None:
         """Latest Kalshi yes_price snapshot at least ``minutes_before`` before tipoff.
 
@@ -372,7 +437,19 @@ class DataArchiver:
         startTime, ISO with timezone). If no Pinnacle row exists for the
         event_id we return None — without a tipoff anchor we'd be guessing
         when the line was "fresh."
+
+        ``not_before`` (a datetime or ISO string, e.g. a placed bet's
+        ``placed_at``) anchors the close to be at or AFTER our entry, so CLV
+        measures forward from the fill instead of against a price that preceded
+        it. For a bet placed inside the ``minutes_before`` window, the upper
+        bound relaxes from T-minutes_before to tipoff so a genuine post-entry,
+        pre-tipoff snapshot can still be found. Returns None when no snapshot at
+        or after ``not_before`` exists — a missing forward close is better than a
+        fabricated backward one. When ``not_before`` is None the behaviour is
+        unchanged (latest snapshot ≤ T-minutes_before).
         """
+        from datetime import datetime, timedelta
+
         with _get_connection() as conn:
             tip_row = conn.execute(
                 """SELECT event_date FROM archived_sharp_odds
@@ -384,19 +461,38 @@ class DataArchiver:
             if not tip_row:
                 return None
             try:
-                from datetime import datetime, timedelta
                 tipoff = datetime.fromisoformat(tip_row["event_date"])
             except (ValueError, TypeError):
                 return None
-            cutoff = (tipoff - timedelta(minutes=minutes_before)).isoformat()
 
-            row = conn.execute(
-                """SELECT yes_price FROM archived_kalshi_markets
-                   WHERE ticker = ?
-                     AND fetched_at <= ?
-                   ORDER BY fetched_at DESC LIMIT 1""",
-                (ticker, cutoff),
-            ).fetchone()
+            upper_dt = tipoff - timedelta(minutes=minutes_before)
+
+            lower_dt: datetime | None = None
+            if not_before is not None:
+                lower_dt = not_before if isinstance(not_before, datetime) else None
+                if lower_dt is None:
+                    try:
+                        lower_dt = datetime.fromisoformat(str(not_before))
+                    except (ValueError, TypeError):
+                        lower_dt = None
+                if lower_dt is not None and lower_dt.tzinfo is None:
+                    lower_dt = lower_dt.replace(tzinfo=timezone.utc)
+                # Late placement: entry is already past the T-N proxy close, so
+                # relax the upper bound to tipoff to find a post-entry snapshot.
+                if lower_dt is not None and lower_dt > upper_dt:
+                    upper_dt = tipoff
+
+            sql = (
+                "SELECT yes_price FROM archived_kalshi_markets "
+                "WHERE ticker = ? AND fetched_at <= ?"
+            )
+            params: list[object] = [ticker, upper_dt.isoformat()]
+            if lower_dt is not None:
+                sql += " AND fetched_at >= ?"
+                params.append(lower_dt.isoformat())
+            sql += " ORDER BY fetched_at DESC LIMIT 1"
+
+            row = conn.execute(sql, params).fetchone()
         return row["yes_price"] if row else None
 
     def get_closing_line_aligned(self, event_id: str, yes_team: str | None) -> float | None:

@@ -1508,7 +1508,7 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
         """SELECT p.id, p.market_id, p.event_id, p.kalshi_yes_price,
                   p.yes_team, p.event_date, p.scan_date,
                   p.pinnacle_drift_pct, p.kalshi_clv_pct,
-                  p.market_type, p.line, p.placed, p.placed_price
+                  p.market_type, p.line, p.placed, p.placed_price, p.placed_at
            FROM ev_predictions p
            INNER JOIN ev_outcomes o ON p.market_id = o.market_id
            WHERE o.outcome IS NOT NULL
@@ -1582,9 +1582,15 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
         # Use Pinnacle's archived tipoff timestamp as the anchor for "30 min
         # pre-tipoff." If that's missing fall back to event_date midnight UTC
         # (still better than the no-filter LIMIT 1 we had before).
+        # Anchor the close to be at/after our fill for placed bets so CLV
+        # measures forward from entry, not against a price that preceded it.
+        # Unplaced bets keep the plain T-30 proxy (not_before=None).
+        not_before = row["placed_at"] if (row["placed"] and row["placed_at"]) else None
         kalshi_clv_pp: Optional[float] = None
         if ticker:
-            kalshi_close = archiver.get_kalshi_close_price(ticker, row["event_id"])
+            kalshi_close = archiver.get_kalshi_close_price(
+                ticker, row["event_id"], not_before=not_before
+            )
             if kalshi_close is not None:
                 # archived snapshot is the YES-market price; align to the bet's
                 # side so entry (no_ask) and close are comparable.

@@ -291,3 +291,86 @@ def test_total_close_returns_none_for_non_over_under_label(temp_archive_db):
         _total_sharp(event_id, 8.5, 0.58, event_date - timedelta(hours=2), event_date),
     ])
     assert archiver.get_total_closing_line_aligned(event_id, "yankees", 8.5) is None
+
+
+# ---------------------------------------------------------------------------
+# Placement-aware Kalshi close anchor (get_kalshi_close_price).
+#
+# The "close" must be a snapshot AT OR AFTER our fill so placed-bet CLV measures
+# forward from entry, not against a price that preceded it. For a fill inside the
+# T-30 window the upper bound relaxes to tipoff so a genuine post-entry snapshot
+# can still be found; with no post-entry snapshot we return None rather than
+# fabricate a backward CLV. not_before=None preserves the legacy T-30 behaviour.
+# ---------------------------------------------------------------------------
+
+EVENT_ID = "nba::2026-05-25::lakers_vs_celtics"
+TICKER = "KXNBAGAME-26MAY25LAC-LAC"
+
+
+def _seed_kalshi_clv_fixture(archiver):
+    """Tipoff anchor + three Kalshi snapshots at tip-3h, tip-1h, tip-20m."""
+    tip = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+    # Pinnacle row gives the tipoff anchor (event_date) for the close window.
+    archiver.open_session("so", ["nba"], "test")
+    archiver.archive_sharp_odds("so", "nba", [_ml_sharp(EVENT_ID, 0.5, tip - timedelta(hours=4), tip)])
+    # Distinct sessions because UNIQUE(session_id, ticker) — one ticker per sweep.
+    archiver.archive_kalshi_snapshot("k1", "nba", [{"ticker": TICKER, "yes_price": 0.40, "event_id": EVENT_ID}], fetched_at=tip - timedelta(hours=3))
+    archiver.archive_kalshi_snapshot("k2", "nba", [{"ticker": TICKER, "yes_price": 0.50, "event_id": EVENT_ID}], fetched_at=tip - timedelta(hours=1))
+    archiver.archive_kalshi_snapshot("k3", "nba", [{"ticker": TICKER, "yes_price": 0.55, "event_id": EVENT_ID}], fetched_at=tip - timedelta(minutes=20))
+    return tip
+
+
+def test_kalshi_close_legacy_no_anchor(temp_archive_db):
+    """not_before=None → latest snapshot at or before T-30 (here tip-1h=0.50);
+    the tip-20m print is inside the T-30 window and excluded."""
+    archiver = DataArchiver()
+    _seed_kalshi_clv_fixture(archiver)
+    assert archiver.get_kalshi_close_price(TICKER, EVENT_ID) == pytest.approx(0.50)
+
+
+def test_kalshi_close_excludes_pre_entry_snapshot(temp_archive_db):
+    """A fill at tip-2h must skip the tip-3h pre-entry snapshot (0.40) and use
+    the post-entry tip-1h snapshot (0.50)."""
+    archiver = DataArchiver()
+    tip = _seed_kalshi_clv_fixture(archiver)
+    p = archiver.get_kalshi_close_price(TICKER, EVENT_ID, not_before=tip - timedelta(hours=2))
+    assert p == pytest.approx(0.50)
+
+
+def test_kalshi_close_relaxes_upper_for_late_fill(temp_archive_db):
+    """A fill at tip-25m is already past T-30; the upper bound relaxes to tipoff
+    so the tip-20m snapshot (0.55) is found instead of returning None."""
+    archiver = DataArchiver()
+    tip = _seed_kalshi_clv_fixture(archiver)
+    p = archiver.get_kalshi_close_price(TICKER, EVENT_ID, not_before=tip - timedelta(minutes=25))
+    assert p == pytest.approx(0.55)
+
+
+def test_kalshi_close_none_when_no_post_entry_snapshot(temp_archive_db):
+    """A fill at tip-5m is after every snapshot — no forward close exists, so we
+    return None rather than measure CLV backward."""
+    archiver = DataArchiver()
+    tip = _seed_kalshi_clv_fixture(archiver)
+    assert archiver.get_kalshi_close_price(TICKER, EVENT_ID, not_before=tip - timedelta(minutes=5)) is None
+
+
+def test_archive_kalshi_snapshot_round_trips(temp_archive_db):
+    """The lightweight snapshot primitive lands a row get_kalshi_close_price reads."""
+    archiver = DataArchiver()
+    tip = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+    archiver.open_session("so", ["nba"], "test")
+    archiver.archive_sharp_odds("so", "nba", [_ml_sharp(EVENT_ID, 0.5, tip - timedelta(hours=4), tip)])
+    n = archiver.archive_kalshi_snapshot(
+        "snap", "nba",
+        [{"ticker": TICKER, "yes_price": 0.62, "event_id": EVENT_ID}],
+        fetched_at=tip - timedelta(minutes=20),
+    )
+    assert n == 1
+    # tip-20m is inside T-30; anchor a late fill so the relax path surfaces it.
+    p = archiver.get_kalshi_close_price(TICKER, EVENT_ID, not_before=tip - timedelta(minutes=25))
+    assert p == pytest.approx(0.62)
+
+
+def test_archive_kalshi_snapshot_empty_is_noop(temp_archive_db):
+    archiver = DataArchiver()
+    assert archiver.archive_kalshi_snapshot("snap", "nba", []) == 0

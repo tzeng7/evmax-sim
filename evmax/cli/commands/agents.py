@@ -704,6 +704,52 @@ def verify(
     )
 
 
+def recompute_at_price(
+    *,
+    blended_prob: float,
+    price: Optional[float],
+    base_kelly: float,
+    max_kelly: float,
+    bankroll: float,
+    min_ev: float,
+    min_prob: float,
+) -> dict:
+    """Recompute EV / live-gate / Kelly stake at a given Kalshi ask ``price``.
+
+    Pure helper so ``pick`` can size and gate a bet against the CURRENT price
+    instead of the stale scan-time ask — the fix for the selection curse where
+    the fattest scan-time edges are the most reverting. Returns
+    ``{ev, is_live, kelly_fraction, stake}``; a missing/degenerate price (None,
+    settled 0/1, or empty-book ≥0.99) yields a not-live, zero-stake result.
+    """
+    from evmax.ev.calculator import calculate_ev
+    from evmax.ev.kelly import compute_kelly
+
+    if price is None or not (0 < price < 0.99):
+        return {"ev": None, "is_live": False, "kelly_fraction": 0.0, "stake": 0.0}
+
+    ev, _ = calculate_ev(price, blended_prob)
+    threshold = tiered_min_ev(blended_prob, min_ev=min_ev, min_prob=min_prob)
+    is_live = ev >= threshold and blended_prob >= min_prob
+    kelly_fraction = 0.0
+    if is_live:
+        k = compute_kelly(
+            true_prob=blended_prob,
+            payout_decimal=1.0 / price,
+            edge_pct=ev,
+            spread_pct=0.0,
+            base_fraction=base_kelly,
+            max_kelly=max_kelly,
+        )
+        kelly_fraction = k.kelly_fraction
+    return {
+        "ev": ev,
+        "is_live": is_live,
+        "kelly_fraction": kelly_fraction,
+        "stake": bankroll * kelly_fraction,
+    }
+
+
 @app.command("pick")
 def pick(
     date_filter: Optional[str] = typer.Option(
@@ -716,6 +762,12 @@ def pick(
     bankroll: Optional[float] = typer.Option(None, "--bankroll", "-b", help="Bankroll for stake calculation (default: value used at scan time)."),
     kelly: float = typer.Option(0.5, "--kelly", "-k", help="Kelly fraction."),
     show_stale: bool = typer.Option(False, "--show-stale", help="Also show bets whose edge has evaporated."),
+    live: bool = typer.Option(
+        True, "--live/--no-live",
+        help="Re-fetch live Kalshi asks and gate/size at the CURRENT price "
+             "(default). This is what stops you placing stale scan-time edges "
+             "that have already reverted. --no-live uses scan prices (offline).",
+    ),
 ) -> None:
     """Interactively select which +EV bets you're placing. Records placed bets in the database."""
     from evmax.agents.cleanup.db import get_connection
@@ -804,27 +856,66 @@ def pick(
 
     settings = get_settings()
 
-    # Build enriched bet list using scan-time prices (no live re-fetch)
+    # Re-fetch live Kalshi asks so we gate/size at the price we'd ACTUALLY
+    # transact at now — not the stale scan ask. This is the entry-timing fix:
+    # the fattest scan-time edges are the most likely to have reverted by the
+    # time you place, so a bet only counts as live if its edge survives to here.
+    live_prices: dict[str, Optional[float]] = {}
+    if live:
+        raw_ids = [dict(r)["market_id"] for r in rows]
+        fetch_tickers = list({mid.removesuffix(":no") for mid in raw_ids})
+
+        async def _fetch_asks(tickers: list[str]) -> dict[str, Optional[float]]:
+            async with KalshiClient() as client:
+                return await client.get_market_asks_batch(tickers)
+
+        try:
+            yes_asks = asyncio.run(_fetch_asks(fetch_tickers))
+            for mid in raw_ids:
+                if mid.endswith(":no"):
+                    ya = yes_asks.get(mid.removesuffix(":no"))
+                    live_prices[mid] = (max(0.0, min(1.0, 1.0 - ya)) if ya is not None else None)
+                else:
+                    live_prices[mid] = yes_asks.get(mid)
+        except Exception as fetch_err:  # noqa: BLE001 — fall back to scan prices
+            console.print(f"[yellow]Live fetch failed ({fetch_err}); using scan prices.[/yellow]\n")
+            live = False
+
+    # Build enriched bet list. With --live we gate/size at the current ask;
+    # otherwise we fall back to the stale scan price (offline / --no-live).
     bets = []
     for r in [dict(r) for r in rows]:
         blended_prob = r["blended_true_prob"]
         scan_ask = r["kalshi_yes_price"]
+        live_ask = live_prices.get(r["market_id"]) if live else scan_ask
+        # On a settled/errored live fetch, fall back to the scan ask so the row
+        # still shows (flagged), rather than vanishing.
+        price = live_ask if live_ask is not None else scan_ask
 
-        scan_stake = bankroll * r["kelly_fraction"]
-        threshold = _tiered_min_ev(blended_prob)
-        is_live = r["ev_pct"] >= threshold and blended_prob >= min_prob
+        rc = recompute_at_price(
+            blended_prob=blended_prob,
+            price=price,
+            base_kelly=kelly,
+            max_kelly=settings.max_kelly_fraction,
+            bankroll=bankroll,
+            min_ev=min_ev,
+            min_prob=min_prob,
+        )
 
         bets.append({
             **r,
-            "live_ask": scan_ask,
-            "live_ev": r["ev_pct"],
-            "is_live": is_live,
-            "stake": scan_stake,
+            "scan_ask": scan_ask,
+            "live_ask": price,
+            "price_is_live": live and live_ask is not None,
+            "live_ev": rc["ev"] if rc["ev"] is not None else r["ev_pct"],
+            "is_live": rc["is_live"],
+            "kelly_fraction_used": rc["kelly_fraction"],
+            "stake": rc["stake"],
         })
 
     # Show a summary table first
     table = Table(
-        title=f"Live Bets — {target_date} | Bankroll ${bankroll:.0f} | {kelly:.0%} Kelly",
+        title=f"Pick — {target_date} | Bankroll ${bankroll:.0f} | {kelly:.0%} Kelly | {'live asks' if live else 'scan prices (--no-live)'}",
         box=box.ROUNDED,
         show_lines=False,
     )
@@ -832,9 +923,10 @@ def pick(
     table.add_column("Sector", style="dim", width=6)
     table.add_column("Event", style="dim", min_width=20)
     table.add_column("Outcome", style="bold white", min_width=16)
-    table.add_column("Ask", justify="right", width=7)
-    table.add_column("Fair", justify="right", width=7)
-    table.add_column("Edge", justify="right", width=7)
+    table.add_column("Scan", justify="right", width=6)
+    table.add_column("Live", justify="right", width=6)
+    table.add_column("Δ", justify="right", width=6)
+    table.add_column("Fair", justify="right", width=6)
     table.add_column("EV%", justify="right", width=8)
     table.add_column("Stake $", justify="right", style="cyan", width=8)
     table.add_column("Status", justify="center", width=10)
@@ -843,12 +935,20 @@ def pick(
 
     for i, b in enumerate(displayable, 1):
         ev_color = "bold green" if b["live_ev"] >= 0.10 else "green" if b["is_live"] else "red dim"
-        live_ask_str = _cents(b["live_ask"]) if b["live_ask"] else "—"
+        scan_str = _cents(b["scan_ask"]) if b["scan_ask"] else "—"
+        live_str = _cents(b["live_ask"]) if b["live_ask"] else "—"
+        # Price drift since scan, in cents. A rising YES ask = edge eroding.
+        if b["scan_ask"] and b["live_ask"]:
+            drift = (b["live_ask"] - b["scan_ask"]) * 100
+            drift_color = "red" if drift > 0.5 else "green" if drift < -0.5 else "dim"
+            drift_str = f"[{drift_color}]{drift:+.0f}\u00a2[/{drift_color}]"
+        else:
+            drift_str = "—"
         fair_str = _cents(b["blended_true_prob"])
-        # Edge in cents (ask prob vs fair prob)
-        edge_cents = f"{(b['blended_true_prob'] - (b['live_ask'] or b['kalshi_yes_price'])) * 100:+.0f}\u00a2" if b["live_ask"] else "—"
         if b["is_live"]:
             status = "[green]LIVE[/green]"
+        elif live and not b["price_is_live"]:
+            status = "[dim]settled/err[/dim]"
         else:
             status = "[red]STALE[/red]"
         table.add_row(
@@ -856,9 +956,10 @@ def pick(
             b["sector"].upper(),
             (b["event_title"] or "")[:22],
             _display_label(b["yes_team"], b["market_type"], b["line"])[:18],
-            live_ask_str,
+            scan_str,
+            live_str,
+            drift_str,
             fair_str,
-            edge_cents,
             f"[{ev_color}]{b['live_ev']*100:+.1f}%[/{ev_color}]",
             f"${b['stake']:.2f}",
             status,

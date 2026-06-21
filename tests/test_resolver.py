@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import sqlite3
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -1429,3 +1429,144 @@ class TestScalarSettlementVoidIntegration:
         assert row["voided"] == 1
         # No ev_outcomes side effect.
         assert conn.execute("SELECT COUNT(*) AS c FROM ev_outcomes").fetchone()["c"] == 0
+
+
+# ---------------------------------------------------------------------------
+# backfill_clv — NO-side ticker handling + placement-aware close anchor.
+#
+# NO-side bets are synthesized with a ":no" market_id suffix and store the
+# NO-side ask in kalshi_yes_price. Before the fix, removeprefix("kalshi:") left
+# the ticker as "KX...:no" which never matched the archive's clean ticker, so
+# EVERY no-side bet got NULL kalshi_clv_pct. The fix strips ":no" and flips the
+# archived YES close to the NO side (1 - yes_close).
+# ---------------------------------------------------------------------------
+
+class TestBackfillClvNoSide:
+    class _NoCloseConn:
+        def __init__(self, conn):
+            self._conn = conn
+        def __getattr__(self, item):
+            return getattr(self._conn, item)
+        def close(self):
+            pass
+
+    def _make_predictions_db(self, tmp_path, monkeypatch):
+        # Use the real migrated get_connection so the CLV columns
+        # (kalshi_clv_pct, pinnacle_drift_pct, placed_at, ...) exist — they're
+        # added by ALTER migrations, not the base SCHEMA.
+        import evmax.agents.cleanup.db as dbmod
+        monkeypatch.setattr(dbmod, "DB_PATH", tmp_path / "predictions.db")
+        return self._NoCloseConn(dbmod.get_connection())
+
+    def _seed(self, conn, market_id, yes_team, market_type, entry, line, event_id,
+              event_date="2026-05-25", placed=0, placed_at=None, placed_price=None):
+        conn.execute(
+            """INSERT INTO ev_predictions
+               (scan_date, market_id, event_id, sector, yes_team, market_type,
+                event_title, event_date, kalshi_yes_price, sharp_true_prob,
+                blended_true_prob, ev_pct, kelly_fraction, bankroll_used, line,
+                placed, placed_at, placed_price)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (event_date, market_id, event_id, "baseball", yes_team, market_type,
+             "Yankees vs Red Sox", event_date, entry, 0.55, 0.55, 0.05, 0.01, 500.0, line,
+             placed, placed_at, placed_price),
+        )
+        conn.execute(
+            """INSERT INTO ev_outcomes
+               (market_id, event_id, event_date, sector, yes_team, outcome)
+               VALUES (?,?,?,?,?,?)""",
+            (market_id, event_id, event_date, "baseball", yes_team, 1),
+        )
+        conn.commit()
+
+    def _seed_archive(self, db_path, event_id, yes_close, fetched_at, tipoff):
+        from evmax.archiver import DataArchiver
+        from evmax.models.odds import SharpBook, SharpOdds
+        archiver = DataArchiver()
+        # Pinnacle row supplies the tipoff anchor for the close window.
+        archiver.open_session("so", ["baseball"], "test")
+        archiver.archive_sharp_odds("so", "baseball", [SharpOdds(
+            event_id=event_id, book=SharpBook.pinnacle, sector="baseball",
+            outcome_a_label="yankees", outcome_b_label="redsox",
+            outcome_a_decimal=1.9, outcome_b_decimal=1.9,
+            true_prob_a=0.5, true_prob_b=0.5, margin=0.04,
+            event_date=tipoff, fetched_at=tipoff - timedelta(hours=4),
+        )])
+        archiver.archive_kalshi_snapshot(
+            "k1", "baseball",
+            [{"ticker": "KXMLBGAME-T", "yes_price": yes_close,
+              "event_id": event_id, "market_type": "total"}],
+            fetched_at=fetched_at,
+        )
+
+    def test_no_side_strips_suffix_and_flips_close(self, tmp_path, monkeypatch):
+        from datetime import datetime, timezone
+        from evmax.agents.cleanup import resolver
+        import evmax.archiver as archiver_mod
+
+        monkeypatch.setattr(archiver_mod, "DB_PATH", tmp_path / "archive.db")
+        event_id = "baseball::2026-05-25::yankees_vs_redsox::total::8.5"
+        tip = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+        # YES close 0.30 → NO close 0.70; NO entry 0.60 → CLV = +10.0pp.
+        self._seed_archive(tmp_path / "archive.db", event_id, 0.30, tip - timedelta(hours=1), tip)
+
+        conn = self._make_predictions_db(tmp_path, monkeypatch)
+        self._seed(conn, "kalshi:KXMLBGAME-T:no", "under", "total", 0.60, 8.5, event_id)
+
+        with patch.object(resolver, "get_connection", return_value=conn):
+            resolver.backfill_clv()
+
+        row = conn.execute(
+            "SELECT kalshi_clv_pct FROM ev_predictions WHERE market_id = ?",
+            ("kalshi:KXMLBGAME-T:no",),
+        ).fetchone()
+        assert row["kalshi_clv_pct"] == pytest.approx(10.0)
+
+    def test_no_side_was_null_without_suffix_strip(self, tmp_path, monkeypatch):
+        """The YES ticker exists in the archive; a NO-side bet must resolve to a
+        (flipped) CLV rather than NULL — the regression this fix closes."""
+        from datetime import datetime, timezone
+        from evmax.agents.cleanup import resolver
+        import evmax.archiver as archiver_mod
+
+        monkeypatch.setattr(archiver_mod, "DB_PATH", tmp_path / "archive.db")
+        event_id = "baseball::2026-05-25::yankees_vs_redsox::total::8.5"
+        tip = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+        self._seed_archive(tmp_path / "archive.db", event_id, 0.30, tip - timedelta(hours=1), tip)
+
+        conn = self._make_predictions_db(tmp_path, monkeypatch)
+        self._seed(conn, "kalshi:KXMLBGAME-T:no", "under", "total", 0.60, 8.5, event_id)
+        with patch.object(resolver, "get_connection", return_value=conn):
+            resolver.backfill_clv()
+
+        row = conn.execute(
+            "SELECT kalshi_clv_pct FROM ev_predictions WHERE market_id = ?",
+            ("kalshi:KXMLBGAME-T:no",),
+        ).fetchone()
+        assert row["kalshi_clv_pct"] is not None
+
+    def test_placed_at_anchors_close_after_fill(self, tmp_path, monkeypatch):
+        """A placed YES bet whose fill is AFTER the only archived snapshot gets no
+        forward close (NULL), instead of a backward CLV against a pre-entry price."""
+        from datetime import datetime, timezone
+        from evmax.agents.cleanup import resolver
+        import evmax.archiver as archiver_mod
+
+        monkeypatch.setattr(archiver_mod, "DB_PATH", tmp_path / "archive.db")
+        event_id = "baseball::2026-05-25::yankees_vs_redsox::ml"
+        tip = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+        # Only snapshot is at tip-1h; fill is at tip-30m (after it) → no forward close.
+        self._seed_archive(tmp_path / "archive.db", event_id, 0.40, tip - timedelta(hours=1), tip)
+        placed_at = (tip - timedelta(minutes=30)).isoformat()
+
+        conn = self._make_predictions_db(tmp_path, monkeypatch)
+        self._seed(conn, "kalshi:KXMLBGAME-Y", "yankees", "moneyline", 0.45, None, event_id,
+                   placed=1, placed_at=placed_at, placed_price=0.45)
+        with patch.object(resolver, "get_connection", return_value=conn):
+            resolver.backfill_clv()
+
+        row = conn.execute(
+            "SELECT kalshi_clv_pct FROM ev_predictions WHERE market_id = ?",
+            ("kalshi:KXMLBGAME-Y",),
+        ).fetchone()
+        assert row["kalshi_clv_pct"] is None
