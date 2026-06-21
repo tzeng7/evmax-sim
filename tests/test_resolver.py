@@ -63,6 +63,119 @@ class TestClvEntryPrice:
 
 
 # ---------------------------------------------------------------------------
+# backfill_clv — Kalshi CLV must be tracked identically for YES and NO bets
+# ---------------------------------------------------------------------------
+# Regression for the bug where NO-side bets (under totals / opponent +spread)
+# carry a ":no" market_id suffix. The raw ticker (KX...:no) never matched the
+# archived clean ticker, so EVERY no-side bet silently got NULL kalshi_clv_pct —
+# a sector-uneven gap (baseball totals, NBA/WNBA spreads were ~all no-side).
+class TestBackfillClvNoSide:
+    def _setup_dbs(self, tmp_path, monkeypatch):
+        """Build a minimal predictions.db + archive.db and point the code at them."""
+        import evmax.archiver as archiver_mod
+        from evmax.agents.cleanup import db as cleanup_db
+
+        pred_path = tmp_path / "predictions.db"
+        arch_path = tmp_path / "archive.db"
+        # get_connection() reads DB_PATH at call time and auto-migrates schema.
+        monkeypatch.setattr(cleanup_db, "DB_PATH", pred_path)
+        monkeypatch.setattr(archiver_mod, "DB_PATH", arch_path)
+
+        conn = cleanup_db.get_connection()  # creates + migrates predictions schema
+
+        event_id = "baseball::2026-06-02::reds_vs_royals::total::5.5"
+        ticker_yes = "KXMLBTOTAL-26JUN021910KCCIN-7"  # YES = over
+        # YES-side total (over) and NO-side total (under) on the same Kalshi market.
+        for mid, yes_team, mtype, entry in [
+            (f"kalshi:{ticker_yes}", "over", "total", 0.40),
+            (f"kalshi:{ticker_yes}:no", "under", "total", 0.62),
+        ]:
+            conn.execute(
+                """INSERT INTO ev_predictions
+                   (scan_date, market_id, event_id, sector, yes_team, market_type,
+                    event_date, kalshi_yes_price, sharp_true_prob, blended_true_prob,
+                    ev_pct, kelly_fraction)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                ("2026-06-01", mid, event_id, "baseball", yes_team, mtype,
+                 "2026-06-02", entry, 0.5, 0.5, 5.0, 0.02),
+            )
+            conn.execute(
+                """INSERT INTO ev_outcomes
+                   (market_id, event_id, event_date, sector, yes_team, outcome)
+                   VALUES (?,?,?,?,?,?)""",
+                (mid, event_id, "2026-06-02", "baseball", yes_team, 1),
+            )
+        conn.commit()
+        conn.close()
+
+        # archive: tipoff anchor (Pinnacle) + Kalshi YES close snapshot @ T-60.
+        arch = sqlite3.connect(str(arch_path))
+        arch.execute(
+            """CREATE TABLE archived_sharp_odds (
+                   id INTEGER PRIMARY KEY, session_id TEXT, fetched_at TEXT,
+                   sector TEXT, event_id TEXT, book TEXT,
+                   outcome_a_label TEXT, outcome_b_label TEXT,
+                   outcome_a_decimal REAL, outcome_b_decimal REAL,
+                   true_prob_a REAL, true_prob_b REAL, true_prob_draw REAL,
+                   margin REAL, spread_line REAL, event_date TEXT,
+                   true_prob_over REAL, true_prob_under REAL, total_line REAL)"""
+        )
+        arch.execute(
+            """CREATE TABLE archived_kalshi_markets (
+                   id INTEGER PRIMARY KEY, session_id TEXT, fetched_at TEXT,
+                   sector TEXT, ticker TEXT, market_type TEXT,
+                   yes_price REAL, no_price REAL, event_date TEXT, event_id TEXT)"""
+        )
+        arch.execute(
+            """INSERT INTO archived_sharp_odds
+               (session_id, fetched_at, sector, event_id, book,
+                outcome_a_decimal, outcome_b_decimal, true_prob_a, true_prob_b,
+                margin, event_date)
+               VALUES ('s','2026-06-02T22:00:00+00:00','baseball',?, 'pinnacle',
+                       2.0, 2.0, 0.5, 0.5, 0.0, '2026-06-02T23:10:00+00:00')""",
+            (event_id,),
+        )
+        # YES (over) close = 0.55, well before the 23:10 tipoff.
+        arch.execute(
+            """INSERT INTO archived_kalshi_markets
+               (session_id, fetched_at, sector, ticker, market_type,
+                yes_price, no_price, event_date, event_id)
+               VALUES ('s','2026-06-02T22:00:00+00:00','baseball',?, 'total',
+                       0.55, 0.45, '2026-06-02', ?)""",
+            (ticker_yes, event_id),
+        )
+        arch.commit()
+        arch.close()
+        return pred_path
+
+    def test_no_side_clv_is_populated_and_flipped(self, tmp_path, monkeypatch):
+        from evmax.agents.cleanup.resolver import backfill_clv
+        from evmax.agents.cleanup import db as cleanup_db
+
+        pred_path = self._setup_dbs(tmp_path, monkeypatch)
+        result = backfill_clv()
+
+        conn = sqlite3.connect(str(pred_path))
+        conn.row_factory = sqlite3.Row
+        rows = {
+            r["market_id"]: r["kalshi_clv_pct"]
+            for r in conn.execute(
+                "SELECT market_id, kalshi_clv_pct FROM ev_predictions"
+            ).fetchall()
+        }
+        conn.close()
+
+        ticker = "kalshi:KXMLBTOTAL-26JUN021910KCCIN-7"
+        # YES (over): close 0.55 − entry 0.40 = +15.0pp
+        assert rows[ticker] == pytest.approx(15.0, abs=0.01)
+        # NO (under): close is FLIPPED to 1 − 0.55 = 0.45; 0.45 − entry 0.62 = −17.0pp.
+        # Pre-fix this was NULL because the ":no" ticker never matched the archive.
+        assert rows[f"{ticker}:no"] is not None
+        assert rows[f"{ticker}:no"] == pytest.approx(-17.0, abs=0.01)
+        assert result["updated"] == 2
+
+
+# ---------------------------------------------------------------------------
 # _slug_teams
 # ---------------------------------------------------------------------------
 
