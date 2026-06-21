@@ -139,11 +139,24 @@ export interface PortfolioScanResult {
   results: { portfolio_id: string; portfolio_name: string; gaps_logged: number }[]
 }
 
+export interface SectorMetricRow {
+  sector: string
+  bets: number
+  win_rate: number
+  pnl: number
+  roi_pct: number
+  avg_ev_pct: number | null
+  avg_clv_pct: number | null
+  clv_n: number
+}
+
 export interface MetricsResult {
+  weeks: number
   brier_model: number
   brier_sharp: number
   n: number
   win_rate: number
   calibration: { bucket: string; n: number; predicted: number; actual: number }[]
+  sectors?: SectorMetricRow[]
   error?: string
 }

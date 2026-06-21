@@ -880,7 +880,9 @@ async def api_metrics(request: Request) -> JSONResponse:
     since = (date.today() - timedelta(weeks=weeks)).isoformat()
     rows = conn.execute(
         """
-        SELECT p.blended_true_prob, p.sharp_true_prob, o.outcome
+        SELECT p.sector, p.market_type, p.blended_true_prob, p.sharp_true_prob,
+               p.ev_pct, p.kalshi_clv_pct, p.kelly_fraction, p.bankroll_used,
+               p.placed_stake, p.placed_price, p.kalshi_yes_price, o.outcome
         FROM ev_predictions p
         JOIN ev_outcomes o ON p.market_id = o.market_id
         WHERE p.voided = 0 AND o.outcome IS NOT NULL AND p.event_date >= ?
@@ -893,6 +895,7 @@ async def api_metrics(request: Request) -> JSONResponse:
     if not rows:
         return JSONResponse({"error": "No resolved bets in date range", "weeks": weeks})
 
+    rows = [dict(r) for r in rows]
     n = len(rows)
     brier_model = sum((r["blended_true_prob"] - r["outcome"]) ** 2 for r in rows) / n
     brier_sharp = sum((r["sharp_true_prob"] - r["outcome"]) ** 2 for r in rows) / n
@@ -926,10 +929,39 @@ async def api_metrics(request: Request) -> JSONResponse:
                 "actual": round(b["actual_sum"] / b["n"] * 100, 1),
             })
 
+    # Per-sector performance — CLV, EV%, ROI. CLV (kalshi_clv_pct) is already
+    # stored in percentage points; ev_pct is a fraction (0.07 → 7%). ROI is
+    # realized P&L / staked, same sizing fallback as _sector_breakdown.
+    by_sector: dict[str, list[dict[str, Any]]] = {}
+    for r in rows:
+        by_sector.setdefault(r["sector"] or "?", []).append(r)
+    sectors = []
+    for sector, bs in by_sector.items():
+        wins_s = sum(1 for b in bs if b["outcome"] == 1)
+        pnl = sum(_bet_pnl(b) for b in bs)
+        staked = sum(
+            (b.get("placed_stake") or (b.get("bankroll_used") or 250.0) * (b.get("kelly_fraction") or 0.0))
+            for b in bs
+        )
+        clvs = [b["kalshi_clv_pct"] for b in bs if b["kalshi_clv_pct"] is not None]
+        evs = [b["ev_pct"] for b in bs if b["ev_pct"] is not None]
+        sectors.append({
+            "sector": sector,
+            "bets": len(bs),
+            "win_rate": round(100.0 * wins_s / len(bs), 1),
+            "pnl": round(pnl, 2),
+            "roi_pct": round(100.0 * pnl / max(staked, 0.01), 2),
+            "avg_ev_pct": round(100.0 * sum(evs) / len(evs), 2) if evs else None,
+            "avg_clv_pct": round(sum(clvs) / len(clvs), 2) if clvs else None,
+            "clv_n": len(clvs),
+        })
+    sectors.sort(key=lambda s: s["pnl"], reverse=True)
+
     return JSONResponse({
         "weeks": weeks, "n": n, "wins": wins, "win_rate": round(100 * wins / n, 1),
         "brier_model": round(brier_model, 4), "brier_sharp": round(brier_sharp, 4),
         "calibration": calibration,
+        "sectors": sectors,
     })
 
 
