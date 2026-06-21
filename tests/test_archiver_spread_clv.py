@@ -121,23 +121,64 @@ def test_spread_close_ignores_moneyline_rows(temp_archive_db):
     assert p_ml == pytest.approx(0.70)
 
 
-def test_spread_close_falls_back_when_line_mismatches(temp_archive_db):
-    """When the bet's line doesn't match any archived snapshot, fall back to
-    the latest spread row rather than returning None — pre-tipoff line drift
-    of ±0.5pt is routine and shouldn't kill CLV measurement entirely."""
+def test_spread_close_falls_back_within_tolerance(temp_archive_db):
+    """When the bet's line doesn't exactly match but is within ±1.0pt of an
+    archived snapshot, fall back to it — pre-tipoff line drift of ±0.5–1.0pt is
+    routine and shouldn't kill CLV measurement entirely."""
     archiver = DataArchiver()
     archiver.open_session("s3", ["wnba"], "test")
     event_id = "wnba::2026-05-25::mercury_vs_lynx_3"
     event_date = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
     fetched = event_date - timedelta(minutes=20)
 
-    # Pinnacle line drifted to -6.5 but our bet was placed at -5.5
+    # Pinnacle line drifted to -6.5 but our bet was placed at -5.5 (exactly 1pt)
     archiver.archive_sharp_odds("s3", "wnba", [
         _spread_sharp(event_id, -6.5, 0.58, fetched, event_date),
     ])
 
     p = archiver.get_spread_closing_line_aligned(event_id, "mercury", -5.5)
     assert p == pytest.approx(0.58)
+
+
+def test_spread_close_returns_none_when_line_out_of_tolerance(temp_archive_db):
+    """An alternate-spread bet several points off the only archived (primary)
+    line must NOT be matched to it. The archive only captures Pinnacle's
+    primary ~0.50 line per game; matching a -5.5 alt bet to a -8.0 main line
+    would record a fabricated ~0.50 'close'. Out of tolerance → None."""
+    archiver = DataArchiver()
+    archiver.open_session("s3b", ["wnba"], "test")
+    event_id = "wnba::2026-05-25::mercury_vs_lynx_3b"
+    event_date = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+    fetched = event_date - timedelta(minutes=20)
+
+    # Only the -8.0 primary line is archived; our bet was the -5.5 alt (2.5pt off)
+    archiver.archive_sharp_odds("s3b", "wnba", [
+        _spread_sharp(event_id, -8.0, 0.50, fetched, event_date),
+    ])
+
+    assert archiver.get_spread_closing_line_aligned(event_id, "mercury", -5.5) is None
+
+
+def test_spread_close_picks_nearest_within_tolerance(temp_archive_db):
+    """With multiple in-tolerance snapshots, prefer the closest line, not just
+    the latest fetched_at."""
+    archiver = DataArchiver()
+    event_id = "wnba::2026-05-25::mercury_vs_lynx_3c"
+    event_date = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+
+    # -6.0 (0.5pt off) fetched earlier; -6.5 (1.0pt off) fetched later.
+    # Nearest-line wins → 0.60, not the later-but-farther 0.58.
+    archiver.open_session("s3c_a", ["wnba"], "test")
+    archiver.archive_sharp_odds("s3c_a", "wnba", [
+        _spread_sharp(event_id, -6.0, 0.60, event_date - timedelta(hours=2), event_date),
+    ])
+    archiver.open_session("s3c_b", ["wnba"], "test")
+    archiver.archive_sharp_odds("s3c_b", "wnba", [
+        _spread_sharp(event_id, -6.5, 0.58, event_date - timedelta(minutes=20), event_date),
+    ])
+
+    p = archiver.get_spread_closing_line_aligned(event_id, "mercury", -5.5)
+    assert p == pytest.approx(0.60)
 
 
 def test_spread_close_excludes_post_tipoff_snapshots(temp_archive_db):
@@ -222,6 +263,22 @@ def test_total_close_returns_over_under_aligned_prob(temp_archive_db):
     # UNDER side (the Kalshi NO side) → 1 - over (0.37)
     p_under = archiver.get_total_closing_line_aligned(event_id, "under", 8.5)
     assert p_under == pytest.approx(0.37)
+
+
+def test_total_close_returns_none_when_line_out_of_tolerance(temp_archive_db):
+    """A total bet several points off the only archived line must not match it,
+    mirroring the spread tolerance bound."""
+    archiver = DataArchiver()
+    event_id = "baseball::2026-05-25::yankees_vs_redsox::total::8.5"
+    event_date = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+    archiver.open_session("t3", ["baseball"], "test")
+    # Only an 8.5 snapshot archived; our bet was the 11.5 alt total (3pt off).
+    archiver.archive_sharp_odds("t3", "baseball", [
+        _total_sharp(event_id, 8.5, 0.58, event_date - timedelta(hours=2), event_date),
+    ])
+    assert archiver.get_total_closing_line_aligned(event_id, "over", 11.5) is None
+    # But a 9.0 bet (0.5pt off) still falls back within tolerance.
+    assert archiver.get_total_closing_line_aligned(event_id, "over", 9.0) == pytest.approx(0.58)
 
 
 def test_total_close_returns_none_for_non_over_under_label(temp_archive_db):
