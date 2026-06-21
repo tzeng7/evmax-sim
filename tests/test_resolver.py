@@ -32,9 +32,34 @@ from evmax.agents.cleanup.resolver import (
     _fetch_espn_scores,
     _norm_prop_player,
     _resolve_prop_from_espn,
+    clv_entry_price,
     FUZZY_THRESHOLD,
     _ACRONYM_EXPAND,
 )
+
+
+# ---------------------------------------------------------------------------
+# clv_entry_price — CLV is anchored to the price we actually get in at
+# ---------------------------------------------------------------------------
+class TestClvEntryPrice:
+    def test_placed_uses_fill_price(self):
+        # A placed bet anchors CLV to the real fill, not the scan ask.
+        assert clv_entry_price(placed=1, placed_price=0.22, scan_price=0.30) == 0.22
+
+    def test_unplaced_uses_scan_price(self):
+        assert clv_entry_price(placed=0, placed_price=None, scan_price=0.30) == 0.30
+
+    def test_placed_but_no_fill_falls_back_to_scan(self):
+        # placed=1 yet placed_price missing → scan price.
+        assert clv_entry_price(placed=1, placed_price=None, scan_price=0.30) == 0.30
+
+    def test_fill_out_of_range_falls_back_to_scan(self):
+        assert clv_entry_price(placed=1, placed_price=0.0, scan_price=0.30) == 0.30
+        assert clv_entry_price(placed=1, placed_price=1.0, scan_price=0.30) == 0.30
+
+    def test_null_placed_uses_scan_price(self):
+        # legacy rows where placed is NULL behave like unplaced.
+        assert clv_entry_price(placed=None, placed_price=0.22, scan_price=0.30) == 0.30
 
 
 # ---------------------------------------------------------------------------

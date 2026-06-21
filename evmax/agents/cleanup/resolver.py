@@ -1450,6 +1450,24 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
             "unmatched": unmatched}
 
 
+def clv_entry_price(
+    placed: Optional[int],
+    placed_price: Optional[float],
+    scan_price: Optional[float],
+) -> Optional[float]:
+    """The price a CLV measurement should be anchored to — "what we get in at."
+
+    For a placed bet that's the actual fill (``placed_price``); otherwise the
+    scan-time YES ask (``scan_price`` == ``kalshi_yes_price``, which the Kalshi
+    REST parse already sets to ``yes_ask``). A placed_price outside (0, 1) is
+    ignored and we fall back to the scan price. The caller still validates the
+    returned price is a usable probability.
+    """
+    if placed and placed_price is not None and 0 < placed_price < 1:
+        return placed_price
+    return scan_price
+
+
 def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> dict:
     """Backfill two distinct CLV measurements for resolved bets.
 
@@ -1490,7 +1508,7 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
         """SELECT p.id, p.market_id, p.event_id, p.kalshi_yes_price,
                   p.yes_team, p.event_date, p.scan_date,
                   p.pinnacle_drift_pct, p.kalshi_clv_pct,
-                  p.market_type, p.line
+                  p.market_type, p.line, p.placed, p.placed_price
            FROM ev_predictions p
            INNER JOIN ev_outcomes o ON p.market_id = o.market_id
            WHERE o.outcome IS NOT NULL
@@ -1504,7 +1522,13 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
     kalshi_clv_values: list[float] = []
 
     for row in rows:
-        entry_price = row["kalshi_yes_price"]
+        # CLV is measured against the price we actually get in at: the real fill
+        # for placed bets, else the scan-time YES ask.
+        entry_price = clv_entry_price(
+            placed=row["placed"],
+            placed_price=row["placed_price"],
+            scan_price=row["kalshi_yes_price"],
+        )
         if entry_price is None or entry_price <= 0 or entry_price >= 1:
             skipped += 1
             continue

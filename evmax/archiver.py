@@ -22,6 +22,16 @@ if TYPE_CHECKING:
 
 DB_PATH = Path(__file__).resolve().parents[1] / "data" / "archive.db"
 
+# When a spread/total bet's line has no exact archived snapshot, we fall back to
+# the nearest pre-tipoff snapshot — but only within this tolerance (points).
+# Pre-tipoff line drift of ±0.5–1.0pt is routine and shouldn't kill CLV
+# measurement. But the archive only captures Pinnacle's PRIMARY (balanced) line
+# per game, which always devigs to ~0.50; an unbounded fallback would silently
+# match an alternate-spread bet (e.g. dog -5.5) to a several-point-off main line
+# (e.g. -8.0 at 0.50) and record a fabricated ~0.50 "close". Bounding the
+# fallback makes missing alternate-line data read as None (no data) instead.
+_CLOSING_LINE_FALLBACK_TOLERANCE = 1.0
+
 SCHEMA = """
 PRAGMA journal_mode=WAL;
 
@@ -446,9 +456,13 @@ class DataArchiver:
         moneylines. When ``line`` is provided we prefer the snapshot whose
         absolute spread matches (Pinnacle stores the favorite's line as a
         negative number; the underdog's bet line is the positive mirror).
-        If no exact match is found we fall back to the latest spread snapshot
-        — line drift of ±0.5pt happens routinely pre-tipoff and isn't a
-        reason to drop CLV measurement.
+        If no exact match is found we fall back to the nearest spread snapshot
+        WITHIN ``_CLOSING_LINE_FALLBACK_TOLERANCE`` points — line drift of
+        ±0.5–1.0pt happens routinely pre-tipoff and isn't a reason to drop CLV
+        measurement, but a several-point-off main-line snapshot (which always
+        devigs to ~0.50) must NOT masquerade as our alternate-line's close.
+        When ``line`` is None we can't bound the fallback, so we keep the
+        legacy best-effort latest-snapshot behavior.
         """
         from evmax.agents.cleanup.resolver import yes_aligned_close_prob
 
@@ -468,7 +482,28 @@ class DataArchiver:
                        LIMIT 1""",
                     (event_id, float(line)),
                 ).fetchone()
-            if row is None:
+                if row is None:
+                    # Tolerance-bounded fallback: nearest line within ±tol pt.
+                    row = conn.execute(
+                        """SELECT outcome_a_label, outcome_b_label,
+                                  true_prob_a, true_prob_b, true_prob_draw
+                           FROM archived_sharp_odds
+                           WHERE event_id = ?
+                             AND spread_line IS NOT NULL
+                             AND ABS(ABS(spread_line) - ABS(?)) <= ?
+                             AND event_date IS NOT NULL
+                             AND fetched_at < event_date
+                           ORDER BY ABS(ABS(spread_line) - ABS(?)) ASC,
+                                    fetched_at DESC
+                           LIMIT 1""",
+                        (
+                            event_id,
+                            float(line),
+                            _CLOSING_LINE_FALLBACK_TOLERANCE,
+                            float(line),
+                        ),
+                    ).fetchone()
+            else:
                 row = conn.execute(
                     """SELECT outcome_a_label, outcome_b_label,
                               true_prob_a, true_prob_b, true_prob_draw
@@ -502,8 +537,11 @@ class DataArchiver:
 
         For totals, ``yes_team`` is ``"over"`` or ``"under"`` (the scanner
         normalizes the YES side label). Matches the snapshot with the same
-        total_line when possible, else falls back to the latest pre-tipoff
-        total snapshot for the event.
+        total_line when possible, else falls back to the nearest pre-tipoff
+        total snapshot WITHIN ``_CLOSING_LINE_FALLBACK_TOLERANCE`` points —
+        an alternate total several points off the archived line must not be
+        scored against an unrelated line's prob. When ``line`` is None we keep
+        the legacy best-effort latest-snapshot behavior.
         """
         side = (yes_team or "").strip().lower()
         if side not in ("over", "under"):
@@ -524,7 +562,26 @@ class DataArchiver:
                        LIMIT 1""",
                     (event_id, float(line)),
                 ).fetchone()
-            if row is None:
+                if row is None:
+                    # Tolerance-bounded fallback: nearest line within ±tol pt.
+                    row = conn.execute(
+                        """SELECT true_prob_over, true_prob_under
+                           FROM archived_sharp_odds
+                           WHERE event_id = ?
+                             AND total_line IS NOT NULL
+                             AND ABS(total_line - ?) <= ?
+                             AND event_date IS NOT NULL
+                             AND fetched_at < event_date
+                           ORDER BY ABS(total_line - ?) ASC, fetched_at DESC
+                           LIMIT 1""",
+                        (
+                            event_id,
+                            float(line),
+                            _CLOSING_LINE_FALLBACK_TOLERANCE,
+                            float(line),
+                        ),
+                    ).fetchone()
+            else:
                 row = conn.execute(
                     """SELECT true_prob_over, true_prob_under
                        FROM archived_sharp_odds
