@@ -15,11 +15,10 @@ interface Props {
     snapshot: { bankroll: number; kelly: number },
   ) => void
   onResolve: () => void
-  onMetrics: () => void
   toast: (msg: string, type?: 'info' | 'ok' | 'err') => void
 }
 
-export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScanComplete, onResolve, onMetrics, toast }: Props) {
+export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScanComplete, onResolve, toast }: Props) {
   const cats = useCategories()
   const allSectors = cats.map(c => c.key).join(',')
   // Sector list comes from the registry via /api/categories. Default the
@@ -126,7 +125,6 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
       <button className="btn" onClick={handleResolve} disabled={resolving}>
         {resolving ? 'Resolving...' : 'Resolve'}
       </button>
-      <button className="btn" onClick={onMetrics}>Metrics</button>
     </div>
   )
 }

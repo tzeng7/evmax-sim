@@ -148,6 +148,8 @@ export interface SectorMetricRow {
   avg_ev_pct: number | null
   avg_clv_pct: number | null
   clv_n: number
+  brier_model: number
+  brier_sharp: number
 }
 
 export interface MetricsResult {

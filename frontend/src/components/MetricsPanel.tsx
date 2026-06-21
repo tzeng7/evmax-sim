@@ -24,6 +24,8 @@ export function MetricsPanel({ data }: Props) {
                 <th>Sector</th>
                 <th className="num">Bets</th>
                 <th className="num">Win%</th>
+                <th className="num">Brier (M)</th>
+                <th className="num">Brier (S)</th>
                 <th className="num">Avg EV</th>
                 <th className="num">CLV</th>
                 <th className="num">P&L</th>
@@ -36,6 +38,8 @@ export function MetricsPanel({ data }: Props) {
                   <td><span className="badge">{s.sector}</span></td>
                   <td className="num">{s.bets}</td>
                   <td className="num">{s.win_rate}%</td>
+                  <td className={`num ${s.brier_model < s.brier_sharp ? 'green' : s.brier_model > s.brier_sharp ? 'red' : ''}`}>{s.brier_model.toFixed(4)}</td>
+                  <td className="num">{s.brier_sharp.toFixed(4)}</td>
                   <td className="num">{s.avg_ev_pct === null ? '—' : `${s.avg_ev_pct > 0 ? '+' : ''}${s.avg_ev_pct}%`}</td>
                   <td
                     className={`num ${s.avg_clv_pct === null ? '' : s.avg_clv_pct >= 0 ? 'green' : 'red'}`}

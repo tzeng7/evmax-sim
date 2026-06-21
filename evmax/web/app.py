@@ -945,6 +945,8 @@ async def api_metrics(request: Request) -> JSONResponse:
         )
         clvs = [b["kalshi_clv_pct"] for b in bs if b["kalshi_clv_pct"] is not None]
         evs = [b["ev_pct"] for b in bs if b["ev_pct"] is not None]
+        brier_m = sum((b["blended_true_prob"] - b["outcome"]) ** 2 for b in bs) / len(bs)
+        brier_s = sum((b["sharp_true_prob"] - b["outcome"]) ** 2 for b in bs) / len(bs)
         sectors.append({
             "sector": sector,
             "bets": len(bs),
@@ -954,6 +956,8 @@ async def api_metrics(request: Request) -> JSONResponse:
             "avg_ev_pct": round(100.0 * sum(evs) / len(evs), 2) if evs else None,
             "avg_clv_pct": round(sum(clvs) / len(clvs), 2) if clvs else None,
             "clv_n": len(clvs),
+            "brier_model": round(brier_m, 4),
+            "brier_sharp": round(brier_s, 4),
         })
     sectors.sort(key=lambda s: s["pnl"], reverse=True)
 

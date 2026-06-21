@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useDashboard } from './hooks/useDashboard'
 import { useToast } from './hooks/useToast'
 import { KpiCards } from './components/KpiCards'
@@ -9,38 +9,25 @@ import { PlacedBets } from './components/PlacedBets'
 import { SectorPerformance } from './components/SectorPerformance'
 import { OpenPositions } from './components/OpenPositions'
 import { RecentSettled } from './components/RecentSettled'
-import { MetricsPanel } from './components/MetricsPanel'
+import { MetricsPage } from './components/MetricsPage'
 import { PortfolioGrid } from './components/PortfolioGrid'
 import { PortfolioDetail } from './components/PortfolioDetail'
 import { Toast } from './components/Toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { fetchMetrics } from './lib/api'
-import type { MetricsResult } from './lib/types'
 import './App.css'
 
-type Page = { kind: 'dashboard' } | { kind: 'portfolios' } | { kind: 'portfolio'; id: string }
+type Page = { kind: 'dashboard' } | { kind: 'metrics' } | { kind: 'portfolios' } | { kind: 'portfolio'; id: string }
 
 export default function App() {
   const dash = useDashboard()
   const { toast, ...toastProps } = useToast()
   const [view, setView] = useState<'all' | 'placed'>('all')
-  const [metrics, setMetrics] = useState<MetricsResult | null>(null)
   const [page, setPage] = useState<Page>({ kind: 'dashboard' })
   // Lifted to App so ScanResults can re-size stakes live when these change
   // without forcing a re-scan. ActionBar still owns the inputs.
   const [bankrollStr, setBankrollStr] = useState('250')
   const [kelly, setKelly] = useState(0.5)
   const bankroll = Number(bankrollStr) || 0
-
-  const handleMetrics = useCallback(async () => {
-    toast('Loading metrics...', 'info')
-    try {
-      const data = await fetchMetrics(4)
-      setMetrics(data)
-    } catch (e) {
-      toast('Metrics failed: ' + (e as Error).message, 'err')
-    }
-  }, [toast])
 
   const summary = view === 'placed' ? dash.summaryPlaced : dash.summaryAll
   const loadingDash = dash.loading && page.kind === 'dashboard'
@@ -60,6 +47,12 @@ export default function App() {
             Dashboard
           </button>
           <button
+            className={`seg ${page.kind === 'metrics' ? 'active' : ''}`}
+            onClick={() => setPage({ kind: 'metrics' })}
+          >
+            Metrics
+          </button>
+          <button
             className={`seg ${page.kind === 'portfolios' || page.kind === 'portfolio' ? 'active' : ''}`}
             onClick={() => setPage({ kind: 'portfolios' })}
           >
@@ -75,7 +68,6 @@ export default function App() {
             setKelly={setKelly}
             onScanComplete={dash.setScanResults}
             onResolve={dash.refresh}
-            onMetrics={handleMetrics}
             toast={toast}
           />
         )}
@@ -104,8 +96,6 @@ export default function App() {
               onPicked={dash.refresh}
             />
 
-            <MetricsPanel data={metrics} />
-
             <PlacedBets bets={dash.placedBets} toast={toast} onChanged={dash.refresh} />
 
             <div className="two-col">
@@ -116,6 +106,8 @@ export default function App() {
             <RecentSettled bets={dash.recent} />
           </>
         )}
+
+        {page.kind === 'metrics' && <MetricsPage toast={toast} />}
 
         {page.kind === 'portfolios' && (
           <PortfolioGrid
