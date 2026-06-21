@@ -1508,7 +1508,7 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
         """SELECT p.id, p.market_id, p.event_id, p.kalshi_yes_price,
                   p.yes_team, p.event_date, p.scan_date,
                   p.pinnacle_drift_pct, p.kalshi_clv_pct,
-                  p.market_type, p.line, p.placed, p.placed_price
+                  p.market_type, p.line, p.placed, p.placed_price, p.placed_at
            FROM ev_predictions p
            INNER JOIN ev_outcomes o ON p.market_id = o.market_id
            WHERE o.outcome IS NOT NULL
@@ -1535,6 +1535,16 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
 
         market_id = row["market_id"]
         ticker = market_id.removeprefix("kalshi:") if market_id else None
+        # NO-side bets (under totals, opponent +spread) are synthesized with a
+        # ":no" market_id suffix and store the NO-side ask in kalshi_yes_price
+        # (see ev_gap_agent._build_no_side_{spread,total}_gap). Strip the suffix
+        # so the clean Kalshi ticker matches archived_kalshi_markets — otherwise
+        # the lookup never hits and EVERY no-side bet silently loses its Kalshi
+        # CLV. The archived snapshot is the YES price, so the close is flipped to
+        # the NO side below to stay on the same side of the book as the entry.
+        is_no_side = bool(ticker and ticker.endswith(":no"))
+        if is_no_side:
+            ticker = ticker[: -len(":no")]
 
         # ---- 1. Pinnacle drift (legacy CLV) — pre-tipoff only ----
         # Dispatch by market_type so spread bets get spread snapshots instead
@@ -1572,10 +1582,20 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
         # Use Pinnacle's archived tipoff timestamp as the anchor for "30 min
         # pre-tipoff." If that's missing fall back to event_date midnight UTC
         # (still better than the no-filter LIMIT 1 we had before).
+        # Anchor the close to be at/after our fill for placed bets so CLV
+        # measures forward from entry, not against a price that preceded it.
+        # Unplaced bets keep the plain T-30 proxy (not_before=None).
+        not_before = row["placed_at"] if (row["placed"] and row["placed_at"]) else None
         kalshi_clv_pp: Optional[float] = None
         if ticker:
-            kalshi_close = archiver.get_kalshi_close_price(ticker, row["event_id"])
+            kalshi_close = archiver.get_kalshi_close_price(
+                ticker, row["event_id"], not_before=not_before
+            )
             if kalshi_close is not None:
+                # archived snapshot is the YES-market price; align to the bet's
+                # side so entry (no_ask) and close are comparable.
+                if is_no_side:
+                    kalshi_close = 1.0 - kalshi_close
                 kalshi_clv_pp = (kalshi_close - entry_price) * 100
                 conn.execute(
                     "UPDATE ev_predictions SET kalshi_clv_pct = ? WHERE id = ?",

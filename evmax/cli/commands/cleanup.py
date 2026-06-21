@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import subprocess
 import sys
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -448,8 +448,10 @@ def close_lines(
 @app.command("watch-closes")
 def watch_closes(
     lookahead: int = typer.Option(
-        15, "--lookahead", "-l",
-        help="Capture Pinnacle close for any event tipping off within the next N minutes.",
+        45, "--lookahead", "-l",
+        help="Capture closes for any event tipping off within the next N minutes. "
+             "Default 45 so a near-tip Kalshi snapshot lands inside the [T-60, T-30] "
+             "window a typical pre-game fill is placed in.",
     ),
     interval: int = typer.Option(
         300, "--interval", "-i",
@@ -460,21 +462,109 @@ def watch_closes(
         help="Run a single sweep and exit (skip the loop).",
     ),
 ) -> None:
-    """Watch upcoming events and capture Pinnacle close ~lookahead min before each tip-off.
+    """Watch upcoming events and capture closing lines ~lookahead min before each tip-off.
+
+    Captures two things per sweep:
+      1. Pinnacle close → ev_outcomes.pinnacle_close_prob (for the diagnostic drift).
+      2. A near-tip Kalshi yes-ask snapshot → archived_kalshi_markets. This is what
+         gives PLACED-bet Kalshi CLV a genuine post-entry close to anchor against —
+         without it, get_kalshi_close_price only sees the night-before scan row, so
+         close == entry and CLV collapses to ~0.
 
     Self-sufficient — pulls each cycle's queue from the DB, so you can scan at any
     time of day and this loop will pick up the new events on the next sweep.
 
-    Recommended setup: run this as a launchd/systemd service that's always up.
-    Idempotent: only writes to ev_outcomes rows still missing pinnacle_close_prob.
+    Recommended setup: run this as a launchd/systemd service that's always up so the
+    [T-45, T-0] window is swept for every game. Idempotent for Pinnacle (only writes
+    rows still missing pinnacle_close_prob); each Kalshi sweep writes a fresh
+    timestamped snapshot so the close anchor has a real price trail to pick from.
     """
     import asyncio
     import time
     from evmax.agents.cleanup.db import get_connection
+    from evmax.archiver import DataArchiver
     from evmax.archiver import _get_connection as get_archive_conn
     from evmax.clients.esports_pinnacle import PinnacleGuestClient
+    from evmax.clients.kalshi import KalshiClient
 
-    async def _sweep() -> tuple[int, int]:
+    async def _capture_kalshi(event_ids: list[str]) -> int:
+        """Snapshot live Kalshi asks for live, unresolved bets on upcoming events.
+
+        This is what gives placed-bet Kalshi CLV a genuine POST-ENTRY close to
+        anchor against — without a near-tip snapshot, get_kalshi_close_price only
+        sees the night-before scan row (close == entry → CLV ≈ 0). Independent of
+        the Pinnacle-close queue: we keep snapshotting until tip-off regardless of
+        whether the Pinnacle close has landed. Failures here never abort the sweep.
+        """
+        conn = get_connection()
+        placeholders = ",".join("?" * len(event_ids))
+        bet_rows = conn.execute(
+            f"""SELECT DISTINCT p.market_id, p.sector, p.event_id, p.event_date,
+                       p.market_type, p.yes_team, p.line
+                FROM ev_predictions p
+                LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
+                WHERE p.event_id IN ({placeholders})
+                  AND p.mode = 'live' AND p.voided = 0
+                  AND (o.outcome IS NULL OR o.id IS NULL)""",
+            event_ids,
+        ).fetchall()
+        conn.close()
+        if not bet_rows:
+            return 0
+
+        # market_id is "kalshi:TICKER" (+ optional ":no" for NO-side bets). The
+        # live orderbook is the same YES ticker for both sides, so strip both.
+        meta_by_ticker: dict[str, dict] = {}
+        for r in bet_rows:
+            mid = r["market_id"]
+            if not mid or not mid.startswith("kalshi:"):
+                continue
+            ticker = mid.removeprefix("kalshi:").removesuffix(":no")
+            meta_by_ticker.setdefault(ticker, dict(r))
+        if not meta_by_ticker:
+            return 0
+
+        tickers = list(meta_by_ticker)
+        try:
+            async with KalshiClient() as client:
+                asks = await client.get_market_asks_batch(tickers)
+        except Exception as kerr:  # noqa: BLE001 — never abort the sweep
+            console.print(f"[yellow]  kalshi snapshot fetch failed: {kerr}[/yellow]")
+            return 0
+
+        snapshots: list[dict] = []
+        for ticker, meta in meta_by_ticker.items():
+            yes_ask = asks.get(ticker)
+            # 99c asks = empty orderbook; not a real close.
+            if yes_ask is None or yes_ask >= 0.99:
+                continue
+            snapshots.append({
+                "ticker": ticker,
+                "yes_price": yes_ask,
+                "event_id": meta.get("event_id"),
+                "event_date": meta.get("event_date"),
+                "market_type": meta.get("market_type"),
+                "yes_team": meta.get("yes_team"),
+                "line": meta.get("line"),
+            })
+        if not snapshots:
+            return 0
+
+        # Fresh session per sweep — UNIQUE(session_id, ticker) means a reused
+        # session would IGNORE the new snapshot.
+        session_id = "watchclose-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+        archiver = DataArchiver()
+        # snapshots may span sectors; archive per sector for the sector column.
+        captured = 0
+        by_sector: dict[str, list[dict]] = {}
+        for snap in snapshots:
+            sec = meta_by_ticker[snap["ticker"]]["sector"]
+            by_sector.setdefault(sec, []).append(snap)
+        for sec, snaps in by_sector.items():
+            captured += archiver.archive_kalshi_snapshot(session_id, sec, snaps)
+        return captured
+
+    async def _sweep() -> tuple[int, int, int]:
         # 1. From archive.db: events tipping off in [now, now + lookahead]
         with get_archive_conn() as ac:
             upcoming = ac.execute(
@@ -487,9 +577,12 @@ def watch_closes(
             ).fetchall()
 
         if not upcoming:
-            return (0, 0)
+            return (0, 0, 0)
 
         event_ids = [r["event_id"] for r in upcoming]
+
+        # 1b. Near-tip Kalshi snapshot (for placed-bet CLV close anchoring).
+        kalshi_captured = await _capture_kalshi(event_ids)
 
         # 2. From predictions.db: which of those still need a close.
         # Pull yes_team via ev_predictions so the close prob can be
@@ -508,7 +601,7 @@ def watch_closes(
 
         if not rows:
             conn.close()
-            return (0, 0)
+            return (0, 0, kalshi_captured)
 
         # 3. Group by sector, fetch Pinnacle once per sector
         by_sector: dict[str, list] = {}
@@ -557,11 +650,14 @@ def watch_closes(
 
         conn.commit()
         conn.close()
-        return (updated, len(rows))
+        return (updated, len(rows), kalshi_captured)
 
     if once:
-        captured, queued = asyncio.run(_sweep())
-        console.print(f"[green]Captured {captured}/{queued} close(s).[/green]")
+        captured, queued, kalshi = asyncio.run(_sweep())
+        console.print(
+            f"[green]Captured {captured}/{queued} Pinnacle close(s); "
+            f"{kalshi} Kalshi snapshot(s).[/green]"
+        )
         return
 
     console.print(
@@ -572,9 +668,11 @@ def watch_closes(
         while True:
             ts = datetime.now().strftime("%H:%M:%S")
             try:
-                captured, queued = asyncio.run(_sweep())
-                if queued:
-                    console.print(f"[dim]{ts}[/dim]  captured {captured}/{queued}")
+                captured, queued, kalshi = asyncio.run(_sweep())
+                if queued or kalshi:
+                    console.print(
+                        f"[dim]{ts}[/dim]  pinnacle {captured}/{queued}  kalshi {kalshi}"
+                    )
             except Exception as sweep_err:
                 console.print(f"[red]{ts}  sweep failed:[/red] {sweep_err}")
             time.sleep(interval)
