@@ -214,11 +214,24 @@ These two columns must appear before any odds/probability/EV columns. No table m
 ### Daily Workflow
 
 ```bash
-# Morning — find plays (bankroll stored in DB automatically)
+# Morning — find plays (bankroll stored in DB automatically). Treat this as a
+# WATCHLIST, not a bet list: the night-before edge is usually a stale Kalshi
+# line that reverts toward the sharp close by tip-off (only the <1h-pre-tip
+# entry window carries positive CLV — see the Placed-bet CLV notes).
 evmax agents scan --bankroll 500 --kelly 0.5
 
-# Before betting — verify live prices via WebSocket
+# Before betting — verify live prices via WebSocket (read-only check)
 evmax agents verify --date YYYY-MM-DD
+
+# At ~T-60 to tip — place against the LIVE price. `pick` re-fetches live Kalshi
+# asks by default and gates/sizes at the current ask, so stale edges that have
+# already reverted drop out automatically (--no-live keeps the old scan-price
+# behaviour for offline use). The Scan/Live/Δ columns show edge erosion.
+evmax agents pick --date YYYY-MM-DD --bankroll 500 --kelly 0.5
+
+# Background service — captures the near-tip Kalshi + Pinnacle close so placed-bet
+# CLV has a genuine post-entry price to anchor against (also wired as a */5 cron).
+evmax cleanup watch-closes            # always-up; or `--once` per sweep
 
 # Next morning — resolve yesterday's outcomes
 # (resolve also feeds the date's completed ESPN scores into elo/form/poisson/xg
