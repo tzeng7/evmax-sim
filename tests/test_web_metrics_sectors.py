@@ -1,6 +1,7 @@
 """The dashboard /api/metrics route returns a per-sector performance
-breakdown (CLV, EV%, ROI) alongside the model-calibration figures. The
-"Metrics" button surfaces this — see evmax.web.app.api_metrics.
+breakdown (Brier model vs sharp, CLV, EV%, ROI) alongside the overall
+model-calibration figures. The Metrics tab surfaces this — see
+evmax.web.app.api_metrics.
 """
 
 from __future__ import annotations
@@ -93,6 +94,24 @@ def test_metrics_sector_handles_missing_clv(metrics_db):
     assert soccer["avg_clv_pct"] is None  # no CLV captured
     assert soccer["clv_n"] == 0
     assert soccer["avg_ev_pct"] == 5.0  # 0.05 * 100
+
+
+def test_metrics_sector_reports_brier(metrics_db):
+    body = _post_metrics()
+    by = {s["sector"]: s for s in body["sectors"]}
+
+    # nba1: blended .60 / sharp .58 / win → model .16, sharp .1764
+    # nba2: blended .55 / sharp .54 / loss → model .3025, sharp .2916
+    nba = by["nba"]
+    assert nba["brier_model"] == round((0.16 + 0.3025) / 2, 4)
+    assert nba["brier_sharp"] == round((0.1764 + 0.2916) / 2, 4)
+    # model is better calibrated than the sharp close on this fixture
+    assert nba["brier_model"] < nba["brier_sharp"]
+
+    # soccer: blended .45 / sharp .44 / win → model .3025, sharp .3136
+    soccer = by["soccer"]
+    assert soccer["brier_model"] == round(0.3025, 4)
+    assert soccer["brier_sharp"] == round(0.3136, 4)
 
 
 def test_metrics_sectors_sorted_by_pnl_desc(metrics_db):
