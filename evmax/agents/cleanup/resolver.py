@@ -1535,6 +1535,16 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
 
         market_id = row["market_id"]
         ticker = market_id.removeprefix("kalshi:") if market_id else None
+        # NO-side bets (under totals, opponent +spread) are synthesized with a
+        # ":no" market_id suffix and store the NO-side ask in kalshi_yes_price
+        # (see ev_gap_agent._build_no_side_{spread,total}_gap). Strip the suffix
+        # so the clean Kalshi ticker matches archived_kalshi_markets — otherwise
+        # the lookup never hits and EVERY no-side bet silently loses its Kalshi
+        # CLV. The archived snapshot is the YES price, so the close is flipped to
+        # the NO side below to stay on the same side of the book as the entry.
+        is_no_side = bool(ticker and ticker.endswith(":no"))
+        if is_no_side:
+            ticker = ticker[: -len(":no")]
 
         # ---- 1. Pinnacle drift (legacy CLV) — pre-tipoff only ----
         # Dispatch by market_type so spread bets get spread snapshots instead
@@ -1576,6 +1586,10 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
         if ticker:
             kalshi_close = archiver.get_kalshi_close_price(ticker, row["event_id"])
             if kalshi_close is not None:
+                # archived snapshot is the YES-market price; align to the bet's
+                # side so entry (no_ask) and close are comparable.
+                if is_no_side:
+                    kalshi_close = 1.0 - kalshi_close
                 kalshi_clv_pp = (kalshi_close - entry_price) * 100
                 conn.execute(
                     "UPDATE ev_predictions SET kalshi_clv_pct = ? WHERE id = ?",
