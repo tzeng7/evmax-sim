@@ -30,6 +30,17 @@ The file was originally written for esports but was extended to cover every spor
   on error so the agent falls back cleanly
 - Structured to add lineups / bullpen (the same schedule endpoint hydrates both)
 
+## Seed-time clients (not in the live scan pipeline)
+
+### `tennisabstract.py` — Tennis Abstract Elo leaderboards
+- Fetches + parses the public ATP/WTA Elo reports at `tennisabstract.com/reports/{tour}_elo_ratings.html`
+  (`fetch_elo_ratings` / `fetch_elo_page` → `PlayerElo` rows: overall + hElo/cElo/gElo)
+- **Why it exists:** Jeff Sackmann's `tennis_atp` / `tennis_wta` GitHub data repos went offline in 2026,
+  so the match-CSV path for surface Elo died. Tennis Abstract (his own site) still publishes weekly
+  pre-computed surface Elo on the standard 400-pt scale.
+- Used by `scripts/seed_tennis_abstract_elo.py` (seeds `TennisModelAgent` surface Elo); **not** called by
+  any live agent. Pure-stdlib HTML parsing — no extra deps.
+
 ## `base.py` — `BaseAPIClient`
 Thin async HTTP base class using `httpx.AsyncClient`. Handles retries and shared headers.
 All active clients inherit from this.
