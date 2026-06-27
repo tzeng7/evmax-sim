@@ -310,7 +310,7 @@ Most sectors replace some or all of the generic Elo/Form/Poisson core with dedic
 
 > **World Cup** mirrors soccer's weights exactly but reads its own national-team namespaces (`elo_state['worldcup']`, `poisson_state['worldcup']`, `soccer_xg_state['worldcup']`, `form_state['worldcup']`) — never the club soccer pool.
 
-> **Poisson is football-only** (`SUPPORTED_SECTORS = {"soccer", "worldcup"}` in `poisson_agent.py`): `predict_pair` returns `None` for every other sector, so it never enters the blend or `model_sources`. Tennis weights: surface 0.30 · serve/return 0.25 · form 0.20 · advanced 0.15 · h2h 0.05 · ranking trend 0.05.
+> **Poisson is football-only** (`SUPPORTED_SECTORS = {"soccer", "worldcup"}` in `poisson_agent.py`): `predict_pair` returns `None` for every other sector, so it never enters the blend or `model_sources`. Tennis weights: surface 0.30 · serve/return 0.10 · form 0.35 · advanced 0.15 · h2h 0.05 · ranking trend 0.05.
 
 **WNBA weights re-tuned 2026-05-14** via walk-forward sweep over 321 games (`scripts/sweep_wnba_weights.py`) — dropped blend Brier 0.2061 → 0.2019. Form was worst standalone (0.2303) and every top-20 combo zeroed it; generic Elo also weaker than the WNBA-specific stack.
 
@@ -690,14 +690,14 @@ Tennis runs six dedicated agents (the four primary signals plus form and H2H). E
 
 | Agent | Weight | Signal | State file |
 |---|---|---|---|
-| `TennisModelAgent` (surface Elo) | 0.30 | Surface-specific Elo (hard / clay / grass) seeded from ATP rankings | `data/models/tennis_surface_state.json` |
-| `TennisServeReturnAgent` | 0.25 | Logistic on serve-points-won differential, calibrated for bo3 (`k=14`) and bo5 (`k=18`); slam detection from market title | `data/models/tennis_serve_return_state.json` |
-| `TennisFormAgent` | 0.20 | Recency-weighted match form (the momentum voice) | `data/models/tennis_form_state.json` |
+| `TennisModelAgent` (surface Elo) | 0.30 | Surface-specific Elo (hard / clay / grass) seeded from [Tennis Abstract's Elo leaderboards](https://www.tennisabstract.com/reports/atp_elo_ratings.html) | `data/models/tennis_surface_state.json` |
+| `TennisServeReturnAgent` | 0.10 | Logistic on serve-points-won differential, calibrated for bo3 (`k=14`) and bo5 (`k=18`); slam detection from market title | `data/models/tennis_serve_return_state.json` |
+| `TennisFormAgent` | 0.35 | Recency-weighted match form (the momentum voice) | `data/models/tennis_form_state.json` |
 | `TennisAdvancedStatsAgent` | 0.15 | Logistic on BP conv, RPW, UE rate, W/UE ratio; full 4-feature model when MCP data available, RPW-only reduced model otherwise | `data/models/tennis_advanced_state.json` |
 | `TennisH2HAgent` | 0.05 | Head-to-head record nudge with Laplace smoothing + sample-size shrinkage; capped at ±18pp from 0.5; requires ≥3 meetings | `data/models/tennis_h2h_state.json` |
 | `TennisRankingTrendAgent` | 0.05 | 12-week ranking-momentum log-odds nudge; positive = climbing the rankings; capped at ±0.40 logit | `data/models/tennis_ranking_trend_state.json` |
 
-A tennis gap is only treated as a **live play** when `model_sources` contains all four primary models (`tennis_surface`, `tennis_serve_return`, `tennis_form`, `tennis_advanced`); h2h / ranking-trend are optional since they can't fire on most matches. Partial-blend gaps are demoted to `shadow` (Kelly zeroed, hidden from the play table) — see `REQUIRED_BLEND_MODELS` in `ev_gap_agent.py`. The serve/return, advanced, H2H, and ranking-trend agents are seeded from Jeff Sackmann's public CSVs (`tennis_atp`, `tennis_wta`) plus the Match Charting Project for 2025+ SPW augmentation. See [Seed Tennis Models](#seed-tennis-models) below.
+A tennis gap is only treated as a **live play** when `model_sources` contains all four primary models (`tennis_surface`, `tennis_serve_return`, `tennis_form`, `tennis_advanced`); h2h / ranking-trend are optional since they can't fire on most matches. Partial-blend gaps are demoted to `shadow` (Kelly zeroed, hidden from the play table) — see `REQUIRED_BLEND_MODELS` in `ev_gap_agent.py`. All tennis agents are seeded from **[Tennis Abstract](https://www.tennisabstract.com/)** (Jeff Sackmann's site), which replaced his `tennis_atp` / `tennis_wta` GitHub CSVs after they went offline in 2026: surface Elo from the [Elo leaderboards](https://www.tennisabstract.com/reports/atp_elo_ratings.html), and serve/return + advanced + form + H2H from the per-match `matchmx` data behind [`leaders.cgi`](https://www.tennisabstract.com/cgi-bin/leaders.cgi) (advanced's winners/UE feature comes from the [winners/errors leaderboards](https://www.tennisabstract.com/reports/winners_errors_leaders_men_last52.html)). See [Seed Tennis Models](#seed-tennis-models) below.
 
 ---
 
@@ -848,30 +848,32 @@ Config lives at `data/models/wnba_2026_offseason.yaml` — edit the `moves:` lis
 
 ### Seed Tennis Models
 
-The three new tennis agents (serve/return, H2H, ranking trend) are seeded directly from Jeff Sackmann's public CSV mirrors of the ATP and WTA tours, plus the Match Charting Project for 2025+ coverage where Sackmann's standard match files lag.
+The tennis agents are seeded from **[Tennis Abstract](https://www.tennisabstract.com/)** (after Jeff Sackmann's `tennis_atp` / `tennis_wta` GitHub CSVs went offline in 2026), via two seeders:
 
 ```bash
-# Default — both tours, 2023→2026, MCP augmentation enabled
-uv run python scripts/seed_tennis_models.py
+# Surface Elo — from Tennis Abstract's Elo leaderboards (idempotent)
+uv run python scripts/seed_tennis_abstract_elo.py
 
-# Skip MCP (Sackmann-only) if you want to keep state minimal
+# serve/return + advanced + form + H2H — from the per-match `matchmx` data
+uv run python scripts/seed_tennis_models.py --years 2024,2025,2026
+
+# Skip the winners/errors (UE) augmentation → advanced runs RPW-reduced
 uv run python scripts/seed_tennis_models.py --no-mcp
-
-# Custom slice
-uv run python scripts/seed_tennis_models.py --years 2023,2024 --tours atp
 ```
+
+Both run weekly via the `weekly-tennis-surface-elo-refresh` scheduled task. (Ranking-trend has its own weekly refresh — `scripts/reseed_tennis_rankings.py` + ESPN — since `matchmx` carries per-match ranks but no weekly snapshot series.)
 
 What gets written:
 
 | Output | Source | Aggregation |
 |---|---|---|
-| `tennis_serve_return_state.json` | `{tour}_matches_{year}.csv` (winner/loser SPW columns) + `charting-{m,w}-stats-Overview.csv` | Per-player SPW = `(1stWon + 2ndWon) / svpt`; merge rule keeps the entry with more service points |
-| `tennis_h2h_state.json` | `{tour}_matches_{year}.csv` (winner_name / loser_name) | Win counts per alphabetically-sorted player pair |
-| `tennis_ranking_trend_state.json` | `{tour}_rankings_current.csv` joined to `{tour}_players.csv` | Weekly snapshots `[{date, rank}, ...]` per player |
+| `tennis_surface_state.json` | [Elo leaderboards](https://www.tennisabstract.com/reports/atp_elo_ratings.html) (overall + hElo/cElo/gElo) | Pre-computed surface Elo → hard / clay / grass (+ indoor←hard) |
+| `tennis_serve_return_state.json` | `matchmx` serve columns (`pts`/`fwon`/`swon`) | Per-player SPW = `(1stWon + 2ndWon) / svpt`, recency-weighted at predict time |
+| `tennis_advanced_state.json` | `matchmx` (BP/RPW) + [winners/errors leaderboards](https://www.tennisabstract.com/reports/winners_errors_leaders_men_last52.html) (UE) | BP conv, RPW, UE rate, W/UE ratio (RPW-reduced where UE absent) |
+| `tennis_h2h_state.json` | `matchmx` (winner / loser) | Win counts per alphabetically-sorted player pair |
+| `tennis_form_state.json` | `matchmx` (opp rank, surface, minutes) | Recency-weighted match history |
 
-Years that haven't been published yet (e.g. `atp_matches_2026.csv`) are silently skipped, and the H2H pipeline is left untouched by MCP since the charting overview file has no winner column.
-
-A typical full run produces roughly **1,150 players with serve stats**, **9,100 H2H pairs**, and **4,400 players with ranking history** across both tours.
+`matchmx` covers the trailing ~2.5 seasons (2024→present) for the full bettable field across ranking segments — a typical run covers roughly **900 ATP / 390 WTA players** and ~**10,400 H2H pairs**.
 
 ---
 

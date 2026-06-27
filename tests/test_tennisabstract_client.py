@@ -12,8 +12,11 @@ import pytest
 from evmax.clients.tennisabstract import (
     PlayerElo,
     fetch_elo_ratings,
+    fetch_matchmx,
     parse_elo_html,
     parse_last_update,
+    parse_matchmx,
+    parse_winners_errors_html,
 )
 
 # Mirrors the real page shape: an intro <table> (prose, single cell) followed by
@@ -97,3 +100,94 @@ def test_fetch_uses_injected_client():
 def test_fetch_rejects_unknown_tour():
     with pytest.raises(ValueError):
         fetch_elo_ratings("padel")
+
+
+# ---------------------------------------------------------------------------
+# matchmx (per-match serve/return matrix)
+# ---------------------------------------------------------------------------
+
+def _mx_row(**vals) -> list:
+    """Build a 45-column matchmx row, filling the given indices by field name."""
+    from evmax.clients.tennisabstract import _MX
+    row = [""] * 45
+    for field, v in vals.items():
+        row[_MX[field]] = v
+    return row
+
+
+def _matchmx_js(rows) -> str:
+    import json
+    return "var matchmx = " + json.dumps(rows) + ";\n"
+
+
+def test_parse_matchmx_keeps_only_winner_rows_and_maps_fields():
+    win = _mx_row(
+        date="20240115", surf="Hard", level="G", wl="W",
+        player="Jannik Sinner", rank="1", opp="Daniil Medvedev", orank="3", time="218",
+        pts="144", fwon="95", swon="20", saved="4", chances="6",
+        opts="150", ofwon="80", oswon="25", osaved="8", ochances="12",
+    )
+    # the same match from the loser's perspective — must be dropped
+    loss = _mx_row(date="20240115", surf="Hard", wl="L",
+                   player="Daniil Medvedev", opp="Jannik Sinner")
+    recs = parse_matchmx(_matchmx_js([win, loss]))
+    assert len(recs) == 1
+    r = recs[0]
+    assert r["winner_name"] == "Jannik Sinner"
+    assert r["loser_name"] == "Daniil Medvedev"
+    assert r["surface"] == "Hard"
+    assert r["tourney_date"] == "20240115"
+    # winner serve from own columns; loser serve from the opponent (o*) columns
+    assert (r["w_svpt"], r["w_1stWon"], r["w_2ndWon"]) == ("144", "95", "20")
+    assert (r["w_bpSaved"], r["w_bpFaced"]) == ("4", "6")
+    assert (r["l_svpt"], r["l_1stWon"], r["l_2ndWon"]) == ("150", "80", "25")
+    assert (r["l_bpSaved"], r["l_bpFaced"]) == ("8", "12")
+    assert (r["winner_rank"], r["loser_rank"], r["minutes"]) == ("1", "3", "218")
+
+
+def test_parse_matchmx_skips_rows_missing_names():
+    bad = _mx_row(date="20240115", wl="W", player="", opp="Someone")
+    assert parse_matchmx(_matchmx_js([bad])) == []
+
+
+def test_parse_matchmx_empty_when_no_var():
+    assert parse_matchmx("var other = [];") == []
+
+
+def test_fetch_matchmx_unions_segments_and_dedupes():
+    win = _mx_row(date="20240115", surf="Clay", wl="W",
+                  player="Carlos Alcaraz", opp="Alexander Zverev",
+                  pts="100", fwon="60", swon="20", opts="98", ofwon="55", oswon="18")
+    js = _matchmx_js([win])
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text=js)  # every segment returns the same match
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    recs = fetch_matchmx("atp", client=client)
+    # 3 ATP segments all return the same match -> deduped to one
+    assert len(recs) == 1
+    assert recs[0]["winner_name"] == "Carlos Alcaraz"
+
+
+# ---------------------------------------------------------------------------
+# winners / unforced errors
+# ---------------------------------------------------------------------------
+
+WE_FIXTURE = """
+<table>
+<tr><td>Player</td><td>Matches</td><td>Winners</td><td>UFEs</td><td>Ratio</td><td>Wnr/Pt</td></tr>
+<tr><td><a href="x">Arthur Fils</a></td><td>17</td><td>479</td><td>472</td><td>1.0</td><td>20.7%</td></tr>
+<tr><td>Jesper De Jong</td><td>13</td><td>470</td><td>351</td><td>1.3</td><td>19.1%</td></tr>
+</table>
+"""
+
+
+def test_parse_winners_errors():
+    we = parse_winners_errors_html(WE_FIXTURE)
+    assert we["arthur fils"] == {"winners": 479, "unforced": 472}
+    assert we["jesper de jong"] == {"winners": 470, "unforced": 351}
+
+
+def test_parse_winners_errors_empty_without_header():
+    assert parse_winners_errors_html("<table><tr><td>nope</td></tr></table>") == {}

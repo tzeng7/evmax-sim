@@ -107,14 +107,23 @@ class EnsembleModelAgent(Agent):
             "form":                0.0,
             "poisson":             0.0,
         },
-        # Tennis: Surface Elo + recency-weighted serve/return are primary signals.
-        # Form agent replaces ranking trend as the recency/momentum voice.
-        # H2H stays small. Advanced stats are a supporting signal.
-        # Ranking trend is vestigial (kept at 0.05 as tiebreaker).
+        # Tennis: Surface Elo + form are the primary signals. serve_return was
+        # cut 0.25 → 0.10 on 2026-06-27 after a point-in-time weight retune
+        # (scripts/tennis_weight_signal.py): leave-one-out showed serve_return
+        # net-negative at 0.25 (and a monotonic serve→0 axis sweep), while form
+        # was the workhorse — so its 0.15 was reallocated to form (0.20 → 0.35).
+        # serve_return is kept at 0.10 (NOT 0) deliberately: the metric optimum is
+        # 0, but a 0-weight model drops out of model_sources and would fail the
+        # REQUIRED_BLEND_MODELS full-blend gate for every tennis play. H2H small;
+        # ranking trend vestigial (0.05 tiebreaker).
+        # Train Brier 0.207937 → 0.207750, holdout 0.210039 → 0.209732 (ATP
+        # walk-forward). Caveat: the harness understates surface Elo (crude
+        # matchmx-replay, not live Tennis Abstract Elo) + advanced (RPW-reduced),
+        # so only the serve/form move was made; surface/advanced left as-is.
         "tennis": {
             "tennis_surface": 0.30,
-            "tennis_serve_return": 0.25,
-            "tennis_form": 0.20,
+            "tennis_serve_return": 0.10,
+            "tennis_form": 0.35,
             "tennis_advanced": 0.15,
             "tennis_h2h": 0.05,
             "tennis_ranking_trend": 0.05,

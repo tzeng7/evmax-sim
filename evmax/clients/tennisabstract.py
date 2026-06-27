@@ -24,11 +24,47 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+import json
+
 import httpx
 
 ELO_URLS = {
     "atp": "https://tennisabstract.com/reports/atp_elo_ratings.html",
     "wta": "https://tennisabstract.com/reports/wta_elo_ratings.html",
+}
+
+# `leaders.cgi` builds its serve/return/break tables client-side from a `matchmx`
+# array served in these JS files — a per-match matrix (full tour) that replaces the
+# offline Sackmann match CSVs. Each tour fans out across ranking-bucket segments
+# (top-50 / 51-100 / challenger); the union covers the bettable field.
+LEADERSOURCE_FILES = {
+    "atp": (
+        "https://www.tennisabstract.com/jsmatches/leadersource.js",
+        "https://www.tennisabstract.com/jsmatches/leadersource51.js",
+        "https://www.tennisabstract.com/jsmatches/leadersource_chall.js",
+    ),
+    "wta": (
+        "https://www.tennisabstract.com/jsmatches/leadersource_wta.js",
+        "https://www.tennisabstract.com/jsmatches/leadersource51_wta.js",
+    ),
+}
+
+# winners / unforced-error leaderboards (Match Charting Project, static HTML) — the
+# one advanced-model feature matchmx lacks. Charted-match coverage is sparse, so the
+# advanced agent falls back to its RPW-only reduced model for unlisted players.
+WINNERS_ERRORS_URLS = {
+    "atp": "https://tennisabstract.com/reports/winners_errors_leaders_men_last52.html",
+    "wta": "https://tennisabstract.com/reports/winners_errors_leaders_women_last52.html",
+}
+
+# Column index of each field in a matchmx row (from the page's `var matchhead`).
+# A row is one player's record of one match; the opponent columns (o*) carry the
+# other side's serve stats, so a single `wl == "W"` row reconstructs the full match.
+_MX = {
+    "date": 0, "surf": 2, "level": 3, "wl": 4, "player": 5, "rank": 6,
+    "opp": 12, "orank": 13, "time": 26,
+    "pts": 29, "fwon": 31, "swon": 32, "saved": 34, "chances": 35,
+    "opts": 38, "ofwon": 40, "oswon": 41, "osaved": 43, "ochances": 44,
 }
 
 _HEADERS = {"User-Agent": "Mozilla/5.0 (evmax tennis Elo seeder)"}
@@ -167,3 +203,158 @@ def fetch_elo_ratings(
     """
     rows, _ = fetch_elo_page(tour, timeout=timeout, client=client)
     return rows
+
+
+# ---------------------------------------------------------------------------
+# matchmx — per-match serve/return matrix (replaces the offline Sackmann CSVs)
+# ---------------------------------------------------------------------------
+
+_MATCHMX_RE = re.compile(r"var\s+matchmx\s*=\s*(\[.*?\]);", re.S)
+
+
+def _i(row: list, key: str):
+    idx = _MX[key]
+    return row[idx] if idx < len(row) else None
+
+
+def parse_matchmx(js_text: str) -> list[dict]:
+    """Parse a ``leadersource*.js`` body into Sackmann-shaped per-match dicts.
+
+    The JS file assigns ``var matchmx = [[...], ...]`` where each inner array is
+    one player's record of one match. We keep only ``wl == "W"`` rows (one per
+    match, from the winner's side) and emit dicts using the same field names the
+    Sackmann match CSVs used — so the existing ``aggregate_*`` seeders in
+    ``scripts/seed_tennis_models.py`` consume them unchanged. Match string values
+    never contain ``]``, so the non-greedy array capture is safe.
+    """
+    m = _MATCHMX_RE.search(js_text)
+    if not m:
+        return []
+    try:
+        mx = json.loads(m.group(1))
+    except json.JSONDecodeError:
+        return []
+
+    out: list[dict] = []
+    for row in mx:
+        if _i(row, "wl") != "W":
+            continue
+        winner = (_i(row, "player") or "").strip()
+        loser = (_i(row, "opp") or "").strip()
+        date = _i(row, "date")
+        if not winner or not loser or not date:
+            continue
+        out.append({
+            "tourney_date": date,
+            "surface": _i(row, "surf") or "",
+            "tourney_level": _i(row, "level") or "",
+            "minutes": _i(row, "time"),
+            "winner_name": winner,
+            "loser_name": loser,
+            "winner_rank": _i(row, "rank"),
+            "loser_rank": _i(row, "orank"),
+            # winner serves on own service games; opponent (o*) columns are the loser
+            "w_svpt": _i(row, "pts"),
+            "w_1stWon": _i(row, "fwon"),
+            "w_2ndWon": _i(row, "swon"),
+            "w_bpSaved": _i(row, "saved"),
+            "w_bpFaced": _i(row, "chances"),
+            "l_svpt": _i(row, "opts"),
+            "l_1stWon": _i(row, "ofwon"),
+            "l_2ndWon": _i(row, "oswon"),
+            "l_bpSaved": _i(row, "osaved"),
+            "l_bpFaced": _i(row, "ochances"),
+        })
+    return out
+
+
+def fetch_matchmx(
+    tour: str,
+    *,
+    timeout: float = 90.0,
+    client: Optional[httpx.Client] = None,
+) -> list[dict]:
+    """Fetch + merge per-match records for a tour across its ranking segments.
+
+    Unions the top-50 / 51-100 / challenger ``leadersource`` files and dedupes on
+    (date, winner, loser) so a match listed under more than one segment counts once.
+    """
+    key = tour.lower()
+    if key not in LEADERSOURCE_FILES:
+        raise ValueError(f"Unknown tour {tour!r}; expected one of {sorted(LEADERSOURCE_FILES)}")
+
+    seen: set[tuple] = set()
+    merged: list[dict] = []
+    for url in LEADERSOURCE_FILES[key]:
+        if client is not None:
+            resp = client.get(url, timeout=timeout, headers=_HEADERS)
+        else:
+            resp = httpx.get(url, timeout=timeout, headers=_HEADERS, follow_redirects=True)
+        if resp.status_code != 200:
+            continue
+        for rec in parse_matchmx(resp.text):
+            sig = (rec["tourney_date"], rec["winner_name"], rec["loser_name"])
+            if sig in seen:
+                continue
+            seen.add(sig)
+            merged.append(rec)
+    return merged
+
+
+# ---------------------------------------------------------------------------
+# winners / unforced errors (advanced-stats UE feature)
+# ---------------------------------------------------------------------------
+
+def parse_winners_errors_html(html: str) -> dict[str, dict[str, int]]:
+    """Parse a winners/errors leaderboard into ``{player_key: {winners, unforced}}``.
+
+    ``player_key`` is the lowercased full name (matching the advanced seeder's keys).
+    """
+    rows = _ROW_RE.findall(html)
+    header: Optional[list[str]] = None
+    header_pos = -1
+    for i, row in enumerate(rows):
+        cells = [_clean(c) for c in _CELL_RE.findall(row)]
+        if "Player" in cells and "Winners" in cells and "UFEs" in cells:
+            header = cells
+            header_pos = i
+            break
+    if header is None:
+        return {}
+    i_player = header.index("Player")
+    i_win = header.index("Winners")
+    i_ufe = header.index("UFEs")
+
+    out: dict[str, dict[str, int]] = {}
+    for row in rows[header_pos + 1:]:
+        cells = [_clean(c) for c in _CELL_RE.findall(row)]
+        if max(i_player, i_win, i_ufe) >= len(cells):
+            continue
+        name = cells[i_player]
+        try:
+            winners = int(cells[i_win])
+            unforced = int(cells[i_ufe])
+        except (ValueError, TypeError):
+            continue
+        if name:
+            out[name.lower().strip()] = {"winners": winners, "unforced": unforced}
+    return out
+
+
+def fetch_winners_errors(
+    tour: str,
+    *,
+    timeout: float = 30.0,
+    client: Optional[httpx.Client] = None,
+) -> dict[str, dict[str, int]]:
+    """Fetch the winners/unforced-errors leaderboard for ``atp`` or ``wta``."""
+    key = tour.lower()
+    if key not in WINNERS_ERRORS_URLS:
+        raise ValueError(f"Unknown tour {tour!r}; expected one of {sorted(WINNERS_ERRORS_URLS)}")
+    url = WINNERS_ERRORS_URLS[key]
+    if client is not None:
+        resp = client.get(url, timeout=timeout, headers=_HEADERS)
+    else:
+        resp = httpx.get(url, timeout=timeout, headers=_HEADERS, follow_redirects=True)
+    resp.raise_for_status()
+    return parse_winners_errors_html(resp.text)
