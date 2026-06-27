@@ -854,14 +854,14 @@ The tennis agents are seeded from **[Tennis Abstract](https://www.tennisabstract
 # Surface Elo — from Tennis Abstract's Elo leaderboards (idempotent)
 uv run python scripts/seed_tennis_abstract_elo.py
 
-# serve/return + advanced + form + H2H — from the per-match `matchmx` data
+# serve/return + advanced + form + H2H + ranking_trend — from the per-match `matchmx` data
 uv run python scripts/seed_tennis_models.py --years 2024,2025,2026
 
 # Skip the winners/errors (UE) augmentation → advanced runs RPW-reduced
 uv run python scripts/seed_tennis_models.py --no-mcp
 ```
 
-Both run weekly via the `weekly-tennis-surface-elo-refresh` scheduled task. (Ranking-trend has its own weekly refresh — `scripts/reseed_tennis_rankings.py` + ESPN — since `matchmx` carries per-match ranks but no weekly snapshot series.)
+Both run weekly via the `weekly-tennis-surface-elo-refresh` scheduled task. All six tennis models are now sourced purely from Tennis Abstract — `ranking_trend` is seeded from `matchmx`'s per-match `winner_rank` / `loser_rank` columns (one dated snapshot per match, full-replace), so the old Sackmann reseed + ESPN top-150 fallback (and their `weekly-tennis-rankings-refresh` task) have been removed.
 
 What gets written:
 
@@ -872,6 +872,7 @@ What gets written:
 | `tennis_advanced_state.json` | `matchmx` (BP/RPW) + [winners/errors leaderboards](https://www.tennisabstract.com/reports/winners_errors_leaders_men_last52.html) (UE) | BP conv, RPW, UE rate, W/UE ratio (RPW-reduced where UE absent) |
 | `tennis_h2h_state.json` | `matchmx` (winner / loser) | Win counts per alphabetically-sorted player pair |
 | `tennis_form_state.json` | `matchmx` (opp rank, surface, minutes) | Recency-weighted match history |
+| `tennis_ranking_trend_state.json` | `matchmx` (`winner_rank` / `loser_rank` per match) | Dated rank series per player (one snapshot/match date); the agent reads its 12-week momentum off it |
 
 `matchmx` covers the trailing ~2.5 seasons (2024→present) for the full bettable field across ranking segments — a typical run covers roughly **900 ATP / 390 WTA players** and ~**10,400 H2H pairs**.
 

@@ -27,7 +27,7 @@ import sys
 from pathlib import Path
 
 # Editable-install/worktree safety: ensure the repo root is importable when this
-# script is run directly (mirrors scripts/reseed_tennis_rankings.py).
+# script is run directly.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
