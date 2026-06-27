@@ -599,6 +599,64 @@ class TennisModelAgent(ModelAgent):
         self.save_state()
         self.log.info("tennis_surface_ratings_seeded", surface=surface, count=len(ratings))
 
+    def seed_precomputed_surface_elo(
+        self,
+        ratings_by_surface: dict[str, dict[str, float]],
+        *,
+        games_per_player: int = 12,
+    ) -> dict[str, int]:
+        """Replace surface Elo with externally pre-computed ratings.
+
+        Used to seed from Tennis Abstract's published Elo leaderboards (overall +
+        hElo/cElo/gElo) after Sackmann's raw match repos went offline. Unlike
+        :meth:`update`, which compounds onto existing ratings, this is an
+        **idempotent rebuild**: it clears existing ratings + game counts first,
+        then seeds ``{surface: {player: elo}}`` outright.
+
+        The source publishes ratings, not match logs, so it carries no per-surface
+        sample sizes. We stamp a synthetic ``games_per_player`` count for every
+        seeded player + surface so the confidence gate in :meth:`predict_pair`
+        treats them as established (the leaderboard only lists players with 10+
+        tour-level matches in the trailing 52 weeks, and the surface Elos are
+        reliability-blended with overall Elo). ``games_per_player`` deliberately
+        lands confidence mid-range (~0.61 at the default 12) rather than at the
+        0.80 ceiling, reflecting that we lack true per-surface sample counts.
+
+        Returns ``{surface: players_seeded}``.
+        """
+        # Idempotent reset — ranking priors (atp/wta_rankings) are preserved.
+        self._state["ratings"] = {}
+        self._state["game_counts"] = {}
+
+        seeded: dict[str, int] = {}
+        for surface, ratings in ratings_by_surface.items():
+            surf = surface.lower().strip()
+            surf_ratings = self._ratings(surf)
+            for player, elo in ratings.items():
+                surf_ratings[player.lower().strip()] = float(elo)
+            seeded[surf] = len(ratings)
+
+        # Stamp synthetic game counts so predict_pair's confidence gate fires.
+        counts = self._state.setdefault("game_counts", {})
+        per_player: dict[str, set[str]] = {}
+        for surface, ratings in ratings_by_surface.items():
+            surf = surface.lower().strip()
+            for player in ratings:
+                per_player.setdefault(player.lower().strip(), set()).add(surf)
+        for player, surfaces in per_player.items():
+            rec = counts.setdefault(player, {})
+            for surf in surfaces:
+                rec[surf] = games_per_player
+            rec["overall"] = games_per_player
+
+        self.save_state()
+        self.log.info(
+            "tennis_precomputed_elo_seeded",
+            surfaces=sorted(seeded),
+            players=len(per_player),
+        )
+        return seeded
+
     def get_rating(self, player: str, surface: str = "overall") -> float:
         return self._get_rating(player.lower().strip(), surface)
 
