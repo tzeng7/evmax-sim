@@ -147,6 +147,35 @@ td input[type="number"], td input[type="text"] {
   font-family: var(--mono); text-align: right; font-variant-numeric: tabular-nums;
 }
 
+/* ── Sector multi-select (checkbox dropdown) ── */
+.sector-ms { position: relative; display: inline-block; }
+.sector-ms-toggle {
+  display: inline-flex; align-items: center; gap: 8px; justify-content: space-between;
+  min-width: 120px; padding: 8px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--panel-2); color: var(--text); font-size: 12px;
+  font-family: var(--sans); cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.sector-ms-toggle:hover { border-color: #34373d; }
+.sector-ms-toggle:focus { border-color: var(--amber); outline: none; box-shadow: 0 0 0 3px var(--amber-soft); }
+.sector-ms-caret { color: var(--muted); font-size: 10px; }
+.sector-ms-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 30;
+  min-width: 160px; max-height: 280px; overflow-y: auto;
+  padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--panel-2); box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+}
+.sector-ms-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 7px; cursor: pointer;
+  font-size: 12px; color: var(--text); font-family: var(--sans);
+}
+.sector-ms-item:hover { background: var(--elevated); }
+.sector-ms-item input[type="checkbox"] { cursor: pointer; accent-color: var(--amber); }
+.sector-ms-all { font-weight: 600; }
+.sector-ms-divider { height: 1px; margin: 4px 2px; background: var(--border); }
+
 /* ── Segmented control ── */
 .segmented {
   display: inline-flex; padding: 3px; gap: 2px;

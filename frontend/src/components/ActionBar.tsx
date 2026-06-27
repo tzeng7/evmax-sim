@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { runScan, resolve } from '../lib/api'
 import { useCategories } from '../lib/useCategories'
+import { SectorMultiSelect } from './SectorMultiSelect'
 import { fmtDate, fmtTomorrow, yesterday } from '../lib/odds'
 import type { ScanGap } from '../lib/types'
 
@@ -94,12 +95,7 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
 
   return (
     <div className="actions">
-      <select value={sectors} onChange={e => setSectors(e.target.value)}>
-        <option value={allSectors}>All Sectors</option>
-        {cats.map(c => (
-          <option key={c.key} value={c.key} title={c.display_name}>{c.key.toUpperCase()}</option>
-        ))}
-      </select>
+      <SectorMultiSelect value={sectors} onChange={setSectors} />
       <input
         type="number"
         value={bankrollStr}
