@@ -639,3 +639,54 @@ class TestSeeding:
         snapshot["sinner"] = 9999.0
         # Mutation should not leak back into agent state
         assert agent.get_rating("sinner", "hard") == 1800.0
+
+
+class TestSeedPrecomputedSurfaceElo:
+    """Seeding from Tennis Abstract's pre-computed Elo leaderboards."""
+
+    RATINGS = {
+        "overall": {"Jannik Sinner": 2320.0, "Carlos Alcaraz": 2162.0},
+        "hard": {"Jannik Sinner": 2263.0, "Carlos Alcaraz": 2088.0},
+        "clay": {"Jannik Sinner": 2216.0, "Carlos Alcaraz": 2102.0},
+        "grass": {"Jannik Sinner": 2088.0, "Carlos Alcaraz": 2029.0},
+        "indoor": {"Jannik Sinner": 2263.0, "Carlos Alcaraz": 2088.0},
+    }
+
+    def test_seeds_all_surfaces_and_resolves_by_surname(self, agent):
+        seeded = agent.seed_precomputed_surface_elo(self.RATINGS)
+        assert seeded["hard"] == 2
+        # Resolver handles full name AND surname-only (live Kalshi style)
+        assert agent.get_rating("jannik sinner", "hard") == 2263.0
+        assert agent.get_rating("sinner", "clay") == 2216.0
+        assert agent.get_rating("alcaraz", "grass") == 2029.0
+
+    def test_stamps_synthetic_counts_to_clear_confidence_gate(self, agent):
+        agent.seed_precomputed_surface_elo(self.RATINGS, games_per_player=12)
+        # Counts are stamped so predict_pair's surface-confidence branch fires
+        assert agent._get_count("jannik sinner", "hard") == 12
+        assert agent._get_count("jannik sinner", "clay") == 12
+        assert agent._get_overall_count("jannik sinner") == 12
+        assert 12 >= MIN_SURFACE_GAMES  # guards the gate assumption
+
+    def test_idempotent_rebuild_no_compounding(self, agent):
+        agent.seed_precomputed_surface_elo(self.RATINGS)
+        first = agent.all_ratings("hard").copy()
+        first_counts = dict(agent._counts("jannik sinner"))
+        # Re-seeding must produce identical state, not double the counts/ratings
+        agent.seed_precomputed_surface_elo(self.RATINGS)
+        assert agent.all_ratings("hard") == first
+        assert dict(agent._counts("jannik sinner")) == first_counts
+
+    def test_reset_drops_stale_players_but_keeps_ranking_priors(self, agent):
+        # Pre-existing junk rating + a ranking prior
+        agent.seed_surface_ratings("hard", {"retired guy": 1700.0})
+        agent.seed_rankings({"jannik sinner": 1}, tour="atp")
+        agent.seed_precomputed_surface_elo(self.RATINGS)
+        # Stale rating cleared by the idempotent reset...
+        assert "retired guy" not in agent.all_ratings("hard")
+        # ...but ranking priors survive (used as the unrated-player fallback)
+        assert agent._state["atp_rankings"]["jannik sinner"] == 1
+
+    def test_indoor_maps_to_hard(self, agent):
+        agent.seed_precomputed_surface_elo(self.RATINGS)
+        assert agent.get_rating("sinner", "indoor") == agent.get_rating("sinner", "hard")
