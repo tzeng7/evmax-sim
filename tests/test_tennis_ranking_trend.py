@@ -8,6 +8,7 @@ momentum (replacing the raw-spots 0.5-centered nudge), event-date anchoring
 from __future__ import annotations
 
 import asyncio
+from types import SimpleNamespace
 from datetime import date, datetime, timedelta
 from math import exp, log
 
@@ -146,3 +147,20 @@ class TestDateAnchoring:
         market, sharp = _pair("a player", "b player", MATCH_DT)
         market.sector = "nba"
         assert asyncio.run(agent.predict_pair(market, sharp)) is None
+
+
+class TestSeedHistoryReplaces:
+    def test_seed_history_fully_replaces_store(self):
+        # A stale legacy player must not survive a fresh matchmx reseed — the
+        # store is the authoritative current snapshot, not an accumulator.
+        agent = _agent_with({
+            "legacy player": _weekly_history(START, [10] * 11),
+        })
+        agent.log = SimpleNamespace(info=lambda *a, **k: None)
+        agent.seed_history({
+            "Current Player": _weekly_history(START, [5] * 11),
+        })
+        store = agent._state["history"]
+        assert "legacy player" not in store          # dropped, not merged
+        assert "current player" in store             # lowercased key
+        assert store["current player"][0]["rank"] == 5

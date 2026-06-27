@@ -5,10 +5,12 @@ The per-match data now comes from tennisabstract.com's ``leadersource`` files
 (``matchmx`` — full serve/return/break columns, the same granularity as the old
 CSVs) and the winners/unforced-error leaderboards, via ``evmax/clients/tennisabstract.py``.
 
-Computes and seeds:
+Computes and seeds (all five models, all from matchmx — no Sackmann/ESPN paths):
   1. tennis_serve_return  — per-match SPW with date + surface (recency-weighted at prediction time)
   2. tennis_h2h           — head-to-head win records (winner, loser counts)
-  3. tennis_ranking_trend  — (no-op here; maintained by scripts/reseed_tennis_rankings.py + ESPN)
+  3. tennis_ranking_trend  — dated rank series from matchmx winner/loser rank columns
+                             (one snapshot per match date; the trend agent reads its
+                             12-week momentum off it, same shape the old weekly CSVs gave)
   4. tennis_advanced       — BP conversion, RPW from matchmx; UE rate + W/UE from the winners/errors page
   5. tennis_form           — recent match history with opponent rank, surface, minutes
 
@@ -26,13 +28,8 @@ bettable field across ranking segments.
 from __future__ import annotations
 
 import argparse
-import csv
-import io
-import sys
 from collections import defaultdict
 from typing import Iterable, Optional
-
-import httpx
 
 from evmax.agents.models.tennis_advanced_stats_agent import TennisAdvancedStatsAgent
 from evmax.agents.models.tennis_serve_return_agent import TennisServeReturnAgent
@@ -41,30 +38,8 @@ from evmax.agents.models.tennis_ranking_trend_agent import TennisRankingTrendAge
 from evmax.agents.models.tennis_form_agent import TennisFormAgent
 from evmax.clients.tennisabstract import fetch_matchmx, fetch_winners_errors
 
-REPO_BASE = {
-    "atp": "https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master",
-    "wta": "https://raw.githubusercontent.com/JeffSackmann/tennis_wta/master",
-}
-MCP_BASE = "https://raw.githubusercontent.com/JeffSackmann/tennis_MatchChartingProject/master"
-MCP_FILES = {
-    "atp": ("charting-m-matches.csv", "charting-m-stats-Overview.csv"),
-    "wta": ("charting-w-matches.csv", "charting-w-stats-Overview.csv"),
-}
 DEFAULT_YEARS = [2023, 2024, 2025, 2026]
 DEFAULT_TOURS = ["atp", "wta"]
-
-
-def _fetch_csv(url: str, timeout: float = 30.0) -> Optional[list[dict]]:
-    """Fetch a CSV and return its rows as dicts. None on 404 or network error."""
-    try:
-        r = httpx.get(url, timeout=timeout)
-    except httpx.HTTPError as e:
-        print(f"  ! fetch failed: {url} ({e})", file=sys.stderr)
-        return None
-    if r.status_code == 404:
-        return None
-    r.raise_for_status()
-    return list(csv.DictReader(io.StringIO(r.text)))
 
 
 def _player_key(name: str) -> str:
@@ -275,46 +250,6 @@ def aggregate_advanced_stats(match_rows: Iterable[dict]) -> dict[str, dict]:
     return dict(stats)
 
 
-def augment_advanced_with_mcp(
-    stats: dict[str, dict], tour: str, years: set[int]
-) -> None:
-    """Fill in winners and unforced errors from MCP Overview."""
-    matches_file, stats_file = MCP_FILES[tour]
-    matches = _fetch_csv(f"{MCP_BASE}/{matches_file}")
-    overview = _fetch_csv(f"{MCP_BASE}/{stats_file}")
-    if not matches or not overview:
-        print(f"  ! MCP advanced unavailable for {tour}")
-        return
-
-    match_year: dict[str, int] = {}
-    for m in matches:
-        mid = m.get("match_id", "")
-        raw = (m.get("Date") or "").strip()
-        if mid and len(raw) >= 4:
-            try:
-                match_year[mid] = int(raw[:4])
-            except ValueError:
-                pass
-
-    count = 0
-    for row in overview:
-        if (row.get("set") or "").strip() != "Total":
-            continue
-        mid = row.get("match_id", "")
-        yr = match_year.get(mid)
-        if yr is None or yr not in years:
-            continue
-        player = _player_key(row.get("player") or "")
-        if not player or player not in stats:
-            continue
-
-        stats[player]["winners"] += _safe_int(row.get("winners"))
-        stats[player]["unforced"] += _safe_int(row.get("unforced"))
-        count += 1
-
-    print(f"  + MCP {tour} advanced: augmented {count} player-match records")
-
-
 def augment_advanced_with_winners_errors(stats: dict[str, dict], tour: str) -> None:
     """Fill winners + unforced errors from Tennis Abstract's winners/errors leaderboard.
 
@@ -369,107 +304,51 @@ def aggregate_h2h(match_rows: Iterable[dict]) -> list[dict]:
 # Ranking snapshots
 # ---------------------------------------------------------------------------
 
-def load_ranking_history(tour: str) -> dict[str, list[dict]]:
-    """Load weekly ranking snapshots from {tour}_rankings_current.csv."""
-    base = REPO_BASE[tour]
-    rankings = _fetch_csv(f"{base}/{tour}_rankings_current.csv")
-    players = _fetch_csv(f"{base}/{tour}_players.csv")
-    if rankings is None or players is None:
-        print(f"  ! {tour}: ranking files unavailable")
-        return {}
-
-    pid_to_name: dict[str, str] = {}
-    for p in players:
-        pid = p.get("player_id")
-        first = (p.get("name_first") or "").strip()
-        last = (p.get("name_last") or "").strip()
-        if pid and (first or last):
-            pid_to_name[pid] = _player_key(f"{first} {last}".strip())
-
-    history: dict[str, list[dict]] = defaultdict(list)
-    for row in rankings:
-        pid = row.get("player")
-        raw_date = row.get("ranking_date")
-        rank = row.get("rank")
-        if not pid or not raw_date or not rank:
-            continue
-        name = pid_to_name.get(pid)
-        if not name:
-            continue
-        try:
-            iso_date = f"{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:8]}"
-            history[name].append({"date": iso_date, "rank": int(rank)})
-        except (ValueError, IndexError):
-            continue
-
-    for snaps in history.values():
-        snaps.sort(key=lambda s: s["date"])
-    return dict(history)
+# A player needs at least this many dated rank points to be worth storing; the
+# trend agent itself gates on _MIN_SNAPSHOTS=4 after anchoring at the match date,
+# so anything below that can never fire.
+_MIN_RANK_SNAPSHOTS = 2
 
 
-# ---------------------------------------------------------------------------
-# MCP serve stats (SPW augmentation for 2025+)
-# ---------------------------------------------------------------------------
+def aggregate_ranking_history(match_rows: Iterable[dict]) -> dict[str, list[dict]]:
+    """Build a dated rank series per player from matchmx rank columns.
 
-def load_mcp_serve_stats(
-    tour: str, years: set[int]
-) -> dict[str, list[dict]]:
-    """Aggregate per-match SPW from the Match Charting Project.
+    Tennis Abstract's matchmx carries each player's official ATP/WTA rank at the
+    time of every match (``winner_rank`` / ``loser_rank``). Collecting those
+    across a player's matches yields the same ``{date → rank}`` shape the old
+    Sackmann weekly ranking CSVs produced — just sampled at match dates instead
+    of release Mondays. Players play far more than once per 12 weeks, so the
+    series is dense enough for the trend agent's momentum window, and matchmx
+    runs current (latest matches within days), keeping the staleness guard fed.
 
-    Returns match-level entries (date, surface, won, svpt) for the new
-    recency-weighted format.
+    Returns: ``{player → [{"date": "YYYY-MM-DD", "rank": int}, ...]}`` sorted by
+    date, one snapshot per calendar day (a player's rank is fixed within a day).
     """
-    matches_file, stats_file = MCP_FILES[tour]
-    matches = _fetch_csv(f"{MCP_BASE}/{matches_file}")
-    stats = _fetch_csv(f"{MCP_BASE}/{stats_file}")
-    if matches is None or stats is None:
-        print(f"  ! {tour} MCP: files unavailable")
-        return {}
+    by_player: dict[str, dict[str, int]] = defaultdict(dict)  # player → {iso_date: rank}
 
-    # Build match_id → (year, date, surface)
-    match_meta: dict[str, tuple[int, Optional[str], str]] = {}
-    for m in matches:
-        mid = m.get("match_id")
-        raw_date = (m.get("Date") or "").strip()
-        surf = _normalize_surface(m.get("Surface") or "hard")
-        if not mid or len(raw_date) < 4:
+    for row in match_rows:
+        match_date = _parse_date(row.get("tourney_date", ""))
+        if not match_date:
             continue
-        try:
-            year = int(raw_date[:4])
-            iso_date = _parse_date(raw_date.replace("-", "")) if "-" in raw_date else _parse_date(raw_date)
-            match_meta[mid] = (year, iso_date, surf)
-        except ValueError:
-            continue
+        for name_field, rank_field in (
+            ("winner_name", "winner_rank"),
+            ("loser_name", "loser_rank"),
+        ):
+            name = (row.get(name_field) or "").strip()
+            rank = _safe_int(row.get(rank_field))
+            if not name or rank <= 0:
+                continue
+            # Last write per (player, date) wins; rank is constant within a day.
+            by_player[_player_key(name)][match_date] = rank
 
-    entries: dict[str, list[dict]] = defaultdict(list)
-    for row in stats:
-        if (row.get("set") or "").strip() != "Total":
+    history: dict[str, list[dict]] = {}
+    for player, date_rank in by_player.items():
+        if len(date_rank) < _MIN_RANK_SNAPSHOTS:
             continue
-        mid = row.get("match_id")
-        meta = match_meta.get(mid)
-        if meta is None or meta[0] not in years:
-            continue
-        name = row.get("player")
-        if not name:
-            continue
-        try:
-            svpt = int(row.get("serve_pts") or 0)
-            first_won = int(row.get("first_won") or 0)
-            second_won = int(row.get("second_won") or 0)
-        except ValueError:
-            continue
-        if svpt <= 0:
-            continue
-        key = _player_key(name)
-        entries[key].append({
-            "date": meta[1],
-            "surface": meta[2],
-            "won": first_won + second_won,
-            "svpt": svpt,
-        })
-
-    print(f"  + MCP {tour}: {len(entries)} players from charted matches")
-    return dict(entries)
+        history[player] = [
+            {"date": d, "rank": r} for d, r in sorted(date_rank.items())
+        ]
+    return history
 
 
 # ---------------------------------------------------------------------------
@@ -497,7 +376,7 @@ def collect_matches(tour: str, years: list[int]) -> list[dict]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Seed tennis model agents from Sackmann data")
+    parser = argparse.ArgumentParser(description="Seed tennis model agents from Tennis Abstract matchmx")
     parser.add_argument(
         "--years",
         default=",".join(str(y) for y in DEFAULT_YEARS),
@@ -511,7 +390,7 @@ def main() -> None:
     parser.add_argument(
         "--no-mcp",
         action="store_true",
-        help="Skip Match Charting Project augmentation (Sackmann-only seeding)",
+        help="Skip the winners/unforced-errors leaderboard augmentation for the advanced model",
     )
     args = parser.parse_args()
 
@@ -544,8 +423,8 @@ def main() -> None:
         match_history = aggregate_match_history(matches)
         # H2H
         h2h_records = aggregate_h2h(matches)
-        # Ranking history
-        history = load_ranking_history(tour)
+        # Ranking history — dated rank series straight from matchmx
+        history = aggregate_ranking_history(matches)
         # Advanced stats
         advanced = aggregate_advanced_stats(matches)
 

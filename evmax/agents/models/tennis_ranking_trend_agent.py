@@ -174,22 +174,29 @@ class TennisRankingTrendAgent(ModelAgent):
         sector: str,
         event_date: Optional[str] = None,
     ) -> None:
-        # Ranking history isn't derivable from match results — seed from
-        # ATP/WTA weekly ranking releases via seed_history().
+        # A score pair carries no ranking — the rank series is seeded in bulk
+        # from Tennis Abstract matchmx (winner/loser rank per match) via
+        # seed_history(), so resolve-time score updates are a no-op here.
         return
 
     def seed_history(self, history: dict[str, list[dict]]) -> None:
-        """Bulk-load ranking history.
+        """Bulk-load ranking history, fully replacing the existing store.
+
+        This is the authoritative reseed from the matchmx-derived rank series
+        (scripts/seed_tennis_models.py): it REPLACES the store rather than
+        merging, so players who have aged out of Tennis Abstract's coverage
+        don't linger with stale snapshots. Use append_snapshot() for
+        incremental single-week additions.
 
         Args:
             history: {player → [{"date": "YYYY-MM-DD", "rank": int}, ...]}
         """
-        store = self._history_store()
-        for player, snaps in history.items():
-            key = player.lower().strip()
-            store[key] = [
+        self._state["history"] = {
+            player.lower().strip(): [
                 {"date": s["date"], "rank": int(s["rank"])} for s in snaps
             ]
+            for player, snaps in history.items()
+        }
         self.save_state()
         self.log.info("tennis_ranking_history_seeded", count=len(history))
 
