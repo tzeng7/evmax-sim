@@ -738,3 +738,162 @@ class TestParsePropDescription:
             "Jalen Brunson",
             "assists",
         )
+
+
+# ===========================================================================
+# Baseball prop resolution (resolve_prop_observations / _resolve_baseball_props)
+# ===========================================================================
+
+
+class TestResolveBaseballProps:
+    """End-to-end resolution of MLB prop_observations rows.
+
+    Sources actual stats from the baseball props cache (monkeypatched offline)
+    and writes actual_value + outcome back to a temp prop_observations table.
+    Covers Kalshi "X+" semantics (outcome = 1 iff actual >= line), the
+    boundary case, a pitcher stat, and an unmatched player.
+    """
+
+    def _make_db(self, tmp_path):
+        import sqlite3
+
+        db_path = tmp_path / "props.db"
+        conn = sqlite3.connect(str(db_path))
+        conn.row_factory = sqlite3.Row
+        conn.execute(
+            """CREATE TABLE prop_observations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                scan_date TEXT,
+                event_date TEXT,
+                sector TEXT,
+                player_name TEXT,
+                stat_type TEXT,
+                line REAL,
+                market_id TEXT,
+                actual_value REAL,
+                outcome INTEGER,
+                resolved_at TIMESTAMP,
+                mode TEXT NOT NULL DEFAULT 'live'
+            )"""
+        )
+        return conn, db_path
+
+    def _insert(self, conn, **kw):
+        conn.execute(
+            """INSERT INTO prop_observations
+               (scan_date, event_date, sector, player_name, stat_type, line,
+                market_id, mode)
+               VALUES (:scan_date, :event_date, :sector, :player_name,
+                       :stat_type, :line, :market_id, :mode)""",
+            {
+                "scan_date": kw.get("scan_date", "2026-06-26"),
+                "event_date": kw.get("event_date", "2026-06-26"),
+                "sector": "baseball",
+                "player_name": kw["player_name"],
+                "stat_type": kw["stat_type"],
+                "line": kw["line"],
+                "market_id": kw["market_id"],
+                "mode": kw.get("mode", "live"),
+            },
+        )
+
+    def _run(self, tmp_path, monkeypatch, box_stats, game_date):
+        import sqlite3
+        from datetime import date
+
+        conn, db_path = self._make_db(tmp_path)
+        # A hitter over, a hitter under, a boundary (== line), a pitcher,
+        # a shadow-mode row, and a player the box score never reported.
+        self._insert(conn, player_name="Aaron Judge", stat_type="total_bases",
+                     line=1.5, market_id="m_judge")
+        self._insert(conn, player_name="Mookie Betts", stat_type="hits",
+                     line=1.5, market_id="m_betts")
+        self._insert(conn, player_name="Shohei Ohtani", stat_type="home_runs",
+                     line=1.0, market_id="m_ohtani")   # boundary: actual == line
+        self._insert(conn, player_name="Gerrit Cole", stat_type="strikeouts",
+                     line=6.5, market_id="m_cole")
+        self._insert(conn, player_name="Juan Soto", stat_type="rbis",
+                     line=0.5, market_id="m_soto", mode="shadow")
+        self._insert(conn, player_name="Ghost Player", stat_type="hits",
+                     line=0.5, market_id="m_ghost")
+        conn.commit()
+        conn.close()
+
+        def _fake_conn():
+            c = sqlite3.connect(str(db_path))
+            c.row_factory = sqlite3.Row
+            return c
+
+        # Patch the DB the resolver opens and the cache fetch (stays offline).
+        monkeypatch.setattr(
+            "evmax.agents.cleanup.db.get_connection", _fake_conn
+        )
+        monkeypatch.setattr(
+            prop_resolver, "_fetch_baseball_player_stats",
+            lambda gd: box_stats,
+        )
+
+        result = prop_resolver.resolve_prop_observations(
+            "baseball", date.fromisoformat(game_date)
+        )
+
+        verify = sqlite3.connect(str(db_path))
+        verify.row_factory = sqlite3.Row
+        rows = {
+            r["market_id"]: r
+            for r in verify.execute(
+                "SELECT market_id, actual_value, outcome FROM prop_observations"
+            ).fetchall()
+        }
+        verify.close()
+        return result, rows
+
+    def test_full_resolution(self, tmp_path, monkeypatch):
+        box_stats = {
+            "aaron_judge": {"total_bases": 4.0, "hits": 2.0},     # 4 >= 1.5 → over
+            "mookie_betts": {"hits": 1.0, "total_bases": 1.0},    # 1 < 1.5 → under
+            "shohei_ohtani": {"home_runs": 1.0},                  # 1 >= 1.0 → over (boundary)
+            "gerrit_cole": {"strikeouts": 9.0, "pitching_outs": 18.0},  # 9 >= 6.5 → over
+            "juan_soto": {"rbis": 2.0},                           # shadow row still resolves
+        }
+        result, rows = self._run(tmp_path, monkeypatch, box_stats, "2026-06-26")
+
+        # Ghost Player has no box score → unmatched, stays NULL.
+        assert result == {"resolved": 5, "unmatched": 1}
+
+        # Hitter over
+        assert rows["m_judge"]["actual_value"] == 4.0
+        assert rows["m_judge"]["outcome"] == 1
+
+        # Hitter under
+        assert rows["m_betts"]["actual_value"] == 1.0
+        assert rows["m_betts"]["outcome"] == 0
+
+        # Boundary: actual == line resolves YES under "X+" semantics
+        assert rows["m_ohtani"]["actual_value"] == 1.0
+        assert rows["m_ohtani"]["outcome"] == 1
+
+        # Pitcher strikeouts
+        assert rows["m_cole"]["actual_value"] == 9.0
+        assert rows["m_cole"]["outcome"] == 1
+
+        # Shadow row resolves (mode-agnostic)
+        assert rows["m_soto"]["actual_value"] == 2.0
+        assert rows["m_soto"]["outcome"] == 1
+
+        # Unmatched player left unresolved
+        assert rows["m_ghost"]["actual_value"] is None
+        assert rows["m_ghost"]["outcome"] is None
+
+    def test_empty_box_stats_resolves_nothing(self, tmp_path, monkeypatch):
+        result, rows = self._run(tmp_path, monkeypatch, {}, "2026-06-26")
+        assert result == {"resolved": 0, "unmatched": 0}
+        assert all(r["outcome"] is None for r in rows.values())
+
+    def test_player_present_but_stat_missing_is_unmatched(self, tmp_path, monkeypatch):
+        # Judge played but the cache has no total_bases for him → unmatched.
+        box_stats = {"aaron_judge": {"hits": 2.0}}
+        result, rows = self._run(tmp_path, monkeypatch, box_stats, "2026-06-26")
+        assert rows["m_judge"]["outcome"] is None
+        assert result["resolved"] == 0
+        assert result["unmatched"] >= 1

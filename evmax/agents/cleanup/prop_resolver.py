@@ -1,7 +1,12 @@
-"""Resolve player prop outcomes using ESPN boxscore data.
+"""Resolve player prop outcomes using ESPN boxscore data (NBA/NFL) or the
+MLB Stats API (baseball).
 
 Fetches actual player stats for a given date and fills in
 prop_observations.actual_value + outcome (1=over, 0=under).
+
+Baseball props are sourced from ``evmax.clients.baseball_props_cache`` instead
+of ESPN — see ``_resolve_baseball_props`` — and use Kalshi "X+" line semantics
+(YES wins iff ``actual >= line``). NBA/NFL keep strict ``actual > line``.
 
 ESPN endpoints used:
   Scoreboard: https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/scoreboard?dates=YYYYMMDD
@@ -194,13 +199,116 @@ def _normalize_for_match(name: str) -> str:
     return name.strip()
 
 
-def resolve_prop_observations(sector: str, game_date: date) -> dict[str, int]:
+def _fetch_baseball_player_stats(game_date: date) -> dict[str, dict[str, float]]:
     """
-    Fetch ESPN boxscores for game_date and update prop_observations rows
-    with actual_value + outcome.
+    Fetch MLB player box stats for game_date via the baseball props cache
+    (MLB Stats API) instead of ESPN.
+
+    Returns: dict[normalized_player_name → dict[stat_type → value]] keyed by
+    ``evmax.players.normalize_player_name(name, "baseball")`` — already the
+    form the cache emits, so no re-normalization is needed here.
+
+    Imported lazily so the module loads (and NBA/NFL resolution works) even
+    before the baseball props cache lands. Degrades to {} on any error, same
+    as the ESPN path.
+    """
+    import asyncio
+
+    try:
+        from evmax.clients.baseball_props_cache import fetch_player_box_stats
+    except ImportError as e:
+        logger.warning("baseball_props_cache_unavailable", error=str(e))
+        return {}
+
+    try:
+        return asyncio.run(fetch_player_box_stats(game_date.isoformat()))
+    except Exception as e:  # noqa: BLE001 — degrade like the ESPN path
+        logger.warning(
+            "baseball_prop_box_stats_failed", date=str(game_date), error=str(e)
+        )
+        return {}
+
+
+def _resolve_baseball_props(game_date: date) -> dict[str, int]:
+    """
+    Resolve MLB prop_observations rows for game_date using the baseball props
+    cache (MLB Stats API) rather than ESPN boxscores.
+
+    Matching is done on ``normalize_player_name(player_name, "baseball")`` —
+    the same normalizer the cache uses to key its output — so the row's player
+    maps directly onto a cache stat dict with no fuzzy fallback needed.
+
+    Outcome uses Kalshi "X+" semantics: YES wins iff ``actual >= line`` (a
+    pitcher with exactly 6 strikeouts hits a "6+ K" market). Mode-agnostic:
+    shadow rows resolve too, since the WHERE clause filters only on
+    ``outcome IS NULL``.
 
     Returns: {"resolved": N, "unmatched": M}
     """
+    from evmax.agents.cleanup.db import get_connection
+    from evmax.players import normalize_player_name
+
+    box_stats = _fetch_baseball_player_stats(game_date)
+    if not box_stats:
+        return {"resolved": 0, "unmatched": 0}
+
+    conn = get_connection()
+    rows = conn.execute(
+        """SELECT id, player_name, stat_type, line
+           FROM prop_observations
+           WHERE sector = ? AND event_date = ? AND outcome IS NULL""",
+        ("baseball", game_date.isoformat()),
+    ).fetchall()
+
+    resolved = unmatched = 0
+    for row in rows:
+        player_key = normalize_player_name(row["player_name"], "baseball")
+        stats = box_stats.get(player_key)
+        if stats is None:
+            unmatched += 1
+            continue
+
+        actual = stats.get(row["stat_type"])
+        if actual is None:
+            unmatched += 1
+            continue
+
+        outcome = 1 if actual >= row["line"] else 0
+        conn.execute(
+            """UPDATE prop_observations
+               SET actual_value = ?, outcome = ?, resolved_at = datetime('now')
+               WHERE id = ?""",
+            (actual, outcome, row["id"]),
+        )
+        resolved += 1
+
+    conn.commit()
+    conn.close()
+
+    logger.info(
+        "prop_observations_resolved",
+        sector="baseball",
+        date=str(game_date),
+        resolved=resolved,
+        unmatched=unmatched,
+    )
+    return {"resolved": resolved, "unmatched": unmatched}
+
+
+def resolve_prop_observations(sector: str, game_date: date) -> dict[str, int]:
+    """
+    Resolve prop_observations rows for game_date with actual_value + outcome.
+
+    NBA/NFL source actual stats from ESPN boxscores; baseball sources them from
+    the MLB Stats API via the baseball props cache (the stat keys and player
+    normalization differ enough that a dedicated branch is cleaner than forcing
+    it through the ESPN dispatch).
+
+    Returns: {"resolved": N, "unmatched": M}
+    """
+    if sector.lower() == "baseball":
+        return _resolve_baseball_props(game_date)
+
     from evmax.agents.cleanup.db import get_connection
 
     player_stats = fetch_player_stats(sector, game_date)

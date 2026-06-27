@@ -53,6 +53,13 @@ SECTOR_SERIES_MAP: dict[str, list[str]] = {
     "nhl": ["KXNHLGAME", "KXNHLSPREAD", "KXNHLTOTAL"],
     "wnba": ["KXWNBAGAME", "KXWNBASPREAD", "KXWNBATOTAL"],
     "nba_props": ["KXNBAPTS", "KXNBAREB", "KXNBAAST", "KXNBA3PT", "KXNBASTL", "KXNBABLK", "KXNBAPRA"],
+    # MLB player props — verified live on Kalshi 2026-06-27. Pitcher props
+    # (KXMLBKS strikeouts, KXMLBOUTS outs recorded) + hitter props (KXMLBTB
+    # total bases, KXMLBHR home runs, KXMLBHIT hits, KXMLBHRR hits+runs+RBIs,
+    # KXMLBRBI RBIs). Pinnacle anchors exist for K / Outs / TB / HR only — the
+    # rest are model-priced (no Pinnacle line). Shadow mode; see baseball_props
+    # in data/categories.yaml.
+    "baseball_props": ["KXMLBKS", "KXMLBOUTS", "KXMLBTB", "KXMLBHR", "KXMLBHIT", "KXMLBHRR", "KXMLBRBI"],
     # NFL prop series verified live on Kalshi 2026-04 during PR #6 investigation.
     # The shorter KXNFLPAS / KXNFLRSH / KXNFLREC / KXNFLTD names that shipped
     # originally are not real tickers and returned zero markets on every scan.
@@ -101,6 +108,14 @@ _PROP_SERIES_TO_STAT: dict[str, str] = {
     "KXNFLANYTD": "anytime_td",
     "KXNFLPASSTDS": "passing_tds",
     "KXNFLREC": "receptions",
+    # MLB (2026-06-27)
+    "KXMLBKS": "strikeouts",
+    "KXMLBOUTS": "pitching_outs",
+    "KXMLBTB": "total_bases",
+    "KXMLBHR": "home_runs",
+    "KXMLBHIT": "hits",
+    "KXMLBHRR": "hits_runs_rbis",
+    "KXMLBRBI": "rbis",
 }
 
 # Prop market title patterns

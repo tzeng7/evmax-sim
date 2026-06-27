@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import sqlite3
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -335,6 +336,61 @@ def api_sectors(period: str = Query("all", alias="range")) -> JSONResponse:
         cutoff = (date.today() - timedelta(days=days - 1)).isoformat()
         bets = [b for b in bets if (b.get("event_date") or b.get("scan_date") or "") >= cutoff]
     return JSONResponse(_sector_breakdown(bets))
+
+
+_MLB_PROPS_CALIBRATION = (
+    Path(__file__).resolve().parents[2] / "data" / "backtest" / "mlb_props" / "calibration_2025.json"
+)
+
+
+@app.get("/api/mlb-props")
+def api_mlb_props() -> JSONResponse:
+    """MLB player-prop status: walk-forward backtest calibration + live shadow tally.
+
+    `calibration` is the per-stat Brier (model vs empirical vs base-rate
+    baseline) + decile buckets from scripts/backtest_mlb_props.py — the offline
+    signal check. `shadow` is the live baseball_props logging tally from
+    prop_observations (everything stays shadow until edge-vs-sharp validates).
+    """
+    calibration: dict[str, Any] = {}
+    if _MLB_PROPS_CALIBRATION.exists():
+        try:
+            calibration = json.loads(_MLB_PROPS_CALIBRATION.read_text())
+        except (json.JSONDecodeError, OSError):
+            calibration = {}
+
+    shadow: dict[str, Any] = {"by_stat": [], "total": 0, "resolved": 0}
+    try:
+        with _conn() as conn:
+            rows = conn.execute(
+                """SELECT stat_type,
+                          COUNT(*) AS n,
+                          SUM(CASE WHEN outcome IS NOT NULL THEN 1 ELSE 0 END) AS resolved,
+                          AVG(CASE WHEN outcome IS NOT NULL
+                                   THEN (sharp_prob - outcome) * (sharp_prob - outcome) END) AS brier
+                   FROM prop_observations
+                   WHERE sector = 'baseball'
+                   GROUP BY stat_type
+                   ORDER BY n DESC"""
+            ).fetchall()
+        by_stat = [
+            {
+                "stat_type": r["stat_type"],
+                "n": r["n"],
+                "resolved": r["resolved"] or 0,
+                "brier": round(r["brier"], 5) if r["brier"] is not None else None,
+            }
+            for r in rows
+        ]
+        shadow = {
+            "by_stat": by_stat,
+            "total": sum(s["n"] for s in by_stat),
+            "resolved": sum(s["resolved"] for s in by_stat),
+        }
+    except sqlite3.Error:
+        pass
+
+    return JSONResponse({"calibration": calibration, "shadow": shadow})
 
 
 @app.get("/api/summary")

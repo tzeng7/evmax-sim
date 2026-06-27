@@ -78,6 +78,7 @@ KNOWN_MODELS: set[str] = {
     # Prop caches
     "nba_props_cache",
     "nfl_props_cache_v1_qb_only",
+    "baseball_props_model",
 }
 
 KNOWN_RESOLVERS: set[str] = {

@@ -1065,9 +1065,19 @@ def train(
 @app.command("resolve-props")
 def resolve_props(
     game_date: Optional[str] = typer.Option(None, "--date", "-d", help="YYYY-MM-DD (default: yesterday)"),
-    sectors: str = typer.Option("nba,nfl", "--sectors", "-s", help="Comma-separated sectors to resolve"),
+    sectors: str = typer.Option(
+        "nba,nfl,baseball",
+        "--sectors",
+        "-s",
+        help="Comma-separated sectors to resolve (nba/nfl via ESPN, baseball via MLB Stats API)",
+    ),
 ) -> None:
-    """Fetch ESPN boxscores and fill in prop_observations actual values + outcomes."""
+    """Fill in prop_observations actual values + outcomes.
+
+    NBA/NFL stats come from ESPN boxscores; baseball comes from the MLB Stats
+    API via the baseball props cache. Resolution is mode-agnostic — shadow rows
+    resolve too, since validation needs their outcomes.
+    """
     from evmax.agents.cleanup.prop_resolver import resolve_prop_observations
 
     target = date.fromisoformat(game_date) if game_date else date.today() - timedelta(days=1)
