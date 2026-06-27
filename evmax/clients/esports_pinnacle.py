@@ -121,25 +121,49 @@ _PROP_STAT_MAP: dict[str, str] = {
     "passing yards": "passing_yards", "passing yds": "passing_yards",
     "rushing yards": "rushing_yards", "rushing yds": "rushing_yards",
     "receiving yards": "receiving_yards", "receiving yds": "receiving_yards",
+    # --- MLB (added 2026-06-27). Pinnacle posts these as legacy-paren specials
+    # with a "(must start)" qualifier suffix, e.g. "Rafael Devers (Home Runs)
+    # (must start)" / "Michael Lorenzen (Total Strikeouts)(must start)". The
+    # qualifier is stripped before parsing (see parse_prop_description). Only
+    # the four stats Pinnacle actually posts for MLB are mapped; the pitcher's
+    # Hits-Allowed / Earned-Runs specials have no Kalshi series we trade, so
+    # they're intentionally left unmapped (parse → None → dropped). ---
+    "total strikeouts": "strikeouts", "strikeouts": "strikeouts",
+    "total bases": "total_bases",
+    "home runs": "home_runs",
+    "pitching outs": "pitching_outs", "outs recorded": "pitching_outs",
 }
 
-# New format (May 2026 onward): "Jalen Brunson Total Assists"
-_PROP_DESC_TOTAL_RE = re.compile(r"^(.+?)\s+Total\s+(.+)$", re.IGNORECASE)
-# Legacy format: "Luka Doncic (Points)"
+# Trailing qualifier annotations Pinnacle appends to MLB prop descriptions
+# (e.g. "...(must start)"). Stripped before stat parsing so the real
+# "(Stat)" group is the only parenthetical left.
+_PROP_DESC_QUALIFIER_RE = re.compile(
+    r"\s*\((?:must start|must play|must pitch|must be active)\)\s*$",
+    re.IGNORECASE,
+)
+# Legacy / MLB format: "Luka Doncic (Points)" / "Devers (Home Runs)"
 _PROP_DESC_PAREN_RE = re.compile(r"^(.+?)\s*\((.+?)\)\s*$")
+# New NBA/NFL format (May 2026 onward): "Jalen Brunson Total Assists"
+_PROP_DESC_TOTAL_RE = re.compile(r"^(.+?)\s+Total\s+(.+)$", re.IGNORECASE)
 
 
 def parse_prop_description(description: str) -> Optional[tuple[str, str]]:
     """Parse a Pinnacle player-prop ``special.description`` into ``(player, stat_type)``.
 
-    Handles both the current "Player Name Total <Stat>" format and the legacy
-    "Player Name (Stat)" format. Returns ``None`` when the description cannot
-    be parsed or the stat label is not in :data:`_PROP_STAT_MAP`.
+    Handles three shapes:
+      - legacy / MLB paren: ``"Luka Doncic (Points)"`` / ``"Devers (Home Runs)
+        (must start)"`` (the ``(must start)`` qualifier is stripped first),
+      - new NBA/NFL "Total" form: ``"Jalen Brunson Total Assists"``.
+
+    The paren form is tried first: an MLB label like ``"Total Strikeouts"`` sits
+    *inside* the parens, so the bare ``_PROP_DESC_TOTAL_RE`` would mis-split it
+    on the word "Total". Returns ``None`` when the description can't be parsed
+    or the stat label is not in :data:`_PROP_STAT_MAP`.
     """
     if not description:
         return None
-    text = description.strip()
-    for pattern in (_PROP_DESC_TOTAL_RE, _PROP_DESC_PAREN_RE):
+    text = _PROP_DESC_QUALIFIER_RE.sub("", description.strip()).strip()
+    for pattern in (_PROP_DESC_PAREN_RE, _PROP_DESC_TOTAL_RE):
         m = pattern.match(text)
         if not m:
             continue

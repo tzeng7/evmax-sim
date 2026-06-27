@@ -61,6 +61,24 @@ _STAT_DISTRIBUTION: dict[str, str] = {
     "passing_yards":           "normal",
     "rushing_yards":           "normal",
     "receiving_yards":         "normal",
+    # --- MLB player props (added 2026-06-27) ---
+    # Per-game count stats. k values are PROVISIONAL priors pending calibration
+    # in scripts/backtest_mlb_props.py against historical box scores — see the
+    # _NEGBIN_STAT_K note. Distribution choice rationale:
+    #   - strikeouts (pitcher/start): mean ~5-6, mild overdispersion → NegBin.
+    #   - pitching_outs (per start): bounded, roughly bell-shaped around ~18
+    #     outs (6 IP) → Normal, σ from innings dispersion.
+    #   - total_bases / hits / hits_runs_rbis (hitter/game): low-mean, many
+    #     zeros, heavy upper tail → NegBin.
+    #   - home_runs / rbis (hitter/game): rare low-mean events, var/μ ≈ 1 →
+    #     Poisson (NegBin k → ∞).
+    "strikeouts":              "negbin",
+    "pitching_outs":           "normal",
+    "total_bases":             "negbin",
+    "hits":                    "negbin",
+    "hits_runs_rbis":          "negbin",
+    "home_runs":               "poisson",
+    "rbis":                    "poisson",
 }
 
 # Per-stat σ for Normal-priced stats. Yardage σ values mirror YARDAGE_STAT_SIGMA
@@ -73,6 +91,9 @@ _NORMAL_STAT_SIGMA: dict[str, float] = {
     "passing_yards":           70.0,
     "rushing_yards":           30.0,
     "receiving_yards":         24.0,
+    # MLB: a starter's outs recorded ≈ 18 ± ~5 (a clean 6 IP is 18 outs; a
+    # short hook or a complete-game both happen). Provisional pending calibration.
+    "pitching_outs":           5.0,
 }
 
 # Per-stat NegBin dispersion k. Var = μ + μ²/k; smaller k = more overdispersion.
@@ -90,6 +111,14 @@ _NEGBIN_STAT_K: dict[str, float] = {
     "threes":   16.0,
     "steals":   8.0,
     "blocks":   8.0,
+    # MLB (PROVISIONAL — calibrate via scripts/backtest_mlb_props.py --report-k
+    # against historical box scores before trusting tail thresholds). Hitter
+    # per-game counts are far more overdispersed than NBA stats (most games are
+    # 0, a multi-hit/multi-base game is the tail), so k is much smaller.
+    "strikeouts":      12.0,  # pitcher K per start — mild overdispersion
+    "total_bases":      3.0,  # hitter — heavy zero mass + 4-base tail
+    "hits":             4.0,  # hitter
+    "hits_runs_rbis":   4.0,  # hitter composite
 }
 
 
@@ -273,6 +302,54 @@ def price_kalshi_threshold(
     if dist is None:
         return None
     return dist.prob_at_or_above(kalshi_threshold)
+
+
+def distribution_from_mean(
+    stat_type: str,
+    mean: float,
+) -> Optional[PropDistribution]:
+    """Build the per-stat distribution from a model-projected MEAN.
+
+    The market-anchor path (:func:`fit_distribution`) solves for the
+    distribution parameter that reproduces a Pinnacle line+prob. This is the
+    model-side complement: a projection model supplies the expected value
+    directly (e.g. expected strikeouts = k_rate × batters_faced), and we wrap
+    it in the SAME per-stat distribution family (and dispersion table) so model
+    and sharp probabilities are read off comparable surfaces.
+
+    Returns ``None`` for an unknown stat, a non-finite/negative mean, or a
+    Normal/NegBin stat missing its dispersion-table entry.
+    """
+    if not math.isfinite(mean) or mean < 0:
+        return None
+    dist_name = _STAT_DISTRIBUTION.get(stat_type)
+    if dist_name == "negbin":
+        k = _NEGBIN_STAT_K.get(stat_type)
+        if k is None or k <= 0:
+            return None
+        return NegBinomialProp(mu=float(mean), k=float(k))
+    if dist_name == "normal":
+        sigma = _NORMAL_STAT_SIGMA.get(stat_type)
+        if sigma is None:
+            return None
+        return NormalProp(mu=float(mean), sigma=float(sigma))
+    if dist_name == "poisson":
+        # Poisson is degenerate at λ=0 (all mass on 0); clamp to a tiny floor so
+        # prob_at_or_above stays well-defined for rare-event stats (HR/RBI).
+        return PoissonProp(lam=max(float(mean), 1e-6))
+    return None
+
+
+def model_prob_at_or_above(
+    stat_type: str,
+    mean: float,
+    threshold: float,
+) -> Optional[float]:
+    """``P(stat >= threshold)`` from a model-projected mean. ``None`` if unpriceable."""
+    dist = distribution_from_mean(stat_type, mean)
+    if dist is None:
+        return None
+    return dist.prob_at_or_above(threshold)
 
 
 def supported_stats() -> frozenset[str]:

@@ -78,6 +78,18 @@ logger = structlog.get_logger(__name__)
 _STEAM_CACHE_PATH = Path(__file__).resolve().parents[2] / "data" / "steam_cache.json"
 _STEAM_THRESHOLD = 0.02  # 2 percentage points
 
+# Weight of the MLB prop projection model when blended with the Pinnacle
+# anchor (final = w·model + (1−w)·sharp). Conservative: the model runs on a
+# neutral matchup context in live scan today, so it nudges rather than
+# overrides the sharp price. Tune up once the walk-forward backtest
+# (scripts/backtest_mlb_props.py) shows the model beats the anchor.
+BASEBALL_PROP_MODEL_WEIGHT = 0.35
+
+# Hitter stats Pinnacle does NOT post a line for. Priced by the projection
+# model, bridged off the player's Total-Bases anchor (same game) so they still
+# "play with sharp" — see _baseball_bridged_prop_sharp.
+_BASEBALL_BRIDGE_STATS = {"hits", "hits_runs_rbis", "rbis"}
+
 
 @dataclass
 class CycleResult:
@@ -951,6 +963,10 @@ class AgentCoordinator:
             is_nfl_cache_fresh,
             refresh_nfl_props_cache,
         )
+        from evmax.clients.baseball_props_cache import (
+            is_cache_fresh as is_bb_props_cache_fresh,
+            refresh_baseball_props_cache,
+        )
 
         prop_sector = f"{sector}_props"
 
@@ -1024,6 +1040,12 @@ class AgentCoordinator:
             player_names = list({m.player_name for m in unique if m.player_name})
             self.log.info("nfl_props_cache_refreshing", players=len(player_names))
             await refresh_nfl_props_cache(force=True, player_names=player_names)
+        elif sector == "baseball" and not is_bb_props_cache_fresh():
+            # Season-to-date hitting/pitching rates from the MLB Stats API,
+            # one league-wide pull. Feeds the projection model that blends
+            # with the Pinnacle anchor below.
+            self.log.info("baseball_props_cache_refreshing")
+            await refresh_baseball_props_cache(force=True)
 
         # Build SharpOdds list — for each Kalshi threshold, price off the
         # Pinnacle anchor for the same (player, stat) via prop_pricing.
@@ -1039,6 +1061,7 @@ class AgentCoordinator:
         unmatched = 0
         unpriced = 0
         fuzzy_hits = 0
+        bridged = 0
         for market in unique:
             anchor = pinn_by_anchor.get((market.player_name, market.stat_type))
             if anchor is None:
@@ -1056,6 +1079,17 @@ class AgentCoordinator:
                 if anchor is not None:
                     fuzzy_hits += 1
             if anchor is None:
+                # Baseball hitter stats with no Pinnacle line (hits / H+R+RBI /
+                # RBI) are priced by the projection model, bridged off the
+                # player's Total-Bases anchor so they still play with sharp.
+                if sector == "baseball" and market.stat_type in _BASEBALL_BRIDGE_STATS:
+                    tb_anchor = pinn_by_anchor.get((market.player_name, "total_bases"))
+                    if tb_anchor is not None:
+                        synth = self._baseball_bridged_prop_sharp(market, tb_anchor, sector)
+                        if synth is not None:
+                            prop_sharp.append(synth)
+                            bridged += 1
+                            continue
                 unmatched += 1
                 continue
 
@@ -1071,6 +1105,22 @@ class AgentCoordinator:
                 # tell "no Pinnacle line" from "could not price" in logs.
                 unpriced += 1
                 continue
+
+            # Baseball: blend the projection model with the sharp anchor so the
+            # price can express a player-rate view the stale Kalshi line misses.
+            # Conservative weight (BASEBALL_PROP_MODEL_WEIGHT) — the model uses a
+            # neutral matchup context for now (opponent/park enrichment is the
+            # next increment; the backtest evaluates the model's full-context
+            # ceiling). Anchored stats only this increment; the unanchored
+            # Hits/H+R+RBI/RBI stats (no Pinnacle line) are dropped above and
+            # await model-only synthetic odds.
+            if sector == "baseball":
+                model_over = self._baseball_prop_model_prob(market)
+                if model_over is not None:
+                    prob_over = (
+                        BASEBALL_PROP_MODEL_WEIGHT * model_over
+                        + (1.0 - BASEBALL_PROP_MODEL_WEIGHT) * prob_over
+                    )
 
             # Augment Pinnacle SharpOdds with L15 sample-size + minutes
             # volatility diagnostics. No probability math — anchor pricing
@@ -1116,10 +1166,106 @@ class AgentCoordinator:
             pinn_anchors=len(pinn_by_anchor),
             matched=len(prop_sharp),
             fuzzy_hits=fuzzy_hits,
+            bridged=bridged,
             unmatched_dropped=unmatched,
             unpriced=unpriced,
         )
         return prop_markets, prop_sharp
+
+    def _baseball_prop_model_prob(self, market: PredictionMarket) -> Optional[float]:
+        """Model P(stat >= threshold) for one MLB prop, or None if not projectable.
+
+        Pitcher stats project off the seeded pitcher profile, hitter stats off
+        the hitter profile (both season-to-date from the MLB Stats API cache).
+        Uses a neutral matchup context for now — opponent-K / park / opposing-
+        starter enrichment is the next increment.
+        """
+        from evmax.clients.baseball_props_cache import (
+            get_hitter_profile,
+            get_pitcher_profile,
+        )
+        from evmax.models_ml.baseball_props import (
+            HITTER_STATS,
+            MatchupContext,
+            PITCHER_STATS,
+            project_prob,
+        )
+
+        if market.player_name is None or market.threshold is None:
+            return None
+        ctx = MatchupContext()
+        if market.stat_type in PITCHER_STATS:
+            prof = get_pitcher_profile(market.player_name)
+            if prof is None:
+                return None
+            return project_prob(market.stat_type, market.threshold, ctx, pitcher=prof)
+        if market.stat_type in HITTER_STATS:
+            prof = get_hitter_profile(market.player_name)
+            if prof is None:
+                return None
+            return project_prob(market.stat_type, market.threshold, ctx, hitter=prof)
+        return None
+
+    def _baseball_bridged_prop_sharp(
+        self,
+        market: PredictionMarket,
+        tb_anchor: SharpOdds,
+        sector: str,
+    ) -> Optional[SharpOdds]:
+        """Price an unanchored hitter stat off the player's Total-Bases anchor.
+
+        Pinnacle posts no line for hits / H+R+RBI / RBI, so the projection
+        model carries them — but we *bridge* it to the sharp Total-Bases line:
+        scale the target-stat projection by the ratio of the anchor-implied TB
+        mean to the model's own TB mean, so the unanchored stat inherits the
+        sharp's read on the hitter's output instead of trusting the raw model
+        alone. Returns a synthetic SharpOdds (reusing the TB anchor's game key
+        + player) or None when it can't be priced.
+        """
+        from evmax.clients.baseball_props_cache import get_hitter_profile
+        from evmax.ev.prop_pricing import fit_distribution, model_prob_at_or_above
+        from evmax.models_ml.baseball_props import (
+            MatchupContext,
+            project_hitter_total_bases,
+            project_mean,
+        )
+
+        if market.threshold is None:
+            return None
+        prof = get_hitter_profile(market.player_name)
+        if prof is None:
+            return None
+        ctx = MatchupContext()
+        model_tb = project_hitter_total_bases(prof, ctx)
+        anchor_dist = fit_distribution(
+            "total_bases", tb_anchor.total_line, tb_anchor.true_prob_over
+        )
+        anchor_tb = getattr(anchor_dist, "mu", None)
+        if not model_tb or model_tb <= 0 or not anchor_tb or anchor_tb <= 0:
+            return None
+        ratio = max(0.5, min(2.0, anchor_tb / model_tb))
+        base_mean = project_mean(market.stat_type, ctx, hitter=prof)
+        if base_mean is None:
+            return None
+        prob_over = model_prob_at_or_above(
+            market.stat_type, base_mean * ratio, market.threshold
+        )
+        if prob_over is None:
+            return None
+        new_event_id = (
+            f"{sector}::{tb_anchor.event_id.split('::')[1]}"
+            f"::prop::{market.player_name}::{market.stat_type}::{market.threshold}"
+        )
+        return tb_anchor.model_copy(update={
+            "event_id": new_event_id,
+            "total_line": market.threshold,
+            "true_prob_over": prob_over,
+            "true_prob_under": 1.0 - prob_over,
+            "prop_stat_type": market.stat_type,
+            "prop_l15_games": 0,
+            "prop_minutes_volatile": False,
+            "prop_minutes_cv": 0.0,
+        })
 
     # ------------------------------------------------------------------
     # Model training helpers
