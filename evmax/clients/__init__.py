@@ -9,7 +9,9 @@ Active clients (used in live pipeline):
                        baseball probable starters, keyed by stable team id (ESPN scoreboard fallback)
 
 Seed-time clients (NOT in the live scan pipeline):
-- tennisabstract.py  — fetch/parse Tennis Abstract's weekly Elo leaderboards (tennisabstract.com);
-                       seeds tennis surface Elo after Sackmann's GitHub data repos went offline (2026).
-                       Used by scripts/seed_tennis_abstract_elo.py, not by any live agent.
+- tennisabstract.py  — Tennis Abstract scrapers, the replacement for Sackmann's offline (2026)
+                       GitHub data repos. Provides: Elo leaderboards (surface Elo seed),
+                       `matchmx` per-match serve/return data (serve_return/advanced/form/h2h seed),
+                       and winners/errors leaderboards (advanced UE feature).
+                       Used by scripts/seed_tennis_abstract_elo.py + seed_tennis_models.py.
 """

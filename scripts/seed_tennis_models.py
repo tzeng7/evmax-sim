@@ -1,23 +1,26 @@
-"""Seed tennis model agents from Jeff Sackmann's public CSVs.
+"""Seed tennis model agents from Tennis Abstract.
 
-Pulls match-level and ranking data from:
-  - github.com/JeffSackmann/tennis_atp
-  - github.com/JeffSackmann/tennis_wta
+Jeff Sackmann's ``tennis_atp`` / ``tennis_wta`` GitHub CSVs went offline in 2026.
+The per-match data now comes from tennisabstract.com's ``leadersource`` files
+(``matchmx`` — full serve/return/break columns, the same granularity as the old
+CSVs) and the winners/unforced-error leaderboards, via ``evmax/clients/tennisabstract.py``.
 
 Computes and seeds:
   1. tennis_serve_return  — per-match SPW with date + surface (recency-weighted at prediction time)
   2. tennis_h2h           — head-to-head win records (winner, loser counts)
-  3. tennis_ranking_trend  — weekly ranking snapshots from the current rankings file
-  4. tennis_advanced       — BP conversion, RPW, UE rate, W/UE ratio (logistic)
+  3. tennis_ranking_trend  — (no-op here; maintained by scripts/reseed_tennis_rankings.py + ESPN)
+  4. tennis_advanced       — BP conversion, RPW from matchmx; UE rate + W/UE from the winners/errors page
   5. tennis_form           — recent match history with opponent rank, surface, minutes
+
+Surface Elo is seeded separately by ``scripts/seed_tennis_abstract_elo.py``.
 
 Usage:
     uv run python scripts/seed_tennis_models.py
-    uv run python scripts/seed_tennis_models.py --years 2023,2024,2025,2026
+    uv run python scripts/seed_tennis_models.py --years 2024,2025,2026
     uv run python scripts/seed_tennis_models.py --tours atp           # ATP only
 
-Sackmann's repo updates on a delay; years that 404 are silently skipped so
-the script remains useful as future seasons land.
+matchmx covers roughly the trailing ~2.5 seasons (2024→present) for the full
+bettable field across ranking segments.
 """
 
 from __future__ import annotations
@@ -36,6 +39,7 @@ from evmax.agents.models.tennis_serve_return_agent import TennisServeReturnAgent
 from evmax.agents.models.tennis_h2h_agent import TennisH2HAgent
 from evmax.agents.models.tennis_ranking_trend_agent import TennisRankingTrendAgent
 from evmax.agents.models.tennis_form_agent import TennisFormAgent
+from evmax.clients.tennisabstract import fetch_matchmx, fetch_winners_errors
 
 REPO_BASE = {
     "atp": "https://raw.githubusercontent.com/JeffSackmann/tennis_atp/master",
@@ -311,6 +315,28 @@ def augment_advanced_with_mcp(
     print(f"  + MCP {tour} advanced: augmented {count} player-match records")
 
 
+def augment_advanced_with_winners_errors(stats: dict[str, dict], tour: str) -> None:
+    """Fill winners + unforced errors from Tennis Abstract's winners/errors leaderboard.
+
+    Player names share Tennis Abstract's full-name format, so they key directly into
+    ``stats`` (built from matchmx). Coverage is sparse (charted matches only); players
+    not on the leaderboard keep winners/unforced at 0 and fall to the RPW-reduced model.
+    """
+    try:
+        we = fetch_winners_errors(tour)
+    except Exception as e:  # noqa: BLE001 — network/parse; advanced degrades gracefully
+        print(f"  ! {tour} winners/errors unavailable: {e}")
+        return
+    count = 0
+    for player, rec in we.items():
+        if player not in stats:
+            continue
+        stats[player]["winners"] += rec["winners"]
+        stats[player]["unforced"] += rec["unforced"]
+        count += 1
+    print(f"  + {tour} winners/errors: augmented {count} players")
+
+
 # ---------------------------------------------------------------------------
 # Head-to-head
 # ---------------------------------------------------------------------------
@@ -451,17 +477,22 @@ def load_mcp_serve_stats(
 # ---------------------------------------------------------------------------
 
 def collect_matches(tour: str, years: list[int]) -> list[dict]:
-    """Pull match CSVs for every requested year. 404s are silently skipped."""
-    base = REPO_BASE[tour]
-    rows: list[dict] = []
-    for year in years:
-        url = f"{base}/{tour}_matches_{year}.csv"
-        data = _fetch_csv(url)
-        if data is None:
-            print(f"  - {tour}_matches_{year}: not available")
-            continue
-        rows.extend(data)
-        print(f"  + {tour}_matches_{year}: {len(data)} matches")
+    """Pull per-match records from Tennis Abstract's matchmx, filtered to `years`.
+
+    Sackmann's match CSVs went offline in 2026; ``fetch_matchmx`` reads the same
+    per-match data (full serve/return/break columns) from tennisabstract.com's
+    ``leadersource`` files and returns dicts already keyed with the Sackmann field
+    names the ``aggregate_*`` functions expect.
+    """
+    year_set = {int(y) for y in years}
+    try:
+        records = fetch_matchmx(tour)
+    except Exception as e:  # noqa: BLE001 — network/parse; report and continue
+        print(f"  ! {tour} matchmx fetch failed: {e}")
+        return []
+    rows = [r for r in records if _safe_int(str(r.get("tourney_date", ""))[:4]) in year_set]
+    print(f"  + {tour} matchmx: {len(rows)} matches "
+          f"({len(records)} total across segments, filtered to {sorted(year_set)})")
     return rows
 
 
@@ -540,11 +571,12 @@ def main() -> None:
                 for k in st:
                     combined_advanced[player][k] = combined_advanced[player].get(k, 0) + st[k]
 
+        # matchmx already carries complete per-match serve stats, so no MCP serve
+        # augmentation is needed (adding it would double-count). The advanced model's
+        # winners/UE feature is the one thing matchmx lacks — fill it from the
+        # winners/errors leaderboard (sparse; unlisted players use the RPW-reduced model).
         if not args.no_mcp:
-            mcp_serve = load_mcp_serve_stats(tour, year_set)
-            for player, entries in mcp_serve.items():
-                combined_match_serve.setdefault(player, []).extend(entries)
-            augment_advanced_with_mcp(combined_advanced, tour, year_set)
+            augment_advanced_with_winners_errors(combined_advanced, tour)
 
     # Sort match entries by date
     for player in combined_match_serve:

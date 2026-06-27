@@ -32,14 +32,21 @@ The file was originally written for esports but was extended to cover every spor
 
 ## Seed-time clients (not in the live scan pipeline)
 
-### `tennisabstract.py` — Tennis Abstract Elo leaderboards
-- Fetches + parses the public ATP/WTA Elo reports at `tennisabstract.com/reports/{tour}_elo_ratings.html`
-  (`fetch_elo_ratings` / `fetch_elo_page` → `PlayerElo` rows: overall + hElo/cElo/gElo)
-- **Why it exists:** Jeff Sackmann's `tennis_atp` / `tennis_wta` GitHub data repos went offline in 2026,
-  so the match-CSV path for surface Elo died. Tennis Abstract (his own site) still publishes weekly
-  pre-computed surface Elo on the standard 400-pt scale.
-- Used by `scripts/seed_tennis_abstract_elo.py` (seeds `TennisModelAgent` surface Elo); **not** called by
-  any live agent. Pure-stdlib HTML parsing — no extra deps.
+### `tennisabstract.py` — Tennis Abstract scrapers
+**Why it exists:** Jeff Sackmann's `tennis_atp` / `tennis_wta` GitHub data repos went offline in 2026,
+killing the match-CSV path for the entire tennis model stack. Tennis Abstract (his own site) is still up
+and is the replacement source. Three feeds:
+- **Elo leaderboards** — `fetch_elo_ratings` / `fetch_elo_page` → `PlayerElo` (overall + hElo/cElo/gElo),
+  parsed from `tennisabstract.com/reports/{tour}_elo_ratings.html`. Seeds surface Elo.
+- **`matchmx`** — `fetch_matchmx(tour)` → per-match dicts (svpt/1stWon/2ndWon/bpSaved/bpFaced + opponent's,
+  surface, ranks, minutes), extracted from the `leadersource*.js` files behind `leaders.cgi`. A drop-in
+  for the dead Sackmann match CSVs; unions the top-50/51-100/challenger ranking segments. Seeds
+  serve/return, advanced, form, h2h.
+- **Winners/errors** — `fetch_winners_errors(tour)` → `{player: {winners, unforced}}` from
+  `winners_errors_leaders_{men,women}_last52.html`. The advanced model's UE feature (sparse coverage).
+
+Used by `scripts/seed_tennis_abstract_elo.py` + `scripts/seed_tennis_models.py`; **not** called by any
+live agent. Pure-stdlib HTML/JS-array parsing — no extra deps.
 
 ## `base.py` — `BaseAPIClient`
 Thin async HTTP base class using `httpx.AsyncClient`. Handles retries and shared headers.

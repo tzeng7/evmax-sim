@@ -75,7 +75,7 @@ evmax/
 ├── clients/
 │   ├── kalshi.py            # RSA auth, series ticker fetching, WebSocket orderbook, AsyncLimiter(10/s)
 │   ├── esports_pinnacle.py  # PinnacleGuestClient — ALL sectors (not just esports despite filename)
-│   ├── tennisabstract.py    # Tennis Abstract Elo leaderboard fetch/parse (SEED-time, not live scan)
+│   ├── tennisabstract.py    # Tennis Abstract: Elo leaderboards + matchmx per-match data + winners/errors (SEED-time)
 │   ├── pinnacle.py          # LEGACY: TheOddsAPI client — NOT used in live pipeline
 │   └── base.py              # BaseAPIClient
 ├── sectors/
@@ -156,10 +156,10 @@ evmax/
 
 **NBA and WNBA are parallel stacks with zero shared files.** NBA's `efficiency_agent.py` uses `nba_api` + `efficiency_state.json`; WNBA's `wnba_efficiency_agent.py` uses ESPN box scores + `wnba_efficiency_state.json`. Same for possession sim. Change one without risk to the other. Do not merge them "for DRY" — the constants diverge (HOME_EDGE_PTS 3.2 vs 2.6, SCORE_STDEV 12.0 vs 12.5, pace clip [80,120] vs [65,100]), and the data sources are different.
 
-Tennis serve/return, H2H, and ranking-trend agents were historically seeded from Jeff Sackmann's `tennis_atp` / `tennis_wta` CSVs plus the Match Charting Project for 2025+ SPW augmentation via `scripts/seed_tennis_models.py`. **As of 2026-06-27 those two GitHub repos are offline** (404 from the GitHub API; only `tennis_MatchChartingProject` survives), so `seed_tennis_models.py` is currently non-functional for the match-CSV models. Status of the re-sourcing:
-- **Surface Elo** — re-sourced from Tennis Abstract (see the Tennis Surface Elo row above); fully working.
-- **Ranking trend** — limps on the ESPN refresher fallback (see the Tennis Ranking Trend row).
-- **Serve/return + advanced stats** — STRANDED: they need point-level detail only Sackmann/MCP carry. The Match Charting Project (`tennis_MatchChartingProject`) is still up but sparse (charted matches only); tennisabstract's Elo pages and tennis-data.co.uk don't carry serve-level stats. No live re-sourcing yet.
+Tennis serve/return, H2H, advanced, and form agents were historically seeded from Jeff Sackmann's `tennis_atp` / `tennis_wta` CSVs plus the Match Charting Project for 2025+ SPW augmentation via `scripts/seed_tennis_models.py`. **As of 2026-06-27 those two GitHub repos are offline** (404 from the GitHub API; only `tennis_MatchChartingProject` survives). Re-sourcing status — all live again from **Tennis Abstract**:
+- **Surface Elo** — pre-computed Elo leaderboards (see the Tennis Surface Elo row above); `scripts/seed_tennis_abstract_elo.py`.
+- **Serve/return, advanced, form, h2h** — re-sourced via **`matchmx`** (`evmax/clients/tennisabstract.py::fetch_matchmx`), the per-match serve/return/break matrix behind `leaders.cgi`'s `leadersource*.js` files. It carries the same per-match columns the dead Sackmann CSVs did (svpt/1stWon/2ndWon/bpSaved/bpFaced + the opponent's), full tour (~900 ATP / ~390 WTA players, 2024→present) across the top-50/51-100/challenger segments. `seed_tennis_models.py` now pulls from it — `collect_matches` reads matchmx instead of the dead CSVs, and the aggregate functions are unchanged. Advanced's winners/UE feature (the one thing matchmx lacks) comes from the winners/errors leaderboards (`fetch_winners_errors`, `winners_errors_leaders_{men,women}_last52.html`, sparse → unlisted players use the RPW-reduced model).
+- **Ranking trend** — limps on the ESPN refresher fallback (see the Tennis Ranking Trend row); not yet on matchmx (matchmx has per-match ranks but no weekly snapshot series).
 
 - Models below the confidence gate are excluded from the blend entirely
 - `model_sources` in each EVGap only lists models that actually contributed
