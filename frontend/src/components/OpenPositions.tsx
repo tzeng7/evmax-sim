@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import type { Bet, ScanGap } from '../lib/types'
 import { probToCents, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
-import { pickByIds } from '../lib/api'
+import { pickBets } from '../lib/api'
 
 interface Props {
   bets: Bet[]
@@ -45,8 +45,22 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
   const handlePick = useCallback(async () => {
     const ids = [...selected]
     if (!ids.length) { toast('Select positions to pick first', 'info'); return }
+    // Place at the CURRENT dashboard bankroll/kelly — i.e. the stake the preview
+    // shows — not the scan-time bankroll_used × kelly_fraction the backend falls
+    // back to when sent bare market_ids. Without this, a bet scanned at $250/0.5
+    // and re-sized to $1100/0.75 in the UI would silently revert to the $250
+    // stake on placement.
+    const byId = new Map(bets.map(b => [b.market_id, b]))
+    const payload = ids.map(mid => {
+      const b = byId.get(mid)
+      return {
+        market_id: mid,
+        fill_price: b ? b.kalshi_yes_price : null,
+        fill_stake: b ? Number(previewStake(b, bankroll, kelly).toFixed(2)) : null,
+      }
+    })
     try {
-      const res = await pickByIds(ids)
+      const res = await pickBets(payload)
       if (res.placed > 0) {
         const skippedNote = res.skipped?.length ? ` · skipped ${res.skipped.length}` : ''
         toast(`Placed ${res.placed} bet(s)${skippedNote}`, 'ok')
@@ -62,7 +76,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
     } catch (e) {
       toast('Pick failed: ' + (e as Error).message, 'err')
     }
-  }, [selected, toast, onPicked])
+  }, [selected, bets, bankroll, kelly, toast, onPicked])
 
   return (
     <div className="panel">
