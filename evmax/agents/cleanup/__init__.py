@@ -6,6 +6,8 @@ Key modules:
 - resolver.py    — auto-resolves outcomes via ESPN / bo3.gg; updates ev_outcomes.result
 - prop_resolver.py — resolves prop bet outcomes via ESPN boxscores
 - metrics.py     — computes Brier scores; auto-tunes sharp_weight in data/model_config.json
+- value_audit.py — per-sector model-blend VALUE audit (Brier vs sharp & close + CLV) with
+                   paired significance + actionability verdict; read-only (`evmax cleanup value-audit`)
 - maintenance.py — prune old rows, vacuum DB
 - adjustment.py  — manual outcome overrides and void handling
 
