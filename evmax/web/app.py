@@ -94,7 +94,16 @@ def _placed_bets() -> list[dict[str, Any]]:
 
 
 def _open_bets() -> list[dict[str, Any]]:
-    """Return open (unresolved, unplaced) bets, deduplicated by market_id."""
+    """Return open (unresolved, unplaced) bets, deduplicated by market_id.
+
+    Scoped to a FORWARD rolling window: only games on or after today are
+    surfaced. Past games that were never placed and never resolved are hidden
+    so the panel reflects currently-bettable positions rather than a growing
+    backlog of stale, already-started markets. Rows with no event_date (rare
+    dateless markets) are kept. The window is independent of the scan date
+    range — Open Positions reads the persisted DB, not the in-memory scan.
+    """
+    today_str = date.today().isoformat()
     with _conn() as conn:
         rows = conn.execute(
             """
@@ -114,9 +123,11 @@ def _open_bets() -> list[dict[str, Any]]:
             WHERE p.voided = 0 AND p.placed = 0 AND (o.outcome IS NULL)
               AND p.market_type != 'map_handicap'
               AND p.mode = 'live'
+              AND (p.event_date IS NULL OR p.event_date = '' OR p.event_date >= ?)
             ORDER BY p.event_date DESC, p.ev_pct DESC
             LIMIT 200
-            """
+            """,
+            (today_str,),
         ).fetchall()
     out = [dict(r) for r in rows]
     for b in out:
@@ -469,11 +480,43 @@ def _portfolio_gap_category(gap: dict[str, Any]) -> str:
     return gap.get("sector") or ""
 
 
+def _gap_in_scan_window(
+    event_date: Any, sector: str, date_from: str, date_to: str
+) -> bool:
+    """True if a gap's Kalshi game-day falls within the requested scan window.
+
+    Uses ``kalshi_game_day`` — the SAME convention ``log_gaps`` writes to the
+    ``ev_predictions.event_date`` column — so the persisted set matches the
+    range the user selected exactly (the displayed gap dict's ``event_date``
+    uses a local-tz convention, which can differ by a day at TZ edges; the
+    persistence boundary must follow what actually lands in the DB).
+
+    Empty range → today+tomorrow, mirroring the scan display default. Dateless
+    gaps (rare) are kept so the prior persist-all behavior for them is preserved.
+    """
+    if event_date is None:
+        return True
+    from evmax.clients.time_util import kalshi_game_day
+
+    day = kalshi_game_day(event_date, sector)
+    if date_from and date_to:
+        return date_from <= day <= date_to
+    if date_from:
+        return day >= date_from
+    if date_to:
+        return day <= date_to
+    today_str = date.today().isoformat()
+    tomorrow_str = (date.today() + timedelta(days=1)).isoformat()
+    return day in (today_str, tomorrow_str)
+
+
 async def _run_unified_scan(
     sectors: list[str],
     bankroll: float,
     kelly: float,
     fan_out_portfolio_ids: list[str] | None,
+    date_from: str = "",
+    date_to: str = "",
 ) -> tuple[Any, list[dict[str, Any]], list[dict[str, Any]]]:
     """Single shared scan path. Runs the coordinator once, logs game gaps to
     ``ev_predictions``, and (if requested) fans the same gaps out to active
@@ -495,7 +538,18 @@ async def _run_unified_scan(
     # market_id. Props live in prop_observations via the underlying cycle.
     try:
         from evmax.agents.cleanup.logger import log_gaps as _log_gaps
-        loggable = cycle.loggable_gaps()
+        # Persist only gaps inside the requested date window. The coordinator
+        # cycle surfaces every game Kalshi has listed (days out, incl. series
+        # games), but a ranged scan must not dump out-of-range rows into
+        # ev_predictions — they'd leak into the dashboard's Open Positions,
+        # which reads the persisted DB. The date filter previously applied only
+        # to the displayed gap list (see api_scan), so persistence ignored the
+        # range entirely. Portfolio fan-out below is intentionally NOT date-
+        # bounded (it wants 2-4-days-out series games — see the comment there).
+        loggable = [
+            g for g in cycle.loggable_gaps()
+            if _gap_in_scan_window(g.event_date, g.sector, date_from, date_to)
+        ]
         if loggable:
             _log_gaps(loggable, bankroll_used=bankroll)
     except Exception as _log_err:
@@ -610,6 +664,8 @@ async def api_scan(request: Request) -> JSONResponse:
         bankroll=bankroll,
         kelly=kelly,
         fan_out_portfolio_ids=fan_out_arg,
+        date_from=date_from,
+        date_to=date_to,
     )
 
     # Filter for the placement table view
