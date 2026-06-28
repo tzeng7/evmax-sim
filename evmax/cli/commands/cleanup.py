@@ -4,6 +4,8 @@ Commands:
   evmax cleanup show          — show logged +EV bets and their outcomes
   evmax cleanup resolve       — fetch actual outcomes for a given date
   evmax cleanup metrics       — compute Brier scores and display calibration report
+  evmax cleanup value-audit   — per-sector model-blend VALUE audit (Brier vs sharp AND
+                                vs close, CLV, calibration) with significance + verdict
   evmax cleanup adjust        — auto-adjust sharp_weight based on Brier scores
   evmax cleanup train         — re-seed model agents from live data (ESPN + bo3.gg)
   evmax cleanup props         — show logged prop observations and outcomes
@@ -949,6 +951,89 @@ def adjust(
     console.print(
         "  [dim]Run [bold]evmax agents scan[/bold] — it will pick up the new weight automatically.[/dim]"
     )
+
+
+@app.command("value-audit")
+def value_audit(
+    weeks: int = typer.Option(12, "--weeks", "-w", help="Look-back window in weeks."),
+    sector: Optional[str] = typer.Option(None, "--sector", help="Restrict to one sector."),
+    as_json: bool = typer.Option(False, "--json", help="Emit raw JSON (for agents/scripts)."),
+) -> None:
+    """Per-sector model-blend VALUE audit: Brier vs entry-sharp AND vs close, with
+    significance (paired z / 95% CI), CLV, calibration bias, and an actionability verdict.
+
+    Unlike `metrics`, this distinguishes a real model gap from noise: a sector is only
+    flagged `actionable` when the blend is significantly worse than the sharp line, or has
+    a systematic calibration bias — both fixable in the MODELS, never by gating plays.
+    """
+    from evmax.agents.cleanup.value_audit import compute_value_audit
+
+    audit = compute_value_audit(weeks=weeks)
+    if sector:
+        audit = [a for a in audit if a["sector"] == sector.lower()]
+
+    if as_json:
+        import json as _json
+        console.print_json(_json.dumps(audit))
+        return
+
+    if not audit:
+        console.print(f"[yellow]No resolved live predictions in the last {weeks} week(s).[/yellow]")
+        return
+
+    table = Table(title=f"Model-Blend Value Audit — last {weeks}w", box=box.SIMPLE)
+    table.add_column("Sector", style="bold")
+    table.add_column("N", justify="right")
+    table.add_column("Brier\nModel", justify="right")
+    table.add_column("Brier\nSharp", justify="right")
+    table.add_column("Brier\nClose", justify="right")
+    table.add_column("vs Sharp\n(z)", justify="right")
+    table.add_column("vs Close\n(z)", justify="right")
+    table.add_column("CLV pp\n(%+)", justify="right")
+    table.add_column("Calib\nbias pp", justify="right")
+    table.add_column("Verdict", style="bold", no_wrap=False)
+
+    def _z(edge):
+        if not edge:
+            return "—"
+        col = "green" if edge["z"] > 0 else "red"
+        return f"[{col}]{edge['z']:+.2f}[/{col}]"
+
+    def _bn(v):
+        return f"{v:.4f}" if v is not None else "—"
+
+    for a in audit:
+        clv = a["clv"]
+        clv_str = (f"{clv['mean_pp']:+.2f}\n({clv['frac_positive']*100:.0f}%)"
+                   if clv else "—")
+        v = a["verdict"]
+        vcol = {
+            "model_subtracts": "red",
+            "calibration_bias": "yellow",
+            "adds_value": "green",
+            "neutral": "dim",
+            "insufficient": "dim",
+        }.get(v["tag"], "white")
+        verdict_str = f"[{vcol}]{v['tag']}[/{vcol}]" + (" ⚑" if v["actionable"] else "")
+        table.add_row(
+            a["sector"], str(a["n"]),
+            _bn(a["brier_model"]), _bn(a["brier_sharp"]), _bn(a["brier_close"]),
+            _z(a["edge_vs_sharp"]), _z(a["edge_vs_close"]),
+            clv_str,
+            f"{a['calibration']['signed_bias_pp']:+.2f}",
+            verdict_str,
+        )
+    console.print(table)
+
+    actionable = [a for a in audit if a["verdict"]["actionable"]]
+    console.print(
+        f"\n[bold]{len(actionable)}[/bold] sector(s) with a model-actionable value gap "
+        f"(⚑). Positive z = blend beats benchmark; close-Brier near zero is EXPECTED "
+        f"(beating the close is rare). CLV is context only — a fine-Brier / negative-CLV "
+        f"sector is a timing/selection issue, not a model-blend fix."
+    )
+    for a in actionable:
+        console.print(f"  [yellow]⚑ {a['sector']}[/yellow]: {a['verdict']['reason']}")
 
 
 @app.command("dedup-ev")

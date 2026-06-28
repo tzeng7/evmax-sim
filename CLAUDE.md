@@ -251,6 +251,15 @@ evmax cleanup show --days 7
 evmax cleanup metrics --weeks 4
 evmax cleanup adjust
 
+# Weekly — model-blend VALUE audit (Brier vs entry-sharp AND vs Pinnacle close, CLV,
+# calibration) with significance + an actionability verdict per sector. Distinguishes a
+# real model gap from noise: a sector is only ⚑actionable when the blend is SIGNIFICANTLY
+# worse than the sharp line (z≤−1.64) or has a consistent calibration bias — both fixable
+# in the MODELS (reweight / recalibrate), never by gating plays. Beating the *close* is
+# rare/not expected; CLV is context only (a fine-Brier/negative-CLV sector is an entry-
+# timing issue, not a model fix). Reports land in docs/value-audits/. See value_audit.py.
+evmax cleanup value-audit --weeks 12          # add --json for agents, --sector S to focus
+
 # Shadow-mode validation (MODEL-9 pattern)
 evmax categories list --mode shadow               # see what's in shadow today
 evmax cleanup shadow show --days 7                # recent shadow predictions
