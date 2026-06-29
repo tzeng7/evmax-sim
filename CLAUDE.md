@@ -76,7 +76,6 @@ evmax/
 │   ├── kalshi.py            # RSA auth, series ticker fetching, WebSocket orderbook, AsyncLimiter(10/s)
 │   ├── esports_pinnacle.py  # PinnacleGuestClient — ALL sectors (not just esports despite filename)
 │   ├── tennisabstract.py    # Tennis Abstract: Elo leaderboards + matchmx per-match data + winners/errors (SEED-time)
-│   ├── pinnacle.py          # LEGACY: TheOddsAPI client — NOT used in live pipeline
 │   └── base.py              # BaseAPIClient
 ├── sectors/
 │   ├── registry.py          # Dict mapping sector name → SectorHandler instance
@@ -89,8 +88,7 @@ evmax/
 │   ├── calculator.py        # EV = (true_prob × payout) - 1; YES-side only
 │   └── kelly.py             # Kelly fraction with confidence + liquidity discounts, 5% cap
 ├── models_ml/
-│   ├── spread_distribution.py  # Normal CDF for spread market cover probabilities
-│   └── live_win_prob.py        # Live in-game model: prior Elo + score/time state
+│   └── spread_distribution.py  # Normal CDF for spread market cover probabilities
 ├── agents/
 │   ├── base.py              # Agent ABC, AgentBus (pub/sub), AgentRequest/Response
 │   ├── coordinator.py       # AgentCoordinator: orchestrates full cycle, exposure guard
@@ -98,8 +96,6 @@ evmax/
 │   ├── models/              # EloModelAgent, FormModelAgent, PoissonModelAgent, EnsembleModelAgent, TennisModelAgent
 │   ├── intelligence/        # InjuryReportAgent (ESPN public API)
 │   └── cleanup/             # db.py, logger.py, resolver.py, metrics.py, maintenance.py
-├── pipeline/
-│   └── live_scanner.py      # Live in-game market scanner
 ├── sectors/                 # SectorHandler ABC + per-sport implementations
 ├── simulation/
 │   └── montecarlo.py        # Monte Carlo bankroll simulation
@@ -113,9 +109,7 @@ evmax/
         ├── archive.py       # evmax archive stats/resolve/backtest/export
         ├── backtest.py      # evmax backtest
         ├── sim.py           # evmax sim list/resolve/montecarlo
-        ├── opportunities.py # evmax opps (live scanner)
-        ├── update.py        # evmax update scores (auto ESPN model updates)
-        └── opportunities.py
+        └── update.py        # evmax update scores (auto ESPN model updates)
 ```
 
 ### Modeling
