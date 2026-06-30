@@ -253,6 +253,7 @@ tbody tr:last-child td { border-bottom: none; }
 .badge.won { background: var(--green-soft); color: var(--green); border-color: transparent; }
 .badge.lost { background: var(--red-soft); color: var(--red); border-color: transparent; }
 .badge.new { background: var(--amber-soft); color: var(--amber); border-color: var(--amber-line); font-weight: 700; animation: pulse 1.5s ease-in-out 3; }
+.badge.warn { background: rgba(224, 179, 65, 0.14); color: var(--yellow); border-color: rgba(224, 179, 65, 0.34); font-weight: 700; }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
 .check { width: 16px; height: 16px; accent-color: var(--amber); cursor: pointer; }
 
