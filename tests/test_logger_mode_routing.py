@@ -491,3 +491,85 @@ class TestPartialBlendDemotion:
             "SELECT mode FROM ev_predictions WHERE market_id = 'nba-default'"
         ).fetchone()
         assert row["mode"] == "live"
+
+
+class TestShadowToLiveUpgrade:
+    """A market frozen as shadow (e.g. a tennis partial-blend demotion before
+    form/advanced had data) must upgrade to live once a later scan produces a
+    full-blend live gap. Regression for: a stale shadow row permanently blocks
+    /api/pick ('mode=shadow — only live is pickable') even though the model now
+    qualifies the bet as live."""
+
+    def test_partial_then_full_blend_upgrades_to_live(self, patched_db):
+        partial = replace(
+            _gap("t-up", sector="tennis"),
+            model_sources="tennis_ranking_trend+tennis_serve_return+tennis_surface+sharp",
+            full_blend=False,
+            ev_pct=0.03,
+            kalshi_yes_price=0.43,
+        )
+        assert log_gaps([partial], mode_resolver=lambda c: "live") == 1
+        row = patched_db.execute(
+            "SELECT mode FROM ev_predictions WHERE market_id = 't-up'"
+        ).fetchone()
+        assert row["mode"] == "shadow"  # demoted on first insert
+
+        # Later scan: full blend fires, gap resolves to live. INSERT OR IGNORE
+        # is a no-op (UNIQUE conflict) but the row must upgrade + refresh.
+        full = replace(
+            _gap("t-up", sector="tennis"),
+            model_sources=_FULL_TENNIS_SOURCES,
+            full_blend=True,
+            ev_pct=0.05,
+            kalshi_yes_price=0.44,
+        )
+        inserted = log_gaps([full], mode_resolver=lambda c: "live")
+        assert inserted == 0  # not a new insert — an in-place upgrade
+        row = patched_db.execute(
+            "SELECT mode, ev_pct, kalshi_yes_price, captured_yes_price, "
+            "model_sources, voided FROM ev_predictions WHERE market_id = 't-up'"
+        ).fetchone()
+        assert row["mode"] == "live"
+        # Snapshot refreshed to the first *bettable* (live) call.
+        assert row["ev_pct"] == pytest.approx(0.05)
+        assert row["kalshi_yes_price"] == pytest.approx(0.44)
+        assert row["captured_yes_price"] == pytest.approx(0.44)
+        assert row["model_sources"] == _FULL_TENNIS_SOURCES
+        assert row["voided"] == 0
+
+    def test_upgrade_never_touches_placed_shadow_row(self, patched_db):
+        """A placed shadow row is a deliberate user action — never auto-upgrade
+        it to live, even if a later full-blend scan would qualify it."""
+        partial = replace(
+            _gap("t-placed", sector="tennis"),
+            model_sources="tennis_serve_return+tennis_surface+sharp",
+            full_blend=False,
+        )
+        log_gaps([partial], mode_resolver=lambda c: "live")
+        patched_db.execute(
+            "UPDATE ev_predictions SET placed = 1 WHERE market_id = 't-placed'"
+        )
+        patched_db.commit()
+
+        full = replace(
+            _gap("t-placed", sector="tennis"),
+            model_sources=_FULL_TENNIS_SOURCES,
+            full_blend=True,
+        )
+        log_gaps([full], mode_resolver=lambda c: "live")
+        row = patched_db.execute(
+            "SELECT mode, placed FROM ev_predictions WHERE market_id = 't-placed'"
+        ).fetchone()
+        assert row["mode"] == "shadow"  # untouched
+        assert row["placed"] == 1
+
+    def test_shadow_category_not_upgraded_when_rescan_still_shadow(self, patched_db):
+        """If the new scan also resolves to shadow (sector still in shadow mode),
+        there is no live gap to upgrade from — the row stays shadow."""
+        gap = replace(_gap("t-stayshadow", sector="tennis"), full_blend=True)
+        log_gaps([gap], mode_resolver=lambda c: "shadow")
+        log_gaps([gap], mode_resolver=lambda c: "shadow")
+        row = patched_db.execute(
+            "SELECT mode FROM ev_predictions WHERE market_id = 't-stayshadow'"
+        ).fetchone()
+        assert row["mode"] == "shadow"
