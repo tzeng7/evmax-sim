@@ -109,6 +109,7 @@ def log_gaps(
     inserted = 0
     dropped_disabled = 0
     unvoided = 0
+    upgraded = 0
     counts_by_mode: dict[str, int] = {"live": 0, "shadow": 0}
 
     with get_connection() as conn:
@@ -198,19 +199,78 @@ def log_gaps(
                     inserted += 1
                     counts_by_mode[mode] = counts_by_mode.get(mode, 0) + 1
                 elif mode == "live":
-                    # Row already existed (freeze-on-first-insert). If it was
-                    # marked voided by cleanup but Kalshi is quoting it again
-                    # (we just got a fresh EVGap), un-stick voided so the user
-                    # can still pick it. Don't touch placed rows — those were
-                    # a deliberate user action. Snapshot columns stay frozen.
-                    cur = conn.execute(
-                        "UPDATE ev_predictions SET voided = 0 "
-                        "WHERE market_id = ? AND voided = 1 AND placed = 0 "
-                        "AND mode = 'live'",
+                    # Row already existed (freeze-on-first-insert) but this
+                    # fresh EVGap qualifies as a live bet. Two un-stick cases,
+                    # both gated on the existing row being unplaced (placed
+                    # rows were a deliberate user action — never touch them):
+                    #
+                    #   1. shadow → live upgrade. The market was frozen as
+                    #      shadow on an earlier scan — e.g. a tennis
+                    #      REQUIRED_BLEND_MODELS partial blend before
+                    #      form/advanced had data, or a sector that has since
+                    #      been promoted live. Now that it resolves to a live
+                    #      bet we upgrade mode and REFRESH the frozen snapshot
+                    #      to this call. The freeze rationale (lock the call,
+                    #      no look-ahead refresh) only protects a *live* row; a
+                    #      shadow row was never a bettable call, so this is the
+                    #      first real one and gets locked instead.
+                    #   2. voided → un-stick. Row was marked voided by cleanup
+                    #      but Kalshi is quoting it again. Clear voided only;
+                    #      the live snapshot stays frozen.
+                    existing = conn.execute(
+                        "SELECT mode, placed, voided FROM ev_predictions "
+                        "WHERE market_id = ?",
                         (g.market_id,),
-                    )
-                    if cur.rowcount:
-                        unvoided += 1
+                    ).fetchone()
+                    if existing is not None and existing["placed"] == 0:
+                        if existing["mode"] == "shadow":
+                            conn.execute(
+                                """UPDATE ev_predictions SET
+                                       mode = 'live', voided = 0,
+                                       scan_date = ?, event_date = ?,
+                                       kalshi_yes_price = ?, sharp_true_prob = ?,
+                                       blended_true_prob = ?, ev_pct = ?,
+                                       kelly_fraction = ?, volume_usd = ?,
+                                       model_sources = ?, sharp_weight_used = ?,
+                                       bankroll_used = ?, line = ?,
+                                       captured_yes_price = ?, model_version = ?,
+                                       minutes_to_tipoff = ?
+                                   WHERE market_id = ? AND placed = 0""",
+                                (
+                                    sd,
+                                    event_date_str,
+                                    g.kalshi_yes_price,
+                                    g.sharp_true_prob,
+                                    g.blended_true_prob,
+                                    g.ev_pct,
+                                    g.kelly_fraction,
+                                    g.volume_usd,
+                                    g.model_sources,
+                                    sharp_weight_used,
+                                    bankroll_used,
+                                    g.line,
+                                    g.kalshi_yes_price,
+                                    model_version,
+                                    getattr(g, "minutes_to_tipoff", None),
+                                    g.market_id,
+                                ),
+                            )
+                            upgraded += 1
+                            counts_by_mode["live"] = counts_by_mode.get("live", 0) + 1
+                            logger.info(
+                                "prediction_upgraded_shadow_to_live",
+                                market_id=g.market_id,
+                                sector=g.sector,
+                                model_sources=g.model_sources,
+                            )
+                        elif existing["voided"] == 1:
+                            conn.execute(
+                                "UPDATE ev_predictions SET voided = 0 "
+                                "WHERE market_id = ? AND voided = 1 "
+                                "AND placed = 0 AND mode = 'live'",
+                                (g.market_id,),
+                            )
+                            unvoided += 1
             except Exception as e:
                 logger.warning("prediction_log_error", market_id=g.market_id, error=str(e))
 
@@ -223,6 +283,7 @@ def log_gaps(
         shadow=counts_by_mode.get("shadow", 0),
         dropped_disabled=dropped_disabled,
         unvoided=unvoided,
+        upgraded=upgraded,
         total=len(gaps),
         date=sd,
     )
