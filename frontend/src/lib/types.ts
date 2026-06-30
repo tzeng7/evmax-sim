@@ -53,6 +53,7 @@ export interface Bet {
   line?: number
   volume_usd?: number
   outcome?: number
+  status?: 'upcoming' | 'in_progress'
 }
 
 export interface ScanGap {

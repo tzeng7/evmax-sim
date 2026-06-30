@@ -93,17 +93,33 @@ def _placed_bets() -> list[dict[str, Any]]:
     return out
 
 
+# Started-but-unresolved open positions linger in the panel this many days
+# past their event_date before being treated as stale and dropped. Covers the
+# game-start → next-resolve-run gap (resolve is daily) plus weekend lag, so a
+# scanned-but-unplaced position stays visible through resolution instead of
+# silently vanishing at game time. Bounded so permanently-unresolved rows
+# (resolution failures, dead markets) can't accumulate into a backlog.
+OPEN_STARTED_LOOKBACK_DAYS = 7
+
+
 def _open_bets() -> list[dict[str, Any]]:
     """Return open (unresolved, unplaced) bets, deduplicated by market_id.
 
-    Scoped to a FORWARD rolling window: only games on or after today are
-    surfaced. Past games that were never placed and never resolved are hidden
-    so the panel reflects currently-bettable positions rather than a growing
-    backlog of stale, already-started markets. Rows with no event_date (rare
-    dateless markets) are kept. The window is independent of the scan date
-    range — Open Positions reads the persisted DB, not the in-memory scan.
+    Surfaces a forward window (games on/after today) PLUS started-but-unresolved
+    positions within OPEN_STARTED_LOOKBACK_DAYS. Each row is tagged with a
+    ``status``: ``upcoming`` (event today/future, or rare dateless) vs
+    ``in_progress`` (game has started but no outcome yet). Previously the panel
+    hard-cut at ``event_date >= today``, so a scanned-but-unplaced position
+    dropped out at game time and only reappeared once resolved (in Recent
+    Settled) — making it look like it had never been an open position even
+    though the row was in the DB the whole time. The lookback keeps it visible
+    through that gap while still bounding stale, never-resolving rows. The
+    window is independent of the scan date range — Open Positions reads the
+    persisted DB, not the in-memory scan.
     """
-    today_str = date.today().isoformat()
+    today = date.today()
+    today_str = today.isoformat()
+    lookback_str = (today - timedelta(days=OPEN_STARTED_LOOKBACK_DAYS)).isoformat()
     with _conn() as conn:
         rows = conn.execute(
             """
@@ -127,11 +143,13 @@ def _open_bets() -> list[dict[str, Any]]:
             ORDER BY p.event_date DESC, p.ev_pct DESC
             LIMIT 200
             """,
-            (today_str,),
+            (lookback_str,),
         ).fetchall()
     out = [dict(r) for r in rows]
     for b in out:
         b["display_label"] = _display_label_for_row(b)
+        ev_date = b.get("event_date")
+        b["status"] = "in_progress" if (ev_date and ev_date < today_str) else "upcoming"
     return out
 
 

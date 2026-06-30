@@ -1,8 +1,10 @@
-"""Open Positions is scoped to a FORWARD rolling window — only games on or
-after today are surfaced, so past unplaced/unresolved markets don't pile up in
-the panel. Plus unit coverage for the persistence date-window predicate that
-keeps a ranged scan from writing out-of-range rows. See
-evmax.web.app._open_bets and _gap_in_scan_window.
+"""Open Positions surfaces upcoming games PLUS started-but-unresolved positions
+within OPEN_STARTED_LOOKBACK_DAYS (so a scanned-but-unplaced bet stays visible
+through resolution instead of vanishing at game time), while still dropping
+stale rows older than the lookback so the panel can't grow unbounded. Each row
+is tagged status=upcoming|in_progress. Plus unit coverage for the persistence
+date-window predicate that keeps a ranged scan from writing out-of-range rows.
+See evmax.web.app._open_bets and _gap_in_scan_window.
 """
 
 from __future__ import annotations
@@ -12,7 +14,7 @@ from datetime import date, datetime, timedelta, timezone
 import pytest
 
 import evmax.agents.cleanup.db as dbmod
-from evmax.web.app import _gap_in_scan_window, _open_bets
+from evmax.web.app import OPEN_STARTED_LOOKBACK_DAYS, _gap_in_scan_window, _open_bets
 
 
 def _seed_open(conn, *, market_id, sector, event_date, market_type="moneyline"):
@@ -38,8 +40,12 @@ def open_db(tmp_path, monkeypatch):
     monkeypatch.setattr(dbmod, "DB_PATH", db_path)
     conn = dbmod.get_connection()
     today = date.today()
-    _seed_open(conn, market_id="past", sector="nba",
+    # Started-but-recent (within lookback) — should stay visible, in_progress.
+    _seed_open(conn, market_id="recent_started", sector="nba",
                event_date=(today - timedelta(days=2)).isoformat())
+    # Started long ago (beyond lookback) — stale, should be dropped.
+    _seed_open(conn, market_id="stale", sector="nba",
+               event_date=(today - timedelta(days=OPEN_STARTED_LOOKBACK_DAYS + 1)).isoformat())
     _seed_open(conn, market_id="today", sector="nba",
                event_date=today.isoformat())
     _seed_open(conn, market_id="future", sector="nba",
@@ -50,11 +56,28 @@ def open_db(tmp_path, monkeypatch):
     return db_path
 
 
-def test_open_positions_hides_past_keeps_today_and_future(open_db):
+def test_open_positions_keeps_today_future_and_recent_started(open_db):
     mids = {b["market_id"] for b in _open_bets()}
     assert "today" in mids
     assert "future" in mids
-    assert "past" not in mids
+    # A scanned-but-unplaced position whose game just started stays visible
+    # through resolution rather than silently dropping out at game time.
+    assert "recent_started" in mids
+
+
+def test_open_positions_drops_stale_started_rows(open_db):
+    mids = {b["market_id"] for b in _open_bets()}
+    # Beyond the lookback the row is stale (likely a resolution failure / dead
+    # market) and must not accumulate into a backlog.
+    assert "stale" not in mids
+
+
+def test_open_positions_tags_status(open_db):
+    by_mid = {b["market_id"]: b for b in _open_bets()}
+    assert by_mid["future"]["status"] == "upcoming"
+    assert by_mid["today"]["status"] == "upcoming"
+    assert by_mid["dateless"]["status"] == "upcoming"
+    assert by_mid["recent_started"]["status"] == "in_progress"
 
 
 def test_open_positions_keeps_dateless_rows(open_db):

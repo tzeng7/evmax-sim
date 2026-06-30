@@ -102,7 +102,10 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
               return (
                 <tr key={b.market_id}>
                   <td><input type="checkbox" className="check" checked={selected.has(b.market_id)} onChange={() => toggle(b.market_id)} /></td>
-                  <td>{scanMids.has(b.market_id) && <span className="badge new">NEW</span>}</td>
+                  <td>
+                    {scanMids.has(b.market_id) && <span className="badge new">NEW</span>}
+                    {b.status === 'in_progress' && <span className="badge warn" title="Game has started — awaiting resolution">LIVE</span>}
+                  </td>
                   <td className="muted">{b.event_date}</td>
                   <td><span className="badge">{b.sector}</span></td>
                   <td>{b.event_title}</td>
