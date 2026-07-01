@@ -219,7 +219,7 @@ evmax agents pick --date 2026-03-23 --bankroll 250 --kelly 0.5   # --live is the
 
 `pick` records the bets you're placing. By default it **re-fetches the live Kalshi ask** and recomputes EV / the live gate / Kelly stake at the *current* price — so stale scan-time edges that have already reverted toward the sharp close drop out instead of getting placed (the night-before scan is a watchlist, not a bet list). The table shows **Scan / Live / Δ** columns so you can see edge erosion since the scan, and the fill-price prompt defaults to the live ask. Use `--no-live` to fall back to scan prices offline.
 
-Run `evmax cleanup watch-closes` (or the bundled `*/5` cron) as an always-up service so a near-tip Kalshi snapshot is captured for every game — that's what gives placed-bet CLV a genuine post-entry close to measure against.
+Run `evmax cleanup watch-closes` as an always-up service (owned by the launchd agent `com.evmax.watch-closes`, every 5 min — the user crontab was removed 2026-06-28) so a near-tip Kalshi snapshot is captured for every game — that's what gives placed-bet CLV a genuine post-entry close to measure against.
 
 ### Show only high-confidence plays
 
