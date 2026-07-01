@@ -116,6 +116,29 @@ CREATE TABLE IF NOT EXISTS archived_outcomes (
 
 CREATE INDEX IF NOT EXISTS idx_outcomes_ticker
     ON archived_outcomes(ticker);
+
+-- Order-book depth time series for the listing→scan window (2026-07-01).
+-- One row per (sweep, ticker) from `cleanup watch-listings`. Distinguishes an
+-- MM placeholder quote (yes_ask set, *_depth ~0) from a fillable market — the
+-- signal the depth-aware entry rule and lay-side CLV gate evaluate on.
+CREATE TABLE IF NOT EXISTS archived_orderbook_depth (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id         TEXT    NOT NULL,
+    fetched_at         TEXT    NOT NULL,
+    sector             TEXT    NOT NULL,
+    ticker             TEXT    NOT NULL,
+    yes_ask            REAL,   -- 1 − best NO bid (price a YES taker pays)
+    yes_ask_depth_usd  REAL,   -- $ resting at best NO bid (YES-taker fillable size)
+    yes_bid            REAL,   -- best resting YES bid
+    yes_bid_depth_usd  REAL,   -- $ at best YES bid
+    yes_book_usd       REAL,   -- total $ on the YES bid ladder
+    no_book_usd        REAL,   -- total $ on the NO bid ladder
+    source             TEXT,   -- 'ws' | 'rest'
+    UNIQUE(session_id, ticker)
+);
+
+CREATE INDEX IF NOT EXISTS idx_orderbook_depth_ticker
+    ON archived_orderbook_depth(ticker);
 """
 
 
@@ -317,6 +340,50 @@ class DataArchiver:
                 " yes_price, no_price, volume_usd, open_interest_usd, "
                 " team_home, team_away, yes_team, line, event_date, event_id) "
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                rows,
+            )
+        return len(rows)
+
+    def archive_orderbook_depth(
+        self,
+        session_id: str,
+        sector: str,
+        books: list[dict],
+        fetched_at: object = None,
+    ) -> int:
+        """Persist one sweep's order-book depth metrics (see watch-listings).
+
+        ``books`` is a list of dicts with at least ``ticker`` plus the
+        ``book_depth_metrics`` keys (yes_ask, yes_ask_depth_usd, yes_bid,
+        yes_bid_depth_usd, yes_book_usd, no_book_usd, source). Each sweep must
+        pass a fresh ``session_id`` — UNIQUE(session_id, ticker) would IGNORE
+        re-inserts within one sweep, which is the intended dedup.
+        """
+        if not books:
+            return 0
+        fa = _fmt(fetched_at) or datetime.now(timezone.utc).isoformat()
+        rows = [
+            (
+                session_id,
+                fa,
+                sector,
+                b["ticker"],
+                b.get("yes_ask"),
+                b.get("yes_ask_depth_usd"),
+                b.get("yes_bid"),
+                b.get("yes_bid_depth_usd"),
+                b.get("yes_book_usd"),
+                b.get("no_book_usd"),
+                b.get("source"),
+            )
+            for b in books
+        ]
+        with _get_connection() as conn:
+            conn.executemany(
+                "INSERT OR IGNORE INTO archived_orderbook_depth "
+                "(session_id, fetched_at, sector, ticker, yes_ask, yes_ask_depth_usd, "
+                " yes_bid, yes_bid_depth_usd, yes_book_usd, no_book_usd, source) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 rows,
             )
         return len(rows)
