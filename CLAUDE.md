@@ -260,7 +260,8 @@ evmax cleanup watch-listings -s wnba -m spread --once   # narrow one-off sweep
 
 # Next morning — resolve yesterday's outcomes
 # (resolve also feeds the date's completed ESPN scores into elo/form/poisson/xg
-#  state for the 7 game sectors — pass --no-update-models to skip. This is what
+#  state for the 8 game sectors in _UPDATE_HOOK_SECTORS (soccer/worldcup/nba/
+#  wnba/nfl/ncaab/nhl/baseball) — pass --no-update-models to skip. This is what
 #  keeps model state fresh; `evmax update scores` remains for manual backfills.)
 evmax cleanup resolve --date YYYY-MM-DD
 evmax archive resolve --date YYYY-MM-DD
@@ -386,8 +387,8 @@ erDiagram
     ev_predictions ||--o| ev_outcomes : "market_id · LEFT JOIN for resolution"
     ev_predictions {
         int id PK
-        text scan_date "YYYY-MM-DD, part of UNIQUE"
-        text market_id "UNIQUE with scan_date"
+        text scan_date "YYYY-MM-DD of the FIRST scan that flagged this market"
+        text market_id "UNIQUE — one row per market"
         text event_id
         text sector "nba / nfl / tennis / ..."
         text yes_team
@@ -448,9 +449,9 @@ erDiagram
 
 **Key conventions that trip people up:**
 
-- **`ev_predictions` has one row per (market_id, scan_date)** — the UNIQUE constraint means a market scanned on two consecutive days produces two rows. `evmax cleanup show` and the web dashboard deduplicate via an `INNER JOIN (SELECT market_id, MAX(scan_date) ... GROUP BY market_id)` subquery so the user sees each market exactly once at its latest state.
+- **`ev_predictions` has one row per `market_id`** — `UNIQUE(market_id)` since `c66e21e` (2026-04-15): the row is **frozen at the first scan that flagged the market** (`scan_date`, `kalshi_yes_price`, `sharp_true_prob`, `blended_true_prob`, `ev_pct` all carry first-flag values; re-scans do not add rows or update them). A migration in `db.py` rebuilds legacy DBs that still carry the old composite `UNIQUE(market_id, scan_date)`. The `MAX(scan_date)` dedup subqueries still present in `metrics.py` / `value_audit.py` / `sim.py` are legacy-compat no-ops on migrated DBs.
 - **`ev_outcomes` has one row per market_id** (UNIQUE on `market_id` alone) — resolution lives here, not in `ev_predictions`. A `LEFT JOIN` is always used so unresolved markets still appear in the output with `outcome IS NULL`.
-- **`prop_observations` is parallel to `ev_predictions`** — not a child table. Both are log destinations for the scanner; `log_gaps()` writes the former and `log_prop_observations()` writes the latter. They share the `market_id` / `scan_date` uniqueness pattern but do not JOIN to each other.
+- **`prop_observations` is parallel to `ev_predictions`** — not a child table. Both are log destinations for the scanner; `log_gaps()` writes the latter and `log_prop_observations()` writes the former. Unlike `ev_predictions`, props kept the composite `UNIQUE(market_id, scan_date)` — a prop line re-scanned on a second day DOES produce a second row. The two tables do not JOIN to each other.
 - **`sector` is stored on both `ev_predictions` and `ev_outcomes`** — denormalized by design. Lets `evmax cleanup show --sector nba` filter without a JOIN.
 - **Prop categories** (`nba_props`, `nfl_props`, `baseball_props`) are identified by `event_id LIKE '%::prop::%'`, not by a dedicated column. That substring is the signal `log_gaps` uses to route to `prop_observations` instead of `ev_predictions`, and `_gap_category_key()` uses to map `sector` → `{sector}_props` for mode lookup.
 - **ARCH-11 mode columns (`mode`, `captured_yes_price`, `model_version`) exist on both `ev_predictions` and `prop_observations` but NOT on `ev_outcomes`.** Outcome resolution is mode-agnostic — shadow bets still need outcomes — so there's no reason to tag the outcome row.
