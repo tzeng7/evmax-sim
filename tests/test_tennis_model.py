@@ -690,3 +690,48 @@ class TestSeedPrecomputedSurfaceElo:
     def test_indoor_maps_to_hard(self, agent):
         agent.seed_precomputed_surface_elo(self.RATINGS)
         assert agent.get_rating("sinner", "indoor") == agent.get_rating("sinner", "hard")
+
+
+class TestCountLookupSurnameFallback:
+    """Regression: game-count lookups must resolve name variants read-only.
+
+    _get_count used to go through _counts (setdefault), which INSERTED an empty
+    record under the queried name form; _resolve_player then exact-matched that
+    empty record instead of falling back to the populated 'jannik sinner' one.
+    Result: a 'sinner' query returned 0 games while the rating resolved fine,
+    confidence collapsed to 0.30, and tennis_surface dropped out of the blend
+    (below the 0.45 ensemble gate) for any player whose queried name form
+    differs from the seeded form. Found via the PIT calibration harness, where
+    every tennis-data.co.uk surname query hit this against the Tennis Abstract
+    full-name seed.
+    """
+
+    RATINGS = TestSeedPrecomputedSurfaceElo.RATINGS
+
+    def test_surname_query_finds_full_name_counts(self, agent):
+        agent.seed_precomputed_surface_elo(self.RATINGS, games_per_player=12)
+        assert agent._get_count("sinner", "hard") == 12
+        assert agent._get_overall_count("sinner") == 12
+
+    def test_lookup_does_not_poison_state(self, agent):
+        agent.seed_precomputed_surface_elo(self.RATINGS, games_per_player=12)
+        agent._get_count("sinner", "hard")
+        # The read path must not insert an empty record for the queried form
+        assert "sinner" not in agent._state["game_counts"]
+        # And repeated lookups stay correct
+        assert agent._get_count("sinner", "hard") == 12
+
+    def test_pre_poisoned_state_still_resolves(self, agent):
+        """States persisted by the old code may already carry empty records."""
+        agent.seed_precomputed_surface_elo(self.RATINGS, games_per_player=12)
+        agent._state["game_counts"]["sinner"] = {}  # legacy poison
+        assert agent._get_count("sinner", "hard") == 12
+        assert agent._get_overall_count("sinner") == 12
+
+    def test_surname_query_confidence_matches_full_name(self, agent):
+        agent.seed_precomputed_surface_elo(self.RATINGS, games_per_player=12)
+        # Confidence tier depends only on counts, so the surname form must land
+        # in the same surface-confidence branch as the full-name form (~0.61)
+        assert agent._get_count("sinner", "hard") >= MIN_SURFACE_GAMES
+        expected = min(0.80, 0.55 + 0.005 * 12)
+        assert expected == pytest.approx(0.61)

@@ -299,26 +299,32 @@ class TennisModelAgent(ModelAgent):
             rank = self._state.get("wta_rankings", {}).get(player)
         return ranking_to_elo(rank)
 
-    def _get_count(self, player: str, surface: str) -> int:
-        counts = self._counts(player)
-        if counts:
-            return counts.get(surface, 0)
-        # Surname fallback for game_counts
+    def _lookup_counts(self, player: str) -> dict[str, int]:
+        """Read-only game_counts lookup with surname fallback.
+
+        Must NOT go through ``_counts`` (setdefault): inserting an empty
+        record for the queried name form made ``_resolve_player`` exact-match
+        that empty record, hiding the real one — a 'sinner' query against a
+        state seeded under 'jannik sinner' returned 0 games even though the
+        rating resolved fine, so confidence collapsed to 0.30 and the surface
+        model silently dropped out of the blend. Empty records (including any
+        persisted by the old code path) are skipped so the fallback still runs.
+        """
         game_counts = self._state.get("game_counts", {})
-        resolved = self._resolve_player(player, game_counts)
+        rec = game_counts.get(player)
+        if rec:
+            return rec
+        populated = {k: v for k, v in game_counts.items() if v}
+        resolved = self._resolve_player(player, populated)
         if resolved:
-            return game_counts[resolved].get(surface, 0)
-        return 0
+            return populated[resolved]
+        return {}
+
+    def _get_count(self, player: str, surface: str) -> int:
+        return self._lookup_counts(player).get(surface, 0)
 
     def _get_overall_count(self, player: str) -> int:
-        counts = self._counts(player)
-        if counts:
-            return counts.get("overall", 0)
-        game_counts = self._state.get("game_counts", {})
-        resolved = self._resolve_player(player, game_counts)
-        if resolved:
-            return game_counts[resolved].get("overall", 0)
-        return 0
+        return self._lookup_counts(player).get("overall", 0)
 
     # Slam keywords → best-of-5
     _SLAM_KEYWORDS = (

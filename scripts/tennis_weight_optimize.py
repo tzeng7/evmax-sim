@@ -42,13 +42,9 @@ sys.path.insert(0, str(_REPO_ROOT))
 sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 
 import analyze_tennis_full_blend as afb  # noqa: E402  (runs the _resolve_surface monkeypatch)
-import backtest_tennis_matchmx as bt  # noqa: E402
-import backtest_tennis_abstract_elo as bta  # noqa: E402
-from evmax.clients.tennisabstract import fetch_matchmx, parse_elo_html  # noqa: E402
-from evmax.ev.devig import devig_two_way  # noqa: E402
+import tennis_pit_rows  # noqa: E402
 
 CACHE = Path("/tmp/evmax_tennis_optimize_cache.json")
-WB = Path("/tmp/evmax_ta_elo_wayback")
 TRAIN_FRAC = 0.70
 PRIMARY = ("tennis_surface", "tennis_serve_return", "tennis_form", "tennis_advanced")
 FLOOR = 0.05            # required-model floor (stay in model_sources)
@@ -56,79 +52,12 @@ SHARP_WEIGHT = afb.SHARP_WEIGHT
 MODELS = list(afb.WEIGHTS)  # surface, serve, form, advanced, h2h
 
 
-def _wb_snapshots():
-    """[(yyyymmdd_int, path)] for the cached ATP Elo snapshots, ascending."""
-    out = []
-    for f in WB.glob("atp_*.html"):
-        ts = f.stem.split("_", 1)[1]
-        out.append((int(ts[:8]), f))
-    return sorted(out)
-
-
-def _ratings_from_snapshot(path):
-    rows = parse_elo_html(path.read_text())
-    rbs = {s: {} for s in ("overall", "hard", "clay", "grass", "indoor")}
-    for p in rows:
-        rbs["overall"][p.player] = p.elo
-        if p.hard is not None:
-            rbs["hard"][p.player] = p.hard
-            rbs["indoor"][p.player] = p.hard
-        if p.clay is not None:
-            rbs["clay"][p.player] = p.clay
-        if p.grass is not None:
-            rbs["grass"][p.player] = p.grass
-    return rbs
-
-
 async def build():
-    afb.TMP.mkdir(exist_ok=True)
-    snaps = _wb_snapshots()
-    if not snaps:
-        print("No Wayback snapshots — run backtest_tennis_abstract_elo.py first.", file=sys.stderr)
-        sys.exit(2)
-    mx = fetch_matchmx("atp")
-    mx_sorted = sorted(mx, key=lambda r: r["tourney_date"])
-    results = bt.load_atp_results((2024, 2025, 2026))
-
-    months = []
-    y, m = 2025, 1
-    while (y, m) <= (2026, 4):
-        months.append((y, m)); m += 1
-        if m > 12:
-            m = 1; y += 1
-
-    agents = afb._new_agents()
-    surface = agents["tennis_surface"]
-    rows = []
-    for (yy, mm) in months:
-        mstart = yy * 10000 + mm * 100 + 1
-        # surface Elo from the most recent Wayback snapshot strictly before the month
-        prior_snaps = [p for d, p in snaps if d < mstart]
-        if not prior_snaps:
-            continue
-        surface._state = {}
-        surface.seed_precomputed_surface_elo(_ratings_from_snapshot(prior_snaps[-1]))
-        # other models from matchmx pre-month
-        afb._reseed_batch(agents, [r for r in mx_sorted if afb._ymd(r["tourney_date"]) < mstart])
-        for r in [r for r in results if (r["date"].year, r["date"].month) == (yy, mm)]:
-            if not r["psw"] or not r["psl"]:
-                continue
-            try:
-                p_mkt_w, _, _ = devig_two_way(float(r["psw"]), float(r["psl"]))
-            except Exception:
-                continue
-            a, b = sorted((r["winner"], r["loser"]))
-            a_won = a == r["winner"]
-            market = afb._mk_market(a, b, r["surface"], r["date"], r["best_of"])
-            sharp = afb._mk_sharp(a, b, r["date"])
-            preds = await asyncio.gather(*[afb._prob_a(agents[k], market, sharp) for k in MODELS])
-            mp = {k: [preds[i][0], preds[i][1]] for i, k in enumerate(MODELS) if preds[i][0] is not None}
-            rows.append([1.0 if a_won else 0.0, r["date"].isoformat(),
-                         p_mkt_w if a_won else 1.0 - p_mkt_w, mp])
-
-    CACHE.write_text(json.dumps(rows))
-    fire = {k: sum(1 for _, _, _, mp in rows if k in mp) for k in MODELS}
-    print(f"cached {len(rows)} rows. fire rates:", {k: f"{v}/{len(rows)}" for k, v in fire.items()})
+    # Row building factored into tennis_pit_rows.py (2026-07-01), shared with
+    # fit_tennis_calibration.py. NOTE: caches rebuilt after the tennis game-count
+    # lookup fix carry surface confidence 0.61, not the 0.30 artifact the
+    # 2026-06-27 FINDING above was computed on.
+    await tennis_pit_rows.build_rows(CACHE)
 
 
 def _brier(subset, w, sw=SHARP_WEIGHT):
