@@ -715,16 +715,32 @@ def listing_window_markets(
     return out
 
 
+def resolve_watch_sectors(sectors: str) -> list[str]:
+    """Expand the --sectors option: 'all' → every game sector in SECTOR_SERIES_MAP.
+
+    Prop sectors are excluded — they have no laddered spread/total markets and
+    their listing dynamics (props list days early) are a different product.
+    Offseason sectors cost one cheap Kalshi series fetch per sweep and archive
+    nothing (no open markets in the window), so 'all' is safe year-round; the
+    Pinnacle anchor is only fetched for sectors that actually have markets.
+    """
+    if sectors.strip().lower() == "all":
+        from evmax.clients.kalshi import SECTOR_SERIES_MAP
+        return [s for s in SECTOR_SERIES_MAP if not s.endswith("_props")]
+    return [s.strip().lower() for s in sectors.split(",") if s.strip()]
+
+
 @app.command("watch-listings")
 def watch_listings(
     sectors: str = typer.Option(
-        "wnba", "--sectors", "-s",
-        help="Comma-separated sectors to watch (default: wnba).",
+        "all", "--sectors", "-s",
+        help="Comma-separated sectors to watch, or 'all' for every game sector "
+             "(props excluded). Default: all.",
     ),
     market_types: str = typer.Option(
-        "spread", "--market-types", "-m",
-        help="Comma-separated market types to capture (default: spread; "
-             "empty string = all types).",
+        "spread,total", "--market-types", "-m",
+        help="Comma-separated market types to capture (default: spread,total — "
+             "the laddered markets judged on CLV; empty string = all types).",
     ),
     window: int = typer.Option(
         72, "--window", "-w",
@@ -765,7 +781,7 @@ def watch_listings(
     from evmax.clients.esports_pinnacle import PinnacleGuestClient
     from evmax.clients.kalshi import KalshiClient
 
-    sector_list = [s.strip().lower() for s in sectors.split(",") if s.strip()]
+    sector_list = resolve_watch_sectors(sectors)
     type_set = {t.strip().lower() for t in market_types.split(",") if t.strip()}
 
     async def _sweep() -> dict[str, tuple[int, int, int]]:
@@ -811,7 +827,12 @@ def watch_listings(
 
     def _print_stats(stats: dict[str, tuple[int, int, int]]) -> None:
         ts = datetime.now().strftime("%H:%M:%S")
-        for sector, (n_mkts, n_depth, n_sharp) in stats.items():
+        active = {s: c for s, c in stats.items() if any(c)}
+        if not active:
+            console.print(f"[dim]{ts}  no open markets in window "
+                          f"({len(stats)} sectors swept)[/dim]")
+            return
+        for sector, (n_mkts, n_depth, n_sharp) in active.items():
             console.print(
                 f"[dim]{ts}[/dim]  [{sector}] markets {n_mkts}  "
                 f"depth {n_depth}  sharp {n_sharp}"

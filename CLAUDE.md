@@ -237,13 +237,19 @@ evmax agents pick --date YYYY-MM-DD --bankroll 500 --kelly 0.5
 # CLV has a genuine post-entry price to anchor against (also wired as a */5 cron).
 evmax cleanup watch-closes            # always-up; or `--once` per sweep
 
-# Background service — captures the LISTING→scan window (default: wnba spreads,
-# hourly): Kalshi price snapshots + order-book depth (archived_orderbook_depth)
-# + as-of Pinnacle anchor. Kalshi lists WNBA spread ladders ~2 days pre-tip as
-# MM placeholder quotes; the whole harvestable move happens before the daily
-# scan, so this stream is what the depth-aware entry rule / lay-side CLV gate
-# (`cleanup shadow clv --side lay`) evaluates. Writes archive.db only.
+# Background service — captures the LISTING→scan window (default: ALL game
+# sectors, spread+total ladders, hourly): Kalshi price snapshots + order-book
+# depth (archived_orderbook_depth) + as-of Pinnacle anchor. Kalshi lists WNBA
+# spread ladders ~2 days pre-tip as MM placeholder quotes; the whole harvestable
+# move happens before the daily scan, so this stream is what the depth-aware
+# entry rule / lay-side CLV gate (`cleanup shadow clv --side lay`) evaluates.
+# Offseason sectors cost one cheap Kalshi fetch and archive nothing; the
+# Pinnacle anchor is only fetched for sectors with open markets in the window.
+# Deliberately NO injuries/models: the devigged-Pinnacle anchor already impounds
+# news — this measures venue timing (Kalshi-vs-sharp convergence + fillability),
+# not forecasting. Writes archive.db only.
 evmax cleanup watch-listings          # always-up; or `--once` per sweep
+evmax cleanup watch-listings -s wnba -m spread --once   # narrow one-off sweep
 
 # Next morning — resolve yesterday's outcomes
 # (resolve also feeds the date's completed ESPN scores into elo/form/poisson/xg
