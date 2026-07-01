@@ -265,6 +265,7 @@ evmax categories list --mode shadow               # see what's in shadow today
 evmax cleanup shadow show --days 7                # recent shadow predictions
 evmax cleanup shadow metrics --days 30            # Brier + ROI per category (excludes superseded-code rows by default; `Excl` column + footer report the drop; --include-contaminated to score them)
 evmax cleanup shadow promote nfl_props            # flip shadow → live once validated (refuses if < 30 clean current-code resolved rows; --force overrides)
+evmax cleanup shadow clv wnba -m spread --side lay  # Kalshi entry→close CLV, the promotion lens for laddered markets. --side lay/take splits by bet direction (line sign) — the 2026-07 audit found the sides are different products at scan entry (laying ~breakeven, taking bleeds −2.2pp buying a NO-side run-up), so judge spread promotion per side, never pooled. --since drops a stale period.
 ```
 
 ### WNBA-specific maintenance (2026 season)
