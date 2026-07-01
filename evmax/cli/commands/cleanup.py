@@ -682,6 +682,162 @@ def watch_closes(
         console.print("\n[dim]watch-closes stopped.[/dim]")
 
 
+def listing_window_markets(
+    markets: list,
+    market_types: set[str],
+    window_hours: int,
+    now: "datetime | None" = None,
+) -> list:
+    """Filter fetched Kalshi markets to the listing→tip capture window.
+
+    Keeps markets whose type is in ``market_types`` (empty set = all) and whose
+    event_date falls in [now − 24h, now + window_hours]. The 24h lower bound is
+    deliberate slack: Kalshi ticker dates anchor at noon UTC, so a same-evening
+    game's event_date sits hours BEFORE the actual tip — a tight `>= now` bound
+    would drop today's still-open pre-game markets. Already-settled markets
+    never reach here (get_markets fetches status=open only).
+    """
+    now = now or datetime.now(timezone.utc)
+    lo = now - timedelta(hours=24)
+    hi = now + timedelta(hours=window_hours)
+    out = []
+    for m in markets:
+        mt = m.market_type.value if hasattr(m.market_type, "value") else str(m.market_type)
+        if market_types and mt not in market_types:
+            continue
+        ed = m.event_date
+        if ed is None:
+            continue
+        if ed.tzinfo is None:
+            ed = ed.replace(tzinfo=timezone.utc)
+        if lo <= ed <= hi:
+            out.append(m)
+    return out
+
+
+@app.command("watch-listings")
+def watch_listings(
+    sectors: str = typer.Option(
+        "wnba", "--sectors", "-s",
+        help="Comma-separated sectors to watch (default: wnba).",
+    ),
+    market_types: str = typer.Option(
+        "spread", "--market-types", "-m",
+        help="Comma-separated market types to capture (default: spread; "
+             "empty string = all types).",
+    ),
+    window: int = typer.Option(
+        72, "--window", "-w",
+        help="Capture markets whose event_date is within the next N hours.",
+    ),
+    interval: int = typer.Option(
+        3600, "--interval", "-i",
+        help="Seconds to sleep between sweeps (default 1h).",
+    ),
+    once: bool = typer.Option(
+        False, "--once",
+        help="Run a single sweep and exit (skip the loop).",
+    ),
+) -> None:
+    """Capture the listing→scan window: prices + order-book DEPTH + sharp anchor.
+
+    WHY (2026-07-01 WNBA spread audit): Kalshi lists spread ladders ~2 days
+    pre-tip with MM placeholder quotes (85% have $0 volume/OI at first
+    snapshot). The whole harvestable price move (~17pp on the laying side)
+    happens between listing and the daily scan, so scan-entry CLV is ~0 by
+    construction. This watcher archives, per sweep:
+
+      1. Kalshi market snapshots  → archived_kalshi_markets  (price trail)
+      2. Order-book depth metrics → archived_orderbook_depth (fillability)
+      3. Devigged Pinnacle odds   → archived_sharp_odds      (as-of EV anchor)
+
+    Together these let the depth-aware entry rule be evaluated offline: the
+    first sweep where EV ≥ threshold at the live ask AND ask depth clears a
+    floor is the honest "entry" the lay-side CLV promotion gate should score
+    (see `cleanup shadow clv --side lay`). Pure capture — writes archive.db
+    only, never predictions.db, so it cannot contaminate the shadow stream.
+
+    Run hourly via a scheduled task / launchd during WNBA season, or --once.
+    """
+    import asyncio
+    import time
+    from evmax.archiver import DataArchiver
+    from evmax.clients.esports_pinnacle import PinnacleGuestClient
+    from evmax.clients.kalshi import KalshiClient
+
+    sector_list = [s.strip().lower() for s in sectors.split(",") if s.strip()]
+    type_set = {t.strip().lower() for t in market_types.split(",") if t.strip()}
+
+    async def _sweep() -> dict[str, tuple[int, int, int]]:
+        """Returns {sector: (markets_archived, depth_rows, sharp_rows)}."""
+        session_id = "watchlist-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+        archiver = DataArchiver()
+        stats: dict[str, tuple[int, int, int]] = {}
+        for sector in sector_list:
+            # 1. Kalshi markets in the listing window → price snapshot
+            try:
+                async with KalshiClient() as client:
+                    markets = await client.get_markets(sector)
+                    wanted = listing_window_markets(markets, type_set, window)
+                    if not wanted:
+                        stats[sector] = (0, 0, 0)
+                        continue
+                    n_mkts = archiver.archive_kalshi_markets(session_id, sector, wanted)
+                    # 2. Order-book depth for the same tickers
+                    books = await client.get_market_books_batch(
+                        [m.ticker for m in wanted if m.ticker]
+                    )
+            except Exception as kerr:  # noqa: BLE001 — never abort the sweep
+                console.print(f"[yellow]  [{sector}] kalshi sweep failed: {kerr}[/yellow]")
+                stats[sector] = (0, 0, 0)
+                continue
+            depth_rows = [
+                {"ticker": t, **m} for t, m in books.items() if m is not None
+            ]
+            n_depth = archiver.archive_orderbook_depth(session_id, sector, depth_rows)
+
+            # 3. As-of sharp anchor (ML + spread devigged) for EV-at-entry evaluation
+            n_sharp = 0
+            try:
+                async with PinnacleGuestClient() as pclient:
+                    odds = await pclient.get_odds(sector)
+                if odds:
+                    n_sharp = archiver.archive_sharp_odds(session_id, sector, odds)
+            except Exception as perr:  # noqa: BLE001
+                console.print(f"[yellow]  [{sector}] pinnacle fetch failed: {perr}[/yellow]")
+
+            stats[sector] = (n_mkts, n_depth, n_sharp)
+        return stats
+
+    def _print_stats(stats: dict[str, tuple[int, int, int]]) -> None:
+        ts = datetime.now().strftime("%H:%M:%S")
+        for sector, (n_mkts, n_depth, n_sharp) in stats.items():
+            console.print(
+                f"[dim]{ts}[/dim]  [{sector}] markets {n_mkts}  "
+                f"depth {n_depth}  sharp {n_sharp}"
+            )
+
+    if once:
+        _print_stats(asyncio.run(_sweep()))
+        return
+
+    console.print(
+        f"[cyan]watch-listings running[/cyan]  sectors={','.join(sector_list)}  "
+        f"types={','.join(sorted(type_set)) or 'all'}  window={window}h  "
+        f"interval={interval}s  [dim](Ctrl+C to stop)[/dim]"
+    )
+    try:
+        while True:
+            try:
+                _print_stats(asyncio.run(_sweep()))
+            except Exception as sweep_err:  # noqa: BLE001
+                ts = datetime.now().strftime("%H:%M:%S")
+                console.print(f"[red]{ts}  sweep failed:[/red] {sweep_err}")
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        console.print("\n[dim]watch-listings stopped.[/dim]")
+
+
 def _stale_unmatched_candidates(conn, cutoff_str: str):
     """Live, unresolved, not-yet-voided predictions before the cutoff.
 

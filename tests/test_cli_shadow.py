@@ -334,7 +334,10 @@ class TestClvClears:
 
 
 def _make_clv_db(tmp_path: Path, rows: list[tuple]) -> Path:
-    """rows: (market_id, scan_date, market_type, mode, kalshi_clv_pct, outcome).
+    """rows: (market_id, scan_date, market_type, mode, kalshi_clv_pct, outcome[, line]).
+
+    The 7th element (line) is optional and defaults to NULL — only the
+    side-split tests need it.
 
     Deliberately omits the old `UNIQUE(market_id, scan_date)` constraint so
     get_connection()'s table-rebuild migration is skipped (it references base
@@ -357,12 +360,15 @@ def _make_clv_db(tmp_path: Path, rows: list[tuple]) -> Path:
         );
         """
     )
-    for mid, sd, mt, mode, clv, outcome in rows:
+    for row in rows:
+        mid, sd, mt, mode, clv, outcome = row[:6]
+        line = row[6] if len(row) > 6 else None
         conn.execute(
             """INSERT INTO ev_predictions
-               (scan_date, market_id, event_id, sector, market_type, mode, kalshi_clv_pct)
-               VALUES (?,?,?,?,?,?,?)""",
-            (sd, mid, f"wnba::{sd}::a_vs_b::spread", "wnba", mt, mode, clv),
+               (scan_date, market_id, event_id, sector, market_type, mode,
+                kalshi_clv_pct, line)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (sd, mid, f"wnba::{sd}::a_vs_b::spread", "wnba", mt, mode, clv, line),
         )
         if outcome is not None:
             conn.execute(
@@ -414,6 +420,28 @@ class TestClvStats:
         _patch_db(_make_clv_db(tmp_path, rows))
         s = clv_stats("wnba", market_type="spread")
         assert s["n"] == 1 and s["mean_clv_pp"] == 1.0
+
+    def test_side_filter_splits_lay_from_take(self, tmp_path, _patch_db):
+        # Mirrors the 2026-07 WNBA spread audit: laying rows carry the CLV,
+        # scan-time taking rows bleed. Promotion must judge each side alone.
+        rows = [(f"lay{i}", "2026-06-10", "spread", "shadow", 2.0, 1, -6.5)
+                for i in range(3)]
+        rows += [(f"take{i}", "2026-06-10", "spread", "shadow", -3.0, 0, 5.5)
+                 for i in range(2)]
+        rows += [("noline", "2026-06-10", "spread", "shadow", 9.0, 1, None)]
+        _patch_db(_make_clv_db(tmp_path, rows))
+        lay = clv_stats("wnba", market_type="spread", side="lay")
+        take = clv_stats("wnba", market_type="spread", side="take")
+        pooled = clv_stats("wnba", market_type="spread")
+        assert lay["n"] == 3 and lay["mean_clv_pp"] == 2.0
+        assert take["n"] == 2 and take["mean_clv_pp"] == -3.0
+        # NULL-line rows are excluded from side splits but kept in the pool
+        assert pooled["n"] == 6
+
+    def test_side_filter_rejects_bad_value(self, tmp_path, _patch_db):
+        _patch_db(_make_clv_db(tmp_path, [("s1", "2026-06-10", "spread", "live", 1.0, 1)]))
+        with pytest.raises(ValueError, match="side must be"):
+            clv_stats("wnba", market_type="spread", side="left")
 
 
 class TestPromoteClvGate:

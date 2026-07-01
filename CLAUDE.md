@@ -237,6 +237,14 @@ evmax agents pick --date YYYY-MM-DD --bankroll 500 --kelly 0.5
 # CLV has a genuine post-entry price to anchor against (also wired as a */5 cron).
 evmax cleanup watch-closes            # always-up; or `--once` per sweep
 
+# Background service — captures the LISTING→scan window (default: wnba spreads,
+# hourly): Kalshi price snapshots + order-book depth (archived_orderbook_depth)
+# + as-of Pinnacle anchor. Kalshi lists WNBA spread ladders ~2 days pre-tip as
+# MM placeholder quotes; the whole harvestable move happens before the daily
+# scan, so this stream is what the depth-aware entry rule / lay-side CLV gate
+# (`cleanup shadow clv --side lay`) evaluates. Writes archive.db only.
+evmax cleanup watch-listings          # always-up; or `--once` per sweep
+
 # Next morning — resolve yesterday's outcomes
 # (resolve also feeds the date's completed ESPN scores into elo/form/poisson/xg
 #  state for the 7 game sectors — pass --no-update-models to skip. This is what
@@ -265,6 +273,7 @@ evmax categories list --mode shadow               # see what's in shadow today
 evmax cleanup shadow show --days 7                # recent shadow predictions
 evmax cleanup shadow metrics --days 30            # Brier + ROI per category (excludes superseded-code rows by default; `Excl` column + footer report the drop; --include-contaminated to score them)
 evmax cleanup shadow promote nfl_props            # flip shadow → live once validated (refuses if < 30 clean current-code resolved rows; --force overrides)
+evmax cleanup shadow clv wnba -m spread --side lay  # Kalshi entry→close CLV, the promotion lens for laddered markets. --side lay/take splits by bet direction (line sign) — the 2026-07 audit found the sides are different products at scan entry (laying ~breakeven, taking bleeds −2.2pp buying a NO-side run-up), so judge spread promotion per side, never pooled. --since drops a stale period.
 ```
 
 ### WNBA-specific maintenance (2026 season)

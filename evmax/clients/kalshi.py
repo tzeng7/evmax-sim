@@ -263,6 +263,76 @@ class KalshiWSClient:
             results.setdefault(t, None)
         return results
 
+    async def fetch_books(
+        self, tickers: list[str],
+    ) -> dict[str, Optional[dict]]:
+        """Subscribe to orderbook_delta, collect the FULL bid ladders per ticker.
+
+        Returns dict[ticker, {"yes_bids": [(price, usd), ...],
+                              "no_bids":  [(price, usd), ...]} | None].
+        Ladders are ascending by price (best bid last), prices 0.0–1.0, sizes
+        in dollars — the raw material for depth metrics (see
+        ``book_depth_metrics``). Tickers with no snapshot inside the timeout
+        map to None so the caller can fall back to REST.
+        """
+        try:
+            import websockets.asyncio.client as ws_client
+        except ImportError:
+            logger.debug("kalshi_ws_import_failed", hint="pip install 'websockets>=12.0'")
+            return {t: None for t in tickers}
+
+        results: dict[str, Optional[dict]] = {}
+        remaining = set(tickers)
+
+        try:
+            auth_headers = self._sign_fn("GET", "/trade-api/ws/v2")
+            extra_headers = {}
+            if auth_headers:
+                extra_headers = {
+                    "KALSHI-ACCESS-KEY": auth_headers.get("KALSHI-ACCESS-KEY", ""),
+                    "KALSHI-ACCESS-SIGNATURE": auth_headers.get("KALSHI-ACCESS-SIGNATURE", ""),
+                    "KALSHI-ACCESS-TIMESTAMP": auth_headers.get("KALSHI-ACCESS-TIMESTAMP", ""),
+                }
+
+            async with ws_client.connect(
+                self._ws_url,
+                open_timeout=5,
+                additional_headers=extra_headers if extra_headers else None,
+            ) as ws:
+                self._ws = ws
+                await ws.send(json.dumps({
+                    "id": 1,
+                    "cmd": "subscribe",
+                    "params": {
+                        "channels": ["orderbook_delta"],
+                        "market_tickers": list(tickers),
+                    },
+                }))
+                deadline = asyncio.get_event_loop().time() + self._timeout
+                while remaining:
+                    wait = deadline - asyncio.get_event_loop().time()
+                    if wait <= 0:
+                        break
+                    try:
+                        raw = await asyncio.wait_for(ws.recv(), timeout=wait)
+                        msg = json.loads(raw)
+                        ticker, yes_bids, no_bids = self._parse_book(msg)
+                        if ticker and ticker in remaining and (yes_bids or no_bids):
+                            results[ticker] = {"yes_bids": yes_bids, "no_bids": no_bids}
+                            remaining.discard(ticker)
+                    except asyncio.TimeoutError:
+                        break
+                    except Exception as e:
+                        logger.debug("kalshi_ws_recv_error", error=str(e))
+                        break
+
+        except Exception as e:
+            logger.debug("kalshi_ws_connect_error", error=str(e))
+
+        for t in remaining:
+            results.setdefault(t, None)
+        return results
+
     async def _login(self, ws: Any) -> None:
         """Send Kalshi WS login message and wait for acknowledgement."""
         headers = self._sign_fn("GET", "/trade-api/ws/v2")
@@ -318,26 +388,12 @@ class KalshiWSClient:
         longer distinguish a real liquid book from an empty/stale one.
         """
         none = (None, None, None)
-        msg_type = msg.get("type", "")
-        if msg_type != "orderbook_snapshot":
-            return none
-
-        body = msg.get("msg", msg)
-        ticker = body.get("market_ticker") or msg.get("market_ticker")
+        ticker, yes_bids, no_bids = self._parse_book(msg)
         if not ticker:
             return none
 
-        def _best_top(entries) -> Optional[float]:
-            """Return the highest price (best bid) in a BID ladder, or None."""
-            if not entries:
-                return None
-            try:
-                return float(entries[-1][0])
-            except (ValueError, TypeError, IndexError):
-                return None
-
-        best_no_bid = _best_top(body.get("no_dollars_fp", []))
-        best_yes_bid = _best_top(body.get("yes_dollars_fp", []))
+        best_no_bid = no_bids[-1][0] if no_bids else None
+        best_yes_bid = yes_bids[-1][0] if yes_bids else None
 
         yes_ask = (1.0 - best_no_bid) if best_no_bid is not None else None
         no_ask = (1.0 - best_yes_bid) if best_yes_bid is not None else None
@@ -349,6 +405,78 @@ class KalshiWSClient:
             no_ask = None
 
         return ticker, yes_ask, no_ask
+
+    def _parse_book(
+        self, msg: dict[str, Any],
+    ) -> tuple[Optional[str], list[tuple[float, float]], list[tuple[float, float]]]:
+        """Extract (ticker, yes_bids, no_bids) ladders from a WS snapshot.
+
+        Ladders come back as lists of (price, dollars) tuples, ascending by
+        price (best bid last), exactly as Kalshi sends the ``*_dollars_fp``
+        arrays. Malformed entries are skipped; a non-snapshot message returns
+        (None, [], []).
+        """
+        empty: tuple[Optional[str], list, list] = (None, [], [])
+        if msg.get("type", "") != "orderbook_snapshot":
+            return empty
+
+        body = msg.get("msg", msg)
+        ticker = body.get("market_ticker") or msg.get("market_ticker")
+        if not ticker:
+            return empty
+
+        def _ladder(entries) -> list[tuple[float, float]]:
+            out: list[tuple[float, float]] = []
+            for e in entries or []:
+                try:
+                    out.append((float(e[0]), float(e[1])))
+                except (ValueError, TypeError, IndexError):
+                    continue
+            return out
+
+        return (
+            ticker,
+            _ladder(body.get("yes_dollars_fp", [])),
+            _ladder(body.get("no_dollars_fp", [])),
+        )
+
+
+def book_depth_metrics(
+    yes_bids: list[tuple[float, float]],
+    no_bids: list[tuple[float, float]],
+) -> dict:
+    """Summarize a Kalshi bid-ladder pair into taker-perspective depth numbers.
+
+    Both inputs are BID ladders ascending by price (best bid last), sizes in
+    dollars. On Kalshi a YES taker crosses with resting NO bids, so:
+      - yes_ask            = 1 − best NO bid  (price a YES buyer pays now)
+      - yes_ask_depth_usd  = dollars resting at that best NO bid — the size a
+                             YES taker can fill without moving the price
+      - yes_bid / yes_bid_depth_usd = best resting YES bid and its size (what a
+                             maker entry would join / a YES seller hits)
+      - yes_book_usd / no_book_usd  = total dollars on each ladder (0.0 for an
+                             empty ladder — the freshly-listed placeholder case)
+    Prices outside (0, 1) mark a malformed level: that side's price AND depth
+    are both None so a bad snapshot can't masquerade as a fillable quote.
+    """
+    best_yes = yes_bids[-1] if yes_bids else None
+    best_no = no_bids[-1] if no_bids else None
+
+    yes_ask = (1.0 - best_no[0]) if best_no else None
+    if yes_ask is not None and not (0 < yes_ask < 1):
+        yes_ask = None
+    yes_bid = best_yes[0] if best_yes else None
+    if yes_bid is not None and not (0 < yes_bid < 1):
+        yes_bid = None
+
+    return {
+        "yes_ask": yes_ask,
+        "yes_ask_depth_usd": best_no[1] if (best_no and yes_ask is not None) else None,
+        "yes_bid": yes_bid,
+        "yes_bid_depth_usd": best_yes[1] if (best_yes and yes_bid is not None) else None,
+        "yes_book_usd": sum(e[1] for e in yes_bids) if yes_bids else 0.0,
+        "no_book_usd": sum(e[1] for e in no_bids) if no_bids else 0.0,
+    }
 
 
 class KalshiClient(BaseAPIClient):
@@ -578,6 +706,100 @@ class KalshiClient(BaseAPIClient):
                 results[t] = ask if not isinstance(ask, Exception) else None
 
         return results
+
+    async def get_market_books_batch(
+        self,
+        tickers: list[str],
+    ) -> dict[str, Optional[dict]]:
+        """Fetch order-book DEPTH metrics for multiple tickers.
+
+        Same WS-first / REST-fallback shape as ``get_market_asks_batch``, but
+        instead of collapsing the book to the best ask it returns
+        ``book_depth_metrics`` per ticker (yes_ask, yes_ask_depth_usd, yes_bid,
+        yes_bid_depth_usd, yes_book_usd, no_book_usd) plus a ``source`` key
+        ('ws' | 'rest'). This is what makes a quote distinguishable from a
+        MARKET: a freshly-listed WNBA spread rung shows an MM placeholder ask
+        with ~$0 behind it — depth is the fillability signal the listing-window
+        watcher archives.
+
+        Args:
+            tickers: Ticker strings (with or without "kalshi:" prefix).
+        Returns:
+            Dict mapping each input ticker to its metrics dict, or None when
+            neither WS nor REST produced a book.
+        """
+        settings = get_settings()
+        api_tickers = {t: (t.split(":", 1)[-1] if ":" in t else t) for t in tickers}
+
+        results: dict[str, Optional[dict]] = {}
+
+        if settings.kalshi_ws_enabled:
+            try:
+                async with self._ws_client() as ws:
+                    books = await ws.fetch_books(list(api_tickers.values()))
+            except Exception as e:  # noqa: BLE001 — WS failure must not kill the sweep
+                logger.debug("kalshi_ws_books_failed", error=str(e))
+                books = {}
+            for orig, api in api_tickers.items():
+                book = books.get(api)
+                if book is not None:
+                    metrics = book_depth_metrics(book["yes_bids"], book["no_bids"])
+                    metrics["source"] = "ws"
+                    results[orig] = metrics
+
+        missing = [t for t in tickers if t not in results]
+        if missing:
+            rest_books = await asyncio.gather(
+                *(self._rest_book_metrics(t) for t in missing),
+                return_exceptions=True,
+            )
+            for t, m in zip(missing, rest_books):
+                results[t] = m if not isinstance(m, Exception) else None
+
+        return results
+
+    async def _rest_book_metrics(self, ticker: str) -> Optional[dict]:
+        """REST fallback for one ticker's depth metrics (see get_market_books_batch).
+
+        Prefers the ``*_dollars`` ladders (sizes already in dollars); falls back
+        to the legacy cent-price/contract-count ladders, converting size to
+        dollars as contracts × price.
+        """
+        api_ticker = ticker.split(":", 1)[-1] if ":" in ticker else ticker
+        try:
+            await _KALSHI_RATE_LIMITER.acquire()
+            ob_data = await self._get(f"/markets/{api_ticker}/orderbook")
+        except Exception as e:
+            logger.debug("kalshi_orderbook_depth_failed", ticker=api_ticker, error=str(e))
+            return None
+
+        ob = ob_data.get("orderbook_fp", ob_data.get("orderbook", {})) or {}
+
+        def _ladder(dollars_key: str, cents_key: str) -> list[tuple[float, float]]:
+            out: list[tuple[float, float]] = []
+            entries = ob.get(dollars_key)
+            if entries:
+                for e in entries:
+                    try:
+                        out.append((float(e[0]), float(e[1])))
+                    except (ValueError, TypeError, IndexError):
+                        continue
+                return out
+            for e in ob.get(cents_key) or []:
+                try:
+                    price = float(e[0]) / 100.0
+                    out.append((price, float(e[1]) * price))
+                except (ValueError, TypeError, IndexError):
+                    continue
+            return out
+
+        yes_bids = _ladder("yes_dollars", "yes")
+        no_bids = _ladder("no_dollars", "no")
+        if not yes_bids and not no_bids:
+            return None
+        metrics = book_depth_metrics(yes_bids, no_bids)
+        metrics["source"] = "rest"
+        return metrics
 
     async def get_market_ask(self, ticker: str) -> Optional[float]:
         """Fetch the current YES ask price for a single market.

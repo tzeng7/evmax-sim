@@ -421,6 +421,7 @@ def clv_stats(
     market_type: Optional[str] = None,
     mode: Optional[str] = None,
     since: Optional[str] = None,
+    side: Optional[str] = None,
 ) -> dict:
     """Aggregate kalshi_clv_pct for a category's current-code resolved bets.
 
@@ -431,6 +432,12 @@ def clv_stats(
     shadow validation set (use before a shadow→live promote). `since` (YYYY-MM-DD)
     excludes older rows — use it to drop a stale-modelling period that the
     contamination rules don't yet flag (e.g. a pricing change with no SHA stamp).
+    `side` splits laddered markets by the bet's direction relative to the line:
+    'lay' = yes_team gives points (line < 0), 'take' = yes_team gets points
+    (line > 0). Rows without a line are excluded when side is set. The 2026-07
+    WNBA spread audit found the two sides behave as different products — laying
+    is ~breakeven CLV while scan-time taking bets buy a NO-side run-up and
+    mean-revert — so promotion must be judged per side, not pooled.
     """
     from evmax.agents.cleanup.contamination import is_contaminated
     from evmax.agents.cleanup.db import get_connection
@@ -452,6 +459,10 @@ def clv_stats(
     if since is not None:
         where.append("p.scan_date >= ?")
         params.append(since)
+    if side is not None:
+        if side not in ("lay", "take"):
+            raise ValueError(f"side must be 'lay' or 'take', got {side!r}")
+        where.append("p.line < 0" if side == "lay" else "p.line > 0")
     sql = f"""
         SELECT p.sector, p.market_type, p.model_sources, p.line, p.kalshi_clv_pct
         FROM ev_predictions p
@@ -492,6 +503,11 @@ def clv(
         None, "--since",
         help="Only score rows scanned on/after YYYY-MM-DD (drop a stale-model period).",
     ),
+    side: Optional[str] = typer.Option(
+        None, "--side",
+        help="Restrict laddered bets by direction: 'lay' (line<0, giving points) "
+             "or 'take' (line>0, getting points). Judge spread promotion per side.",
+    ),
 ) -> None:
     """Report Kalshi CLV (entry→close) — the +EV signal for laddered markets.
 
@@ -499,10 +515,11 @@ def clv(
     close on Brier by construction. Positive mean CLV with a clear majority of
     bets moving our way = we are beating the close = genuine edge.
     """
-    s = clv_stats(category, market_type=market_type, mode=mode, since=since)
+    s = clv_stats(category, market_type=market_type, mode=mode, since=since, side=side)
     label = f"{category}" + (f" / {market_type}" if market_type else "")
     label += f" [{mode}]" if mode else " [all modes]"
     label += f" since {since}" if since else ""
+    label += f" side={side}" if side else ""
     if s["n"] == 0:
         console.print(f"[yellow]No current-code resolved CLV rows for {label}.[/yellow]")
         return
