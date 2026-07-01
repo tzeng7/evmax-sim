@@ -32,12 +32,12 @@ State file: data/models/tennis_surface_state.json
 
 from __future__ import annotations
 
-import re
 from typing import Optional
 
 import structlog
 
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
+from evmax.agents.models.tennis_common import resolve_player
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
 
@@ -215,64 +215,12 @@ class TennisModelAgent(ModelAgent):
     def _counts(self, player: str) -> dict[str, int]:
         return self._state.setdefault("game_counts", {}).setdefault(player, {})
 
-    @staticmethod
-    def _normalize_name(name: str) -> str:
-        """Strip apostrophes and collapse spaces for consistent comparison.
-
-        Handles: "o'connell" → "oconnell", "o connell" → "oconnell"
-        """
-        return re.sub(r"[\s''\-]+", "", name.lower().strip().rstrip("."))
-
-    @staticmethod
-    def _surname_key(name: str) -> str:
-        """Extract surname for fuzzy matching: 'sinner' from 'jannik sinner' or 'sinner j.'."""
-        name = name.strip().rstrip(".")
-        parts = name.split()
-        if not parts:
-            return name
-        # "sinner j." → surname is first token; "jannik sinner" → surname is last token
-        # Heuristic: if last part is a single char (initial), surname is everything before it
-        if len(parts[-1]) <= 2:
-            return " ".join(parts[:-1])
-        return parts[-1]
-
     def _resolve_player(self, player: str, store: dict) -> str | None:
-        """Resolve player name against a ratings dict with surname fallback.
-
-        Handles: 'sinner' or 'jannik sinner' → 'sinner j.' (tennis-data format).
-        Also handles multi-word surnames: 'de minaur' → 'de minaur a.'
-        Also handles apostrophe variants: "o'connell" / "oconnell" → "o connell c."
-
-        When multiple state entries share the same surname (common when the
-        state was seeded from two sources that use different name formats —
-        e.g. 'adrian mannarino' AND 'mannarino a.'), pick the entry with the
-        highest game_count so duplicate-seed cases still resolve.
+        """Resolve player name against a ratings dict via the shared tennis
+        resolver (see :func:`evmax.agents.models.tennis_common.resolve_player`
+        for the full matching cascade), breaking same-player duplicate ties
+        (e.g. 'adrian mannarino' AND 'mannarino a.') by highest game_count.
         """
-        if player in store:
-            return player
-        # Surname match: find entries where surname matches
-        target = self._surname_key(player)
-        candidates = [k for k in store if self._surname_key(k) == target]
-        if not candidates:
-            # Normalized match: strip apostrophes/spaces and compare
-            # "oconnell" matches "o connell c." because both normalize to "oconnell"
-            norm_player = self._normalize_name(player)
-            candidates = [
-                k for k in store
-                if self._normalize_name(self._surname_key(k)) == norm_player
-            ]
-        if not candidates:
-            # Multi-word name prefix match: "de minaur" matches "de minaur a."
-            candidates = [
-                k for k in store
-                if k.startswith(player + " ") or k.startswith(player + ".")
-            ]
-        if not candidates:
-            return None
-        if len(candidates) == 1:
-            return candidates[0]
-        # Multiple same-surname matches: duplicate seed entries for the same
-        # player. Pick the one with the most recorded games (best signal).
         counts = self._state.get("game_counts", {})
 
         def _total_games(key: str) -> int:
@@ -281,7 +229,22 @@ class TennisModelAgent(ModelAgent):
                 return sum(v for v in rec.values() if isinstance(v, (int, float)))
             return int(rec) if isinstance(rec, (int, float)) else 0
 
-        return max(candidates, key=_total_games)
+        return resolve_player(player, store, weight_fn=_total_games)
+
+    def _get_rank(self, player: str) -> Optional[int]:
+        """Official-rank lookup with the same name resolution as ratings.
+
+        The ranking stores are keyed by full name ('felix auger-aliassime'),
+        so an exact ``.get`` missed surname or spelling-variant queries.
+        """
+        for key in ("atp_rankings", "wta_rankings"):
+            store = self._state.get(key, {})
+            if not store:
+                continue
+            resolved = resolve_player(player, store)
+            if resolved is not None:
+                return store[resolved]
+        return None
 
     def _get_rating(self, player: str, surface: str) -> float:
         """Get surface-specific Elo, falling back to overall, then ATP/WTA ranking prior."""
@@ -294,10 +257,7 @@ class TennisModelAgent(ModelAgent):
         if resolved:
             return overall[resolved]
         # Fall back to ATP ranking prior, then WTA
-        rank = self._state.get("atp_rankings", {}).get(player)
-        if rank is None:
-            rank = self._state.get("wta_rankings", {}).get(player)
-        return ranking_to_elo(rank)
+        return ranking_to_elo(self._get_rank(player))
 
     def _lookup_counts(self, player: str) -> dict[str, int]:
         """Read-only game_counts lookup with surname fallback.
@@ -406,11 +366,8 @@ class TennisModelAgent(ModelAgent):
             # Use ranking prior confidence: ranked players get 0.48 (just above
             # the 0.45 ensemble gate), unranked stay at 0.30 (excluded)
             has_ranking = (
-                self._state.get("atp_rankings", {}).get(player_a) is not None
-                or self._state.get("wta_rankings", {}).get(player_a) is not None
-            ) and (
-                self._state.get("atp_rankings", {}).get(player_b) is not None
-                or self._state.get("wta_rankings", {}).get(player_b) is not None
+                self._get_rank(player_a) is not None
+                and self._get_rank(player_b) is not None
             )
             confidence = 0.48 if has_ranking else 0.30
 
@@ -578,15 +535,21 @@ class TennisModelAgent(ModelAgent):
         """
         Seed ATP/WTA rankings from an external source.
 
+        FULL-REPLACE of the tour's store: every caller passes a complete tour
+        snapshot, and the old merge semantics let retired players linger at
+        their last-known rank forever (Kvitova was still "ranked" #37 a year
+        after retiring). Same rationale as the ranking-trend store's
+        full-replace seed.
+
         Args:
             rankings: {player_name (lowercase) → rank_integer}
                       e.g. {"sinner": 1, "alcaraz": 2, "djokovic": 3}
             tour: "atp" or "wta"
         """
         key = f"{tour.lower()}_rankings"
-        store = self._state.setdefault(key, {})
-        for player, rank in rankings.items():
-            store[player.lower().strip()] = int(rank)
+        self._state[key] = {
+            player.lower().strip(): int(rank) for player, rank in rankings.items()
+        }
         self.save_state()
         self.log.info("tennis_rankings_seeded", tour=tour, count=len(rankings))
 

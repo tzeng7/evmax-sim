@@ -360,6 +360,26 @@ class TestPlayerResolution:
         resolved = agent._resolve_player("mannarino", store)
         assert resolved == "mannarino a."
 
+    def test_hyphenated_surname_resolves_space_form(self, agent):
+        """Regression: 'Felix Auger-Aliassime' (Kalshi/Pinnacle spelling) must
+        reach the Tennis Abstract space-form key. Pre-fix, every FAA match
+        lost all matchmx models and got shadow-demoted by the full-blend gate."""
+        store = {"felix auger aliassime": 1950.0}
+        assert agent._resolve_player("felix auger-aliassime", store) == "felix auger aliassime"
+        assert agent._resolve_player("auger-aliassime", store) == "felix auger aliassime"
+
+    def test_distinct_same_surname_players_return_none(self, agent):
+        """Regression: bare-surname queries against several different players
+        (four Wangs, tied synthetic game counts) picked one arbitrarily."""
+        agent._state["game_counts"] = {
+            k: {"hard": 12, "overall": 12}
+            for k in ("xiyu wang", "xin yu wang", "yafan wang")
+        }
+        store = {"xiyu wang": 1700.0, "xin yu wang": 1710.0, "yafan wang": 1690.0}
+        assert agent._resolve_player("wang", store) is None
+        # A given name disambiguates: 'xinyu' == 'xin yu' normalized
+        assert agent._resolve_player("xinyu wang", store) == "xin yu wang"
+
 
 # ---------------------------------------------------------------------------
 # Rating fallback chain
@@ -377,6 +397,19 @@ class TestRatingFallback:
         agent.seed_surface_ratings("overall", {"djokovic": 1880.0})
         # Asking for clay rating but only overall exists
         assert agent.get_rating("djokovic", "clay") == 1880.0
+
+    def test_rank_prior_resolves_name_variants(self, agent):
+        """Regression: the ranking-prior fallback used an exact .get(), so a
+        surname or hyphen-variant query missed a full-name ranking key."""
+        agent.seed_rankings({"felix auger-aliassime": 8}, tour="atp")
+        assert agent._get_rank("felix auger-aliassime") == 8
+        assert agent._get_rank("felix auger aliassime") == 8
+        assert agent._get_rank("auger-aliassime") == 8
+        assert agent._get_rank("aliassime") == 8
+        assert agent._get_rank("nobody") is None
+        # No rating seeded → rating falls through to the rank prior, which
+        # must now beat the unranked default for every query form
+        assert agent.get_rating("auger-aliassime", "hard") > DEFAULT_ELO
 
     def test_falls_back_to_atp_rank_when_no_elo(self, agent):
         agent.seed_rankings({"sinner": 1}, tour="atp")
@@ -627,6 +660,19 @@ class TestSeeding:
         assert agent._state["atp_rankings"]["sinner"] == 1
         assert agent._state["wta_rankings"]["swiatek"] == 1
         assert "swiatek" not in agent._state["atp_rankings"]
+
+    def test_seed_rankings_full_replaces_tour(self, agent):
+        """Regression: merge semantics let retired players linger at their
+        last-known rank forever (Kvitova still 'ranked' #37 a year after
+        retiring). Each seed is a complete tour snapshot — replace it."""
+        agent.seed_rankings({"petra kvitova": 37, "iga swiatek": 1}, tour="wta")
+        agent.seed_rankings({"iga swiatek": 2}, tour="wta")
+        assert "petra kvitova" not in agent._state["wta_rankings"]
+        assert agent._state["wta_rankings"]["iga swiatek"] == 2
+        # A wta re-seed must not touch the atp store
+        agent.seed_rankings({"sinner": 1}, tour="atp")
+        agent.seed_rankings({"iga swiatek": 3}, tour="wta")
+        assert agent._state["atp_rankings"]["sinner"] == 1
 
     def test_seed_surface_ratings_normalize_lowercase(self, agent):
         agent.seed_surface_ratings("CLAY", {"NADAL": 1950.0})
