@@ -16,8 +16,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from evmax.archiver import DataArchiver
-from evmax.cli.commands.cleanup import listing_window_markets
-from evmax.clients.kalshi import KalshiWSClient, book_depth_metrics
+from evmax.cli.commands.cleanup import listing_window_markets, resolve_watch_sectors
+from evmax.clients.kalshi import SECTOR_SERIES_MAP, KalshiWSClient, book_depth_metrics
 from evmax.models.market import MarketSource, MarketType, PredictionMarket
 
 
@@ -184,3 +184,17 @@ class TestListingWindowMarkets:
         no_date = _mkt("S4", MarketType.spread, None)
         stale = _mkt("S5", MarketType.spread, self.NOW - timedelta(hours=30))
         assert listing_window_markets([no_date, stale], {"spread"}, 72, now=self.NOW) == []
+
+
+# ---------------------------------------------------------------------------
+# resolve_watch_sectors
+# ---------------------------------------------------------------------------
+class TestResolveWatchSectors:
+    def test_all_expands_to_game_sectors_without_props(self):
+        got = resolve_watch_sectors("all")
+        assert set(got) == {s for s in SECTOR_SERIES_MAP if not s.endswith("_props")}
+        assert "nba_props" not in got and "nfl_props" not in got
+        assert "wnba" in got and "tennis" in got
+
+    def test_explicit_list_passes_through_normalized(self):
+        assert resolve_watch_sectors("WNBA, baseball ,") == ["wnba", "baseball"]

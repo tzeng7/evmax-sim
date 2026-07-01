@@ -441,6 +441,12 @@ class KalshiWSClient:
         )
 
 
+# Max tickers per WS orderbook-snapshot session in get_market_books_batch —
+# one session has a single snapshot-collection timeout, so oversized batches
+# starve the tail into the REST fallback.
+_WS_BOOK_CHUNK = 100
+
+
 def book_depth_metrics(
     yes_bids: list[tuple[float, float]],
     no_bids: list[tuple[float, float]],
@@ -734,12 +740,19 @@ class KalshiClient(BaseAPIClient):
         results: dict[str, Optional[dict]] = {}
 
         if settings.kalshi_ws_enabled:
-            try:
-                async with self._ws_client() as ws:
-                    books = await ws.fetch_books(list(api_tickers.values()))
-            except Exception as e:  # noqa: BLE001 — WS failure must not kill the sweep
-                logger.debug("kalshi_ws_books_failed", error=str(e))
-                books = {}
+            # Chunk the WS subscription: one session must collect every
+            # snapshot inside its ~5s timeout, and a multi-sector sweep can
+            # carry hundreds of tickers — an oversized batch silently drops the
+            # tail to the (much slower) REST fallback.
+            books: dict[str, Optional[dict]] = {}
+            api_list = list(api_tickers.values())
+            for i in range(0, len(api_list), _WS_BOOK_CHUNK):
+                chunk = api_list[i:i + _WS_BOOK_CHUNK]
+                try:
+                    async with self._ws_client() as ws:
+                        books.update(await ws.fetch_books(chunk))
+                except Exception as e:  # noqa: BLE001 — WS failure must not kill the sweep
+                    logger.debug("kalshi_ws_books_failed", error=str(e))
             for orig, api in api_tickers.items():
                 book = books.get(api)
                 if book is not None:
