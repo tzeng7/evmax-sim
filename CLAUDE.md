@@ -76,11 +76,11 @@ evmax/
 │   ├── kalshi.py            # RSA auth, series ticker fetching, WebSocket orderbook, AsyncLimiter(10/s)
 │   ├── esports_pinnacle.py  # PinnacleGuestClient — ALL sectors (not just esports despite filename)
 │   ├── tennisabstract.py    # Tennis Abstract: Elo leaderboards + matchmx per-match data + winners/errors (SEED-time)
-│   ├── pinnacle.py          # LEGACY: TheOddsAPI client — NOT used in live pipeline
 │   └── base.py              # BaseAPIClient
-├── sectors/
+├── sectors/                 # SectorHandler ABC + per-sport implementations
 │   ├── registry.py          # Dict mapping sector name → SectorHandler instance
-│   ├── nfl.py / nba.py / ncaab.py / ncaaw.py / soccer.py / tennis.py / lol.py / cs2.py
+│   ├── nfl.py / nba.py / wnba.py / ncaab.py / ncaaw.py / soccer.py / worldcup.py /
+│   │   baseball.py / nhl.py / tennis.py / lol.py / cs2.py  (+ latent: valorant/ufc/f1)
 │   └── aliases/             # YAML team name → canonical name mappings per sector
 ├── matching/
 │   └── engine.py            # Canonical key match → fuzzy fallback (rapidfuzz, threshold=88)
@@ -89,8 +89,7 @@ evmax/
 │   ├── calculator.py        # EV = (true_prob × payout) - 1; YES-side only
 │   └── kelly.py             # Kelly fraction with confidence + liquidity discounts, 5% cap
 ├── models_ml/
-│   ├── spread_distribution.py  # Normal CDF for spread market cover probabilities
-│   └── live_win_prob.py        # Live in-game model: prior Elo + score/time state
+│   └── spread_distribution.py  # Normal CDF for spread market cover probabilities
 ├── agents/
 │   ├── base.py              # Agent ABC, AgentBus (pub/sub), AgentRequest/Response
 │   ├── coordinator.py       # AgentCoordinator: orchestrates full cycle, exposure guard
@@ -98,24 +97,30 @@ evmax/
 │   ├── models/              # EloModelAgent, FormModelAgent, PoissonModelAgent, EnsembleModelAgent, TennisModelAgent
 │   ├── intelligence/        # InjuryReportAgent (ESPN public API)
 │   └── cleanup/             # db.py, logger.py, resolver.py, metrics.py, maintenance.py
-├── pipeline/
-│   └── live_scanner.py      # Live in-game market scanner
-├── sectors/                 # SectorHandler ABC + per-sport implementations
 ├── simulation/
 │   └── montecarlo.py        # Monte Carlo bankroll simulation
+├── categories.py            # Category registry loader + validate_registry() (reads data/categories.yaml)
+├── modes.py                 # Effective mode resolution: CLI flag > EVMAX_CATEGORY_MODES env > YAML
+├── portfolios.py            # Multi-portfolio simulated bankrolls (tables live in predictions.db)
+├── players/                 # Player-code mappings for prop resolution (nba/nfl/baseball)
+├── web/                     # Web dashboard app (launched via evmax dashboard)
 ├── archiver.py              # Archive all Kalshi/Pinnacle data to archive.db
 ├── notifications.py         # Slack + Discord webhook alerts
 └── cli/
     ├── app.py               # Typer root app
     └── commands/
         ├── agents.py        # evmax agents scan/verify/pick/seed/ratings/update
-        ├── cleanup.py       # evmax cleanup show/resolve/metrics/adjust/train
+        ├── cleanup.py       # evmax cleanup show/resolve/metrics/adjust/value-audit/watch-closes/watch-listings
+        ├── shadow.py        # evmax cleanup shadow show/metrics/clv/promote
+        ├── categories.py    # evmax categories list/show/modes/validate
         ├── archive.py       # evmax archive stats/resolve/backtest/export
         ├── backtest.py      # evmax backtest
         ├── sim.py           # evmax sim list/resolve/montecarlo
-        ├── opportunities.py # evmax opps (live scanner)
-        ├── update.py        # evmax update scores (auto ESPN model updates)
-        └── opportunities.py
+        ├── report.py        # evmax report (P&L from simulation DB)
+        ├── project.py       # evmax project slate (standalone point projections)
+        ├── portfolio.py     # evmax portfolio (multi-portfolio management/scanning)
+        ├── dashboard.py     # evmax dashboard (web UI)
+        └── update.py        # evmax update scores (auto ESPN model updates)
 ```
 
 ### Modeling
@@ -234,7 +239,8 @@ evmax agents verify --date YYYY-MM-DD
 evmax agents pick --date YYYY-MM-DD --bankroll 500 --kelly 0.5
 
 # Background service — captures the near-tip Kalshi + Pinnacle close so placed-bet
-# CLV has a genuine post-entry price to anchor against (also wired as a */5 cron).
+# CLV has a genuine post-entry price to anchor against (runs unattended via
+# launchd `com.evmax.watch-closes`, every 5 min — the user crontab was removed 2026-06-28).
 evmax cleanup watch-closes            # always-up; or `--once` per sweep
 
 # Background service — captures the LISTING→scan window (default: ALL game
@@ -247,7 +253,8 @@ evmax cleanup watch-closes            # always-up; or `--once` per sweep
 # Pinnacle anchor is only fetched for sectors with open markets in the window.
 # Deliberately NO injuries/models: the devigged-Pinnacle anchor already impounds
 # news — this measures venue timing (Kalshi-vs-sharp convergence + fillability),
-# not forecasting. Writes archive.db only.
+# not forecasting. Writes archive.db only. Runs unattended via launchd
+# `com.evmax.watch-listings` (hourly).
 evmax cleanup watch-listings          # always-up; or `--once` per sweep
 evmax cleanup watch-listings -s wnba -m spread --once   # narrow one-off sweep
 
@@ -341,7 +348,7 @@ flowchart TD
     DEVIG --> MODELS
     MODELS --> ENS[EnsembleModelAgent<br/>confidence-weighted blend<br/>+ sharp_weight from model_config.json]
 
-    ENS --> INJ[Injury adjustment<br/>−12% per team cap]
+    ENS --> INJ[Injury adjustment<br/>−10% per team cap]
     INJ --> EVGAP[EVGapAgent<br/>compute EV · YES-side only · swap if needed]
     EVGAP --> FILTER{ev_pct ≥ threshold<br/>AND blended_prob ≥ min_prob?}
     FILTER -->|no| DROP1[Drop]
