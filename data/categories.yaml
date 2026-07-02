@@ -180,7 +180,7 @@ nba_props:
   mode: shadow
   resolver: espn_boxscore
   status: shipped
-  notes: "Demoted to shadow 2026-05-01: 2026-04-09→2026-05-01 actionable (ev>=2%) hit rate 15.3% vs model 25.6%, unit PnL -223u over 575 resolved bets, Brier 0.109 vs Kalshi 0.096 (worse than market). Largest leak in ev>=10% bucket (12.1% hit vs 25.0% predicted). Daily L15 game log cache at data/nba_props_cache.json; per-36-min normalization + opponent adjustment + streak/margin blends — root cause investigation pending."
+  notes: "Demoted to shadow 2026-05-01: 2026-04-09→2026-05-01 actionable (ev>=2%) hit rate 15.3% vs model 25.6%, unit PnL -223u over 575 resolved bets, Brier 0.109 vs Kalshi 0.096 (worse than market). Largest leak in ev>=10% bucket (12.1% hit vs 25.0% predicted). The L15 model behind those numbers (per-36-min normalization + opponent adjustment + streak/margin blends) was REMOVED 2026-05-10 (edb3d7b) — pricing is now Pinnacle anchor pricing (evmax/ev/prop_pricing.py: single Pinnacle anchor line → fitted Normal/NegBin → P(>=threshold) per Kalshi ladder), with data/nba_props_cache.json kept only as a sample-size + minutes-volatility diagnostics cache. Promotion gate: anchor pricing's Brier vs Kalshi must beat the predict-37% baseline (0.233) AND raw Kalshi on >=14d of resolved shadow rows; watch the <10c long-shot bucket that produced 73% of the -223u."
 
 nfl_props:
   display_name: "NFL player props"

@@ -1470,7 +1470,8 @@ def prop_calibration(
 
     Groups resolved prop_observations by (stat_type, probability bucket) and
     shows where the model is over- or under-estimating. Use this after running
-    evmax cleanup resolve-props to detect systematic bias and tune nba_stats.py.
+    evmax cleanup resolve-props to detect systematic bias and tune the anchor
+    pricing dispersion in evmax/ev/prop_pricing.py.
 
     Bias = model_prob - actual_hit_rate. Positive = over-estimating probability.
     """
@@ -1596,7 +1597,8 @@ def prop_calibration(
     elif avg_bias > 0.05:
         console.print(
             f"[red]Model over-estimates by avg {avg_bias*100:.1f}pp.[/red]  "
-            "Consider: lower _DECAY in nba_stats.py (e.g. 0.80) to reduce hot-streak inflation, "
+            "Consider: widen the dispersion params in evmax/ev/prop_pricing.py "
+            "(flatter tails lower P(over) for above-anchor thresholds), "
             "or raise the spread_pct filter to cut thin markets."
         )
     elif avg_bias > 0.02:
@@ -1607,13 +1609,13 @@ def prop_calibration(
     elif avg_bias < -0.05:
         console.print(
             f"[cyan]Model under-estimates by avg {avg_bias*100:.1f}pp.[/cyan]  "
-            "Consider: raise _DECAY in nba_stats.py (e.g. 0.90) to weight recent form more, "
+            "Consider: tighten the dispersion params in evmax/ev/prop_pricing.py, "
             "or loosen the spread_pct filter."
         )
 
     console.print(
-        f"\n  [dim]Tune nba_stats.py constants: _DECAY (recency), _MAX_OPP_ADJ (opponent cap). "
-        f"Run resolve-props → prop-calibration weekly.[/dim]"
+        f"\n  [dim]Prop P(over) comes from anchor pricing (evmax/ev/prop_pricing.py) — "
+        f"tune its Normal/NegBin dispersion there. Run resolve-props → prop-calibration weekly.[/dim]"
     )
 
 

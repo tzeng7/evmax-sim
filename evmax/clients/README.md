@@ -68,10 +68,9 @@ projection model (`evmax/models_ml/baseball_props.py`) and prop resolution/backt
 
 ### `nba_stats.py`
 stats.nba.com (`nba_api`) helpers: `_find_player_id`, game-log fetch, `STAT_COL` — used by the
-NBA props diagnostics cache and by prop resolution in `cleanup/resolver.py`. Also still contains
-the **legacy L15 prop probability model** (`get_prop_true_prob`, `_compute_prob_sync`,
-opponent adjustment) which has **no callers** since the 2026-05-10 anchor-pricing switch —
-dead code pending removal.
+NBA props diagnostics cache and by prop resolution in `cleanup/resolver.py`. (The legacy L15
+prop probability model that lived here was caller-less after the 2026-05-10 anchor-pricing
+switch and was removed in the 2026-07-01 drift-audit follow-up.)
 
 ## Shared helpers
 
