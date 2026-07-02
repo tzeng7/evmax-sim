@@ -174,7 +174,7 @@ This is a deliberate deferral — not a cleanup chore. Pick the strategy that fi
 **Secondary cleanup tracked here:** the frozen 51-entry `indoor` bucket in state is cosmetic debt (~2KB disk, no correctness or perf impact) as long as MODEL-6 is pending. Do not ship a standalone cleanup script — fold it into MODEL-6's migration instead.
 
 ### MODEL-7 Non-QB NFL Prop Features (Usage, Target Share, Vegas Totals) [P3]
-**Files:** `evmax/clients/nfl_props_cache.py`, `evmax/backtest/sources/nfl_props.py`, `scripts/fetch_nfl_features.py`
+**Files:** `evmax/clients/nfl_props_cache.py`, `scripts/fetch_nfl_features.py` (the L15 backtest loader `evmax/backtest/sources/nfl_props.py` was deleted in `edb3d7b` 2026-05-10 with the rest of the L15 prop model — a new loader would be needed)
 
 **Context.** The Stage 4 backtest (see Recently Shipped) showed non-QB NFL stats (`rushing_yards`, `receiving_yards`, `receptions`, `anytime_td`) have Brier ≥ 0.21 and in some cases perform *worse* than the naive "always predict the base rate" prior. Receiving yards alone is 35% of the dataset and has Brier 0.254 vs prior 0.234. The current model for those stats uses only the player's L8-game rolling mean + Gaussian tail + streak adjustment + team-level opponent allowed-per-game. That feature set is insufficient for stats where per-game variance is dominated by usage shifts and game script, not mean skill.
 
@@ -399,11 +399,9 @@ No tests for the live in-game model.
 > Skipped for now (your brother's repo — leaving major arch decisions alone).
 > Listed here so they don't get forgotten if/when he wants to tackle them.
 
-### ARCH-1 Dead Code: `pipeline/runner.py` and `models_ml/sharp_only.py` [P2]
-`pipeline/runner.py` is a Phase 1 legacy module. It imports `SharpBooksModel` from `models_ml/sharp_only.py` and the old `PinnacleClient`. Neither is called by any CLI command.
-- Delete `evmax/pipeline/runner.py` (legacy, superseded by coordinator)
-- Delete `evmax/models_ml/sharp_only.py` (legacy placeholder model)
-- Confirm `evmax/clients/pinnacle.py` (TheOddsAPI) is also unused in live path, and if so, archive or delete it
+### ~~ARCH-1 Dead Code: `pipeline/runner.py` and `models_ml/sharp_only.py` [P2]~~ — DONE 2026-06-19
+Shipped in `0f27511` ("remove legacy Phase-1 pipeline, retire TheOddsAPI client, sync README"):
+`evmax/pipeline/runner.py`, `evmax/models_ml/sharp_only.py`, and `evmax/clients/pinnacle.py` are all deleted.
 
 ### ARCH-2 Dual Database Architecture Creates Schema Drift [P2]
 Two completely separate storage systems exist:
@@ -415,10 +413,10 @@ The ORM models (`EVBetORM`, `SharpOddsORM`, `PredictionMarketORM`) are defined b
 - Or: clearly mark `evmax/db.py` + `evmax/models/` as "simulation only" with a header comment, and stop maintaining them as if they're the live schema
 
 ### ARCH-3 Sharp Odds Naming Is Confusing [P3]
-`esports_pinnacle.py` contains `PinnacleGuestClient` which handles **all** sectors (not just esports). The file name implies esports-only, which confuses new readers. `pinnacle.py` contains `PinnacleClient` (TheOddsAPI) which is never used in live scans.
+`esports_pinnacle.py` contains `PinnacleGuestClient` which handles **all** sectors (not just esports). The file name implies esports-only, which confuses new readers.
 - Rename `esports_pinnacle.py` → `pinnacle_guest.py`
-- Rename `pinnacle.py` → `pinnacle_theodds.py` (or delete if confirmed dead)
 - Update all imports
+- ~~`pinnacle.py` (TheOddsAPI) rename-or-delete~~ — deleted in `0f27511` (2026-06-19)
 
 ### ARCH-4 NFL Props Fetched But Never Evaluated [P2]
 **File:** `evmax/agents/coordinator.py` (~line 570)
@@ -594,9 +592,9 @@ The immediate use case is MODEL-9 (NFL props need shadow validation before live)
 **Estimated effort:** ~2 hours including tests. Small, high-leverage, exactly the kind of automation that would have prevented the PR #6 typo discovery from taking a full research session.
 
 ### ARCH-9 Resurrect TheOddsAPI Legacy Client as Paid Fallback [P3]
-**Files:** `evmax/clients/pinnacle.py`, `evmax/agents/odds/sharp_agent.py`, `evmax/models/odds.py`
+**Files:** `evmax/agents/odds/sharp_agent.py`, `evmax/models/odds.py` (+ recover `evmax/clients/pinnacle.py` from git history)
 
-The legacy `PinnacleClient` at `evmax/clients/pinnacle.py` is a fully-implemented TheOddsAPI wrapper (moneyline + spreads + totals + player props + quota tracking, ~900 lines) that was superseded by `PinnacleGuestClient` but never deleted. It's currently dead code — imported only by the dead `pipeline/runner.py` and by one vestigial `get_quota()` display call in `evmax/cli/commands/agents.py:382` that renders an empty string because `_quota` is never populated.
+The legacy `PinnacleClient` was a fully-implemented TheOddsAPI wrapper (moneyline + spreads + totals + player props + quota tracking, ~900 lines) superseded by `PinnacleGuestClient`. It was **deleted in `0f27511` (2026-06-19)** — picking this item up now means recovering the client from git history (`git show 0f27511^:evmax/clients/pinnacle.py`) rather than un-deadening in-tree code.
 
 Resurrecting it as a **commercial fallback** when Pinnacle Guest is unavailable is a real option:
 

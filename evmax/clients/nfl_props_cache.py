@@ -1,27 +1,15 @@
-"""NFL player-prop probability model — pure compute layer.
+"""NFL player-prop data + diagnostics layer.
 
-Mirrors the NBA model in `nba_props_cache.py` but adapted for NFL's
-weekly cadence and different stat distributions. Stage 4 of the NFL prop
-backtest plan provides only the pure computation; Stage 5 will wrap this
-with a disk-backed cache (`data/nfl_props_cache.json`) matching the NBA
-schema, so the coordinator can call one helper regardless of data source.
+Mirrors `nba_props_cache.py`: loads the nflverse parquet history
+(`data/backtest/nfl_props/*.parquet`), keeps it fresh, resolves a
+player's next opponent from the schedule, and exposes sample-size
+diagnostics (`compute_nfl_prop_diagnostics`).
 
-Model stages for yardage props (passing/rushing/receiving yards):
-
-  1. Filter the player's prior-week game log (point-in-time).
-  2. Exponential decay weights (most recent game = 1.0, decay=0.80).
-  3. Weighted mean + weighted std.
-  4. Normal CDF with continuity correction → model probability.
-  5. Empirical hit rate (60/40 blend with model).
-  6. Margin adjustment (±8% cap).
-  7. Streak adjustment from last 3 games.
-  8. Multiplicative opponent adjustment (±15% cap).
-
-Model for touchdown props (anytime TD, passing TDs 1.5+/2.5+):
-
-  - Weighted-mean expected TDs (λ) then Poisson tail.
-  - Opponent adjustment scales λ.
-  - Streak/margin adjustments do not apply — noisy at low counts.
+The L15-style probability model that used to live here (weighted-mean +
+Normal CDF yardage stages, Poisson TD tails, opponent/streak/margin
+adjustments) was removed in `edb3d7b` (2026-05-10) along with the NBA
+L15 model — prop P(over) now comes from Pinnacle anchor pricing in
+`evmax/ev/prop_pricing.py`, and this module only feeds it context.
 """
 
 from __future__ import annotations
