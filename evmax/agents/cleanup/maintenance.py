@@ -5,7 +5,8 @@ Checks and fixes run after every scan:
   2. kelly_above_cap      — Kelly > 5% → UPDATE to hard cap (clamp in-place)
   3. invalid_probability  — prob outside (0, 1) → DELETE row (EV untrustworthy)
   4. duplicate_event      — same event logged N times → keep highest EV, DELETE rest
-  5. stale_resolved_market— already in ev_outcomes → DELETE from predictions (stale)
+  5. stale_resolved_market— row INSERTED AFTER its ev_outcomes resolution → DELETE
+                            (original bet rows and placed bets are never touched)
   6. prob_divergence      — blended drifts > 50% from sharp → RESET to sharp_true_prob
 """
 
@@ -188,9 +189,22 @@ def _check_duplicate_events(
 def _check_stale_markets(
     scan_date: str, conn: sqlite3.Connection, report: MaintenanceReport
 ) -> None:
-    """Markets already resolved in ev_outcomes — remove from today's predictions.
+    """Delete rows that were inserted AFTER their market resolved.
 
-    If a market has a resolved outcome, the game is in the past by definition.
+    Under the UNIQUE(market_id) freeze-on-first-insert schema (2026-06-29
+    migration) a resolved market re-appearing in a scan is an INSERT OR IGNORE
+    no-op, so a row whose scan_date is today AND whose outcome is resolved is
+    almost always the ORIGINAL bet — the game simply resolved the same local
+    day it was first scanned (WNBA/tennis/cs2/lol resolve evening-of). Deleting
+    it orphans the ev_outcomes row and erases the bet from P&L (this happened:
+    the 2026-07-04 Valkyries ML win, restored as id 12323).
+
+    The only genuinely stale case left is a row RE-inserted after resolution
+    (possible only if the original row was deleted first), so we require
+    logged_at > resolved_at — both are UTC ``datetime('now')`` strings, so
+    lexical comparison is chronological. Placed bets are never deleted, and
+    legacy outcomes without a resolved_at stamp are left alone (can't prove
+    the row post-dates resolution).
     """
     stale = conn.execute(
         """
@@ -199,6 +213,9 @@ def _check_stale_markets(
         JOIN   ev_outcomes    o ON o.market_id = p.market_id
         WHERE  p.scan_date = ?
           AND  o.outcome   IS NOT NULL
+          AND  o.resolved_at IS NOT NULL
+          AND  p.logged_at > o.resolved_at
+          AND  p.placed = 0
         """,
         (scan_date,),
     ).fetchall()
@@ -211,8 +228,8 @@ def _check_stale_markets(
             check="stale_resolved_market",
             market_id=r["market_id"],
             event_id=r["event_id"],
-            detail="market already resolved in ev_outcomes but re-appeared in scan",
-            fix="deleted row (resolved markets should not be re-bet)",
+            detail="row was inserted after its market resolved in ev_outcomes",
+            fix="deleted row (post-resolution re-insert should not be re-bet)",
         ))
 
 

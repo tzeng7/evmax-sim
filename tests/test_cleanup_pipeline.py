@@ -117,17 +117,19 @@ def _insert_prediction(
     blended_true_prob: float = 0.55,
     ev_pct: float = 0.05,
     kelly_fraction: float = 0.025,
+    logged_at: Optional[str] = None,
+    placed: int = 0,
 ) -> None:
     conn.execute(
         """INSERT INTO ev_predictions
-           (scan_date, market_id, event_id, sector, yes_team, market_type,
+           (logged_at, scan_date, market_id, event_id, sector, yes_team, market_type,
             kalshi_yes_price, sharp_true_prob, blended_true_prob,
-            ev_pct, kelly_fraction, volume_usd, model_sources, sharp_weight_used)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            ev_pct, kelly_fraction, volume_usd, model_sources, sharp_weight_used, placed)
+           VALUES (COALESCE(?, datetime('now')),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
-            scan_date, market_id, event_id, sector, yes_team, market_type,
+            logged_at, scan_date, market_id, event_id, sector, yes_team, market_type,
             kalshi_yes_price, sharp_true_prob, blended_true_prob,
-            ev_pct, kelly_fraction, 10_000.0, "sharp", 0.85,
+            ev_pct, kelly_fraction, 10_000.0, "sharp", 0.85, placed,
         ),
     )
     conn.commit()
@@ -141,12 +143,15 @@ def _insert_outcome(
     event_id: str = "nba::2026-03-21::team_a_vs_team_b",
     sector: str = "nba",
     yes_team: str = "team a",
+    resolved_at: Optional[str] = None,
 ) -> None:
     conn.execute(
         """INSERT INTO ev_outcomes
-           (market_id, event_id, event_date, sector, yes_team, outcome, result_source)
-           VALUES (?,?,?,?,?,?,?)""",
-        (market_id, event_id, "2026-03-21", sector, yes_team, outcome, "espn"),
+           (market_id, event_id, event_date, sector, yes_team, outcome,
+            result_source, resolved_at)
+           VALUES (?,?,?,?,?,?,?,?)""",
+        (market_id, event_id, "2026-03-21", sector, yes_team, outcome,
+         "espn", resolved_at),
     )
     conn.commit()
 
@@ -623,13 +628,47 @@ class TestRunMaintenance:
         assert len(dup_issues) == 0
 
     # ------------------------------------------------------------------
-    # Check 5: stale_resolved_market → deleted from predictions
+    # Check 5: stale_resolved_market → only post-resolution re-inserts deleted
     # ------------------------------------------------------------------
 
-    def test_stale_resolved_market_deleted(self):
+    def test_original_bet_survives_same_day_resolution(self):
+        """Regression (2026-07-05, Valkyries incident): a prediction logged
+        BEFORE its outcome resolved — the normal same-local-day resolution
+        path under the UNIQUE(market_id) frozen schema — must NOT be deleted
+        by a later maintenance pass."""
         conn = _make_in_memory_db()
-        _insert_prediction(conn, market_id="kalshi:RESOLVED", scan_date=self.SD)
-        _insert_outcome(conn, market_id="kalshi:RESOLVED", outcome=1)
+        _insert_prediction(
+            conn, market_id="kalshi:ORIGINAL", scan_date=self.SD,
+            logged_at="2026-03-21 15:00:00",
+        )
+        _insert_outcome(
+            conn, market_id="kalshi:ORIGINAL", outcome=1,
+            resolved_at="2026-03-21 23:30:00",
+        )
+
+        report = self._run(conn)
+
+        stale = [i for i in report.issues if i.check == "stale_resolved_market"]
+        assert len(stale) == 0
+
+        row = conn.execute(
+            "SELECT * FROM ev_predictions WHERE market_id = ?",
+            ("kalshi:ORIGINAL",),
+        ).fetchone()
+        assert row is not None
+
+    def test_post_resolution_reinsert_deleted(self):
+        """A row logged AFTER its outcome resolved is a genuine re-insert
+        (only possible if the original row was deleted) — remove it."""
+        conn = _make_in_memory_db()
+        _insert_prediction(
+            conn, market_id="kalshi:RESOLVED", scan_date=self.SD,
+            logged_at="2026-03-21 23:45:00",
+        )
+        _insert_outcome(
+            conn, market_id="kalshi:RESOLVED", outcome=1,
+            resolved_at="2026-03-21 23:30:00",
+        )
 
         report = self._run(conn)
 
@@ -642,6 +681,44 @@ class TestRunMaintenance:
             ("kalshi:RESOLVED",),
         ).fetchall()
         assert len(remaining) == 0
+
+    def test_placed_bet_never_deleted_even_if_logged_after_resolution(self):
+        conn = _make_in_memory_db()
+        _insert_prediction(
+            conn, market_id="kalshi:PLACED", scan_date=self.SD,
+            logged_at="2026-03-21 23:45:00", placed=1,
+        )
+        _insert_outcome(
+            conn, market_id="kalshi:PLACED", outcome=1,
+            resolved_at="2026-03-21 23:30:00",
+        )
+
+        report = self._run(conn)
+
+        stale = [i for i in report.issues if i.check == "stale_resolved_market"]
+        assert len(stale) == 0
+        row = conn.execute(
+            "SELECT * FROM ev_predictions WHERE market_id = ?",
+            ("kalshi:PLACED",),
+        ).fetchone()
+        assert row is not None
+
+    def test_legacy_outcome_without_resolved_at_not_deleted(self):
+        """Outcomes missing a resolved_at stamp can't prove the row post-dates
+        resolution — leave the prediction alone."""
+        conn = _make_in_memory_db()
+        _insert_prediction(conn, market_id="kalshi:LEGACY", scan_date=self.SD)
+        _insert_outcome(conn, market_id="kalshi:LEGACY", outcome=1, resolved_at=None)
+
+        report = self._run(conn)
+
+        stale = [i for i in report.issues if i.check == "stale_resolved_market"]
+        assert len(stale) == 0
+        row = conn.execute(
+            "SELECT * FROM ev_predictions WHERE market_id = ?",
+            ("kalshi:LEGACY",),
+        ).fetchone()
+        assert row is not None
 
     def test_pending_outcome_not_deleted(self):
         """An ev_outcomes row with outcome=NULL is not yet resolved — keep prediction."""
