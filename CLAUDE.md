@@ -110,7 +110,7 @@ evmax/
     ├── app.py               # Typer root app
     └── commands/
         ├── agents.py        # evmax agents scan/verify/pick/seed/ratings/update
-        ├── cleanup.py       # evmax cleanup show/resolve/metrics/adjust/value-audit/watch-closes/watch-listings
+        ├── cleanup.py       # evmax cleanup show/resolve/metrics/adjust/value-audit/watch-closes/watch-listings/listings-eval
         ├── shadow.py        # evmax cleanup shadow show/metrics/clv/promote
         ├── categories.py    # evmax categories list/show/modes/validate
         ├── archive.py       # evmax archive stats/resolve/backtest/export
@@ -257,6 +257,14 @@ evmax cleanup watch-closes            # always-up; or `--once` per sweep
 # `com.evmax.watch-listings` (hourly).
 evmax cleanup watch-listings          # always-up; or `--once` per sweep
 evmax cleanup watch-listings -s wnba -m spread --once   # narrow one-off sweep
+
+# Offline promotion lens for laddered markets — replay the watch-listings capture
+# through the FIRST-ANCHORED-SWEEP entry rule (first hourly snapshot with a
+# concurrent Pinnacle anchor able to price the ticker's line; Kalshi lists ~6-24h
+# BEFORE Pinnacle posts, so raw listing time is unanchored noise), gate on
+# EV>=2pp at the crossable price + resting depth >=$50, score Kalshi CLV to the
+# last pre-tip snapshot per market/side (lay/take, over/under). Read-only.
+evmax cleanup listings-eval -s wnba [--detail] [--ev-min 2] [--depth-min 50] [--since D]
 
 # Next morning — resolve yesterday's outcomes
 # (resolve also feeds the date's completed ESPN scores into elo/form/poisson/xg
