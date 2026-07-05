@@ -28,7 +28,10 @@ from evmax.models.market import PredictionMarket, MarketType
 from evmax.models.odds import SharpOdds
 from evmax.models_ml.spread_distribution import SpreadDistributionModel
 from evmax.models_ml.total_distribution import TotalDistributionModel, is_game_total
+from evmax.ev.devig import derive_advance_prob
 from evmax.settings import get_settings
+
+ADVANCE_SUFFIX = "::advance"
 
 
 @dataclass
@@ -626,6 +629,13 @@ class EVGapAgent(Agent):
         if market.market_type == MarketType.moneyline and sharp.spread_line is not None:
             return _ret(None, None)
 
+        # Advance markets (knockout winner incl. ET/pens) must pair with an
+        # advance sharp record and vice versa — the regulation 3-way and the
+        # advance market price different events on the same game.
+        is_advance = market.market_type == MarketType.advance
+        if is_advance != sharp.event_id.endswith(ADVANCE_SUFFIX):
+            return _ret(None, None)
+
         # Reject team scoring props mistakenly typed as totals (e.g. "Lakers O109.5")
         if is_total and market.line is not None and not is_game_total(market.line, sector):
             return _ret(None, None)
@@ -779,7 +789,28 @@ class EVGapAgent(Agent):
                         sharp_true_prob = (1.0 - sim_weight) * sharp_true_prob + sim_weight * sim_prob
             # If None (line too far), fall through with raw Pinnacle over/under prob
 
-        skip_blend = used_spread_model or used_total_model or is_total
+        # ------------------------------------------------------------------
+        # Step 2c: Advance markets — derive the model's advance prob from the
+        # SAME game's regulation 3-way blend (keyed without the ::advance
+        # suffix). The ensemble never produces advance probs directly.
+        # ------------------------------------------------------------------
+        used_advance_model = False
+        advance_model_prob: Optional[float] = None
+        advance_base_blend = None
+        if is_advance:
+            base_key = sharp.event_id[: -len(ADVANCE_SUFFIX)]
+            advance_base_blend = blended_preds.get(base_key)
+            if advance_base_blend is not None:
+                adv_a = derive_advance_prob(
+                    advance_base_blend.true_prob_a,
+                    advance_base_blend.true_prob_b,
+                    getattr(advance_base_blend, "true_prob_draw", None),
+                )
+                if adv_a is not None:
+                    advance_model_prob = 1.0 - adv_a if yes_is_outcome_b else adv_a
+                    used_advance_model = True
+
+        skip_blend = used_spread_model or used_total_model or is_total or is_advance
 
         # ------------------------------------------------------------------
         # Step 3: Model blend override — skip for spreads/totals
@@ -803,6 +834,26 @@ class EVGapAgent(Agent):
                 src = "sharp+spread_dist+possession_sim" if has_sim else "sharp+spread_dist"
             elif used_total_model:
                 src = "sharp+total_dist"
+            elif used_advance_model and advance_model_prob is not None:
+                # Model advance prob derived from the base 3-way blend, with
+                # the same sanity cap step 3b applies to direct blends.
+                base_key = sharp.event_id[: -len(ADVANCE_SUFFIX)]
+                base_src = (model_sources or {}).get(
+                    base_key, getattr(advance_base_blend, "model_sources", "sharp"),
+                )
+                if sharp_true_prob > 0 and not (
+                    0.5 < advance_model_prob / sharp_true_prob < 2.0
+                ):
+                    self.log.debug(
+                        "advance_model_drift_capped",
+                        event_id=sharp.event_id,
+                        sharp=round(sharp_true_prob, 3),
+                        derived=round(advance_model_prob, 3),
+                    )
+                    src = "sharp(capped)"
+                else:
+                    blended_prob = advance_model_prob
+                    src = f"{base_src}+advance_derived"
             else:
                 src = model_sources.get(sharp.event_id, "sharp")
 

@@ -852,7 +852,16 @@ class AgentCoordinator:
         regular_markets = [m for m in markets if m.market_type != _MT.player_prop]
         regular_sharp = [s for s in sharp_odds if s.prop_player_name is None]
         matched_pairs = self._matching.match_all(regular_markets, regular_sharp)
-        pairs = [{"market": m, "sharp": s} for m, s, _ in matched_pairs]
+        # Advance markets don't get their own ensemble run — EVGapAgent derives
+        # their model prob from the SAME game's regulation 3-way blend (the ML
+        # pair below), keyed without the ::advance suffix. Feeding advance
+        # pairs to the ensemble would just produce a nonsense regulation-blend
+        # entry under the ::advance key.
+        pairs = [
+            {"market": m, "sharp": s}
+            for m, s, _ in matched_pairs
+            if m.market_type != _MT.advance
+        ]
 
         # Step 5: Ensemble model predictions
         blended: dict[str, BlendedPrediction] = {}

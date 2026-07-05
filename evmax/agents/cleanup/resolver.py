@@ -235,12 +235,25 @@ async def _fetch_espn_scores(
                         pass
             return None
 
+        # Knockout-game context. ESPN's `score` for soccer INCLUDES extra-time
+        # goals, and only games drawn after 90' go to extra time — so a
+        # STATUS_FINAL_AET / STATUS_FINAL_PEN status means the REGULATION
+        # result was a draw regardless of the final score. The competitor
+        # `winner` flag marks the side that went through (incl. penalties).
+        # Non-soccer sports use STATUS_FINAL even in overtime, so this flag
+        # never fires for them.
+        status_name = comp.get("status", {}).get("type", {}).get("name", "")
+        went_extra_time = status_name in ("STATUS_FINAL_AET", "STATUS_FINAL_PEN")
+
         results.append({
             "home_name": home.get("team", {}).get("displayName", ""),
             "away_name": away.get("team", {}).get("displayName", ""),
             "home_score": home_score,
             "away_score": away_score,
             "home_won": home_score > away_score,
+            "home_winner": home.get("winner"),
+            "away_winner": away.get("winner"),
+            "went_extra_time": went_extra_time,
             "game_date": game_date,
             "home_sot": _stat(home, "shotsOnTarget"),
             "away_sot": _stat(away, "shotsOnTarget"),
@@ -411,8 +424,15 @@ def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
 
             # Soccer draw/tie market — resolve immediately after event gate,
             # before yes_team side resolution (tie has no "home" side).
+            # Kalshi's soccer/worldcup game markets settle on the REGULATION
+            # result: a knockout game that went to extra time / penalties was
+            # by definition drawn after 90', so TIE resolves YES even though
+            # ESPN's final score (ET goals included) is not level.
             if yes_raw in ("tie", "draw", "x"):
-                is_draw = score["home_score"] == score["away_score"]
+                is_draw = (
+                    score.get("went_extra_time")
+                    or score["home_score"] == score["away_score"]
+                )
                 return 1 if is_draw else 0
 
             # Resolve yes team side
@@ -472,7 +492,27 @@ def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
                 return 1 if total < threshold else 0
             return None
 
-        # Moneyline (default)
+        if market_type == "advance":
+            # Knockout "to advance": winner INCLUDING extra time / penalties.
+            # ESPN's competitor `winner` flag marks the side that went through
+            # (set on the shootout winner even when the score is level).
+            hw, aw = score.get("home_winner"), score.get("away_winner")
+            if hw is None and aw is None:
+                # No winner flags — fall back to the final score, which is
+                # decisive unless the game went to penalties.
+                if hs is None or as_ is None or hs == as_:
+                    return None
+                hw, aw = hs > as_, as_ > hs
+            won = hw if yes_is_home else aw
+            if won is None:
+                return None
+            return 1 if won else 0
+
+        # Moneyline (default). Regulation result: a soccer knockout game that
+        # went to extra time was drawn after 90' — no team wins the regulation
+        # market even though ESPN's ET-inclusive score has a leader.
+        if score.get("went_extra_time"):
+            return 0
         if yes_is_home:
             return 1 if score["home_won"] else 0
         else:

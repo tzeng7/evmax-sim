@@ -28,7 +28,12 @@ import structlog
 from evmax.clients.base import BaseAPIClient
 from evmax.clients.time_util import kalshi_game_day
 from evmax.disk_cache import cache_get, cache_set, cache_get_offline
-from evmax.ev.devig import devig_two_way, devig_three_way, american_to_decimal
+from evmax.ev.devig import (
+    american_to_decimal,
+    derive_advance_prob,
+    devig_three_way,
+    devig_two_way,
+)
 from evmax.models.odds import SharpBook, SharpOdds
 from evmax.settings import get_settings
 
@@ -95,6 +100,20 @@ TOTALS_MAIN_LINE_ONLY_SECTORS = {"baseball"}
 
 # Soccer leagues that have draws (all of them); MLS uses draws too
 SOCCER_DRAW_LEAGUES = {1980, 2196, 1842, 2436, 2036, 2186, 2630, 2663}
+
+# --- World Cup knockout "to advance" anchors -------------------------------
+# Pinnacle has NO live per-match "to advance" market. Its per-team "To Reach
+# Quarter/Semi/The Final" Yes/No specials look like one, but they cut off at
+# the team's PREVIOUS kickoff and never reopen between rounds (verified
+# 2026-07-05: "Mexico To Reach Quarter Final" still served pre-Round-of-32
+# prices — Yes +242 ≈ 29% — on R16 matchday, when the live advance prob was
+# ~40%+). So the advance anchor for Kalshi's KXWCADVANCE markets is DERIVED
+# from the live regulation 3-way instead, via derive_advance_prob():
+#   P(A advances) = p_a + p_draw * p_a / (p_a + p_b)
+# Kalshi's liquid advance consensus tracks this derivation closely (FRA-MAR
+# QF: derived 0.75 vs market 0.76), and the regulation 3-way is Pinnacle's
+# sharpest, most liquid market for the game — a better anchor than any
+# thin special would have been.
 
 
 def _name_matched_sector(league_name: str) -> Optional[str]:
@@ -557,6 +576,14 @@ class PinnacleGuestClient(BaseAPIClient):
             ml_odds = self._parse_moneyline(ml_market, base_event_id, sector, home, away, event_date)
             if ml_odds:
                 results.append(ml_odds)
+                # World Cup: derive the knockout "to advance" anchor from the
+                # regulation 3-way (see the advance-anchor note up top). Group
+                # games get one too, but no KXWCADVANCE market exists for them
+                # and the ::advance pool filter keeps the record unmatchable.
+                if sector == "worldcup":
+                    advance_odds = self.derive_advance_odds(ml_odds)
+                    if advance_odds:
+                        results.append(advance_odds)
 
         # --- Spread (only for team sports with meaningful point spreads) ---
         # Soccer + World Cup use Asian-handicap goal lines we don't model and
@@ -601,6 +628,38 @@ class PinnacleGuestClient(BaseAPIClient):
                     results.append(totals_odds)
 
         return results if results else None
+
+    @staticmethod
+    def derive_advance_odds(ml_odds: SharpOdds) -> Optional[SharpOdds]:
+        """Derive the knockout "to advance" sharp record from a regulation 3-way.
+
+        See the World Cup advance-anchor note above SECTOR_SPORT_LEAGUES for
+        why this is derived rather than read off a Pinnacle special. Emits a
+        SharpOdds keyed `{event_id}::advance` that only ::advance-typed Kalshi
+        markets can match (MatchingEngine filters the candidate pool by that
+        suffix).
+        """
+        prob_a = derive_advance_prob(
+            ml_odds.true_prob_a, ml_odds.true_prob_b, ml_odds.true_prob_draw,
+        )
+        if prob_a is None or not (0.0 < prob_a < 1.0):
+            return None
+        prob_b = 1.0 - prob_a
+        return SharpOdds(
+            event_id=f"{ml_odds.event_id}::advance",
+            book=ml_odds.book,
+            sector=ml_odds.sector,
+            outcome_a_label=ml_odds.outcome_a_label,
+            outcome_b_label=ml_odds.outcome_b_label,
+            # Fair (devigged) decimals — this record is derived, so there are
+            # no raw per-outcome book prices behind it.
+            outcome_a_decimal=1.0 / prob_a,
+            outcome_b_decimal=1.0 / prob_b,
+            true_prob_a=prob_a,
+            true_prob_b=prob_b,
+            margin=ml_odds.margin,
+            event_date=ml_odds.event_date,
+        )
 
     def _parse_moneyline(
         self, market: dict, base_event_id: str, sector: str,

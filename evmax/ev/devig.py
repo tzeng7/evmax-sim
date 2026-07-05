@@ -135,3 +135,41 @@ def decimal_to_american(decimal: float) -> int:
         return int((decimal - 1) * 100)
     else:
         return int(-100 / (decimal - 1))
+
+
+# Share of a regulation draw resolved with the favorite's edge intact (extra
+# time) vs a near coin flip (penalties). Historically ~45-50% of knockout ET
+# draws reach pens; 0.55 also minimizes error against Kalshi's liquid
+# KXWCADVANCE mids (6-game R16/QF calibration 2026-07-05: mean abs error
+# 2.0pp shaded vs 3.4pp pure-ratio, near-exact on the lopsided ties
+# ARG-EGY/FRA-MAR/POR-ESP where the two formulas actually differ).
+ADVANCE_ET_SHARE = 0.55
+
+
+def derive_advance_prob(
+    p_a: Optional[float], p_b: Optional[float], p_draw: Optional[float],
+) -> Optional[float]:
+    """P(team A advances a knockout tie) from regulation 3-way probabilities.
+
+    A advances by winning in 90', or by surviving a regulation draw through
+    extra time / penalties. Conditional on the draw, the win share blends the
+    no-draw strength ratio r = p_a / (p_a + p_b) (extra time — the favorite's
+    edge persists) with a coin flip (penalties):
+
+        P(A advances) = p_a + p_draw * (0.55 * r + 0.45 * 0.5)
+
+    Complements sum to 1 by construction. Used on BOTH sides of the advance
+    EV gap: on devigged Pinnacle regulation probs to synthesize the sharp
+    anchor (Pinnacle's own "To Reach X" specials cut off at the team's
+    PREVIOUS kickoff and never reopen, so there is no live per-match advance
+    special — verified 2026-07-05), and on the model blend's 3-way to produce
+    the model advance prob.
+    """
+    if p_a is None or p_b is None:
+        return None
+    denom = p_a + p_b
+    if denom <= 0:
+        return None
+    ratio = p_a / denom
+    draw_share = ADVANCE_ET_SHARE * ratio + (1.0 - ADVANCE_ET_SHARE) * 0.5
+    return p_a + (p_draw or 0.0) * draw_share
