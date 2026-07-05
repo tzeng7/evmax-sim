@@ -447,6 +447,34 @@ def close_lines(
         )
 
 
+def near_tip_snapshot_candidates(conn, event_ids: list[str]) -> list:
+    """Unresolved, unvoided bets on the given events that deserve a near-tip
+    Kalshi snapshot from the watch-closes sweep.
+
+    Includes BOTH live and shadow rows (widened 2026-07-05): the laddered
+    categories (WNBA spread/total) sit in shadow mode, and their promotion
+    gate — `cleanup shadow clv --side lay` — anchors CLV against the last
+    archived Kalshi price before tip. With the old ``mode = 'live'`` filter,
+    shadow bets never got a watch-closes snapshot, so their "close" was
+    whatever hourly watch-listings sweep happened to land last (median ~5h
+    before tip, worse across Mac-sleep holes). Disabled-category rows never
+    reach ev_predictions, so 'live'/'shadow' covers everything persisted.
+    """
+    if not event_ids:
+        return []
+    placeholders = ",".join("?" * len(event_ids))
+    return conn.execute(
+        f"""SELECT DISTINCT p.market_id, p.sector, p.event_id, p.event_date,
+                   p.market_type, p.yes_team, p.line
+            FROM ev_predictions p
+            LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
+            WHERE p.event_id IN ({placeholders})
+              AND p.mode IN ('live', 'shadow') AND p.voided = 0
+              AND (o.outcome IS NULL OR o.id IS NULL)""",
+        event_ids,
+    ).fetchall()
+
+
 @app.command("watch-closes")
 def watch_closes(
     lookahead: int = typer.Option(
@@ -490,7 +518,7 @@ def watch_closes(
     from evmax.clients.kalshi import KalshiClient
 
     async def _capture_kalshi(event_ids: list[str]) -> int:
-        """Snapshot live Kalshi asks for live, unresolved bets on upcoming events.
+        """Snapshot live Kalshi asks for unresolved bets on upcoming events.
 
         This is what gives placed-bet Kalshi CLV a genuine POST-ENTRY close to
         anchor against — without a near-tip snapshot, get_kalshi_close_price only
@@ -499,17 +527,7 @@ def watch_closes(
         whether the Pinnacle close has landed. Failures here never abort the sweep.
         """
         conn = get_connection()
-        placeholders = ",".join("?" * len(event_ids))
-        bet_rows = conn.execute(
-            f"""SELECT DISTINCT p.market_id, p.sector, p.event_id, p.event_date,
-                       p.market_type, p.yes_team, p.line
-                FROM ev_predictions p
-                LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
-                WHERE p.event_id IN ({placeholders})
-                  AND p.mode = 'live' AND p.voided = 0
-                  AND (o.outcome IS NULL OR o.id IS NULL)""",
-            event_ids,
-        ).fetchall()
+        bet_rows = near_tip_snapshot_candidates(conn, event_ids)
         conn.close()
         if not bet_rows:
             return 0

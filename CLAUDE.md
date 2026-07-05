@@ -241,6 +241,8 @@ evmax agents pick --date YYYY-MM-DD --bankroll 500 --kelly 0.5
 # Background service — captures the near-tip Kalshi + Pinnacle close so placed-bet
 # CLV has a genuine post-entry price to anchor against (runs unattended via
 # launchd `com.evmax.watch-closes`, every 5 min — the user crontab was removed 2026-06-28).
+# Snapshots cover BOTH live and shadow bets (widened 2026-07-05) so the shadow CLV
+# promotion gate gets a real near-tip close, not just the last hourly listings sweep.
 evmax cleanup watch-closes            # always-up; or `--once` per sweep
 
 # Background service — captures the LISTING→scan window (default: ALL game
