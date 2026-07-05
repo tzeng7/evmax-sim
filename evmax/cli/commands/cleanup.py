@@ -447,6 +447,34 @@ def close_lines(
         )
 
 
+def near_tip_snapshot_candidates(conn, event_ids: list[str]) -> list:
+    """Unresolved, unvoided bets on the given events that deserve a near-tip
+    Kalshi snapshot from the watch-closes sweep.
+
+    Includes BOTH live and shadow rows (widened 2026-07-05): the laddered
+    categories (WNBA spread/total) sit in shadow mode, and their promotion
+    gate — `cleanup shadow clv --side lay` — anchors CLV against the last
+    archived Kalshi price before tip. With the old ``mode = 'live'`` filter,
+    shadow bets never got a watch-closes snapshot, so their "close" was
+    whatever hourly watch-listings sweep happened to land last (median ~5h
+    before tip, worse across Mac-sleep holes). Disabled-category rows never
+    reach ev_predictions, so 'live'/'shadow' covers everything persisted.
+    """
+    if not event_ids:
+        return []
+    placeholders = ",".join("?" * len(event_ids))
+    return conn.execute(
+        f"""SELECT DISTINCT p.market_id, p.sector, p.event_id, p.event_date,
+                   p.market_type, p.yes_team, p.line
+            FROM ev_predictions p
+            LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
+            WHERE p.event_id IN ({placeholders})
+              AND p.mode IN ('live', 'shadow') AND p.voided = 0
+              AND (o.outcome IS NULL OR o.id IS NULL)""",
+        event_ids,
+    ).fetchall()
+
+
 @app.command("watch-closes")
 def watch_closes(
     lookahead: int = typer.Option(
@@ -490,7 +518,7 @@ def watch_closes(
     from evmax.clients.kalshi import KalshiClient
 
     async def _capture_kalshi(event_ids: list[str]) -> int:
-        """Snapshot live Kalshi asks for live, unresolved bets on upcoming events.
+        """Snapshot live Kalshi asks for unresolved bets on upcoming events.
 
         This is what gives placed-bet Kalshi CLV a genuine POST-ENTRY close to
         anchor against — without a near-tip snapshot, get_kalshi_close_price only
@@ -499,17 +527,7 @@ def watch_closes(
         whether the Pinnacle close has landed. Failures here never abort the sweep.
         """
         conn = get_connection()
-        placeholders = ",".join("?" * len(event_ids))
-        bet_rows = conn.execute(
-            f"""SELECT DISTINCT p.market_id, p.sector, p.event_id, p.event_date,
-                       p.market_type, p.yes_team, p.line
-                FROM ev_predictions p
-                LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
-                WHERE p.event_id IN ({placeholders})
-                  AND p.mode = 'live' AND p.voided = 0
-                  AND (o.outcome IS NULL OR o.id IS NULL)""",
-            event_ids,
-        ).fetchall()
+        bet_rows = near_tip_snapshot_candidates(conn, event_ids)
         conn.close()
         if not bet_rows:
             return 0
@@ -857,6 +875,106 @@ def watch_listings(
             time.sleep(interval)
     except KeyboardInterrupt:
         console.print("\n[dim]watch-listings stopped.[/dim]")
+
+
+@app.command("listings-eval")
+def listings_eval(
+    sector: str = typer.Option(
+        "wnba", "--sector", "-s",
+        help="Sector to evaluate (one at a time — the anchor windows differ).",
+    ),
+    market_types: str = typer.Option(
+        "spread,total", "--market-types", "-m",
+        help="Comma-separated laddered market types to evaluate.",
+    ),
+    ev_min: float = typer.Option(
+        2.0, "--ev-min",
+        help="Entry gate: edge vs the sharp anchor at the crossable price, in pp.",
+    ),
+    depth_min: float = typer.Option(
+        50.0, "--depth-min",
+        help="Entry gate: resting $ at the crossable price level.",
+    ),
+    since: Optional[str] = typer.Option(
+        None, "--since",
+        help="Only consider snapshots fetched on/after this ISO date.",
+    ),
+    detail: bool = typer.Option(
+        False, "--detail",
+        help="Also print every hypothetical entry, not just the side summary.",
+    ),
+) -> None:
+    """Replay watch-listings captures through the first-anchored-sweep entry rule.
+
+    For each laddered ticker: find the first hourly snapshot with a concurrent
+    Pinnacle anchor able to price its line (Kalshi lists ~6-24h BEFORE Pinnacle
+    posts, so raw listing time is unanchored noise), enter hypothetically when
+    edge >= --ev-min at the crossable price AND depth >= --depth-min, and score
+    Kalshi CLV to the last pre-tip snapshot. This is the offline promotion lens
+    for laddered markets (`cleanup shadow clv --side lay` is the live one).
+    Read-only — never writes to archive.db or predictions.db.
+    """
+    from evmax.agents.cleanup.listings_eval import evaluate_sector, summarize
+    from evmax.archiver import _get_connection as get_archive_conn
+
+    types = tuple(t.strip().lower() for t in market_types.split(",") if t.strip())
+    with get_archive_conn() as conn:
+        stats = evaluate_sector(
+            conn, sector.lower(), ev_min_pp=ev_min, depth_min_usd=depth_min,
+            market_types=types, since=since,
+        )
+
+    console.print(
+        f"[cyan]{sector} anchored-entry eval[/cyan]  ev>={ev_min}pp  depth>=${depth_min:g}  "
+        f"tickers={stats.tickers}  never-anchored={stats.never_anchored}  "
+        f"anchored-no-entry={stats.anchored_no_entry}  entries={len(stats.entries)}"
+    )
+    if not stats.entries:
+        console.print("[dim]No qualifying entries — accumulate more capture or relax gates.[/dim]")
+        return
+
+    if detail:
+        dt = Table(title="Hypothetical anchored entries", box=box.SIMPLE)
+        dt.add_column("Event", no_wrap=False, min_width=24)
+        dt.add_column("Outcome", no_wrap=False)
+        dt.add_column("Entry (T-h)", justify="right")
+        dt.add_column("Price", justify="right")
+        dt.add_column("Depth$", justify="right")
+        dt.add_column("Fair", justify="right")
+        dt.add_column("Edge", justify="right")
+        dt.add_column("Close", justify="right")
+        dt.add_column("CLV", justify="right")
+        for e in sorted(stats.entries, key=lambda x: x.entry_at):
+            clv = f"{e.clv_pp:+.1f}pp" if e.clv_pp is not None else "—"
+            close = f"{e.close_price:.2f}" if e.close_price is not None else "—"
+            dt.add_row(
+                e.event_label, e.outcome_label, f"{e.entry_lead_h:.1f}",
+                f"{e.entry_price:.2f}", f"{e.entry_depth_usd:,.0f}",
+                f"{e.fair_prob:.2f}", f"{e.edge_pp:+.1f}pp", close, clv,
+            )
+        console.print(dt)
+
+    st = Table(title=f"{sector} — CLV by market/side (anchored entries)", box=box.SIMPLE)
+    st.add_column("Market")
+    st.add_column("Side")
+    st.add_column("n", justify="right")
+    st.add_column("mean edge", justify="right")
+    st.add_column("mean CLV", justify="right")
+    st.add_column("med CLV", justify="right")
+    st.add_column("%CLV>0", justify="right")
+    st.add_column("med depth$", justify="right")
+    st.add_column("med lead", justify="right")
+    for s in summarize(stats):
+        st.add_row(
+            s.market_type, s.side, str(s.n),
+            f"{s.mean_edge_pp:+.1f}pp",
+            f"{s.mean_clv_pp:+.2f}pp" if s.mean_clv_pp is not None else "—",
+            f"{s.median_clv_pp:+.2f}pp" if s.median_clv_pp is not None else "—",
+            f"{s.pct_clv_pos:.0f}%" if s.pct_clv_pos is not None else "—",
+            f"{s.median_depth_usd:,.0f}",
+            f"{s.median_lead_h:.1f}h",
+        )
+    console.print(st)
 
 
 def _stale_unmatched_candidates(conn, cutoff_str: str):

@@ -198,3 +198,81 @@ class TestResolveWatchSectors:
 
     def test_explicit_list_passes_through_normalized(self):
         assert resolve_watch_sectors("WNBA, baseball ,") == ["wnba", "baseball"]
+
+
+# ---------------------------------------------------------------------------
+# near_tip_snapshot_candidates (watch-closes bet selection)
+# ---------------------------------------------------------------------------
+class TestNearTipSnapshotCandidates:
+    """Regression for the 2026-07-05 widening: shadow rows MUST be included.
+
+    Laddered categories (WNBA spread/total) live in shadow mode; their CLV
+    promotion gate anchors against the last archived Kalshi price before tip.
+    With the old mode='live' filter, shadow bets never got a watch-closes
+    near-tip snapshot.
+    """
+
+    @pytest.fixture
+    def conn(self):
+        import sqlite3
+
+        c = sqlite3.connect(":memory:")
+        c.row_factory = sqlite3.Row
+        c.execute(
+            """CREATE TABLE ev_predictions (
+                   id INTEGER PRIMARY KEY, market_id TEXT, sector TEXT,
+                   event_id TEXT, event_date TEXT, market_type TEXT,
+                   yes_team TEXT, line REAL, mode TEXT, voided INTEGER)"""
+        )
+        c.execute(
+            """CREATE TABLE ev_outcomes (
+                   id INTEGER PRIMARY KEY, market_id TEXT, outcome INTEGER)"""
+        )
+        yield c
+        c.close()
+
+    def _bet(self, conn, market_id, event_id, mode="live", voided=0):
+        conn.execute(
+            """INSERT INTO ev_predictions
+               (market_id, sector, event_id, event_date, market_type,
+                yes_team, line, mode, voided)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (market_id, "wnba", event_id, "2026-07-02", "spread",
+             "storm", -6.5, mode, voided),
+        )
+
+    def test_includes_both_live_and_shadow_unresolved(self, conn):
+        from evmax.cli.commands.cleanup import near_tip_snapshot_candidates
+
+        self._bet(conn, "kalshi:T1", "ev1", mode="live")
+        self._bet(conn, "kalshi:T2", "ev1", mode="shadow")   # the regression
+        got = {r["market_id"] for r in near_tip_snapshot_candidates(conn, ["ev1"])}
+        assert got == {"kalshi:T1", "kalshi:T2"}
+
+    def test_excludes_voided_resolved_other_events_and_stray_modes(self, conn):
+        from evmax.cli.commands.cleanup import near_tip_snapshot_candidates
+
+        self._bet(conn, "kalshi:VOID", "ev1", voided=1)
+        self._bet(conn, "kalshi:DONE", "ev1", mode="shadow")
+        conn.execute(
+            "INSERT INTO ev_outcomes (market_id, outcome) VALUES ('kalshi:DONE', 1)"
+        )
+        self._bet(conn, "kalshi:OTHER", "ev2")                # not in event list
+        self._bet(conn, "kalshi:STRAY", "ev1", mode="disabled")
+        assert near_tip_snapshot_candidates(conn, ["ev1"]) == []
+
+    def test_unresolved_outcome_row_still_included(self, conn):
+        from evmax.cli.commands.cleanup import near_tip_snapshot_candidates
+
+        # outcome row exists but is NULL (pending) — must still snapshot
+        self._bet(conn, "kalshi:PEND", "ev1", mode="shadow")
+        conn.execute(
+            "INSERT INTO ev_outcomes (market_id, outcome) VALUES ('kalshi:PEND', NULL)"
+        )
+        got = near_tip_snapshot_candidates(conn, ["ev1"])
+        assert [r["market_id"] for r in got] == ["kalshi:PEND"]
+
+    def test_empty_event_list_returns_empty(self, conn):
+        from evmax.cli.commands.cleanup import near_tip_snapshot_candidates
+
+        assert near_tip_snapshot_candidates(conn, []) == []
