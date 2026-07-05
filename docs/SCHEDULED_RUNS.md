@@ -51,8 +51,8 @@ All times America/Los_Angeles. Each task carries a small random jitter.
 
 | Agent | Cadence | What it does |
 |---|---|---|
-| `com.evmax.watch-closes` | every 300 s, always-up | `evmax cleanup watch-closes` — near-tip Kalshi + Pinnacle close capture so placed-bet CLV has a genuine post-entry anchor |
-| `com.evmax.watch-listings` | hourly, always-up | `evmax cleanup watch-listings --interval 3600` — LISTING→scan window capture (all game sectors, spread+total ladders): Kalshi snapshots + order-book depth + as-of Pinnacle anchor. Logs: `logs/launchd.watch-listings.{out,err}`. After code changes restart with `launchctl kickstart -k gui/$(id -u)/com.evmax.watch-listings` (KeepAlive keeps the old process otherwise) |
+| `com.evmax.watch-closes` | `StartInterval` 300 s → `--once` per firing | `evmax cleanup watch-closes --lookahead 30 --once` — near-tip Kalshi + Pinnacle close capture so placed-bet CLV has a genuine post-entry anchor. Converted from an always-up loop 2026-07-05: launchd coalesces firings missed during sleep into one run on wake |
+| `com.evmax.watch-listings` | `StartCalendarInterval` Minute=0 (hourly) → `--once` per firing | `evmax cleanup watch-listings --once` — LISTING→scan window capture (all game sectors, spread+total ladders): Kalshi snapshots + order-book depth + as-of Pinnacle anchor. Logs: `logs/launchd.watch-listings.{out,err}`. Converted from an always-up `--interval 3600` loop 2026-07-05: the in-process sleep froze across lid-close/forced sleep (1–17 sweeps/day vs 24 in archive.db), while calendar firings coalesce on wake. Each firing is a fresh process, so code changes are picked up automatically (no `launchctl kickstart` needed) and the cross-loop AsyncLimiter RuntimeWarning is gone. `caffeinate -i` is now per-invocation only |
 | `com.evmax.nba-resolve` | — | STOPPED (plist renamed `.plist.disabled`) — was a no-op in the NBA offseason |
 
 ---
@@ -78,3 +78,12 @@ All times America/Los_Angeles. Each task carries a small random jitter.
   cron had been silently broken (no `cd` into the repo).
 - **2026-07-01** `com.evmax.watch-listings` launchd agent added (hourly,
   all-sector defaults from PR #65); `weekly-nba-props-shadow-metrics` disabled.
+- **2026-07-05** both watchers converted from KeepAlive always-up loops
+  (`caffeinate -i` + in-process `time.sleep`) to launchd-driven `--once`
+  firings (`StartCalendarInterval` hourly for watch-listings, `StartInterval`
+  300 s for watch-closes). The old loops froze across lid-close/forced sleep
+  — `caffeinate -i` only blocks *idle* sleep — so archive.db showed 1–17
+  listing sweeps/day instead of 24, starving the WNBA spread lay-side CLV
+  gate of listing-window density. launchd coalesces sleep-missed firings
+  into one run at wake, and each sweep being a fresh process also fixed the
+  recurring AsyncLimiter cross-event-loop RuntimeWarning.
