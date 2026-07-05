@@ -35,6 +35,10 @@ class MarketType(str, enum.Enum):
     moneyline = "moneyline"
     spread = "spread"
     total = "total"
+    # Knockout "to advance" (winner incl. extra time / penalties) — 2-way even
+    # in soccer-like sectors. Distinct from moneyline, which for soccer/worldcup
+    # is the 3-way REGULATION result (knockout games can still draw after 90').
+    advance = "advance"
     map_handicap = "map_handicap"
     series_winner = "series_winner"
     player_prop = "player_prop"

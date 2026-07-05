@@ -81,12 +81,15 @@ SECTOR_SERIES_MAP: dict[str, list[str]] = {
         "KXLIGUE1GAME",     # Ligue 1
         "KXUELGAME",        # UEFA Europa League
     ],
-    # National-team World Cup — 3-way match winner (TeamA / TeamB / TIE).
-    # Tickers encode 3-letter FIFA codes (KXWCGAME-26JUN27CODUZB-COD); the
-    # worldcup alias map normalizes those onto the same canonical the Pinnacle
-    # full names resolve to. Spread/total WC series exist (KXWCSPREAD/KXWCTOTAL)
-    # but are intentionally not wired — v1 is moneyline-only, shadow mode.
-    "worldcup": ["KXWCGAME"],
+    # National-team World Cup — 3-way REGULATION match winner (TeamA / TeamB /
+    # TIE, "does not include extra time or penalties" per Kalshi rules) plus
+    # the knockout-round KXWCADVANCE series (2-way "Team X advances", i.e.
+    # winner INCLUDING extra time / penalties — one YES market per team).
+    # Tickers encode 3-letter FIFA codes (KXWCGAME-26JUN27CODUZB-COD,
+    # KXWCADVANCE-26JUL09FRAMAR-MAR); the worldcup alias map normalizes those
+    # onto the same canonical the Pinnacle full names resolve to. Spread/total
+    # WC series exist (KXWCSPREAD/KXWCTOTAL) but are intentionally not wired.
+    "worldcup": ["KXWCGAME", "KXWCADVANCE"],
     "lol": ["KXLOLGAME"],
     "cs2": ["KXCS2GAME", "KXCS2GAMES"],
     "tennis": ["KXATPMATCH", "KXWTAMATCH"],
@@ -1016,6 +1019,11 @@ class KalshiClient(BaseAPIClient):
                     "KXWNBATOTAL",
                 ]
             )
+            # World Cup knockout "to advance" series — 2-way winner incl.
+            # extra time / penalties. Detected by ticker prefix (the title
+            # keyword "advance" would otherwise fall into series_winner via
+            # _infer_market_type, an esports concept).
+            is_advance = ticker.upper().startswith("KXWCADVANCE")
 
             # --- Teams: for tennis use title (ticker codes are 3-letter abbreviations);
             # for other sectors parse 3-letter codes from ticker, fall back to title ---
@@ -1069,6 +1077,9 @@ class KalshiClient(BaseAPIClient):
                     spread_line = float(floor_strike)
                 else:
                     spread_line = self._extract_total_line(ticker)
+            elif is_advance:
+                market_type = MarketType.advance
+                spread_line = None
             else:
                 market_type = self._infer_market_type(title, sector)
                 spread_line = None

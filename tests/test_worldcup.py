@@ -220,10 +220,12 @@ def test_worldcup_registry_consistent():
     # WC blend mirrors club soccer's: elo + form + poisson + xg + sharp, each on
     # the worldcup national-team namespace (never the club `soccer` pool).
     assert set(spec.models) == {"elo", "form", "poisson", "xg", "sharp"}
-    assert spec.market_types == (MarketType.moneyline,)
+    # 2026-07-05: knockout "to advance" coverage (KXWCADVANCE) added alongside
+    # the 3-way regulation moneyline.
+    assert spec.market_types == (MarketType.moneyline, MarketType.advance)
 
 
 def test_worldcup_series_and_pinnacle_wired():
-    assert SECTOR_SERIES_MAP["worldcup"] == ["KXWCGAME"]
+    assert SECTOR_SERIES_MAP["worldcup"] == ["KXWCGAME", "KXWCADVANCE"]
     sport_id, league_ids = SECTOR_SPORT_LEAGUES["worldcup"]
     assert sport_id == 29 and league_ids == [2686]

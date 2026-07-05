@@ -59,6 +59,8 @@ def format_outcome_label(
     team = team_raw.capitalize() if team_raw else "?"
     if mt == "moneyline":
         return f"{team} ML"
+    if mt == "advance":
+        return f"{team} to advance"
     if mt == "spread" and line is not None:
         try:
             ln = float(line)

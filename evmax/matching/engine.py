@@ -79,6 +79,11 @@ class MatchingEngine:
                 return f"{base_key}::total::{market.line}"
             return f"{base_key}::total"
 
+        # Advance markets (knockout "to advance", winner incl. ET/pens): keyed
+        # apart from the 3-way regulation moneyline record of the same game.
+        if market.market_type == MarketType.advance:
+            return f"{base_key}::advance"
+
         return base_key
 
     def match(
@@ -96,6 +101,19 @@ class MatchingEngine:
         Returns:
             (SharpOdds, confidence_score) or None if no match found.
         """
+        if not sharp_odds_list:
+            return None
+
+        # Advance markets may only match advance sharp records and vice versa.
+        # Advance and regulation-ML probs differ materially (P(advance) >
+        # P(win in 90') whenever a draw is possible), and the fuzzy fallback
+        # below scores the ::advance suffix close enough to the bare key that
+        # cross-type matches would otherwise slip through.
+        is_advance = market.market_type == MarketType.advance
+        sharp_odds_list = [
+            so for so in sharp_odds_list
+            if so.event_id.endswith("::advance") == is_advance
+        ]
         if not sharp_odds_list:
             return None
 
