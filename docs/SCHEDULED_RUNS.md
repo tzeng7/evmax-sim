@@ -22,10 +22,9 @@ All times America/Los_Angeles. Each task carries a small random jitter.
 
 | Task | Local time | What it does |
 |---|---|---|
-| `daily-morning-scan` | 01:01 | `evmax agents scan --bankroll 500 --kelly 0.5 --date TODAY` — morning watchlist (night-before edges usually revert by tip-off) |
+| `ev-scan-90min-on-hour` + `ev-scan-90min-half-hour` | rolling ~90 min (two interleaved 3-hourly tasks: `:00` on hours 0/3/6/9/12/15/18/21 and `:30` on hours 1/4/7/10/13/16/19/22) | `evmax agents scan --bankroll 500 --kelly 0.5 --date TODAY` + a PushNotification of the +EV plays — the rolling watchlist that replaced the fixed 1am/9am scans 2026-07-02 (night-before edges usually revert by tip-off) |
 | `daily-resolve-and-model-update` | 07:32 | `evmax update scores` + `cleanup resolve --date YESTERDAY` + `archive resolve --date YESTERDAY` — feeds ESPN finals into Elo/Form/Poisson/xG state and resolves outcomes |
 | `daily-close-lines-capture` | 08:04 | `evmax cleanup close-lines` — snapshots Pinnacle closing lines pre-tipoff (timing-sensitive; `watch-closes` under launchd covers this even when the app is closed) |
-| `daily-updated-scan` | 09:05 | re-runs the scan against refreshed lines (the 1am scan often predates Kalshi listing next-day markets) |
 | `daily-evening-resolve` | 23:06 | `evmax cleanup resolve --date TODAY` + `cleanup show --date TODAY` — day's P/L |
 
 ### Weekly
@@ -42,6 +41,8 @@ All times America/Los_Angeles. Each task carries a small random jitter.
 
 | Task | Status |
 |---|---|
+| `daily-morning-scan` | Disabled 2026-07-02 — the fixed 01:01 scan was replaced by the interleaved `ev-scan-90min-*` pair (rolling 90-min scan + push-notify) |
+| `daily-updated-scan` | Disabled 2026-07-02 — the fixed 09:05 re-scan was likewise folded into the `ev-scan-90min-*` pair |
 | `weekly-nba-props-shadow-metrics` | Disabled 2026-07-01 per user request; re-enable when NBA season restarts if nba_props promotion tracking resumes |
 | `weekly-tennis-rankings-refresh` | Deprecated 2026-06-27 (Sackmann repos offline); ranking_trend now rides the Tue tennis task. Still present as a disabled task — safe to delete the task folder |
 
@@ -78,6 +79,12 @@ All times America/Los_Angeles. Each task carries a small random jitter.
   cron had been silently broken (no `cd` into the repo).
 - **2026-07-01** `com.evmax.watch-listings` launchd agent added (hourly,
   all-sector defaults from PR #65); `weekly-nba-props-shadow-metrics` disabled.
+- **2026-07-02** the two fixed daily scans (`daily-morning-scan` 01:01 and
+  `daily-updated-scan` 09:05) were disabled and replaced by two interleaved
+  3-hourly tasks — `ev-scan-90min-on-hour` (`:00` on 0/3/6/9/12/15/18/21) and
+  `ev-scan-90min-half-hour` (`:30` on 1/4/7/10/13/16/19/22) — for a rolling
+  ~90-min `evmax agents scan` + PushNotification cadence through the day instead
+  of two fixed morning runs.
 - **2026-07-05** both watchers converted from KeepAlive always-up loops
   (`caffeinate -i` + in-process `time.sleep`) to launchd-driven `--once`
   firings (`StartCalendarInterval` hourly for watch-listings, `StartInterval`
