@@ -1532,7 +1532,7 @@ All settings live in `.env` (or environment variables):
 
 The full catalog — every bettable category, its models, mode, resolver, and status — lives in one registry: [`data/categories.yaml`](data/categories.yaml). Read it at runtime via `evmax.categories.all_categories()` or `evmax categories list`. The table below is a snapshot for orientation; the YAML is authoritative.
 
-All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api.arcadia.pinnacle.com/0.1`). 14 categories ship today:
+All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api.arcadia.pinnacle.com/0.1`). 15 categories ship today:
 
 | Category | Models | Market Types | Resolver | Mode |
 |----------|--------|--------------|----------|------|
@@ -1550,6 +1550,7 @@ All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api
 | `cs2` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
 | `nba_props` | NBA Props Cache | player_prop | espn_boxscore | `shadow` |
 | `nfl_props` | NFL Props Cache (QB only v1) | player_prop | espn_boxscore | `shadow` (blocked) |
+| `baseball_props` | Baseball Props Model (K/Outs/TB/HR anchored; Hits/H+R+RBI/RBI model-priced) | player_prop | espn_boxscore | `shadow` (wip) |
 
 > Injury data (ESPN) is applied to NBA / NFL / NCAAB / NCAAW / soccer / worldcup / baseball / WNBA / NHL. `valorant`, `ufc`, and `f1` sector handlers exist in the registry as **latent** sectors but have no Kalshi product, so they're absent from `SECTOR_SERIES_MAP` and cannot be bet today.
 
