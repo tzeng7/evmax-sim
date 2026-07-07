@@ -302,11 +302,30 @@ def run_maintenance(scan_date: Optional[date] = None) -> MaintenanceReport:
             logger.info("maintenance_skipped", reason="no_predictions", date=sd)
             return report
 
+        # Placed bets and rows whose market already resolved are historical
+        # records — no check may delete or rewrite them. prob_divergence
+        # deleted the resolved 2026-07-06 Sun ML winner (65% drift, negative
+        # EV after reset) and orphaned its ev_outcomes row — the same failure
+        # mode as the 2026-07-05 stale_resolved_market bug, one check over.
+        # _check_stale_markets stays on the full table: post-resolution
+        # re-inserts are exactly the resolved-market rows it must delete,
+        # and it carries its own logged_at/placed guards.
+        resolved = {
+            r[0]
+            for r in conn.execute(
+                "SELECT market_id FROM ev_outcomes WHERE outcome IS NOT NULL"
+            )
+        }
+        mutable_rows = [
+            r for r in rows
+            if not r["placed"] and r["market_id"] not in resolved
+        ]
+
         # All check+fix functions share the same open connection/transaction
-        _check_rule_violations(rows, sd, conn, report)
-        _check_duplicate_events(rows, sd, conn, report)
+        _check_rule_violations(mutable_rows, sd, conn, report)
+        _check_duplicate_events(mutable_rows, sd, conn, report)
         _check_stale_markets(sd, conn, report)
-        _check_prob_divergence(rows, sd, conn, report)
+        _check_prob_divergence(mutable_rows, sd, conn, report)
 
         conn.commit()
 
