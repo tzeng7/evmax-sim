@@ -741,10 +741,12 @@ class TestRunMaintenance:
     # Check 6: prob_divergence → blended reset to sharp
     # ------------------------------------------------------------------
 
-    def test_prob_divergence_resets_blended_and_ev(self):
+    def test_prob_divergence_demotes_to_shadow_keeps_blend(self):
+        """High drift demotes the row to shadow with kelly=0 — it is never
+        deleted, and blended/ev are left intact so shadow scoring measures
+        the model's real opinion, not a sharp-reset copy."""
         conn = _make_in_memory_db()
         # blended=0.90, sharp=0.55, kalshi=0.45 → drift 64% > 50%
-        # After reset: EV = (0.55/0.45)-1 = 0.222 (still positive)
         _insert_prediction(
             conn, market_id="kalshi:DRIFT", scan_date=self.SD,
             kalshi_yes_price=0.45, sharp_true_prob=0.55, blended_true_prob=0.90,
@@ -758,18 +760,23 @@ class TestRunMaintenance:
         assert report.fixes_applied >= 1
 
         row = conn.execute(
-            "SELECT blended_true_prob, ev_pct FROM ev_predictions WHERE market_id = ?",
+            "SELECT mode, kelly_fraction, blended_true_prob, ev_pct "
+            "FROM ev_predictions WHERE market_id = ?",
             ("kalshi:DRIFT",),
         ).fetchone()
         assert row is not None
-        assert row["blended_true_prob"] == pytest.approx(0.55)
-        assert row["ev_pct"] == pytest.approx(0.55 / 0.45 - 1.0, abs=0.001)
+        assert row["mode"] == "shadow"
+        assert row["kelly_fraction"] == 0
+        assert row["blended_true_prob"] == pytest.approx(0.90)
+        assert row["ev_pct"] == pytest.approx(1.0)
 
-    def test_prob_divergence_deletes_when_negative_ev(self):
-        """When drift correction makes a row negative EV, delete it entirely."""
+    def test_prob_divergence_never_deletes_negative_sharp_ev(self):
+        """Regression (2026-07-06, Sun ML incident): the old behaviour
+        DELETED high-drift rows whose sharp-only EV was negative — exactly
+        the big-disagreement longshots where model edge (if any) lives.
+        They must survive as shadow rows instead."""
         conn = _make_in_memory_db()
-        # blended=0.11, sharp=0.055, kalshi=0.08 → drift 100% > 50%
-        # After reset: EV = (0.055/0.08)-1 = -0.31 → delete
+        # blended=0.11, sharp=0.055, kalshi=0.08 → drift 100%, sharp-EV −31%
         _insert_prediction(
             conn, market_id="kalshi:NEG-DRIFT", scan_date=self.SD,
             kalshi_yes_price=0.08, sharp_true_prob=0.055, blended_true_prob=0.11,
@@ -780,13 +787,34 @@ class TestRunMaintenance:
 
         drift_issues = [i for i in report.issues if i.check == "prob_divergence"]
         assert len(drift_issues) == 1
-        assert "negative EV" in drift_issues[0].fix
 
         row = conn.execute(
-            "SELECT * FROM ev_predictions WHERE market_id = ?",
+            "SELECT mode, kelly_fraction FROM ev_predictions WHERE market_id = ?",
             ("kalshi:NEG-DRIFT",),
         ).fetchone()
-        assert row is None
+        assert row is not None
+        assert row["mode"] == "shadow"
+        assert row["kelly_fraction"] == 0
+
+    def test_prob_divergence_skips_already_shadow_rows(self):
+        """A row already in shadow (category mode or a previous pass) is not
+        re-flagged — no warning spam across repeated maintenance runs."""
+        conn = _make_in_memory_db()
+        _insert_prediction(
+            conn, market_id="kalshi:SHADOW-DRIFT", scan_date=self.SD,
+            kalshi_yes_price=0.08, sharp_true_prob=0.055, blended_true_prob=0.11,
+            ev_pct=0.375,
+        )
+        conn.execute(
+            "UPDATE ev_predictions SET mode='shadow', kelly_fraction=0 "
+            "WHERE market_id='kalshi:SHADOW-DRIFT'"
+        )
+        conn.commit()
+
+        report = self._run(conn)
+
+        drift_issues = [i for i in report.issues if i.check == "prob_divergence"]
+        assert len(drift_issues) == 0
 
     def test_small_divergence_not_flagged(self):
         """blended within 50% of sharp must not trigger prob_divergence."""

@@ -236,47 +236,50 @@ def _check_stale_markets(
 def _check_prob_divergence(
     rows: list, scan_date: str, conn: sqlite3.Connection, report: MaintenanceReport
 ) -> None:
-    """blended_true_prob > 50% relative drift from sharp → reset to sharp and recalculate EV."""
+    """blended_true_prob > 50% relative drift from sharp → demote to shadow.
+
+    High relative drift can mean a broken blend (stale state file,
+    contaminated seed) OR a genuine model edge — and relative drift is
+    mechanically large on longshots (6pp of disagreement on a 10% dog is
+    65% drift; the same 6pp on a coin flip is 12%), so the two cases are
+    indistinguishable at check time. The pre-2026-07-06 behaviour (reset
+    blended to sharp, or DELETE when the sharp-only EV went negative)
+    destroyed exactly the evidence needed to tell them apart — it deleted
+    the resolved Sun ML winner and orphaned its outcome row.
+
+    Demoting to shadow (tennis full-blend-gate pattern) keeps the bankroll
+    untouched while the row resolves and scores like any other shadow bet.
+    blended/ev_pct are left intact so shadow CLV/Brier measure the model's
+    real opinion, not a sharp-reset copy. Once enough demoted rows resolve,
+    judge the check on that data: subset CLV >= 0 and blend Brier <= sharp
+    Brier → remove the check; worse → the drift signal is real and the fix
+    belongs in the models (value-audit), still never in deletion.
+    """
     for r in rows:
         sharp = r["sharp_true_prob"]
         blended = r["blended_true_prob"]
-        kalshi = r["kalshi_yes_price"]
         if not (sharp and sharp > 0):
             continue
         drift = abs(blended - sharp) / sharp
         if drift <= MAX_PROB_DRIFT:
             continue
+        if r["mode"] == "shadow":
+            continue  # already shadow (category mode or a previous pass)
 
-        new_ev = (sharp / kalshi - 1.0) if kalshi and kalshi > 0 else 0.0
-        if new_ev < 0:
-            conn.execute(
-                "DELETE FROM ev_predictions WHERE market_id = ? AND scan_date = ?",
-                (r["market_id"], scan_date),
-            )
-            report.fixes_applied += 1
-            report.issues.append(MaintenanceIssue(
-                level="warning",
-                check="prob_divergence",
-                market_id=r["market_id"],
-                event_id=r["event_id"],
-                detail=f"blended={blended:.3f} vs sharp={sharp:.3f} ({drift:.0%} drift), negative EV after reset",
-                fix="deleted row (negative EV after drift correction)",
-            ))
-        else:
-            conn.execute(
-                "UPDATE ev_predictions SET blended_true_prob = ?, ev_pct = ?, kelly_fraction = 0 "
-                "WHERE market_id = ? AND scan_date = ?",
-                (sharp, new_ev, r["market_id"], scan_date),
-            )
-            report.fixes_applied += 1
-            report.issues.append(MaintenanceIssue(
-                level="warning",
-                check="prob_divergence",
-                market_id=r["market_id"],
-                event_id=r["event_id"],
-                detail=f"blended={blended:.3f} vs sharp={sharp:.3f} ({drift:.0%} drift)",
-                fix=f"reset blended_true_prob to {sharp:.3f}, ev_pct to {new_ev:.3f}",
-            ))
+        conn.execute(
+            "UPDATE ev_predictions SET mode = 'shadow', kelly_fraction = 0 "
+            "WHERE market_id = ? AND scan_date = ?",
+            (r["market_id"], scan_date),
+        )
+        report.fixes_applied += 1
+        report.issues.append(MaintenanceIssue(
+            level="warning",
+            check="prob_divergence",
+            market_id=r["market_id"],
+            event_id=r["event_id"],
+            detail=f"blended={blended:.3f} vs sharp={sharp:.3f} ({drift:.0%} drift)",
+            fix="demoted to shadow, kelly=0 (high-drift play is scored, not staked)",
+        ))
 
 
 # ---------------------------------------------------------------------------
