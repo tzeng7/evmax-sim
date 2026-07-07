@@ -99,6 +99,22 @@ def find_entry_snapshot(
     return before[-1] if before else None
 
 
+def derive_event_title(event_id: str, fallback: str | None) -> str | None:
+    """Standardized "Team A vs Team B" title from the canonical event_id slug.
+
+    Raw Kalshi snapshot titles ("Connecticut vs Minnesota winner?", "Will X
+    win the ... match?") don't match the scanner's uniform event_title
+    format, so derive the matchup from the event_id the same way
+    ev_gap_agent._total_event_title does (e.g.
+    ``wnba::2026-07-06::lynx_vs_sun`` → "Lynx vs Sun"). Falls back to the
+    snapshot title only when the slug can't be parsed.
+    """
+    parts = (event_id or "").split("::")
+    if len(parts) >= 3 and "_vs_" in parts[2]:
+        return " vs ".join(p.replace("_", " ").title() for p in parts[2].split("_vs_"))
+    return fallback
+
+
 def build_row(
     orphan: sqlite3.Row, snap: sqlite3.Row, mode: str, model_version: str
 ) -> dict | None:
@@ -131,7 +147,7 @@ def build_row(
         "sector": orphan["sector"],
         "yes_team": orphan["yes_team"],
         "market_type": snap["market_type"],
-        "event_title": snap["title"],
+        "event_title": derive_event_title(orphan["event_id"], snap["title"]),
         "event_date": orphan["event_date"] or snap["event_date"],
         "kalshi_yes_price": price,
         "sharp_true_prob": sharp,
