@@ -802,6 +802,85 @@ class TestRunMaintenance:
         drift_issues = [i for i in report.issues if i.check == "prob_divergence"]
         assert len(drift_issues) == 0
 
+    def test_prob_divergence_spares_resolved_market(self):
+        """Regression (2026-07-06, Sun ML incident): a row whose market
+        already has a resolved outcome is a historical record — prob_divergence
+        must not delete it even when drift is large and reset-EV is negative,
+        or it orphans the ev_outcomes row and erases the bet from P&L."""
+        conn = _make_in_memory_db()
+        # Same shape as the real incident: blended=0.164, sharp=0.0995,
+        # kalshi=0.12 → drift 65% > 50%, reset EV = (0.0995/0.12)-1 = -17%
+        _insert_prediction(
+            conn, market_id="kalshi:RESOLVED-DRIFT", scan_date=self.SD,
+            kalshi_yes_price=0.12, sharp_true_prob=0.0995, blended_true_prob=0.164,
+            ev_pct=0.365, logged_at="2026-03-21 07:00:00",
+        )
+        _insert_outcome(
+            conn, market_id="kalshi:RESOLVED-DRIFT", outcome=1,
+            resolved_at="2026-03-21 23:30:00",
+        )
+
+        report = self._run(conn)
+
+        drift_issues = [i for i in report.issues if i.check == "prob_divergence"]
+        assert len(drift_issues) == 0
+        row = conn.execute(
+            "SELECT blended_true_prob, ev_pct FROM ev_predictions WHERE market_id = ?",
+            ("kalshi:RESOLVED-DRIFT",),
+        ).fetchone()
+        assert row is not None
+        # Not reset either — resolved rows are frozen history
+        assert row["blended_true_prob"] == pytest.approx(0.164)
+        assert row["ev_pct"] == pytest.approx(0.365)
+
+    def test_prob_divergence_spares_placed_row(self):
+        """A placed bet is never deleted or rewritten, drift or not."""
+        conn = _make_in_memory_db()
+        _insert_prediction(
+            conn, market_id="kalshi:PLACED-DRIFT", scan_date=self.SD,
+            kalshi_yes_price=0.08, sharp_true_prob=0.055, blended_true_prob=0.11,
+            ev_pct=0.375, placed=1,
+        )
+
+        report = self._run(conn)
+
+        drift_issues = [i for i in report.issues if i.check == "prob_divergence"]
+        assert len(drift_issues) == 0
+        row = conn.execute(
+            "SELECT * FROM ev_predictions WHERE market_id = ?",
+            ("kalshi:PLACED-DRIFT",),
+        ).fetchone()
+        assert row is not None
+
+    def test_rule_violations_spare_placed_and_resolved_rows(self):
+        """ev_below_threshold / invalid_probability deletions must also skip
+        placed rows and resolved markets — same historical-record rule."""
+        conn = _make_in_memory_db()
+        _insert_prediction(
+            conn, market_id="kalshi:PLACED-LOWEV", scan_date=self.SD,
+            ev_pct=0.001, placed=1,
+        )
+        _insert_prediction(
+            conn, market_id="kalshi:RESOLVED-LOWEV", scan_date=self.SD,
+            ev_pct=0.001, logged_at="2026-03-21 07:00:00",
+            event_id="nba::2026-03-21::team_e_vs_team_f", yes_team="team e",
+        )
+        _insert_outcome(
+            conn, market_id="kalshi:RESOLVED-LOWEV", outcome=0,
+            resolved_at="2026-03-21 23:30:00",
+        )
+
+        report = self._run(conn)
+
+        ev_issues = [i for i in report.issues if i.check == "ev_below_threshold"]
+        assert len(ev_issues) == 0
+        remaining = conn.execute(
+            "SELECT market_id FROM ev_predictions ORDER BY market_id"
+        ).fetchall()
+        assert [r["market_id"] for r in remaining] == [
+            "kalshi:PLACED-LOWEV", "kalshi:RESOLVED-LOWEV",
+        ]
+
     # ------------------------------------------------------------------
     # Transaction atomicity: all fixes committed in single pass
     # ------------------------------------------------------------------
