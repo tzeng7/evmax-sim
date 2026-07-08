@@ -124,6 +124,7 @@ def _make_in_memory_db():
             mode TEXT NOT NULL DEFAULT 'live',
             captured_yes_price REAL,
             model_version TEXT,
+            venue TEXT NOT NULL DEFAULT 'kalshi',
             minutes_to_tipoff INTEGER,
             UNIQUE(market_id)
         );

@@ -63,6 +63,7 @@ def _make_db() -> sqlite3.Connection:
             mode TEXT NOT NULL DEFAULT 'live',
             captured_yes_price REAL,
             model_version TEXT,
+            venue TEXT NOT NULL DEFAULT 'kalshi',
             minutes_to_tipoff INTEGER,
             UNIQUE(market_id, scan_date)
         );
@@ -87,6 +88,7 @@ def _make_db() -> sqlite3.Connection:
             mode TEXT NOT NULL DEFAULT 'live',
             captured_yes_price REAL,
             model_version TEXT,
+            venue TEXT NOT NULL DEFAULT 'kalshi',
             UNIQUE(market_id, scan_date)
         );
         """

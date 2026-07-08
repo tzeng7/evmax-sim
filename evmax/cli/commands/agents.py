@@ -22,7 +22,7 @@ from rich import box
 from evmax.ev.calculator import tiered_min_ev
 from evmax.ev.odds_format import cents as _cents
 from evmax.formatting import format_outcome_label
-from evmax.models.market import is_prop_event
+from evmax.models.market import is_prop_event, venue_label
 
 app = typer.Typer(no_args_is_help=True)
 console = Console()
@@ -422,6 +422,7 @@ def scan(
     )
     table.add_column("#", style="dim", width=2)
     table.add_column("Sec", style="dim", width=5)
+    table.add_column("Ven", style="dim", width=6)
     table.add_column("Event", style="dim", no_wrap=False, max_width=26)
     table.add_column("Outcome", style="bold white", no_wrap=False, max_width=20)
     table.add_column("Ask", justify="right", width=6)
@@ -475,6 +476,7 @@ def scan(
         table.add_row(
             str(i),
             gap.sector.upper(),
+            venue_label(getattr(gap, "venue", None)),
             gap.event_title[:28],
             gap.display_label[:22],
             f"[{odds_color}]{ask_odds}[/{odds_color}]",

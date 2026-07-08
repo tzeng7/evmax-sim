@@ -418,6 +418,7 @@ erDiagram
         text mode "ARCH-11: live/shadow/disabled"
         real captured_yes_price "ARCH-11: pre-game YES ask"
         text model_version "ARCH-11: lets us expire stale shadow"
+        text venue "kalshi / polymarket_us"
     }
 
     prop_observations {
@@ -438,6 +439,7 @@ erDiagram
         text mode "ARCH-11"
         real captured_yes_price "ARCH-11"
         text model_version "ARCH-11"
+        text venue "kalshi / polymarket_us"
     }
 
     ev_outcomes {
@@ -463,6 +465,7 @@ erDiagram
 - **`prop_observations` is parallel to `ev_predictions`** — not a child table. Both are log destinations for the scanner; `log_gaps()` writes the former and `log_prop_observations()` writes the latter. They share the `market_id` / `scan_date` uniqueness pattern but do not JOIN to each other.
 - **`sector` is stored on both `ev_predictions` and `ev_outcomes`** — denormalized by design. Lets `evmax cleanup show --sector nba` filter without a JOIN.
 - **Prop categories** (`nba_props`, `nfl_props`) are identified by `event_id LIKE '%::prop::%'`, not by a dedicated column. That substring is the signal `log_gaps` uses to route to `prop_observations` instead of `ev_predictions`, and `_gap_category_key()` uses to map `sector` → `{sector}_props` for mode lookup.
+- **`venue` (`kalshi` | `polymarket_us`, default `kalshi`) exists on both `ev_predictions` and `prop_observations`** — which prediction-market exchange quoted the row. `kalshi_yes_price` / `kalshi_price` hold the venue's YES ask regardless of venue (the column names predate multi-venue support). CLI tables show it as a `Ven` text column.
 - **ARCH-11 mode columns (`mode`, `captured_yes_price`, `model_version`) exist on both `ev_predictions` and `prop_observations` but NOT on `ev_outcomes`.** Outcome resolution is mode-agnostic — shadow bets still need outcomes — so there's no reason to tag the outcome row.
 - **`placed = 1`** is a user action (manual pick confirmation), distinct from the prediction log. A row can exist with `placed = 0` (scan-found but not confirmed), `placed = 1` (user clicked pick), and the outcome join works identically for both.
 

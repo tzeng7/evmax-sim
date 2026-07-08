@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     mode                TEXT    NOT NULL DEFAULT 'live',  -- live | shadow | disabled
     captured_yes_price  REAL,                       -- pre-game YES ask at scan time
     model_version       TEXT,                       -- e.g. "nfl_props_v1_qb_only" — lets us expire stale shadow data
+    venue               TEXT    NOT NULL DEFAULT 'kalshi',  -- prediction-market venue: kalshi | polymarket_us
     UNIQUE(market_id)
 );
 
@@ -71,6 +72,7 @@ CREATE TABLE IF NOT EXISTS prop_observations (
     mode                TEXT NOT NULL DEFAULT 'live',
     captured_yes_price  REAL,
     model_version       TEXT,
+    venue               TEXT NOT NULL DEFAULT 'kalshi',
     UNIQUE(market_id, scan_date)
 );
 
@@ -166,6 +168,7 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             mode                TEXT    NOT NULL DEFAULT 'live',
             captured_yes_price  REAL,
             model_version       TEXT,
+            venue               TEXT    NOT NULL DEFAULT 'kalshi',
             UNIQUE(market_id)
         );
         INSERT INTO ev_predictions (
@@ -175,7 +178,7 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             volume_usd, model_sources, sharp_weight_used, bankroll_used, line,
             voided, placed, placed_at, placed_price, placed_stake,
             pinnacle_drift_pct, kalshi_clv_pct,
-            mode, captured_yes_price, model_version
+            mode, captured_yes_price, model_version, venue
         )
         SELECT
             id, logged_at, scan_date, market_id, event_id, sector, yes_team,
@@ -184,7 +187,7 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             volume_usd, model_sources, sharp_weight_used, bankroll_used, line,
             voided, placed, placed_at, placed_price, placed_stake,
             pinnacle_drift_pct, kalshi_clv_pct,
-            mode, captured_yes_price, model_version
+            mode, captured_yes_price, model_version, venue
         FROM ev_predictions_old;
         DROP TABLE ev_predictions_old;
         COMMIT;
@@ -246,6 +249,11 @@ def get_connection() -> sqlite3.Connection:
         # drift noise regardless of news. Without this column the late_news
         # tag is uninterpretable because scan timing is the dominant variable.
         "ALTER TABLE ev_predictions ADD COLUMN minutes_to_tipoff INTEGER",
+        # 2026-07-07 — multi-venue support (Polymarket US alongside Kalshi).
+        # Every pre-existing row is a Kalshi row, so the default backfills
+        # history correctly. Values are MarketSource strings.
+        "ALTER TABLE ev_predictions ADD COLUMN venue TEXT NOT NULL DEFAULT 'kalshi'",
+        "ALTER TABLE prop_observations ADD COLUMN venue TEXT NOT NULL DEFAULT 'kalshi'",
     ]:
         try:
             conn.execute(migration)

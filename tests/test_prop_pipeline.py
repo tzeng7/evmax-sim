@@ -602,6 +602,7 @@ class TestLogPropFromSharp:
             mode TEXT NOT NULL DEFAULT 'live',
             captured_yes_price REAL,
             model_version TEXT,
+            venue TEXT NOT NULL DEFAULT 'kalshi',
             UNIQUE(scan_date, player_name, stat_type, line)
         )""")
         conn.commit()
