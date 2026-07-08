@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     polymarket_us_secret_key: str = ""    # Ed25519 secretKey (shown once)
     polymarket_us_base_url: str = "https://gateway.polymarket.us"
     polymarket_us_enabled: bool = True    # kill-switch for the venue fetch
+    # Venue-level shadow firewall (MODEL-9 pattern): until True, every
+    # Polymarket US gap is demoted to mode='shadow' at persistence and its
+    # Kelly is zeroed — logged for calibration/CLV validation, never sized
+    # against the bankroll. Flip after the venue clears the usual shadow
+    # gates (n>=30 resolved, CLV >= 0, no matching/parse errors).
+    polymarket_us_live: bool = False
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./evmax.db"

@@ -541,7 +541,7 @@ def verify(
         SELECT p.id, p.market_id, p.event_title, p.yes_team, p.sector,
                p.market_type, p.kalshi_yes_price, p.sharp_true_prob,
                p.blended_true_prob, p.ev_pct, p.kelly_fraction,
-               p.volume_usd, p.model_sources, p.line, p.bankroll_used
+               p.volume_usd, p.model_sources, p.line, p.venue, p.bankroll_used
         FROM ev_predictions p
         INNER JOIN (
             SELECT market_id, MAX(scan_date) AS latest_scan
@@ -582,7 +582,14 @@ def verify(
     # about it), and remember which rows are NO so we can convert the
     # returned YES ask to a NO ask below.
     raw_market_ids = [dict(r)["market_id"] for r in rows]
-    fetch_tickers = list({mid.removesuffix(":no") for mid in raw_market_ids})
+    # Only Kalshi rows are refreshable over the Kalshi WebSocket; Polymarket
+    # US rows show as no-live below until venue promotion adds a PolyUS
+    # quote refresh.
+    fetch_tickers = list({
+        dict(r)["market_id"].removesuffix(":no")
+        for r in rows
+        if (dict(r).get("venue") or "kalshi") == "kalshi"
+    })
     live_yes_asks = asyncio.run(_fetch_asks(fetch_tickers))
 
     def _live_ask_for(market_id: str) -> Optional[float]:
@@ -799,7 +806,7 @@ def pick(
         SELECT p.id, p.market_id, p.event_id, p.event_title, p.yes_team, p.sector,
                p.market_type, p.kalshi_yes_price, p.sharp_true_prob,
                p.blended_true_prob, p.ev_pct, p.kelly_fraction,
-               p.volume_usd, p.model_sources, p.line,
+               p.volume_usd, p.model_sources, p.line, p.venue,
                p.placed, p.placed_price, p.placed_stake, p.bankroll_used
         FROM ev_predictions p
         INNER JOIN (
@@ -864,7 +871,13 @@ def pick(
     # time you place, so a bet only counts as live if its edge survives to here.
     live_prices: dict[str, Optional[float]] = {}
     if live:
-        raw_ids = [dict(r)["market_id"] for r in rows]
+        # Only Kalshi rows can be refreshed over the Kalshi WebSocket.
+        # Polymarket US rows fall back to the scan price below (flagged) —
+        # a PolyUS live-quote refresh lands with venue promotion.
+        raw_ids = [
+            dict(r)["market_id"] for r in rows
+            if (dict(r).get("venue") or "kalshi") == "kalshi"
+        ]
         fetch_tickers = list({mid.removesuffix(":no") for mid in raw_ids})
 
         async def _fetch_asks(tickers: list[str]) -> dict[str, Optional[float]]:

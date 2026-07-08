@@ -53,11 +53,12 @@ def _make_market(
     stat_type: Optional[str] = None,
     threshold: Optional[float] = None,
     event_id: Optional[str] = None,
+    source: MarketSource = MarketSource.kalshi,
 ) -> PredictionMarket:
     ed = event_date or datetime(2026, 4, 20, 0, 0, tzinfo=timezone.utc)
     return PredictionMarket(
         id=market_id,
-        source=MarketSource.kalshi,
+        source=source,
         sector=sector,
         market_type=market_type,
         title=f"{team_home} vs {team_away}",
@@ -114,6 +115,12 @@ def _make_sharp(
 
 def _resp(agent_name: str, sector: str, data: Any) -> AgentResponse:
     return AgentResponse(agent_name=agent_name, sector=sector, data=data)
+
+
+async def _empty_polymarket(req):
+    """Hermetic stub: the coordinator fetches Polymarket US in every sector
+    fan-out — tests must never hit the live gateway."""
+    return _resp("polymarket_us", req.sector, [])
 
 
 def _noop_archiver():
@@ -181,6 +188,7 @@ class TestNbaGameCycle:
             return [], []
 
         coord.kalshi_agent = _kalshi_stub
+        coord.polymarket_us_agent = _empty_polymarket
         coord.sharp_agent = _sharp_stub
         coord.standings_agent = _standings_stub
         coord._fetch_props = _no_props.__get__(coord, AgentCoordinator)
@@ -260,6 +268,7 @@ class TestNoEdgeCycle:
             return [], []
 
         coord.kalshi_agent = _kalshi_stub
+        coord.polymarket_us_agent = _empty_polymarket
         coord.sharp_agent = _sharp_stub
         coord.standings_agent = _standings_stub
         coord._fetch_props = _no_props.__get__(coord, AgentCoordinator)
@@ -344,6 +353,7 @@ class TestMultiSectorCycle:
             return _resp("standings", req.sector, {})
 
         coord.kalshi_agent = _kalshi_stub
+        coord.polymarket_us_agent = _empty_polymarket
         coord.sharp_agent = _sharp_stub
         coord.standings_agent = _standings_stub
         coord._archiver = _noop_archiver()
@@ -406,6 +416,7 @@ class TestSectorFailureResilience:
             return _resp("standings", req.sector, {})
 
         coord.kalshi_agent = _kalshi_stub
+        coord.polymarket_us_agent = _empty_polymarket
         coord.sharp_agent = _sharp_stub
         coord.standings_agent = _standings_stub
         coord._archiver = _noop_archiver()
@@ -463,6 +474,7 @@ class TestNbaPropFlow:
             return _resp("standings", req.sector, {})
 
         coord.kalshi_agent = _kalshi_stub
+        coord.polymarket_us_agent = _empty_polymarket
         coord.sharp_agent = _sharp_stub
         coord.standings_agent = _standings_stub
         coord._archiver = _noop_archiver()
@@ -513,3 +525,129 @@ class TestNbaPropFlow:
         assert sharp.prop_player_name == "LeBron James"
         assert market.player_name == "LeBron James"
         assert sharp.true_prob_over == 0.60
+
+
+# ---------------------------------------------------------------------------
+# Polymarket US venue integration — merge + shadow firewall
+# ---------------------------------------------------------------------------
+
+
+class TestPolymarketUsVenueCycle:
+    """A mispriced Polymarket US market must flow through matching → EV gap
+    with venue='polymarket_us', and the venue shadow firewall must zero its
+    Kelly until settings.polymarket_us_live is flipped."""
+
+    KALSHI_MARKETS = [
+        _make_market(
+            market_id="kalshi:nba-lal-gsw",
+            sector="nba",
+            team_home="Los Angeles Lakers",
+            team_away="Golden State Warriors",
+            yes_team="Los Angeles Lakers",
+            yes_price=0.45,
+        ),
+    ]
+
+    POLYMARKET_MARKETS = [
+        _make_market(
+            market_id="polymarket_us:aec-nba-gsw-lal-2026-04-20:lal",
+            sector="nba",
+            team_home="Los Angeles Lakers",
+            team_away="Golden State Warriors",
+            yes_team="Los Angeles Lakers",
+            yes_price=0.44,
+            source=MarketSource.polymarket_us,
+        ),
+    ]
+
+    SHARP = [
+        _make_sharp(
+            event_id="nba::2026-04-20::lakers_vs_warriors",
+            sector="nba",
+            outcome_a="Los Angeles Lakers",
+            outcome_b="Golden State Warriors",
+            true_prob_a=0.55,
+        ),
+    ]
+
+    def _build_coord(self) -> AgentCoordinator:
+        coord = AgentCoordinator(
+            sectors=["nba"],
+            enable_models=False,
+            enable_injuries=False,
+            bankroll=500.0,
+            kelly_fraction=0.5,
+        )
+
+        async def _kalshi_stub(req):
+            return _resp("kalshi", req.sector, self.KALSHI_MARKETS)
+
+        async def _polymarket_stub(req):
+            return _resp("polymarket_us", req.sector, self.POLYMARKET_MARKETS)
+
+        async def _sharp_stub(req):
+            return _resp("sharp", req.sector, self.SHARP)
+
+        async def _standings_stub(req):
+            return _resp("standings", req.sector, {})
+
+        async def _no_props(self, sector):  # noqa: ARG001
+            return [], []
+
+        coord.kalshi_agent = _kalshi_stub
+        coord.polymarket_us_agent = _polymarket_stub
+        coord.sharp_agent = _sharp_stub
+        coord.standings_agent = _standings_stub
+        coord._fetch_props = _no_props.__get__(coord, AgentCoordinator)
+        coord._archiver = _noop_archiver()
+        coord._notifier = MagicMock()
+        return coord
+
+    @patch("evmax.agents.coordinator._load_steam_cache", return_value={})
+    @patch("evmax.agents.coordinator._save_steam_cache")
+    def test_polymarket_gap_fires_with_venue_and_zero_kelly(self, _save, _load):
+        coord = self._build_coord()
+        result = _run(coord.run_cycle())
+
+        assert result.markets_fetched == 2  # kalshi + polymarket merged
+        by_venue = {g.venue: g for g in result.ev_gaps}
+        assert set(by_venue) == {"kalshi", "polymarket_us"}
+
+        pm_gap = by_venue["polymarket_us"]
+        assert pm_gap.ev_pct > 0.05
+        # Shadow firewall: kelly zeroed, excluded from bankroll sizing
+        assert pm_gap.kelly_fraction == 0.0
+        # Kalshi gap unaffected
+        assert by_venue["kalshi"].kelly_fraction > 0
+
+    @patch("evmax.agents.coordinator._load_steam_cache", return_value={})
+    @patch("evmax.agents.coordinator._save_steam_cache")
+    def test_polymarket_gap_sized_after_promotion(self, _save, _load, monkeypatch=None):
+        from evmax.settings import get_settings
+        coord = self._build_coord()
+        settings = get_settings()
+        original = settings.polymarket_us_live
+        settings.polymarket_us_live = True
+        try:
+            result = _run(coord.run_cycle())
+        finally:
+            settings.polymarket_us_live = original
+
+        pm_gaps = [g for g in result.ev_gaps if g.venue == "polymarket_us"]
+        assert pm_gaps and pm_gaps[0].kelly_fraction > 0
+
+    @patch("evmax.agents.coordinator._load_steam_cache", return_value={})
+    @patch("evmax.agents.coordinator._save_steam_cache")
+    def test_venue_fetch_disabled_skips_polymarket(self, _save, _load):
+        from evmax.settings import get_settings
+        coord = self._build_coord()
+        settings = get_settings()
+        original = settings.polymarket_us_enabled
+        settings.polymarket_us_enabled = False
+        try:
+            result = _run(coord.run_cycle())
+        finally:
+            settings.polymarket_us_enabled = original
+
+        assert result.markets_fetched == 1  # kalshi only
+        assert all(g.venue == "kalshi" for g in result.ev_gaps)
