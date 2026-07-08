@@ -1490,6 +1490,33 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
             "unmatched": unmatched}
 
 
+def close_lookup_ticker(market_id: Optional[str]) -> tuple[Optional[str], bool]:
+    """Map an ev_predictions market_id to its archived-snapshot ticker.
+
+    Returns ``(ticker, is_no_side)`` where ``ticker`` is the key
+    ``archived_kalshi_markets`` stores near-tip snapshots under:
+
+      * ``kalshi:TICKER[:no]``          → ``TICKER`` (prefix stripped — the
+        archive predates multi-venue and stores raw Kalshi tickers)
+      * ``polymarket_us:slug[:side][:no]`` → the full venue-prefixed id.
+        PolyUS snapshots are archived under the prefixed id so lowercase
+        slugs can never collide with Kalshi tickers in the shared table.
+
+    NO-side bets carry a ``:no`` market_id suffix (see
+    ``ev_gap_agent._build_no_side_{spread,total}_gap``) but the live book
+    snapshot is the same YES market for both sides, so the suffix is
+    stripped and reported via ``is_no_side`` — the caller flips the YES
+    close to ``1 - close`` to stay on the entry's side of the book.
+    """
+    if not market_id:
+        return None, False
+    ticker = market_id
+    is_no_side = ticker.endswith(":no")
+    if is_no_side:
+        ticker = ticker[: -len(":no")]
+    return ticker.removeprefix("kalshi:"), is_no_side
+
+
 def clv_entry_price(
     placed: Optional[int],
     placed_price: Optional[float],
@@ -1574,17 +1601,13 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
             continue
 
         market_id = row["market_id"]
-        ticker = market_id.removeprefix("kalshi:") if market_id else None
-        # NO-side bets (under totals, opponent +spread) are synthesized with a
-        # ":no" market_id suffix and store the NO-side ask in kalshi_yes_price
-        # (see ev_gap_agent._build_no_side_{spread,total}_gap). Strip the suffix
-        # so the clean Kalshi ticker matches archived_kalshi_markets — otherwise
-        # the lookup never hits and EVERY no-side bet silently loses its Kalshi
-        # CLV. The archived snapshot is the YES price, so the close is flipped to
-        # the NO side below to stay on the same side of the book as the entry.
-        is_no_side = bool(ticker and ticker.endswith(":no"))
-        if is_no_side:
-            ticker = ticker[: -len(":no")]
+        # Venue-aware ticker extraction: Kalshi ids lose their prefix (the
+        # archive stores raw tickers), Polymarket US ids keep it (snapshots
+        # are archived under the full prefixed id), and NO-side ``:no``
+        # suffixes are stripped with the close flipped to 1-yes below —
+        # otherwise the archive lookup never hits and the bet silently
+        # loses its venue CLV.
+        ticker, is_no_side = close_lookup_ticker(market_id)
 
         # ---- 1. Pinnacle drift (legacy CLV) — pre-tipoff only ----
         # Dispatch by market_type so spread bets get spread snapshots instead

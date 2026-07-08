@@ -1570,3 +1570,94 @@ class TestBackfillClvNoSide:
             ("kalshi:KXMLBGAME-Y",),
         ).fetchone()
         assert row["kalshi_clv_pct"] is None
+
+
+# ---------------------------------------------------------------------------
+# close_lookup_ticker — venue-aware market_id → archive ticker mapping.
+#
+# Kalshi ids lose their prefix (the archive stores raw tickers); Polymarket US
+# ids KEEP it (watch-closes archives PolyUS snapshots under the full prefixed
+# id). Before this helper, removeprefix("kalshi:") was a no-op on PolyUS ids
+# and the archive lookup never hit — every PolyUS bet silently got NULL
+# kalshi_clv_pct, the same failure mode as the old NO-side suffix bug.
+# ---------------------------------------------------------------------------
+
+class TestCloseLookupTicker:
+    def test_kalshi_plain(self):
+        from evmax.agents.cleanup.resolver import close_lookup_ticker
+        assert close_lookup_ticker("kalshi:KXWNBAGAME-X") == ("KXWNBAGAME-X", False)
+
+    def test_kalshi_no_side(self):
+        from evmax.agents.cleanup.resolver import close_lookup_ticker
+        assert close_lookup_ticker("kalshi:KXMLBGAME-T:no") == ("KXMLBGAME-T", True)
+
+    def test_polymarket_us_keeps_prefix(self):
+        from evmax.agents.cleanup.resolver import close_lookup_ticker
+        assert close_lookup_ticker("polymarket_us:lva-sea-2026-07-08:LVA") == (
+            "polymarket_us:lva-sea-2026-07-08:LVA", False,
+        )
+
+    def test_polymarket_us_no_side(self):
+        from evmax.agents.cleanup.resolver import close_lookup_ticker
+        assert close_lookup_ticker("polymarket_us:slug-total:no") == (
+            "polymarket_us:slug-total", True,
+        )
+
+    def test_empty_and_none(self):
+        from evmax.agents.cleanup.resolver import close_lookup_ticker
+        assert close_lookup_ticker(None) == (None, False)
+        assert close_lookup_ticker("") == (None, False)
+
+
+class TestBackfillClvPolymarketUS:
+    """PolyUS rows must get venue CLV from snapshots archived under their
+    prefixed id. Borrows the NO-side class's seed helpers (not inherited,
+    so the parent's tests aren't collected twice)."""
+
+    _NoCloseConn = TestBackfillClvNoSide._NoCloseConn
+    _make_predictions_db = TestBackfillClvNoSide._make_predictions_db
+    _seed = TestBackfillClvNoSide._seed
+
+    MID = "polymarket_us:nyy-bos-2026-05-25:NYY"
+
+    def _seed_pmus_archive(self, tmp_path, event_id, yes_close, fetched_at, tipoff):
+        from evmax.archiver import DataArchiver
+        from evmax.models.odds import SharpBook, SharpOdds
+        archiver = DataArchiver()
+        archiver.open_session("so", ["baseball"], "test")
+        archiver.archive_sharp_odds("so", "baseball", [SharpOdds(
+            event_id=event_id, book=SharpBook.pinnacle, sector="baseball",
+            outcome_a_label="yankees", outcome_b_label="redsox",
+            outcome_a_decimal=1.9, outcome_b_decimal=1.9,
+            true_prob_a=0.5, true_prob_b=0.5, margin=0.04,
+            event_date=tipoff, fetched_at=tipoff - timedelta(hours=4),
+        )])
+        # watch-closes archives PolyUS snapshots under the PREFIXED id.
+        archiver.archive_kalshi_snapshot(
+            "pmus1", "baseball",
+            [{"ticker": self.MID, "yes_price": yes_close, "event_id": event_id}],
+            fetched_at=fetched_at,
+        )
+
+    def test_polymarket_us_row_gets_clv(self, tmp_path, monkeypatch):
+        from datetime import datetime, timezone
+        from evmax.agents.cleanup import resolver
+        import evmax.archiver as archiver_mod
+
+        monkeypatch.setattr(archiver_mod, "DB_PATH", tmp_path / "archive.db")
+        event_id = "baseball::2026-05-25::yankees_vs_redsox"
+        tip = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+        # entry 0.55 → close 0.60 = +5.0pp CLV
+        self._seed_pmus_archive(tmp_path, event_id, 0.60, tip - timedelta(hours=1), tip)
+
+        conn = self._make_predictions_db(tmp_path, monkeypatch)
+        self._seed(conn, self.MID, "yankees", "moneyline", 0.55, None, event_id)
+
+        with patch.object(resolver, "get_connection", return_value=conn):
+            resolver.backfill_clv()
+
+        row = conn.execute(
+            "SELECT kalshi_clv_pct FROM ev_predictions WHERE market_id = ?",
+            (self.MID,),
+        ).fetchone()
+        assert row["kalshi_clv_pct"] == pytest.approx(5.0)

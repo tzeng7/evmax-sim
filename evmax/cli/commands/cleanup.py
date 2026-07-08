@@ -452,7 +452,7 @@ def close_lines(
 
 def near_tip_snapshot_candidates(conn, event_ids: list[str]) -> list:
     """Unresolved, unvoided bets on the given events that deserve a near-tip
-    Kalshi snapshot from the watch-closes sweep.
+    venue snapshot (Kalshi or Polymarket US) from the watch-closes sweep.
 
     Includes BOTH live and shadow rows (widened 2026-07-05): the laddered
     categories (WNBA spread/total) sit in shadow mode, and their promotion
@@ -478,6 +478,101 @@ def near_tip_snapshot_candidates(conn, event_ids: list[str]) -> list:
     ).fetchall()
 
 
+def snapshot_targets_by_venue(bet_rows: list) -> dict[str, dict[str, dict]]:
+    """Group near-tip snapshot candidates by venue → {archive_ticker: bet meta}.
+
+    market_id conventions: ``kalshi:TICKER[:no]`` and
+    ``polymarket_us:slug[:side][:no]``. The Kalshi branch needs the RAW
+    ticker for the orderbook fetch; the Polymarket US branch keeps the full
+    venue-prefixed id — it is both the live-market lookup key
+    (PredictionMarket.id) and the ticker the snapshot is archived under
+    (see resolver.close_lookup_ticker). The live book is the same YES
+    market for both sides of a bet, so the NO-side ``:no`` suffix is
+    stripped. Rows from any unrecognized venue are skipped.
+    """
+    targets: dict[str, dict[str, dict]] = {}
+    for r in bet_rows:
+        mid = r["market_id"]
+        if not mid:
+            continue
+        ticker = mid.removesuffix(":no")
+        if ticker.startswith("kalshi:"):
+            venue, key = "kalshi", ticker.removeprefix("kalshi:")
+        elif ticker.startswith("polymarket_us:"):
+            venue, key = "polymarket_us", ticker
+        else:
+            continue
+        targets.setdefault(venue, {}).setdefault(key, dict(r))
+    return targets
+
+
+async def capture_polymarket_us_closes(targets: dict[str, dict]) -> int:
+    """Snapshot live Polymarket US asks for unresolved bets near tip-off.
+
+    ``targets`` maps the venue-prefixed market id ("polymarket_us:slug[:side]")
+    → bet meta (see snapshot_targets_by_venue). Prices come from the same
+    league-events fetch the scanner uses — one call per sector, indexed by
+    PredictionMarket.id, which is exactly the id ev_predictions stores.
+    Snapshots land in archived_kalshi_markets under the PREFIXED id so
+    backfill_clv's close lookup hits them without a schema change; lowercase
+    PolyUS slugs can never collide with Kalshi's uppercase tickers.
+
+    The venue firewall (polymarket_us_live) is irrelevant here — shadow rows
+    are exactly the ones the promotion gate needs closes for — but the venue
+    kill-switch (polymarket_us_enabled) is honored. Failures never abort the
+    sweep.
+    """
+    if not targets:
+        return 0
+    from evmax.settings import get_settings
+
+    if not get_settings().polymarket_us_enabled:
+        return 0
+
+    from evmax.archiver import DataArchiver
+    from evmax.clients.polymarket_us import PolymarketUSClient
+
+    sectors = sorted({m["sector"] for m in targets.values()})
+    markets_by_id: dict[str, object] = {}
+    try:
+        async with PolymarketUSClient() as client:
+            batches = await asyncio.gather(*(client.get_markets(sec) for sec in sectors))
+        for batch in batches:
+            for m in batch:
+                markets_by_id[m.id] = m
+    except Exception as perr:  # noqa: BLE001 — never abort the sweep
+        console.print(f"[yellow]  polymarket_us snapshot fetch failed: {perr}[/yellow]")
+        return 0
+
+    snapshots_by_sector: dict[str, list[dict]] = {}
+    for mid, meta in targets.items():
+        market = markets_by_id.get(mid)
+        # Missing = delisted near tip; ≥0.99 mirrors the Kalshi empty-book filter.
+        if market is None or market.yes_price is None or market.yes_price >= 0.99:
+            continue
+        snapshots_by_sector.setdefault(meta["sector"], []).append({
+            "ticker": mid,  # venue-prefixed on purpose — see docstring
+            "yes_price": market.yes_price,
+            "no_price": market.no_price,
+            "event_id": meta.get("event_id"),
+            "event_date": meta.get("event_date"),
+            "market_type": meta.get("market_type"),
+            "yes_team": meta.get("yes_team"),
+            "line": meta.get("line"),
+        })
+    if not snapshots_by_sector:
+        return 0
+
+    # Fresh session per sweep — UNIQUE(session_id, ticker) would IGNORE
+    # a re-used session's snapshot.
+    session_id = "watchclose-pmus-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    archiver = DataArchiver()
+    captured = 0
+    for sec, snaps in snapshots_by_sector.items():
+        captured += archiver.archive_kalshi_snapshot(session_id, sec, snaps)
+    return captured
+
+
 @app.command("watch-closes")
 def watch_closes(
     lookahead: int = typer.Option(
@@ -499,10 +594,12 @@ def watch_closes(
 
     Captures two things per sweep:
       1. Pinnacle close → ev_outcomes.pinnacle_close_prob (for the diagnostic drift).
-      2. A near-tip Kalshi yes-ask snapshot → archived_kalshi_markets. This is what
-         gives PLACED-bet Kalshi CLV a genuine post-entry close to anchor against —
+      2. A near-tip venue yes-ask snapshot → archived_kalshi_markets, for BOTH
+         venues (Kalshi tickers + Polymarket US prefixed ids). This is what gives
+         placed/shadow-bet venue CLV a genuine post-entry close to anchor against —
          without it, get_kalshi_close_price only sees the night-before scan row, so
-         close == entry and CLV collapses to ~0.
+         close == entry and CLV collapses to ~0. PolyUS shadow rows need this for
+         the venue promotion gate (entry→close CLV on the venue's own book).
 
     Self-sufficient — pulls each cycle's queue from the DB, so you can scan at any
     time of day and this loop will pick up the new events on the next sweep.
@@ -520,14 +617,15 @@ def watch_closes(
     from evmax.clients.esports_pinnacle import PinnacleGuestClient
     from evmax.clients.kalshi import KalshiClient
 
-    async def _capture_kalshi(event_ids: list[str]) -> int:
-        """Snapshot live Kalshi asks for unresolved bets on upcoming events.
+    async def _capture_venue_closes(event_ids: list[str]) -> int:
+        """Snapshot live venue asks (Kalshi + Polymarket US) for unresolved bets.
 
-        This is what gives placed-bet Kalshi CLV a genuine POST-ENTRY close to
-        anchor against — without a near-tip snapshot, get_kalshi_close_price only
-        sees the night-before scan row (close == entry → CLV ≈ 0). Independent of
-        the Pinnacle-close queue: we keep snapshotting until tip-off regardless of
-        whether the Pinnacle close has landed. Failures here never abort the sweep.
+        This is what gives placed/shadow-bet venue CLV a genuine POST-ENTRY close
+        to anchor against — without a near-tip snapshot, get_kalshi_close_price
+        only sees the night-before scan row (close == entry → CLV ≈ 0). Independent
+        of the Pinnacle-close queue: we keep snapshotting until tip-off regardless
+        of whether the Pinnacle close has landed. Failures here never abort the
+        sweep, and each venue fails independently of the other.
         """
         conn = get_connection()
         bet_rows = near_tip_snapshot_candidates(conn, event_ids)
@@ -535,17 +633,14 @@ def watch_closes(
         if not bet_rows:
             return 0
 
-        # market_id is "kalshi:TICKER" (+ optional ":no" for NO-side bets). The
-        # live orderbook is the same YES ticker for both sides, so strip both.
-        meta_by_ticker: dict[str, dict] = {}
-        for r in bet_rows:
-            mid = r["market_id"]
-            if not mid or not mid.startswith("kalshi:"):
-                continue
-            ticker = mid.removeprefix("kalshi:").removesuffix(":no")
-            meta_by_ticker.setdefault(ticker, dict(r))
+        targets = snapshot_targets_by_venue(bet_rows)
+        pmus_captured = await capture_polymarket_us_closes(
+            targets.get("polymarket_us", {})
+        )
+
+        meta_by_ticker = targets.get("kalshi", {})
         if not meta_by_ticker:
-            return 0
+            return pmus_captured
 
         tickers = list(meta_by_ticker)
         try:
@@ -553,7 +648,7 @@ def watch_closes(
                 asks = await client.get_market_asks_batch(tickers)
         except Exception as kerr:  # noqa: BLE001 — never abort the sweep
             console.print(f"[yellow]  kalshi snapshot fetch failed: {kerr}[/yellow]")
-            return 0
+            return pmus_captured
 
         snapshots: list[dict] = []
         for ticker, meta in meta_by_ticker.items():
@@ -571,7 +666,7 @@ def watch_closes(
                 "line": meta.get("line"),
             })
         if not snapshots:
-            return 0
+            return pmus_captured
 
         # Fresh session per sweep — UNIQUE(session_id, ticker) means a reused
         # session would IGNORE the new snapshot.
@@ -585,7 +680,7 @@ def watch_closes(
             by_sector.setdefault(sec, []).append(snap)
         for sec, snaps in by_sector.items():
             captured += archiver.archive_kalshi_snapshot(session_id, sec, snaps)
-        return captured
+        return pmus_captured + captured
 
     async def _sweep() -> tuple[int, int, int]:
         # 1. From archive.db: events tipping off in [now, now + lookahead]
@@ -604,8 +699,9 @@ def watch_closes(
 
         event_ids = [r["event_id"] for r in upcoming]
 
-        # 1b. Near-tip Kalshi snapshot (for placed-bet CLV close anchoring).
-        kalshi_captured = await _capture_kalshi(event_ids)
+        # 1b. Near-tip venue snapshots — Kalshi + Polymarket US — for
+        # placed/shadow-bet CLV close anchoring.
+        kalshi_captured = await _capture_venue_closes(event_ids)
 
         # 2. From predictions.db: which of those still need a close.
         # Pull yes_team via ev_predictions so the close prob can be
@@ -679,7 +775,7 @@ def watch_closes(
         captured, queued, kalshi = asyncio.run(_sweep())
         console.print(
             f"[green]Captured {captured}/{queued} Pinnacle close(s); "
-            f"{kalshi} Kalshi snapshot(s).[/green]"
+            f"{kalshi} venue snapshot(s).[/green]"
         )
         return
 
@@ -694,7 +790,7 @@ def watch_closes(
                 captured, queued, kalshi = asyncio.run(_sweep())
                 if queued or kalshi:
                     console.print(
-                        f"[dim]{ts}[/dim]  pinnacle {captured}/{queued}  kalshi {kalshi}"
+                        f"[dim]{ts}[/dim]  pinnacle {captured}/{queued}  venue snaps {kalshi}"
                     )
             except Exception as sweep_err:
                 console.print(f"[red]{ts}  sweep failed:[/red] {sweep_err}")
