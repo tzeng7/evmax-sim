@@ -74,6 +74,7 @@ evmax/
 ├── models/                  # Pydantic + ORM: market, odds, ev_bet, simulated_bet, bankroll
 ├── clients/
 │   ├── kalshi.py            # RSA auth, series ticker fetching, WebSocket orderbook, AsyncLimiter(10/s)
+│   ├── polymarket_us.py     # Polymarket US gateway (gateway.polymarket.us) — public market data, POLYMARKET_US_LEAGUE_MAP, AsyncLimiter(15/s)
 │   ├── esports_pinnacle.py  # PinnacleGuestClient — ALL sectors (not just esports despite filename)
 │   ├── tennisabstract.py    # Tennis Abstract: Elo leaderboards + matchmx per-match data + winners/errors (SEED-time)
 │   └── base.py              # BaseAPIClient
