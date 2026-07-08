@@ -168,8 +168,9 @@ def log_gaps(
                      event_title, event_date, kalshi_yes_price, sharp_true_prob,
                      blended_true_prob, ev_pct, kelly_fraction, volume_usd,
                      model_sources, sharp_weight_used, bankroll_used, line,
-                     mode, captured_yes_price, model_version, minutes_to_tipoff)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     mode, captured_yes_price, model_version, minutes_to_tipoff,
+                     venue)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         sd,
                         g.market_id,
@@ -193,6 +194,7 @@ def log_gaps(
                         g.kalshi_yes_price,  # captured_yes_price == pre-game YES ask
                         model_version,
                         getattr(g, "minutes_to_tipoff", None),
+                        getattr(g, "venue", "kalshi"),
                     ),
                 )
                 if conn.execute("SELECT changes()").fetchone()[0]:
@@ -353,8 +355,8 @@ def log_prop_observations(
                     (scan_date, event_date, sector, player_name, stat_type, line,
                      kalshi_price, sharp_prob, ev_pct, l15_games,
                      market_id, event_id, event_title,
-                     mode, captured_yes_price, model_version)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     mode, captured_yes_price, model_version, venue)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         sd,
                         event_date_str,
@@ -372,6 +374,7 @@ def log_prop_observations(
                         mode,
                         g.kalshi_yes_price,
                         model_version,
+                        getattr(g, "venue", "kalshi"),
                     ),
                 )
                 if conn.execute("SELECT changes()").fetchone()[0]:
@@ -463,8 +466,8 @@ def log_prop_from_sharp(
                     (scan_date, event_date, sector, player_name, stat_type, line,
                      kalshi_price, sharp_prob, ev_pct, l15_games,
                      market_id, event_id, event_title,
-                     mode, captured_yes_price, model_version)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     mode, captured_yes_price, model_version, venue)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         sd,
                         event_date_str,
@@ -482,6 +485,7 @@ def log_prop_from_sharp(
                         mode,
                         kalshi_price,
                         model_version,
+                        market.source.value if market.source else "kalshi",
                     ),
                 )
                 if conn.execute("SELECT changes()").fetchone()[0]:

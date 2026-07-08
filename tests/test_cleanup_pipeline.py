@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     captured_yes_price  REAL,
     model_version       TEXT,
     minutes_to_tipoff   INTEGER,
+    venue               TEXT    NOT NULL DEFAULT 'kalshi',
     UNIQUE(market_id)
 );
 """
@@ -1039,6 +1040,26 @@ class TestLogGaps:
         n = self._run_log(conn, [])
         assert n == 0
 
+    def test_venue_defaults_to_kalshi(self):
+        conn = _make_in_memory_db()
+        self._run_log(conn, [_make_ev_gap("kalshi:VEN-DEF")])
+        row = conn.execute(
+            "SELECT venue FROM ev_predictions WHERE market_id = ?",
+            ("kalshi:VEN-DEF",),
+        ).fetchone()
+        assert row["venue"] == "kalshi"
+
+    def test_venue_polymarket_us_persisted(self):
+        conn = _make_in_memory_db()
+        gap = _make_ev_gap("polymarket_us:VEN-PM")
+        gap.venue = "polymarket_us"
+        self._run_log(conn, [gap])
+        row = conn.execute(
+            "SELECT venue FROM ev_predictions WHERE market_id = ?",
+            ("polymarket_us:VEN-PM",),
+        ).fetchone()
+        assert row["venue"] == "polymarket_us"
+
     def test_rescan_on_later_date_is_noop_freeze_on_first_insert(self):
         """Under UNIQUE(market_id), the second scan is ignored entirely —
         the row's scan_date and snapshot fields stay frozen at first-flag time."""
@@ -1332,3 +1353,34 @@ class TestUniqueMarketIdMigration:
             rows = c2.execute("SELECT COUNT(*) FROM ev_predictions").fetchone()
             assert rows[0] == 1
             c2.close()
+
+    def test_venue_column_added_and_backfilled_kalshi(self, tmp_path):
+        """A pre-venue DB gets the venue column via ALTER migration, and every
+        pre-existing row (all Kalshi by construction) backfills as 'kalshi' —
+        including rows carried through the UNIQUE(market_id) table rebuild."""
+        db_path = tmp_path / "legacy_venue.db"
+        conn = self._make_legacy_db(db_path)
+        conn.execute(
+            "INSERT INTO ev_predictions (scan_date, market_id, event_id, sector, "
+            "yes_team, market_type, kalshi_yes_price, sharp_true_prob, "
+            "blended_true_prob, ev_pct, kelly_fraction) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            ("2026-04-10", "kalshi:VEN-MIG", "nba::evt::4", "nba", "team",
+             "moneyline", 0.5, 0.60, 0.60, 0.05, 0.025),
+        )
+        conn.commit()
+        conn.close()
+
+        with patch("evmax.agents.cleanup.db.DB_PATH", db_path):
+            from evmax.agents.cleanup.db import get_connection
+            c = get_connection()
+            row = c.execute(
+                "SELECT venue FROM ev_predictions WHERE market_id = ?",
+                ("kalshi:VEN-MIG",),
+            ).fetchone()
+            assert row["venue"] == "kalshi"
+            prop_cols = {
+                r["name"] for r in c.execute("PRAGMA table_info(prop_observations)")
+            }
+            assert "venue" in prop_cols
+            c.close()

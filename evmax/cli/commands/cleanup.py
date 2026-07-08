@@ -27,6 +27,7 @@ from rich.table import Table
 from rich import box
 
 from evmax.formatting import format_outcome_label
+from evmax.models.market import venue_label
 
 app = typer.Typer(no_args_is_help=True)
 console = Console()
@@ -82,7 +83,7 @@ def show(
     where = " AND ".join(where_parts)
     rows = conn.execute(
         f"""SELECT p.scan_date, p.event_date, p.sector, p.yes_team, p.event_title,
-                   p.market_type, p.line,
+                   p.market_type, p.line, p.venue,
                    p.kalshi_yes_price, p.sharp_true_prob, p.blended_true_prob, p.ev_pct,
                    p.kelly_fraction, p.volume_usd, p.model_sources,
                    p.placed, p.placed_price, p.placed_stake,
@@ -154,9 +155,10 @@ def show(
     )
     table.add_column("Date",    style="dim", width=10)
     table.add_column("Sect",    style="dim", width=5)
+    table.add_column("Ven",     style="dim", width=6)
     table.add_column("Event",   style="dim", min_width=18, no_wrap=False)
     table.add_column("Outcome", style="bold white", min_width=12, no_wrap=False)
-    table.add_column("Kalshi",  justify="right", width=6)
+    table.add_column("Ask",     justify="right", width=6)
     table.add_column("TrueP",   justify="right", width=6)
     table.add_column("CLV",     justify="right", width=7)
     table.add_column("EV%",     justify="right", width=6)
@@ -200,6 +202,7 @@ def show(
         table.add_row(
             r["event_date"] or r["scan_date"] or "",
             (r["sector"] or "").upper(),
+            venue_label(r["venue"] if "venue" in r.keys() else None),
             (r["event_title"] or "")[:24],
             format_outcome_label(
                 yes_team=r["yes_team"],

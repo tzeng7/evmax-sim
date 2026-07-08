@@ -28,7 +28,23 @@ def is_prop_event(event_id: Optional[str]) -> bool:
 
 class MarketSource(str, enum.Enum):
     kalshi = "kalshi"
-    polymarket = "polymarket"
+    polymarket = "polymarket"          # legacy international CLOB (never wired)
+    polymarket_us = "polymarket_us"    # Polymarket US (CFTC-regulated exchange)
+
+
+# Short human-readable venue labels for text surfaces (CLI tables, logs).
+# The dashboard renders logos instead — see evmax/web/app.py.
+VENUE_LABELS: dict[str, str] = {
+    MarketSource.kalshi.value: "Kalshi",
+    MarketSource.polymarket.value: "Poly",
+    MarketSource.polymarket_us.value: "PolyUS",
+}
+
+
+def venue_label(venue: Optional[str]) -> str:
+    """Display label for a venue string; unknown/missing venues fall back
+    to 'Kalshi' (every row predating the venue column is a Kalshi row)."""
+    return VENUE_LABELS.get(venue or MarketSource.kalshi.value, venue or "Kalshi")
 
 
 class MarketType(str, enum.Enum):

@@ -77,6 +77,10 @@ class EVGap:
     # gaps are hidden from the play table, excluded from the exposure budget,
     # and demoted to mode='shadow' at persistence — never bankroll-sized.
     full_blend: bool = True
+    # Which prediction-market venue quoted this gap (MarketSource value:
+    # "kalshi" | "polymarket_us"). kalshi_yes_price above is the venue's YES
+    # ask regardless of venue — the field name predates multi-venue support.
+    venue: str = "kalshi"
 
     @property
     def edge_label(self) -> str:
@@ -1108,6 +1112,7 @@ class EVGapAgent(Agent):
             velocity_flag=vel_flag,
             book_count=getattr(sharp, "book_count", 1),
             full_blend=has_full_blend(sector, src),
+            venue=market.source.value,
         )
         return _ret(gap, blend_payload)
 
@@ -1226,6 +1231,7 @@ class EVGapAgent(Agent):
             line_velocity=velocity,
             velocity_flag=vel_flag,
             book_count=getattr(sharp, "book_count", 1),
+            venue=market.source.value,
         )
 
     # ------------------------------------------------------------------
@@ -1315,6 +1321,7 @@ class EVGapAgent(Agent):
             line_velocity=velocity,
             velocity_flag=vel_flag,
             book_count=getattr(sharp, "book_count", 1),
+            venue=market.source.value,
         )
 
     def _evaluate_prop_pair(
@@ -1429,4 +1436,5 @@ class EVGapAgent(Agent):
             prop_l15_games=sharp.prop_l15_games,
             prop_minutes_volatile=sharp.prop_minutes_volatile,
             prop_minutes_cv=sharp.prop_minutes_cv,
+            venue=market.source.value,
         )
