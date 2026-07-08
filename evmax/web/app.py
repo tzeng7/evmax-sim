@@ -53,7 +53,7 @@ def _settled_bets() -> list[dict[str, Any]]:
                    p.yes_team, p.market_type, p.kalshi_yes_price,
                    p.blended_true_prob, p.sharp_true_prob, p.ev_pct,
                    p.kelly_fraction, p.bankroll_used, p.model_sources,
-                   p.placed, p.placed_stake, p.placed_price, p.line,
+                   p.placed, p.placed_stake, p.placed_price, p.line, p.venue,
                    o.outcome
             FROM ev_predictions p
             JOIN ev_outcomes o ON p.market_id = o.market_id
@@ -78,7 +78,8 @@ def _placed_bets() -> list[dict[str, Any]]:
                    p.yes_team, p.market_type, p.kalshi_yes_price,
                    p.blended_true_prob, p.ev_pct, p.kelly_fraction,
                    p.bankroll_used, p.volume_usd, p.model_sources,
-                   p.placed, p.placed_stake, p.placed_price, p.market_id, p.line
+                   p.placed, p.placed_stake, p.placed_price, p.market_id, p.line,
+                   p.venue
             FROM ev_predictions p
             LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
             WHERE p.placed = 1 AND p.voided = 0 AND (o.outcome IS NULL)
@@ -127,7 +128,7 @@ def _open_bets() -> list[dict[str, Any]]:
                    p.yes_team, p.market_type, p.kalshi_yes_price,
                    p.blended_true_prob, p.ev_pct, p.kelly_fraction,
                    p.bankroll_used, p.volume_usd, p.model_sources,
-                   p.placed, p.placed_stake, p.market_id, p.line
+                   p.placed, p.placed_stake, p.market_id, p.line, p.venue
             FROM ev_predictions p
             INNER JOIN (
                 SELECT market_id, MAX(id) AS max_id
@@ -458,6 +459,13 @@ def _gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         gap_mode = get_mode(_gap_category_key(g), g.market_type)
     except Exception:
         gap_mode = "live"
+    gap_venue = getattr(g, "venue", "kalshi") or "kalshi"
+    # Mirror the venue shadow firewall so the dashboard's mode badge matches
+    # what log_gaps will persist (see prediction_demoted_shadow_venue).
+    if gap_mode == "live" and gap_venue == "polymarket_us":
+        from evmax.settings import get_settings
+        if not get_settings().polymarket_us_live:
+            gap_mode = "shadow"
     line_val = (
         None if g.line is None
         else float(g.line) if isinstance(g.line, (int, float))
@@ -487,6 +495,7 @@ def _gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         "volume": g.volume_usd or 0,
         "volume_usd": g.volume_usd or 0,
         "mode": gap_mode,
+        "venue": gap_venue,
     }
 
 
