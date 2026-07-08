@@ -276,3 +276,144 @@ class TestNearTipSnapshotCandidates:
         from evmax.cli.commands.cleanup import near_tip_snapshot_candidates
 
         assert near_tip_snapshot_candidates(conn, []) == []
+
+
+# ---------------------------------------------------------------------------
+# snapshot_targets_by_venue (watch-closes venue partition)
+#
+# Before the 2026-07-07 extension, _capture_kalshi filtered on
+# market_id.startswith("kalshi:"), so every polymarket_us row was silently
+# dropped from the near-tip sweep — no venue close was ever archived and the
+# venue promotion gate had nothing to score CLV against.
+# ---------------------------------------------------------------------------
+class TestSnapshotTargetsByVenue:
+    def _row(self, market_id, sector="wnba"):
+        return {"market_id": market_id, "sector": sector, "event_id": "ev1",
+                "event_date": "2026-07-08", "market_type": "moneyline",
+                "yes_team": "storm", "line": None}
+
+    def test_partitions_kalshi_and_polymarket_us(self):
+        from evmax.cli.commands.cleanup import snapshot_targets_by_venue
+
+        targets = snapshot_targets_by_venue([
+            self._row("kalshi:KXWNBAGAME-X"),
+            self._row("polymarket_us:lva-sea-2026-07-08:LVA"),
+        ])
+        assert set(targets["kalshi"]) == {"KXWNBAGAME-X"}
+        # PolyUS keeps its venue prefix — that IS the archive ticker.
+        assert set(targets["polymarket_us"]) == {"polymarket_us:lva-sea-2026-07-08:LVA"}
+
+    def test_no_suffix_stripped_and_deduped_per_ticker(self):
+        from evmax.cli.commands.cleanup import snapshot_targets_by_venue
+
+        targets = snapshot_targets_by_venue([
+            self._row("kalshi:KXT-1"),
+            self._row("kalshi:KXT-1:no"),
+            self._row("polymarket_us:slug-total:no"),
+        ])
+        assert set(targets["kalshi"]) == {"KXT-1"}
+        assert set(targets["polymarket_us"]) == {"polymarket_us:slug-total"}
+
+    def test_unknown_venue_and_null_ids_skipped(self):
+        from evmax.cli.commands.cleanup import snapshot_targets_by_venue
+
+        targets = snapshot_targets_by_venue([
+            self._row(None),
+            self._row("otherbook:XYZ"),
+        ])
+        assert targets == {}
+
+
+# ---------------------------------------------------------------------------
+# capture_polymarket_us_closes (watch-closes PolyUS snapshot branch)
+# ---------------------------------------------------------------------------
+class TestCapturePolymarketUsCloses:
+    MID = "polymarket_us:lva-sea-2026-07-08:LVA"
+
+    def _targets(self):
+        return {self.MID: {"market_id": self.MID, "sector": "wnba",
+                           "event_id": "wnba::2026-07-08::aces_vs_storm",
+                           "event_date": "2026-07-08", "market_type": "moneyline",
+                           "yes_team": "aces", "line": None}}
+
+    class _FakeClient:
+        def __init__(self, markets_by_sector):
+            self._markets = markets_by_sector
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            return None
+        async def get_markets(self, sector):
+            return self._markets.get(sector, [])
+
+    def _fake_market(self, mid, yes_price, no_price=None):
+        from types import SimpleNamespace
+        return SimpleNamespace(id=mid, yes_price=yes_price, no_price=no_price)
+
+    def _patch_settings(self, monkeypatch, enabled=True):
+        from types import SimpleNamespace
+        monkeypatch.setattr(
+            "evmax.settings.get_settings",
+            lambda: SimpleNamespace(polymarket_us_enabled=enabled),
+        )
+
+    def test_archives_snapshot_under_prefixed_ticker(self, tmp_path, monkeypatch):
+        import asyncio
+        import evmax.archiver as archiver_mod
+        from evmax.cli.commands.cleanup import capture_polymarket_us_closes
+
+        monkeypatch.setattr(archiver_mod, "DB_PATH", tmp_path / "archive.db")
+        self._patch_settings(monkeypatch)
+        fake = self._FakeClient({"wnba": [self._fake_market(self.MID, 0.61, 0.41)]})
+        monkeypatch.setattr(
+            "evmax.clients.polymarket_us.PolymarketUSClient", lambda: fake
+        )
+
+        n = asyncio.run(capture_polymarket_us_closes(self._targets()))
+        assert n == 1
+        with archiver_mod._get_connection() as conn:
+            row = conn.execute(
+                "SELECT ticker, sector, yes_price, no_price, event_id "
+                "FROM archived_kalshi_markets"
+            ).fetchone()
+        assert row["ticker"] == self.MID          # venue-prefixed on purpose
+        assert row["sector"] == "wnba"
+        assert row["yes_price"] == pytest.approx(0.61)
+        assert row["no_price"] == pytest.approx(0.41)
+        assert row["event_id"] == "wnba::2026-07-08::aces_vs_storm"
+
+    def test_kill_switch_skips_fetch(self, tmp_path, monkeypatch):
+        import asyncio
+        from evmax.cli.commands.cleanup import capture_polymarket_us_closes
+
+        self._patch_settings(monkeypatch, enabled=False)
+
+        def _boom():
+            raise AssertionError("client must not be constructed when disabled")
+
+        monkeypatch.setattr("evmax.clients.polymarket_us.PolymarketUSClient", _boom)
+        assert asyncio.run(capture_polymarket_us_closes(self._targets())) == 0
+
+    def test_empty_book_and_missing_market_skipped(self, tmp_path, monkeypatch):
+        import asyncio
+        import evmax.archiver as archiver_mod
+        from evmax.cli.commands.cleanup import capture_polymarket_us_closes
+
+        monkeypatch.setattr(archiver_mod, "DB_PATH", tmp_path / "archive.db")
+        self._patch_settings(monkeypatch)
+        targets = self._targets()
+        targets["polymarket_us:gone-market"] = dict(
+            targets[self.MID], market_id="polymarket_us:gone-market"
+        )
+        # 0.99+ mirrors the Kalshi empty-book filter; gone-market isn't listed.
+        fake = self._FakeClient({"wnba": [self._fake_market(self.MID, 0.99)]})
+        monkeypatch.setattr(
+            "evmax.clients.polymarket_us.PolymarketUSClient", lambda: fake
+        )
+        assert asyncio.run(capture_polymarket_us_closes(targets)) == 0
+
+    def test_empty_targets_noop(self):
+        import asyncio
+        from evmax.cli.commands.cleanup import capture_polymarket_us_closes
+
+        assert asyncio.run(capture_polymarket_us_closes({})) == 0
