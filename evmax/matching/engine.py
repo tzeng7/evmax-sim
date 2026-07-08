@@ -242,8 +242,13 @@ class MatchingEngine:
             # For moneyline/spread, each team's YES market is a distinct bet
             # (different Kalshi price, different edge). Include yes_team so
             # both sides survive dedup. For totals, over/under are distinct.
+            # Venue is part of the key: the same game listed on Kalshi AND
+            # Polymarket US is two independent books — this dedup only
+            # collapses duplicate listings WITHIN a venue (e.g. Kalshi
+            # playoff-series tickers).
             yes_side = (m.yes_team or "").lower().strip()
-            key = (s.event_id, mt, yes_side)
+            venue = m.source.value if hasattr(m.source, "value") else str(m.source)
+            key = (s.event_id, mt, yes_side, venue)
             existing = best.get(key)
             if existing is None:
                 best[key] = (m, s, conf)

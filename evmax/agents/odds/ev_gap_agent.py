@@ -229,10 +229,14 @@ def _dedup_mutually_exclusive_sides(gaps: "list[EVGap]") -> "list[EVGap]":
     A Kalshi market quotes YES on each side independently — same event_id +
     market_type + line, different yes_team. The outcomes are mutually
     exclusive (only one can win), so logging both is a vig double-pay with
-    no net edge. Keep the higher-EV side per ``(event_id, market_type,
-    |line|)`` group. Player props are exempt: Kalshi posts each threshold
-    (e.g. 20+ / 25+ / 30+ points for the same player) as a separate market,
-    and those are independent bets, not opposite sides of the same market.
+    no net edge. Keep the higher-EV side per ``(venue, event_id,
+    market_type, |line|)`` group. The venue is in the key because each book
+    quotes independently — the same game's Kalshi and Polymarket US markets
+    are distinct bets, and the no-middling argument only applies to two
+    sides of the SAME book's market. Player props are exempt: Kalshi posts
+    each threshold (e.g. 20+ / 25+ / 30+ points for the same player) as a
+    separate market, and those are independent bets, not opposite sides of
+    the same market.
     """
     best: dict[tuple, "EVGap"] = {}
     pass_through: list["EVGap"] = []
@@ -241,7 +245,7 @@ def _dedup_mutually_exclusive_sides(gaps: "list[EVGap]") -> "list[EVGap]":
             pass_through.append(g)
             continue
         line_key = abs(g.line) if g.line is not None else 0.0
-        key = (g.event_id, g.market_type, line_key)
+        key = (getattr(g, "venue", "kalshi"), g.event_id, g.market_type, line_key)
         prev = best.get(key)
         if prev is None or (g.ev_pct or 0) > (prev.ev_pct or 0):
             best[key] = g

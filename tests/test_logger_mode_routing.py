@@ -495,6 +495,41 @@ class TestPartialBlendDemotion:
         assert row["mode"] == "live"
 
 
+class TestShadowVenueDemotion:
+    """Venue firewall: polymarket_us gaps stay shadow until the venue is
+    promoted via settings.polymarket_us_live (MODEL-9 pattern)."""
+
+    def test_polymarket_us_live_gap_demoted_to_shadow(self, patched_db, monkeypatch):
+        from evmax.settings import get_settings
+        monkeypatch.setattr(get_settings(), "polymarket_us_live", False)
+        gap = replace(_gap("pm-demote", sector="nba"), venue="polymarket_us")
+        inserted = log_gaps([gap], mode_resolver=lambda c: "live")
+        assert inserted == 1
+        row = patched_db.execute(
+            "SELECT mode, venue FROM ev_predictions WHERE market_id = 'pm-demote'"
+        ).fetchone()
+        assert row["mode"] == "shadow"
+        assert row["venue"] == "polymarket_us"
+
+    def test_polymarket_us_stays_live_after_promotion(self, patched_db, monkeypatch):
+        from evmax.settings import get_settings
+        monkeypatch.setattr(get_settings(), "polymarket_us_live", True)
+        gap = replace(_gap("pm-promoted", sector="nba"), venue="polymarket_us")
+        log_gaps([gap], mode_resolver=lambda c: "live")
+        row = patched_db.execute(
+            "SELECT mode FROM ev_predictions WHERE market_id = 'pm-promoted'"
+        ).fetchone()
+        assert row["mode"] == "live"
+
+    def test_kalshi_gap_unaffected_by_venue_firewall(self, patched_db):
+        gap = _gap("k-live", sector="nba")  # venue defaults to kalshi
+        log_gaps([gap], mode_resolver=lambda c: "live")
+        row = patched_db.execute(
+            "SELECT mode FROM ev_predictions WHERE market_id = 'k-live'"
+        ).fetchone()
+        assert row["mode"] == "live"
+
+
 class TestShadowToLiveUpgrade:
     """A market frozen as shadow (e.g. a tennis partial-blend demotion before
     form/advanced had data) must upgrade to live once a later scan produces a
