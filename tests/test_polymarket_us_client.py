@@ -173,10 +173,12 @@ class TestParseMoneyline:
     def test_emits_one_market_per_side(self):
         markets = _client()._parse_event(_event([_moneyline_market()]), "wnba", "wnba")
         assert len(markets) == 2
+        # yes_team is canonicalized through the sector alias map — the same
+        # names a Kalshi WNBA row carries (Kalshi ticker code GSV → valkyries).
         by_team = {m.yes_team: m for m in markets}
-        assert set(by_team) == {"Golden State", "Toronto"}
+        assert set(by_team) == {"valkyries", "tempo"}
 
-        gsv = by_team["Golden State"]
+        gsv = by_team["valkyries"]
         assert gsv.source == MarketSource.polymarket_us
         assert gsv.market_type == MarketType.moneyline
         assert gsv.yes_price == pytest.approx(0.73)
@@ -184,15 +186,24 @@ class TestParseMoneyline:
         assert gsv.id == "polymarket_us:aec-wnba-gsv-tor-2026-07-08:gsv"
         assert gsv.ticker == "aec-wnba-gsv-tor-2026-07-08"
 
-        tor = by_team["Toronto"]
+        tor = by_team["tempo"]
         assert tor.yes_price == pytest.approx(0.28)
         assert tor.no_price == pytest.approx(0.73)
 
     def test_home_away_from_side_ordering(self):
         markets = _client()._parse_event(_event([_moneyline_market()]), "wnba", "wnba")
         for m in markets:
-            assert m.team_home == "Toronto"
-            assert m.team_away == "Golden State"
+            assert m.team_home == "tempo"
+            assert m.team_away == "valkyries"
+
+    def test_yes_team_matches_kalshi_convention(self):
+        """The same team must canonicalize identically from a Kalshi ticker
+        code and a Polymarket US team object (venue-agnostic naming)."""
+        from evmax.matching.normalizer import NameNormalizer
+        kalshi_name = NameNormalizer("wnba").normalize("gsv")  # Kalshi ticker code
+        markets = _client()._parse_event(_event([_moneyline_market()]), "wnba", "wnba")
+        pm_names = {m.yes_team for m in markets}
+        assert kalshi_name in pm_names
 
     def test_event_date_parsed_utc(self):
         markets = _client()._parse_event(_event([_moneyline_market()]), "wnba", "wnba")
@@ -204,7 +215,7 @@ class TestParseMoneyline:
         raw["marketSides"][1]["tradable"] = False
         markets = _client()._parse_event(_event([raw]), "wnba", "wnba")
         assert len(markets) == 1
-        assert markets[0].yes_team == "Golden State"
+        assert markets[0].yes_team == "valkyries"
 
     def test_missing_quote_drops_both_sides(self):
         raw = _moneyline_market()
@@ -229,7 +240,7 @@ class TestParseSpread:
         assert len(markets) == 1
         m = markets[0]
         assert m.market_type == MarketType.spread
-        assert m.yes_team == "Toronto Blue Jays"
+        assert m.yes_team == "blue jays"  # canonical, same as Kalshi rows
         assert m.line == pytest.approx(3.5)   # long side's handicap
         assert m.yes_price == pytest.approx(0.87)
         assert m.no_price == pytest.approx(0.135)
@@ -279,9 +290,10 @@ class TestParseDrawableOutcome:
         )
         assert len(markets) == 3
         by_team = {m.yes_team: m for m in markets}
-        assert set(by_team) == {"Qairat FK", "draw", "FK Sutjeska Nikšić"}
-        assert by_team["Qairat FK"].yes_price == pytest.approx(0.80)
-        assert by_team["Qairat FK"].no_price == pytest.approx(0.22)
+        # canonicalized: "FK"-style noise words stripped by the soccer handler
+        assert set(by_team) == {"qairat", "draw", "sutjeska nikšić"}
+        assert by_team["qairat"].yes_price == pytest.approx(0.80)
+        assert by_team["qairat"].no_price == pytest.approx(0.22)
         assert by_team["draw"].yes_price == pytest.approx(0.15)
         assert all(m.market_type == MarketType.moneyline for m in markets)
 
@@ -299,8 +311,10 @@ class TestParseDrawableOutcome:
         )
         m = markets[0]
         # Qairat's Yes side says home; Sutjeska's Yes side ALSO says home
-        # (live API quirk) — first-seen wins, title fallback fills away.
-        assert m.team_home == "Qairat FK"
+        # (live API quirk) — orderings from same-team markets are never
+        # trusted, so the title fallback resolves (soccer lists home first),
+        # canonicalized through the alias map.
+        assert m.team_home == "qairat"
 
 
 # ---------------------------------------------------------------------------
