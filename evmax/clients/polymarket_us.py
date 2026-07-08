@@ -93,6 +93,37 @@ def _is_full_game(sports_market_type: Optional[str]) -> bool:
     return any(marker in smt for marker in _FULL_GAME_MARKERS)
 
 
+def _canon_team(sector: str, side: dict[str, Any]) -> Optional[str]:
+    """Canonicalize a marketSide's team through the sector alias map.
+
+    Produces the SAME canonical names Kalshi rows carry (Kalshi ticker codes
+    go through NameNormalizer too), so outcome labels, matching keys, and
+    resolution are venue-agnostic — 'Sparks ML' on both venues, never
+    'Los angeles ML' on one. The team's nickname (`alias`) is appended when
+    it adds information: 'Los Angeles' alone is ambiguous in the NBA, but
+    'Los Angeles Lakers' resolves.
+    """
+    team = side.get("team") or {}
+    name = (team.get("name") or side.get("description") or "").strip()
+    if not name:
+        return None
+    from evmax.matching.normalizer import NameNormalizer
+    normalizer = NameNormalizer(sector)
+    plain = normalizer.normalize(name)
+    alias = (team.get("alias") or "").strip()
+    if alias and alias.lower() not in name.lower():
+        # Try the name+nickname combination too ("Los Angeles" alone is
+        # ambiguous in the NBA; "Los Angeles Lakers" resolves). Keep the
+        # SHORTER result: canonical names are short nicknames, so a long
+        # output means the combination missed the alias map — some teams'
+        # `alias` field is marketing text, not a nickname (e.g. Qairat's
+        # "Халық командасы"), and appending it just produces garbage.
+        combined = normalizer.normalize(f"{name} {alias}")
+        if combined and (not plain or len(combined) < len(plain)):
+            return combined
+    return plain or None
+
+
 def _parse_quote(side: dict[str, Any]) -> Optional[float]:
     """Extract the 0–1 ask price from a marketSide's quote."""
     try:
@@ -248,7 +279,7 @@ class PolymarketUSClient(BaseAPIClient):
         event_title = event.get("title") or event.get("description") or ""
         raw_markets = event.get("markets", []) or []
         team_home, team_away = self._extract_event_teams(
-            raw_markets, event_title, league
+            raw_markets, event_title, league, sector
         )
 
         for m in raw_markets:
@@ -296,8 +327,9 @@ class PolymarketUSClient(BaseAPIClient):
         raw_markets: list[dict[str, Any]],
         event_title: str,
         league: str,
+        sector: str,
     ) -> tuple[Optional[str], Optional[str]]:
-        """Resolve (team_home, team_away) for an event.
+        """Resolve (team_home, team_away) for an event, canonicalized.
 
         Primary source: team.ordering — but ONLY from a market whose two
         sides are two DISTINCT teams carrying one "home" and one "away"
@@ -307,6 +339,9 @@ class PolymarketUSClient(BaseAPIClient):
         Fallback: split the event title on " vs. " using the league's
         listing convention (soccer and tennis list home first, US team
         sports away first).
+
+        Names are canonicalized through the sector alias map so they carry
+        the same values a Kalshi row would (see _canon_team).
         """
         home: Optional[str] = None
         away: Optional[str] = None
@@ -318,16 +353,21 @@ class PolymarketUSClient(BaseAPIClient):
                 name = team.get("name")
                 ordering = (team.get("ordering") or "").lower()
                 if name and ordering in ("home", "away"):
-                    by_ordering.setdefault(ordering, name)
+                    canon = _canon_team(sector, side)
+                    if canon:
+                        by_ordering.setdefault(ordering, canon)
             h, a = by_ordering.get("home"), by_ordering.get("away")
             if h and a and h != a:
                 return h, a
 
         # Title fallback: "A vs. B" / "A vs B"
+        from evmax.matching.normalizer import NameNormalizer
+        normalizer = NameNormalizer(sector)
         title = event_title.replace(" vs. ", " vs ")
         if " vs " in title:
             a, _, b = title.partition(" vs ")
-            a, b = a.strip(), b.strip()
+            a = normalizer.normalize(a.strip()) or None
+            b = normalizer.normalize(b.strip()) or None
             if a and b:
                 if league in _HOME_FIRST_LEAGUES:
                     return home or a, away or b
@@ -383,7 +423,7 @@ class PolymarketUSClient(BaseAPIClient):
             if yes_price is None or no_price is None:
                 continue  # need both sides quoted to trust the book
             team = side.get("team") or {}
-            yes_team = team.get("name") or side.get("description")
+            yes_team = _canon_team(sector, side)
             if not yes_team:
                 continue
             side_key = team.get("abbreviation") or ("a" if side.get("long") else "b")
@@ -425,8 +465,10 @@ class PolymarketUSClient(BaseAPIClient):
         no_price = _parse_quote(no_side)
         if yes_price is None or no_price is None:
             return None
-        team = yes_side.get("team") or {}
-        yes_team = team.get("name") or "draw"
+        # Draw markets have team=None on their sides (descriptions are just
+        # Yes/No) — only canonicalize when a real team is attached.
+        has_team = bool((yes_side.get("team") or {}).get("name"))
+        yes_team = (_canon_team(sector, yes_side) if has_team else None) or "draw"
         return PredictionMarket(
             id=f"polymarket_us:{m.get('slug', '')}",
             market_type=MarketType.moneyline,
@@ -465,8 +507,7 @@ class PolymarketUSClient(BaseAPIClient):
         line = m.get("line")
         if yes_price is None or no_price is None or line is None:
             return None
-        team = long_side.get("team") or {}
-        yes_team = team.get("name") or long_side.get("description")
+        yes_team = _canon_team(sector, long_side)
         if not yes_team:
             return None
         return PredictionMarket(
