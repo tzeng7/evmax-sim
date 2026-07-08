@@ -42,6 +42,7 @@ import structlog
 from evmax.agents.base import Agent, AgentBus, AgentMessage, AgentRequest, AgentResponse
 from evmax.archiver import DataArchiver
 from evmax.agents.odds.kalshi_agent import KalshiOddsAgent
+from evmax.agents.odds.polymarket_us_agent import PolymarketUSOddsAgent
 from evmax.agents.odds.sharp_agent import SharpOddsAgent
 from evmax.agents.odds.ev_gap_agent import EVGapAgent, EVGap
 from evmax.agents.models.elo_agent import EloModelAgent
@@ -68,7 +69,7 @@ from evmax.agents.models.wnba_possession_sim_agent import WNBAPossessionSimAgent
 from evmax.agents.intelligence.injury_agent import InjuryReportAgent, InjuryReport
 from evmax.agents.intelligence.playoff_agent import PlayoffAgent, PlayoffSeries
 from evmax.agents.intelligence.standings_agent import StandingsAgent, TeamStanding
-from evmax.models.market import PredictionMarket, PROP_MARKER, is_prop_event
+from evmax.models.market import MarketSource, PredictionMarket, PROP_MARKER, is_prop_event
 from evmax.models.odds import SharpOdds, SharpBook
 from evmax.matching.engine import MatchingEngine
 from evmax.settings import get_settings
@@ -524,6 +525,7 @@ class AgentCoordinator:
 
         # Odds checker agents
         self.kalshi_agent = KalshiOddsAgent()
+        self.polymarket_us_agent = PolymarketUSOddsAgent()
         self.sharp_agent = SharpOddsAgent()
         self.ev_gap_agent = EVGapAgent()
 
@@ -587,7 +589,8 @@ class AgentCoordinator:
 
     def _all_agents(self) -> list[Agent]:
         return [
-            self.kalshi_agent, self.sharp_agent, self.ev_gap_agent,
+            self.kalshi_agent, self.polymarket_us_agent,
+            self.sharp_agent, self.ev_gap_agent,
             self.injury_agent, self.standings_agent, self.playoff_agent,
             self.elo_agent, self.form_agent, self.poisson_agent,
             self.tennis_agent, self.tennis_serve_agent,
@@ -669,6 +672,29 @@ class AgentCoordinator:
                 sectors=sorted({g.sector for g in partial_blend_gaps}),
             )
 
+        # Venue shadow firewall: until polymarket_us_live is flipped, gaps
+        # from the new venue are shadow-bound — kelly zeroed, excluded from
+        # the exposure budget, demoted to mode='shadow' by log_gaps. Same
+        # treatment as partial-blend gaps above.
+        shadow_venue_gaps: list = []
+        if not get_settings().polymarket_us_live:
+            shadow_venue_gaps = [
+                dataclasses.replace(g, kelly_fraction=0.0)
+                for g in result.ev_gaps
+                if getattr(g, "venue", "kalshi") != "kalshi"
+            ]
+            if shadow_venue_gaps:
+                result.ev_gaps = [
+                    g for g in result.ev_gaps
+                    if getattr(g, "venue", "kalshi") == "kalshi"
+                ]
+                self.log.info(
+                    "venue_gaps_shadowed",
+                    count=len(shadow_venue_gaps),
+                    venue="polymarket_us",
+                    sectors=sorted({g.sector for g in shadow_venue_gaps}),
+                )
+
         pre_guard = len(result.ev_gaps)
         # Load Kelly fractions from bets the user already placed in earlier
         # scans today so the per-game cap is cumulative across scans, not
@@ -702,8 +728,10 @@ class AgentCoordinator:
         if dropped > 0:
             self.log.info("exposure_guard_applied", dropped=dropped, remaining=len(result.ev_gaps))
         result.exposure_guard_dropped = dropped
-        # Re-attach shadow-bound partial-blend gaps so they reach persistence.
+        # Re-attach shadow-bound partial-blend + shadow-venue gaps so they
+        # reach persistence.
         result.ev_gaps.extend(partial_blend_gaps)
+        result.ev_gaps.extend(shadow_venue_gaps)
         result.cycle_duration_s = time.perf_counter() - t0
 
         # Archive all raw fetched data for historical analysis
@@ -711,8 +739,16 @@ class AgentCoordinator:
         for sector, sr in zip(self._sectors, sector_results):
             if isinstance(sr, Exception):
                 continue
+            # Archive only Kalshi rows: the archive powers Kalshi close-price
+            # CLV lookups (watch-closes / backfill_clv). Polymarket US close
+            # capture is a follow-up — see the PolyUS PR 3 notes.
             k_total += self._archiver.archive_kalshi_markets(
-                correlation_id, sector, sr.get("markets", [])
+                correlation_id,
+                sector,
+                [
+                    m for m in sr.get("markets", [])
+                    if m.source == MarketSource.kalshi
+                ],
             )
             s_total += self._archiver.archive_sharp_odds(
                 correlation_id, sector, sr.get("sharp_odds", [])
@@ -766,6 +802,12 @@ class AgentCoordinator:
             fetch_tasks.append(self.injury_agent(req))
         fetch_tasks.append(self.standings_agent(req))
         fetch_tasks.append(self.playoff_agent(req))
+        # Second venue: Polymarket US. Appended LAST so the positional
+        # unpacking below stays index-stable. Sectors without a Polymarket
+        # US product return [] (see POLYMARKET_US_LEAGUE_MAP).
+        fetch_polymarket = get_settings().polymarket_us_enabled
+        if fetch_polymarket:
+            fetch_tasks.append(self.polymarket_us_agent(req))
 
         prop_task = None
         if sector.lower() in self._PROP_SECTORS:
@@ -783,10 +825,27 @@ class AgentCoordinator:
         standings_resp = fetch_results[_idx]
         _idx += 1
         playoff_resp = fetch_results[_idx]
+        _idx += 1
+        polymarket_resp = fetch_results[_idx] if fetch_polymarket else None
 
         markets: list[PredictionMarket] = (
             kalshi_resp.data if not isinstance(kalshi_resp, Exception) else []
         ) or []
+        polymarket_markets: list[PredictionMarket] = (
+            polymarket_resp.data
+            if polymarket_resp is not None and not isinstance(polymarket_resp, Exception)
+            else []
+        ) or []
+        if polymarket_markets:
+            # Merge into the same pool — matching, ensemble, and EV gap
+            # analysis are venue-agnostic (PredictionMarket.source / EVGap.venue
+            # carry the venue through to persistence and display).
+            markets = markets + polymarket_markets
+            self.log.info(
+                "polymarket_us_merged",
+                sector=sector,
+                count=len(polymarket_markets),
+            )
         sharp_odds: list[SharpOdds] = (
             sharp_resp.data if not isinstance(sharp_resp, Exception) else []
         ) or []
@@ -826,6 +885,10 @@ class AgentCoordinator:
 
         if isinstance(kalshi_resp, Exception):
             self.log.error("kalshi_failed", sector=sector, error=str(kalshi_resp))
+        if isinstance(polymarket_resp, Exception):
+            self.log.error(
+                "polymarket_us_failed", sector=sector, error=str(polymarket_resp)
+            )
         if isinstance(sharp_resp, Exception):
             self.log.error("sharp_failed", sector=sector, error=str(sharp_resp))
 

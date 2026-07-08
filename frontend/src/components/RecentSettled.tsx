@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Bet } from '../lib/types'
 import { outcomeLabel } from '../lib/odds'
+import { VenueLogo } from './VenueLogo'
 
 interface Props { bets: Bet[] }
 
@@ -36,7 +37,7 @@ export function RecentSettled({ bets }: Props) {
         <table>
           <thead>
             <tr>
-              <th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th>
+              <th>Date</th><th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
               <th className="num">Ask</th><th className="num">Model</th><th className="num">EV</th>
               <th>Result</th><th className="num">P&L</th>
             </tr>
@@ -48,6 +49,7 @@ export function RecentSettled({ bets }: Props) {
                 <tr key={i}>
                   <td className="muted">{b.event_date}</td>
                   <td><span className="badge">{b.sector}</span></td>
+              <td><VenueLogo venue={b.venue} /></td>
                   <td>{b.event_title}</td>
                   <td>{outcomeLabel(b)}</td>
                   <td className="num">{Math.round(b.kalshi_yes_price * 100)}c</td>

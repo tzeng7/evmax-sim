@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import type { Bet } from '../lib/types'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
+import { VenueLogo } from './VenueLogo'
 import { updatePlaced, unplaceBets } from '../lib/api'
 
 interface Props {
@@ -94,7 +95,7 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
         <thead>
           <tr>
             <th style={{ width: 30 }}></th>
-            <th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th>
+            <th>Date</th><th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
             <th className="num">Model</th><th className="num">EV</th>
             <th className="num">Fill ¢</th><th className="num">Stake ($)</th><th className="num">To Win</th>
           </tr>
@@ -105,6 +106,7 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
               <td><button className="btn-del" onClick={() => handleRemove(b.market_id)}>&times;</button></td>
               <td className="muted">{b.event_date}</td>
               <td><span className="badge">{b.sector}</span></td>
+              <td><VenueLogo venue={b.venue} /></td>
               <td>{b.event_title}</td>
               <td>{outcomeLabel(b)}</td>
               <td className="num">{Math.round((b.blended_true_prob || 0) * 100)}%</td>

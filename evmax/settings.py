@@ -19,6 +19,21 @@ class Settings(BaseSettings):
     kalshi_private_key_path: str = ""
     kalshi_base_url: str = "https://api.elections.kalshi.com/trade-api/v2"
 
+    # Polymarket US (gateway API — separate exchange from international
+    # Polymarket; no CLOB/Gamma). Public market data needs NO auth; the
+    # Ed25519 key pair (keyId=POLYMARKET_API_KEY + secretKey) is only used
+    # for trading/WebSocket paths.
+    polymarket_api_key: str = ""          # keyId from polymarket.us/developer
+    polymarket_us_secret_key: str = ""    # Ed25519 secretKey (shown once)
+    polymarket_us_base_url: str = "https://gateway.polymarket.us"
+    polymarket_us_enabled: bool = True    # kill-switch for the venue fetch
+    # Venue-level shadow firewall (MODEL-9 pattern): until True, every
+    # Polymarket US gap is demoted to mode='shadow' at persistence and its
+    # Kelly is zeroed — logged for calibration/CLV validation, never sized
+    # against the bankroll. Flip after the venue clears the usual shadow
+    # gates (n>=30 resolved, CLV >= 0, no matching/parse errors).
+    polymarket_us_live: bool = False
+
     # Database
     database_url: str = "sqlite+aiosqlite:///./evmax.db"
 

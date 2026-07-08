@@ -53,7 +53,7 @@ evmax agents scan --shadow X,Y --live Z --disabled W   # runtime overrides
 
 ### Key Pipeline
 
-1. **Fetch live Kalshi markets** for each sector via series tickers (e.g. `KXNBAGAME`, `KXEPLGAME`, `KXATPMATCH`, `KXNCAAWBGAME`)
+1. **Fetch live prediction-market prices from both venues**: Kalshi via series tickers (e.g. `KXNBAGAME`, `KXEPLGAME`, `KXATPMATCH`, `KXNCAAWBGAME`) and **Polymarket US** via league events (`gateway.polymarket.us /v2/leagues/{slug}/events`, see `POLYMARKET_US_LEAGUE_MAP` — 8 sectors). Markets from both venues merge into one pool; `PredictionMarket.source` / `EVGap.venue` / the `venue` DB column carry the venue through matching → EV → persistence. **Polymarket US is behind a venue shadow firewall** (`polymarket_us_live=false`): its gaps log as `mode='shadow'` with Kelly zeroed until the venue clears the MODEL-9 gates. `polymarket_us_enabled=false` kills the fetch entirely. Match/EV dedup keys are venue-aware (same game on both venues = two independent books); only Kalshi rows feed `archive.db` close-capture (PolyUS close capture is a follow-up).
 2. **Fetch Pinnacle sharp lines** via the guest API (`guest.api.arcadia.pinnacle.com/0.1`) for all sectors via `PinnacleGuestClient` in `clients/esports_pinnacle.py`
 3. **Fetch ESPN injury data** concurrently for NBA/NFL/NCAAB/NCAAW/Soccer
 4. **Fuzzy-match** Kalshi markets to Pinnacle events using canonical keys + rapidfuzz (threshold=88)
@@ -74,6 +74,7 @@ evmax/
 ├── models/                  # Pydantic + ORM: market, odds, ev_bet, simulated_bet, bankroll
 ├── clients/
 │   ├── kalshi.py            # RSA auth, series ticker fetching, WebSocket orderbook, AsyncLimiter(10/s)
+│   ├── polymarket_us.py     # Polymarket US gateway (gateway.polymarket.us) — public market data, POLYMARKET_US_LEAGUE_MAP, AsyncLimiter(15/s)
 │   ├── esports_pinnacle.py  # PinnacleGuestClient — ALL sectors (not just esports despite filename)
 │   ├── tennisabstract.py    # Tennis Abstract: Elo leaderboards + matchmx per-match data + winners/errors (SEED-time)
 │   └── base.py              # BaseAPIClient
@@ -93,7 +94,7 @@ evmax/
 ├── agents/
 │   ├── base.py              # Agent ABC, AgentBus (pub/sub), AgentRequest/Response
 │   ├── coordinator.py       # AgentCoordinator: orchestrates full cycle, exposure guard
-│   ├── odds/                # KalshiOddsAgent, SharpOddsAgent, EVGapAgent
+│   ├── odds/                # KalshiOddsAgent, PolymarketUSOddsAgent, SharpOddsAgent, EVGapAgent
 │   ├── models/              # EloModelAgent, FormModelAgent, PoissonModelAgent, EnsembleModelAgent, TennisModelAgent
 │   ├── intelligence/        # InjuryReportAgent (ESPN public API)
 │   └── cleanup/             # db.py, logger.py, resolver.py, metrics.py, maintenance.py
@@ -339,6 +340,7 @@ flowchart TD
 
     subgraph FETCH[1. Data fetch · parallel fan-out]
         K[KalshiOddsAgent<br/>SECTOR_SERIES_MAP → /markets<br/>+ /events for tennis]
+        PM[PolymarketUSOddsAgent<br/>POLYMARKET_US_LEAGUE_MAP →<br/>/v2/leagues/slug/events]
         P[PinnacleGuestClient<br/>devig-ready sharp lines<br/>per sector × market_type]
         I[InjuryReportAgent<br/>ESPN public API<br/>NBA/NFL/NCAAB/NCAAW/soccer]
         S[StandingsAgent<br/>ESPN standings]

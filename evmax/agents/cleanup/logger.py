@@ -26,6 +26,7 @@ from evmax.agents.cleanup.db import get_connection
 from evmax.agents.odds.ev_gap_agent import EVGap
 from evmax.models.market import is_prop_event
 from evmax.provenance import code_version
+from evmax.settings import get_settings
 
 logger = structlog.get_logger(__name__)
 
@@ -151,6 +152,24 @@ def log_gaps(
                     market_id=g.market_id,
                     sector=g.sector,
                     model_sources=g.model_sources,
+                )
+
+            # Venue shadow firewall (MODEL-9): a non-Kalshi venue stays in
+            # shadow until its settings flag is flipped, regardless of the
+            # category's mode. Mirrors the coordinator's venue_gaps_shadowed
+            # handling so rows from any log_gaps caller are protected.
+            gap_venue = getattr(g, "venue", "kalshi")
+            if (
+                mode == "live"
+                and gap_venue == "polymarket_us"
+                and not get_settings().polymarket_us_live
+            ):
+                mode = "shadow"
+                logger.info(
+                    "prediction_demoted_shadow_venue",
+                    market_id=g.market_id,
+                    sector=g.sector,
+                    venue=gap_venue,
                 )
 
             event_date_str: Optional[str] = None

@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from 'react'
 import type { Bet, ScanGap } from '../lib/types'
 import { probToCents, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
+import { VenueLogo } from './VenueLogo'
 import { pickBets } from '../lib/api'
 
 interface Props {
@@ -92,7 +93,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
           <thead>
             <tr>
               <th style={{ width: 28 }}></th><th></th>
-              <th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th>
+              <th>Date</th><th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
               <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">EV</th><th className="num">Stake</th>
             </tr>
           </thead>
@@ -108,6 +109,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
                   </td>
                   <td className="muted">{b.event_date}</td>
                   <td><span className="badge">{b.sector}</span></td>
+                  <td><VenueLogo venue={b.venue} /></td>
                   <td>{b.event_title}</td>
                   <td>{outcomeLabel(b)}</td>
                   <td className="num">{probToCents(b.kalshi_yes_price)}</td>
