@@ -68,6 +68,7 @@ def _market(
     event_date: Optional[datetime] = _EVENT_DATE,
     market_id: str = "kalshi:TEST-001",
     volume_usd: float = 10_000.0,
+    source: MarketSource = MarketSource.kalshi,
 ) -> PredictionMarket:
     # Default no_price simulates a real liquid orderbook with ~2% vig
     # (yes_ask + no_ask sums to ~1.02). Tests that need a specific spread_pct
@@ -76,7 +77,7 @@ def _market(
         no_price = round(min(0.99, max(0.01, (1.0 - yes_price) + 0.02)), 4)
     return PredictionMarket(
         id=market_id,
-        source=MarketSource.kalshi,
+        source=source,
         sector=sector,
         market_type=market_type,
         yes_price=yes_price,
@@ -550,6 +551,26 @@ class TestEvaluatePair:
         assert gap.yes_team == "pistons"
         assert gap.sector == "nba"
         assert gap.market_type == "moneyline"
+        assert gap.venue == "kalshi"  # venue rides market.source through to the gap
+
+    def test_polymarket_us_market_sets_gap_venue(self):
+        """A market sourced from Polymarket US must stamp venue on the gap."""
+        market = _market(
+            team_home="pistons", team_away="warriors",
+            yes_price=0.52, yes_team="pistons",
+            sector="nba",
+            market_id="polymarket_us:aec-nba-det-gsw-2026-03-21",
+            source=MarketSource.polymarket_us,
+        )
+        sharp = _moneyline_sharp(
+            event_id="nba::2026-03-21::pistons_vs_warriors",
+            outcome_a="pistons", outcome_b="warriors",
+            true_prob_a=0.60,
+        )
+        gap = self._call(market, sharp)
+
+        assert gap is not None
+        assert gap.venue == "polymarket_us"
 
     def test_moneyline_yes_away_team_uses_true_prob_b(self):
         """YES = away team (outcome_b); agent must use true_prob_b for EV."""
