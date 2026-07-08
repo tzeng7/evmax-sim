@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react'
 import type { ScanGap } from '../lib/types'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
+import { VenueLogo } from './VenueLogo'
 import { pickBets } from '../lib/api'
 
 interface Props {
@@ -132,7 +133,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <thead>
           <tr>
             <th style={{ width: 30 }}></th>
-            <th>Date</th><th>Sector</th><th>Event</th><th>Outcome</th>
+            <th>Date</th><th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
             <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">Model</th><th className="num">EV</th>
             <th className="num">Fill ¢</th><th className="num">Stake ($)</th><th>Models</th>
           </tr>
@@ -162,6 +163,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
                     >{mode}</span>
                   )}
                 </td>
+                <td><VenueLogo venue={g.venue} /></td>
                 <td>{g.event_title}</td>
                 <td>{outcome}</td>
                 <td className="num">{askOdds}</td>

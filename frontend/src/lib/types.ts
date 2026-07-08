@@ -54,6 +54,7 @@ export interface Bet {
   volume_usd?: number
   outcome?: number
   status?: 'upcoming' | 'in_progress'
+  venue?: string
 }
 
 export interface ScanGap {
@@ -74,6 +75,7 @@ export interface ScanGap {
   event_date: string
   volume: number
   mode?: string
+  venue?: string
 }
 
 export interface ScanResult {
