@@ -422,19 +422,111 @@ def is_excluded_from_portfolio(
     return ((sector or "").lower(), (market_type or "").lower()) in _PORTFOLIO_EXCLUDED_MARKETS
 
 
+def _play_field(play: Any, name: str, default: Any = None) -> Any:
+    """Read a field off a play that may be an EVGap object or a gap dict."""
+    if isinstance(play, dict):
+        return play.get(name, default)
+    return getattr(play, name, default)
+
+
+def portfolio_outcome_key(
+    event_id: Optional[str],
+    market_type: Optional[str],
+    line: Optional[float],
+) -> tuple[str, str, float]:
+    """Venue-agnostic identity of a bettable market within a game.
+
+    Two quotes sharing this key are the same market — same game, same market
+    type, same line magnitude — regardless of venue (Kalshi vs Polymarket US
+    prefix their market_ids differently) and regardless of side (YES on each
+    team of the same moneyline, over/under of the same total). Prop events
+    keep their full event_id: Kalshi posts each threshold as an independent
+    market, so different thresholds must NOT collapse.
+    """
+    eid = event_id or ""
+    if "::prop::" not in eid:
+        eid = "::".join(eid.split("::")[:3])
+    try:
+        line_key = abs(float(line)) if line is not None else 0.0
+    except (TypeError, ValueError):
+        line_key = 0.0
+    return (eid, (market_type or "").lower(), line_key)
+
+
+def select_best_execution_plays(plays: list[Any]) -> list[Any]:
+    """Collapse multi-venue quotes of the same market to one best-execution leg.
+
+    The same game outcome quoted on both Kalshi and Polymarket US produces two
+    EVGaps by design (two independent books for CLV/shadow purposes) — but a
+    portfolio simulates one bankroll, and a bettor buys the better book, not
+    both. Per venue-agnostic market key, keep the leg a bettor would actually
+    execute: a live-sized leg (kelly > 0) beats a shadow-bound zero-Kelly leg
+    (the venue firewall zeroes Polymarket US Kelly until promotion), then
+    higher EV — i.e. the cheaper price — wins. Input order is preserved.
+
+    Accepts EVGap objects or gap dicts; both fan-out call sites (CLI
+    ``portfolio scan`` and the web unified scan) route through here.
+    """
+    best: dict[tuple[str, str, float], int] = {}
+    for i, p in enumerate(plays):
+        key = portfolio_outcome_key(
+            _play_field(p, "event_id"),
+            _play_field(p, "market_type"),
+            _play_field(p, "line"),
+        )
+        prev = best.get(key)
+        if prev is None:
+            best[key] = i
+            continue
+        q = plays[prev]
+        p_rank = ((_play_field(p, "kelly_fraction") or 0) > 0, _play_field(p, "ev_pct") or 0)
+        q_rank = ((_play_field(q, "kelly_fraction") or 0) > 0, _play_field(q, "ev_pct") or 0)
+        if p_rank > q_rank:
+            best[key] = i
+    keep = set(best.values())
+    return [p for i, p in enumerate(plays) if i in keep]
+
+
 def log_portfolio_bet(
     portfolio_id: str,
     gap: dict[str, Any],
     bankroll: float,
     kelly: float,
-) -> None:
-    """Log a single EV gap into a portfolio's bet ledger."""
+) -> bool:
+    """Log a single EV gap into a portfolio's bet ledger.
+
+    Returns True when a new row was inserted. Refuses (returns False):
+      - zero-stake legs — shadow-bound gaps (venue firewall, partial blend)
+        carry kelly 0 and must never enter a ledger, even at $0;
+      - a market already held under a different market_id — the
+        UNIQUE(portfolio_id, market_id) constraint can't see a cross-venue
+        twin (``polymarket_us:`` prefixed id) or the opposite side of the
+        same market logged on an earlier scan day, so the guard compares
+        venue-agnostic outcome keys instead.
+    """
     now = datetime.now(timezone.utc).isoformat()
     stake = round(bankroll * kelly * (gap.get("kelly_fraction") or gap.get("kelly_pct", 0) / 100), 2)
+    if stake <= 0:
+        return False
     scan_date = gap.get("scan_date") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
+    market_id = gap.get("market_id")
+    key = portfolio_outcome_key(gap.get("event_id"), gap.get("market_type"), gap.get("line"))
     conn = _get_conn()
-    conn.execute(
+    existing = conn.execute(
+        """SELECT market_id, event_id, market_type, line FROM portfolio_bets
+           WHERE portfolio_id = ? AND (event_id = ? OR event_id LIKE ? || '::%')""",
+        (portfolio_id, key[0], key[0]),
+    ).fetchall()
+    for r in existing:
+        if (
+            r["market_id"] != market_id
+            and portfolio_outcome_key(r["event_id"], r["market_type"], r["line"]) == key
+        ):
+            conn.close()
+            return False
+
+    cur = conn.execute(
         """INSERT OR IGNORE INTO portfolio_bets
            (portfolio_id, market_id, scan_date, event_id, sector, yes_team,
             market_type, event_title, event_date, display_label,
@@ -444,7 +536,7 @@ def log_portfolio_bet(
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             portfolio_id,
-            gap.get("market_id"),
+            market_id,
             scan_date,
             gap.get("event_id"),
             gap.get("sector"),
@@ -465,8 +557,10 @@ def log_portfolio_bet(
             gap.get("model_sources"),
         ),
     )
+    inserted = cur.rowcount > 0
     conn.commit()
     conn.close()
+    return inserted
 
 
 def get_portfolio_bets(

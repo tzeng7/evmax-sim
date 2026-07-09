@@ -593,6 +593,7 @@ async def _run_unified_scan(
     if fan_out_portfolio_ids is not None:
         from evmax.portfolios import (
             list_portfolios, log_portfolio_bet, is_excluded_from_portfolio,
+            select_best_execution_plays,
         )
         portfolios = list_portfolios(active_only=True)
         if fan_out_portfolio_ids:
@@ -601,9 +602,14 @@ async def _run_unified_scan(
 
         today_str = date.today().isoformat()
 
+        # Best-execution collapse for the LEDGER only: the same market quoted
+        # on both Kalshi and Polymarket US is one portfolio bet, not two. The
+        # displayed gap_dicts keep both venue legs.
+        fan_out_gaps = select_best_execution_plays(gap_dicts)
+
         for portfolio in portfolios:
             logged = 0
-            for gap in gap_dicts:
+            for gap in fan_out_gaps:
                 if _portfolio_gap_category(gap) not in portfolio.sectors:
                     continue
                 if gap.get("market_type") == "map_handicap":
@@ -616,13 +622,13 @@ async def _run_unified_scan(
                 # silently drop Finals/series games 2-4 days out.
                 gap_for_log = dict(gap)
                 gap_for_log["scan_date"] = today_str
-                log_portfolio_bet(
+                if log_portfolio_bet(
                     portfolio_id=portfolio.id,
                     gap=gap_for_log,
                     bankroll=portfolio.current_bankroll,
                     kelly=portfolio.kelly_fraction,
-                )
-                logged += 1
+                ):
+                    logged += 1
             portfolio_results.append({
                 "portfolio_id": portfolio.id,
                 "portfolio_name": portfolio.name,
