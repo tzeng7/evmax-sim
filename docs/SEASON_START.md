@@ -113,6 +113,10 @@ staleness:
       QB moves after the first reseed with 2026 data (the per-QB delta layer is
       the whole point of this model).
 - [ ] Alias check for any franchise rename/relocation.
+- [ ] Generic Elo (0.20 weight) carries raw February ratings into September —
+      NFL is the #2 target for offseason regression (section 5; ⅓-toward-mean
+      prior). `nfl_qb_elo` and `nfl_efficiency` don't need it (weekly full
+      re-walk-forward / built-in season decay).
 - [ ] Do **not** re-attempt the backtest-rejected levers (QB-Elo MOV,
       form-weight redistribution — form stays 0.30; see the NFL blend audit
       memory) without new evidence.
@@ -174,8 +178,9 @@ helper handles season-type transitions; Elo/Form self-heal via resolves.
       agents' MIN_GAMES/confidence ramps) and that the circuit breaker isn't
       pinned (`data/models/.nba_api_breaker.json`).
 - [ ] Elo opens gated (last update = June Finals) and re-enters after the
-      first resolves **with un-regressed ratings** — see the cross-sector
-      offseason-regression gap below.
+      first resolves **with un-regressed ratings** — but at 0.10 weight behind
+      four self-refreshing NBA models this is marginal (section 5 verdict:
+      regress for consistency or skip).
 - [ ] Re-enable `weekly-nba-props-shadow-metrics` if nba_props promotion
       tracking resumes (`nba_props` stays shadow until the long-shot-bias
       root-cause work from its categories.yaml note happens; do not promote on
@@ -191,7 +196,12 @@ with the *least* season-start tooling:
       `python scripts/seed_espn.py --sectors ncaab,ncaaw` (despite the
       script's stale docstring, it covers both). This mostly refreshes
       `last_updated` and team coverage — ratings still encode last season's
-      rosters, which is the standing (accepted) limitation.
+      rosters.
+- [ ] **NCAAB is the #1 target for offseason Elo regression** (section 5):
+      with no `SECTOR_WEIGHT_OVERRIDES` entry and Poisson excluded from
+      basketball, Elo is ~58% of the model blend, Form is stale-gated in
+      opening weeks, and transfer-portal churn is the worst of any sector.
+      Ship the generalized regress script for NCAAB before Nov 1.
 - [ ] NCAAW: Elo contributes 0 (uncalibrated K / home-adv — MODEL-2 /
       SECTOR-2), so it opens as form+sharp and form is stale-gated → NCAAW is
       effectively **sharp-only until mid-November**. Calibrating NCAAW Elo
@@ -223,13 +233,14 @@ below generalize from — its offseason-gap incident (+24pp chalk bias, May
    `SECTOR_SERIES_MAP`, a scheduled home for `fetch_nfl_features.py`
    (weekly, Sep–Feb), then the shadow-validation clock starts. Without the
    ticker fix the category fetches nothing at all.
-3. **Generalized offseason Elo regression** (before Oct). Only WNBA regresses
-   ratings toward the mean across the offseason; NBA/NFL/NHL/NCAAB Elo
-   re-enters the blend after week 1 with raw end-of-last-season ratings.
-   Generalize `wnba_offseason_regress.py` into
+3. **Generalized offseason Elo regression — NCAAB first, NFL second** (NCAAB
+   before Nov 1). Only WNBA regresses ratings across the offseason today;
+   everywhere else Elo re-enters the blend after week 1 with raw
+   end-of-last-season ratings. See section 5 for the full per-sector verdict —
+   it is NOT needed everywhere. Generalize `wnba_offseason_regress.py` into
    `scripts/offseason_regress.py --sector <s> [--moves <yaml>]` — shrinkage
-   toward 1500 with a per-sector factor; the roster-move YAML stays optional
-   and human-reviewed. Keep it manual-by-design like WNBA's.
+   toward 1500 with a per-sector coefficient; the roster-move YAML stays
+   optional and human-reviewed. Keep it manual-by-design like WNBA's.
 4. **NCAAW Elo calibration** (before Nov, MODEL-2/SECTOR-2) — turns NCAAW's
    opening month from sharp-only into an actual blend.
 5. **Polymarket US league-slug checker** — `check_kalshi_series.py` equivalent
@@ -242,15 +253,54 @@ below generalize from — its offseason-gap incident (+24pp chalk bias, May
    table, or a warning when `model_sources == ['sharp']` in a normally
    multi-model sector, would prevent opening-week overbetting.
 
-## 5. Season-start inventory (quick reference)
+## 5. Offseason Elo regression — per-sector verdict
+
+Not every sector needs it. Two code facts frame the decision:
+
+- **The agent-side machinery is already general.** `EloModelAgent` carries a
+  `season_games` counter (reset by an offseason regression) and a 538-style
+  `EARLY_K_BOOST` that amplifies K while post-regression games accumulate —
+  and the comment at `elo_agent.py:72` explicitly says NBA/NFL would benefit
+  but must not be enabled "until you also wire its offseason script to reset
+  `season_games`". The build is a generalization of
+  `scripts/wnba_offseason_regress.py`, not new model code.
+- **Exposure varies enormously with the effective ensemble weight.** A sector
+  where Elo is 10% of the blend barely notices un-regressed ratings; a sector
+  where it's the dominant model gets the full WNBA-style chalk bias.
+
+| Sector | Effective Elo weight | Verdict |
+|---|---|---|
+| **NCAAB** | ~0.35 class weight (**no `SECTOR_WEIGHT_OVERRIDES` entry**); with Poisson hard-excluded from basketball, the model side is just elo+form → **Elo ≈ 58% of the model blend after normalization** | **YES — strongest case by far.** Transfer-portal roster churn is the worst of any sector, and since Form is stale-gated in opening weeks, raw March ratings would be the *only* model firing into November games. The WNBA +24pp-chalk-bias pattern at higher weight. Ship before Nov 1. |
+| **NFL** | 0.20 (generic elo only) | **YES, moderate.** `nfl_qb_elo` is re-walk-forwarded from PBP weekly and `nfl_efficiency` has season-decay 0.45 built in — only generic Elo carries raw February ratings. FiveThirtyEight's classic ⅓-toward-mean is the prior. |
+| Baseball | 0.25 | Include in the script, defer the run — K=6 over 162 games self-corrects fast, the sector is shadow, and the next boundary is March 2027. |
+| NBA | 0.10 | Marginal. The four NBA-specific models (0.80 combined) self-refresh from `nba_api`; regressing a 0.10-weight input barely moves the blend. Do it for consistency or skip. |
+| Soccer (club) | 0.15 | **NO.** Subtlety: the staleness guard never trips (MLS keeps the sector's `last_updated` fresh through the European summer), so August ratings do fire un-regressed — but club soccer has the highest year-over-year squad persistence of any sport (ClubElo doesn't regress between seasons at all). The real August work is promoted-club aliases. |
+| NHL, NCAAW | 0 (Elo gated out of both blends — uncalibrated K, MODEL-2) | **Moot** until the SECTOR-1/2 calibrations happen; add regression then. |
+| Tennis, esports, worldcup | — | **NO** — per-player tennis Elo is reseeded weekly from Tennis Abstract; esports is sharp-only; worldcup is seeded from scratch each cycle. |
+| WNBA | 0.15 | ✅ Already has it (`wnba_offseason_regress.py` + roster-move YAML + `EARLY_K_BOOST`). The template. |
+
+**Implementation rules (house policy applies):**
+
+1. Do NOT copy WNBA's 35% coefficient blind. Sweep the coefficient per sector
+   via walk-forward replay — predict each of the last few seasons' opening
+   ~6 weeks with vs. without regression, keep on Brier, one change per
+   iteration. Priors: NFL ≈ ⅓ (538), NBA ≈ 25%, NCAAB likely *higher* than
+   WNBA's 35% given portal churn.
+2. Only add an `EARLY_K_BOOST` entry for a sector once its regression actually
+   resets `season_games` — exactly as the `elo_agent.py` comment warns
+   (boosting without the reset just amplifies late-season noise).
+3. Roster-move deltas stay optional and human-reviewed (the YAML pattern);
+   pure shrinkage is the automated part.
+
+## 6. Season-start inventory (quick reference)
 
 | Sector | Next start | Mode | Seed script(s) | Scheduled reseed | Staleness guard | Offseason Elo regression |
 |---|---|---|---|---|---|---|
 | soccer | ~Aug 15 | live | `seed_espn.py`, `seed_soccer_xg.py` (backfill only) | resolve-time auto | elo/form 60d (rarely trips — year-round) | n/a (no offseason) |
-| nfl | Sep 4 window | live | `seed_nfl_efficiency.py`, `seed_nfl_qb_elo.py` | ✅ weekly task (Sep–Feb) | ✅ source-season + elo/form 60d | ❌ none |
+| nfl | Sep 4 window | live | `seed_nfl_efficiency.py`, `seed_nfl_qb_elo.py` | ✅ weekly task (Sep–Feb) | ✅ source-season + elo/form 60d | ❌ build — #2 target (§5) |
 | nfl_props | Sep 4 window | shadow (blocked) | `fetch_nfl_features.py` | ❌ none | n/a (cache) | n/a |
 | nhl | ~Oct 7 | shadow | `seed_nhl_xg.py` | ❌ none | ❌ none on nhl_xg | ❌ none (elo not in blend) |
 | nba | ~Oct 20 | live | none needed (nba_api self-fetch) | auto at scan time | freshness helper + elo/form 60d | ❌ none |
-| ncaab | Nov 1 window | live | `seed_espn.py --sectors ncaab` | ❌ none | elo/form 60d | ❌ none |
+| ncaab | Nov 1 window | live | `seed_espn.py --sectors ncaab` | ❌ none | elo/form 60d | ❌ build — #1 target (§5) |
 | ncaaw | Nov 1 window | live | `seed_espn.py --sectors ncaaw` | ❌ none | elo/form 60d (elo weight 0 anyway) | ❌ none |
 | wnba | May (template) | live (ML) | `seed_wnba_efficiency.py --year` | ✅ weekly task (May–Oct) | ✅ source_season | ✅ `wnba_offseason_regress.py` |
