@@ -155,6 +155,7 @@ async def _scan_portfolios(portfolio_id: str | None) -> None:
     from evmax.agents.coordinator import AgentCoordinator
     from evmax.portfolios import (
         list_portfolios, log_portfolio_bet, is_excluded_from_portfolio,
+        select_best_execution_plays,
     )
 
     portfolios = list_portfolios(active_only=True)
@@ -174,8 +175,11 @@ async def _scan_portfolios(portfolio_id: str | None) -> None:
 
     # plays() drops partial-blend (shadow, $0.00-stake) gaps + map_handicap —
     # the canonical actionable-play definition shared with the CLI scan,
-    # dashboard, and cron portfolio scanner.
-    playable = cycle.plays(require_full_blend=True, drop_map_handicap=True)
+    # dashboard, and cron portfolio scanner. Best-execution collapse: the same
+    # market quoted on both Kalshi and Polymarket US is one bet, not two.
+    playable = select_best_execution_plays(
+        cycle.plays(require_full_blend=True, drop_map_handicap=True)
+    )
 
     total_logged = 0
     for portfolio in portfolios:
@@ -210,8 +214,10 @@ async def _scan_portfolios(portfolio_id: str | None) -> None:
                 "model_sources": g.model_sources or "",
                 "scan_date": today_str,
             }
-            log_portfolio_bet(portfolio.id, gap_dict, portfolio.current_bankroll, portfolio.kelly_fraction)
-            count += 1
+            if log_portfolio_bet(
+                portfolio.id, gap_dict, portfolio.current_bankroll, portfolio.kelly_fraction
+            ):
+                count += 1
 
         total_logged += count
         console.print(f"  [cyan]{portfolio.id}[/cyan]: {count} bets logged")

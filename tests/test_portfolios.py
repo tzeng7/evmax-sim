@@ -22,7 +22,9 @@ from evmax.portfolios import (
     is_excluded_from_portfolio,
     list_portfolios,
     log_portfolio_bet,
+    portfolio_outcome_key,
     resolve_portfolio_bet,
+    select_best_execution_plays,
     sync_portfolio_outcomes,
     _get_conn,
 )
@@ -107,9 +109,158 @@ class TestLogBet:
     def test_dedup(self):
         create_portfolio("p1", "P1", ["nba"], 100, 0.25)
         gap = {"market_id": "MKT-1", "sector": "nba", "ev_pct": 0.05, "kelly_fraction": 0.02}
-        log_portfolio_bet("p1", gap, 100, 0.25)
-        log_portfolio_bet("p1", gap, 100, 0.25)
+        assert log_portfolio_bet("p1", gap, 100, 0.25) is True
+        assert log_portfolio_bet("p1", gap, 100, 0.25) is False
         assert len(get_portfolio_bets("p1")) == 1
+
+
+class TestOutcomeKey:
+    def test_game_event_suffix_stripped(self):
+        # ML, spread and total share the game base but differ on market_type/line
+        k_ml = portfolio_outcome_key("wnba::2026-07-08::sparks_vs_fever", "moneyline", None)
+        k_sp = portfolio_outcome_key("wnba::2026-07-08::sparks_vs_fever::spread", "spread", -4.5)
+        assert k_ml == ("wnba::2026-07-08::sparks_vs_fever", "moneyline", 0.0)
+        assert k_sp == ("wnba::2026-07-08::sparks_vs_fever", "spread", 4.5)
+        assert k_ml != k_sp
+
+    def test_opposite_sides_share_key(self):
+        # YES on each team of the same moneyline → same market
+        a = portfolio_outcome_key("wnba::2026-07-08::sparks_vs_fever", "moneyline", None)
+        b = portfolio_outcome_key("wnba::2026-07-08::sparks_vs_fever", "moneyline", None)
+        assert a == b
+        # opposite spread sides: mirrored line signs collapse via abs()
+        s1 = portfolio_outcome_key("nba::2026-04-18::hawks_vs_knicks::spread", "spread", -4.5)
+        s2 = portfolio_outcome_key("nba::2026-04-18::hawks_vs_knicks::spread", "spread", 4.5)
+        assert s1 == s2
+
+    def test_alt_lines_stay_distinct(self):
+        s1 = portfolio_outcome_key("nba::2026-04-18::hawks_vs_knicks::spread", "spread", -4.5)
+        s2 = portfolio_outcome_key("nba::2026-04-18::hawks_vs_knicks::spread", "spread", -5.5)
+        assert s1 != s2
+
+    def test_prop_thresholds_stay_distinct(self):
+        p1 = portfolio_outcome_key("nba::2026-04-18::prop::j_tatum::points::24.5", "player_prop", 24.5)
+        p2 = portfolio_outcome_key("nba::2026-04-18::prop::j_tatum::points::29.5", "player_prop", 29.5)
+        assert p1 != p2
+
+    def test_none_inputs_safe(self):
+        assert portfolio_outcome_key(None, None, None) == ("", "", 0.0)
+
+
+class TestBestExecutionSelection:
+    def _gap(self, market_id, venue, kelly, ev, event_id="wnba::2026-07-08::sparks_vs_fever",
+             market_type="moneyline", line=None):
+        return {
+            "market_id": market_id, "venue": venue, "kelly_fraction": kelly,
+            "ev_pct": ev, "event_id": event_id, "market_type": market_type, "line": line,
+        }
+
+    def test_live_leg_beats_shadow_leg_even_at_lower_ev(self):
+        kalshi = self._gap("KXWNBAGAME-LAF", "kalshi", 0.03, 0.04)
+        polyus = self._gap("polymarket_us:aec-wnba-ind-la:ind", "polymarket_us", 0.0, 0.09)
+        kept = select_best_execution_plays([polyus, kalshi])
+        assert kept == [kalshi]
+
+    def test_both_shadow_keeps_higher_ev(self):
+        a = self._gap("polymarket_us:aec-wnba-ind-la:ind", "polymarket_us", 0.0, 0.09)
+        b = self._gap("KXWNBAGAME-LAF", "kalshi", 0.0, 0.04)
+        kept = select_best_execution_plays([a, b])
+        assert kept == [a]
+
+    def test_both_live_keeps_higher_ev(self):
+        a = self._gap("KXWNBAGAME-LAF", "kalshi", 0.03, 0.04)
+        b = self._gap("polymarket_us:aec-wnba-ind-la:ind", "polymarket_us", 0.02, 0.06)
+        kept = select_best_execution_plays([a, b])
+        assert kept == [b]
+
+    def test_distinct_markets_all_survive(self):
+        ml = self._gap("KX-ML", "kalshi", 0.03, 0.04)
+        total = self._gap("KX-TOT", "kalshi", 0.02, 0.03, market_type="total", line=164.5)
+        alt1 = self._gap("KX-SP45", "kalshi", 0.02, 0.03, market_type="spread", line=-4.5)
+        alt2 = self._gap("KX-SP55", "kalshi", 0.02, 0.05, market_type="spread", line=-5.5)
+        other_game = self._gap("KX-OTHER", "kalshi", 0.03, 0.04,
+                               event_id="wnba::2026-07-08::sun_vs_lynx")
+        kept = select_best_execution_plays([ml, total, alt1, alt2, other_game])
+        assert kept == [ml, total, alt1, alt2, other_game]
+
+    def test_accepts_evgap_like_objects(self):
+        from types import SimpleNamespace
+
+        kalshi = SimpleNamespace(
+            market_id="KXWNBAGAME-LAF", venue="kalshi", kelly_fraction=0.03,
+            ev_pct=0.04, event_id="wnba::2026-07-08::sparks_vs_fever",
+            market_type="moneyline", line=None,
+        )
+        polyus = SimpleNamespace(
+            market_id="polymarket_us:aec-wnba-ind-la:ind", venue="polymarket_us",
+            kelly_fraction=0.0, ev_pct=0.09, event_id="wnba::2026-07-08::sparks_vs_fever",
+            market_type="moneyline", line=None,
+        )
+        kept = select_best_execution_plays([polyus, kalshi])
+        assert kept == [kalshi]
+
+
+class TestLedgerGuards:
+    GAME = "wnba::2026-07-08::sparks_vs_fever"
+
+    def _gap(self, market_id, **over):
+        gap = {
+            "market_id": market_id,
+            "event_id": self.GAME,
+            "sector": "wnba",
+            "yes_team": "Fever",
+            "market_type": "moneyline",
+            "ev_pct": 0.05,
+            "kelly_fraction": 0.03,
+            "scan_date": "2026-07-08",
+        }
+        gap.update(over)
+        return gap
+
+    def test_zero_stake_leg_never_logged(self):
+        create_portfolio("wnba_m", "WNBA Mod", ["wnba"], 250, 0.50)
+        shadow = self._gap("polymarket_us:aec-wnba-ind-la:ind", kelly_fraction=0.0)
+        assert log_portfolio_bet("wnba_m", shadow, 250, 0.50) is False
+        assert get_portfolio_bets("wnba_m") == []
+
+    def test_cross_venue_twin_blocked(self):
+        create_portfolio("wnba_m", "WNBA Mod", ["wnba"], 250, 0.50)
+        assert log_portfolio_bet("wnba_m", self._gap("KXWNBAGAME-LAF-IND"), 250, 0.50) is True
+        twin = self._gap("polymarket_us:aec-wnba-ind-la:ind")
+        assert log_portfolio_bet("wnba_m", twin, 250, 0.50) is False
+        bets = get_portfolio_bets("wnba_m")
+        assert len(bets) == 1
+        assert bets[0]["market_id"] == "KXWNBAGAME-LAF-IND"
+
+    def test_opposite_side_later_scan_blocked(self):
+        # the ind/la case: both sides of the same ML accreting across scan days
+        create_portfolio("wnba_m", "WNBA Mod", ["wnba"], 250, 0.50)
+        assert log_portfolio_bet("wnba_m", self._gap("KXWNBAGAME-LAF-IND"), 250, 0.50) is True
+        other_side = self._gap(
+            "KXWNBAGAME-LAF-LA", yes_team="Los Angeles", scan_date="2026-07-09"
+        )
+        assert log_portfolio_bet("wnba_m", other_side, 250, 0.50) is False
+        assert len(get_portfolio_bets("wnba_m")) == 1
+
+    def test_distinct_markets_on_same_game_allowed(self):
+        create_portfolio("wnba_m", "WNBA Mod", ["wnba"], 250, 0.50)
+        assert log_portfolio_bet("wnba_m", self._gap("KX-ML"), 250, 0.50) is True
+        spread = self._gap(
+            "KX-SP", event_id=f"{self.GAME}::spread", market_type="spread", line=-4.5
+        )
+        assert log_portfolio_bet("wnba_m", spread, 250, 0.50) is True
+        alt = self._gap(
+            "KX-SP-ALT", event_id=f"{self.GAME}::spread", market_type="spread", line=-5.5
+        )
+        assert log_portfolio_bet("wnba_m", alt, 250, 0.50) is True
+        assert len(get_portfolio_bets("wnba_m")) == 3
+
+    def test_guard_scoped_per_portfolio(self):
+        create_portfolio("wnba_a", "WNBA Agg", ["wnba"], 500, 1.0)
+        create_portfolio("wnba_c", "WNBA Con", ["wnba"], 100, 0.25)
+        gap = self._gap("KXWNBAGAME-LAF-IND")
+        assert log_portfolio_bet("wnba_a", gap, 500, 1.0) is True
+        assert log_portfolio_bet("wnba_c", gap, 100, 0.25) is True
 
 
 class TestResolution:
