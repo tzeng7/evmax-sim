@@ -96,6 +96,65 @@ SECTOR_SERIES_MAP: dict[str, list[str]] = {
 }
 
 
+# Series-scoped team-code maps for multi-league sectors. Soccer's alias
+# namespace is shared across leagues, so a flat "code → canonical" alias in
+# soccer.yaml collides — "TOR" is Torino in KXSERIEAGAME but Toronto FC in
+# KXMLSGAME (the flat alias sent Kalshi's Toronto markets to "torino" until
+# 2026-07-09), and "POR" would be Porto vs Portland. These maps resolve a
+# ticker code to its canonical name ONLY for the named series; codes not
+# listed fall through to the generic NameNormalizer path. Canonical values
+# must match soccer.yaml's canonicals (what Pinnacle / Polymarket US full
+# names normalize to).
+_SERIES_TEAM_CODE_MAPS: dict[str, dict[str, str]] = {
+    # MLS — standard club abbreviations. Verified from live KXMLSGAME tickers
+    # 2026-07-09 (SEA/POR/STL/SKC/CHI/VAN/MTL/TOR); the rest are the official
+    # MLS code set. LA Galaxy appears as both LA and LAG upstream.
+    "KXMLSGAME": {
+        "atl": "atlanta",
+        "atx": "austin",
+        "clt": "charlotte",
+        "chi": "chicago",
+        "cin": "cincinnati",
+        "col": "colorado",
+        "clb": "columbus",
+        "dal": "dallas",
+        "dc": "dc united",
+        "hou": "houston",
+        "la": "la galaxy",
+        "lag": "la galaxy",
+        "lafc": "lafc",
+        "mia": "inter miami",
+        "min": "minnesota",
+        "mtl": "montreal",
+        "nsh": "nashville",
+        "ne": "new england",
+        "nyc": "nycfc",
+        "rbny": "red bulls",
+        "ny": "red bulls",
+        "orl": "orlando",
+        "phi": "philadelphia",
+        "por": "portland",
+        "rsl": "salt lake",
+        "sd": "san diego",
+        "sj": "san jose",
+        "sea": "seattle",
+        "skc": "sporting kc",
+        "stl": "st louis",
+        "tor": "toronto",
+        "van": "vancouver",
+    },
+}
+
+
+def _series_team_code_map(ticker: str) -> Optional[dict[str, str]]:
+    """Return the series-scoped code map for a ticker, if one exists."""
+    upper = ticker.upper()
+    for prefix, mapping in _SERIES_TEAM_CODE_MAPS.items():
+        if upper.startswith(prefix):
+            return mapping
+    return None
+
+
 # Prop series prefix → canonical stat type
 _PROP_SERIES_TO_STAT: dict[str, str] = {
     "KXNBAPTS": "points",
@@ -1032,6 +1091,10 @@ class KalshiClient(BaseAPIClient):
                 yes_team = self._extract_tennis_yes_player(title, sector)
             else:
                 team_home, team_away = self._extract_teams_from_ticker(ticker, sector)
+                code_map = _series_team_code_map(ticker)
+                if code_map:
+                    team_home = code_map.get(team_home, team_home) if team_home else team_home
+                    team_away = code_map.get(team_away, team_away) if team_away else team_away
                 if not team_home:
                     # Totals titles carry noise like "Game 4:" prefix or
                     # ": Total Points/Goals/Runs" suffix that confuses the
@@ -1275,6 +1338,11 @@ class KalshiClient(BaseAPIClient):
         if len(parts) < 2 or not parts[-1]:
             return None
         outcome_code = re.sub(r"\d+$", "", parts[-1]).lower()
+        # Series-scoped code maps win over the shared alias namespace —
+        # "TOR" is Toronto FC in KXMLSGAME but Torino in KXSERIEAGAME.
+        code_map = _series_team_code_map(ticker)
+        if code_map and outcome_code in code_map:
+            return code_map[outcome_code]
         from evmax.matching.normalizer import NameNormalizer
         return NameNormalizer(sector).normalize(outcome_code)
 

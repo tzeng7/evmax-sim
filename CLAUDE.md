@@ -100,6 +100,8 @@ evmax/
 │   └── cleanup/             # db.py, logger.py, resolver.py, metrics.py, maintenance.py
 ├── simulation/
 │   └── montecarlo.py        # Monte Carlo bankroll simulation
+├── fees.py                  # Venue fee models — Kalshi taker 0.07·p·(1−p) ceil-to-cent/order (maker 25% of taker on designated series), Polymarket US taker 0.06·p·(1−p) / maker −0.0125 REBATE, banker's rounding (docs.polymarket.us/fees, eff. 2026-07-01)
+├── arb.py                   # Cross-venue arb detection: cheapest complete-outcome basket per (sector, teams, exact ET date); soccer/worldcup baskets always REQUIRE the draw leg; see `evmax arb scan`
 ├── categories.py            # Category registry loader + validate_registry() (reads data/categories.yaml)
 ├── modes.py                 # Effective mode resolution: CLI flag > EVMAX_CATEGORY_MODES env > YAML
 ├── portfolios.py            # Multi-portfolio simulated bankrolls (tables live in predictions.db)
@@ -121,6 +123,7 @@ evmax/
         ├── project.py       # evmax project slate (standalone point projections)
         ├── portfolio.py     # evmax portfolio (multi-portfolio management/scanning)
         ├── dashboard.py     # evmax dashboard (web UI)
+        ├── arb.py           # evmax arb scan (cross-venue Kalshi↔PolyUS arbitrage, read-only)
         └── update.py        # evmax update scores (auto ESPN model updates)
 ```
 
@@ -183,6 +186,7 @@ Tennis serve/return, H2H, advanced, and form agents were historically seeded fro
 - **Exposure guard**: total Kelly per game ≤ 8% bankroll; excess bets scaled/dropped. Only applies to `mode='live'` rows.
 - **Full-blend gate (tennis)**: `REQUIRED_BLEND_MODELS` in `ev_gap_agent.py` — a tennis gap is only a live play when `model_sources` contains all four primary models (`tennis_surface`, `tennis_serve_return`, `tennis_form`, `tennis_advanced`; h2h/ranking_trend optional — they structurally can't fire on most matches). Partial-blend gaps get `full_blend=False`: hidden from the play table, kelly zeroed, excluded from the exposure budget, and demoted to `mode='shadow'` by `log_gaps` (still logged for calibration). Rationale: walk-forward (n=2576, 2025+2026) shows the full blend beats sharp +2.6 Brier/1000 while sparse blends are a wash — sharp-passthrough "edges" are thin Kalshi-vs-Pinnacle arb, not model edge. **Gotcha:** `_blend` skips any model with `eff_w <= 0` (`ensemble_agent.py` ~L482), so a model dropped to weight 0 in a `SECTOR_WEIGHT_OVERRIDES` entry vanishes from `model_sources` — for a sector with a `REQUIRED_BLEND_MODELS` entry (tennis), that silently demotes EVERY play to shadow. Never zero a required blend model's weight; floor it (e.g. tennis serve_return at 0.10).
 - **Fuzzy match underscore fix**: `_` replaced with space before rapidfuzz scoring
+- **Multi-league team codes are series-scoped**: soccer's alias namespace is shared across leagues, so a flat ticker-code alias collides — `TOR` is Torino (Serie A) but Toronto FC (MLS); `POR` would be Porto vs Portland. `_SERIES_TEAM_CODE_MAPS` in `kalshi.py` resolves codes per series prefix (`KXMLSGAME` shipped 2026-07-09 after MLS markets silently normalized Toronto→torino); add a scoped map — never a flat soccer.yaml code alias — when wiring a new soccer league whose codes might collide
 - **YES team alignment**: Kalshi has separate YES markets per team — swap `true_prob_a ↔ true_prob_b` when YES = away
 - **Draw market**: Soccer TIE markets use `true_prob_draw`, not `true_prob_a`
 - **NO-side deduplication**: only YES side evaluated to prevent double-counting

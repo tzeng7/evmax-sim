@@ -107,3 +107,64 @@ class TestExtractTeamsFromTicker:
             "KXWNBATOTAL-26MAY08CONNNY-165", sector="wnba",
         )
         assert (home, away) == (None, None)
+
+
+class TestSeriesTeamCodeMaps:
+    """Series-scoped team-code resolution for multi-league sectors.
+
+    Regression for the 2026-07-09 finding: soccer's alias namespace is shared
+    across leagues, so the flat alias "tor" → "torino" (Serie A) silently
+    mis-normalized Kalshi's MLS Toronto FC markets to the Italian club. MLS
+    codes must resolve through the KXMLSGAME-scoped map; other series keep
+    the generic alias path.
+    """
+
+    def _mls_raw(self, ticker: str, title: str) -> dict:
+        return {
+            "ticker": ticker,
+            "title": title,
+            "yes_bid_dollars": "0.40",
+            "yes_ask_dollars": "0.45",
+            "no_bid_dollars": "0.50",
+            "no_ask_dollars": "0.60",
+            "volume_fp": 10,
+            "open_interest_fp": 5,
+        }
+
+    def test_mls_toronto_not_torino(self) -> None:
+        m = _client()._parse_market(
+            self._mls_raw("KXMLSGAME-26JUL16MTLTOR-TOR", "Montreal vs Toronto Winner?"),
+            "soccer",
+        )
+        assert m is not None
+        assert m.yes_team == "toronto"
+        assert m.team_home == "toronto"
+        assert m.team_away == "montreal"
+
+    def test_serie_a_tor_still_torino(self) -> None:
+        m = _client()._parse_market(
+            self._mls_raw("KXSERIEAGAME-26AUG23TORJUV-TOR", "Torino vs Juventus Winner?"),
+            "soccer",
+        )
+        assert m is not None
+        assert m.yes_team == "torino"
+
+    def test_mls_codes_resolve_to_canonicals(self) -> None:
+        m = _client()._parse_market(
+            self._mls_raw("KXMLSGAME-26JUL16STLSKC-SKC", "Saint Louis vs Kansas City Winner?"),
+            "soccer",
+        )
+        assert m is not None
+        assert m.yes_team == "sporting kc"
+        assert m.team_home == "sporting kc"
+        assert m.team_away == "st louis"
+
+    def test_mls_tie_outcome_unmapped(self) -> None:
+        m = _client()._parse_market(
+            self._mls_raw("KXMLSGAME-26JUL16SEAPOR-TIE", "Seattle vs Portland Winner?"),
+            "soccer",
+        )
+        assert m is not None
+        assert m.yes_team == "tie"
+        assert m.team_home == "portland"
+        assert m.team_away == "seattle"

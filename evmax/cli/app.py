@@ -19,6 +19,7 @@ from evmax.cli.commands.update import app as update_app
 from evmax.cli.commands.project import app as project_app
 from evmax.cli.commands.dashboard import app as dashboard_app
 from evmax.cli.commands.portfolio import app as portfolio_app
+from evmax.cli.commands.arb import app as arb_app
 
 console = Console()
 
@@ -51,6 +52,7 @@ app.add_typer(archive_app, name="archive", help="Manage historical Pinnacle + Ka
 app.add_typer(project_app, name="project", help="Standalone point projections (not EV pipeline).")
 app.add_typer(dashboard_app, name="dashboard", help="Launch the web dashboard.")
 app.add_typer(portfolio_app, name="portfolio", help="Multi-portfolio management, scanning, and comparison.")
+app.add_typer(arb_app,     name="arb",     help="Cross-venue (Kalshi vs Polymarket US) arbitrage scanner.")
 
 
 @app.callback()
