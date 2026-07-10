@@ -1115,6 +1115,76 @@ async def api_metrics(request: Request) -> JSONResponse:
 
 
 # ---------------------------------------------------------------------------
+# Cross-venue arbitrage (evmax.arb — read-only, nothing persisted)
+# ---------------------------------------------------------------------------
+
+@app.get("/api/arb/sectors")
+def api_arb_sectors() -> JSONResponse:
+    """Sectors the arb scanner covers (ARB_LEAGUE_MAP — a superset of the
+    betting league map; see evmax/arb.py)."""
+    from evmax.arb import ARB_LEAGUE_MAP
+
+    return JSONResponse({"sectors": list(ARB_LEAGUE_MAP.keys())})
+
+
+@app.post("/api/arb/scan")
+async def api_arb_scan(request: Request) -> JSONResponse:
+    """Fetch live Kalshi + Polymarket US books and return arb baskets.
+
+    Mirrors `evmax arb scan`: read-only, no persistence, no bankroll. Asks
+    are REST snapshots — the UI repeats the verify-before-acting caveat.
+    """
+    from evmax.arb import ARB_LEAGUE_MAP, fetch_arb_markets, find_arbs
+
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    sectors_str = body.get("sectors") or ""
+    sectors = [s.strip().lower() for s in sectors_str.split(",") if s.strip()] \
+        or list(ARB_LEAGUE_MAP.keys())
+    max_cost = float(body.get("max_cost", 1.02))
+    include_in_play = bool(body.get("include_in_play", False))
+    include_single_venue = bool(body.get("include_single_venue", False))
+
+    pools = await fetch_arb_markets(sectors)
+
+    baskets: list[dict[str, Any]] = []
+    sector_stats: list[dict[str, Any]] = []
+    for sector, pool in pools.items():
+        n_k = sum(1 for m in pool if m.source.value == "kalshi")
+        arbs = find_arbs(
+            pool,
+            max_net_cost=max_cost,
+            include_in_play=include_in_play,
+            cross_venue_only=not include_single_venue,
+        )
+        sector_stats.append({
+            "sector": sector,
+            "kalshi_markets": n_k,
+            "polyus_markets": len(pool) - n_k,
+            "baskets": len(arbs),
+        })
+        for a in arbs:
+            baskets.append({
+                "sector": a.sector,
+                "event_title": a.event_title,
+                "event_date": a.event_date.isoformat() if a.event_date else None,
+                "market_desc": a.market_desc,
+                "legs": [leg.model_dump() for leg in a.legs],
+                "gross_cost": round(a.gross_cost, 4),
+                "net_cost": round(a.net_cost, 4),
+                "net_edge": round(a.net_edge, 4),
+                "cross_venue": a.cross_venue,
+                "in_play": a.in_play,
+            })
+
+    baskets.sort(key=lambda b: b["net_cost"])
+    return JSONResponse({
+        "baskets": baskets,
+        "sector_stats": sector_stats,
+        "scanned_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+
+# ---------------------------------------------------------------------------
 # React SPA — must be last so /api/* routes match first
 # ---------------------------------------------------------------------------
 
