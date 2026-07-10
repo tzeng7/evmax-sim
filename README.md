@@ -1,8 +1,10 @@
 # evmax — Agent-Based +EV Prediction Market System
 
-evmax uses a multi-agent pipeline to find positive expected value (+EV) opportunities on Kalshi by comparing market prices against sharp Pinnacle lines, statistical models, and real-time injury data. The system recommends Kelly-fractioned bet sizes for each opportunity it surfaces.
+evmax uses a multi-agent pipeline to find positive expected value (+EV) opportunities on prediction markets — **Kalshi** and **Polymarket US** — by comparing market prices against sharp Pinnacle lines, statistical models, and real-time injury data. The system recommends Kelly-fractioned bet sizes for each opportunity it surfaces.
 
-Sharp odds come from the **Pinnacle guest API** (`guest.api.arcadia.pinnacle.com`), which is keyless — the only API credential you need is a Kalshi key for live price refresh and trading. Every bettable category, its models, mode, and resolver are declared in one registry: [`data/categories.yaml`](data/categories.yaml).
+Sharp odds come from the **Pinnacle guest API** (`guest.api.arcadia.pinnacle.com`), which is keyless — the only API credential you need is a Kalshi key for live price refresh and trading (Polymarket US market data is fetched from the public gateway, no key). Every bettable category, its models, mode, and resolver are declared in one registry: [`data/categories.yaml`](data/categories.yaml).
+
+**Venues:** markets from both exchanges merge into one pool; `PredictionMarket.source` / `EVGap.venue` / the `venue` DB column carry the venue through matching → EV → persistence, and dedup keys are venue-aware (the same game on both venues = two independent books). Polymarket US is behind a **venue shadow firewall** (`polymarket_us_live=false`): its gaps log as `mode='shadow'` with Kelly zeroed until the venue clears the shadow-validation gates; `polymarket_us_enabled=false` kills the fetch entirely.
 
 ---
 
@@ -92,7 +94,7 @@ Every scan cycle runs through a coordinated set of agents:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│  STEP 1 — Concurrent fetch (all three run in parallel per sector)        │
+│  STEP 1 — Concurrent fetch (all fetchers run in parallel per sector)     │
 │                                                                          │
 │  ┌───────────────────┐  ┌───────────────────┐  ┌─────────────────────┐  │
 │  │  KalshiOddsAgent  │  │  SharpOddsAgent   │  │  InjuryReportAgent  │  │
@@ -148,6 +150,8 @@ Every scan cycle runs through a coordinated set of agents:
 └───────────────────────────────────────────────────────────┘
 ```
 
+> Not shown in the diagram: **`PolymarketUSOddsAgent`** runs alongside `KalshiOddsAgent` in Step 1, fetching Polymarket US markets for the 8 sectors in `POLYMARKET_US_LEAGUE_MAP` (NBA, WNBA, NFL, NCAAB, MLB, NHL, soccer, tennis). Both venues' markets flow through the same matching → devig → EV path.
+
 ### Agent Communication
 
 Agents communicate via an `AgentBus` pub/sub system. Each agent publishes its results to a topic string:
@@ -155,6 +159,7 @@ Agents communicate via an `AgentBus` pub/sub system. Each agent publishes its re
 | Agent | Publishes to |
 |-------|-------------|
 | KalshiOddsAgent | `odds.kalshi.{sector}` |
+| PolymarketUSOddsAgent | `odds.polymarket_us.{sector}` |
 | SharpOddsAgent | `odds.sharp.{sector}` |
 | InjuryReportAgent | `intelligence.injuries.{sector}` |
 | EnsembleModelAgent | `model.ensemble.{sector}` |
@@ -431,7 +436,7 @@ Each dimension capped at ±1.5 points, total capped at ±4 points → converted 
 
 ### WNBA Models
 
-WNBA runs a parallel advanced stack to NBA — separate files, separate state, separate tuning. No code is shared between the two leagues' agents. Change one without risk to the other. ML and spread are **live** as of 2026-05-26; totals stay in shadow until ~30 resolved bets validate the totals output.
+WNBA runs a parallel advanced stack to NBA — separate files, separate state, separate tuning. No code is shared between the two leagues' agents. Change one without risk to the other. Moneyline is **live** as of 2026-05-26. Spread was **demoted back to shadow on 2026-06-19** — it failed the Kalshi entry→close CLV gate (−0.46pp, 35% positive on n=48); re-promotion requires `evmax cleanup shadow clv wnba -m spread` to clear on fresh shadow data. Totals also stay in shadow (no near-close re-scan workflow).
 
 #### WNBA Efficiency Model (`WNBAEfficiencyModelAgent`, weight=0.40)
 
@@ -494,7 +499,7 @@ Win probability = fraction of sims where team A outscores team B. Deterministic 
 
 **Same gates as efficiency:** `MIN_GAMES=4`, staleness guard, smooth confidence ramp. Returns `None` if either team falls below the gate or the state is stale.
 
-**Spread / totals probabilities** (`cover_probability` / `total_probability`) use calibrated σs: margin σ = 12.5 (matches the efficiency agent), total σ = 18.0 (WNBA games are shorter → lower total variance than NBA's σ=20.0). Spread is live; totals stay in shadow until ~30 resolved bets land.
+**Spread / totals probabilities** (`cover_probability` / `total_probability`) use calibrated σs: margin σ = 12.5 (matches the efficiency agent), total σ = 18.0 (WNBA games are shorter → lower total variance than NBA's σ=20.0). Both spread and totals are currently in shadow — spread was demoted 2026-06-19 pending the per-side CLV gate (see above).
 
 **Playoff tightening is NOT enabled** for WNBA. NBA's `PLAYOFF_ORTG_FACTOR=0.9623` was derived from a specific NBA playoff sample; porting it blindly to WNBA would add unmeasured bias. Leave off until WNBA has a comparable playoff measurement.
 
@@ -951,7 +956,7 @@ To prevent over-concentration on a single game, the pipeline enforces a hard cap
 
 ### Props in Scans
 
-Player prop markets (NBA player stats, NFL yardage, etc.) are shown in scan output but **not logged to `predictions.db`**. This keeps the predictions log focused on game-level markets while still surfacing prop opportunities for manual review. Prop event IDs contain `::prop::` and are excluded from the DB write path.
+Player prop markets (NBA player stats, NFL yardage, MLB pitcher/hitter lines) are logged to a **separate table** — `prop_observations` — rather than `ev_predictions`, keeping the game-level bet log clean. Prop event IDs contain `::prop::`; that substring is how `log_gaps` routes them to the prop path. See [Player Prop Pipeline](#player-prop-pipeline).
 
 The updated `sharp_weight` is written to `data/model_config.json` and automatically picked up by the next `evmax agents scan` run — no manual flag needed.
 
@@ -1015,7 +1020,8 @@ All predictions and outcomes are stored in `data/predictions.db` (SQLite).
 
 | Table | Contents |
 |-------|---------|
-| `ev_predictions` | One row per +EV gap per scan — includes kalshi price, blended prob, EV%, kelly, sharp_weight used, `bankroll_used` (scan-time bankroll for consistent verify/pick sizing) |
+| `ev_predictions` | One row per +EV gap per scan — includes venue price, blended prob, EV%, kelly, sharp_weight used, `bankroll_used` (scan-time bankroll for consistent verify/pick sizing), plus `mode` (live/shadow), `captured_yes_price`, `model_version`, and `venue` (kalshi / polymarket_us) |
+| `prop_observations` | Parallel log for player props (event_id contains `::prop::`) — same mode/venue columns |
 | `ev_outcomes` | One row per resolved market — outcome (1/0), result source, timestamps |
 
 `data/model_config.json` persists `sharp_weight`, Brier score history, and adjustment timestamps.
@@ -1045,6 +1051,8 @@ The closing line is the last Pinnacle snapshot strictly **before tipoff** — no
 - Closing snapshots are written to `archive.db::archived_sharp_odds` continuously by every scan
 - At resolution time the resolver queries the latest snapshot with `fetched_at < event_start_utc` for each `event_id`
 - Snapshots fetched *after* tipoff are excluded (they would leak in-game line movement and corrupt CLV)
+
+**Venue-side close capture** (`evmax cleanup watch-closes`, launchd `com.evmax.watch-closes`, every 5 min) snapshots the near-tip ask on the venue's own book — for **both Kalshi and Polymarket US** bets, live and shadow — into `archived_kalshi_markets`. Polymarket US snapshots are keyed by the venue-prefixed market id (`polymarket_us:slug[:side]`) and `backfill_clv` resolves the archive ticker venue-aware, so `kalshi_clv_pct` is populated for both venues. This entry→close CLV on the venue's own book is the promotion lens for laddered markets (`evmax cleanup shadow clv`).
 
 ### Minutes-to-tipoff stratification
 
@@ -1432,9 +1440,36 @@ evmax cleanup metrics --weeks 4
 evmax cleanup adjust
 evmax cleanup adjust --force   # override 7-day cooldown
 
+# Weekly model-blend VALUE audit — Brier vs entry-sharp AND vs Pinnacle close,
+# CLV, calibration, with a per-sector actionability verdict (reports → docs/value-audits/)
+evmax cleanup value-audit --weeks 12
+evmax cleanup value-audit --weeks 12 --json --sector wnba
+
+# Background close capture (launchd com.evmax.watch-closes, every 5 min) —
+# snapshots near-tip Kalshi + Polymarket US asks so placed/shadow-bet CLV has
+# a genuine post-entry close to anchor against
+evmax cleanup watch-closes            # always-up; or --once per sweep
+
+# Background listing-window capture (launchd com.evmax.watch-listings, hourly) —
+# Kalshi price snapshots + order-book depth + as-of Pinnacle anchor over the
+# LISTING→scan window for all game sectors (spread + total ladders)
+evmax cleanup watch-listings          # always-up; or --once per sweep
+evmax cleanup watch-listings -s wnba -m spread --once
+
+# Offline promotion lens for laddered markets — replay the watch-listings
+# capture through the first-ANCHORED-sweep entry rule; read-only
+evmax cleanup listings-eval -s wnba [--detail] [--ev-min 2] [--depth-min 50]
+
+# Backfill Kalshi entry→close CLV columns (venue-aware, NO-side aware)
+evmax cleanup backfill-clv
+
 # Re-seed models from live data
 evmax cleanup train --sectors lol,cs2
 evmax cleanup train --sectors nba,soccer
+
+# Feed a date's completed ESPN scores into elo/form/poisson/xg state manually
+# (cleanup resolve does this automatically; this remains for backfills)
+evmax update scores --date 2026-03-13
 ```
 
 ### Data Archive
@@ -1472,7 +1507,8 @@ evmax categories validate                    # fail non-zero on registry inconsi
 # Shadow-mode validation (promote to live once validated)
 evmax cleanup shadow show --days 7
 evmax cleanup shadow metrics --days 30 --category wnba
-evmax cleanup shadow promote wnba            # flip shadow → live in the YAML
+evmax cleanup shadow clv wnba -m spread --side lay   # Kalshi entry→close CLV, per bet direction
+evmax cleanup shadow promote wnba            # flip shadow → live in the YAML (needs ≥30 clean resolved rows)
 
 # Runtime mode overrides on a scan (flag > env var > YAML base)
 evmax agents scan --shadow nfl_props --live wnba --disabled nhl
@@ -1509,6 +1545,10 @@ All settings live in `.env` (or environment variables):
 | `MAX_KELLY_FRACTION` | `0.05` | Hard cap per bet (5% of bankroll) |
 | `KALSHI_WS_ENABLED` | `true` | WebSocket real-time prices; set `false` for REST-only |
 | `KALSHI_WS_SNAPSHOT_TIMEOUT` | `5.0` | Seconds to wait per ticker snapshot before REST fallback |
+| `POLYMARKET_US_ENABLED` | `true` | Kill-switch for the Polymarket US market fetch |
+| `POLYMARKET_US_LIVE` | `false` | Venue shadow firewall — until `true`, every Polymarket US gap logs as shadow with Kelly zeroed |
+| `EVMAX_CATEGORY_MODES` | — | Per-category mode override, e.g. `'{"nba":"disabled"}'` (CLI flags rank higher) |
+| `EVMAX_JOINT_KELLY_ENABLED` | `false` | Correlation-aware joint Kelly sizing (see [Joint Kelly](#joint-kelly-optional-correlation-aware)) |
 | `SLACK_WEBHOOK_URL` | — | Post EV alerts to Slack |
 | `DISCORD_WEBHOOK_URL` | — | Post EV alerts to Discord |
 | `NOTIFICATION_MIN_EV_PCT` | `5.0` | Min EV% to trigger a notification |
@@ -1541,10 +1581,10 @@ All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api
 | `ncaab` | Elo + Form + Poisson | moneyline, spread, total | espn_scoreboard | `live` |
 | `ncaaw` | Form | moneyline, spread, total | espn_scoreboard | `live` |
 | `soccer` | Poisson + xG + Elo + Form | moneyline, total | espn_scoreboard | `live` |
-| `worldcup` | Poisson + xG + Elo + Form (national-team namespaces) | moneyline | espn_scoreboard (`fifa.world`) | `shadow` |
+| `worldcup` | Poisson + xG + Elo + Form (national-team namespaces) | moneyline, advance | espn_scoreboard (`fifa.world`) | `shadow` |
 | `tennis` | Surface Elo + Serve/Return + Form + Advanced + H2H + Ranking Trend | moneyline | kalshi_settlement | `live` |
 | `baseball` | Pitcher + Elo + Form (probables via MLB Stats API) | moneyline, spread (`total` disabled) | espn_scoreboard | `shadow` |
-| `wnba` | WNBA Efficiency + WNBA PossessionSim + Elo | moneyline, spread (`total` → shadow) | espn_scoreboard | `live` |
+| `wnba` | WNBA Efficiency + WNBA PossessionSim + Elo | moneyline (`spread` + `total` → shadow) | espn_scoreboard | `live` |
 | `nhl` | NHL xG (MoneyPuck) + Form | moneyline, spread, total | espn_scoreboard | `shadow` |
 | `lol` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
 | `cs2` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
@@ -1578,7 +1618,7 @@ Every category runs in one of three modes (`evmax.modes.get_mode`):
 | NHL | `KXNHLGAME`, `KXNHLSPREAD`, `KXNHLTOTAL` |
 | WNBA | `KXWNBAGAME`, `KXWNBASPREAD`, `KXWNBATOTAL` |
 | Soccer | `KXEPLGAME`, `KXUCLGAME`, `KXMLSGAME`, `KXLALIGAGAME`, `KXBUNDESLIGAGAME`, `KXSERIEAGAME`, `KXLIGUE1GAME`, `KXUELGAME` |
-| World Cup | `KXWCGAME` |
+| World Cup | `KXWCGAME` (3-way regulation), `KXWCADVANCE` (knockout advance) |
 | Tennis | `KXATPMATCH`, `KXWTAMATCH` |
 | LoL | `KXLOLGAME` |
 | CS2 | `KXCS2GAME`, `KXCS2GAMES` |
@@ -1591,7 +1631,10 @@ Every category runs in one of three modes (`evmax.modes.get_mode`):
 - **Spread** — team A wins by more/less than X points (SpreadDistributionModel)
 - **Three-way (soccer / World Cup)** — home / draw / away with three-way devig
 - **Totals** — over/under point total
-- **Player props** — over/under a player stat line (NBA / NFL props)
+- **Advance (World Cup knockouts)** — "Team X advances" including extra time / penalties. Distinct from `KXWCGAME`, which settles on the 90' regulation result. Pinnacle has no live per-match advance market, so both the sharp anchor and model prob are derived from the same game's regulation 3-way via `derive_advance_prob` in `evmax/ev/devig.py`. Advance records carry a `::advance` event-key suffix so they can never cross-match regulation records.
+- **Player props** — over/under a player stat line (NBA / NFL / MLB props)
+
+**Polymarket US coverage:** 8 sectors fetch from the Polymarket US gateway alongside Kalshi (`POLYMARKET_US_LEAGUE_MAP` in `evmax/clients/polymarket_us.py`): NBA, WNBA, NFL, NCAAB (`cbb`), MLB, NHL, soccer (`epl`/`ucl`/`mls`), tennis (`atp`/`wta`). All Polymarket US gaps log as shadow until the venue firewall lifts.
 
 ---
 
