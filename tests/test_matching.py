@@ -66,6 +66,22 @@ class TestNameNormalizer:
         assert result == result.lower()
         assert "fc" not in result
 
+    def test_mls_full_name_aliases(self):
+        """MLS clubs added 2026-07-09 resolve to the same canonicals the
+        Kalshi series code map (kalshi.py) produces, so cross-venue and
+        Kalshi↔Pinnacle matching agree on names."""
+        norm = NameNormalizer("soccer")
+        assert norm.normalize("Vancouver Whitecaps FC") == "vancouver"
+        assert norm.normalize("St. Louis City") == "st louis"
+        assert norm.normalize("Saint Louis") == "st louis"
+        assert norm.normalize("San Jose Earthquakes") == "san jose"
+        assert norm.normalize("Orlando City") == "orlando"
+        assert norm.normalize("D.C. United") == "dc united"
+        # The flat Serie A code alias is untouched — Toronto FC only resolves
+        # correctly via the KXMLSGAME series-scoped map, not this namespace.
+        assert norm.normalize("tor") == "torino"
+        assert norm.normalize("Toronto FC") == "toronto"
+
 
 class TestFuzzyMatch:
     def test_exact_match(self):

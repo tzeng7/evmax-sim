@@ -82,6 +82,13 @@ class Notifier:
 
         return "\n".join(lines)
 
+    def send_text(self, text: str) -> None:
+        """Send an arbitrary alert to all configured webhooks (no-op when
+        none are configured). Used by callers with their own formatting,
+        e.g. ``evmax arb scan --notify``."""
+        if self.is_configured():
+            self._send(text)
+
     def _send(self, text: str) -> None:
         """POST text to all configured webhooks."""
         if self._slack_url:
