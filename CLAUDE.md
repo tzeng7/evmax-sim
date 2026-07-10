@@ -104,7 +104,7 @@ evmax/
 ├── simulation/
 │   └── montecarlo.py        # Monte Carlo bankroll simulation
 ├── fees.py                  # Venue fee models — Kalshi taker 0.07·p·(1−p) ceil-to-cent/order (maker 25% of taker on designated series), Polymarket US taker 0.06·p·(1−p) / maker −0.0125 REBATE, banker's rounding (docs.polymarket.us/fees, eff. 2026-07-01)
-├── arb.py                   # Cross-venue arb detection: cheapest complete-outcome basket per (sector, teams, exact ET date); soccer/worldcup baskets always REQUIRE the draw leg; see `evmax arb scan` or the dashboard's Arb tab (`POST /api/arb/scan`)
+├── arb.py                   # Cross-venue arb detection: cheapest complete-outcome basket per (sector, teams, exact ET date); soccer/worldcup baskets always REQUIRE the draw leg; ARB_LEAGUE_MAP extends the betting league map (worldcup/lol/cs2 + extra soccer slugs) WITHOUT flipping them on for scans; see `evmax arb scan` or the dashboard's Arb tab (`POST /api/arb/scan`)
 ├── categories.py            # Category registry loader + validate_registry() (reads data/categories.yaml)
 ├── modes.py                 # Effective mode resolution: CLI flag > EVMAX_CATEGORY_MODES env > YAML
 ├── portfolios.py            # Multi-portfolio simulated bankrolls (tables live in predictions.db)
@@ -300,7 +300,10 @@ python scripts/eval_near_close_rescan.py [--detail] [--window-lo 75] [--window-h
 # Steady-state arbs don't exist (~1pp combined vig vs ~3.25pp round-trip taker
 # fees) — this catches transient dislocations, e.g. Kalshi T-24h MM placeholder
 # quotes. Asks are REST snapshots: verify depth/price live before acting.
-evmax arb scan [--sectors S,T] [--max-cost 1.02] [--include-in-play] [--notify]
+# Coverage = ARB_LEAGUE_MAP (evmax/arb.py), DECOUPLED from betting coverage:
+# betting map + worldcup(fwc)/lol/cs2 + La Liga/Bundesliga/Serie A/UEFA slugs.
+# Single-venue baskets (structurally ≥$1) are hidden by default.
+evmax arb scan [--sectors S,T] [--max-cost 1.02] [--include-in-play] [--include-single-venue] [--notify]
 
 # Next morning — resolve yesterday's outcomes
 # (resolve also feeds the date's completed ESPN scores into elo/form/poisson/xg
