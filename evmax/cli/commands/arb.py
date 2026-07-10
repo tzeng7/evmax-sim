@@ -21,8 +21,7 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
-from evmax.arb import ArbOpportunity, fetch_arb_markets, find_arbs
-from evmax.clients.polymarket_us import POLYMARKET_US_LEAGUE_MAP
+from evmax.arb import ARB_LEAGUE_MAP, ArbOpportunity, fetch_arb_markets, find_arbs
 
 app = typer.Typer(help="Cross-venue (Kalshi vs Polymarket US) arbitrage scanner.")
 console = Console()
@@ -54,6 +53,11 @@ def scan(
         "--include-in-play",
         help="Include games that have already started (quotes go stale fast in-play; expect false positives).",
     ),
+    include_single_venue: bool = typer.Option(
+        False,
+        "--include-single-venue",
+        help="Also show baskets whose legs all sit on one venue (structurally ≥ $1.00 — degenerate noise, hidden by default).",
+    ),
     notify: bool = typer.Option(
         False,
         "--notify",
@@ -64,9 +68,9 @@ def scan(
     sector_list = (
         [s.strip().lower() for s in sectors.split(",") if s.strip()]
         if sectors
-        else list(POLYMARKET_US_LEAGUE_MAP.keys())
+        else list(ARB_LEAGUE_MAP.keys())
     )
-    unknown = [s for s in sector_list if s not in POLYMARKET_US_LEAGUE_MAP]
+    unknown = [s for s in sector_list if s not in ARB_LEAGUE_MAP]
     if unknown:
         console.print(
             f"[yellow]No Polymarket US product for: {', '.join(unknown)} — "
@@ -81,7 +85,10 @@ def scan(
         n_k = sum(1 for m in pool if m.source.value == "kalshi")
         n_p = len(pool) - n_k
         arbs = find_arbs(
-            pool, max_net_cost=max_cost, include_in_play=include_in_play
+            pool,
+            max_net_cost=max_cost,
+            include_in_play=include_in_play,
+            cross_venue_only=not include_single_venue,
         )
         all_arbs.extend(arbs)
         console.print(

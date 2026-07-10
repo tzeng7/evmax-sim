@@ -51,6 +51,32 @@ _DRAW_LABELS = {"draw", "tie"}
 # (YES both teams, draw uncovered).
 _THREE_WAY_SECTORS = {"soccer", "worldcup"}
 
+# Arb coverage is DECOUPLED from betting coverage: arb needs no models,
+# resolvers, or category modes — only reliable outcome matching and two live
+# asks. This map extends the betting pipeline's POLYMARKET_US_LEAGUE_MAP with
+# every league both venues share whose events match through the existing
+# sector alias machinery (Tier 1, 2026-07-10). It deliberately does NOT feed
+# the betting scan: PolyUS World Cup knockout markets carry a regulation-vs-
+# advance settlement ambiguity the betting matcher isn't firewalled for.
+# Arb baskets are safe regardless: worldcup is in _THREE_WAY_SECTORS, so a
+# knockout basket always buys {A, B, draw} on REGULATION terms, and a PolyUS
+# leg that actually settles "advance" (or draw-no-bet) only ever pays on a
+# SUPERSET of its regulation outcome — the basket stays fully covered.
+def _arb_league_map() -> dict[str, list[str]]:
+    from evmax.clients.polymarket_us import POLYMARKET_US_LEAGUE_MAP
+
+    merged = {k: list(v) for k, v in POLYMARKET_US_LEAGUE_MAP.items()}
+    merged["soccer"] = sorted(
+        set(merged.get("soccer", [])) | {"lal", "bun", "sea", "uefa"}
+    )
+    merged["worldcup"] = ["fwc"]
+    merged["lol"] = ["lol"]
+    merged["cs2"] = ["cs2"]
+    return merged
+
+
+ARB_LEAGUE_MAP: dict[str, list[str]] = _arb_league_map()
+
 
 class ArbLeg(BaseModel):
     """One order in an arb basket: buy `side` of `market_id` at `ask`."""
@@ -159,6 +185,7 @@ def find_arbs(
     markets: Iterable[PredictionMarket],
     max_net_cost: float = 1.02,
     include_in_play: bool = False,
+    cross_venue_only: bool = True,
     now: Optional[datetime] = None,
 ) -> list[ArbOpportunity]:
     """Find complete-outcome baskets costing at most ``max_net_cost`` after
@@ -167,6 +194,10 @@ def find_arbs(
     Returns opportunities sorted by net edge, best first. ``max_net_cost``
     above 1.0 keeps near-misses visible (default surfaces anything within
     2pp of breakeven); pass 1.0 for true arbs only.
+
+    ``cross_venue_only`` (default) drops baskets whose legs all sit on one
+    venue — a single book's own bid/ask structure guarantees those cost
+    ≥ $1.00, so they only ever show up as degenerate 0.99+0.01 noise.
     """
     now = now or datetime.now(timezone.utc)
     normalizers: dict[str, NameNormalizer] = {}
@@ -187,7 +218,12 @@ def find_arbs(
 
     out: list[ArbOpportunity] = []
     for (sector, teams, _d), group in groups.items():
-        title = max((m.title for m in group), key=len, default="")
+        # Prefer an "A vs B"-shaped title over per-market question titles
+        # ("Switzerland wins by over 1.5 goals" describes one instrument,
+        # not the event).
+        titles = [m.title for m in group if m.title]
+        vs_titles = [t for t in titles if " vs" in t.lower()]
+        title = max(vs_titles or titles, key=len, default="")
         # True start time only exists on the PolyUS side (Kalshi's ticker
         # anchor is a date, not a time).
         starts = [
@@ -263,7 +299,9 @@ def find_arbs(
 
     out = [
         a for a in out
-        if a.net_cost <= max_net_cost and (include_in_play or not a.in_play)
+        if a.net_cost <= max_net_cost
+        and (include_in_play or not a.in_play)
+        and (not cross_venue_only or a.cross_venue)
     ]
     out.sort(key=lambda a: a.net_cost)
     return out
@@ -279,7 +317,8 @@ async def fetch_arb_markets(sectors: list[str]) -> dict[str, list[PredictionMark
     async def _one(sector: str) -> tuple[str, list[PredictionMarket]]:
         async with KalshiClient() as k, PolymarketUSClient() as p:
             kal, pus = await asyncio.gather(
-                k.get_markets(sector), p.get_markets(sector),
+                k.get_markets(sector),
+                p.get_markets(sector, leagues=ARB_LEAGUE_MAP.get(sector)),
                 return_exceptions=True,
             )
         pool: list[PredictionMarket] = []
