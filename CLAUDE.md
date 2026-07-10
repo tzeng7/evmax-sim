@@ -273,6 +273,12 @@ evmax cleanup watch-listings -s wnba -m spread --once   # narrow one-off sweep
 # last pre-tip snapshot per market/side (lay/take, over/under). Read-only.
 evmax cleanup listings-eval -s wnba [--detail] [--ev-min 2] [--depth-min 50] [--since D]
 
+# On demand — cross-venue (Kalshi vs Polymarket US) arb check. Read-only.
+# Steady-state arbs don't exist (~1pp combined vig vs ~3.25pp round-trip taker
+# fees) — this catches transient dislocations, e.g. Kalshi T-24h MM placeholder
+# quotes. Asks are REST snapshots: verify depth/price live before acting.
+evmax arb scan [--sectors S,T] [--max-cost 1.02] [--include-in-play] [--notify]
+
 # Next morning — resolve yesterday's outcomes
 # (resolve also feeds the date's completed ESPN scores into elo/form/poisson/xg
 #  state for the 7 game sectors — pass --no-update-models to skip. This is what
