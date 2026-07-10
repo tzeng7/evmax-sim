@@ -381,3 +381,41 @@ class TestLeagueMapRegistry:
 
     def test_no_prop_sectors_in_league_map(self):
         assert not any(k.endswith("_props") for k in POLYMARKET_US_LEAGUE_MAP)
+
+
+class TestLeaguesOverride:
+    """get_markets(leagues=...) — the arb scanner's coverage-extension hook."""
+
+    @pytest.mark.asyncio
+    async def test_override_fetches_given_leagues(self):
+        client = _client()
+        payload = {"events": [_event([_moneyline_market()])]}
+        with patch.object(client, "_get", new=AsyncMock(return_value=payload)) as mget, \
+             patch("evmax.clients.polymarket_us.cache_get", return_value=None), \
+             patch("evmax.clients.polymarket_us.cache_set"):
+            markets = await client.get_markets("worldcup", leagues=["fwc"])
+        # worldcup has NO betting-map entry — only the override makes it fetch
+        assert {c.args[0] for c in mget.await_args_list} == {"/v2/leagues/fwc/events"}
+        assert len(markets) == 2
+
+    @pytest.mark.asyncio
+    async def test_override_uses_distinct_cache_namespace(self):
+        """An overridden fetch must not read or poison the betting
+        pipeline's cache entry for the same sector."""
+        client = _client()
+        payload = {"events": [_event([_moneyline_market()])]}
+        seen_keys: list[str] = []
+
+        def fake_cache_get(key, ttl):
+            seen_keys.append(key)
+            return None
+
+        with patch.object(client, "_get", new=AsyncMock(return_value=payload)), \
+             patch("evmax.clients.polymarket_us.cache_get", side_effect=fake_cache_get), \
+             patch("evmax.clients.polymarket_us.cache_set") as mset:
+            await client.get_markets("soccer")
+            await client.get_markets("soccer", leagues=["lal", "uefa"])
+        assert seen_keys[0] == "polymarket_us_soccer_open"
+        assert seen_keys[1] == "polymarket_us_soccer_open_lal-uefa"
+        written = [c.args[0] for c in mset.call_args_list]
+        assert written == seen_keys

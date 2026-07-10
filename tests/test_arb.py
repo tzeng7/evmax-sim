@@ -4,7 +4,8 @@ from datetime import datetime, timezone
 
 import pytest
 
-from evmax.arb import find_arbs
+from evmax.arb import ARB_LEAGUE_MAP, find_arbs
+from evmax.clients.polymarket_us import POLYMARKET_US_LEAGUE_MAP
 from evmax.models.market import MarketSource, MarketType, PredictionMarket
 
 NOW = datetime(2026, 7, 9, 18, 0, tzinfo=timezone.utc)
@@ -152,6 +153,57 @@ class TestThreeWay:
             mk("kalshi:S3", MarketSource.kalshi, "tie", 0.28, 0.75, **common),
         ]
         assert find_arbs(pool, max_net_cost=5.0, now=NOW) == []
+
+
+class TestArbLeagueMap:
+    """ARB_LEAGUE_MAP — arb coverage decoupled from betting coverage."""
+
+    def test_superset_of_betting_map(self):
+        for sector, leagues in POLYMARKET_US_LEAGUE_MAP.items():
+            assert set(leagues) <= set(ARB_LEAGUE_MAP[sector])
+
+    def test_tier1_extensions_present(self):
+        assert ARB_LEAGUE_MAP["worldcup"] == ["fwc"]
+        assert ARB_LEAGUE_MAP["lol"] == ["lol"]
+        assert ARB_LEAGUE_MAP["cs2"] == ["cs2"]
+        assert {"lal", "bun", "sea", "uefa"} <= set(ARB_LEAGUE_MAP["soccer"])
+
+    def test_betting_map_not_mutated(self):
+        """The arb map must be a copy — extending it can never flip
+        worldcup/lol/cs2 on for the betting scan."""
+        assert "worldcup" not in POLYMARKET_US_LEAGUE_MAP
+        assert "lol" not in POLYMARKET_US_LEAGUE_MAP
+        assert "cs2" not in POLYMARKET_US_LEAGUE_MAP
+        assert "lal" not in POLYMARKET_US_LEAGUE_MAP["soccer"]
+
+    def test_every_key_is_a_registered_category(self):
+        from evmax.categories import all_categories
+        keys = {c.key for c in all_categories()}
+        assert set(ARB_LEAGUE_MAP) <= keys
+
+    def test_single_venue_baskets_hidden_by_default(self):
+        """A lone market's yes+no basket is structurally ≥ $1 — dropped
+        unless cross_venue_only=False."""
+        pool = [mk("kalshi:T1", MarketSource.kalshi, "astros", 0.99, 0.01)]
+        assert find_arbs(pool, max_net_cost=1.5, now=NOW) == []
+        arbs = find_arbs(pool, max_net_cost=1.5, cross_venue_only=False, now=NOW)
+        assert len(arbs) == 1 and not arbs[0].cross_venue
+
+    def test_worldcup_baskets_require_draw(self):
+        """A worldcup knockout pair without a draw quote must not produce a
+        2-way basket — same guarantee as club soccer."""
+        common = dict(home="france", away="morocco", sector="worldcup")
+        pool = [
+            mk("kalshi:W1", MarketSource.kalshi, "france", 0.55, 0.50, **common),
+            mk("polymarket_us:w1", MarketSource.polymarket_us, "morocco",
+               0.30, 0.72, event_date=PDATE, **common),
+        ]
+        assert find_arbs(pool, max_net_cost=1.0, now=NOW) == []
+        # with a draw leg the basket completes
+        pool.append(mk("kalshi:W2", MarketSource.kalshi, "tie", 0.10, 0.92, **common))
+        arbs = find_arbs(pool, max_net_cost=1.0, now=NOW)
+        assert len(arbs) == 1
+        assert arbs[0].gross_cost == pytest.approx(0.55 + 0.30 + 0.10)
 
 
 class TestSpreadAndTotal:
