@@ -10,13 +10,14 @@ import { SectorPerformance } from './components/SectorPerformance'
 import { OpenPositions } from './components/OpenPositions'
 import { RecentSettled } from './components/RecentSettled'
 import { MetricsPage } from './components/MetricsPage'
+import { ArbPage } from './components/ArbPage'
 import { PortfolioGrid } from './components/PortfolioGrid'
 import { PortfolioDetail } from './components/PortfolioDetail'
 import { Toast } from './components/Toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './App.css'
 
-type Page = { kind: 'dashboard' } | { kind: 'metrics' } | { kind: 'portfolios' } | { kind: 'portfolio'; id: string }
+type Page = { kind: 'dashboard' } | { kind: 'metrics' } | { kind: 'arb' } | { kind: 'portfolios' } | { kind: 'portfolio'; id: string }
 
 export default function App() {
   const dash = useDashboard()
@@ -51,6 +52,12 @@ export default function App() {
             onClick={() => setPage({ kind: 'metrics' })}
           >
             Metrics
+          </button>
+          <button
+            className={`seg ${page.kind === 'arb' ? 'active' : ''}`}
+            onClick={() => setPage({ kind: 'arb' })}
+          >
+            Arb
           </button>
           <button
             className={`seg ${page.kind === 'portfolios' || page.kind === 'portfolio' ? 'active' : ''}`}
@@ -108,6 +115,8 @@ export default function App() {
         )}
 
         {page.kind === 'metrics' && <MetricsPage toast={toast} />}
+
+        {page.kind === 'arb' && <ArbPage toast={toast} />}
 
         {page.kind === 'portfolios' && (
           <PortfolioGrid

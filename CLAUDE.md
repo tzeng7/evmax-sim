@@ -101,7 +101,7 @@ evmax/
 ├── simulation/
 │   └── montecarlo.py        # Monte Carlo bankroll simulation
 ├── fees.py                  # Venue fee models — Kalshi taker 0.07·p·(1−p) ceil-to-cent/order (maker 25% of taker on designated series), Polymarket US taker 0.06·p·(1−p) / maker −0.0125 REBATE, banker's rounding (docs.polymarket.us/fees, eff. 2026-07-01)
-├── arb.py                   # Cross-venue arb detection: cheapest complete-outcome basket per (sector, teams, exact ET date); soccer/worldcup baskets always REQUIRE the draw leg; see `evmax arb scan`
+├── arb.py                   # Cross-venue arb detection: cheapest complete-outcome basket per (sector, teams, exact ET date); soccer/worldcup baskets always REQUIRE the draw leg; see `evmax arb scan` or the dashboard's Arb tab (`POST /api/arb/scan`)
 ├── categories.py            # Category registry loader + validate_registry() (reads data/categories.yaml)
 ├── modes.py                 # Effective mode resolution: CLI flag > EVMAX_CATEGORY_MODES env > YAML
 ├── portfolios.py            # Multi-portfolio simulated bankrolls (tables live in predictions.db)

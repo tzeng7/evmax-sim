@@ -1114,6 +1114,79 @@ async def api_metrics(request: Request) -> JSONResponse:
     })
 
 
+@app.post("/api/arb/scan")
+async def api_arb_scan(request: Request) -> JSONResponse:
+    """Cross-venue (Kalshi vs Polymarket US) arb scan — mirrors `evmax arb scan`.
+
+    Read-only: fetches both venues' live books per sector and returns every
+    complete-outcome basket whose fee-inclusive cost is at most ``max_cost``
+    (default 1.02 keeps 2pp near-misses visible; 1.0 = true arbs only).
+    Nothing is persisted and no orders are placed. Asks are REST snapshots —
+    depth/price must be verified live before acting.
+    """
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    sectors_str = body.get("sectors") or ""
+    max_cost = float(body.get("max_cost", 1.02))
+    include_in_play = bool(body.get("include_in_play", False))
+
+    from evmax.arb import fetch_arb_markets, find_arbs
+    from evmax.clients.polymarket_us import POLYMARKET_US_LEAGUE_MAP
+
+    # Default matches the CLI: every sector both venues carry. Kalshi-only
+    # sectors are still scannable (self-arb baskets only).
+    sector_list = (
+        [s.strip().lower() for s in sectors_str.split(",") if s.strip()]
+        or list(POLYMARKET_US_LEAGUE_MAP)
+    )
+    pools = await fetch_arb_markets(sector_list)
+
+    arbs = []
+    sector_counts = []
+    for sector, pool in pools.items():
+        n_kalshi = sum(1 for m in pool if m.source.value == "kalshi")
+        found = find_arbs(pool, max_net_cost=max_cost, include_in_play=include_in_play)
+        arbs.extend(found)
+        sector_counts.append({
+            "sector": sector,
+            "kalshi": n_kalshi,
+            "polymarket_us": len(pool) - n_kalshi,
+            "baskets": len(found),
+        })
+
+    arbs.sort(key=lambda a: a.net_cost)
+    return JSONResponse({
+        "arbs": [
+            {
+                "sector": a.sector,
+                "event_title": a.event_title,
+                "event_date": a.event_date.isoformat() if a.event_date else None,
+                "market_desc": a.market_desc,
+                "legs": [
+                    {
+                        "venue": leg.venue,
+                        "market_id": leg.market_id,
+                        "side": leg.side,
+                        "outcome": leg.outcome,
+                        "ask": round(leg.ask, 4),
+                        "fee": round(leg.fee, 4),
+                        "volume_usd": round(leg.volume_usd, 2),
+                    }
+                    for leg in a.legs
+                ],
+                "gross_cost": round(a.gross_cost, 4),
+                "net_cost": round(a.net_cost, 4),
+                "net_edge": round(a.net_edge, 4),
+                "cross_venue": a.cross_venue,
+                "in_play": a.in_play,
+                "min_volume_usd": round(min(leg.volume_usd for leg in a.legs), 2),
+            }
+            for a in arbs
+        ],
+        "sectors": sector_counts,
+        "max_cost": max_cost,
+    })
+
+
 # ---------------------------------------------------------------------------
 # React SPA — must be last so /api/* routes match first
 # ---------------------------------------------------------------------------

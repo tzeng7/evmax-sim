@@ -1,4 +1,4 @@
-import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult } from './types'
+import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult } from './types'
 
 const json = (r: Response) => r.json()
 
@@ -121,4 +121,16 @@ export async function scanPortfolios(portfolioIds?: string[]): Promise<Portfolio
 
 export async function syncPortfolioOutcomes(): Promise<{ resolved: number }> {
   return fetch('/api/portfolios/sync-outcomes', { method: 'POST' }).then(json)
+}
+
+export async function runArbScan(params: {
+  sectors: string
+  max_cost: number
+  include_in_play: boolean
+}): Promise<ArbScanResult> {
+  return fetch('/api/arb/scan', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  }).then(json)
 }
