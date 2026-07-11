@@ -165,3 +165,40 @@ export interface MetricsResult {
   sectors?: SectorMetricRow[]
   error?: string
 }
+
+export interface ArbLeg {
+  venue: string
+  market_id: string
+  side: string
+  outcome: string
+  ask: number
+  fee: number
+  volume_usd: number
+}
+
+export interface ArbRow {
+  sector: string
+  event_title: string
+  event_date: string | null
+  market_desc: string
+  legs: ArbLeg[]
+  gross_cost: number
+  net_cost: number
+  net_edge: number
+  cross_venue: boolean
+  in_play: boolean
+  min_volume_usd: number
+}
+
+export interface ArbSectorCount {
+  sector: string
+  kalshi: number
+  polymarket_us: number
+  baskets: number
+}
+
+export interface ArbScanResult {
+  arbs: ArbRow[]
+  sectors: ArbSectorCount[]
+  max_cost: number
+}

@@ -5,6 +5,10 @@ interface Props {
   /** Comma-separated list of selected sector keys (e.g. "nba,nfl"). */
   value: string
   onChange: (sectors: string) => void
+  /** Toggle label when nothing is checked. The arb page passes "Default
+   *  sectors" because its backend treats an empty selection as "every
+   *  sector both venues carry", not "scan nothing". */
+  emptyLabel?: string
 }
 
 /**
@@ -13,7 +17,7 @@ interface Props {
  * once. The selection is still emitted as a comma-separated string of keys to
  * keep the /api/scan contract unchanged.
  */
-export function SectorMultiSelect({ value, onChange }: Props) {
+export function SectorMultiSelect({ value, onChange, emptyLabel = 'No sectors' }: Props) {
   const cats = useCategories()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -51,7 +55,7 @@ export function SectorMultiSelect({ value, onChange }: Props) {
   const label = allSelected
     ? 'All Sectors'
     : selected.size === 0
-      ? 'No sectors'
+      ? emptyLabel
       : selected.size === 1
         ? [...selected][0].toUpperCase()
         : `${selected.size} sectors`
