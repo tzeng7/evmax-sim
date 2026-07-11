@@ -491,6 +491,41 @@ class TestSpreadDistributionModel:
         # The underdog result at the same line magnitude should be significantly lower
         assert result_dog.true_prob < result_fav.true_prob
 
+    def test_predict_underdog_positive_line_is_high_not_low(self):
+        """Regression (2026-07-10): underdog YES at a POSITIVE target_line
+        (the normal case — e.g. Mercury +17.5 receiving points) must be a
+        HIGH cover probability, not near-zero.
+
+        Before the fix, the underdog branch discarded target_line's sign via
+        abs(), so it silently evaluated P(underdog wins outright by more than
+        17.5) instead of P(underdog's spread-adjusted score exceeds the
+        favorite's). A WNBA Polymarket US game with an implied ~9.3pt
+        favorite margin scored Mercury +17.5 at 1.6% cover instead of the
+        correct ~74%, which then fed a synthetic ~98% "fair value" shadow bet
+        via the NO-side derivation.
+        """
+        # Calibrate off a game with an implied mean margin of ~9.3 points
+        # (true_prob_a=0.588 at spread_line=-6.5 for a WNBA sigma of 12.5).
+        sharp = _make_spread_sharp(spread_line=-6.5, true_prob_a=0.588)
+        underdog_deep = self.model.predict(
+            sharp, target_line=17.5, sector="wnba", yes_is_underdog=True,
+        )
+        assert underdog_deep is not None
+        # Getting 17.5 points when only trailing by ~9.3 on average should be
+        # a strong favorite to cover, not a near-certain miss.
+        assert underdog_deep.true_prob > 0.65
+
+    def test_predict_favorite_and_underdog_sum_to_one_at_matching_lines(self):
+        """P(favorite covers -N.5) + P(underdog covers +N.5) == 1 for the
+        SAME game — they are complementary events. The old abs()-based
+        underdog formula broke this identity for any positive target_line.
+        """
+        sharp = _make_spread_sharp(spread_line=-6.5, true_prob_a=0.588)
+        fav = self.model.predict(sharp, target_line=-6.5, sector="wnba", yes_is_underdog=False)
+        dog = self.model.predict(sharp, target_line=6.5, sector="wnba", yes_is_underdog=True)
+        assert fav is not None and dog is not None
+        assert abs((fav.true_prob + dog.true_prob) - 1.0) < 1e-9
+
     def test_result_clamped_at_0_01(self):
         """Result must never go below 0.01."""
         # Use a target line very far from the mean (but within sigma) to push prob near 0

@@ -161,16 +161,25 @@ class SpreadDistributionModel:
         z_pinnacle = norm.ppf(1.0 - true_prob_a)
         implied_mean = abs(pinnacle_line) - z_pinnacle * sigma
 
-        margin_threshold = abs(target_line)
-
+        # YES covers iff (yes_team_score + target_line) > opponent_score.
+        # In terms of margin = outcome_a_score - outcome_b_score:
+        #   YES = outcome_a: covers iff margin > -target_line
+        #   YES = outcome_b: covers iff target_line > margin, i.e. margin < target_line
+        # target_line's SIGN must be preserved here (not abs()'d) — for the
+        # common underdog case target_line is POSITIVE (e.g. +17.5, the
+        # points they're getting), and using abs() silently flipped the
+        # condition to "underdog wins outright by more than 17.5", which
+        # produced near-zero cover probabilities for ordinary underdog
+        # spreads instead of the correct near-certain ones. Caught 2026-07-10
+        # via a WNBA Polymarket US +17.5 underdog line scoring 1.6% instead
+        # of the correct ~74%.
         if not yes_is_underdog:
-            # YES = outcome_a (favorite): P(margin > threshold)
-            z_target = (margin_threshold - implied_mean) / sigma
+            # YES = outcome_a (favorite): P(margin > -target_line)
+            z_target = (-target_line - implied_mean) / sigma
             true_prob = float(1.0 - norm.cdf(z_target))
         else:
-            # YES = outcome_b (underdog): P(margin < -threshold)
-            # i.e. outcome_b wins by more than threshold
-            z_target = (-margin_threshold - implied_mean) / sigma
+            # YES = outcome_b (underdog): P(margin < target_line)
+            z_target = (target_line - implied_mean) / sigma
             true_prob = float(norm.cdf(z_target))
 
         return SpreadPrediction(
