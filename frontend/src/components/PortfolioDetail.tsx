@@ -18,7 +18,7 @@ export function PortfolioDetail({ portfolioId, onBack, toast }: Props) {
     try {
       const d = await fetchPortfolioDetail(portfolioId)
       setData(d)
-    } catch (e) {
+    } catch {
       toast('Failed to load portfolio', 'err')
     }
   }, [portfolioId, toast])
@@ -156,7 +156,7 @@ export function PortfolioDetail({ portfolioId, onBack, toast }: Props) {
 }
 
 function BetRow({ bet, showResult }: { bet: PortfolioBet; showResult: boolean }) {
-  const label = bet.display_label || outcomeLabel(bet as any) || bet.yes_team || '?'
+  const label = bet.display_label || outcomeLabel(bet) || bet.yes_team || '?'
 
   return (
     <tr>

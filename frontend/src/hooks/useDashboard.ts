@@ -35,35 +35,36 @@ export function useDashboard() {
     loading: true,
   })
 
-  const refresh = useCallback(async () => {
-    try {
-      const data = await fetchDashboard()
-      setState(prev => {
-        const excluded = new Set<string>([
-          ...data.placed_bets.map(b => b.market_id),
-          ...data.recent.map(b => b.market_id),
-        ])
-        return {
-          ...prev,
-          summaryAll: data.summary_all,
-          summaryPlaced: data.summary_placed,
-          seriesAll: data.series_all,
-          seriesPlaced: data.series_placed,
-          sectors: data.sectors,
-          placedBets: data.placed_bets,
-          openBets: data.unplaced_bets,
-          recent: data.recent,
-          scanGaps: prev.scanGaps.filter(g => !excluded.has(g.market_id)),
-          loading: false,
-        }
+  const refresh = useCallback(() => {
+    return fetchDashboard()
+      .then(data => {
+        setState(prev => {
+          const excluded = new Set<string>([
+            ...data.placed_bets.map(b => b.market_id),
+            ...data.recent.map(b => b.market_id),
+          ])
+          return {
+            ...prev,
+            summaryAll: data.summary_all,
+            summaryPlaced: data.summary_placed,
+            seriesAll: data.series_all,
+            seriesPlaced: data.series_placed,
+            sectors: data.sectors,
+            placedBets: data.placed_bets,
+            openBets: data.unplaced_bets,
+            recent: data.recent,
+            scanGaps: prev.scanGaps.filter(g => !excluded.has(g.market_id)),
+            loading: false,
+          }
+        })
       })
-    } catch (e) {
-      console.error('Failed to load dashboard', e)
-      setState(prev => ({ ...prev, loading: false }))
-    }
+      .catch((e: unknown) => {
+        console.error('Failed to load dashboard', e)
+        setState(prev => ({ ...prev, loading: false }))
+      })
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => { void refresh() }, [refresh])
 
   const setScanResults = useCallback((
     gaps: ScanGap[],
