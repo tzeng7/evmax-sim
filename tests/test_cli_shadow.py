@@ -334,10 +334,11 @@ class TestClvClears:
 
 
 def _make_clv_db(tmp_path: Path, rows: list[tuple]) -> Path:
-    """rows: (market_id, scan_date, market_type, mode, kalshi_clv_pct, outcome[, line]).
+    """rows: (market_id, scan_date, market_type, mode, kalshi_clv_pct, outcome[, line[, venue]]).
 
-    The 7th element (line) is optional and defaults to NULL — only the
-    side-split tests need it.
+    The 7th element (line) and 8th (venue) are optional: line defaults to NULL
+    (only the side-split tests need it) and venue defaults to 'kalshi' (only the
+    venue-split tests need it).
 
     Deliberately omits the old `UNIQUE(market_id, scan_date)` constraint so
     get_connection()'s table-rebuild migration is skipped (it references base
@@ -352,7 +353,8 @@ def _make_clv_db(tmp_path: Path, rows: list[tuple]) -> Path:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             scan_date TEXT, market_id TEXT, event_id TEXT, sector TEXT,
             market_type TEXT, line REAL, model_sources TEXT, mode TEXT,
-            kalshi_clv_pct REAL
+            kalshi_clv_pct REAL, venue TEXT NOT NULL DEFAULT 'kalshi',
+            placed INTEGER DEFAULT 0, placed_at TEXT
         );
         CREATE TABLE ev_outcomes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -363,12 +365,13 @@ def _make_clv_db(tmp_path: Path, rows: list[tuple]) -> Path:
     for row in rows:
         mid, sd, mt, mode, clv, outcome = row[:6]
         line = row[6] if len(row) > 6 else None
+        venue = row[7] if len(row) > 7 else "kalshi"
         conn.execute(
             """INSERT INTO ev_predictions
                (scan_date, market_id, event_id, sector, market_type, mode,
-                kalshi_clv_pct, line)
-               VALUES (?,?,?,?,?,?,?,?)""",
-            (sd, mid, f"wnba::{sd}::a_vs_b::spread", "wnba", mt, mode, clv, line),
+                kalshi_clv_pct, line, venue)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (sd, mid, f"wnba::{sd}::a_vs_b::spread", "wnba", mt, mode, clv, line, venue),
         )
         if outcome is not None:
             conn.execute(
@@ -442,6 +445,114 @@ class TestClvStats:
         _patch_db(_make_clv_db(tmp_path, [("s1", "2026-06-10", "spread", "live", 1.0, 1)]))
         with pytest.raises(ValueError, match="side must be"):
             clv_stats("wnba", market_type="spread", side="left")
+
+    def test_venue_filter_isolates_kalshi_from_polymarket(self, tmp_path, _patch_db):
+        # 2026-07-12 WNBA spread audit: one thin PolyUS row at -18pp must not be
+        # allowed to flip the sign of a Kalshi-sized sample. Judge each book alone.
+        rows = [(f"k{i}", "2026-06-10", "spread", "shadow", 2.0, 1, -6.5, "kalshi")
+                for i in range(3)]
+        rows += [("pm1", "2026-06-10", "spread", "shadow", -18.0, 0, -6.5,
+                  "polymarket_us")]
+        _patch_db(_make_clv_db(tmp_path, rows))
+        kalshi = clv_stats("wnba", market_type="spread", venue="kalshi")
+        poly = clv_stats("wnba", market_type="spread", venue="polymarket_us")
+        pooled = clv_stats("wnba", market_type="spread")
+        assert kalshi["n"] == 3 and kalshi["mean_clv_pp"] == 2.0
+        assert poly["n"] == 1 and poly["mean_clv_pp"] == -18.0
+        # Pooled is dragged negative by the single PolyUS outlier — the bug the
+        # venue filter exists to avoid.
+        assert pooled["n"] == 4 and pooled["mean_clv_pp"] < 0
+
+    def test_venue_defaults_to_pooled(self, tmp_path, _patch_db):
+        # venue=None (default) scores every venue, unchanged from prior behaviour.
+        rows = [("k1", "2026-06-10", "spread", "live", 1.0, 1, None, "kalshi"),
+                ("pm1", "2026-06-10", "spread", "live", -1.0, 0, None,
+                 "polymarket_us")]
+        _patch_db(_make_clv_db(tmp_path, rows))
+        assert clv_stats("wnba", market_type="spread")["n"] == 2
+
+    def test_venue_composes_with_side(self, tmp_path, _patch_db):
+        # venue filter stacks with side: only kalshi lay rows survive.
+        rows = [("k_lay", "2026-06-10", "spread", "shadow", 2.0, 1, -6.5, "kalshi"),
+                ("k_take", "2026-06-10", "spread", "shadow", -3.0, 0, 5.5, "kalshi"),
+                ("pm_lay", "2026-06-10", "spread", "shadow", -18.0, 0, -6.5,
+                 "polymarket_us")]
+        _patch_db(_make_clv_db(tmp_path, rows))
+        s = clv_stats("wnba", market_type="spread", side="lay", venue="kalshi")
+        assert s["n"] == 1 and s["mean_clv_pp"] == 2.0
+
+    def test_venue_filter_rejects_bad_value(self, tmp_path, _patch_db):
+        _patch_db(_make_clv_db(tmp_path, [("s1", "2026-06-10", "spread", "live", 1.0, 1)]))
+        with pytest.raises(ValueError, match="venue must be"):
+            clv_stats("wnba", market_type="spread", venue="draftkings")
+
+    def test_max_staleness_excludes_stale_capture_rows(self, tmp_path, _patch_db, monkeypatch):
+        # 2026-07-12 audit: exact-zero CLV rows split ~68% stale-capture (close
+        # snapshot hours before T-30) / 32% genuine flat. The filter drops the
+        # stale ones so frac_positive reflects real near-tip price action.
+        rows = [("fresh_a", "2026-06-10", "spread", "shadow", 3.0, 1, -6.5),
+                ("fresh_b", "2026-06-10", "spread", "shadow", 0.0, 0, -6.5),
+                ("stale_a", "2026-06-10", "spread", "shadow", 0.0, 0, -6.5),
+                ("stale_b", "2026-06-10", "spread", "shadow", 0.0, 1, -6.5)]
+        _patch_db(_make_clv_db(tmp_path, rows))
+        staleness = {"fresh_a": 0.5, "fresh_b": 1.0, "stale_a": 12.0, "stale_b": 18.0}
+        monkeypatch.setattr(
+            "evmax.archiver.DataArchiver.get_kalshi_close_staleness_h",
+            lambda self, ticker, event_id, not_before=None: staleness.get(ticker),
+        )
+        s = clv_stats("wnba", market_type="spread", max_staleness_h=3.0)
+        assert s["n"] == 2               # only the two fresh rows survive
+        assert s["excluded_stale"] == 2  # the two stale-capture zeros dropped
+        assert s["mean_clv_pp"] == pytest.approx(1.5)   # (3.0 + 0.0) / 2
+
+    def test_max_staleness_none_skips_archive_and_keeps_all(self, tmp_path, _patch_db, monkeypatch):
+        # Default (None) must not touch archive.db at all — unchanged behaviour.
+        rows = [("a", "2026-06-10", "spread", "shadow", 2.0, 1, -6.5),
+                ("b", "2026-06-10", "spread", "shadow", 0.0, 0, -6.5)]
+        _patch_db(_make_clv_db(tmp_path, rows))
+
+        def _boom(*a, **k):  # would fire only if the archive path ran
+            raise AssertionError("archive accessed with max_staleness_h=None")
+
+        monkeypatch.setattr(
+            "evmax.archiver.DataArchiver.get_kalshi_close_staleness_h", _boom
+        )
+        s = clv_stats("wnba", market_type="spread")
+        assert s["n"] == 2 and s["excluded_stale"] == 0
+
+    def test_max_staleness_excludes_rows_without_anchor(self, tmp_path, _patch_db, monkeypatch):
+        # A None staleness (no tipoff anchor / no snapshot) = untrustworthy close,
+        # excluded just like an over-threshold one.
+        rows = [("has_anchor", "2026-06-10", "spread", "shadow", 2.0, 1, -6.5),
+                ("no_anchor", "2026-06-10", "spread", "shadow", 0.0, 0, -6.5)]
+        _patch_db(_make_clv_db(tmp_path, rows))
+        monkeypatch.setattr(
+            "evmax.archiver.DataArchiver.get_kalshi_close_staleness_h",
+            lambda self, ticker, event_id, not_before=None: (
+                0.5 if ticker == "has_anchor" else None
+            ),
+        )
+        s = clv_stats("wnba", market_type="spread", max_staleness_h=3.0)
+        assert s["n"] == 1 and s["excluded_stale"] == 1
+
+    def test_max_staleness_leaves_polymarket_rows_untouched(self, tmp_path, _patch_db, monkeypatch):
+        # PolyUS rows carry no Kalshi close snapshot; the staleness filter must
+        # pass them through, never drop them for lacking a Kalshi anchor.
+        rows = [("k1", "2026-06-10", "spread", "shadow", 2.0, 1, -6.5, "kalshi"),
+                ("pm1", "2026-06-10", "spread", "shadow", 1.0, 1, -6.5,
+                 "polymarket_us")]
+        _patch_db(_make_clv_db(tmp_path, rows))
+        monkeypatch.setattr(
+            "evmax.archiver.DataArchiver.get_kalshi_close_staleness_h",
+            lambda self, ticker, event_id, not_before=None: 0.5,
+        )
+        s = clv_stats("wnba", market_type="spread", max_staleness_h=3.0)
+        assert s["n"] == 2 and s["excluded_stale"] == 0
+
+    def test_max_staleness_rejects_negative(self, tmp_path, _patch_db):
+        _patch_db(_make_clv_db(tmp_path, [("s1", "2026-06-10", "spread", "live", 1.0, 1)]))
+        with pytest.raises(ValueError, match="max_staleness_h must be"):
+            clv_stats("wnba", market_type="spread", max_staleness_h=-1.0)
 
 
 class TestPromoteClvGate:
