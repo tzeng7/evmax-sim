@@ -14,6 +14,15 @@ by local scheduled tasks (see History below):
 
 All times America/Los_Angeles. Each task carries a small random jitter.
 
+**PR-within-the-run policy:** any scheduled run that creates code changes and commits
+(today: `weekly-drift-audit` and `weekly-value-audit` — every other task is forbidden
+from editing code) must finish the job inside the same run: work on a branch off `main`,
+`git push -u origin <branch>`, then `gh pr create` with explicit `--title`/`--body`
+(a bare `gh pr create` prompts interactively and hangs a headless run). If `gh pr create`
+fails, the push already preserved the work — the run reports the branch + compare URL so
+the PR can be opened manually. Commits must never end a run stranded local-only, and no
+scheduled run ever merges its own PR.
+
 ---
 
 ## Claude scheduled tasks

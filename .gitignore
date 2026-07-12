@@ -51,8 +51,10 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Claude Code local settings
-.claude/
+# Claude Code local settings (but track the version-controlled command specs —
+# the scheduled audit runs treat .claude/commands/*.md as canonical)
+.claude/*
+!.claude/commands/
 
 # Test cache
 .pytest_cache/
