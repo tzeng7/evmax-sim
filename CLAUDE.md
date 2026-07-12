@@ -273,6 +273,16 @@ evmax cleanup watch-listings -s wnba -m spread --once   # narrow one-off sweep
 # last pre-tip snapshot per market/side (lay/take, over/under). Read-only.
 evmax cleanup listings-eval -s wnba [--detail] [--ev-min 2] [--depth-min 50] [--since D]
 
+# Research-only — near-close re-scan replay (Phase 1 gate for the proposed
+# `agents rescan` workflow, evaluated 2026-07-11: REJECTED for lack of power —
+# gated near-tip entries were n=20 with +1.70pp CLV vs the n>=50 gate; baseball
+# totals FLAT near tip, so they stay disabled. See docs/near-close-rescan-eval.md.
+# Paired lens: every logged bet with a T-75..T-10 archived snapshot + later
+# pre-tip close scores actual scan entry vs simulated near-tip entry (fresh
+# Pinnacle anchor, EV>=2pp) against the SAME close. Re-run after ~4-6 weeks of
+# watch-closes/watch-listings capture. Core logic: agents/cleanup/rescan_eval.py.
+python scripts/eval_near_close_rescan.py [--detail] [--window-lo 75] [--window-hi 10]
+
 # On demand — cross-venue (Kalshi vs Polymarket US) arb check. Read-only.
 # Steady-state arbs don't exist (~1pp combined vig vs ~3.25pp round-trip taker
 # fees) — this catches transient dislocations, e.g. Kalshi T-24h MM placeholder
