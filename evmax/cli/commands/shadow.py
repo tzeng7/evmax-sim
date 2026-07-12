@@ -422,40 +422,22 @@ def clv_stats(
     mode: Optional[str] = None,
     since: Optional[str] = None,
     side: Optional[str] = None,
-    venue: Optional[str] = None,
-    max_staleness_h: Optional[float] = None,
 ) -> dict:
     """Aggregate kalshi_clv_pct for a category's current-code resolved bets.
 
-    Returns {n, mean_clv_pp, frac_positive, clears, excluded_stale}. Filters out
-    rows from a superseded code state via the same contamination rules the count
-    gate uses, so we never validate retired pricing. `mode=None` scores every
-    mode (use to judge a currently-LIVE market type's retention); `mode='shadow'`
-    scores the shadow validation set (use before a shadow→live promote). `since`
-    (YYYY-MM-DD) excludes older rows — use it to drop a stale-modelling period
-    that the contamination rules don't yet flag (e.g. a pricing change with no
-    SHA stamp).
+    Returns {n, mean_clv_pp, frac_positive, clears}. Filters out rows from a
+    superseded code state via the same contamination rules the count gate uses,
+    so we never validate retired pricing. `mode=None` scores every mode (use to
+    judge a currently-LIVE market type's retention); `mode='shadow'` scores the
+    shadow validation set (use before a shadow→live promote). `since` (YYYY-MM-DD)
+    excludes older rows — use it to drop a stale-modelling period that the
+    contamination rules don't yet flag (e.g. a pricing change with no SHA stamp).
     `side` splits laddered markets by the bet's direction relative to the line:
     'lay' = yes_team gives points (line < 0), 'take' = yes_team gets points
     (line > 0). Rows without a line are excluded when side is set. The 2026-07
     WNBA spread audit found the two sides behave as different products — laying
     is ~breakeven CLV while scan-time taking bets buy a NO-side run-up and
     mean-revert — so promotion must be judged per side, not pooled.
-    `venue` ('kalshi' / 'polymarket_us') restricts to one exchange. Pooling is
-    the default, but the venues sit behind separate shadow firewalls with their
-    own promotion criteria — a single thin PolyUS market must not be able to
-    flip the sign of a Kalshi-sized sample (2026-07-12 WNBA spread audit: pooled
-    lay n=34 read −0.35pp only because one PolyUS row at −18pp dragged a n=33
-    Kalshi sample of +0.18pp negative). Judge each venue's CLV on its own book.
-    `max_staleness_h` excludes rows whose archived "close" snapshot sits more
-    than this many hours before the T-30 target — a watch-closes capture gap,
-    not a genuine flat market (2026-07-12 audit: 68% of the exact-zero WNBA
-    spread CLV rows had a close snapshot 3-21h stale; those zeros drag
-    frac_positive down without measuring real near-tip price action). Only
-    'kalshi'-venue rows carry a Kalshi close snapshot, so this filter is
-    Kalshi-only; PolyUS rows are left untouched. Staleness is read from
-    archive.db per surviving row, so the filter is off by default (no archive
-    access, unchanged behaviour); pass a threshold to activate it.
     """
     from evmax.agents.cleanup.contamination import is_contaminated
     from evmax.agents.cleanup.db import get_connection
@@ -481,18 +463,8 @@ def clv_stats(
         if side not in ("lay", "take"):
             raise ValueError(f"side must be 'lay' or 'take', got {side!r}")
         where.append("p.line < 0" if side == "lay" else "p.line > 0")
-    if venue is not None:
-        if venue not in ("kalshi", "polymarket_us"):
-            raise ValueError(
-                f"venue must be 'kalshi' or 'polymarket_us', got {venue!r}"
-            )
-        where.append("p.venue = ?")
-        params.append(venue)
-    if max_staleness_h is not None and max_staleness_h < 0:
-        raise ValueError(f"max_staleness_h must be >= 0, got {max_staleness_h!r}")
     sql = f"""
-        SELECT p.sector, p.market_type, p.model_sources, p.line, p.kalshi_clv_pct,
-               p.event_id, p.venue, p.placed, p.placed_at, p.market_id
+        SELECT p.sector, p.market_type, p.model_sources, p.line, p.kalshi_clv_pct
         FROM ev_predictions p
         INNER JOIN ev_outcomes o ON p.market_id = o.market_id
         WHERE {' AND '.join(where)}
@@ -500,43 +472,13 @@ def clv_stats(
     with get_connection() as conn:
         rows = conn.execute(sql, params).fetchall()
 
-    kept = [
-        r for r in rows
+    clvs = [
+        r["kalshi_clv_pct"] for r in rows
         if not is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"])
     ]
-
-    excluded_stale = 0
-    if max_staleness_h is not None:
-        from evmax.agents.cleanup.resolver import close_lookup_ticker
-        from evmax.archiver import DataArchiver
-
-        archiver = DataArchiver()
-        fresh = []
-        for r in kept:
-            # Staleness only applies to Kalshi close snapshots; PolyUS rows have
-            # no Kalshi close and are passed through untouched.
-            if (r["venue"] or "kalshi") != "kalshi":
-                fresh.append(r)
-                continue
-            ticker, _is_no = close_lookup_ticker(r["market_id"])
-            if not ticker:
-                excluded_stale += 1  # no anchor => untrustworthy close, drop
-                continue
-            not_before = r["placed_at"] if (r["placed"] and r["placed_at"]) else None
-            staleness = archiver.get_kalshi_close_staleness_h(
-                ticker, r["event_id"], not_before=not_before
-            )
-            if staleness is None or staleness > max_staleness_h:
-                excluded_stale += 1
-                continue
-            fresh.append(r)
-        kept = fresh
-
-    clvs = [r["kalshi_clv_pct"] for r in kept]
     n = len(clvs)
     if n == 0:
-        return {"n": 0, "mean_clv_pp": 0.0, "frac_positive": 0.0,
-                "clears": False, "excluded_stale": excluded_stale}
+        return {"n": 0, "mean_clv_pp": 0.0, "frac_positive": 0.0, "clears": False}
     mean_clv = sum(clvs) / n
     frac_pos = sum(1 for c in clvs if c > 0) / n
     return {
@@ -544,7 +486,6 @@ def clv_stats(
         "mean_clv_pp": round(mean_clv, 3),
         "frac_positive": round(frac_pos, 3),
         "clears": clv_clears(n, mean_clv, frac_pos),
-        "excluded_stale": excluded_stale,
     }
 
 
@@ -567,19 +508,6 @@ def clv(
         help="Restrict laddered bets by direction: 'lay' (line<0, giving points) "
              "or 'take' (line>0, getting points). Judge spread promotion per side.",
     ),
-    venue: Optional[str] = typer.Option(
-        None, "--venue",
-        help="Restrict to one exchange: 'kalshi' or 'polymarket_us'. The venues "
-             "have separate shadow firewalls — judge each on its own book so a "
-             "thin PolyUS market can't flip a Kalshi-sized sample.",
-    ),
-    max_staleness_h: Optional[float] = typer.Option(
-        None, "--max-staleness-h",
-        help="Exclude Kalshi rows whose archived 'close' snapshot is more than "
-             "this many hours before the T-30 target (a watch-closes capture "
-             "gap, not a flat market). 68%% of exact-zero WNBA spread CLV rows "
-             "have a 3-21h stale close that drags frac_positive down.",
-    ),
 ) -> None:
     """Report Kalshi CLV (entry→close) — the +EV signal for laddered markets.
 
@@ -587,35 +515,19 @@ def clv(
     close on Brier by construction. Positive mean CLV with a clear majority of
     bets moving our way = we are beating the close = genuine edge.
     """
-    s = clv_stats(
-        category, market_type=market_type, mode=mode, since=since,
-        side=side, venue=venue, max_staleness_h=max_staleness_h,
-    )
+    s = clv_stats(category, market_type=market_type, mode=mode, since=since, side=side)
     label = f"{category}" + (f" / {market_type}" if market_type else "")
     label += f" [{mode}]" if mode else " [all modes]"
     label += f" since {since}" if since else ""
     label += f" side={side}" if side else ""
-    label += f" venue={venue}" if venue else ""
-    label += f" fresh≤{max_staleness_h:g}h" if max_staleness_h is not None else ""
     if s["n"] == 0:
-        stale_note = ""
-        if max_staleness_h is not None and s.get("excluded_stale"):
-            stale_note = f" ({s['excluded_stale']} excluded as stale-capture)"
-        console.print(
-            f"[yellow]No current-code resolved CLV rows for {label}.{stale_note}[/yellow]"
-        )
+        console.print(f"[yellow]No current-code resolved CLV rows for {label}.[/yellow]")
         return
     verdict = "[green]CLEARS[/green]" if s["clears"] else "[red]does NOT clear[/red]"
-    stale_line = ""
-    if max_staleness_h is not None:
-        stale_line = (
-            f"\n  excluded (stale close) = {s.get('excluded_stale', 0)} "
-            f"(close snapshot > {max_staleness_h:g}h before T-30)"
-        )
     console.print(
         f"\n[bold]CLV — {label}[/bold]  (current-code resolved, n={s['n']})\n"
         f"  mean kalshi CLV = {s['mean_clv_pp']:+.2f}pp\n"
-        f"  % bets with +CLV = {s['frac_positive']*100:.0f}%{stale_line}\n"
+        f"  % bets with +CLV = {s['frac_positive']*100:.0f}%\n"
         f"  gate: n≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
         f"%pos≥{CLV_MIN_FRAC_POSITIVE*100:.0f}%  →  {verdict}"
     )

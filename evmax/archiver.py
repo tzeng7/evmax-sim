@@ -515,26 +515,6 @@ class DataArchiver:
         fabricated backward one. When ``not_before`` is None the behaviour is
         unchanged (latest snapshot ≤ T-minutes_before).
         """
-        sel = self._select_kalshi_close(ticker, event_id, minutes_before, not_before)
-        return sel[0] if sel else None
-
-    def _select_kalshi_close(
-        self,
-        ticker: str,
-        event_id: str,
-        minutes_before: int = 30,
-        not_before: object = None,
-    ) -> "tuple[float, datetime, datetime] | None":
-        """Snapshot :meth:`get_kalshi_close_price` selects, with its timestamps.
-
-        Returns ``(yes_price, snapshot_fetched_at, target_dt)`` where target_dt
-        is the T-minutes_before close target (tipoff - minutes_before). The gap
-        ``target_dt - snapshot_fetched_at`` is the close snapshot's STALENESS —
-        how far the archived price we call "close" actually sits from the
-        near-tip moment we wanted. Shared by :meth:`get_kalshi_close_price`
-        (price) and :meth:`get_kalshi_close_staleness_h` (staleness) so both read
-        the exact same snapshot. Returns None with no tipoff anchor / no snapshot.
-        """
         from datetime import datetime, timedelta
 
         with _get_connection() as conn:
@@ -553,7 +533,6 @@ class DataArchiver:
                 return None
 
             upper_dt = tipoff - timedelta(minutes=minutes_before)
-            target_dt = upper_dt  # T-minutes_before close target (staleness anchor)
 
             lower_dt: datetime | None = None
             if not_before is not None:
@@ -571,7 +550,7 @@ class DataArchiver:
                     upper_dt = tipoff
 
             sql = (
-                "SELECT yes_price, fetched_at FROM archived_kalshi_markets "
+                "SELECT yes_price FROM archived_kalshi_markets "
                 "WHERE ticker = ? AND fetched_at <= ?"
             )
             params: list[object] = [ticker, upper_dt.isoformat()]
@@ -581,41 +560,7 @@ class DataArchiver:
             sql += " ORDER BY fetched_at DESC LIMIT 1"
 
             row = conn.execute(sql, params).fetchone()
-        if not row:
-            return None
-        try:
-            snap_dt = datetime.fromisoformat(row["fetched_at"])
-        except (ValueError, TypeError):
-            return None
-        if snap_dt.tzinfo is None:
-            snap_dt = snap_dt.replace(tzinfo=timezone.utc)
-        return row["yes_price"], snap_dt, target_dt
-
-    def get_kalshi_close_staleness_h(
-        self,
-        ticker: str,
-        event_id: str,
-        minutes_before: int = 30,
-        not_before: object = None,
-    ) -> float | None:
-        """Hours the "close" snapshot sits before the T-minutes_before target.
-
-        A large value means the archived price we scored as "close" is a stale
-        mid-day read, not a genuine near-tip price — a watch-closes/launchd
-        capture gap rather than a flat market. Used by the shadow CLV gate to
-        optionally exclude rows whose close is untrustworthy (measurement
-        quality, the sibling of the code-version ``is_contaminated`` filter).
-
-        Computed against the SAME snapshot :meth:`get_kalshi_close_price` picks,
-        so it exactly matches the CLV of unplaced (shadow) bets (``not_before``
-        None). Returns None with no tipoff anchor / no snapshot (treat as
-        unknown — exclude).
-        """
-        sel = self._select_kalshi_close(ticker, event_id, minutes_before, not_before)
-        if sel is None:
-            return None
-        _price, snap_dt, target_dt = sel
-        return (target_dt - snap_dt).total_seconds() / 3600.0
+        return row["yes_price"] if row else None
 
     def get_closing_line_aligned(self, event_id: str, yes_team: str | None) -> float | None:
         """Return the closing Pinnacle prob aligned to the bet's YES side.
