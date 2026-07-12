@@ -428,3 +428,42 @@ def test_close_staleness_none_without_anchor(temp_archive_db):
     """No Pinnacle tipoff row → no close target → None (treat as unknown)."""
     archiver = DataArchiver()
     assert archiver.get_kalshi_close_staleness_h(TICKER, EVENT_ID) is None
+
+
+# ---------------------------------------------------------------------------
+# launchd watch-closes lookahead vs the T-30 close target (window alignment).
+#
+# 2026-07-12 root-cause finding: with --lookahead 30 the watch-closes capture
+# window only OPENED at tipoff-30min, while get_kalshi_close_price selects the
+# latest snapshot AT OR BEFORE tipoff-30min — disjoint windows, so watch-closes
+# snapshots never qualified as the close for unplaced (shadow) bets and every
+# close fell back to the last hourly watch-listings sweep (up to hours stale).
+# The lookahead must stay STRICTLY GREATER than minutes_before or the near-tip
+# capture service silently contributes nothing to close-price measurement.
+# ---------------------------------------------------------------------------
+def test_watch_closes_lookahead_exceeds_close_target():
+    import inspect
+    import plistlib
+    from pathlib import Path
+
+    plist_path = (
+        Path.home() / "Library" / "LaunchAgents" / "com.evmax.watch-closes.plist"
+    )
+    if not plist_path.exists():
+        pytest.skip("machine-local launchd plist not present (CI or other host)")
+
+    with plist_path.open("rb") as f:
+        args = plistlib.load(f)["ProgramArguments"]
+    assert "--lookahead" in args, "watch-closes plist no longer passes --lookahead"
+    lookahead_min = int(args[args.index("--lookahead") + 1])
+
+    minutes_before = inspect.signature(
+        DataArchiver.get_kalshi_close_price
+    ).parameters["minutes_before"].default
+
+    assert lookahead_min > minutes_before, (
+        f"watch-closes --lookahead ({lookahead_min}m) must exceed the "
+        f"get_kalshi_close_price T-{minutes_before} close target, or its "
+        "snapshots all land inside the excluded window and the close silently "
+        "falls back to stale hourly watch-listings sweeps"
+    )
