@@ -76,12 +76,18 @@ def test_void_command_is_registered_with_its_own_options():
     # Guards against the helper accidentally stealing the @app.command("void")
     # decorator (which would expose CONN/CUTOFF_STR args instead of the real
     # --before/--days/--dry-run command).
+    import re
+
     from typer.testing import CliRunner
 
     from evmax.cli.commands.cleanup import app
 
     result = CliRunner().invoke(app, ["void", "--help"])
     assert result.exit_code == 0
-    assert "--before" in result.output
-    assert "--dry-run" in result.output
-    assert "CUTOFF_STR" not in result.output
+    # Typer forces rich terminal rendering when GITHUB_ACTIONS is set, so help
+    # text arrives with ANSI style codes on CI runners — strip them before
+    # matching (NO_COLOR doesn't remove bold/dim codes).
+    output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+    assert "--before" in output
+    assert "--dry-run" in output
+    assert "CUTOFF_STR" not in output
