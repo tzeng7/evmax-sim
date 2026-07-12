@@ -224,3 +224,64 @@ class TestSummarize:
         assert (s.market_type, s.side, s.n) == ("spread", "lay", 1)
         assert s.mean_clv_pp == pytest.approx(10.0, abs=0.01)
         assert s.pct_clv_pos == 100.0
+
+
+class TestEntryWindow:
+    """The near-close re-scan lens: restrict entry eligibility by lead time."""
+
+    def test_window_moves_entry_to_near_tip_sweep(self, archive_conn):
+        # S2 is T-10h, S3 is T-6h (tip 2026-07-03T02:00). Anchors at both so
+        # the only difference between the runs is entry-window eligibility.
+        spread_trail(archive_conn)
+        insert_sharp_spread(archive_conn, *S2)
+        insert_sharp_spread(archive_conn, *S3)
+        archive_conn.commit()
+
+        baseline = evaluate_sector(archive_conn, "wnba")
+        windowed = evaluate_sector(archive_conn, "wnba", max_lead_h=8.0)
+
+        assert baseline.entries[0].entry_at.isoformat() == S2[1]
+        lay = [e for e in windowed.entries if e.side == "lay"]
+        assert len(lay) == 1
+        assert lay[0].entry_at.isoformat() == S3[1]
+
+    def test_entry_at_last_pre_tip_snapshot_has_no_clv_not_zero(self, archive_conn):
+        # Windowed entry lands on S3, which is ALSO the last pre-tip capture:
+        # a close after the entry does not exist, so CLV must be None (missing
+        # measurement), never a fabricated 0.0.
+        spread_trail(archive_conn)
+        insert_sharp_spread(archive_conn, *S2)
+        insert_sharp_spread(archive_conn, *S3)
+        archive_conn.commit()
+
+        windowed = evaluate_sector(archive_conn, "wnba", max_lead_h=8.0)
+        lay = [e for e in windowed.entries if e.side == "lay"]
+        assert lay[0].clv_pp is None
+
+        rows = summarize(windowed)
+        lay_rows = [s for s in rows if s.side == "lay"]
+        assert lay_rows[0].n == 1
+        assert lay_rows[0].n_with_clv == 0
+        assert lay_rows[0].mean_clv_pp is None
+
+    def test_min_lead_excludes_too_late_sweeps(self, archive_conn):
+        # min_lead_h=8 excludes S3 (T-6h); S2 (T-10h) remains eligible.
+        spread_trail(archive_conn)
+        insert_sharp_spread(archive_conn, *S2)
+        insert_sharp_spread(archive_conn, *S3)
+        archive_conn.commit()
+
+        stats = evaluate_sector(archive_conn, "wnba", min_lead_h=8.0)
+        lay = [e for e in stats.entries if e.side == "lay"]
+        assert len(lay) == 1
+        assert lay[0].entry_at.isoformat() == S2[1]
+
+    def test_all_sweeps_outside_window_counts_never_anchored(self, archive_conn):
+        spread_trail(archive_conn)
+        insert_sharp_spread(archive_conn, *S2)
+        archive_conn.commit()
+
+        # window is entirely inside the last hour — no eligible sweep exists
+        stats = evaluate_sector(archive_conn, "wnba", max_lead_h=1.0)
+        assert stats.entries == []
+        assert stats.never_anchored == 1

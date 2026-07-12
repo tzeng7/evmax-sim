@@ -190,8 +190,19 @@ def evaluate_sector(
     depth_min_usd: float = 50.0,
     market_types: tuple[str, ...] = ("spread", "total"),
     since: Optional[str] = None,
+    max_lead_h: Optional[float] = None,
+    min_lead_h: float = 0.0,
 ) -> EvalStats:
-    """Run the first-anchored-sweep entry rule over one sector's captures."""
+    """Run the first-anchored-sweep entry rule over one sector's captures.
+
+    ``max_lead_h`` / ``min_lead_h`` optionally restrict entry eligibility to
+    snapshots whose lead time (tip - snapshot) falls inside
+    ``[min_lead_h, max_lead_h]`` hours. This is the near-close re-scan lens:
+    ``max_lead_h=1.25, min_lead_h=1/6`` replays "first anchored sweep inside
+    [T-75m, T-10m]" against the SAME last-pre-tip close as the unrestricted
+    baseline, so the two runs are directly comparable. ``None`` (default)
+    keeps the original any-time-pre-tip behaviour.
+    """
     handler = get_handler(sector)
     normalize = lambda s: handler.normalize_team(s or "")  # noqa: E731
     anchors = load_anchors(conn, sector)
@@ -272,6 +283,11 @@ def evaluate_sector(
             if found_yes and found_no:
                 break
             snap_t = _parse_ts(snap["fetched_at"])
+            lead_h = (tip - snap_t).total_seconds() / 3600
+            if max_lead_h is not None and lead_h > max_lead_h:
+                continue
+            if lead_h < min_lead_h:
+                continue
             fair = fair_at(snap_t)
             if fair is None:
                 continue
@@ -296,7 +312,14 @@ def evaluate_sector(
                         fair_prob=fair, edge_pp=edge, tip_at=tip,
                         entry_lead_h=(tip - snap_t).total_seconds() / 3600,
                         close_at=close_t, close_price=close_ask,
-                        clv_pp=(close_ask - ask) * 100 if close_ask is not None else None,
+                        # CLV needs a close AFTER the entry — when the entry
+                        # snapshot IS the last pre-tip capture the measurement
+                        # is undefined (None), not a fabricated 0.0.
+                        clv_pp=(
+                            (close_ask - ask) * 100
+                            if close_ask is not None and close_t > snap_t
+                            else None
+                        ),
                     ))
                     found_yes = True
 
@@ -311,7 +334,11 @@ def evaluate_sector(
                         f"{opp} +{abs(line):g}" if mt == "spread"
                         else f"{side.capitalize()} {line:g}"
                     )
-                    clv = (bid - close_bid) * 100 if close_bid is not None else None
+                    clv = (
+                        (bid - close_bid) * 100
+                        if close_bid is not None and close_t > snap_t
+                        else None
+                    )
                     stats.entries.append(AnchoredEntry(
                         ticker=ticker, sector=sector, market_type=mt, side=side,
                         line=line, event_label=event_label, outcome_label=outcome,

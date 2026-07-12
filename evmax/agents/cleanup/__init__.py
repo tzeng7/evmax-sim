@@ -11,6 +11,11 @@ Key modules:
 - listings_eval.py — offline first-anchored-sweep entry evaluator over archive.db
                    watch-listings captures; promotion lens for laddered markets;
                    read-only (`evmax cleanup listings-eval`)
+- rescan_eval.py — near-close re-scan replay: paired actual-scan-entry vs simulated
+                   near-tip-entry CLV over archived snapshots; read-only research
+                   harness (`scripts/eval_near_close_rescan.py`), Phase 1 gate for
+                   the proposed `agents rescan` workflow (2026-07-11: REJECTED,
+                   see docs/near-close-rescan-eval.md)
 - maintenance.py — prune old rows, vacuum DB
 - adjustment.py  — manual outcome overrides and void handling
 
