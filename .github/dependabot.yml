@@ -1,0 +1,28 @@
+# Keeps the SHA-pinned actions in ci.yml fresh (weekly), and batches
+# Python/npm dependency bumps into one grouped PR per month to limit noise.
+# GitHub security advisories still open PRs immediately regardless of cadence.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      python-deps:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: monthly
+    groups:
+      frontend-deps:
+        patterns: ["*"]
