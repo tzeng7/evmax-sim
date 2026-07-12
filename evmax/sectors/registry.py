@@ -10,6 +10,7 @@ from evmax.sectors.lol import LoLHandler
 from evmax.sectors.cs2 import CS2Handler
 from evmax.sectors.valorant import ValorantHandler
 from evmax.sectors.tennis import TennisHandler
+from evmax.sectors.ufc import UFCHandler
 from evmax.sectors.baseball import BaseballHandler
 from evmax.sectors.ncaaw import NCAAWHandler
 from evmax.sectors.nhl import NHLHandler
@@ -26,6 +27,7 @@ _REGISTRY: dict[str, SectorHandler] = {
     "cs2": CS2Handler(),
     "valorant": ValorantHandler(),
     "tennis": TennisHandler(),
+    "ufc": UFCHandler(),
     "baseball": BaseballHandler(),
     "nhl": NHLHandler(),
     "wnba": WNBAHandler(),

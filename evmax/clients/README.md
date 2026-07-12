@@ -51,3 +51,19 @@ live agent. Pure-stdlib HTML/JS-array parsing — no extra deps.
 ## `base.py` — `BaseAPIClient`
 Thin async HTTP base class using `httpx.AsyncClient`. Handles retries and shared headers.
 All active clients inherit from this.
+
+### `ufc_espn.py` — `UFCESPNClient`
+**Why ESPN and not ufcstats.com:** ufcstats.com fronts a JavaScript proof-of-work anti-bot
+interstitial (verified 2026-07-11); an automated client can't fetch it without defeating bot
+detection, which we don't do. ESPN's public MMA JSON API is the repo-standard fallback family
+(same source as `scripts/seed_espn.py`) and carries full UFC cards 2010→present. Three feeds:
+- **Monthly scoreboards** — `fetch_month("YYYYMM")` → `FightResult` rows (winner flags,
+  finish round/clock, weight class, athlete ids).
+- **Method of victory** — `fetch_method(event_id, comp_id)` → the core status object's
+  `result` ("submission" / "ko/tko" / "decision" / draw / NC), normalized by `normalize_method`.
+- **Fighter bios** — `fetch_athlete(id)` → `FighterBio` (DOB / height / reach / stance).
+
+Known gap: NO per-fight strike/takedown counts, so per-minute volume stats (SLpM/SApM/TD avg)
+can't be built from this source. All fetches disk-cache under `data/cache/ufc_espn/` (gitignored).
+Used by `scripts/fetch_ufc_history.py` → committed dataset `data/backtest/ufc/*.csv`; **not**
+called by any live agent.

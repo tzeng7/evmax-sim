@@ -154,6 +154,20 @@ class EnsembleModelAgent(Agent):
             "form":           0.30,
             "poisson":        0.0,
         },
+        # UFC — ufc_rating (Glicko-2 + feature layer) is the only non-sharp
+        # model; sharp dominates via sharp_weight (esports precedent). The
+        # generic elo/form agents are explicitly zeroed: their `ufc` state is
+        # not maintained (the rating agent owns fighter strength), and with
+        # no data they'd sit below the 0.45 confidence gate anyway — the
+        # zeroes make that intent explicit. UFC has no REQUIRED_BLEND_MODELS
+        # entry, so a zero weight here can't shadow-demote plays (see the
+        # tennis full-blend gotcha in CLAUDE.md).
+        "ufc": {
+            "ufc_rating": 1.0,
+            "elo":        0.0,
+            "form":       0.0,
+            "poisson":    0.0,
+        },
         # NHL ensemble — v1 ships with team 5v5 xG (MoneyPuck) as the
         # dominant non-sharp signal. Generic Elo is held at 0 because its
         # K-factor / home-advantage have never been calibrated for NHL

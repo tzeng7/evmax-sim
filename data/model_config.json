@@ -6,7 +6,8 @@
     "baseball": 0.88,
     "soccer": 0.88,
     "lol": 1.0,
-    "cs2": 1.0
+    "cs2": 1.0,
+    "ufc": 0.88
   },
   "last_brier_model": 0.186431,
   "last_brier_sharp": 0.185496,

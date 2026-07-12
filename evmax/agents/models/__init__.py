@@ -13,6 +13,7 @@ Model weights and state files:
   TennisH2HAgent             weight=0.10  data/models/tennis_h2h_state.json            (tennis only)
   TennisRankingTrendAgent    weight=0.10  data/models/tennis_ranking_trend_state.json  (tennis only)
   PitcherModelAgent          weight=0.20  data/models/pitcher_state.json               (baseball only)
+  UFCRatingAgent             weight=1.0   data/models/ufc_rating_state.json            (ufc only)
 
 Sharp weight (Pinnacle) is separate from the model blend — controlled by sharp_weight
 in EnsembleModelAgent, auto-tuned weekly via Brier score in agents/cleanup/metrics.py.
@@ -29,6 +30,7 @@ from evmax.agents.models.tennis_h2h_agent import TennisH2HAgent
 from evmax.agents.models.tennis_ranking_trend_agent import TennisRankingTrendAgent
 from evmax.agents.models.tennis_form_agent import TennisFormAgent
 from evmax.agents.models.pitcher_agent import PitcherModelAgent
+from evmax.agents.models.ufc_rating_agent import UFCRatingAgent
 
 __all__ = [
     "ModelAgent",
@@ -43,4 +45,5 @@ __all__ = [
     "TennisRankingTrendAgent",
     "TennisFormAgent",
     "PitcherModelAgent",
+    "UFCRatingAgent",
 ]

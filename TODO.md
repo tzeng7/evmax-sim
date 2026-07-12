@@ -8,6 +8,14 @@
 
 ## Recently Shipped
 
+### UFC/MMA sector — shadow-mode MVP, moneyline only (branch claude/ufc-sector)
+Landed 2026-07-11. Validate-first build: Phase 0 confirmed both venues live (Kalshi `KXUFCFIGHT` fight-winner series + Pinnacle sport 22 "UFC"), then models were gated on a walk-forward backtest BEFORE wiring went live.
+- ✅ **Data** — `evmax/clients/ufc_espn.py` + `scripts/fetch_ufc_history.py`: ESPN MMA public API (ufcstats.com is behind a JS anti-bot interstitial we don't bypass), 7,959 bouts 2010→present with methods + 2,610 fighter bios, committed to `data/backtest/ufc/*.csv`, raw JSON disk-cached under `data/cache/ufc_espn/`.
+- ✅ **Model** — `ufc_rating` (`evmax/agents/models/ufc_rating_agent.py`): Glicko-2 per fighter (`evmax/models_ml/glicko2.py`, validated against Glickman's paper example; per-bout rating periods + inactivity RD inflation) + logistic feature layer on point-in-time differentials (age, layoff, recent-KO, experience, win rate, streak, reach, height, finish rate, KO-absorbed). Fit orientation-symmetrized on ≤2024 (n=4,136).
+- ✅ **Gate passed** — `scripts/backtest_ufc_model.py`, holdout 2025→present (n=711): blend Brier **0.2250** / acc 62.9% vs rating-only 0.2463 / 56.8%; calibration sane (no n≥50 bucket off >10pp). Verdict VALIDATED_BLEND → feature layer embedded in `data/models/ufc_rating_state.json` (`scripts/seed_ufc_ratings.py`, weekly `--fetch` reseed). Full tables in `docs/ufc-model-eval.md`.
+- ✅ **Wiring** — tennis-pattern individual-competitor sector: surname-canonical matching (`evmax/sectors/aliases/ufc.yaml`; same-surname ambiguity → None via `tennis_common.resolve_player`), UFC title parsing in `kalshi.py`, `ufc` in `_US_SECTORS` (ET game-day alignment), `kalshi_settlement` resolver (removed from `ESPN_SPORT_MAP`), sharp_weight 0.88, ensemble override ufc_rating 1.0 / elo+form 0.0. Live smoke: Kalshi↔Pinnacle exact key match on the McGregor–Holloway card, 2/2 matched, shadow row persisted.
+- ⏭ **Next**: accumulate shadow data; promote via `evmax cleanup shadow promote ufc` once n≥30 resolved with CLV ≥ 0. Consider a weekly scheduled task for `seed_ufc_ratings.py --fetch` (currently manual).
+
 ### NBA player props calibration — Path A (commits d1eb000, fd2e650, 5f65ae5)
 Landed April 2026. Goal stated by user: improve NBA props enough to warrant promotion from shadow to live.
 - ✅ **Baseline measurement** — `scripts/backtest_nba_props.py` replays the production prop model math against 26k 2024-25 player game logs pulled via nba_api. Surfaced the actual problem: the model is dramatically under-confident in the 50–70% probability bucket. Predicted 65% bucket realizes 82%; predicted 60% bucket realizes 73%. Symptom of the manual `_BASE_RATE = 0.40, _SHRINKAGE = 0.20` shrinkage chain in `compute_prop_prob_cached` pulling genuine high-confidence overs back toward the league base rate.

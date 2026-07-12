@@ -93,6 +93,12 @@ SECTOR_SERIES_MAP: dict[str, list[str]] = {
     "lol": ["KXLOLGAME"],
     "cs2": ["KXCS2GAME", "KXCS2GAMES"],
     "tennis": ["KXATPMATCH", "KXWTAMATCH"],
+    # UFC fight winner — verified live 2026-07-11 (per-fighter YES markets,
+    # tennis-style: KXUFCFIGHT-26JUL11SAIPIM-SAI, titles "Will {Fighter} win
+    # the {A} vs {B} professional MMA fight scheduled for {date}?"). Other
+    # UFC series exist (KXUFCROUNDS/KXUFCMOV/KXUFCDISTANCE/KXUFCTITLE...)
+    # but only the moneyline is wired — see data/categories.yaml `ufc`.
+    "ufc": ["KXUFCFIGHT"],
 }
 
 
@@ -1089,6 +1095,15 @@ class KalshiClient(BaseAPIClient):
             if sector == "tennis":
                 team_home, team_away = self._extract_teams_from_title(title)
                 yes_team = self._extract_tennis_yes_player(title, sector)
+            elif sector == "ufc":
+                # UFC ticker codes are 3-letter surname truncations (SAI/PIM)
+                # with no alias table — parse the title instead, like tennis.
+                # Title fighter order is away-first (matches the ticker's
+                # {AWAY}{HOME} convention and Pinnacle's home/away), so the
+                # second-listed fighter is team_home; fuzzy matching is
+                # order-insensitive anyway if a card deviates.
+                team_away, team_home = self._extract_ufc_fighters_from_title(title)
+                yes_team = self._extract_tennis_yes_player(title, sector)
             else:
                 team_home, team_away = self._extract_teams_from_ticker(ticker, sector)
                 code_map = _series_team_code_map(ticker)
@@ -1307,6 +1322,33 @@ class KalshiClient(BaseAPIClient):
                 if "@" in sep or sep.strip().lower() == "at":
                     return team_b.strip(), team_a.strip()  # home, away
                 return team_a.strip(), team_b.strip()
+        return None, None
+
+    # UFC fight-winner titles: "Will Benoit Saint-Denis win the Saint-Denis
+    # vs Pimblett professional MMA fight scheduled for Jul 11, 2026?"
+    # The matchup segment may carry surnames OR full names (both observed
+    # live 2026-07-11) — the ufc sector handler normalizes either to the
+    # canonical surname.
+    _UFC_TITLE_RE = re.compile(
+        r"win\s+the\s+(.+?)\s+(?:professional\s+)?MMA\s+fight",
+        re.IGNORECASE,
+    )
+
+    def _extract_ufc_fighters_from_title(
+        self, title: str,
+    ) -> tuple[Optional[str], Optional[str]]:
+        """Extract (first_listed, second_listed) fighters from a UFC title."""
+        m = self._UFC_TITLE_RE.search(title or "")
+        if not m:
+            return None, None
+        match_part = m.group(1).strip()
+        for sep in (" vs ", " vs. "):
+            idx = match_part.lower().find(sep)
+            if idx >= 0:
+                return (
+                    match_part[:idx].strip(),
+                    match_part[idx + len(sep):].strip(),
+                )
         return None, None
 
     def _extract_tennis_yes_player(self, title: str, sector: str) -> Optional[str]:

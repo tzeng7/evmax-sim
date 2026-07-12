@@ -45,9 +45,19 @@ ESPN_SPORT_MAP: dict[str, tuple[str, str, dict]] = {
     "baseball": ("baseball", "mlb", {}),
     "nhl":      ("hockey", "nhl", {}),
     "wnba":     ("basketball", "wnba", {}),
-    "ufc":      ("mma", "ufc", {}),
+    # "ufc" intentionally ABSENT: fight-winner rows resolve via Kalshi
+    # settlement (KALSHI_SETTLEMENT_SECTORS below — the tennis precedent).
+    # ESPN's MMA scoreboard resolves by score comparison, which is
+    # meaningless for finishes and can't represent draws/NCs; Kalshi
+    # settlement covers those as scalar voids.
     "f1":       ("racing", "f1", {}),
 }
+
+# Sectors resolved from Kalshi market settlement (result="yes"/"no" is
+# ground truth; result="scalar" → void — cancelled bout / walkover). Tennis
+# because ESPN doesn't return usable completed-match results; UFC because
+# fight outcomes aren't score-shaped.
+KALSHI_SETTLEMENT_SECTORS = {"tennis", "ufc"}
 
 # Soccer league slugs for ESPN
 ESPN_SOCCER_LEAGUES = [
@@ -1440,9 +1450,11 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
                             failed += 1
                             unmatched.append(pred["event_id"])
 
-            elif sector == "tennis":
-                # ESPN tennis doesn't return completed match results in a usable format.
-                # Use Kalshi market settlement as ground truth: result="yes"→1.0, "no"→0.0.
+            elif sector in KALSHI_SETTLEMENT_SECTORS:
+                # Tennis: ESPN doesn't return completed match results in a
+                # usable format. UFC: fight outcomes aren't score-shaped.
+                # Use Kalshi market settlement as ground truth:
+                # result="yes"→1.0, "no"→0.0, scalar→void.
                 all_rows = [r for rows in date_groups.values() for r in rows]
                 kalshi_results, kalshi_voided = await _resolve_via_kalshi(all_rows)
                 for pred in all_rows:
