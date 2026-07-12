@@ -32,6 +32,9 @@ data/*_cache.json
 
 # Backtest raw data (reproducible via scripts/fetch_*.py)
 data/backtest/nfl_props/
+# College box-score day cache + walk-forward pickles (reproducible via
+# scripts/seed_ncaab_efficiency.py --fetch-only)
+data/backtest/college_efficiency/
 
 # Logs
 *.log

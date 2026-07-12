@@ -64,6 +64,13 @@ KNOWN_MODELS: set[str] = {
     "nfl_qb_elo",
     # NHL-specific advanced agents
     "nhl_xg",
+    # College basketball advanced agents (parallel stack: shared math core in
+    # _college_efficiency.py within the college stack only, per-league state
+    # files + constants; never touches the NBA/WNBA stacks)
+    "ncaab_efficiency",
+    "ncaab_possession_sim",
+    "ncaaw_efficiency",
+    "ncaaw_possession_sim",
     # WNBA-specific advanced agents (kept parallel to the NBA set so the
     # two leagues can tune independently without risk of cross-contamination)
     "wnba_efficiency",

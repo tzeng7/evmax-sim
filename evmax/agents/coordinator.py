@@ -61,6 +61,10 @@ from evmax.agents.models.efficiency_agent import EfficiencyModelAgent
 from evmax.agents.models.nfl_efficiency_agent import NflEfficiencyModelAgent
 from evmax.agents.models.nfl_qb_elo_agent import NflQbEloModelAgent
 from evmax.agents.models.nhl_xg_agent import NhlXgModelAgent
+from evmax.agents.models.ncaab_efficiency_agent import NcaabEfficiencyModelAgent
+from evmax.agents.models.ncaab_possession_sim_agent import NcaabPossessionSimAgent
+from evmax.agents.models.ncaaw_efficiency_agent import NcaawEfficiencyModelAgent
+from evmax.agents.models.ncaaw_possession_sim_agent import NcaawPossessionSimAgent
 from evmax.agents.models.wnba_efficiency_agent import WNBAEfficiencyModelAgent
 from evmax.agents.models.shot_quality_agent import ShotQualityAgent
 from evmax.agents.models.matchup_agent import MatchupAgent
@@ -551,6 +555,10 @@ class AgentCoordinator:
         self.nfl_qb_elo_agent = NflQbEloModelAgent()
         self.nhl_xg_agent = NhlXgModelAgent()
         self.wnba_efficiency_agent = WNBAEfficiencyModelAgent()
+        self.ncaab_efficiency_agent = NcaabEfficiencyModelAgent()
+        self.ncaab_possession_sim_agent = NcaabPossessionSimAgent()
+        self.ncaaw_efficiency_agent = NcaawEfficiencyModelAgent()
+        self.ncaaw_possession_sim_agent = NcaawPossessionSimAgent()
         self.shot_quality_agent = ShotQualityAgent()
         self.matchup_agent = MatchupAgent()
         self.possession_sim_agent = PossessionSimAgent()
@@ -568,6 +576,10 @@ class AgentCoordinator:
                 self.nfl_qb_elo_agent,
                 self.nhl_xg_agent,
                 self.wnba_efficiency_agent,
+                self.ncaab_efficiency_agent,
+                self.ncaab_possession_sim_agent,
+                self.ncaaw_efficiency_agent,
+                self.ncaaw_possession_sim_agent,
                 self.shot_quality_agent,
                 self.matchup_agent,
                 self.possession_sim_agent,
@@ -599,6 +611,8 @@ class AgentCoordinator:
             self.efficiency_agent, self.nfl_efficiency_agent, self.nfl_qb_elo_agent,
             self.nhl_xg_agent,
             self.wnba_efficiency_agent,
+            self.ncaab_efficiency_agent, self.ncaab_possession_sim_agent,
+            self.ncaaw_efficiency_agent, self.ncaaw_possession_sim_agent,
             self.shot_quality_agent, self.matchup_agent,
             self.possession_sim_agent, self.wnba_possession_sim_agent,
             self.ensemble_agent,

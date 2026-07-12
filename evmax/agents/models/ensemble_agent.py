@@ -166,6 +166,34 @@ class EnsembleModelAgent(Agent):
             "elo":     0.0,
             "poisson": 0.0,
         },
+        # NCAAB — opponent-adjusted efficiency stack (2026-07-11). Weights
+        # swept on the 2024-25 walk-forward ONLY and held out on 2025-26
+        # (scripts/backtest_ncaab_efficiency.py): NEW blend holdout Brier
+        # 0.1911 vs old elo+form 0.2038 (n=4878). The train-optimal combo
+        # zeroed elo AND sim, but every candidate within 0.0004 Brier of it
+        # was equivalent on holdout (below the noise floor), so elo/form are
+        # FLOORED at 0.10: the efficiency stack goes dark every November
+        # (staleness guard until the current-season re-seed reaches
+        # MIN_GAMES=4/team) and the floors keep an elo+form fallback blend.
+        "ncaab": {
+            "ncaab_efficiency":     0.60,
+            "ncaab_possession_sim": 0.20,
+            "elo":                  0.10,
+            "form":                 0.10,
+        },
+        # NCAAW — same protocol and (deliberately) the same weights as NCAAB.
+        # Holdout 2025-26: NEW blend Brier 0.1608 vs the de-facto elo+form
+        # blend 0.1861 and the documented form-only blend 0.1942 (n=4731).
+        # The train-optimal combo was efficiency-only (0.1602 holdout); the
+        # 0.10 elo/form floors cost 0.0006 (noise) and buy the November
+        # fallback. Generic elo runs on the MODEL-2-calibrated constants
+        # (K=35, HOME_ADVANTAGE_ELO=80) shipped in the same change.
+        "ncaaw": {
+            "ncaaw_efficiency":     0.60,
+            "ncaaw_possession_sim": 0.20,
+            "elo":                  0.10,
+            "form":                 0.10,
+        },
     }
 
     def __init__(

@@ -50,6 +50,12 @@ K_FACTORS: dict[str, float] = {
     "nfl": 25.0,
     "nba": 20.0,
     "ncaab": 20.0,
+    "ncaaw": 35.0,    # MODEL-2 (2026-07-11): swept on 2024-25 walk-forward, validated on
+                      # 2025-26 (scripts/backtest_ncaab_efficiency.py --league womens).
+                      # Women's college has an extreme skill spread — bigger updates
+                      # separate 360 teams faster. The cold-start harness kept improving
+                      # past K=50, but that overstates K for a warm persistent state that
+                      # also stacks MOV/SOS/recency multipliers; 35 is the in-grid winner.
     "soccer": 30.0,
     "worldcup": 40.0,  # national teams play ~10 games/yr → larger K to move on sparse data
     "baseball": 6.0,   # 162-game season → smaller K to avoid overreaction per game
@@ -101,6 +107,8 @@ HOME_ADVANTAGE_ELO: dict[str, float] = {
     "nfl": 48.0,      # ~3 pts / ~55% win rate
     "nba": 100.0,     # ~6 pts / ~60% win rate
     "ncaab": 70.0,
+    "ncaaw": 80.0,    # MODEL-2 (2026-07-11): bracketed by the {0,40,60,80,100} sweep —
+                      # 80 won on train AND holdout at every K. Similar to ncaab's 70.
     "soccer": 60.0,
     "worldcup": 0.0,  # neutral venues (2026 hosts aside) — no generic home edge
     "baseball": 32.0, # ~54% home win rate historically

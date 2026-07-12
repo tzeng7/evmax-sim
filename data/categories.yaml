@@ -67,22 +67,22 @@ nfl:
 ncaab:
   display_name: "NCAAB (Men's College Basketball)"
   market_types: [moneyline, spread, total]
-  models: [elo, form, poisson, sharp]
+  models: [elo, form, ncaab_efficiency, ncaab_possession_sim, sharp]
   mode: live
   resolver: espn_scoreboard
   status: shipped
   season_window: {start: "11-01", end: "04-10"}
-  notes: null
+  notes: "2026-07-11: opponent-adjusted efficiency stack added (ncaab_efficiency + ncaab_possession_sim; KenPom-style log-LS solver in evmax/agents/models/_college_efficiency.py, seeded by scripts/seed_ncaab_efficiency.py --league mens, weekly in season). The stale `poisson` entry was removed the same day — the agent had been soccer/worldcup-gated since 2026-06-01, so the effective blend was just elo+form. Walk-forward validation (scripts/backtest_ncaab_efficiency.py, weights + shrink_k + score_stdev swept on 2024-25 ONLY, frozen, then held out on 2025-26): NEW blend (eff .60 / sim .20 / elo .10 / form .10) holdout Brier 0.1911 / Acc 70.2% vs OLD elo+form 0.2038 / 68.4% (ΔBrier +0.0127, n=4878); efficiency standalone 0.1917 beats every incumbent. Elo/form floored at 0.10 deliberately: the staleness guard darkens the efficiency stack every November until the current-season re-seed reaches MIN_GAMES=4/team, and the floors keep an elo+form fallback in the blend. NOVEMBER OPS: re-seed weekly from opening night (the guard silences prior-season ratings in-season — the WNBA +24pp chalk-bias lesson). Recommend a fresh shadow-CLV check (cleanup shadow clv ncaab) over the first weeks of 2026-27 before trusting the new blend live."
 
 ncaaw:
   display_name: "NCAAW (Women's College Basketball)"
   market_types: [moneyline, spread, total]
-  models: [form, sharp]
+  models: [elo, form, ncaaw_efficiency, ncaaw_possession_sim, sharp]
   mode: live
   resolver: espn_scoreboard
   status: shipped
   season_window: {start: "11-01", end: "04-10"}
-  notes: "Elo K-factor and home-advantage not calibrated for NCAAW — see MODEL-2 / SECTOR-2. Elo contributes 0 until then."
+  notes: "2026-07-11: opponent-adjusted efficiency stack added (ncaaw_efficiency + ncaaw_possession_sim — own state file + constants, shares only the college math core with ncaab; seeded by scripts/seed_ncaab_efficiency.py --league womens, weekly in season) AND the NCAAW half of MODEL-2 shipped: elo now runs calibrated K=35 / HOME_ADVANTAGE_ELO=80 (swept on 2024-25, validated on 2025-26 — elo standalone holdout Brier 0.1767 vs 0.1873 on the old uncalibrated NBA defaults). Walk-forward validation (scripts/backtest_ncaab_efficiency.py --league womens, all choices swept on 2024-25 ONLY, frozen, held out on 2025-26): NEW blend (eff .60 / sim .20 / elo .10 / form .10) holdout Brier 0.1608 / Acc 75.5% vs the de-facto elo+form blend 0.1861 / 73.1% and the previously-documented form-only blend 0.1942 / 70.8% (n=4731); efficiency standalone 0.1602 beats every incumbent. NOVEMBER OPS: re-seed weekly from opening night (staleness guard silences prior-season ratings in-season; blend falls back to elo+form+sharp until MIN_GAMES=4/team). Recommend a fresh shadow-CLV check (cleanup shadow clv ncaaw) over the first weeks of 2026-27 before trusting the new blend live. NHL half of MODEL-2 still open."
 
 soccer:
   display_name: "Soccer (EPL, UCL, La Liga, Bundesliga, Serie A, Ligue 1, MLS, UEL)"
