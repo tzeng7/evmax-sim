@@ -20,6 +20,12 @@ Projects points-per-game for each team using attack/defense ratings from `poisso
 Used as input to `total_distribution.py` for over/under markets, and by the standalone
 `evmax project` projection workflow.
 
+### `glicko2.py`
+Glicko-2 rating system (Glickman 2013) — pure functions + a small dataclass, validated
+against the paper's worked example in `tests/test_glicko2.py`. Sparse-schedule adaptation:
+each bout is its own rating period and `inflate_rd` grows a fighter's RD for inactivity.
+Used by `agents/models/ufc_rating_agent.py` (UFC fight-winner probabilities).
+
 ### `base.py`
 `ModelBase` ABC + `ModelPrediction` dataclass — the prediction interface that
 `agents/models/base.py::ModelAgent` mixes in.
