@@ -118,10 +118,10 @@ _(BUG-4, BUG-5, and BUG-9 shipped — see "Recently Shipped" above.)_
 ### ~~MODEL-1 Tennis Surface Detection~~ ✅ SHIPPED (PR #5)
 Shipped via the Kalshi `event.product_metadata.competition` join — see Recently Shipped above.
 
-### MODEL-2 NCAAW and NHL Have No Calibrated K-Factor / Home Advantage [P2]
+### MODEL-2 NCAAW and NHL Have No Calibrated K-Factor / Home Advantage [P2] — NCAAW half ✅ SHIPPED 2026-07-11
 **File:** `evmax/agents/models/elo_agent.py`
-`K_FACTORS` and `HOME_ADVANTAGE_ELO` have entries for `nba`, `nfl`, `ncaab`, `soccer`, `lol`, `cs2`, and now `wnba` (K=20, home_adv=60 Elo — shipped with the WNBA 2026 prep). NCAAW and NHL are the only remaining sectors silently using NBA defaults (K=20.0, home_adv=0.055).
-- Add calibrated values for NCAAW: home advantage is similar to NCAAB, K-factor should be higher (more variance)
+`K_FACTORS` and `HOME_ADVANTAGE_ELO` have entries for `nba`, `nfl`, `ncaab`, `soccer`, `lol`, `cs2`, `wnba`, and now `ncaaw` (K=35, home_adv=80 Elo — swept on the 2024-25 walk-forward, validated on 2025-26 via `scripts/backtest_ncaab_efficiency.py --league womens`; elo standalone holdout Brier 0.1767 vs 0.1873 on the old uncalibrated defaults; see `docs/ncaab-blend-eval.md`). NHL is the only remaining sector silently using NBA defaults.
+- ~~Add calibrated values for NCAAW~~ ✅ K=35 / home_adv=80 (higher K than NCAAB, as predicted)
 - Add NHL: K=16, home_adv=0.04 (puck-line markets exist)
 
 ### MODEL-3 Form Model Draw Normalization Edge Case [P2]
@@ -689,8 +689,8 @@ Currently `evmax cleanup show` displays game-level bets only. Props are logged t
 ### SECTOR-1 Hockey (NHL) Elo Calibration [P2]
 See MODEL-2 above. NHL is in the registry and Kalshi series but Elo uses NBA defaults. (NHL outcome resolution is fixed in PR #1.)
 
-### SECTOR-2 NCAAW Elo Calibration [P2]
-See MODEL-2 above. NCAAW has a `REST_ELO_ADJ` entry but no K-factor or home advantage.
+### ~~SECTOR-2 NCAAW Elo Calibration~~ ✅ SHIPPED 2026-07-11
+Shipped with the NCAAB/NCAAW opponent-adjusted efficiency stack (K=35 / home_adv=80; see MODEL-2 above and `docs/ncaab-blend-eval.md`).
 
 ### ~~SECTOR-3 Tennis Tournament Calendar for Surface Lookup~~ ✅ SHIPPED (PR #5)
 Solved by reading Kalshi's `event.product_metadata.competition` field instead of a separate calendar lookup. See MODEL-1 in Recently Shipped.
@@ -709,7 +709,7 @@ Solved by reading Kalshi's `event.product_metadata.competition` field instead of
 | P1 | MODEL-11 WNBA shadow validation + promote to live | Blocks 2026 WNBA live betting; walk-forward passes but needs live-price confirmation |
 | P1 | MODEL-14 NBA props post-calibration validation | Just landed — need 2-3 wks of live data to confirm Path A behaviour holds |
 | P1 | PROPS-1 NFL props backend | Merged into MODEL-9 (kalshi.py typo fix ships with the shadow PR) |
-| P2 | MODEL-2 NCAAW/NHL Elo calibration | Uncalibrated K + home adv (WNBA now calibrated) |
+| P2 | MODEL-2 NHL Elo calibration | Uncalibrated K + home adv (WNBA + NCAAW now calibrated; NHL is the last holdout) |
 | P2 | MODEL-6 Tennis indoor court modifier | Waits on live indoor-event data; `is_indoor` seam already in MODEL-1 |
 | P2 | MODEL-13 WNBA player_impact agent | WNBA star-out impact is ~8-10pt swing; bigger gain than MODEL-12. Needs data-source decision first. |
 | P2 | TEST-3 PinnacleGuestClient tests | Only live sharp source untested |
@@ -760,7 +760,7 @@ The active list — ordered by deadline / blocker.
 - **NBA games** — already live, no action needed.
 - **Tennis** — live. Stable.
 - **Soccer / NHL / NCAAB** — live, stable.
-- **NCAAW** — live but Elo not calibrated (MODEL-2). Low priority.
+- **NCAAW** — live; Elo calibrated (K=35/HA=80) + opponent-adjusted efficiency stack shipped 2026-07-11 (see `docs/ncaab-blend-eval.md`).
 
 ### What's NOT actionable right now
 
