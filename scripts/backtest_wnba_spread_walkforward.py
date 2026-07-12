@@ -33,6 +33,14 @@ If the model's Brier is not below Kalshi's / Pinnacle's, the model is behind the
 market and spread should stay in shadow (same conclusion the totals walk-forward
 reached — see the project_wnba_totals_no_edge memory).
 
+The CLV audit prices entry at the first ANCHORED Kalshi snapshot — the first
+one at/after the game's first archived Pinnacle line — mirroring the live
+first-anchored-sweep rule. Kalshi lists WNBA spread ladders ~24-48h pre-tip,
+6-24h before Pinnacle posts (project_pinnacle_posting_windows memory); the raw
+first snapshot is untradeable placeholder noise, and pricing EV/CLV off it both
+leaks and inflates CLV (pre-fix this script reported +4.26pp; see the artifact
+check in the output for the corrected split).
+
 Run:  .venv/bin/python scripts/backtest_wnba_spread_walkforward.py
 """
 
@@ -158,18 +166,28 @@ def build_state(totals: dict, year: int) -> dict:
 # Archived market loaders (Kalshi spread strikes + Pinnacle spread line)
 # ---------------------------------------------------------------------------
 def load_archive_spreads() -> dict:
-    """(date_iso, yes_canonical) -> {strike: {entry, close}}.
+    """(date_iso, yes_canonical) -> {strike: {snaps, entry_unanchored, close}}.
 
     Keyed by the YES side because the archived team_home/team_away short codes
     don't normalize cleanly, but yes_team always does (ny->liberty, lv->aces).
     The game itself is recovered later by matching yes_canonical into the ESPN
     game-log for that date.
 
-    `entry` = the FIRST archived YES ask for the contract (our scan/entry price);
-    `close` = the LAST archived YES ask before the snapshot stream ends (the
-    pre-tipoff close proxy — Kalshi never truly closes, T-30 is the convention).
-    kalshi CLV = close - entry. Brier/EV pricing uses `close` to stay consistent
-    with the totals loader's "last snapshot wins".
+    `snaps` = the full ordered [(fetched_at, price), ...] snapshot stream for
+    the contract. The ENTRY price is NOT the first snapshot: Kalshi lists WNBA
+    spread ladders ~24-48h pre-tip as soft MM placeholder quotes, hours before
+    Pinnacle posts a line (the documented 6-24h unanchored window). The live
+    path only enters on the first ANCHORED sweep — the first snapshot at/after
+    the game's first Pinnacle anchor — so entry is resolved in the main loop
+    via anchored_entry(snaps, pin["first_anchor"]). Using the raw first
+    snapshot both leaks (EV vs a Pinnacle line that didn't exist yet) and
+    inflates CLV (placeholder quotes mechanically drift toward close).
+
+    `entry_unanchored` = first snapshot price — kept ONLY to quantify that
+    artifact; `close` = the LAST archived YES ask (pre-tipoff close proxy —
+    Kalshi never truly closes, T-30 is the convention). kalshi CLV =
+    close - entry. Brier/EV pricing uses `close` to stay consistent with the
+    totals loader's "last snapshot wins".
     """
     con = sqlite3.connect(ARCHIVE)
     con.row_factory = sqlite3.Row
@@ -197,26 +215,50 @@ def load_archive_spreads() -> dict:
         px = float(r["yes_price"])
         rungs = out.setdefault((r["d"], yes_c), {})
         if strike not in rungs:
-            rungs[strike] = {"entry": px, "close": px}  # first snapshot = entry
-        else:
-            rungs[strike]["close"] = px                 # keep overwriting => last = close
+            rungs[strike] = {"snaps": [], "entry_unanchored": px, "close": px}
+        rungs[strike]["snaps"].append((r["fetched_at"], px))
+        rungs[strike]["close"] = px  # keep overwriting => last = close
     return out
 
 
+def anchored_entry(snaps: list[tuple[str, float]],
+                   first_anchor_ts: str | None) -> float | None:
+    """First snapshot price at/after the game's first Pinnacle anchor.
+
+    Mirrors the live first-anchored-sweep entry rule (listings_eval.py): a
+    price quoted before any sharp anchor exists is untradeable placeholder
+    noise — EV against Pinnacle is uncomputable there. Returns None when the
+    game was never anchored or every snapshot pre-dates the anchor.
+    """
+    if first_anchor_ts is None:
+        return None
+    from datetime import datetime
+    anchor = datetime.fromisoformat(first_anchor_ts)
+    for ts, px in snaps:
+        if datetime.fromisoformat(ts) >= anchor:
+            return px
+    return None
+
+
 def load_pinnacle_spreads() -> dict:
-    """(date_iso, frozenset(teams)) -> {a, b, line, prob_a}.
+    """(date_iso, frozenset(teams)) -> {a, b, line, prob_a, first_anchor}.
 
     `line` is Pinnacle's spread from outcome_a's perspective (negative = a is the
     favourite); prob_a is the devigged probability that a covers that line.
+    Snapshots are iterated oldest-first so `line`/`prob_a` end up as the LATEST
+    (close-est) Pinnacle read; `first_anchor` is the fetched_at of the EARLIEST
+    snapshot — the moment the game first became anchorable, which gates the
+    Kalshi entry price (see anchored_entry).
     """
     con = sqlite3.connect(ARCHIVE)
     con.row_factory = sqlite3.Row
     rows = con.execute(
         """
         SELECT event_id, outcome_a_label, outcome_b_label, spread_line,
-               true_prob_a, date(event_date) AS d
+               true_prob_a, date(event_date) AS d, fetched_at
         FROM archived_sharp_odds
         WHERE sector='wnba' AND spread_line IS NOT NULL AND true_prob_a IS NOT NULL
+        ORDER BY fetched_at ASC
         """
     ).fetchall()
     con.close()
@@ -229,10 +271,12 @@ def load_pinnacle_spreads() -> dict:
         if not a or not b:
             continue
         key = (r["d"], frozenset({a, b}))
+        first = out[key]["first_anchor"] if key in out else r["fetched_at"]
         out[key] = {
             "a": a, "b": b,
             "line": round(float(r["spread_line"]), 1),
             "prob_a": float(r["true_prob_a"]),
+            "first_anchor": first,
         }
     return out
 
@@ -295,6 +339,7 @@ def main() -> None:
     fade_clv: list[float] = []  # CONTROL: strikes we'd FADE (NEW EV <= -2%)
 
     n_seen = predicted = gated = no_lines = 0
+    entry_moved = unanchorable = 0  # anchored-entry bookkeeping (CLV audit only)
 
     for g in games:
         n_seen += 1
@@ -337,7 +382,12 @@ def main() -> None:
                     yes_is_b = (sharp is not None and yes_c == pin["b"])
                     for strike, px in rungs.items():
                         kalshi_p = px["close"]   # close = Brier/EV pricing baseline
-                        entry_p = px["entry"]    # first snapshot = our entry price
+                        # Entry = first ANCHORED snapshot (live rule); the raw
+                        # first snapshot is pre-anchor placeholder noise.
+                        entry_p = anchored_entry(
+                            px["snaps"],
+                            pin["first_anchor"] if pin is not None else None,
+                        )
                         # SAME call as the live EV-gap spread path:
                         mp = sim.cover_probability(
                             eid, -strike, yes_is_underdog=(not is_home),
@@ -365,7 +415,11 @@ def main() -> None:
                                 # --- CLV AUDIT: would we BET this at entry? ---
                                 # EV at entry = blended_true_prob / entry_price - 1
                                 # (YES costs entry_price, pays 1). Gate at +2%.
-                                if entry_p > 0:
+                                if entry_p is None:
+                                    unanchorable += 1
+                                elif entry_p > 0:
+                                    if entry_p != px["entry_unanchored"]:
+                                        entry_moved += 1
                                     kalshi_clv = px["close"] - entry_p
                                     all_clv.append(kalshi_clv)  # control universe
                                     if prod_new / entry_p - 1.0 <= -EV_GATE:
@@ -375,6 +429,7 @@ def main() -> None:
                                         if ev >= EV_GATE:
                                             bets[regime].append({
                                                 "clv": kalshi_clv,
+                                                "clv_unanchored": px["close"] - px["entry_unanchored"],
                                                 "drift": prob - entry_p,
                                                 "went": went, "entry": entry_p,
                                                 "prob": prob, "strike": strike,
@@ -555,8 +610,23 @@ def main() -> None:
         print(f"  outcome       win-rate={win:.3f}   bet-prob mean={sum(probs)/n:.3f}")
         print(f"  bet Brier     {brier:.4f}  (vs realized cover of the bets placed)")
 
-    clv_report("NEW pricing (w=0, shipped)", bets["NEW"])
-    clv_report("OLD pricing (w=0.35)", bets["OLD"])
+    clv_report("NEW pricing (ANCHORED entry, w=0, shipped)", bets["NEW"])
+    clv_report("OLD pricing (ANCHORED entry, w=0.35)", bets["OLD"])
+
+    # ARTIFACT CHECK: the same bet set priced at the raw first snapshot (the
+    # pre-fix entry). The gap between this and the anchored number is pure
+    # measurement artifact — pre-anchor MM placeholder quotes drifting toward
+    # close — not harvestable edge (live can never transact pre-anchor).
+    if bets["NEW"]:
+        anch = [r["clv"] for r in bets["NEW"]]
+        unanch = [r["clv_unanchored"] for r in bets["NEW"]]
+        ma, mu = sum(anch) / len(anch), sum(unanch) / len(unanch)
+        print(f"\n=== CLV artifact check (same NEW bets, n={len(anch)}) ===")
+        print(f"  ANCHORED entry     mean={ma*100:+.2f}pp   <- what live can achieve")
+        print(f"  UNANCHORED entry   mean={mu*100:+.2f}pp   <- pre-fix (lookahead) number")
+        print(f"  artifact Δ         {(mu-ma)*100:+.2f}pp")
+    print(f"  rungs: entry moved by anchoring={entry_moved}  "
+          f"unanchorable (no post-anchor snapshot)={unanchorable}")
 
     # FALSIFICATION: if our +EV bets show CLV but the control universe doesn't,
     # the CLV comes from SELECTION (real), not a market-wide YES-side drift.
