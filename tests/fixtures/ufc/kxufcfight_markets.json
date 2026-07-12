@@ -1,0 +1,68 @@
+{
+ "markets": [
+  {
+   "ticker": "KXUFCFIGHT-26JUL11SAIPIM-SAI",
+   "event_ticker": "KXUFCFIGHT-26JUL11SAIPIM",
+   "title": "Will Benoit Saint-Denis win the Saint-Denis vs Pimblett professional MMA fight scheduled for Jul 11, 2026?",
+   "yes_sub_title": "Benoit Saint-Denis",
+   "open_time": "2026-06-29T17:51:00Z",
+   "close_time": "2026-07-26T01:40:00Z",
+   "status": "active",
+   "rules_primary": "If Benoit Saint-Denis wins the Saint-Denis vs Pimblett professional MMA fight originally scheduled for Jul 11, 2026, then the market resolves to Yes.",
+   "yes_bid_dollars": "0.55",
+   "yes_ask_dollars": "0.58",
+   "no_bid_dollars": "0.42",
+   "no_ask_dollars": "0.45",
+   "volume_fp": "1500",
+   "open_interest_fp": "900"
+  },
+  {
+   "ticker": "KXUFCFIGHT-26JUL11SAIPIM-PIM",
+   "event_ticker": "KXUFCFIGHT-26JUL11SAIPIM",
+   "title": "Will Paddy Pimblett win the Saint-Denis vs Pimblett professional MMA fight scheduled for Jul 11, 2026?",
+   "yes_sub_title": "Paddy Pimblett",
+   "open_time": "2026-06-29T17:51:00Z",
+   "close_time": "2026-07-26T01:40:00Z",
+   "status": "active",
+   "rules_primary": "If Paddy Pimblett wins the Saint-Denis vs Pimblett professional MMA fight originally scheduled for Jul 11, 2026, then the market resolves to Yes.",
+   "yes_bid_dollars": "0.42",
+   "yes_ask_dollars": "0.45",
+   "no_bid_dollars": "0.55",
+   "no_ask_dollars": "0.58",
+   "volume_fp": "1500",
+   "open_interest_fp": "900"
+  },
+  {
+   "ticker": "KXUFCFIGHT-26JUL11MCGHOL-MCG",
+   "event_ticker": "KXUFCFIGHT-26JUL11MCGHOL",
+   "title": "Will Conor McGregor win the Conor McGregor vs Max Holloway professional MMA fight scheduled for Jul 11, 2026?",
+   "yes_sub_title": "Conor McGregor",
+   "open_time": "2026-05-17T17:30:00Z",
+   "close_time": "2026-07-26T03:00:00Z",
+   "status": "active",
+   "rules_primary": "If Conor McGregor wins the Conor McGregor vs Max Holloway professional MMA fight originally scheduled for Jul 11, 2026, then the market resolves to Yes.",
+   "yes_bid_dollars": "0.3",
+   "yes_ask_dollars": "0.33",
+   "no_bid_dollars": "0.67",
+   "no_ask_dollars": "0.7",
+   "volume_fp": "1500",
+   "open_interest_fp": "900"
+  },
+  {
+   "ticker": "KXUFCFIGHT-26JUL11MCGHOL-HOL",
+   "event_ticker": "KXUFCFIGHT-26JUL11MCGHOL",
+   "title": "Will Max Holloway win the Conor McGregor vs Max Holloway professional MMA fight scheduled for Jul 11, 2026?",
+   "yes_sub_title": "Max Holloway",
+   "open_time": "2026-05-17T17:30:00Z",
+   "close_time": "2026-07-26T03:00:00Z",
+   "status": "active",
+   "rules_primary": "If Max Holloway wins the Conor McGregor vs Max Holloway professional MMA fight originally scheduled for Jul 11, 2026, then the market resolves to Yes.",
+   "yes_bid_dollars": "0.67",
+   "yes_ask_dollars": "0.7",
+   "no_bid_dollars": "0.3",
+   "no_ask_dollars": "0.33",
+   "volume_fp": "1500",
+   "open_interest_fp": "900"
+  }
+ ]
+}

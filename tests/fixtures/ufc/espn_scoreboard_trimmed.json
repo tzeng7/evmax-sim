@@ -1,0 +1,79 @@
+{
+ "events": [
+  {
+   "id": "600041053",
+   "name": "UFC 300: Pereira vs. Hill",
+   "date": "2024-04-13T22:00Z",
+   "competitions": [
+    {
+     "id": "401630738",
+     "date": "2024-04-13T22:00Z",
+     "type": {
+      "abbreviation": "Bantamweight"
+     },
+     "status": {
+      "period": 2,
+      "displayClock": "4:02",
+      "type": {
+       "completed": true
+      }
+     },
+     "competitors": [
+      {
+       "id": "3163637",
+       "order": 2,
+       "winner": false,
+       "athlete": {
+        "id": "3163637",
+        "displayName": "Cody Garbrandt"
+       }
+      },
+      {
+       "id": "4189320",
+       "order": 1,
+       "winner": true,
+       "athlete": {
+        "id": "4189320",
+        "displayName": "Deiveson Figueiredo"
+       }
+      }
+     ]
+    },
+    {
+     "id": "401632019",
+     "date": "2024-04-13T22:00Z",
+     "type": {
+      "abbreviation": "Lightweight"
+     },
+     "status": {
+      "period": 3,
+      "displayClock": "5:00",
+      "type": {
+       "completed": true
+      }
+     },
+     "competitors": [
+      {
+       "id": "2335718",
+       "order": 2,
+       "winner": false,
+       "athlete": {
+        "id": "2335718",
+        "displayName": "Jim Miller"
+       }
+      },
+      {
+       "id": "2502364",
+       "order": 1,
+       "winner": true,
+       "athlete": {
+        "id": "2502364",
+        "displayName": "King Green"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

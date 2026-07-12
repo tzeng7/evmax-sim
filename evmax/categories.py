@@ -68,6 +68,8 @@ KNOWN_MODELS: set[str] = {
     # two leagues can tune independently without risk of cross-contamination)
     "wnba_efficiency",
     "wnba_possession_sim",
+    # UFC-specific agent (Glicko-2 + results-derived feature layer)
+    "ufc_rating",
     # Tennis-specific agents
     "tennis_surface_elo",
     "tennis_serve_return",

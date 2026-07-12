@@ -14,4 +14,8 @@ Seed-time clients (NOT in the live scan pipeline):
                        `matchmx` per-match serve/return data (serve_return/advanced/form/h2h seed),
                        and winners/errors leaderboards (advanced UE feature).
                        Used by scripts/seed_tennis_abstract_elo.py + seed_tennis_models.py.
+- ufc_espn.py        — UFCESPNClient: ESPN MMA public API (UFC results, methods, fighter bios,
+                       2010→present). Source of truth for the ufc_rating seed/backtest —
+                       ufcstats.com is behind a JS anti-bot gate we don't bypass. Disk-cached
+                       under data/cache/ufc_espn/. Used by scripts/fetch_ufc_history.py.
 """

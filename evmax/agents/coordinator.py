@@ -55,6 +55,7 @@ from evmax.agents.models.tennis_h2h_agent import TennisH2HAgent
 from evmax.agents.models.tennis_ranking_trend_agent import TennisRankingTrendAgent
 from evmax.agents.models.tennis_form_agent import TennisFormAgent
 from evmax.agents.models.tennis_advanced_stats_agent import TennisAdvancedStatsAgent
+from evmax.agents.models.ufc_rating_agent import UFCRatingAgent
 from evmax.agents.models.pitcher_agent import PitcherModelAgent
 from evmax.agents.models.soccer_xg_agent import SoccerXgAgent
 from evmax.agents.models.efficiency_agent import EfficiencyModelAgent
@@ -544,6 +545,7 @@ class AgentCoordinator:
         self.tennis_trend_agent = TennisRankingTrendAgent()
         self.tennis_form_agent = TennisFormAgent()
         self.tennis_advanced_agent = TennisAdvancedStatsAgent()
+        self.ufc_rating_agent = UFCRatingAgent()
         self.pitcher_agent = PitcherModelAgent()
         self.soccer_xg_agent = SoccerXgAgent()
         self.efficiency_agent = EfficiencyModelAgent()
@@ -561,6 +563,7 @@ class AgentCoordinator:
                 self.tennis_agent, self.tennis_serve_agent,
                 self.tennis_h2h_agent, self.tennis_trend_agent,
                 self.tennis_form_agent, self.tennis_advanced_agent,
+                self.ufc_rating_agent,
                 self.pitcher_agent,
                 self.soccer_xg_agent,
                 self.efficiency_agent,
@@ -595,6 +598,7 @@ class AgentCoordinator:
             self.elo_agent, self.form_agent, self.poisson_agent,
             self.tennis_agent, self.tennis_serve_agent,
             self.tennis_h2h_agent, self.tennis_trend_agent,
+            self.ufc_rating_agent,
             self.pitcher_agent, self.soccer_xg_agent,
             self.efficiency_agent, self.nfl_efficiency_agent, self.nfl_qb_elo_agent,
             self.nhl_xg_agent,
@@ -1361,6 +1365,12 @@ class AgentCoordinator:
         self.poisson_agent.save_state()
         if sector == "tennis":
             self.tennis_agent.update(team_a, team_b, score_a, score_b, sector, event_date, surface=surface)
+        if sector == "ufc":
+            # Method of victory isn't available through this interface —
+            # KO/finish counters refresh at the weekly reseed
+            # (scripts/seed_ufc_ratings.py --fetch). Ratings update here.
+            self.ufc_rating_agent.update(team_a, team_b, score_a, score_b, sector, event_date)
+            self.ufc_rating_agent.save_state()
 
     def next_scan_interval_seconds(self, result: "CycleResult") -> int:
         """Compute adaptive scan interval based on time until soonest game.

@@ -1,0 +1,15 @@
+{
+ "id": "4189320",
+ "fullName": "Deiveson Figueiredo",
+ "displayName": "Deiveson Figueiredo",
+ "dateOfBirth": "1987-12-18T08:00Z",
+ "height": 65.0,
+ "displayHeight": "5' 5\"",
+ "weight": 135.0,
+ "reach": 68.0,
+ "displayReach": "68\"",
+ "stance": {
+  "id": "75",
+  "text": "Orthodox"
+ }
+}

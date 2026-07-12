@@ -160,10 +160,20 @@ cs2:
   status: shipped
   notes: "Shadow 2026-05-06: all esports demoted pending validation. sharp_weight bumped to 1.00 in model_config.json — predictions are pure sharp. Elo/form gated out (esports rosters churn too fast for team-level Elo to track real strength; Pinnacle prices in roster moves immediately)."
 
-# Valorant, UFC, F1 are in evmax/sectors/registry.py (latent sector handlers
+ufc:
+  display_name: "UFC / MMA"
+  market_types: [moneyline]
+  models: [ufc_rating, sharp]
+  mode: shadow
+  resolver: kalshi_settlement
+  status: wip
+  notes: "Added 2026-07-11. Phase 0 verified BOTH venues live: Kalshi series KXUFCFIGHT (fight winner, one YES market per fighter, tennis-style titles 'Will {Fighter} win the {A} vs {B} professional MMA fight scheduled for {date}?'; other UFC series — KXUFCROUNDS/KXUFCMOV/KXUFCDISTANCE/KXUFCTITLE etc. — deliberately NOT wired) and Pinnacle guest API sport_id=22 league 'UFC' (name-matched, moneyline only, no draw market — the client already carried the wiring). DATA SOURCE: ESPN MMA public API, NOT ufcstats.com — ufcstats now fronts a JS anti-bot interstitial we don't bypass; ESPN carries full cards 2010→present with winner flags, method (core status object), and fighter bios (DOB/height/reach/stance), but NO per-fight strike/TD counts, so per-minute volume stats are absent from the feature set (documented in docs/ufc-model-eval.md). MODEL: ufc_rating = Glicko-2 per fighter (each bout its own rating period, inactivity RD inflation — better than fixed-K Elo for 2-3 bouts/yr schedules) + logistic feature layer on point-in-time differentials (age, layoff, recent-KO-loss, experience, shrunk win rate, last-3 streak, reach, height, finish rate, KO-absorbed), fitted on fights ≤2024 (n=4136, orientation-symmetrized), holdout 2025→present via scripts/backtest_ufc_model.py — VERDICT 2026-07-11: VALIDATED_BLEND (holdout n=711: blend Brier 0.2250 / acc 62.9% vs rating-only 0.2463 / 56.8%; no calibration bucket at n>=50 off by >10pp), full tables in docs/ufc-model-eval.md. Seed/reseed walk-forward via scripts/seed_ufc_ratings.py --fetch (weekly, keeps the 60-day staleness guard fed); resolve-time updates also flow through coordinator.update_models but without method detail. Fighter-name matching mirrors tennis: surname canonical (evmax/sectors/aliases/ufc.yaml for East-Asian name order + nicknames), hyphenated surnames kept as one token, same-surname ambiguity resolves to None (never guess). Resolution via Kalshi settlement (tennis precedent — covers draws/NCs as scalar voids, no ESPN dependency). SHADOW until the standard gate: n>=30 resolved shadow bets with CLV >= 0 → `evmax cleanup shadow promote ufc`."
+
+# Valorant and F1 are in evmax/sectors/registry.py (latent sector handlers
 # with Elo K-factors wired in) but are NOT in kalshi.py::SECTOR_SERIES_MAP —
 # there is no Kalshi product for them, so they cannot currently be bet on
 # even though the infrastructure would support them if markets appeared.
+# (UFC graduated from this list 2026-07-11 — see the `ufc` entry above.)
 # Do not add them to this registry until Kalshi ships matching series and
 # they get wired into SECTOR_SERIES_MAP. The validator enforces this by
 # failing fast if the two lists drift apart.

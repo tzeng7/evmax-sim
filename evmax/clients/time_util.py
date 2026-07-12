@@ -26,7 +26,13 @@ from zoneinfo import ZoneInfo
 # to the UTC branch and caused 8pm+ ET MLB games to land on the next calendar
 # day on the Pinnacle side, so Kalshi's game 1 in a series matched Pinnacle's
 # game 2 (off-by-one date in the canonical event key).
-_US_SECTORS = frozenset({"nba", "wnba", "nfl", "mlb", "baseball", "nhl", "ncaab", "ncaaw"})
+_US_SECTORS = frozenset(
+    {"nba", "wnba", "nfl", "mlb", "baseball", "nhl", "ncaab", "ncaaw", "ufc"}
+)
+# "ufc": Kalshi tickers/titles date UFC cards on the US calendar day
+# (KXUFCFIGHT-26JUL11… / "scheduled for Jul 11"), but a US main card that
+# tips after ~8pm ET carries a next-day UTC startTime on Pinnacle
+# (2026-07-12T03:20Z) — the exact off-by-one this table exists to fix.
 _US_TZ = ZoneInfo("America/New_York")
 
 
