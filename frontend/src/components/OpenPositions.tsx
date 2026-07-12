@@ -38,7 +38,11 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
   const toggle = (mid: string) => {
     setSelected(prev => {
       const s = new Set(prev)
-      s.has(mid) ? s.delete(mid) : s.add(mid)
+      if (s.has(mid)) {
+        s.delete(mid)
+      } else {
+        s.add(mid)
+      }
       return s
     })
   }

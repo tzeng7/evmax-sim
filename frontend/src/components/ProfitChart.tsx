@@ -42,10 +42,12 @@ export function ProfitChart({ seriesAll, seriesPlaced, view }: Props) {
       filledPlaced.push(lastPlaced)
     }
 
-    // Apply range filter
-    if (range > 0) {
+    // Apply range filter — anchored at the latest data date rather than the wall
+    // clock (impure during render; the series only extends to the last scan day)
+    if (range > 0 && allDates.length > 0) {
       const cutoffDays = range === 1 ? 0 : range
-      const cutoff = new Date(Date.now() - cutoffDays * 86400000).toISOString().slice(0, 10)
+      const latestMs = new Date(`${allDates[allDates.length - 1]}T00:00:00Z`).getTime()
+      const cutoff = new Date(latestMs - cutoffDays * 86400000).toISOString().slice(0, 10)
       const startIdx = allDates.findIndex(d => d >= cutoff)
       if (startIdx > 0) {
         const dates = allDates.slice(startIdx)

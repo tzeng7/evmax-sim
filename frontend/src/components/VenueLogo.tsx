@@ -51,7 +51,7 @@ function PolymarketUSMark() {
   )
 }
 
-export const VENUE_NAMES: Record<string, string> = {
+const VENUE_NAMES: Record<string, string> = {
   kalshi: 'Kalshi',
   polymarket_us: 'Polymarket US',
 }

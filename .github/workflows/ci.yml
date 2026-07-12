@@ -73,11 +73,8 @@ jobs:
       - name: Install dependencies (locked)
         run: npm ci --no-audit --no-fund
 
-      # Non-blocking: main has 7 pre-existing eslint errors (react-hooks/*).
-      # Flip to blocking once those are fixed.
-      - name: Lint (advisory)
+      - name: Lint
         run: npm run lint
-        continue-on-error: true
 
       - name: Typecheck + build
         run: npm run build
