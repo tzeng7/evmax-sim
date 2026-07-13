@@ -527,6 +527,82 @@ class TestNbaPropFlow:
         assert sharp.true_prob_over == 0.60
 
 
+class TestBaseballPropFlow:
+    """Regression: baseball must be in AgentCoordinator._PROP_SECTORS so
+    _fetch_props actually runs during a baseball scan. The whole MLB props
+    pipeline (baseball_props_cache.py, ev/prop_pricing.py) was built and
+    validated but silently never fired in production because this set was
+    never updated — mirrors TestNbaPropFlow but for the baseball sector."""
+
+    def _build_coord(self) -> AgentCoordinator:
+        coord = AgentCoordinator(
+            sectors=["baseball"],
+            enable_models=False,
+            enable_injuries=False,
+        )
+
+        async def _kalshi_stub(req):
+            return _resp("kalshi", req.sector, [])
+
+        async def _sharp_stub(req):
+            return _resp("sharp", req.sector, [])
+
+        async def _standings_stub(req):
+            return _resp("standings", req.sector, {})
+
+        coord.kalshi_agent = _kalshi_stub
+        coord.polymarket_us_agent = _empty_polymarket
+        coord.sharp_agent = _sharp_stub
+        coord.standings_agent = _standings_stub
+        coord._archiver = _noop_archiver()
+        coord._notifier = MagicMock()
+
+        prop_market = _make_market(
+            market_id="kalshi-mlb-strikeouts-cole",
+            sector="baseball",
+            team_home="NYY",
+            team_away="BOS",
+            yes_team="Gerrit Cole",
+            yes_price=0.55,
+            market_type=MarketType.player_prop,
+            player_name="Gerrit Cole",
+            stat_type="strikeouts",
+            threshold=6.5,
+            event_id="baseball::2026-07-13::prop::gerrit_cole::strikeouts::6.5",
+        )
+        prop_sharp = _make_sharp(
+            event_id="baseball::2026-07-13::prop::gerrit_cole::strikeouts::6.5",
+            sector="baseball",
+            outcome_a="over",
+            outcome_b="under",
+            true_prob_a=0.0,
+            prop_player_name="Gerrit Cole",
+            prop_stat_type="strikeouts",
+            total_line=6.5,
+            true_prob_over=0.60,
+            true_prob_under=0.40,
+            prop_l15_games=15,
+        )
+
+        async def _mock_fetch_props(sector):
+            return [prop_market], [prop_sharp]
+
+        coord._fetch_props = _mock_fetch_props
+        return coord
+
+    @patch("evmax.agents.coordinator._load_steam_cache", return_value={})
+    @patch("evmax.agents.coordinator._save_steam_cache")
+    def test_prop_sharp_pairs_appear_in_result(self, _save, _load):
+        coord = self._build_coord()
+        result = _run(coord.run_cycle())
+
+        assert len(result.prop_sharp_pairs) == 1
+        sharp, market = result.prop_sharp_pairs[0]
+        assert sharp.prop_player_name == "Gerrit Cole"
+        assert market.player_name == "Gerrit Cole"
+        assert sharp.true_prob_over == 0.60
+
+
 # ---------------------------------------------------------------------------
 # Polymarket US venue integration — merge + shadow firewall
 # ---------------------------------------------------------------------------
