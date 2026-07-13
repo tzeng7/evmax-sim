@@ -26,5 +26,6 @@ Only ⚑ verdicts are model-actionable. **The fix is always model-side (reweight
 
 | Date | Window | Verdict | Notes |
 |---|---|---|---|
+| [2026-07-13](2026-07-13.md) | 12w (Apr–Jul) | **0 actionable gaps** | All blends within noise of sharp (no z ≤ −1.64, no consistent calib bias). 2 adversarial agents confirmed soccer +7.67pp = sparse-tail artifact (one n=1 bucket; N-weighted +1.68pp, flips to −1.50pp without it) and NBA-spread +6.42/1000 = noise (z=−1.47, 40/83 sharp-passthrough, blend beats close, stale window ends 05-25). No model change, no PR. |
 | [2026-07-06](2026-07-06.md) | 12w (Apr–Jul) | **0 actionable gaps** | All blends within noise of sharp (no z ≤ −1.64, no consistent calib bias). 2 adversarial agents confirmed soccer +9.33pp = sparse-bucket artifact (N-weighted +2.52pp) and NBA-spread +5.11/1000 = noise (z=+1.15, stale window). No model change, no PR. |
 | [2026-06-27](2026-06-27.md) | 16w (Apr–Jun) | **0 actionable gaps** | All blends within noise of sharp. Verified by 4 independent adversarial agents. No model change made — see report. |
