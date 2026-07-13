@@ -53,7 +53,7 @@ def _stub_scan_pipeline():
     with (
         patch.object(AgentCoordinator, "run_cycle", new=AsyncMock(return_value=CycleResult())),
         patch("evmax.agents.cleanup.maintenance.run_maintenance", return_value=maint),
-        patch("evmax.agents.cleanup.resolver.backfill_clv", return_value={"updated": 0, "avg_clv": 0.0}),
+        patch("evmax.agents.cleanup.resolver.backfill_clv", return_value={"updated": 0, "avg_kalshi_clv": 0.0}),
     ):
         yield
 
@@ -116,3 +116,24 @@ def test_no_flags_produces_no_override_message(_reset_overrides):
     # And the YAML defaults apply
     assert get_mode("nba") == "live"
     assert get_mode("nfl_props") == "shadow"
+
+
+def test_clv_backfill_summary_prints_without_error(_reset_overrides):
+    """Regression: `scan`'s post-cycle CLV summary must read the SAME keys
+    `backfill_clv()` actually returns (avg_kalshi_clv/avg_pinn_drift/n_pinn/
+    n_kalshi), not a stale/renamed key — a mismatch throws inside the broad
+    except Exception and gets silently swallowed as a console warning."""
+    fake_result = {
+        "updated": 3,
+        "skipped": 1,
+        "avg_pinn_drift": 1.5,
+        "avg_kalshi_clv": -0.75,
+        "n_pinn": 2,
+        "n_kalshi": 3,
+    }
+    with patch("evmax.agents.cleanup.resolver.backfill_clv", return_value=fake_result):
+        result = _invoke()
+    assert result.exit_code == 0
+    assert "Warning: CLV backfill failed" not in result.stdout
+    assert "CLV backfilled: 3 bet(s)" in result.stdout
+    assert "-0.8pp" in result.stdout or "-0.75pp" in result.stdout
