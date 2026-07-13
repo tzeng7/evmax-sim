@@ -262,7 +262,7 @@ def scan(
         from evmax.agents.cleanup.resolver import backfill_clv
         clv_result = backfill_clv()
         if clv_result["updated"]:
-            avg = clv_result["avg_clv"]
+            avg = clv_result.get("avg_kalshi_clv", 0.0)
             color = "green" if avg > 0 else "red"
             console.print(
                 f"[dim]  CLV backfilled: {clv_result['updated']} bet(s)  "
