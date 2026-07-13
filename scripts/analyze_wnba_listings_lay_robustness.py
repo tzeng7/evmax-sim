@@ -31,9 +31,19 @@ evmax.agents.cleanup.listings_eval — no new capture/eval logic:
                         n and the game-declustered n from (1).
 
 Read-only. Run:  .venv/bin/python scripts/analyze_wnba_listings_lay_robustness.py
+             or  .venv/bin/python scripts/analyze_wnba_listings_lay_robustness.py --check-only
+                 (fast path for a recurring scheduled check: skips the control/
+                 since-05/time-split sweeps and just prints the current
+                 game-declustered sample size, e.g. GAME_DECLUSTERED_N=24 — the
+                 number that actually gates whether re-running the full report
+                 is worth anyone's time. n_games>=30 is the same floor
+                 MIN_CLV_RESOLVED uses elsewhere; the PR #104 finding needs
+                 roughly 70-90 games for real power, so 30 is a "worth a
+                 second look" checkpoint, not "done.")
 """
 from __future__ import annotations
 
+import argparse
 import logging
 import sys
 from collections import defaultdict
@@ -129,6 +139,27 @@ def report_bucket(label: str, entries: list[AnchoredEntry]) -> None:
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--check-only", action="store_true",
+        help="Print just GAME_DECLUSTERED_N=<n> (baseline lay entries only, "
+             "skips the control/since-05/time-split sweeps) and exit. For a "
+             "cheap recurring scheduled check, not a substitute for the full "
+             "report before drawing any conclusion.",
+    )
+    args = ap.parse_args()
+
+    if args.check_only:
+        with get_archive_conn() as conn:
+            stats = evaluate_sector(
+                conn, SECTOR, ev_min_pp=EV_MIN, depth_min_usd=DEPTH_MIN,
+                market_types=MARKET_TYPES,
+            )
+        lay = [e for e in stats.entries if e.side == "lay"]
+        decl = game_declustered_summary(lay)
+        print(f"GAME_DECLUSTERED_N={decl['n_games']}")
+        return
+
     with get_archive_conn() as conn:
         stats = evaluate_sector(
             conn, SECTOR, ev_min_pp=EV_MIN, depth_min_usd=DEPTH_MIN,
@@ -204,6 +235,7 @@ def main() -> None:
     print(f"  raw n={n_all}: see baseline p-value above")
     print(f"  game-declustered n={decl['n_games']}: see game-clustering p-value above")
     print("  (p < 0.05 one-sided needed to call this distinguishable from a coin flip)")
+    print(f"\nGAME_DECLUSTERED_N={decl['n_games']}")
 
 
 if __name__ == "__main__":
