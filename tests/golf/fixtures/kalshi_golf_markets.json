@@ -1,0 +1,12 @@
+{
+  "markets": [
+    {"ticker": "KXPGATOUR-THOC26-SSCH", "yes_sub_title": "Scottie Scheffler", "title": "Will Scottie Scheffler win the The Open Championship?", "yes_bid": 12, "yes_ask": 15, "no_bid": 85, "no_ask": 88, "volume": 42000},
+    {"ticker": "KXPGATOUR-THOC26-RMCI", "yes_sub_title": "Rory McIlroy", "title": "Will Rory McIlroy win the The Open Championship?", "yes_bid": 9, "yes_ask": 12, "no_bid": 88, "no_ask": 91, "volume": 15000},
+    {"ticker": "KXPGATOUR-THOC26-MFIT", "yes_sub_title": "Matt Fitzpatrick", "title": "Will Matt Fitzpatrick win the The Open Championship?", "yes_bid": 4, "yes_ask": 6, "no_bid": 94, "no_ask": 96, "volume": 3200},
+    {"ticker": "KXPGATOUR-THOC26-TFLE", "yes_sub_title": "Tommy Fleetwood", "title": "Will Tommy Fleetwood win the The Open Championship?", "yes_bid": 3, "yes_ask": 5, "no_bid": 95, "no_ask": 97, "volume": 6100},
+    {"ticker": "KXPGATOUR-THOC26-CMOR", "yes_sub_title": "Collin Morikawa", "title": "Will Collin Morikawa win the The Open Championship?", "yes_bid": 2, "yes_ask": 4, "no_bid": 96, "no_ask": 98, "volume": 1400},
+    {"ticker": "KXPGATOUR-THOC26-XSCH", "yes_sub_title": "Xander Schauffele", "title": "Will Xander Schauffele win the The Open Championship?", "yes_bid": 3, "yes_ask": 5, "no_bid": 95, "no_ask": 97, "volume": 2600},
+    {"ticker": "KXPGATOUR-THOC26-JLPO", "yes_sub_title": "Jordan L. Smith", "title": "Will Jordan L. Smith win the The Open Championship?", "yes_bid": 1, "yes_ask": 40, "no_bid": 60, "no_ask": 99, "volume": 15},
+    {"ticker": "KXPGATOUR-THOC26-NOSK", "yes_sub_title": "Zecheng Dou", "title": "Will Zecheng Dou win the The Open Championship?", "yes_bid": null, "yes_ask": null, "no_bid": null, "no_ask": null, "volume": null}
+  ]
+}

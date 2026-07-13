@@ -1,0 +1,2408 @@
+{
+"leagues": [
+{
+"name": "PGA TOUR",
+"abbreviation": "PGA",
+"calendar": [
+{
+"label": "The Sentry",
+"startDate": "2026-01-08T08:00Z"
+},
+{
+"label": "Sony Open in Hawaii",
+"startDate": "2026-01-15T08:00Z"
+},
+{
+"label": "The American Express",
+"startDate": "2026-01-22T08:00Z"
+},
+{
+"label": "Farmers Insurance Open",
+"startDate": "2026-01-29T08:00Z"
+},
+{
+"label": "WM Phoenix Open",
+"startDate": "2026-02-05T08:00Z"
+},
+{
+"label": "AT&T Pebble Beach Pro-Am",
+"startDate": "2026-02-12T08:00Z"
+},
+{
+"label": "The Genesis Invitational",
+"startDate": "2026-02-19T08:00Z"
+},
+{
+"label": "Cognizant Classic in The Palm Beaches",
+"startDate": "2026-02-26T08:00Z"
+},
+{
+"label": "Arnold Palmer Invitational pres. by Mastercard",
+"startDate": "2026-03-05T08:00Z"
+},
+{
+"label": "Puerto Rico Open",
+"startDate": "2026-03-05T08:00Z"
+},
+{
+"label": "THE PLAYERS Championship",
+"startDate": "2026-03-12T07:00Z"
+},
+{
+"label": "Valspar Championship",
+"startDate": "2026-03-19T07:00Z"
+},
+{
+"label": "Texas Children's Houston Open",
+"startDate": "2026-03-26T07:00Z"
+},
+{
+"label": "Valero Texas Open",
+"startDate": "2026-04-02T07:00Z"
+},
+{
+"label": "Masters Tournament",
+"startDate": "2026-04-09T07:00Z"
+},
+{
+"label": "RBC Heritage",
+"startDate": "2026-04-16T07:00Z"
+},
+{
+"label": "Zurich Classic of New Orleans",
+"startDate": "2026-04-23T07:00Z"
+},
+{
+"label": "Cadillac Championship",
+"startDate": "2026-04-30T07:00Z"
+},
+{
+"label": "Truist Championship",
+"startDate": "2026-05-07T07:00Z"
+},
+{
+"label": "ONEflight Myrtle Beach Classic",
+"startDate": "2026-05-07T07:00Z"
+},
+{
+"label": "PGA Championship",
+"startDate": "2026-05-14T07:00Z"
+},
+{
+"label": "THE CJ CUP Byron Nelson",
+"startDate": "2026-05-21T07:00Z"
+},
+{
+"label": "Charles Schwab Challenge",
+"startDate": "2026-05-28T07:00Z"
+},
+{
+"label": "the Memorial Tournament pres. by Workday",
+"startDate": "2026-06-04T07:00Z"
+},
+{
+"label": "RBC Canadian Open",
+"startDate": "2026-06-11T07:00Z"
+},
+{
+"label": "U.S. Open",
+"startDate": "2026-06-18T07:00Z"
+},
+{
+"label": "Travelers Championship",
+"startDate": "2026-06-25T07:00Z"
+},
+{
+"label": "John Deere Classic",
+"startDate": "2026-07-02T07:00Z"
+},
+{
+"label": "Genesis Scottish Open",
+"startDate": "2026-07-09T07:00Z"
+},
+{
+"label": "ISCO Championship",
+"startDate": "2026-07-09T07:00Z"
+},
+{
+"label": "The Open",
+"startDate": "2026-07-16T07:00Z"
+},
+{
+"label": "Corales Puntacana Championship",
+"startDate": "2026-07-16T07:00Z"
+},
+{
+"label": "3M Open",
+"startDate": "2026-07-23T07:00Z"
+},
+{
+"label": "Rocket Classic",
+"startDate": "2026-07-30T07:00Z"
+},
+{
+"label": "Wyndham Championship",
+"startDate": "2026-08-06T07:00Z"
+},
+{
+"label": "FedEx St. Jude Championship",
+"startDate": "2026-08-13T07:00Z"
+},
+{
+"label": "BMW Championship",
+"startDate": "2026-08-20T07:00Z"
+},
+{
+"label": "TOUR Championship",
+"startDate": "2026-08-27T07:00Z"
+},
+{
+"label": "Biltmore Championship Asheville",
+"startDate": "2026-09-17T07:00Z"
+},
+{
+"label": "Presidents Cup",
+"startDate": "2026-09-24T07:00Z"
+},
+{
+"label": "Bank of Utah Championship",
+"startDate": "2026-10-01T07:00Z"
+},
+{
+"label": "Baycurrent Classic",
+"startDate": "2026-10-08T07:00Z"
+},
+{
+"label": "Butterfield Bermuda Championship",
+"startDate": "2026-10-22T07:00Z"
+},
+{
+"label": "VidantaWorld Mexico Open",
+"startDate": "2026-10-29T07:00Z"
+},
+{
+"label": "World Wide Technology Championship",
+"startDate": "2026-11-05T08:00Z"
+},
+{
+"label": "Good Good Championship",
+"startDate": "2026-11-12T08:00Z"
+},
+{
+"label": "The RSM Classic",
+"startDate": "2026-11-19T08:00Z"
+},
+{
+"label": "Hero World Challenge",
+"startDate": "2026-12-03T08:00Z"
+}
+]
+}
+],
+"events": [
+{
+"id": "401811955",
+"name": "Genesis Scottish Open",
+"status": {
+"type": {
+"state": "post",
+"completed": true
+}
+},
+"competitions": [
+{
+"competitors": [
+{
+"athlete": {
+"id": null,
+"displayName": "Tom Kim"
+},
+"score": "-17",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 65.0
+},
+{
+"value": 66.0
+},
+{
+"value": 68.0
+},
+{
+"value": 64.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Min Woo Lee"
+},
+"score": "-15",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 66.0
+},
+{
+"value": 66.0
+},
+{
+"value": 66.0
+},
+{
+"value": 67.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Johnny Keefer"
+},
+"score": "-13",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 68.0
+},
+{
+"value": 64.0
+},
+{
+"value": 67.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Keita Nakajima"
+},
+"score": "-13",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 66.0
+},
+{
+"value": 67.0
+},
+{
+"value": 67.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Robert MacIntyre"
+},
+"score": "-13",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 66.0
+},
+{
+"value": 65.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Matt Fitzpatrick"
+},
+"score": "-13",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 65.0
+},
+{
+"value": 66.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Rory McIlroy"
+},
+"score": "-12",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 65.0
+},
+{
+"value": 66.0
+},
+{
+"value": 73.0
+},
+{
+"value": 64.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Michael Thorbjornsen"
+},
+"score": "-12",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 66.0
+},
+{
+"value": 68.0
+},
+{
+"value": 65.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Si Woo Kim"
+},
+"score": "-11",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 70.0
+},
+{
+"value": 67.0
+},
+{
+"value": 66.0
+},
+{
+"value": 66.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Victor Perez"
+},
+"score": "-11",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 69.0
+},
+{
+"value": 64.0
+},
+{
+"value": 70.0
+},
+{
+"value": 66.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Kevin Roy"
+},
+"score": "-10",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 68.0
+},
+{
+"value": 65.0
+},
+{
+"value": 70.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Chris Gotterup"
+},
+"score": "-10",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 65.0
+},
+{
+"value": 66.0
+},
+{
+"value": 71.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Viktor Hovland"
+},
+"score": "-9",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 70.0
+},
+{
+"value": 69.0
+},
+{
+"value": 64.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Tommy Fleetwood"
+},
+"score": "-9",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 70.0
+},
+{
+"value": 66.0
+},
+{
+"value": 68.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Patrick Reed"
+},
+"score": "-9",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 67.0
+},
+{
+"value": 68.0
+},
+{
+"value": 68.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Wyndham Clark"
+},
+"score": "-9",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 67.0
+},
+{
+"value": 66.0
+},
+{
+"value": 71.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Francesco Molinari"
+},
+"score": "-8",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 69.0
+},
+{
+"value": 67.0
+},
+{
+"value": 68.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Alejandro Del Rey"
+},
+"score": "-8",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 72.0
+},
+{
+"value": 66.0
+},
+{
+"value": 65.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Tyrrell Hatton"
+},
+"score": "-8",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 70.0
+},
+{
+"value": 66.0
+},
+{
+"value": 67.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Joost Luiten"
+},
+"score": "-8",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 66.0
+},
+{
+"value": 70.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Cam Davis"
+},
+"score": "-7",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 70.0
+},
+{
+"value": 66.0
+},
+{
+"value": 70.0
+},
+{
+"value": 67.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Matti Schmid"
+},
+"score": "-7",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 69.0
+},
+{
+"value": 67.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Casey Jarvis"
+},
+"score": "-7",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 68.0
+},
+{
+"value": 68.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Jordan Smith"
+},
+"score": "-7",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 63.0
+},
+{
+"value": 72.0
+},
+{
+"value": 70.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Danny Willett"
+},
+"score": "-7",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 67.0
+},
+{
+"value": 67.0
+},
+{
+"value": 72.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Nick Taylor"
+},
+"score": "-6",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 70.0
+},
+{
+"value": 67.0
+},
+{
+"value": 69.0
+},
+{
+"value": 68.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Nicolai H\u00f8jgaard"
+},
+"score": "-6",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 66.0
+},
+{
+"value": 70.0
+},
+{
+"value": 70.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Ryan Gerard"
+},
+"score": "-6",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 67.0
+},
+{
+"value": 68.0
+},
+{
+"value": 71.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Marcus Armitage"
+},
+"score": "-6",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 67.0
+},
+{
+"value": 67.0
+},
+{
+"value": 72.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Tom McKibbin"
+},
+"score": "-5",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 71.0
+},
+{
+"value": 67.0
+},
+{
+"value": 70.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Andy Sullivan"
+},
+"score": "-5",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 68.0
+},
+{
+"value": 69.0
+},
+{
+"value": 70.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Ryan Fox"
+},
+"score": "-5",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 71.0
+},
+{
+"value": 65.0
+},
+{
+"value": 69.0
+},
+{
+"value": 70.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Austin Eckroat"
+},
+"score": "-5",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 70.0
+},
+{
+"value": 66.0
+},
+{
+"value": 69.0
+},
+{
+"value": 70.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Mac Meissner"
+},
+"score": "-5",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 71.0
+},
+{
+"value": 67.0
+},
+{
+"value": 64.0
+},
+{
+"value": 73.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Karl Vilips"
+},
+"score": "-5",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 70.0
+},
+{
+"value": 64.0
+},
+{
+"value": 68.0
+},
+{
+"value": 73.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Shaun Norris"
+},
+"score": "-4",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 70.0
+},
+{
+"value": 71.0
+},
+{
+"value": 67.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Brian Harman"
+},
+"score": "-4",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 70.0
+},
+{
+"value": 68.0
+},
+{
+"value": 70.0
+},
+{
+"value": 68.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Rasmus H\u00f8jgaard"
+},
+"score": "-4",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 65.0
+},
+{
+"value": 73.0
+},
+{
+"value": 70.0
+},
+{
+"value": 68.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Max Greyserman"
+},
+"score": "-4",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 69.0
+},
+{
+"value": 69.0
+},
+{
+"value": 69.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Nico Echavarria"
+},
+"score": "-4",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 70.0
+},
+{
+"value": 69.0
+},
+{
+"value": 69.0
+}
+]
+}
+]
+}
+]
+},
+{
+"id": "401811956",
+"name": "ISCO Championship",
+"status": {
+"type": {
+"state": "post",
+"completed": true
+}
+},
+"competitions": [
+{
+"competitors": [
+{
+"athlete": {
+"id": null,
+"displayName": "Steven Fisk"
+},
+"score": "-16",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 63.0
+},
+{
+"value": 66.0
+},
+{
+"value": 68.0
+},
+{
+"value": 67.0
+},
+{
+"value": 12.0
+},
+{
+"value": null
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Taylor Pendrith"
+},
+"score": "-15",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 70.0
+},
+{
+"value": 63.0
+},
+{
+"value": 66.0
+},
+{
+"value": 65.0
+},
+{
+"value": 13.0
+},
+{
+"value": null
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Ben Silverman"
+},
+"score": "-15",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 68.0
+},
+{
+"value": 64.0
+},
+{
+"value": 66.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Aaron Wise"
+},
+"score": "-15",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 65.0
+},
+{
+"value": 65.0
+},
+{
+"value": 66.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Kristoffer Ventura"
+},
+"score": "-14",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 68.0
+},
+{
+"value": 64.0
+},
+{
+"value": 66.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Davis Chatfield"
+},
+"score": "-14",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 64.0
+},
+{
+"value": 68.0
+},
+{
+"value": 66.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Lucas Glover"
+},
+"score": "-14",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 63.0
+},
+{
+"value": 64.0
+},
+{
+"value": 68.0
+},
+{
+"value": 71.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Manuel Elvira"
+},
+"score": "-13",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 65.0
+},
+{
+"value": 67.0
+},
+{
+"value": 67.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Zac Blair"
+},
+"score": "-13",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 69.0
+},
+{
+"value": 65.0
+},
+{
+"value": 64.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Thomas Rosenmueller"
+},
+"score": "-12",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 66.0
+},
+{
+"value": 70.0
+},
+{
+"value": 67.0
+},
+{
+"value": 65.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Jackson Koivun"
+},
+"score": "-12",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 68.0
+},
+{
+"value": 66.0
+},
+{
+"value": 67.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Mackenzie Hughes"
+},
+"score": "-12",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 66.0
+},
+{
+"value": 68.0
+},
+{
+"value": 66.0
+},
+{
+"value": 68.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "William Mouw"
+},
+"score": "-12",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 63.0
+},
+{
+"value": 68.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Tom Hoge"
+},
+"score": "-12",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 66.0
+},
+{
+"value": 67.0
+},
+{
+"value": 65.0
+},
+{
+"value": 70.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Ben Kohles"
+},
+"score": "-11",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 71.0
+},
+{
+"value": 66.0
+},
+{
+"value": 66.0
+},
+{
+"value": 66.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Takumi Kanaya"
+},
+"score": "-11",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 66.0
+},
+{
+"value": 68.0
+},
+{
+"value": 68.0
+},
+{
+"value": 67.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Ben James"
+},
+"score": "-11",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 65.0
+},
+{
+"value": 69.0
+},
+{
+"value": 67.0
+},
+{
+"value": 68.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Chandler Phillips"
+},
+"score": "-11",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 66.0
+},
+{
+"value": 67.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Rafael Campos"
+},
+"score": "-11",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 66.0
+},
+{
+"value": 67.0
+},
+{
+"value": 66.0
+},
+{
+"value": 70.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Stephan Jaeger"
+},
+"score": "-11",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 63.0
+},
+{
+"value": 69.0
+},
+{
+"value": 65.0
+},
+{
+"value": 72.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Beau Hossler"
+},
+"score": "-10",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 69.0
+},
+{
+"value": 68.0
+},
+{
+"value": 68.0
+},
+{
+"value": 65.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Ugo Coussaud"
+},
+"score": "-10",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 69.0
+},
+{
+"value": 67.0
+},
+{
+"value": 69.0
+},
+{
+"value": 65.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Nick Hardy"
+},
+"score": "-10",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 66.0
+},
+{
+"value": 68.0
+},
+{
+"value": 70.0
+},
+{
+"value": 66.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Christiaan Bezuidenhout"
+},
+"score": "-10",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 72.0
+},
+{
+"value": 65.0
+},
+{
+"value": 66.0
+},
+{
+"value": 67.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Wenyi Ding"
+},
+"score": "-10",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 69.0
+},
+{
+"value": 67.0
+},
+{
+"value": 67.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "F\u00e9lix Mory"
+},
+"score": "-10",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 69.0
+},
+{
+"value": 68.0
+},
+{
+"value": 65.0
+},
+{
+"value": 68.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Ben Martin"
+},
+"score": "-10",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 69.0
+},
+{
+"value": 66.0
+},
+{
+"value": 68.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Sam Bairstow"
+},
+"score": "-10",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 70.0
+},
+{
+"value": 64.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Jeong weon Ko"
+},
+"score": "-10",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 65.0
+},
+{
+"value": 65.0
+},
+{
+"value": 71.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Jacob Skov Olesen"
+},
+"score": "-9",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 70.0
+},
+{
+"value": 65.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Chad Ramey"
+},
+"score": "-9",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 67.0
+},
+{
+"value": 68.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Joel Dahmen"
+},
+"score": "-9",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 67.0
+},
+{
+"value": 68.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Alejandro Tosti"
+},
+"score": "-9",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 66.0
+},
+{
+"value": 67.0
+},
+{
+"value": 71.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Joel Girrbach"
+},
+"score": "-8",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 69.0
+},
+{
+"value": 71.0
+},
+{
+"value": 65.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Euan Walker"
+},
+"score": "-8",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 70.0
+},
+{
+"value": 69.0
+},
+{
+"value": 66.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "A.J. Ewart"
+},
+"score": "-8",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 66.0
+},
+{
+"value": 67.0
+},
+{
+"value": 72.0
+},
+{
+"value": 67.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Dylan Wu"
+},
+"score": "-8",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 68.0
+},
+{
+"value": 68.0
+},
+{
+"value": 67.0
+},
+{
+"value": 69.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Chan Kim"
+},
+"score": "-8",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 64.0
+},
+{
+"value": 65.0
+},
+{
+"value": 68.0
+},
+{
+"value": 75.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Oihan Guillamoundeguy"
+},
+"score": "-7",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 67.0
+},
+{
+"value": 69.0
+},
+{
+"value": 72.0
+},
+{
+"value": 65.0
+}
+]
+},
+{
+"athlete": {
+"id": null,
+"displayName": "Cameron Champ"
+},
+"score": "-7",
+"status": {
+"position": {
+"displayName": null
+},
+"thru": null
+},
+"linescores": [
+{
+"value": 66.0
+},
+{
+"value": 70.0
+},
+{
+"value": 71.0
+},
+{
+"value": 66.0
+}
+]
+}
+]
+}
+]
+}
+]
+}
