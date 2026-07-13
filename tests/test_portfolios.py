@@ -10,10 +10,12 @@ import pytest
 
 from evmax.portfolios import (
     Portfolio,
+    PROP_SECTOR_GROUPS,
     SCENARIOS,
     SECTOR_GROUPS,
     create_default_portfolios,
     create_portfolio,
+    create_prop_portfolios,
     delete_portfolio,
     drop_voided_portfolio_bets,
     get_portfolio,
@@ -76,6 +78,38 @@ class TestDefaultPortfolios:
         create_default_portfolios()
         portfolios = list_portfolios(active_only=False)
         expected = len(SECTOR_GROUPS) * len(SCENARIOS)
+        assert len(portfolios) == expected
+
+
+class TestPropPortfolios:
+    """Player-prop portfolios mirror SECTOR_GROUPS/create_default_portfolios
+    but over PROP_SECTOR_GROUPS. baseball_props was added alongside the
+    coordinator._PROP_SECTORS fix that lets MLB props actually log to
+    prop_observations — this locks in that it gets its own portfolio
+    section the same way nba_props/nfl_props already do."""
+
+    def test_creates_all_prop_groups(self):
+        created = create_prop_portfolios(backfill=False)
+        expected = len(PROP_SECTOR_GROUPS) * len(SCENARIOS)
+        assert len(created) == expected
+        for p in created:
+            assert p.scenario in SCENARIOS
+            assert p.active is True
+
+    def test_baseball_props_group_present(self):
+        assert "baseball_props" in PROP_SECTOR_GROUPS
+        assert PROP_SECTOR_GROUPS["baseball_props"]["sectors"] == ["baseball_props"]
+
+        create_prop_portfolios(backfill=False)
+        ids = {p.id for p in list_portfolios(active_only=False)}
+        for scenario in SCENARIOS:
+            assert f"baseball_props_{scenario}" in ids
+
+    def test_idempotent(self):
+        create_prop_portfolios(backfill=False)
+        create_prop_portfolios(backfill=False)
+        portfolios = list_portfolios(active_only=False)
+        expected = len(PROP_SECTOR_GROUPS) * len(SCENARIOS)
         assert len(portfolios) == expected
 
 
