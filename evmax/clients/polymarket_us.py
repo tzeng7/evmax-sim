@@ -76,8 +76,13 @@ POLYMARKET_US_LEAGUE_MAP: dict[str, list[str]] = {
 # Sports whose event titles list the HOME side first ("Qairat vs Sutjeska";
 # tennis lists the "home" player first per its side orderings). US team
 # sports list the away side first — this is the fallback when no market
-# side carries a usable team.ordering.
-_HOME_FIRST_LEAGUES = {"epl", "ucl", "mls", "atp", "wta"}
+# side carries a usable team.ordering. Slugs verified against the /v2/sports
+# catalog's per-league `ordering` field (all soccer + esports = "home").
+_HOME_FIRST_LEAGUES = {
+    "epl", "ucl", "mls", "atp", "wta",
+    "fwc", "uefa", "lal", "bun", "sea",  # World Cup + extra soccer leagues
+    "lol", "cs2",                         # esports
+}
 
 # sportsMarketType values we accept. Anything with a period qualifier
 # (first_five, first_half, sets, quarters…) would otherwise fuzzy-match the
@@ -209,15 +214,24 @@ class PolymarketUSClient(BaseAPIClient):
         sector: str,
         status: str = "open",
         limit: int = 200,
+        leagues: Optional[list[str]] = None,
     ) -> list[PredictionMarket]:
         """Fetch active full-game markets for a sector across its leagues.
 
         Signature mirrors KalshiClient.get_markets. `status` is accepted for
         interface parity; the league-events endpoint only returns active
         (non-closed) events, so it is not forwarded.
+
+        ``leagues`` overrides the sector's POLYMARKET_US_LEAGUE_MAP entry —
+        used by callers with broader coverage needs than the betting pipeline
+        (e.g. the arb scanner's ARB_LEAGUE_MAP, which adds worldcup/lol/cs2
+        without flipping them on for scans). Overridden fetches get their own
+        cache namespace so they can't poison the betting pipeline's cache.
         """
         cfg = get_settings()
         cache_key = f"polymarket_us_{sector}_{status}"
+        if leagues is not None:
+            cache_key += "_" + "-".join(sorted(leagues))
 
         if cfg.offline_mode:
             raw = cache_get_offline(cache_key)
@@ -228,7 +242,8 @@ class PolymarketUSClient(BaseAPIClient):
             if raw is not None:
                 return [PredictionMarket.model_validate(r) for r in raw]
 
-        leagues = POLYMARKET_US_LEAGUE_MAP.get(sector.lower(), [])
+        if leagues is None:
+            leagues = POLYMARKET_US_LEAGUE_MAP.get(sector.lower(), [])
 
         async def _fetch_league(league: str) -> list[PredictionMarket]:
             try:
