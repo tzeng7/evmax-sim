@@ -807,8 +807,13 @@ class AgentCoordinator:
     # Single-sector cycle
     # ------------------------------------------------------------------
 
-    # Sectors that have Kalshi player prop series + TheOddsAPI prop coverage
-    _PROP_SECTORS = {"nba", "nfl"}
+    # Sectors that have Kalshi player prop series + a sharp prop anchor.
+    # baseball added 2026-07-13: the KXMLBKS/KXMLBOUTS/KXMLBTB/KXMLBHR/
+    # KXMLBHIT/KXMLBHRR/KXMLBRBI props + Pinnacle-anchored pricing were
+    # built and validated (see baseball_props_cache.py, ev/prop_pricing.py)
+    # but this set was never updated, so _fetch_props was never invoked for
+    # baseball scans — the whole pipeline was dead in production.
+    _PROP_SECTORS = {"nba", "nfl", "baseball"}
 
     async def _run_sector(self, sector: str, correlation_id: str) -> dict:
         req = AgentRequest(sector=sector, correlation_id=correlation_id)
