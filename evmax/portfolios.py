@@ -89,8 +89,9 @@ SECTOR_GROUPS = {
 # simulated from prop_observations (resolved + ev_pct >= 2%) since
 # nba_props is in shadow mode and doesn't run through the live scan path.
 PROP_SECTOR_GROUPS = {
-    "nba_props":  {"sectors": ["nba_props"],  "label": "NBA Props"},
-    "nfl_props":  {"sectors": ["nfl_props"],  "label": "NFL Props"},
+    "nba_props":      {"sectors": ["nba_props"],      "label": "NBA Props"},
+    "nfl_props":      {"sectors": ["nfl_props"],      "label": "NFL Props"},
+    "baseball_props": {"sectors": ["baseball_props"], "label": "MLB Props"},
 }
 
 # Single source of truth for which prop probability source the simulation
