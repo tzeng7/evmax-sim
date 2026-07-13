@@ -69,3 +69,7 @@ data/models/*.backup.*.json
 
 # shufinskiy/nba_data historical archive (~200MB, fetched via scripts/fetch_shufinskiy.py)
 data/historical_nba/
+
+# evmax golf module — generated data (fetched ESPN cache + live capture snapshots)
+data/golf_backtest_cache/
+data/golf_captures/
