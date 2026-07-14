@@ -294,7 +294,7 @@ The per-sector weight overrides live in `SECTOR_WEIGHT_OVERRIDES` in [`ensemble_
 
 ### Per-Sector Ensemble Weights
 
-Most sectors replace some or all of the generic Elo/Form/Poisson core with dedicated models. Sectors not listed (NCAAB, NCAAW, LoL, CS2) fall back to the default class weights (Elo 0.35 · Form 0.25 · Poisson 0.40-where-supported) — or to sharp-only where no model clears the confidence gate.
+Most sectors replace some or all of the generic Elo/Form/Poisson core with dedicated models. Sectors not listed (LoL, CS2) fall back to the default class weights (Elo 0.35 · Form 0.25 · Poisson 0.40-where-supported) — or to sharp-only where no model clears the confidence gate. NCAAB and NCAAW gained their own opponent-adjusted efficiency overrides on 2026-07-11 (`ncaab`/`ncaaw` in `SECTOR_WEIGHT_OVERRIDES`).
 
 | Model | NBA | WNBA | NFL | Soccer / World Cup | Baseball | NHL |
 |-------|-----|------|-----|--------------------|----------|-----|
@@ -525,7 +525,7 @@ is added to the winner's rating and subtracted from the loser's.
 |--------|----------|--------------------------|
 | NFL | 25 | +48 |
 | NBA | 20 | +100 |
-| NCAAB | 20 | +80 |
+| NCAAB | 20 | +70 |
 | Soccer | 30 | +60 |
 | LoL / CS2 | 20 | 0 (online) |
 
@@ -1572,14 +1572,14 @@ All settings live in `.env` (or environment variables):
 
 The full catalog — every bettable category, its models, mode, resolver, and status — lives in one registry: [`data/categories.yaml`](data/categories.yaml). Read it at runtime via `evmax.categories.all_categories()` or `evmax categories list`. The table below is a snapshot for orientation; the YAML is authoritative.
 
-All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api.arcadia.pinnacle.com/0.1`). 15 categories ship today:
+All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api.arcadia.pinnacle.com/0.1`). 16 categories ship today:
 
 | Category | Models | Market Types | Resolver | Mode |
 |----------|--------|--------------|----------|------|
 | `nba` | Efficiency + PossessionSim + ShotQuality + Matchup + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
 | `nfl` | NFL Efficiency + NFL QB Elo + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
-| `ncaab` | Elo + Form + Poisson | moneyline, spread, total | espn_scoreboard | `live` |
-| `ncaaw` | Form | moneyline, spread, total | espn_scoreboard | `live` |
+| `ncaab` | NCAAB Efficiency + PossessionSim + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
+| `ncaaw` | NCAAW Efficiency + PossessionSim + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
 | `soccer` | Poisson + xG + Elo + Form | moneyline, total | espn_scoreboard | `live` |
 | `worldcup` | Poisson + xG + Elo + Form (national-team namespaces) | moneyline, advance | espn_scoreboard (`fifa.world`) | `shadow` |
 | `tennis` | Surface Elo + Serve/Return + Form + Advanced + H2H + Ranking Trend | moneyline | kalshi_settlement | `live` |
@@ -1588,11 +1588,12 @@ All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api
 | `nhl` | NHL xG (MoneyPuck) + Form | moneyline, spread, total | espn_scoreboard | `shadow` |
 | `lol` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
 | `cs2` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
+| `ufc` | UFC Rating (Glicko-2 + feature layer) | moneyline | kalshi_settlement | `shadow` |
 | `nba_props` | NBA Props Cache | player_prop | espn_boxscore | `shadow` |
 | `nfl_props` | NFL Props Cache (QB only v1) | player_prop | espn_boxscore | `shadow` (blocked) |
 | `baseball_props` | Baseball Props Model (K/Outs/TB/HR anchored; Hits/H+R+RBI/RBI model-priced) | player_prop | espn_boxscore | `shadow` (wip) |
 
-> Injury data (ESPN) is applied to NBA / NFL / NCAAB / NCAAW / soccer / worldcup / baseball / WNBA / NHL. `valorant`, `ufc`, and `f1` sector handlers exist in the registry as **latent** sectors but have no Kalshi product, so they're absent from `SECTOR_SERIES_MAP` and cannot be bet today.
+> Injury data (ESPN) is applied to NBA / NFL / NCAAB / NCAAW / soccer / WNBA (`SECTOR_INJURY_URLS` in `injury_agent.py`). `valorant` and `f1` sector handlers exist in the registry as **latent** sectors but have no Kalshi product, so they're absent from `SECTOR_SERIES_MAP` and cannot be bet today; `ufc` graduated from that latent list to a live `shadow` sector on 2026-07-11 (`KXUFCFIGHT`).
 
 ### Modes
 
@@ -1622,8 +1623,10 @@ Every category runs in one of three modes (`evmax.modes.get_mode`):
 | Tennis | `KXATPMATCH`, `KXWTAMATCH` |
 | LoL | `KXLOLGAME` |
 | CS2 | `KXCS2GAME`, `KXCS2GAMES` |
+| UFC | `KXUFCFIGHT` |
 | NBA Props | `KXNBAPTS`, `KXNBAREB`, `KXNBAAST`, `KXNBA3PT`, `KXNBASTL`, `KXNBABLK`, `KXNBAPRA` |
 | NFL Props | `KXNFLPASSYDS`, `KXNFLRSHYDS`, `KXNFLRECYDS`, `KXNFLANYTD`, `KXNFLPASSTDS`, `KXNFLREC` |
+| Baseball Props | `KXMLBKS`, `KXMLBOUTS`, `KXMLBTB`, `KXMLBHR`, `KXMLBHIT`, `KXMLBHRR`, `KXMLBRBI` |
 
 **Market types supported:**
 
