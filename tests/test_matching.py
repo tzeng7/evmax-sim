@@ -82,6 +82,18 @@ class TestNameNormalizer:
         assert norm.normalize("tor") == "torino"
         assert norm.normalize("Toronto FC") == "toronto"
 
+    def test_wnba_portland_fire_pdx_alias(self):
+        """Kalshi's WNBA moneyline/spread tickers encode Portland Fire as
+        PDX (airport code), not POR — moneyline/spread markets parse team
+        codes straight from the ticker (unlike totals, which parse full
+        names from the title), so an unresolved 'pdx' silently broke
+        Kalshi↔Pinnacle matching for that market type while totals and
+        Polymarket US (full-name feed) matched fine."""
+        norm = NameNormalizer("wnba")
+        assert norm.normalize("pdx") == "fire"
+        assert norm.normalize("por") == "fire"
+        assert norm.normalize("Portland Fire") == "fire"
+
 
 class TestFuzzyMatch:
     def test_exact_match(self):
