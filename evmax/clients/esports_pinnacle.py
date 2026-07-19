@@ -39,6 +39,10 @@ from evmax.settings import get_settings
 
 logger = structlog.get_logger(__name__)
 
+# Pinnacle prefixes doubleheader-nightcap participant names with "G1 "/"G2 "
+# (e.g. "G2 New York Yankees"). Baseball-only — see `_normalize`.
+_DOUBLEHEADER_PREFIX_RE = re.compile(r"^g[12]\s+", re.IGNORECASE)
+
 GUEST_API_BASE = "https://guest.api.arcadia.pinnacle.com/0.1"
 
 # sport_id → list of league_ids we care about
@@ -800,6 +804,14 @@ class PinnacleGuestClient(BaseAPIClient):
 
     @staticmethod
     def _normalize(name: str, sector: str) -> str:
+        if sector == "baseball":
+            # Doubleheader nightcaps carry a "G2 " participant-name prefix
+            # from Pinnacle (e.g. "G2 New York Yankees") with no matching
+            # alias entry, so the pair silently never matches (produces
+            # "g2_new_york_yankees" instead of "yankees"). Baseball-only:
+            # "G2" is a real esports org name (G2 Esports, LoL/CS2) that
+            # must never be stripped there.
+            name = _DOUBLEHEADER_PREFIX_RE.sub("", name)
         from evmax.matching.normalizer import NameNormalizer
         normalized = NameNormalizer(sector).normalize(name)
         return normalized.replace(" ", "_").replace(".", "")

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from evmax.clients.esports_pinnacle import (
     NAME_MATCHED_SECTORS,
+    PinnacleGuestClient,
     TOTALS_MAIN_LINE_ONLY_SECTORS,
     TOTALS_SECTORS,
 )
@@ -48,3 +49,21 @@ def test_live_totals_sectors_keep_their_alt_ladder():
     # their Kalshi alt strikes would lose exact-line matching.
     for sector in ("nba", "nfl", "wnba"):
         assert sector not in TOTALS_MAIN_LINE_ONLY_SECTORS
+
+
+def test_baseball_doubleheader_prefix_stripped():
+    # Pinnacle prefixes doubleheader-nightcap participants with "G2 " (e.g.
+    # "G2 New York Yankees"), which has no alias entry — the unstripped
+    # prefix silently produced "g2_new_york_yankees" event ids that could
+    # never match Kalshi's plain "yankees_vs_dodgers" key, dropping every
+    # doubleheader Game 2 from the scan.
+    assert PinnacleGuestClient._normalize("G2 New York Yankees", "baseball") == "yankees"
+    assert PinnacleGuestClient._normalize("G1 Los Angeles Dodgers", "baseball") == "dodgers"
+    # Game 1 with no prefix still resolves normally.
+    assert PinnacleGuestClient._normalize("New York Yankees", "baseball") == "yankees"
+
+
+def test_g2_esports_org_name_not_stripped():
+    # G2 Esports is a real LoL/CS2 organization — the doubleheader-prefix
+    # strip is baseball-only and must never eat this team's actual name.
+    assert PinnacleGuestClient._normalize("G2 Esports", "lol") == "g2"

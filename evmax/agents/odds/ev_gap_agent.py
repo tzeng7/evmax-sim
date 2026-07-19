@@ -1440,6 +1440,16 @@ class EVGapAgent(Agent):
             return None
         src = "pinnacle_anchor"
 
+        # Dead-orderbook guard (same fix as _evaluate_pair / commit 3de2c26):
+        # a 1¢ ask is Kalshi's minimum tick once all YES bids are pulled —
+        # common for a player-prop stat that's already been decided in-game
+        # (e.g. a pitcher pulled after 5 innings with the K count locked in).
+        # The pre-game anchor-pricing estimate has no live in-game state, so
+        # it keeps projecting the pre-game probability against a price that
+        # already reflects the real outcome, producing bogus 5000%+ "edges".
+        if market.yes_price >= 0.99 or market.yes_price <= 0.01:
+            return None
+
         # Injury boost: when TEAMMATES are OUT, this player absorbs usage.
         #
         # We look up the player's team directly from the NBA props cache rather

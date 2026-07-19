@@ -33,7 +33,9 @@ aliases:
   "washington nationals": "nationals"
   # Abbreviations (ESPN / Pinnacle / Kalshi)
   "ari": "diamondbacks"
+  "ath": "athletics"  # Kalshi's current MLB ticker code for the Athletics (post-Oakland rebrand); "oak" kept below for older/ESPN feeds
   "atl": "braves"
+  "az": "diamondbacks"  # Kalshi's current MLB ticker code for Arizona; "ari" kept above for older/ESPN feeds
   "bal": "orioles"
   "bos": "red sox"
   "chc": "cubs"
