@@ -44,6 +44,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+import httpx
 import structlog
 from aiolimiter import AsyncLimiter
 
@@ -270,6 +271,40 @@ class PolymarketUSClient(BaseAPIClient):
             cache_set(cache_key, [m.model_dump(mode="json") for m in all_markets])
 
         return all_markets
+
+    # ------------------------------------------------------------------
+    # Settlement (outcome resolution)
+    # ------------------------------------------------------------------
+
+    async def get_market_settlement(self, market_slug: str) -> Optional[float]:
+        """Settlement price for a market slug, or None if not yet settled.
+
+        ``GET /v1/markets/{slug}/settlement`` 404s until the market settles.
+        The price is quoted for the market's LONG side: 1 → long side won,
+        0 → short side won. A fractional value is a non-binary settlement
+        (tie 50-50, cancellation at last-traded prices, pre-match walkover
+        per the market rules) — the caller's cue to void rather than score.
+        """
+        try:
+            await _POLYMARKET_US_RATE_LIMITER.acquire()
+            data = await self._get(f"/v1/markets/{market_slug}/settlement")
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                return None
+            raise
+        settlement = data.get("settlement")
+        return float(settlement) if settlement is not None else None
+
+    async def get_market_sides(self, market_slug: str) -> list[dict[str, Any]]:
+        """Raw ``marketSides`` for a market slug (works after close/settle).
+
+        Used at resolve time to map a per-side market id
+        (``polymarket_us:{slug}:{side_key}``) back to the long/short
+        instrument the settlement price is quoted for.
+        """
+        await _POLYMARKET_US_RATE_LIMITER.acquire()
+        data = await self._get(f"/v1/market/slug/{market_slug}")
+        return (data.get("market") or {}).get("marketSides", []) or []
 
     # ------------------------------------------------------------------
     # Parsing

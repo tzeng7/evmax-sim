@@ -209,7 +209,7 @@ baseball_props:
   prop_stat_types: [strikeouts, pitching_outs, total_bases, home_runs, hits, hits_runs_rbis, rbis]
   models: [baseball_props_model]
   mode: shadow
-  resolver: espn_boxscore
+  resolver: mlb_statsapi
   status: wip
   season_window: {start: "03-20", end: "11-05"}
   notes: "Added 2026-06-27. Kalshi series: KXMLBKS (pitcher Ks), KXMLBOUTS (outs recorded), KXMLBTB (total bases), KXMLBHR (home runs), KXMLBHIT (hits), KXMLBHRR (hits+runs+RBIs), KXMLBRBI (RBIs). Pinnacle (sport_id=3, league 246) posts player-prop specials for Total Strikeouts / Pitching Outs / Total Bases / Home Runs ONLY — so K/Outs/TB/HR get a real sharp anchor (devig → prop_pricing distribution → P(>=threshold)), while Hits / H+R+RBI / RBIs have NO Pinnacle line and are priced by the baseball_props_model projection (bridged off the Pinnacle Total-Bases anchor where present). SHADOW until Brier-vs-Kalshi + edge-vs-sharp validate per the props gate; model blend weights start conservative. Resolution via MLB box scores. Avoid the cheap-longshot bucket that sank nba_props (−223u, 73% from <10c) — gate out sub-~12c YES. NegBin/Poisson dispersion params in ev/prop_pricing.py are PROVISIONAL pending scripts/backtest_mlb_props.py calibration."

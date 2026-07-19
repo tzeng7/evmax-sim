@@ -93,6 +93,7 @@ KNOWN_MODELS: set[str] = {
 KNOWN_RESOLVERS: set[str] = {
     "espn_scoreboard",
     "espn_boxscore",
+    "mlb_statsapi",
     "bo3gg",
     "kalshi_settlement",
     "none",
