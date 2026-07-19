@@ -145,14 +145,22 @@ def parse_soccer_extra_csv(
     """Parse a football-data.co.uk "new leagues" all-seasons CSV.
 
     Schema differs from the top-5 per-season files: Season/Home/Away/HG/AG/Res
-    columns, Pinnacle odds as PH/PD/PA (closing PSCH/PSCD/PSCA in recent
-    files — preferred when present), and no shot columns (xG legs stay None
-    and the walk-forward renormalizes over the remaining models).
+    columns, closing odds only, and no shot columns (xG legs stay None and
+    the walk-forward renormalizes over the remaining models).
+
+    Odds anchor fallback chain, per row: Pinnacle closing (PSCH/PSCD/PSCA)
+    → pre-closing Pinnacle (PH/PD/PA, present in some extra files) → market-
+    average closing (AvgCH/AvgCD/AvgCA). The fallback matters in practice:
+    USA.csv carries NO Pinnacle columns for the in-progress season (2026 rows
+    are AvgC*/B365C*-only), so without it the holdout year is unscorable.
+    Anchor-source counts are logged so a run can see how much of the corpus
+    rode the consensus-average proxy.
     """
     rows: list[BacktestRow] = []
     league_name = SOCCER_EXTRA_LEAGUES.get(league_code, league_code)
     want_years = {str(_season_code_to_year(s)) for s in seasons}
     skipped = 0
+    anchor_counts = {"pinnacle_close": 0, "pinnacle": 0, "avg_close": 0}
 
     with open(path, encoding="utf-8", errors="replace") as f:
         reader = csv.DictReader(f)
@@ -175,10 +183,19 @@ def parse_soccer_extra_csv(
                 skipped += 1
                 continue
 
-            # Prefer explicit Pinnacle closing odds when the file carries them.
-            psh = _safe_float(raw.get("PSCH", "")) or _safe_float(raw.get("PH", ""))
-            psd = _safe_float(raw.get("PSCD", "")) or _safe_float(raw.get("PD", ""))
-            psa = _safe_float(raw.get("PSCA", "")) or _safe_float(raw.get("PA", ""))
+            psh = psd = psa = None
+            for keys, label in (
+                (("PSCH", "PSCD", "PSCA"), "pinnacle_close"),
+                (("PH", "PD", "PA"), "pinnacle"),
+                (("AvgCH", "AvgCD", "AvgCA"), "avg_close"),
+            ):
+                h = _safe_float(raw.get(keys[0], ""))
+                d = _safe_float(raw.get(keys[1], ""))
+                a = _safe_float(raw.get(keys[2], ""))
+                if all([h, d, a]):
+                    psh, psd, psa = h, d, a
+                    anchor_counts[label] += 1
+                    break
 
             if not all([psh, psd, psa]):
                 skipped += 1
@@ -226,6 +243,7 @@ def parse_soccer_extra_csv(
         seasons=sorted(want_years),
         rows=len(rows),
         skipped=skipped,
+        anchors=anchor_counts,
     )
     return rows
 

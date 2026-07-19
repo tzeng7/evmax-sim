@@ -39,20 +39,23 @@ def test_multi_season_load():
     assert years == {2025, 2026}
 
 
-def test_prefers_closing_odds_when_present():
+def test_prefers_pinnacle_closing_when_present():
     rows = parse_soccer_extra_csv(FIXTURE, "USA", ["2425"])
     miami = next(r for r in rows if r.team_home == "Inter Miami")
-    # PSCH=1.62 preferred over PH=1.65.
+    # PSCH=1.62 preferred over AvgCH=1.63.
     assert miami.pinnacle_home_dec == 1.62
     assert miami.pinnacle_draw_dec == 4.25
     assert miami.pinnacle_away_dec == 5.10
 
 
-def test_falls_back_to_ph_when_closing_absent():
+def test_falls_back_to_avg_close_when_pinnacle_absent():
+    # USA.csv carries NO Pinnacle columns for the in-progress season —
+    # those rows ride the market-average close (AvgC*).
     rows = parse_soccer_extra_csv(FIXTURE, "USA", ["2526"])
     austin = next(r for r in rows if r.team_home == "Austin FC")
-    # PSCH empty → PH=2.10 used.
-    assert austin.pinnacle_home_dec == 2.10
+    assert austin.pinnacle_home_dec == 2.05
+    assert austin.pinnacle_draw_dec == 3.35
+    assert austin.pinnacle_away_dec == 3.55
 
 
 def test_no_shot_columns_yield_none():
@@ -67,9 +70,9 @@ def test_missing_goals_kept_with_result():
     assert portland.home_won is True  # Res=H still parsed
 
 
-def test_row_without_any_pinnacle_odds_skipped():
+def test_row_without_any_supported_anchor_skipped():
     rows = parse_soccer_extra_csv(FIXTURE, "USA", ["2526"])
-    # Nashville row has neither PSC* nor PH/PD/PA → skipped.
+    # Nashville row has only B365C* (not in the fallback chain) → skipped.
     assert not any(r.team_home == "Nashville SC" for r in rows)
 
 
