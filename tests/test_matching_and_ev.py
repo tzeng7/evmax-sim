@@ -1192,6 +1192,59 @@ class TestEvaluatePair:
 
 
 # ---------------------------------------------------------------------------
+# Disabled market_type early-out
+# ---------------------------------------------------------------------------
+
+class TestDisabledMarketTypeSkip:
+    """_evaluate_pair must bail before running the spread/total distribution
+    model when the category disables this market_type — baseball totals are
+    the live example (data/categories.yaml disabled_market_types: [total]).
+    Regression for the case where the model still computed (and logged a
+    line-too-far warning) on every scan for a market_type that never gets
+    persisted."""
+
+    def setup_method(self):
+        self.agent = _make_ev_gap_agent()
+
+    def test_baseball_total_returns_none_even_with_positive_ev(self):
+        market = _market(
+            team_home="dodgers", team_away="padres",
+            sector="baseball", market_type=MarketType.total, line=8.5,
+            yes_price=0.40, yes_team="over",
+        )
+        sharp = _total_sharp(
+            event_id="baseball::2026-07-19::dodgers_vs_padres",
+            sector="baseball", total_line=8.5, true_prob_over=0.60,
+        )
+        gap = self.agent._evaluate_pair(
+            market=market, sharp=sharp, confidence=95.0, sector="baseball",
+            blended_preds={}, injuries={}, model_sources={}, kelly_base=0.25,
+            steam_events=set(),
+        )
+        assert gap is None
+
+    def test_baseball_moneyline_still_evaluated(self):
+        """Only `total` is disabled for baseball — moneyline must be unaffected."""
+        market = _market(
+            team_home="dodgers", team_away="padres",
+            sector="baseball", market_type=MarketType.moneyline,
+            yes_price=0.52, yes_team="dodgers",
+        )
+        event_id = "baseball::2026-07-19::dodgers_vs_padres"
+        sharp = _moneyline_sharp(
+            event_id=event_id,
+            sector="baseball", outcome_a="dodgers", outcome_b="padres",
+            true_prob_a=0.60,
+        )
+        gap = self.agent._evaluate_pair(
+            market=market, sharp=sharp, confidence=95.0, sector="baseball",
+            blended_preds={}, injuries={}, model_sources={event_id: "sharp+pitcher"},
+            kelly_base=0.25, steam_events=set(),
+        )
+        assert gap is not None
+
+
+# ---------------------------------------------------------------------------
 # NO-side spread (synthesized "+spread" cover)
 # ---------------------------------------------------------------------------
 

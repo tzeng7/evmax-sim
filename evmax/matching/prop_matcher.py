@@ -87,11 +87,21 @@ class PropMatcher:
             if match:
                 so, conf = match
                 results.append((market, so, conf))
-                logger.debug(
-                    "prop_matched",
-                    player=market.player_name,
-                    stat=market.stat_type,
-                    threshold=market.threshold,
-                    confidence=round(conf, 2),
-                )
+                # Exact (confidence==1.0) matches are the expected common case
+                # and carry no diagnostic value at debug-log volume — only log
+                # the fuzzy matches worth double-checking.
+                if conf < 1.0:
+                    logger.debug(
+                        "prop_matched",
+                        player=market.player_name,
+                        stat=market.stat_type,
+                        threshold=market.threshold,
+                        confidence=round(conf, 2),
+                    )
+        if results:
+            logger.debug(
+                "prop_match_summary",
+                matched=len(results),
+                exact=sum(1 for _, _, c in results if c >= 1.0),
+            )
         return results
