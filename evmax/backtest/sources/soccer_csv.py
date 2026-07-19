@@ -9,7 +9,12 @@ from typing import Optional
 
 import structlog
 
-from evmax.backtest.loader import SOCCER_LEAGUES, fetch_soccer_csv
+from evmax.backtest.loader import (
+    SOCCER_EXTRA_LEAGUES,
+    SOCCER_LEAGUES,
+    fetch_soccer_csv,
+    fetch_soccer_extra_csv,
+)
 from evmax.backtest.models import BacktestRow
 from evmax.ev.devig import devig_three_way
 
@@ -125,22 +130,137 @@ def parse_soccer_csv(path: Path, league_code: str, season: str) -> list[Backtest
     return rows
 
 
+def _season_code_to_year(code: str) -> int:
+    """Map a European season code to the calendar year it ends in.
+
+    For calendar-year leagues (MLS runs Feb–Nov), "the season that ends in
+    spring 2026" is the 2026 season — so "2526" → 2026, "2425" → 2025.
+    """
+    return 2000 + int(code[2:])
+
+
+def parse_soccer_extra_csv(
+    path: Path, league_code: str, seasons: list[str]
+) -> list[BacktestRow]:
+    """Parse a football-data.co.uk "new leagues" all-seasons CSV.
+
+    Schema differs from the top-5 per-season files: Season/Home/Away/HG/AG/Res
+    columns, Pinnacle odds as PH/PD/PA (closing PSCH/PSCD/PSCA in recent
+    files — preferred when present), and no shot columns (xG legs stay None
+    and the walk-forward renormalizes over the remaining models).
+    """
+    rows: list[BacktestRow] = []
+    league_name = SOCCER_EXTRA_LEAGUES.get(league_code, league_code)
+    want_years = {str(_season_code_to_year(s)) for s in seasons}
+    skipped = 0
+
+    with open(path, encoding="utf-8", errors="replace") as f:
+        reader = csv.DictReader(f)
+        for raw in reader:
+            season = (raw.get("Season") or "").strip()
+            if season not in want_years:
+                continue
+
+            date_str = (raw.get("Date") or "").strip()
+            home = (raw.get("Home") or "").strip()
+            away = (raw.get("Away") or "").strip()
+            res = (raw.get("Res") or "").strip()
+
+            if not all([date_str, home, away, res]):
+                skipped += 1
+                continue
+
+            event_date = _parse_date(date_str)
+            if not event_date:
+                skipped += 1
+                continue
+
+            # Prefer explicit Pinnacle closing odds when the file carries them.
+            psh = _safe_float(raw.get("PSCH", "")) or _safe_float(raw.get("PH", ""))
+            psd = _safe_float(raw.get("PSCD", "")) or _safe_float(raw.get("PD", ""))
+            psa = _safe_float(raw.get("PSCA", "")) or _safe_float(raw.get("PA", ""))
+
+            if not all([psh, psd, psa]):
+                skipped += 1
+                continue
+
+            try:
+                prob_h, prob_a, prob_d, margin = devig_three_way(psh, psa, psd)
+            except Exception:
+                skipped += 1
+                continue
+
+            try:
+                home_goals = int((raw.get("HG") or "").strip())
+                away_goals = int((raw.get("AG") or "").strip())
+            except (ValueError, AttributeError):
+                home_goals = None
+                away_goals = None
+
+            rows.append(BacktestRow(
+                sector="soccer",
+                league=league_name,
+                date=event_date,
+                team_home=home,
+                team_away=away,
+                pinnacle_home_dec=psh,
+                pinnacle_away_dec=psa,
+                pinnacle_draw_dec=psd,
+                result=res,
+                true_prob_home=prob_h,
+                true_prob_away=prob_a,
+                true_prob_draw=prob_d,
+                home_won=(res == "H"),
+                draw=(res == "D"),
+                home_goals=home_goals,
+                away_goals=away_goals,
+                home_shots=None,
+                away_shots=None,
+                home_sot=None,
+                away_sot=None,
+            ))
+
+    logger.info(
+        "soccer_extra_csv_parsed",
+        league=league_name,
+        seasons=sorted(want_years),
+        rows=len(rows),
+        skipped=skipped,
+    )
+    return rows
+
+
 def load_soccer(
     seasons: list[str],
     leagues: Optional[list[str]] = None,
     force: bool = False,
 ) -> list[BacktestRow]:
-    """Download and parse soccer data for the given seasons and leagues."""
+    """Download and parse soccer data for the given seasons and leagues.
+
+    League codes split into the top-5 per-season files (E0, SP1, ...) and the
+    "new leagues" all-seasons files (USA, ...); either kind may be mixed in
+    ``leagues``. Default remains the 5 European leagues.
+    """
     league_codes = leagues or list(SOCCER_LEAGUES.keys())
+    standard = [c for c in league_codes if c not in SOCCER_EXTRA_LEAGUES]
+    extra = [c for c in league_codes if c in SOCCER_EXTRA_LEAGUES]
     all_rows: list[BacktestRow] = []
 
     for season in seasons:
-        for code in league_codes:
+        for code in standard:
             try:
                 path = fetch_soccer_csv(season, code, force=force)
                 rows = parse_soccer_csv(path, code, season)
                 all_rows.extend(rows)
             except Exception as e:
                 logger.warning("soccer_load_failed", season=season, league=code, error=str(e))
+
+    for code in extra:
+        try:
+            path = fetch_soccer_extra_csv(code, force=force)
+            rows = parse_soccer_extra_csv(path, code, seasons)
+            all_rows.extend(rows)
+        except Exception as e:
+            logger.warning("soccer_load_failed", seasons=seasons, league=code, error=str(e))
 
     return all_rows

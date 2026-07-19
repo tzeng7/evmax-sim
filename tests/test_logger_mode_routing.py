@@ -451,6 +451,48 @@ class TestHasFullBlend:
         assert has_full_blend(None, None) is True
 
 
+class TestMinNonsharpFloor:
+    """MIN_NONSHARP_MODELS — the any-N-of floor (soccer/worldcup)."""
+
+    def test_soccer_sharp_only_ml_fails(self):
+        assert has_full_blend("soccer", "sharp", "moneyline") is False
+
+    def test_soccer_sharp_capped_ml_fails(self):
+        # A capped row's final price IS the sharp price — passthrough.
+        assert has_full_blend("soccer", "sharp(capped)", "moneyline") is False
+
+    def test_soccer_adjustment_layers_dont_count(self):
+        # injury/late_news ride on top of the blend; they aren't model signal.
+        assert has_full_blend("soccer", "sharp+injury+late_news", "moneyline") is False
+
+    def test_soccer_any_one_model_passes(self):
+        assert has_full_blend("soccer", "sharp+poisson", "moneyline") is True
+        assert has_full_blend("soccer", "elo+sharp", "moneyline") is True
+        assert has_full_blend("soccer", "xg+sharp+injury", "moneyline") is True
+
+    def test_soccer_total_out_of_scope(self):
+        # No model prices soccer totals — the floor deliberately excludes them.
+        assert has_full_blend("soccer", "sharp+total_dist", "total") is True
+
+    def test_soccer_no_market_type_fails_closed(self):
+        # market_type=None applies the floor unscoped (fail-closed).
+        assert has_full_blend("soccer", "sharp") is False
+
+    def test_worldcup_advance_in_scope(self):
+        assert has_full_blend("worldcup", "sharp+advance_derived", "advance") is False
+        assert has_full_blend("worldcup", "elo+sharp+advance_derived", "advance") is True
+
+    def test_ufc_unaffected(self):
+        # Sharp-dominance is by design for sectors without an entry.
+        assert has_full_blend("ufc", "sharp", "moneyline") is True
+        assert has_full_blend("ufc", "sharp+ufc_rating", "moneyline") is True
+
+    def test_tennis_all_of_check_unchanged(self):
+        # Tennis keeps the all-of gate; the floor doesn't apply to it.
+        assert has_full_blend("tennis", _FULL_TENNIS_SOURCES, "moneyline") is True
+        assert has_full_blend("tennis", "sharp", "moneyline") is False
+
+
 class TestPartialBlendDemotion:
     def test_partial_blend_live_gap_demoted_to_shadow(self, patched_db):
         gap = replace(

@@ -71,10 +71,9 @@ def test_baseball_standard_runline_spread_is_clean():
     assert not is_contaminated("baseball", "spread", "sharp", None)
 
 
-def test_non_baseball_sectors_are_never_flagged():
+def test_ruleless_sectors_are_never_flagged():
     # No rules for these sectors → always clean, even with "poisson" present.
     assert not is_contaminated("nba", "moneyline", "elo+poisson+sharp")
-    assert not is_contaminated("soccer", "moneyline", "elo+poisson+sharp")
     assert not is_contaminated("nfl", "moneyline", "elo+sharp")
     assert not is_contaminated(None, "moneyline", None)
 
@@ -108,6 +107,36 @@ def test_wnba_moneyline_with_possession_sim_is_clean():
 def test_wnba_total_with_possession_sim_is_clean():
     # Totals are a separate (shadow) market; the spread-pricing rule doesn't touch them.
     assert not is_contaminated("wnba", "total", "sharp+total_dist+possession_sim", 165.5)
+
+
+# -------------------------------------------------------------------------
+# Soccer — sharp-only ML rows predate the MIN_NONSHARP_MODELS guard
+# (2026-07-19): the unseeded-MLS sharp-passthrough failure.
+# -------------------------------------------------------------------------
+
+
+def test_soccer_sharp_only_ml_is_contaminated():
+    assert is_contaminated("soccer", "moneyline", "sharp")
+
+
+def test_soccer_sharp_capped_ml_is_contaminated():
+    assert is_contaminated("soccer", "moneyline", "sharp(capped)+injury")
+
+
+def test_soccer_ml_with_any_model_is_clean():
+    assert not is_contaminated("soccer", "moneyline", "elo+poisson+sharp")
+    assert not is_contaminated("soccer", "moneyline", "xg+sharp")
+
+
+def test_soccer_total_sharp_only_is_clean():
+    # The guard is moneyline-scoped; sharp-only totals are expected (no model
+    # prices soccer totals) and not a code-state signature.
+    assert not is_contaminated("soccer", "total", "sharp+total_dist")
+
+
+def test_soccer_empty_sources_ml_is_contaminated():
+    assert is_contaminated("soccer", "moneyline", None)
+    assert is_contaminated("soccer", "moneyline", "")
 
 
 # -------------------------------------------------------------------------
