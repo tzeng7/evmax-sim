@@ -426,12 +426,15 @@ def _pitcher_predict_walkforward(
     home_advantage: float = PITCHER_HOME_BONUS,
     home_pen_fip: Optional[float] = None,
     away_pen_fip: Optional[float] = None,
+    home_xera_prior: Optional[float] = None,
+    away_xera_prior: Optional[float] = None,
+    home_park: float = 1.0,
+    away_park: float = 1.0,
+    off_home: float = 1.0,
+    off_away: float = 1.0,
 ) -> Optional[float]:
     """Run the same Pythagenpat formula the live model uses, but with
-    point-in-time running totals from prior games this season. Now blends
-    starter rate (60%) + bullpen rate (40%) into the team's expected
-    runs-allowed rate when bullpen quality is available; falls back to
-    starter-only when the bullpen pool is too thin.
+    point-in-time running totals from prior games this season.
 
     Returns None if either starter has < PITCHER_MIN_IP_FOR_PRED IP — same
     floor the live model applies via its FIP+30 IP confidence tier.
@@ -439,9 +442,16 @@ def _pitcher_predict_walkforward(
     `home_advantage` is supplied by the caller from the running league-wide
     home win rate; defaults to PITCHER_HOME_BONUS for back-compat.
 
-    `home_pen_fip` / `away_pen_fip` are the *fatigue-aware available* bullpen
-    qualities (avg FIP of top-N rested relievers), supplied by the caller.
-    None values trigger starter-only rate computation for that side.
+    v2 A/B inputs (all default to v1-neutral):
+    - pen_fip: fatigue-aware available bullpen quality; None → starter-only.
+    - xera_prior: FROZEN prior-season Savant xERA (leak-free by construction;
+      routed through the agent's prior-at-half-weight path, mirroring the
+      live model's thin-current-sample degradation — the live model with
+      fresh current-season xERA is strictly better-informed, so the backtest
+      under-states v2 if anything).
+    - park: run park factor of the starter's own park (removes the park baked
+      into his SAMPLE; symmetric per-game venue effects cancel in Pythag).
+    - off_*: lineup-quality multipliers from running team runs/game.
     """
     if not home_running or not away_running:
         return None
@@ -455,12 +465,24 @@ def _pitcher_predict_walkforward(
     if math.isnan(home_fip) or math.isnan(away_fip):
         return None
 
-    home_rate = _team_rate_with_pen(home_running, home_pen_fip)
-    away_rate = _team_rate_with_pen(away_running, away_pen_fip)
+    def _starter_rate(fip: float, era: float, xera_prior: Optional[float], park: float) -> float:
+        pitcher = {"fip": fip, "era": era}
+        if xera_prior is not None:
+            # xera_bip=0 routes through the prior-at-half-weight branch.
+            pitcher["xera_prior"] = xera_prior
+            pitcher["xera_bip"] = 0
+        return pitcher_effective_era(pitcher, league_avg=4.08, park_factor=park)
+
+    home_rate = _shared_team_rate_with_pen(
+        _starter_rate(home_fip, home_era, home_xera_prior, home_park), home_pen_fip
+    )
+    away_rate = _shared_team_rate_with_pen(
+        _starter_rate(away_fip, away_era, away_xera_prior, away_park), away_pen_fip
+    )
 
     e = PITCHER_PYTHAG_EXP
-    home_rs, home_ra = away_rate, home_rate
-    away_rs, away_ra = home_rate, away_rate
+    home_rs, home_ra = away_rate * off_home, home_rate * off_away
+    away_rs, away_ra = home_rate * off_away, away_rate * off_home
     home_wp = (home_rs ** e) / (home_rs ** e + home_ra ** e)
     away_wp = (away_rs ** e) / (away_rs ** e + away_ra ** e)
     total = home_wp + away_wp
@@ -527,16 +549,48 @@ WNBA_WEIGHT_OVERRIDES: dict[str, float] = {
 }
 
 
+# ESPN team abbreviation → run park factor, for the pitcher-sample park
+# normalization (v2 A/B). Mirrors _PARK_RUN_FACTOR in pitcher_agent.py
+# (which is keyed by MLB team id — the walk-forward only sees ESPN abbrs).
+_ESPN_ABBR_PARK: dict[str, float] = {
+    "COL": 1.24, "CIN": 1.10, "BOS": 1.06, "ARI": 1.05, "KC": 1.04,
+    "TOR": 1.03, "NYM": 0.96, "TB": 0.96, "MIA": 0.95, "SD": 0.94,
+    "SF": 0.93, "SEA": 0.92,
+}
+
+# Offense scaling needs enough season sample to mean anything; below this
+# team-games floor the multiplier stays 1.0 (v1-neutral).
+_OFFENSE_MIN_TEAM_GAMES = 20
+_OFFENSE_CLAMP = (0.85, 1.15)
+
+
+def _parse_pitcher_variant(variant: str) -> set[str]:
+    """'v1' → no v2 components; 'v2' → all; else a comma-set from
+    {pen, park, off, xera} so components can be A/B'd independently
+    (the 2025 pen-only experiment was net-negative — see the note at the
+    prediction call site)."""
+    v = (variant or "v1").strip().lower()
+    if v == "v1":
+        return set()
+    if v == "v2":
+        return {"pen", "park", "off", "xera"}
+    return {tok.strip() for tok in v.split(",") if tok.strip()}
+
+
 def run_walkforward(
     sector: str,
     months: list[str],
     elo_weight: float = 0.35,
     form_weight: float = 0.25,
     poisson_weight: float = 0.30,
+    pitcher_variant: str = "v1",
 ) -> WalkForwardReport:
     """Run walk-forward backtest: predict → observe → update for each game.
 
     Returns a WalkForwardReport with per-model and ensemble metrics.
+
+    ``pitcher_variant`` (baseball only) selects which pitcher_v2 components
+    the walk-forward exercises — see _parse_pitcher_variant.
     """
     games = fetch_espn_games(sector, months)
     if not games:
@@ -601,6 +655,45 @@ def run_walkforward(
     league_home_games = 0
     league_home_wins = 0
 
+    # --- pitcher_v2 A/B state (baseball only) ------------------------------
+    pitcher_components = _parse_pitcher_variant(pitcher_variant) if is_baseball else set()
+    # Team offense running totals (normalized team name → runs/games),
+    # accumulated AFTER prediction — point-in-time, no leak.
+    team_runs: dict[str, float] = {}
+    team_games: dict[str, int] = {}
+    # Frozen PRIOR-season Savant xERA per game-year: {year: {name_key: xera}}.
+    # Prior-season-only is what makes it leak-free — in-season Savant
+    # snapshots are not reconstructable point-in-time.
+    xera_prior_by_year: dict[int, dict[str, float]] = {}
+    if is_baseball and "xera" in pitcher_components:
+        from evmax.clients.savant import fetch_expected_stats as _fetch_xera
+
+        for y in sorted({int(m[:4]) for m in months}):
+            try:
+                players = asyncio.run(_fetch_xera(y - 1))
+            except Exception as e:  # noqa: BLE001 — degrade the component
+                logger.warning("walkforward_xera_load_failed", year=y - 1, error=str(e))
+                players = {}
+            xera_prior_by_year[y] = {
+                rec["name_key"]: rec["xera"] for rec in players.values()
+            }
+            logger.info("walkforward_xera_loaded", season=y - 1, pitchers=len(players))
+
+    def _offense_factor_wf(team_key: str) -> float:
+        if "off" not in pitcher_components:
+            return 1.0
+        games_n = team_games.get(team_key, 0)
+        if games_n < _OFFENSE_MIN_TEAM_GAMES:
+            return 1.0
+        total_games = sum(team_games.values())
+        total_runs = sum(team_runs.values())
+        if total_games <= 0 or total_runs <= 0:
+            return 1.0
+        league_rpg = total_runs / total_games
+        rpg = team_runs.get(team_key, 0.0) / games_n
+        lo, hi = _OFFENSE_CLAMP
+        return max(lo, min(hi, rpg / league_rpg)) if league_rpg > 0 else 1.0
+
     norm = NameNormalizer(sector)
     results: list[WalkForwardResult] = []
 
@@ -652,23 +745,49 @@ def run_walkforward(
                 home_name = home_starter_line["name"].lower().strip()
                 away_name = away_starter_line["name"].lower().strip()
                 home_advantage = _adaptive_home_bonus(league_home_games, league_home_wins)
-                # NOTE: bullpen quality wiring is intentionally disabled here.
-                # An earlier experiment passed _team_pen_quality() through to
-                # the prediction; result was Δ +0.0012 (2025) and +0.0001 (2024)
-                # WORSE Brier than starter-only after recalibration. Hypothesis:
-                # static team-bullpen aggregate (even with fatigue filtering)
-                # is already correlated with what Elo + Form capture, so it
-                # adds correlated noise rather than orthogonal signal. The
-                # real bullpen edge needs per-pitcher leverage-weighted info
-                # we don't have a clean public source for. The data-layer
-                # state tracking (reliever_running, reliever_appearances,
-                # league_pen_totals) and the helpers (_team_pen_quality,
-                # _is_reliever_available, _team_rate_with_pen, _league_pen_cfip)
-                # are kept in place as infrastructure for future experiments.
+                # v2 A/B component wiring (2026-07-19), all opt-in via
+                # pitcher_variant. HISTORY on "pen": an earlier experiment
+                # wired _team_pen_quality() through unconditionally; result
+                # was Δ +0.0012 (2025) / +0.0001 (2024) WORSE Brier than
+                # starter-only after recalibration — static team-bullpen
+                # aggregate is largely already captured by Elo + Form, so it
+                # added correlated noise. That is exactly why components are
+                # independently switchable here: the ship gate evaluates each
+                # one, and "pen" must beat its prior null result to ship.
+                pen_home = pen_away = None
+                if "pen" in pitcher_components:
+                    _pen_cfip = _league_pen_cfip(league_pen_totals)
+                    pen_home = _team_pen_quality(
+                        home_team_abbr, game_date, reliever_running,
+                        reliever_appearances, reliever_team, _pen_cfip,
+                    )
+                    pen_away = _team_pen_quality(
+                        away_team_abbr, game_date, reliever_running,
+                        reliever_appearances, reliever_team, _pen_cfip,
+                    )
+                xera_home = xera_away = None
+                if "xera" in pitcher_components:
+                    from evmax.clients.mlb_statsapi import ascii_fold as _fold
+
+                    table = xera_prior_by_year.get(game_date.year, {})
+                    xera_home = table.get(_fold(home_starter_line["name"]))
+                    xera_away = table.get(_fold(away_starter_line["name"]))
+                park_home = park_away = 1.0
+                if "park" in pitcher_components:
+                    park_home = _ESPN_ABBR_PARK.get(home_team_abbr, 1.0)
+                    park_away = _ESPN_ABBR_PARK.get(away_team_abbr, 1.0)
                 pitcher_prob = _pitcher_predict_walkforward(
                     pitcher_running.get(home_name),
                     pitcher_running.get(away_name),
                     home_advantage=home_advantage,
+                    home_pen_fip=pen_home,
+                    away_pen_fip=pen_away,
+                    home_xera_prior=xera_home,
+                    away_xera_prior=xera_away,
+                    home_park=park_home,
+                    away_park=park_away,
+                    off_home=_offense_factor_wf(home),
+                    off_away=_offense_factor_wf(away),
                 )
 
         # Ensemble: weighted average of available models
@@ -772,6 +891,11 @@ def run_walkforward(
             league_home_games += 1
             if home_won:
                 league_home_wins += 1
+            # Team offense running totals for the v2 lineup-quality factor.
+            team_runs[home] = team_runs.get(home, 0.0) + g["home_score"]
+            team_runs[away] = team_runs.get(away, 0.0) + g["away_score"]
+            team_games[home] = team_games.get(home, 0) + 1
+            team_games[away] = team_games.get(away, 0) + 1
 
     if boxscore_client is not None:
         boxscore_client.close()

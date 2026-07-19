@@ -120,7 +120,7 @@ class TestDivergenceAndPassthrough:
     def test_moneyline_passthrough_flag(self, patched):
         for i in range(3):
             _insert(patched, f"m{i}", sector="baseball", blended=0.551,
-                    sharp=0.550, sources="elo+pitcher+sharp")
+                    sharp=0.550, sources="elo+pitcher_v2+sharp")
         patched.commit()
         row = _board(sector="baseball")[0]
         assert row["blend_divergence_pp"] < SHARP_PASSTHROUGH_PP
@@ -149,7 +149,7 @@ class TestGatesAndVerdicts:
         for i in range(total):
             _insert(
                 conn, f"g{i}", sector=sector, mode="shadow",
-                blended=0.62, sharp=0.55, sources="elo+form+pitcher+sharp",
+                blended=0.62, sharp=0.55, sources="elo+form+pitcher_v2+sharp",
                 clv=1.5 if i < n_pos else -1.0,
                 outcome=1 if i % 2 == 0 else 0,
             )

@@ -962,6 +962,9 @@ class EVGapAgent(Agent):
         # bet rather than fire blind. Scoped to moneyline: spread uses the
         # cover-prob model and total is pure sharp devig — neither consumes the
         # pitcher agent, so requiring it there would wrongly zero them out.
+        # The substring check deliberately matches both "pitcher" (v1 rows)
+        # and "pitcher_v2" (the 2026-07-19 rework) — the guard's job is
+        # "some pitcher model contributed", not a version pin.
         if (
             (market.sector or "").lower() == "baseball"
             and market.market_type == MarketType.moneyline

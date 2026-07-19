@@ -42,9 +42,15 @@ def test_baseball_ml_without_pitcher_is_contaminated():
     assert is_contaminated("baseball", "moneyline", "")
 
 
+def test_baseball_v1_pitcher_ml_is_contaminated():
+    # pitcher → pitcher_v2 rework shipped 2026-07-19: a row still carrying the
+    # v1 token was priced by the superseded starter-only model.
+    assert is_contaminated("baseball", "moneyline", "elo+form+pitcher+sharp")
+
+
 def test_baseball_clean_ml_row_is_not_contaminated():
-    # Current code: pitcher present, no poisson.
-    assert not is_contaminated("baseball", "moneyline", "elo+pitcher+sharp")
+    # Current code: pitcher_v2 present, no poisson.
+    assert not is_contaminated("baseball", "moneyline", "elo+pitcher_v2+sharp")
 
 
 def test_baseball_non_ml_without_pitcher_is_clean():
@@ -194,9 +200,9 @@ def _make_baseball_db(tmp_path: Path) -> Path:
     ed = (date.today() - timedelta(days=1)).isoformat()
     # (market_id, model_sources, outcome) — all baseball moneyline, EV 5%, price 0.50
     rows = [
-        ("clean1", "elo+pitcher+sharp", 1),
-        ("clean2", "elo+pitcher+sharp", 0),
-        ("clean3", "elo+pitcher+sharp", 1),
+        ("clean1", "elo+pitcher_v2+sharp", 1),
+        ("clean2", "elo+pitcher_v2+sharp", 0),
+        ("clean3", "elo+pitcher_v2+sharp", 1),
         ("dirty_poisson1", "elo+pitcher+poisson+sharp", 1),
         ("dirty_poisson2", "elo+poisson+sharp", 0),
         ("dirty_nopitch1", "elo+sharp", 1),

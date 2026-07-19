@@ -41,6 +41,14 @@ def agent(tmp_path, monkeypatch):
         return {}
 
     monkeypatch.setattr(pitcher_mod, "_fetch_probable_starters", _no_live)
+    # Neutralize the v2 feeds so these tests keep exercising the Pythag /
+    # starter-rate math in isolation: no lineup-quality scaling (real props
+    # cache must not leak in) and no park normalization (the fixture teams
+    # include Fenway) — test_pitcher_v2.py covers the v2 components.
+    monkeypatch.setattr(
+        PitcherModelAgent, "_offense_factor", staticmethod(lambda team: 1.0)
+    )
+    monkeypatch.setattr(pitcher_mod, "_park_factor_for", lambda p: 1.0)
     return a
 
 

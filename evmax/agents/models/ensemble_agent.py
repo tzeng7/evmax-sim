@@ -148,7 +148,7 @@ class EnsembleModelAgent(Agent):
         # bullpen-leverage shifts violate the independence assumption); the
         # ensemble never instantiates it for baseball, so no override needed.
         "baseball": {
-            "pitcher": 0.50,
+            "pitcher_v2": 0.50,
             "elo":     0.25,
             "form":    0.25,
         },

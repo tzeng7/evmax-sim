@@ -33,11 +33,19 @@ scheduled run ever merges its own PR.
 |---|---|---|
 | `daily-resolve-and-model-update` | 07:32 | `evmax update scores` + `cleanup resolve --date YESTERDAY` + `archive resolve --date YESTERDAY` — feeds ESPN finals into Elo/Form/Poisson/xG state and resolves outcomes |
 | `daily-close-lines-capture` | 08:04 | `evmax cleanup close-lines` — snapshots Pinnacle closing lines pre-tipoff (timing-sensitive; `watch-closes` under launchd covers this even when the app is closed) |
+| `ev-scan-light-midday` | 07:04 | Light scan #1 (10:04 ET): tonight's full US slate is listed AND sharp-anchored by now (Kalshi lists ~24h out, Pinnacle posts T-17–24h). Spec: `docs/scheduled-tasks/ev-scan-light.md` |
+| `ev-scan-light-afternoon` | 13:04 | Light scan #2 (16:04 ET): T-3h re-scan for the 19:00 ET wave — MLB lineups post, injuries land, stale morning edges re-checked |
+| `ev-scan-light-evening` | 15:34 | Light scan #3 (18:34 ET): T-0.5–2h from the main slate — the only entry window with demonstrated +CLV; these are the rows the fresh-close CLV gates score |
 | `daily-evening-resolve` | 23:06 | `evmax cleanup resolve --date TODAY` + `cleanup show --date TODAY` — day's P/L |
 
-**No automated `evmax agents scan` currently runs.** `ev-scan-90min-on-hour`/`ev-scan-90min-half-hour`
-were intentionally removed (confirmed by user 2026-07-18); `daily-morning-scan`/`daily-updated-scan`
-remain disabled below. Scans are manual (`evmax agents scan`) until a replacement task is added.
+The three `ev-scan-light-*` tasks are the **approved 2026-07-19 replacement** for the removed
+90-min pair (`ev-scan-90min-on-hour`/`half-hour`, removed 2026-07-18): 3×/day, evening-weighted,
+enough shadow-sample volume for the sector promotion gates without the old churn. They share one
+spec (`docs/scheduled-tasks/ev-scan-light.md`) and are **forbidden from editing code** (the
+PR-within-the-run policy covers only the two audit tasks). ⚠️ Activate them only AFTER the
+soccer sharp-only guard (MIN_NONSHARP_MODELS, PR "diversify") is merged — before it, a scheduled
+scan would log sharp-passthrough MLS rows as live plays 3×/day. `daily-morning-scan`/
+`daily-updated-scan` remain disabled below.
 
 ### Weekly
 

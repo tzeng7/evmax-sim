@@ -54,6 +54,7 @@ KNOWN_MODELS: set[str] = {
     "xg",  # SoccerXgAgent — xG-regressed Poisson; soccer + worldcup namespaces
     "sharp",
     "pitcher",
+    "pitcher_v2",  # v2 rework 2026-07-19: bullpen + park + offense + xERA
     # NBA-specific advanced agents
     "efficiency",
     "shot_quality",

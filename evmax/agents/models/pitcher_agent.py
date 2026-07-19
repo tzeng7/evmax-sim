@@ -1,27 +1,31 @@
-"""PitcherModelAgent — pitcher-matchup win probability for MLB games.
+"""PitcherModelAgent (v2) — pitcher-matchup win probability for MLB games.
 
 Uses the Pythagorean expectation formula (Pythagenpat, exponent=1.83):
     W% = RS^e / (RS^e + RA^e)
 
-Each team scores at the rate the *opposing* starter allows and allows runs at
-the rate its own starter does. The "rate" defaults to ERA, but if FIP
-(Fielding Independent Pitching) is also seeded for a pitcher, the agent
-blends 60% FIP + 40% ERA. FIP strips out defense + sequencing luck and is
-more predictive of forward-looking run prevention than ERA — so the blend
-favors it. ERA-only pitchers fall back to current behavior.
+Each team scores at the rate the *opposing* pitching allows (scaled by its
+own lineup quality) and allows runs at its own pitching's rate. The pitching
+rate is a per-starter quality estimate blended with the team's available
+bullpen (evmax/models_ml/bullpen.py — the starter covers ~60% of innings, a
+signal v1 ignored entirely), and the starter's quality estimate itself
+blends xERA / FIP / ERA when Savant expected-stats are seeded (see
+_effective_era). Park effects are removed from the results-based components
+per pitcher (see _PARK_RUN_FACTOR); xERA is park-neutral by construction.
 
-Live probable starters are fetched from ESPN's scoreboard API each scan
-cycle, replacing the static team_starters map with actual game-day pitching.
-ESPN's scoreboard provides ERA only — FIP must be seeded externally
-(scripts/seed_espn.py::seed_pitchers, or any future Statcast/pybaseball
-ingest path).
+Live probable starters come from the MLB Stats API (ESPN scoreboard
+fallback); reliever fatigue from the same API's boxscores
+(fetch_reliever_appearances); reliever season stats + xERA are seeded by
+scripts/seed_pitcher_fip.py. Every v2 component degrades independently to
+the v1 behavior when its data is absent — v2 never reduces coverage.
 
 Only activates for sector == "baseball". Returns None for all other sectors.
 """
 
 from __future__ import annotations
 
+import math
 import time
+from datetime import date as _date
 from typing import Optional
 
 import httpx
@@ -30,6 +34,7 @@ import structlog
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
+from evmax.models_ml.bullpen import team_pen_quality, team_rate_with_pen
 
 logger = structlog.get_logger(__name__)
 
@@ -53,15 +58,82 @@ ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/sc
 FIP_BLEND_WEIGHT = 0.60
 ERA_BLEND_WEIGHT = 0.40
 
+# v2: when Savant xERA is also seeded, it leads the blend — quality-of-contact
+# expected ERA out-predicts both FIP (which only strips defense) and ERA on
+# forward run prevention. Weights swept on the 2025 season by
+# scripts/backtest_baseball_ab.py (2026 held out); these are the shipped
+# values. Renormalized over whichever components are present.
+XERA_BLEND_WEIGHT = 0.45
+FIP_BLEND_WEIGHT_V2 = 0.35
+ERA_BLEND_WEIGHT_V2 = 0.20
+# Below this current-season balls-in-play sample, current xERA is noise —
+# substitute the prior season's xERA at half weight instead.
+XERA_THIN_BIP = 40
 
-def _effective_era(pitcher: dict, league_avg: float) -> float:
+# Per-pitcher park normalization (v2). A symmetric venue multiplier applied
+# to both teams' RS/RA cancels EXACTLY in Pythagenpat — (k·RS)^e /
+# ((k·RS)^e + (k·RA)^e) is k-invariant — so "adjust for today's park" is a
+# moneyline no-op. What does NOT cancel is the park baked into each
+# pitcher's SAMPLE: a Rockies starter's results-based rates (FIP/ERA) are
+# inflated by ~half his innings coming at Coors. Dividing by
+# sqrt(park_run_factor) removes that. Applied to FIP/ERA only — xERA is
+# park-neutral by construction. Values are implementation-time
+# approximations of Savant's 3-yr rolling RUN park factors (1.00 = neutral),
+# keyed by MLB team id; unlisted parks are ~neutral.
+_PARK_RUN_FACTOR: dict[int, float] = {
+    115: 1.24,  # Rockies — Coors
+    113: 1.10,  # Reds — Great American
+    111: 1.06,  # Red Sox — Fenway
+    109: 1.05,  # D-backs — Chase
+    118: 1.04,  # Royals — Kauffman
+    141: 1.03,  # Blue Jays — Rogers Centre
+    121: 0.96,  # Mets — Citi Field
+    139: 0.96,  # Rays — Tropicana
+    146: 0.95,  # Marlins — loanDepot
+    135: 0.94,  # Padres — Petco
+    137: 0.93,  # Giants — Oracle
+    136: 0.92,  # Mariners — T-Mobile
+}
+
+# Team-offense scaling (v2): each side scores at the opposing pitching's
+# allowed rate × its own lineup quality (season runs/game over league
+# average). Clamped — season-to-date team offense is noisy and the clamp
+# keeps a hot April lineup from swinging the matchup more than pitching does.
+OFFENSE_CLAMP_LO = 0.85
+OFFENSE_CLAMP_HI = 1.15
+
+
+def _park_factor_for(pitcher: dict) -> float:
+    """Run park factor for a pitcher's HOME park (via seeded team nickname)."""
+    team = (pitcher.get("team") or "").lower().strip()
+    if not team:
+        return 1.0
+    from evmax.clients.mlb_statsapi import MLB_TEAM_NICKNAME
+
+    for tid, nickname in MLB_TEAM_NICKNAME.items():
+        if nickname == team:
+            return _PARK_RUN_FACTOR.get(tid, 1.0)
+    return 1.0
+
+
+def _effective_era(
+    pitcher: dict, league_avg: float, park_factor: float = 1.0
+) -> float:
     """Compute the run-allowed rate to feed into Pythag.
 
     Preference order:
-      1. Both FIP and ERA present → blend (FIP_BLEND_WEIGHT * FIP + ERA_BLEND_WEIGHT * ERA)
-      2. FIP only → return FIP
-      3. ERA only → return ERA
+      1. xERA + FIP + ERA present → weighted blend (XERA 0.45 / FIP 0.35 /
+         ERA 0.20, renormalized over present components). Thin current-season
+         xERA sample (bip < XERA_THIN_BIP) substitutes the prior season's
+         xERA at HALF weight.
+      2. FIP + ERA → 60/40 v1 blend
+      3. FIP only → FIP;  ERA only → ERA
       4. Neither → league average
+
+    ``park_factor`` (>1 = hitter's park) removes the pitcher's home-park
+    effect from the RESULTS-based components: FIP/ERA are divided by
+    sqrt(factor) (~half his innings are at home). xERA is already
+    park-neutral and is never adjusted.
 
     A non-positive era/fip is treated as MISSING, not as a real rate. The MLB
     Stats API seeds ``era: 0.0`` as a placeholder for "look this pitcher up in
@@ -74,16 +146,45 @@ def _effective_era(pitcher: dict, league_avg: float) -> float:
     abstains (returns None) when a starter has no real rate, so an info-less
     matchup never masquerades as a pitcher contributor.
     """
-    fip = pitcher.get("fip")
-    era = pitcher.get("era")
-    fip = float(fip) if fip is not None and float(fip) > 0 else None
-    era = float(era) if era is not None and float(era) > 0 else None
+    def _pos(v) -> Optional[float]:
+        return float(v) if v is not None and float(v) > 0 else None
+
+    park_div = math.sqrt(park_factor) if park_factor and park_factor > 0 else 1.0
+    fip = _pos(pitcher.get("fip"))
+    era = _pos(pitcher.get("era"))
+    if fip is not None:
+        fip /= park_div
+    if era is not None:
+        era /= park_div
+
+    xera = _pos(pitcher.get("xera"))
+    xera_w = XERA_BLEND_WEIGHT
+    bip = pitcher.get("xera_bip") or 0
+    if xera is not None and bip < XERA_THIN_BIP:
+        prior = _pos(pitcher.get("xera_prior"))
+        xera, xera_w = (prior, XERA_BLEND_WEIGHT * 0.5) if prior is not None else (None, 0.0)
+    elif xera is None:
+        prior = _pos(pitcher.get("xera_prior"))
+        if prior is not None and bip < XERA_THIN_BIP:
+            xera, xera_w = prior, XERA_BLEND_WEIGHT * 0.5
+
+    if xera is not None and (fip is not None or era is not None):
+        parts = [(xera, xera_w)]
+        if fip is not None:
+            parts.append((fip, FIP_BLEND_WEIGHT_V2))
+        if era is not None:
+            parts.append((era, ERA_BLEND_WEIGHT_V2))
+        total_w = sum(w for _, w in parts)
+        return sum(v * w for v, w in parts) / total_w
+
     if fip is not None and era is not None:
         return FIP_BLEND_WEIGHT * fip + ERA_BLEND_WEIGHT * era
     if fip is not None:
         return fip
     if era is not None:
         return era
+    if xera is not None:
+        return xera
     return league_avg
 
 
@@ -179,7 +280,12 @@ async def _fetch_probable_starters_espn() -> dict[str, dict]:
 
 
 class PitcherModelAgent(ModelAgent):
-    name = "pitcher"
+    # "pitcher_v2" (2026-07-19): the rename is the shadow-reset mechanism —
+    # the contamination filter dates rows by model_sources signature, so
+    # every v1 row drops out of the clean promotion sample the moment v2
+    # ships. The ev_gap_agent pitcher-required guard checks the substring
+    # "pitcher", which matches both names.
+    name = "pitcher_v2"
     weight = 0.50
 
     def _league_avg_era(self) -> float:
@@ -187,6 +293,91 @@ class PitcherModelAgent(ModelAgent):
 
     def _pitchers(self) -> dict[str, dict]:
         return self._state.get("pitchers", {})
+
+    def _relievers(self) -> dict[str, dict]:
+        return self._state.get("relievers", {})
+
+    @staticmethod
+    def _team_nickname(team_label: str) -> Optional[str]:
+        """Resolve a full team label to the seeded nickname ('boston red sox'
+        → 'red sox'). Longest-suffix match over the canonical nickname set —
+        the same rule _match_live_starter uses, so multi-word nicknames
+        (Red Sox / White Sox / Blue Jays) resolve unambiguously."""
+        from evmax.clients.mlb_statsapi import MLB_TEAM_NICKNAME
+
+        team = (team_label or "").lower().strip()
+        best = None
+        for nickname in MLB_TEAM_NICKNAME.values():
+            if team == nickname or team.endswith(nickname):
+                if best is None or len(nickname) > len(best):
+                    best = nickname
+        return best
+
+    def _pen_quality(
+        self,
+        team_label: str,
+        live_appearances: dict[str, list],
+        today: _date,
+    ) -> Optional[float]:
+        """Available-bullpen quality (FIP) for a team, or None (degrade to
+        starter-only). Reliever season stats come from the seed; the fatigue
+        log comes from the live MLB Stats API feed (empty log = every
+        reliever counts as rested — static pen quality, still better than
+        ignoring 40% of innings)."""
+        relievers = self._relievers()
+        if not relievers:
+            return None
+        nickname = self._team_nickname(team_label)
+        if nickname is None:
+            return None
+        reliever_team = {name: rec.get("team", "") for name, rec in relievers.items()}
+        appearances: dict[str, list] = {}
+        for name in relievers:
+            log = live_appearances.get(name)
+            if log:
+                appearances[name] = [
+                    (_date.fromisoformat(d), ip, pc) for d, ip, pc in log
+                ]
+        return team_pen_quality(
+            nickname,
+            today,
+            relievers,
+            appearances,
+            reliever_team,
+            self._state.get("league_pen_cfip", 3.10),
+        )
+
+    @staticmethod
+    def _offense_factor(team_label: str) -> float:
+        """Lineup-quality multiplier: season runs/game over league average,
+        clamped. 1.0 (v1 behavior) when the props cache has no offense block
+        or the team can't be resolved."""
+        try:
+            from evmax.clients.baseball_props_cache import (
+                get_team_offense,
+                league_runs_per_game,
+            )
+            from evmax.clients.mlb_statsapi import MLB_TEAM_NICKNAME
+
+            nickname = PitcherModelAgent._team_nickname(team_label)
+            if nickname is None:
+                return 1.0
+            team_id = next(
+                (tid for tid, nick in MLB_TEAM_NICKNAME.items() if nick == nickname),
+                None,
+            )
+            if team_id is None:
+                return 1.0
+            offense = get_team_offense(team_id)
+            league = league_runs_per_game()
+            if not offense or not league or league <= 0:
+                return 1.0
+            rpg = offense.get("runs_per_game") or 0.0
+            if rpg <= 0:
+                return 1.0
+            return max(OFFENSE_CLAMP_LO, min(OFFENSE_CLAMP_HI, rpg / league))
+        except Exception:  # cache trouble is never a reason to drop the model
+            return 1.0
 
     def _home_advantage(self) -> float:
         """Resolve the home-side probability bonus, preferring an adaptive
@@ -306,18 +497,44 @@ class PitcherModelAgent(ModelAgent):
             return None
 
         league_avg = self._league_avg_era()
-        home_rate = _effective_era(home_pitcher, league_avg)
-        away_rate = _effective_era(away_pitcher, league_avg)
+        home_rate = _effective_era(
+            home_pitcher, league_avg, park_factor=_park_factor_for(home_pitcher)
+        )
+        away_rate = _effective_era(
+            away_pitcher, league_avg, park_factor=_park_factor_for(away_pitcher)
+        )
+
+        # v2: blend each starter's rate with the team's AVAILABLE bullpen
+        # (60/40 — the starter covers ~5.5 of 9 innings). Reliever fatigue
+        # from the live MLB feed; degrades to starter-only when the pen is
+        # unseeded/thin. The fatigue fetch only fires when relievers are
+        # seeded — an unseeded state must not touch the network (and unit
+        # tests exercising Pythag math stay hermetic).
+        from evmax.clients.mlb_statsapi import fetch_reliever_appearances
+
+        live_appearances = (
+            await fetch_reliever_appearances() if self._relievers() else {}
+        )
+        today = _date.today()
+        pen_home = self._pen_quality(home, live_appearances, today)
+        pen_away = self._pen_quality(away, live_appearances, today)
+        home_rate_pen = team_rate_with_pen(home_rate, pen_home)
+        away_rate_pen = team_rate_with_pen(away_rate, pen_away)
+
+        # v2: lineup quality — each side scores at the opposing pitching's
+        # allowed rate scaled by its own offense (clamped; 1.0 when no data).
+        off_home = self._offense_factor(home)
+        off_away = self._offense_factor(away)
 
         # Pythagorean matchup: each team scores at the rate the opposing
-        # starter gives up runs and allows at its own starter's rate.
-        # The "rate" here is FIP-blended ERA when FIP data is available
-        # (preferred — fielding-independent), else raw ERA.
+        # pitching (starter+pen) gives up runs × its own lineup quality, and
+        # allows at its own pitching's rate × the opposing lineup quality —
+        # so home_ra == away_rs and the probabilities stay complementary.
         e = PYTHAG_EXP
-        home_rs = away_rate  # we score at rate the opposing pitcher allows
-        home_ra = home_rate  # we allow at rate our own pitcher allows
-        away_rs = home_rate
-        away_ra = away_rate
+        home_rs = away_rate_pen * off_home
+        home_ra = home_rate_pen * off_away
+        away_rs = home_rate_pen * off_away
+        away_ra = away_rate_pen * off_home
 
         # Defensive guard: with _effective_era's non-positive fallback the
         # denominators are always positive, but never let a degenerate rate
@@ -392,10 +609,22 @@ class PitcherModelAgent(ModelAgent):
                 return f"fip={p['fip']:.2f}"
             return f"era={p.get('era', league_avg):.2f}"
 
+        v2_notes = []
+        if pen_home is not None or pen_away is not None:
+            v2_notes.append(
+                f"pen={pen_home if pen_home is None else round(pen_home, 2)}"
+                f"/{pen_away if pen_away is None else round(pen_away, 2)}"
+            )
+        if off_home != 1.0 or off_away != 1.0:
+            v2_notes.append(f"off={off_home:.2f}/{off_away:.2f}")
+        if "xera" in home_pitcher or "xera" in away_pitcher:
+            v2_notes.append("xera")
+
         notes = (
             f"home[{_rate_label(home_pitcher)}] "
             f"away[{_rate_label(away_pitcher)}] "
-            f"effective_home={home_rate:.2f} effective_away={away_rate:.2f} "
+            f"effective_home={home_rate_pen:.2f} effective_away={away_rate_pen:.2f} "
+            f"{' '.join(v2_notes)} "
             f"{' '.join(pitcher_notes)}"
         ).strip()
 

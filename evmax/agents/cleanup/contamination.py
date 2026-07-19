@@ -101,9 +101,13 @@ CONTAMINATION_RULES: dict[str, list[RowRule]] = {
     "baseball": [
         # Poisson removed from baseball 2026-06-01 — its presence dates the row.
         lambda mt, src, line: _has(src, "poisson"),
-        # Pitcher-required guard shipped 2026-06-06; a pitcher-less ML row is
-        # pre-guard generic arb.
-        lambda mt, src, line: mt == "moneyline" and not _has(src, "pitcher"),
+        # pitcher_v2 shipped 2026-07-19 (bullpen + park + offense + xERA;
+        # model renamed pitcher → pitcher_v2). Any ML row without the v2
+        # token was priced by a superseded model state: v1 rows carry
+        # "pitcher", pre-guard rows carry neither — both are dated out of
+        # the clean promotion sample. Subsumes the old "without pitcher"
+        # rule (guard shipped 2026-06-06, −23% live ROI on pitcher-less ML).
+        lambda mt, src, line: mt == "moneyline" and not _has(src, "pitcher_v2"),
         # Alt-run-line gate (PR #13): current code rejects baseball spreads
         # beyond ±1.5, so a resolved −2.5/−4.5 row is pre-gate.
         lambda mt, src, line: (
