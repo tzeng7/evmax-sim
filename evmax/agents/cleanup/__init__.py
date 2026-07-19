@@ -9,8 +9,15 @@ Key modules:
 - value_audit.py — per-sector model-blend VALUE audit (Brier vs sharp & close + CLV) with
                    paired significance + actionability verdict; read-only (`evmax cleanup value-audit`)
 - listings_eval.py — offline first-anchored-sweep entry evaluator over archive.db
-                   watch-listings captures; promotion lens for laddered markets;
+                   watch-listings captures (or candlestick-backfill sessions via
+                   session_prefixes); promotion lens for laddered markets;
                    read-only (`evmax cleanup listings-eval`)
+- anchored_entry.py — LIVE first-anchored-sweep trigger: turns one watch-listings
+                   sweep's in-memory data into shadow EVGaps at crossable
+                   order-book prices (model_sources '+anchored_entry'); wired
+                   via `cleanup watch-listings --log-entries` (2026-07-19,
+                   validated by the WNBA candlestick backfill: lay +1.32pp
+                   over 116 declustered games, p<0.001)
 - rescan_eval.py — near-close re-scan replay: paired actual-scan-entry vs simulated
                    near-tip-entry CLV over archived snapshots; read-only research
                    harness (`scripts/eval_near_close_rescan.py`), Phase 1 gate for
