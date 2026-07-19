@@ -368,6 +368,54 @@ class TestGetMarkets:
 
 
 # ---------------------------------------------------------------------------
+# Settlement lookups (outcome resolution)
+# ---------------------------------------------------------------------------
+
+class TestGetMarketSettlement:
+
+    @pytest.mark.asyncio
+    async def test_returns_settlement_price(self):
+        client = _client()
+        payload = {"slug": "aec-nfl-car-gb-2025-11-02", "settlement": 1}
+        with patch.object(client, "_get", new=AsyncMock(return_value=payload)) as mget:
+            s = await client.get_market_settlement("aec-nfl-car-gb-2025-11-02")
+        assert s == 1.0
+        mget.assert_awaited_once_with(
+            "/v1/markets/aec-nfl-car-gb-2025-11-02/settlement"
+        )
+
+    @pytest.mark.asyncio
+    async def test_unsettled_404_returns_none(self):
+        import httpx
+
+        client = _client()
+        resp = httpx.Response(404, request=httpx.Request("GET", "http://x"))
+        err = httpx.HTTPStatusError("404", request=resp.request, response=resp)
+        with patch.object(client, "_get", new=AsyncMock(side_effect=err)):
+            assert await client.get_market_settlement("aec-x") is None
+
+    @pytest.mark.asyncio
+    async def test_non_404_error_propagates(self):
+        import httpx
+
+        client = _client()
+        resp = httpx.Response(500, request=httpx.Request("GET", "http://x"))
+        err = httpx.HTTPStatusError("500", request=resp.request, response=resp)
+        with patch.object(client, "_get", new=AsyncMock(side_effect=err)):
+            with pytest.raises(httpx.HTTPStatusError):
+                await client.get_market_settlement("aec-x")
+
+    @pytest.mark.asyncio
+    async def test_get_market_sides_unwraps_market(self):
+        client = _client()
+        payload = {"market": {"marketSides": [{"long": True}, {"long": False}]}}
+        with patch.object(client, "_get", new=AsyncMock(return_value=payload)) as mget:
+            sides = await client.get_market_sides("aec-x")
+        assert sides == [{"long": True}, {"long": False}]
+        mget.assert_awaited_once_with("/v1/market/slug/aec-x")
+
+
+# ---------------------------------------------------------------------------
 # Registry consistency
 # ---------------------------------------------------------------------------
 

@@ -597,6 +597,123 @@ def _match_bo3(pred: dict, scores: list[dict]) -> Optional[int]:
     return None
 
 
+_POLYMARKET_US_ID_PREFIX = "polymarket_us:"
+
+
+def _is_polymarket_us_row(pred: dict) -> bool:
+    """True when the prediction row was quoted by Polymarket US."""
+    return (pred.get("market_id") or "").startswith(_POLYMARKET_US_ID_PREFIX)
+
+
+def _split_polymarket_us_id(market_id: str) -> tuple[str, Optional[str]]:
+    """Split ``polymarket_us:{slug}[:{side_key}]`` → ``(slug, side_key)``.
+
+    Moneyline rows carry a per-side suffix (the team abbreviation, or the
+    ``a``/``b`` long/short fallback); drawable-outcome / spread / total rows
+    are the bare slug. Slugs themselves never contain a colon.
+    """
+    rest = market_id.removeprefix(_POLYMARKET_US_ID_PREFIX)
+    slug, _, side_key = rest.partition(":")
+    return slug, (side_key or None)
+
+
+def _polyus_bet_is_long(
+    sides: list[dict], side_key: Optional[str], yes_team: Optional[str]
+) -> Optional[bool]:
+    """Whether the bet's YES side is the market's LONG instrument.
+
+    The gateway settlement price is quoted for the long side, so this is the
+    flip/no-flip decision. Returns None when the side can't be mapped (score
+    nothing rather than guess).
+    """
+    if side_key is not None:
+        for s in sides:
+            abbrev = ((s.get("team") or {}).get("abbreviation") or "").lower()
+            if abbrev and abbrev == side_key.lower():
+                return bool(s.get("long"))
+        # _parse_moneyline falls back to "a" (long) / "b" (short) when the
+        # side has no team abbreviation.
+        if side_key.lower() in ("a", "b"):
+            return side_key.lower() == "a"
+        return None
+    yt = (yes_team or "").strip().lower()
+    if yt in ("over", "under"):
+        for s in sides:
+            if (s.get("description") or "").strip().lower() == yt:
+                return bool(s.get("long"))
+        return None
+    # drawable_outcome and spread markets emit YES = the long side by
+    # construction (see PolymarketUSClient._parse_drawable_outcome/_parse_spread).
+    return True
+
+
+async def _resolve_via_polymarket_us(
+    preds: list[dict],
+) -> tuple[dict[str, Optional[int]], set[str]]:
+    """Resolve Polymarket US rows via the gateway settlement endpoint.
+
+    Same contract as :func:`_resolve_via_kalshi`: ``(outcomes, voided)``.
+    ``GET /v1/markets/{slug}/settlement`` returns the LONG side's final price
+    (1 → long won, 0 → short won); per-side ids are mapped back to long/short
+    via the market's sides. A fractional settlement — tie 50-50, cancellation
+    at last-traded prices, pre-match walkover — has no binary outcome and is
+    voided, mirroring Kalshi's scalar fair-price refunds.
+    """
+    from evmax.clients.polymarket_us import PolymarketUSClient
+
+    out: dict[str, Optional[int]] = {}
+    voided: set[str] = set()
+    pm_preds = [p for p in preds if _is_polymarket_us_row(p)]
+    if not pm_preds:
+        return out, voided
+
+    async with PolymarketUSClient() as client:
+        async def _fetch_one(pred: dict) -> tuple[str, object]:
+            market_id = pred["market_id"]
+            slug, side_key = _split_polymarket_us_id(market_id)
+            if side_key == "no":
+                # Synthesized NO-side spread/total rows resolve via scores
+                # (ESPN path), never via settlement.
+                return market_id, None
+            settlement = await client.get_market_settlement(slug)
+            if settlement is None:
+                return market_id, None  # not settled yet
+            binary = abs(settlement) < 1e-6 or abs(settlement - 1.0) < 1e-6
+            if not binary:
+                return market_id, "void"
+            bet_is_long: Optional[bool] = True
+            yes_team = pred.get("yes_team")
+            if side_key is not None or (yes_team or "").strip().lower() in (
+                "over",
+                "under",
+            ):
+                sides = await client.get_market_sides(slug)
+                bet_is_long = _polyus_bet_is_long(sides, side_key, yes_team)
+                if bet_is_long is None:
+                    logger.warning(
+                        "polymarket_us_side_unmapped",
+                        market_id=market_id,
+                        slug=slug,
+                        side_key=side_key,
+                    )
+                    return market_id, None
+            long_won = settlement > 0.5
+            return market_id, 1 if (long_won == bet_is_long) else 0
+
+        results = await asyncio.gather(
+            *(_fetch_one(p) for p in pm_preds), return_exceptions=True
+        )
+        for r in results:
+            if isinstance(r, Exception):
+                continue
+            mid, verdict = r
+            if verdict == "void":
+                voided.add(mid)
+            else:
+                out[mid] = verdict
+    return out, voided
+
+
 async def _resolve_via_kalshi(
     preds: list[dict],
 ) -> tuple[dict[str, Optional[int]], set[str]]:
@@ -609,11 +726,18 @@ async def _resolve_via_kalshi(
         (match cancelled / walkover / withdrawal before a ball was played).
         These have no binary outcome; the caller marks the ``ev_predictions``
         row voided=1 instead of writing an ``ev_outcomes`` row.
+
+    Non-Kalshi rows are dropped defensively — a Polymarket US market_id is not
+    a Kalshi ticker and would only produce garbage 404 lookups (route those
+    through :func:`_resolve_via_polymarket_us` instead).
     """
     from evmax.clients.kalshi import KalshiClient
 
     out: dict[str, Optional[int]] = {}
     voided: set[str] = set()
+    preds = [p for p in preds if not _is_polymarket_us_row(p)]
+    if not preds:
+        return out, voided
     async with KalshiClient() as client:
         async def _fetch_one(pred: dict) -> tuple[str, Optional[str]]:
             ticker = pred["market_id"].removeprefix("kalshi:")
@@ -1047,6 +1171,148 @@ async def fetch_completed_scores(sector: str, target_date: date) -> list[dict]:
     return []
 
 
+def _mlb_outs_from_innings_pitched(ip: object) -> Optional[float]:
+    """MLB Stats API reports innings pitched as ``"6.1"`` = 6 innings + 1 out.
+
+    The decimal digit is an outs count (0/1/2), never a true tenth, so this
+    can't be done with float math — 6.2 innings is 20 outs, not 6.2*3=19.8.
+    """
+    try:
+        whole, _, frac = str(ip).partition(".")
+        whole_outs = int(whole or 0) * 3
+        frac_outs = int(frac) if frac else 0
+        return float(whole_outs + frac_outs)
+    except (ValueError, TypeError):
+        return None
+
+
+def _resolve_baseball_prop_observations(
+    conn: sqlite3.Connection, baseball_by_date: dict[str, list[dict]]
+) -> int:
+    """Resolve pending baseball_props rows via the MLB Stats API boxscore.
+
+    One schedule call (gamePks for the date) + one boxscore call per game —
+    same one-request-per-game shape as the ESPN NBA path, just against
+    statsapi.mlb.com instead. Covers the stat types in
+    ``categories.yaml::baseball_props.prop_stat_types``: strikeouts and
+    pitching_outs come from the pitcher's line, total_bases/home_runs/hits/
+    hits_runs_rbis/rbis from the batter's line.
+    """
+    import unicodedata
+
+    def _norm_player(s: str) -> str:
+        nfkd = unicodedata.normalize("NFKD", s)
+        ascii_only = "".join(c for c in nfkd if not unicodedata.combining(c))
+        return (
+            ascii_only.lower().strip()
+            .replace(" ", "_").replace(".", "")
+            .replace("’", "'").replace("‘", "'")
+            .replace("'", "'")
+        )
+
+    resolved = 0
+    client = httpx.Client(timeout=15.0, follow_redirects=True)
+
+    try:
+        for game_date, prop_rows in baseball_by_date.items():
+            try:
+                r = client.get(
+                    "https://statsapi.mlb.com/api/v1/schedule",
+                    params={"sportId": 1, "date": game_date},
+                )
+                r.raise_for_status()
+                game_pks = [
+                    g["gamePk"]
+                    for d in r.json().get("dates", [])
+                    for g in d.get("games", [])
+                    if g.get("status", {}).get("abstractGameState") == "Final"
+                ]
+            except Exception as e:
+                logger.warning("baseball_prop_schedule_fail", date=game_date, error=str(e))
+                continue
+
+            player_stats: dict[str, dict[str, float]] = {}
+
+            for game_pk in game_pks:
+                try:
+                    box_resp = client.get(
+                        f"https://statsapi.mlb.com/api/v1/game/{game_pk}/boxscore"
+                    )
+                    box_resp.raise_for_status()
+                    box = box_resp.json()
+                except Exception as e:
+                    logger.debug("baseball_prop_box_fail", game_pk=game_pk, error=str(e))
+                    continue
+
+                for team_side in ("home", "away"):
+                    players = (
+                        box.get("teams", {}).get(team_side, {}).get("players", {})
+                    )
+                    for pdata in players.values():
+                        name = (pdata.get("person") or {}).get("fullName", "")
+                        if not name:
+                            continue
+                        stats = pdata.get("stats", {})
+                        batting = stats.get("batting", {}) or {}
+                        pitching = stats.get("pitching", {}) or {}
+
+                        stat_dict: dict[str, float] = {}
+                        if batting:
+                            stat_dict["total_bases"] = float(batting.get("totalBases", 0))
+                            stat_dict["home_runs"] = float(batting.get("homeRuns", 0))
+                            stat_dict["hits"] = float(batting.get("hits", 0))
+                            stat_dict["rbis"] = float(batting.get("rbi", 0))
+                            stat_dict["hits_runs_rbis"] = (
+                                stat_dict["hits"]
+                                + float(batting.get("runs", 0))
+                                + stat_dict["rbis"]
+                            )
+                        if pitching:
+                            stat_dict["strikeouts"] = float(pitching.get("strikeOuts", 0))
+                            outs = _mlb_outs_from_innings_pitched(
+                                pitching.get("inningsPitched")
+                            )
+                            if outs is not None:
+                                stat_dict["pitching_outs"] = outs
+
+                        if stat_dict:
+                            player_stats[_norm_player(name)] = stat_dict
+
+            for prop in prop_rows:
+                player = prop["player_name"]
+                stat_type = prop["stat_type"]
+                threshold = prop["line"]
+                if not player or not stat_type or threshold is None:
+                    continue
+
+                norm_p = _norm_player(player)
+                stats = player_stats.get(norm_p)
+                if stats is None:
+                    last = norm_p.rsplit("_", 1)[-1] if "_" in norm_p else norm_p
+                    for pname, pstats in player_stats.items():
+                        if pname.endswith(last):
+                            stats = pstats
+                            break
+
+                if stats is None:
+                    continue
+
+                actual = stats.get(stat_type)
+                if actual is None:
+                    continue
+
+                outcome = 1 if actual >= threshold else 0
+                conn.execute(
+                    "UPDATE prop_observations SET outcome = ?, actual_value = ? WHERE id = ?",
+                    (outcome, actual, prop["id"]),
+                )
+                resolved += 1
+    finally:
+        client.close()
+
+    return resolved
+
+
 def _resolve_prop_observations(conn: sqlite3.Connection, target_date: date) -> int:
     """Resolve pending rows in prop_observations using ESPN box scores.
 
@@ -1056,7 +1322,7 @@ def _resolve_prop_observations(conn: sqlite3.Connection, target_date: date) -> i
     """
     today_str = date.today().isoformat()
     rows = conn.execute(
-        """SELECT id, scan_date, player_name, stat_type, line, event_id
+        """SELECT id, scan_date, player_name, stat_type, line, event_id, sector
            FROM prop_observations
            WHERE outcome IS NULL AND scan_date <= ?""",
         (today_str,),
@@ -1065,8 +1331,10 @@ def _resolve_prop_observations(conn: sqlite3.Connection, target_date: date) -> i
     if not rows:
         return 0
 
-    # Group by game date
+    # Group by game date, split baseball off — it resolves via the MLB Stats
+    # API boxscore, not ESPN NBA basketball.
     by_date: dict[str, list[dict]] = {}
+    baseball_by_date: dict[str, list[dict]] = {}
     for row in rows:
         r = dict(row)
         parts = (r.get("event_id") or "").split("::")
@@ -1077,10 +1345,17 @@ def _resolve_prop_observations(conn: sqlite3.Connection, target_date: date) -> i
             continue
         if gd > date.today():
             continue
-        by_date.setdefault(game_date, []).append(r)
+        if r.get("sector") == "baseball":
+            baseball_by_date.setdefault(game_date, []).append(r)
+        else:
+            by_date.setdefault(game_date, []).append(r)
+
+    resolved = 0
+    if baseball_by_date:
+        resolved += _resolve_baseball_prop_observations(conn, baseball_by_date)
 
     if not by_date:
-        return 0
+        return resolved
 
     import unicodedata
 
@@ -1102,7 +1377,6 @@ def _resolve_prop_observations(conn: sqlite3.Connection, target_date: date) -> i
         "turnovers": "TO",
     }
 
-    resolved = 0
     client = httpx.Client(timeout=15.0, follow_redirects=True)
 
     try:
@@ -1453,20 +1727,31 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
             elif sector in KALSHI_SETTLEMENT_SECTORS:
                 # Tennis: ESPN doesn't return completed match results in a
                 # usable format. UFC: fight outcomes aren't score-shaped.
-                # Use Kalshi market settlement as ground truth:
-                # result="yes"→1.0, "no"→0.0, scalar→void.
+                # Use each venue's own settlement as ground truth: Kalshi
+                # result="yes"→1.0 / "no"→0.0, Polymarket US via the gateway
+                # settlement price (long side's final price). Scalar/fractional
+                # settlements → void.
                 all_rows = [r for rows in date_groups.values() for r in rows]
                 kalshi_results, kalshi_voided = await _resolve_via_kalshi(all_rows)
+                pm_results, pm_voided = await _resolve_via_polymarket_us(all_rows)
+                kalshi_results.update(pm_results)
+                kalshi_voided |= pm_voided
                 for pred in all_rows:
                     if pred["market_id"] in kalshi_voided:
-                        # Scalar fair-price refund — match cancelled / walkover /
-                        # withdrawal before play. Void rather than score.
+                        # Non-binary settlement — match cancelled / walkover /
+                        # withdrawal before play (Kalshi scalar refund or a
+                        # fractional PolyUS settlement). Void rather than score.
                         _void_prediction(conn, pred)
                         voided += 1
                         continue
                     outcome = kalshi_results.get(pred["market_id"])
                     if outcome is not None:
-                        _write_outcome(conn, pred, outcome, "kalshi_settlement")
+                        settle_source = (
+                            "polymarket_us_settlement"
+                            if _is_polymarket_us_row(pred)
+                            else "kalshi_settlement"
+                        )
+                        _write_outcome(conn, pred, outcome, settle_source)
                         resolved += 1
                     else:
                         failed += 1

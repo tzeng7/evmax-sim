@@ -22,10 +22,16 @@ import pytest
 
 from evmax.agents.cleanup.resolver import (
     _fuzzy_team_match,
+    _is_polymarket_us_row,
     _match_bo3,
     _match_espn,
+    _mlb_outs_from_innings_pitched,
+    _polyus_bet_is_long,
+    _resolve_baseball_prop_observations,
     _resolve_via_kalshi,
+    _resolve_via_polymarket_us,
     _slug_teams,
+    _split_polymarket_us_id,
     _to_fuzz,
     _void_prediction,
     _write_outcome,
@@ -1356,6 +1362,176 @@ class TestResolveViaKalshi:
         assert "kalshi:T_VOID" not in out  # voids never become a binary outcome
         assert voided == {"kalshi:T_VOID"}
 
+    def test_polymarket_us_rows_are_dropped(self):
+        # A PolyUS market_id is not a Kalshi ticker — it must never reach the
+        # Kalshi API (garbage 404 lookups). With only PolyUS rows the resolver
+        # returns empty without even opening a client.
+        preds = [{"market_id": "polymarket_us:aec-atp-a-b-2026-07-08:abc"}]
+        with patch("evmax.clients.kalshi.KalshiClient", lambda: _FakeKalshiClient({})):
+            out, voided = asyncio.run(_resolve_via_kalshi(preds))
+        assert out == {} and voided == set()
+
+
+# ---------------------------------------------------------------------------
+# Polymarket US settlement resolution
+# ---------------------------------------------------------------------------
+class _FakePolymarketUSClient:
+    """Async-context stub for PolymarketUSClient settlement lookups."""
+
+    def __init__(self, settlements: dict, sides: dict | None = None):
+        self._settlements = settlements
+        self._sides = sides or {}
+        self.settlement_calls: list[str] = []
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def get_market_settlement(self, slug: str):
+        self.settlement_calls.append(slug)
+        return self._settlements.get(slug)
+
+    async def get_market_sides(self, slug: str):
+        return self._sides.get(slug, [])
+
+
+def _pm_sides(long_abbrev: str, short_abbrev: str) -> list[dict]:
+    return [
+        {"long": True, "team": {"abbreviation": long_abbrev}, "description": "A"},
+        {"long": False, "team": {"abbreviation": short_abbrev}, "description": "B"},
+    ]
+
+
+class TestSplitPolymarketUsId:
+    def test_moneyline_side_suffix(self):
+        slug, side = _split_polymarket_us_id("polymarket_us:aec-wnba-min-conn-2026-07-08:conn")
+        assert slug == "aec-wnba-min-conn-2026-07-08"
+        assert side == "conn"
+
+    def test_bare_slug(self):
+        slug, side = _split_polymarket_us_id("polymarket_us:aec-epl-ars-che-2026-08-01")
+        assert slug == "aec-epl-ars-che-2026-08-01"
+        assert side is None
+
+    def test_is_polymarket_us_row(self):
+        assert _is_polymarket_us_row({"market_id": "polymarket_us:x:y"})
+        assert not _is_polymarket_us_row({"market_id": "kalshi:KXATPMATCH-X"})
+        assert not _is_polymarket_us_row({"market_id": None})
+
+
+class TestPolyusBetIsLong:
+    def test_side_key_matches_long(self):
+        assert _polyus_bet_is_long(_pm_sides("car", "gb"), "car", None) is True
+
+    def test_side_key_matches_short(self):
+        assert _polyus_bet_is_long(_pm_sides("car", "gb"), "gb", None) is False
+
+    def test_side_key_case_insensitive(self):
+        assert _polyus_bet_is_long(_pm_sides("CAR", "gb"), "car", None) is True
+
+    def test_ab_fallback(self):
+        # sides without abbreviations use the "a" (long) / "b" (short) ids
+        sides = [{"long": True, "team": {}}, {"long": False, "team": {}}]
+        assert _polyus_bet_is_long(sides, "a", None) is True
+        assert _polyus_bet_is_long(sides, "b", None) is False
+
+    def test_unknown_side_key_returns_none(self):
+        assert _polyus_bet_is_long(_pm_sides("car", "gb"), "nyj", None) is None
+
+    def test_total_over_maps_by_description(self):
+        sides = [
+            {"long": False, "description": "Over"},
+            {"long": True, "description": "Under"},
+        ]
+        assert _polyus_bet_is_long(sides, None, "over") is False
+
+    def test_bare_slug_defaults_to_long(self):
+        # drawable_outcome / spread markets emit YES = long by construction
+        assert _polyus_bet_is_long([], None, "arsenal") is True
+
+
+class TestResolveViaPolymarketUs:
+    SLUG = "aec-atp-pla-plb-2026-07-08"
+
+    def _run(self, preds, settlements, sides=None):
+        fake = _FakePolymarketUSClient(settlements, sides)
+        with patch(
+            "evmax.clients.polymarket_us.PolymarketUSClient", lambda: fake
+        ):
+            out, voided = asyncio.run(_resolve_via_polymarket_us(preds))
+        return out, voided, fake
+
+    def test_long_side_win_and_loss(self):
+        preds = [
+            {"market_id": f"polymarket_us:{self.SLUG}:pla", "yes_team": "Player A"},
+            {"market_id": f"polymarket_us:{self.SLUG}:plb", "yes_team": "Player B"},
+        ]
+        out, voided, _ = self._run(
+            preds, {self.SLUG: 1.0}, {self.SLUG: _pm_sides("pla", "plb")}
+        )
+        # settlement 1 → long (pla) won → YES on pla wins, YES on plb loses
+        assert out[f"polymarket_us:{self.SLUG}:pla"] == 1
+        assert out[f"polymarket_us:{self.SLUG}:plb"] == 0
+        assert voided == set()
+
+    def test_short_side_win(self):
+        preds = [
+            {"market_id": f"polymarket_us:{self.SLUG}:plb", "yes_team": "Player B"},
+        ]
+        out, _, _ = self._run(
+            preds, {self.SLUG: 0.0}, {self.SLUG: _pm_sides("pla", "plb")}
+        )
+        assert out[f"polymarket_us:{self.SLUG}:plb"] == 1
+
+    def test_fractional_settlement_voids(self):
+        # tie 50-50 / cancellation at last-traded / walkover — no binary outcome
+        preds = [
+            {"market_id": f"polymarket_us:{self.SLUG}:pla", "yes_team": "Player A"},
+        ]
+        out, voided, _ = self._run(preds, {self.SLUG: 0.5})
+        assert out == {}
+        assert voided == {f"polymarket_us:{self.SLUG}:pla"}
+
+    def test_unsettled_returns_none(self):
+        preds = [
+            {"market_id": f"polymarket_us:{self.SLUG}:pla", "yes_team": "Player A"},
+        ]
+        out, voided, _ = self._run(preds, {})
+        assert out[f"polymarket_us:{self.SLUG}:pla"] is None
+        assert voided == set()
+
+    def test_unmappable_side_left_open(self):
+        # settlement exists but the side suffix matches neither abbreviation —
+        # leave unresolved rather than guess a direction
+        preds = [
+            {"market_id": f"polymarket_us:{self.SLUG}:xyz", "yes_team": "Player A"},
+        ]
+        out, voided, _ = self._run(
+            preds, {self.SLUG: 1.0}, {self.SLUG: _pm_sides("pla", "plb")}
+        )
+        assert out[f"polymarket_us:{self.SLUG}:xyz"] is None
+        assert voided == set()
+
+    def test_no_side_suffix_skipped(self):
+        # synthesized ":no" spread/total rows resolve via scores, not settlement
+        preds = [{"market_id": f"polymarket_us:{self.SLUG}:no", "yes_team": "under"}]
+        out, voided, fake = self._run(preds, {self.SLUG: 1.0})
+        assert out[f"polymarket_us:{self.SLUG}:no"] is None
+        assert fake.settlement_calls == []
+
+    def test_kalshi_rows_ignored(self):
+        preds = [
+            {"market_id": "kalshi:KXATPMATCH-X", "yes_team": "Player A"},
+            {"market_id": f"polymarket_us:{self.SLUG}:pla", "yes_team": "Player A"},
+        ]
+        out, _, _ = self._run(
+            preds, {self.SLUG: 1.0}, {self.SLUG: _pm_sides("pla", "plb")}
+        )
+        assert "kalshi:KXATPMATCH-X" not in out
+        assert out[f"polymarket_us:{self.SLUG}:pla"] == 1
+
 
 class TestScalarSettlementVoidIntegration:
     """End-to-end: a scalar settlement voids the row and writes no outcome."""
@@ -1661,3 +1837,170 @@ class TestBackfillClvPolymarketUS:
             (self.MID,),
         ).fetchone()
         assert row["kalshi_clv_pct"] == pytest.approx(5.0)
+
+
+# ---------------------------------------------------------------------------
+# baseball_props resolution (MLB Stats API boxscore)
+# ---------------------------------------------------------------------------
+
+class TestMlbOutsFromInningsPitched:
+    def test_whole_innings(self):
+        assert _mlb_outs_from_innings_pitched("6") == 18.0
+
+    def test_one_out_fraction(self):
+        assert _mlb_outs_from_innings_pitched("6.1") == 19.0
+
+    def test_two_out_fraction(self):
+        assert _mlb_outs_from_innings_pitched("6.2") == 20.0
+
+    def test_none_returns_none(self):
+        assert _mlb_outs_from_innings_pitched(None) is None
+
+    def test_garbage_returns_none(self):
+        assert _mlb_outs_from_innings_pitched("--") is None
+
+
+def _mlb_boxscore(pitcher_line=None, batter_line=None):
+    players = {}
+    if pitcher_line is not None:
+        players["ID1"] = {
+            "person": {"fullName": pitcher_line["name"]},
+            "stats": {"pitching": pitcher_line["stats"], "batting": {}},
+        }
+    if batter_line is not None:
+        players["ID2"] = {
+            "person": {"fullName": batter_line["name"]},
+            "stats": {"batting": batter_line["stats"], "pitching": {}},
+        }
+    return {"teams": {"home": {"players": players}, "away": {"players": {}}}}
+
+
+class TestResolveBaseballPropObservations:
+    def _make_conn(self):
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        conn.execute("""
+            CREATE TABLE prop_observations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                scan_date TEXT,
+                sector TEXT,
+                player_name TEXT,
+                stat_type TEXT,
+                line REAL,
+                event_id TEXT,
+                actual_value REAL,
+                outcome INTEGER
+            )
+        """)
+        return conn
+
+    def _seed_row(self, conn, player, stat_type, line, event_id="baseball::2026-07-15::yankees_vs_redsox"):
+        conn.execute(
+            """INSERT INTO prop_observations
+               (scan_date, sector, player_name, stat_type, line, event_id)
+               VALUES ('2026-07-15', 'baseball', ?, ?, ?, ?)""",
+            (player, stat_type, line, event_id),
+        )
+        conn.commit()
+        return conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+    def _fake_client(self, schedule_payload, boxscore_payload):
+        client = MagicMock()
+
+        def _get(url, params=None, **kwargs):
+            resp = MagicMock()
+            resp.raise_for_status.return_value = None
+            if "schedule" in url:
+                resp.json.return_value = schedule_payload
+            else:
+                resp.json.return_value = boxscore_payload
+            return resp
+
+        client.get.side_effect = _get
+        return client
+
+    def test_pitcher_strikeouts_and_outs_resolve(self):
+        conn = self._make_conn()
+        self._seed_row(conn, "Gerrit Cole", "strikeouts", 6.5)
+        self._seed_row(conn, "Gerrit Cole", "pitching_outs", 18.5)
+
+        schedule = {"dates": [{"games": [{"gamePk": 1, "status": {"abstractGameState": "Final"}}]}]}
+        box = _mlb_boxscore(
+            pitcher_line={"name": "Gerrit Cole", "stats": {"strikeOuts": 8, "inningsPitched": "6.1"}}
+        )
+        fake = self._fake_client(schedule, box)
+        with patch("evmax.agents.cleanup.resolver.httpx.Client", return_value=fake):
+            n = _resolve_baseball_prop_observations(
+                conn, {"2026-07-15": [dict(r) for r in conn.execute(
+                    "SELECT id, scan_date, player_name, stat_type, line, event_id FROM prop_observations"
+                ).fetchall()]},
+            )
+
+        assert n == 2
+        rows = {r["stat_type"]: r for r in conn.execute("SELECT * FROM prop_observations").fetchall()}
+        assert rows["strikeouts"]["outcome"] == 1  # 8 >= 6.5
+        assert rows["strikeouts"]["actual_value"] == 8.0
+        assert rows["pitching_outs"]["outcome"] == 1  # 19 >= 18.5
+        assert rows["pitching_outs"]["actual_value"] == 19.0
+
+    def test_batter_total_bases_and_hits_runs_rbis(self):
+        conn = self._make_conn()
+        self._seed_row(conn, "Aaron Judge", "total_bases", 2.5)
+        self._seed_row(conn, "Aaron Judge", "hits_runs_rbis", 3.5)
+
+        schedule = {"dates": [{"games": [{"gamePk": 1, "status": {"abstractGameState": "Final"}}]}]}
+        box = _mlb_boxscore(
+            batter_line={
+                "name": "Aaron Judge",
+                "stats": {"totalBases": 4, "homeRuns": 1, "hits": 2, "runs": 1, "rbi": 2},
+            }
+        )
+        fake = self._fake_client(schedule, box)
+        with patch("evmax.agents.cleanup.resolver.httpx.Client", return_value=fake):
+            n = _resolve_baseball_prop_observations(
+                conn, {"2026-07-15": [dict(r) for r in conn.execute(
+                    "SELECT id, scan_date, player_name, stat_type, line, event_id FROM prop_observations"
+                ).fetchall()]},
+            )
+
+        assert n == 2
+        rows = {r["stat_type"]: r for r in conn.execute("SELECT * FROM prop_observations").fetchall()}
+        assert rows["total_bases"]["actual_value"] == 4.0
+        assert rows["total_bases"]["outcome"] == 1
+        # hits(2) + runs(1) + rbi(2) = 5 >= 3.5
+        assert rows["hits_runs_rbis"]["actual_value"] == 5.0
+        assert rows["hits_runs_rbis"]["outcome"] == 1
+
+    def test_unfinished_games_skipped(self):
+        conn = self._make_conn()
+        self._seed_row(conn, "Gerrit Cole", "strikeouts", 6.5)
+
+        schedule = {"dates": [{"games": [{"gamePk": 1, "status": {"abstractGameState": "Live"}}]}]}
+        fake = self._fake_client(schedule, {})
+        with patch("evmax.agents.cleanup.resolver.httpx.Client", return_value=fake):
+            n = _resolve_baseball_prop_observations(
+                conn, {"2026-07-15": [dict(r) for r in conn.execute(
+                    "SELECT id, scan_date, player_name, stat_type, line, event_id FROM prop_observations"
+                ).fetchall()]},
+            )
+        assert n == 0
+        assert fake.get.call_count == 1  # only the schedule call, no boxscore fetch
+
+    def test_player_not_in_boxscore_left_unresolved(self):
+        conn = self._make_conn()
+        self._seed_row(conn, "Nobody Special", "strikeouts", 6.5)
+
+        schedule = {"dates": [{"games": [{"gamePk": 1, "status": {"abstractGameState": "Final"}}]}]}
+        box = _mlb_boxscore(
+            pitcher_line={"name": "Gerrit Cole", "stats": {"strikeOuts": 8, "inningsPitched": "6.1"}}
+        )
+        fake = self._fake_client(schedule, box)
+        with patch("evmax.agents.cleanup.resolver.httpx.Client", return_value=fake):
+            n = _resolve_baseball_prop_observations(
+                conn, {"2026-07-15": [dict(r) for r in conn.execute(
+                    "SELECT id, scan_date, player_name, stat_type, line, event_id FROM prop_observations"
+                ).fetchall()]},
+            )
+        assert n == 0
+        row = conn.execute("SELECT outcome FROM prop_observations").fetchone()
+        assert row["outcome"] is None
