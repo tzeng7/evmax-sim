@@ -1190,8 +1190,9 @@ class EVGapAgent(Agent):
             ),
             venue=market.source.value,
             model_diagnostics=(
-                json.dumps(blend.diagnostics)
-                if blend is not None and not skip_blend and blend.diagnostics
+                json.dumps(getattr(blend, "diagnostics", None))
+                if blend is not None and not skip_blend
+                and getattr(blend, "diagnostics", None)
                 else None
             ),
         )
