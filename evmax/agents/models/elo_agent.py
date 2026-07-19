@@ -64,6 +64,19 @@ K_FACTORS: dict[str, float] = {
     "wnba": 20.0,     # 40-game season, fewer teams → each game informative
     "lol": 20.0,
     "cs2": 20.0,
+    "nhl": 6.0,       # MODEL-2 (2026-07-18): swept via scripts/backtest_nhl_elo.py —
+                      # cold-start walk-forward grid {6,10,14,20,25} x home_adv
+                      # {0,20,32,48,60}, ranked on 2023-24, confirmed on 2024-25
+                      # (state carried across seasons, K=6/home_adv=48 won on the
+                      # confirm window). FINAL number reported once on the held-
+                      # out, now-complete 2025-26 season: winner Brier 0.2528 /
+                      # acc 53.3% vs a naive K=20/home_adv=60 baseline (generic
+                      # team-sport defaults, untuned for NHL) at Brier 0.2572 /
+                      # acc 53.2% — delta +0.0043 Brier. NHL's ~82-game season
+                      # argues for a small K like baseball's 6 (162 games) rather
+                      # than NBA's 20; the sweep confirms it. Not yet wired into
+                      # categories.yaml's nhl `models:` list — this only
+                      # calibrates the state, ensemble wiring is a separate call.
 }
 
 # Early-season K boost — sector-aware multiplier on the base K-factor that
@@ -117,6 +130,9 @@ HOME_ADVANTAGE_ELO: dict[str, float] = {
     "f1": 0.0,        # different circuit each race
     "lol": 0.0,
     "cs2": 0.0,
+    "nhl": 48.0,      # MODEL-2 (2026-07-18): see K_FACTORS["nhl"] comment for the
+                      # sweep protocol/numbers — 48 tied baseball's home_adv and
+                      # won the confirm window at every candidate K.
 }
 
 DEFAULT_ELO = 1500.0
