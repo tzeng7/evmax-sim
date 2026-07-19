@@ -65,6 +65,7 @@ def _make_db() -> sqlite3.Connection:
             model_version TEXT,
             venue TEXT NOT NULL DEFAULT 'kalshi',
             minutes_to_tipoff INTEGER,
+            model_diagnostics TEXT,
             UNIQUE(market_id, scan_date)
         );
         CREATE TABLE prop_observations (
@@ -449,6 +450,78 @@ class TestHasFullBlend:
     def test_unlisted_sector_always_passes(self):
         assert has_full_blend("nba", "sharp") is True
         assert has_full_blend(None, None) is True
+
+
+class TestMinNonsharpFloor:
+    """MIN_NONSHARP_MODELS — the any-N-of floor (soccer/worldcup)."""
+
+    def test_soccer_sharp_only_ml_fails(self):
+        assert has_full_blend("soccer", "sharp", "moneyline") is False
+
+    def test_soccer_sharp_capped_ml_fails(self):
+        # A capped row's final price IS the sharp price — passthrough.
+        assert has_full_blend("soccer", "sharp(capped)", "moneyline") is False
+
+    def test_soccer_adjustment_layers_dont_count(self):
+        # injury/late_news ride on top of the blend; they aren't model signal.
+        assert has_full_blend("soccer", "sharp+injury+late_news", "moneyline") is False
+
+    def test_soccer_any_one_model_passes(self):
+        assert has_full_blend("soccer", "sharp+poisson", "moneyline") is True
+        assert has_full_blend("soccer", "elo+sharp", "moneyline") is True
+        assert has_full_blend("soccer", "xg+sharp+injury", "moneyline") is True
+
+    def test_soccer_total_out_of_scope(self):
+        # No model prices soccer totals — the floor deliberately excludes them.
+        assert has_full_blend("soccer", "sharp+total_dist", "total") is True
+
+    def test_soccer_no_market_type_fails_closed(self):
+        # market_type=None applies the floor unscoped (fail-closed).
+        assert has_full_blend("soccer", "sharp") is False
+
+    def test_worldcup_advance_in_scope(self):
+        assert has_full_blend("worldcup", "sharp+advance_derived", "advance") is False
+        assert has_full_blend("worldcup", "elo+sharp+advance_derived", "advance") is True
+
+    def test_ufc_unaffected(self):
+        # Sharp-dominance is by design for sectors without an entry.
+        assert has_full_blend("ufc", "sharp", "moneyline") is True
+        assert has_full_blend("ufc", "sharp+ufc_rating", "moneyline") is True
+
+    def test_tennis_all_of_check_unchanged(self):
+        # Tennis keeps the all-of gate; the floor doesn't apply to it.
+        assert has_full_blend("tennis", _FULL_TENNIS_SOURCES, "moneyline") is True
+        assert has_full_blend("tennis", "sharp", "moneyline") is False
+
+
+class TestModelDiagnosticsPersistence:
+    """model_diagnostics JSON rides EVGap → log_gaps → ev_predictions."""
+
+    def test_diagnostics_persisted(self, patched_db):
+        import dataclasses
+        import json as _json
+
+        diag = {"fired": {"elo": {"conf": 0.6, "n": 20}},
+                "gated": {"form": {"conf": 0.3, "note": "thin"}},
+                "missing": ["poisson"]}
+        g = dataclasses.replace(
+            _gap("kalshi:DIAG-1"), model_diagnostics=_json.dumps(diag)
+        )
+        log_gaps([g], scan_date=date.today())
+        row = patched_db.execute(
+            "SELECT model_diagnostics FROM ev_predictions WHERE market_id='kalshi:DIAG-1'"
+        ).fetchone()
+        assert row is not None
+        assert _json.loads(row["model_diagnostics"]) == diag
+
+    def test_legacy_gap_without_diagnostics_is_null_safe(self, patched_db):
+        g = _gap("kalshi:DIAG-2")
+        log_gaps([g], scan_date=date.today())
+        row = patched_db.execute(
+            "SELECT model_diagnostics FROM ev_predictions WHERE market_id='kalshi:DIAG-2'"
+        ).fetchone()
+        assert row is not None
+        assert row["model_diagnostics"] is None
 
 
 class TestPartialBlendDemotion:

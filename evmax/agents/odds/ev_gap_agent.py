@@ -14,6 +14,7 @@ Output data: list[EVGap] sorted descending by ev_pct.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
@@ -82,6 +83,11 @@ class EVGap:
     # "kalshi" | "polymarket_us"). kalshi_yes_price above is the venue's YES
     # ask regardless of venue — the field name predates multi-venue support.
     venue: str = "kalshi"
+    # JSON why-not diagnostics from the ensemble (BlendedPrediction.diagnostics:
+    # fired/gated/missing per model). Only set on gaps whose price came from the
+    # model blend (moneyline family) — spread/total distribution pricing and
+    # props carry None. Persisted to ev_predictions.model_diagnostics.
+    model_diagnostics: Optional[str] = None
 
     @property
     def edge_label(self) -> str:
@@ -155,6 +161,34 @@ REQUIRED_BLEND_MODELS: dict[str, frozenset] = {
     }),
 }
 
+# Sectors where a LIVE play additionally requires at least `min_count`
+# non-sharp models in the blend for the listed market types. Complements
+# REQUIRED_BLEND_MODELS (all-of): this is an any-N-of floor, so early-season
+# or newly-promoted teams aren't all-or-nothing — any one of elo/form/
+# poisson/xg satisfies it. Sectors absent here (ufc, lol, cs2, nhl, ...)
+# are unaffected: sharp-dominance there is by design.
+#
+# Motivation (2026-07-18): MLS was scanned (KXMLSGAME, 2026-07-09) before
+# it was ever seeded, so every MLS gap blended to model_sources='sharp'
+# and 11 sharp-passthrough rows logged as LIVE plays — thin Kalshi-vs-
+# Pinnacle arb, not model edge (the exact failure the tennis gate exists
+# to suppress). Soccer totals are deliberately NOT listed: no model prices
+# them, so a floor would demote 100% of them — that is a separate product
+# decision.
+MIN_NONSHARP_MODELS: dict[str, dict] = {
+    "soccer":   {"min_count": 1, "market_types": frozenset({"moneyline"})},
+    "worldcup": {"min_count": 1, "market_types": frozenset({"moneyline", "advance"})},
+}
+
+# Tokens in model_sources that are NOT independent model signal: the sharp
+# anchor itself, adjustment layers applied on top of the blend, pricing
+# derivations, and side flags. "sharp(capped)" rows count zero non-sharp
+# models — a capped row's final price IS the sharp price.
+_NON_MODEL_TOKENS = frozenset({
+    "", "sharp", "sharp(capped)", "injury", "late_news", "rest", "playoff",
+    "advance_derived", "spread_dist", "total_dist", "no_side",
+})
+
 # How much of the possession-sim cover probability to mix into the market-anchored
 # spread price (the remainder is the Pinnacle-CDF SpreadDistributionModel). Default
 # 0.35; per-sector overrides win.
@@ -180,16 +214,36 @@ def spread_sim_weight(sector: Optional[str]) -> float:
     )
 
 
-def has_full_blend(sector: Optional[str], model_sources: Optional[str]) -> bool:
-    """True when every model the sector requires contributed to the blend.
+def has_full_blend(
+    sector: Optional[str],
+    model_sources: Optional[str],
+    market_type: Optional[str] = None,
+) -> bool:
+    """True when the sector's blend requirements are satisfied.
 
-    Sectors without an entry in REQUIRED_BLEND_MODELS always pass.
+    Two independent checks, both must pass:
+    - REQUIRED_BLEND_MODELS (all-of): every listed model contributed.
+    - MIN_NONSHARP_MODELS (any-N-of floor): at least ``min_count`` genuine
+      model tokens (non-sharp, non-adjustment) contributed for the listed
+      market types. When ``market_type`` is None the floor applies
+      unscoped (fail-closed) — the single production call site always
+      passes the market type.
+
+    Sectors without entries in either config always pass.
     """
-    required = REQUIRED_BLEND_MODELS.get((sector or "").lower())
-    if not required:
-        return True
+    sec = (sector or "").lower()
     contributing = {tok.strip() for tok in (model_sources or "").split("+")}
-    return required <= contributing
+
+    required = REQUIRED_BLEND_MODELS.get(sec)
+    if required and not (required <= contributing):
+        return False
+
+    floor = MIN_NONSHARP_MODELS.get(sec)
+    if floor and (market_type is None or market_type in floor["market_types"]):
+        if len(contributing - _NON_MODEL_TOKENS) < floor["min_count"]:
+            return False
+
+    return True
 
 
 def _minutes_to_tipoff(event_date: Optional[datetime]) -> Optional[int]:
@@ -908,6 +962,9 @@ class EVGapAgent(Agent):
         # bet rather than fire blind. Scoped to moneyline: spread uses the
         # cover-prob model and total is pure sharp devig — neither consumes the
         # pitcher agent, so requiring it there would wrongly zero them out.
+        # The substring check deliberately matches both "pitcher" (v1 rows)
+        # and "pitcher_v2" (the 2026-07-19 rework) — the guard's job is
+        # "some pitcher model contributed", not a version pin.
         if (
             (market.sector or "").lower() == "baseball"
             and market.market_type == MarketType.moneyline
@@ -1127,8 +1184,17 @@ class EVGapAgent(Agent):
             line_velocity=velocity,
             velocity_flag=vel_flag,
             book_count=getattr(sharp, "book_count", 1),
-            full_blend=has_full_blend(sector, src),
+            full_blend=has_full_blend(
+                sector, src,
+                market.market_type.value if market.market_type else "moneyline",
+            ),
             venue=market.source.value,
+            model_diagnostics=(
+                json.dumps(getattr(blend, "diagnostics", None))
+                if blend is not None and not skip_blend
+                and getattr(blend, "diagnostics", None)
+                else None
+            ),
         )
         return _ret(gap, blend_payload)
 

@@ -126,6 +126,7 @@ def _make_in_memory_db():
             model_version TEXT,
             venue TEXT NOT NULL DEFAULT 'kalshi',
             minutes_to_tipoff INTEGER,
+            model_diagnostics TEXT,
             UNIQUE(market_id)
         );
         CREATE TABLE ev_outcomes (

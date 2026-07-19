@@ -109,6 +109,10 @@ class MLBStatsClient(BaseAPIClient):
         payload = await self.schedule(date=date)
         return _parse_probables(payload)
 
+    async def boxscore(self, game_pk: int) -> dict[str, Any]:
+        """Raw boxscore payload for one game."""
+        return await self._get(f"/game/{game_pk}/boxscore")
+
 
 def _parse_probables(payload: dict[str, Any]) -> dict[str, dict]:
     """Pure parser — extracted so it's unit-testable against a fixture."""
@@ -136,14 +140,62 @@ def _parse_probables(payload: dict[str, Any]) -> dict[str, dict]:
     return result
 
 
+def parse_innings_pitched(raw: Any) -> float:
+    """Baseball IP notation → float innings: "1.2" = 1 + 2/3, not 1.2."""
+    try:
+        text = str(raw)
+        whole, _, frac = text.partition(".")
+        outs = int(frac) if frac else 0
+        return int(whole or 0) + min(outs, 2) / 3.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def parse_reliever_appearances(
+    boxscore: dict[str, Any], game_date: str
+) -> dict[str, tuple[str, float, int]]:
+    """Extract each NON-starter pitcher's (date, ip, pitch_count) from one
+    boxscore payload. Keyed by accent-folded fullName (the seeded pitcher DB
+    key). Pure parser — unit-testable against a fixture.
+    """
+    out: dict[str, tuple[str, float, int]] = {}
+    for side in ("home", "away"):
+        team = (boxscore.get("teams") or {}).get(side) or {}
+        players = team.get("players") or {}
+        for pid in team.get("pitchers") or []:
+            p = players.get(f"ID{pid}") or {}
+            stats = (p.get("stats") or {}).get("pitching") or {}
+            if not stats or stats.get("gamesStarted", 0):
+                continue  # starter (or no line) — the fatigue log is pen-only
+            full = (p.get("person") or {}).get("fullName")
+            if not full:
+                continue
+            ip = parse_innings_pitched(stats.get("inningsPitched", "0"))
+            pc = stats.get("numberOfPitches") or stats.get("pitchesThrown") or 0
+            try:
+                pc = int(pc)
+            except (TypeError, ValueError):
+                pc = 0
+            out[ascii_fold(full)] = (game_date, ip, pc)
+    return out
+
+
 # ---------------------------------------------------------------------------
-# Cached module-level accessor (drop-in for the agent)
+# Cached module-level accessors (drop-ins for the agent)
 # ---------------------------------------------------------------------------
 
 _CACHE_TTL = 30 * 60  # 30 minutes — same cadence as the old ESPN cache
 _probable_cache: dict[str, dict] = {}
 _probable_cache_ts: float = 0.0
 _probable_cache_date: Optional[str] = None
+
+# Reliever fatigue log: refreshed every 3h — fatigue signal changes daily,
+# not intraday, but games finish through the evening so a fixed daily pull
+# would miss the previous night's appearances on morning scans.
+_APPEARANCES_TTL = 3 * 3600
+_appearances_cache: dict[str, list] = {}
+_appearances_cache_ts: float = 0.0
+_appearances_cache_key: Optional[str] = None
 
 
 async def fetch_probable_starters(date: Optional[str] = None) -> dict[str, dict]:
@@ -171,3 +223,75 @@ async def fetch_probable_starters(date: Optional[str] = None) -> dict[str, dict]
     except Exception as e:  # noqa: BLE001 — degrade to fallback source
         logger.warning("mlb_probable_starters_failed", error=str(e))
         return {}
+
+
+async def fetch_reliever_appearances(
+    days_back: int = 4, today: Optional[str] = None
+) -> dict[str, list]:
+    """Reliever appearance log for the trailing ``days_back`` days.
+
+    Returns ``{name_key: [[iso_date, ip, pitch_count], ...]}`` (chronological),
+    covering every non-starter pitching line in final games — the live feed
+    for the bullpen fatigue heuristic (evmax/models_ml/bullpen.py:
+    is_reliever_available). ~15 schedule days + ~15 boxscores per day at
+    concurrency 5 completes in seconds.
+
+    3h-TTL module cache; returns {} on total failure (the agent degrades to
+    the seeded appearance log, then to starter-only rates).
+    """
+    global _appearances_cache, _appearances_cache_ts, _appearances_cache_key
+    from datetime import timedelta
+
+    anchor = _date.fromisoformat(today) if today else _date.today()
+    key = f"{anchor.isoformat()}:{days_back}"
+    if (
+        _appearances_cache
+        and _appearances_cache_key == key
+        and (time.time() - _appearances_cache_ts) < _APPEARANCES_TTL
+    ):
+        return _appearances_cache
+
+    appearances: dict[str, list] = {}
+    try:
+        async with MLBStatsClient() as client:
+            for offset in range(days_back, 0, -1):
+                day = (anchor - timedelta(days=offset)).isoformat()
+                try:
+                    sched = await client.schedule(date=day, hydrate="")
+                except Exception as e:  # noqa: BLE001 — skip the day, keep going
+                    logger.warning("mlb_appearances_day_failed", date=day, error=str(e))
+                    continue
+                game_pks = [
+                    g.get("gamePk")
+                    for block in sched.get("dates", [])
+                    for g in block.get("games", [])
+                    if (g.get("status") or {}).get("abstractGameState") == "Final"
+                    and g.get("gamePk")
+                ]
+                import asyncio as _asyncio
+
+                boxes = await _asyncio.gather(
+                    *(client.boxscore(pk) for pk in game_pks),
+                    return_exceptions=True,
+                )
+                for box in boxes:
+                    if isinstance(box, Exception):
+                        continue
+                    for name_key, app in parse_reliever_appearances(box, day).items():
+                        appearances.setdefault(name_key, []).append(list(app))
+    except Exception as e:  # noqa: BLE001 — degrade entirely
+        logger.warning("mlb_appearances_failed", error=str(e))
+        return {}
+
+    for entries in appearances.values():
+        entries.sort(key=lambda a: a[0])
+
+    _appearances_cache = appearances
+    _appearances_cache_ts = time.time()
+    _appearances_cache_key = key
+    logger.info(
+        "mlb_reliever_appearances_fetched",
+        relievers=len(appearances),
+        days=days_back,
+    )
+    return appearances

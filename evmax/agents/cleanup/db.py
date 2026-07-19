@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     captured_yes_price  REAL,                       -- pre-game YES ask at scan time
     model_version       TEXT,                       -- e.g. "nfl_props_v1_qb_only" — lets us expire stale shadow data
     venue               TEXT    NOT NULL DEFAULT 'kalshi',  -- prediction-market venue: kalshi | polymarket_us
+    model_diagnostics   TEXT,                       -- JSON why-not diagnostics (fired/gated/missing per model)
     UNIQUE(market_id)
 );
 
@@ -169,6 +170,8 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             captured_yes_price  REAL,
             model_version       TEXT,
             venue               TEXT    NOT NULL DEFAULT 'kalshi',
+            model_diagnostics   TEXT,
+            minutes_to_tipoff   INTEGER,
             UNIQUE(market_id)
         );
         INSERT INTO ev_predictions (
@@ -178,7 +181,8 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             volume_usd, model_sources, sharp_weight_used, bankroll_used, line,
             voided, placed, placed_at, placed_price, placed_stake,
             pinnacle_drift_pct, kalshi_clv_pct,
-            mode, captured_yes_price, model_version, venue
+            mode, captured_yes_price, model_version, venue, model_diagnostics,
+            minutes_to_tipoff
         )
         SELECT
             id, logged_at, scan_date, market_id, event_id, sector, yes_team,
@@ -187,7 +191,8 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             volume_usd, model_sources, sharp_weight_used, bankroll_used, line,
             voided, placed, placed_at, placed_price, placed_stake,
             pinnacle_drift_pct, kalshi_clv_pct,
-            mode, captured_yes_price, model_version, venue
+            mode, captured_yes_price, model_version, venue, model_diagnostics,
+            minutes_to_tipoff
         FROM ev_predictions_old;
         DROP TABLE ev_predictions_old;
         COMMIT;
@@ -254,6 +259,13 @@ def get_connection() -> sqlite3.Connection:
         # history correctly. Values are MarketSource strings.
         "ALTER TABLE ev_predictions ADD COLUMN venue TEXT NOT NULL DEFAULT 'kalshi'",
         "ALTER TABLE prop_observations ADD COLUMN venue TEXT NOT NULL DEFAULT 'kalshi'",
+        # 2026-07-19 — why-not diagnostics (WS3): JSON blob from the ensemble
+        # recording which models fired / were confidence-gated (with the
+        # agent's own note) / returned nothing. Lets shadow analysis separate
+        # recoverable coverage gaps from correctly-withheld thin matches
+        # without re-running predict_pair. NULL on legacy rows and on
+        # spread/total/prop rows (blend-priced moneyline family only).
+        "ALTER TABLE ev_predictions ADD COLUMN model_diagnostics TEXT",
     ]:
         try:
             conn.execute(migration)

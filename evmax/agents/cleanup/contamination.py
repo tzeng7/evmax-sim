@@ -47,6 +47,14 @@ WNBA (see data/categories.yaml notes + project_wnba_spread_no_edge memory):
     lets ``evmax cleanup shadow clv wnba -m spread`` score only current pricing
     without a manual ``--since``.
 
+Soccer (see MIN_NONSHARP_MODELS in ``ev_gap_agent.py``):
+  - soccer ``moneyline`` with zero non-sharp model tokens: the sharp-only
+    guard shipped 2026-07-19. Before it, MLS games (scanned from 2026-07-09
+    but never seeded) produced ``model_sources='sharp'`` rows that logged as
+    LIVE plays — sharp-passthrough arb with no model edge. Current code
+    demotes those to shadow, so any live-mode sharp-only soccer ML row is
+    pre-guard.
+
 To add a sector rule later, append to ``CONTAMINATION_RULES`` — the metrics
 command and any SQL caller pick it up automatically.
 """
@@ -73,13 +81,33 @@ def _has(model_sources: Optional[str], token: str) -> bool:
     return token in (model_sources or "")
 
 
+# Tokens that are not independent model signal (sharp anchor, adjustment
+# layers, pricing derivations, side flags). Local literal mirroring
+# _NON_MODEL_TOKENS in evmax/agents/odds/ev_gap_agent.py — kept local per
+# this file's convention of not importing model-layer internals (see
+# _BASEBALL_MAX_ABS_SPREAD above).
+_NON_MODEL_TOKENS = frozenset({
+    "", "sharp", "sharp(capped)", "injury", "late_news", "rest", "playoff",
+    "advance_derived", "spread_dist", "total_dist", "no_side",
+})
+
+
+def _nonsharp_count(model_sources: Optional[str]) -> int:
+    tokens = {tok.strip() for tok in (model_sources or "").split("+")}
+    return len(tokens - _NON_MODEL_TOKENS)
+
+
 CONTAMINATION_RULES: dict[str, list[RowRule]] = {
     "baseball": [
         # Poisson removed from baseball 2026-06-01 — its presence dates the row.
         lambda mt, src, line: _has(src, "poisson"),
-        # Pitcher-required guard shipped 2026-06-06; a pitcher-less ML row is
-        # pre-guard generic arb.
-        lambda mt, src, line: mt == "moneyline" and not _has(src, "pitcher"),
+        # pitcher_v2 shipped 2026-07-19 (bullpen + park + offense + xERA;
+        # model renamed pitcher → pitcher_v2). Any ML row without the v2
+        # token was priced by a superseded model state: v1 rows carry
+        # "pitcher", pre-guard rows carry neither — both are dated out of
+        # the clean promotion sample. Subsumes the old "without pitcher"
+        # rule (guard shipped 2026-06-06, −23% live ROI on pitcher-less ML).
+        lambda mt, src, line: mt == "moneyline" and not _has(src, "pitcher_v2"),
         # Alt-run-line gate (PR #13): current code rejects baseball spreads
         # beyond ±1.5, so a resolved −2.5/−4.5 row is pre-gate.
         lambda mt, src, line: (
@@ -92,6 +120,13 @@ CONTAMINATION_RULES: dict[str, list[RowRule]] = {
         # lists possession_sim in its blend was priced by the retired
         # sim_weight=0.35 regime.
         lambda mt, src, line: mt == "spread" and _has(src, "possession_sim"),
+    ],
+    "soccer": [
+        # Sharp-only guard shipped 2026-07-19 (MIN_NONSHARP_MODELS in
+        # ev_gap_agent.py). A soccer ML row with zero non-sharp model tokens
+        # (the unseeded-MLS sharp-passthrough failure) predates the guard —
+        # current code demotes those to shadow instead of logging them live.
+        lambda mt, src, line: mt == "moneyline" and _nonsharp_count(src) == 0,
     ],
 }
 

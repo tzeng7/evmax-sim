@@ -42,9 +42,15 @@ def test_baseball_ml_without_pitcher_is_contaminated():
     assert is_contaminated("baseball", "moneyline", "")
 
 
+def test_baseball_v1_pitcher_ml_is_contaminated():
+    # pitcher → pitcher_v2 rework shipped 2026-07-19: a row still carrying the
+    # v1 token was priced by the superseded starter-only model.
+    assert is_contaminated("baseball", "moneyline", "elo+form+pitcher+sharp")
+
+
 def test_baseball_clean_ml_row_is_not_contaminated():
-    # Current code: pitcher present, no poisson.
-    assert not is_contaminated("baseball", "moneyline", "elo+pitcher+sharp")
+    # Current code: pitcher_v2 present, no poisson.
+    assert not is_contaminated("baseball", "moneyline", "elo+pitcher_v2+sharp")
 
 
 def test_baseball_non_ml_without_pitcher_is_clean():
@@ -71,10 +77,9 @@ def test_baseball_standard_runline_spread_is_clean():
     assert not is_contaminated("baseball", "spread", "sharp", None)
 
 
-def test_non_baseball_sectors_are_never_flagged():
+def test_ruleless_sectors_are_never_flagged():
     # No rules for these sectors → always clean, even with "poisson" present.
     assert not is_contaminated("nba", "moneyline", "elo+poisson+sharp")
-    assert not is_contaminated("soccer", "moneyline", "elo+poisson+sharp")
     assert not is_contaminated("nfl", "moneyline", "elo+sharp")
     assert not is_contaminated(None, "moneyline", None)
 
@@ -108,6 +113,36 @@ def test_wnba_moneyline_with_possession_sim_is_clean():
 def test_wnba_total_with_possession_sim_is_clean():
     # Totals are a separate (shadow) market; the spread-pricing rule doesn't touch them.
     assert not is_contaminated("wnba", "total", "sharp+total_dist+possession_sim", 165.5)
+
+
+# -------------------------------------------------------------------------
+# Soccer — sharp-only ML rows predate the MIN_NONSHARP_MODELS guard
+# (2026-07-19): the unseeded-MLS sharp-passthrough failure.
+# -------------------------------------------------------------------------
+
+
+def test_soccer_sharp_only_ml_is_contaminated():
+    assert is_contaminated("soccer", "moneyline", "sharp")
+
+
+def test_soccer_sharp_capped_ml_is_contaminated():
+    assert is_contaminated("soccer", "moneyline", "sharp(capped)+injury")
+
+
+def test_soccer_ml_with_any_model_is_clean():
+    assert not is_contaminated("soccer", "moneyline", "elo+poisson+sharp")
+    assert not is_contaminated("soccer", "moneyline", "xg+sharp")
+
+
+def test_soccer_total_sharp_only_is_clean():
+    # The guard is moneyline-scoped; sharp-only totals are expected (no model
+    # prices soccer totals) and not a code-state signature.
+    assert not is_contaminated("soccer", "total", "sharp+total_dist")
+
+
+def test_soccer_empty_sources_ml_is_contaminated():
+    assert is_contaminated("soccer", "moneyline", None)
+    assert is_contaminated("soccer", "moneyline", "")
 
 
 # -------------------------------------------------------------------------
@@ -165,9 +200,9 @@ def _make_baseball_db(tmp_path: Path) -> Path:
     ed = (date.today() - timedelta(days=1)).isoformat()
     # (market_id, model_sources, outcome) — all baseball moneyline, EV 5%, price 0.50
     rows = [
-        ("clean1", "elo+pitcher+sharp", 1),
-        ("clean2", "elo+pitcher+sharp", 0),
-        ("clean3", "elo+pitcher+sharp", 1),
+        ("clean1", "elo+pitcher_v2+sharp", 1),
+        ("clean2", "elo+pitcher_v2+sharp", 0),
+        ("clean3", "elo+pitcher_v2+sharp", 1),
         ("dirty_poisson1", "elo+pitcher+poisson+sharp", 1),
         ("dirty_poisson2", "elo+poisson+sharp", 0),
         ("dirty_nopitch1", "elo+sharp", 1),

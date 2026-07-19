@@ -1,8 +1,14 @@
 """Seed the SoccerXgAgent with shot data from ESPN box scores.
 
 Fetches ESPN scoreboard data for all configured soccer leagues going back
-to `--since` (default 2026-01-01), extracts shotsOnTarget / totalShots per
-team, and feeds them into SoccerXgAgent.record_match().
+to `--since` (default 2025-06-01 — the xG window is last-10 matches, so MLS
+teams need their 2025 tail), extracts shotsOnTarget / totalShots per team,
+and feeds them into SoccerXgAgent.record_match().
+
+Team names are canonicalized through NameNormalizer("soccer") before
+storage so seeded keys match the canonical keys used at scan time and by
+the resolve-path feed (model_updater). Raw ESPN displayNames ("Seattle
+Sounders FC") are un-lookupable at predict time ("seattle").
 
 Usage:
     python scripts/seed_soccer_xg.py
@@ -21,7 +27,8 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from evmax.agents.models.soccer_xg_agent import SoccerXgAgent
+from evmax.agents.models.soccer_xg_agent import MIN_MATCHES, SoccerXgAgent
+from evmax.matching.normalizer import NameNormalizer
 
 ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports"
 
@@ -118,12 +125,32 @@ async def fetch_league_matches(
     return matches
 
 
+def _canonicalize_matches(matches: list[dict], normalizer: NameNormalizer) -> list[dict]:
+    """Normalize home/away to canonical names; drop matches where either fails.
+
+    Pure helper (no network) so the canonicalization step is unit-testable.
+    """
+    out = []
+    for m in matches:
+        hn = normalizer.normalize(m["home"])
+        an = normalizer.normalize(m["away"])
+        if not hn or not an:
+            continue
+        out.append({**m, "home": hn, "away": an})
+    return out
+
+
 async def main(since: str) -> None:
     agent = SoccerXgAgent()
-    agent._state = {"teams": {}}
+    # Reset ONLY the club-soccer store (legacy flat "teams" key). Other
+    # namespaces in the same state file (e.g. state["worldcup"]["teams"])
+    # must survive a club reseed — see SoccerXgAgent._teams_for.
+    agent._state["teams"] = {}
+    normalizer = NameNormalizer("soccer")
 
     print(f"Soccer xG seeder — since {since}")
     total = 0
+    league_teams: dict[str, set[str]] = {}
 
     async with httpx.AsyncClient(
         timeout=httpx.Timeout(30.0),
@@ -134,7 +161,10 @@ async def main(since: str) -> None:
             print(f"\n  {league}...")
             matches = await fetch_league_matches(client, sport, league, since)
             matches.sort(key=lambda m: m["date"])
-            print(f"    {len(matches)} matches with shot data")
+            n_raw = len(matches)
+            matches = _canonicalize_matches(matches, normalizer)
+            print(f"    {len(matches)} matches with shot data ({n_raw - len(matches)} dropped un-normalizable)")
+            league_teams[league] = {m["home"] for m in matches} | {m["away"] for m in matches}
 
             for m in matches:
                 agent.record_match(
@@ -154,6 +184,15 @@ async def main(since: str) -> None:
     agent.save_state()
     teams = agent._state.get("teams", {})
     print(f"\nSeeded {total} matches across {len(teams)} teams")
+
+    # Per-league coverage: teams that will actually fire at predict time.
+    print(f"\nCoverage (teams with >= {MIN_MATCHES} matches, i.e. able to fire):")
+    for league, names in league_teams.items():
+        able = sum(
+            1 for t in names
+            if len(teams.get(t, {}).get("matches", [])) >= MIN_MATCHES
+        )
+        print(f"  {league:16s} {able}/{len(names)}")
 
     # Show top teams by xG/game
     ranked = []
@@ -175,6 +214,6 @@ async def main(since: str) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed soccer xG model")
-    parser.add_argument("--since", default="2026-01-01", help="Fetch since (YYYY-MM-DD)")
+    parser.add_argument("--since", default="2025-06-01", help="Fetch since (YYYY-MM-DD)")
     args = parser.parse_args()
     asyncio.run(main(args.since))

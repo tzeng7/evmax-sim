@@ -38,6 +38,36 @@ console = Console()
 _CATEGORIES_YAML = Path(__file__).resolve().parents[3] / "data" / "categories.yaml"
 
 
+def _format_why(diagnostics_json: Optional[str]) -> str:
+    """Compact one-line rendering of a model_diagnostics JSON blob.
+
+    ``missing:elo,form · gated:tennis_surface(0.30)`` — missing means the
+    lookup found nothing (player/team absent from state, recoverable by
+    seeding); gated means the agent predicted but fell at the confidence
+    gate (known but thin).
+    """
+    if not diagnostics_json:
+        return "[dim]—[/dim]"
+    import json as _json
+
+    try:
+        diag = _json.loads(diagnostics_json)
+    except (ValueError, TypeError):
+        return "[dim]?[/dim]"
+    parts = []
+    missing = diag.get("missing") or []
+    if missing:
+        parts.append("missing:" + ",".join(missing))
+    gated = diag.get("gated") or {}
+    if gated:
+        parts.append(
+            "gated:" + ",".join(
+                f"{name}({rec.get('conf', '?')})" for name, rec in gated.items()
+            )
+        )
+    return " · ".join(parts) if parts else "[dim]full[/dim]"
+
+
 # ---------------------------------------------------------------------------
 # show
 # ---------------------------------------------------------------------------
@@ -52,6 +82,12 @@ def show(
     ),
     resolved_only: bool = typer.Option(
         False, "--resolved", help="Only show rows that have a settled outcome."
+    ),
+    why: bool = typer.Option(
+        False, "--why",
+        help="Add a Why column from model_diagnostics: which models were "
+             "missing (player/team absent from state) or confidence-gated "
+             "(known but thin) on each row.",
     ),
 ) -> None:
     """Show recent shadow predictions with model_prob, captured_yes_price,
@@ -77,7 +113,7 @@ def show(
         SELECT p.scan_date, p.event_date, p.sector, p.event_title,
                p.yes_team, p.market_type, p.line,
                p.captured_yes_price, p.blended_true_prob, p.ev_pct,
-               p.kelly_fraction, p.model_version,
+               p.kelly_fraction, p.model_version, p.model_diagnostics,
                o.outcome
         FROM ev_predictions p
         LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
@@ -111,6 +147,8 @@ def show(
     table.add_column("Model", justify="right", width=8)
     table.add_column("EV%", justify="right", width=7)
     table.add_column("Outcome", width=10)
+    if why:
+        table.add_column("Why (missing / gated)", min_width=20, no_wrap=False)
 
     n_resolved = n_wins = 0
     for r in rows:
@@ -138,7 +176,7 @@ def show(
         if r["line"] is not None:
             bet_label += f" {r['line']:+.1f}"
 
-        table.add_row(
+        row_cells = [
             (r["scan_date"] or "")[-5:],
             (r["event_date"] or "")[-5:] if r["event_date"] else "—",
             r["sector"] or "",
@@ -148,7 +186,10 @@ def show(
             model_str,
             ev_str,
             outcome_str,
-        )
+        ]
+        if why:
+            row_cells.append(_format_why(r["model_diagnostics"]))
+        table.add_row(*row_cells)
 
     console.print(table)
     console.print(
@@ -618,6 +659,108 @@ def clv(
         f"  % bets with +CLV = {s['frac_positive']*100:.0f}%{stale_line}\n"
         f"  gate: n≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
         f"%pos≥{CLV_MIN_FRAC_POSITIVE*100:.0f}%  →  {verdict}"
+    )
+
+
+@app.command("board")
+def board(
+    days: int = typer.Option(30, "--days", "-d", help="Trailing window on game date."),
+    sector: Optional[str] = typer.Option(
+        None, "--sector", "-s", help="Restrict to one sector."
+    ),
+    staleness_h: float = typer.Option(
+        3.0, "--staleness-h",
+        help="CLV stale-close filter (hours before T-30). 0 disables.",
+    ),
+) -> None:
+    """Promotion scoreboard — per (sector, market type, venue) health.
+
+    One row per group: sample counts, Brier blend-vs-sharp, CLV gate status,
+    and blend divergence (mean |blended − sharp| pp) — the sharp-passthrough
+    detector. This is the 'which sectors can I rely on' view; also served at
+    GET /api/promotion-board on the dashboard.
+    """
+    from evmax.agents.cleanup.promotion_board import compute_promotion_board
+
+    rows = compute_promotion_board(
+        days=days,
+        staleness_h=staleness_h if staleness_h > 0 else None,
+        sector=sector,
+    )
+    if not rows:
+        console.print("[yellow]No prediction rows in the window.[/yellow]")
+        return
+
+    table = Table(
+        title=f"Promotion board — last {days} days (game date)",
+        box=box.ROUNDED,
+        header_style="bold cyan",
+        show_lines=False,
+    )
+    _MKT_ABBR = {"moneyline": "ML", "spread": "spr", "total": "tot", "advance": "adv"}
+    _VEN_ABBR = {"kalshi": "kal", "polymarket_us": "pmus"}
+
+    table.add_column("Sector", width=9)
+    table.add_column("Mkt", width=4)
+    table.add_column("Ven", width=4)
+    table.add_column("Mode", width=6)
+    table.add_column("n c/r/l", justify="right", width=11)
+    table.add_column("ΔBr/1k", justify="right", width=6)
+    table.add_column("CLV mean/%pos(n)", justify="right", width=16)
+    table.add_column("Div", justify="right", width=5)
+    table.add_column("Gate", width=4)
+    table.add_column("Verdict", min_width=15, no_wrap=False)
+
+    for r in rows:
+        clv = r["clv"]
+        clv_str = (
+            f"{clv['mean_clv_pp']:+.2f}/{clv['frac_positive']*100:.0f}%({clv['n']})"
+            if clv["n"] else "—"
+        )
+        delta = r["brier_delta_per_1000"]
+        delta_str = f"{delta:+.1f}" if delta is not None else "—"
+        div = r["blend_divergence_pp"]
+        if div is None:
+            div_str = "—"
+        elif r["sharp_passthrough"]:
+            div_str = f"[dim]{div:.2f}[/dim]"
+        else:
+            div_str = f"[green]{div:.2f}[/green]"
+        gates = r["gates"]
+        gate_str = "".join(
+            "[green]✓[/green]" if gates[k]["ok"] else "[red]✗[/red]"
+            for k in ("clean_n", "clv_n", "clv_mean", "clv_frac_pos")
+        )
+        verdict = r["verdict"]
+        style = {
+            "SHARP-PASSTHROUGH": "red",
+            "LIVE-DEGRADING": "red",
+            "FAILING-CLV": "yellow",
+            "PROMOTE-READY": "green",
+            "LIVE-HEALTHY": "green",
+        }.get(verdict, "dim")
+        verdict_cell = f"[{style}]{verdict}[/{style}]"
+        if r["top_blockers"]:
+            verdict_cell += f"\n[dim]{' '.join(r['top_blockers'])}[/dim]"
+
+        table.add_row(
+            r["sector"],
+            _MKT_ABBR.get(r["market_type"], r["market_type"][:4]),
+            _VEN_ABBR.get(r["venue"], r["venue"][:4]),
+            (r["mode"] or "?")[:6],
+            f"{r['n_clean_resolved']}/{r['n_resolved']}/{r['n_logged']}",
+            delta_str,
+            clv_str,
+            div_str,
+            gate_str,
+            verdict_cell,
+        )
+
+    console.print(table)
+    console.print(
+        "[dim]Div pp = mean |blended − sharp|; moneyline groups under "
+        f"{0.5:.1f}pp are sharp-passthrough (no independent model signal). "
+        "Gates: clean-n≥30 · CLV n≥30 · mean≥0 · %pos≥55.[/dim]"
     )
 
 
