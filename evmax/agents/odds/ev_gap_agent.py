@@ -24,6 +24,7 @@ from evmax.ev.kelly import compute_kelly
 from evmax.formatting import format_outcome_label
 from evmax.matching.engine import MatchingEngine
 from evmax.matching.prop_matcher import PropMatcher
+from evmax.modes import get_mode
 from evmax.models.market import PredictionMarket, MarketType
 from evmax.models.odds import SharpOdds
 from evmax.models_ml.spread_distribution import SpreadDistributionModel
@@ -285,6 +286,7 @@ class EVGapAgent(Agent):
         self._prop_matcher = PropMatcher()
         self._spread_model = SpreadDistributionModel()
         self._total_model = TotalDistributionModel()
+        self._no_pitcher_skips = 0
         try:
             from evmax.archiver import DataArchiver
             self._archiver = DataArchiver()
@@ -410,6 +412,13 @@ class EVGapAgent(Agent):
         gaps.sort(key=lambda g: g.ev_pct, reverse=True)
 
         self.log.info("ev_gaps_found", sector=sector, count=len(gaps))
+        if self._no_pitcher_skips:
+            self.log.info(
+                "baseball_ml_skipped_no_pitcher_summary",
+                sector=sector,
+                count=self._no_pitcher_skips,
+            )
+            self._no_pitcher_skips = 0
 
         await self.publish(f"ev.gaps.{sector}", gaps, request.correlation_id)
 
@@ -619,6 +628,13 @@ class EVGapAgent(Agent):
             return (gap, payload) if return_blend else gap
 
         if market.yes_price <= 0 or market.yes_price >= 1.0:
+            return _ret(None, None)
+
+        # A market_type disabled for this sector (e.g. baseball totals) never
+        # gets persisted regardless of what the blend produces — skip the
+        # spread/total distribution model and the rest of the pipeline before
+        # doing that work, rather than computing a gap only to drop it later.
+        if get_mode(sector, market.market_type.value) == "disabled":
             return _ret(None, None)
 
         # ------------------------------------------------------------------
@@ -897,11 +913,7 @@ class EVGapAgent(Agent):
             and market.market_type == MarketType.moneyline
             and "pitcher" not in src
         ):
-            self.log.debug(
-                "baseball_ml_skipped_no_pitcher",
-                event_id=sharp.event_id,
-                src=src,
-            )
+            self._no_pitcher_skips += 1
             return _ret(None, None)
 
         # ------------------------------------------------------------------
