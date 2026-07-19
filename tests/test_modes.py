@@ -222,16 +222,18 @@ def test_runtime_override_beats_shadow_market_types(monkeypatch):
     assert get_mode("testcat3", "total") == "disabled"  # override wins, not shadow
 
 
-def test_wnba_shipped_yaml_has_total_and_spread_in_shadow():
-    """The shipped categories.yaml keeps WNBA total AND spread in shadow while
-    only ML is live. Spread was demoted 2026-06-19: it does not clear the CLV
-    gate (model trails Kalshi-at-close on Brier by construction; kalshi_clv_pct
-    is the +EV yardstick and the live sample was break-even). Regression guard
-    so a future YAML edit doesn't silently re-promote either without an explicit
-    decision via `evmax cleanup shadow clv`."""
+def test_wnba_shipped_yaml_disables_scanner_spread_and_total():
+    """The shipped categories.yaml keeps WNBA ML live but DISABLES spread and
+    total for the scanner (2026-07-19): those market_ids belong to the
+    watch-listings anchored-entry trigger, which logs shadow rows via an
+    explicit mode_resolver bypass. Under UNIQUE(market_id) freeze-on-first-
+    insert, a scanner row would pre-empt the anchored entry at the wrong
+    (scan-time) price — so the scanner must drop them entirely, not shadow
+    them. Regression guard so a future YAML edit doesn't silently hand the
+    market_id space back to the scanner without an explicit decision."""
     assert get_mode("wnba", "moneyline") == "live"
-    assert get_mode("wnba", "spread") == "shadow"
-    assert get_mode("wnba", "total") == "shadow"
+    assert get_mode("wnba", "spread") == "disabled"
+    assert get_mode("wnba", "total") == "disabled"
 
 
 # -------------------------------------------------------------------------

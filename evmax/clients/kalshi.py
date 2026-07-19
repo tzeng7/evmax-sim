@@ -1010,6 +1010,90 @@ class KalshiClient(BaseAPIClient):
             logger.warning("kalshi_get_settlement_failed", ticker=ticker, error=str(e))
             return None
 
+    async def get_market_candlesticks(
+        self,
+        series_ticker: str,
+        ticker: str,
+        start_ts: int,
+        end_ts: int,
+        period_interval: int = 60,
+        include_latest_before_start: bool = False,
+    ) -> list[dict]:
+        """Fetch OHLC bid/ask candlesticks for one market (public, unauthenticated).
+
+        Kalshi keeps candle history for settled markets, so this works as a
+        historical backfill source — the only per-minute/hourly price record
+        Kalshi exposes after the fact.
+
+        Args:
+            series_ticker: series prefix, e.g. "KXWNBASPREAD" (path component,
+                distinct from the market ticker).
+            ticker: full market ticker; ``kalshi:`` prefix and ``:no`` suffix
+                are stripped like every other single-market method here.
+            start_ts / end_ts: unix seconds; candles whose period END falls in
+                [start_ts, end_ts] are returned.
+            period_interval: candle width in minutes — Kalshi accepts 1, 60, 1440.
+            include_latest_before_start: prepend the last candle ending before
+                start_ts (useful to seed a price at window open).
+
+        Returns:
+            List of normalized dicts sorted by end_ts ascending:
+            ``{"end_ts", "yes_bid_close", "yes_ask_close", "price_close",
+            "volume", "open_interest"}`` — prices 0.0–1.0 floats or None.
+            Empty list on error or no data.
+        """
+        api_ticker = ticker.split(":", 1)[-1] if ":" in ticker else ticker
+        if api_ticker.endswith(":no"):
+            api_ticker = api_ticker[: -len(":no")]
+        params: dict[str, Any] = {
+            "start_ts": start_ts,
+            "end_ts": end_ts,
+            "period_interval": period_interval,
+        }
+        if include_latest_before_start:
+            params["include_latest_before_start"] = "true"
+        try:
+            await _KALSHI_RATE_LIMITER.acquire()
+            data = await self._get(
+                f"/series/{series_ticker}/markets/{api_ticker}/candlesticks",
+                params=params,
+            )
+        except Exception as e:
+            logger.warning("kalshi_candlesticks_failed", ticker=api_ticker, error=str(e))
+            return []
+
+        def _close(struct: Optional[dict]) -> Optional[float]:
+            # _dollars values are fixed-point strings; legacy fields are cents.
+            if not struct:
+                return None
+            if struct.get("close_dollars") is not None:
+                try:
+                    return float(struct["close_dollars"])
+                except (ValueError, TypeError):
+                    return None
+            if struct.get("close") is not None:
+                try:
+                    return float(struct["close"]) / 100.0
+                except (ValueError, TypeError):
+                    return None
+            return None
+
+        out: list[dict] = []
+        for c in data.get("candlesticks") or []:
+            end = c.get("end_period_ts")
+            if end is None:
+                continue
+            out.append({
+                "end_ts": int(end),
+                "yes_bid_close": _close(c.get("yes_bid")),
+                "yes_ask_close": _close(c.get("yes_ask")),
+                "price_close": _close(c.get("price")),
+                "volume": float(c.get("volume_fp") or c.get("volume") or 0),
+                "open_interest": float(c.get("open_interest_fp") or c.get("open_interest") or 0),
+            })
+        out.sort(key=lambda c: c["end_ts"])
+        return out
+
     def _parse_market(
         self,
         raw: dict[str, Any],

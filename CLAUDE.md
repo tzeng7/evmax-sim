@@ -275,10 +275,27 @@ evmax cleanup watch-closes            # always-up; or `--once` per sweep
 # Pinnacle anchor is only fetched for sectors with open markets in the window.
 # Deliberately NO injuries/models: the devigged-Pinnacle anchor already impounds
 # news — this measures venue timing (Kalshi-vs-sharp convergence + fillability),
-# not forecasting. Writes archive.db only. Runs unattended via launchd
-# `com.evmax.watch-listings` (hourly).
-evmax cleanup watch-listings          # always-up; or `--once` per sweep
+# not forecasting. Writes archive.db only — UNLESS --log-entries is passed
+# (2026-07-19): then qualifying WNBA spread/total anchored entries ALSO land in
+# predictions.db as mode='shadow' rows (model_sources '+anchored_entry',
+# captured_yes_price = crossable order-book price, EV>=2pp + depth>=$50 gates;
+# evmax/agents/cleanup/anchored_entry.py). The scanner's wnba spread/total are
+# disabled_market_types so it can't freeze market_ids at scan prices first —
+# the anchored trigger owns those markets. Runs unattended via launchd
+# `com.evmax.watch-listings` (hourly; add --log-entries to its plist post-merge).
+evmax cleanup watch-listings --log-entries   # always-up; or `--once` per sweep
 evmax cleanup watch-listings -s wnba -m spread --once   # narrow one-off sweep
+
+# One-time (re-runnable) — Kalshi candlestick backfill: reconstruct hourly
+# bid/ask trails for ALL archived WNBA spread/total tickers (public
+# /series/{s}/markets/{t}/candlesticks endpoint, idempotent 'candlebf-*'
+# sessions in archived_kalshi_markets — close selection gets candle-dense
+# closes for free), then run the full-season anchored-entry CLV verdict.
+# 2026-07-19 result: spread LAY +1.32pp over 116 declustered games (p<0.001,
+# falsification-clean) -> anchored-entry pipeline shipped; spread TAKE killed
+# (n=106, -0.10pp); totals underpowered (n=26/32) — keep accumulating.
+python scripts/backfill_kalshi_candles.py [--dry-run]
+python scripts/eval_wnba_anchored_backfill.py [--detail]
 
 # Offline promotion lens for laddered markets — replay the watch-listings capture
 # through the FIRST-ANCHORED-SWEEP entry rule (first hourly snapshot with a
@@ -335,7 +352,7 @@ evmax categories list --mode shadow               # see what's in shadow today
 evmax cleanup shadow show --days 7                # recent shadow predictions
 evmax cleanup shadow metrics --days 30            # Brier + ROI per category (excludes superseded-code rows by default; `Excl` column + footer report the drop; --include-contaminated to score them)
 evmax cleanup shadow promote nfl_props            # flip shadow → live once validated (refuses if < 30 clean current-code resolved rows; --force overrides)
-evmax cleanup shadow clv wnba -m spread --side lay --venue kalshi --max-staleness-h 3  # Kalshi entry→close CLV, the promotion lens for laddered markets. --side lay/take splits by bet direction (line sign) — the 2026-07 audit found the sides are different products at scan entry (laying ~breakeven, taking bleeds −2.2pp buying a NO-side run-up), so judge spread promotion per side, never pooled. --venue kalshi|polymarket_us isolates one exchange (the venues sit behind separate shadow firewalls — one thin PolyUS row must not flip a Kalshi-sized sample; 2026-07-12 audit: pooled lay −0.35pp was a single −18pp PolyUS outlier over Kalshi-only +0.18pp). --max-staleness-h N drops rows whose archived "close" snapshot is >N h before the T-30 target (a watch-closes capture gap, not a flat market — 68% of exact-zero WNBA spread CLV rows had a 3-21h stale close; Kalshi-only, off by default). --since drops a stale period.
+evmax cleanup shadow clv wnba -m spread --side lay --venue kalshi --max-staleness-h 3  # Kalshi entry→close CLV, the promotion lens for laddered markets. --side lay/take splits by bet direction (line sign) — the 2026-07 audit found the sides are different products at scan entry (laying ~breakeven, taking bleeds −2.2pp buying a NO-side run-up), so judge spread promotion per side, never pooled. --venue kalshi|polymarket_us isolates one exchange (the venues sit behind separate shadow firewalls — one thin PolyUS row must not flip a Kalshi-sized sample; 2026-07-12 audit: pooled lay −0.35pp was a single −18pp PolyUS outlier over Kalshi-only +0.18pp). --max-staleness-h N drops rows whose archived "close" snapshot is >N h before the T-30 target (a watch-closes capture gap, not a flat market — 68% of exact-zero WNBA spread CLV rows had a 3-21h stale close; Kalshi-only, off by default). --since drops a stale period. --sources-token anchored_entry (2026-07-19) isolates the watch-listings anchored-entry stream (model_sources contains the token) from historical scan-time rows — the gate read for WNBA spread/total promotion.
 ```
 
 ### WNBA-specific maintenance (2026 season)

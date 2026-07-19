@@ -192,6 +192,8 @@ def evaluate_sector(
     since: Optional[str] = None,
     max_lead_h: Optional[float] = None,
     min_lead_h: float = 0.0,
+    session_prefixes: tuple[str, ...] = ("watchlist",),
+    bid_from_no_price: bool = False,
 ) -> EvalStats:
     """Run the first-anchored-sweep entry rule over one sector's captures.
 
@@ -202,6 +204,17 @@ def evaluate_sector(
     [T-75m, T-10m]" against the SAME last-pre-tip close as the unrestricted
     baseline, so the two runs are directly comparable. ``None`` (default)
     keeps the original any-time-pre-tip behaviour.
+
+    ``session_prefixes`` selects which capture streams to replay — the default
+    keeps the original hourly ``watchlist-*`` sweeps; ``("candlebf",)`` replays
+    the Kalshi candlestick backfill instead (see
+    scripts/backfill_kalshi_candles.py).
+
+    ``bid_from_no_price`` supplies the YES bid as ``1 - no_price`` when a
+    snapshot has no ``archived_orderbook_depth`` row (exact: NO ask ≡ 1 − yes
+    bid). Candlestick rows carry bid/ask in yes_price/no_price but no depth,
+    so without this the NO side (take/under) never fires on backfilled data.
+    Default False so watchlist baselines are unchanged.
     """
     handler = get_handler(sector)
     normalize = lambda s: handler.normalize_team(s or "")  # noqa: E731
@@ -209,16 +222,18 @@ def evaluate_sector(
 
     placeholders = ",".join("?" * len(market_types))
     params: list = [sector, *market_types]
+    prefix_clause = " OR ".join("session_id LIKE ?" for _ in session_prefixes)
+    params.extend(f"{p}%" for p in session_prefixes)
     since_clause = ""
     if since:
         since_clause = " AND fetched_at >= ?"
         params.append(since)
     snaps = conn.execute(
-        f"""SELECT session_id, fetched_at, ticker, market_type, yes_price, line,
-                   yes_team, team_home, team_away, event_date
+        f"""SELECT session_id, fetched_at, ticker, market_type, yes_price, no_price,
+                   line, yes_team, team_home, team_away, event_date
             FROM archived_kalshi_markets
             WHERE sector = ? AND market_type IN ({placeholders})
-              AND session_id LIKE 'watchlist%' AND line IS NOT NULL{since_clause}
+              AND ({prefix_clause}) AND line IS NOT NULL{since_clause}
             ORDER BY ticker, fetched_at""",
         params,
     ).fetchall()
@@ -271,11 +286,18 @@ def evaluate_sector(
                 return None
             return _fair_yes_total(ladder, yes_team, line)
 
+        def bid_of(snap, d) -> Optional[float]:
+            if d is not None:
+                return d["yes_bid"]
+            if bid_from_no_price and snap["no_price"] is not None:
+                return 1.0 - snap["no_price"]
+            return None
+
         close = pre[-1]
         close_t = _parse_ts(close["fetched_at"])
         close_d = depth.get((close["session_id"], ticker))
         close_ask = close_d["yes_ask"] if close_d and close_d["yes_ask"] is not None else close["yes_price"]
-        close_bid = close_d["yes_bid"] if close_d else None
+        close_bid = bid_of(close, close_d)
 
         anchored_any = False
         found_yes = found_no = False
@@ -294,7 +316,7 @@ def evaluate_sector(
             anchored_any = True
             d = depth.get((snap["session_id"], ticker))
             ask = d["yes_ask"] if d and d["yes_ask"] is not None else snap["yes_price"]
-            bid = d["yes_bid"] if d else None
+            bid = bid_of(snap, d)
 
             if not found_yes and ask is not None and 0 < ask < 1:
                 edge = (fair - ask) * 100

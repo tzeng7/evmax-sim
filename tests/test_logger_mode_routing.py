@@ -610,3 +610,47 @@ class TestShadowToLiveUpgrade:
             "SELECT mode FROM ev_predictions WHERE market_id = 't-stayshadow'"
         ).fetchone()
         assert row["mode"] == "shadow"
+
+
+# -------------------------------------------------------------------------
+# WNBA anchored-entry ownership (2026-07-19): the scanner's wnba spread/total
+# gaps route through the default resolver and get DROPPED (disabled_market_types
+# in categories.yaml), while the watch-listings anchored-entry trigger bypasses
+# via an explicit shadow resolver — so the trigger owns those market_ids under
+# freeze-on-first-insert.
+# -------------------------------------------------------------------------
+
+
+def _wnba_spread_gap(market_id: str) -> EVGap:
+    g = _gap(market_id, sector="wnba")
+    return EVGap(**{**g.__dict__, "market_type": "spread", "line": -6.5,
+                    "model_sources": "sharp+spread_dist"})
+
+
+def test_scanner_wnba_spread_gap_dropped_as_disabled(patched_db):
+    inserted = log_gaps([_wnba_spread_gap("kalshi:KXWNBASPREAD-X-Y7")])
+    assert inserted == 0
+    rows = patched_db.execute("SELECT * FROM ev_predictions").fetchall()
+    assert rows == []
+
+
+def test_anchored_trigger_wnba_spread_gap_lands_shadow(patched_db):
+    inserted = log_gaps(
+        [_wnba_spread_gap("kalshi:KXWNBASPREAD-X-Y7")],
+        mode_resolver=lambda c: "shadow",
+    )
+    assert inserted == 1
+    row = patched_db.execute(
+        "SELECT mode, market_type, captured_yes_price FROM ev_predictions"
+    ).fetchone()
+    assert row["mode"] == "shadow"
+    assert row["market_type"] == "spread"
+    assert row["captured_yes_price"] == pytest.approx(0.45)
+
+
+def test_scanner_wnba_moneyline_still_live(patched_db):
+    g = _gap("kalshi:KXWNBAGAME-X-Y", sector="wnba")
+    inserted = log_gaps([g])
+    assert inserted == 1
+    row = patched_db.execute("SELECT mode FROM ev_predictions").fetchone()
+    assert row["mode"] == "live"

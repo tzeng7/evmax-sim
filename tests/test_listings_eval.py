@@ -285,3 +285,118 @@ class TestEntryWindow:
         stats = evaluate_sector(archive_conn, "wnba", max_lead_h=1.0)
         assert stats.entries == []
         assert stats.never_anchored == 1
+
+
+class TestSessionPrefixes:
+    """Candlestick-backfill sessions are selectable; the default is unchanged."""
+
+    def candle_trail(self, conn, ticker="KXWNBASPREAD-26JUL02SEAPHX-SEA7",
+                     asks=(0.30, 0.30, 0.40)):
+        # candlebf rows carry bid/ask via yes_price/no_price and have NO depth rows
+        sessions = (
+            ("candlebf-100", "2026-07-01T22:00:00+00:00"),
+            ("candlebf-200", "2026-07-02T16:00:00+00:00"),
+            ("candlebf-300", "2026-07-02T20:00:00+00:00"),
+        )
+        for (session, t), ask in zip(sessions, asks):
+            insert_kalshi(conn, session, t, ticker, "spread", ask, -6.5, "storm")
+
+    def test_default_ignores_candlebf_sessions(self, archive_conn):
+        self.candle_trail(archive_conn)
+        insert_sharp_spread(archive_conn, *S2)
+        archive_conn.commit()
+
+        stats = evaluate_sector(archive_conn, "wnba")
+        assert stats.tickers == 0
+        assert stats.entries == []
+
+    def test_candlebf_prefix_replays_backfill(self, archive_conn):
+        self.candle_trail(archive_conn)
+        insert_sharp_spread(archive_conn, *S2)
+        archive_conn.commit()
+
+        stats = evaluate_sector(
+            archive_conn, "wnba", depth_min_usd=0.0,
+            session_prefixes=("candlebf",),
+        )
+        lay = [e for e in stats.entries if e.side == "lay"]
+        assert len(lay) == 1
+        assert lay[0].entry_at.isoformat() == "2026-07-02T16:00:00+00:00"
+        assert lay[0].entry_price == pytest.approx(0.30)
+        assert lay[0].clv_pp == pytest.approx(10.0, abs=0.01)
+
+    def test_candlebf_depth_gate_blocks_without_depth_rows(self, archive_conn):
+        # With the default $50 floor, candle rows (no depth data) can't enter —
+        # backfill evals must explicitly pass depth_min_usd=0.
+        self.candle_trail(archive_conn)
+        insert_sharp_spread(archive_conn, *S2)
+        archive_conn.commit()
+
+        stats = evaluate_sector(
+            archive_conn, "wnba", session_prefixes=("candlebf",),
+        )
+        assert stats.entries == []
+        assert stats.anchored_no_entry == 1
+
+    def test_both_prefixes_merge_streams(self, archive_conn):
+        spread_trail(archive_conn)
+        insert_sharp_spread(archive_conn, *S2)
+        archive_conn.commit()
+
+        stats = evaluate_sector(
+            archive_conn, "wnba",
+            session_prefixes=("watchlist", "candlebf"),
+        )
+        assert stats.tickers == 1
+        assert [e for e in stats.entries if e.side == "lay"]
+
+
+class TestBidFromNoPrice:
+    """NO-side pricing from 1 - no_price when a snapshot has no depth row."""
+
+    def candle_trail_rich_bid(self, conn, ticker="KXWNBASPREAD-26JUL02SEAPHX-SEA7"):
+        # yes_price (ask) high enough that YES side has no edge; no_price low
+        # -> implied yes_bid = 1 - no_price is ABOVE fair -> take side +EV.
+        rows = (
+            ("candlebf-100", "2026-07-01T22:00:00+00:00", 0.60, 0.45),  # bid 0.55
+            ("candlebf-200", "2026-07-02T16:00:00+00:00", 0.60, 0.45),  # bid 0.55
+            ("candlebf-300", "2026-07-02T20:00:00+00:00", 0.50, 0.55),  # bid 0.45
+        )
+        for session, t, ask, no_price in rows:
+            conn.execute(
+                """INSERT INTO archived_kalshi_markets
+                   (session_id, fetched_at, sector, ticker, title, market_type,
+                    yes_price, no_price, team_home, team_away, yes_team, line, event_date)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (session, t, "wnba", ticker, None, "spread", ask, no_price,
+                 "phx", "sea", "storm", -6.5, "2026-07-02T12:00:00+00:00"),
+            )
+
+    def test_no_side_fires_from_no_price(self, archive_conn):
+        self.candle_trail_rich_bid(archive_conn)
+        insert_sharp_spread(archive_conn, *S2)
+        archive_conn.commit()
+
+        stats = evaluate_sector(
+            archive_conn, "wnba", depth_min_usd=0.0,
+            session_prefixes=("candlebf",), bid_from_no_price=True,
+        )
+        take = [e for e in stats.entries if e.side == "take"]
+        assert len(take) == 1
+        e = take[0]
+        assert e.entry_price == pytest.approx(0.45)          # = no_price
+        # edge = bid - fair = 0.55 - 0.4364
+        assert e.edge_pp == pytest.approx(55 - 43.64, abs=0.1)
+        # NO CLV = bid_entry - bid_close = 0.55 - 0.45
+        assert e.clv_pp == pytest.approx(10.0, abs=0.01)
+
+    def test_no_side_stays_dark_by_default(self, archive_conn):
+        self.candle_trail_rich_bid(archive_conn)
+        insert_sharp_spread(archive_conn, *S2)
+        archive_conn.commit()
+
+        stats = evaluate_sector(
+            archive_conn, "wnba", depth_min_usd=0.0,
+            session_prefixes=("candlebf",),
+        )
+        assert not [e for e in stats.entries if e.side == "take"]

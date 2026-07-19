@@ -871,6 +871,16 @@ def watch_listings(
         False, "--once",
         help="Run a single sweep and exit (skip the loop).",
     ),
+    log_entries: bool = typer.Option(
+        False, "--log-entries",
+        help="After archiving, log anchored-entry shadow rows to predictions.db "
+             "for --entry-sectors (first sweep with a Pinnacle anchor + EV/depth "
+             "gates at the crossable price; see anchored_entry.py).",
+    ),
+    entry_sectors: str = typer.Option(
+        "wnba", "--entry-sectors",
+        help="Comma-separated sectors eligible for --log-entries.",
+    ),
 ) -> None:
     """Capture the listing→scan window: prices + order-book DEPTH + sharp anchor.
 
@@ -887,8 +897,14 @@ def watch_listings(
     Together these let the depth-aware entry rule be evaluated offline: the
     first sweep where EV ≥ threshold at the live ask AND ask depth clears a
     floor is the honest "entry" the lay-side CLV promotion gate should score
-    (see `cleanup shadow clv --side lay`). Pure capture — writes archive.db
-    only, never predictions.db, so it cannot contaminate the shadow stream.
+    (see `cleanup shadow clv --side lay`). Without --log-entries this is pure
+    capture — writes archive.db only, never predictions.db, so it cannot
+    contaminate the shadow stream. With --log-entries (Track B of the WNBA
+    anchored-entry plan), qualifying entries for --entry-sectors ALSO land in
+    predictions.db as mode='shadow' rows with captured_yes_price = the
+    crossable order-book price, tagged model_sources '+anchored_entry';
+    UNIQUE(market_id) freeze-on-first-insert makes the first qualifying sweep
+    the entry and later sweeps no-ops.
 
     Run hourly via a scheduled task / launchd during WNBA season, or --once.
     """
@@ -900,6 +916,10 @@ def watch_listings(
 
     sector_list = resolve_watch_sectors(sectors)
     type_set = {t.strip().lower() for t in market_types.split(",") if t.strip()}
+    entry_set = (
+        {s.strip().lower() for s in entry_sectors.split(",") if s.strip()}
+        if log_entries else set()
+    )
 
     async def _sweep() -> dict[str, tuple[int, int, int]]:
         """Returns {sector: (markets_archived, depth_rows, sharp_rows)}."""
@@ -931,6 +951,7 @@ def watch_listings(
 
             # 3. As-of sharp anchor (ML + spread devigged) for EV-at-entry evaluation
             n_sharp = 0
+            odds = []
             try:
                 async with PinnacleGuestClient() as pclient:
                     odds = await pclient.get_odds(sector)
@@ -938,6 +959,27 @@ def watch_listings(
                     n_sharp = archiver.archive_sharp_odds(session_id, sector, odds)
             except Exception as perr:  # noqa: BLE001
                 console.print(f"[yellow]  [{sector}] pinnacle fetch failed: {perr}[/yellow]")
+
+            # 4. Anchored-entry shadow logging (opt-in, never aborts the sweep)
+            if sector in entry_set and odds:
+                try:
+                    from evmax.agents.cleanup.anchored_entry import build_anchored_entries
+                    from evmax.agents.cleanup.logger import log_gaps
+
+                    entries = build_anchored_entries(wanted, books, odds, sector)
+                    if entries:
+                        n_logged = log_gaps(
+                            entries, mode_resolver=lambda cat: "shadow",
+                        )
+                        if n_logged:
+                            console.print(
+                                f"[green]  [{sector}] anchored entries logged: "
+                                f"{n_logged}[/green]"
+                            )
+                except Exception as eerr:  # noqa: BLE001
+                    console.print(
+                        f"[yellow]  [{sector}] anchored-entry logging failed: {eerr}[/yellow]"
+                    )
 
             stats[sector] = (n_mkts, n_depth, n_sharp)
         return stats
@@ -1002,6 +1044,18 @@ def listings_eval(
         False, "--detail",
         help="Also print every hypothetical entry, not just the side summary.",
     ),
+    session_prefix: list[str] = typer.Option(
+        ["watchlist"], "--session-prefix",
+        help="Capture stream(s) to replay by archived session_id prefix — "
+        "'watchlist' = hourly sweeps (default), 'candlebf' = candlestick "
+        "backfill. Repeatable.",
+    ),
+    bid_from_no_price: bool = typer.Option(
+        False, "--bid-from-no-price",
+        help="Derive the YES bid as 1 - no_price when a snapshot has no "
+        "order-book depth row (needed for candlestick-backfill sessions, "
+        "which carry bid/ask but no depth).",
+    ),
 ) -> None:
     """Replay watch-listings captures through the first-anchored-sweep entry rule.
 
@@ -1021,6 +1075,8 @@ def listings_eval(
         stats = evaluate_sector(
             conn, sector.lower(), ev_min_pp=ev_min, depth_min_usd=depth_min,
             market_types=types, since=since,
+            session_prefixes=tuple(session_prefix),
+            bid_from_no_price=bid_from_no_price,
         )
 
     console.print(
