@@ -269,6 +269,52 @@ class TestEVGapAgent:
 
         assert len(resp.data) == 0
 
+    def test_prop_dead_orderbook_floor_filtered(self):
+        """Same dead-orderbook symptom as the game-market tests above, but on
+        the player-prop evaluator (_evaluate_prop_pair lacked the guard
+        entirely). A pitcher-strikeout prop whose outcome is already decided
+        in-game (pulled from the game) collapses to Kalshi's 1¢ floor; the
+        anchor-pricing model has no live in-game state and kept projecting
+        the pre-game probability, producing bogus 9000%+ 'edges' on markets
+        that are effectively closed."""
+        agent = EVGapAgent()
+        prop_market = PredictionMarket(
+            id="kalshi:CAMERON-2K",
+            source=MarketSource.kalshi,
+            sector="baseball",
+            market_type=MarketType.player_prop,
+            title="Noah Cameron 2+ Strikeouts",
+            ticker="KXMLBPROPS-CAMERON",
+            yes_price=0.01,
+            no_price=0.99,
+            volume_usd=800.0,
+            player_name="Noah Cameron",
+            stat_type="strikeouts",
+            threshold=1.5,
+        )
+        prop_sharp = SharpOdds(
+            event_id="baseball::2026-07-19::prop::Noah Cameron::strikeouts::1.5",
+            book=SharpBook.pinnacle,
+            sector="baseball",
+            outcome_a_label="over",
+            outcome_b_label="under",
+            outcome_a_decimal=1.0,
+            outcome_b_decimal=1.0,
+            true_prob_a=0.0,
+            true_prob_b=0.0,
+            true_prob_over=0.93,
+            true_prob_under=0.07,
+            total_line=1.5,
+            margin=0.0,
+            prop_player_name="Noah Cameron",
+            prop_stat_type="strikeouts",
+        )
+
+        gap = agent._evaluate_prop_pair(
+            prop_market, prop_sharp, confidence=95.0, sector="baseball", injuries=None
+        )
+        assert gap is None
+
     def test_prop_injury_boost_applies_via_player_team_lookup(self, monkeypatch):
         """Regression for BUG-5: prop event_ids have no game slug, so the
         boost used to fall through silently. The fix looks up the player's

@@ -82,6 +82,20 @@ class TestNameNormalizer:
         assert norm.normalize("tor") == "torino"
         assert norm.normalize("Toronto FC") == "toronto"
 
+    def test_mlb_athletics_diamondbacks_short_codes(self):
+        """Kalshi's current MLB tickers use 'ATH' for the Athletics (post-
+        Oakland rebrand) and 'AZ' for the Diamondbacks — neither short code
+        had an alias entry, so every Athletics/Diamondbacks moneyline/spread/
+        total market silently match_failed against Pinnacle every day while
+        the legacy 'oak'/'ari' codes (and Polymarket US's full-name feed)
+        kept working, masking the gap."""
+        norm = NameNormalizer("baseball")
+        assert norm.normalize("ath") == "athletics"
+        assert norm.normalize("az") == "diamondbacks"
+        # Legacy codes still resolve (ESPN / older Kalshi feeds).
+        assert norm.normalize("oak") == "athletics"
+        assert norm.normalize("ari") == "diamondbacks"
+
     def test_wnba_portland_fire_pdx_alias(self):
         """Kalshi's WNBA moneyline/spread tickers encode Portland Fire as
         PDX (airport code), not POR — moneyline/spread markets parse team
@@ -139,6 +153,30 @@ class TestMatchingEngine:
         assert result is not None
         matched_odds, confidence = result
         assert confidence == 100.0
+
+    def test_build_market_key_uses_et_game_day_for_us_sectors(self):
+        """PolymarketUS supplies the precise UTC first-pitch time (unlike
+        Kalshi, whose ticker date is anchored to noon UTC as a workaround).
+        A night game like an 8:05pm ET start carries a UTC timestamp that
+        has already rolled to the next calendar day (2026-07-21T00:05:00Z).
+        build_market_key used to strftime that UTC datetime directly,
+        producing the wrong (next-day) date and silently breaking matching
+        against Pinnacle's ET-anchored key for every US-sector night game —
+        this is exactly the off-by-one time_util.kalshi_game_day exists to
+        prevent, but build_market_key never called it."""
+        engine = MatchingEngine()
+        market = make_market(
+            "tex",
+            "cws",
+            sector="baseball",
+            event_date=datetime(2026, 7, 21, 0, 5, tzinfo=timezone.utc),
+        )
+        key = engine.build_market_key(market)
+        assert key == "baseball::2026-07-20::rangers_vs_white_sox"
+
+        sharp = make_sharp(key, sector="baseball")
+        result = engine.match(market, [sharp])
+        assert result is not None
 
     def test_no_date_returns_none(self):
         """Market without event_date cannot build key → no match."""

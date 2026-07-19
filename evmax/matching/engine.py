@@ -14,6 +14,7 @@ from typing import Optional
 
 import structlog
 
+from evmax.clients.time_util import kalshi_game_day
 from evmax.matching.fuzzy import fuzzy_match_event_keys
 from evmax.matching.normalizer import NameNormalizer
 from evmax.models.market import MarketType, PredictionMarket
@@ -61,7 +62,7 @@ class MatchingEngine:
             return None
 
         normalizer = self._get_normalizer(market.sector)
-        date_str = market.event_date.strftime("%Y-%m-%d")
+        date_str = kalshi_game_day(market.event_date, market.sector)
         base_key = normalizer.normalize_event_key(
             market.team_home,
             market.team_away,
@@ -186,7 +187,7 @@ class MatchingEngine:
             return None
 
         normalizer = self._get_normalizer(market.sector)
-        date_str = market.event_date.strftime("%Y-%m-%d")
+        date_str = kalshi_game_day(market.event_date, market.sector)
         base_key = normalizer.normalize_event_key(
             market.team_home, market.team_away, date_str, market.sector
         )
