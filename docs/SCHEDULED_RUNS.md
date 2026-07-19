@@ -31,10 +31,13 @@ scheduled run ever merges its own PR.
 
 | Task | Local time | What it does |
 |---|---|---|
-| `ev-scan-90min-on-hour` + `ev-scan-90min-half-hour` | rolling ~90 min (two interleaved 3-hourly tasks: `:00` on hours 0/3/6/9/12/15/18/21 and `:30` on hours 1/4/7/10/13/16/19/22) | `evmax agents scan --bankroll 500 --kelly 0.5 --date TODAY` + a PushNotification of the +EV plays — the rolling watchlist that replaced the fixed 1am/9am scans 2026-07-02 (night-before edges usually revert by tip-off) |
 | `daily-resolve-and-model-update` | 07:32 | `evmax update scores` + `cleanup resolve --date YESTERDAY` + `archive resolve --date YESTERDAY` — feeds ESPN finals into Elo/Form/Poisson/xG state and resolves outcomes |
 | `daily-close-lines-capture` | 08:04 | `evmax cleanup close-lines` — snapshots Pinnacle closing lines pre-tipoff (timing-sensitive; `watch-closes` under launchd covers this even when the app is closed) |
 | `daily-evening-resolve` | 23:06 | `evmax cleanup resolve --date TODAY` + `cleanup show --date TODAY` — day's P/L |
+
+**No automated `evmax agents scan` currently runs.** `ev-scan-90min-on-hour`/`ev-scan-90min-half-hour`
+were intentionally removed (confirmed by user 2026-07-18); `daily-morning-scan`/`daily-updated-scan`
+remain disabled below. Scans are manual (`evmax agents scan`) until a replacement task is added.
 
 ### Weekly
 
@@ -51,8 +54,9 @@ scheduled run ever merges its own PR.
 
 | Task | Status |
 |---|---|
-| `daily-morning-scan` | Disabled 2026-07-02 — the fixed 01:01 scan was replaced by the interleaved `ev-scan-90min-*` pair (rolling 90-min scan + push-notify) |
-| `daily-updated-scan` | Disabled 2026-07-02 — the fixed 09:05 re-scan was likewise folded into the `ev-scan-90min-*` pair |
+| `daily-morning-scan` | Disabled 2026-07-02 — the fixed 01:01 scan was replaced by the interleaved `ev-scan-90min-*` pair (rolling 90-min scan + push-notify), which was itself removed (see below) |
+| `daily-updated-scan` | Disabled 2026-07-02 — the fixed 09:05 re-scan was likewise folded into the `ev-scan-90min-*` pair, which was itself removed (see below) |
+| `ev-scan-90min-on-hour` + `ev-scan-90min-half-hour` | Removed (confirmed by user 2026-07-18) — was the rolling ~90-min `evmax agents scan` + PushNotification pair that replaced the two fixed daily scans above; no automated scan currently runs, see the note under Daily |
 | `weekly-nba-props-shadow-metrics` | Disabled 2026-07-01 per user request; re-enable when NBA season restarts if nba_props promotion tracking resumes |
 | `weekly-tennis-rankings-refresh` | Deprecated 2026-06-27 (Sackmann repos offline); ranking_trend now rides the Mon tennis task. Still present as a disabled task — safe to delete the task folder |
 
@@ -95,6 +99,10 @@ scheduled run ever merges its own PR.
   `ev-scan-90min-half-hour` (`:30` on 1/4/7/10/13/16/19/22) — for a rolling
   ~90-min `evmax agents scan` + PushNotification cadence through the day instead
   of two fixed morning runs.
+- **2026-07-18** `ev-scan-90min-on-hour`/`ev-scan-90min-half-hour` removed (confirmed
+  intentional by user during the weekly drift audit — the SKILL.md folders were left on
+  disk but deregistered from the scheduler). No automated `evmax agents scan` currently
+  runs; the two fixed scans they replaced remain disabled.
 - **2026-07-05** both watchers converted from KeepAlive always-up loops
   (`caffeinate -i` + in-process `time.sleep`) to launchd-driven `--once`
   firings (`StartCalendarInterval` hourly for watch-listings, `StartInterval`
