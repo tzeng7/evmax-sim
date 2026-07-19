@@ -3611,5 +3611,183 @@
         "games": 4
       }
     }
+  },
+  "nhl": {
+    "league_avg": {
+      "home": 3.207,
+      "away": 2.982
+    },
+    "teams": {
+      "minnesota wild": {
+        "attack": 0.9866,
+        "defense": 0.9747,
+        "games": 246
+      },
+      "edmonton oilers": {
+        "attack": 1.0969,
+        "defense": 0.9747,
+        "games": 246
+      },
+      "san jose sharks": {
+        "attack": 0.8434,
+        "defense": 1.2322,
+        "games": 246
+      },
+      "utah mammoth": {
+        "attack": 1.0562,
+        "defense": 0.9458,
+        "games": 82
+      },
+      "vegas golden knights": {
+        "attack": 1.0601,
+        "defense": 0.938,
+        "games": 246
+      },
+      "detroit red wings": {
+        "attack": 0.9945,
+        "defense": 1.0391,
+        "games": 246
+      },
+      "washington capitals": {
+        "attack": 1.0128,
+        "defense": 0.9629,
+        "games": 246
+      },
+      "seattle kraken": {
+        "attack": 0.9064,
+        "defense": 1.0036,
+        "games": 246
+      },
+      "new jersey devils": {
+        "attack": 0.9669,
+        "defense": 0.9971,
+        "games": 246
+      },
+      "dallas stars": {
+        "attack": 1.1219,
+        "defense": 0.8986,
+        "games": 246
+      },
+      "chicago blackhawks": {
+        "attack": 0.8119,
+        "defense": 1.1311,
+        "games": 246
+      },
+      "st. louis blues": {
+        "attack": 0.9511,
+        "defense": 0.9734,
+        "games": 246
+      },
+      "tampa bay lightning": {
+        "attack": 1.1495,
+        "defense": 0.9432,
+        "games": 246
+      },
+      "arizona coyotes": {
+        "attack": 1.0089,
+        "defense": 1.0798,
+        "games": 82
+      },
+      "buffalo sabres": {
+        "attack": 1.0549,
+        "defense": 1.0168,
+        "games": 246
+      },
+      "toronto maple leafs": {
+        "attack": 1.0825,
+        "defense": 1.0417,
+        "games": 246
+      },
+      "florida panthers": {
+        "attack": 1.0128,
+        "defense": 0.9183,
+        "games": 246
+      },
+      "columbus blue jackets": {
+        "attack": 1.0023,
+        "defense": 1.0785,
+        "games": 246
+      },
+      "new york rangers": {
+        "attack": 1.0194,
+        "defense": 0.9642,
+        "games": 246
+      },
+      "montreal canadiens": {
+        "attack": 1.0036,
+        "defense": 1.0641,
+        "games": 246
+      },
+      "calgary flames": {
+        "attack": 0.9064,
+        "defense": 1.0089,
+        "games": 246
+      },
+      "anaheim ducks": {
+        "attack": 0.9169,
+        "defense": 1.1114,
+        "games": 246
+      },
+      "utah hockey": {
+        "attack": 0.9498,
+        "defense": 0.9892,
+        "games": 82
+      },
+      "vancouver canucks": {
+        "attack": 0.9603,
+        "defense": 1.0404,
+        "games": 246
+      },
+      "los angeles kings": {
+        "attack": 0.9603,
+        "defense": 0.8775,
+        "games": 246
+      },
+      "winnipeg jets": {
+        "attack": 1.0076,
+        "defense": 0.8539,
+        "games": 246
+      },
+      "nashville predators": {
+        "attack": 0.959,
+        "defense": 1.0391,
+        "games": 246
+      },
+      "colorado avalanche": {
+        "attack": 1.16,
+        "defense": 0.9078,
+        "games": 246
+      },
+      "boston bruins": {
+        "attack": 0.9997,
+        "defense": 0.98,
+        "games": 246
+      },
+      "pittsburgh penguins": {
+        "attack": 1.0391,
+        "defense": 1.0667,
+        "games": 246
+      },
+      "philadelphia flyers": {
+        "attack": 0.9498,
+        "defense": 1.0378,
+        "games": 246
+      },
+      "new york islanders": {
+        "attack": 0.9235,
+        "defense": 1.0036,
+        "games": 246
+      },
+      "carolina hurricanes": {
+        "attack": 1.1048,
+        "defense": 0.9051,
+        "games": 246
+      },
+      "ottawa senators": {
+        "attack": 1.0194,
+        "defense": 0.9997,
+        "games": 246
+      }
+    }
   }
 }

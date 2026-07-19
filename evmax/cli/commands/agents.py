@@ -759,6 +759,41 @@ def recompute_at_price(
     }
 
 
+def reblend_with_fresh_sharp(
+    *,
+    blended_prob: float,
+    scan_sharp_prob: Optional[float],
+    fresh_sharp_prob: Optional[float],
+    sharp_weight: Optional[float],
+) -> float:
+    """Re-derive ``blended_true_prob`` from a freshly re-fetched Pinnacle line.
+
+    Pure helper so ``pick`` can re-blend against the CURRENT sharp line instead
+    of the stale scan-time one — the other half of the entry-timing fix
+    (``recompute_at_price`` above only refreshes the Kalshi side). Measured on
+    resolved live bets: Pinnacle's own devigged prob drifts a median ~0.8pp /
+    p90 ~4pp between scan time and a T-60 pre-tip snapshot, and leaving
+    blended_true_prob frozen flips the bet/no-bet decision on ~19% of rows
+    (15% of those are false positives — pick() would size and place a bet that
+    no longer has an edge once the sharp line is fresh).
+
+    Mirrors ``EnsembleModelAgent._blend``'s linear formula exactly:
+    ``blended = sharp_weight * sharp_prob + (1 - sharp_weight) * model_prob``.
+    Shifting the frozen blend by ``sharp_weight * (fresh - scan)`` is
+    algebraically identical to backing out the model component and re-blending
+    it against the fresh sharp prob — provided the model component itself
+    hasn't moved, which holds over a scan-to-pick window since models only
+    update at resolve time / weekly seeds, never intraday. Falls back to the
+    frozen ``blended_prob`` unchanged when any input needed to re-derive is
+    missing (no fresh quote for this event, no recorded sharp_weight, spread/
+    total row, or ``--no-live``).
+    """
+    if scan_sharp_prob is None or fresh_sharp_prob is None or sharp_weight is None:
+        return blended_prob
+    updated = blended_prob + sharp_weight * (fresh_sharp_prob - scan_sharp_prob)
+    return max(0.001, min(0.999, updated))
+
+
 @app.command("pick")
 def pick(
     date_filter: Optional[str] = typer.Option(
@@ -780,6 +815,7 @@ def pick(
 ) -> None:
     """Interactively select which +EV bets you're placing. Records placed bets in the database."""
     from evmax.agents.cleanup.db import get_connection
+    from evmax.agents.cleanup.resolver import yes_aligned_close_prob
     from evmax.clients.kalshi import KalshiClient
     from evmax.ev.calculator import calculate_ev
     from evmax.ev.kelly import compute_kelly
@@ -807,7 +843,8 @@ def pick(
                p.market_type, p.kalshi_yes_price, p.sharp_true_prob,
                p.blended_true_prob, p.ev_pct, p.kelly_fraction,
                p.volume_usd, p.model_sources, p.line, p.venue,
-               p.placed, p.placed_price, p.placed_stake, p.bankroll_used
+               p.placed, p.placed_price, p.placed_stake, p.bankroll_used,
+               p.sharp_weight_used
         FROM ev_predictions p
         INNER JOIN (
             SELECT market_id, MAX(scan_date) AS latest_scan
@@ -896,6 +933,48 @@ def pick(
             console.print(f"[yellow]Live fetch failed ({fetch_err}); using scan prices.[/yellow]\n")
             live = False
 
+    # Re-fetch the CURRENT Pinnacle line (moneyline only) and re-derive
+    # blended_true_prob from it — the other half of the entry-timing fix.
+    # `live_prices` above refreshes the Kalshi side of the EV calc; without
+    # this, blended_true_prob/sharp_true_prob stayed frozen at scan time even
+    # though Pinnacle moves meaningfully in the scan->pick window (measured on
+    # resolved live bets: median |Δsharp| ~0.8pp / p90 ~4pp, and refreshing it
+    # flips the bet/no-bet decision on ~19% of rows — 15% of those are false
+    # positives pick() would have sized and placed). We don't re-run the full
+    # model/injury pipeline (expensive, and models don't move intraday) — just
+    # re-blend using the same linear formula EnsembleModelAgent uses:
+    #   blended = sharp_weight * sharp_prob + (1 - sharp_weight) * model_prob
+    # so shifting sharp_prob by the observed drift and holding sharp_weight +
+    # the model component (backed out algebraically) fixed reproduces exactly
+    # what a full re-blend would give, provided the model side hasn't moved.
+    fresh_sharp_odds: dict[str, object] = {}
+    if live:
+        from evmax.clients.esports_pinnacle import PinnacleGuestClient
+
+        ml_sectors = sorted({
+            dict(r)["sector"] for r in rows
+            if (dict(r).get("market_type") or "").lower() in ("moneyline", "ml", "")
+        })
+
+        async def _fetch_sharp(sectors: list[str]) -> dict[str, object]:
+            out: dict[str, object] = {}
+            async with PinnacleGuestClient() as client:
+                odds_lists = await asyncio.gather(
+                    *(client.get_odds(s) for s in sectors), return_exceptions=True
+                )
+            for odds in odds_lists:
+                if isinstance(odds, Exception):
+                    continue
+                for o in odds:
+                    out[o.event_id] = o
+            return out
+
+        if ml_sectors:
+            try:
+                fresh_sharp_odds = asyncio.run(_fetch_sharp(ml_sectors))
+            except Exception as sharp_err:  # noqa: BLE001 — keep frozen sharp line
+                console.print(f"[yellow]Pinnacle refresh failed ({sharp_err}); using scan-time sharp line.[/yellow]\n")
+
     # Build enriched bet list. With --live we gate/size at the current ask;
     # otherwise we fall back to the stale scan price (offline / --no-live).
     bets = []
@@ -906,6 +985,30 @@ def pick(
         # On a settled/errored live fetch, fall back to the scan ask so the row
         # still shows (flagged), rather than vanishing.
         price = live_ask if live_ask is not None else scan_ask
+
+        # Re-derive blended_true_prob from the fresh Pinnacle line when we
+        # have one for this event + a recorded sharp_weight to re-blend with.
+        # Falls back to the frozen scan-time blend otherwise (missing weight,
+        # no fresh quote for this event, spread/total row, or --no-live).
+        pin_is_live = False
+        sharp_weight_used = r.get("sharp_weight_used")
+        fresh_so = fresh_sharp_odds.get(r["event_id"])
+        if fresh_so is not None and sharp_weight_used is not None and r.get("sharp_true_prob") is not None:
+            fresh_sharp_prob = yes_aligned_close_prob(
+                yes_team=r["yes_team"],
+                outcome_a_label=fresh_so.outcome_a_label,
+                outcome_b_label=fresh_so.outcome_b_label,
+                true_prob_a=fresh_so.true_prob_a,
+                true_prob_b=fresh_so.true_prob_b,
+            )
+            if fresh_sharp_prob is not None:
+                blended_prob = reblend_with_fresh_sharp(
+                    blended_prob=blended_prob,
+                    scan_sharp_prob=r["sharp_true_prob"],
+                    fresh_sharp_prob=fresh_sharp_prob,
+                    sharp_weight=sharp_weight_used,
+                )
+                pin_is_live = True
 
         rc = recompute_at_price(
             blended_prob=blended_prob,
@@ -919,6 +1022,8 @@ def pick(
 
         bets.append({
             **r,
+            "blended_true_prob": blended_prob,
+            "pin_is_live": pin_is_live,
             "scan_ask": scan_ask,
             "live_ask": price,
             "price_is_live": live and live_ask is not None,
@@ -959,7 +1064,7 @@ def pick(
             drift_str = f"[{drift_color}]{drift:+.0f}\u00a2[/{drift_color}]"
         else:
             drift_str = "—"
-        fair_str = _cents(b["blended_true_prob"])
+        fair_str = _cents(b["blended_true_prob"]) + ("*" if b.get("pin_is_live") else "")
         if b["is_live"]:
             status = "[green]LIVE[/green]"
         elif live and not b["price_is_live"]:
@@ -981,6 +1086,8 @@ def pick(
         )
 
     console.print(table)
+    if any(b.get("pin_is_live") for b in displayable):
+        console.print("[dim]* Fair re-derived from a freshly re-fetched Pinnacle line (moneyline only).[/dim]")
 
     live_bets = [b for b in displayable if b["is_live"]]
     if not live_bets:

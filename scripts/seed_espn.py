@@ -113,6 +113,16 @@ SECTOR_CONFIGS: dict[str, dict] = {
     "tennis": {
         "months": [],  # uses tennis-data.co.uk, not ESPN months
     },
+    "nhl": {
+        "sport": "hockey",
+        "league": "nhl",
+        # Multi-season walk-forward seed for MODEL-2 NHL half (2026-07-18):
+        # 2023-24 + 2024-25 + 2025-26 regular seasons. NHL runs ~Oct->Apr;
+        # use_daily avoids ESPN's per-month event cap on the busiest months.
+        "months": _months("2023-10", "2026-04"),
+        "use_daily": True,
+        "regular_season_only": True,
+    },
     "soccer": {
         "leagues": {
             "epl":        ("soccer", "eng.1"),
@@ -230,6 +240,7 @@ MIN_GAMES_THRESHOLD: dict[str, int] = {
     "wnba": 5,
     "baseball": 10,
     "soccer": 3,
+    "nhl": 5,
 }
 
 

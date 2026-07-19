@@ -260,3 +260,67 @@ class TestUpdateIsNoOp:
         agent.update("boston bruins", "toronto maple leafs", 4, 2, "nhl", "2025-12-01")
         after = dict(agent._state["nhl"]["teams"]["boston bruins"])
         assert before == after
+
+
+# ── Generic Elo calibration (MODEL-2 NHL half) ─────────────────────────────
+
+class TestGenericEloNhlCalibration:
+    """NHL's generic EloModelAgent (evmax/agents/models/elo_agent.py) is a
+    SEPARATE model from NhlXgModelAgent tested above — this class covers the
+    K_FACTORS/HOME_ADVANTAGE_ELO calibration shipped 2026-07-18 via
+    scripts/backtest_nhl_elo.py (cold-start walk-forward sweep, ranked on
+    2023-24, confirmed on 2024-25, reported once on held-out 2025-26).
+    """
+
+    def test_nhl_elo_constants_calibrated(self):
+        from evmax.agents.models.elo_agent import HOME_ADVANTAGE_ELO, K_FACTORS
+
+        assert "nhl" in K_FACTORS
+        assert "nhl" in HOME_ADVANTAGE_ELO
+        # Small K befitting an ~82-game season (mirrors baseball's K=6 for a
+        # 162-game season) — sanity range, not a re-assertion of the exact
+        # sweep winner so a future re-sweep doesn't need a test edit for
+        # every minor retune.
+        assert 1.0 <= K_FACTORS["nhl"] <= 30.0
+        assert HOME_ADVANTAGE_ELO["nhl"] >= 0.0
+
+    def test_nhl_elo_constants_exact_sweep_winner(self):
+        """Pins the specific 2026-07-18 sweep result (K=6, home_adv=48)."""
+        from evmax.agents.models.elo_agent import HOME_ADVANTAGE_ELO, K_FACTORS
+
+        assert K_FACTORS["nhl"] == 6.0
+        assert HOME_ADVANTAGE_ELO["nhl"] == 48.0
+
+    def test_nhl_elo_predicts_home_favorite(self):
+        """Basic sanity check on the generic elo formula for nhl using the
+        calibrated constants: a higher-rated home team should be favored."""
+        from evmax.agents.models.elo_agent import EloModelAgent
+
+        agent = EloModelAgent()
+        agent._state = {
+            "nhl": {
+                "ratings": {"colorado avalanche": 1600.0, "san jose sharks": 1400.0},
+                "game_counts": {"colorado avalanche": 50, "san jose sharks": 50},
+                "season_games": {"colorado avalanche": 50, "san jose sharks": 50},
+                "h2h": {},
+            }
+        }
+        market, sharp = _pair("colorado avalanche", "san jose sharks")
+        result = asyncio.run(agent.predict_pair(market, sharp))
+        assert result is not None
+        assert result.true_prob_a > 0.5
+
+    def test_nhl_elo_state_shipped_and_populated(self):
+        """data/models/elo_state.json must carry a real nhl key post-seed."""
+        import json
+        import pathlib
+
+        path = pathlib.Path(__file__).resolve().parents[1] / "data" / "models" / "elo_state.json"
+        state = json.loads(path.read_text())
+        assert "nhl" in state, "nhl key missing from elo_state.json — MODEL-2 gap not closed"
+        ratings = state["nhl"]["ratings"]
+        # Full NHL is 32 teams; a couple of extra keys are expected from
+        # in-window franchise history (Arizona Coyotes relocated to Utah in
+        # 2024; "Utah Hockey Club" renamed to "Utah Mammoth" in 2025).
+        assert 30 <= len(ratings) <= 40
+        assert all(1000.0 < r < 2000.0 for r in ratings.values())
