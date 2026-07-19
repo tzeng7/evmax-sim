@@ -33867,5 +33867,2961 @@
       }
     },
     "last_updated": "2026-06-14"
+  },
+  "nhl": {
+    "ratings": {
+      "tampa bay lightning": 1555.71,
+      "nashville predators": 1475.91,
+      "pittsburgh penguins": 1484.07,
+      "chicago blackhawks": 1397.51,
+      "vegas golden knights": 1514.99,
+      "seattle kraken": 1451.81,
+      "toronto maple leafs": 1496.03,
+      "montreal canadiens": 1514.6,
+      "carolina hurricanes": 1572.11,
+      "ottawa senators": 1521.18,
+      "boston bruins": 1502.77,
+      "calgary flames": 1469.8,
+      "winnipeg jets": 1521.52,
+      "vancouver canucks": 1440.28,
+      "edmonton oilers": 1523.59,
+      "los angeles kings": 1498.52,
+      "colorado avalanche": 1581.3,
+      "buffalo sabres": 1531.2,
+      "new york rangers": 1489.43,
+      "columbus blue jackets": 1481.05,
+      "philadelphia flyers": 1486.66,
+      "new jersey devils": 1496.79,
+      "detroit red wings": 1493.07,
+      "dallas stars": 1568.87,
+      "st. louis blues": 1501.79,
+      "minnesota wild": 1522.17,
+      "florida panthers": 1522.85,
+      "san jose sharks": 1413.91,
+      "arizona coyotes": 1483.51,
+      "washington capitals": 1525.93,
+      "new york islanders": 1490.85,
+      "anaheim ducks": 1468.86,
+      "utah hockey": 1490.9,
+      "utah mammoth": 1510.46
+    },
+    "game_counts": {
+      "tampa bay lightning": 246,
+      "nashville predators": 246,
+      "pittsburgh penguins": 246,
+      "chicago blackhawks": 246,
+      "vegas golden knights": 246,
+      "seattle kraken": 246,
+      "toronto maple leafs": 246,
+      "montreal canadiens": 246,
+      "carolina hurricanes": 246,
+      "ottawa senators": 246,
+      "boston bruins": 246,
+      "calgary flames": 246,
+      "winnipeg jets": 246,
+      "vancouver canucks": 246,
+      "edmonton oilers": 246,
+      "los angeles kings": 246,
+      "colorado avalanche": 246,
+      "buffalo sabres": 246,
+      "new york rangers": 246,
+      "columbus blue jackets": 246,
+      "philadelphia flyers": 246,
+      "new jersey devils": 246,
+      "detroit red wings": 246,
+      "dallas stars": 246,
+      "st. louis blues": 246,
+      "minnesota wild": 246,
+      "florida panthers": 246,
+      "san jose sharks": 246,
+      "arizona coyotes": 82,
+      "washington capitals": 246,
+      "new york islanders": 246,
+      "anaheim ducks": 246,
+      "utah hockey": 82,
+      "utah mammoth": 82
+    },
+    "season_games": {
+      "tampa bay lightning": 246,
+      "nashville predators": 246,
+      "pittsburgh penguins": 246,
+      "chicago blackhawks": 246,
+      "vegas golden knights": 246,
+      "seattle kraken": 246,
+      "toronto maple leafs": 246,
+      "montreal canadiens": 246,
+      "carolina hurricanes": 246,
+      "ottawa senators": 246,
+      "boston bruins": 246,
+      "calgary flames": 246,
+      "winnipeg jets": 246,
+      "vancouver canucks": 246,
+      "edmonton oilers": 246,
+      "los angeles kings": 246,
+      "colorado avalanche": 246,
+      "buffalo sabres": 246,
+      "new york rangers": 246,
+      "columbus blue jackets": 246,
+      "philadelphia flyers": 246,
+      "new jersey devils": 246,
+      "detroit red wings": 246,
+      "dallas stars": 246,
+      "st. louis blues": 246,
+      "minnesota wild": 246,
+      "florida panthers": 246,
+      "san jose sharks": 246,
+      "arizona coyotes": 82,
+      "washington capitals": 246,
+      "new york islanders": 246,
+      "anaheim ducks": 246,
+      "mcdavid": 2,
+      "mackinnon": 1,
+      "matthews": 2,
+      "hughes": 1,
+      "utah hockey": 82,
+      "sweden": 3,
+      "canada": 4,
+      "finland": 3,
+      "usa": 4,
+      "utah mammoth": 82
+    },
+    "h2h": {
+      "nashville predators::tampa bay lightning": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "chicago blackhawks::pittsburgh penguins": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "seattle kraken::vegas golden knights": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "montreal canadiens::toronto maple leafs": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "carolina hurricanes::ottawa senators": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "boston bruins::chicago blackhawks": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "calgary flames::winnipeg jets": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "edmonton oilers::vancouver canucks": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "colorado avalanche::los angeles kings": {
+        "a_wins": 7,
+        "b_wins": 2,
+        "games": 9
+      },
+      "buffalo sabres::new york rangers": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "columbus blue jackets::philadelphia flyers": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "detroit red wings::new jersey devils": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "nashville predators::seattle kraken": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "dallas stars::st. louis blues": {
+        "a_wins": 8,
+        "b_wins": 3,
+        "games": 11
+      },
+      "florida panthers::minnesota wild": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "san jose sharks::vegas golden knights": {
+        "a_wins": 0,
+        "b_wins": 11,
+        "games": 11
+      },
+      "arizona coyotes::new jersey devils": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "pittsburgh penguins::washington capitals": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "ottawa senators::philadelphia flyers": {
+        "a_wins": 7,
+        "b_wins": 2,
+        "games": 9
+      },
+      "florida panthers::winnipeg jets": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "boston bruins::nashville predators": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "minnesota wild::toronto maple leafs": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "chicago blackhawks::montreal canadiens": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "detroit red wings::tampa bay lightning": {
+        "a_wins": 6,
+        "b_wins": 5,
+        "games": 11
+      },
+      "calgary flames::pittsburgh penguins": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "columbus blue jackets::new york rangers": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "buffalo sabres::new york islanders": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "seattle kraken::st. louis blues": {
+        "a_wins": 2,
+        "b_wins": 7,
+        "games": 9
+      },
+      "anaheim ducks::vegas golden knights": {
+        "a_wins": 6,
+        "b_wins": 5,
+        "games": 11
+      },
+      "colorado avalanche::san jose sharks": {
+        "a_wins": 8,
+        "b_wins": 1,
+        "games": 9
+      },
+      "carolina hurricanes::los angeles kings": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "ottawa senators::tampa bay lightning": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "anaheim ducks::carolina hurricanes": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "chicago blackhawks::toronto maple leafs": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "florida panthers::new jersey devils": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "arizona coyotes::new york rangers": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "calgary flames::washington capitals": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "columbus blue jackets::detroit red wings": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "philadelphia flyers::vancouver canucks": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "minnesota wild::montreal canadiens": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "buffalo sabres::tampa bay lightning": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "arizona coyotes::new york islanders": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "edmonton oilers::nashville predators": {
+        "a_wins": 7,
+        "b_wins": 2,
+        "games": 9
+      },
+      "los angeles kings::winnipeg jets": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "colorado avalanche::seattle kraken": {
+        "a_wins": 8,
+        "b_wins": 1,
+        "games": 9
+      },
+      "dallas stars::vegas golden knights": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "carolina hurricanes::san jose sharks": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "ottawa senators::washington capitals": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "detroit red wings::pittsburgh penguins": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "buffalo sabres::calgary flames": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "tampa bay lightning::vancouver canucks": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "florida panthers::toronto maple leafs": {
+        "a_wins": 7,
+        "b_wins": 5,
+        "games": 12
+      },
+      "nashville predators::new york rangers": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "edmonton oilers::philadelphia flyers": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "arizona coyotes::st. louis blues": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "los angeles kings::minnesota wild": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "vegas golden knights::winnipeg jets": {
+        "a_wins": 7,
+        "b_wins": 2,
+        "games": 9
+      },
+      "anaheim ducks::dallas stars": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "carolina hurricanes::seattle kraken": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "chicago blackhawks::colorado avalanche": {
+        "a_wins": 3,
+        "b_wins": 8,
+        "games": 11
+      },
+      "boston bruins::san jose sharks": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "calgary flames::columbus blue jackets": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "new jersey devils::new york islanders": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "detroit red wings::ottawa senators": {
+        "a_wins": 5,
+        "b_wins": 7,
+        "games": 12
+      },
+      "anaheim ducks::arizona coyotes": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "montreal canadiens::washington capitals": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "tampa bay lightning::toronto maple leafs": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "florida panthers::vancouver canucks": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "chicago blackhawks::vegas golden knights": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "pittsburgh penguins::st. louis blues": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "nashville predators::san jose sharks": {
+        "a_wins": 8,
+        "b_wins": 1,
+        "games": 9
+      },
+      "dallas stars::philadelphia flyers": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "columbus blue jackets::minnesota wild": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "carolina hurricanes::colorado avalanche": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "edmonton oilers::winnipeg jets": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "new york rangers::seattle kraken": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "boston bruins::los angeles kings": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "calgary flames::detroit red wings": {
+        "a_wins": 0,
+        "b_wins": 6,
+        "games": 6
+      },
+      "anaheim ducks::boston bruins": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "buffalo sabres::montreal canadiens": {
+        "a_wins": 4,
+        "b_wins": 8,
+        "games": 12
+      },
+      "toronto maple leafs::washington capitals": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "buffalo sabres::ottawa senators": {
+        "a_wins": 8,
+        "b_wins": 3,
+        "games": 11
+      },
+      "carolina hurricanes::tampa bay lightning": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "montreal canadiens::new jersey devils": {
+        "a_wins": 2,
+        "b_wins": 7,
+        "games": 9
+      },
+      "dallas stars::pittsburgh penguins": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "florida panthers::san jose sharks": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "colorado avalanche::new york islanders": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "detroit red wings::seattle kraken": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "anaheim ducks::columbus blue jackets": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "st. louis blues::winnipeg jets": {
+        "a_wins": 2,
+        "b_wins": 9,
+        "games": 11
+      },
+      "edmonton oilers::minnesota wild": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "nashville predators::vancouver canucks": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "calgary flames::new york rangers": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "arizona coyotes::los angeles kings": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "philadelphia flyers::vegas golden knights": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "new jersey devils::washington capitals": {
+        "a_wins": 5,
+        "b_wins": 7,
+        "games": 12
+      },
+      "columbus blue jackets::montreal canadiens": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "detroit red wings::winnipeg jets": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "san jose sharks::tampa bay lightning": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "colorado avalanche::pittsburgh penguins": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "minnesota wild::philadelphia flyers": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "new york islanders::ottawa senators": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "dallas stars::toronto maple leafs": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "calgary flames::st. louis blues": {
+        "a_wins": 1,
+        "b_wins": 8,
+        "games": 9
+      },
+      "edmonton oilers::new york rangers": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "buffalo sabres::new jersey devils": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "minnesota wild::washington capitals": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "st. louis blues::vancouver canucks": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "anaheim ducks::philadelphia flyers": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "florida panthers::seattle kraken": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "boston bruins::detroit red wings": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "montreal canadiens::winnipeg jets": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "ottawa senators::pittsburgh penguins": {
+        "a_wins": 7,
+        "b_wins": 2,
+        "games": 9
+      },
+      "columbus blue jackets::new york islanders": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "nashville predators::toronto maple leafs": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "new york rangers::vancouver canucks": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "los angeles kings::vegas golden knights": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "buffalo sabres::colorado avalanche": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "minnesota wild::new jersey devils": {
+        "a_wins": 0,
+        "b_wins": 6,
+        "games": 6
+      },
+      "san jose sharks::washington capitals": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "calgary flames::edmonton oilers": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "carolina hurricanes::philadelphia flyers": {
+        "a_wins": 9,
+        "b_wins": 2,
+        "games": 11
+      },
+      "boston bruins::florida panthers": {
+        "a_wins": 6,
+        "b_wins": 5,
+        "games": 11
+      },
+      "seattle kraken::tampa bay lightning": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "anaheim ducks::pittsburgh penguins": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "detroit red wings::new york islanders": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "new york rangers::winnipeg jets": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "columbus blue jackets::dallas stars": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "arizona coyotes::chicago blackhawks": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "montreal canadiens::vegas golden knights": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "los angeles kings::toronto maple leafs": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "buffalo sabres::philadelphia flyers": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "calgary flames::dallas stars": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "colorado avalanche::st. louis blues": {
+        "a_wins": 6,
+        "b_wins": 5,
+        "games": 11
+      },
+      "los angeles kings::ottawa senators": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "detroit red wings::florida panthers": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "carolina hurricanes::new york rangers": {
+        "a_wins": 8,
+        "b_wins": 3,
+        "games": 11
+      },
+      "new york islanders::washington capitals": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "columbus blue jackets::tampa bay lightning": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "boston bruins::toronto maple leafs": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "dallas stars::edmonton oilers": {
+        "a_wins": 7,
+        "b_wins": 2,
+        "games": 9
+      },
+      "arizona coyotes::montreal canadiens": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "san jose sharks::vancouver canucks": {
+        "a_wins": 4,
+        "b_wins": 8,
+        "games": 12
+      },
+      "new jersey devils::st. louis blues": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "arizona coyotes::winnipeg jets": {
+        "a_wins": 0,
+        "b_wins": 4,
+        "games": 4
+      },
+      "buffalo sabres::toronto maple leafs": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "columbus blue jackets::washington capitals": {
+        "a_wins": 2,
+        "b_wins": 9,
+        "games": 11
+      },
+      "montreal canadiens::st. louis blues": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "los angeles kings::philadelphia flyers": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "carolina hurricanes::new york islanders": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "chicago blackhawks::florida panthers": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "minnesota wild::new york rangers": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "dallas stars::vancouver canucks": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "colorado avalanche::vegas golden knights": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "pittsburgh penguins::san jose sharks": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "calgary flames::seattle kraken": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "chicago blackhawks::new jersey devils": {
+        "a_wins": 0,
+        "b_wins": 6,
+        "games": 6
+      },
+      "columbus blue jackets::florida panthers": {
+        "a_wins": 1,
+        "b_wins": 8,
+        "games": 9
+      },
+      "boston bruins::dallas stars": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "montreal canadiens::tampa bay lightning": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "buffalo sabres::carolina hurricanes": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "minnesota wild::new york islanders": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "detroit red wings::new york rangers": {
+        "a_wins": 1,
+        "b_wins": 8,
+        "games": 9
+      },
+      "calgary flames::nashville predators": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "arizona coyotes::seattle kraken": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "colorado avalanche::new jersey devils": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "philadelphia flyers::san jose sharks": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "ottawa senators::toronto maple leafs": {
+        "a_wins": 9,
+        "b_wins": 2,
+        "games": 11
+      },
+      "florida panthers::washington capitals": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "boston bruins::new york islanders": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "ottawa senators::vancouver canucks": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "detroit red wings::montreal canadiens": {
+        "a_wins": 6,
+        "b_wins": 5,
+        "games": 11
+      },
+      "chicago blackhawks::tampa bay lightning": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "nashville predators::winnipeg jets": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "los angeles kings::pittsburgh penguins": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "edmonton oilers::san jose sharks": {
+        "a_wins": 9,
+        "b_wins": 2,
+        "games": 11
+      },
+      "buffalo sabres::minnesota wild": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "calgary flames::toronto maple leafs": {
+        "a_wins": 0,
+        "b_wins": 6,
+        "games": 6
+      },
+      "carolina hurricanes::florida panthers": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "dallas stars::winnipeg jets": {
+        "a_wins": 8,
+        "b_wins": 4,
+        "games": 12
+      },
+      "toronto maple leafs::vancouver canucks": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "boston bruins::montreal canadiens": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "calgary flames::ottawa senators": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "buffalo sabres::pittsburgh penguins": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "arizona coyotes::nashville predators": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "edmonton oilers::seattle kraken": {
+        "a_wins": 10,
+        "b_wins": 2,
+        "games": 12
+      },
+      "dallas stars::minnesota wild": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "montreal canadiens::vancouver canucks": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "anaheim ducks::san jose sharks": {
+        "a_wins": 8,
+        "b_wins": 3,
+        "games": 11
+      },
+      "edmonton oilers::new york islanders": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "boston bruins::buffalo sabres": {
+        "a_wins": 6,
+        "b_wins": 5,
+        "games": 11
+      },
+      "calgary flames::montreal canadiens": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "vegas golden knights::washington capitals": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "columbus blue jackets::pittsburgh penguins": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "st. louis blues::tampa bay lightning": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "anaheim ducks::nashville predators": {
+        "a_wins": 7,
+        "b_wins": 2,
+        "games": 9
+      },
+      "arizona coyotes::dallas stars": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "new jersey devils::winnipeg jets": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "anaheim ducks::colorado avalanche": {
+        "a_wins": 2,
+        "b_wins": 7,
+        "games": 9
+      },
+      "new york islanders::vancouver canucks": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "new jersey devils::pittsburgh penguins": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "arizona coyotes::columbus blue jackets": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "calgary flames::vancouver canucks": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "new york islanders::seattle kraken": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "florida panthers::los angeles kings": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "san jose sharks::st. louis blues": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "detroit red wings::toronto maple leafs": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "buffalo sabres::winnipeg jets": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "anaheim ducks::florida panthers": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "minnesota wild::ottawa senators": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "chicago blackhawks::nashville predators": {
+        "a_wins": 2,
+        "b_wins": 10,
+        "games": 12
+      },
+      "edmonton oilers::tampa bay lightning": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "new jersey devils::new york rangers": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "carolina hurricanes::pittsburgh penguins": {
+        "a_wins": 8,
+        "b_wins": 3,
+        "games": 11
+      },
+      "calgary flames::new york islanders": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "colorado avalanche::dallas stars": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "seattle kraken::vancouver canucks": {
+        "a_wins": 8,
+        "b_wins": 3,
+        "games": 11
+      },
+      "los angeles kings::st. louis blues": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "pittsburgh penguins::vegas golden knights": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "buffalo sabres::chicago blackhawks": {
+        "a_wins": 6,
+        "b_wins": 0,
+        "games": 6
+      },
+      "anaheim ducks::st. louis blues": {
+        "a_wins": 1,
+        "b_wins": 8,
+        "games": 9
+      },
+      "boston bruins::tampa bay lightning": {
+        "a_wins": 3,
+        "b_wins": 9,
+        "games": 12
+      },
+      "edmonton oilers::florida panthers": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "colorado avalanche::nashville predators": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "dallas stars::new york rangers": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "tampa bay lightning::winnipeg jets": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "new york rangers::pittsburgh penguins": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "buffalo sabres::washington capitals": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "carolina hurricanes::edmonton oilers": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "chicago blackhawks::columbus blue jackets": {
+        "a_wins": 0,
+        "b_wins": 6,
+        "games": 6
+      },
+      "new york islanders::philadelphia flyers": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "colorado avalanche::vancouver canucks": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "anaheim ducks::montreal canadiens": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "san jose sharks::seattle kraken": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "new york rangers::philadelphia flyers": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "edmonton oilers::washington capitals": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "nashville predators::st. louis blues": {
+        "a_wins": 6,
+        "b_wins": 5,
+        "games": 11
+      },
+      "columbus blue jackets::new jersey devils": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "anaheim ducks::los angeles kings": {
+        "a_wins": 5,
+        "b_wins": 7,
+        "games": 12
+      },
+      "montreal canadiens::san jose sharks": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "colorado avalanche::minnesota wild": {
+        "a_wins": 8,
+        "b_wins": 4,
+        "games": 12
+      },
+      "boston bruins::new york rangers": {
+        "a_wins": 2,
+        "b_wins": 7,
+        "games": 9
+      },
+      "los angeles kings::montreal canadiens": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "pittsburgh penguins::toronto maple leafs": {
+        "a_wins": 2,
+        "b_wins": 7,
+        "games": 9
+      },
+      "calgary flames::colorado avalanche": {
+        "a_wins": 1,
+        "b_wins": 8,
+        "games": 9
+      },
+      "arizona coyotes::vegas golden knights": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "detroit red wings::minnesota wild": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "chicago blackhawks::st. louis blues": {
+        "a_wins": 3,
+        "b_wins": 8,
+        "games": 11
+      },
+      "carolina hurricanes::columbus blue jackets": {
+        "a_wins": 8,
+        "b_wins": 4,
+        "games": 12
+      },
+      "anaheim ducks::edmonton oilers": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "florida panthers::ottawa senators": {
+        "a_wins": 8,
+        "b_wins": 3,
+        "games": 11
+      },
+      "boston bruins::columbus blue jackets": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "colorado avalanche::tampa bay lightning": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "calgary flames::vegas golden knights": {
+        "a_wins": 5,
+        "b_wins": 7,
+        "games": 12
+      },
+      "nashville predators::pittsburgh penguins": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "minnesota wild::st. louis blues": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "chicago blackhawks::seattle kraken": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "edmonton oilers::vegas golden knights": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "arizona coyotes::tampa bay lightning": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "anaheim ducks::vancouver canucks": {
+        "a_wins": 2,
+        "b_wins": 9,
+        "games": 11
+      },
+      "los angeles kings::washington capitals": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "seattle kraken::toronto maple leafs": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "florida panthers::montreal canadiens": {
+        "a_wins": 3,
+        "b_wins": 8,
+        "games": 11
+      },
+      "chicago blackhawks::detroit red wings": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "pittsburgh penguins::tampa bay lightning": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "new jersey devils::philadelphia flyers": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "buffalo sabres::st. louis blues": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "minnesota wild::nashville predators": {
+        "a_wins": 6,
+        "b_wins": 5,
+        "games": 11
+      },
+      "arizona coyotes::colorado avalanche": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "vancouver canucks::vegas golden knights": {
+        "a_wins": 2,
+        "b_wins": 9,
+        "games": 11
+      },
+      "anaheim ducks::washington capitals": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "new jersey devils::san jose sharks": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "columbus blue jackets::ottawa senators": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "dallas stars::tampa bay lightning": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "chicago blackhawks::winnipeg jets": {
+        "a_wins": 2,
+        "b_wins": 9,
+        "games": 11
+      },
+      "florida panthers::new york islanders": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "ottawa senators::seattle kraken": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "philadelphia flyers::pittsburgh penguins": {
+        "a_wins": 6,
+        "b_wins": 6,
+        "games": 12
+      },
+      "chicago blackhawks::minnesota wild": {
+        "a_wins": 2,
+        "b_wins": 9,
+        "games": 11
+      },
+      "new york rangers::san jose sharks": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "buffalo sabres::nashville predators": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "montreal canadiens::seattle kraken": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "carolina hurricanes::winnipeg jets": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "arizona coyotes::washington capitals": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "st. louis blues::vegas golden knights": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "new york rangers::ottawa senators": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "columbus blue jackets::los angeles kings": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "buffalo sabres::detroit red wings": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "new york islanders::san jose sharks": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "calgary flames::minnesota wild": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "new jersey devils::vancouver canucks": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "dallas stars::florida panthers": {
+        "a_wins": 0,
+        "b_wins": 6,
+        "games": 6
+      },
+      "detroit red wings::san jose sharks": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "dallas stars::washington capitals": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "anaheim ducks::chicago blackhawks": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "colorado avalanche::winnipeg jets": {
+        "a_wins": 3,
+        "b_wins": 8,
+        "games": 11
+      },
+      "calgary flames::carolina hurricanes": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "arizona coyotes::philadelphia flyers": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "minnesota wild::vancouver canucks": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "new jersey devils::seattle kraken": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "florida panthers::pittsburgh penguins": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "columbus blue jackets::st. louis blues": {
+        "a_wins": 6,
+        "b_wins": 0,
+        "games": 6
+      },
+      "arizona coyotes::boston bruins": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "calgary flames::new jersey devils": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "new york rangers::washington capitals": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "los angeles kings::new york islanders": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "colorado avalanche::philadelphia flyers": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "carolina hurricanes::vancouver canucks": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "edmonton oilers::new jersey devils": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "montreal canadiens::nashville predators": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "los angeles kings::new york rangers": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "chicago blackhawks::washington capitals": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "anaheim ducks::winnipeg jets": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "minnesota wild::seattle kraken": {
+        "a_wins": 7,
+        "b_wins": 2,
+        "games": 9
+      },
+      "arizona coyotes::buffalo sabres": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "new york islanders::toronto maple leafs": {
+        "a_wins": 7,
+        "b_wins": 2,
+        "games": 9
+      },
+      "dallas stars::detroit red wings": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "new york rangers::toronto maple leafs": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "arizona coyotes::pittsburgh penguins": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "detroit red wings::st. louis blues": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "nashville predators::philadelphia flyers": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "chicago blackhawks::edmonton oilers": {
+        "a_wins": 1,
+        "b_wins": 8,
+        "games": 9
+      },
+      "san jose sharks::winnipeg jets": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "montreal canadiens::pittsburgh penguins": {
+        "a_wins": 2,
+        "b_wins": 7,
+        "games": 9
+      },
+      "boston bruins::new jersey devils": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "anaheim ducks::new york islanders": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "columbus blue jackets::toronto maple leafs": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "philadelphia flyers::washington capitals": {
+        "a_wins": 3,
+        "b_wins": 8,
+        "games": 11
+      },
+      "carolina hurricanes::detroit red wings": {
+        "a_wins": 7,
+        "b_wins": 2,
+        "games": 9
+      },
+      "ottawa senators::st. louis blues": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "anaheim ducks::new york rangers": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "carolina hurricanes::nashville predators": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "dallas stars::ottawa senators": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "arizona coyotes::san jose sharks": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "buffalo sabres::vegas golden knights": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "montreal canadiens::new york islanders": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "detroit red wings::philadelphia flyers": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "nashville predators::washington capitals": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "calgary flames::tampa bay lightning": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "los angeles kings::seattle kraken": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "chicago blackhawks::vancouver canucks": {
+        "a_wins": 1,
+        "b_wins": 8,
+        "games": 9
+      },
+      "carolina hurricanes::washington capitals": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "anaheim ducks::new jersey devils": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "ottawa senators::vegas golden knights": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "anaheim ducks::detroit red wings": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "minnesota wild::pittsburgh penguins": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "dallas stars::seattle kraken": {
+        "a_wins": 9,
+        "b_wins": 0,
+        "games": 9
+      },
+      "calgary flames::florida panthers": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "boston bruins::minnesota wild": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "buffalo sabres::columbus blue jackets": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "carolina hurricanes::vegas golden knights": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "arizona coyotes::ottawa senators": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "los angeles kings::san jose sharks": {
+        "a_wins": 6,
+        "b_wins": 5,
+        "games": 11
+      },
+      "tampa bay lightning::vegas golden knights": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "florida panthers::st. louis blues": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "colorado avalanche::ottawa senators": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "anaheim ducks::calgary flames": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "boston bruins::winnipeg jets": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "dallas stars::nashville predators": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "florida panthers::vegas golden knights": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "tampa bay lightning::washington capitals": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "anaheim ducks::seattle kraken": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "calgary flames::los angeles kings": {
+        "a_wins": 8,
+        "b_wins": 3,
+        "games": 11
+      },
+      "florida panthers::tampa bay lightning": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "new york islanders::pittsburgh penguins": {
+        "a_wins": 6,
+        "b_wins": 5,
+        "games": 11
+      },
+      "carolina hurricanes::montreal canadiens": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "new jersey devils::ottawa senators": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "detroit red wings::nashville predators": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "florida panthers::new york rangers": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "chicago blackhawks::dallas stars": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "philadelphia flyers::seattle kraken": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "minnesota wild::winnipeg jets": {
+        "a_wins": 2,
+        "b_wins": 9,
+        "games": 11
+      },
+      "carolina hurricanes::toronto maple leafs": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "new york rangers::tampa bay lightning": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "edmonton oilers::los angeles kings": {
+        "a_wins": 5,
+        "b_wins": 6,
+        "games": 11
+      },
+      "calgary flames::philadelphia flyers": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "dallas stars::montreal canadiens": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "arizona coyotes::florida panthers": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "anaheim ducks::toronto maple leafs": {
+        "a_wins": 0,
+        "b_wins": 6,
+        "games": 6
+      },
+      "boston bruins::pittsburgh penguins": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "chicago blackhawks::new york rangers": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "minnesota wild::tampa bay lightning": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "detroit red wings::los angeles kings": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "colorado avalanche::florida panthers": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "montreal canadiens::new york rangers": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "san jose sharks::toronto maple leafs": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "carolina hurricanes::st. louis blues": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "edmonton oilers::ottawa senators": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "new york islanders::vegas golden knights": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "calgary flames::chicago blackhawks": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "boston bruins::colorado avalanche": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "buffalo sabres::seattle kraken": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "los angeles kings::tampa bay lightning": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "columbus blue jackets::winnipeg jets": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "montreal canadiens::philadelphia flyers": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "detroit red wings::edmonton oilers": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "new jersey devils::tampa bay lightning": {
+        "a_wins": 2,
+        "b_wins": 7,
+        "games": 9
+      },
+      "pittsburgh penguins::vancouver canucks": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "seattle kraken::washington capitals": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "new york rangers::st. louis blues": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "arizona coyotes::calgary flames": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "boston bruins::vegas golden knights": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "buffalo sabres::vancouver canucks": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "ottawa senators::san jose sharks": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "colorado avalanche::toronto maple leafs": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "edmonton oilers::montreal canadiens": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "anaheim ducks::tampa bay lightning": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "columbus blue jackets::seattle kraken": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "philadelphia flyers::winnipeg jets": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "boston bruins::st. louis blues": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "nashville predators::new york islanders": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "arizona coyotes::minnesota wild": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "buffalo sabres::san jose sharks": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "columbus blue jackets::vancouver canucks": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "pittsburgh penguins::seattle kraken": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "nashville predators::vegas golden knights": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "colorado avalanche::montreal canadiens": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "philadelphia flyers::st. louis blues": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "dallas stars::los angeles kings": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "new york islanders::winnipeg jets": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "chicago blackhawks::san jose sharks": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "edmonton oilers::toronto maple leafs": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "montreal canadiens::ottawa senators": {
+        "a_wins": 6,
+        "b_wins": 5,
+        "games": 11
+      },
+      "st. louis blues::washington capitals": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "los angeles kings::nashville predators": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "arizona coyotes::vancouver canucks": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "new york rangers::vegas golden knights": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "chicago blackhawks::new york islanders": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "ottawa senators::winnipeg jets": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "dallas stars::new jersey devils": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "carolina hurricanes::minnesota wild": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "dallas stars::new york islanders": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "new jersey devils::vegas golden knights": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "florida panthers::nashville predators": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "philadelphia flyers::tampa bay lightning": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "columbus blue jackets::edmonton oilers": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "anaheim ducks::buffalo sabres": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "toronto maple leafs::winnipeg jets": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "boston bruins::carolina hurricanes": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "colorado avalanche::washington capitals": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "buffalo sabres::los angeles kings": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "boston bruins::ottawa senators": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "carolina hurricanes::new jersey devils": {
+        "a_wins": 9,
+        "b_wins": 2,
+        "games": 11
+      },
+      "boston bruins::philadelphia flyers": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "arizona coyotes::carolina hurricanes": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "detroit red wings::vegas golden knights": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "anaheim ducks::minnesota wild": {
+        "a_wins": 1,
+        "b_wins": 8,
+        "games": 9
+      },
+      "nashville predators::ottawa senators": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "mackinnon::mcdavid": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "hughes::matthews": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "matthews::mcdavid": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "colorado avalanche::new york rangers": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "boston bruins::calgary flames": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "buffalo sabres::dallas stars": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "florida panthers::philadelphia flyers": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "pittsburgh penguins::winnipeg jets": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "boston bruins::vancouver canucks": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "new york islanders::tampa bay lightning": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "detroit red wings::vancouver canucks": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "boston bruins::washington capitals": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "vancouver canucks::washington capitals": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "minnesota wild::vegas golden knights": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "st. louis blues::toronto maple leafs": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "nashville predators::new jersey devils": {
+        "a_wins": 1,
+        "b_wins": 5,
+        "games": 6
+      },
+      "carolina hurricanes::dallas stars": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "boston bruins::seattle kraken": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "buffalo sabres::florida panthers": {
+        "a_wins": 4,
+        "b_wins": 7,
+        "games": 11
+      },
+      "philadelphia flyers::toronto maple leafs": {
+        "a_wins": 2,
+        "b_wins": 7,
+        "games": 9
+      },
+      "anaheim ducks::ottawa senators": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "los angeles kings::new jersey devils": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "edmonton oilers::st. louis blues": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "calgary flames::san jose sharks": {
+        "a_wins": 9,
+        "b_wins": 2,
+        "games": 11
+      },
+      "chicago blackhawks::ottawa senators": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "vancouver canucks::winnipeg jets": {
+        "a_wins": 2,
+        "b_wins": 7,
+        "games": 9
+      },
+      "columbus blue jackets::san jose sharks": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "new york islanders::new york rangers": {
+        "a_wins": 5,
+        "b_wins": 7,
+        "games": 12
+      },
+      "arizona coyotes::edmonton oilers": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "carolina hurricanes::chicago blackhawks": {
+        "a_wins": 5,
+        "b_wins": 1,
+        "games": 6
+      },
+      "chicago blackhawks::philadelphia flyers": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "boston bruins::edmonton oilers": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "arizona coyotes::toronto maple leafs": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "colorado avalanche::detroit red wings": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "new york islanders::st. louis blues": {
+        "a_wins": 3,
+        "b_wins": 3,
+        "games": 6
+      },
+      "toronto maple leafs::vegas golden knights": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "detroit red wings::washington capitals": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "los angeles kings::vancouver canucks": {
+        "a_wins": 7,
+        "b_wins": 4,
+        "games": 11
+      },
+      "dallas stars::san jose sharks": {
+        "a_wins": 8,
+        "b_wins": 1,
+        "games": 9
+      },
+      "minnesota wild::san jose sharks": {
+        "a_wins": 6,
+        "b_wins": 3,
+        "games": 9
+      },
+      "edmonton oilers::pittsburgh penguins": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "columbus blue jackets::vegas golden knights": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "seattle kraken::winnipeg jets": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "arizona coyotes::detroit red wings": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "buffalo sabres::edmonton oilers": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "columbus blue jackets::nashville predators": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "washington capitals::winnipeg jets": {
+        "a_wins": 2,
+        "b_wins": 4,
+        "games": 6
+      },
+      "chicago blackhawks::los angeles kings": {
+        "a_wins": 3,
+        "b_wins": 6,
+        "games": 9
+      },
+      "colorado avalanche::edmonton oilers": {
+        "a_wins": 5,
+        "b_wins": 4,
+        "games": 9
+      },
+      "colorado avalanche::columbus blue jackets": {
+        "a_wins": 4,
+        "b_wins": 2,
+        "games": 6
+      },
+      "new jersey devils::toronto maple leafs": {
+        "a_wins": 4,
+        "b_wins": 5,
+        "games": 9
+      },
+      "chicago blackhawks::utah hockey": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "new york islanders::utah hockey": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "new york rangers::utah hockey": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "new jersey devils::utah hockey": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "anaheim ducks::utah hockey": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "boston bruins::utah hockey": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "ottawa senators::utah hockey": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "colorado avalanche::utah hockey": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "los angeles kings::utah hockey": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "san jose sharks::utah hockey": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "calgary flames::utah hockey": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "utah hockey::vegas golden knights": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "utah hockey::winnipeg jets": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "st. louis blues::utah hockey": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "nashville predators::utah hockey": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "carolina hurricanes::utah hockey": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "utah hockey::washington capitals": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "pittsburgh penguins::utah hockey": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "toronto maple leafs::utah hockey": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "montreal canadiens::utah hockey": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "edmonton oilers::utah hockey": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "dallas stars::utah hockey": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "buffalo sabres::utah hockey": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "philadelphia flyers::utah hockey": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "minnesota wild::utah hockey": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "utah hockey::vancouver canucks": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "seattle kraken::utah hockey": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "florida panthers::utah hockey": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "columbus blue jackets::utah hockey": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "canada::sweden": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "finland::usa": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "finland::sweden": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "canada::usa": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "canada::finland": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "sweden::usa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "detroit red wings::utah hockey": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "tampa bay lightning::utah hockey": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "colorado avalanche::utah mammoth": {
+        "a_wins": 3,
+        "b_wins": 1,
+        "games": 4
+      },
+      "nashville predators::utah mammoth": {
+        "a_wins": 1,
+        "b_wins": 3,
+        "games": 4
+      },
+      "chicago blackhawks::utah mammoth": {
+        "a_wins": 4,
+        "b_wins": 0,
+        "games": 4
+      },
+      "calgary flames::utah mammoth": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "san jose sharks::utah mammoth": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "boston bruins::utah mammoth": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "st. louis blues::utah mammoth": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "minnesota wild::utah mammoth": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "utah mammoth::winnipeg jets": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "edmonton oilers::utah mammoth": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "tampa bay lightning::utah mammoth": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "buffalo sabres::utah mammoth": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "toronto maple leafs::utah mammoth": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "montreal canadiens::utah mammoth": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "ottawa senators::utah mammoth": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "new york islanders::utah mammoth": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "anaheim ducks::utah mammoth": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "utah mammoth::vegas golden knights": {
+        "a_wins": 2,
+        "b_wins": 1,
+        "games": 3
+      },
+      "new york rangers::utah mammoth": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "dallas stars::utah mammoth": {
+        "a_wins": 2,
+        "b_wins": 2,
+        "games": 4
+      },
+      "utah mammoth::vancouver canucks": {
+        "a_wins": 3,
+        "b_wins": 0,
+        "games": 3
+      },
+      "los angeles kings::utah mammoth": {
+        "a_wins": 1,
+        "b_wins": 2,
+        "games": 3
+      },
+      "florida panthers::utah mammoth": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "seattle kraken::utah mammoth": {
+        "a_wins": 0,
+        "b_wins": 3,
+        "games": 3
+      },
+      "pittsburgh penguins::utah mammoth": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "detroit red wings::utah mammoth": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "new jersey devils::utah mammoth": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "columbus blue jackets::utah mammoth": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      },
+      "philadelphia flyers::utah mammoth": {
+        "a_wins": 0,
+        "b_wins": 2,
+        "games": 2
+      },
+      "carolina hurricanes::utah mammoth": {
+        "a_wins": 2,
+        "b_wins": 0,
+        "games": 2
+      },
+      "utah mammoth::washington capitals": {
+        "a_wins": 1,
+        "b_wins": 1,
+        "games": 2
+      }
+    },
+    "last_updated": "2026-04-17"
   }
 }
