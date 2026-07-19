@@ -170,6 +170,8 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             captured_yes_price  REAL,
             model_version       TEXT,
             venue               TEXT    NOT NULL DEFAULT 'kalshi',
+            model_diagnostics   TEXT,
+            minutes_to_tipoff   INTEGER,
             UNIQUE(market_id)
         );
         INSERT INTO ev_predictions (
@@ -179,7 +181,8 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             volume_usd, model_sources, sharp_weight_used, bankroll_used, line,
             voided, placed, placed_at, placed_price, placed_stake,
             pinnacle_drift_pct, kalshi_clv_pct,
-            mode, captured_yes_price, model_version, venue
+            mode, captured_yes_price, model_version, venue, model_diagnostics,
+            minutes_to_tipoff
         )
         SELECT
             id, logged_at, scan_date, market_id, event_id, sector, yes_team,
@@ -188,7 +191,8 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             volume_usd, model_sources, sharp_weight_used, bankroll_used, line,
             voided, placed, placed_at, placed_price, placed_stake,
             pinnacle_drift_pct, kalshi_clv_pct,
-            mode, captured_yes_price, model_version, venue
+            mode, captured_yes_price, model_version, venue, model_diagnostics,
+            minutes_to_tipoff
         FROM ev_predictions_old;
         DROP TABLE ev_predictions_old;
         COMMIT;
