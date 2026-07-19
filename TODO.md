@@ -8,6 +8,37 @@
 
 ## Recently Shipped
 
+### Diversification build — soccer/tennis/baseball model independence + promotion board (branch claude/diversify-wnba-moneyline)
+Landed 2026-07-19. Motivated by the measured sharp-passthrough diagnosis: 30d ML blend
+divergence from sharp was wnba **4.82pp** (the only working sector) vs tennis 0.17 /
+baseball 0.10 / soccer **0.00** — every non-WNBA "edge" was venue divergence, not model signal.
+- ✅ **Soccer/MLS** — `seed_espn.py` walks MLS (`usa.1`, Feb→current window) + UEL; xG seed
+  canonicalization + worldcup-namespace fixes; `MIN_NONSHARP_MODELS` guard (sharp-only soccer
+  ML → shadow) + contamination rule for the 11 pre-guard live MLS rows. MLS walk-forward
+  validated (blended 0.2269 ≤ sharp 0.2272 pooled; 2026 holdout within the +3/1000 gate)
+  via football-data `USA.csv` extra-league support (`--leagues USA`).
+- ✅ **Tennis coverage** — `merge_ranking_priors` matchmx supplement (≤90d recency) keeps
+  leaderboard-churned players on the 0.48-conf ranking fallback (~29 rows/month recovered);
+  advanced agent on shared `resolve_player`; no threshold cuts.
+- ✅ **Why-not diagnostics** — `ev_predictions.model_diagnostics` (fired/gated/missing per
+  model, captured at the ensemble gate); `evmax cleanup shadow show --why`.
+- ✅ **Promotion board** — `evmax cleanup shadow board` + `/api/promotion-board` + dashboard
+  Board tab: per (sector, market, venue) clean-n / ΔBrier vs sharp / staleness-filtered CLV
+  gates / blend-divergence pp (sharp-passthrough detector) / verdict ladder.
+- ✅ **pitcher_v2** — xERA-led starter blend (Savant client), per-pitcher-sample park
+  normalization (symmetric venue factors cancel in Pythagenpat — regression-tested), 60/40
+  available-bullpen blend (shared `models_ml/bullpen.py` + live fatigue feed), team-offense
+  clamp. Rename `pitcher`→`pitcher_v2` resets the clean shadow sample via the contamination
+  signature. A/B harness `scripts/backtest_baseball_ab.py` (per-component variants; pen
+  carries a prior null result it must beat; frozen prior-season xERA = leak-free).
+- ✅ **pitcher_v2 A/B verdict: SHIP** (docs/baseball-pitcher-v2-ab.md) — 2026 holdout
+  standalone Δ −5.46/1000, blend −0.19/1000, coverage 100%; all three gates pass. pen
+  REVERSED its prior null on the holdout (−7.28/1000; fatigue is a fresh-season signal).
+- ⏳ **Post-merge actions** — run the soccer/pitcher/tennis seeds; create the 3
+  `ev-scan-light-*` tasks (docs/scheduled-tasks/ev-scan-light.md — gated on the soccer guard
+  being on main); baseball promotion re-judged on fresh v2 shadow CLV
+  (`--max-staleness-h 3`, n≥30/mean≥0/%pos≥55 — v1's fresh-close baseline was 29% pos).
+
 ### UFC/MMA sector — shadow-mode MVP, moneyline only (branch claude/ufc-sector)
 Landed 2026-07-11. Validate-first build: Phase 0 confirmed both venues live (Kalshi `KXUFCFIGHT` fight-winner series + Pinnacle sport 22 "UFC"), then models were gated on a walk-forward backtest BEFORE wiring went live.
 - ✅ **Data** — `evmax/clients/ufc_espn.py` + `scripts/fetch_ufc_history.py`: ESPN MMA public API (ufcstats.com is behind a JS anti-bot interstitial we don't bypass), 7,959 bouts 2010→present with methods + 2,610 fighter bios, committed to `data/backtest/ufc/*.csv`, raw JSON disk-cached under `data/cache/ufc_espn/`.
