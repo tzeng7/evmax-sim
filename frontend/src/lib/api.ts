@@ -1,4 +1,4 @@
-import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult } from './types'
+import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult, PromotionBoardResult } from './types'
 
 const json = (r: Response) => r.json()
 
@@ -133,4 +133,10 @@ export async function runArbScan(params: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   }).then(json)
+}
+
+export async function fetchPromotionBoard(days: number, sector?: string): Promise<PromotionBoardResult> {
+  const params = new URLSearchParams({ days: String(days) })
+  if (sector) params.set('sector', sector)
+  return fetch(`/api/promotion-board?${params}`).then(json)
 }

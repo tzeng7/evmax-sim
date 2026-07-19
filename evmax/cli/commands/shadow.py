@@ -662,6 +662,108 @@ def clv(
     )
 
 
+@app.command("board")
+def board(
+    days: int = typer.Option(30, "--days", "-d", help="Trailing window on game date."),
+    sector: Optional[str] = typer.Option(
+        None, "--sector", "-s", help="Restrict to one sector."
+    ),
+    staleness_h: float = typer.Option(
+        3.0, "--staleness-h",
+        help="CLV stale-close filter (hours before T-30). 0 disables.",
+    ),
+) -> None:
+    """Promotion scoreboard — per (sector, market type, venue) health.
+
+    One row per group: sample counts, Brier blend-vs-sharp, CLV gate status,
+    and blend divergence (mean |blended − sharp| pp) — the sharp-passthrough
+    detector. This is the 'which sectors can I rely on' view; also served at
+    GET /api/promotion-board on the dashboard.
+    """
+    from evmax.agents.cleanup.promotion_board import compute_promotion_board
+
+    rows = compute_promotion_board(
+        days=days,
+        staleness_h=staleness_h if staleness_h > 0 else None,
+        sector=sector,
+    )
+    if not rows:
+        console.print("[yellow]No prediction rows in the window.[/yellow]")
+        return
+
+    table = Table(
+        title=f"Promotion board — last {days} days (game date)",
+        box=box.ROUNDED,
+        header_style="bold cyan",
+        show_lines=False,
+    )
+    _MKT_ABBR = {"moneyline": "ML", "spread": "spr", "total": "tot", "advance": "adv"}
+    _VEN_ABBR = {"kalshi": "kal", "polymarket_us": "pmus"}
+
+    table.add_column("Sector", width=9)
+    table.add_column("Mkt", width=4)
+    table.add_column("Ven", width=4)
+    table.add_column("Mode", width=6)
+    table.add_column("n c/r/l", justify="right", width=11)
+    table.add_column("ΔBr/1k", justify="right", width=6)
+    table.add_column("CLV mean/%pos(n)", justify="right", width=16)
+    table.add_column("Div", justify="right", width=5)
+    table.add_column("Gate", width=4)
+    table.add_column("Verdict", min_width=15, no_wrap=False)
+
+    for r in rows:
+        clv = r["clv"]
+        clv_str = (
+            f"{clv['mean_clv_pp']:+.2f}/{clv['frac_positive']*100:.0f}%({clv['n']})"
+            if clv["n"] else "—"
+        )
+        delta = r["brier_delta_per_1000"]
+        delta_str = f"{delta:+.1f}" if delta is not None else "—"
+        div = r["blend_divergence_pp"]
+        if div is None:
+            div_str = "—"
+        elif r["sharp_passthrough"]:
+            div_str = f"[dim]{div:.2f}[/dim]"
+        else:
+            div_str = f"[green]{div:.2f}[/green]"
+        gates = r["gates"]
+        gate_str = "".join(
+            "[green]✓[/green]" if gates[k]["ok"] else "[red]✗[/red]"
+            for k in ("clean_n", "clv_n", "clv_mean", "clv_frac_pos")
+        )
+        verdict = r["verdict"]
+        style = {
+            "SHARP-PASSTHROUGH": "red",
+            "LIVE-DEGRADING": "red",
+            "FAILING-CLV": "yellow",
+            "PROMOTE-READY": "green",
+            "LIVE-HEALTHY": "green",
+        }.get(verdict, "dim")
+        verdict_cell = f"[{style}]{verdict}[/{style}]"
+        if r["top_blockers"]:
+            verdict_cell += f"\n[dim]{' '.join(r['top_blockers'])}[/dim]"
+
+        table.add_row(
+            r["sector"],
+            _MKT_ABBR.get(r["market_type"], r["market_type"][:4]),
+            _VEN_ABBR.get(r["venue"], r["venue"][:4]),
+            (r["mode"] or "?")[:6],
+            f"{r['n_clean_resolved']}/{r['n_resolved']}/{r['n_logged']}",
+            delta_str,
+            clv_str,
+            div_str,
+            gate_str,
+            verdict_cell,
+        )
+
+    console.print(table)
+    console.print(
+        "[dim]Div pp = mean |blended − sharp|; moneyline groups under "
+        f"{0.5:.1f}pp are sharp-passthrough (no independent model signal). "
+        "Gates: clean-n≥30 · CLV n≥30 · mean≥0 · %pos≥55.[/dim]"
+    )
+
+
 @app.command("promote")
 def promote(
     category: str = typer.Argument(..., help="Category key to promote (e.g. 'nfl_props')."),
