@@ -11,9 +11,11 @@ No external odds needed — this tests the MODEL calibration, not the edge.
 from __future__ import annotations
 
 import asyncio
+import json
 import math
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Optional
 
 import httpx
@@ -43,6 +45,11 @@ from evmax.models.odds import SharpOdds, SharpBook
 logger = structlog.get_logger(__name__)
 
 ESPN_BASE = "https://site.api.espn.com/apis/site/v2/sports"
+
+# Resolved-game boxscores never change — cache them to disk so A/B sweeps
+# don't re-fetch ~2,400 ESPN summaries per arm (data/backtest is the standard
+# backtest cache root; this subdir is gitignored with the rest of it).
+_BOXSCORE_CACHE_DIR = Path("data/backtest/cache/espn_boxscore")
 
 # ESPN sport/league paths by sector
 ESPN_SECTORS: dict[str, tuple[str, str]] = {
@@ -294,16 +301,35 @@ def _fetch_baseball_boxscore(
     by ESPN convention; all subsequent entries are relievers (in order of
     appearance). Pitch count (PC) is preserved per appearance for downstream
     fatigue tracking.
+
+    Disk-cached per event under data/backtest/cache/espn_boxscore/ — resolved
+    games never change, and without the cache every A/B sweep arm re-fetches
+    ~2,400 boxscores (first pass ~1-2h; cached, minutes). Fetch failures are
+    NOT cached so transient errors retry on the next run.
     """
     if not event_id:
         return None
-    url = f"{ESPN_BASE}/baseball/mlb/summary"
-    try:
-        r = client.get(url, params={"event": event_id}, timeout=12)
-        r.raise_for_status()
-        data = r.json()
-    except Exception:
-        return None
+
+    cache_file = _BOXSCORE_CACHE_DIR / f"{event_id}.json"
+    data = None
+    if cache_file.exists():
+        try:
+            data = json.loads(cache_file.read_text())
+        except (OSError, ValueError):
+            data = None
+    if data is None:
+        url = f"{ESPN_BASE}/baseball/mlb/summary"
+        try:
+            r = client.get(url, params={"event": event_id}, timeout=12)
+            r.raise_for_status()
+            data = r.json()
+        except Exception:
+            return None
+        try:
+            _BOXSCORE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            cache_file.write_text(json.dumps(data))
+        except OSError:
+            pass  # cache write failure is never fatal
 
     bs = data.get("boxscore", {})
     players_by_team = bs.get("players", [])
@@ -455,131 +481,40 @@ def _accumulate_pitcher_line(running: dict, line: dict) -> None:
 
 # --- Bullpen modeling -------------------------------------------------------
 #
-# Reliever quality + availability are the two signals that actually move
-# baseball lines past the static-quality info Pinnacle already prices.
-# Static quality (team's season bullpen FIP) is already in sharp lines —
-# the edge is *day-to-day availability*: a closer who threw 30 pitches in
-# back-to-back games likely isn't available today, but the line may not yet
-# reflect that until the lineup card / late news drops.
+# The bullpen quality/availability model lives in evmax/models_ml/bullpen.py
+# (extracted 2026-07-19 so the live pitcher agent and this walk-forward run
+# ONE implementation). This module keeps thin private wrappers with the
+# original names so the walk-forward body reads unchanged.
 #
-# Walk-forward implementation:
+# Walk-forward data shapes:
 # - bullpen_running: per-team aggregate FIP/ERA stats (relievers only)
 # - reliever_running: per-pitcher running stats
 # - reliever_appearances: per-pitcher list of (date, ip, pc) tuples
-# - On each game-day prediction, filter team's relievers by fatigue heuristic
-#   to get the "available" pool, average top-3 by FIP for the team's pen
-#   quality "right now."
 
-PEN_MIN_IP_FOR_PRED = 30.0  # team-aggregate IP floor — below this we don't have
-                            # enough sample for the bullpen to contribute.
-PEN_BLEND_STARTER_SHARE = 0.60  # starter handles ~5.5 of 9 IP on average
-PEN_BLEND_RELIEVER_SHARE = 0.40
-TOP_N_AVAILABLE_PEN = 3  # rank available relievers by FIP, take the top N
-                         # as the "high-leverage" available pool. Mirrors
-                         # closer + setup + 1 high-leverage reliever.
-FATIGUE_PC_THRESHOLD = 25  # threw 25+ pitches yesterday → unavailable
-
-
-def _is_reliever_available(
-    appearances: list[tuple],  # list of (date, ip, pc)
-    today: "date",
-) -> bool:
-    """Fatigue heuristic mirroring how MLB managers actually deploy relievers:
-
-    - Threw yesterday with 25+ pitches → unavailable today (full rest needed)
-    - Threw 2 of last 3 days (any usage) → unavailable today
-    - Otherwise → available
-
-    Note this is the rule-of-thumb version. Real availability also reflects
-    handedness matchups, leverage, and manager preference — out of scope for
-    a public-data backtest. The 25-pitch threshold matches MLB's typical
-    "15+ pitches → no back-to-back" line plus a buffer.
-    """
-    if not appearances:
-        return True
-
-    last_three: list[tuple] = []
-    for app in reversed(appearances):
-        days_ago = (today - app[0]).days
-        if days_ago > 3:
-            break
-        if days_ago > 0:
-            last_three.append(app)
-
-    yesterday = [a for a in last_three if (today - a[0]).days == 1]
-    if yesterday and yesterday[0][2] >= FATIGUE_PC_THRESHOLD:
-        return False
-
-    used_in_last_three = sum(1 for a in last_three if (today - a[0]).days <= 3)
-    if used_in_last_three >= 2:
-        return False
-
-    return True
-
-
-def _team_pen_quality(
-    team: str,
-    today: "date",
-    reliever_running: dict[str, dict],
-    reliever_appearances: dict[str, list],
-    reliever_team: dict[str, str],
-    league_pen_cfip: float,
-) -> Optional[float]:
-    """Compute today's available bullpen quality for a team as the average
-    FIP of the top-N available relievers. Returns None if fewer than N
-    relievers have IP >= 5 (too thin to be meaningful)."""
-    candidates: list[float] = []
-    for name, team_aff in reliever_team.items():
-        if team_aff != team:
-            continue
-        running = reliever_running.get(name)
-        if running is None or running["ip"] < 5.0:
-            continue
-        appearances = reliever_appearances.get(name, [])
-        if not _is_reliever_available(appearances, today):
-            continue
-        # FIP from this reliever's running totals using the league's reliever cFIP.
-        # ESPN box scores don't expose HBP, so we use BB-only FIP (consistent
-        # with starter calculation in this backtest — the calibration absorbs
-        # the systematic offset).
-        ip = running["ip"]
-        fip = (13 * running["hr"] + 3 * running["bb"] - 2 * running["so"]) / ip + league_pen_cfip
-        candidates.append(fip)
-
-    if len(candidates) < TOP_N_AVAILABLE_PEN:
-        return None
-    candidates.sort()
-    return sum(candidates[:TOP_N_AVAILABLE_PEN]) / TOP_N_AVAILABLE_PEN
-
-
-def _league_pen_cfip(totals: dict) -> float:
-    """League-wide reliever cFIP = league_ERA - league_FIP_raw. Falls back
-    to 3.10 (textbook) if we don't have enough data yet."""
-    ip = totals["ip"]
-    if ip < 100:  # not enough relief innings yet to compute meaningfully
-        return 3.10
-    league_era = (totals["er"] * 9.0) / ip
-    league_fip_raw = (13 * totals["hr"] + 3 * totals["bb"] - 2 * totals["so"]) / ip
-    return league_era - league_fip_raw
+from evmax.models_ml.bullpen import (  # noqa: E402  (section-local import by design)
+    FATIGUE_PC_THRESHOLD,
+    PEN_BLEND_RELIEVER_SHARE,
+    PEN_BLEND_STARTER_SHARE,
+    PEN_MIN_IP_FOR_PRED,
+    TOP_N_AVAILABLE_PEN,
+    is_reliever_available as _is_reliever_available,
+    league_pen_cfip as _league_pen_cfip,
+    team_pen_quality as _team_pen_quality,
+    team_rate_with_pen as _shared_team_rate_with_pen,
+)
 
 
 def _team_rate_with_pen(
     starter_running: dict,
     pen_quality_fip: Optional[float],
 ) -> float:
-    """Blend a team's expected runs-allowed rate from starter (60%) + pen (40%).
-
-    Falls back to starter-only if pen quality is unavailable (early-season,
-    not enough relievers with sample, or all relievers fatigued — though the
-    last is rare with N=3 and a 7-9 man pen).
-    """
+    """Walk-forward wrapper: derive the starter rate from running totals,
+    then delegate the 60/40 blend to the shared implementation."""
     starter_fip, starter_era = _running_to_rates(starter_running)
     starter_rate = pitcher_effective_era(
         {"fip": starter_fip, "era": starter_era}, league_avg=4.08
     )
-    if pen_quality_fip is None:
-        return starter_rate
-    return PEN_BLEND_STARTER_SHARE * starter_rate + PEN_BLEND_RELIEVER_SHARE * pen_quality_fip
+    return _shared_team_rate_with_pen(starter_rate, pen_quality_fip)
 
 # Mirrors SECTOR_WEIGHT_OVERRIDES["wnba"] in ensemble_agent.py. Kept in sync
 # manually so the walk-forward evaluates the same blend the live scanner uses.

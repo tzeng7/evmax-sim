@@ -35,6 +35,9 @@ data/backtest/nfl_props/
 # College box-score day cache + walk-forward pickles (reproducible via
 # scripts/seed_ncaab_efficiency.py --fetch-only)
 data/backtest/college_efficiency/
+# ESPN MLB boxscore cache for the baseball walk-forward (~2,400 JSONs;
+# re-fetched on demand by espn_walkforward._fetch_baseball_boxscore)
+data/backtest/cache/
 
 # Logs
 *.log

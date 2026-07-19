@@ -8,10 +8,22 @@ scale as ERA (a 3.50 FIP reads like a 3.50 ERA).
 This replaces the hand-curated dict in scripts/seed_espn.py::seed_pitchers
 with an automated pull of every qualified MLB pitcher.
 
+v2 additions (2026-07-19, WS2a):
+  - RELIEVERS: pitchers with >= 3 relief appearances (G − GS) or GS/G < 0.5
+    and IP >= 5 are written to state["relievers"] as RAW counting stats
+    (ip/er/bb/so/hr + team) — the bullpen model (evmax/models_ml/bullpen.py)
+    recomputes FIP from counts at predict time against the league reliever
+    cFIP, which is also seeded (state["league_pen_cfip"]).
+  - xERA: Baseball Savant expected-stats (evmax/clients/savant.py) joined by
+    ascii-folded name; each pitcher gets "xera" / "xera_bip" (current season)
+    and "xera_prior" (previous season) for the thin-sample fallback. Savant
+    fetch failure leaves the fields absent — the agent degrades to FIP/ERA.
+
 Usage:
     python scripts/seed_pitcher_fip.py                # default: 2026, IP >= 30
     python scripts/seed_pitcher_fip.py --year 2025
     python scripts/seed_pitcher_fip.py --min-ip 50
+    python scripts/seed_pitcher_fip.py --skip-savant  # offline: no xERA attach
     python scripts/seed_pitcher_fip.py --dry-run      # preview without writing
 
 Resilience: pybaseball scrapes Baseball Reference. If BR's HTML changes or
@@ -132,6 +144,60 @@ def _pitcher_fip(row: pd.Series, cfip: float) -> float:
     ) / row["IP"] + cfip
 
 
+RELIEVER_MIN_IP = 5.0       # per-reliever IP floor (mirrors bullpen.RELIEVER_MIN_IP)
+RELIEVER_MIN_RELIEF_G = 3   # >= 3 relief appearances (G − GS) classifies a reliever
+XERA_THIN_BIP = 40          # below this current-season BIP, the agent prefers xera_prior
+
+
+def classify_relievers(df: "pd.DataFrame") -> "pd.DataFrame":
+    """Rows whose usage pattern says reliever: G−GS >= 3 or GS/G < 0.5.
+
+    Swingmen (openers, spot starters) can satisfy both roles; counting them
+    in the pen is correct — they are available relief innings.
+    """
+    g = df["G"].astype(float)
+    gs = df["GS"].astype(float)
+    relief_g = g - gs
+    frac_started = gs / g.where(g > 0, other=1)
+    mask = (relief_g >= RELIEVER_MIN_RELIEF_G) | (frac_started < 0.5)
+    return df[mask & (df["IP"] >= RELIEVER_MIN_IP)].copy()
+
+
+def _attach_xera(records: dict[str, dict], year: int) -> tuple[int, int]:
+    """Join Savant xERA onto pitcher records by ascii-folded name.
+
+    Attaches "xera" + "xera_bip" from the current season and "xera_prior"
+    from the previous one. Returns (n_current, n_prior) matched. Fetch
+    failure returns (0, 0) and leaves records untouched — the agent
+    degrades to FIP/ERA.
+    """
+    import asyncio
+
+    from evmax.clients.savant import fetch_expected_stats
+
+    async def _pull() -> tuple[dict, dict]:
+        cur = await fetch_expected_stats(year)
+        prior = await fetch_expected_stats(year - 1)
+        return cur, prior
+
+    cur, prior = asyncio.run(_pull())
+    cur_by_name = {rec["name_key"]: rec for rec in cur.values()}
+    prior_by_name = {rec["name_key"]: rec for rec in prior.values()}
+
+    n_cur = n_prior = 0
+    for name, rec in records.items():
+        c = cur_by_name.get(name)
+        if c:
+            rec["xera"] = c["xera"]
+            rec["xera_bip"] = c["bip"]
+            n_cur += 1
+        p = prior_by_name.get(name)
+        if p:
+            rec["xera_prior"] = p["xera"]
+            n_prior += 1
+    return n_cur, n_prior
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--year", type=int, default=2026)
@@ -139,8 +205,12 @@ def main() -> int:
         "--min-ip",
         type=float,
         default=30.0,
-        help="Minimum IP to include a pitcher (default: 30, which catches everyone "
-        "with at least ~5-6 starts)",
+        help="Minimum IP to include a STARTER (default: 30, which catches everyone "
+        "with at least ~5-6 starts). Relievers use their own 5-IP floor.",
+    )
+    parser.add_argument(
+        "--skip-savant", action="store_true",
+        help="Skip the Savant xERA attach (offline runs).",
     )
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -159,17 +229,6 @@ def main() -> int:
     df = df[~df["Tm"].astype(str).str.contains(",", na=False)].copy()
     # Drop cross-league moves (Lev like "Maj-AL,Maj-NL").
     df = df[~df["Lev"].astype(str).str.contains(",", na=False)].copy()
-    # IP threshold to keep FIP samples meaningful.
-    df = df[df["IP"] >= args.min_ip].copy()
-
-    if df.empty:
-        print(f"ERROR: no pitchers met the IP >= {args.min_ip} threshold for {args.year}.", file=sys.stderr)
-        print("Try lowering --min-ip or check that the season has data yet.", file=sys.stderr)
-        return 1
-
-    cfip, league_avg_era = _league_cfip(df)
-    df["FIP"] = df.apply(lambda r: _pitcher_fip(r, cfip), axis=1)
-    print(f"League cFIP: {cfip:.3f}  ·  League avg ERA: {league_avg_era:.2f}  ·  {len(df)} pitchers above {args.min_ip} IP")
 
     df["team_canonical"] = df.apply(
         lambda r: TEAM_MAP.get((r["Tm"], r["Lev"])), axis=1
@@ -178,6 +237,43 @@ def main() -> int:
     if unmapped:
         print(f"WARN: dropped pitchers with unmapped (city, league) combos: {unmapped}")
     df = df[df["team_canonical"].notna()].copy()
+
+    # ---- Relievers: raw counting stats for the bullpen model --------------
+    rel_df = classify_relievers(df)
+    relievers: dict[str, dict] = {}
+    pen_totals = {"ip": 0.0, "er": 0, "bb": 0, "so": 0, "hr": 0}
+    for _, r in rel_df.iterrows():
+        name = _ascii_fold(str(r["Name"]))
+        relievers[name] = {
+            "team": r["team_canonical"],
+            "ip": float(r["IP"]),
+            "er": int(r["ER"]),
+            "bb": int(r["BB"]),
+            "so": int(r["SO"]),
+            "hr": int(r["HR"]),
+        }
+        pen_totals["ip"] += float(r["IP"])
+        for k in ("er", "bb", "so", "hr"):
+            pen_totals[k] += int(r[k.upper()])
+
+    from evmax.models_ml.bullpen import league_pen_cfip  # noqa: E402
+
+    pen_cfip = league_pen_cfip(pen_totals)
+    print(
+        f"Relievers: {len(relievers)} (G−GS>={RELIEVER_MIN_RELIEF_G} or GS/G<0.5, "
+        f"IP>={RELIEVER_MIN_IP:g})  ·  league pen cFIP: {pen_cfip:.3f}"
+    )
+
+    # ---- Starters: FIP-blended quality (the v1 path, unchanged) -----------
+    df = df[df["IP"] >= args.min_ip].copy()
+    if df.empty:
+        print(f"ERROR: no pitchers met the IP >= {args.min_ip} threshold for {args.year}.", file=sys.stderr)
+        print("Try lowering --min-ip or check that the season has data yet.", file=sys.stderr)
+        return 1
+
+    cfip, league_avg_era = _league_cfip(df)
+    df["FIP"] = df.apply(lambda r: _pitcher_fip(r, cfip), axis=1)
+    print(f"League cFIP: {cfip:.3f}  ·  League avg ERA: {league_avg_era:.2f}  ·  {len(df)} pitchers above {args.min_ip} IP")
 
     # Sort by team then GS descending so the most-starts pitcher per team
     # is first in the iteration order. PitcherModelAgent.seed_pitchers
@@ -201,10 +297,24 @@ def main() -> int:
         missing = set(TEAM_MAP.values()) - set(teams_seen)
         print(f"WARN: teams with no qualifying pitcher: {sorted(missing)}")
 
+    # ---- xERA attach (starters get the blend input; relievers informative)
+    if not args.skip_savant:
+        try:
+            n_cur, n_prior = _attach_xera(pitchers, args.year)
+            cov = n_cur / len(pitchers) * 100 if pitchers else 0
+            print(f"xERA: {n_cur} current-season ({cov:.0f}% of starters), {n_prior} prior-season matched")
+            if cov < 60:
+                print("WARN: xERA coverage below 60% — check the Savant join; "
+                      "unmatched pitchers degrade to FIP/ERA.")
+        except Exception as e:  # noqa: BLE001 — Savant failure never blocks the seed
+            print(f"WARN: Savant xERA attach failed ({e}); old xera fields "
+                  "are preserved for pitchers that keep their records.")
+
     print("\nTop 10 by FIP:")
     top = sorted(pitchers.items(), key=lambda x: x[1]["fip"])[:10]
     for n, d in top:
-        print(f"  {n:<28}  FIP={d['fip']:>5.2f}  ERA={d['era']:>5.2f}  IP={d['ip']:>6.1f}  ({d['team']})")
+        xe = f"  xERA={d['xera']:>5.2f}" if "xera" in d else ""
+        print(f"  {n:<28}  FIP={d['fip']:>5.2f}  ERA={d['era']:>5.2f}  IP={d['ip']:>6.1f}  ({d['team']}){xe}")
 
     if args.dry_run:
         print("\n(dry-run: state file NOT written)")
@@ -217,7 +327,15 @@ def main() -> int:
     agent._state["pitchers"] = {}
     agent._state["team_starters"] = {}
     agent.seed_pitchers(pitchers, league_avg_era=round(league_avg_era, 2))
-    print(f"\nWrote {len(pitchers)} pitchers to {agent._state_path}")
+    # Bullpen state rides the same file: raw reliever counts + league pen
+    # cFIP. seed_pitchers already saved; write the pen block and save again.
+    from datetime import date as _date
+
+    agent._state["relievers"] = relievers
+    agent._state["league_pen_cfip"] = round(pen_cfip, 3)
+    agent._state["pen_seeded_at"] = _date.today().isoformat()
+    agent.save_state()
+    print(f"\nWrote {len(pitchers)} starters + {len(relievers)} relievers to {agent._state_path}")
     return 0
 
 
