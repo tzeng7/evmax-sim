@@ -1,6 +1,7 @@
 """Seed Elo, Form, and Poisson models from ESPN public API.
 
-Covers: NBA, NFL, NCAAB, MLB Baseball, Soccer (EPL, La Liga, Bundesliga, Serie A, Ligue 1, UCL).
+Covers: NBA, NFL, NCAAB, MLB Baseball, Soccer (EPL, La Liga, Bundesliga, Serie A,
+Ligue 1, UCL, MLS, UEL).
 No API key required — ESPN's public scoreboard endpoint.
 
 Usage:
@@ -130,8 +131,17 @@ SECTOR_CONFIGS: dict[str, dict] = {
             "serie_a":    ("soccer", "ita.1"),
             "ligue1":     ("soccer", "fra.1"),
             "ucl":        ("soccer", "UEFA.CHAMPIONS"),
+            "mls":        ("soccer", "usa.1"),
+            "uel":        ("soccer", "uefa.europa"),
         },
         "months": _months("2025-08", "2026-06"),
+        # Per-league month overrides. MLS runs Feb–Nov (calendar-year season),
+        # so the shared Aug–Jun European window would miss most of it. The end
+        # month is computed at runtime so weekly re-runs never truncate the
+        # in-progress season.
+        "league_months": {
+            "mls": _months("2025-02", f"{date.today().year}-{date.today().month:02d}"),
+        },
     },
 }
 
@@ -403,6 +413,7 @@ async def seed_soccer(cfg: dict, client: httpx.AsyncClient) -> None:
     """Seed soccer across all configured leagues, merged into one sector."""
     months = cfg["months"]
     leagues = cfg["leagues"]
+    league_months = cfg.get("league_months", {})
     sector = "soccer"
 
     print(f"\n{'='*60}")
@@ -412,7 +423,7 @@ async def seed_soccer(cfg: dict, client: httpx.AsyncClient) -> None:
     all_games: list[dict] = []
     for league_name, (sport, espn_league) in leagues.items():
         league_games: list[dict] = []
-        for month in months:
+        for month in league_months.get(league_name, months):
             games = await fetch_espn_games(client, sport, espn_league, month)
             league_games.extend(games)
         print(f"  {league_name}: {len(league_games)} completed games")
@@ -805,6 +816,7 @@ async def main(sectors: list[str], since: str | None = None) -> None:
     # Override hardcoded month ranges if --since is provided
     if since:
         today = date.today()
+        since_yyyymm = since[:7].replace("-", "")
         since_months = _months(since[:7], f"{today.year}-{today.month:02d}")
         for cfg in SECTOR_CONFIGS.values():
             if "months" in cfg:
@@ -812,6 +824,10 @@ async def main(sectors: list[str], since: str | None = None) -> None:
             if "leagues" in cfg:
                 # soccer sub-config inherits same months
                 cfg["months"] = since_months
+                # Per-league overrides only narrow: keep each league's own
+                # start (e.g. MLS 2025-02) unless --since is later.
+                for lg, lg_months in cfg.get("league_months", {}).items():
+                    cfg["league_months"][lg] = [m for m in lg_months if m >= since_yyyymm]
 
     async with httpx.AsyncClient(
         timeout=httpx.Timeout(20.0),

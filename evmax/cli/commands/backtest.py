@@ -23,7 +23,7 @@ def run(
     ),
     leagues: Optional[str] = typer.Option(
         None, "--leagues", "-l",
-        help="Soccer league codes to include (e.g. 'E0,SP1'). Default: all 5 leagues.",
+        help="Soccer league codes to include (e.g. 'E0,SP1', extra leagues like 'USA' for MLS). Default: all 5 European leagues.",
     ),
     kalshi: bool = typer.Option(
         False, "--kalshi",

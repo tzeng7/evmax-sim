@@ -116,7 +116,7 @@ baseball:
   display_name: "Baseball (MLB)"
   market_types: [moneyline, spread, total]
   disabled_market_types: [total]
-  models: [elo, form, pitcher, sharp]
+  models: [elo, form, pitcher_v2, sharp]
   mode: shadow
   resolver: espn_scoreboard
   status: shipped

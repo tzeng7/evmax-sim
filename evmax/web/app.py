@@ -368,6 +368,28 @@ def api_sectors(period: str = Query("all", alias="range")) -> JSONResponse:
     return JSONResponse(_sector_breakdown(bets))
 
 
+@app.get("/api/promotion-board")
+def api_promotion_board(
+    days: int = Query(30, ge=1, le=365),
+    sector: str = Query(None),
+    staleness_h: float = Query(3.0, ge=0.0),
+) -> JSONResponse:
+    """Promotion scoreboard — per (sector, market_type, venue) health rows.
+
+    Same data as `evmax cleanup shadow board`: sample counts, Brier
+    blend-vs-sharp, CLV gate status, and blend divergence (the
+    sharp-passthrough detector). See promotion_board.compute_promotion_board.
+    """
+    from evmax.agents.cleanup.promotion_board import compute_promotion_board
+
+    rows = compute_promotion_board(
+        days=days,
+        staleness_h=staleness_h if staleness_h > 0 else None,
+        sector=sector,
+    )
+    return JSONResponse({"days": days, "rows": rows})
+
+
 _MLB_PROPS_CALIBRATION = (
     Path(__file__).resolve().parents[2] / "data" / "backtest" / "mlb_props" / "calibration_2025.json"
 )

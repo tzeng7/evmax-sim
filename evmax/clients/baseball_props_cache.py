@@ -78,27 +78,47 @@ async def _fetch_league_stats(client: MLBStatsClient, group: str, season: int) -
     return stats[0].get("splits", []) if stats else []
 
 
-async def _fetch_team_k_rates(client: MLBStatsClient, season: int) -> dict[int, float]:
-    """team_id → season strikeout rate (SO / PA) for the opponent-K adjustment."""
+async def _fetch_team_hitting(
+    client: MLBStatsClient, season: int
+) -> tuple[dict[int, float], dict[int, dict]]:
+    """One /teams/stats hitting call → (k_rates, offense).
+
+    k_rates:  team_id → season strikeout rate (SO / PA), the opponent-K adj.
+    offense:  team_id → {"runs_per_game", "games"} — the moneyline model's
+              team-offense input (v1 assumed every lineup scores at the
+              league-average rate; the opposing starter's rate is now scaled
+              by this, clamped at the agent).
+    """
     data = await client._get(
         "/teams/stats",
         params={"stats": "season", "group": "hitting", "season": season, "sportIds": 1},
     )
     stats = data.get("stats", [])
     splits = stats[0].get("splits", []) if stats else []
-    out: dict[int, float] = {}
+    k_rates: dict[int, float] = {}
+    offense: dict[int, dict] = {}
     for sp in splits:
         tid = sp.get("team", {}).get("id")
         st = sp.get("stat", {})
+        if not tid:
+            continue
         pa = _f(st.get("plateAppearances"))
         so = _f(st.get("strikeOuts"))
-        if tid and pa > 0:
-            out[int(tid)] = so / pa
-    return out
+        if pa > 0:
+            k_rates[int(tid)] = so / pa
+        games = _f(st.get("gamesPlayed"))
+        runs = _f(st.get("runs"))
+        if games > 0:
+            offense[int(tid)] = {
+                "runs_per_game": runs / games,
+                "games": int(games),
+            }
+    return k_rates, offense
 
 
 def _build_cache(hit_splits: list[dict], pit_splits: list[dict],
-                 team_k: dict[int, float], season: int) -> dict[str, Any]:
+                 team_k: dict[int, float], season: int,
+                 team_offense: Optional[dict[int, dict]] = None) -> dict[str, Any]:
     hitters: dict[str, dict] = {}
     for sp in hit_splits:
         player = sp.get("player", {})
@@ -147,6 +167,7 @@ def _build_cache(hit_splits: list[dict], pit_splits: list[dict],
         "hitters": hitters,
         "pitchers": pitchers,
         "team_k_rate": {str(k): v for k, v in team_k.items()},
+        "team_offense": {str(k): v for k, v in (team_offense or {}).items()},
     }
 
 
@@ -162,8 +183,8 @@ async def refresh_baseball_props_cache(force: bool = False, season: Optional[int
         async with MLBStatsClient() as client:
             hit = await _fetch_league_stats(client, "hitting", season)
             pit = await _fetch_league_stats(client, "pitching", season)
-            team_k = await _fetch_team_k_rates(client, season)
-        cache = _build_cache(hit, pit, team_k, season)
+            team_k, team_offense = await _fetch_team_hitting(client, season)
+        cache = _build_cache(hit, pit, team_k, season, team_offense)
         _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
         _CACHE_PATH.write_text(json.dumps(cache))
         _mem = cache
@@ -229,6 +250,24 @@ def get_team_id_for_player(player_norm: str) -> Optional[int]:
 
 def get_team_k_rate(team_id: int) -> Optional[float]:
     return _load()["team_k_rate"].get(str(team_id))
+
+
+def get_team_offense(team_id: int) -> Optional[dict]:
+    """Season-to-date {"runs_per_game", "games"} for a team, or None.
+
+    Legacy caches predate the team_offense block — .get keeps them safe
+    until the next 12h refresh.
+    """
+    return _load().get("team_offense", {}).get(str(team_id))
+
+
+def league_runs_per_game() -> Optional[float]:
+    """League-average runs/game across all cached teams (offense baseline)."""
+    offense = _load().get("team_offense", {})
+    vals = [v.get("runs_per_game") for v in offense.values() if v.get("runs_per_game")]
+    if not vals:
+        return None
+    return sum(vals) / len(vals)
 
 
 def hitter_games(player_norm: str) -> int:

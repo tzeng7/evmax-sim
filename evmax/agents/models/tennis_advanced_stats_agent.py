@@ -31,6 +31,7 @@ from typing import Optional
 import structlog
 
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
+from evmax.agents.models.tennis_common import resolve_player
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
 
@@ -62,15 +63,24 @@ class TennisAdvancedStatsAgent(ModelAgent):
         return self._state.get("stats", {})
 
     def _lookup(self, player: str) -> Optional[dict]:
+        """Resolve via the shared tennis resolver (2026-07-19).
+
+        The old endswith-surname scan matched the FIRST store key ending in
+        the surname — no dehyphenation, no given-name narrowing, and on
+        same-surname collisions it silently returned a wrong player's stats.
+        ``resolve_player`` handles hyphenated surnames, narrows by given
+        name, returns None on genuine ambiguity (wrong-player data is worse
+        than no data), and breaks same-person duplicates by match count.
+        """
         store = self._stats_store()
         rec = store.get(player)
         if rec:
             return rec
-        surname = player.split()[-1] if player else ""
-        if len(surname) >= 3:
-            for k, v in store.items():
-                if k.endswith(surname) or k.split()[-1] == surname:
-                    return v
+        resolved = resolve_player(
+            player, store, weight_fn=lambda k: store[k].get("matches", 0) or 0
+        )
+        if resolved is not None:
+            return store[resolved]
         return None
 
     @staticmethod

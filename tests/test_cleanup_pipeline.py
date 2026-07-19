@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     captured_yes_price  REAL,
     model_version       TEXT,
     minutes_to_tipoff   INTEGER,
+    model_diagnostics   TEXT,
     venue               TEXT    NOT NULL DEFAULT 'kalshi',
     UNIQUE(market_id)
 );

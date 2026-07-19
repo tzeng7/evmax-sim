@@ -27,6 +27,17 @@ SOCCER_SEASON_URLS: dict[str, dict[str, str]] = {
     "2526": {k: f"https://www.football-data.co.uk/mmz4281/2526/{k}.csv" for k in SOCCER_LEAGUES},
 }
 
+# football-data.co.uk "new leagues" (extra) — ONE all-seasons CSV per league
+# with a different schema: a Season column, PH/PD/PA Pinnacle odds (closing
+# PSCH/PSCD/PSCA in recent files), and NO shot columns. MLS added 2026-07 for
+# the MLS walk-forward validation (calendar-year Feb–Nov season).
+SOCCER_EXTRA_LEAGUES = {
+    "USA": "MLS",
+}
+SOCCER_EXTRA_LEAGUE_URLS: dict[str, str] = {
+    "USA": "https://www.football-data.co.uk/new/USA.csv",
+}
+
 TENNIS_SEASON_URLS: dict[int, str] = {
     2024: "http://www.tennis-data.co.uk/2024/2024.xlsx",
     2025: "http://www.tennis-data.co.uk/2025/2025.xlsx",
@@ -61,6 +72,33 @@ def fetch_soccer_csv(season: str, league: str, force: bool = False) -> Path:
 
     ttl = CACHE_TTL_CURRENT if season == CURRENT_SEASON else CACHE_TTL_HISTORICAL
     if not force and not _is_stale(dest, ttl):
+        logger.debug("backtest_cache_hit", file=str(dest))
+        return dest
+
+    logger.info("backtest_download", url=url, dest=str(dest))
+    resp = httpx.get(url, timeout=30, follow_redirects=True)
+    resp.raise_for_status()
+    dest.write_bytes(resp.content)
+    return dest
+
+
+def fetch_soccer_extra_csv(league: str, force: bool = False) -> Path:
+    """Download a football-data.co.uk "new leagues" all-seasons CSV.
+
+    Unlike the per-season top-5 files, one file carries every season for the
+    league, and the current season's rows keep being appended — so it always
+    uses the short TTL.
+    """
+    if league not in SOCCER_EXTRA_LEAGUE_URLS:
+        raise ValueError(
+            f"Unknown extra league: {league!r}. Available: {list(SOCCER_EXTRA_LEAGUE_URLS)}"
+        )
+
+    url = SOCCER_EXTRA_LEAGUE_URLS[league]
+    dest = CACHE_DIR / "soccer" / "extra" / f"{league}.csv"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    if not force and not _is_stale(dest, CACHE_TTL_CURRENT):
         logger.debug("backtest_cache_hit", file=str(dest))
         return dest
 

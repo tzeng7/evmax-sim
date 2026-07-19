@@ -28,7 +28,7 @@ Also sets request context for EVGapAgent via "model_probs" and "model_sources" d
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from evmax.agents.base import Agent, AgentBus, AgentRequest, AgentResponse
@@ -47,6 +47,19 @@ class BlendedPrediction:
     confidence: float
     model_sources: str
     per_model: dict[str, ModelAgentPrediction]   # model_name → prediction
+    # Why-not diagnostics, persisted to ev_predictions.model_diagnostics:
+    #   fired:   {model: {conf, n}}          — contributed to the blend
+    #   gated:   {model: {conf, note}}       — predicted but fell at/below the
+    #                                          0.45 confidence gate (note carries
+    #                                          the agent's own explanation, e.g.
+    #                                          "n_surf=0 n_all=0")
+    #   missing: [model, ...]                — sector-configured models that
+    #                                          returned no prediction at all
+    #                                          (player/team absent from state)
+    # Distinguishing gated-vs-missing is the point: gated-at-0.30 means the
+    # player is known but thin (recoverable by seeding); missing means the
+    # lookup failed entirely.
+    diagnostics: dict = field(default_factory=dict)
 
 
 class EnsembleModelAgent(Agent):
@@ -135,7 +148,7 @@ class EnsembleModelAgent(Agent):
         # bullpen-leverage shifts violate the independence assumption); the
         # ensemble never instantiates it for baseball, so no override needed.
         "baseball": {
-            "pitcher": 0.50,
+            "pitcher_v2": 0.50,
             "elo":     0.25,
             "form":    0.25,
         },
@@ -225,6 +238,8 @@ class EnsembleModelAgent(Agent):
         # Missing entries → identity (no-op), so the ensemble still works
         # for sports without a fitted calibration.
         self._calibrator = ModelCalibrator()
+        # sector → configured model names (for why-not diagnostics)
+        self._sector_models_cache: dict[str, set[str]] = {}
 
     def attach_bus(self, bus: AgentBus) -> None:
         super().attach_bus(bus)
@@ -274,12 +289,16 @@ class EnsembleModelAgent(Agent):
 
         # Blend with sharp probs
         sharp_by_id = {pair["sharp"].event_id: pair["sharp"] for pair in pairs}
+        sector_models = self._sector_model_names(sector)
 
         blended: dict[str, BlendedPrediction] = {}
         for event_id, model_preds in per_event.items():
             sharp = sharp_by_id.get(event_id)
             event_sharp_weight = sharp_weight_by_event.get(event_id, sharp_weight)
-            blend = self._blend(event_id, model_preds, sharp, event_sharp_weight, sector)
+            blend = self._blend(
+                event_id, model_preds, sharp, event_sharp_weight, sector,
+                sector_model_names=sector_models,
+            )
             if blend is not None:
                 blended[event_id] = blend
 
@@ -296,6 +315,11 @@ class EnsembleModelAgent(Agent):
                     confidence=max(0.5, 1.0 - sharp.margin * 10),
                     model_sources="sharp",
                     per_model={},
+                    diagnostics={
+                        "fired": {},
+                        "gated": {},
+                        "missing": sorted(sector_models),
+                    },
                 )
 
         self.log.info(
@@ -504,6 +528,31 @@ class EnsembleModelAgent(Agent):
 
         return prob_a, prob_b, prob_draw
 
+    def _sector_model_names(self, sector: str) -> set[str]:
+        """Model names configured for this sector (categories.yaml ``models:``),
+        restricted to agents actually running in this ensemble.
+
+        Used by the why-not diagnostics so a tennis row never lists NBA
+        models as "missing". Falls back to the running agent set when the
+        sector has no registry entry.
+        """
+        key = (sector or "").lower()
+        cached = self._sector_models_cache.get(key)
+        if cached is not None:
+            return cached
+        running = {m.name for m in self._models}
+        names = running
+        try:
+            from evmax.categories import all_categories
+
+            cat = next((c for c in all_categories() if c.key == key), None)
+            if cat is not None and getattr(cat, "models", None):
+                names = (set(cat.models) - {"sharp"}) & running
+        except Exception:  # registry unavailable — degrade to the running set
+            pass
+        self._sector_models_cache[key] = names
+        return names
+
     def _blend(
         self,
         event_id: str,
@@ -511,6 +560,7 @@ class EnsembleModelAgent(Agent):
         sharp: Optional[SharpOdds],
         sharp_weight: float,
         sector: str = "",
+        sector_model_names: Optional[set[str]] = None,
     ) -> Optional[BlendedPrediction]:
         """Blend model predictions + sharp book.
 
@@ -525,17 +575,33 @@ class EnsembleModelAgent(Agent):
         # (eff_weight, prob_a, prob_b, prob_draw, confidence)
         model_contribs: list[tuple[float, float, float, Optional[float], float]] = []
         contributing_models: list[str] = []
+        diag_fired: dict[str, dict] = {}
+        diag_gated: dict[str, dict] = {}
         for name, pred in model_preds.items():
             if pred.confidence <= 0.45:
+                # The why-not capture point: the agent predicted but fell at
+                # the gate. pred.notes carries the agent's own explanation.
+                diag_gated[name] = {
+                    "conf": round(pred.confidence, 3),
+                    "note": (pred.notes or "")[:120],
+                }
                 continue
             w = weight_overrides.get(pred.model_name, pred.weight)
             eff_w = w * pred.confidence
             if eff_w <= 0:
+                diag_gated[name] = {
+                    "conf": round(pred.confidence, 3),
+                    "note": "zero effective weight",
+                }
                 continue
             model_contribs.append(
                 (eff_w, pred.true_prob_a, pred.true_prob_b, pred.true_prob_draw, pred.confidence)
             )
             contributing_models.append(name)
+            diag_fired[name] = {
+                "conf": round(pred.confidence, 3),
+                "n": pred.sample_size,
+            }
 
         has_models = len(model_contribs) > 0
         has_sharp = sharp is not None
@@ -622,6 +688,10 @@ class EnsembleModelAgent(Agent):
 
         model_sources = "+".join(sorted(contributing_models) + (["sharp"] if sharp else []))
 
+        missing = sorted(
+            (sector_model_names or set()) - set(model_preds.keys())
+        )
+
         return BlendedPrediction(
             event_id=event_id,
             true_prob_a=round(prob_a, 5),
@@ -630,4 +700,9 @@ class EnsembleModelAgent(Agent):
             confidence=round(avg_conf, 3),
             model_sources=model_sources,
             per_model=model_preds,
+            diagnostics={
+                "fired": diag_fired,
+                "gated": diag_gated,
+                "missing": missing,
+            },
         )

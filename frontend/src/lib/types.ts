@@ -202,3 +202,44 @@ export interface ArbScanResult {
   sectors: ArbSectorCount[]
   max_cost: number
 }
+
+export interface BoardGate {
+  value: number
+  required: number
+  ok: boolean
+}
+
+export interface BoardClv {
+  n: number
+  mean_clv_pp: number
+  frac_positive: number
+  clears: boolean
+  excluded_stale: number
+}
+
+export interface BoardRow {
+  sector: string
+  market_type: string
+  venue: string
+  mode: string | null
+  mode_split: Record<string, number>
+  n_logged: number
+  n_resolved: number
+  n_clean_resolved: number
+  brier_blend: number | null
+  brier_sharp: number | null
+  brier_delta_per_1000: number | null
+  brier_delta_z: number | null
+  blend_divergence_pp: number | null
+  blend_divergence_resolved_pp: number | null
+  sharp_passthrough: boolean
+  clv: BoardClv
+  gates: Record<string, BoardGate>
+  verdict: string
+  top_blockers: string[]
+}
+
+export interface PromotionBoardResult {
+  days: number
+  rows: BoardRow[]
+}
