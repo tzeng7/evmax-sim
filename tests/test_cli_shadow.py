@@ -193,6 +193,7 @@ def _make_db_with_shadow_rows(tmp_path: Path) -> Path:
             mode TEXT NOT NULL DEFAULT 'live',
             captured_yes_price REAL,
             model_version TEXT,
+            model_diagnostics TEXT,
             UNIQUE(market_id, scan_date)
         );
         CREATE TABLE ev_outcomes (

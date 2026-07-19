@@ -14,6 +14,7 @@ Output data: list[EVGap] sorted descending by ev_pct.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
@@ -82,6 +83,11 @@ class EVGap:
     # "kalshi" | "polymarket_us"). kalshi_yes_price above is the venue's YES
     # ask regardless of venue — the field name predates multi-venue support.
     venue: str = "kalshi"
+    # JSON why-not diagnostics from the ensemble (BlendedPrediction.diagnostics:
+    # fired/gated/missing per model). Only set on gaps whose price came from the
+    # model blend (moneyline family) — spread/total distribution pricing and
+    # props carry None. Persisted to ev_predictions.model_diagnostics.
+    model_diagnostics: Optional[str] = None
 
     @property
     def edge_label(self) -> str:
@@ -1180,6 +1186,11 @@ class EVGapAgent(Agent):
                 market.market_type.value if market.market_type else "moneyline",
             ),
             venue=market.source.value,
+            model_diagnostics=(
+                json.dumps(blend.diagnostics)
+                if blend is not None and not skip_blend and blend.diagnostics
+                else None
+            ),
         )
         return _ret(gap, blend_payload)
 

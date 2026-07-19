@@ -553,6 +553,44 @@ class TennisModelAgent(ModelAgent):
         self.save_state()
         self.log.info("tennis_rankings_seeded", tour=tour, count=len(rankings))
 
+    def merge_ranking_priors(self, ranks: dict[str, int], tour: str = "atp") -> int:
+        """Supplement a tour's ranking store with additional players.
+
+        Unlike :meth:`seed_rankings` (full-replace from the TA Elo
+        leaderboard), this only INSERTS players not already present —
+        leaderboard entries always win. It widens the ranking-prior fallback
+        in :meth:`predict_pair` (confidence 0.48) to the matchmx population:
+        the leaderboard is gated on 10+ tour matches in the trailing 52 weeks
+        and churns weekly, so established players intermittently drop off it,
+        their surface confidence collapses to 0.30, and the model exits the
+        blend — the dominant cause of partial-blend shadow demotions.
+
+        Callers must pre-filter to players with a recent match (the seed
+        script uses ≤90 days) so retirees can't linger — the failure mode the
+        seed_rankings full-replace exists to prevent.
+
+        Returns the number of players added.
+        """
+        key = f"{tour.lower()}_rankings"
+        store = self._state.setdefault(key, {})
+        added = 0
+        for player, rank in ranks.items():
+            k = player.lower().strip()
+            if not k or k in store:
+                continue
+            try:
+                r = int(rank)
+            except (TypeError, ValueError):
+                continue
+            if r <= 0:
+                continue
+            store[k] = r
+            added += 1
+        if added:
+            self.save_state()
+        self.log.info("tennis_ranking_priors_merged", tour=tour, added=added)
+        return added
+
     def seed_surface_ratings(self, surface: str, ratings: dict[str, float]) -> None:
         """
         Seed surface-specific Elo ratings.

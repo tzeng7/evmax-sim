@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 from collections import defaultdict
+from datetime import date, timedelta
 from typing import Iterable, Optional
 
 from evmax.agents.models.tennis_advanced_stats_agent import TennisAdvancedStatsAgent
@@ -36,6 +37,7 @@ from evmax.agents.models.tennis_serve_return_agent import TennisServeReturnAgent
 from evmax.agents.models.tennis_h2h_agent import TennisH2HAgent
 from evmax.agents.models.tennis_ranking_trend_agent import TennisRankingTrendAgent
 from evmax.agents.models.tennis_form_agent import TennisFormAgent
+from evmax.agents.models.tennis_model_agent import TennisModelAgent
 from evmax.clients.tennisabstract import fetch_matchmx, fetch_winners_errors
 
 DEFAULT_YEARS = [2023, 2024, 2025, 2026]
@@ -351,6 +353,46 @@ def aggregate_ranking_history(match_rows: Iterable[dict]) -> dict[str, list[dict
     return history
 
 
+# Players whose last matchmx appearance is older than this don't get a
+# ranking prior — matchmx only carries players who played, and the recency
+# filter keeps retirees from lingering as stale priors (the failure the
+# seed_rankings full-replace fixed on 2026-07-01).
+_RANK_PRIOR_MAX_AGE_DAYS = 90
+
+
+def latest_rank_snapshots(
+    history: dict[str, list[dict]],
+    *,
+    max_age_days: int = _RANK_PRIOR_MAX_AGE_DAYS,
+    today: Optional[date] = None,
+) -> dict[str, int]:
+    """Latest official rank per recently-active player.
+
+    Input is :func:`aggregate_ranking_history` output (date-sorted snapshots).
+    Returns ``{player → latest_rank}`` restricted to players whose most recent
+    snapshot is within ``max_age_days`` of ``today``. Feeds
+    ``TennisModelAgent.merge_ranking_priors`` — the supplement that keeps the
+    surface model's 0.48-confidence ranking fallback alive for established
+    players the weekly TA Elo leaderboard churned off.
+    """
+    cutoff = (today or date.today()) - timedelta(days=max_age_days)
+    out: dict[str, int] = {}
+    for player, snaps in history.items():
+        if not snaps:
+            continue
+        last = snaps[-1]  # date-sorted by aggregate_ranking_history
+        try:
+            last_date = date.fromisoformat(last["date"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if last_date < cutoff:
+            continue
+        rank = last.get("rank")
+        if isinstance(rank, int) and rank > 0:
+            out[player] = rank
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Main driver
 # ---------------------------------------------------------------------------
@@ -403,6 +445,7 @@ def main() -> None:
     trend_agent = TennisRankingTrendAgent()
     advanced_agent = TennisAdvancedStatsAgent()
     form_agent = TennisFormAgent()
+    surface_agent = TennisModelAgent()
 
     combined_match_serve: dict[str, list[dict]] = {}
     combined_h2h: list[dict] = []
@@ -435,6 +478,16 @@ def main() -> None:
             f"{len(history)} players with ranking history, "
             f"{len(advanced)} players with advanced stats"
         )
+
+        # Ranking-prior supplement: widen the surface model's 0.48-confidence
+        # ranking fallback to the full recently-active matchmx population.
+        # merge_ranking_priors only INSERTS players absent from the tour store,
+        # so this must run AFTER seed_tennis_abstract_elo.py's weekly
+        # full-replace (leaderboard entries always win) — the Monday task
+        # weekly-tennis-surface-elo-refresh runs the two scripts in that order.
+        recent_ranks = latest_rank_snapshots(history)
+        added = surface_agent.merge_ranking_priors(recent_ranks, tour=tour)
+        print(f"  → ranking priors: +{added} matchmx-only players merged into {tour}_rankings")
 
         # Merge across tours (ATP + WTA are disjoint player sets)
         for player, entries in match_serve.items():

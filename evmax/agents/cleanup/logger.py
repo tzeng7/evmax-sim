@@ -188,8 +188,8 @@ def log_gaps(
                      blended_true_prob, ev_pct, kelly_fraction, volume_usd,
                      model_sources, sharp_weight_used, bankroll_used, line,
                      mode, captured_yes_price, model_version, minutes_to_tipoff,
-                     venue)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     venue, model_diagnostics)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         sd,
                         g.market_id,
@@ -214,6 +214,7 @@ def log_gaps(
                         model_version,
                         getattr(g, "minutes_to_tipoff", None),
                         getattr(g, "venue", "kalshi"),
+                        getattr(g, "model_diagnostics", None),
                     ),
                 )
                 if conn.execute("SELECT changes()").fetchone()[0]:
@@ -255,7 +256,7 @@ def log_gaps(
                                        model_sources = ?, sharp_weight_used = ?,
                                        bankroll_used = ?, line = ?,
                                        captured_yes_price = ?, model_version = ?,
-                                       minutes_to_tipoff = ?
+                                       minutes_to_tipoff = ?, model_diagnostics = ?
                                    WHERE market_id = ? AND placed = 0""",
                                 (
                                     sd,
@@ -273,6 +274,7 @@ def log_gaps(
                                     g.kalshi_yes_price,
                                     model_version,
                                     getattr(g, "minutes_to_tipoff", None),
+                                    getattr(g, "model_diagnostics", None),
                                     g.market_id,
                                 ),
                             )

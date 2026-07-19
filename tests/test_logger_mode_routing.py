@@ -65,6 +65,7 @@ def _make_db() -> sqlite3.Connection:
             model_version TEXT,
             venue TEXT NOT NULL DEFAULT 'kalshi',
             minutes_to_tipoff INTEGER,
+            model_diagnostics TEXT,
             UNIQUE(market_id, scan_date)
         );
         CREATE TABLE prop_observations (
@@ -491,6 +492,36 @@ class TestMinNonsharpFloor:
         # Tennis keeps the all-of gate; the floor doesn't apply to it.
         assert has_full_blend("tennis", _FULL_TENNIS_SOURCES, "moneyline") is True
         assert has_full_blend("tennis", "sharp", "moneyline") is False
+
+
+class TestModelDiagnosticsPersistence:
+    """model_diagnostics JSON rides EVGap → log_gaps → ev_predictions."""
+
+    def test_diagnostics_persisted(self, patched_db):
+        import dataclasses
+        import json as _json
+
+        diag = {"fired": {"elo": {"conf": 0.6, "n": 20}},
+                "gated": {"form": {"conf": 0.3, "note": "thin"}},
+                "missing": ["poisson"]}
+        g = dataclasses.replace(
+            _gap("kalshi:DIAG-1"), model_diagnostics=_json.dumps(diag)
+        )
+        log_gaps([g], scan_date=date.today())
+        row = patched_db.execute(
+            "SELECT model_diagnostics FROM ev_predictions WHERE market_id='kalshi:DIAG-1'"
+        ).fetchone()
+        assert row is not None
+        assert _json.loads(row["model_diagnostics"]) == diag
+
+    def test_legacy_gap_without_diagnostics_is_null_safe(self, patched_db):
+        g = _gap("kalshi:DIAG-2")
+        log_gaps([g], scan_date=date.today())
+        row = patched_db.execute(
+            "SELECT model_diagnostics FROM ev_predictions WHERE market_id='kalshi:DIAG-2'"
+        ).fetchone()
+        assert row is not None
+        assert row["model_diagnostics"] is None
 
 
 class TestPartialBlendDemotion:

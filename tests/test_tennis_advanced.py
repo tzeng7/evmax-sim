@@ -223,6 +223,55 @@ class TestSurnameFallback:
         assert result is not None
 
 
+class TestSharedResolver:
+    """_lookup swapped to tennis_common.resolve_player (2026-07-19).
+
+    The old endswith-surname scan had no dehyphenation and silently returned
+    the FIRST store key on same-surname collisions — a wrong player's stats.
+    """
+
+    def test_hyphenated_query_resolves_space_form_key(self, tmp_path):
+        a = TennisAdvancedStatsAgent()
+        a._state_path = tmp_path / "s.json"
+        a._state = {"stats": {"felix auger aliassime": _make_player_stats(matches=40)}}
+        rec = a._lookup("felix auger-aliassime")
+        assert rec is not None
+        assert rec["matches"] == 40
+
+    def test_same_surname_ambiguity_returns_none(self, tmp_path):
+        # Genuinely different players sharing a surname, queried by bare
+        # surname: wrong-player data is worse than no data.
+        a = TennisAdvancedStatsAgent()
+        a._state_path = tmp_path / "s.json"
+        a._state = {"stats": {
+            "francisco cerundolo": _make_player_stats(matches=50),
+            "juan manuel cerundolo": _make_player_stats(matches=30),
+        }}
+        assert a._lookup("cerundolo") is None
+
+    def test_given_name_narrows_same_surname(self, tmp_path):
+        a = TennisAdvancedStatsAgent()
+        a._state_path = tmp_path / "s.json"
+        a._state = {"stats": {
+            "xin yu wang": _make_player_stats(matches=44),
+            "xiyu wang": _make_player_stats(matches=33),
+        }}
+        rec = a._lookup("xinyu wang")
+        assert rec is not None
+        assert rec["matches"] == 44
+
+    def test_duplicate_same_person_picks_higher_match_count(self, tmp_path):
+        a = TennisAdvancedStatsAgent()
+        a._state_path = tmp_path / "s.json"
+        a._state = {"stats": {
+            "adrian mannarino": _make_player_stats(matches=60),
+            "mannarino a.": _make_player_stats(matches=4),
+        }}
+        rec = a._lookup("mannarino")
+        assert rec is not None
+        assert rec["matches"] == 60
+
+
 class TestComputeFeatures:
     def test_full_features_with_ue(self):
         rec = _make_player_stats(

@@ -38,6 +38,36 @@ console = Console()
 _CATEGORIES_YAML = Path(__file__).resolve().parents[3] / "data" / "categories.yaml"
 
 
+def _format_why(diagnostics_json: Optional[str]) -> str:
+    """Compact one-line rendering of a model_diagnostics JSON blob.
+
+    ``missing:elo,form · gated:tennis_surface(0.30)`` — missing means the
+    lookup found nothing (player/team absent from state, recoverable by
+    seeding); gated means the agent predicted but fell at the confidence
+    gate (known but thin).
+    """
+    if not diagnostics_json:
+        return "[dim]—[/dim]"
+    import json as _json
+
+    try:
+        diag = _json.loads(diagnostics_json)
+    except (ValueError, TypeError):
+        return "[dim]?[/dim]"
+    parts = []
+    missing = diag.get("missing") or []
+    if missing:
+        parts.append("missing:" + ",".join(missing))
+    gated = diag.get("gated") or {}
+    if gated:
+        parts.append(
+            "gated:" + ",".join(
+                f"{name}({rec.get('conf', '?')})" for name, rec in gated.items()
+            )
+        )
+    return " · ".join(parts) if parts else "[dim]full[/dim]"
+
+
 # ---------------------------------------------------------------------------
 # show
 # ---------------------------------------------------------------------------
@@ -52,6 +82,12 @@ def show(
     ),
     resolved_only: bool = typer.Option(
         False, "--resolved", help="Only show rows that have a settled outcome."
+    ),
+    why: bool = typer.Option(
+        False, "--why",
+        help="Add a Why column from model_diagnostics: which models were "
+             "missing (player/team absent from state) or confidence-gated "
+             "(known but thin) on each row.",
     ),
 ) -> None:
     """Show recent shadow predictions with model_prob, captured_yes_price,
@@ -77,7 +113,7 @@ def show(
         SELECT p.scan_date, p.event_date, p.sector, p.event_title,
                p.yes_team, p.market_type, p.line,
                p.captured_yes_price, p.blended_true_prob, p.ev_pct,
-               p.kelly_fraction, p.model_version,
+               p.kelly_fraction, p.model_version, p.model_diagnostics,
                o.outcome
         FROM ev_predictions p
         LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
@@ -111,6 +147,8 @@ def show(
     table.add_column("Model", justify="right", width=8)
     table.add_column("EV%", justify="right", width=7)
     table.add_column("Outcome", width=10)
+    if why:
+        table.add_column("Why (missing / gated)", min_width=20, no_wrap=False)
 
     n_resolved = n_wins = 0
     for r in rows:
@@ -138,7 +176,7 @@ def show(
         if r["line"] is not None:
             bet_label += f" {r['line']:+.1f}"
 
-        table.add_row(
+        row_cells = [
             (r["scan_date"] or "")[-5:],
             (r["event_date"] or "")[-5:] if r["event_date"] else "—",
             r["sector"] or "",
@@ -148,7 +186,10 @@ def show(
             model_str,
             ev_str,
             outcome_str,
-        )
+        ]
+        if why:
+            row_cells.append(_format_why(r["model_diagnostics"]))
+        table.add_row(*row_cells)
 
     console.print(table)
     console.print(

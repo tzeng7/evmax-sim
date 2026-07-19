@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     captured_yes_price  REAL,                       -- pre-game YES ask at scan time
     model_version       TEXT,                       -- e.g. "nfl_props_v1_qb_only" — lets us expire stale shadow data
     venue               TEXT    NOT NULL DEFAULT 'kalshi',  -- prediction-market venue: kalshi | polymarket_us
+    model_diagnostics   TEXT,                       -- JSON why-not diagnostics (fired/gated/missing per model)
     UNIQUE(market_id)
 );
 
@@ -254,6 +255,13 @@ def get_connection() -> sqlite3.Connection:
         # history correctly. Values are MarketSource strings.
         "ALTER TABLE ev_predictions ADD COLUMN venue TEXT NOT NULL DEFAULT 'kalshi'",
         "ALTER TABLE prop_observations ADD COLUMN venue TEXT NOT NULL DEFAULT 'kalshi'",
+        # 2026-07-19 — why-not diagnostics (WS3): JSON blob from the ensemble
+        # recording which models fired / were confidence-gated (with the
+        # agent's own note) / returned nothing. Lets shadow analysis separate
+        # recoverable coverage gaps from correctly-withheld thin matches
+        # without re-running predict_pair. NULL on legacy rows and on
+        # spread/total/prop rows (blend-priced moneyline family only).
+        "ALTER TABLE ev_predictions ADD COLUMN model_diagnostics TEXT",
     ]:
         try:
             conn.execute(migration)
