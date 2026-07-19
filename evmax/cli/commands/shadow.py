@@ -465,6 +465,7 @@ def clv_stats(
     side: Optional[str] = None,
     venue: Optional[str] = None,
     max_staleness_h: Optional[float] = None,
+    sources_token: Optional[str] = None,
 ) -> dict:
     """Aggregate kalshi_clv_pct for a category's current-code resolved bets.
 
@@ -497,6 +498,10 @@ def clv_stats(
     Kalshi-only; PolyUS rows are left untouched. Staleness is read from
     archive.db per surviving row, so the filter is off by default (no archive
     access, unchanged behaviour); pass a threshold to activate it.
+    `sources_token` keeps only rows whose model_sources contains the token —
+    the separation mechanism for strategy sub-streams sharing a category, e.g.
+    'anchored_entry' isolates the watch-listings anchored-entry rows from
+    historical scan-time rows without --since gymnastics.
     """
     from evmax.agents.cleanup.contamination import is_contaminated
     from evmax.agents.cleanup.db import get_connection
@@ -531,6 +536,9 @@ def clv_stats(
         params.append(venue)
     if max_staleness_h is not None and max_staleness_h < 0:
         raise ValueError(f"max_staleness_h must be >= 0, got {max_staleness_h!r}")
+    if sources_token is not None:
+        where.append("p.model_sources LIKE ?")
+        params.append(f"%{sources_token}%")
     sql = f"""
         SELECT p.sector, p.market_type, p.model_sources, p.line, p.kalshi_clv_pct,
                p.event_id, p.venue, p.placed, p.placed_at, p.market_id
@@ -621,6 +629,12 @@ def clv(
              "gap, not a flat market). 68%% of exact-zero WNBA spread CLV rows "
              "have a 3-21h stale close that drags frac_positive down.",
     ),
+    sources_token: Optional[str] = typer.Option(
+        None, "--sources-token",
+        help="Keep only rows whose model_sources contains this token — e.g. "
+             "'anchored_entry' isolates the watch-listings anchored-entry "
+             "stream from historical scan-time rows.",
+    ),
 ) -> None:
     """Report Kalshi CLV (entry→close) — the +EV signal for laddered markets.
 
@@ -631,6 +645,7 @@ def clv(
     s = clv_stats(
         category, market_type=market_type, mode=mode, since=since,
         side=side, venue=venue, max_staleness_h=max_staleness_h,
+        sources_token=sources_token,
     )
     label = f"{category}" + (f" / {market_type}" if market_type else "")
     label += f" [{mode}]" if mode else " [all modes]"
@@ -638,6 +653,7 @@ def clv(
     label += f" side={side}" if side else ""
     label += f" venue={venue}" if venue else ""
     label += f" fresh≤{max_staleness_h:g}h" if max_staleness_h is not None else ""
+    label += f" sources~{sources_token}" if sources_token else ""
     if s["n"] == 0:
         stale_note = ""
         if max_staleness_h is not None and s.get("excluded_stale"):

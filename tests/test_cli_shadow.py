@@ -607,3 +607,46 @@ class TestPromoteClvGate:
         result = runner.invoke(app, ["promote", "nfl_props", "--yes"])
         assert result.exit_code == 0
         assert "promoted to live" in result.stdout
+
+
+class TestClvStatsSourcesToken:
+    """--sources-token isolates the anchored-entry stream from scan-time rows."""
+
+    def _db_with_sources(self, tmp_path, _patch_db):
+        rows = [
+            ("anch1", "2026-07-19", "spread", "shadow", 2.0, 1, -6.5),
+            ("anch2", "2026-07-19", "spread", "shadow", 1.0, 1, -6.5),
+            ("scan1", "2026-07-10", "spread", "shadow", -3.0, 0, -6.5),
+        ]
+        db_path = _make_clv_db(tmp_path, rows)
+        conn = sqlite3.connect(str(db_path))
+        conn.execute(
+            "UPDATE ev_predictions SET model_sources = "
+            "CASE WHEN market_id LIKE 'anch%' "
+            "THEN 'sharp+spread_dist+anchored_entry' "
+            "ELSE 'sharp+spread_dist' END"
+        )
+        conn.commit()
+        conn.close()
+        _patch_db(db_path)
+
+    def test_token_keeps_only_anchored_rows(self, tmp_path, _patch_db):
+        self._db_with_sources(tmp_path, _patch_db)
+        s = clv_stats("wnba", market_type="spread", sources_token="anchored_entry")
+        assert s["n"] == 2
+        assert s["mean_clv_pp"] == pytest.approx(1.5)
+        assert s["frac_positive"] == 1.0
+
+    def test_default_pools_all_rows(self, tmp_path, _patch_db):
+        self._db_with_sources(tmp_path, _patch_db)
+        s = clv_stats("wnba", market_type="spread")
+        assert s["n"] == 3
+        assert s["mean_clv_pp"] == pytest.approx(0.0)
+
+    def test_token_composes_with_side_and_venue(self, tmp_path, _patch_db):
+        self._db_with_sources(tmp_path, _patch_db)
+        s = clv_stats(
+            "wnba", market_type="spread", side="lay", venue="kalshi",
+            sources_token="anchored_entry",
+        )
+        assert s["n"] == 2

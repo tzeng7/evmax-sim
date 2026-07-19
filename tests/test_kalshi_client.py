@@ -168,3 +168,118 @@ class TestSeriesTeamCodeMaps:
         assert m.yes_team == "tie"
         assert m.team_home == "portland"
         assert m.team_away == "seattle"
+
+
+class TestGetMarketCandlesticks:
+    """get_market_candlesticks — historical OHLC bid/ask backfill endpoint."""
+
+    @staticmethod
+    def _stub(client: KalshiClient, response: dict) -> list:
+        """Replace _get with a recorder returning `response`; return the call log."""
+        calls: list = []
+
+        async def fake_get(path, params=None):
+            calls.append((path, params))
+            return response
+
+        client._get = fake_get  # type: ignore[method-assign]
+        return calls
+
+    async def test_path_and_params_construction(self) -> None:
+        c = _client()
+        calls = self._stub(c, {"candlesticks": []})
+        await c.get_market_candlesticks(
+            "KXWNBASPREAD", "KXWNBASPREAD-26JUL02SEAPHX-SEA7",
+            start_ts=1000, end_ts=2000, period_interval=60,
+        )
+        path, params = calls[0]
+        assert path == "/series/KXWNBASPREAD/markets/KXWNBASPREAD-26JUL02SEAPHX-SEA7/candlesticks"
+        assert params == {"start_ts": 1000, "end_ts": 2000, "period_interval": 60}
+
+    async def test_include_latest_before_start_param(self) -> None:
+        c = _client()
+        calls = self._stub(c, {"candlesticks": []})
+        await c.get_market_candlesticks(
+            "KXWNBATOTAL", "KXWNBATOTAL-26JUL02SEAPHX-T160",
+            start_ts=1, end_ts=2, include_latest_before_start=True,
+        )
+        _, params = calls[0]
+        assert params["include_latest_before_start"] == "true"
+
+    async def test_strips_venue_prefix_and_no_suffix(self) -> None:
+        c = _client()
+        calls = self._stub(c, {"candlesticks": []})
+        await c.get_market_candlesticks(
+            "KXWNBASPREAD", "kalshi:KXWNBASPREAD-26JUL02SEAPHX-SEA7:no",
+            start_ts=1, end_ts=2,
+        )
+        path, _ = calls[0]
+        assert path.endswith("/markets/KXWNBASPREAD-26JUL02SEAPHX-SEA7/candlesticks")
+
+    async def test_parses_dollars_string_fields(self) -> None:
+        c = _client()
+        self._stub(c, {"candlesticks": [{
+            "end_period_ts": 1720000000,
+            "yes_bid": {"close_dollars": "0.42"},
+            "yes_ask": {"close_dollars": "0.48"},
+            "price": {"close_dollars": "0.45"},
+            "volume_fp": "12.0",
+            "open_interest_fp": "300.0",
+        }]})
+        out = await c.get_market_candlesticks("KXWNBASPREAD", "T", 1, 2)
+        assert out == [{
+            "end_ts": 1720000000,
+            "yes_bid_close": 0.42,
+            "yes_ask_close": 0.48,
+            "price_close": 0.45,
+            "volume": 12.0,
+            "open_interest": 300.0,
+        }]
+
+    async def test_legacy_cents_fallback(self) -> None:
+        c = _client()
+        self._stub(c, {"candlesticks": [{
+            "end_period_ts": 1720000000,
+            "yes_bid": {"close": 42},
+            "yes_ask": {"close": 48},
+            "price": {"close": 45},
+            "volume": 7,
+        }]})
+        out = await c.get_market_candlesticks("KXWNBASPREAD", "T", 1, 2)
+        assert out[0]["yes_bid_close"] == 0.42
+        assert out[0]["yes_ask_close"] == 0.48
+        assert out[0]["price_close"] == 0.45
+        assert out[0]["volume"] == 7.0
+
+    async def test_null_price_struct_is_none(self) -> None:
+        # Markets with no trades in a period return a null price struct.
+        c = _client()
+        self._stub(c, {"candlesticks": [{
+            "end_period_ts": 1720000000,
+            "yes_bid": {"close_dollars": "0.40"},
+            "yes_ask": {"close_dollars": "0.50"},
+            "price": None,
+        }]})
+        out = await c.get_market_candlesticks("KXWNBASPREAD", "T", 1, 2)
+        assert out[0]["price_close"] is None
+        assert out[0]["yes_ask_close"] == 0.50
+
+    async def test_sorted_by_end_ts_and_skips_missing_ts(self) -> None:
+        c = _client()
+        self._stub(c, {"candlesticks": [
+            {"end_period_ts": 200, "yes_ask": {"close_dollars": "0.5"}},
+            {"yes_ask": {"close_dollars": "0.9"}},          # no ts — dropped
+            {"end_period_ts": 100, "yes_ask": {"close_dollars": "0.4"}},
+        ]})
+        out = await c.get_market_candlesticks("KXWNBASPREAD", "T", 1, 2)
+        assert [o["end_ts"] for o in out] == [100, 200]
+
+    async def test_error_returns_empty_list(self) -> None:
+        c = _client()
+
+        async def boom(path, params=None):
+            raise RuntimeError("api down")
+
+        c._get = boom  # type: ignore[method-assign]
+        out = await c.get_market_candlesticks("KXWNBASPREAD", "T", 1, 2)
+        assert out == []

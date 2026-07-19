@@ -467,3 +467,24 @@ def test_watch_closes_lookahead_exceeds_close_target():
         "snapshots all land inside the excluded window and the close silently "
         "falls back to stale hourly watch-listings sweeps"
     )
+
+
+def test_candlebf_snapshot_selected_as_close_over_stale_watchlist(temp_archive_db):
+    """Backfilled candlestick rows (session_id 'candlebf-*') participate in
+    close selection like any other snapshot: a candle ending at T-45m beats a
+    watchlist sweep from hours earlier, killing the stale-close artifact."""
+    archiver = DataArchiver()
+    tip = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+    archiver.open_session("so", ["nba"], "test")
+    archiver.archive_sharp_odds("so", "nba", [_ml_sharp(EVENT_ID, 0.5, tip - timedelta(hours=4), tip)])
+    archiver.archive_kalshi_snapshot(
+        "watchlist-20260525T1200", "nba",
+        [{"ticker": TICKER, "yes_price": 0.40, "event_id": EVENT_ID}],
+        fetched_at=tip - timedelta(hours=6),
+    )
+    archiver.archive_kalshi_snapshot(
+        "candlebf-1782428100", "nba",
+        [{"ticker": TICKER, "yes_price": 0.52, "event_id": EVENT_ID}],
+        fetched_at=tip - timedelta(minutes=45),
+    )
+    assert archiver.get_kalshi_close_price(TICKER, EVENT_ID) == pytest.approx(0.52)
