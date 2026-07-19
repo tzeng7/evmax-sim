@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { fetchPromotionBoard } from '../lib/api'
 import type { BoardRow } from '../lib/types'
 
@@ -30,17 +30,21 @@ const MKT_ABBR: Record<string, string> = {
 export function PromotionBoard({ toast }: Props) {
   const [days, setDays] = useState(30)
   const [rows, setRows] = useState<BoardRow[] | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    let cancelled = false
+  const load = useCallback(async (d: number) => {
     setLoading(true)
-    fetchPromotionBoard(days)
-      .then(res => { if (!cancelled) setRows(res.rows) })
-      .catch(e => toast('Board load failed: ' + (e as Error).message, 'err'))
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [days, toast])
+    try {
+      const res = await fetchPromotionBoard(d)
+      setRows(res.rows)
+    } catch (e) {
+      toast('Board load failed: ' + (e as Error).message, 'err')
+    } finally {
+      setLoading(false)
+    }
+  }, [toast])
+
+  useEffect(() => { load(days) }, [days, load])
 
   const gateOrder = ['clean_n', 'clv_n', 'clv_mean', 'clv_frac_pos']
 
