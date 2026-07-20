@@ -38,20 +38,20 @@ scheduled run ever merges its own PR.
 | `ev-scan-light-evening` | 15:34 | Light scan #3 (18:34 ET): T-0.5–2h from the main slate — the only entry window with demonstrated +CLV; these are the rows the fresh-close CLV gates score |
 | `daily-evening-resolve` | 23:06 | `evmax cleanup resolve --date TODAY` + `cleanup show --date TODAY` — day's P/L |
 
-The three `ev-scan-light-*` tasks are the **approved 2026-07-19 replacement** for the removed
-90-min pair (`ev-scan-90min-on-hour`/`half-hour`, removed 2026-07-18): 3×/day, evening-weighted,
-enough shadow-sample volume for the sector promotion gates without the old churn. They share one
-spec (`docs/scheduled-tasks/ev-scan-light.md`) and are **forbidden from editing code** (the
-PR-within-the-run policy covers only the two audit tasks). ⚠️ Activate them only AFTER the
-soccer sharp-only guard (MIN_NONSHARP_MODELS, PR "diversify") is merged — before it, a scheduled
-scan would log sharp-passthrough MLS rows as live plays 3×/day. `daily-morning-scan`/
-`daily-updated-scan` remain disabled below.
+The three `ev-scan-light-*` tasks are the **2026-07-19 replacement** for the removed 90-min pair
+(`ev-scan-90min-on-hour`/`half-hour`, removed 2026-07-18): 3×/day, evening-weighted, enough
+shadow-sample volume for the sector promotion gates without the old churn. They share one spec
+(`docs/scheduled-tasks/ev-scan-light.md`) and are **forbidden from editing code** (the
+PR-within-the-run policy covers only the two audit tasks). **Activated 2026-07-19** after the
+soccer sharp-only guard (MIN_NONSHARP_MODELS, PR #117) merged — a scheduled scan running before
+that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `daily-morning-scan`/
+`daily-updated-scan` remain disabled below (their functionality is now covered by the light scans).
 
 ### Weekly
 
 | Task | Local time | What it does |
 |---|---|---|
-| `weekly-seasonal-model-reseed` | Mon 07:04 | Season-aware reseed of the manual-seed states: WNBA efficiency (May–Oct), NFL efficiency + QB Elo (Sep–Feb), MLB pitcher FIP (Mar–Nov), UFC Glicko-2 ratings (weekly, no offseason) |
+| `weekly-seasonal-model-reseed` | Mon 07:04 | Season-aware reseed of the manual-seed states: WNBA efficiency (May–Oct), NFL efficiency + QB Elo (Sep–Feb), MLB pitcher_v2 (xERA+bullpen+FIP, Mar–Nov), UFC Glicko-2 ratings (weekly, no offseason) |
 | `weekly-drift-audit` | Mon 07:56 | This audit — doc↔code drift, SAFE fixes on a branch + PR (spec: `.claude/commands/drift-audit.md`) |
 | `weekly-model-calibration` | Mon 08:07 | `cleanup metrics --weeks 4` + `cleanup adjust` (sharp_weight auto-tune, bounded 0.40–0.95) + shadow metrics review (reports promotion readiness, never promotes) |
 | `weekly-value-audit` | Mon 08:22 | Model-blend VALUE audit — Brier vs sharp/close + CLV per sector, model-side fixes only, propose-only PR (spec: `.claude/commands/value-audit.md`) |
