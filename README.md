@@ -304,7 +304,7 @@ Most sectors replace some or all of the generic Elo/Form/Poisson core with dedic
 | WNBA PossessionSim | — | **0.45** | — | — | — | — |
 | NFL Efficiency | — | — | **0.25** | — | — | — |
 | NFL QB Elo | — | — | **0.25** | — | — | — |
-| Pitcher | — | — | — | — | **0.50** | — |
+| Pitcher (`pitcher_v2`) | — | — | — | — | **0.50** | — |
 | NHL xG (MoneyPuck) | — | — | — | — | — | **0.30** |
 | Elo | 0.10 | 0.15 | 0.20 | 0.15 | 0.25 | 0.0 |
 | Form | 0.10 | 0.0 | 0.30 | 0.10 | 0.25 | 0.15 |
@@ -316,6 +316,8 @@ Most sectors replace some or all of the generic Elo/Form/Poisson core with dedic
 > **World Cup** mirrors soccer's weights exactly but reads its own national-team namespaces (`elo_state['worldcup']`, `poisson_state['worldcup']`, `soccer_xg_state['worldcup']`, `form_state['worldcup']`) — never the club soccer pool.
 
 > **Poisson is football-only** (`SUPPORTED_SECTORS = {"soccer", "worldcup"}` in `poisson_agent.py`): `predict_pair` returns `None` for every other sector, so it never enters the blend or `model_sources`. Tennis weights: surface 0.30 · serve/return 0.10 · form 0.35 · advanced 0.15 · h2h 0.05 · ranking trend 0.05.
+
+> **Sectors not in the table above** also carry overrides — the table only shows the six with a dedicated column. NCAAB: ncaab_efficiency 0.60 · ncaab_possession_sim 0.20 · elo 0.10 · form 0.10. NCAAW: identical weights on the women's state. UFC: ufc_rating 1.0 with elo/form/poisson explicitly zeroed (sharp dominates via `sharp_weight`). Only **LoL and CS2** have no override entry at all.
 
 **WNBA weights re-tuned 2026-05-14** via walk-forward sweep over 321 games (`scripts/sweep_wnba_weights.py`) — dropped blend Brier 0.2061 → 0.2019. Form was worst standalone (0.2303) and every top-20 combo zeroed it; generic Elo also weaker than the WNBA-specific stack.
 
@@ -347,7 +349,7 @@ Most sectors replace some or all of the generic Elo/Form/Poisson core with dedic
 | Form | 0.2472 | 62.2% | +0.7% |
 | Baseline (always home) | 0.2456 | 56.7% | — |
 
-WNBA ensemble is within 0.0024 Brier of NBA — effectively at parity. WNBA ships in `shadow` mode for the 2026 season; live Kelly is gated on MODEL-11 shadow validation.
+WNBA ensemble is within 0.0024 Brier of NBA — effectively at parity. WNBA **moneyline went live on 2026-05-26** (`mode: live` in `data/categories.yaml`); spread and total are `disabled_market_types` and are owned by the anchored-entry trigger instead (see below).
 
 ---
 
@@ -436,7 +438,7 @@ Each dimension capped at ±1.5 points, total capped at ±4 points → converted 
 
 ### WNBA Models
 
-WNBA runs a parallel advanced stack to NBA — separate files, separate state, separate tuning. No code is shared between the two leagues' agents. Change one without risk to the other. Moneyline is **live** as of 2026-05-26. Spread was **demoted back to shadow on 2026-06-19** — it failed the Kalshi entry→close CLV gate (−0.46pp, 35% positive on n=48); re-promotion requires `evmax cleanup shadow clv wnba -m spread` to clear on fresh shadow data. Totals also stay in shadow (no near-close re-scan workflow).
+WNBA runs a parallel advanced stack to NBA — separate files, separate state, separate tuning. No code is shared between the two leagues' agents. Change one without risk to the other. Moneyline is **live** as of 2026-05-26. Spread and total are **`disabled_market_types` as of 2026-07-19** — not shadow. Spread was first demoted to shadow on 2026-06-19 after failing the Kalshi entry→close CLV gate (−0.46pp, 35% positive on n=48), and the 2026-07-19 candlestick backfill showed why: scan-time entry (median ~23h post-listing) is simply the wrong entry point for a laddered market. Ownership moved to the **anchored-entry trigger** (`evmax cleanup watch-listings --log-entries`), which enters at the first sharp-anchored sweep and logs its own shadow stream. The scanner is locked out of these market types so it can't freeze `market_id`s at scan prices first. Judge promotion with `evmax cleanup shadow clv wnba -m spread --side lay --venue kalshi --sources-token anchored_entry`.
 
 #### WNBA Efficiency Model (`WNBAEfficiencyModelAgent`, weight=0.40)
 
@@ -499,7 +501,7 @@ Win probability = fraction of sims where team A outscores team B. Deterministic 
 
 **Same gates as efficiency:** `MIN_GAMES=4`, staleness guard, smooth confidence ramp. Returns `None` if either team falls below the gate or the state is stale.
 
-**Spread / totals probabilities** (`cover_probability` / `total_probability`) use calibrated σs: margin σ = 12.5 (matches the efficiency agent), total σ = 18.0 (WNBA games are shorter → lower total variance than NBA's σ=20.0). Both spread and totals are currently in shadow — spread was demoted 2026-06-19 pending the per-side CLV gate (see above).
+**Spread / totals probabilities** (`cover_probability` / `total_probability`) use calibrated σs: margin σ = 12.5 (matches the efficiency agent), total σ = 18.0 (WNBA games are shorter → lower total variance than NBA's σ=20.0). Both spread and totals are `disabled_market_types` for the scanner as of 2026-07-19 — the anchored-entry trigger owns them (see above).
 
 **Playoff tightening is NOT enabled** for WNBA. NBA's `PLAYOFF_ORTG_FACTOR=0.9623` was derived from a specific NBA playoff sample; porting it blindly to WNBA would add unmeasured bias. Leave off until WNBA has a comparable playoff measurement.
 
