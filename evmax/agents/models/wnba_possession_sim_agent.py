@@ -21,12 +21,14 @@ WNBA-specific calibration (vs NBA):
   - Possessions clipped to [65, 100] (NBA: [80, 120]) — WNBA pace 78-84
   - Margin σ = 12.5 (NBA: 11.5) — matches WNBA efficiency's SCORE_STDEV
   - Total σ = 18.0 (NBA: 20.0) — 40-min game → lower total variance
-  - MIN_GAMES = 12 (NBA: 20) — 40-game WNBA season vs 82-game NBA
+  - MIN_GAMES = 4 (NBA: 20) — lowered from 12 once empirical-Bayes shrinkage
+    landed; shrinkage handles the small-sample noise a hard floor used to
   - Playoff tightening disabled — WNBA playoffs not calibrated yet
 
-Returns None for any sector other than "wnba". WNBA is shadow-mode today
-but the cover_probability / total_probability methods are ported anyway so
-the agent is ready when WNBA spread / total markets get promoted to live.
+Returns None for any sector other than "wnba". WNBA moneyline is live
+(2026-05-26); spread / total are disabled_market_types for the scanner and
+owned by the anchored-entry trigger, so the cover_probability /
+total_probability methods stay ported but unused on the live path.
 """
 
 from __future__ import annotations
