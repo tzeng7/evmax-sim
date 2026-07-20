@@ -79,6 +79,8 @@ CREATE INDEX IF NOT EXISTS idx_sharp_sector_date
     ON archived_sharp_odds(sector, event_date);
 CREATE INDEX IF NOT EXISTS idx_sharp_fetched_at
     ON archived_sharp_odds(fetched_at);
+CREATE INDEX IF NOT EXISTS idx_sharp_event_id
+    ON archived_sharp_odds(event_id);
 
 CREATE TABLE IF NOT EXISTS archived_kalshi_markets (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
