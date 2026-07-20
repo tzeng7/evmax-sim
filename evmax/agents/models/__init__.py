@@ -8,11 +8,12 @@ Model weights and state files:
   EloModelAgent              weight=0.35  data/models/elo_state.json
   FormModelAgent             weight=0.25  data/models/form_state.json
   PoissonModelAgent          weight=0.30  data/models/poisson_state.json
-  TennisModelAgent           weight=0.45  data/models/tennis_surface_state.json        (tennis only)
-  TennisServeReturnAgent     weight=0.40  data/models/tennis_serve_return_state.json   (tennis only)
+  TennisModelAgent           weight=0.35  data/models/tennis_surface_state.json        (tennis only)
+  TennisServeReturnAgent     weight=0.15  data/models/tennis_serve_return_state.json   (tennis only)
+  TennisFormAgent            weight=0.15  data/models/tennis_form_state.json           (tennis only)
   TennisH2HAgent             weight=0.10  data/models/tennis_h2h_state.json            (tennis only)
   TennisRankingTrendAgent    weight=0.10  data/models/tennis_ranking_trend_state.json  (tennis only)
-  PitcherModelAgent          weight=0.20  data/models/pitcher_state.json               (baseball only)
+  PitcherModelAgent          weight=0.50  data/models/pitcher_v2_state.json            (baseball only)
   UFCRatingAgent             weight=1.0   data/models/ufc_rating_state.json            (ufc only)
 
 Sharp weight (Pinnacle) is separate from the model blend — controlled by sharp_weight

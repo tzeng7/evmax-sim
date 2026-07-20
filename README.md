@@ -718,7 +718,7 @@ Turns the matchup of probable starters into a moneyline prob for MLB game market
 
 > **Why MLB ML has thin value (measured 2026-06):** the model moves only ~+0.3pp off the sharp devig, so ~90% of the apparent edge is a Kalshi-vs-Pinnacle price gap, not model insight. Two avenues to add orthogonal signal were tested and rejected: a bullpen quality/fatigue component (Δ −0.0012 Brier — correlated with Elo+Form, not orthogonal) and ensemble isotonic calibration (overfits a single season; −0.00068 on holdout). Baseball ML is treated as a thin arb, not a model-edge play.
 
-**State file:** `data/models/pitcher_state.json`
+**State file:** `data/models/pitcher_v2_state.json` (the agent's `name` is `pitcher_v2` and the path is derived as `{name}_state.json`; the v1 `pitcher_state.json` is orphaned and read by nothing)
 
 ---
 

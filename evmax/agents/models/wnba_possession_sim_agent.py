@@ -22,7 +22,8 @@ WNBA-specific calibration (vs NBA):
   - Margin σ = 12.5 (NBA: 11.5) — matches WNBA efficiency's SCORE_STDEV
   - Total σ = 18.0 (NBA: 20.0) — 40-min game → lower total variance
   - MIN_GAMES = 4 (NBA: 20) — lowered from 12 once empirical-Bayes shrinkage
-    landed; shrinkage handles the small-sample noise a hard floor used to
+    landed; shrinkage now absorbs the small-sample noise the hard floor used
+    to guard against
   - Playoff tightening disabled — WNBA playoffs not calibrated yet
 
 Returns None for any sector other than "wnba". WNBA moneyline is live
