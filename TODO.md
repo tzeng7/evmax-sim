@@ -438,11 +438,11 @@ No tests for the live in-game model.
 > Skipped for now (your brother's repo — leaving major arch decisions alone).
 > Listed here so they don't get forgotten if/when he wants to tackle them.
 
-### ARCH-1 Dead Code: `pipeline/runner.py` and `models_ml/sharp_only.py` [P2]
-`pipeline/runner.py` is a Phase 1 legacy module. It imports `SharpBooksModel` from `models_ml/sharp_only.py` and the old `PinnacleClient`. Neither is called by any CLI command.
-- Delete `evmax/pipeline/runner.py` (legacy, superseded by coordinator)
-- Delete `evmax/models_ml/sharp_only.py` (legacy placeholder model)
-- Confirm `evmax/clients/pinnacle.py` (TheOddsAPI) is also unused in live path, and if so, archive or delete it
+### ~~ARCH-1 Dead Code: `pipeline/runner.py` and `models_ml/sharp_only.py`~~ [P2] — ✅ DONE
+All three files are gone from the tree; nothing further to delete. Kept for the record:
+- ~~Delete `evmax/pipeline/runner.py` (legacy, superseded by coordinator)~~ — removed
+- ~~Delete `evmax/models_ml/sharp_only.py` (legacy placeholder model)~~ — removed
+- ~~Confirm `evmax/clients/pinnacle.py` (TheOddsAPI) is unused, then archive or delete~~ — removed
 
 ### ARCH-2 Dual Database Architecture Creates Schema Drift [P2]
 Two completely separate storage systems exist:
@@ -635,7 +635,9 @@ The immediate use case is MODEL-9 (NFL props need shadow validation before live)
 ### ARCH-9 Resurrect TheOddsAPI Legacy Client as Paid Fallback [P3]
 **Files:** `evmax/clients/pinnacle.py`, `evmax/agents/odds/sharp_agent.py`, `evmax/models/odds.py`
 
-The legacy `PinnacleClient` at `evmax/clients/pinnacle.py` is a fully-implemented TheOddsAPI wrapper (moneyline + spreads + totals + player props + quota tracking, ~900 lines) that was superseded by `PinnacleGuestClient` but never deleted. It's currently dead code — imported only by the dead `pipeline/runner.py` and by one vestigial `get_quota()` display call in `evmax/cli/commands/agents.py:382` that renders an empty string because `_quota` is never populated.
+> **Premise changed:** this item was written while `evmax/clients/pinnacle.py` still sat in the tree as dead code. It has since been **deleted** (along with `pipeline/runner.py` and the vestigial `get_quota()` call) under ARCH-1. Resurrecting it now means restoring ~900 lines from git history, not un-deleting a file in place — re-cost the item before starting.
+
+The legacy `PinnacleClient` was a fully-implemented TheOddsAPI wrapper (moneyline + spreads + totals + player props + quota tracking, ~900 lines) that was superseded by `PinnacleGuestClient`.
 
 Resurrecting it as a **commercial fallback** when Pinnacle Guest is unavailable is a real option:
 

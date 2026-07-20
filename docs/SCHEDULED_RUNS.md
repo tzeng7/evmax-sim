@@ -55,7 +55,8 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 | `weekly-drift-audit` | Mon 07:56 | This audit — doc↔code drift, SAFE fixes on a branch + PR (spec: `.claude/commands/drift-audit.md`) |
 | `weekly-model-calibration` | Mon 08:07 | `cleanup metrics --weeks 4` + `cleanup adjust` (sharp_weight auto-tune, bounded 0.40–0.95) + shadow metrics review (reports promotion readiness, never promotes) |
 | `weekly-value-audit` | Mon 08:22 | Model-blend VALUE audit — Brier vs sharp/close + CLV per sector, model-side fixes only, propose-only PR (spec: `.claude/commands/value-audit.md`) |
-| `weekly-wnba-listings-robustness-check` | Mon 08:35 | Checks whether the WNBA spread listings-eval game sample has grown enough to re-evaluate the lay-side CLV "edge" for statistical power (read-only tripwire; no promotion) |
+| `weekly-wnba-listings-robustness-check` | Mon 08:35 | Reads the WNBA spread **lay** anchored-entry live shadow gate (`cleanup shadow clv wnba -m spread --side lay --sources-token anchored_entry`) against the n≥30 / mean CLV ≥ 0 / %pos ≥ 55% floor. Silent while n<30; notifies once the sample clears. Read-only tripwire — reports promotion readiness, never promotes |
+| `weekly-wnba-total-anchored-backfill-check` | Mon 08:58 | Re-runs the Kalshi candlestick backfill eval (`scripts/eval_wnba_anchored_backfill.py`) for WNBA **total** over/under, which was underpowered at the 2026-07-19 ship (over n=26, under n=32, both CONTINUE). Speaks up only when either side's verdict turns conclusive (PROMOTE or KILL) |
 | `weekly-tennis-surface-elo-refresh` | Mon 07:15 | Refreshes ALL six tennis models from Tennis Abstract: surface Elo (leaderboards) + serve/return, advanced, form, h2h, ranking_trend (matchmx) |
 
 ### Disabled (kept for reference)
@@ -64,9 +65,9 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 |---|---|
 | `daily-morning-scan` | Disabled 2026-07-02 — the fixed 01:01 scan was replaced by the interleaved `ev-scan-90min-*` pair (rolling 90-min scan + push-notify), which was itself removed (see below) |
 | `daily-updated-scan` | Disabled 2026-07-02 — the fixed 09:05 re-scan was likewise folded into the `ev-scan-90min-*` pair, which was itself removed (see below) |
-| `ev-scan-90min-on-hour` + `ev-scan-90min-half-hour` | Removed (confirmed by user 2026-07-18) — was the rolling ~90-min `evmax agents scan` + PushNotification pair that replaced the two fixed daily scans above; no automated scan currently runs, see the note under Daily |
+| `ev-scan-90min-on-hour` + `ev-scan-90min-half-hour` | Removed (confirmed by user 2026-07-18) — was the rolling ~90-min `evmax agents scan` + PushNotification pair that replaced the two fixed daily scans above. Superseded 2026-07-19 by the three `ev-scan-light-*` tasks in the Daily table |
 | `weekly-nba-props-shadow-metrics` | Disabled 2026-07-01 per user request; re-enable when NBA season restarts if nba_props promotion tracking resumes |
-| `weekly-tennis-rankings-refresh` | Deprecated 2026-06-27 (Sackmann repos offline); ranking_trend now rides the Mon tennis task. Still present as a disabled task — safe to delete the task folder |
+| `weekly-tennis-rankings-refresh` | Deprecated 2026-06-27 (Sackmann repos offline); ranking_trend now rides the Mon tennis task. The `~/.claude/scheduled-tasks/weekly-tennis-rankings-refresh/` folder has since been deleted, but the task is **still registered** (disabled) pointing at the now-missing SKILL.md. Harmless while disabled; delete the registration via the `scheduled-tasks` MCP tools to finish the cleanup |
 
 ---
 
@@ -75,7 +76,7 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 | Agent | Cadence | What it does |
 |---|---|---|
 | `com.evmax.watch-closes` | `StartInterval` 300 s → `--once` per firing | `evmax cleanup watch-closes --lookahead 40 --once` — near-tip Kalshi + Pinnacle close capture so placed-bet CLV has a genuine post-entry anchor. `--lookahead` bumped 30 → 40 on 2026-07-12 so the T-30 close-target window has qualifying snapshots (`get_kalshi_close_price` selects the latest snapshot at or before tipoff−30min). Converted from an always-up loop 2026-07-05: launchd coalesces firings missed during sleep into one run on wake |
-| `com.evmax.watch-listings` | `StartCalendarInterval` Minute=0 (hourly) → `--once` per firing | `evmax cleanup watch-listings --once` — LISTING→scan window capture (all game sectors, spread+total ladders): Kalshi snapshots + order-book depth + as-of Pinnacle anchor. Logs: `logs/launchd.watch-listings.{out,err}`. Converted from an always-up `--interval 3600` loop 2026-07-05: the in-process sleep froze across lid-close/forced sleep (1–17 sweeps/day vs 24 in archive.db), while calendar firings coalesce on wake. Each firing is a fresh process, so code changes are picked up automatically (no `launchctl kickstart` needed) and the cross-loop AsyncLimiter RuntimeWarning is gone. `caffeinate -i` is now per-invocation only |
+| `com.evmax.watch-listings` | `StartCalendarInterval` Minute=0 (hourly) → `--once` per firing | `evmax cleanup watch-listings --once --log-entries` (`--log-entries` added to the plist 2026-07-19 — it is what makes the WNBA anchored-entry shadow stream live; without it the sweep only writes archive.db) — LISTING→scan window capture (all game sectors, spread+total ladders): Kalshi snapshots + order-book depth + as-of Pinnacle anchor. Logs: `logs/launchd.watch-listings.{out,err}`. Converted from an always-up `--interval 3600` loop 2026-07-05: the in-process sleep froze across lid-close/forced sleep (1–17 sweeps/day vs 24 in archive.db), while calendar firings coalesce on wake. Each firing is a fresh process, so code changes are picked up automatically (no `launchctl kickstart` needed) and the cross-loop AsyncLimiter RuntimeWarning is gone. `caffeinate -i` is now per-invocation only |
 | `com.evmax.nba-resolve` | — | STOPPED (plist renamed `.plist.disabled`) — was a no-op in the NBA offseason |
 
 ---
@@ -109,8 +110,13 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
   of two fixed morning runs.
 - **2026-07-18** `ev-scan-90min-on-hour`/`ev-scan-90min-half-hour` removed (confirmed
   intentional by user during the weekly drift audit — the SKILL.md folders were left on
-  disk but deregistered from the scheduler). No automated `evmax agents scan` currently
-  runs; the two fixed scans they replaced remain disabled.
+  disk but deregistered from the scheduler). This left no automated `evmax agents scan`
+  for one day; the two fixed scans they replaced remain disabled.
+- **2026-07-19** the three `ev-scan-light-*` tasks (midday / afternoon / evening) were
+  activated, restoring automated scanning at 3×/day on an evening-weighted cadence. They
+  were held until the soccer sharp-only guard (`MIN_NONSHARP_MODELS`, PR #117) merged,
+  since a scheduled scan running before that guard would have logged sharp-passthrough
+  MLS rows as live plays three times a day.
 - **2026-07-05** both watchers converted from KeepAlive always-up loops
   (`caffeinate -i` + in-process `time.sleep`) to launchd-driven `--once`
   firings (`StartCalendarInterval` hourly for watch-listings, `StartInterval`
