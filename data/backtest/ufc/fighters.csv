@@ -2600,6 +2600,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5324401,Marek Bujlo,1993-10-10,76.0,77.0,Orthodox
 5327626,Allen Frye Jr.,1998-04-15,76.0,80.0,Orthodox
 5327937,Keiichiro Nakamura,1988-12-02,70.0,70.0,Southpaw
+5334916,Anna Melisano,1997-05-20,66.0,70.0,Orthodox
 5338118,Regina Tarin,2004-10-19,67.0,66.0,Southpaw
 5341761,Yi Sak Lee,2000-01-11,72.0,74.0,--
 5344659,Ben Johnston,1990-10-11,76.0,75.0,--
@@ -2609,3 +2610,6 @@ athlete_id,name,dob,height_in,reach_in,stance
 5362337,Shane Collins,2000-03-08,69.0,71.0,Orthodox
 5362725,Jefferson Nascimento,1998-11-19,68.0,70.0,--
 5369414,John Garza,2002-10-30,67.0,68.0,Orthodox
+5369555,RJ Harris,1998-10-01,78.0,80.0,Orthodox
+5369722,Damien Anderson,1997-01-04,68.0,69.0,Southpaw
+5369723,Ezra Elliott,2000-05-18,70.0,72.0,--
