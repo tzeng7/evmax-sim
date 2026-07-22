@@ -4601,7 +4601,7 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 401221827,401233315,UFC Fight Night: Lewis vs. Oleinik,2020-08-09,W Bantamweight,3154898,Yana Santos,3157454,Julija Stoliarenko,a,True,3,5:00,decision,
 401221827,401233316,UFC Fight Night: Lewis vs. Oleinik,2020-08-09,Lightweight,3085551,Beneil Dariush,3025285,Scott Holtzman,a,True,1,4:38,ko_tko,Spinning Back Fist
 401221630,401231040,"Dana White's Contender Series: Season 4, Week 2",2020-08-12,Middleweight,4685871,Dustin Stoltzfus,4684135,Joe Pyfer,a,True,1,4:21,ko_tko,Slam
-401221630,401232277,"Dana White's Contender Series: Season 4, Week 2",2020-08-12,Bantamweight,3998248,Adrian Yanez,4403536,Brady Huang,a,True,1,0:39,ko_tko,
+401221630,401232277,"Dana White's Contender Series: Season 4, Week 2",2020-08-12,Bantamweight,3998248,Adrian Yañez,4403536,Brady Huang,a,True,1,0:39,ko_tko,
 401221630,401232278,"Dana White's Contender Series: Season 4, Week 2",2020-08-12,W Strawweight,4683395,Vanessa Demopoulos,4565671,Cory McKenna,b,True,3,5:00,decision,
 401221630,401232279,"Dana White's Contender Series: Season 4, Week 2",2020-08-12,Featherweight,4422029,TJ Laramie,2990078,Daniel Swain,a,True,1,5:00,ko_tko,
 401221630,401235374,"Dana White's Contender Series: Season 4, Week 2",2020-08-12,Middleweight,4359111,Anthony Adams,4573208,Impa Kasanganay,b,True,3,5:00,decision,
@@ -4753,7 +4753,7 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 401221918,401251596,UFC 254: Khabib vs. Gaethje,2020-10-24,Lightweight,4411888,Joel Álvarez,2950951,Alexander Yakovlev,a,True,1,3:00,submission,Armbar
 401223930,401248338,UFC Fight Night: Hall vs. Silva,2020-10-31,Middleweight,2553996,Uriah Hall,2335447,Anderson Silva,a,True,4,1:24,ko_tko,Punches
 401223930,401248340,UFC Fight Night: Hall vs. Silva,2020-10-31,Light Heavyweight,2594871,Dustin Jacoby,3997109,Justin Ledet,a,True,1,2:38,ko_tko,Punch
-401223930,401248341,UFC Fight Night: Hall vs. Silva,2020-10-31,Bantamweight,3998248,Adrian Yanez,4700271,Victor Rodriguez,a,True,1,2:46,ko_tko,Kick
+401223930,401248341,UFC Fight Night: Hall vs. Silva,2020-10-31,Bantamweight,3998248,Adrian Yañez,4700271,Victor Rodriguez,a,True,1,2:46,ko_tko,Kick
 401223930,401252314,UFC Fight Night: Hall vs. Silva,2020-10-31,Featherweight,3953381,Bryce Mitchell,3074464,Andre Fili,a,True,3,5:00,decision,
 401223930,401252315,UFC Fight Night: Hall vs. Silva,2020-10-31,Middleweight,3943695,Kevin Holland,3099958,Charlie Ontiveros,a,True,1,2:39,submission,Injury
 401223930,401252316,UFC Fight Night: Hall vs. Silva,2020-10-31,Heavyweight,3154884,Maurice Greene,2220951,Greg Hardy,b,True,2,1:12,ko_tko,Punches
@@ -7521,7 +7521,7 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600055031,401819854,"Dana White's Contender Series: Season 9, Week 6",2025-09-17,Middleweight,5293566,In Soo Hwang,5109011,Paddy McCorry,b,True,3,5:00,decision,
 600055032,401794770,"Dana White's Contender Series: Season 9, Week 7",2025-09-24,Middleweight,5282616,Djani Barbir,5264925,Mantas Kondratavičius,b,True,1,1:06,ko_tko,Punch
 600055032,401823573,"Dana White's Contender Series: Season 9, Week 7",2025-09-24,Featherweight,4916608,Brahyam Zurcher,5308768,Murtazali Magomedov,b,True,1,1:37,ko_tko,Punch
-600055032,401823574,"Dana White's Contender Series: Season 9, Week 7",2025-09-24,W Flyweight,5308769,Jeisla Chaves,5308770,Sofia Montenegro,a,True,3,5:00,,
+600055032,401823574,"Dana White's Contender Series: Season 9, Week 7",2025-09-24,W Flyweight,5308769,Jeisla Chaves,5308770,Sofia Montenegro,a,True,3,5:00,decision,
 600055032,401823575,"Dana White's Contender Series: Season 9, Week 7",2025-09-24,Featherweight,5277050,Justice Torres,4687104,Javier Reyes,b,True,1,2:32,ko_tko,Knee
 600055032,401823576,"Dana White's Contender Series: Season 9, Week 7",2025-09-24,Light Heavyweight,5308871,Rafael Tobias,5308872,Jair de Oliveira,a,True,1,3:46,submission,Rear Naked Choke
 600055226,401801746,UFC Fight Night: Ulberg vs. Reyes,2025-09-27,W Strawweight,4292347,Loma Lookboonmee,5075992,Alexia Thainara,b,True,3,5:00,decision,
@@ -7954,7 +7954,20 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600059148,401874061,UFC 329: McGregor vs. Holloway 2,2026-07-11,Middleweight,5291085,Ryan Gandra,5143223,Zach Reese,a,True,1,1:15,ko_tko,Punch
 600059148,401883599,UFC 329: McGregor vs. Holloway 2,2026-07-11,Flyweight,5074121,Alessandro Costa,4686725,Cody Durden,a,True,2,2:19,submission,Rear Naked Choke
 600059148,401886658,UFC 329: McGregor vs. Holloway 2,2026-07-11,Bantamweight,5016786,Farid Basharat,5369414,John Garza,a,True,3,5:00,decision,
-600059148,401873374,UFC 329: McGregor vs. Holloway 2,2026-07-12,Lightweight,4895362,Benoît Saint Denis,4008549,Paddy Pimblett,b,True,1,4:18,submission,D'Arce Choke
+600059148,401867788,UFC 329: McGregor vs. Holloway 2,2026-07-12,Welterweight,3022677,Conor McGregor,2614933,Max Holloway,b,True,1,1:09,ko_tko,Injury
+600059148,401873374,UFC 329: McGregor vs. Holloway 2,2026-07-12,Lightweight,4895362,Benoît Saint Denis,4008549,Paddy Pimblett,b,True,1,0:52,submission,D'Arce Choke
 600059148,401873375,UFC 329: McGregor vs. Holloway 2,2026-07-12,Bantamweight,4294504,Cory Sandhagen,4410868,Mario Bautista,b,True,3,5:00,decision,
 600059148,401873376,UFC 329: McGregor vs. Holloway 2,2026-07-12,Flyweight,4239928,Brandon Royval,5147737,Lone'er Kavanagh,a,True,3,3:40,submission,Rear Naked Choke
 600059148,401881161,UFC 329: McGregor vs. Holloway 2,2026-07-12,Lightweight,2502364,King Green,4425604,Terrance McKinney,a,True,1,4:59,ko_tko,Punch
+600059599,401879057,UFC Fight Night: Du Plessis vs. Usman,2026-07-18,Flyweight,5099732,Alden Coria,5218177,Stewart Nicoll,a,True,3,5:00,decision,
+600059599,401881164,UFC Fight Night: Du Plessis vs. Usman,2026-07-18,Featherweight,5120304,Austin Bashi,5223435,Jose Miguel Delgado,b,True,3,5:00,decision,
+600059599,401881166,UFC Fight Night: Du Plessis vs. Usman,2026-07-18,Light Heavyweight,5312089,Levi Rodrigues Jr.,5292014,Felipe Franco,b,True,2,1:40,ko_tko,Punches
+600059599,401886726,UFC Fight Night: Du Plessis vs. Usman,2026-07-18,Welterweight,4629138,Jean-Paul Lebosnoyani,4701954,Seokhyeon Ko,a,True,3,5:00,decision,
+600059599,401889641,UFC Fight Night: Du Plessis vs. Usman,2026-07-18,Heavyweight,5369555,RJ Harris,5229339,Alvin Hines,a,True,1,1:40,ko_tko,Punch
+600059599,401889642,UFC Fight Night: Du Plessis vs. Usman,2026-07-18,W Flyweight,5334916,Anna Melisano,4801725,Dione Barbosa,b,True,1,4:04,submission,Rear Naked Choke
+600059599,401892260,UFC Fight Night: Du Plessis vs. Usman,2026-07-18,Featherweight,5369723,Ezra Elliott,5369722,Damien Anderson,a,True,3,5:00,decision,
+600059599,401872218,UFC Fight Night: Du Plessis vs. Usman,2026-07-19,Middleweight,3166126,Dricus Du Plessis,3088812,Kamaru Usman,a,True,5,5:00,decision,
+600059599,401874062,UFC Fight Night: Du Plessis vs. Usman,2026-07-19,Middleweight,3154860,Jared Cannonier,4848674,Christian Leroy Duncan,b,True,3,5:00,decision,
+600059599,401874064,UFC Fight Night: Du Plessis vs. Usman,2026-07-19,Lightweight,4354421,Chase Hooper,4816283,Mitch Ramirez,a,True,1,2:15,submission,Rear Naked Choke
+600059599,401881163,UFC Fight Night: Du Plessis vs. Usman,2026-07-19,Featherweight,5212849,Tommy McMillen,4571450,Alberto Montes,a,True,3,3:29,ko_tko,Punches
+600059599,401881165,UFC Fight Night: Du Plessis vs. Usman,2026-07-19,W Strawweight,4868095,Tabatha Ricci,5028019,Fatima Kline,b,True,3,5:00,decision,
