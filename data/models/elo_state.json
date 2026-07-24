@@ -8367,65 +8367,65 @@
       "yankees": 1498.41,
       "astros": 1500.12,
       "red sox": 1522.36,
-      "twins": 1472.42,
-      "rays": 1486.85,
+      "twins": 1476.24,
+      "rays": 1484.22,
       "mets": 1514.14,
-      "tigers": 1496.23,
+      "tigers": 1499.2,
       "phillies": 1482.75,
       "orioles": 1506.41,
       "pirates": 1493.68,
-      "braves": 1479.2,
-      "blue jays": 1512.19,
-      "cardinals": 1500.76,
+      "braves": 1482.36,
+      "blue jays": 1514.82,
+      "cardinals": 1496.64,
       "nationals": 1510.2,
       "cubs": 1509.86,
-      "guardians": 1518.24,
+      "guardians": 1514.42,
       "reds": 1488.48,
-      "padres": 1514.02,
+      "padres": 1510.86,
       "dodgers": 1541.44,
       "giants": 1557.1,
       "angels": 1485.54,
       "athletics": 1473.9,
       "mariners": 1485.28,
       "white sox": 1498.39,
-      "diamondbacks": 1491.44,
+      "diamondbacks": 1495.56,
       "rockies": 1469.99,
       "brewers": 1528.53,
       "rangers": 1493.23,
       "marlins": 1461.67,
-      "royals": 1507.17
+      "royals": 1504.2
     },
     "game_counts": {
       "yankees": 66,
       "astros": 61,
       "red sox": 63,
-      "twins": 65,
-      "rays": 63,
+      "twins": 66,
+      "rays": 64,
       "mets": 62,
-      "tigers": 69,
+      "tigers": 70,
       "phillies": 66,
       "orioles": 59,
       "pirates": 64,
-      "braves": 60,
-      "blue jays": 78,
-      "cardinals": 59,
+      "braves": 61,
+      "blue jays": 79,
+      "cardinals": 60,
       "nationals": 63,
       "cubs": 69,
-      "guardians": 67,
+      "guardians": 68,
       "reds": 62,
-      "padres": 63,
+      "padres": 64,
       "dodgers": 78,
       "giants": 60,
       "angels": 66,
       "athletics": 61,
       "mariners": 72,
       "white sox": 64,
-      "diamondbacks": 63,
+      "diamondbacks": 64,
       "rockies": 57,
       "brewers": 73,
       "rangers": 65,
       "marlins": 63,
-      "royals": 63
+      "royals": 64
     },
     "h2h": {
       "blue jays::white sox": {
@@ -8500,13 +8500,13 @@
       },
       "cardinals::diamondbacks": {
         "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
+        "b_wins": 2,
+        "games": 2
       },
       "guardians::twins": {
         "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
+        "b_wins": 1,
+        "games": 3
       },
       "dodgers::phillies": {
         "a_wins": 1,
@@ -8519,9 +8519,9 @@
         "games": 1
       },
       "blue jays::rays": {
-        "a_wins": 0,
+        "a_wins": 1,
         "b_wins": 2,
-        "games": 2
+        "games": 3
       },
       "orioles::red sox": {
         "a_wins": 0,
@@ -8529,9 +8529,9 @@
         "games": 1
       },
       "braves::padres": {
-        "a_wins": 1,
+        "a_wins": 2,
         "b_wins": 1,
-        "games": 2
+        "games": 3
       },
       "brewers::mets": {
         "a_wins": 1,
@@ -8577,41 +8577,46 @@
         "a_wins": 2,
         "b_wins": 0,
         "games": 2
+      },
+      "royals::tigers": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
       }
     },
     "season_games": {
       "yankees": 2,
       "astros": 3,
       "red sox": 2,
-      "twins": 3,
-      "rays": 3,
+      "twins": 4,
+      "rays": 4,
       "mets": 3,
-      "tigers": 3,
+      "tigers": 4,
       "phillies": 3,
       "orioles": 2,
       "pirates": 2,
-      "braves": 3,
-      "blue jays": 3,
-      "cardinals": 3,
+      "braves": 4,
+      "blue jays": 4,
+      "cardinals": 4,
       "nationals": 3,
       "cubs": 3,
-      "guardians": 3,
+      "guardians": 4,
       "reds": 3,
-      "padres": 3,
+      "padres": 4,
       "dodgers": 3,
       "giants": 3,
       "angels": 3,
       "athletics": 3,
       "mariners": 3,
       "white sox": 3,
-      "diamondbacks": 3,
+      "diamondbacks": 4,
       "rockies": 3,
       "brewers": 3,
       "rangers": 3,
       "marlins": 3,
-      "royals": 3
+      "royals": 4
     },
-    "last_updated": "2026-07-21"
+    "last_updated": "2026-07-23"
   },
   "ncaab": {
     "ratings": {
