@@ -11,6 +11,13 @@ runs, so wiring it into the resolve cron keeps in-season blends fresh instead
 of decaying to sharp-passthrough once form's STALE_DAYS guard renormalizes a
 sector's contribution away.
 
+Idempotency — because both callers exist, a daily run of `update scores`
+followed by `cleanup resolve --date D` used to feed every game of date D into
+Elo/Form/Poisson TWICE (the in-loop `processed` set only dedups within one
+invocation). Each applied game is now recorded in the `applied_model_games`
+table and skipped on a later pass. `force=True` overrides, for a deliberate
+re-derivation onto state that does not already contain the games.
+
 Module-level imports of `fetch_completed_scores` / `_slug_teams` /
 `_fuzzy_team_match` / `get_connection` are deliberate: the established test
 idiom is `patch.object(model_updater, "fetch_completed_scores", ...)` and
@@ -54,8 +61,9 @@ class GameUpdate:
     team_b: str
     score_a: int
     score_b: int
-    applied: bool        # False under dry_run / on error
+    applied: bool        # False under dry_run / on error / when already applied
     error: Optional[str] = None
+    already_applied: bool = False   # skipped: this game is already in model state
 
 
 @dataclass
@@ -64,6 +72,40 @@ class UpdateResult:
 
     games: list[GameUpdate]
     updated: int         # number of games actually fed into the models
+    skipped: int = 0     # games skipped because they were already applied
+
+
+def _load_applied_keys(conn, sector: str, target_date: date) -> set[tuple[str, str]]:
+    """Return the (team_a, team_b) pairs already fed into state for this sector+date.
+
+    Tolerates a missing `applied_model_games` table so a pre-existing database
+    (or a hand-rolled test connection) degrades to "no ledger" instead of
+    raising. `get_connection` re-runs SCHEMA on every open, so production
+    always has the table.
+    """
+    try:
+        rows = conn.execute(
+            """SELECT team_a, team_b FROM applied_model_games
+               WHERE sector = ? AND event_date = ?""",
+            (sector, target_date.isoformat()),
+        ).fetchall()
+    except Exception as exc:  # noqa: BLE001 — missing table must not abort the run
+        logger.debug("applied_games_ledger_unavailable", sector=sector, error=str(exc))
+        return set()
+    return {(r["team_a"], r["team_b"]) for r in rows}
+
+
+def _record_applied(conn, sector: str, target_date: date, team_a: str, team_b: str) -> None:
+    """Mark one game as fed into model state. Best-effort; never aborts a run."""
+    try:
+        conn.execute(
+            """INSERT OR IGNORE INTO applied_model_games (sector, event_date, team_a, team_b)
+               VALUES (?, ?, ?, ?)""",
+            (sector, target_date.isoformat(), team_a, team_b),
+        )
+        conn.commit()
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("applied_games_record_failed", sector=sector, error=str(exc))
 
 
 async def update_models_for_date(
@@ -72,6 +114,7 @@ async def update_models_for_date(
     coordinator=None,
     *,
     dry_run: bool = False,
+    force: bool = False,
 ) -> UpdateResult:
     """Feed all completed ESPN scores for `target_date` into the model agents.
 
@@ -88,9 +131,16 @@ async def update_models_for_date(
             fresh `AgentCoordinator(sectors=..., enable_models=True)` is built.
         dry_run: when True, no model state is mutated — games are still returned
             with `applied=False` so callers can preview.
+        force: re-apply games even when the `applied_model_games` ledger already
+            records them. Off by default: `evmax update scores` and the
+            `evmax cleanup resolve` hook both call this function, so without the
+            ledger a daily run of both double-counts every game into Elo/Form/
+            Poisson. Use only for a deliberate re-derivation onto a state file
+            that does not already contain the games.
 
     Returns:
-        UpdateResult with the per-game list and the count actually applied.
+        UpdateResult with the per-game list, the count actually applied, and the
+        count skipped as already-applied.
     """
     if coordinator is None:
         from evmax.agents.coordinator import AgentCoordinator
@@ -99,115 +149,131 @@ async def update_models_for_date(
 
     games: list[GameUpdate] = []
     updated = 0
+    skipped = 0
 
     for sector in sectors:
         scores = await fetch_completed_scores(sector, target_date)
         if not scores:
             continue
 
-        # Load this sector+date's event_ids so we can recover canonical slug
-        # team names (consistent with seeded model state).
+        # Held open for the whole sector: the applied-games ledger is written
+        # as each game lands, not in a second pass.
         conn = get_connection()
         try:
+            # Load this sector+date's event_ids so we can recover canonical slug
+            # team names (consistent with seeded model state).
             db_rows = conn.execute(
                 """SELECT DISTINCT event_id FROM ev_predictions
                    WHERE sector = ? AND event_date = ?""",
                 (sector, target_date.isoformat()),
             ).fetchall()
+            applied_keys = _load_applied_keys(conn, sector, target_date)
+
+            normalizer = NameNormalizer(sector)
+            processed: set[tuple[str, str]] = set()
+
+            for score in scores:
+                home_n = score["home_name"]
+                away_n = score["away_name"]
+                home_s = int(score["home_score"])
+                away_s = int(score["away_score"])
+
+                # Default to normalizer slugs; upgrade to DB slug names on a match.
+                team_a = normalizer.normalize(home_n) or home_n.lower()
+                team_b = normalizer.normalize(away_n) or away_n.lower()
+
+                for row in db_rows:
+                    slug_a, slug_b = _slug_teams(row["event_id"])
+                    if not slug_a:
+                        continue
+                    if (
+                        _fuzzy_team_match(slug_a, home_n) >= FUZZY_THRESHOLD
+                        and _fuzzy_team_match(slug_b, away_n) >= FUZZY_THRESHOLD
+                    ):
+                        team_a = slug_a
+                        team_b = slug_b
+                        break
+
+                key = (team_a, team_b)
+                if key in processed:
+                    continue
+                processed.add(key)
+
+                game = GameUpdate(
+                    sector=sector,
+                    home_name=home_n,
+                    away_name=away_n,
+                    team_a=team_a,
+                    team_b=team_b,
+                    score_a=home_s,
+                    score_b=away_s,
+                    applied=False,
+                )
+
+                # Already in model state from an earlier pass over this date —
+                # re-applying would double-count the result into Elo/Form/Poisson.
+                if key in applied_keys and not force:
+                    game.already_applied = True
+                    skipped += 1
+                    games.append(game)
+                    continue
+
+                if not dry_run:
+                    try:
+                        coordinator.update_models(
+                            team_a=team_a,
+                            team_b=team_b,
+                            score_a=home_s,
+                            score_b=away_s,
+                            sector=sector,
+                            event_date=target_date.isoformat(),
+                        )
+                        game.applied = True
+                        updated += 1
+
+                        # Feed shot stats into xG agent (soccer + national-team WC,
+                        # both of which carry shotsOnTarget/totalShots from ESPN).
+                        if sector in ("soccer", "worldcup"):
+                            home_sot = score.get("home_sot")
+                            away_sot = score.get("away_sot")
+                            home_shots = score.get("home_shots")
+                            away_shots = score.get("away_shots")
+                            if all(
+                                v is not None
+                                for v in (home_sot, away_sot, home_shots, away_shots)
+                            ):
+                                xg = coordinator.soccer_xg_agent
+                                xg.record_match(
+                                    team=team_a, goals_for=home_s, goals_against=away_s,
+                                    shots_on_target=home_sot, total_shots=home_shots,
+                                    opponent_sot=away_sot, opponent_shots=away_shots,
+                                    match_date=target_date.isoformat(), is_home=True,
+                                    sector=sector,
+                                )
+                                xg.record_match(
+                                    team=team_b, goals_for=away_s, goals_against=home_s,
+                                    shots_on_target=away_sot, total_shots=away_shots,
+                                    opponent_sot=home_sot, opponent_shots=home_shots,
+                                    match_date=target_date.isoformat(), is_home=False,
+                                    sector=sector,
+                                )
+                                xg.save_state()
+
+                        # Ledger the game only after the state mutation succeeded,
+                        # so a failed game stays eligible for a later retry.
+                        _record_applied(conn, sector, target_date, team_a, team_b)
+                    except Exception as exc:  # noqa: BLE001 — one bad game must not abort the run
+                        game.error = str(exc)
+                        logger.warning(
+                            "model_update_game_failed",
+                            sector=sector,
+                            team_a=team_a,
+                            team_b=team_b,
+                            error=str(exc),
+                        )
+
+                games.append(game)
         finally:
             conn.close()
 
-        normalizer = NameNormalizer(sector)
-        processed: set[tuple[str, str]] = set()
-
-        for score in scores:
-            home_n = score["home_name"]
-            away_n = score["away_name"]
-            home_s = int(score["home_score"])
-            away_s = int(score["away_score"])
-
-            # Default to normalizer slugs; upgrade to DB slug names on a match.
-            team_a = normalizer.normalize(home_n) or home_n.lower()
-            team_b = normalizer.normalize(away_n) or away_n.lower()
-
-            for row in db_rows:
-                slug_a, slug_b = _slug_teams(row["event_id"])
-                if not slug_a:
-                    continue
-                if (
-                    _fuzzy_team_match(slug_a, home_n) >= FUZZY_THRESHOLD
-                    and _fuzzy_team_match(slug_b, away_n) >= FUZZY_THRESHOLD
-                ):
-                    team_a = slug_a
-                    team_b = slug_b
-                    break
-
-            key = (team_a, team_b)
-            if key in processed:
-                continue
-            processed.add(key)
-
-            game = GameUpdate(
-                sector=sector,
-                home_name=home_n,
-                away_name=away_n,
-                team_a=team_a,
-                team_b=team_b,
-                score_a=home_s,
-                score_b=away_s,
-                applied=False,
-            )
-
-            if not dry_run:
-                try:
-                    coordinator.update_models(
-                        team_a=team_a,
-                        team_b=team_b,
-                        score_a=home_s,
-                        score_b=away_s,
-                        sector=sector,
-                        event_date=target_date.isoformat(),
-                    )
-                    game.applied = True
-                    updated += 1
-
-                    # Feed shot stats into xG agent (soccer + national-team WC,
-                    # both of which carry shotsOnTarget/totalShots from ESPN).
-                    if sector in ("soccer", "worldcup"):
-                        home_sot = score.get("home_sot")
-                        away_sot = score.get("away_sot")
-                        home_shots = score.get("home_shots")
-                        away_shots = score.get("away_shots")
-                        if all(
-                            v is not None
-                            for v in (home_sot, away_sot, home_shots, away_shots)
-                        ):
-                            xg = coordinator.soccer_xg_agent
-                            xg.record_match(
-                                team=team_a, goals_for=home_s, goals_against=away_s,
-                                shots_on_target=home_sot, total_shots=home_shots,
-                                opponent_sot=away_sot, opponent_shots=away_shots,
-                                match_date=target_date.isoformat(), is_home=True,
-                                sector=sector,
-                            )
-                            xg.record_match(
-                                team=team_b, goals_for=away_s, goals_against=home_s,
-                                shots_on_target=away_sot, total_shots=away_shots,
-                                opponent_sot=home_sot, opponent_shots=home_shots,
-                                match_date=target_date.isoformat(), is_home=False,
-                                sector=sector,
-                            )
-                            xg.save_state()
-                except Exception as exc:  # noqa: BLE001 — one bad game must not abort the run
-                    game.error = str(exc)
-                    logger.warning(
-                        "model_update_game_failed",
-                        sector=sector,
-                        team_a=team_a,
-                        team_b=team_b,
-                        error=str(exc),
-                    )
-
-            games.append(game)
-
-    return UpdateResult(games=games, updated=updated)
+    return UpdateResult(games=games, updated=updated, skipped=skipped)

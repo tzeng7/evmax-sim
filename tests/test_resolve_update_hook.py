@@ -98,7 +98,9 @@ def _runner_returning(*returns):
 
 def test_resolve_runs_update_hook_by_default():
     resolve_ret = {"resolved": 0, "failed": 0, "unmatched": []}
-    hook_ret = type("R", (), {"updated": 2})()
+    # `skipped` mirrors UpdateResult's applied-games-ledger field; the hook
+    # renders it, so the stub must carry it.
+    hook_ret = type("R", (), {"updated": 2, "skipped": 0})()
     run = _runner_returning(resolve_ret, hook_ret)
 
     with patch.object(cleanup_cmd.asyncio, "run", side_effect=run) as mock_run, \
