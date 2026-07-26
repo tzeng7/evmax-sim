@@ -23,11 +23,14 @@ import pytest
 from evmax.agents.cleanup import model_updater
 
 
-def _empty_conn():
+def _empty_conn(with_ledger: bool = True):
     """In-memory DB with the ev_predictions table but no rows.
 
     No DB match → the updater falls back to NameNormalizer slugs, which is the
     common path for sectors with no logged predictions on the date.
+
+    `with_ledger=False` omits `applied_model_games` to exercise the tolerant
+    path for databases that predate the idempotency guard.
     """
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
@@ -39,6 +42,18 @@ def _empty_conn():
             event_date TEXT
         )"""
     )
+    if with_ledger:
+        conn.execute(
+            """CREATE TABLE applied_model_games (
+                id INTEGER PRIMARY KEY,
+                applied_at TEXT DEFAULT (datetime('now')),
+                sector TEXT NOT NULL,
+                event_date TEXT NOT NULL,
+                team_a TEXT NOT NULL,
+                team_b TEXT NOT NULL,
+                UNIQUE(sector, event_date, team_a, team_b)
+            )"""
+        )
     return conn
 
 
@@ -213,3 +228,163 @@ def test_threshold_constant_is_65():
     # Importing resolver.FUZZY_THRESHOLD (72) instead of keeping the local 65
     # would silently change dedup/match behavior — pin it here.
     assert model_updater.FUZZY_THRESHOLD == 65
+
+
+# ---------------------------------------------------------------------------
+# Applied-games ledger (idempotency guard)
+#
+# `evmax update scores` and the `evmax cleanup resolve` hook both call
+# update_models_for_date. Before the ledger, a daily run of both fed every game
+# of that date into Elo/Form/Poisson twice — the in-loop `processed` set only
+# dedups within a single invocation. Observed live: PR #128 recorded 72 game
+# increments for a 36-game slate, PR #130 recorded 30 for 15.
+# ---------------------------------------------------------------------------
+
+
+def _conn_factory(tmp_path, with_ledger: bool = True):
+    """Open a fresh connection to one on-disk DB per call.
+
+    Mirrors production `get_connection`, which opens (and closes) a new
+    connection per sector. An in-memory DB cannot be used here: the updater
+    closes the connection when a sector finishes, so state must outlive it.
+    """
+    db = tmp_path / "predictions.db"
+    seed = sqlite3.connect(str(db))
+    seed.execute(
+        """CREATE TABLE ev_predictions (
+            id INTEGER PRIMARY KEY, event_id TEXT, sector TEXT, event_date TEXT
+        )"""
+    )
+    if with_ledger:
+        seed.execute(
+            """CREATE TABLE applied_model_games (
+                id INTEGER PRIMARY KEY,
+                applied_at TEXT DEFAULT (datetime('now')),
+                sector TEXT NOT NULL,
+                event_date TEXT NOT NULL,
+                team_a TEXT NOT NULL,
+                team_b TEXT NOT NULL,
+                UNIQUE(sector, event_date, team_a, team_b)
+            )"""
+        )
+    seed.commit()
+    seed.close()
+
+    def _open():
+        conn = sqlite3.connect(str(db))
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    return _open
+
+
+def _run(scores, coord, opener, **kwargs):
+    with patch.object(model_updater, "fetch_completed_scores", return_value=scores), \
+         patch.object(model_updater, "get_connection", side_effect=opener):
+        return asyncio.run(
+            model_updater.update_models_for_date(
+                ["nba"], date(2026, 6, 9), coordinator=coord, **kwargs
+            )
+        )
+
+
+def test_second_pass_over_same_date_does_not_reapply(tmp_path):
+    """The regression: update scores + cleanup resolve must feed a game once."""
+    opener = _conn_factory(tmp_path)
+    scores = [_score("Boston Celtics", "Miami Heat", 110, 102)]
+
+    coord = MagicMock()
+    first = _run(scores, coord, opener)
+    assert first.updated == 1
+    assert first.skipped == 0
+    assert coord.update_models.call_count == 1
+
+    coord2 = MagicMock()
+    second = _run(scores, coord2, opener)
+    assert second.updated == 0
+    assert second.skipped == 1
+    assert coord2.update_models.call_count == 0, "game was fed into model state twice"
+    assert second.games[0].already_applied is True
+    assert second.games[0].applied is False
+
+
+def test_force_reapplies_an_already_ledgered_game(tmp_path):
+    opener = _conn_factory(tmp_path)
+    scores = [_score("Boston Celtics", "Miami Heat", 110, 102)]
+
+    _run(scores, MagicMock(), opener)
+
+    coord = MagicMock()
+    result = _run(scores, coord, opener, force=True)
+    assert result.updated == 1
+    assert result.skipped == 0
+    assert coord.update_models.call_count == 1
+
+
+def test_ledger_is_keyed_per_date_and_sector(tmp_path):
+    """A game on a later date is a different key — it must still be applied."""
+    opener = _conn_factory(tmp_path)
+    scores = [_score("Boston Celtics", "Miami Heat", 110, 102)]
+    _run(scores, MagicMock(), opener)
+
+    coord = MagicMock()
+    with patch.object(model_updater, "fetch_completed_scores", return_value=scores), \
+         patch.object(model_updater, "get_connection", side_effect=opener):
+        result = asyncio.run(
+            model_updater.update_models_for_date(
+                ["nba"], date(2026, 6, 10), coordinator=coord
+            )
+        )
+    assert result.updated == 1
+    assert coord.update_models.call_count == 1
+
+
+def test_dry_run_does_not_write_the_ledger(tmp_path):
+    """A preview must not make the subsequent real run a no-op."""
+    opener = _conn_factory(tmp_path)
+    scores = [_score("Boston Celtics", "Miami Heat", 110, 102)]
+
+    _run(scores, MagicMock(), opener, dry_run=True)
+
+    coord = MagicMock()
+    result = _run(scores, coord, opener)
+    assert result.updated == 1
+    assert coord.update_models.call_count == 1
+
+
+def test_failed_game_is_not_ledgered_and_stays_retryable(tmp_path):
+    """update_models raising must leave the game eligible for a later retry."""
+    opener = _conn_factory(tmp_path)
+    scores = [_score("Boston Celtics", "Miami Heat", 110, 102)]
+
+    failing = MagicMock()
+    failing.update_models.side_effect = RuntimeError("ESPN blew up")
+    first = _run(scores, failing, opener)
+    assert first.updated == 0
+    assert first.games[0].error == "ESPN blew up"
+
+    coord = MagicMock()
+    retry = _run(scores, coord, opener)
+    assert retry.updated == 1
+    assert retry.skipped == 0
+    assert coord.update_models.call_count == 1
+
+
+def test_missing_ledger_table_degrades_to_no_guard(tmp_path):
+    """A database predating the guard must still update, not raise."""
+    opener = _conn_factory(tmp_path, with_ledger=False)
+    scores = [_score("Boston Celtics", "Miami Heat", 110, 102)]
+
+    coord = MagicMock()
+    result = _run(scores, coord, opener)
+    assert result.updated == 1
+    assert result.skipped == 0
+    assert coord.update_models.call_count == 1
+
+
+def test_ledger_table_is_in_the_shipped_schema():
+    """get_connection must create applied_model_games, or the guard is inert."""
+    from evmax.agents.cleanup import db as cleanup_db
+
+    assert "applied_model_games" in cleanup_db.SCHEMA
+    assert "UNIQUE(sector, event_date, team_a, team_b)" in cleanup_db.SCHEMA

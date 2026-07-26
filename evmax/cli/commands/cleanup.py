@@ -315,9 +315,12 @@ def resolve(
             from evmax.agents.cleanup.model_updater import update_models_for_date
 
             upd = asyncio.run(update_models_for_date(_UPDATE_HOOK_SECTORS, d))
+            skipped_note = (
+                f", {upd.skipped} already fed" if upd.skipped else ""
+            )
             console.print(
                 f"  [green]Model state refreshed:[/green] {upd.updated} game(s) "
-                f"across {len(_UPDATE_HOOK_SECTORS)} sector(s)"
+                f"across {len(_UPDATE_HOOK_SECTORS)} sector(s){skipped_note}"
             )
         except Exception as _upd_err:
             console.print(

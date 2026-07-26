@@ -331,7 +331,10 @@ evmax arb scan [--sectors S,T] [--max-cost 1.02] [--include-in-play] [--include-
 # Next morning — resolve yesterday's outcomes
 # (resolve also feeds the date's completed ESPN scores into elo/form/poisson/xg
 #  state for the 7 game sectors — pass --no-update-models to skip. This is what
-#  keeps model state fresh; `evmax update scores` remains for manual backfills.)
+#  keeps model state fresh; `evmax update scores` remains for manual backfills.
+#  Running BOTH on the same date is safe as of 2026-07-25: the applied_model_games
+#  ledger skips games already fed, so the second pass is a no-op instead of
+#  double-counting every result. See the Predictions DB Schema section.)
 evmax cleanup resolve --date YYYY-MM-DD
 evmax archive resolve --date YYYY-MM-DD
 
@@ -451,7 +454,9 @@ flowchart TD
 
 ### Predictions DB Schema
 
-`data/predictions.db` (SQLite) has three tables. The join key is **`market_id`** across all three. Schema authoritatively defined in `evmax/agents/cleanup/db.py`.
+`data/predictions.db` (SQLite) has three market-facing tables joined on **`market_id`**, plus the `applied_model_games` bookkeeping table (no join key — see below). Schema authoritatively defined in `evmax/agents/cleanup/db.py`.
+
+**`applied_model_games` (added 2026-07-25)** — one row per `(sector, event_date, team_a, team_b)` already fed into elo/form/poisson/soccer_xg state. Both `evmax update scores` and the `evmax cleanup resolve` model hook call the same `update_models_for_date`, and the in-loop `processed` set only dedups *within* one invocation — so a daily task running both used to feed every game into the models **twice** (measured: PR #128 logged 72 game increments for a 36-game slate, PR #130 logged 30 for 15). `update_models_for_date` now skips ledgered games and reports them as `UpdateResult.skipped`; `--force` (CLI) / `force=True` re-applies, for a deliberate re-derivation onto state that does not already contain the games. A game is ledgered only *after* its state mutation succeeds, so a failed game stays retryable. Missing table degrades to "no ledger" rather than raising, for databases predating the guard.
 
 ```mermaid
 erDiagram

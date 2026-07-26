@@ -41,6 +41,15 @@ def update_scores(
         "--dry-run",
         help="Show what would be updated without actually updating models.",
     ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help=(
+            "Re-apply games already recorded in the applied-games ledger. "
+            "Only for a deliberate re-derivation onto state that does not "
+            "already contain them — otherwise this double-counts results."
+        ),
+    ),
 ) -> None:
     """Fetch ESPN completed scores and feed results into Elo/Form/Poisson models."""
     if target_date:
@@ -58,16 +67,18 @@ def update_scores(
         f"\n[bold cyan]evmax update scores[/bold cyan] — "
         f"date: {fetch_date}  sectors: {', '.join(sector_list)}"
         + ("  [yellow](dry run)[/yellow]" if dry_run else "")
+        + ("  [red](force)[/red]" if force else "")
         + "\n"
     )
 
-    asyncio.run(_run_update(sector_list, fetch_date, dry_run))
+    asyncio.run(_run_update(sector_list, fetch_date, dry_run, force))
 
 
 async def _run_update(
     sector_list: list[str],
     fetch_date: date,
     dry_run: bool,
+    force: bool = False,
 ) -> None:
     """Thin CLI wrapper: run the shared updater, render its results as a table.
 
@@ -87,7 +98,9 @@ async def _run_update(
     table.add_column("Score", justify="center", width=9)
     table.add_column("Status", justify="center", width=12)
 
-    result = await update_models_for_date(sector_list, fetch_date, dry_run=dry_run)
+    result = await update_models_for_date(
+        sector_list, fetch_date, dry_run=dry_run, force=force
+    )
 
     sectors_with_scores = {g.sector for g in result.games}
     for sector in sector_list:
@@ -101,6 +114,8 @@ async def _run_update(
                 f"{game.team_a} vs {game.team_b}: {game.error}[/yellow]"
             )
             status_str = "[red]failed[/red]"
+        elif game.already_applied:
+            status_str = "[dim]already fed[/dim]"
         elif dry_run:
             status_str = "[yellow]dry run[/yellow]"
         else:
@@ -122,3 +137,8 @@ async def _run_update(
         )
     else:
         console.print(f"\n[yellow]Dry run — no models updated.[/yellow]")
+    if result.skipped:
+        console.print(
+            f"[dim]Skipped {result.skipped} game(s) already fed into model "
+            f"state (use --force to re-apply).[/dim]"
+        )

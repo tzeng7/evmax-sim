@@ -5,6 +5,8 @@ Schema:
   ev_outcomes       — one row per resolved market (outcome = 1/0)
   prop_observations — one row per prop line seen per scan (all props, not just +EV)
                       used for training the player prop model
+  applied_model_games — one row per game already fed into elo/form/poisson/xG state,
+                      so a second updater pass over the same date cannot re-apply it
 """
 
 from __future__ import annotations
@@ -91,6 +93,16 @@ CREATE TABLE IF NOT EXISTS ev_outcomes (
     resolved_at         TEXT,
     result_source       TEXT,                       -- "espn", "bo3gg", "manual"
     UNIQUE(market_id)
+);
+
+CREATE TABLE IF NOT EXISTS applied_model_games (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    applied_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+    sector              TEXT    NOT NULL,
+    event_date          TEXT    NOT NULL,           -- YYYY-MM-DD game date that was fed
+    team_a              TEXT    NOT NULL,           -- canonical slug used as model-state key (home)
+    team_b              TEXT    NOT NULL,           -- canonical slug used as model-state key (away)
+    UNIQUE(sector, event_date, team_a, team_b)
 );
 """
 
