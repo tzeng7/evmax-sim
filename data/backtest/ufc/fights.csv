@@ -7971,3 +7971,15 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600059599,401874064,UFC Fight Night: Du Plessis vs. Usman,2026-07-19,Lightweight,4354421,Chase Hooper,4816283,Mitch Ramirez,a,True,1,2:15,submission,Rear Naked Choke
 600059599,401881163,UFC Fight Night: Du Plessis vs. Usman,2026-07-19,Featherweight,5212849,Tommy McMillen,4571450,Alberto Montes,a,True,3,3:29,ko_tko,Punches
 600059599,401881165,UFC Fight Night: Du Plessis vs. Usman,2026-07-19,W Strawweight,4868095,Tabatha Ricci,5028019,Fatima Kline,b,True,3,5:00,decision,
+600059667,401874311,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Heavyweight,4001837,Rizvan Kuniev,4065006,Tyrell Fortune,a,True,3,1:12,ko_tko,Knee
+600059667,401874312,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Heavyweight,5147389,Valter Walker,4869702,Thomas Petersen,a,True,1,1:32,submission,Calf Slicer
+600059667,401874314,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Light Heavyweight,5360467,Magomed Tuchalov,4379328,Brendson Ribeiro,a,True,3,5:00,decision,
+600059667,401874315,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Flyweight,4997217,Steve Erceg,4895691,Ramazan Temirov,b,True,1,4:21,ko_tko,Punches
+600059667,401874317,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Lightweight,3093513,Ismael Bonfim,5245078,Axel Sola,b,True,1,4:44,submission,D'Arce Choke
+600059667,401886732,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Lightweight,5311034,Magomed Zaynukov,5364334,Damian Rzepecki,a,True,3,5:00,decision,
+600059667,401886737,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Lightweight,5092398,Nurullo Aliev,4339145,Mike Davis,a,True,3,5:00,decision,
+600059667,401890156,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Welterweight,3960340,Abubakar Vagaev,4276646,Saygid Izagakhmaev,a,True,3,5:00,decision,
+600059667,401891531,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Welterweight,3043484,Santiago Ponzinibbio,5088916,Sam Patterson,b,True,2,3:06,ko_tko,Punches
+600059667,401892276,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Light Heavyweight,4273399,Magomed Ankalaev,5152109,Bogdan Guskov,a,True,5,2:41,ko_tko,Punches
+600059667,401898030,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Bantamweight,2591306,Cody Gibson,4905308,Abdul Hussein,b,True,3,3:07,submission,Arm Triangle
+600059667,401898040,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Light Heavyweight,2594871,Dustin Jacoby,5369438,Muhammad Said,b,True,2,4:49,ko_tko,Kick

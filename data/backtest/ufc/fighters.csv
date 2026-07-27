@@ -1338,6 +1338,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 3960071,Randy Brown,1990-07-08,75.0,78.0,Orthodox
 3960072,Muin Gafurov,1996-05-17,67.0,68.0,Orthodox
 3960082,Alex Nicholson,1990-05-02,76.0,78.0,Orthodox
+3960340,Abubakar Vagaev,1993-04-14,72.0,73.0,Orthodox
 3960440,Brandon Davis,1990-05-08,70.0,72.0,Orthodox
 3960470,Mickey Gall,1992-01-22,74.0,74.0,Switch
 3960472,Mike Jackson,1985-03-22,74.0,74.0,Orthodox
@@ -2196,6 +2197,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 4903519,Allan Begosso,1995-11-23,65.0,67.5,Orthodox
 4904998,Clayton Carpenter,1996-06-09,66.0,66.0,Orthodox
 4905261,Muhammad Mokaev,2000-07-30,67.0,70.0,Orthodox
+4905308,Abdul Hussein,1997-08-02,65.0,67.0,Orthodox
 4906182,Kiru Sahota,1995-05-28,70.0,73.0,Orthodox
 4907790,Kwon Won Il,1995-06-24,70.0,71.5,Orthodox
 4910400,Tre'ston Vines,1996-06-18,73.0,79.0,Orthodox
@@ -2607,9 +2609,12 @@ athlete_id,name,dob,height_in,reach_in,stance
 5346907,Ollie Schmid,2000-12-28,71.0,,--
 5350560,Artur Minev,2003-09-27,69.0,69.5,Orthodox
 5350562,Farman Hasanov,1995-08-01,72.0,74.5,Orthodox
+5360467,Magomed Tuchalov,1999-12-30,77.0,78.0,Orthodox
 5362337,Shane Collins,2000-03-08,69.0,71.0,Orthodox
 5362725,Jefferson Nascimento,1998-11-19,68.0,70.0,--
+5364334,Damian Rzepecki,2001-11-23,70.0,71.0,Orthodox
 5369414,John Garza,2002-10-30,67.0,68.0,Orthodox
+5369438,Muhammad Said,1996-01-10,74.0,73.0,Orthodox
 5369555,RJ Harris,1998-10-01,78.0,80.0,Orthodox
 5369722,Damien Anderson,1997-01-04,68.0,69.0,Southpaw
 5369723,Ezra Elliott,2000-05-18,70.0,72.0,--
