@@ -27083,6 +27083,16 @@
     "mls all-stars": {
       "matches": [
         {
+          "date": "2026-07-29",
+          "goals_for": 4,
+          "goals_against": 3,
+          "sot": 8,
+          "shots": 13,
+          "xg": 2.55,
+          "xga": 5.07,
+          "is_home": true
+        },
+        {
           "date": "2025-07-24",
           "goals_for": 3,
           "goals_against": 1,
@@ -27096,6 +27106,16 @@
     },
     "liga mx all-stars": {
       "matches": [
+        {
+          "date": "2026-07-29",
+          "goals_for": 3,
+          "goals_against": 4,
+          "sot": 16,
+          "shots": 25,
+          "xg": 5.07,
+          "xga": 2.55,
+          "is_home": false
+        },
         {
           "date": "2025-07-24",
           "goals_for": 1,
