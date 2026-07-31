@@ -211,6 +211,71 @@ class TestWorldcupNamespace:
         assert result.true_prob_draw is not None  # 3-way draw mass retained
 
 
+class TestTeamKeyResolution:
+    """Raw source labels must resolve to the canonical state keys.
+
+    The seed script writes keys through NameNormalizer ("Philadelphia Union"
+    → "philadelphia") but predict_pair used to look up Pinnacle labels with a
+    bare .lower() — so every club whose label differs from its canonical key
+    (all of MLS, "Manchester City", …) silently dropped xG from the blend.
+    """
+
+    def test_predict_fires_on_raw_pinnacle_labels(self, tmp_path: Path):
+        # Regression: state keyed canonically, sharp labels raw → must fire.
+        agent = _fresh_agent(tmp_path)
+        _record_n_matches(agent, "philadelphia", 8, goals=2, sot=6, shots=14)
+        _record_n_matches(agent, "atlanta", 8, goals=1, sot=4, shots=10)
+
+        from unittest.mock import MagicMock
+        market = MagicMock(
+            sector="soccer",
+            team_home="Philadelphia Union", team_away="Atlanta United",
+        )
+        sharp = MagicMock(
+            outcome_a_label="Philadelphia Union",
+            outcome_b_label="Atlanta United",
+            event_id="soccer::test",
+        )
+        import asyncio
+        result = asyncio.run(agent.predict_pair(market, sharp))
+        assert result is not None
+        assert result.true_prob_a > result.true_prob_b
+
+    def test_exact_key_wins_over_renormalization(self, tmp_path: Path):
+        # NameNormalizer is not idempotent: normalize("man united") == "man".
+        # An exact state key must be used as-is, never re-normalized away.
+        agent = _fresh_agent(tmp_path)
+        agent._state["teams"]["man united"] = {"matches": []}
+        _record_n_matches(agent, "man united", 6)
+        assert "man" not in agent._state["teams"]
+        assert agent._team_xg_stats("man united") is not None
+        # The raw label still reaches the same key via the normalizer fallback.
+        assert agent._team_xg_stats("Manchester United") is not None
+
+    def test_record_match_merges_raw_label_onto_canonical_key(self, tmp_path: Path):
+        agent = _fresh_agent(tmp_path)
+        _record_n_matches(agent, "philadelphia", 3)
+        agent.record_match(
+            team="Philadelphia Union", goals_for=2, goals_against=0,
+            shots_on_target=5, total_shots=12,
+            opponent_sot=2, opponent_shots=7,
+            match_date="2026-07-25", is_home=True,
+        )
+        assert "philadelphia union" not in agent._state["teams"]
+        assert len(agent._state["teams"]["philadelphia"]["matches"]) == 4
+
+    def test_new_team_written_under_canonical_key(self, tmp_path: Path):
+        agent = _fresh_agent(tmp_path)
+        agent.record_match(
+            team="FC Cincinnati", goals_for=1, goals_against=1,
+            shots_on_target=4, total_shots=9,
+            opponent_sot=3, opponent_shots=8,
+            match_date="2026-07-25", is_home=False,
+        )
+        assert "cincinnati" in agent._state["teams"]
+        assert "fc cincinnati" not in agent._state["teams"]
+
+
 class TestCongestionPenalty:
     """Test fixture congestion penalty in EloModelAgent."""
 

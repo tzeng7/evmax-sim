@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Optional
 
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
+from evmax.matching.normalizer import NameNormalizer
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
 
@@ -121,7 +122,39 @@ class SoccerXgAgent(ModelAgent):
         super().__init__()
         self._state: dict = {}
         self._state_path = STATE_PATH
+        self._normalizers: dict[str, NameNormalizer] = {}
         self.load_state()
+
+    def _normalizer_for(self, sector: str) -> NameNormalizer:
+        sector = (sector or "soccer").lower()
+        if sector not in self._normalizers:
+            self._normalizers[sector] = NameNormalizer(sector)
+        return self._normalizers[sector]
+
+    def _resolve_team_key(self, team: str, sector: str) -> str:
+        """Map a raw source label to this sector's state-store key.
+
+        Exact lowercase match wins: state keys are already canonical (the seed
+        scripts write through NameNormalizer) and the normalizer is NOT
+        idempotent — normalize("man united") == "man" — so re-normalizing an
+        exact key would orphan it. Raw labels that miss ("Philadelphia Union",
+        "Manchester City") fall back to the sector normalizer, matching the
+        seed-time keying. Before this, predict_pair looked up Pinnacle labels
+        with a bare .lower(), so any club whose label differs from its
+        canonical key silently dropped xG from the blend (all of MLS).
+
+        For teams absent from the store the canonical form (or the raw
+        lowercase when normalization yields nothing) is returned, so writes
+        for new teams land on seed-compatible keys.
+        """
+        teams = self._teams_for(sector)
+        key = team.lower().strip()
+        if key in teams:
+            return key
+        norm = self._normalizer_for(sector).normalize(team)
+        if norm and norm in teams:
+            return norm
+        return norm or key
 
     def update(
         self,
@@ -177,7 +210,7 @@ class SoccerXgAgent(ModelAgent):
     ) -> None:
         """Record one side of a match result with shot data."""
         teams = self._teams_for(sector)
-        key = team.lower().strip()
+        key = self._resolve_team_key(team, sector)
         if key not in teams:
             teams[key] = {"matches": []}
 
@@ -199,7 +232,7 @@ class SoccerXgAgent(ModelAgent):
 
     def _team_xg_stats(self, team: str, sector: str = "soccer") -> Optional[dict]:
         """Compute rolling xG averages for a team over the last WINDOW matches."""
-        data = self._teams_for(sector).get(team.lower().strip())
+        data = self._teams_for(sector).get(self._resolve_team_key(team, sector))
         if not data:
             return None
         matches = data.get("matches", [])[:WINDOW]
