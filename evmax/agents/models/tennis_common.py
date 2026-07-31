@@ -9,12 +9,35 @@ seeding from multiple sources) resolve to the entry with the most signal.
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Optional
+
+# Letters NFKD can't decompose (stroked/ligature forms) — ascii-ignore would
+# delete them outright ('đorđe' → 'ore'), so map them explicitly first.
+_ACCENT_OVERRIDES = str.maketrans({
+    "ø": "o", "Ø": "O", "đ": "d", "Đ": "D", "ł": "l", "Ł": "L",
+    "æ": "ae", "Æ": "AE", "œ": "oe", "Œ": "OE", "ß": "ss",
+    "þ": "th", "Þ": "Th", "ð": "d", "Ð": "D",
+})
+
+
+def fold_accents(name: str) -> str:
+    """Strip diacritics: 'duško todorović' → 'dusko todorovic'.
+
+    ESPN state keys carry accented spellings while Kalshi/Pinnacle send
+    ASCII, so every comparison in the resolution cascade folds both sides.
+    """
+    name = name.translate(_ACCENT_OVERRIDES)
+    return "".join(
+        c for c in unicodedata.normalize("NFKD", name)
+        if not unicodedata.combining(c)
+    )
 
 
 def normalize_player(name: str) -> str:
-    """Lowercase, strip apostrophes/hyphens/spaces. 'O''Connell' → 'oconnell'."""
-    return re.sub(r"[\s''\-]+", "", name.lower().strip().rstrip("."))
+    """Lowercase, fold accents, strip apostrophes/hyphens/spaces.
+    'O''Connell' → 'oconnell', 'Peña' → 'pena'."""
+    return re.sub(r"[\s''\-]+", "", fold_accents(name).lower().strip().rstrip("."))
 
 
 def dehyphenate(name: str) -> str:
@@ -76,6 +99,11 @@ def resolve_player(
     'Felix Auger-Aliassime' — by treating hyphens as spaces on both sides
     before tokenizing.
 
+    All comparisons are accent-insensitive: ESPN-seeded stores (UFC) carry
+    diacritic spellings ('duško todorović') while Kalshi/Pinnacle send ASCII
+    ('Dusko Todorovic'), so both sides fold through `fold_accents` before
+    comparing. The returned key is always the store's own spelling.
+
     When multiple candidates share a surname, the query's given name (if it
     has one) narrows them first — 'xinyu wang' resolves to 'xin yu wang',
     never 'xiyu wang'. If the survivors are still genuinely different people
@@ -93,8 +121,12 @@ def resolve_player(
     if dehyph != player and dehyph in store:
         return dehyph
 
-    target = surname(dehyph)
-    candidates = [k for k in store if surname(dehyphenate(k)) == target]
+    folded = fold_accents(dehyph)
+    target = surname(folded)
+    candidates = [
+        k for k in store
+        if surname(fold_accents(dehyphenate(k))) == target
+    ]
 
     if not candidates:
         norm_player = normalize_player(player)
@@ -106,8 +138,8 @@ def resolve_player(
     if not candidates:
         candidates = [
             k for k in store
-            if k.startswith(player + " ") or k.startswith(player + ".")
-            or k.startswith(dehyph + " ") or k.startswith(dehyph + ".")
+            if fold_accents(dehyphenate(k)).startswith(folded + " ")
+            or fold_accents(dehyphenate(k)).startswith(folded + ".")
         ]
 
     if not candidates:

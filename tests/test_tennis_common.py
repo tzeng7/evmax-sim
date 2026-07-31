@@ -140,3 +140,45 @@ class TestExistingCascade:
     def test_surname_helper(self):
         assert surname("jannik sinner") == "sinner"
         assert surname("sinner j.") == "sinner"
+
+
+class TestAccentFolding:
+    """Regression (2026-07-30): ESPN-seeded UFC state keys carry diacritics
+    ('duško todorović', 'uroš medić') while Kalshi/Pinnacle send ASCII, so
+    every lookup for an accented fighter returned None and the whole card
+    went sharp-only (model_diagnostics: missing=[ufc_rating])."""
+
+    STORE = {
+        "duško todorović": 1,
+        "uroš medić": 2,
+        "julianna peña": 3,
+        "jiří procházka": 4,
+        "hailey cowan": 5,
+    }
+
+    def test_ascii_full_name_resolves_diacritic_key(self):
+        assert resolve_player("dusko todorovic", self.STORE) == "duško todorović"
+        assert resolve_player("uros medic", self.STORE) == "uroš medić"
+
+    def test_ascii_surname_resolves_diacritic_key(self):
+        assert resolve_player("prochazka", self.STORE) == "jiří procházka"
+
+    def test_tilde_and_caron_fold(self):
+        assert resolve_player("julianna pena", self.STORE) == "julianna peña"
+
+    def test_accented_query_resolves_ascii_key(self):
+        store = {"dusko todorovic": 1}
+        assert resolve_player("duško todorović", store) == "dusko todorovic"
+
+    def test_stroked_letters_survive_folding(self):
+        # đ/ø/ł don't decompose under NFKD; a bare ascii-ignore would delete
+        # them ('đorđe' → 'ore') and break the surname comparison.
+        assert normalize_player("Đorđe Petrović") == "dordepetrovic"
+        store = {"đorđe petrović": 1}
+        assert resolve_player("dorde petrovic", store) == "đorđe petrović"
+
+    def test_unaccented_names_unaffected(self):
+        assert resolve_player("hailey cowan", self.STORE) == "hailey cowan"
+
+    def test_no_match_still_returns_none(self):
+        assert resolve_player("nina milosevic", self.STORE) is None
