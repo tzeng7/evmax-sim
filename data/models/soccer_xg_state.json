@@ -23207,6 +23207,16 @@
     "nycfc": {
       "matches": [
         {
+          "date": "2026-07-31",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 5,
+          "shots": 16,
+          "xg": 1.83,
+          "xga": 1.74,
+          "is_home": true
+        },
+        {
           "date": "2026-07-22",
           "goals_for": 2,
           "goals_against": 1,
@@ -23394,16 +23404,6 @@
           "shots": 5,
           "xg": 1.23,
           "xga": 1.89,
-          "is_home": false
-        },
-        {
-          "date": "2025-11-08",
-          "goals_for": 3,
-          "goals_against": 1,
-          "sot": 6,
-          "shots": 8,
-          "xg": 1.86,
-          "xga": 0.72,
           "is_home": false
         }
       ]
@@ -26675,6 +26675,16 @@
     "toronto": {
       "matches": [
         {
+          "date": "2026-07-31",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 5,
+          "shots": 13,
+          "xg": 1.74,
+          "xga": 1.83,
+          "is_home": false
+        },
+        {
           "date": "2026-07-22",
           "goals_for": 0,
           "goals_against": 0,
@@ -26862,16 +26872,6 @@
           "shots": 11,
           "xg": 1.14,
           "xga": 2.4,
-          "is_home": false
-        },
-        {
-          "date": "2025-10-05",
-          "goals_for": 2,
-          "goals_against": 2,
-          "sot": 6,
-          "shots": 9,
-          "xg": 1.89,
-          "xga": 1.98,
           "is_home": false
         }
       ]
