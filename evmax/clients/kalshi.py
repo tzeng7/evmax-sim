@@ -45,7 +45,7 @@ _TICKER_DATE_RE = re.compile(r"(\d{2})(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|N
 # Map sector names → Kalshi series tickers for per-game/match markets
 # Verified against live Kalshi series API (2026-02-23)
 SECTOR_SERIES_MAP: dict[str, list[str]] = {
-    "nfl": ["KXNFLGAME", "KXNFLTOTAL"],
+    "nfl": ["KXNFLGAME", "KXNFLSPREAD", "KXNFLTOTAL"],
     "nba": ["KXNBAGAME", "KXNBASPREAD", "KXNBATOTAL"],
     "ncaab": ["KXNCAABGAME", "KXNCAAMBGAME", "KXNCAAMBSPREAD", "KXNCAAMBTOTAL"],
     "ncaaw": ["KXNCAAWBGAME", "KXNCAAWBSPREAD", "KXNCAAWBTOTAL"],

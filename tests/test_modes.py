@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
 from evmax import modes
@@ -62,8 +64,11 @@ def test_runtime_override_for_multiple_categories():
     set_runtime_overrides({"nba": "shadow", "nfl": "disabled"})
     assert get_mode("nba") == "shadow"
     assert get_mode("nfl") == "disabled"
-    # Unaffected categories fall through
-    assert get_mode("ncaab") == "live"
+    # Unaffected categories fall through. Pin an in-season date so the
+    # season-window off-season downgrade (ncaab window 11-01..04-10) doesn't
+    # turn this fall-through into shadow — this test is about override scoping,
+    # not seasonality.
+    assert get_mode("ncaab", today=date(2026, 1, 15)) == "live"
 
 
 def test_runtime_override_clear_reverts_to_yaml():
@@ -145,10 +150,63 @@ def test_effective_modes_includes_every_category():
 
 def test_effective_modes_reflects_overrides():
     set_runtime_overrides({"nba": "disabled"})
-    snap = effective_modes()
+    # In-season date so the windowed ncaab fall-through stays at its YAML base.
+    snap = effective_modes(today=date(2026, 1, 15))
     assert snap["nba"] == "disabled"
     # And the unaffected ones stay at YAML base
     assert snap["ncaab"] == "live"
+
+
+# -------------------------------------------------------------------------
+# Season-window off-season downgrade (live -> shadow outside the window)
+# -------------------------------------------------------------------------
+
+
+def test_windowed_live_sector_shadows_out_of_season():
+    """A live category with a season_window logs as shadow OUTSIDE its window
+    (pre-season / off-season) and self-restores to live once the window opens.
+    This keeps a forced ``--sectors nfl`` scan from staking real bankroll on
+    pre-season games where the models run on a frozen prior-season seed."""
+    # NFL window is 09-04 .. 02-15.
+    assert get_mode("nfl", today=date(2026, 8, 20)) == "shadow"   # pre-season
+    assert get_mode("nfl", today=date(2026, 7, 1)) == "shadow"    # deep off-season
+    assert get_mode("nfl", today=date(2026, 9, 14)) == "live"     # in season (Week 1)
+    assert get_mode("nfl", today=date(2027, 1, 20)) == "live"     # in season (playoffs)
+
+
+def test_off_season_downgrade_applies_per_market_type():
+    """The off-season downgrade composes with the market-type refinements:
+    a disabled market type stays disabled; other types ride the shadow base."""
+    # NFL out of season: moneyline -> shadow (downgraded), and no NFL market
+    # type is disabled, so spread/total also shadow.
+    assert get_mode("nfl", "moneyline", today=date(2026, 8, 20)) == "shadow"
+    assert get_mode("nfl", "spread", today=date(2026, 8, 20)) == "shadow"
+
+
+def test_off_season_downgrade_yields_to_overrides():
+    """Runtime + env overrides outrank the off-season downgrade — a deliberate
+    force is honored even outside the window."""
+    set_runtime_overrides({"nfl": "live"})
+    assert get_mode("nfl", today=date(2026, 8, 20)) == "live"
+
+
+def test_no_window_live_sector_never_downgrades():
+    """A live category WITHOUT a season_window (e.g. tennis, wnba) is always in
+    season, so the downgrade never fires regardless of date."""
+    assert get_mode("tennis", today=date(2026, 8, 20)) == "live"
+    assert get_mode("wnba", today=date(2026, 1, 1)) == "live"
+
+
+def test_effective_modes_off_season_snapshot():
+    """effective_modes() is date-aware: windowed live sectors show shadow out
+    of season."""
+    # Mid-August: NFL/NCAAB/NCAAW all out of season.
+    snap = effective_modes(today=date(2026, 8, 20))
+    assert snap["nfl"] == "shadow"
+    assert snap["ncaab"] == "shadow"
+    assert snap["ncaaw"] == "shadow"
+    # No-window live sectors unaffected.
+    assert snap["tennis"] == "live"
 
 
 # -------------------------------------------------------------------------

@@ -8,11 +8,35 @@ from __future__ import annotations
 
 from datetime import timezone, timedelta
 
-from evmax.clients.kalshi import KalshiClient
+from evmax.clients.kalshi import SECTOR_SERIES_MAP, KalshiClient
 
 
 def _client() -> KalshiClient:
     return KalshiClient.__new__(KalshiClient)
+
+
+class TestSectorSeriesMap:
+    """SECTOR_SERIES_MAP — which Kalshi series each sector fetches."""
+
+    def test_nfl_includes_spread_series(self) -> None:
+        # NFL declares moneyline + spread + total in categories.yaml and the
+        # ticker parser recognizes KXNFLSPREAD, but the fetch map originally
+        # omitted it (verified 2026-02-23, offseason, when spreads weren't
+        # listed). KXNFLSPREAD is live on Kalshi as of 2026-08-01 — wire it so
+        # spread markets actually get scanned.
+        assert SECTOR_SERIES_MAP["nfl"] == ["KXNFLGAME", "KXNFLSPREAD", "KXNFLTOTAL"]
+
+    def test_nfl_series_cover_declared_market_types(self) -> None:
+        """The fetch map must carry a series for every non-prop market type the
+        NFL category declares — otherwise a declared type is silently unscanned."""
+        from evmax.categories import get_category
+
+        series = SECTOR_SERIES_MAP["nfl"]
+        declared = {mt.value for mt in get_category("nfl").market_types}
+        # market_type -> the series-ticker infix Kalshi uses for it.
+        infix = {"moneyline": "GAME", "spread": "SPREAD", "total": "TOTAL"}
+        for mt in declared:
+            assert any(infix[mt] in s for s in series), f"no series for NFL {mt}"
 
 
 class TestParseTickerDate:

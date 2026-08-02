@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+from datetime import date
 from typing import Literal, Mapping, Optional
 
 from evmax.categories import Mode, get_category
@@ -97,7 +98,11 @@ def clear_runtime_overrides() -> None:
     set_runtime_overrides({})
 
 
-def get_mode(category: str, market_type: Optional[str] = None) -> Mode:
+def get_mode(
+    category: str,
+    market_type: Optional[str] = None,
+    today: Optional[date] = None,
+) -> Mode:
     """Return the effective mode for `category` — runtime > env > YAML.
 
     If `market_type` is provided and the category's YAML spec lists it in
@@ -110,6 +115,18 @@ def get_mode(category: str, market_type: Optional[str] = None) -> Mode:
     used to stop persisting a measured-negative market type (e.g. baseball
     totals) without disabling the whole category.
 
+    Off-season safety: a category whose YAML base mode is ``live`` and which
+    declares a ``season_window`` is downgraded to ``shadow`` on any date
+    OUTSIDE that window. This keeps a live sector from staking real bankroll on
+    pre-season / exhibition games — where the models still run on a frozen
+    prior-season seed with stale starters (the WNBA +24pp opener lesson) — and
+    self-restores to ``live`` the moment the window opens (e.g. NFL flips live
+    on its 09-04 start). The default scan path already SKIPS out-of-season
+    sectors via ``is_in_season``; this closes the remaining leak where an
+    explicit ``--sectors nfl`` force bypasses that gate. Runtime + env overrides
+    still win (see below), so a deliberate ``--live nfl`` out of season is
+    honored.
+
     Runtime + env overrides take precedence — they apply uniformly to all
     market types within a category (no per-market-type override there).
     """
@@ -119,15 +136,19 @@ def get_mode(category: str, market_type: Optional[str] = None) -> Mode:
     if category in env:
         return env[category]
     spec = get_category(category)
+    base: Mode = spec.mode
+    # Off-season live -> shadow downgrade (self-restoring at the window start).
+    if base == "live" and not spec.is_in_season(today):
+        base = "shadow"
     if market_type and market_type in spec.disabled_market_types:
         return "disabled"
     if (
-        spec.mode == "live"
+        base == "live"
         and market_type
         and market_type in spec.shadow_market_types
     ):
         return "shadow"
-    return spec.mode
+    return base
 
 
 def is_live(category: str) -> bool:
@@ -142,14 +163,18 @@ def is_disabled(category: str) -> bool:
     return get_mode(category) == "disabled"
 
 
-def effective_modes() -> dict[str, Mode]:
+def effective_modes(today: Optional[date] = None) -> dict[str, Mode]:
     """Return {category: mode} for every registered category, with all
     overrides applied. Used by the CLI ``evmax categories list`` and by
     debugging output.
+
+    ``today`` is threaded to ``get_mode`` so the season-window off-season
+    downgrade is date-aware; pass a fixed date in tests. A windowed live
+    sector shows as ``shadow`` outside its season and ``live`` inside it.
     """
     from evmax.categories import all_categories
 
     out: dict[str, Mode] = {}
     for spec in all_categories():
-        out[spec.key] = get_mode(spec.key)
+        out[spec.key] = get_mode(spec.key, today=today)
     return out

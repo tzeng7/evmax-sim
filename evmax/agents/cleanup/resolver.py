@@ -306,6 +306,13 @@ async def _fetch_espn_scores(
         status_name = comp.get("status", {}).get("type", {}).get("name", "")
         went_extra_time = status_name in ("STATUS_FINAL_AET", "STATUS_FINAL_PEN")
 
+        # ESPN season type: 1 = preseason/exhibition, 2 = regular, 3 = post.
+        # Threaded through so the model-update feed can drop preseason games
+        # (they must never train Elo/Form — the NFL preseason / exhibition
+        # contamination guard, analogous to WNBA's All-Star filter). Bet
+        # resolution ignores this field, so real games still resolve normally.
+        season_type = (event.get("season") or {}).get("type")
+
         results.append({
             "home_name": home.get("team", {}).get("displayName", ""),
             "away_name": away.get("team", {}).get("displayName", ""),
@@ -315,6 +322,7 @@ async def _fetch_espn_scores(
             "home_winner": home.get("winner"),
             "away_winner": away.get("winner"),
             "went_extra_time": went_extra_time,
+            "season_type": season_type,
             "game_date": game_date,
             "home_sot": _stat(home, "shotsOnTarget"),
             "away_sot": _stat(away, "shotsOnTarget"),
