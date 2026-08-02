@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import subprocess
 import sys
+import time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
@@ -284,17 +285,27 @@ def resolve(
         d = date.today() - timedelta(days=1)
 
     console.print(f"[cyan]Resolving outcomes for[/cyan] {d.isoformat()} ...")
-    result = asyncio.run(resolve_outcomes_for_date(d))
+    # One scoreboard cache shared across the resolve phase and the model-update
+    # hook so both reuse a single ESPN fetch per (sport, league, date) instead
+    # of pulling the same dates twice. Plain dict — no event-loop affinity, so
+    # the two separate asyncio.run() calls below can share it.
+    espn_cache: dict = {}
+    _t0 = time.perf_counter()
+    result = asyncio.run(resolve_outcomes_for_date(d, espn_cache=espn_cache))
+    _resolve_s = time.perf_counter() - _t0
 
     console.print(
         f"  [green]Resolved:[/green] {result['resolved']}  "
         f"[yellow]Unmatched:[/yellow] {result['failed']}"
         + (f"  [dim]Voided:[/dim] {result['voided']}" if result.get("voided") else "")
+        + f"  [dim]({_resolve_s:.1f}s)[/dim]"
     )
 
     try:
         from evmax.agents.cleanup.resolver import backfill_clv
+        _t0 = time.perf_counter()
         clv = backfill_clv()
+        _clv_s = time.perf_counter() - _t0
         if clv["updated"]:
             avg_kc = clv.get("avg_kalshi_clv", 0.0)
             kc_color = "green" if avg_kc > 0 else "red" if avg_kc < 0 else "dim"
@@ -302,7 +313,7 @@ def resolve(
                 f"  [green]CLV backfilled:[/green] {clv['updated']} bet(s)  "
                 f"Kalshi-CLV [{kc_color}]{avg_kc:+.1f}pp[/{kc_color}]  "
                 f"[dim]Pinn-drift {clv.get('avg_pinn_drift', 0.0):+.1f}pp  "
-                f"skipped: {clv['skipped']}[/dim]"
+                f"skipped: {clv['skipped']}  ({_clv_s:.1f}s)[/dim]"
             )
     except Exception as _clv_err:
         console.print(f"  [yellow]Warning: CLV backfill failed:[/yellow] {_clv_err}")
@@ -314,13 +325,18 @@ def resolve(
         try:
             from evmax.agents.cleanup.model_updater import update_models_for_date
 
-            upd = asyncio.run(update_models_for_date(_UPDATE_HOOK_SECTORS, d))
+            _t0 = time.perf_counter()
+            upd = asyncio.run(
+                update_models_for_date(_UPDATE_HOOK_SECTORS, d, espn_cache=espn_cache)
+            )
+            _upd_s = time.perf_counter() - _t0
             skipped_note = (
                 f", {upd.skipped} already fed" if upd.skipped else ""
             )
             console.print(
                 f"  [green]Model state refreshed:[/green] {upd.updated} game(s) "
-                f"across {len(_UPDATE_HOOK_SECTORS)} sector(s){skipped_note}"
+                f"across {len(_UPDATE_HOOK_SECTORS)} sector(s){skipped_note}  "
+                f"[dim]({_upd_s:.1f}s)[/dim]"
             )
         except Exception as _upd_err:
             console.print(

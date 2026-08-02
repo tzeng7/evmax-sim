@@ -1375,13 +1375,18 @@ class AgentCoordinator:
         sector: str,
         event_date: Optional[str] = None,
         surface: str = "overall",
+        save: bool = True,
     ) -> None:
-        """Feed a completed game result into all model agents."""
+        """Feed a completed game result into all model agents.
+
+        ``save`` defaults to True so existing callers persist per game. Batch
+        callers that apply many games in a row (the resolve-time model-update
+        hook) pass ``save=False`` and call ``save_model_states()`` once per
+        sector instead, avoiding a full re-serialization of every state file on
+        each game (~90 writes on a 30-game slate).
+        """
         for model in [self.elo_agent, self.form_agent, self.poisson_agent]:
             model.update(team_a, team_b, score_a, score_b, sector, event_date)
-        self.elo_agent.save_state()
-        self.form_agent.save_state()
-        self.poisson_agent.save_state()
         if sector == "tennis":
             self.tennis_agent.update(team_a, team_b, score_a, score_b, sector, event_date, surface=surface)
         if sector == "ufc":
@@ -1389,6 +1394,21 @@ class AgentCoordinator:
             # KO/finish counters refresh at the weekly reseed
             # (scripts/seed_ufc_ratings.py --fetch). Ratings update here.
             self.ufc_rating_agent.update(team_a, team_b, score_a, score_b, sector, event_date)
+        if save:
+            self.save_model_states(sector)
+
+    def save_model_states(self, sector: Optional[str] = None) -> None:
+        """Persist the model states mutated by ``update_models``.
+
+        Saves the elo/form/poisson states always. When ``sector`` is given,
+        also saves the sector-specific state (UFC ratings) only for that sector,
+        matching which agents ``update_models`` actually touched. When ``sector``
+        is None, saves every stateful agent (safe for a batch flush).
+        """
+        self.elo_agent.save_state()
+        self.form_agent.save_state()
+        self.poisson_agent.save_state()
+        if sector in (None, "ufc"):
             self.ufc_rating_agent.save_state()
 
     def next_scan_interval_seconds(self, result: "CycleResult") -> int:
