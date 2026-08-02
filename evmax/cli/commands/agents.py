@@ -33,6 +33,63 @@ def _display_label(yes_team: str, market_type: str, line) -> str:
     return format_outcome_label(yes_team=yes_team, market_type=market_type, line=line)
 
 
+def polymarket_live_ask(market_id: str, markets_by_id: dict) -> Optional[float]:
+    """Resolve the live ask for a Polymarket US row from a freshly-fetched
+    ``{market.id: PredictionMarket}`` map.
+
+    A stored PolyUS row id is ``polymarket_us:{slug}[:{side_key}]`` for the YES
+    side, with a ``:no`` suffix appended for the derived NO side of a spread or
+    total. Stripping ``:no`` recovers the market's own id, which is the map key.
+
+    Unlike Kalshi — where the WebSocket only returns the YES ask, so a NO ask is
+    approximated as ``1 - yes`` and understates the true ask by the spread —
+    Polymarket quotes BOTH sides in the same payload. So a NO row returns the
+    market's ``no_price`` DIRECTLY, an exact live ask with no spread fudge.
+
+    Returns ``None`` when the market is no longer listed (settled / closed → not
+    in the fresh map) or unquoted, so the caller falls back to the scan price.
+    """
+    is_no = market_id.endswith(":no")
+    base = market_id.removesuffix(":no")
+    market = markets_by_id.get(base)
+    if market is None:
+        return None
+    price = market.no_price if is_no else market.yes_price
+    if price is None:
+        return None
+    return max(0.0, min(1.0, float(price)))
+
+
+async def fetch_polymarket_live_asks(poly_rows: list[dict]) -> dict[str, Optional[float]]:
+    """Fetch current Polymarket US asks for ``poly_rows``, keyed by stored id.
+
+    Groups the rows by sector, re-fetches each sector's live league events with
+    the cache bypassed (``fresh=True``), and resolves every row's ask through
+    :func:`polymarket_live_ask`. A sector whose fetch raises is skipped — its
+    rows resolve to ``None`` and fall back to the scan price at the call site,
+    exactly like a Kalshi row whose ticker the WebSocket missed.
+    """
+    from evmax.clients.polymarket_us import PolymarketUSClient
+
+    sectors = sorted({(r.get("sector") or "").lower() for r in poly_rows if r.get("sector")})
+    markets_by_id: dict[str, object] = {}
+    if sectors:
+        async with PolymarketUSClient() as client:
+            results = await asyncio.gather(
+                *(client.get_markets(s, fresh=True) for s in sectors),
+                return_exceptions=True,
+            )
+        for res in results:
+            if isinstance(res, Exception):
+                continue
+            for market in res:
+                markets_by_id[market.id] = market
+    return {
+        r["market_id"]: polymarket_live_ask(r["market_id"], markets_by_id)
+        for r in poly_rows
+    }
+
+
 async def _scan_loop(
     coordinator,
     sector_list: list[str],
@@ -582,9 +639,8 @@ def verify(
     # about it), and remember which rows are NO so we can convert the
     # returned YES ask to a NO ask below.
     raw_market_ids = [dict(r)["market_id"] for r in rows]
-    # Only Kalshi rows are refreshable over the Kalshi WebSocket; Polymarket
-    # US rows show as no-live below until venue promotion adds a PolyUS
-    # quote refresh.
+    # Kalshi rows refresh over the Kalshi WebSocket; Polymarket US rows refresh
+    # over the PolyUS gateway (both venues re-priced at live asks below).
     fetch_tickers = list({
         dict(r)["market_id"].removesuffix(":no")
         for r in rows
@@ -607,6 +663,15 @@ def verify(
         return live_yes_asks.get(market_id)
 
     live_prices = {mid: _live_ask_for(mid) for mid in raw_market_ids}
+
+    # Overlay live Polymarket US asks (venue-native refresh; PolyUS quotes both
+    # sides, so NO rows get an exact ask, not the 1-yes approximation above).
+    poly_rows = [dict(r) for r in rows if (dict(r).get("venue")) == "polymarket_us"]
+    if poly_rows:
+        try:
+            live_prices.update(asyncio.run(fetch_polymarket_live_asks(poly_rows)))
+        except Exception as poly_err:  # noqa: BLE001 — fall back to scan prices
+            console.print(f"[yellow]Polymarket US live fetch failed ({poly_err}); using scan prices for PolyUS rows.[/yellow]\n")
 
     bankroll = effective_bankroll
     table = Table(
@@ -908,9 +973,9 @@ def pick(
     # time you place, so a bet only counts as live if its edge survives to here.
     live_prices: dict[str, Optional[float]] = {}
     if live:
-        # Only Kalshi rows can be refreshed over the Kalshi WebSocket.
-        # Polymarket US rows fall back to the scan price below (flagged) —
-        # a PolyUS live-quote refresh lands with venue promotion.
+        # Kalshi rows refresh over the Kalshi WebSocket; Polymarket US rows
+        # refresh over the PolyUS gateway just below. Any row we can't re-quote
+        # (settled, unlisted, fetch error) falls back to its scan price, flagged.
         raw_ids = [
             dict(r)["market_id"] for r in rows
             if (dict(r).get("venue") or "kalshi") == "kalshi"
@@ -932,6 +997,19 @@ def pick(
         except Exception as fetch_err:  # noqa: BLE001 — fall back to scan prices
             console.print(f"[yellow]Live fetch failed ({fetch_err}); using scan prices.[/yellow]\n")
             live = False
+
+        # Refresh the Polymarket US side over its own gateway. A PolyUS failure
+        # only affects PolyUS rows (they fall back to their scan price below) —
+        # it must NOT clear `live`, which still governs the Kalshi refresh and
+        # the Pinnacle re-blend for every row. Skipped when the Kalshi fetch
+        # already collapsed the run to scan mode (live is False), since every
+        # row falls back to its scan price then anyway.
+        poly_rows = [dict(r) for r in rows if (dict(r).get("venue")) == "polymarket_us"]
+        if live and poly_rows:
+            try:
+                live_prices.update(asyncio.run(fetch_polymarket_live_asks(poly_rows)))
+            except Exception as poly_err:  # noqa: BLE001 — fall back to scan prices
+                console.print(f"[yellow]Polymarket US live fetch failed ({poly_err}); using scan prices for PolyUS rows.[/yellow]\n")
 
     # Re-fetch the CURRENT Pinnacle line (moneyline only) and re-derive
     # blended_true_prob from it — the other half of the entry-timing fix.

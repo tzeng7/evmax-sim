@@ -366,6 +366,21 @@ class TestGetMarkets:
             markets = await client.get_markets("soccer")
         assert len(markets) == 4  # ucl + mls parsed, epl failed
 
+    @pytest.mark.asyncio
+    async def test_fresh_bypasses_cache_read(self):
+        # The pick/verify live-quote refresh passes fresh=True so it never
+        # serves a stale scan-time cache — it must skip cache_get and hit the
+        # network, even though cache_ttl_secs is > 0 by default.
+        client = _client()
+        payload = {"events": [_event([_moneyline_market()])]}
+        with patch.object(client, "_get", new=AsyncMock(return_value=payload)) as mget, \
+             patch("evmax.clients.polymarket_us.cache_get") as mcache_get, \
+             patch("evmax.clients.polymarket_us.cache_set"):
+            markets = await client.get_markets("wnba", fresh=True)
+        mcache_get.assert_not_called()   # fresh → cache read bypassed
+        assert mget.await_count == 1     # wnba → 1 league, fetched live
+        assert len(markets) == 2         # both moneyline sides parsed
+
 
 # ---------------------------------------------------------------------------
 # Settlement lookups (outcome resolution)
