@@ -13,9 +13,16 @@ bet/no-bet decision on ~19% of rows in a backtest over resolved live bets.
 """
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
-from evmax.cli.commands.agents import recompute_at_price, reblend_with_fresh_sharp
+from evmax.cli.commands.agents import (
+    fetch_polymarket_live_asks,
+    polymarket_live_ask,
+    recompute_at_price,
+    reblend_with_fresh_sharp,
+)
 
 _COMMON = dict(base_kelly=0.5, max_kelly=0.05, bankroll=1000.0, min_ev=0.02, min_prob=0.15)
 
@@ -124,3 +131,114 @@ class TestReblendWithFreshSharp:
             blended_prob=0.03, scan_sharp_prob=0.50, fresh_sharp_prob=0.01, sharp_weight=1.0,
         )
         assert low >= 0.001
+
+
+def _mkt(mid: str, yes: float | None, no: float | None):
+    """Minimal PredictionMarket stand-in for polymarket_live_ask lookups."""
+    return SimpleNamespace(id=mid, yes_price=yes, no_price=no)
+
+
+class TestPolymarketLiveAsk:
+    """polymarket_live_ask — resolve a stored PolyUS row id to its live ask in a
+    fresh {market.id: PredictionMarket} map. YES rows read yes_price; NO rows
+    (':no' suffix) read the market's own no_price (exact, not a 1-yes fudge)."""
+
+    def test_yes_moneyline_reads_yes_price(self):
+        mid = "polymarket_us:aec-wnba-min-conn-2026-07-08:conn"
+        assert polymarket_live_ask(mid, {mid: _mkt(mid, 0.62, 0.40)}) == pytest.approx(0.62)
+
+    def test_no_spread_reads_no_price_directly(self):
+        # The ':no' row shares the market's base id; NO ask = no_price exactly.
+        base = "polymarket_us:asc-wnba-gsv-conn-2026-07-10-pos-11pt5"
+        assert polymarket_live_ask(base + ":no", {base: _mkt(base, 0.55, 0.47)}) == pytest.approx(0.47)
+
+    def test_yes_spread_reads_yes_price(self):
+        base = "polymarket_us:asc-wnba-gsv-conn-2026-07-10-pos-11pt5"
+        assert polymarket_live_ask(base, {base: _mkt(base, 0.55, 0.47)}) == pytest.approx(0.55)
+
+    def test_unlisted_market_returns_none(self):
+        # Settled / closed markets drop out of the fresh map → None → scan-price fallback.
+        assert polymarket_live_ask("polymarket_us:gone:x", {}) is None
+
+    def test_unquoted_side_returns_none(self):
+        mid = "polymarket_us:m:x"
+        assert polymarket_live_ask(mid, {mid: _mkt(mid, None, 0.5)}) is None
+
+    def test_price_clamped_to_unit_interval(self):
+        mid = "polymarket_us:m:x"
+        assert polymarket_live_ask(mid, {mid: _mkt(mid, 1.4, 0.5)}) == 1.0
+
+
+class TestFetchPolymarketLiveAsks:
+    """fetch_polymarket_live_asks — group rows by sector, re-fetch each sector's
+    live markets (cache-bypassed), map every row id to its live ask, and isolate
+    a failed sector so its rows fall back to None rather than sinking the batch."""
+
+    def _patch_client(self, monkeypatch, markets_by_sector, calls=None):
+        class _FakeClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *a):
+                return False
+
+            async def get_markets(self, sector, fresh=False):
+                if calls is not None:
+                    calls.append((sector, fresh))
+                result = markets_by_sector[sector]
+                if isinstance(result, Exception):
+                    raise result
+                return result
+
+        monkeypatch.setattr(
+            "evmax.clients.polymarket_us.PolymarketUSClient", _FakeClient
+        )
+
+    @pytest.mark.asyncio
+    async def test_maps_yes_and_no_rows_across_sectors(self, monkeypatch):
+        wnba_base = "polymarket_us:asc-wnba-gsv-conn-pos-11pt5"
+        atp_id = "polymarket_us:aec-atp-zsopir-damdzu:zsopir"
+        calls: list = []
+        self._patch_client(
+            monkeypatch,
+            {
+                "wnba": [_mkt(wnba_base, 0.55, 0.47)],
+                "tennis": [_mkt(atp_id, 0.71, 0.31)],
+            },
+            calls,
+        )
+        rows = [
+            {"market_id": wnba_base + ":no", "sector": "wnba"},
+            {"market_id": atp_id, "sector": "tennis"},
+        ]
+        out = await fetch_polymarket_live_asks(rows)
+        assert out[wnba_base + ":no"] == pytest.approx(0.47)  # NO → no_price
+        assert out[atp_id] == pytest.approx(0.71)             # YES → yes_price
+        # Cache is bypassed on the refresh path.
+        assert all(fresh is True for _, fresh in calls)
+
+    @pytest.mark.asyncio
+    async def test_failed_sector_isolated_to_none(self, monkeypatch):
+        good = "polymarket_us:good:x"
+        bad = "polymarket_us:bad:y"
+        self._patch_client(
+            monkeypatch,
+            {
+                "tennis": [_mkt(good, 0.60, 0.42)],
+                "wnba": RuntimeError("gateway 503"),
+            },
+        )
+        rows = [
+            {"market_id": good, "sector": "tennis"},
+            {"market_id": bad, "sector": "wnba"},
+        ]
+        out = await fetch_polymarket_live_asks(rows)
+        assert out[good] == pytest.approx(0.60)
+        assert out[bad] is None  # failed sector's rows fall back, batch survives
+
+    @pytest.mark.asyncio
+    async def test_empty_rows_no_fetch(self, monkeypatch):
+        calls: list = []
+        self._patch_client(monkeypatch, {}, calls)
+        assert await fetch_polymarket_live_asks([]) == {}
+        assert calls == []  # no sectors → no client call

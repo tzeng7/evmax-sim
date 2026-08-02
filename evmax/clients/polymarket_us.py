@@ -216,6 +216,7 @@ class PolymarketUSClient(BaseAPIClient):
         status: str = "open",
         limit: int = 200,
         leagues: Optional[list[str]] = None,
+        fresh: bool = False,
     ) -> list[PredictionMarket]:
         """Fetch active full-game markets for a sector across its leagues.
 
@@ -228,6 +229,11 @@ class PolymarketUSClient(BaseAPIClient):
         (e.g. the arb scanner's ARB_LEAGUE_MAP, which adds worldcup/lol/cs2
         without flipping them on for scans). Overridden fetches get their own
         cache namespace so they can't poison the betting pipeline's cache.
+
+        ``fresh`` bypasses the cache READ so a live-quote refresh (the pick /
+        verify entry-timing gate) always sees the current ask, regardless of
+        cache_ttl_secs — the fetched result is still written back to the cache.
+        Ignored in offline_mode, which has no live source to be fresh against.
         """
         cfg = get_settings()
         cache_key = f"polymarket_us_{sector}_{status}"
@@ -238,7 +244,7 @@ class PolymarketUSClient(BaseAPIClient):
             raw = cache_get_offline(cache_key)
             return [PredictionMarket.model_validate(r) for r in raw]
 
-        if cfg.cache_ttl_secs > 0:
+        if cfg.cache_ttl_secs > 0 and not fresh:
             raw = cache_get(cache_key, cfg.cache_ttl_secs)
             if raw is not None:
                 return [PredictionMarket.model_validate(r) for r in raw]
