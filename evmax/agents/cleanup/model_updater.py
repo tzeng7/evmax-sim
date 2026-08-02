@@ -27,6 +27,7 @@ local (as the old CLI code did) would defeat those patches.
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from datetime import date
 from typing import Optional
@@ -115,6 +116,7 @@ async def update_models_for_date(
     *,
     dry_run: bool = False,
     force: bool = False,
+    espn_cache: Optional[dict] = None,
 ) -> UpdateResult:
     """Feed all completed ESPN scores for `target_date` into the model agents.
 
@@ -137,6 +139,9 @@ async def update_models_for_date(
             ledger a daily run of both double-counts every game into Elo/Form/
             Poisson. Use only for a deliberate re-derivation onto a state file
             that does not already contain the games.
+        espn_cache: optional per-run scoreboard cache shared with
+            `resolve_outcomes_for_date` so the model-update fetch reuses
+            scoreboards the resolve phase already pulled for `target_date`.
 
     Returns:
         UpdateResult with the per-game list, the count actually applied, and the
@@ -151,8 +156,20 @@ async def update_models_for_date(
     updated = 0
     skipped = 0
 
+    # Prefetch every sector's completed scores concurrently (bounded by the
+    # resolver's _ESPN_FETCH_SEM) before the serial apply loop below. The
+    # model-state mutations and the SQLite ledger writes must stay serial, but
+    # the ESPN round-trips they depend on don't — this collapses the old
+    # per-sector serial fetch into one bounded fan-out. With a shared
+    # espn_cache, sectors the resolve phase already fetched return instantly.
+    fetched = await asyncio.gather(*(
+        fetch_completed_scores(sector, target_date, cache=espn_cache)
+        for sector in sectors
+    ))
+    scores_by_sector = dict(zip(sectors, fetched))
+
     for sector in sectors:
-        scores = await fetch_completed_scores(sector, target_date)
+        scores = scores_by_sector[sector]
         if not scores:
             continue
 
@@ -171,6 +188,12 @@ async def update_models_for_date(
 
             normalizer = NameNormalizer(sector)
             processed: set[tuple[str, str]] = set()
+            # Games applied this sector, ledgered in one pass AFTER the single
+            # end-of-sector state flush — preserves the save-before-ledger
+            # ordering the per-game path used (a crash before the flush leaves
+            # these un-ledgered and re-appliable next run).
+            sector_applied: list[tuple[str, str]] = []
+            xg_dirty = False
 
             for score in scores:
                 home_n = score["home_name"]
@@ -227,6 +250,7 @@ async def update_models_for_date(
                             score_b=away_s,
                             sector=sector,
                             event_date=target_date.isoformat(),
+                            save=False,  # flushed once per sector below
                         )
                         game.applied = True
                         updated += 1
@@ -257,11 +281,11 @@ async def update_models_for_date(
                                     match_date=target_date.isoformat(), is_home=False,
                                     sector=sector,
                                 )
-                                xg.save_state()
+                                xg_dirty = True  # flushed once per sector below
 
-                        # Ledger the game only after the state mutation succeeded,
-                        # so a failed game stays eligible for a later retry.
-                        _record_applied(conn, sector, target_date, team_a, team_b)
+                        # Record for the post-flush ledger pass — a game is only
+                        # ledgered after its state mutation is persisted.
+                        sector_applied.append((team_a, team_b))
                     except Exception as exc:  # noqa: BLE001 — one bad game must not abort the run
                         game.error = str(exc)
                         logger.warning(
@@ -273,6 +297,17 @@ async def update_models_for_date(
                         )
 
                 games.append(game)
+
+            # End-of-sector flush: persist the accumulated in-memory state ONCE
+            # (elo/form/poisson + ufc/xg as applicable), THEN ledger the applied
+            # games. Ordering matters — state must hit disk before the ledger, so
+            # a crash between the two re-applies games rather than losing them.
+            if not dry_run and sector_applied:
+                coordinator.save_model_states(sector)
+                if xg_dirty:
+                    coordinator.soccer_xg_agent.save_state()
+                for team_a, team_b in sector_applied:
+                    _record_applied(conn, sector, target_date, team_a, team_b)
         finally:
             conn.close()
 

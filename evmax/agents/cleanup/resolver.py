@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import sqlite3
 import unicodedata
+import weakref
 from datetime import date, timedelta
 from typing import Optional
 
@@ -30,6 +31,33 @@ from rapidfuzz import fuzz
 from evmax.agents.cleanup.db import get_connection
 
 logger = structlog.get_logger(__name__)
+
+# Sole throttle on the resolver's ESPN scoreboard traffic. Bounds how many
+# scoreboard fetches run concurrently across every caller (resolve phase +
+# model-update hook). Set to 6: enough parallelism to collapse the old serial
+# fan-out (~33 round-trips) into a handful of rounds, low enough not to burst
+# ESPN's public endpoint. NEVER stack a second semaphore on top of this — the
+# Kalshi fetch path's double-semaphore retry stall (commit 185873b) is the
+# cautionary precedent.
+#
+# An asyncio.Semaphore binds to the first running loop that uses it and then
+# raises on any other loop. `evmax cleanup resolve` calls asyncio.run() twice
+# (resolve phase, then the model-update hook) — two loops — so a single
+# module-level semaphore would break every fetch in the second phase. Keep one
+# semaphore PER running loop, held in a WeakKeyDictionary so entries drop when
+# the loop is garbage-collected (no id-reuse hazard, no leak).
+_ESPN_FETCH_SEM_LIMIT = 6
+_ESPN_FETCH_SEMS: "weakref.WeakKeyDictionary" = weakref.WeakKeyDictionary()
+
+
+def _espn_fetch_sem() -> asyncio.Semaphore:
+    """Return this event loop's ESPN-fetch semaphore, creating it on demand."""
+    loop = asyncio.get_running_loop()
+    sem = _ESPN_FETCH_SEMS.get(loop)
+    if sem is None:
+        sem = asyncio.Semaphore(_ESPN_FETCH_SEM_LIMIT)
+        _ESPN_FETCH_SEMS[loop] = sem
+    return sem
 
 # Lenient threshold for post-hoc resolution (fewer candidates, controlled domain)
 FUZZY_THRESHOLD = 72
@@ -194,14 +222,34 @@ def _fuzzy_team_match(query: str, candidate: str) -> float:
 async def _fetch_espn_scores(
     client: httpx.AsyncClient, sport: str, league: str, espn_date: str,
     extra_params: Optional[dict] = None,
+    cache: Optional[dict] = None,
 ) -> list[dict]:
-    """Fetch completed game scores from ESPN (date as YYYYMMDD)."""
+    """Fetch completed game scores from ESPN (date as YYYYMMDD).
+
+    ``cache`` is an optional per-run dict keyed by (sport, league, espn_date,
+    extra_params) so the resolve phase and the model-update hook can share a
+    single scoreboard fetch instead of each pulling the same date twice. Pass
+    ``None`` (the default) to bypass caching entirely — do NOT use a
+    module-global cache, as the resolver is imported by long-lived processes
+    (dashboard, watch-closes) where a process-lifetime cache would go stale.
+
+    Concurrent callers are bounded by this loop's ``_espn_fetch_sem()``
+    semaphore. This is the sole throttle on the resolver's ESPN traffic — never
+    stack a second semaphore on top of it (the double-semaphore retry stall the
+    Kalshi fetch path hit in commit 185873b).
+    """
+    cache_key = (sport, league, espn_date,
+                 tuple(sorted(extra_params.items())) if extra_params else None)
+    if cache is not None and cache_key in cache:
+        return cache[cache_key]
+
     url = f"https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/scoreboard"
     params: dict = {"dates": espn_date, "limit": 200}
     if extra_params:
         params.update(extra_params)
     try:
-        r = await client.get(url, params=params)
+        async with _espn_fetch_sem():
+            r = await client.get(url, params=params)
         r.raise_for_status()
         data = r.json()
     except Exception as e:
@@ -274,6 +322,8 @@ async def _fetch_espn_scores(
             "away_shots": _stat(away, "totalShots"),
         })
 
+    if cache is not None:
+        cache[cache_key] = results
     return results
 
 
@@ -1148,12 +1198,17 @@ def _parse_live_events(data: dict, is_soccer: bool) -> list[dict]:
     return out
 
 
-async def fetch_completed_scores(sector: str, target_date: date) -> list[dict]:
+async def fetch_completed_scores(
+    sector: str, target_date: date, cache: Optional[dict] = None
+) -> list[dict]:
     """Fetch completed game scores for a sector and date from ESPN.
 
     Returns same structure as _fetch_espn_scores: list of dicts with
     home_name, away_name, home_score, away_score, home_won.
     Returns empty list for sectors without ESPN coverage.
+
+    ``cache`` is threaded to ``_fetch_espn_scores`` so the model-update hook can
+    reuse scoreboards the resolve phase already fetched for the same date.
     """
     espn_date = target_date.isoformat().replace("-", "")
     async with httpx.AsyncClient(
@@ -1162,15 +1217,17 @@ async def fetch_completed_scores(sector: str, target_date: date) -> list[dict]:
         follow_redirects=True,
     ) as client:
         if sector in ESPN_SOCCER_LIKE_LEAGUES:
-            results: list[dict] = []
-            for espn_league in ESPN_SOCCER_LIKE_LEAGUES[sector]:
-                results.extend(
-                    await _fetch_espn_scores(client, "soccer", espn_league, espn_date)
-                )
-            return results
+            # Fetch every league concurrently (bounded by _ESPN_FETCH_SEM).
+            per_league = await asyncio.gather(*(
+                _fetch_espn_scores(client, "soccer", espn_league, espn_date, cache=cache)
+                for espn_league in ESPN_SOCCER_LIKE_LEAGUES[sector]
+            ))
+            return [s for league in per_league for s in league]
         elif sector in ESPN_SPORT_MAP:
             sport, league, extra_params = ESPN_SPORT_MAP[sector]
-            return await _fetch_espn_scores(client, sport, league, espn_date, extra_params)
+            return await _fetch_espn_scores(
+                client, sport, league, espn_date, extra_params, cache=cache
+            )
     return []
 
 
@@ -1491,12 +1548,21 @@ def _resolve_prop_observations(conn: sqlite3.Connection, target_date: date) -> i
     return resolved
 
 
-async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
+async def resolve_outcomes_for_date(
+    target_date: Optional[date] = None,
+    espn_cache: Optional[dict] = None,
+) -> dict:
     """Fetch and store outcomes for all pending predictions on target_date.
 
     Returns {"resolved": int, "failed": int, "voided": int,
     "unmatched": list[event_id]}. ``voided`` counts markets Kalshi finalized as
     a scalar fair-price refund (cancelled match / walkover before play).
+
+    ``espn_cache`` is an optional per-run dict shared with the model-update hook
+    (``update_models_for_date``) so both stages reuse a single scoreboard fetch
+    per (sport, league, date) instead of pulling the same dates twice. Callers
+    that run both stages (the ``evmax cleanup resolve`` command) pass one dict
+    to both; leave it ``None`` for standalone use.
     """
     target_date = target_date or (date.today() - timedelta(days=1))
     date_str = target_date.isoformat()
@@ -1654,11 +1720,16 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
                         group_date.replace("-", ""),
                         (group_date_obj + timedelta(days=1)).isoformat().replace("-", ""),
                     ]
-                    combined_scores: list[dict] = []
-                    for d in espn_dates:
-                        combined_scores.extend(
-                            await _fetch_espn_scores(client, sport, league, d, extra_params)
-                        )
+                    # Fetch the 3 window dates concurrently (bounded by
+                    # _ESPN_FETCH_SEM). gather preserves order, and _match_espn
+                    # scans the whole combined list, so the result is identical
+                    # to the old serial loop.
+                    per_date = await asyncio.gather(*(
+                        _fetch_espn_scores(client, sport, league, d, extra_params,
+                                           cache=espn_cache)
+                        for d in espn_dates
+                    ))
+                    combined_scores: list[dict] = [s for day in per_date for s in day]
                     for pred in rows:
                         outcome = _match_espn(pred, combined_scores)
                         if outcome is not None:
@@ -1676,12 +1747,16 @@ async def resolve_outcomes_for_date(target_date: Optional[date] = None) -> dict:
                         group_date.replace("-", ""),
                         (group_date_obj + timedelta(days=1)).isoformat().replace("-", ""),
                     ]
-                    all_scores: list[dict] = []
-                    for espn_league in ESPN_SOCCER_LIKE_LEAGUES[sector]:
-                        for d in espn_dates:
-                            all_scores.extend(
-                                await _fetch_espn_scores(client, "soccer", espn_league, d)
-                            )
+                    # Fetch every (league × window-date) pair concurrently
+                    # (bounded by _ESPN_FETCH_SEM) instead of the old 8×3 serial
+                    # loop — the single biggest resolve-phase win.
+                    per_pair = await asyncio.gather(*(
+                        _fetch_espn_scores(client, "soccer", espn_league, d,
+                                           cache=espn_cache)
+                        for espn_league in ESPN_SOCCER_LIKE_LEAGUES[sector]
+                        for d in espn_dates
+                    ))
+                    all_scores: list[dict] = [s for pair in per_pair for s in pair]
                     for pred in rows:
                         outcome = _match_espn(pred, all_scores)
                         if outcome is not None:

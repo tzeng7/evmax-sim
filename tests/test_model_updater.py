@@ -388,3 +388,131 @@ def test_ledger_table_is_in_the_shipped_schema():
 
     assert "applied_model_games" in cleanup_db.SCHEMA
     assert "UNIQUE(sector, event_date, team_a, team_b)" in cleanup_db.SCHEMA
+
+
+# ---------------------------------------------------------------------------
+# Batched model-state saves (Phase 3) — per-game update calls must NOT save;
+# the hook flushes each state exactly once per sector.
+# ---------------------------------------------------------------------------
+
+def test_update_models_called_with_save_false():
+    """The batch path must defer persistence: every per-game update_models call
+    passes save=False so it doesn't re-serialize the state files per game."""
+    coord = MagicMock()
+    scores = [_score("Boston Celtics", "Miami Heat", 110, 102)]
+
+    with patch.object(model_updater, "fetch_completed_scores", return_value=scores), \
+         patch.object(model_updater, "get_connection", return_value=_empty_conn()):
+        asyncio.run(
+            model_updater.update_models_for_date(["nba"], date(2026, 6, 9), coordinator=coord)
+        )
+
+    assert coord.update_models.call_count == 1
+    assert coord.update_models.call_args.kwargs["save"] is False
+
+
+def test_state_flushed_once_per_sector_over_many_games():
+    """Ten games in one sector → ten update calls but ONE save_model_states."""
+    coord = MagicMock()
+    scores = [
+        _score(f"Home {i}", f"Away {i}", 100 + i, 90 + i) for i in range(10)
+    ]
+
+    with patch.object(model_updater, "fetch_completed_scores", return_value=scores), \
+         patch.object(model_updater, "get_connection", return_value=_empty_conn()):
+        result = asyncio.run(
+            model_updater.update_models_for_date(["nba"], date(2026, 6, 9), coordinator=coord)
+        )
+
+    assert result.updated == 10
+    assert coord.update_models.call_count == 10
+    assert coord.save_model_states.call_count == 1
+    assert coord.save_model_states.call_args.args[0] == "nba"
+
+
+def test_no_flush_when_nothing_applied(tmp_path):
+    """A sector whose only game is already ledgered must not flush state."""
+    opener = _conn_factory(tmp_path)  # on-disk so the ledger survives run 1
+    coord = MagicMock()
+    scores = [_score("Boston Celtics", "Miami Heat", 110, 102)]
+
+    with patch.object(model_updater, "fetch_completed_scores", return_value=scores), \
+         patch.object(model_updater, "get_connection", side_effect=opener):
+        asyncio.run(
+            model_updater.update_models_for_date(["nba"], date(2026, 6, 9), coordinator=coord)
+        )
+        coord.reset_mock()
+        second = asyncio.run(
+            model_updater.update_models_for_date(["nba"], date(2026, 6, 9), coordinator=coord)
+        )
+
+    assert second.skipped == 1
+    assert coord.update_models.call_count == 0
+    assert coord.save_model_states.call_count == 0
+
+
+def test_state_saved_before_ledger_written(tmp_path):
+    """Crash-safety ordering: the state flush must happen BEFORE any ledger row
+    is committed, so a crash between them re-applies rather than loses games."""
+    opener = _conn_factory(tmp_path)
+    scores = [_score("Boston Celtics", "Miami Heat", 110, 102)]
+
+    order: list[str] = []
+    coord = MagicMock()
+    coord.save_model_states.side_effect = lambda *a, **k: order.append("save")
+
+    real_record = model_updater._record_applied
+
+    def _tracking_record(*args, **kwargs):
+        order.append("ledger")
+        return real_record(*args, **kwargs)
+
+    with patch.object(model_updater, "fetch_completed_scores", return_value=scores), \
+         patch.object(model_updater, "get_connection", side_effect=opener), \
+         patch.object(model_updater, "_record_applied", side_effect=_tracking_record):
+        asyncio.run(
+            model_updater.update_models_for_date(["nba"], date(2026, 6, 9), coordinator=coord)
+        )
+
+    assert order == ["save", "ledger"], f"expected save before ledger, got {order}"
+
+
+def test_prefetch_fetches_each_sector_once():
+    """The prefetch phase must request each sector's scores exactly once."""
+    coord = MagicMock()
+    calls: list[str] = []
+
+    async def _fake_fetch(sector, target_date, cache=None):
+        calls.append(sector)
+        return [_score("H", "A", 1, 0)]
+
+    with patch.object(model_updater, "fetch_completed_scores", side_effect=_fake_fetch), \
+         patch.object(model_updater, "get_connection", side_effect=lambda: _empty_conn()):
+        asyncio.run(
+            model_updater.update_models_for_date(
+                ["nba", "nfl", "nhl"], date(2026, 6, 9), coordinator=coord
+            )
+        )
+
+    assert sorted(calls) == ["nba", "nfl", "nhl"]
+
+
+def test_espn_cache_threaded_to_fetch():
+    """A shared espn_cache must be passed through to fetch_completed_scores so
+    the resolve phase and the model-update hook share one scoreboard fetch."""
+    coord = MagicMock()
+    shared: dict = {}
+    seen_cache = []
+
+    async def _fake_fetch(sector, target_date, cache=None):
+        seen_cache.append(cache)
+        return []
+
+    with patch.object(model_updater, "fetch_completed_scores", side_effect=_fake_fetch):
+        asyncio.run(
+            model_updater.update_models_for_date(
+                ["nba"], date(2026, 6, 9), coordinator=coord, espn_cache=shared
+            )
+        )
+
+    assert seen_cache == [shared]

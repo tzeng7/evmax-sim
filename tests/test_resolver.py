@@ -876,6 +876,131 @@ class TestFetchEspnScores:
 
 
 # ---------------------------------------------------------------------------
+# _fetch_espn_scores: bounded concurrency + per-run cache (perf refactor)
+# ---------------------------------------------------------------------------
+
+class TestEspnFetchConcurrencyAndCache:
+    def _resp(self, data):
+        r = MagicMock()
+        r.json.return_value = data
+        r.raise_for_status.return_value = None
+        return r
+
+    def test_bounded_concurrency_never_exceeds_semaphore(self):
+        """Twenty concurrent fetches must be throttled by _ESPN_FETCH_SEM to at
+        most 6 in-flight — the single guardrail against bursting ESPN."""
+        import evmax.agents.cleanup.resolver as rmod
+
+        in_flight = 0
+        max_in_flight = 0
+
+        async def _get(url, params=None):
+            nonlocal in_flight, max_in_flight
+            in_flight += 1
+            max_in_flight = max(max_in_flight, in_flight)
+            await asyncio.sleep(0.01)  # hold the slot so overlap can build
+            in_flight -= 1
+            return self._resp({"events": []})
+
+        client = MagicMock()
+        client.get = _get
+
+        async def _run():
+            await asyncio.gather(*(
+                rmod._fetch_espn_scores(client, "basketball", "nba", f"202603{i:02d}")
+                for i in range(20)
+            ))
+
+        asyncio.run(_run())
+        assert max_in_flight <= 6, f"burst of {max_in_flight} exceeded the semaphore"
+        assert max_in_flight > 1, "sanity: fetches should actually overlap"
+
+    def test_fetch_survives_multiple_event_loops(self):
+        """`evmax cleanup resolve` calls asyncio.run() twice (resolve phase, then
+        the model-update hook) — two loops. A single module-level asyncio.Semaphore
+        binds to the first loop and raises 'bound to a different event loop' on the
+        second, silently killing every fetch in the model-update phase. Regression:
+        both loops must succeed."""
+        import evmax.agents.cleanup.resolver as rmod
+
+        async def _one():
+            client = AsyncMock()
+            client.get.return_value = self._resp(_build_espn_response([]))
+            return await rmod._fetch_espn_scores(client, "basketball", "nba", "20260319")
+
+        assert asyncio.run(_one()) == []
+        assert asyncio.run(_one()) == []  # pre-fix: RuntimeError here
+
+    def test_cache_hit_skips_second_fetch(self):
+        import evmax.agents.cleanup.resolver as rmod
+
+        client = AsyncMock()
+        client.get.return_value = self._resp(
+            _build_espn_response([_build_espn_event("A", 1, "B", 0)])
+        )
+        cache: dict = {}
+        r1 = asyncio.run(
+            rmod._fetch_espn_scores(client, "basketball", "nba", "20260319", cache=cache)
+        )
+        r2 = asyncio.run(
+            rmod._fetch_espn_scores(client, "basketball", "nba", "20260319", cache=cache)
+        )
+        assert client.get.call_count == 1, "cache hit must not re-fetch"
+        assert r1 == r2
+        assert len(cache) == 1
+
+    def test_cache_different_date_fetches_again(self):
+        import evmax.agents.cleanup.resolver as rmod
+
+        client = AsyncMock()
+        client.get.return_value = self._resp(_build_espn_response([]))
+        cache: dict = {}
+        asyncio.run(rmod._fetch_espn_scores(client, "basketball", "nba", "20260319", cache=cache))
+        asyncio.run(rmod._fetch_espn_scores(client, "basketball", "nba", "20260320", cache=cache))
+        assert client.get.call_count == 2
+        assert len(cache) == 2
+
+    def test_cache_key_includes_extra_params(self):
+        """Same sport/league/date but different extra_params are distinct keys."""
+        import evmax.agents.cleanup.resolver as rmod
+
+        client = AsyncMock()
+        client.get.return_value = self._resp(_build_espn_response([]))
+        cache: dict = {}
+        asyncio.run(rmod._fetch_espn_scores(
+            client, "basketball", "ncaab", "20260319", extra_params={"groups": "50"}, cache=cache))
+        asyncio.run(rmod._fetch_espn_scores(
+            client, "basketball", "ncaab", "20260319", extra_params={"groups": "1"}, cache=cache))
+        assert client.get.call_count == 2
+        assert len(cache) == 2
+
+    def test_cache_none_bypasses(self):
+        import evmax.agents.cleanup.resolver as rmod
+
+        client = AsyncMock()
+        client.get.return_value = self._resp(_build_espn_response([]))
+        asyncio.run(rmod._fetch_espn_scores(client, "basketball", "nba", "20260319", cache=None))
+        asyncio.run(rmod._fetch_espn_scores(client, "basketball", "nba", "20260319", cache=None))
+        assert client.get.call_count == 2, "cache=None must never memoize"
+
+    def test_fetch_completed_scores_soccer_gathers_every_league(self):
+        """The soccer path must fetch every ESPN league for the sector and
+        combine them — concurrently, but result-equivalent to the old loop."""
+        import evmax.agents.cleanup.resolver as rmod
+
+        leagues = rmod.ESPN_SOCCER_LIKE_LEAGUES["soccer"]
+
+        async def _fake(client, sport, league, espn_date, extra_params=None, cache=None):
+            return [{"league": league}]
+
+        with patch.object(rmod, "_fetch_espn_scores", side_effect=_fake):
+            out = asyncio.run(rmod.fetch_completed_scores("soccer", date(2026, 6, 9)))
+
+        assert len(out) == len(leagues)
+        assert {r["league"] for r in out} == set(leagues)
+
+
+# ---------------------------------------------------------------------------
 # _write_outcome
 # ---------------------------------------------------------------------------
 
