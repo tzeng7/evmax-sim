@@ -199,6 +199,92 @@ def test_non_soccer_does_not_touch_xg():
     assert xg.record_match.call_count == 0
 
 
+# ---------------------------------------------------------------------------
+# Preseason / exhibition contamination guard
+#
+# ESPN season.type 1 = preseason. Those games must never train Elo/Form (the
+# NFL preseason / WNBA All-Star contamination lesson). The guard drops type==1
+# for US-league sectors, is fail-open on a missing type, and exempts the
+# soccer-like path (ESPN uses season.type differently there).
+# ---------------------------------------------------------------------------
+
+
+def test_preseason_games_dropped_from_model_feed():
+    coord = MagicMock()
+    scores = [
+        _score("Kansas City Chiefs", "Buffalo Bills", 27, 24, season_type=2),  # regular
+        _score("Green Bay Packers", "Chicago Bears", 17, 10, season_type=1),   # preseason
+    ]
+
+    with patch.object(model_updater, "fetch_completed_scores", return_value=scores), \
+         patch.object(model_updater, "get_connection", return_value=_empty_conn()):
+        result = asyncio.run(
+            model_updater.update_models_for_date(["nfl"], date(2026, 8, 20), coordinator=coord)
+        )
+
+    assert result.updated == 1, "only the regular-season game should feed the models"
+    assert coord.update_models.call_count == 1
+    kwargs = coord.update_models.call_args.kwargs
+    assert kwargs["score_a"] == 27 and kwargs["score_b"] == 24
+
+
+def test_all_preseason_slate_feeds_nothing():
+    coord = MagicMock()
+    scores = [
+        _score("Green Bay Packers", "Chicago Bears", 17, 10, season_type=1),
+        _score("Dallas Cowboys", "Los Angeles Rams", 20, 13, season_type=1),
+    ]
+
+    with patch.object(model_updater, "fetch_completed_scores", return_value=scores), \
+         patch.object(model_updater, "get_connection", return_value=_empty_conn()):
+        result = asyncio.run(
+            model_updater.update_models_for_date(["nfl"], date(2026, 8, 20), coordinator=coord)
+        )
+
+    assert result.updated == 0
+    assert coord.update_models.call_count == 0
+
+
+def test_missing_season_type_is_treated_as_regular():
+    """Fail-open: an older cache entry without season_type must still be fed,
+    never silently dropped as if it were preseason."""
+    coord = MagicMock()
+    scores = [_score("Boston Celtics", "Miami Heat", 110, 102)]  # no season_type
+
+    with patch.object(model_updater, "fetch_completed_scores", return_value=scores), \
+         patch.object(model_updater, "get_connection", return_value=_empty_conn()):
+        result = asyncio.run(
+            model_updater.update_models_for_date(["nba"], date(2026, 6, 9), coordinator=coord)
+        )
+
+    assert result.updated == 1
+    assert coord.update_models.call_count == 1
+
+
+def test_soccer_like_not_filtered_by_season_type():
+    """The soccer-like path is exempt — ESPN season.type semantics differ there,
+    so a type==1 worldcup game must still feed the models."""
+    coord = MagicMock()
+    xg = MagicMock()
+    coord.soccer_xg_agent = xg
+    scores = [
+        _score(
+            "Spain", "Argentina", 2, 1,
+            home_sot=7, away_sot=4, home_shots=15, away_shots=11,
+            season_type=1,
+        )
+    ]
+
+    with patch.object(model_updater, "fetch_completed_scores", return_value=scores), \
+         patch.object(model_updater, "get_connection", return_value=_empty_conn()):
+        result = asyncio.run(
+            model_updater.update_models_for_date(["worldcup"], date(2026, 6, 25), coordinator=coord)
+        )
+
+    assert result.updated == 1, "soccer-like sectors must not be preseason-filtered"
+    assert coord.update_models.call_count == 1
+
+
 def test_db_slug_match_uses_slug_names_at_threshold_65():
     # The updater must adopt the canonical slug names from a matched DB event
     # rather than the raw normalizer output. Pin the threshold at 65: this

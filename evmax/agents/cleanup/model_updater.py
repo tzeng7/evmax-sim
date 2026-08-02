@@ -36,6 +36,7 @@ import structlog
 
 from evmax.agents.cleanup.db import get_connection
 from evmax.agents.cleanup.resolver import (
+    ESPN_SOCCER_LIKE_LEAGUES,
     fetch_completed_scores,
     _slug_teams,
     _fuzzy_team_match,
@@ -43,6 +44,15 @@ from evmax.agents.cleanup.resolver import (
 from evmax.matching.normalizer import NameNormalizer
 
 logger = structlog.get_logger(__name__)
+
+# ESPN season type 1 = preseason / exhibition. These games must never train
+# Elo/Form: preseason rosters and effort are not the regular-season signal, and
+# feeding them corrupts ratings right before the opener (the WNBA All-Star /
+# exhibition contamination lesson). Regular season = 2, postseason = 3. Applied
+# to the US-league sectors (ESPN_SPORT_MAP); the soccer-like path is exempt
+# because ESPN uses `season.type` differently there (friendlies are handled at
+# the seed layer, not here).
+_PRESEASON_SEASON_TYPE = 1
 
 # Lenient threshold for slug↔ESPN team matching on the update path. Distinct
 # from resolver.FUZZY_THRESHOLD (72): the update path only uses the match to
@@ -172,6 +182,29 @@ async def update_models_for_date(
         scores = scores_by_sector[sector]
         if not scores:
             continue
+
+        # Drop preseason / exhibition games before they reach the model feed.
+        # Soccer-like sectors are exempt (see _PRESEASON_SEASON_TYPE). Missing
+        # season_type (older cache entries) is treated as regular-season so the
+        # guard is fail-open, never dropping real games.
+        if sector not in ESPN_SOCCER_LIKE_LEAGUES:
+            preseason = [
+                s for s in scores if s.get("season_type") == _PRESEASON_SEASON_TYPE
+            ]
+            if preseason:
+                scores = [
+                    s
+                    for s in scores
+                    if s.get("season_type") != _PRESEASON_SEASON_TYPE
+                ]
+                logger.info(
+                    "skipped_preseason_model_update",
+                    sector=sector,
+                    dropped=len(preseason),
+                    date=str(target_date),
+                )
+            if not scores:
+                continue
 
         # Held open for the whole sector: the applied-games ledger is written
         # as each game lands, not in a second pass.
