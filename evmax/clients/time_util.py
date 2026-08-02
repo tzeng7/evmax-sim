@@ -27,7 +27,7 @@ from zoneinfo import ZoneInfo
 # day on the Pinnacle side, so Kalshi's game 1 in a series matched Pinnacle's
 # game 2 (off-by-one date in the canonical event key).
 _US_SECTORS = frozenset(
-    {"nba", "wnba", "nfl", "mlb", "baseball", "nhl", "ncaab", "ncaaw", "ufc"}
+    {"nba", "wnba", "nfl", "mlb", "baseball", "nhl", "ncaab", "ncaaw", "ncaaf", "ufc"}
 )
 # "ufc": Kalshi tickers/titles date UFC cards on the US calendar day
 # (KXUFCFIGHT-26JUL11… / "scheduled for Jul 11"), but a US main card that

@@ -42,6 +42,9 @@ ESPN_SPORT_MAP: dict[str, tuple[str, str, dict]] = {
     "ncaab":    ("basketball", "mens-college-basketball", {"groups": "50"}),
     "ncaaw":    ("basketball", "womens-college-basketball", {"groups": "50"}),
     "nfl":      ("football", "nfl", {}),
+    # NCAA football — groups=80 restricts the scoreboard to FBS (matches the
+    # betting universe; FCS-only games are never on Kalshi/Pinnacle NCAAF).
+    "ncaaf":    ("football", "college-football", {"groups": "80"}),
     "baseball": ("baseball", "mlb", {}),
     "nhl":      ("hockey", "nhl", {}),
     "wnba":     ("basketball", "wnba", {}),

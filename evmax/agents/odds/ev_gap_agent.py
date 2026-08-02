@@ -178,6 +178,12 @@ REQUIRED_BLEND_MODELS: dict[str, frozenset] = {
 MIN_NONSHARP_MODELS: dict[str, dict] = {
     "soccer":   {"min_count": 1, "market_types": frozenset({"moneyline"})},
     "worldcup": {"min_count": 1, "market_types": frozenset({"moneyline", "advance"})},
+    # NCAA football: same failure mode as MLS — early-season and unseeded/FCS
+    # opponents blend to sharp-only, which is thin Kalshi-vs-Pinnacle arb, not
+    # model edge. Require ≥1 genuine model (elo/form/ncaaf_efficiency) on a live
+    # moneyline play; sharp-only rows demote to shadow. (ncaaf launches shadow,
+    # so this bites at promotion, exactly when it should.)
+    "ncaaf":    {"min_count": 1, "market_types": frozenset({"moneyline"})},
 }
 
 # Tokens in model_sources that are NOT independent model signal: the sharp
