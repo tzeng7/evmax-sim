@@ -49,6 +49,12 @@ SECTOR_SERIES_MAP: dict[str, list[str]] = {
     "nba": ["KXNBAGAME", "KXNBASPREAD", "KXNBATOTAL"],
     "ncaab": ["KXNCAABGAME", "KXNCAAMBGAME", "KXNCAAMBSPREAD", "KXNCAAMBTOTAL"],
     "ncaaw": ["KXNCAAWBGAME", "KXNCAAWBSPREAD", "KXNCAAWBTOTAL"],
+    # NCAA football (FBS). KXNCAAFGAME (moneyline) verified live on Kalshi
+    # 2026-08-01 (markets list ~week of kickoff). KXNCAAFSPREAD / KXNCAAFTOTAL
+    # series exist but sit empty pre-season and populate near the slate. The
+    # exotic KXNCAAF* series (conf champ / win totals / AP rank / playoff) are
+    # deliberately NOT wired — game markets only.
+    "ncaaf": ["KXNCAAFGAME", "KXNCAAFSPREAD", "KXNCAAFTOTAL"],
     "baseball": ["KXMLBGAME", "KXMLBSPREAD", "KXMLBTOTAL"],
     "nhl": ["KXNHLGAME", "KXNHLSPREAD", "KXNHLTOTAL"],
     "wnba": ["KXWNBAGAME", "KXWNBASPREAD", "KXWNBATOTAL"],

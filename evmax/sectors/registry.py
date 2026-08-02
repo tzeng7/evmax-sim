@@ -4,6 +4,7 @@ from evmax.sectors.base import SectorHandler
 from evmax.sectors.nfl import NFLHandler
 from evmax.sectors.nba import NBAHandler
 from evmax.sectors.ncaab import NCAABHandler
+from evmax.sectors.ncaaf import NCAAFHandler
 from evmax.sectors.soccer import SoccerHandler
 from evmax.sectors.worldcup import WorldCupHandler
 from evmax.sectors.lol import LoLHandler
@@ -20,6 +21,7 @@ _REGISTRY: dict[str, SectorHandler] = {
     "nfl": NFLHandler(),
     "nba": NBAHandler(),
     "ncaab": NCAABHandler(),
+    "ncaaf": NCAAFHandler(),
     "ncaaw": NCAAWHandler(),
     "soccer": SoccerHandler(),
     "worldcup": WorldCupHandler(),

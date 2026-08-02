@@ -167,6 +167,23 @@ class EnsembleModelAgent(Agent):
             "form":           0.30,
             "poisson":        0.0,
         },
+        # NCAAF — opponent-adjusted EPA (ncaaf_efficiency) with an embedded
+        # preseason-prior ramp is the workhorse; generic elo + form supply
+        # early-season and cross-check voices. These are the PHASE 2 INITIAL
+        # weights, to be swept + held out by scripts/backtest_ncaaf_efficiency.py
+        # (2022-24 sweep, 2025 holdout) before the sector promotes off shadow.
+        # elo/form floored so that during the preseason and the first weeks —
+        # when the efficiency rating leans mostly on the regressed prior — the
+        # blend still carries independent generic signal (satisfies the
+        # MIN_NONSHARP_MODELS floor too). Poisson is football-nonsense (drive-
+        # based scoring); the agent is soccer/worldcup-gated so it never fires
+        # here, but zero it explicitly for intent.
+        "ncaaf": {
+            "ncaaf_efficiency": 0.55,
+            "elo":              0.25,
+            "form":             0.20,
+            "poisson":          0.0,
+        },
         # UFC — ufc_rating (Glicko-2 + feature layer) is the only non-sharp
         # model; sharp dominates via sharp_weight (esports precedent). The
         # generic elo/form agents are explicitly zeroed: their `ufc` state is

@@ -52,6 +52,7 @@ SECTOR_SPORT_LEAGUES: dict[str, tuple[int, list[int]]] = {
     "ncaaw":    (4,  [583]),    # WNCAA
     "wnba":     (4,  [578]),    # WNBA
     "nfl":      (15, [258]),
+    "ncaaf":    (15, [880]),    # NCAA football (FBS) — sport 15, league 880 ("NCAA")
     "nhl":      (19, [1456]),   # NHL
     "baseball": (3,  [246]),    # MLB
     "ufc":      (22, []),       # Mixed Martial Arts — matched by league name
@@ -88,7 +89,7 @@ ESPORTS_SECTORS = {"cs2", "lol", "valorant"}  # kept for backward compat
 # outside this set will have its `type == "total"` Pinnacle markets ignored,
 # which makes downstream KXxxxTOTAL Kalshi alternates unmatchable. Add a
 # sector here when its totals model goes live (e.g. wnba_possession_sim).
-TOTALS_SECTORS = {"nba", "wnba", "nfl", "ncaab", "ncaaw", "soccer", "baseball", "nhl"}
+TOTALS_SECTORS = {"nba", "wnba", "nfl", "ncaab", "ncaaw", "ncaaf", "soccer", "baseball", "nhl"}
 
 # Sectors that price ONLY the main total line, not Pinnacle's alternate ladder.
 # Mirrors how spreads already take only the non-alternate line (see _parse).
