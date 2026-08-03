@@ -53,8 +53,10 @@ from evmax.agents.models.tennis_model_agent import TennisModelAgent  # noqa: E40
 from evmax.clients.tennisabstract import parse_elo_html  # noqa: E402
 from evmax.ev.devig import devig_two_way  # noqa: E402
 
-# Wayback HTML snapshots are cached to a temp dir (NOT the tracked repo tree).
-CACHE = Path(tempfile.gettempdir()) / "evmax_ta_elo_wayback"
+# Wayback HTML snapshots are cached to a git-tracked path so cloud runs can
+# read from committed snapshots rather than re-fetching from web.archive.org.
+# Fallback: tempfile.gettempdir() for local dev.
+CACHE = _REPO_ROOT / "data/backtest/tennis/wayback_cache"
 
 
 def _get(url: str, timeout: float = 90.0, retries: int = 4) -> str | None:
