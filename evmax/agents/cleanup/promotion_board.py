@@ -125,7 +125,7 @@ def compute_promotion_board(
     """
     from evmax.agents.cleanup.contamination import is_contaminated
     from evmax.agents.cleanup.db import get_connection
-    from evmax.agents.cleanup.value_audit import _brier, _paired_diff_stats
+    from evmax.agents.cleanup.value_audit import _brier, _calibration, _paired_diff_stats
     from evmax.cli.commands.shadow import (
         MIN_CLEAN_RESOLVED,
         clv_stats,
@@ -190,6 +190,7 @@ def compute_promotion_board(
         brier_blend = _brier(clean, "blended_true_prob")
         brier_sharp = _brier(clean, "sharp_true_prob")
         paired = _paired_diff_stats(clean, "sharp_true_prob", "blended_true_prob")
+        calib = _calibration(clean)
 
         clv = clv_stats(
             sec,
@@ -246,6 +247,8 @@ def compute_promotion_board(
             "brier_delta_z": round(paired["z"], 2) if paired else None,
             "blend_divergence_pp": divergence_pp,
             "blend_divergence_resolved_pp": divergence_resolved_pp,
+            "calib_bias_pp": round(calib["signed_bias_pp"], 2),
+            "calib_ece_pp": round(calib["ece_pp"], 2),
             "sharp_passthrough": passthrough,
             "clv": {
                 "n": clv["n"],

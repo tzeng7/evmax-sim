@@ -103,6 +103,28 @@ class TestCalibration:
         cal = va._calibration(rows)
         assert cal["consistent_direction"] is False
 
+    def test_ece_is_nonnegative_and_present(self):
+        rows = [_row(1, 0.5, 0.9), _row(0, 0.5, 0.9)] * 25
+        cal = va._calibration(rows)
+        assert "ece_pp" in cal
+        assert cal["ece_pp"] >= 0.0
+
+    def test_ece_zero_when_perfectly_calibrated(self):
+        # 0.5 bucket that hits exactly 50% -> zero calibration error
+        rows = [_row(1, 0.5, 0.5), _row(0, 0.5, 0.5)] * 25
+        cal = va._calibration(rows)
+        assert cal["ece_pp"] < 1e-9
+
+    def test_ece_does_not_cancel_when_signed_bias_does(self):
+        # High-on-favorites + low-on-dogs cancels in signed_bias_pp but NOT in ECE.
+        # 0.9 bucket predicted 0.9, hits 0.5 (over by 40pp); 0.1 bucket predicted 0.1,
+        # hits 0.5 (under by 40pp). Equal populations -> signed ~0, ECE ~40pp.
+        rows = ([_row(1, 0.5, 0.9), _row(0, 0.5, 0.9)] * 25
+                + [_row(1, 0.5, 0.1), _row(0, 0.5, 0.1)] * 25)
+        cal = va._calibration(rows)
+        assert abs(cal["signed_bias_pp"]) < 1.0     # cancels
+        assert cal["ece_pp"] > 30.0                 # does not cancel
+
 
 class TestVerdict:
     def test_insufficient_below_min_n(self):
