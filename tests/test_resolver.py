@@ -27,8 +27,11 @@ from evmax.agents.cleanup.resolver import (
     _match_espn,
     _mlb_outs_from_innings_pitched,
     _polyus_bet_is_long,
+    _fetch_json_concurrent,
     _resolve_baseball_prop_observations,
+    _resolve_prop_observations,
     _resolve_via_kalshi,
+    PROP_RESOLVE_LOOKBACK_DAYS,
     _resolve_via_polymarket_us,
     _slug_teams,
     _split_polymarket_us_id,
@@ -2129,3 +2132,142 @@ class TestResolveBaseballPropObservations:
         assert n == 0
         row = conn.execute("SELECT outcome FROM prop_observations").fetchone()
         assert row["outcome"] is None
+
+
+class TestFetchJsonConcurrent:
+    """_fetch_json_concurrent: order-preserving bounded thread-pool map."""
+
+    def test_empty_input_returns_empty_no_pool(self):
+        calls = []
+        assert _fetch_json_concurrent(lambda x: calls.append(x), []) == []
+        assert calls == []
+
+    def test_single_item_runs_inline(self):
+        assert _fetch_json_concurrent(lambda x: x * 2, [21]) == [42]
+
+    def test_preserves_order_across_workers(self):
+        # Even with out-of-order completion, results align to input order.
+        items = list(range(20))
+        out = _fetch_json_concurrent(lambda x: x * x, items)
+        assert out == [x * x for x in items]
+
+    def test_failed_fetch_none_is_passed_through(self):
+        # fetch_fn is expected to swallow its own errors and return None.
+        def fetch(x):
+            return None if x % 2 else x
+        assert _fetch_json_concurrent(fetch, [0, 1, 2, 3]) == [0, None, 2, None]
+
+
+class TestResolvePropObservationsWindow:
+    """_resolve_prop_observations only touches games within the lookback window.
+
+    A prop still pending long after its game finished is permanently
+    unresolvable; re-fetching its slate every run is what made resolve slow.
+    """
+
+    def _make_conn(self):
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        conn.execute(
+            """CREATE TABLE prop_observations (
+                   id INTEGER PRIMARY KEY AUTOINCREMENT,
+                   scan_date TEXT, sector TEXT, player_name TEXT,
+                   stat_type TEXT, line REAL, event_id TEXT,
+                   actual_value REAL, outcome INTEGER)"""
+        )
+        return conn
+
+    def _seed(self, conn, *, scan_date, player, stat_type, line, event_id, sector="nba"):
+        conn.execute(
+            """INSERT INTO prop_observations
+               (scan_date, sector, player_name, stat_type, line, event_id)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (scan_date, sector, player, stat_type, line, event_id),
+        )
+        conn.commit()
+
+    def _fake_nba_client(self, recording):
+        """Fake httpx.Client that records the ESPN scoreboard dates it is asked
+        for and returns a one-completed-game slate for any date."""
+        client = MagicMock()
+
+        def _get(url, params=None, **kwargs):
+            resp = MagicMock()
+            resp.raise_for_status.return_value = None
+            if "scoreboard" in url:
+                recording.append(params.get("dates"))
+                resp.json.return_value = {
+                    "events": [
+                        {"id": "401", "competitions": [
+                            {"status": {"type": {"completed": True}}}]}
+                    ]
+                }
+            else:  # summary/boxscore
+                resp.json.return_value = {
+                    "boxscore": {"players": [
+                        {"statistics": [
+                            {"labels": ["PTS", "REB"], "athletes": [
+                                {"athlete": {"displayName": "Recent Player"},
+                                 "stats": ["30", "10"]}
+                            ]}
+                        ]}
+                    ]}
+                }
+            return resp
+
+        client.get.side_effect = _get
+        return client
+
+    def test_stale_game_skipped_recent_resolved(self):
+        conn = self._make_conn()
+        target = date(2026, 7, 15)
+        window_lo = target - timedelta(days=PROP_RESOLVE_LOOKBACK_DAYS)  # 2026-07-12
+        stale_gd = (window_lo - timedelta(days=4)).isoformat()          # 2026-07-08
+
+        # Recent prop: game inside window → should resolve.
+        self._seed(
+            conn, scan_date=target.isoformat(), player="Recent Player",
+            stat_type="points", line=25.0,
+            event_id=f"nba::{target.isoformat()}::a_vs_b::prop::recent_player::points::25.0",
+        )
+        # Stale prop: scan_date passes the coarse SQL floor, but the GAME is
+        # before the window → must be skipped and never fetched.
+        self._seed(
+            conn, scan_date=stale_gd, player="Recent Player",
+            stat_type="points", line=25.0,
+            event_id=f"nba::{stale_gd}::a_vs_b::prop::recent_player::points::25.0",
+        )
+
+        recording: list = []
+        fake = self._fake_nba_client(recording)
+        with patch("evmax.agents.cleanup.resolver.httpx.Client", return_value=fake):
+            n = _resolve_prop_observations(conn, target)
+
+        assert n == 1
+        # Only the in-window date's scoreboard was fetched.
+        assert recording == [target.isoformat().replace("-", "")]
+
+        rows = conn.execute(
+            "SELECT scan_date, outcome FROM prop_observations ORDER BY scan_date"
+        ).fetchall()
+        by_date = {r["scan_date"]: r["outcome"] for r in rows}
+        assert by_date[target.isoformat()] == 1     # resolved
+        assert by_date[stale_gd] is None            # left pending, not fetched
+
+    def test_ancient_rows_below_sql_floor_not_scanned(self):
+        conn = self._make_conn()
+        target = date(2026, 7, 15)
+        # scan_date far below the (window_lo - 7d) floor: never selected at all.
+        ancient = "2026-01-01"
+        self._seed(
+            conn, scan_date=ancient, player="Old Player",
+            stat_type="points", line=10.0,
+            event_id=f"nba::{ancient}::a_vs_b::prop::old_player::points::10.0",
+        )
+        recording: list = []
+        fake = self._fake_nba_client(recording)
+        with patch("evmax.agents.cleanup.resolver.httpx.Client", return_value=fake):
+            n = _resolve_prop_observations(conn, target)
+        assert n == 0
+        assert recording == []  # no network fetch at all
+        assert fake.get.call_count == 0

@@ -49,6 +49,51 @@ logger = structlog.get_logger(__name__)
 _ESPN_FETCH_SEM_LIMIT = 6
 _ESPN_FETCH_SEMS: "weakref.WeakKeyDictionary" = weakref.WeakKeyDictionary()
 
+# Prop resolution recency window. A prop still pending well after its game
+# finished is either already resolved or PERMANENTLY unresolvable — the player
+# sat (DNP), the name never matched a boxscore row, or the game predates our
+# capture. The old query re-selected EVERY such row on every run and re-fetched
+# its whole game-date slate (ESPN summary / MLB Stats boxscore per game), so the
+# dead backlog grew without bound and dominated the resolve runtime (measured:
+# ~450 stale props → ~16s of serial MLB/ESPN round-trips, resolving zero).
+#
+# Bound resolution to games within PROP_RESOLVE_LOOKBACK_DAYS of the resolve
+# date. `evmax cleanup resolve` runs daily, so a 3-day lookback still retries a
+# prop that missed one or two prior runs (transient fetch failure) while it
+# stops re-fetching months-old dead rows forever. Anchored on the resolve
+# target_date (not today) so a deliberate `--date` backfill still resolves that
+# date's props. Postponed games (played long after their event_id date) are the
+# one case this drops — they never resolved on the original date anyway.
+PROP_RESOLVE_LOOKBACK_DAYS = 3
+
+# Bounded concurrency for the per-game boxscore fetches inside a single date's
+# slate. A full in-season MLB night is ~15 games; fetching each boxscore
+# serially is the remaining cost once the stale backlog is windowed out.
+# httpx.Client is thread-safe for concurrent requests, so a small thread pool
+# collapses the slate into a couple of rounds. Kept low to stay polite to the
+# public ESPN / MLB Stats endpoints (mirrors _ESPN_FETCH_SEM_LIMIT).
+_PROP_FETCH_WORKERS = 6
+
+
+def _fetch_json_concurrent(fetch_fn, items: list) -> list:
+    """Map ``fetch_fn`` over ``items`` on a bounded thread pool, preserving order.
+
+    Used for the per-game boxscore fetches in prop resolution: each call is an
+    independent blocking HTTP GET, so a small ThreadPoolExecutor turns a serial
+    slate into a couple of concurrent rounds. ``fetch_fn`` is expected to catch
+    its own errors and return None on failure — this helper does not add retry
+    or error handling of its own. Returns [] for an empty input without opening
+    a pool.
+    """
+    if not items:
+        return []
+    if len(items) == 1:
+        return [fetch_fn(items[0])]
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=min(_PROP_FETCH_WORKERS, len(items))) as ex:
+        return list(ex.map(fetch_fn, items))
+
 
 def _espn_fetch_sem() -> asyncio.Semaphore:
     """Return this event loop's ESPN-fetch semaphore, creating it on demand."""
@@ -1301,17 +1346,23 @@ def _resolve_baseball_prop_observations(
 
             player_stats: dict[str, dict[str, float]] = {}
 
-            for game_pk in game_pks:
+            # Fetch the slate's boxscores concurrently — one blocking GET per
+            # game, independent, so a small thread pool collapses a ~15-game
+            # night into a couple of rounds instead of serial round-trips.
+            def _fetch_mlb_box(game_pk) -> "Optional[dict]":
                 try:
                     box_resp = client.get(
                         f"https://statsapi.mlb.com/api/v1/game/{game_pk}/boxscore"
                     )
                     box_resp.raise_for_status()
-                    box = box_resp.json()
+                    return box_resp.json()
                 except Exception as e:
                     logger.debug("baseball_prop_box_fail", game_pk=game_pk, error=str(e))
-                    continue
+                    return None
 
+            for box in _fetch_json_concurrent(_fetch_mlb_box, game_pks):
+                if box is None:
+                    continue
                 for team_side in ("home", "away"):
                     players = (
                         box.get("teams", {}).get(team_side, {}).get("players", {})
@@ -1381,28 +1432,46 @@ def _resolve_baseball_prop_observations(
     return resolved
 
 
-def _resolve_prop_observations(conn: sqlite3.Connection, target_date: date) -> int:
+def _resolve_prop_observations(
+    conn: sqlite3.Connection,
+    target_date: date,
+    lookback_days: int = PROP_RESOLVE_LOOKBACK_DAYS,
+) -> int:
     """Resolve pending rows in prop_observations using ESPN box scores.
 
     Fetches box scores for each game date that has pending props, extracts
     player stats, and fills outcome + actual_value.  One HTTP request per game
     (not per player) so this is fast and doesn't hit nba_api rate limits.
+
+    Only games within ``lookback_days`` of ``target_date`` are resolved. A prop
+    still pending long after its game is permanently unresolvable (DNP / name
+    mismatch / pre-capture); re-fetching its slate every run is what made this
+    step slow. See :data:`PROP_RESOLVE_LOOKBACK_DAYS`.
     """
-    today_str = date.today().isoformat()
+    today = date.today()
+    today_str = today.isoformat()
+    window_lo = target_date - timedelta(days=lookback_days)
+    # Coarse SQL floor so the stale backlog isn't even row-scanned. Props are
+    # scanned at/before their game, sometimes a few days ahead of it, so pad the
+    # game-date window by a week before flooring scan_date — the exact game-date
+    # cut below still enforces the real window.
+    scan_floor = (window_lo - timedelta(days=7)).isoformat()
     rows = conn.execute(
         """SELECT id, scan_date, player_name, stat_type, line, event_id, sector
            FROM prop_observations
-           WHERE outcome IS NULL AND scan_date <= ?""",
-        (today_str,),
+           WHERE outcome IS NULL AND scan_date <= ? AND scan_date >= ?""",
+        (today_str, scan_floor),
     ).fetchall()
 
     if not rows:
         return 0
 
     # Group by game date, split baseball off — it resolves via the MLB Stats
-    # API boxscore, not ESPN NBA basketball.
+    # API boxscore, not ESPN NBA basketball. Rows whose game finished before the
+    # lookback window are skipped (permanently-unresolvable backlog).
     by_date: dict[str, list[dict]] = {}
     baseball_by_date: dict[str, list[dict]] = {}
+    skipped_stale = 0
     for row in rows:
         r = dict(row)
         parts = (r.get("event_id") or "").split("::")
@@ -1411,7 +1480,10 @@ def _resolve_prop_observations(conn: sqlite3.Connection, target_date: date) -> i
             gd = date.fromisoformat(game_date)
         except ValueError:
             continue
-        if gd > date.today():
+        if gd > today:
+            continue
+        if gd < window_lo:
+            skipped_stale += 1
             continue
         if r.get("sector") == "baseball":
             baseball_by_date.setdefault(game_date, []).append(r)
@@ -1463,28 +1535,36 @@ def _resolve_prop_observations(conn: sqlite3.Connection, target_date: date) -> i
                 logger.warning("prop_obs_scoreboard_fail", date=game_date, error=str(e))
                 continue
 
-            # Build player → stats lookup from all box scores on this date
+            # Build player → stats lookup from all box scores on this date.
+            # Fetch the completed games' boxscores concurrently — this slate is
+            # the remaining serial cost once the stale backlog is windowed out.
             player_stats: dict[str, dict[str, float]] = {}  # normalized_name → {PTS, REB, ...}
 
-            for event in events:
-                eid = event.get("id")
-                if not eid:
-                    continue
-                comp = event.get("competitions", [{}])[0]
-                if not comp.get("status", {}).get("type", {}).get("completed", False):
-                    continue
+            completed_eids = [
+                event["id"]
+                for event in events
+                if event.get("id")
+                and event.get("competitions", [{}])[0]
+                .get("status", {}).get("type", {}).get("completed", False)
+            ]
 
+            def _fetch_nba_box(eid: str) -> "Optional[dict]":
                 try:
                     box_resp = client.get(
-                        f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary",
+                        "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary",
                         params={"event": eid},
                     )
                     box_resp.raise_for_status()
-                    box = box_resp.json()
+                    return box_resp.json()
                 except Exception as e:
                     logger.debug("prop_obs_box_fail", event=eid, error=str(e))
-                    continue
+                    return None
 
+            boxes = _fetch_json_concurrent(_fetch_nba_box, completed_eids)
+
+            for box in boxes:
+                if box is None:
+                    continue
                 for team_box in box.get("boxscore", {}).get("players", []):
                     for stat_block in team_box.get("statistics", []):
                         labels = stat_block.get("labels", [])
@@ -1552,7 +1632,12 @@ def _resolve_prop_observations(conn: sqlite3.Connection, target_date: date) -> i
     finally:
         client.close()
 
-    logger.info("prop_observations_resolved", count=resolved, total_pending=len(rows))
+    logger.info(
+        "prop_observations_resolved",
+        count=resolved,
+        total_pending=len(rows),
+        skipped_stale=skipped_stale,
+    )
     return resolved
 
 
