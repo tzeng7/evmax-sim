@@ -881,7 +881,19 @@ class AgentCoordinator:
         # with the main fetch (create_task above), so this timeout only gates
         # how long we wait *after* Kalshi/Pinnacle/injuries finish. 20s is
         # enough for stats.nba.com without blocking other sectors.
+        #
+        # Dead-sector guard: when the game-market fetch SUCCEEDED and returned
+        # zero markets (offseason nba is the canonical case — a no-season-window
+        # live sector that scans year-round), there are no games, hence nothing
+        # to price props against — cancel the in-flight prop fetch instead of
+        # waiting up to 20s of stats-API I/O for an unusable result. A FAILED
+        # Kalshi fetch (exception) keeps the old await-the-props behavior:
+        # an empty pool from a fetch error is not evidence the sector is dead.
         prop_sharp_pairs: list[tuple[SharpOdds, PredictionMarket]] = []
+        if prop_task is not None and not markets and not isinstance(kalshi_resp, Exception):
+            prop_task.cancel()
+            self.log.info("prop_fetch_cancelled_no_markets", sector=sector)
+            prop_task = None
         if prop_task is not None:
             try:
                 prop_markets, prop_sharp = await asyncio.wait_for(prop_task, timeout=20.0)
