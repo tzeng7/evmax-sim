@@ -7983,3 +7983,17 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600059667,401892276,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Light Heavyweight,4273399,Magomed Ankalaev,5152109,Bogdan Guskov,a,True,5,2:41,ko_tko,Punches
 600059667,401898030,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Bantamweight,2591306,Cody Gibson,4905308,Abdul Hussein,b,True,3,3:07,submission,Arm Triangle
 600059667,401898040,UFC Fight Night: Ankalaev vs. Guskov,2026-07-25,Light Heavyweight,2594871,Dustin Jacoby,5369438,Muhammad Said,b,True,2,4:49,ko_tko,Kick
+600059339,401870843,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Welterweight,4685870,Uroš Medić,4426312,Daniel Rodriguez,a,True,1,0:30,ko_tko,Punches
+600059339,401873865,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Heavyweight,4079314,Aleksandar Rakic,3093559,Marcin Tybura,a,True,3,5:00,decision,
+600059339,401873866,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Middleweight,4421517,Duško Todorović,4686237,Robert Valentin,b,True,1,4:14,submission,Guillotine Choke
+600059339,401874462,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Middleweight,5351430,Vlasto Čepo,4375574,Gilbert Urbina,b,True,1,1:01,ko_tko,Elbows
+600059339,401875161,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Lightweight,4193694,Ludovit Klein,4423264,Tofiq Musayev,b,True,2,4:07,ko_tko,Punches
+600059339,401875163,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Featherweight,4686735,Dennis Buzukja,5144006,Bogdan Grad,b,True,2,4:33,submission,Arm Triangle
+600059339,401879329,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Welterweight,4900808,Oban Elliott,5282411,Michael Oliveira,b,True,1,1:49,ko_tko,Punches
+600059339,401881924,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,W Bantamweight,5361791,Nina Milošević,4374742,Hailey Cowan,a,True,1,3:41,ko_tko,Punch
+600059339,401891535,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Lightweight,4689965,Mateusz Rębecki,3084914,Kyle Prepolec,a,True,1,4:41,ko_tko,Punches
+600059339,401892191,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Light Heavyweight,2506250,Jan Blachowicz,5216713,Navajo Stirling,b,True,1,2:56,ko_tko,Punches
+600059339,401902574,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Lightweight,4708540,Milos Janicic,5145777,Noah Gugnon,b,True,1,1:21,submission,Rear Naked Choke
+600059339,401902575,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Bantamweight,5131951,Borislav Nikolic,5310571,Mark Vologdin,a,True,3,5:00,decision,
+600059339,401902576,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Heavyweight,5312090,Jovan Leka,4064714,Alexander Poppeck,a,True,1,2:22,ko_tko,Kick
+600059339,401902577,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,W Strawweight,5364788,Marina Spasić,5145495,Stephanie Luciano,b,True,1,3:20,submission,Rear Naked Choke

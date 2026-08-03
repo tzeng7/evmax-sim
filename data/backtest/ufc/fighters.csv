@@ -2063,6 +2063,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 4705658,Alex Pereira,1987-07-07,76.0,79.0,Orthodox
 4705665,Liam Anderson,1995-01-13,74.0,75.0,Orthodox
 4706975,Billy Ray Goff,1998-06-18,70.0,72.0,Switch
+4708540,Milos Janicic,1997-05-03,71.0,71.0,Orthodox
 4708819,Francisco Figueiredo,1989-10-23,66.0,68.0,Southpaw
 4710386,Lukasz Brzeski,1992-05-17,75.0,78.0,Orthodox
 4711407,Irina Alekseeva,1990-06-27,68.0,67.0,Orthodox
@@ -2364,6 +2365,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5126213,Jhonata Silva,1997-04-24,65.0,66.5,Orthodox
 5127984,Melissa Mullins,1991-07-23,67.0,68.0,Orthodox
 5130607,Abdellah Er-Ramy,1996-09-19,72.0,74.0,Orthodox
+5131951,Borislav Nikolic,1993-01-29,69.0,72.0,Orthodox
 5132151,Ivana Petrovic,1994-06-11,68.0,70.0,Southpaw
 5134399,Nick Klein,1995-09-08,73.0,77.0,Orthodox
 5137012,Rei Tsuruya,2002-06-22,66.0,68.0,Orthodox
@@ -2403,6 +2405,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5145681,Kevin Vallejos,2001-12-08,67.0,68.0,Switch
 5145682,Bolaji Oki,1995-11-15,70.0,73.0,Orthodox
 5145766,Jean Silva,1996-12-27,67.0,69.0,Orthodox
+5145777,Noah Gugnon,2000-10-18,71.0,71.0,Orthodox
 5146229,Serhiy Sidey,1996-07-04,71.0,72.0,Switch
 5146278,Lucas Rocha,2000-08-12,63.0,64.0,Orthodox
 5146696,Luke Riley,1999-06-30,69.0,69.0,Orthodox
@@ -2609,10 +2612,13 @@ athlete_id,name,dob,height_in,reach_in,stance
 5346907,Ollie Schmid,2000-12-28,71.0,,--
 5350560,Artur Minev,2003-09-27,69.0,69.5,Orthodox
 5350562,Farman Hasanov,1995-08-01,72.0,74.5,Orthodox
+5351430,Vlasto Čepo,1995-01-25,72.0,73.0,Orthodox
 5360467,Magomed Tuchalov,1999-12-30,77.0,78.0,Orthodox
+5361791,Nina Milošević,1996-08-08,65.0,67.0,Orthodox
 5362337,Shane Collins,2000-03-08,69.0,71.0,Orthodox
 5362725,Jefferson Nascimento,1998-11-19,68.0,70.0,--
 5364334,Damian Rzepecki,2001-11-23,70.0,71.0,Orthodox
+5364788,Marina Spasić,1994-07-11,64.0,64.0,Orthodox
 5369414,John Garza,2002-10-30,67.0,68.0,Orthodox
 5369438,Muhammad Said,1996-01-10,74.0,73.0,Orthodox
 5369555,RJ Harris,1998-10-01,78.0,80.0,Orthodox
