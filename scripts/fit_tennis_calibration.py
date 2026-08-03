@@ -321,9 +321,78 @@ def run(train_frac: float, sharp_weight: float, report_only: bool) -> None:
         print("retrain returned False (insufficient data or sklearn missing). Nothing written.")
 
 
+async def _build_live_rows(cache_path: Path) -> None:
+    """Build the row cache using CURRENT live model state files.
+
+    No Wayback snapshots, no matchmx fetch — agents load from
+    data/models/tennis_*_state.json on init, exactly as in production.
+    Ratings reflect the latest weekly seed, so predictions for historical
+    training rows (2024) leak future information. Acceptable for calibration:
+    the transform corrects systematic confidence bias (a monotone mapping),
+    not individual match outcomes. Mirrors the pre-2026-07-01 approach that
+    produced the original +0.00154 calibration.
+
+    Call via: python scripts/fit_tennis_calibration.py build-live
+    """
+    # Import lazily — afb monkeypatches TennisModelAgent._resolve_surface at
+    # import time; keep the fit path side-effect-free for tests.
+    import analyze_tennis_full_blend as afb  # noqa: PLC0415
+    import backtest_tennis_matchmx as bt  # noqa: PLC0415
+    from evmax.agents.models.tennis_model_agent import TennisModelAgent  # noqa: PLC0415
+    from evmax.agents.models.tennis_serve_return_agent import TennisServeReturnAgent  # noqa: PLC0415
+    from evmax.agents.models.tennis_advanced_stats_agent import TennisAdvancedStatsAgent  # noqa: PLC0415
+    from evmax.agents.models.tennis_form_agent import TennisFormAgent  # noqa: PLC0415
+    from evmax.agents.models.tennis_h2h_agent import TennisH2HAgent  # noqa: PLC0415
+    from evmax.ev.devig import devig_two_way  # noqa: PLC0415
+
+    models_list = list(afb.WEIGHTS)  # surface, serve_return, form, advanced, h2h
+
+    # Agents auto-load from data/models/*_state.json on init.
+    agents: dict = {
+        "tennis_surface": TennisModelAgent(),
+        "tennis_serve_return": TennisServeReturnAgent(),
+        "tennis_form": TennisFormAgent(),
+        "tennis_advanced": TennisAdvancedStatsAgent(),
+        "tennis_h2h": TennisH2HAgent(),
+    }
+    for ag in agents.values():
+        ag.save_state = lambda: None  # suppress disk writes during prediction
+
+    years = (2023, 2024, 2025, 2026)  # 2023 included for Excel completeness; filtered below
+    results = bt.load_atp_results(years)
+    print(f"[build-live] loaded {len(results)} ATP results from Excel")
+
+    rows: list[list] = []
+    for r in results:
+        if r["date"].year < 2024:
+            continue
+        if not r["psw"] or not r["psl"]:
+            continue
+        try:
+            p_mkt_w, _, _ = devig_two_way(float(r["psw"]), float(r["psl"]))
+        except Exception:
+            continue
+        a, b = sorted((r["winner"], r["loser"]))
+        a_won = a == r["winner"]
+        market = afb._mk_market(a, b, r["surface"], r["date"], r["best_of"])
+        sharp = afb._mk_sharp(a, b, r["date"])
+        preds = await asyncio.gather(*[afb._prob_a(agents[k], market, sharp) for k in models_list])
+        mp = {k: [preds[i][0], preds[i][1]] for i, k in enumerate(models_list)
+              if preds[i][0] is not None}
+        rows.append([1.0 if a_won else 0.0, r["date"].isoformat(),
+                     p_mkt_w if a_won else 1.0 - p_mkt_w, mp])
+
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    cache_path.write_text(json.dumps(rows))
+    fire = {k: sum(1 for _, _, _, mp in rows if k in mp) for k in models_list}
+    print(f"[build-live] cached {len(rows)} rows -> {cache_path}")
+    print(f"fire rates: { {k: f'{v}/{len(rows)}' for k, v in fire.items()} }")
+    print("NOTE: non-PIT — ratings from live state files, not Wayback snapshots.")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PIT isotonic calibration for the tennis ensemble")
-    parser.add_argument("cmd", nargs="?", default="fit", choices=["fit", "build"])
+    parser.add_argument("cmd", nargs="?", default="fit", choices=["fit", "build", "build-live"])
     parser.add_argument("--train-frac", type=float, default=0.70)
     parser.add_argument("--sharp-weight", type=float, default=0.85)
     parser.add_argument("--report-only", action="store_true",
@@ -333,5 +402,7 @@ if __name__ == "__main__":
         import tennis_pit_rows  # noqa: PLC0415  (import-time monkeypatch — see module note)
 
         asyncio.run(tennis_pit_rows.build_rows(CACHE))
+    elif args.cmd == "build-live":
+        asyncio.run(_build_live_rows(CACHE))
     else:
         run(args.train_frac, args.sharp_weight, args.report_only)
