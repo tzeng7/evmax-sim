@@ -463,9 +463,20 @@ class TestNbaPropFlow:
             enable_models=False,
             enable_injuries=False,
         )
-        # Game markets + sharp (no edge, so no game-level EVGap noise)
+        # One unmatched game market (no sharp game odds ⇒ no game-level EVGap
+        # noise). A NON-EMPTY game pool is required since the dead-sector prop
+        # guard: zero game markets ⇒ the prop fetch is cancelled as pointless.
+        game_market = _make_market(
+            market_id="kalshi-nba-lal-gsw",
+            sector="nba",
+            team_home="LAL",
+            team_away="GSW",
+            yes_team="LAL",
+            yes_price=0.55,
+        )
+
         async def _kalshi_stub(req):
-            return _resp("kalshi", req.sector, [])
+            return _resp("kalshi", req.sector, [game_market])
 
         async def _sharp_stub(req):
             return _resp("sharp", req.sector, [])
@@ -541,8 +552,19 @@ class TestBaseballPropFlow:
             enable_injuries=False,
         )
 
+        # Non-empty game pool so the dead-sector prop guard doesn't cancel
+        # the prop fetch (unmatched market ⇒ no game-gap noise, same as NBA).
+        game_market = _make_market(
+            market_id="kalshi-mlb-nyy-bos",
+            sector="baseball",
+            team_home="NYY",
+            team_away="BOS",
+            yes_team="NYY",
+            yes_price=0.55,
+        )
+
         async def _kalshi_stub(req):
-            return _resp("kalshi", req.sector, [])
+            return _resp("kalshi", req.sector, [game_market])
 
         async def _sharp_stub(req):
             return _resp("sharp", req.sector, [])
@@ -601,6 +623,121 @@ class TestBaseballPropFlow:
         assert sharp.prop_player_name == "Gerrit Cole"
         assert market.player_name == "Gerrit Cole"
         assert sharp.true_prob_over == 0.60
+
+
+class TestDeadSectorPropCancel:
+    """Dead-sector prop guard: a sector whose game-market fetch SUCCEEDS with
+    zero markets (offseason nba) has no games, so its in-flight prop fetch is
+    cancelled instead of awaited for up to 20s of stats-API I/O. A FAILED
+    game fetch keeps the old behavior — an empty pool from a fetch error is
+    not evidence the sector is dead."""
+
+    def _build_coord(self, *, kalshi_fails: bool) -> tuple[AgentCoordinator, dict]:
+        coord = AgentCoordinator(
+            sectors=["nba"],
+            enable_models=False,
+            enable_injuries=False,
+        )
+
+        # Gate the prop coroutine on this event. On the empty-markets path it
+        # is NEVER set, so the coroutine cannot complete on its own — only the
+        # guard's cancel can end it (a guard regression would instead surface
+        # as the 20s wait_for timeout, caught by the wall-clock bound below).
+        # On the failed-fetch path the failing stub sets it, so the coroutine
+        # completes normally and the old await-the-props behavior is visible.
+        release_props = asyncio.Event()
+
+        async def _kalshi_empty(req):
+            return _resp("kalshi", req.sector, [])
+
+        async def _kalshi_boom(req):
+            release_props.set()
+            raise RuntimeError("kalshi down")
+
+        async def _sharp_stub(req):
+            return _resp("sharp", req.sector, [])
+
+        async def _standings_stub(req):
+            return _resp("standings", req.sector, {})
+
+        coord.kalshi_agent = _kalshi_boom if kalshi_fails else _kalshi_empty
+        coord.polymarket_us_agent = _empty_polymarket
+        coord.sharp_agent = _sharp_stub
+        coord.standings_agent = _standings_stub
+        coord._archiver = _noop_archiver()
+        coord._notifier = MagicMock()
+
+        # Prop fetch that records whether it was cancelled or ran to the end.
+        # No sleep on the success path — the test must not depend on timing.
+        state = {"cancelled": False, "completed": False}
+
+        prop_market = _make_market(
+            market_id="kalshi-nba-pts-lebron",
+            sector="nba",
+            team_home="LAL",
+            team_away="GSW",
+            yes_team="LeBron James",
+            yes_price=0.55,
+            market_type=MarketType.player_prop,
+            player_name="LeBron James",
+            stat_type="points",
+            threshold=25.5,
+            event_id="nba::2026-04-20::prop::lebron_james::points::25.5",
+        )
+        prop_sharp = _make_sharp(
+            event_id="nba::2026-04-20::prop::lebron_james::points::25.5",
+            sector="nba",
+            outcome_a="over",
+            outcome_b="under",
+            true_prob_a=0.0,
+            prop_player_name="LeBron James",
+            prop_stat_type="points",
+            total_line=25.5,
+            true_prob_over=0.60,
+            true_prob_under=0.40,
+            prop_l15_games=15,
+        )
+
+        async def _instrumented_fetch_props(sector):
+            try:
+                await release_props.wait()
+                state["completed"] = True
+                return [prop_market], [prop_sharp]
+            except asyncio.CancelledError:
+                state["cancelled"] = True
+                raise
+
+        coord._fetch_props = _instrumented_fetch_props
+        return coord, state
+
+    @patch("evmax.agents.coordinator._load_steam_cache", return_value={})
+    @patch("evmax.agents.coordinator._save_steam_cache")
+    def test_zero_markets_cancels_prop_fetch(self, _save, _load):
+        import time as _time
+
+        coord, state = self._build_coord(kalshi_fails=False)
+        t0 = _time.monotonic()
+        result = _run(coord.run_cycle())
+        elapsed = _time.monotonic() - t0
+
+        assert result.prop_sharp_pairs == []
+        assert state["completed"] is False
+        assert state["cancelled"] is True
+        # Guard regression would fall through to the 20s wait_for timeout
+        # (which also cancels the task, setting the same flags) — the wall
+        # clock is what distinguishes an immediate cancel from a timeout.
+        assert elapsed < 10.0
+
+    @patch("evmax.agents.coordinator._load_steam_cache", return_value={})
+    @patch("evmax.agents.coordinator._save_steam_cache")
+    def test_failed_kalshi_fetch_keeps_prop_fetch(self, _save, _load):
+        coord, state = self._build_coord(kalshi_fails=True)
+        result = _run(coord.run_cycle())
+
+        # Fetch FAILURE (not a clean empty pool) ⇒ props still awaited.
+        assert state["completed"] is True
+        assert state["cancelled"] is False
+        assert len(result.prop_sharp_pairs) == 1
 
 
 # ---------------------------------------------------------------------------

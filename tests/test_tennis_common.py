@@ -182,3 +182,92 @@ class TestAccentFolding:
 
     def test_no_match_still_returns_none(self):
         assert resolve_player("nina milosevic", self.STORE) is None
+
+
+class TestStoreIndexEquivalence:
+    """The precomputed store index (perf optimization) must resolve
+    byte-identically to the original per-call linear scan, and must not
+    return a stale result when a store's key set changes."""
+
+    @staticmethod
+    def _ref_resolve(player, store, weight_fn=None):
+        """A faithful copy of the pre-index linear-scan resolve_player,
+        composed from the (now cached, but pure) helpers."""
+        from evmax.agents.models.tennis_common import (
+            fold_accents, dehyphenate, surname as _sn, normalize_player as _np,
+            given_name as _gn, _given_compatible as _gc,
+        )
+        if player in store:
+            return player
+        dehyph = dehyphenate(player)
+        if dehyph != player and dehyph in store:
+            return dehyph
+        folded = fold_accents(dehyph)
+        target = _sn(folded)
+        cand = [k for k in store if _sn(fold_accents(dehyphenate(k))) == target]
+        if not cand:
+            npp = _np(player)
+            cand = [k for k in store if _np(_sn(k)) == npp]
+        if not cand:
+            cand = [k for k in store
+                    if fold_accents(dehyphenate(k)).startswith(folded + " ")
+                    or fold_accents(dehyphenate(k)).startswith(folded + ".")]
+        if not cand:
+            return None
+        if len(cand) == 1:
+            return cand[0]
+        qg = _gn(dehyph)
+        if qg:
+            nn = [k for k in cand if _gc(qg, _gn(dehyphenate(k)))]
+            if nn:
+                cand = nn
+            if len(cand) == 1:
+                return cand[0]
+        inits = {_np(_gn(dehyphenate(k)))[:1] for k in cand if _gn(dehyphenate(k))}
+        if len(inits) > 1:
+            return None
+        if weight_fn is None:
+            return cand[0]
+        return max(cand, key=weight_fn)
+
+    def test_matches_reference_over_broad_corpus(self):
+        store = {
+            "jannik sinner": 5, "carlos alcaraz": 5, "felix auger aliassime": 4,
+            "juan martin del potro": 3, "duško todorović": 2, "julianna peña": 2,
+            "sebastian baez": 3, "roberto carballes baena": 2, "xin yu wang": 2,
+            "xiyu wang": 2, "adrian mannarino": 4, "mannarino a.": 1,
+            "novak djokovic": 5, "stefanos tsitsipas": 4, "j. j. wolf": 1,
+        }
+        queries = []
+        for k in store:
+            parts = k.split()
+            queries += [k, k.upper(), k.title(), k.replace(" ", "-")]
+            queries.append(parts[-1])
+            if len(parts) >= 2:
+                queries.append(f"{parts[-1]} {parts[0][0]}.")
+                queries.append(f"{parts[0]} {parts[-1]}")
+        queries += ["wang", "todorovic", "pena", "del potro", "zzz nobody", "x", "de"]
+
+        wf = lambda k: len(k)
+        for q in queries:
+            for wfn in (None, wf):
+                assert resolve_player(q, store, wfn) == self._ref_resolve(q, store, wfn), (
+                    f"query={q!r} weight_fn={wfn is not None}"
+                )
+
+    def test_index_refreshes_when_key_added(self):
+        # Same dict object mutated in place (as update() grows a state store):
+        # the fingerprint (len, first-key) changes, so the index is rebuilt.
+        store = {"jannik sinner": 1}
+        assert resolve_player("alcaraz", store) is None
+        store["carlos alcaraz"] = 1
+        assert resolve_player("alcaraz", store) == "carlos alcaraz"
+
+    def test_distinct_store_objects_do_not_collide(self):
+        # Two different stores that could momentarily share an id() slot must
+        # each resolve against their own keys, guarded by the fingerprint.
+        a = {"jannik sinner": 1}
+        b = {"carlos alcaraz": 1}
+        assert resolve_player("sinner", a) == "jannik sinner"
+        assert resolve_player("sinner", b) is None
+        assert resolve_player("alcaraz", b) == "carlos alcaraz"
