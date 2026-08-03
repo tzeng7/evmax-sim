@@ -73,7 +73,7 @@ from evmax.agents.models.ensemble_agent import EnsembleModelAgent  # noqa: E402
 # TennisModelAgent._resolve_surface at import time. The fit path must stay
 # side-effect free so tests can import this module safely.
 
-CACHE = Path("/tmp/evmax_tennis_pit_rows.json")
+CACHE = _REPO_ROOT / "data/backtest/tennis/pit_rows.json"
 CALIBRATION_KEY = "tennis_ensemble"
 # Same bar as the pre-PIT version (the first, leaky run measured ~0.0015 on a
 # 5000-match holdout). The PIT holdout is smaller (~700 matches), so the CI

@@ -10,8 +10,10 @@ a won, and p_market_a is the devigged Pinnacle close for a.
 Point-in-time seeding, per test month:
   - **surface Elo**: the real Tennis Abstract Elo leaderboard from the nearest
     Wayback snapshot strictly BEFORE the month (snapshots cached by
-    scripts/backtest_tennis_abstract_elo.py under {tempdir}/evmax_ta_elo_wayback
-    and/or /tmp/evmax_ta_elo_wayback) — matching how live seeds from TA.
+    scripts/backtest_tennis_abstract_elo.py under
+    data/backtest/tennis/wayback_cache/ — git-tracked so cloud runs work
+    without Wayback access; build locally first and commit) — matching how live
+    seeds from TA.
   - **serve/return, advanced, form, h2h**: seeded from matchmx rows dated
     before the month (same aggregate functions live seeding uses).
 Ground truth + market come from tennis-data.co.uk (data/backtest/tennis/*.xlsx).
@@ -43,10 +45,11 @@ import backtest_tennis_matchmx as bt  # noqa: E402
 from evmax.clients.tennisabstract import fetch_matchmx, parse_elo_html  # noqa: E402
 from evmax.ev.devig import devig_two_way  # noqa: E402
 
-# Wayback snapshot caches: backtest_tennis_abstract_elo.py writes to
-# tempfile.gettempdir() (=/var/folders/... on macOS); older runs also live in
-# a literal /tmp dir. Check both.
+# Wayback snapshot caches: prefer the git-tracked repo path (built once locally
+# and committed) so cloud scheduled runs work without network access to
+# web.archive.org.  Fall back to the old tempdir locations for local dev.
 WAYBACK_DIRS = (
+    _REPO_ROOT / "data/backtest/tennis/wayback_cache",
     Path(tempfile.gettempdir()) / "evmax_ta_elo_wayback",
     Path("/tmp/evmax_ta_elo_wayback"),
 )
@@ -99,7 +102,14 @@ async def build_rows(
     afb.TMP.mkdir(exist_ok=True)
     snaps = wb_snapshots()
     if not snaps:
-        print("No Wayback snapshots — run backtest_tennis_abstract_elo.py first.", file=sys.stderr)
+        print(
+            "No Wayback snapshots found.\n"
+            f"Run locally (needs web.archive.org access):\n"
+            f"  python scripts/backtest_tennis_abstract_elo.py\n"
+            f"Then commit data/backtest/tennis/wayback_cache/ to the repo so\n"
+            f"cloud scheduled runs can read from git without fetching Wayback.",
+            file=sys.stderr,
+        )
         sys.exit(2)
     months = months or month_range(*DEFAULT_MONTH_RANGE)
     mx = fetch_matchmx("atp")
