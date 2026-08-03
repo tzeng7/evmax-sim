@@ -1,53 +1,60 @@
 {
   "pitchers": {
+    "reid detmers": {
+      "era": 4.03,
+      "fip": 3.2786455561903205,
+      "ip": 125.0,
+      "team": "angels",
+      "xera": 3.38,
+      "xera_bip": 325,
+      "xera_prior": 3.61
+    },
     "jose soriano": {
       "era": 3.29,
-      "fip": 3.733545827356739,
+      "fip": 3.7217024667594263,
       "ip": 123.0,
       "team": "angels",
       "xera": 4.33,
       "xera_bip": 323,
       "xera_prior": 4.04
     },
-    "reid detmers": {
-      "era": 4.5,
-      "ip": 140.0,
-      "team": "angels"
-    },
     "walbert urena": {
-      "era": 2.78,
-      "fip": 3.7428333484753487,
-      "ip": 87.1,
+      "era": 2.54,
+      "fip": 3.7168211364123187,
+      "ip": 99.1,
       "team": "angels",
-      "xera": 3.28,
-      "xera_bip": 241
+      "xera": 3.26,
+      "xera_bip": 268
     },
     "jack kochanowicz": {
       "era": 6.19,
-      "fip": 4.917488916787633,
+      "fip": 4.90564555619032,
       "ip": 64.0,
       "team": "angels",
-      "xera": 5.58,
+      "xera": 5.59,
       "xera_bip": 208,
       "xera_prior": 5.88
     },
     "grayson rodriguez": {
-      "era": 3.58,
-      "ip": 170.1,
-      "team": "orioles"
+      "era": 7.98,
+      "fip": 5.757918283463048,
+      "ip": 44.0,
+      "team": "angels",
+      "xera": 7.92,
+      "xera_bip": 147
     },
     "ryan johnson": {
-      "era": 7.34,
-      "fip": 6.246372411933264,
-      "ip": 41.2,
+      "era": 7.63,
+      "fip": 6.248036860538146,
+      "ip": 46.0,
       "team": "angels",
-      "xera": 4.89,
-      "xera_bip": 136,
+      "xera": 5.3,
+      "xera_bip": 152,
       "xera_prior": 3.53
     },
     "yusei kikuchi": {
       "era": 5.81,
-      "fip": 3.623134078077956,
+      "fip": 3.6112907174806432,
       "ip": 31.0,
       "team": "angels",
       "xera": 4.93,
@@ -56,7 +63,7 @@
     },
     "sam aldegheri": {
       "era": 5.08,
-      "fip": 5.301525061365947,
+      "fip": 5.289681700768634,
       "ip": 33.2,
       "team": "angels",
       "xera": 5.44,
@@ -64,164 +71,159 @@
       "xera_prior": 7.3
     },
     "brent suter": {
-      "era": 4.42,
-      "fip": 3.55096349305882,
-      "ip": 59.0,
+      "era": 4.12,
+      "fip": 3.5853206750492745,
+      "ip": 63.1,
       "team": "angels",
-      "xera": 4.36,
-      "xera_bip": 177,
+      "xera": 4.27,
+      "xera_bip": 191,
       "xera_prior": 4.1
     },
     "sam bachman": {
-      "era": 4.33,
-      "fip": 4.431377805676522,
-      "ip": 43.2,
+      "era": 4.14,
+      "fip": 4.7120614853938605,
+      "ip": 45.2,
       "team": "angels",
-      "xera": 3.43,
-      "xera_bip": 116,
+      "xera": 3.69,
+      "xera_bip": 122,
       "xera_prior": 4.22
     },
     "mitch farris": {
-      "era": 3.53,
-      "fip": 4.782628127924524,
-      "ip": 43.1,
+      "era": 4.17,
+      "fip": 4.76013557836327,
+      "ip": 45.1,
       "team": "angels",
-      "xera": 5.33,
-      "xera_bip": 119,
+      "xera": 5.34,
+      "xera_bip": 127,
       "xera_prior": 5.62
     },
     "jose fermin": {
-      "era": 2.76,
-      "fip": 3.787830531694466,
-      "ip": 32.2,
+      "era": 2.72,
+      "fip": 3.972473811037966,
+      "ip": 36.1,
       "team": "angels",
-      "xera": 3.98,
-      "xera_bip": 81,
+      "xera": 4.42,
+      "xera_bip": 92,
       "xera_prior": 4.1
     },
-    "chase silseth": {
-      "era": 2.79,
-      "fip": 3.3304470319708797,
-      "ip": 38.2,
-      "team": "angels",
-      "xera": 3.71,
-      "xera_bip": 101,
-      "xera_prior": 4.04
-    },
     "ryan zeferjahn": {
-      "era": 3.67,
-      "fip": 4.001672590257021,
-      "ip": 49.0,
+      "era": 3.66,
+      "fip": 3.7142393061903207,
+      "ip": 51.2,
       "team": "angels",
-      "xera": 3.04,
-      "xera_bip": 102,
+      "xera": 2.95,
+      "xera_bip": 108,
       "xera_prior": 4.3
+    },
+    "peter lambert": {
+      "era": 3.06,
+      "fip": 3.714564225321559,
+      "ip": 108.2,
+      "team": "astros",
+      "xera": 3.35,
+      "xera_bip": 292
     },
     "spencer arrighetti": {
       "era": 4.6,
-      "fip": 5.0197616440603605,
+      "fip": 5.007918283463048,
       "ip": 88.0,
       "team": "astros",
-      "xera": 5.09,
+      "xera": 5.1,
       "xera_bip": 235,
       "xera_prior": 5.44
     },
     "mike burrows": {
       "era": 5.99,
-      "fip": 5.590259617424576,
+      "fip": 5.578416256827263,
       "ip": 94.2,
       "team": "astros",
-      "xera": 4.79,
+      "xera": 4.8,
       "xera_bip": 309,
       "xera_prior": 4.33
     },
-    "peter lambert": {
-      "era": 3.03,
-      "fip": 3.960856263726409,
-      "ip": 98.0,
-      "team": "astros",
-      "xera": 3.45,
-      "xera_bip": 266
-    },
     "tatsuya imai": {
-      "era": 5.59,
-      "fip": 4.680419951270392,
-      "ip": 58.0,
+      "era": 5.83,
+      "fip": 4.834769267530527,
+      "ip": 58.2,
       "team": "astros",
-      "xera": 4.89,
-      "xera_bip": 147
+      "xera": 5.06,
+      "xera_bip": 149
+    },
+    "hunter brown": {
+      "era": 3.42,
+      "fip": 4.371641724772696,
+      "ip": 52.2,
+      "team": "astros",
+      "xera": 3.71,
+      "xera_bip": 134,
+      "xera_prior": 3.14
     },
     "kai-wei teng": {
       "era": 4.35,
-      "fip": 4.7899191664205265,
+      "fip": 4.778075805823214,
       "ip": 68.1,
       "team": "astros",
       "xera": 4.73,
       "xera_bip": 193,
       "xera_prior": 4.02
     },
-    "hunter brown": {
-      "era": 3.49,
-      "ip": 175.0,
-      "team": "astros"
-    },
     "steven okert": {
-      "era": 2.09,
-      "fip": 3.1010826667876334,
-      "ip": 51.2,
+      "era": 2.28,
+      "fip": 3.19398493913043,
+      "ip": 55.1,
       "team": "astros",
-      "xera": 2.6,
-      "xera_bip": 130,
+      "xera": 2.78,
+      "xera_bip": 141,
       "xera_prior": 2.61
     },
     "bryan abreu": {
-      "era": 5.05,
-      "fip": 5.656125280423996,
-      "ip": 35.2,
+      "era": 4.54,
+      "fip": 5.199012903129097,
+      "ip": 39.2,
       "team": "astros",
-      "xera": 4.79,
-      "xera_bip": 84,
+      "xera": 4.39,
+      "xera_bip": 91,
       "xera_prior": 3.41
     },
     "aj blubaugh": {
-      "era": 3.74,
-      "fip": 4.073258147556864,
-      "ip": 65.0,
+      "era": 3.62,
+      "fip": 4.143362319196101,
+      "ip": 69.2,
       "team": "astros",
-      "xera": 4.04,
-      "xera_bip": 174,
+      "xera": 3.77,
+      "xera_bip": 188,
       "xera_prior": 3.19
     },
     "enyel de los santos": {
-      "era": 4.41,
-      "fip": 3.450652182093756,
-      "ip": 49.0,
+      "era": 4.38,
+      "fip": 3.5590212900455067,
+      "ip": 51.1,
       "team": "astros",
-      "xera": 3.38,
-      "xera_bip": 143,
+      "xera": 3.28,
+      "xera_bip": 149,
       "xera_prior": 4.16
     },
     "bryan king": {
-      "era": 3.74,
-      "fip": 4.569037589354005,
-      "ip": 45.2,
+      "era": 3.61,
+      "fip": 4.453150864045947,
+      "ip": 47.1,
       "team": "astros",
-      "xera": 4.18,
-      "xera_bip": 142,
+      "xera": 4.04,
+      "xera_bip": 149,
       "xera_prior": 3.07
     },
     "jeffrey springs": {
-      "era": 6.23,
-      "fip": 5.946335070633787,
-      "ip": 104.0,
+      "era": 6.17,
+      "fip": 6.049164074708839,
+      "ip": 108.0,
       "team": "athletics",
-      "xera": 4.86,
-      "xera_bip": 332,
+      "xera": 4.93,
+      "xera_bip": 345,
       "xera_prior": 4.3
     },
     "j.t. ginn": {
       "era": 3.46,
-      "fip": 4.270719897539237,
+      "fip": 4.258876536941925,
       "ip": 109.1,
       "team": "athletics",
       "xera": 3.96,
@@ -229,60 +231,60 @@
       "xera_prior": 3.74
     },
     "jacob lopez": {
-      "era": 6.12,
-      "fip": 5.628158698719098,
-      "ip": 64.2,
+      "era": 5.79,
+      "fip": 5.444931270476035,
+      "ip": 70.0,
       "team": "athletics",
-      "xera": 3.85,
-      "xera_bip": 206,
+      "xera": 3.69,
+      "xera_bip": 220,
       "xera_prior": 3.64
+    },
+    "gage jump": {
+      "era": 4.59,
+      "fip": 3.7406153447099584,
+      "ip": 66.2,
+      "team": "athletics",
+      "xera": 4.27,
+      "xera_bip": 181
     },
     "luis severino": {
       "era": 4.16,
-      "fip": 4.425125572736187,
+      "fip": 4.413282212138874,
       "ip": 62.2,
       "team": "athletics",
       "xera": 4.24,
       "xera_bip": 173,
       "xera_prior": 4.61
     },
-    "gage jump": {
-      "era": 4.42,
-      "fip": 3.7617871624016685,
-      "ip": 57.0,
-      "team": "athletics",
-      "xera": 4.21,
-      "xera_bip": 160
-    },
     "jack perkins": {
-      "era": 6.75,
-      "fip": 4.392971231900173,
-      "ip": 62.2,
+      "era": 6.72,
+      "fip": 4.560700200999063,
+      "ip": 73.2,
       "team": "athletics",
-      "xera": 4.18,
-      "xera_bip": 178,
+      "xera": 4.01,
+      "xera_bip": 207,
       "xera_prior": 3.64
     },
     "luis medina": {
-      "era": 3.64,
-      "fip": 3.4467442359365696,
-      "ip": 47.0,
+      "era": 3.91,
+      "fip": 3.927059898819803,
+      "ip": 50.2,
       "team": "athletics",
-      "xera": 4.24,
-      "xera_bip": 124
+      "xera": 4.64,
+      "xera_bip": 137
     },
     "elvis alvarado": {
-      "era": 5.4,
-      "fip": 5.075822250120966,
-      "ip": 30.0,
+      "era": 4.72,
+      "fip": 4.790176347979177,
+      "ip": 34.1,
       "team": "athletics",
-      "xera": 5.51,
-      "xera_bip": 73,
+      "xera": 5.03,
+      "xera_bip": 82,
       "xera_prior": 3.82
     },
     "scott barlow": {
       "era": 6.48,
-      "fip": 6.395963237029325,
+      "fip": 6.384119876432012,
       "ip": 33.1,
       "team": "athletics",
       "xera": 5.55,
@@ -290,26 +292,26 @@
       "xera_prior": 4.36
     },
     "hogan harris": {
-      "era": 3.15,
-      "fip": 3.971692456610642,
-      "ip": 45.2,
+      "era": 3.31,
+      "fip": 4.010237392925014,
+      "ip": 49.0,
       "team": "athletics",
-      "xera": 3.35,
-      "xera_bip": 113,
+      "xera": 3.61,
+      "xera_bip": 121,
       "xera_prior": 3.85
     },
     "mark leiter jr.": {
       "era": 4.28,
-      "fip": 2.891886507149079,
+      "fip": 2.8800431465517664,
       "ip": 33.2,
       "team": "athletics",
-      "xera": 4.18,
+      "xera": 4.19,
       "xera_bip": 91,
       "xera_prior": 3.74
     },
     "justin sterner": {
       "era": 6.12,
-      "fip": 5.4595505281620405,
+      "fip": 5.447707167564728,
       "ip": 42.2,
       "team": "athletics",
       "xera": 3.53,
@@ -317,189 +319,222 @@
       "xera_prior": 3.33
     },
     "kevin gausman": {
-      "era": 3.75,
-      "ip": 180.0,
-      "team": "blue jays"
+      "era": 4.38,
+      "fip": 3.439772228102201,
+      "ip": 127.1,
+      "team": "blue jays",
+      "xera": 3.96,
+      "xera_bip": 376,
+      "xera_prior": 3.74
     },
     "dylan cease": {
-      "era": 3.42,
-      "ip": 187.0,
-      "team": "padres"
+      "era": 2.41,
+      "fip": 2.2329965217654677,
+      "ip": 119.1,
+      "team": "blue jays",
+      "xera": 2.78,
+      "xera_bip": 253,
+      "xera_prior": 3.46
     },
     "trey yesavage": {
-      "era": 3.92,
-      "fip": 4.077783034434693,
-      "ip": 85.0,
+      "era": 3.73,
+      "fip": 4.006522749172777,
+      "ip": 91.2,
       "team": "blue jays",
-      "xera": 3.3,
-      "xera_bip": 222,
+      "xera": 3.33,
+      "xera_bip": 241,
       "xera_prior": 4.1
     },
     "patrick corbin": {
       "era": 5.51,
-      "fip": 4.5799889167876335,
+      "fip": 4.568145556190321,
       "ip": 80.0,
       "team": "blue jays",
-      "xera": 5.47,
+      "xera": 5.44,
       "xera_bip": 266,
       "xera_prior": 4.77
     },
-    "braydon fisher": {
-      "era": 4.15,
-      "fip": 4.215565839864556,
-      "ip": 52.0,
+    "max scherzer": {
+      "era": 7.92,
+      "fip": 6.971042907183698,
+      "ip": 30.2,
       "team": "blue jays",
-      "xera": 3.9,
-      "xera_bip": 133,
-      "xera_prior": 3.33
+      "xera": 5.44,
+      "xera_bip": 101,
+      "xera_prior": 4.64
     },
     "shane bieber": {
-      "era": 3.8,
-      "ip": 120.0,
-      "team": "guardians"
+      "era": 5.74,
+      "fip": 6.27823398062762,
+      "ip": 31.1,
+      "team": "blue jays",
+      "xera": 7.53,
+      "xera_bip": 101,
+      "xera_prior": 4.48
+    },
+    "braydon fisher": {
+      "era": 4.08,
+      "fip": 4.143853103360132,
+      "ip": 53.0,
+      "team": "blue jays",
+      "xera": 3.85,
+      "xera_bip": 136,
+      "xera_prior": 3.33
     },
     "spencer miles": {
-      "era": 3.33,
-      "fip": 2.9234412977400144,
-      "ip": 67.2,
+      "era": 3.13,
+      "fip": 2.8500900006347654,
+      "ip": 72.0,
       "team": "blue jays",
-      "xera": 3.09,
-      "xera_bip": 190
+      "xera": 3.04,
+      "xera_bip": 201
     },
     "mason fluharty": {
-      "era": 4.17,
-      "fip": 3.554684038738853,
-      "ip": 41.0,
+      "era": 4.33,
+      "fip": 3.863978889523654,
+      "ip": 43.2,
       "team": "blue jays",
-      "xera": 3.07,
-      "xera_bip": 112,
+      "xera": 3.04,
+      "xera_bip": 119,
       "xera_prior": 3.31
     },
     "jeff hoffman": {
-      "era": 4.3,
-      "fip": 2.6788525531512697,
-      "ip": 44.0,
+      "era": 3.94,
+      "fip": 2.426478889523654,
+      "ip": 48.0,
       "team": "blue jays",
-      "xera": 3.35,
-      "xera_bip": 111,
+      "xera": 3.33,
+      "xera_bip": 117,
       "xera_prior": 3.74
     },
     "tyler rogers": {
-      "era": 1.54,
-      "fip": 2.761103635402352,
-      "ip": 46.2,
+      "era": 1.65,
+      "fip": 2.7857475970066474,
+      "ip": 49.0,
       "team": "blue jays",
-      "xera": 2.56,
-      "xera_bip": 150,
+      "xera": 2.69,
+      "xera_bip": 158,
       "xera_prior": 2.67
     },
     "louis varland": {
-      "era": 1.04,
-      "fip": 1.3501812244799412,
-      "ip": 52.0,
+      "era": 1.11,
+      "fip": 1.518190040176086,
+      "ip": 56.2,
       "team": "blue jays",
-      "xera": 1.93,
-      "xera_bip": 116,
+      "xera": 2.19,
+      "xera_bip": 133,
       "xera_prior": 4.02
     },
     "bryce elder": {
-      "era": 3.96,
-      "fip": 4.411746867317669,
-      "ip": 113.2,
+      "era": 3.84,
+      "fip": 4.465209314579583,
+      "ip": 119.2,
       "team": "braves",
-      "xera": 3.96,
-      "xera_bip": 341,
+      "xera": 3.99,
+      "xera_bip": 360,
       "xera_prior": 4.73
     },
     "grant holmes": {
-      "era": 3.79,
-      "fip": 4.762365332853545,
-      "ip": 97.1,
+      "era": 3.88,
+      "fip": 5.03064555619032,
+      "ip": 102.0,
       "team": "braves",
-      "xera": 4.7,
-      "xera_bip": 293,
+      "xera": 4.8,
+      "xera_bip": 308,
       "xera_prior": 4.55
     },
     "chris sale": {
-      "era": 2.38,
-      "ip": 177.2,
-      "team": "red sox"
+      "era": 2.08,
+      "fip": 2.3981669237116883,
+      "ip": 117.0,
+      "team": "braves",
+      "xera": 3.04,
+      "xera_bip": 292,
+      "xera_prior": 2.84
     },
     "martin perez": {
-      "era": 3.38,
-      "fip": 4.382089386822886,
-      "ip": 85.1,
+      "era": 3.24,
+      "fip": 4.225290252379816,
+      "ip": 97.1,
       "team": "braves",
-      "xera": 4.57,
-      "xera_bip": 246,
+      "xera": 4.42,
+      "xera_bip": 282,
       "xera_prior": 5.37
     },
     "reynaldo lopez": {
-      "era": 1.83,
-      "ip": 160.0,
-      "team": "braves"
-    },
-    "spencer strider": {
-      "era": 3.1,
-      "ip": 130.0,
-      "team": "braves"
+      "era": 3.64,
+      "fip": 4.266600612370096,
+      "ip": 71.2,
+      "team": "braves",
+      "xera": 4.61,
+      "xera_bip": 209,
+      "xera_prior": 10.73
     },
     "jr ritchie": {
       "era": 4.5,
-      "fip": 5.449896324195041,
-      "ip": 54.0,
+      "fip": 5.340990383776528,
+      "ip": 58.0,
       "team": "braves",
-      "xera": 4.79,
-      "xera_bip": 150
+      "xera": 5.03,
+      "xera_bip": 162
+    },
+    "spencer strider": {
+      "era": 5.31,
+      "fip": 5.2870558126005776,
+      "ip": 39.0,
+      "team": "braves",
+      "xera": 3.48,
+      "xera_bip": 98,
+      "xera_prior": 4.9
     },
     "didier fuentes": {
-      "era": 2.7,
-      "fip": 2.3232313761843852,
-      "ip": 43.1,
+      "era": 2.49,
+      "fip": 2.158305130658406,
+      "ip": 47.0,
       "team": "braves",
-      "xera": 3.25,
-      "xera_bip": 115,
+      "xera": 3.04,
+      "xera_bip": 118,
       "xera_prior": 7.72
     },
     "dylan dodd": {
-      "era": 1.99,
-      "fip": 2.978386352685069,
-      "ip": 31.2,
+      "era": 2.14,
+      "fip": 3.0607660381180315,
+      "ip": 33.2,
       "team": "braves",
-      "xera": 2.65,
-      "xera_bip": 75,
+      "xera": 2.67,
+      "xera_bip": 79,
       "xera_prior": 3.43
     },
     "raisel iglesias": {
-      "era": 2.43,
-      "fip": 2.7722186465173633,
-      "ip": 37.0,
+      "era": 2.25,
+      "fip": 2.880645556190321,
+      "ip": 40.0,
       "team": "braves",
-      "xera": 2.97,
-      "xera_bip": 96,
+      "xera": 2.93,
+      "xera_bip": 104,
       "xera_prior": 3.14
     },
     "tyler kinley": {
-      "era": 4.34,
-      "fip": 5.171868970695989,
-      "ip": 37.1,
+      "era": 4.23,
+      "fip": 5.104136369838614,
+      "ip": 38.1,
       "team": "braves",
-      "xera": 3.21,
-      "xera_bip": 100,
+      "xera": 3.35,
+      "xera_bip": 103,
       "xera_prior": 3.51
     },
     "dylan lee": {
-      "era": 2.27,
-      "fip": 1.8348617981435658,
-      "ip": 47.2,
+      "era": 2.12,
+      "fip": 1.8933906542295365,
+      "ip": 51.0,
       "team": "braves",
-      "xera": 2.21,
-      "xera_bip": 110,
+      "xera": 2.27,
+      "xera_bip": 117,
       "xera_prior": 2.93
     },
     "robert suarez": {
       "era": 0.56,
-      "fip": 2.3862389167876334,
+      "fip": 2.3743955561903207,
       "ip": 32.0,
       "team": "braves",
       "xera": 3.28,
@@ -507,205 +542,214 @@
       "xera_prior": 3.66
     },
     "jacob misiorowski": {
-      "era": 1.58,
-      "fip": 1.9674889167876335,
-      "ip": 120.0,
+      "era": 1.63,
+      "fip": 1.9834014617021318,
+      "ip": 127.0,
       "team": "brewers",
-      "xera": 1.96,
-      "xera_bip": 234,
+      "xera": 1.91,
+      "xera_bip": 247,
       "xera_prior": 3.41
+    },
+    "brandon sproat": {
+      "era": 5.05,
+      "fip": 5.13476703124455,
+      "ip": 92.2,
+      "team": "brewers",
+      "xera": 4.86,
+      "xera_bip": 247,
+      "xera_prior": 4.13
     },
     "kyle harrison": {
       "era": 3.01,
-      "fip": 3.0424889167876334,
+      "fip": 3.0306455561903207,
       "ip": 83.2,
       "team": "brewers",
       "xera": 3.16,
       "xera_bip": 216,
       "xera_prior": 4.16
     },
-    "brandon sproat": {
-      "era": 5.09,
-      "fip": 5.153857826300394,
-      "ip": 86.2,
-      "team": "brewers",
-      "xera": 4.83,
-      "xera_bip": 230,
-      "xera_prior": 4.13
-    },
     "shane drohan": {
-      "era": 3.51,
-      "fip": 2.9449279411778773,
-      "ip": 82.0,
+      "era": 3.48,
+      "fip": 2.9624637380085024,
+      "ip": 88.0,
       "team": "brewers",
-      "xera": 3.3,
-      "xera_bip": 234
+      "xera": 3.31,
+      "xera_bip": 248
     },
     "robert gasser": {
-      "era": 4.71,
-      "fip": 4.723749862496915,
-      "ip": 57.1,
+      "era": 4.48,
+      "fip": 4.479920918509161,
+      "ip": 62.1,
       "team": "brewers",
-      "xera": 3.74,
-      "xera_bip": 171,
+      "xera": 3.85,
+      "xera_bip": 184,
       "xera_prior": 4.96
+    },
+    "logan henderson": {
+      "era": 2.66,
+      "fip": 2.7351910107357753,
+      "ip": 44.0,
+      "team": "brewers",
+      "xera": 2.67,
+      "xera_bip": 105,
+      "xera_prior": 3.69
     },
     "brandon woodruff": {
       "era": 2.98,
-      "fip": 3.131180712796503,
+      "fip": 3.11933735219919,
       "ip": 45.1,
       "team": "brewers",
       "xera": 2.84,
       "xera_bip": 116,
       "xera_prior": 2.22
     },
-    "logan henderson": {
-      "era": 3.05,
-      "fip": 2.9112553209871086,
-      "ip": 38.1,
-      "team": "brewers",
-      "xera": 2.86,
-      "xera_bip": 93,
-      "xera_prior": 3.69
-    },
     "chad patrick": {
-      "era": 3.45,
-      "fip": 3.73391017158917,
-      "ip": 78.1,
+      "era": 3.5,
+      "fip": 3.6518392224509784,
+      "ip": 82.1,
       "team": "brewers",
-      "xera": 4.01,
-      "xera_bip": 224,
+      "xera": 3.99,
+      "xera_bip": 233,
       "xera_prior": 3.88
     },
     "aaron ashby": {
-      "era": 3.3,
-      "fip": 2.9924889167876336,
-      "ip": 60.0,
+      "era": 3.86,
+      "fip": 2.9974229648281945,
+      "ip": 60.2,
       "team": "brewers",
-      "xera": 3.0,
-      "xera_bip": 148,
+      "xera": 3.09,
+      "xera_bip": 153,
       "xera_prior": 3.12
     },
     "dl hall": {
-      "era": 2.03,
-      "fip": 3.81668246517473,
-      "ip": 31.0,
+      "era": 2.25,
+      "fip": 3.8118955561903207,
+      "ip": 32.0,
       "team": "brewers",
-      "xera": 3.93,
-      "xera_bip": 69,
+      "xera": 3.88,
+      "xera_bip": 73,
       "xera_prior": 3.56
     },
     "grant anderson": {
-      "era": 3.5,
-      "fip": 4.257239459086983,
-      "ip": 46.1,
+      "era": 3.7,
+      "fip": 4.399940161999449,
+      "ip": 48.2,
       "team": "brewers",
-      "xera": 3.16,
-      "xera_bip": 125,
+      "xera": 3.18,
+      "xera_bip": 131,
       "xera_prior": 3.71
     },
     "trevor megill": {
-      "era": 2.97,
-      "fip": 1.4568111674270197,
-      "ip": 39.1,
+      "era": 2.83,
+      "fip": 1.4734679406185447,
+      "ip": 41.1,
       "team": "brewers",
-      "xera": 2.82,
-      "xera_bip": 98,
+      "xera": 2.75,
+      "xera_bip": 103,
       "xera_prior": 3.23
     },
     "abner uribe": {
-      "era": 2.38,
-      "fip": 3.0910326061080218,
-      "ip": 41.2,
+      "era": 2.23,
+      "fip": 2.939942608344516,
+      "ip": 44.1,
       "team": "brewers",
-      "xera": 2.91,
-      "xera_bip": 108,
+      "xera": 2.73,
+      "xera_bip": 114,
       "xera_prior": 2.76
     },
-    "kyle leahy": {
-      "era": 3.55,
-      "fip": 4.001935009764884,
-      "ip": 101.1,
-      "team": "cardinals",
-      "xera": 5.16,
-      "xera_bip": 304,
-      "xera_prior": 4.42
-    },
     "matthew liberatore": {
-      "era": 5.18,
-      "fip": 4.759660633959351,
-      "ip": 99.0,
+      "era": 4.97,
+      "fip": 4.583325778001781,
+      "ip": 108.2,
       "team": "cardinals",
-      "xera": 5.26,
-      "xera_bip": 300,
+      "xera": 4.86,
+      "xera_bip": 324,
       "xera_prior": 4.86
     },
-    "dustin may": {
-      "era": 4.59,
-      "fip": 3.0905658398645564,
-      "ip": 104.0,
+    "kyle leahy": {
+      "era": 3.44,
+      "fip": 3.9083299632864925,
+      "ip": 107.1,
       "team": "cardinals",
-      "xera": 3.96,
-      "xera_bip": 297,
+      "xera": 5.16,
+      "xera_bip": 324,
+      "xera_prior": 4.42
+    },
+    "dustin may": {
+      "era": 4.38,
+      "fip": 3.076517115823348,
+      "ip": 109.0,
+      "team": "cardinals",
+      "xera": 3.9,
+      "xera_bip": 310,
       "xera_prior": 5.2
     },
     "michael mcgreevy": {
-      "era": 3.07,
-      "fip": 4.164311879101393,
-      "ip": 114.1,
+      "era": 3.57,
+      "fip": 4.151335211362735,
+      "ip": 116.0,
       "team": "cardinals",
-      "xera": 5.44,
-      "xera_bip": 353,
+      "xera": 5.66,
+      "xera_bip": 364,
       "xera_prior": 4.67
     },
     "andre pallante": {
-      "era": 3.77,
-      "fip": 3.7382962316850463,
-      "ip": 112.1,
+      "era": 3.72,
+      "fip": 3.690544033347681,
+      "ip": 118.2,
       "team": "cardinals",
-      "xera": 3.63,
-      "xera_bip": 348,
+      "xera": 3.71,
+      "xera_bip": 370,
       "xera_prior": 4.3
     },
-    "matt svanson": {
-      "era": 7.23,
-      "fip": 4.325149249329201,
-      "ip": 42.1,
+    "hunter dobbins": {
+      "era": 3.74,
+      "fip": 3.7535371224553806,
+      "ip": 33.2,
       "team": "cardinals",
-      "xera": 5.92,
-      "xera_bip": 138,
+      "xera": 3.71,
+      "xera_bip": 99,
+      "xera_prior": 3.93
+    },
+    "matt svanson": {
+      "era": 7.27,
+      "fip": 4.2371420759118985,
+      "ip": 43.1,
+      "team": "cardinals",
+      "xera": 5.96,
+      "xera_bip": 143,
       "xera_prior": 3.09
     },
     "justin bruihl": {
-      "era": 3.83,
-      "fip": 3.8978860654638043,
-      "ip": 49.1,
+      "era": 3.59,
+      "fip": 3.643672376113692,
+      "ip": 52.2,
       "team": "cardinals",
-      "xera": 4.3,
-      "xera_bip": 161,
+      "xera": 4.07,
+      "xera_bip": 170,
       "xera_prior": 3.66
     },
     "gordon graceffo": {
-      "era": 3.16,
-      "fip": 4.588477175104659,
-      "ip": 51.1,
+      "era": 3.15,
+      "fip": 4.527872912937086,
+      "ip": 54.1,
       "team": "cardinals",
-      "xera": 5.47,
-      "xera_bip": 148,
+      "xera": 5.27,
+      "xera_bip": 156,
       "xera_prior": 4.42
     },
     "riley o'brien": {
-      "era": 3.67,
-      "fip": 3.43083843135074,
-      "ip": 41.2,
+      "era": 3.43,
+      "fip": 3.392636506416565,
+      "ip": 44.2,
       "team": "cardinals",
-      "xera": 4.64,
-      "xera_bip": 110,
+      "xera": 4.45,
+      "xera_bip": 117,
       "xera_prior": 3.66
     },
     "jojo romero": {
       "era": 3.35,
-      "fip": 3.94946566097368,
+      "fip": 3.937622300376367,
       "ip": 43.0,
       "team": "cardinals",
       "xera": 4.83,
@@ -713,49 +757,53 @@
       "xera_prior": 3.48
     },
     "george soriano": {
-      "era": 3.5,
-      "fip": 3.9752437974817765,
-      "ip": 46.1,
+      "era": 3.49,
+      "fip": 3.92860473986379,
+      "ip": 49.0,
       "team": "cardinals",
-      "xera": 3.9,
-      "xera_bip": 130,
+      "xera": 4.04,
+      "xera_bip": 137,
       "xera_prior": 7.3
     },
     "ryne stanek": {
-      "era": 4.46,
-      "fip": 4.638498891849977,
-      "ip": 40.1,
+      "era": 4.15,
+      "fip": 4.5155643496938005,
+      "ip": 43.1,
       "team": "cardinals",
-      "xera": 3.93,
-      "xera_bip": 109,
+      "xera": 3.88,
+      "xera_bip": 116,
       "xera_prior": 4.48
     },
     "shota imanaga": {
-      "era": 2.91,
-      "ip": 172.0,
-      "team": "cubs"
+      "era": 3.67,
+      "fip": 4.367123543611704,
+      "ip": 127.2,
+      "team": "cubs",
+      "xera": 3.71,
+      "xera_bip": 359,
+      "xera_prior": 4.07
     },
     "colin rea": {
-      "era": 4.85,
-      "fip": 4.886595380665961,
-      "ip": 105.2,
+      "era": 4.59,
+      "fip": 4.720065351412163,
+      "ip": 117.2,
       "team": "cubs",
-      "xera": 5.55,
-      "xera_bip": 336,
+      "xera": 5.37,
+      "xera_bip": 371,
       "xera_prior": 4.51
     },
     "jameson taillon": {
       "era": 5.92,
-      "fip": 6.674067864156054,
+      "fip": 6.6622245035587415,
       "ip": 76.0,
       "team": "cubs",
-      "xera": 5.84,
+      "xera": 5.85,
       "xera_bip": 229,
       "xera_prior": 3.85
     },
     "edward cabrera": {
       "era": 5.1,
-      "fip": 5.01197574064339,
+      "fip": 5.000132380046077,
       "ip": 72.1,
       "team": "cubs",
       "xera": 4.86,
@@ -763,26 +811,26 @@
       "xera_prior": 4.04
     },
     "matthew boyd": {
-      "era": 3.81,
-      "fip": 3.5679126456011927,
-      "ip": 59.0,
+      "era": 3.41,
+      "fip": 3.4851910107357753,
+      "ip": 66.0,
       "team": "cubs",
-      "xera": 4.39,
-      "xera_bip": 170,
+      "xera": 4.3,
+      "xera_bip": 190,
       "xera_prior": 3.74
     },
     "javier assad": {
-      "era": 3.86,
-      "fip": 4.977972787755376,
-      "ip": 65.1,
+      "era": 3.75,
+      "fip": 4.7647496024330955,
+      "ip": 69.2,
       "team": "cubs",
-      "xera": 4.64,
-      "xera_bip": 202,
+      "xera": 4.58,
+      "xera_bip": 214,
       "xera_prior": 4.86
     },
     "ben brown": {
       "era": 1.85,
-      "fip": 2.439547740317045,
+      "fip": 2.4277043797197324,
       "ip": 68.0,
       "team": "cubs",
       "xera": 3.21,
@@ -790,17 +838,17 @@
       "xera_prior": 4.55
     },
     "ryan rolison": {
-      "era": 2.7,
-      "fip": 3.6924889167876334,
-      "ip": 40.0,
+      "era": 2.45,
+      "fip": 3.5306455561903207,
+      "ip": 44.0,
       "team": "cubs",
-      "xera": 4.07,
-      "xera_bip": 103,
+      "xera": 3.9,
+      "xera_bip": 111,
       "xera_prior": 5.73
     },
     "hoby milner": {
       "era": 3.53,
-      "fip": 4.5197616440603605,
+      "fip": 4.507918283463048,
       "ip": 35.2,
       "team": "cubs",
       "xera": 5.3,
@@ -808,54 +856,62 @@
       "xera_prior": 3.79
     },
     "caleb thielbar": {
-      "era": 4.06,
-      "fip": 5.074746981303763,
-      "ip": 31.0,
+      "era": 3.97,
+      "fip": 5.089469085602085,
+      "ip": 34.0,
       "team": "cubs",
-      "xera": 4.24,
-      "xera_bip": 78,
+      "xera": 4.33,
+      "xera_bip": 86,
       "xera_prior": 2.49
     },
     "trent thornton": {
-      "era": 2.61,
-      "fip": 4.81668246517473,
-      "ip": 31.0,
+      "era": 2.97,
+      "fip": 4.964180299392737,
+      "ip": 33.1,
       "team": "cubs",
-      "xera": 4.86,
-      "xera_bip": 93,
+      "xera": 5.27,
+      "xera_bip": 102,
       "xera_prior": 4.86
     },
     "jacob webb": {
-      "era": 2.84,
-      "fip": 3.654733814746817,
-      "ip": 44.1,
+      "era": 2.59,
+      "fip": 3.3833426516260054,
+      "ip": 48.2,
       "team": "cubs",
-      "xera": 4.1,
-      "xera_bip": 121,
+      "xera": 3.9,
+      "xera_bip": 132,
       "xera_prior": 3.23
     },
     "eduardo rodriguez": {
-      "era": 2.64,
-      "fip": 4.098135397966029,
-      "ip": 122.2,
+      "era": 2.48,
+      "fip": 4.013748474777111,
+      "ip": 130.2,
       "team": "diamondbacks",
-      "xera": 4.96,
-      "xera_bip": 375,
+      "xera": 4.8,
+      "xera_bip": 400,
       "xera_prior": 4.51
     },
-    "zac gallen": {
-      "era": 3.65,
-      "ip": 180.0,
-      "team": "diamondbacks"
-    },
     "merrill kelly": {
-      "era": 3.37,
-      "ip": 175.0,
-      "team": "diamondbacks"
+      "era": 5.04,
+      "fip": 5.607332672754739,
+      "ip": 114.1,
+      "team": "diamondbacks",
+      "xera": 7.17,
+      "xera_bip": 372,
+      "xera_prior": 4.16
+    },
+    "zac gallen": {
+      "era": 6.34,
+      "fip": 5.244931270476036,
+      "ip": 98.0,
+      "team": "diamondbacks",
+      "xera": 6.52,
+      "xera_bip": 344,
+      "xera_prior": 4.27
     },
     "ryne nelson": {
       "era": 4.97,
-      "fip": 5.340924536522892,
+      "fip": 5.329081175925579,
       "ip": 83.1,
       "team": "diamondbacks",
       "xera": 5.23,
@@ -864,111 +920,124 @@
     },
     "michael soroka": {
       "era": 3.07,
-      "fip": 2.87175720947056,
+      "fip": 2.8599138488732474,
       "ip": 82.0,
       "team": "diamondbacks",
-      "xera": 3.98,
+      "xera": 3.99,
       "xera_bip": 232,
       "xera_prior": 3.53
     },
     "brandon pfaadt": {
-      "era": 4.43,
-      "fip": 4.365565839864557,
-      "ip": 65.0,
+      "era": 4.0,
+      "fip": 4.15564555619032,
+      "ip": 72.0,
       "team": "diamondbacks",
-      "xera": 4.15,
-      "xera_bip": 211,
+      "xera": 4.01,
+      "xera_bip": 234,
       "xera_prior": 5.3
     },
     "taylor clarke": {
-      "era": 2.3,
-      "fip": 3.850999555085506,
-      "ip": 47.0,
+      "era": 2.12,
+      "fip": 3.6973122228569872,
+      "ip": 51.0,
       "team": "diamondbacks",
-      "xera": 4.04,
-      "xera_bip": 141,
+      "xera": 3.82,
+      "xera_bip": 154,
       "xera_prior": 3.66
     },
-    "kevin ginkel": {
-      "era": 3.25,
-      "fip": 3.382624971209402,
-      "ip": 44.1,
+    "brandyn garcia": {
+      "era": 2.1,
+      "fip": 1.6306455561903208,
+      "ip": 30.0,
       "team": "diamondbacks",
-      "xera": 3.79,
-      "xera_bip": 122,
+      "xera": 1.79,
+      "xera_bip": 67,
+      "xera_prior": 4.19
+    },
+    "kevin ginkel": {
+      "era": 3.04,
+      "fip": 3.412811161285862,
+      "ip": 47.1,
+      "team": "diamondbacks",
+      "xera": 3.74,
+      "xera_bip": 133,
       "xera_prior": 4.58
     },
     "jonathan loaisiga": {
-      "era": 2.41,
-      "fip": 2.9449279411778773,
-      "ip": 41.0,
+      "era": 2.66,
+      "fip": 2.917009192553957,
+      "ip": 44.0,
       "team": "diamondbacks",
-      "xera": 3.23,
-      "xera_bip": 121,
+      "xera": 3.35,
+      "xera_bip": 132,
       "xera_prior": 3.56
     },
     "juan morillo": {
-      "era": 2.81,
-      "fip": 2.6055957129041385,
-      "ip": 41.2,
+      "era": 2.62,
+      "fip": 2.4424102620726735,
+      "ip": 44.2,
       "team": "diamondbacks",
-      "xera": 2.34,
-      "xera_bip": 102,
+      "xera": 2.25,
+      "xera_bip": 108,
       "xera_prior": 3.74
     },
     "paul sewald": {
-      "era": 4.58,
-      "fip": 4.686693768539655,
-      "ip": 37.1,
+      "era": 6.45,
+      "fip": 5.718817599201073,
+      "ip": 37.2,
       "team": "diamondbacks",
-      "xera": 3.74,
-      "xera_bip": 96,
+      "xera": 4.64,
+      "xera_bip": 105,
       "xera_prior": 3.74
     },
     "ryan thompson": {
-      "era": 3.76,
-      "fip": 3.803643772430678,
-      "ip": 38.1,
+      "era": 4.24,
+      "fip": 3.679024608559398,
+      "ip": 40.1,
       "team": "diamondbacks",
-      "xera": 4.07,
-      "xera_bip": 130,
+      "xera": 3.96,
+      "xera_bip": 137,
       "xera_prior": 3.58
     },
     "emmet sheehan": {
-      "era": 4.95,
-      "fip": 4.3548533419503235,
-      "ip": 92.2,
+      "era": 5.29,
+      "fip": 4.692054599302834,
+      "ip": 95.1,
       "team": "dodgers",
-      "xera": 3.76,
-      "xera_bip": 256,
+      "xera": 3.96,
+      "xera_bip": 266,
       "xera_prior": 3.0
     },
     "yoshinobu yamamoto": {
-      "era": 3.0,
-      "ip": 140.0,
-      "team": "dodgers"
+      "era": 2.76,
+      "fip": 3.3985134240581885,
+      "ip": 133.2,
+      "team": "dodgers",
+      "xera": 3.11,
+      "xera_bip": 356,
+      "xera_prior": 2.74
     },
     "roki sasaki": {
-      "era": 4.71,
-      "fip": 5.134763594899221,
-      "ip": 93.2,
+      "era": 4.64,
+      "fip": 4.94983747538224,
+      "ip": 99.0,
       "team": "dodgers",
-      "xera": 4.33,
-      "xera_bip": 264,
+      "xera": 4.21,
+      "xera_bip": 278,
       "xera_prior": 5.66
     },
     "justin wrobleski": {
-      "era": 2.62,
-      "fip": 3.1931480504976144,
-      "ip": 106.2,
+      "era": 2.88,
+      "fip": 3.5386669465646525,
+      "ip": 112.2,
       "team": "dodgers",
-      "xera": 4.07,
-      "xera_bip": 320,
+      "xera": 4.3,
+      "xera_bip": 337,
       "xera_prior": 3.43
     },
     "shohei ohtani": {
       "era": 1.79,
-      "fip": 2.54953117030876,
+      "fip": 2.5376878097114473,
       "ip": 85.2,
       "team": "dodgers",
       "xera": 2.71,
@@ -976,107 +1045,115 @@
       "xera_prior": 2.55
     },
     "tyler glasnow": {
-      "era": 3.32,
-      "ip": 134.0,
-      "team": "dodgers"
+      "era": 2.72,
+      "fip": 3.1837067806801165,
+      "ip": 39.2,
+      "team": "dodgers",
+      "xera": 2.61,
+      "xera_bip": 86,
+      "xera_prior": 3.33
     },
     "will klein": {
-      "era": 3.57,
-      "fip": 3.366678442972172,
-      "ip": 40.1,
+      "era": 3.67,
+      "fip": 3.346179536772845,
+      "ip": 41.2,
       "team": "dodgers",
-      "xera": 3.4,
-      "xera_bip": 112,
+      "xera": 3.43,
+      "xera_bip": 116,
       "xera_prior": 4.39
     },
     "jack dreyer": {
-      "era": 3.24,
-      "fip": 3.6007413439720994,
-      "ip": 41.2,
+      "era": 2.98,
+      "fip": 3.3854127402257976,
+      "ip": 45.1,
       "team": "dodgers",
-      "xera": 3.33,
-      "xera_bip": 106,
+      "xera": 3.43,
+      "xera_bip": 113,
       "xera_prior": 2.69
     },
-    "kyle hurt": {
-      "era": 4.59,
-      "fip": 3.586295563313313,
-      "ip": 33.1,
-      "team": "dodgers",
-      "xera": 3.76,
-      "xera_bip": 85
-    },
     "edgardo henriquez": {
-      "era": 2.81,
-      "fip": 2.9211296934866624,
-      "ip": 41.2,
+      "era": 2.72,
+      "fip": 2.937622300376367,
+      "ip": 43.0,
       "team": "dodgers",
-      "xera": 2.6,
-      "xera_bip": 102,
+      "xera": 2.73,
+      "xera_bip": 107,
       "xera_prior": 3.36
     },
-    "tanner scott": {
-      "era": 2.32,
-      "fip": 2.1657116656027995,
-      "ip": 42.2,
+    "kyle hurt": {
+      "era": 4.58,
+      "fip": 3.7713862969310616,
+      "ip": 35.1,
       "team": "dodgers",
-      "xera": 2.77,
-      "xera_bip": 97,
+      "xera": 3.77,
+      "xera_bip": 88
+    },
+    "tanner scott": {
+      "era": 2.42,
+      "fip": 2.1709170494029904,
+      "ip": 44.2,
+      "team": "dodgers",
+      "xera": 3.07,
+      "xera_bip": 104,
       "xera_prior": 4.19
     },
     "alex vesia": {
-      "era": 2.55,
-      "fip": 2.6151384894372063,
-      "ip": 35.1,
+      "era": 2.61,
+      "fip": 2.8990666088218995,
+      "ip": 38.0,
       "team": "dodgers",
-      "xera": 2.71,
-      "xera_bip": 75,
+      "xera": 2.89,
+      "xera_bip": 81,
       "xera_prior": 3.07
     },
-    "robbie ray": {
-      "era": 3.16,
-      "fip": 4.428031085462332,
-      "ip": 116.2,
-      "team": "giants",
-      "xera": 4.51,
-      "xera_bip": 333,
-      "xera_prior": 3.71
-    },
     "landen roupp": {
-      "era": 3.93,
-      "fip": 3.2424889167876336,
-      "ip": 110.0,
+      "era": 4.34,
+      "fip": 3.4116785790523023,
+      "ip": 118.1,
       "team": "giants",
-      "xera": 3.35,
-      "xera_bip": 296,
+      "xera": 3.58,
+      "xera_bip": 323,
       "xera_prior": 4.24
     },
+    "robbie ray": {
+      "era": 3.08,
+      "fip": 4.299057994815525,
+      "ip": 122.2,
+      "team": "giants",
+      "xera": 4.42,
+      "xera_bip": 347,
+      "xera_prior": 3.71
+    },
     "logan webb": {
-      "era": 3.25,
-      "ip": 212.0,
-      "team": "giants"
+      "era": 3.93,
+      "fip": 3.3583766486272957,
+      "ip": 119.0,
+      "team": "giants",
+      "xera": 3.93,
+      "xera_bip": 356,
+      "xera_prior": 3.58
     },
     "tyler mahle": {
-      "era": 5.31,
-      "fip": 4.452127471004501,
-      "ip": 83.0,
+      "era": 5.13,
+      "fip": 4.315146617761446,
+      "ip": 94.2,
       "team": "giants",
-      "xera": 4.24,
-      "xera_bip": 248,
+      "xera": 4.07,
+      "xera_bip": 276,
       "xera_prior": 4.24
     },
     "adrian houser": {
-      "era": 4.86,
-      "fip": 5.088465928281886,
-      "ip": 87.0,
+      "era": 4.71,
+      "fip": 4.949505205313128,
+      "ip": 91.2,
       "team": "giants",
       "xera": 5.23,
-      "xera_bip": 291,
+      "xera_bip": 306,
       "xera_prior": 4.04
     },
     "trevor mcdonald": {
       "era": 5.12,
-      "fip": 4.212246406088632,
+      "fip": 4.20040304549132,
       "ip": 70.1,
       "team": "giants",
       "xera": 4.07,
@@ -1084,234 +1161,250 @@
       "xera_prior": 3.21
     },
     "jt brubaker": {
-      "era": 2.74,
-      "fip": 3.8978860654638043,
-      "ip": 49.1,
+      "era": 3.06,
+      "fip": 3.8985700844922073,
+      "ip": 53.0,
       "team": "giants",
-      "xera": 4.48,
-      "xera_bip": 142,
+      "xera": 4.58,
+      "xera_bip": 156,
       "xera_prior": 4.24
     },
     "caleb kilian": {
-      "era": 4.57,
-      "fip": 3.6264305226270492,
-      "ip": 41.1,
+      "era": 4.26,
+      "fip": 3.529511769342248,
+      "ip": 44.1,
       "team": "giants",
-      "xera": 3.3,
-      "xera_bip": 112
+      "xera": 3.33,
+      "xera_bip": 118
     },
     "erik miller": {
-      "era": 2.97,
-      "fip": 3.407937421771022,
-      "ip": 30.1,
+      "era": 2.76,
+      "fip": 3.279092761159265,
+      "ip": 32.2,
       "team": "giants",
-      "xera": 3.25,
-      "xera_bip": 68,
+      "xera": 3.21,
+      "xera_bip": 73,
       "xera_prior": 4.58
     },
     "keaton winn": {
-      "era": 3.38,
-      "fip": 3.5395649401794462,
-      "ip": 34.2,
+      "era": 3.08,
+      "fip": 3.478013977242952,
+      "ip": 38.0,
       "team": "giants",
-      "xera": 3.68,
-      "xera_bip": 100,
+      "xera": 3.71,
+      "xera_bip": 108,
       "xera_prior": 3.26
     },
     "tanner bibee": {
-      "era": 3.45,
-      "ip": 175.0,
-      "team": "guardians"
+      "era": 3.81,
+      "fip": 4.438669780262993,
+      "ip": 132.1,
+      "team": "guardians",
+      "xera": 4.42,
+      "xera_bip": 395,
+      "xera_prior": 3.64
     },
     "joey cantillo": {
-      "era": 4.02,
-      "fip": 3.9765548508535673,
-      "ip": 109.2,
+      "era": 3.88,
+      "fip": 3.8168646374624053,
+      "ip": 113.2,
       "team": "guardians",
-      "xera": 3.87,
-      "xera_bip": 304,
+      "xera": 3.82,
+      "xera_bip": 312,
       "xera_prior": 3.71
     },
-    "parker messick": {
-      "era": 2.59,
-      "fip": 3.122424967946706,
-      "ip": 125.1,
-      "team": "guardians",
-      "xera": 3.14,
-      "xera_bip": 337,
-      "xera_prior": 3.07
-    },
     "gavin williams": {
-      "era": 3.78,
-      "fip": 3.58174347666075,
-      "ip": 126.1,
+      "era": 3.56,
+      "fip": 3.339998074175932,
+      "ip": 139.0,
       "team": "guardians",
-      "xera": 4.07,
-      "xera_bip": 312,
+      "xera": 3.85,
+      "xera_bip": 331,
       "xera_prior": 4.3
     },
-    "slade cecconi": {
-      "era": 4.6,
-      "fip": 4.418457909035696,
-      "ip": 103.2,
+    "parker messick": {
+      "era": 2.57,
+      "fip": 3.038385494270816,
+      "ip": 129.2,
       "team": "guardians",
-      "xera": 4.7,
-      "xera_bip": 336,
+      "xera": 3.09,
+      "xera_bip": 350,
+      "xera_prior": 3.07
+    },
+    "slade cecconi": {
+      "era": 4.78,
+      "fip": 4.468554052922347,
+      "ip": 107.1,
+      "team": "guardians",
+      "xera": 4.73,
+      "xera_bip": 351,
       "xera_prior": 4.99
     },
     "shawn armstrong": {
       "era": 4.91,
-      "fip": 4.527337401636118,
+      "fip": 4.515494041038806,
       "ip": 33.0,
       "team": "guardians",
-      "xera": 3.98,
+      "xera": 3.99,
       "xera_bip": 92,
       "xera_prior": 3.02
     },
     "matt festa": {
-      "era": 4.4,
-      "fip": 3.8564424051597266,
-      "ip": 43.0,
+      "era": 4.37,
+      "fip": 3.740179924261274,
+      "ip": 45.1,
       "team": "guardians",
-      "xera": 4.21,
-      "xera_bip": 129,
+      "xera": 4.19,
+      "xera_bip": 134,
       "xera_prior": 3.46
     },
     "hunter gaddis": {
-      "era": 2.94,
-      "fip": 3.855741928835826,
-      "ip": 33.2,
+      "era": 3.68,
+      "fip": 4.35661240701905,
+      "ip": 36.2,
       "team": "guardians",
-      "xera": 4.33,
-      "xera_bip": 102,
+      "xera": 4.77,
+      "xera_bip": 113,
       "xera_prior": 3.66
     },
     "tim herrin": {
-      "era": 3.24,
-      "fip": 5.006235140352588,
-      "ip": 33.1,
+      "era": 3.89,
+      "fip": 4.960470117593829,
+      "ip": 34.2,
       "team": "guardians",
-      "xera": 4.21,
-      "xera_bip": 93,
+      "xera": 4.3,
+      "xera_bip": 101,
       "xera_prior": 4.39
     },
     "colin holderman": {
-      "era": 1.8,
-      "fip": 2.7174889167876333,
-      "ip": 40.0,
+      "era": 1.65,
+      "fip": 2.7065714821162468,
+      "ip": 43.2,
       "team": "guardians",
-      "xera": 3.02,
-      "xera_bip": 98,
+      "xera": 3.07,
+      "xera_bip": 109,
       "xera_prior": 5.73
     },
     "erik sabrowski": {
-      "era": 3.56,
-      "fip": 3.108934099511886,
-      "ip": 30.1,
+      "era": 3.77,
+      "fip": 3.0629036207064497,
+      "ip": 31.0,
       "team": "guardians",
-      "xera": 2.88,
-      "xera_bip": 59,
+      "xera": 3.07,
+      "xera_bip": 61,
       "xera_prior": 3.36
     },
     "cade smith": {
-      "era": 2.63,
-      "fip": 2.0841555834543,
-      "ip": 48.0,
+      "era": 2.45,
+      "fip": 2.267436162843941,
+      "ip": 51.1,
       "team": "guardians",
-      "xera": 3.21,
-      "xera_bip": 114,
+      "xera": 3.31,
+      "xera_bip": 121,
       "xera_prior": 2.51
     },
     "logan gilbert": {
-      "era": 3.23,
-      "ip": 190.0,
-      "team": "mariners"
+      "era": 3.46,
+      "fip": 3.348346010048112,
+      "ip": 132.2,
+      "team": "mariners",
+      "xera": 3.63,
+      "xera_bip": 350,
+      "xera_prior": 3.09
+    },
+    "george kirby": {
+      "era": 3.76,
+      "fip": 3.5188345325682735,
+      "ip": 127.0,
+      "team": "mariners",
+      "xera": 3.88,
+      "xera_bip": 384,
+      "xera_prior": 3.88
     },
     "bryan woo": {
-      "era": 4.38,
-      "fip": 3.120749786352851,
-      "ip": 115.0,
+      "era": 4.58,
+      "fip": 3.130645556190321,
+      "ip": 120.0,
       "team": "mariners",
-      "xera": 3.5,
-      "xera_bip": 334,
+      "xera": 3.53,
+      "xera_bip": 346,
       "xera_prior": 3.07
     },
     "emerson hancock": {
-      "era": 3.16,
-      "fip": 3.660947527634446,
-      "ip": 105.1,
+      "era": 3.26,
+      "fip": 3.6755138577343716,
+      "ip": 110.1,
       "team": "mariners",
-      "xera": 4.3,
-      "xera_bip": 287,
+      "xera": 4.16,
+      "xera_bip": 305,
       "xera_prior": 5.51
     },
-    "george kirby": {
-      "era": 3.35,
-      "ip": 185.0,
-      "team": "mariners"
-    },
     "luis castillo": {
-      "era": 4.85,
-      "fip": 4.305758555853451,
-      "ip": 94.2,
+      "era": 5.06,
+      "fip": 4.512500394899998,
+      "ip": 99.2,
       "team": "mariners",
-      "xera": 4.39,
-      "xera_bip": 297,
+      "xera": 4.83,
+      "xera_bip": 319,
       "xera_prior": 4.04
     },
     "bryce miller": {
-      "era": 2.75,
-      "fip": 3.5850109109225308,
-      "ip": 68.2,
+      "era": 2.8,
+      "fip": 3.7063212318659966,
+      "ip": 74.0,
       "team": "mariners",
-      "xera": 2.65,
-      "xera_bip": 181,
+      "xera": 2.67,
+      "xera_bip": 196,
       "xera_prior": 5.27
     },
     "eduard bazardo": {
-      "era": 2.93,
-      "fip": 3.3903150037441554,
-      "ip": 46.0,
+      "era": 3.31,
+      "fip": 3.765339433741341,
+      "ip": 49.0,
       "team": "mariners",
-      "xera": 4.15,
-      "xera_bip": 131,
+      "xera": 4.24,
+      "xera_bip": 142,
       "xera_prior": 3.33
     },
     "cooper criswell": {
       "era": 3.52,
-      "fip": 3.704740572416773,
+      "fip": 3.69289721181946,
       "ip": 30.2,
       "team": "mariners",
-      "xera": 3.35,
+      "xera": 3.38,
       "xera_bip": 89,
       "xera_prior": 3.99
     },
     "jose a. ferrer": {
-      "era": 2.79,
-      "fip": 3.5186793929781097,
-      "ip": 42.0,
+      "era": 3.35,
+      "fip": 3.91560130840271,
+      "ip": 45.2,
       "team": "mariners",
-      "xera": 3.21,
-      "xera_bip": 133,
+      "xera": 3.48,
+      "xera_bip": 146,
       "xera_prior": 3.56
     },
     "andres munoz": {
-      "era": 3.86,
-      "fip": 2.6112220704264475,
-      "ip": 37.1,
+      "era": 3.98,
+      "fip": 2.85651620295649,
+      "ip": 40.2,
       "team": "mariners",
       "xera": 3.35,
-      "xera_bip": 83,
+      "xera_bip": 92,
       "xera_prior": 2.82
     },
     "sandy alcantara": {
-      "era": 4.2,
-      "ip": 140.0,
-      "team": "marlins"
+      "era": 3.68,
+      "fip": 3.8309016381365435,
+      "ip": 156.2,
+      "team": "marlins",
+      "xera": 3.74,
+      "xera_bip": 481,
+      "xera_prior": 4.64
     },
     "max meyer": {
       "era": 2.68,
-      "fip": 3.4478943221930387,
+      "fip": 3.436050961595726,
       "ip": 111.0,
       "team": "marlins",
       "xera": 3.85,
@@ -1319,71 +1412,71 @@
       "xera_prior": 4.8
     },
     "eury perez": {
-      "era": 3.56,
-      "fip": 4.009902358742827,
-      "ip": 98.2,
+      "era": 3.44,
+      "fip": 3.8847722356528926,
+      "ip": 104.2,
       "team": "marlins",
-      "xera": 3.98,
-      "xera_bip": 247,
+      "xera": 3.82,
+      "xera_bip": 263,
       "xera_prior": 3.23
     },
     "janson junk": {
-      "era": 4.89,
-      "fip": 4.299319517880529,
-      "ip": 73.2,
+      "era": 4.58,
+      "fip": 4.181540696855283,
+      "ip": 78.2,
       "team": "marlins",
-      "xera": 4.01,
-      "xera_bip": 237,
+      "xera": 4.04,
+      "xera_bip": 252,
       "xera_prior": 4.45
     },
     "tyler phillips": {
-      "era": 3.52,
-      "fip": 4.4963447954222735,
-      "ip": 79.1,
+      "era": 3.53,
+      "fip": 4.534573726785158,
+      "ip": 89.1,
       "team": "marlins",
-      "xera": 4.76,
-      "xera_bip": 245,
+      "xera": 4.73,
+      "xera_bip": 275,
       "xera_prior": 3.66
     },
     "ryan gusto": {
-      "era": 4.5,
-      "fip": 3.513077152081751,
-      "ip": 34.0,
+      "era": 5.31,
+      "fip": 3.7742352997800643,
+      "ip": 39.0,
       "team": "marlins",
-      "xera": 4.33,
-      "xera_bip": 107,
+      "xera": 4.64,
+      "xera_bip": 126,
       "xera_prior": 4.58
     },
     "lake bachar": {
-      "era": 4.12,
-      "fip": 4.407802569924165,
-      "ip": 54.2,
+      "era": 3.84,
+      "fip": 4.233394697083791,
+      "ip": 58.2,
       "team": "marlins",
-      "xera": 3.71,
-      "xera_bip": 144,
+      "xera": 3.51,
+      "xera_bip": 155,
       "xera_prior": 4.48
     },
     "pete fairbanks": {
-      "era": 7.18,
-      "fip": 5.325447116144547,
-      "ip": 31.1,
+      "era": 6.37,
+      "fip": 4.93947746502223,
+      "ip": 35.1,
       "team": "marlins",
-      "xera": 4.89,
-      "xera_bip": 83,
+      "xera": 4.7,
+      "xera_bip": 90,
       "xera_prior": 3.09
     },
     "john king": {
-      "era": 2.43,
-      "fip": 4.0375137924095235,
-      "ip": 40.2,
+      "era": 2.45,
+      "fip": 3.848827374372139,
+      "ip": 44.0,
       "team": "marlins",
-      "xera": 3.35,
-      "xera_bip": 107,
+      "xera": 3.45,
+      "xera_bip": 116,
       "xera_prior": 4.8
     },
     "anthony bender": {
       "era": 2.62,
-      "fip": 2.338676600072091,
+      "fip": 2.3268332394747784,
       "ip": 34.1,
       "team": "marlins",
       "xera": 2.65,
@@ -1391,48 +1484,52 @@
       "xera_prior": 3.56
     },
     "calvin faucher": {
-      "era": 4.78,
-      "fip": 3.2281037659755683,
-      "ip": 43.1,
+      "era": 4.63,
+      "fip": 3.2903858159305805,
+      "ip": 46.2,
       "team": "marlins",
-      "xera": 4.64,
-      "xera_bip": 119,
+      "xera": 4.45,
+      "xera_bip": 124,
       "xera_prior": 4.36
     },
     "michael petersen": {
-      "era": 2.84,
-      "fip": 3.269246286402146,
-      "ip": 44.1,
+      "era": 3.13,
+      "fip": 3.1828194692337988,
+      "ip": 46.0,
       "team": "marlins",
-      "xera": 3.4,
-      "xera_bip": 105,
+      "xera": 3.35,
+      "xera_bip": 110,
       "xera_prior": 6.23
     },
-    "freddy peralta": {
-      "era": 3.68,
-      "ip": 185.0,
-      "team": "brewers"
-    },
     "nolan mclean": {
-      "era": 3.32,
-      "fip": 3.269189168676802,
-      "ip": 119.1,
+      "era": 3.29,
+      "fip": 3.406044917212685,
+      "ip": 125.2,
       "team": "mets",
-      "xera": 3.5,
-      "xera_bip": 298,
+      "xera": 3.56,
+      "xera_bip": 316,
       "xera_prior": 3.51
     },
-    "christian scott": {
-      "era": 3.13,
-      "fip": 3.6288597567242418,
-      "ip": 63.1,
+    "freddy peralta": {
+      "era": 4.99,
+      "fip": 4.391069584458872,
+      "ip": 113.2,
       "team": "mets",
-      "xera": 3.98,
-      "xera_bip": 159
+      "xera": 3.79,
+      "xera_bip": 346,
+      "xera_prior": 3.43
+    },
+    "christian scott": {
+      "era": 2.99,
+      "fip": 3.4069118369428533,
+      "ip": 69.1,
+      "team": "mets",
+      "xera": 3.74,
+      "xera_bip": 175
     },
     "clay holmes": {
       "era": 2.39,
-      "fip": 3.1574314455232657,
+      "fip": 3.145588084925953,
       "ip": 52.2,
       "team": "mets",
       "xera": 3.9,
@@ -1440,99 +1537,123 @@
       "xera_prior": 4.33
     },
     "sean manaea": {
-      "era": 3.47,
-      "ip": 181.2,
-      "team": "mets"
+      "era": 4.42,
+      "fip": 4.269680643909619,
+      "ip": 91.2,
+      "team": "mets",
+      "xera": 4.45,
+      "xera_bip": 273,
+      "xera_prior": 3.99
     },
     "kodai senga": {
-      "era": 3.0,
-      "ip": 100.0,
-      "team": "mets"
-    },
-    "huascar brazoban": {
-      "era": 2.7,
-      "fip": 3.3624889167876333,
-      "ip": 50.0,
+      "era": 8.66,
+      "fip": 6.469559583339642,
+      "ip": 44.2,
       "team": "mets",
-      "xera": 2.82,
-      "xera_bip": 129,
+      "xera": 5.27,
+      "xera_bip": 123,
       "xera_prior": 3.96
     },
+    "huascar brazoban": {
+      "era": 2.56,
+      "fip": 3.2796877017841903,
+      "ip": 52.2,
+      "team": "mets",
+      "xera": 2.75,
+      "xera_bip": 134,
+      "xera_prior": 3.96
+    },
+    "zac thornton": {
+      "era": 2.88,
+      "fip": 3.734457872905863,
+      "ip": 34.1,
+      "team": "mets",
+      "xera": 4.83,
+      "xera_bip": 99
+    },
     "tobias myers": {
-      "era": 3.11,
-      "ip": 135.0,
-      "team": "brewers"
+      "era": 6.26,
+      "fip": 4.987167295320756,
+      "ip": 46.0,
+      "team": "mets",
+      "xera": 4.67,
+      "xera_bip": 152,
+      "xera_prior": 4.39
     },
     "austin warren": {
       "era": 4.63,
-      "fip": 4.585346059644777,
+      "fip": 4.573502699047464,
       "ip": 35.0,
       "team": "mets",
-      "xera": 5.26,
+      "xera": 5.23,
       "xera_bip": 99,
       "xera_prior": 4.36
     },
     "brooks raley": {
-      "era": 2.09,
-      "fip": 3.0948449377300418,
-      "ip": 38.2,
+      "era": 1.96,
+      "fip": 3.0306455561903207,
+      "ip": 41.1,
       "team": "mets",
-      "xera": 3.48,
-      "xera_bip": 105,
+      "xera": 3.38,
+      "xera_bip": 112,
       "xera_prior": 2.37
     },
     "luke weaver": {
-      "era": 1.93,
-      "fip": 2.852012726311443,
-      "ip": 42.0,
+      "era": 1.84,
+      "fip": 2.757918283463048,
+      "ip": 44.0,
       "team": "mets",
-      "xera": 2.86,
-      "xera_bip": 107,
+      "xera": 2.84,
+      "xera_bip": 111,
       "xera_prior": 2.93
     },
     "devin williams": {
-      "era": 4.41,
-      "fip": 3.0424889167876334,
-      "ip": 34.2,
+      "era": 4.3,
+      "fip": 2.950000394899998,
+      "ip": 37.2,
       "team": "mets",
-      "xera": 3.28,
-      "xera_bip": 93,
+      "xera": 3.16,
+      "xera_bip": 101,
       "xera_prior": 3.02
     },
     "cade cavalli": {
-      "era": 3.58,
-      "fip": 3.0515633269509728,
-      "ip": 110.2,
+      "era": 3.52,
+      "fip": 3.3334278802492405,
+      "ip": 122.2,
       "team": "nationals",
-      "xera": 3.93,
-      "xera_bip": 305,
+      "xera": 4.04,
+      "xera_bip": 344,
       "xera_prior": 4.13
     },
     "foster griffin": {
-      "era": 2.76,
-      "fip": 3.873134078077956,
-      "ip": 124.0,
+      "era": 3.06,
+      "fip": 4.029870962851824,
+      "ip": 129.1,
       "team": "nationals",
-      "xera": 3.9,
-      "xera_bip": 350
+      "xera": 4.07,
+      "xera_bip": 370
     },
     "zack littell": {
-      "era": 3.8,
-      "ip": 165.0,
-      "team": "rays"
+      "era": 4.94,
+      "fip": 5.88235658280629,
+      "ip": 105.2,
+      "team": "nationals",
+      "xera": 6.12,
+      "xera_bip": 349,
+      "xera_prior": 4.36
     },
     "jake irvin": {
-      "era": 5.23,
-      "fip": 4.194832666787633,
-      "ip": 51.2,
+      "era": 5.56,
+      "fip": 4.614275449428755,
+      "ip": 56.2,
       "team": "nationals",
-      "xera": 5.23,
-      "xera_bip": 142,
+      "xera": 5.55,
+      "xera_bip": 159,
       "xera_prior": 5.59
     },
     "pj poulin": {
       "era": 2.7,
-      "fip": 4.920941955461666,
+      "fip": 4.9090985948643535,
       "ip": 36.2,
       "team": "nationals",
       "xera": 5.37,
@@ -1540,106 +1661,115 @@
       "xera_prior": 3.93
     },
     "miles mikolas": {
-      "era": 5.65,
-      "fip": 5.6013124461993975,
-      "ip": 102.0,
+      "era": 5.67,
+      "fip": 5.78064555619032,
+      "ip": 108.0,
       "team": "nationals",
-      "xera": 5.19,
-      "xera_bip": 361,
+      "xera": 5.37,
+      "xera_bip": 384,
       "xera_prior": 5.27
     },
     "andrew alvarez": {
-      "era": 4.22,
-      "fip": 2.9859917416463904,
-      "ip": 53.1,
+      "era": 4.06,
+      "fip": 3.0306455561903207,
+      "ip": 57.2,
       "team": "nationals",
-      "xera": 4.57,
-      "xera_bip": 151,
+      "xera": 4.51,
+      "xera_bip": 164,
       "xera_prior": 2.87
     },
     "brad lord": {
       "era": 3.88,
-      "fip": 4.163178571960048,
+      "fip": 4.151335211362735,
       "ip": 58.0,
       "team": "nationals",
-      "xera": 4.18,
+      "xera": 4.19,
       "xera_bip": 169,
       "xera_prior": 4.73
     },
     "paxton schultz": {
-      "era": 5.87,
-      "fip": 4.333879645264455,
-      "ip": 30.2,
+      "era": 6.4,
+      "fip": 4.276751475193436,
+      "ip": 32.1,
       "team": "nationals",
-      "xera": 4.76,
-      "xera_bip": 99,
+      "xera": 4.99,
+      "xera_bip": 107,
       "xera_prior": 3.77
     },
     "clayton beeter": {
-      "era": 3.69,
-      "fip": 5.125822250120967,
-      "ip": 31.2,
+      "era": 3.58,
+      "fip": 4.987167295320756,
+      "ip": 32.2,
       "team": "nationals",
-      "xera": 3.98,
-      "xera_bip": 81,
+      "xera": 3.96,
+      "xera_bip": 83,
       "xera_prior": 3.77
     },
     "mitchell parker": {
       "era": 6.58,
-      "fip": 5.4404481004611025,
+      "fip": 5.42860473986379,
       "ip": 39.2,
       "team": "nationals",
       "xera": 5.16,
       "xera_bip": 129,
       "xera_prior": 5.96
     },
+    "orlando ribalta": {
+      "era": 3.58,
+      "fip": 3.3722604630226187,
+      "ip": 32.2,
+      "team": "nationals",
+      "xera": 3.51,
+      "xera_bip": 91,
+      "xera_prior": 5.44
+    },
     "gus varland": {
-      "era": 6.25,
-      "fip": 5.061719686018403,
+      "era": 6.82,
+      "fip": 5.466542992087756,
       "ip": 31.2,
       "team": "nationals",
-      "xera": 6.68,
-      "xera_bip": 103
+      "xera": 7.26,
+      "xera_bip": 106
     },
     "shane baz": {
-      "era": 3.98,
-      "fip": 3.4031446544925514,
-      "ip": 122.0,
+      "era": 3.86,
+      "fip": 3.3350952049022644,
+      "ip": 128.1,
       "team": "orioles",
       "xera": 4.3,
-      "xera_bip": 372,
+      "xera_bip": 392,
       "xera_prior": 3.88
     },
     "kyle bradish": {
-      "era": 3.49,
-      "fip": 3.8824535498557147,
-      "ip": 113.1,
+      "era": 3.79,
+      "fip": 3.8818852256118084,
+      "ip": 121.0,
       "team": "orioles",
-      "xera": 3.85,
-      "xera_bip": 314,
+      "xera": 4.01,
+      "xera_bip": 340,
       "xera_prior": 3.09
     },
     "trevor rogers": {
-      "era": 4.17,
-      "fip": 3.6529540330667034,
-      "ip": 103.2,
+      "era": 4.27,
+      "fip": 3.497678523223288,
+      "ip": 109.2,
       "team": "orioles",
-      "xera": 4.1,
-      "xera_bip": 319,
+      "xera": 3.9,
+      "xera_bip": 341,
       "xera_prior": 3.41
     },
     "brandon young": {
-      "era": 3.13,
-      "fip": 3.68034899909216,
-      "ip": 97.2,
+      "era": 3.31,
+      "fip": 3.845388524182561,
+      "ip": 103.1,
       "team": "orioles",
-      "xera": 4.1,
-      "xera_bip": 299,
+      "xera": 4.3,
+      "xera_bip": 316,
       "xera_prior": 4.27
     },
     "chris bassitt": {
       "era": 5.27,
-      "fip": 4.718068239425779,
+      "fip": 4.706224878828467,
       "ip": 56.1,
       "team": "orioles",
       "xera": 5.06,
@@ -1648,158 +1778,176 @@
     },
     "trey gibson": {
       "era": 7.36,
-      "fip": 6.345519219817937,
+      "fip": 6.333675859220624,
       "ip": 33.0,
       "team": "orioles",
-      "xera": 6.85,
+      "xera": 6.86,
       "xera_bip": 105
     },
     "dean kremer": {
-      "era": 5.06,
-      "fip": 5.729988916787633,
-      "ip": 32.0,
+      "era": 6.5,
+      "fip": 6.16953444507921,
+      "ip": 36.0,
       "team": "orioles",
-      "xera": 4.64,
-      "xera_bip": 88,
+      "xera": 4.93,
+      "xera_bip": 104,
       "xera_prior": 3.82
     },
     "yennier cano": {
-      "era": 2.34,
-      "fip": 2.5161731273139494,
-      "ip": 34.2,
+      "era": 2.15,
+      "fip": 2.38548426586774,
+      "ip": 37.2,
       "team": "orioles",
-      "xera": 3.11,
-      "xera_bip": 102,
+      "xera": 2.95,
+      "xera_bip": 108,
       "xera_prior": 3.69
     },
     "rico garcia": {
-      "era": 3.0,
-      "fip": 4.198044472343189,
-      "ip": 45.0,
+      "era": 3.04,
+      "fip": 4.389456596530024,
+      "ip": 47.1,
       "team": "orioles",
-      "xera": 3.04,
-      "xera_bip": 112,
+      "xera": 3.16,
+      "xera_bip": 118,
       "xera_prior": 3.21
     },
-    "anthony nunez": {
-      "era": 4.46,
-      "fip": 3.9213487742698185,
-      "ip": 42.1,
+    "andrew kittredge": {
+      "era": 4.02,
+      "fip": 4.284664848794822,
+      "ip": 31.1,
       "team": "orioles",
-      "xera": 4.27,
-      "xera_bip": 117
+      "xera": 4.04,
+      "xera_bip": 104,
+      "xera_prior": 2.78
+    },
+    "anthony nunez": {
+      "era": 4.6,
+      "fip": 4.03064555619032,
+      "ip": 45.0,
+      "team": "orioles",
+      "xera": 4.21,
+      "xera_bip": 126
     },
     "albert suarez": {
-      "era": 3.38,
-      "fip": 4.843436784086212,
-      "ip": 42.2,
+      "era": 4.2,
+      "fip": 4.763978889523655,
+      "ip": 45.0,
       "team": "orioles",
-      "xera": 4.42,
-      "xera_bip": 130,
+      "xera": 4.64,
+      "xera_bip": 143,
       "xera_prior": 2.67
     },
     "tyler wells": {
-      "era": 2.82,
-      "fip": 3.316998720709202,
-      "ip": 51.0,
+      "era": 2.67,
+      "fip": 3.3454603710051356,
+      "ip": 54.0,
       "team": "orioles",
-      "xera": 3.18,
-      "xera_bip": 135,
+      "xera": 3.04,
+      "xera_bip": 143,
       "xera_prior": 3.61
     },
     "grant wolfram": {
-      "era": 4.4,
-      "fip": 2.4795750095028652,
-      "ip": 30.2,
+      "era": 4.59,
+      "fip": 2.607684831114792,
+      "ip": 33.1,
       "team": "orioles",
-      "xera": 3.33,
-      "xera_bip": 91,
+      "xera": 3.38,
+      "xera_bip": 96,
       "xera_prior": 3.58
     },
     "walker buehler": {
-      "era": 5.13,
-      "fip": 4.292488916787633,
-      "ip": 100.0,
+      "era": 5.18,
+      "fip": 4.394718562914624,
+      "ip": 104.1,
       "team": "padres",
-      "xera": 4.42,
-      "xera_bip": 297,
+      "xera": 4.45,
+      "xera_bip": 315,
       "xera_prior": 5.41
     },
     "michael king": {
-      "era": 3.24,
-      "fip": 3.9744788412208827,
-      "ip": 119.1,
+      "era": 3.38,
+      "fip": 4.053827011026452,
+      "ip": 125.1,
       "team": "padres",
-      "xera": 4.57,
-      "xera_bip": 329,
+      "xera": 4.58,
+      "xera_bip": 346,
       "xera_prior": 4.24
     },
     "randy vasquez": {
-      "era": 4.68,
-      "fip": 4.762799682603394,
-      "ip": 90.1,
+      "era": 4.45,
+      "fip": 4.672750819348216,
+      "ip": 95.0,
       "team": "padres",
-      "xera": 6.68,
-      "xera_bip": 300,
+      "xera": 6.48,
+      "xera_bip": 316,
       "xera_prior": 5.37
     },
     "griffin canning": {
-      "era": 6.97,
-      "fip": 5.171521174852149,
-      "ip": 62.0,
+      "era": 6.58,
+      "fip": 5.12019779499629,
+      "ip": 67.0,
       "team": "padres",
-      "xera": 4.96,
-      "xera_bip": 181,
+      "xera": 4.83,
+      "xera_bip": 194,
       "xera_prior": 4.7
     },
     "german marquez": {
-      "era": 5.17,
-      "fip": 6.44674423593657,
-      "ip": 47.0,
+      "era": 4.67,
+      "fip": 6.088337863882629,
+      "ip": 52.0,
       "team": "padres",
-      "xera": 5.58,
-      "xera_bip": 153,
+      "xera": 5.23,
+      "xera_bip": 167,
       "xera_prior": 5.81
     },
-    "wandy peralta": {
-      "era": 3.04,
-      "fip": 4.323091553322474,
-      "ip": 53.1,
+    "jp sears": {
+      "era": 4.68,
+      "fip": 5.111390897805228,
+      "ip": 32.2,
       "team": "padres",
-      "xera": 4.33,
-      "xera_bip": 165,
+      "xera": 5.1,
+      "xera_bip": 104,
+      "xera_prior": 4.24
+    },
+    "kyle hart": {
+      "era": 4.53,
+      "fip": 3.586201111745876,
+      "ip": 43.2,
+      "team": "padres",
+      "xera": 3.28,
+      "xera_bip": 123,
+      "xera_prior": 3.69
+    },
+    "wandy peralta": {
+      "era": 3.21,
+      "fip": 4.191359841904607,
+      "ip": 56.0,
+      "team": "padres",
+      "xera": 4.13,
+      "xera_bip": 174,
       "xera_prior": 4.02
     },
     "bradgley rodriguez": {
-      "era": 2.01,
-      "fip": 2.6126246633939685,
-      "ip": 44.2,
+      "era": 2.44,
+      "fip": 2.7181455561903207,
+      "ip": 48.0,
       "team": "padres",
-      "xera": 2.31,
-      "xera_bip": 125,
+      "xera": 2.35,
+      "xera_bip": 134,
       "xera_prior": 2.29
     },
     "matt waldron": {
       "era": 7.16,
-      "fip": 5.0611224571603035,
+      "fip": 5.049279096562991,
       "ip": 32.2,
       "team": "padres",
       "xera": 3.9,
       "xera_bip": 109,
       "xera_prior": 11.19
     },
-    "kyle hart": {
-      "era": 5.21,
-      "fip": 3.858278390471844,
-      "ip": 38.0,
-      "team": "padres",
-      "xera": 3.63,
-      "xera_bip": 108,
-      "xera_prior": 3.69
-    },
     "jason adam": {
       "era": 2.51,
-      "fip": 4.631273963516605,
+      "fip": 4.619430602919293,
       "ip": 32.1,
       "team": "padres",
       "xera": 3.43,
@@ -1807,107 +1955,115 @@
       "xera_prior": 2.76
     },
     "yuki matsui": {
-      "era": 2.56,
-      "fip": 4.534635513646272,
-      "ip": 38.2,
+      "era": 2.38,
+      "fip": 4.317053323180612,
+      "ip": 41.2,
       "team": "padres",
-      "xera": 3.53,
-      "xera_bip": 91,
+      "xera": 3.35,
+      "xera_bip": 99,
       "xera_prior": 4.07
     },
     "mason miller": {
-      "era": 0.82,
-      "fip": 0.4498963241950409,
-      "ip": 43.2,
+      "era": 0.76,
+      "fip": 0.3767177430268389,
+      "ip": 47.1,
       "team": "padres",
-      "xera": 1.37,
-      "xera_bip": 70,
+      "xera": 1.34,
+      "xera_bip": 74,
       "xera_prior": 2.53
     },
     "adrian morejon": {
-      "era": 3.2,
-      "fip": 2.4007776868411095,
-      "ip": 56.1,
+      "era": 3.0,
+      "fip": 2.2973122228569873,
+      "ip": 60.0,
       "team": "padres",
-      "xera": 2.56,
-      "xera_bip": 150,
+      "xera": 2.48,
+      "xera_bip": 157,
       "xera_prior": 2.63
     },
     "cristopher sanchez": {
-      "era": 2.73,
-      "fip": 2.593863735890383,
-      "ip": 138.2,
+      "era": 2.61,
+      "fip": 2.5521434757464925,
+      "ip": 144.2,
       "team": "phillies",
-      "xera": 3.35,
-      "xera_bip": 389,
+      "xera": 3.33,
+      "xera_bip": 398,
       "xera_prior": 3.02
     },
     "jesus luzardo": {
-      "era": 3.31,
-      "fip": 2.854118728417445,
-      "ip": 122.1,
+      "era": 3.57,
+      "fip": 2.968243060090477,
+      "ip": 128.2,
       "team": "phillies",
-      "xera": 2.84,
-      "xera_bip": 311,
+      "xera": 2.98,
+      "xera_bip": 330,
       "xera_prior": 3.33
     },
     "aaron nola": {
-      "era": 3.57,
-      "ip": 195.0,
-      "team": "phillies"
+      "era": 5.61,
+      "fip": 5.013101696541198,
+      "ip": 114.0,
+      "team": "phillies",
+      "xera": 4.33,
+      "xera_bip": 342,
+      "xera_prior": 4.13
     },
     "zack wheeler": {
-      "era": 2.57,
-      "ip": 200.0,
-      "team": "phillies"
+      "era": 2.49,
+      "fip": 2.9544550799998444,
+      "ip": 105.0,
+      "team": "phillies",
+      "xera": 2.59,
+      "xera_bip": 252,
+      "xera_prior": 2.49
     },
     "andrew painter": {
-      "era": 7.06,
-      "fip": 5.457873532172249,
-      "ip": 65.0,
+      "era": 6.72,
+      "fip": 5.382758232246658,
+      "ip": 71.0,
       "team": "phillies",
-      "xera": 5.19,
-      "xera_bip": 219
+      "xera": 5.23,
+      "xera_bip": 233
     },
     "tim mayza": {
-      "era": 3.94,
-      "fip": 3.188322250120967,
-      "ip": 48.0,
+      "era": 3.73,
+      "fip": 3.07048619364052,
+      "ip": 50.2,
       "team": "phillies",
-      "xera": 3.35,
-      "xera_bip": 135,
+      "xera": 3.33,
+      "xera_bip": 141,
       "xera_prior": 3.07
     },
     "jose alvarado": {
-      "era": 6.16,
-      "fip": 3.384594179945528,
-      "ip": 38.0,
+      "era": 5.71,
+      "fip": 3.323328483019589,
+      "ip": 41.0,
       "team": "phillies",
       "xera": 3.66,
-      "xera_bip": 107,
+      "xera_bip": 114,
       "xera_prior": 3.64
     },
     "jonathan bowlan": {
-      "era": 2.78,
-      "fip": 2.559534371333088,
-      "ip": 35.2,
+      "era": 3.03,
+      "fip": 2.7426874410070745,
+      "ip": 38.2,
       "team": "phillies",
-      "xera": 2.5,
-      "xera_bip": 89,
+      "xera": 2.61,
+      "xera_bip": 95,
       "xera_prior": 3.79
     },
     "jhoan duran": {
-      "era": 1.29,
-      "fip": 0.9853460596447765,
-      "ip": 35.0,
+      "era": 1.98,
+      "fip": 1.1192882154700992,
+      "ip": 36.1,
       "team": "phillies",
       "xera": 2.19,
-      "xera_bip": 74,
+      "xera_bip": 83,
       "xera_prior": 2.51
     },
     "brad keller": {
       "era": 4.02,
-      "fip": 4.103582164376058,
+      "fip": 4.091738803778745,
       "ip": 31.1,
       "team": "phillies",
       "xera": 3.33,
@@ -1915,99 +2071,106 @@
       "xera_prior": 2.8
     },
     "orion kerkering": {
-      "era": 2.75,
-      "fip": 3.7841768963272755,
-      "ip": 39.1,
+      "era": 3.43,
+      "fip": 3.8401693657141305,
+      "ip": 42.0,
       "team": "phillies",
-      "xera": 2.91,
-      "xera_bip": 101,
+      "xera": 3.23,
+      "xera_bip": 111,
       "xera_prior": 3.66
     },
     "chase shugart": {
-      "era": 5.08,
-      "fip": 5.090681687871971,
-      "ip": 33.2,
+      "era": 4.93,
+      "fip": 5.048189415839444,
+      "ip": 34.2,
       "team": "phillies",
-      "xera": 4.39,
-      "xera_bip": 86,
+      "xera": 4.36,
+      "xera_bip": 87,
       "xera_prior": 4.64
     },
     "paul skenes": {
-      "era": 1.96,
-      "ip": 133.0,
-      "team": "pirates"
+      "era": 3.9,
+      "fip": 2.8454603710051356,
+      "ip": 124.2,
+      "team": "pirates",
+      "xera": 2.93,
+      "xera_bip": 315,
+      "xera_prior": 2.65
     },
     "braxton ashcraft": {
-      "era": 4.05,
-      "fip": 3.4192292935280104,
-      "ip": 122.1,
+      "era": 3.96,
+      "fip": 3.463375689943271,
+      "ip": 127.1,
       "team": "pirates",
-      "xera": 3.48,
-      "xera_bip": 336,
+      "xera": 3.38,
+      "xera_bip": 348,
       "xera_prior": 3.43
     },
     "mitch keller": {
-      "era": 4.9,
-      "fip": 4.319084661468485,
-      "ip": 108.1,
+      "era": 5.29,
+      "fip": 4.480298333968099,
+      "ip": 115.2,
       "team": "pirates",
-      "xera": 5.23,
-      "xera_bip": 336,
+      "xera": 5.44,
+      "xera_bip": 364,
       "xera_prior": 4.45
     },
     "bubba chandler": {
-      "era": 4.47,
-      "fip": 4.369834226168871,
-      "ip": 100.2,
+      "era": 4.56,
+      "fip": 4.278246323944639,
+      "ip": 104.2,
       "team": "pirates",
-      "xera": 3.98,
-      "xera_bip": 290,
+      "xera": 3.96,
+      "xera_bip": 307,
       "xera_prior": 3.66
     },
     "jared jones": {
-      "era": 3.48,
-      "ip": 130.0,
-      "team": "pirates"
+      "era": 3.81,
+      "fip": 3.4152609408057053,
+      "ip": 52.0,
+      "team": "pirates",
+      "xera": 3.02,
+      "xera_bip": 135
     },
     "carmen mlodzinski": {
-      "era": 3.36,
-      "fip": 3.5532721176956925,
-      "ip": 88.1,
+      "era": 3.15,
+      "fip": 3.434471273512319,
+      "ip": 94.1,
       "team": "pirates",
-      "xera": 4.89,
-      "xera_bip": 277,
+      "xera": 4.83,
+      "xera_bip": 292,
       "xera_prior": 4.07
     },
     "mason montgomery": {
-      "era": 4.04,
-      "fip": 2.852465163818512,
-      "ip": 42.1,
+      "era": 3.8,
+      "fip": 2.8084233339680984,
+      "ip": 45.0,
       "team": "pirates",
-      "xera": 3.04,
-      "xera_bip": 94,
+      "xera": 2.95,
+      "xera_bip": 100,
       "xera_prior": 4.58
     },
-    "isaac mattson": {
-      "era": 4.91,
-      "fip": 3.860670734969452,
-      "ip": 33.0,
-      "team": "pirates",
-      "xera": 6.11,
-      "xera_bip": 101,
-      "xera_prior": 3.28
-    },
     "yohan ramirez": {
-      "era": 3.31,
-      "fip": 4.133061929726635,
-      "ip": 54.1,
+      "era": 3.0,
+      "fip": 3.8973122228569874,
+      "ip": 60.0,
       "team": "pirates",
-      "xera": 3.82,
-      "xera_bip": 138,
+      "xera": 3.69,
+      "xera_bip": 149,
       "xera_prior": 4.51
+    },
+    "isaac mattson": {
+      "era": 4.93,
+      "fip": 3.732399942155233,
+      "ip": 34.2,
+      "team": "pirates",
+      "xera": 6.23,
+      "xera_bip": 106,
+      "xera_prior": 3.28
     },
     "dennis santana": {
       "era": 6.05,
-      "fip": 5.445401538146857,
+      "fip": 5.4335581775495445,
       "ip": 41.2,
       "team": "pirates",
       "xera": 5.3,
@@ -2016,173 +2179,185 @@
     },
     "evan sisk": {
       "era": 2.23,
-      "fip": 2.959386423712841,
+      "fip": 2.9475430631155284,
       "ip": 36.1,
       "team": "pirates",
-      "xera": 2.88,
+      "xera": 2.89,
       "xera_bip": 90,
       "xera_prior": 2.84
     },
     "gregory soto": {
-      "era": 3.8,
-      "fip": 3.7770860731857376,
-      "ip": 42.2,
+      "era": 3.69,
+      "fip": 3.638020827339995,
+      "ip": 46.1,
       "team": "pirates",
-      "xera": 3.18,
-      "xera_bip": 105,
+      "xera": 3.07,
+      "xera_bip": 114,
       "xera_prior": 3.85
     },
     "mackenzie gore": {
-      "era": 3.9,
-      "ip": 155.0,
-      "team": "nationals"
+      "era": 4.77,
+      "fip": 3.734409876975918,
+      "ip": 122.2,
+      "team": "rangers",
+      "xera": 3.82,
+      "xera_bip": 337,
+      "xera_prior": 4.33
     },
     "jacob degrom": {
-      "era": 3.67,
-      "fip": 3.1878113509384054,
-      "ip": 110.1,
+      "era": 3.96,
+      "fip": 3.251493612727423,
+      "ip": 113.2,
       "team": "rangers",
-      "xera": 3.53,
-      "xera_bip": 290,
+      "xera": 3.58,
+      "xera_bip": 304,
       "xera_prior": 3.36
     },
     "nathan eovaldi": {
-      "era": 3.35,
-      "ip": 170.0,
-      "team": "rangers"
+      "era": 4.31,
+      "fip": 4.234422110084892,
+      "ip": 127.1,
+      "team": "rangers",
+      "xera": 4.1,
+      "xera_bip": 360,
+      "xera_prior": 3.0
     },
     "kumar rocker": {
-      "era": 4.13,
-      "fip": 4.094572250120967,
-      "ip": 96.0,
+      "era": 4.08,
+      "fip": 4.095460371005135,
+      "ip": 108.0,
       "team": "rangers",
-      "xera": 4.6,
-      "xera_bip": 286,
+      "xera": 4.45,
+      "xera_bip": 322,
       "xera_prior": 5.73
     },
     "jack leiter": {
       "era": 5.29,
-      "fip": 4.7049889167876335,
+      "fip": 4.693145556190321,
       "ip": 80.0,
       "team": "rangers",
-      "xera": 4.79,
+      "xera": 4.8,
       "xera_bip": 233,
       "xera_prior": 4.45
     },
     "cal quantrill": {
-      "era": 3.9,
-      "ip": 170.0,
-      "team": "rockies"
+      "era": 3.84,
+      "fip": 4.6629479616886025,
+      "ip": 58.2,
+      "team": "rangers",
+      "xera": 4.48,
+      "xera_bip": 186,
+      "xera_prior": 5.81
     },
     "tyler alexander": {
-      "era": 3.2,
-      "fip": 2.820266694565411,
-      "ip": 45.0,
+      "era": 3.35,
+      "fip": 2.801955327500092,
+      "ip": 48.1,
       "team": "rangers",
-      "xera": 3.38,
-      "xera_bip": 139,
+      "xera": 3.43,
+      "xera_bip": 149,
       "xera_prior": 4.64
     },
     "jakob junis": {
-      "era": 2.84,
-      "fip": 2.858278390471844,
-      "ip": 38.0,
+      "era": 2.7,
+      "fip": 2.9306455561903206,
+      "ip": 40.0,
       "team": "rangers",
-      "xera": 3.63,
-      "xera_bip": 116,
+      "xera": 3.77,
+      "xera_bip": 124,
       "xera_prior": 4.04
     },
     "jacob latz": {
-      "era": 1.69,
-      "fip": 2.500822250120967,
-      "ip": 48.0,
+      "era": 1.8,
+      "fip": 2.4306455561903206,
+      "ip": 50.0,
       "team": "rangers",
-      "xera": 2.5,
-      "xera_bip": 114,
+      "xera": 2.42,
+      "xera_bip": 120,
       "xera_prior": 4.13
     },
-    "peyton gray": {
-      "era": 3.49,
-      "fip": 3.0948449377300418,
-      "ip": 38.2,
-      "team": "rangers",
-      "xera": 3.3,
-      "xera_bip": 113
-    },
     "cole winn": {
-      "era": 6.11,
-      "fip": 4.523970398269115,
-      "ip": 35.1,
+      "era": 6.27,
+      "fip": 4.459216984761749,
+      "ip": 37.1,
       "team": "rangers",
-      "xera": 4.93,
-      "xera_bip": 109,
+      "xera": 5.23,
+      "xera_bip": 117,
       "xera_prior": 4.19
     },
+    "peyton gray": {
+      "era": 3.4,
+      "fip": 3.196916340038302,
+      "ip": 42.1,
+      "team": "rangers",
+      "xera": 3.23,
+      "xera_bip": 123
+    },
     "nick martinez": {
-      "era": 2.45,
-      "fip": 3.708586269477642,
-      "ip": 117.1,
+      "era": 2.77,
+      "fip": 4.054203639049785,
+      "ip": 123.1,
       "team": "rays",
-      "xera": 4.33,
-      "xera_bip": 383,
+      "xera": 4.58,
+      "xera_bip": 405,
       "xera_prior": 4.04
     },
     "drew rasmussen": {
-      "era": 3.07,
-      "fip": 3.1054952174176966,
-      "ip": 111.1,
+      "era": 2.91,
+      "fip": 2.9452484596916015,
+      "ip": 117.1,
       "team": "rays",
-      "xera": 3.11,
-      "xera_bip": 302,
+      "xera": 3.14,
+      "xera_bip": 313,
       "xera_prior": 3.48
     },
     "shane mcclanahan": {
       "era": 3.09,
-      "fip": 3.282072250120967,
-      "ip": 96.0,
+      "fip": 3.2932718188165833,
+      "ip": 99.0,
       "team": "rays",
-      "xera": 4.15,
-      "xera_bip": 272
+      "xera": 4.1,
+      "xera_bip": 278
     },
     "griffin jax": {
-      "era": 3.89,
-      "fip": 4.178291385923436,
-      "ip": 81.0,
+      "era": 3.63,
+      "fip": 3.8859087140850574,
+      "ip": 91.2,
       "team": "rays",
-      "xera": 5.02,
-      "xera_bip": 223,
+      "xera": 4.39,
+      "xera_bip": 247,
       "xera_prior": 3.26
     },
     "steven matz": {
-      "era": 6.28,
-      "fip": 5.325507784712162,
-      "ip": 53.0,
+      "era": 5.97,
+      "fip": 5.324866221689446,
+      "ip": 57.1,
       "team": "rays",
-      "xera": 5.84,
-      "xera_bip": 169,
+      "xera": 5.41,
+      "xera_bip": 180,
       "xera_prior": 3.38
     },
     "ian seymour": {
-      "era": 4.64,
-      "fip": 4.094401485093645,
-      "ip": 73.2,
+      "era": 4.37,
+      "fip": 3.9525405625923695,
+      "ip": 78.1,
       "team": "rays",
-      "xera": 3.53,
-      "xera_bip": 189,
+      "xera": 3.35,
+      "xera_bip": 201,
       "xera_prior": 3.93
     },
     "mason englert": {
       "era": 4.54,
-      "fip": 5.315216189514906,
+      "fip": 5.303372828917594,
       "ip": 35.2,
       "team": "rays",
-      "xera": 5.8,
+      "xera": 5.81,
       "xera_bip": 116,
       "xera_prior": 4.22
     },
     "jesse scholtens": {
       "era": 3.82,
-      "fip": 5.354316873776881,
+      "fip": 5.342473513179568,
       "ip": 37.2,
       "team": "rays",
       "xera": 5.13,
@@ -2191,7 +2366,7 @@
     },
     "cole sulser": {
       "era": 4.86,
-      "fip": 3.563096292058783,
+      "fip": 3.5512529314614705,
       "ip": 46.1,
       "team": "rays",
       "xera": 4.45,
@@ -2199,258 +2374,283 @@
       "xera_prior": 2.8
     },
     "bryan baker": {
-      "era": 1.56,
-      "fip": 2.593611111301349,
-      "ip": 40.1,
+      "era": 1.45,
+      "fip": 2.613012145517467,
+      "ip": 43.1,
       "team": "rays",
-      "xera": 2.67,
-      "xera_bip": 98,
+      "xera": 2.69,
+      "xera_bip": 105,
       "xera_prior": 4.02
     },
     "garrett cleavinger": {
-      "era": 3.48,
-      "fip": 3.461843755497311,
-      "ip": 31.0,
+      "era": 3.27,
+      "fip": 3.2730697986145634,
+      "ip": 33.0,
       "team": "rays",
-      "xera": 3.58,
-      "xera_bip": 73,
+      "xera": 3.45,
+      "xera_bip": 75,
       "xera_prior": 3.21
     },
     "kevin kelly": {
-      "era": 2.27,
-      "fip": 3.360285526957125,
-      "ip": 47.2,
+      "era": 2.13,
+      "fip": 3.0505658749154203,
+      "ip": 50.2,
       "team": "rays",
-      "xera": 4.15,
-      "xera_bip": 133,
+      "xera": 3.74,
+      "xera_bip": 135,
       "xera_prior": 6.39
     },
     "sonny gray": {
-      "era": 3.84,
-      "ip": 180.0,
-      "team": "cardinals"
+      "era": 2.93,
+      "fip": 3.5518469696178827,
+      "ip": 113.2,
+      "team": "red sox",
+      "xera": 3.82,
+      "xera_bip": 330,
+      "xera_prior": 3.88
     },
     "ranger suarez": {
-      "era": 3.02,
-      "fip": 2.4431198316141316,
-      "ip": 95.1,
+      "era": 3.15,
+      "fip": 2.4806455561903205,
+      "ip": 100.0,
       "team": "red sox",
-      "xera": 3.3,
-      "xera_bip": 260,
+      "xera": 3.38,
+      "xera_bip": 274,
       "xera_prior": 3.16
+    },
+    "payton tolle": {
+      "era": 3.3,
+      "fip": 3.3474772393586374,
+      "ip": 101.0,
+      "team": "red sox",
+      "xera": 2.98,
+      "xera_bip": 273,
+      "xera_prior": 4.67
     },
     "connelly early": {
       "era": 3.44,
-      "fip": 4.5556468115244755,
+      "fip": 4.543803450927163,
       "ip": 91.2,
       "team": "red sox",
-      "xera": 4.33,
+      "xera": 4.3,
       "xera_bip": 254,
       "xera_prior": 2.35
     },
-    "payton tolle": {
-      "era": 3.31,
-      "fip": 3.177018064769696,
-      "ip": 89.2,
-      "team": "red sox",
-      "xera": 2.93,
-      "xera_bip": 242,
-      "xera_prior": 4.67
-    },
     "jake bennett": {
-      "era": 2.58,
-      "fip": 3.0594093905608992,
-      "ip": 59.1,
+      "era": 2.9,
+      "fip": 3.1712925322803347,
+      "ip": 71.1,
       "team": "red sox",
-      "xera": 3.14,
-      "xera_bip": 176
+      "xera": 3.02,
+      "xera_bip": 215
     },
     "brayan bello": {
-      "era": 4.5,
-      "ip": 170.0,
-      "team": "red sox"
+      "era": 5.3,
+      "fip": 4.59398787424962,
+      "ip": 74.2,
+      "team": "red sox",
+      "xera": 5.77,
+      "xera_bip": 247,
+      "xera_prior": 4.48
     },
     "garrett crochet": {
-      "era": 3.58,
-      "ip": 146.0,
-      "team": "white sox"
+      "era": 6.3,
+      "fip": 4.2306455561903205,
+      "ip": 30.0,
+      "team": "red sox",
+      "xera": 5.06,
+      "xera_bip": 86,
+      "xera_prior": 2.89
     },
     "jovani moran": {
-      "era": 2.76,
-      "fip": 3.7788309595429777,
-      "ip": 42.1,
+      "era": 2.8,
+      "fip": 3.8750900006347653,
+      "ip": 45.0,
       "team": "red sox",
-      "xera": 2.84,
-      "xera_bip": 101,
+      "xera": 3.23,
+      "xera_bip": 111,
       "xera_prior": 3.96
     },
     "aroldis chapman": {
-      "era": 1.87,
-      "fip": 2.5304407240165494,
-      "ip": 33.2,
+      "era": 1.67,
+      "fip": 2.1435487819967722,
+      "ip": 37.2,
       "team": "red sox",
-      "xera": 3.0,
-      "xera_bip": 82,
+      "xera": 2.8,
+      "xera_bip": 90,
       "xera_prior": 2.11
     },
     "ryan watson": {
-      "era": 4.45,
-      "fip": 4.592304414942615,
-      "ip": 54.2,
+      "era": 4.53,
+      "fip": 4.552384686625103,
+      "ip": 55.2,
       "team": "red sox",
-      "xera": 5.73,
-      "xera_bip": 170
+      "xera": 5.77,
+      "xera_bip": 175
     },
     "greg weissert": {
-      "era": 4.14,
-      "fip": 4.4293502306562464,
-      "ip": 41.1,
+      "era": 3.92,
+      "fip": 4.2112011117458765,
+      "ip": 43.2,
       "team": "red sox",
-      "xera": 3.55,
-      "xera_bip": 122,
+      "xera": 3.4,
+      "xera_bip": 126,
       "xera_prior": 3.43
     },
     "garrett whitlock": {
-      "era": 2.13,
-      "fip": 2.4372257588928967,
-      "ip": 38.0,
+      "era": 1.98,
+      "fip": 2.396499214726906,
+      "ip": 41.0,
       "team": "red sox",
-      "xera": 2.84,
-      "xera_bip": 99,
+      "xera": 2.78,
+      "xera_bip": 106,
       "xera_prior": 2.8
     },
     "andrew abbott": {
-      "era": 3.66,
-      "ip": 140.0,
-      "team": "reds"
-    },
-    "brady singer": {
-      "era": 4.53,
-      "fip": 5.147241584100922,
-      "ip": 103.1,
+      "era": 3.91,
+      "fip": 4.735563588977206,
+      "ip": 122.0,
       "team": "reds",
-      "xera": 4.99,
-      "xera_bip": 326,
-      "xera_prior": 4.27
+      "xera": 4.7,
+      "xera_bip": 372,
+      "xera_prior": 3.56
     },
     "chase burns": {
-      "era": 2.42,
-      "fip": 3.275697872011514,
-      "ip": 107.2,
+      "era": 2.35,
+      "fip": 3.259071952129407,
+      "ip": 118.2,
       "team": "reds",
-      "xera": 3.14,
-      "xera_bip": 269,
+      "xera": 3.18,
+      "xera_bip": 295,
       "xera_prior": 3.48
     },
-    "rhett lowder": {
-      "era": 5.61,
-      "fip": 4.471060345359062,
-      "ip": 77.0,
+    "brady singer": {
+      "era": 4.35,
+      "fip": 5.110869436787336,
+      "ip": 107.2,
       "team": "reds",
-      "xera": 5.58,
-      "xera_bip": 246
+      "xera": 4.96,
+      "xera_bip": 344,
+      "xera_prior": 4.27
+    },
+    "rhett lowder": {
+      "era": 5.42,
+      "fip": 4.392091339322851,
+      "ip": 83.0,
+      "team": "reds",
+      "xera": 5.27,
+      "xera_bip": 264
     },
     "nick lodolo": {
       "era": 4.6,
-      "fip": 5.052135219038437,
+      "fip": 5.040291858441124,
       "ip": 62.2,
       "team": "reds",
-      "xera": 6.15,
+      "xera": 6.12,
       "xera_bip": 193,
       "xera_prior": 3.48
     },
-    "tejay antone": {
-      "era": 2.25,
-      "fip": 3.8549889167876334,
-      "ip": 32.0,
+    "chase petty": {
+      "era": 4.5,
+      "fip": 5.363978889523654,
+      "ip": 30.0,
       "team": "reds",
-      "xera": 3.21,
-      "xera_bip": 93
+      "xera": 5.27,
+      "xera_bip": 105,
+      "xera_prior": 11.12
+    },
+    "tejay antone": {
+      "era": 2.29,
+      "fip": 3.6574261829709473,
+      "ip": 35.1,
+      "team": "reds",
+      "xera": 3.38,
+      "xera_bip": 101
     },
     "brock burke": {
-      "era": 2.66,
-      "fip": 4.217787721568509,
-      "ip": 50.2,
+      "era": 2.52,
+      "fip": 4.158465105062501,
+      "ip": 53.2,
       "team": "reds",
-      "xera": 4.3,
-      "xera_bip": 141,
+      "xera": 4.19,
+      "xera_bip": 146,
       "xera_prior": 3.79
     },
     "pierce johnson": {
-      "era": 5.1,
-      "fip": 5.2091555834543,
-      "ip": 30.0,
+      "era": 4.96,
+      "fip": 4.862943692836283,
+      "ip": 32.2,
       "team": "reds",
-      "xera": 6.19,
-      "xera_bip": 91,
+      "xera": 5.92,
+      "xera_bip": 100,
       "xera_prior": 3.64
     },
     "sam moll": {
-      "era": 4.32,
-      "fip": 4.425984062418701,
-      "ip": 41.2,
+      "era": 4.26,
+      "fip": 4.436541247800298,
+      "ip": 44.1,
       "team": "reds",
-      "xera": 4.36,
-      "xera_bip": 111,
+      "xera": 4.48,
+      "xera_bip": 119,
       "xera_prior": 3.79
     },
     "tony santillan": {
       "era": 5.23,
-      "fip": 6.365069561948924,
+      "fip": 6.353226201351611,
       "ip": 31.0,
       "team": "reds",
-      "xera": 5.19,
+      "xera": 5.2,
       "xera_bip": 92,
       "xera_prior": 4.33
     },
     "michael lorenzen": {
-      "era": 6.53,
-      "fip": 4.878816262097015,
-      "ip": 100.2,
+      "era": 6.54,
+      "fip": 4.786883560029092,
+      "ip": 104.2,
       "team": "rockies",
       "xera": 5.62,
-      "xera_bip": 360,
+      "xera_bip": 377,
       "xera_prior": 4.61
     },
     "kyle freeland": {
-      "era": 7.34,
-      "fip": 4.868926858260893,
-      "ip": 99.1,
+      "era": 6.81,
+      "fip": 4.612514196338331,
+      "ip": 108.1,
       "team": "rockies",
-      "xera": 5.62,
-      "xera_bip": 341,
+      "xera": 5.23,
+      "xera_bip": 365,
       "xera_prior": 4.96
     },
     "tomoyuki sugano": {
-      "era": 4.69,
-      "fip": 5.3966555834543,
-      "ip": 96.0,
+      "era": 4.47,
+      "fip": 5.330058472041593,
+      "ip": 102.2,
       "team": "rockies",
-      "xera": 7.25,
-      "xera_bip": 323,
+      "xera": 7.21,
+      "xera_bip": 345,
       "xera_prior": 5.81
     },
     "ryan feltner": {
-      "era": 5.73,
-      "fip": 5.563856438155154,
-      "ip": 70.2,
+      "era": 5.75,
+      "fip": 5.655317472200819,
+      "ip": 76.2,
       "team": "rockies",
-      "xera": 5.84,
-      "xera_bip": 224,
+      "xera": 5.62,
+      "xera_bip": 246,
       "xera_prior": 3.31
     },
     "jose quintana": {
       "era": 5.27,
-      "fip": 5.2863913558120235,
+      "fip": 5.274547995214711,
       "ip": 41.0,
       "team": "rockies",
-      "xera": 5.02,
+      "xera": 5.03,
       "xera_bip": 143,
       "xera_prior": 5.2
     },
     "tanner gordon": {
       "era": 5.9,
-      "fip": 4.904557882304875,
+      "fip": 4.892714521707562,
       "ip": 58.0,
       "team": "rockies",
       "xera": 4.73,
@@ -2459,7 +2659,7 @@
     },
     "chase dollander": {
       "era": 3.89,
-      "fip": 4.110670734969451,
+      "fip": 4.098827374372139,
       "ip": 44.0,
       "team": "rockies",
       "xera": 3.93,
@@ -2467,85 +2667,89 @@
       "xera_prior": 5.13
     },
     "zach agnos": {
-      "era": 6.42,
-      "fip": 4.839874537702666,
-      "ip": 61.2,
+      "era": 6.22,
+      "fip": 4.739506315683991,
+      "ip": 63.2,
       "team": "rockies",
-      "xera": 5.69,
-      "xera_bip": 214,
+      "xera": 5.62,
+      "xera_bip": 219,
       "xera_prior": 6.52
     },
     "brennan bernardino": {
-      "era": 2.74,
-      "fip": 3.089882281716543,
-      "ip": 42.2,
+      "era": 2.58,
+      "fip": 3.0971644031969725,
+      "ip": 45.1,
       "team": "rockies",
-      "xera": 3.79,
-      "xera_bip": 130,
+      "xera": 3.71,
+      "xera_bip": 139,
       "xera_prior": 3.38
     },
     "juan mejia": {
-      "era": 5.48,
-      "fip": 3.8250976124398073,
-      "ip": 46.0,
+      "era": 5.4,
+      "fip": 3.8206663462111106,
+      "ip": 48.1,
       "team": "rockies",
-      "xera": 4.24,
-      "xera_bip": 134,
+      "xera": 4.33,
+      "xera_bip": 140,
       "xera_prior": 3.0
     },
     "antonio senzatela": {
-      "era": 3.53,
-      "fip": 3.297390877571947,
-      "ip": 51.0,
+      "era": 3.61,
+      "fip": 3.2993595677066354,
+      "ip": 52.1,
       "team": "rockies",
-      "xera": 3.45,
-      "xera_bip": 149,
+      "xera": 3.56,
+      "xera_bip": 155,
       "xera_prior": 6.98
     },
     "victor vodnik": {
-      "era": 5.56,
-      "fip": 4.542488916787633,
-      "ip": 34.0,
+      "era": 5.25,
+      "fip": 4.3362011117458765,
+      "ip": 36.0,
       "team": "rockies",
-      "xera": 4.45,
-      "xera_bip": 111,
+      "xera": 4.51,
+      "xera_bip": 117,
       "xera_prior": 4.19
     },
     "seth lugo": {
-      "era": 3.0,
-      "ip": 206.2,
-      "team": "royals"
+      "era": 4.41,
+      "fip": 4.200692358062396,
+      "ip": 128.2,
+      "team": "royals",
+      "xera": 5.34,
+      "xera_bip": 398,
+      "xera_prior": 5.16
     },
     "michael wacha": {
-      "era": 3.6,
-      "fip": 4.019021846386423,
-      "ip": 132.1,
+      "era": 3.51,
+      "fip": 3.863375462055636,
+      "ip": 138.1,
       "team": "royals",
-      "xera": 4.24,
-      "xera_bip": 391,
+      "xera": 4.13,
+      "xera_bip": 409,
       "xera_prior": 4.16
     },
     "noah cameron": {
-      "era": 4.93,
-      "fip": 3.9659963794742006,
-      "ip": 107.2,
+      "era": 4.59,
+      "fip": 3.8205761117458765,
+      "ip": 115.2,
       "team": "royals",
-      "xera": 4.93,
-      "xera_bip": 334,
+      "xera": 4.64,
+      "xera_bip": 351,
       "xera_prior": 4.07
     },
     "luinder avila": {
-      "era": 4.81,
-      "fip": 4.279448678337559,
-      "ip": 67.1,
+      "era": 5.53,
+      "fip": 4.473502699047463,
+      "ip": 70.0,
       "team": "royals",
-      "xera": 4.83,
-      "xera_bip": 194,
+      "xera": 4.9,
+      "xera_bip": 204,
       "xera_prior": 2.09
     },
     "stephen kolek": {
       "era": 4.5,
-      "fip": 4.486933361232078,
+      "fip": 4.475090000634765,
       "ip": 54.0,
       "team": "royals",
       "xera": 3.82,
@@ -2554,7 +2758,7 @@
     },
     "kris bubic": {
       "era": 4.11,
-      "fip": 3.6612513918375336,
+      "fip": 3.649408031240221,
       "ip": 50.1,
       "team": "royals",
       "xera": 4.51,
@@ -2562,221 +2766,254 @@
       "xera_prior": 3.16
     },
     "cole ragans": {
-      "era": 3.14,
-      "ip": 186.1,
-      "team": "royals"
+      "era": 4.84,
+      "fip": 6.1360586616034265,
+      "ip": 35.1,
+      "team": "royals",
+      "xera": 5.06,
+      "xera_bip": 83,
+      "xera_prior": 2.67
     },
     "steven cruz": {
-      "era": 4.62,
-      "fip": 5.583029457328173,
-      "ip": 37.0,
+      "era": 4.28,
+      "fip": 5.28064555619032,
+      "ip": 40.0,
       "team": "royals",
-      "xera": 3.87,
-      "xera_bip": 94,
+      "xera": 3.69,
+      "xera_bip": 101,
       "xera_prior": 3.43
     },
     "lucas erceg": {
-      "era": 5.26,
-      "fip": 5.395430093258222,
-      "ip": 39.1,
+      "era": 6.37,
+      "fip": 5.396499214726906,
+      "ip": 41.0,
       "team": "royals",
-      "xera": 4.54,
-      "xera_bip": 125,
+      "xera": 4.8,
+      "xera_bip": 133,
       "xera_prior": 3.85
     },
     "alex lange": {
-      "era": 6.0,
-      "fip": 4.232965107263824,
-      "ip": 42.0,
+      "era": 6.25,
+      "fip": 4.410736053927877,
+      "ip": 44.2,
       "team": "royals",
-      "xera": 4.86,
-      "xera_bip": 117,
+      "xera": 4.93,
+      "xera_bip": 125,
       "xera_prior": 3.88
     },
     "daniel lynch iv": {
-      "era": 2.08,
-      "fip": 3.0424889167876334,
-      "ip": 43.1,
+      "era": 2.0,
+      "fip": 3.0306455561903207,
+      "ip": 45.0,
       "team": "royals",
-      "xera": 3.4,
-      "xera_bip": 124,
+      "xera": 3.38,
+      "xera_bip": 131,
       "xera_prior": 4.51
     },
     "john schreiber": {
-      "era": 3.79,
-      "fip": 5.13725200905696,
-      "ip": 40.1,
+      "era": 3.76,
+      "fip": 5.1948246606679325,
+      "ip": 40.2,
       "team": "royals",
-      "xera": 4.89,
-      "xera_bip": 122,
+      "xera": 4.96,
+      "xera_bip": 123,
       "xera_prior": 4.02
     },
     "matt strahm": {
-      "era": 6.75,
-      "fip": 6.551260846612195,
-      "ip": 34.2,
+      "era": 7.32,
+      "fip": 7.121554647099412,
+      "ip": 35.2,
       "team": "royals",
-      "xera": 3.96,
-      "xera_bip": 111,
+      "xera": 4.19,
+      "xera_bip": 115,
       "xera_prior": 2.78
     },
     "framber valdez": {
-      "era": 3.38,
-      "ip": 195.0,
-      "team": "astros"
+      "era": 4.41,
+      "fip": 4.071444890078747,
+      "ip": 120.1,
+      "team": "tigers",
+      "xera": 4.3,
+      "xera_bip": 380,
+      "xera_prior": 3.79
     },
     "jack flaherty": {
       "era": 4.59,
-      "fip": 4.041327476601803,
+      "fip": 4.0294841160044905,
       "ip": 86.1,
       "team": "tigers",
       "xera": 4.39,
       "xera_bip": 238,
       "xera_prior": 3.99
     },
+    "keider montero": {
+      "era": 3.17,
+      "fip": 3.642187330522793,
+      "ip": 116.1,
+      "team": "tigers",
+      "xera": 3.51,
+      "xera_bip": 354,
+      "xera_prior": 4.67
+    },
     "casey mize": {
       "era": 2.7,
-      "fip": 2.5204471534465664,
+      "fip": 2.5086037928492537,
       "ip": 86.2,
       "team": "tigers",
       "xera": 3.07,
       "xera_bip": 236,
       "xera_prior": 3.66
     },
-    "keider montero": {
-      "era": 3.14,
-      "fip": 3.5047530677310297,
-      "ip": 106.0,
-      "team": "tigers",
-      "xera": 3.38,
-      "xera_bip": 316,
-      "xera_prior": 4.67
-    },
     "tarik skubal": {
-      "era": 2.39,
-      "ip": 192.0,
-      "team": "tigers"
+      "era": 2.79,
+      "fip": 2.5316850572298217,
+      "ip": 96.2,
+      "team": "tigers",
+      "xera": 2.98,
+      "xera_bip": 240,
+      "xera_prior": 2.71
     },
     "troy melton": {
-      "era": 1.95,
-      "fip": 3.992488916787633,
-      "ip": 60.0,
+      "era": 1.75,
+      "fip": 3.8216903323097235,
+      "ip": 67.0,
       "team": "tigers",
-      "xera": 3.18,
-      "xera_bip": 160,
+      "xera": 3.26,
+      "xera_bip": 177,
       "xera_prior": 3.64
     },
-    "drew anderson": {
-      "era": 4.25,
-      "fip": 3.888512605450916,
-      "ip": 59.1,
-      "team": "tigers",
-      "xera": 3.3,
-      "xera_bip": 158
-    },
     "tyler holton": {
-      "era": 2.87,
-      "fip": 3.6807867891280592,
-      "ip": 47.0,
+      "era": 3.06,
+      "fip": 4.03064555619032,
+      "ip": 50.0,
       "team": "tigers",
-      "xera": 3.63,
-      "xera_bip": 148,
+      "xera": 3.77,
+      "xera_bip": 159,
       "xera_prior": 3.79
     },
-    "enmanuel de jesus": {
-      "era": 3.98,
-      "fip": 2.7219760962748127,
-      "ip": 31.2,
+    "drew anderson": {
+      "era": 4.24,
+      "fip": 3.742670872646017,
+      "ip": 63.2,
       "team": "tigers",
-      "xera": 3.82,
-      "xera_bip": 90
+      "xera": 3.38,
+      "xera_bip": 170
+    },
+    "ty madden": {
+      "era": 2.4,
+      "fip": 2.9973122228569875,
+      "ip": 30.0,
+      "team": "tigers",
+      "xera": 3.0,
+      "xera_bip": 76
+    },
+    "enmanuel de jesus": {
+      "era": 3.63,
+      "fip": 2.5043297667166367,
+      "ip": 34.2,
+      "team": "tigers",
+      "xera": 3.71,
+      "xera_bip": 97
     },
     "kyle finnegan": {
-      "era": 2.54,
-      "fip": 4.868575873309372,
-      "ip": 46.0,
+      "era": 3.5,
+      "fip": 5.264918875062338,
+      "ip": 46.1,
       "team": "tigers",
-      "xera": 4.73,
-      "xera_bip": 130,
+      "xera": 5.16,
+      "xera_bip": 136,
       "xera_prior": 3.16
-    },
-    "joe ryan": {
-      "era": 3.7,
-      "ip": 165.0,
-      "team": "twins"
     },
     "taj bradley": {
       "era": 3.69,
-      "fip": 3.9794416313235352,
-      "ip": 114.2,
+      "fip": 3.8547343042093383,
+      "ip": 126.2,
       "team": "twins",
       "xera": 3.93,
-      "xera_bip": 304,
+      "xera_bip": 337,
       "xera_prior": 4.1
     },
-    "bailey ober": {
-      "era": 4.56,
-      "fip": 4.536316077281461,
-      "ip": 81.0,
+    "joe ryan": {
+      "era": 3.52,
+      "fip": 3.3720277377057246,
+      "ip": 120.1,
       "team": "twins",
-      "xera": 4.39,
-      "xera_bip": 257,
+      "xera": 3.45,
+      "xera_bip": 333,
+      "xera_prior": 3.43
+    },
+    "bailey ober": {
+      "era": 4.45,
+      "fip": 4.570875441247792,
+      "ip": 87.0,
+      "team": "twins",
+      "xera": 4.45,
+      "xera_bip": 276,
       "xera_prior": 4.36
     },
     "connor prielipp": {
-      "era": 4.73,
-      "fip": 3.6666220651926267,
-      "ip": 72.1,
+      "era": 4.75,
+      "fip": 3.807847628729181,
+      "ip": 77.2,
       "team": "twins",
-      "xera": 4.01,
-      "xera_bip": 204
+      "xera": 4.04,
+      "xera_bip": 219
     },
     "zebby matthews": {
-      "era": 5.21,
-      "fip": 5.0819626009981596,
-      "ip": 76.0,
+      "era": 5.22,
+      "fip": 4.9689171611285925,
+      "ip": 81.0,
       "team": "twins",
-      "xera": 4.73,
-      "xera_bip": 234,
+      "xera": 4.64,
+      "xera_bip": 243,
       "xera_prior": 4.67
     },
     "mike paredes": {
       "era": 4.72,
-      "fip": 5.623134078077956,
+      "fip": 5.611290717480643,
       "ip": 34.1,
       "team": "twins",
       "xera": 5.23,
       "xera_bip": 118
     },
     "andrew morris": {
-      "era": 3.24,
-      "fip": 2.8624889167876333,
-      "ip": 50.0,
+      "era": 3.25,
+      "fip": 2.9157030274546885,
+      "ip": 52.2,
       "team": "twins",
-      "xera": 2.86,
-      "xera_bip": 143
+      "xera": 3.04,
+      "xera_bip": 152
     },
     "travis adams": {
-      "era": 5.4,
-      "fip": 4.164283788582505,
-      "ip": 31.2,
+      "era": 5.23,
+      "fip": 4.179713879171687,
+      "ip": 32.2,
       "team": "twins",
-      "xera": 4.33,
-      "xera_bip": 87,
+      "xera": 4.27,
+      "xera_bip": 89,
       "xera_prior": 6.9
     },
     "anthony banda": {
       "era": 4.46,
-      "fip": 4.274160471039833,
+      "fip": 4.26231711044252,
       "ip": 34.1,
       "team": "twins",
       "xera": 4.45,
       "xera_bip": 100,
       "xera_prior": 3.61
     },
+    "kody funderburk": {
+      "era": 3.34,
+      "fip": 4.463667363043903,
+      "ip": 32.1,
+      "team": "twins",
+      "xera": 4.01,
+      "xera_bip": 93,
+      "xera_prior": 3.66
+    },
     "eric orze": {
       "era": 5.66,
-      "fip": 3.2857979192207236,
+      "fip": 3.273954558623411,
       "ip": 41.1,
       "team": "twins",
       "xera": 4.07,
@@ -2784,288 +3021,235 @@
       "xera_prior": 3.64
     },
     "taylor rogers": {
-      "era": 5.17,
-      "fip": 3.829890491590783,
-      "ip": 38.1,
+      "era": 4.91,
+      "fip": 3.878525855442191,
+      "ip": 40.1,
       "team": "twins",
-      "xera": 4.1,
-      "xera_bip": 122,
+      "xera": 4.07,
+      "xera_bip": 129,
       "xera_prior": 4.13
     },
+    "anthony kay": {
+      "era": 4.01,
+      "fip": 4.739736465281229,
+      "ip": 110.0,
+      "team": "white sox",
+      "xera": 4.99,
+      "xera_bip": 342
+    },
     "davis martin": {
-      "era": 3.49,
-      "fip": 2.9974438717425884,
-      "ip": 111.0,
+      "era": 3.62,
+      "fip": 3.0477395732843378,
+      "ip": 117.0,
       "team": "white sox",
       "xera": 4.3,
-      "xera_bip": 324,
+      "xera_bip": 341,
       "xera_prior": 5.13
     },
-    "anthony kay": {
-      "era": 4.21,
-      "fip": 5.071031220559295,
-      "ip": 98.1,
-      "team": "white sox",
-      "xera": 5.3,
-      "xera_bip": 305
-    },
     "sean burke": {
-      "era": 3.19,
-      "fip": 3.3642501360933066,
-      "ip": 118.1,
+      "era": 3.04,
+      "fip": 3.2240379816536566,
+      "ip": 124.1,
       "team": "white sox",
-      "xera": 3.43,
-      "xera_bip": 309,
+      "xera": 3.45,
+      "xera_bip": 319,
       "xera_prior": 4.96
     },
     "noah schultz": {
-      "era": 6.04,
-      "fip": 5.248894610737811,
-      "ip": 56.2,
+      "era": 5.82,
+      "fip": 4.79987632542109,
+      "ip": 65.0,
       "team": "white sox",
-      "xera": 6.03,
-      "xera_bip": 169
+      "xera": 5.66,
+      "xera_bip": 190
     },
     "erick fedde": {
-      "era": 4.25,
-      "fip": 5.3905836644704355,
-      "ip": 97.1,
+      "era": 4.13,
+      "fip": 5.273544674701585,
+      "ip": 102.1,
       "team": "white sox",
-      "xera": 4.7,
-      "xera_bip": 314,
+      "xera": 4.61,
+      "xera_bip": 327,
       "xera_prior": 5.41
     },
     "bryan hudson": {
-      "era": 2.86,
-      "fip": 3.110670734969452,
-      "ip": 44.0,
+      "era": 2.89,
+      "fip": 3.0522905778353424,
+      "ip": 46.2,
       "team": "white sox",
-      "xera": 3.3,
-      "xera_bip": 122,
+      "xera": 3.33,
+      "xera_bip": 132,
       "xera_prior": 4.64
     },
     "grant taylor": {
-      "era": 2.58,
-      "fip": 2.2363468822386894,
-      "ip": 52.1,
+      "era": 2.4,
+      "fip": 2.2106812068142068,
+      "ip": 56.1,
       "team": "white sox",
-      "xera": 2.23,
-      "xera_bip": 120,
+      "xera": 2.33,
+      "xera_bip": 131,
       "xera_prior": 2.91
     },
-    "sean newcomb": {
-      "era": 2.38,
-      "fip": 2.7577914078908363,
-      "ip": 56.2,
+    "jordan hicks": {
+      "era": 3.09,
+      "fip": 3.2806455561903207,
+      "ip": 32.0,
       "team": "white sox",
-      "xera": 3.9,
-      "xera_bip": 150,
+      "xera": 3.09,
+      "xera_bip": 80,
+      "xera_prior": 4.58
+    },
+    "sean newcomb": {
+      "era": 2.87,
+      "fip": 2.996861772406537,
+      "ip": 59.2,
+      "team": "white sox",
+      "xera": 3.99,
+      "xera_bip": 163,
       "xera_prior": 3.88
     },
     "seranthony dominguez": {
-      "era": 4.33,
-      "fip": 4.8088706831694,
-      "ip": 35.1,
+      "era": 3.99,
+      "fip": 4.579201986636515,
+      "ip": 38.1,
       "team": "white sox",
-      "xera": 4.86,
-      "xera_bip": 87,
+      "xera": 4.51,
+      "xera_bip": 93,
       "xera_prior": 3.26
     },
     "cam schlittler": {
-      "era": 2.07,
-      "fip": 2.5198140512995475,
-      "ip": 130.1,
+      "era": 2.04,
+      "fip": 2.457958331520717,
+      "ip": 136.2,
       "team": "yankees",
-      "xera": 2.93,
-      "xera_bip": 327,
+      "xera": 2.89,
+      "xera_bip": 340,
       "xera_prior": 4.1
     },
     "will warren": {
-      "era": 4.41,
-      "fip": 4.101312446199398,
-      "ip": 102.0,
+      "era": 4.14,
+      "fip": 3.8994071088705424,
+      "ip": 108.2,
       "team": "yankees",
-      "xera": 4.57,
-      "xera_bip": 307,
+      "xera": 4.45,
+      "xera_bip": 323,
       "xera_prior": 4.58
     },
     "ryan weathers": {
-      "era": 4.25,
-      "fip": 3.746192620491337,
-      "ip": 108.0,
+      "era": 3.99,
+      "fip": 3.700210773581625,
+      "ip": 115.0,
       "team": "yankees",
-      "xera": 4.48,
-      "xera_bip": 301,
+      "xera": 4.36,
+      "xera_bip": 320,
       "xera_prior": 3.96
     },
     "gerrit cole": {
-      "era": 3.41,
-      "ip": 185.0,
-      "team": "yankees"
+      "era": 3.42,
+      "fip": 3.590754845807807,
+      "ip": 73.2,
+      "team": "yankees",
+      "xera": 3.4,
+      "xera_bip": 204
     },
     "max fried": {
-      "era": 2.97,
-      "fip": 2.5137880104432226,
-      "ip": 66.2,
+      "era": 3.12,
+      "fip": 2.3906455561903206,
+      "ip": 75.0,
       "team": "yankees",
-      "xera": 2.48,
-      "xera_bip": 177,
+      "xera": 2.39,
+      "xera_bip": 197,
       "xera_prior": 3.38
     },
     "carlos rodon": {
-      "era": 4.2,
-      "ip": 150.0,
-      "team": "yankees"
+      "era": 3.3,
+      "fip": 3.3777171397044206,
+      "ip": 46.1,
+      "team": "yankees",
+      "xera": 3.63,
+      "xera_bip": 115,
+      "xera_prior": 3.33
     },
     "paul blackburn": {
-      "era": 1.93,
-      "fip": 3.578203202501919,
-      "ip": 56.0,
+      "era": 2.08,
+      "fip": 3.87782163592454,
+      "ip": 60.2,
       "team": "yankees",
-      "xera": 3.55,
-      "xera_bip": 156,
+      "xera": 3.51,
+      "xera_bip": 165,
       "xera_prior": 3.99
     },
     "ryan yarbrough": {
-      "era": 4.64,
-      "fip": 4.108839627688107,
-      "ip": 42.2,
+      "era": 3.56,
+      "fip": 4.077157184097297,
+      "ip": 43.0,
       "team": "yankees",
-      "xera": 3.25,
-      "xera_bip": 133,
+      "xera": 3.33,
+      "xera_bip": 135,
       "xera_prior": 4.27
     },
     "david bednar": {
-      "era": 2.42,
-      "fip": 2.499502491448267,
-      "ip": 44.2,
+      "era": 2.61,
+      "fip": 2.6564251819699467,
+      "ip": 48.1,
       "team": "yankees",
-      "xera": 2.73,
-      "xera_bip": 117,
+      "xera": 2.75,
+      "xera_bip": 126,
       "xera_prior": 2.84
     },
     "jake bird": {
       "era": 5.93,
-      "fip": 4.304947388548431,
+      "fip": 4.293104027951118,
       "ip": 30.1,
       "team": "yankees",
-      "xera": 4.96,
+      "xera": 4.93,
       "xera_bip": 92,
       "xera_prior": 3.85
     },
     "fernando cruz": {
-      "era": 2.51,
-      "fip": 3.3448144981829824,
-      "ip": 43.0,
+      "era": 2.85,
+      "fip": 3.710051076360172,
+      "ip": 47.1,
       "team": "yankees",
-      "xera": 3.21,
-      "xera_bip": 101,
+      "xera": 3.14,
+      "xera_bip": 113,
       "xera_prior": 3.41
     },
-    "camilo doval": {
-      "era": 4.74,
-      "fip": 4.437225758892897,
-      "ip": 38.0,
-      "team": "yankees",
-      "xera": 3.43,
-      "xera_bip": 113,
-      "xera_prior": 3.64
-    },
     "brent headrick": {
-      "era": 1.38,
-      "fip": 2.1386427629414797,
-      "ip": 52.0,
+      "era": 1.42,
+      "fip": 2.0481894158394436,
+      "ip": 57.0,
       "team": "yankees",
-      "xera": 2.84,
-      "xera_bip": 131,
+      "xera": 2.86,
+      "xera_bip": 143,
       "xera_prior": 3.12
     },
     "tim hill": {
-      "era": 4.12,
-      "fip": 5.600033673820882,
-      "ip": 39.1,
-      "team": "yankees",
-      "xera": 4.51,
-      "xera_bip": 130,
-      "xera_prior": 3.41
-    },
-    "corbin burnes": {
-      "era": 2.92,
-      "ip": 194.2,
-      "team": "orioles"
-    },
-    "jose berrios": {
-      "era": 3.65,
-      "ip": 175.0,
-      "team": "blue jays"
-    },
-    "ryan pepiot": {
-      "era": 3.5,
-      "ip": 140.0,
-      "team": "rays"
-    },
-    "reese olson": {
-      "era": 3.5,
-      "ip": 160.0,
-      "team": "tigers"
-    },
-    "pablo lopez": {
-      "era": 4.08,
-      "ip": 180.0,
-      "team": "twins"
-    },
-    "tyler anderson": {
-      "era": 4.1,
-      "ip": 155.0,
-      "team": "angels"
-    },
-    "jon gray": {
       "era": 4.2,
-      "ip": 155.0,
-      "team": "rangers"
-    },
-    "jp sears": {
-      "era": 4.15,
-      "ip": 160.0,
-      "team": "athletics"
-    },
-    "justin steele": {
-      "era": 3.06,
-      "ip": 173.0,
-      "team": "cubs"
-    },
-    "hunter greene": {
-      "era": 2.83,
-      "ip": 170.2,
-      "team": "reds"
-    },
-    "yu darvish": {
-      "era": 3.2,
-      "ip": 175.0,
-      "team": "padres"
-    },
-    "joe musgrove": {
-      "era": 3.8,
-      "ip": 120.0,
-      "team": "padres"
+      "fip": 5.468456501463953,
+      "ip": 40.2,
+      "team": "yankees",
+      "xera": 4.39,
+      "xera_bip": 135,
+      "xera_prior": 3.41
     }
   },
   "team_starters": {
-    "angels": "jose soriano",
-    "astros": "spencer arrighetti",
+    "angels": "reid detmers",
+    "astros": "peter lambert",
     "athletics": "jeffrey springs",
     "blue jays": "kevin gausman",
     "braves": "bryce elder",
     "brewers": "jacob misiorowski",
-    "cardinals": "kyle leahy",
+    "cardinals": "matthew liberatore",
     "cubs": "shota imanaga",
     "diamondbacks": "eduardo rodriguez",
     "dodgers": "emmet sheehan",
-    "giants": "robbie ray",
+    "giants": "landen roupp",
     "guardians": "tanner bibee",
     "mariners": "logan gilbert",
     "marlins": "sandy alcantara",
-    "mets": "freddy peralta",
+    "mets": "nolan mclean",
     "nationals": "cade cavalli",
     "orioles": "shane baz",
     "padres": "walker buehler",
@@ -3078,11 +3262,11 @@
     "rockies": "michael lorenzen",
     "royals": "seth lugo",
     "tigers": "framber valdez",
-    "twins": "joe ryan",
-    "white sox": "davis martin",
+    "twins": "taj bradley",
+    "white sox": "anthony kay",
     "yankees": "cam schlittler"
   },
-  "league_avg_era": 4.08,
+  "league_avg_era": 3.93,
   "relievers": {
     "philip abner": {
       "team": "diamondbacks",
@@ -3094,10 +3278,10 @@
     },
     "bryan abreu": {
       "team": "astros",
-      "ip": 35.2,
+      "ip": 39.2,
       "er": 20,
-      "bb": 28,
-      "so": 46,
+      "bb": 29,
+      "so": 51,
       "hr": 7
     },
     "garrett acton": {
@@ -3118,26 +3302,26 @@
     },
     "travis adams": {
       "team": "twins",
-      "ip": 31.2,
+      "ip": 32.2,
       "er": 19,
-      "bb": 14,
-      "so": 36,
+      "bb": 16,
+      "so": 38,
       "hr": 5
     },
     "zach agnos": {
       "team": "rockies",
-      "ip": 61.2,
+      "ip": 63.2,
       "er": 44,
       "bb": 24,
-      "so": 39,
+      "so": 40,
       "hr": 8
     },
     "robby ahlstrom": {
       "team": "rangers",
-      "ip": 19.1,
+      "ip": 21.2,
       "er": 11,
       "bb": 8,
-      "so": 17,
+      "so": 18,
       "hr": 2
     },
     "keegan akin": {
@@ -3158,18 +3342,18 @@
     },
     "franco aleman": {
       "team": "guardians",
-      "ip": 11.2,
-      "er": 2,
+      "ip": 14.1,
+      "er": 6,
       "bb": 5,
-      "so": 11,
-      "hr": 1
+      "so": 17,
+      "hr": 2
     },
     "tyler alexander": {
       "team": "rangers",
-      "ip": 45.0,
-      "er": 16,
+      "ip": 48.1,
+      "er": 18,
       "bb": 12,
-      "so": 39,
+      "so": 41,
       "hr": 2
     },
     "kolby allard": {
@@ -3182,43 +3366,43 @@
     },
     "elvis alvarado": {
       "team": "athletics",
-      "ip": 30.0,
+      "ip": 34.1,
       "er": 18,
-      "bb": 13,
-      "so": 36,
+      "bb": 15,
+      "so": 41,
       "hr": 7
     },
     "jose alvarado": {
       "team": "phillies",
-      "ip": 38.0,
+      "ip": 41.0,
       "er": 26,
-      "bb": 14,
-      "so": 51,
+      "bb": 15,
+      "so": 53,
       "hr": 4
     },
     "andrew alvarez": {
       "team": "nationals",
-      "ip": 53.1,
-      "er": 25,
-      "bb": 25,
-      "so": 55,
+      "ip": 57.2,
+      "er": 26,
+      "bb": 28,
+      "so": 58,
       "hr": 2
     },
     "drew anderson": {
       "team": "tigers",
-      "ip": 59.1,
-      "er": 28,
-      "bb": 23,
-      "so": 74,
+      "ip": 63.2,
+      "er": 30,
+      "bb": 24,
+      "so": 78,
       "hr": 9
     },
     "grant anderson": {
       "team": "brewers",
-      "ip": 46.1,
-      "er": 18,
+      "ip": 48.2,
+      "er": 20,
       "bb": 18,
-      "so": 38,
-      "hr": 6
+      "so": 41,
+      "hr": 7
     },
     "shaun anderson": {
       "team": "angels",
@@ -3230,10 +3414,10 @@
     },
     "tejay antone": {
       "team": "reds",
-      "ip": 32.0,
-      "er": 8,
-      "bb": 8,
-      "so": 28,
+      "ip": 35.1,
+      "er": 9,
+      "bb": 9,
+      "so": 33,
       "hr": 4
     },
     "shawn armstrong": {
@@ -3246,10 +3430,10 @@
     },
     "aaron ashby": {
       "team": "brewers",
-      "ip": 60.0,
-      "er": 22,
-      "bb": 30,
-      "so": 82,
+      "ip": 60.2,
+      "er": 26,
+      "bb": 31,
+      "so": 83,
       "hr": 5
     },
     "graham ashcraft": {
@@ -3262,50 +3446,50 @@
     },
     "javier assad": {
       "team": "cubs",
-      "ip": 65.1,
-      "er": 28,
-      "bb": 16,
-      "so": 42,
+      "ip": 69.2,
+      "er": 29,
+      "bb": 18,
+      "so": 48,
       "hr": 12
     },
     "luinder avila": {
       "team": "royals",
-      "ip": 67.1,
-      "er": 36,
-      "bb": 39,
-      "so": 59,
-      "hr": 6
+      "ip": 70.0,
+      "er": 43,
+      "bb": 42,
+      "so": 61,
+      "hr": 7
     },
     "lake bachar": {
       "team": "marlins",
-      "ip": 54.2,
+      "ip": 58.2,
       "er": 25,
       "bb": 21,
-      "so": 59,
+      "so": 61,
       "hr": 9
     },
     "sam bachman": {
       "team": "angels",
-      "ip": 43.2,
+      "ip": 45.2,
       "er": 21,
-      "bb": 22,
-      "so": 45,
+      "bb": 27,
+      "so": 46,
       "hr": 6
     },
     "kyle backhus": {
       "team": "phillies",
-      "ip": 16.0,
+      "ip": 19.0,
       "er": 11,
-      "bb": 3,
-      "so": 17,
+      "bb": 5,
+      "so": 19,
       "hr": 3
     },
     "bryan baker": {
       "team": "rays",
-      "ip": 40.1,
+      "ip": 43.1,
       "er": 7,
-      "bb": 13,
-      "so": 43,
+      "bb": 15,
+      "so": 46,
       "hr": 2
     },
     "anthony banda": {
@@ -3326,10 +3510,10 @@
     },
     "hunter barco": {
       "team": "pirates",
-      "ip": 11.2,
-      "er": 10,
-      "bb": 9,
-      "so": 8,
+      "ip": 14.2,
+      "er": 12,
+      "bb": 12,
+      "so": 10,
       "hr": 3
     },
     "scott barlow": {
@@ -3342,18 +3526,18 @@
     },
     "mason barnett": {
       "team": "athletics",
-      "ip": 24.2,
-      "er": 13,
-      "bb": 13,
-      "so": 23,
+      "ip": 29.2,
+      "er": 16,
+      "bb": 14,
+      "so": 29,
       "hr": 5
     },
     "brady basso": {
       "team": "athletics",
-      "ip": 10.2,
-      "er": 6,
+      "ip": 14.0,
+      "er": 9,
       "bb": 3,
-      "so": 10,
+      "so": 14,
       "hr": 1
     },
     "carter baumler": {
@@ -3366,11 +3550,11 @@
     },
     "eduard bazardo": {
       "team": "mariners",
-      "ip": 46.0,
-      "er": 15,
+      "ip": 49.0,
+      "er": 18,
       "bb": 14,
-      "so": 47,
-      "hr": 5
+      "so": 50,
+      "hr": 7
     },
     "tristan beck": {
       "team": "giants",
@@ -3382,11 +3566,11 @@
     },
     "david bednar": {
       "team": "yankees",
-      "ip": 44.2,
-      "er": 12,
-      "bb": 14,
-      "so": 49,
-      "hr": 2
+      "ip": 48.1,
+      "er": 14,
+      "bb": 15,
+      "so": 54,
+      "hr": 3
     },
     "jalen beeks": {
       "team": "rangers",
@@ -3398,18 +3582,18 @@
     },
     "clayton beeter": {
       "team": "nationals",
-      "ip": 31.2,
+      "ip": 32.2,
       "er": 13,
       "bb": 20,
-      "so": 33,
+      "so": 34,
       "hr": 5
     },
     "brayan bello": {
       "team": "red sox",
-      "ip": 70.2,
+      "ip": 74.2,
       "er": 44,
-      "bb": 25,
-      "so": 54,
+      "bb": 26,
+      "so": 57,
       "hr": 11
     },
     "valente bellozo": {
@@ -3430,10 +3614,10 @@
     },
     "brennan bernardino": {
       "team": "rockies",
-      "ip": 42.2,
+      "ip": 45.1,
       "er": 13,
-      "bb": 12,
-      "so": 33,
+      "bb": 13,
+      "so": 34,
       "hr": 2
     },
     "brandan bidois": {
@@ -3470,19 +3654,19 @@
     },
     "paul blackburn": {
       "team": "yankees",
-      "ip": 56.0,
-      "er": 12,
-      "bb": 19,
-      "so": 41,
-      "hr": 4
+      "ip": 60.2,
+      "er": 14,
+      "bb": 22,
+      "so": 48,
+      "hr": 6
     },
     "aj blubaugh": {
       "team": "astros",
-      "ip": 65.0,
-      "er": 27,
+      "ip": 69.2,
+      "er": 28,
       "bb": 32,
-      "so": 68,
-      "hr": 8
+      "so": 71,
+      "hr": 9
     },
     "cody bolton": {
       "team": "astros",
@@ -3494,10 +3678,10 @@
     },
     "cam booser": {
       "team": "rays",
-      "ip": 20.2,
-      "er": 4,
+      "ip": 22.0,
+      "er": 5,
       "bb": 4,
-      "so": 26,
+      "so": 29,
       "hr": 4
     },
     "ryan borucki": {
@@ -3510,11 +3694,11 @@
     },
     "jonathan bowlan": {
       "team": "phillies",
-      "ip": 35.2,
-      "er": 11,
-      "bb": 8,
-      "so": 43,
-      "hr": 3
+      "ip": 38.2,
+      "er": 13,
+      "bb": 9,
+      "so": 48,
+      "hr": 4
     },
     "matt brash": {
       "team": "mariners",
@@ -3526,10 +3710,10 @@
     },
     "huascar brazoban": {
       "team": "mets",
-      "ip": 50.0,
+      "ip": 52.2,
       "er": 15,
-      "bb": 22,
-      "so": 46,
+      "bb": 23,
+      "so": 49,
       "hr": 3
     },
     "beau brieske": {
@@ -3566,58 +3750,50 @@
     },
     "jt brubaker": {
       "team": "giants",
-      "ip": 49.1,
-      "er": 15,
-      "bb": 20,
-      "so": 35,
+      "ip": 53.0,
+      "er": 18,
+      "bb": 21,
+      "so": 36,
       "hr": 4
     },
     "justin bruihl": {
       "team": "cardinals",
-      "ip": 49.1,
+      "ip": 52.2,
       "er": 21,
       "bb": 20,
-      "so": 34,
+      "so": 39,
       "hr": 2
-    },
-    "aaron bummer": {
-      "team": "braves",
-      "ip": 15.1,
-      "er": 13,
-      "bb": 10,
-      "so": 13,
-      "hr": 6
     },
     "brock burke": {
       "team": "reds",
-      "ip": 50.2,
+      "ip": 53.2,
       "er": 15,
-      "bb": 29,
-      "so": 43,
+      "bb": 31,
+      "so": 47,
       "hr": 4
     },
     "sean burke": {
       "team": "white sox",
-      "ip": 118.1,
+      "ip": 124.1,
       "er": 42,
-      "bb": 35,
-      "so": 130,
+      "bb": 37,
+      "so": 140,
       "hr": 13
     },
     "griffin canning": {
       "team": "padres",
-      "ip": 62.0,
-      "er": 48,
+      "ip": 67.0,
+      "er": 49,
       "bb": 32,
-      "so": 63,
-      "hr": 12
+      "so": 67,
+      "hr": 13
     },
     "yennier cano": {
       "team": "orioles",
-      "ip": 34.2,
+      "ip": 37.2,
       "er": 9,
       "bb": 8,
-      "so": 29,
+      "so": 32,
       "hr": 1
     },
     "carlos carrasco": {
@@ -3627,6 +3803,14 @@
       "bb": 3,
       "so": 7,
       "hr": 3
+    },
+    "gerardo carrillo": {
+      "team": "diamondbacks",
+      "ip": 8.0,
+      "er": 1,
+      "bb": 4,
+      "so": 9,
+      "hr": 0
     },
     "blas castano": {
       "team": "rockies",
@@ -3638,11 +3822,11 @@
     },
     "luis castillo": {
       "team": "mariners",
-      "ip": 94.2,
-      "er": 51,
-      "bb": 30,
-      "so": 84,
-      "hr": 14
+      "ip": 99.2,
+      "er": 56,
+      "bb": 32,
+      "so": 86,
+      "hr": 16
     },
     "eric cerantola": {
       "team": "royals",
@@ -3654,34 +3838,34 @@
     },
     "aroldis chapman": {
       "team": "red sox",
-      "ip": 33.2,
+      "ip": 37.2,
       "er": 7,
       "bb": 17,
-      "so": 42,
+      "so": 50,
       "hr": 1
     },
     "angel chivilli": {
       "team": "yankees",
-      "ip": 11.2,
+      "ip": 15.2,
       "er": 1,
-      "bb": 4,
-      "so": 12,
+      "bb": 6,
+      "so": 16,
       "hr": 1
     },
     "taylor clarke": {
       "team": "diamondbacks",
-      "ip": 47.0,
+      "ip": 51.0,
       "er": 12,
       "bb": 9,
-      "so": 25,
+      "so": 27,
       "hr": 4
     },
     "garrett cleavinger": {
       "team": "rays",
-      "ip": 31.0,
+      "ip": 33.0,
       "er": 12,
-      "bb": 14,
-      "so": 42,
+      "bb": 15,
+      "so": 46,
       "hr": 4
     },
     "gavin collyer": {
@@ -3702,23 +3886,23 @@
     },
     "riley cornelio": {
       "team": "nationals",
-      "ip": 18.1,
+      "ip": 20.0,
       "er": 12,
-      "bb": 17,
-      "so": 17,
+      "bb": 20,
+      "so": 20,
       "hr": 1
     },
     "carlos cortes": {
       "team": "athletics",
-      "ip": 6.0,
-      "er": 7,
+      "ip": 7.0,
+      "er": 8,
       "bb": 5,
       "so": 1,
-      "hr": 3
+      "hr": 4
     },
     "tom cosgrove": {
       "team": "nationals",
-      "ip": 6.0,
+      "ip": 7.0,
       "er": 1,
       "bb": 2,
       "so": 4,
@@ -3742,19 +3926,27 @@
     },
     "fernando cruz": {
       "team": "yankees",
-      "ip": 43.0,
-      "er": 12,
-      "bb": 26,
-      "so": 55,
-      "hr": 3
+      "ip": 47.1,
+      "er": 15,
+      "bb": 30,
+      "so": 58,
+      "hr": 4
     },
     "steven cruz": {
       "team": "royals",
-      "ip": 37.0,
+      "ip": 40.0,
       "er": 19,
       "bb": 17,
-      "so": 45,
+      "so": 47,
       "hr": 10
+    },
+    "yovanny cruz": {
+      "team": "yankees",
+      "ip": 5.1,
+      "er": 1,
+      "bb": 1,
+      "so": 6,
+      "hr": 0
     },
     "jose cuas": {
       "team": "royals",
@@ -3766,11 +3958,11 @@
     },
     "xzavion curry": {
       "team": "mets",
-      "ip": 6.0,
-      "er": 2,
+      "ip": 11.0,
+      "er": 4,
       "bb": 2,
-      "so": 4,
-      "hr": 1
+      "so": 6,
+      "hr": 2
     },
     "khristian curtis": {
       "team": "pirates",
@@ -3782,11 +3974,11 @@
     },
     "luis curvelo": {
       "team": "rangers",
-      "ip": 8.1,
-      "er": 7,
-      "bb": 3,
-      "so": 4,
-      "hr": 3
+      "ip": 10.1,
+      "er": 11,
+      "bb": 7,
+      "so": 6,
+      "hr": 4
     },
     "nick davila": {
       "team": "mariners",
@@ -3806,19 +3998,19 @@
     },
     "enmanuel de jesus": {
       "team": "tigers",
-      "ip": 31.2,
+      "ip": 34.2,
       "er": 14,
       "bb": 13,
-      "so": 31,
+      "so": 35,
       "hr": 1
     },
     "enyel de los santos": {
       "team": "astros",
-      "ip": 49.0,
-      "er": 24,
+      "ip": 51.1,
+      "er": 25,
       "bb": 12,
-      "so": 47,
-      "hr": 6
+      "so": 50,
+      "hr": 7
     },
     "yerry de los santos": {
       "team": "yankees",
@@ -3830,26 +4022,34 @@
     },
     "edwin diaz": {
       "team": "dodgers",
-      "ip": 6.0,
-      "er": 7,
+      "ip": 8.0,
+      "er": 8,
       "bb": 5,
-      "so": 10,
+      "so": 12,
       "hr": 1
     },
     "will dion": {
       "team": "guardians",
-      "ip": 17.2,
-      "er": 9,
+      "ip": 19.2,
+      "er": 10,
       "bb": 3,
-      "so": 24,
-      "hr": 3
+      "so": 25,
+      "hr": 4
+    },
+    "hunter dobbins": {
+      "team": "cardinals",
+      "ip": 33.2,
+      "er": 14,
+      "bb": 11,
+      "so": 32,
+      "hr": 4
     },
     "dylan dodd": {
       "team": "braves",
-      "ip": 31.2,
-      "er": 7,
-      "bb": 9,
-      "so": 34,
+      "ip": 33.2,
+      "er": 8,
+      "bb": 11,
+      "so": 37,
       "hr": 3
     },
     "chase dollander": {
@@ -3862,56 +4062,48 @@
     },
     "seranthony dominguez": {
       "team": "white sox",
-      "ip": 35.1,
+      "ip": 38.1,
       "er": 17,
-      "bb": 22,
-      "so": 44,
+      "bb": 23,
+      "so": 47,
       "hr": 6
     },
     "wilber dotel": {
       "team": "pirates",
-      "ip": 22.1,
-      "er": 12,
-      "bb": 9,
-      "so": 25,
+      "ip": 24.2,
+      "er": 14,
+      "bb": 10,
+      "so": 26,
       "hr": 2
-    },
-    "camilo doval": {
-      "team": "yankees",
-      "ip": 38.0,
-      "er": 20,
-      "bb": 15,
-      "so": 38,
-      "hr": 6
     },
     "jack dreyer": {
       "team": "dodgers",
-      "ip": 41.2,
+      "ip": 45.1,
       "er": 15,
-      "bb": 12,
-      "so": 47,
+      "bb": 13,
+      "so": 52,
       "hr": 6
     },
     "shane drohan": {
       "team": "brewers",
-      "ip": 82.0,
-      "er": 32,
-      "bb": 23,
-      "so": 82,
-      "hr": 6
+      "ip": 88.0,
+      "er": 34,
+      "bb": 24,
+      "so": 89,
+      "hr": 7
     },
     "daniel duarte": {
       "team": "mets",
-      "ip": 8.1,
-      "er": 0,
+      "ip": 12.2,
+      "er": 2,
       "bb": 2,
-      "so": 6,
-      "hr": 0
+      "so": 12,
+      "hr": 1
     },
     "jhoan duran": {
       "team": "phillies",
-      "ip": 35.0,
-      "er": 5,
+      "ip": 36.1,
+      "er": 8,
       "bb": 6,
       "so": 53,
       "hr": 1
@@ -3950,26 +4142,26 @@
     },
     "lucas erceg": {
       "team": "royals",
-      "ip": 39.1,
-      "er": 23,
-      "bb": 23,
-      "so": 27,
+      "ip": 41.0,
+      "er": 29,
+      "bb": 25,
+      "so": 29,
       "hr": 5
     },
     "daniel espino": {
       "team": "guardians",
-      "ip": 5.0,
+      "ip": 6.0,
       "er": 3,
-      "bb": 3,
-      "so": 9,
+      "bb": 4,
+      "so": 12,
       "hr": 1
     },
     "jeremiah estrada": {
       "team": "padres",
-      "ip": 20.2,
-      "er": 8,
-      "bb": 10,
-      "so": 23,
+      "ip": 23.0,
+      "er": 10,
+      "bb": 13,
+      "so": 28,
       "hr": 2
     },
     "lazaro estrada": {
@@ -3982,10 +4174,10 @@
     },
     "pete fairbanks": {
       "team": "marlins",
-      "ip": 31.1,
+      "ip": 35.1,
       "er": 25,
-      "bb": 14,
-      "so": 42,
+      "bb": 16,
+      "so": 47,
       "hr": 8
     },
     "bailey falter": {
@@ -3998,43 +4190,43 @@
     },
     "mitch farris": {
       "team": "angels",
-      "ip": 43.1,
-      "er": 17,
-      "bb": 18,
-      "so": 43,
+      "ip": 45.1,
+      "er": 21,
+      "bb": 21,
+      "so": 46,
       "hr": 8
     },
     "calvin faucher": {
       "team": "marlins",
-      "ip": 43.1,
-      "er": 23,
-      "bb": 29,
-      "so": 44,
-      "hr": 0
+      "ip": 46.2,
+      "er": 24,
+      "bb": 30,
+      "so": 50,
+      "hr": 1
     },
     "erick fedde": {
       "team": "white sox",
-      "ip": 97.1,
-      "er": 46,
+      "ip": 102.1,
+      "er": 47,
       "bb": 36,
-      "so": 68,
-      "hr": 19
+      "so": 74,
+      "hr": 20
     },
     "caleb ferguson": {
       "team": "reds",
-      "ip": 21.0,
-      "er": 9,
-      "bb": 10,
-      "so": 20,
+      "ip": 24.2,
+      "er": 11,
+      "bb": 11,
+      "so": 22,
       "hr": 3
     },
     "jose fermin": {
       "team": "angels",
-      "ip": 32.2,
-      "er": 10,
-      "bb": 17,
-      "so": 36,
-      "hr": 3
+      "ip": 36.1,
+      "er": 11,
+      "bb": 19,
+      "so": 42,
+      "hr": 4
     },
     "ryan fernandez": {
       "team": "cardinals",
@@ -4046,34 +4238,34 @@
     },
     "jose a. ferrer": {
       "team": "mariners",
-      "ip": 42.0,
-      "er": 13,
+      "ip": 45.2,
+      "er": 17,
       "bb": 13,
-      "so": 35,
-      "hr": 3
+      "so": 38,
+      "hr": 5
     },
     "matt festa": {
       "team": "guardians",
-      "ip": 43.0,
-      "er": 21,
-      "bb": 13,
-      "so": 47,
+      "ip": 45.1,
+      "er": 22,
+      "bb": 14,
+      "so": 50,
       "hr": 6
     },
     "kyle finnegan": {
       "team": "tigers",
-      "ip": 46.0,
-      "er": 13,
-      "bb": 25,
+      "ip": 46.1,
+      "er": 18,
+      "bb": 27,
       "so": 36,
-      "hr": 6
+      "hr": 7
     },
     "braydon fisher": {
       "team": "blue jays",
-      "ip": 52.0,
+      "ip": 53.0,
       "er": 24,
       "bb": 26,
-      "so": 52,
+      "so": 53,
       "hr": 6
     },
     "brian fitzpatrick": {
@@ -4086,11 +4278,11 @@
     },
     "mason fluharty": {
       "team": "blue jays",
-      "ip": 41.0,
-      "er": 19,
-      "bb": 17,
-      "so": 49,
-      "hr": 5
+      "ip": 43.2,
+      "er": 21,
+      "bb": 19,
+      "so": 51,
+      "hr": 6
     },
     "cameron foster": {
       "team": "orioles",
@@ -4110,43 +4302,43 @@
     },
     "jose franco": {
       "team": "reds",
-      "ip": 16.2,
+      "ip": 20.1,
       "er": 10,
-      "bb": 14,
-      "so": 13,
+      "bb": 16,
+      "so": 15,
       "hr": 3
     },
     "didier fuentes": {
       "team": "braves",
-      "ip": 43.1,
+      "ip": 47.0,
       "er": 13,
-      "bb": 13,
-      "so": 51,
+      "bb": 15,
+      "so": 59,
       "hr": 2
     },
     "dax fulton": {
       "team": "marlins",
-      "ip": 12.0,
+      "ip": 14.0,
       "er": 7,
-      "bb": 8,
-      "so": 11,
+      "bb": 10,
+      "so": 12,
       "hr": 0
     },
     "kody funderburk": {
       "team": "twins",
-      "ip": 29.1,
+      "ip": 32.1,
       "er": 12,
-      "bb": 19,
-      "so": 19,
+      "bb": 20,
+      "so": 23,
       "hr": 2
     },
     "hunter gaddis": {
       "team": "guardians",
-      "ip": 33.2,
-      "er": 11,
-      "bb": 12,
-      "so": 32,
-      "hr": 4
+      "ip": 36.2,
+      "er": 15,
+      "bb": 15,
+      "so": 34,
+      "hr": 5
     },
     "matt gage": {
       "team": "giants",
@@ -4166,27 +4358,27 @@
     },
     "brandyn garcia": {
       "team": "diamondbacks",
-      "ip": 27.2,
+      "ip": 30.0,
       "er": 7,
-      "bb": 6,
-      "so": 32,
+      "bb": 7,
+      "so": 36,
       "hr": 0
     },
     "julian garcia": {
       "team": "reds",
-      "ip": 15.1,
+      "ip": 19.2,
       "er": 5,
-      "bb": 7,
-      "so": 16,
+      "bb": 10,
+      "so": 17,
       "hr": 3
     },
     "rico garcia": {
       "team": "orioles",
-      "ip": 45.0,
-      "er": 15,
+      "ip": 47.1,
+      "er": 16,
       "bb": 14,
-      "so": 47,
-      "hr": 8
+      "so": 49,
+      "hr": 9
     },
     "robert garcia": {
       "team": "rangers",
@@ -4198,11 +4390,11 @@
     },
     "luis gastelum": {
       "team": "cardinals",
-      "ip": 8.0,
-      "er": 5,
+      "ip": 11.1,
+      "er": 10,
       "bb": 4,
       "so": 8,
-      "hr": 3
+      "hr": 4
     },
     "joey gerber": {
       "team": "mets",
@@ -4222,17 +4414,17 @@
     },
     "cade gibson": {
       "team": "marlins",
-      "ip": 27.2,
-      "er": 15,
-      "bb": 12,
-      "so": 25,
+      "ip": 28.1,
+      "er": 18,
+      "bb": 13,
+      "so": 26,
       "hr": 1
     },
     "kevin ginkel": {
       "team": "diamondbacks",
-      "ip": 44.1,
+      "ip": 47.1,
       "er": 16,
-      "bb": 12,
+      "bb": 13,
       "so": 43,
       "hr": 5
     },
@@ -4243,6 +4435,14 @@
       "bb": 49,
       "so": 100,
       "hr": 13
+    },
+    "marco gonzales": {
+      "team": "rangers",
+      "ip": 6.0,
+      "er": 1,
+      "bb": 4,
+      "so": 3,
+      "hr": 0
     },
     "domingo gonzalez": {
       "team": "mariners",
@@ -4270,10 +4470,10 @@
     },
     "gordon graceffo": {
       "team": "cardinals",
-      "ip": 51.1,
-      "er": 18,
-      "bb": 24,
-      "so": 32,
+      "ip": 54.1,
+      "er": 19,
+      "bb": 26,
+      "so": 34,
       "hr": 5
     },
     "andre granillo": {
@@ -4286,42 +4486,42 @@
     },
     "peyton gray": {
       "team": "rangers",
-      "ip": 38.2,
-      "er": 15,
+      "ip": 42.1,
+      "er": 16,
       "bb": 12,
-      "so": 41,
-      "hr": 3
+      "so": 45,
+      "hr": 4
     },
     "tyron guerrero": {
       "team": "red sox",
-      "ip": 24.0,
-      "er": 6,
+      "ip": 27.0,
+      "er": 7,
       "bb": 3,
-      "so": 28,
+      "so": 30,
       "hr": 2
     },
     "ryan gusto": {
       "team": "marlins",
-      "ip": 34.0,
-      "er": 17,
-      "bb": 11,
-      "so": 31,
-      "hr": 3
+      "ip": 39.0,
+      "er": 23,
+      "bb": 13,
+      "so": 34,
+      "hr": 4
     },
     "josh hader": {
       "team": "astros",
-      "ip": 20.0,
+      "ip": 23.0,
       "er": 3,
-      "bb": 8,
-      "so": 33,
+      "bb": 10,
+      "so": 34,
       "hr": 1
     },
     "dl hall": {
       "team": "brewers",
-      "ip": 31.0,
-      "er": 7,
-      "bb": 24,
-      "so": 32,
+      "ip": 32.0,
+      "er": 8,
+      "bb": 25,
+      "so": 33,
       "hr": 1
     },
     "seth halvorsen": {
@@ -4334,26 +4534,26 @@
     },
     "brenan hanifee": {
       "team": "tigers",
-      "ip": 19.1,
-      "er": 8,
+      "ip": 20.1,
+      "er": 9,
       "bb": 6,
       "so": 8,
-      "hr": 3
+      "hr": 4
     },
     "hogan harris": {
       "team": "athletics",
-      "ip": 45.2,
-      "er": 16,
-      "bb": 28,
-      "so": 61,
-      "hr": 5
+      "ip": 49.0,
+      "er": 18,
+      "bb": 29,
+      "so": 66,
+      "hr": 6
     },
     "kyle hart": {
       "team": "padres",
-      "ip": 38.0,
+      "ip": 43.2,
       "er": 22,
-      "bb": 12,
-      "so": 33,
+      "bb": 13,
+      "so": 38,
       "hr": 4
     },
     "geoff hartlieb": {
@@ -4366,10 +4566,10 @@
     },
     "brent headrick": {
       "team": "yankees",
-      "ip": 52.0,
-      "er": 8,
-      "bb": 17,
-      "so": 62,
+      "ip": 57.0,
+      "er": 9,
+      "bb": 18,
+      "so": 68,
       "hr": 2
     },
     "ryan helsley": {
@@ -4382,10 +4582,10 @@
     },
     "edgardo henriquez": {
       "team": "dodgers",
-      "ip": 41.2,
+      "ip": 43.0,
       "er": 13,
-      "bb": 18,
-      "so": 42,
+      "bb": 19,
+      "so": 43,
       "hr": 1
     },
     "cole henry": {
@@ -4398,19 +4598,27 @@
     },
     "sam hentges": {
       "team": "giants",
-      "ip": 20.1,
-      "er": 6,
-      "bb": 16,
-      "so": 23,
+      "ip": 23.2,
+      "er": 7,
+      "bb": 18,
+      "so": 27,
       "hr": 0
     },
     "jimmy herget": {
       "team": "rockies",
-      "ip": 28.0,
-      "er": 20,
-      "bb": 14,
-      "so": 29,
-      "hr": 5
+      "ip": 29.1,
+      "er": 23,
+      "bb": 16,
+      "so": 30,
+      "hr": 6
+    },
+    "elieser hernandez": {
+      "team": "braves",
+      "ip": 6.0,
+      "er": 1,
+      "bb": 4,
+      "so": 6,
+      "hr": 1
     },
     "jonathan hernandez": {
       "team": "dodgers",
@@ -4422,10 +4630,10 @@
     },
     "tim herrin": {
       "team": "guardians",
-      "ip": 33.1,
-      "er": 12,
-      "bb": 19,
-      "so": 28,
+      "ip": 34.2,
+      "er": 15,
+      "bb": 20,
+      "so": 29,
       "hr": 4
     },
     "codi heuer": {
@@ -4438,10 +4646,10 @@
     },
     "jordan hicks": {
       "team": "white sox",
-      "ip": 29.1,
+      "ip": 32.0,
       "er": 11,
-      "bb": 20,
-      "so": 33,
+      "bb": 22,
+      "so": 37,
       "hr": 1
     },
     "jaden hill": {
@@ -4454,18 +4662,18 @@
     },
     "tim hill": {
       "team": "yankees",
-      "ip": 39.1,
-      "er": 18,
+      "ip": 40.2,
+      "er": 19,
       "bb": 10,
-      "so": 18,
+      "so": 19,
       "hr": 7
     },
     "jeff hoffman": {
       "team": "blue jays",
-      "ip": 44.0,
+      "ip": 48.0,
       "er": 21,
-      "bb": 17,
-      "so": 67,
+      "bb": 18,
+      "so": 75,
       "hr": 4
     },
     "andrew hoffmann": {
@@ -4478,59 +4686,59 @@
     },
     "colin holderman": {
       "team": "guardians",
-      "ip": 40.0,
+      "ip": 43.2,
       "er": 8,
       "bb": 15,
-      "so": 40,
+      "so": 42,
       "hr": 1
     },
     "gavin hollowell": {
       "team": "cubs",
-      "ip": 13.0,
-      "er": 3,
+      "ip": 14.1,
+      "er": 4,
       "bb": 8,
       "so": 13,
       "hr": 2
     },
     "tyler holton": {
       "team": "tigers",
-      "ip": 47.0,
-      "er": 15,
-      "bb": 10,
-      "so": 37,
-      "hr": 5
+      "ip": 50.0,
+      "er": 17,
+      "bb": 12,
+      "so": 38,
+      "hr": 6
     },
     "alex hoppe": {
       "team": "mariners",
-      "ip": 24.0,
-      "er": 17,
-      "bb": 10,
-      "so": 26,
-      "hr": 1
+      "ip": 28.0,
+      "er": 18,
+      "bb": 11,
+      "so": 34,
+      "hr": 2
     },
     "adrian houser": {
       "team": "giants",
-      "ip": 87.0,
-      "er": 47,
-      "bb": 29,
-      "so": 58,
+      "ip": 91.2,
+      "er": 48,
+      "bb": 30,
+      "so": 61,
       "hr": 15
     },
     "bryan hudson": {
       "team": "white sox",
-      "ip": 44.0,
-      "er": 14,
+      "ip": 46.2,
+      "er": 15,
       "bb": 17,
-      "so": 43,
+      "so": 44,
       "hr": 2
     },
     "kyle hurt": {
       "team": "dodgers",
-      "ip": 33.1,
-      "er": 17,
-      "bb": 18,
-      "so": 39,
-      "hr": 3
+      "ip": 35.1,
+      "er": 18,
+      "bb": 19,
+      "so": 43,
+      "hr": 4
     },
     "brant hurter": {
       "team": "tigers",
@@ -4542,11 +4750,19 @@
     },
     "raisel iglesias": {
       "team": "braves",
-      "ip": 37.0,
+      "ip": 40.0,
       "er": 10,
-      "bb": 8,
-      "so": 43,
+      "bb": 10,
+      "so": 44,
       "hr": 4
+    },
+    "cole irvin": {
+      "team": "dodgers",
+      "ip": 6.0,
+      "er": 6,
+      "bb": 3,
+      "so": 5,
+      "hr": 1
     },
     "alek jacob": {
       "team": "padres",
@@ -4566,57 +4782,57 @@
     },
     "kenley jansen": {
       "team": "tigers",
-      "ip": 27.2,
-      "er": 12,
-      "bb": 17,
-      "so": 31,
+      "ip": 29.2,
+      "er": 13,
+      "bb": 18,
+      "so": 34,
       "hr": 5
     },
     "cristian javier": {
       "team": "astros",
-      "ip": 16.1,
+      "ip": 21.1,
       "er": 17,
       "bb": 15,
-      "so": 14,
+      "so": 21,
       "hr": 3
     },
     "griffin jax": {
       "team": "rays",
-      "ip": 81.0,
-      "er": 35,
-      "bb": 27,
-      "so": 82,
-      "hr": 13
+      "ip": 91.2,
+      "er": 37,
+      "bb": 30,
+      "so": 100,
+      "hr": 14
     },
     "pierce johnson": {
       "team": "reds",
-      "ip": 30.0,
-      "er": 17,
+      "ip": 32.2,
+      "er": 18,
       "bb": 13,
-      "so": 26,
+      "so": 29,
       "hr": 6
     },
     "ryan johnson": {
       "team": "angels",
-      "ip": 41.2,
-      "er": 34,
-      "bb": 17,
-      "so": 34,
-      "hr": 11
+      "ip": 46.0,
+      "er": 39,
+      "bb": 20,
+      "so": 37,
+      "hr": 12
     },
     "seth johnson": {
       "team": "phillies",
-      "ip": 15.2,
+      "ip": 16.1,
       "er": 10,
-      "bb": 13,
+      "bb": 14,
       "so": 20,
       "hr": 1
     },
     "jakob junis": {
       "team": "rangers",
-      "ip": 38.0,
+      "ip": 40.0,
       "er": 12,
-      "bb": 6,
+      "bb": 7,
       "so": 30,
       "hr": 2
     },
@@ -4644,12 +4860,20 @@
       "so": 32,
       "hr": 4
     },
+    "antwone kelly": {
+      "team": "pirates",
+      "ip": 7.1,
+      "er": 5,
+      "bb": 4,
+      "so": 4,
+      "hr": 2
+    },
     "kevin kelly": {
       "team": "rays",
-      "ip": 47.2,
+      "ip": 50.2,
       "er": 12,
       "bb": 8,
-      "so": 35,
+      "so": 42,
       "hr": 4
     },
     "michael kelly": {
@@ -4678,39 +4902,47 @@
     },
     "orion kerkering": {
       "team": "phillies",
-      "ip": 39.1,
-      "er": 12,
-      "bb": 23,
-      "so": 44,
+      "ip": 42.0,
+      "er": 16,
+      "bb": 25,
+      "so": 46,
       "hr": 3
+    },
+    "brett kerry": {
+      "team": "angels",
+      "ip": 8.0,
+      "er": 3,
+      "bb": 1,
+      "so": 5,
+      "hr": 1
     },
     "caleb kilian": {
       "team": "giants",
-      "ip": 41.1,
+      "ip": 44.1,
       "er": 21,
-      "bb": 18,
-      "so": 49,
+      "bb": 20,
+      "so": 53,
       "hr": 5
     },
     "bryan king": {
       "team": "astros",
-      "ip": 45.2,
+      "ip": 47.1,
       "er": 19,
       "bb": 16,
-      "so": 36,
+      "so": 37,
       "hr": 6
     },
     "john king": {
       "team": "marlins",
-      "ip": 40.2,
-      "er": 11,
+      "ip": 44.0,
+      "er": 12,
       "bb": 12,
-      "so": 30,
+      "so": 32,
       "hr": 4
     },
     "tyler kinley": {
       "team": "braves",
-      "ip": 37.1,
+      "ip": 38.1,
       "er": 18,
       "bb": 16,
       "so": 38,
@@ -4718,18 +4950,18 @@
     },
     "andrew kittredge": {
       "team": "orioles",
-      "ip": 29.2,
-      "er": 12,
-      "bb": 9,
-      "so": 27,
+      "ip": 31.1,
+      "er": 14,
+      "bb": 10,
+      "so": 28,
       "hr": 5
     },
     "will klein": {
       "team": "dodgers",
-      "ip": 40.1,
-      "er": 16,
-      "bb": 20,
-      "so": 46,
+      "ip": 41.2,
+      "er": 17,
+      "bb": 21,
+      "so": 49,
       "hr": 3
     },
     "landon knack": {
@@ -4748,20 +4980,28 @@
       "so": 7,
       "hr": 1
     },
+    "max kranick": {
+      "team": "nationals",
+      "ip": 5.2,
+      "er": 6,
+      "bb": 4,
+      "so": 3,
+      "hr": 1
+    },
     "alex lange": {
       "team": "royals",
-      "ip": 42.0,
-      "er": 28,
-      "bb": 23,
-      "so": 43,
-      "hr": 4
+      "ip": 44.2,
+      "er": 31,
+      "bb": 25,
+      "so": 47,
+      "hr": 5
     },
     "jacob latz": {
       "team": "rangers",
-      "ip": 48.0,
-      "er": 9,
+      "ip": 50.0,
+      "er": 10,
       "bb": 11,
-      "so": 49,
+      "so": 51,
       "hr": 3
     },
     "cody laweryson": {
@@ -4790,10 +5030,10 @@
     },
     "dylan lee": {
       "team": "braves",
-      "ip": 47.2,
+      "ip": 51.0,
       "er": 12,
-      "bb": 8,
-      "so": 60,
+      "bb": 9,
+      "so": 62,
       "hr": 3
     },
     "brandon leibrandt": {
@@ -4814,35 +5054,35 @@
     },
     "zack littell": {
       "team": "nationals",
-      "ip": 101.0,
+      "ip": 105.2,
       "er": 58,
-      "bb": 31,
-      "so": 66,
+      "bb": 34,
+      "so": 68,
       "hr": 25
     },
     "brendon little": {
       "team": "blue jays",
-      "ip": 8.1,
+      "ip": 10.2,
       "er": 16,
       "bb": 8,
-      "so": 10,
+      "so": 14,
       "hr": 4
     },
     "jonathan loaisiga": {
       "team": "diamondbacks",
-      "ip": 41.0,
-      "er": 11,
-      "bb": 9,
-      "so": 30,
+      "ip": 44.0,
+      "er": 13,
+      "bb": 10,
+      "so": 32,
       "hr": 2
     },
     "jacob lopez": {
       "team": "athletics",
-      "ip": 64.2,
-      "er": 44,
-      "bb": 40,
-      "so": 53,
-      "hr": 11
+      "ip": 70.0,
+      "er": 45,
+      "bb": 42,
+      "so": 61,
+      "hr": 12
     },
     "reynaldo lopez": {
       "team": "braves",
@@ -4862,15 +5102,15 @@
     },
     "rhett lowder": {
       "team": "reds",
-      "ip": 77.0,
-      "er": 48,
+      "ip": 83.0,
+      "er": 50,
       "bb": 37,
-      "so": 65,
-      "hr": 9
+      "so": 70,
+      "hr": 10
     },
     "daniel lynch iv": {
       "team": "royals",
-      "ip": 43.1,
+      "ip": 45.0,
       "er": 10,
       "bb": 12,
       "so": 34,
@@ -4878,27 +5118,27 @@
     },
     "adam macko": {
       "team": "blue jays",
-      "ip": 21.1,
-      "er": 11,
+      "ip": 22.0,
+      "er": 12,
       "bb": 10,
-      "so": 22,
-      "hr": 2
+      "so": 23,
+      "hr": 3
     },
     "ty madden": {
       "team": "tigers",
-      "ip": 25.0,
+      "ip": 30.0,
       "er": 8,
-      "bb": 10,
-      "so": 29,
+      "bb": 12,
+      "so": 33,
       "hr": 2
     },
     "sean manaea": {
       "team": "mets",
-      "ip": 85.2,
-      "er": 43,
-      "bb": 28,
-      "so": 84,
-      "hr": 12
+      "ip": 91.2,
+      "er": 45,
+      "bb": 30,
+      "so": 88,
+      "hr": 13
     },
     "alek manoah": {
       "team": "angels",
@@ -4958,27 +5198,27 @@
     },
     "yuki matsui": {
       "team": "padres",
-      "ip": 38.2,
+      "ip": 41.2,
       "er": 11,
       "bb": 24,
-      "so": 43,
+      "so": 45,
       "hr": 5
     },
     "isaac mattson": {
       "team": "pirates",
-      "ip": 33.0,
-      "er": 18,
-      "bb": 15,
-      "so": 30,
+      "ip": 34.2,
+      "er": 19,
+      "bb": 16,
+      "so": 33,
       "hr": 3
     },
     "steven matz": {
       "team": "rays",
-      "ip": 53.0,
-      "er": 37,
-      "bb": 19,
-      "so": 41,
-      "hr": 11
+      "ip": 57.1,
+      "er": 38,
+      "bb": 20,
+      "so": 44,
+      "hr": 12
     },
     "zach maxwell": {
       "team": "reds",
@@ -4990,11 +5230,19 @@
     },
     "tim mayza": {
       "team": "phillies",
-      "ip": 48.0,
+      "ip": 50.2,
       "er": 21,
-      "bb": 11,
-      "so": 47,
+      "bb": 12,
+      "so": 51,
       "hr": 5
+    },
+    "zach mccambley": {
+      "team": "reds",
+      "ip": 6.1,
+      "er": 4,
+      "bb": 5,
+      "so": 5,
+      "hr": 0
     },
     "nick mears": {
       "team": "royals",
@@ -5006,34 +5254,34 @@
     },
     "victor mederos": {
       "team": "braves",
-      "ip": 11.2,
-      "er": 5,
-      "bb": 3,
-      "so": 10,
+      "ip": 14.1,
+      "er": 6,
+      "bb": 4,
+      "so": 11,
       "hr": 0
     },
     "luis medina": {
       "team": "athletics",
-      "ip": 47.0,
-      "er": 19,
-      "bb": 24,
-      "so": 57,
-      "hr": 4
+      "ip": 50.2,
+      "er": 22,
+      "bb": 26,
+      "so": 60,
+      "hr": 6
     },
     "trevor megill": {
       "team": "brewers",
-      "ip": 39.1,
+      "ip": 41.1,
       "er": 13,
       "bb": 11,
-      "so": 49,
+      "so": 50,
       "hr": 0
     },
     "juan mejia": {
       "team": "rockies",
-      "ip": 46.0,
-      "er": 28,
-      "bb": 24,
-      "so": 47,
+      "ip": 48.1,
+      "er": 29,
+      "bb": 26,
+      "so": 49,
       "hr": 4
     },
     "luis mey": {
@@ -5046,34 +5294,42 @@
     },
     "miles mikolas": {
       "team": "nationals",
-      "ip": 102.0,
-      "er": 64,
-      "bb": 21,
-      "so": 52,
-      "hr": 23
+      "ip": 108.0,
+      "er": 68,
+      "bb": 22,
+      "so": 55,
+      "hr": 26
     },
     "spencer miles": {
       "team": "blue jays",
-      "ip": 67.2,
+      "ip": 72.0,
       "er": 25,
-      "bb": 19,
-      "so": 65,
+      "bb": 20,
+      "so": 69,
       "hr": 5
     },
     "erik miller": {
       "team": "giants",
-      "ip": 30.1,
+      "ip": 32.2,
       "er": 10,
       "bb": 22,
-      "so": 42,
+      "so": 45,
       "hr": 2
     },
     "mason miller": {
       "team": "padres",
-      "ip": 43.2,
+      "ip": 47.1,
       "er": 4,
-      "bb": 15,
-      "so": 80,
+      "bb": 16,
+      "so": 88,
+      "hr": 0
+    },
+    "wyatt mills": {
+      "team": "dodgers",
+      "ip": 6.1,
+      "er": 4,
+      "bb": 9,
+      "so": 5,
       "hr": 0
     },
     "hoby milner": {
@@ -5084,20 +5340,12 @@
       "so": 18,
       "hr": 4
     },
-    "a.j. minter": {
-      "team": "mets",
-      "ip": 22.0,
-      "er": 6,
-      "bb": 2,
-      "so": 18,
-      "hr": 4
-    },
     "carmen mlodzinski": {
       "team": "pirates",
-      "ip": 88.1,
+      "ip": 94.1,
       "er": 33,
-      "bb": 30,
-      "so": 71,
+      "bb": 31,
+      "so": 76,
       "hr": 7
     },
     "anthony molina": {
@@ -5110,42 +5358,50 @@
     },
     "sam moll": {
       "team": "reds",
-      "ip": 41.2,
-      "er": 20,
-      "bb": 23,
-      "so": 46,
+      "ip": 44.1,
+      "er": 21,
+      "bb": 26,
+      "so": 48,
       "hr": 5
     },
     "keider montero": {
       "team": "tigers",
-      "ip": 106.0,
-      "er": 37,
-      "bb": 22,
-      "so": 78,
-      "hr": 10
+      "ip": 116.1,
+      "er": 41,
+      "bb": 25,
+      "so": 81,
+      "hr": 11
     },
     "mason montgomery": {
       "team": "pirates",
-      "ip": 42.1,
+      "ip": 45.0,
       "er": 19,
-      "bb": 19,
-      "so": 65,
+      "bb": 21,
+      "so": 69,
       "hr": 5
+    },
+    "luis morales": {
+      "team": "athletics",
+      "ip": 16.0,
+      "er": 24,
+      "bb": 14,
+      "so": 13,
+      "hr": 7
     },
     "jovani moran": {
       "team": "red sox",
-      "ip": 42.1,
-      "er": 13,
+      "ip": 45.0,
+      "er": 14,
       "bb": 19,
-      "so": 47,
-      "hr": 5
+      "so": 50,
+      "hr": 6
     },
     "adrian morejon": {
       "team": "padres",
-      "ip": 56.1,
+      "ip": 60.0,
       "er": 20,
-      "bb": 14,
-      "so": 63,
+      "bb": 15,
+      "so": 70,
       "hr": 3
     },
     "david morgan": {
@@ -5166,17 +5422,17 @@
     },
     "juan morillo": {
       "team": "diamondbacks",
-      "ip": 41.2,
+      "ip": 44.2,
       "er": 13,
       "bb": 16,
-      "so": 49,
+      "so": 53,
       "hr": 2
     },
     "andrew morris": {
       "team": "twins",
-      "ip": 50.0,
-      "er": 18,
-      "bb": 16,
+      "ip": 52.2,
+      "er": 19,
+      "bb": 17,
       "so": 51,
       "hr": 3
     },
@@ -5190,18 +5446,18 @@
     },
     "andres munoz": {
       "team": "mariners",
-      "ip": 37.1,
-      "er": 16,
-      "bb": 15,
-      "so": 58,
-      "hr": 4
+      "ip": 40.2,
+      "er": 18,
+      "bb": 17,
+      "so": 63,
+      "hr": 5
     },
     "chris murphy": {
       "team": "white sox",
-      "ip": 25.0,
-      "er": 12,
-      "bb": 13,
-      "so": 25,
+      "ip": 27.2,
+      "er": 13,
+      "bb": 14,
+      "so": 27,
       "hr": 2
     },
     "owen murphy": {
@@ -5230,19 +5486,19 @@
     },
     "samy natera": {
       "team": "angels",
-      "ip": 20.1,
-      "er": 5,
-      "bb": 9,
-      "so": 30,
+      "ip": 23.2,
+      "er": 6,
+      "bb": 10,
+      "so": 36,
       "hr": 1
     },
     "sean newcomb": {
       "team": "white sox",
-      "ip": 56.2,
-      "er": 15,
-      "bb": 21,
-      "so": 55,
-      "hr": 1
+      "ip": 59.2,
+      "er": 19,
+      "bb": 22,
+      "so": 56,
+      "hr": 2
     },
     "kyle nicolas": {
       "team": "reds",
@@ -5254,27 +5510,27 @@
     },
     "anthony nunez": {
       "team": "orioles",
-      "ip": 42.1,
-      "er": 21,
-      "bb": 18,
-      "so": 44,
+      "ip": 45.0,
+      "er": 23,
+      "bb": 22,
+      "so": 46,
       "hr": 5
     },
     "riley o'brien": {
       "team": "cardinals",
-      "ip": 41.2,
+      "ip": 44.2,
       "er": 17,
-      "bb": 17,
-      "so": 44,
+      "bb": 18,
+      "so": 47,
       "hr": 2
     },
     "steven okert": {
       "team": "astros",
-      "ip": 51.2,
-      "er": 12,
+      "ip": 55.1,
+      "er": 14,
       "bb": 12,
-      "so": 52,
-      "hr": 5
+      "so": 57,
+      "hr": 6
     },
     "eric orze": {
       "team": "twins",
@@ -5286,10 +5542,10 @@
     },
     "emilio pagan": {
       "team": "reds",
-      "ip": 20.1,
+      "ip": 23.1,
       "er": 12,
       "bb": 8,
-      "so": 21,
+      "so": 26,
       "hr": 4
     },
     "daniel palencia": {
@@ -5310,9 +5566,9 @@
     },
     "carson palmquist": {
       "team": "nationals",
-      "ip": 12.2,
+      "ip": 16.0,
       "er": 13,
-      "bb": 6,
+      "bb": 7,
       "so": 15,
       "hr": 1
     },
@@ -5334,10 +5590,10 @@
     },
     "chad patrick": {
       "team": "brewers",
-      "ip": 78.1,
-      "er": 30,
-      "bb": 28,
-      "so": 67,
+      "ip": 82.1,
+      "er": 32,
+      "bb": 30,
+      "so": 73,
       "hr": 8
     },
     "joel payamps": {
@@ -5358,58 +5614,58 @@
     },
     "ben peoples": {
       "team": "rangers",
-      "ip": 8.1,
-      "er": 2,
-      "bb": 0,
-      "so": 4,
-      "hr": 2
+      "ip": 11.1,
+      "er": 3,
+      "bb": 2,
+      "so": 5,
+      "hr": 3
     },
     "wandy peralta": {
       "team": "padres",
-      "ip": 53.1,
-      "er": 18,
-      "bb": 21,
-      "so": 33,
+      "ip": 56.0,
+      "er": 20,
+      "bb": 22,
+      "so": 36,
       "hr": 5
     },
     "martin perez": {
       "team": "braves",
-      "ip": 85.1,
-      "er": 32,
-      "bb": 36,
-      "so": 65,
-      "hr": 10
+      "ip": 97.1,
+      "er": 35,
+      "bb": 39,
+      "so": 75,
+      "hr": 11
     },
     "jack perkins": {
       "team": "athletics",
-      "ip": 62.2,
-      "er": 47,
-      "bb": 24,
-      "so": 76,
-      "hr": 11
+      "ip": 73.2,
+      "er": 55,
+      "bb": 28,
+      "so": 89,
+      "hr": 14
     },
     "michael petersen": {
       "team": "marlins",
-      "ip": 44.1,
-      "er": 14,
-      "bb": 18,
-      "so": 51,
+      "ip": 46.0,
+      "er": 16,
+      "bb": 19,
+      "so": 54,
       "hr": 4
     },
     "chase petty": {
       "team": "reds",
-      "ip": 27.2,
-      "er": 13,
-      "bb": 7,
-      "so": 13,
-      "hr": 4
+      "ip": 30.0,
+      "er": 15,
+      "bb": 8,
+      "so": 14,
+      "hr": 5
     },
     "brandon pfaadt": {
       "team": "diamondbacks",
-      "ip": 65.0,
+      "ip": 72.0,
       "er": 32,
-      "bb": 20,
-      "so": 45,
+      "bb": 21,
+      "so": 49,
       "hr": 8
     },
     "connor phillips": {
@@ -5422,26 +5678,26 @@
     },
     "evan phillips": {
       "team": "dodgers",
-      "ip": 6.2,
+      "ip": 8.1,
       "er": 5,
-      "bb": 1,
+      "bb": 2,
       "so": 9,
       "hr": 4
     },
     "tyler phillips": {
       "team": "marlins",
-      "ip": 79.1,
-      "er": 31,
-      "bb": 36,
-      "so": 58,
-      "hr": 9
+      "ip": 89.1,
+      "er": 35,
+      "bb": 38,
+      "so": 66,
+      "hr": 11
     },
     "jonathan pintaro": {
       "team": "mets",
-      "ip": 12.1,
+      "ip": 14.1,
       "er": 7,
-      "bb": 3,
-      "so": 12,
+      "bb": 5,
+      "so": 15,
       "hr": 3
     },
     "zach pop": {
@@ -5470,10 +5726,10 @@
     },
     "cal quantrill": {
       "team": "rangers",
-      "ip": 53.1,
-      "er": 24,
-      "bb": 17,
-      "so": 32,
+      "ip": 58.2,
+      "er": 25,
+      "bb": 18,
+      "so": 39,
       "hr": 8
     },
     "max rajcic": {
@@ -5486,18 +5742,18 @@
     },
     "brooks raley": {
       "team": "mets",
-      "ip": 38.2,
+      "ip": 41.1,
       "er": 9,
       "bb": 15,
-      "so": 39,
+      "so": 40,
       "hr": 2
     },
     "yohan ramirez": {
       "team": "pirates",
-      "ip": 54.1,
+      "ip": 60.0,
       "er": 20,
-      "bb": 33,
-      "so": 61,
+      "bb": 36,
+      "so": 69,
       "hr": 4
     },
     "alan rangel": {
@@ -5518,26 +5774,26 @@
     },
     "colin rea": {
       "team": "cubs",
-      "ip": 105.2,
-      "er": 57,
-      "bb": 38,
-      "so": 81,
-      "hr": 17
+      "ip": 117.2,
+      "er": 60,
+      "bb": 41,
+      "so": 90,
+      "hr": 18
     },
     "orlando ribalta": {
       "team": "nationals",
-      "ip": 29.2,
-      "er": 12,
+      "ip": 32.2,
+      "er": 13,
       "bb": 12,
-      "so": 28,
+      "so": 32,
       "hr": 3
     },
     "jr ritchie": {
       "team": "braves",
-      "ip": 54.0,
-      "er": 27,
-      "bb": 33,
-      "so": 49,
+      "ip": 58.0,
+      "er": 29,
+      "bb": 36,
+      "so": 53,
       "hr": 9
     },
     "christian roa": {
@@ -5566,11 +5822,11 @@
     },
     "bradgley rodriguez": {
       "team": "padres",
-      "ip": 44.2,
-      "er": 10,
-      "bb": 15,
-      "so": 45,
-      "hr": 2
+      "ip": 48.0,
+      "er": 13,
+      "bb": 16,
+      "so": 51,
+      "hr": 3
     },
     "carlos rodriguez": {
       "team": "brewers",
@@ -5590,34 +5846,34 @@
     },
     "taylor rogers": {
       "team": "twins",
-      "ip": 38.1,
+      "ip": 40.1,
       "er": 22,
-      "bb": 17,
-      "so": 33,
+      "bb": 19,
+      "so": 34,
       "hr": 3
     },
     "tyler rogers": {
       "team": "blue jays",
-      "ip": 46.2,
-      "er": 8,
-      "bb": 13,
-      "so": 26,
+      "ip": 49.0,
+      "er": 9,
+      "bb": 14,
+      "so": 27,
       "hr": 0
     },
     "kendry rojas": {
       "team": "twins",
-      "ip": 25.2,
-      "er": 8,
-      "bb": 19,
-      "so": 29,
-      "hr": 1
+      "ip": 29.2,
+      "er": 11,
+      "bb": 22,
+      "so": 34,
+      "hr": 2
     },
     "ryan rolison": {
       "team": "cubs",
-      "ip": 40.0,
+      "ip": 44.0,
       "er": 12,
-      "bb": 18,
-      "so": 40,
+      "bb": 20,
+      "so": 45,
       "hr": 4
     },
     "drew rom": {
@@ -5638,18 +5894,18 @@
     },
     "michael rucker": {
       "team": "mariners",
-      "ip": 17.2,
-      "er": 9,
+      "ip": 20.2,
+      "er": 10,
       "bb": 6,
-      "so": 21,
+      "so": 24,
       "hr": 3
     },
     "erik sabrowski": {
       "team": "guardians",
-      "ip": 30.1,
-      "er": 12,
-      "bb": 21,
-      "so": 50,
+      "ip": 31.0,
+      "er": 13,
+      "bb": 22,
+      "so": 52,
       "hr": 3
     },
     "tyler samaniego": {
@@ -5718,66 +5974,66 @@
     },
     "john schreiber": {
       "team": "royals",
-      "ip": 40.1,
+      "ip": 40.2,
       "er": 17,
-      "bb": 16,
+      "bb": 17,
       "so": 29,
       "hr": 7
     },
     "paxton schultz": {
       "team": "nationals",
-      "ip": 30.2,
-      "er": 20,
-      "bb": 11,
-      "so": 31,
+      "ip": 32.1,
+      "er": 23,
+      "bb": 12,
+      "so": 32,
       "hr": 5
     },
     "tyler schweitzer": {
       "team": "white sox",
-      "ip": 16.2,
+      "ip": 22.2,
       "er": 7,
-      "bb": 5,
-      "so": 8,
+      "bb": 9,
+      "so": 11,
       "hr": 1
     },
     "tanner scott": {
       "team": "dodgers",
-      "ip": 42.2,
-      "er": 11,
-      "bb": 6,
-      "so": 55,
+      "ip": 44.2,
+      "er": 12,
+      "bb": 7,
+      "so": 57,
       "hr": 4
     },
     "kodai senga": {
       "team": "mets",
-      "ip": 40.2,
-      "er": 40,
-      "bb": 30,
-      "so": 49,
+      "ip": 44.2,
+      "er": 43,
+      "bb": 32,
+      "so": 53,
       "hr": 12
     },
     "antonio senzatela": {
       "team": "rockies",
-      "ip": 51.0,
-      "er": 20,
-      "bb": 16,
-      "so": 45,
+      "ip": 52.1,
+      "er": 21,
+      "bb": 17,
+      "so": 46,
       "hr": 4
     },
     "paul sewald": {
       "team": "diamondbacks",
-      "ip": 37.1,
-      "er": 19,
+      "ip": 37.2,
+      "er": 27,
       "bb": 9,
       "so": 43,
-      "hr": 9
+      "hr": 12
     },
     "ian seymour": {
       "team": "rays",
-      "ip": 73.2,
+      "ip": 78.1,
       "er": 38,
-      "bb": 27,
-      "so": 86,
+      "bb": 28,
+      "so": 90,
       "hr": 12
     },
     "tj shook": {
@@ -5790,10 +6046,10 @@
     },
     "chase shugart": {
       "team": "phillies",
-      "ip": 33.2,
+      "ip": 34.2,
       "er": 19,
-      "bb": 13,
-      "so": 42,
+      "bb": 14,
+      "so": 43,
       "hr": 8
     },
     "jared shuster": {
@@ -5803,14 +6059,6 @@
       "bb": 6,
       "so": 4,
       "hr": 1
-    },
-    "chase silseth": {
-      "team": "angels",
-      "ip": 38.2,
-      "er": 12,
-      "bb": 21,
-      "so": 47,
-      "hr": 3
     },
     "lucas sims": {
       "team": "white sox",
@@ -5830,10 +6078,10 @@
     },
     "justin slaten": {
       "team": "red sox",
-      "ip": 25.2,
+      "ip": 28.2,
       "er": 14,
       "bb": 6,
-      "so": 34,
+      "so": 36,
       "hr": 4
     },
     "burch smith": {
@@ -5846,58 +6094,58 @@
     },
     "cade smith": {
       "team": "guardians",
-      "ip": 48.0,
+      "ip": 51.1,
       "er": 14,
-      "bb": 11,
-      "so": 67,
+      "bb": 16,
+      "so": 71,
       "hr": 4
     },
     "dylan smith": {
       "team": "giants",
-      "ip": 16.0,
-      "er": 5,
-      "bb": 8,
-      "so": 19,
+      "ip": 19.2,
+      "er": 6,
+      "bb": 9,
+      "so": 23,
       "hr": 2
     },
     "drew sommers": {
       "team": "tigers",
-      "ip": 13.2,
+      "ip": 16.2,
       "er": 8,
       "bb": 8,
-      "so": 19,
+      "so": 24,
       "hr": 2
     },
     "george soriano": {
       "team": "cardinals",
-      "ip": 46.1,
-      "er": 18,
-      "bb": 16,
-      "so": 43,
+      "ip": 49.0,
+      "er": 19,
+      "bb": 19,
+      "so": 47,
       "hr": 6
     },
     "gregory soto": {
       "team": "pirates",
-      "ip": 42.2,
-      "er": 18,
-      "bb": 18,
-      "so": 47,
+      "ip": 46.1,
+      "er": 19,
+      "bb": 20,
+      "so": 53,
       "hr": 5
     },
     "bennett sousa": {
       "team": "astros",
-      "ip": 6.0,
+      "ip": 8.1,
       "er": 3,
-      "bb": 5,
-      "so": 6,
+      "bb": 7,
+      "so": 8,
       "hr": 0
     },
     "gabe speier": {
       "team": "mariners",
-      "ip": 27.2,
+      "ip": 29.1,
       "er": 6,
-      "bb": 10,
-      "so": 24,
+      "bb": 11,
+      "so": 26,
       "hr": 3
     },
     "mitch spence": {
@@ -5908,12 +6156,20 @@
       "so": 6,
       "hr": 3
     },
+    "garrett stallings": {
+      "team": "brewers",
+      "ip": 5.0,
+      "er": 0,
+      "bb": 2,
+      "so": 5,
+      "hr": 0
+    },
     "ryne stanek": {
       "team": "cardinals",
-      "ip": 40.1,
+      "ip": 43.1,
       "er": 20,
-      "bb": 23,
-      "so": 43,
+      "bb": 25,
+      "so": 46,
       "hr": 6
     },
     "justin sterner": {
@@ -5926,26 +6182,26 @@
     },
     "brock stewart": {
       "team": "dodgers",
-      "ip": 13.1,
-      "er": 3,
+      "ip": 14.2,
+      "er": 4,
       "bb": 5,
       "so": 14,
       "hr": 2
     },
     "matt strahm": {
       "team": "royals",
-      "ip": 34.2,
-      "er": 26,
+      "ip": 35.2,
+      "er": 29,
       "bb": 14,
-      "so": 29,
-      "hr": 10
+      "so": 30,
+      "hr": 12
     },
     "albert suarez": {
       "team": "orioles",
-      "ip": 42.2,
-      "er": 16,
-      "bb": 15,
-      "so": 30,
+      "ip": 45.0,
+      "er": 21,
+      "bb": 17,
+      "so": 32,
       "hr": 7
     },
     "robert suarez": {
@@ -5974,26 +6230,26 @@
     },
     "brent suter": {
       "team": "angels",
-      "ip": 59.0,
+      "ip": 63.1,
       "er": 29,
-      "bb": 14,
-      "so": 53,
+      "bb": 17,
+      "so": 55,
       "hr": 7
     },
     "matt svanson": {
       "team": "cardinals",
-      "ip": 42.1,
-      "er": 34,
+      "ip": 43.1,
+      "er": 35,
       "bb": 21,
-      "so": 40,
+      "so": 41,
       "hr": 5
     },
     "grant taylor": {
       "team": "white sox",
-      "ip": 52.1,
+      "ip": 56.1,
       "er": 15,
       "bb": 18,
-      "so": 74,
+      "so": 76,
       "hr": 4
     },
     "kai-wei teng": {
@@ -6006,11 +6262,19 @@
     },
     "caleb thielbar": {
       "team": "cubs",
-      "ip": 31.0,
-      "er": 14,
+      "ip": 34.0,
+      "er": 15,
       "bb": 13,
-      "so": 40,
-      "hr": 8
+      "so": 43,
+      "hr": 9
+    },
+    "connor thomas": {
+      "team": "braves",
+      "ip": 6.1,
+      "er": 15,
+      "bb": 6,
+      "so": 4,
+      "hr": 4
     },
     "keegan thompson": {
       "team": "rockies",
@@ -6022,17 +6286,17 @@
     },
     "ryan thompson": {
       "team": "diamondbacks",
-      "ip": 38.1,
-      "er": 16,
-      "bb": 11,
-      "so": 26,
+      "ip": 40.1,
+      "er": 19,
+      "bb": 12,
+      "so": 29,
       "hr": 3
     },
     "trent thornton": {
       "team": "cubs",
-      "ip": 31.0,
-      "er": 9,
-      "bb": 10,
+      "ip": 33.1,
+      "er": 11,
+      "bb": 13,
       "so": 15,
       "hr": 4
     },
@@ -6086,10 +6350,10 @@
     },
     "abner uribe": {
       "team": "brewers",
-      "ip": 41.2,
+      "ip": 44.1,
       "er": 11,
       "bb": 15,
-      "so": 41,
+      "so": 44,
       "hr": 3
     },
     "jose urquidy": {
@@ -6098,6 +6362,14 @@
       "er": 6,
       "bb": 2,
       "so": 6,
+      "hr": 1
+    },
+    "cj van eyk": {
+      "team": "blue jays",
+      "ip": 5.2,
+      "er": 3,
+      "bb": 1,
+      "so": 1,
       "hr": 1
     },
     "ricky vanasco": {
@@ -6119,34 +6391,34 @@
     "gus varland": {
       "team": "nationals",
       "ip": 31.2,
-      "er": 22,
+      "er": 24,
       "bb": 15,
       "so": 30,
-      "hr": 6
+      "hr": 7
     },
     "louis varland": {
       "team": "blue jays",
-      "ip": 52.0,
-      "er": 6,
-      "bb": 13,
-      "so": 70,
+      "ip": 56.2,
+      "er": 7,
+      "bb": 16,
+      "so": 73,
       "hr": 1
     },
     "randy vasquez": {
       "team": "padres",
-      "ip": 90.1,
+      "ip": 95.0,
       "er": 47,
-      "bb": 29,
-      "so": 63,
+      "bb": 30,
+      "so": 64,
       "hr": 14
     },
     "alex vesia": {
       "team": "dodgers",
-      "ip": 35.1,
-      "er": 10,
-      "bb": 24,
-      "so": 50,
-      "hr": 1
+      "ip": 38.0,
+      "er": 11,
+      "bb": 25,
+      "so": 53,
+      "hr": 2
     },
     "will vest": {
       "team": "tigers",
@@ -6158,18 +6430,18 @@
     },
     "victor vodnik": {
       "team": "rockies",
-      "ip": 34.0,
+      "ip": 36.0,
       "er": 21,
       "bb": 19,
-      "so": 24,
+      "so": 26,
       "hr": 3
     },
     "jacob waguespack": {
       "team": "tigers",
-      "ip": 16.1,
-      "er": 3,
-      "bb": 4,
-      "so": 11,
+      "ip": 20.2,
+      "er": 4,
+      "bb": 7,
+      "so": 14,
       "hr": 3
     },
     "ken waldichuk": {
@@ -6190,11 +6462,11 @@
     },
     "josh walker": {
       "team": "orioles",
-      "ip": 7.2,
-      "er": 3,
+      "ip": 11.0,
+      "er": 5,
       "bb": 2,
-      "so": 7,
-      "hr": 1
+      "so": 9,
+      "hr": 2
     },
     "ryan walker": {
       "team": "giants",
@@ -6214,8 +6486,8 @@
     },
     "ryan watson": {
       "team": "red sox",
-      "ip": 54.2,
-      "er": 27,
+      "ip": 55.2,
+      "er": 28,
       "bb": 19,
       "so": 43,
       "hr": 8
@@ -6230,18 +6502,18 @@
     },
     "luke weaver": {
       "team": "mets",
-      "ip": 42.0,
+      "ip": 44.0,
       "er": 9,
       "bb": 11,
-      "so": 43,
+      "so": 45,
       "hr": 3
     },
     "jacob webb": {
       "team": "cubs",
-      "ip": 44.1,
+      "ip": 48.2,
       "er": 14,
       "bb": 17,
-      "so": 51,
+      "so": 56,
       "hr": 6
     },
     "ryan weiss": {
@@ -6254,42 +6526,42 @@
     },
     "greg weissert": {
       "team": "red sox",
-      "ip": 41.1,
+      "ip": 43.2,
       "er": 19,
       "bb": 12,
-      "so": 38,
+      "so": 41,
       "hr": 7
     },
     "tyler wells": {
       "team": "orioles",
-      "ip": 51.0,
+      "ip": 54.0,
       "er": 16,
-      "bb": 12,
+      "bb": 13,
       "so": 53,
       "hr": 6
     },
     "garrett whitlock": {
       "team": "red sox",
-      "ip": 38.0,
+      "ip": 41.0,
       "er": 9,
-      "bb": 6,
-      "so": 40,
+      "bb": 7,
+      "so": 43,
       "hr": 3
     },
     "cole wilcox": {
       "team": "mariners",
-      "ip": 22.2,
+      "ip": 25.2,
       "er": 9,
-      "bb": 15,
-      "so": 22,
+      "bb": 16,
+      "so": 25,
       "hr": 1
     },
     "devin williams": {
       "team": "mets",
-      "ip": 34.2,
-      "er": 17,
-      "bb": 19,
-      "so": 48,
+      "ip": 37.2,
+      "er": 18,
+      "bb": 20,
+      "so": 51,
       "hr": 3
     },
     "ben williamson": {
@@ -6302,74 +6574,66 @@
     },
     "cole winn": {
       "team": "rangers",
-      "ip": 35.1,
-      "er": 24,
-      "bb": 10,
-      "so": 36,
+      "ip": 37.1,
+      "er": 26,
+      "bb": 11,
+      "so": 37,
       "hr": 7
     },
     "keaton winn": {
       "team": "giants",
-      "ip": 34.2,
+      "ip": 38.0,
       "er": 13,
-      "bb": 13,
-      "so": 27,
+      "bb": 14,
+      "so": 30,
       "hr": 2
     },
     "grant wolfram": {
       "team": "orioles",
-      "ip": 30.2,
-      "er": 15,
-      "bb": 8,
-      "so": 33,
+      "ip": 33.1,
+      "er": 17,
+      "bb": 11,
+      "so": 36,
       "hr": 1
     },
     "ryan yarbrough": {
       "team": "yankees",
-      "ip": 42.2,
-      "er": 22,
+      "ip": 43.0,
+      "er": 17,
       "bb": 18,
       "so": 30,
       "hr": 3
     },
     "kirby yates": {
       "team": "angels",
-      "ip": 24.2,
-      "er": 10,
-      "bb": 11,
-      "so": 30,
+      "ip": 27.1,
+      "er": 12,
+      "bb": 12,
+      "so": 36,
       "hr": 2
     },
     "eddy yean": {
       "team": "nationals",
-      "ip": 5.1,
-      "er": 0,
+      "ip": 9.1,
+      "er": 2,
       "bb": 2,
-      "so": 4,
-      "hr": 0
-    },
-    "craig yoho": {
-      "team": "brewers",
-      "ip": 19.0,
-      "er": 7,
-      "bb": 8,
-      "so": 18,
-      "hr": 3
+      "so": 6,
+      "hr": 1
     },
     "danny young": {
       "team": "braves",
-      "ip": 7.1,
-      "er": 2,
-      "bb": 8,
-      "so": 6,
+      "ip": 9.2,
+      "er": 5,
+      "bb": 9,
+      "so": 8,
       "hr": 1
     },
     "ryan zeferjahn": {
       "team": "angels",
-      "ip": 49.0,
-      "er": 20,
+      "ip": 51.2,
+      "er": 21,
       "bb": 32,
-      "so": 69,
+      "so": 75,
       "hr": 5
     },
     "angel zerpa": {
@@ -6390,13 +6654,13 @@
     },
     "tyler zuber": {
       "team": "marlins",
-      "ip": 15.1,
+      "ip": 19.1,
       "er": 9,
       "bb": 3,
-      "so": 17,
+      "so": 22,
       "hr": 4
     }
   },
-  "league_pen_cfip": 3.211,
-  "pen_seeded_at": "2026-07-27"
+  "league_pen_cfip": 3.213,
+  "pen_seeded_at": "2026-08-03"
 }
