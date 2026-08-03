@@ -103,6 +103,28 @@ class TestCalibration:
         cal = va._calibration(rows)
         assert cal["consistent_direction"] is False
 
+    def test_ece_is_nonnegative_and_present(self):
+        rows = [_row(1, 0.5, 0.9), _row(0, 0.5, 0.9)] * 25
+        cal = va._calibration(rows)
+        assert "ece_pp" in cal
+        assert cal["ece_pp"] >= 0.0
+
+    def test_ece_zero_when_perfectly_calibrated(self):
+        # 0.5 bucket that hits exactly 50% -> zero calibration error
+        rows = [_row(1, 0.5, 0.5), _row(0, 0.5, 0.5)] * 25
+        cal = va._calibration(rows)
+        assert cal["ece_pp"] < 1e-9
+
+    def test_ece_does_not_cancel_when_signed_bias_does(self):
+        # High-on-favorites + low-on-dogs cancels in signed_bias_pp but NOT in ECE.
+        # 0.9 bucket predicted 0.9, hits 0.5 (over by 40pp); 0.1 bucket predicted 0.1,
+        # hits 0.5 (under by 40pp). Equal populations -> signed ~0, ECE ~40pp.
+        rows = ([_row(1, 0.5, 0.9), _row(0, 0.5, 0.9)] * 25
+                + [_row(1, 0.5, 0.1), _row(0, 0.5, 0.1)] * 25)
+        cal = va._calibration(rows)
+        assert abs(cal["signed_bias_pp"]) < 1.0     # cancels
+        assert cal["ece_pp"] > 30.0                 # does not cancel
+
 
 class TestVerdict:
     def test_insufficient_below_min_n(self):
@@ -141,3 +163,31 @@ class TestVerdict:
         cal = {"signed_bias_pp": 9.0, "consistent_direction": False}
         v = va._verdict(edge, cal, n=100)
         assert v["actionable"] is False
+
+
+class TestCalibrationAlert:
+    def test_none_when_nothing_flagged(self):
+        assert va.format_calibration_alert([]) is None
+
+    def test_message_names_sector_and_fix_command(self):
+        flagged = [{
+            "sector": "wnba", "n": 60,
+            "calibration": {"ece_pp": 5.4, "signed_bias_pp": 6.0},
+            "verdict": {"tag": "calibration_bias", "actionable": True,
+                        "reason": "systematic over-confidence: mean signed error +6.00pp"},
+        }]
+        msg = va.format_calibration_alert(flagged)
+        assert msg is not None
+        assert "wnba" in msg
+        assert "recalibrate --sector wnba" in msg   # actionable fix is in the alert
+        assert "5.4pp" in msg                        # ECE surfaced
+
+    def test_multiple_sectors_each_on_own_line(self):
+        flagged = [
+            {"sector": "wnba", "n": 60, "calibration": {"ece_pp": 5.0},
+             "verdict": {"reason": "over"}},
+            {"sector": "nhl", "n": 40, "calibration": {"ece_pp": 8.0},
+             "verdict": {"reason": "under"}},
+        ]
+        msg = va.format_calibration_alert(flagged)
+        assert msg.count("recalibrate --sector") == 2

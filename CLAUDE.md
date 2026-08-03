@@ -351,7 +351,14 @@ evmax cleanup show --days 7
 
 # Weekly — calibrate models
 evmax cleanup metrics --weeks 4
-evmax cleanup adjust
+evmax cleanup adjust                            # auto-tune sharp_weight on Brier
+# Refit the per-sector isotonic ensemble curve ({sector}_ensemble, the key
+# EnsembleModelAgent._apply_sector_calibration reads) from resolved LIVE rows.
+# In-sample post-hoc recalibration (blended probs were genuine OOS forecasts,
+# curve applied FORWARD). For thin/early sectors prefer the leakage-guarded PIT
+# scripts scripts/fit_<sector>_calibration.py. `value-audit` prints this command
+# for any sector it tags `calibration_bias`.
+evmax cleanup recalibrate [--sector S] [--min-n 50] [--dry-run]
 
 # Weekly — model-blend VALUE audit (Brier vs entry-sharp AND vs Pinnacle close, CLV,
 # calibration) with significance + an actionability verdict per sector. Distinguishes a

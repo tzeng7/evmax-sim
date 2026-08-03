@@ -112,10 +112,17 @@ def _clv_stats(rows: list) -> Optional[dict]:
 def _calibration(rows: list, n_buckets: int = 10) -> dict:
     """Signed calibration error of the model probs, bucketed by predicted value.
 
-    Returns the per-bucket (mean_pred, mean_out, n) and a `signed_bias_pp` =
-    mean over populated buckets of (mean_pred - mean_out) * 100. A large positive
-    bias means the model is systematically OVER-confident (predicts higher than it
-    hits — e.g. chalk bias); negative means under-confident.
+    Returns the per-bucket (mean_pred, mean_out, n) plus two summary metrics:
+
+      - `signed_bias_pp` — mean over populated buckets of (mean_pred - mean_out)
+        * 100. Over- and under-confident buckets CANCEL, so a model that is high
+        on favorites and low on dogs can read ~0. A large positive value means
+        systematic OVER-confidence (e.g. chalk bias); negative under-confidence.
+      - `ece_pp` — population-weighted classwise Expected Calibration Error:
+        Σ_b (n_b/N)·|mean_pred_b - mean_out_b| · 100. Absolute per bucket, so it
+        NEVER cancels. This is the calibration metric the ML-for-sports-betting
+        literature (arXiv:2303.06021) selects models on — it exposes miscalibration
+        that `signed_bias_pp` hides. Lower is better; 0 = perfectly calibrated.
     """
     have = [r for r in rows if r["blended_true_prob"] is not None]
     buckets: list[dict] = []
@@ -131,11 +138,18 @@ def _calibration(rows: list, n_buckets: int = 10) -> dict:
         buckets.append({"lo": lo, "hi": hi, "n": len(b), "mean_pred": mp, "mean_out": mo})
         signed.append((mp - mo) * 100.0)
     signed_bias_pp = (sum(signed) / len(signed)) if signed else 0.0
+    # Classwise-ECE: population-weighted mean ABSOLUTE bucket error (never cancels).
+    total_n = sum(b["n"] for b in buckets)
+    ece_pp = (
+        sum(b["n"] * abs(b["mean_pred"] - b["mean_out"]) for b in buckets) / total_n * 100.0
+        if total_n else 0.0
+    )
     # "monotone" if every populated bucket errs the same direction (consistent bias)
     consistent = bool(signed) and (all(s >= 0 for s in signed) or all(s <= 0 for s in signed))
     return {
         "buckets": buckets,
         "signed_bias_pp": signed_bias_pp,
+        "ece_pp": ece_pp,
         "consistent_direction": consistent,
     }
 
@@ -207,7 +221,7 @@ def compute_value_audit(weeks: int = 12) -> list[dict]:
         edge_vs_sharp: {mean, se, z, ci_lo, ci_hi, n} | None,
         edge_vs_close: {...} | None,
         clv: {n, mean_pp, frac_positive, z} | None,
-        calibration: {signed_bias_pp, consistent_direction, buckets},
+        calibration: {signed_bias_pp, ece_pp, consistent_direction, buckets},
         by_market_type: {moneyline: {...}, spread: {...}, total: {...}},
         verdict: {tag, actionable, reason},
       }
@@ -252,3 +266,24 @@ def compute_value_audit(weeks: int = 12) -> list[dict]:
 
     out.sort(key=lambda x: x["n"], reverse=True)
     return out
+
+
+def format_calibration_alert(flagged: list[dict]) -> Optional[str]:
+    """Build the tripwire alert text for sectors flagged `calibration_bias`.
+
+    Returns None when nothing is flagged (the quiet, no-alert case). Each line
+    names the sector, its bias reason, the ECE, the sample size, and the exact
+    fix command. Pure/formatting only — the selection was already made by
+    `_verdict` (which requires n>=MIN_N, consistent direction, and >=CALIB_BIAS_PP).
+    """
+    if not flagged:
+        return None
+    lines = ["⚠️ evmax calibration tripwire — sector(s) drifting into a real bias:"]
+    for a in flagged:
+        c = a.get("calibration", {})
+        lines.append(
+            f"• {a['sector']}: {a['verdict']['reason']} "
+            f"(ECE {c.get('ece_pp', 0.0):.1f}pp, n={a['n']}) "
+            f"→ evmax cleanup recalibrate --sector {a['sector']}"
+        )
+    return "\n".join(lines)

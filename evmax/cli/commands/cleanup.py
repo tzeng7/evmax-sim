@@ -1460,6 +1460,7 @@ def value_audit(
     table.add_column("vs Close\n(z)", justify="right")
     table.add_column("CLV pp\n(%+)", justify="right")
     table.add_column("Calib\nbias pp", justify="right")
+    table.add_column("Calib\nECE pp", justify="right")
     table.add_column("Verdict", style="bold", no_wrap=False)
 
     def _z(edge):
@@ -1490,6 +1491,7 @@ def value_audit(
             _z(a["edge_vs_sharp"]), _z(a["edge_vs_close"]),
             clv_str,
             f"{a['calibration']['signed_bias_pp']:+.2f}",
+            f"{a['calibration'].get('ece_pp', 0.0):.2f}",
             verdict_str,
         )
     console.print(table)
@@ -1503,6 +1505,125 @@ def value_audit(
     )
     for a in actionable:
         console.print(f"  [yellow]⚑ {a['sector']}[/yellow]: {a['verdict']['reason']}")
+        if a["verdict"]["tag"] == "calibration_bias":
+            console.print(
+                f"     [dim]→ recalibrate: [bold]evmax cleanup recalibrate --sector {a['sector']}[/bold]"
+                f"  (leakage-safe alt: scripts/fit_{a['sector']}_calibration.py)[/dim]"
+            )
+
+
+@app.command("recalibrate")
+def recalibrate(
+    sector: Optional[str] = typer.Option(
+        None, "--sector", help="Restrict the refit to one sector (e.g. 'nba')."
+    ),
+    min_n: int = typer.Option(
+        50, "--min-n", help="Minimum resolved LIVE rows per sector before refitting."
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Report fit quality without writing calibration.json."
+    ),
+) -> None:
+    """Refit per-sector isotonic ensemble calibration from resolved LIVE predictions.
+
+    Fits the ``{sector}_ensemble`` curve the ensemble actually applies at predict
+    time, from resolved ``mode='live'`` rows (deduped to the latest scan/market).
+    This is the closed-loop fix for a `value-audit` sector tagged `calibration_bias`.
+
+    In-sample post-hoc recalibration: the blended probs were genuine out-of-sample
+    forecasts, and the curve is applied FORWARD, so this is not lookahead. For thin
+    or early-season sectors, prefer the walk-forward, promotion-gated point-in-time
+    scripts (scripts/fit_<sector>_calibration.py), which this command does not replace.
+    """
+    from evmax.agents.models.calibration import ModelCalibrator
+
+    report = ModelCalibrator().retrain_all_from_db(
+        min_per_sector=min_n, sector=sector, dry_run=dry_run
+    )
+    if not report:
+        console.print(
+            "[yellow]No resolved live predictions found to recalibrate.[/yellow]"
+        )
+        return
+
+    table = Table(
+        title=("Ensemble recalibration " + ("(DRY RUN — nothing written)" if dry_run else "")),
+        box=box.SIMPLE,
+    )
+    table.add_column("Calibration key", style="bold")
+    table.add_column("N", justify="right")
+    table.add_column("Brier before", justify="right")
+    table.add_column("Brier after", justify="right")
+    table.add_column("Δ/1000", justify="right")
+    table.add_column("Status", no_wrap=False)
+
+    for key, r in report.items():
+        if r["brier_before"] is not None and r["brier_after"] is not None:
+            delta = (r["brier_before"] - r["brier_after"]) * 1000.0
+            dcol = "green" if delta >= 0 else "red"
+            status = ("[green]written[/green]" if r["updated"]
+                      else "[dim]not written (dry run)[/dim]")
+            table.add_row(
+                key, str(r["n"]),
+                f"{r['brier_before']:.4f}", f"{r['brier_after']:.4f}",
+                f"[{dcol}]{delta:+.2f}[/{dcol}]", status,
+            )
+        else:
+            table.add_row(
+                key, str(r["n"]), "—", "—", "—",
+                f"[yellow]skipped[/yellow] — {r.get('reason', '')}",
+            )
+    console.print(table)
+    console.print(
+        "\n[dim]Brier before/after is IN-SAMPLE (fit quality, not a held-out gain). "
+        "The curve is applied to FUTURE predictions via "
+        "EnsembleModelAgent._apply_sector_calibration.[/dim]"
+    )
+
+
+@app.command("calibration-alert")
+def calibration_alert(
+    weeks: int = typer.Option(8, "--weeks", "-w", help="Look-back window in weeks."),
+    notify: bool = typer.Option(
+        True, "--notify/--no-notify",
+        help="Send a Slack/Discord alert when a sector is flagged (no-op if no webhook).",
+    ),
+) -> None:
+    """Tripwire: alert ONLY when a sector shows a real, consistent calibration bias.
+
+    Runs the value-audit and fires an alert for any sector tagged `calibration_bias`
+    — which already requires n>=30 resolved rows, a consistent over/under-confidence
+    direction, and >=4pp mean signed error. Stays silent otherwise, so it is safe to
+    run unattended (launchd com.evmax.calibration-alert). Each flagged sector's fix is
+    `evmax cleanup recalibrate --sector <sector>`.
+    """
+    from evmax.agents.cleanup.value_audit import (
+        compute_value_audit, format_calibration_alert,
+    )
+
+    audit = compute_value_audit(weeks=weeks)
+    flagged = [a for a in audit if a["verdict"]["tag"] == "calibration_bias"]
+    msg = format_calibration_alert(flagged)
+
+    if msg is None:
+        console.print(
+            f"[green]No calibration bias across {len(audit)} sector(s) "
+            f"in the last {weeks}w — nothing to alert.[/green]"
+        )
+        return
+
+    console.print(f"[yellow]{msg}[/yellow]")
+    if notify:
+        from evmax.notifications import Notifier
+        notifier = Notifier.from_settings()
+        if notifier.is_configured():
+            notifier.send_text(msg)
+            console.print("[dim]Alert sent to configured webhook(s).[/dim]")
+        else:
+            console.print(
+                "[dim]No webhook configured (SLACK_WEBHOOK_URL / DISCORD_WEBHOOK_URL) "
+                "— printed only.[/dim]"
+            )
 
 
 @app.command("dedup-ev")

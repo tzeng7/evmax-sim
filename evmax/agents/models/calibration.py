@@ -13,8 +13,15 @@ Usage:
   calibrated_prob = calibrator.calibrate("elo", raw_prob)
 
 Retraining:
-  Call calibrator.retrain(model_name, probs, outcomes) with historical data.
-  Or use `evmax cleanup adjust` which retrains all models.
+  Call calibrator.retrain(model_name, probs, outcomes) with historical data, or
+  `calibrator.retrain_all_from_db()` to refit every sector's `{sector}_ensemble`
+  curve from resolved live predictions. The CLI entry point is
+  `evmax cleanup recalibrate [--sector S] [--dry-run]`. For thin/early sectors,
+  prefer the leakage-guarded point-in-time scripts (scripts/fit_<sector>_calibration.py).
+
+  NOTE: the applied key MUST be `{sector}_ensemble` — the exact key
+  EnsembleModelAgent._apply_sector_calibration looks up. A curve stored under any
+  other key (e.g. a global "ensemble") is loaded but never applied.
 """
 
 from __future__ import annotations
@@ -70,27 +77,21 @@ class ModelCalibrator:
         prob = max(x_breaks[0], min(x_breaks[-1], prob))
         return float(np.interp(prob, x_breaks, y_breaks))
 
-    def retrain(self, model_name: str, probs: list[float], outcomes: list[int]) -> bool:
-        """Retrain calibration for a model from historical predictions.
+    def _fit(self, probs: list[float], outcomes: list[int]) -> Optional[dict]:
+        """Fit an isotonic curve and return its serialized form, or None.
 
-        Args:
-            model_name: Model agent name (e.g. "elo", "form", "efficiency")
-            probs: List of predicted probabilities
-            outcomes: List of actual outcomes (1=correct, 0=incorrect)
-
-        Returns:
-            True if calibration was updated, False if insufficient data.
+        Pure: does NOT mutate state or touch disk. Returns None when there are
+        fewer than MIN_SAMPLES points or sklearn is unavailable. Used by both
+        ``retrain`` (which persists) and the ``dry_run`` path of
+        ``retrain_all_from_db`` (which does not).
         """
         if len(probs) < MIN_SAMPLES:
-            logger.info("calibration_skip", model=model_name, n=len(probs),
-                        reason=f"need {MIN_SAMPLES}+ samples")
-            return False
-
+            return None
         try:
             from sklearn.isotonic import IsotonicRegression
         except ImportError:
             logger.warning("calibration_skip", reason="sklearn not installed")
-            return False
+            return None
 
         X = np.array(probs)
         y = np.array(outcomes, dtype=float)
@@ -102,41 +103,91 @@ class ModelCalibrator:
         x_breaks = iso.X_thresholds_.tolist()
         y_breaks = iso.y_thresholds_.tolist()
 
-        # Compute before/after Brier score
+        # Before/after Brier on the training rows (in-sample; report only).
         brier_before = float(np.mean((X - y) ** 2))
         calibrated = np.interp(X, x_breaks, y_breaks)
         brier_after = float(np.mean((calibrated - y) ** 2))
 
-        self._calibrations[model_name] = {
+        return {
             "x": [round(v, 5) for v in x_breaks],
             "y": [round(v, 5) for v in y_breaks],
             "n_samples": len(probs),
             "brier_before": round(brier_before, 5),
             "brier_after": round(brier_after, 5),
         }
+
+    def retrain(self, model_name: str, probs: list[float], outcomes: list[int]) -> bool:
+        """Retrain calibration for a model from historical predictions.
+
+        Args:
+            model_name: Calibration key. For the game ensemble this MUST be
+                ``"{sector}_ensemble"`` — the exact key
+                EnsembleModelAgent._apply_sector_calibration looks up — or the
+                fitted curve is stored but never applied.
+            probs: List of predicted probabilities
+            outcomes: List of actual outcomes (1=correct, 0=incorrect)
+
+        Returns:
+            True if calibration was updated, False if insufficient data.
+        """
+        fit = self._fit(probs, outcomes)
+        if fit is None:
+            logger.info("calibration_skip", model=model_name, n=len(probs),
+                        reason=f"need {MIN_SAMPLES}+ samples")
+            return False
+
+        self._calibrations[model_name] = fit
         self._save()
 
         logger.info(
             "calibration_trained",
             model=model_name,
-            n=len(probs),
-            breakpoints=len(x_breaks),
-            brier_before=round(brier_before, 4),
-            brier_after=round(brier_after, 4),
-            improvement=round(brier_before - brier_after, 4),
+            n=fit["n_samples"],
+            breakpoints=len(fit["x"]),
+            brier_before=fit["brier_before"],
+            brier_after=fit["brier_after"],
+            improvement=round(fit["brier_before"] - fit["brier_after"], 4),
         )
         return True
 
-    def retrain_all_from_db(self) -> dict[str, bool]:
-        """Retrain calibration for all models from predictions.db.
+    def retrain_all_from_db(
+        self,
+        *,
+        min_per_sector: int = MIN_SAMPLES,
+        sector: Optional[str] = None,
+        dry_run: bool = False,
+        db_path: Optional[Path] = None,
+    ) -> dict[str, dict]:
+        """Refit PER-SECTOR ensemble calibration from resolved LIVE predictions.
 
-        Requires resolved predictions with per-model probability data stored
-        in the ensemble's per_model field. Falls back to blended_true_prob
-        as a single "ensemble" calibration if per-model data isn't available.
+        Fits one isotonic curve per sector under the key ``"{sector}_ensemble"`` —
+        the SAME key EnsembleModelAgent._apply_sector_calibration reads — so a
+        refit here is actually applied to future predictions. (The previous
+        implementation trained a single global ``"ensemble"`` key that the
+        ensemble never looks up, so it was a silent no-op.)
+
+        Each ``(blended_true_prob, outcome)`` pair is a genuine out-of-sample
+        forecast: the blend was computed at scan time from past-only model
+        state. Fitting a monotone recalibration on resolved rows and applying it
+        FORWARD is standard post-hoc recalibration, not lookahead. For thin or
+        early-season sectors, prefer the leakage-guarded point-in-time scripts
+        (``scripts/fit_{sector}_calibration.py``), which add a walk-forward split
+        and a promotion gate this in-sample refit does not.
+
+        Rows are deduped to the latest scan per market and restricted to
+        ``mode='live'`` and non-void markets.
+
+        Returns one report per sector key::
+
+            {"{sector}_ensemble": {"updated": bool, "n": int,
+                                   "brier_before": float|None,
+                                   "brier_after": float|None,
+                                   "reason": str|None}}
         """
         import sqlite3
 
-        db_path = Path(__file__).resolve().parents[3] / "data" / "predictions.db"
+        if db_path is None:
+            db_path = Path(__file__).resolve().parents[3] / "data" / "predictions.db"
         if not db_path.exists():
             logger.warning("calibration_skip", reason="predictions.db not found")
             return {}
@@ -144,27 +195,66 @@ class ModelCalibrator:
         db = sqlite3.connect(str(db_path))
         db.row_factory = sqlite3.Row
 
-        rows = db.execute("""
-            SELECT p.blended_true_prob, p.sharp_true_prob, o.outcome
-            FROM ev_predictions p
-            JOIN ev_outcomes o ON p.market_id = o.market_id
+        query = """
+            SELECT LOWER(p.sector) AS sector, p.blended_true_prob AS prob, o.outcome AS outcome
+            FROM ev_outcomes o
+            JOIN ev_predictions p ON o.market_id = p.market_id
+            INNER JOIN (
+                SELECT market_id, MAX(scan_date) AS latest_scan
+                FROM ev_predictions WHERE voided = 0 GROUP BY market_id
+            ) latest ON p.market_id = latest.market_id
+                    AND p.scan_date = latest.latest_scan
             WHERE o.outcome IS NOT NULL
-        """).fetchall()
-
-        results = {}
-
-        if len(rows) >= MIN_SAMPLES:
-            # Calibrate the ensemble output
-            probs = [r["blended_true_prob"] for r in rows]
-            outcomes = [r["outcome"] for r in rows]
-            results["ensemble"] = self.retrain("ensemble", probs, outcomes)
-
-            # Also calibrate sharp as a baseline comparison
-            sharp_probs = [r["sharp_true_prob"] for r in rows]
-            results["sharp"] = self.retrain("sharp", sharp_probs, outcomes)
-
+              AND p.blended_true_prob IS NOT NULL
+              AND p.mode = 'live'
+        """
+        params: tuple = ()
+        if sector:
+            query += " AND LOWER(p.sector) = ?"
+            params = (sector.lower(),)
+        rows = db.execute(query, params).fetchall()
         db.close()
-        return results
+
+        by_sector: dict[str, tuple[list[float], list[int]]] = {}
+        for r in rows:
+            sec = r["sector"] or ""
+            if not sec:
+                continue
+            probs, outs = by_sector.setdefault(sec, ([], []))
+            probs.append(r["prob"])
+            outs.append(int(r["outcome"]))
+
+        report: dict[str, dict] = {}
+        for sec, (probs, outcomes) in sorted(by_sector.items()):
+            key = f"{sec}_ensemble"
+            if len(probs) < min_per_sector:
+                report[key] = {
+                    "updated": False, "n": len(probs),
+                    "brier_before": None, "brier_after": None,
+                    "reason": f"need {min_per_sector}+ resolved live rows",
+                }
+                continue
+            fit = self._fit(probs, outcomes)
+            if fit is None:
+                report[key] = {
+                    "updated": False, "n": len(probs),
+                    "brier_before": None, "brier_after": None,
+                    "reason": "fit failed (sklearn unavailable?)",
+                }
+                continue
+            if not dry_run:
+                self._calibrations[key] = fit
+                self._save()
+            report[key] = {
+                "updated": not dry_run, "n": fit["n_samples"],
+                "brier_before": fit["brier_before"], "brier_after": fit["brier_after"],
+                "reason": None,
+            }
+            logger.info(
+                "calibration_refit", key=key, n=fit["n_samples"], dry_run=dry_run,
+                improvement=round(fit["brier_before"] - fit["brier_after"], 4),
+            )
+        return report
 
     def summary(self) -> dict[str, dict]:
         """Return calibration summary for each model."""
