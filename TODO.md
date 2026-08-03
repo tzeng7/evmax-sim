@@ -149,11 +149,14 @@ _(BUG-4, BUG-5, and BUG-9 shipped — see "Recently Shipped" above.)_
 ### ~~MODEL-1 Tennis Surface Detection~~ ✅ SHIPPED (PR #5)
 Shipped via the Kalshi `event.product_metadata.competition` join — see Recently Shipped above.
 
-### MODEL-2 NCAAW and NHL Have No Calibrated K-Factor / Home Advantage [P2] — NCAAW half ✅ SHIPPED 2026-07-11
+### MODEL-2 Uncalibrated Elo K-Factor / Home Advantage [P2] — NCAAW ✅ 2026-07-11, NHL ✅ 2026-07-18, **`ncaaf` still open**
 **File:** `evmax/agents/models/elo_agent.py`
-`K_FACTORS` and `HOME_ADVANTAGE_ELO` have entries for `nba`, `nfl`, `ncaab`, `soccer`, `lol`, `cs2`, `wnba`, and now `ncaaw` (K=35, home_adv=80 Elo — swept on the 2024-25 walk-forward, validated on 2025-26 via `scripts/backtest_ncaab_efficiency.py --league womens`; elo standalone holdout Brier 0.1767 vs 0.1873 on the old uncalibrated defaults; see `docs/ncaab-blend-eval.md`). NHL is the only remaining sector silently using NBA defaults.
+`K_FACTORS` and `HOME_ADVANTAGE_ELO` have entries for `nba`, `nfl`, `ncaab`, `soccer`, `lol`, `cs2`, `wnba`, `ncaaw` (K=35, home_adv=80 Elo — swept on the 2024-25 walk-forward, validated on 2025-26 via `scripts/backtest_ncaab_efficiency.py --league womens`; elo standalone holdout Brier 0.1767 vs 0.1873 on the old uncalibrated defaults; see `docs/ncaab-blend-eval.md`) and `nhl`.
+**`ncaaf` has NO entry in either dict** (verified 2026-08-03: zero occurrences in `elo_agent.py`), so it silently takes the fallbacks at `elo_agent.py:640-641` — `K_FACTORS.get(sector, 20.0)` = 20.0, identical to NBA's, and `HOME_ADVANTAGE_ELO.get(sector, 0.0)` = **zero home-field edge for college football**. That matters because `ncaaf` carries generic elo at weight 0.25 (`ensemble_agent.py`) — this is the "CFB-calibrated generic Elo" that `data/categories.yaml:96` lists as part of PHASE 2.
 - ~~Add calibrated values for NCAAW~~ ✅ K=35 / home_adv=80 (higher K than NCAAB, as predicted)
-- Add NHL: K=16, home_adv=0.04 (puck-line markets exist)
+- ~~Add NHL: K=16, home_adv=0.04 (puck-line markets exist)~~ ✅ 2026-07-18 landed **K=6 / home_adv=48**, not the guessed K=16/0.04 — swept via `scripts/backtest_nhl_elo.py` over {6,10,14,20,25} × home_adv {0,20,32,48,60}, ranked on 2023-24 and confirmed on 2024-25 (`elo_agent.py:67,133`)
+- OPEN: add calibrated `ncaaf` K + home_adv (CFB home edge is real and large — a 0.0 home bonus is certainly wrong)
+- OPEN (blend, not calibration): `SECTOR_WEIGHT_OVERRIDES["nhl"]` still holds `elo: 0.0`. The calibration precondition is met, so raising it is now a walk-forward blend decision.
 
 ### MODEL-3 Form Model Draw Normalization Edge Case [P2]
 **File:** `evmax/agents/models/form_agent.py:168-176`
@@ -717,8 +720,8 @@ Currently `evmax cleanup show` displays game-level bets only. Props are logged t
 
 ## Section 7 — Sector Gaps
 
-### SECTOR-1 Hockey (NHL) Elo Calibration [P2]
-See MODEL-2 above. NHL is in the registry and Kalshi series but Elo uses NBA defaults. (NHL outcome resolution is fixed in PR #1.)
+### ~~SECTOR-1 Hockey (NHL) Elo Calibration~~ ✅ SHIPPED 2026-07-18
+See MODEL-2 above — NHL Elo runs calibrated `K=6` / `home_adv=48` (`elo_agent.py:67,133`), and `elo_state.json['nhl']` is seeded. What remains is a blend decision, not a calibration: `SECTOR_WEIGHT_OVERRIDES["nhl"]` still holds `elo: 0.0`. (NHL outcome resolution is fixed in PR #1.)
 
 ### ~~SECTOR-2 NCAAW Elo Calibration~~ ✅ SHIPPED 2026-07-11
 Shipped with the NCAAB/NCAAW opponent-adjusted efficiency stack (K=35 / home_adv=80; see MODEL-2 above and `docs/ncaab-blend-eval.md`).
@@ -740,7 +743,7 @@ Solved by reading Kalshi's `event.product_metadata.competition` field instead of
 | P1 | MODEL-11 WNBA shadow validation + promote to live | Blocks 2026 WNBA live betting; walk-forward passes but needs live-price confirmation |
 | P1 | MODEL-14 NBA props post-calibration validation | Just landed — need 2-3 wks of live data to confirm Path A behaviour holds |
 | P1 | PROPS-1 NFL props backend | Merged into MODEL-9 (kalshi.py typo fix ships with the shadow PR) |
-| P2 | MODEL-2 NHL Elo calibration | Uncalibrated K + home adv (WNBA + NCAAW now calibrated; NHL is the last holdout) |
+| P2 | MODEL-2 Elo calibration — NHL ✅ SHIPPED 2026-07-18, `ncaaf` still open | NHL now K=6 / home_adv=48. `ncaaf` has no entry in either dict and falls through to K=20 / home_adv=**0.0** while carrying elo at 0.25. Separately, the `nhl` ensemble `elo: 0.0` weight is an open blend decision |
 | P2 | MODEL-6 Tennis indoor court modifier | Waits on live indoor-event data; `is_indoor` seam already in MODEL-1 |
 | P2 | MODEL-13 WNBA player_impact agent | WNBA star-out impact is ~8-10pt swing; bigger gain than MODEL-12. Needs data-source decision first. |
 | P2 | TEST-3 PinnacleGuestClient tests | Only live sharp source untested |
