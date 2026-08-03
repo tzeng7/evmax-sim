@@ -163,3 +163,31 @@ class TestVerdict:
         cal = {"signed_bias_pp": 9.0, "consistent_direction": False}
         v = va._verdict(edge, cal, n=100)
         assert v["actionable"] is False
+
+
+class TestCalibrationAlert:
+    def test_none_when_nothing_flagged(self):
+        assert va.format_calibration_alert([]) is None
+
+    def test_message_names_sector_and_fix_command(self):
+        flagged = [{
+            "sector": "wnba", "n": 60,
+            "calibration": {"ece_pp": 5.4, "signed_bias_pp": 6.0},
+            "verdict": {"tag": "calibration_bias", "actionable": True,
+                        "reason": "systematic over-confidence: mean signed error +6.00pp"},
+        }]
+        msg = va.format_calibration_alert(flagged)
+        assert msg is not None
+        assert "wnba" in msg
+        assert "recalibrate --sector wnba" in msg   # actionable fix is in the alert
+        assert "5.4pp" in msg                        # ECE surfaced
+
+    def test_multiple_sectors_each_on_own_line(self):
+        flagged = [
+            {"sector": "wnba", "n": 60, "calibration": {"ece_pp": 5.0},
+             "verdict": {"reason": "over"}},
+            {"sector": "nhl", "n": 40, "calibration": {"ece_pp": 8.0},
+             "verdict": {"reason": "under"}},
+        ]
+        msg = va.format_calibration_alert(flagged)
+        assert msg.count("recalibrate --sector") == 2

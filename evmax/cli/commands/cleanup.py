@@ -1581,6 +1581,51 @@ def recalibrate(
     )
 
 
+@app.command("calibration-alert")
+def calibration_alert(
+    weeks: int = typer.Option(8, "--weeks", "-w", help="Look-back window in weeks."),
+    notify: bool = typer.Option(
+        True, "--notify/--no-notify",
+        help="Send a Slack/Discord alert when a sector is flagged (no-op if no webhook).",
+    ),
+) -> None:
+    """Tripwire: alert ONLY when a sector shows a real, consistent calibration bias.
+
+    Runs the value-audit and fires an alert for any sector tagged `calibration_bias`
+    — which already requires n>=30 resolved rows, a consistent over/under-confidence
+    direction, and >=4pp mean signed error. Stays silent otherwise, so it is safe to
+    run unattended (launchd com.evmax.calibration-alert). Each flagged sector's fix is
+    `evmax cleanup recalibrate --sector <sector>`.
+    """
+    from evmax.agents.cleanup.value_audit import (
+        compute_value_audit, format_calibration_alert,
+    )
+
+    audit = compute_value_audit(weeks=weeks)
+    flagged = [a for a in audit if a["verdict"]["tag"] == "calibration_bias"]
+    msg = format_calibration_alert(flagged)
+
+    if msg is None:
+        console.print(
+            f"[green]No calibration bias across {len(audit)} sector(s) "
+            f"in the last {weeks}w — nothing to alert.[/green]"
+        )
+        return
+
+    console.print(f"[yellow]{msg}[/yellow]")
+    if notify:
+        from evmax.notifications import Notifier
+        notifier = Notifier.from_settings()
+        if notifier.is_configured():
+            notifier.send_text(msg)
+            console.print("[dim]Alert sent to configured webhook(s).[/dim]")
+        else:
+            console.print(
+                "[dim]No webhook configured (SLACK_WEBHOOK_URL / DISCORD_WEBHOOK_URL) "
+                "— printed only.[/dim]"
+            )
+
+
 @app.command("dedup-ev")
 def dedup_ev(
     dry_run: bool = typer.Option(

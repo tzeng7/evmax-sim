@@ -266,3 +266,24 @@ def compute_value_audit(weeks: int = 12) -> list[dict]:
 
     out.sort(key=lambda x: x["n"], reverse=True)
     return out
+
+
+def format_calibration_alert(flagged: list[dict]) -> Optional[str]:
+    """Build the tripwire alert text for sectors flagged `calibration_bias`.
+
+    Returns None when nothing is flagged (the quiet, no-alert case). Each line
+    names the sector, its bias reason, the ECE, the sample size, and the exact
+    fix command. Pure/formatting only — the selection was already made by
+    `_verdict` (which requires n>=MIN_N, consistent direction, and >=CALIB_BIAS_PP).
+    """
+    if not flagged:
+        return None
+    lines = ["⚠️ evmax calibration tripwire — sector(s) drifting into a real bias:"]
+    for a in flagged:
+        c = a.get("calibration", {})
+        lines.append(
+            f"• {a['sector']}: {a['verdict']['reason']} "
+            f"(ECE {c.get('ece_pp', 0.0):.1f}pp, n={a['n']}) "
+            f"→ evmax cleanup recalibrate --sector {a['sector']}"
+        )
+    return "\n".join(lines)
