@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>evmax — Model Blend Design &amp; Sector Statistics</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:        #f9f9f7;
+    --surface:     #fcfcfb;
+    --ink:         #0b0b0b;
+    --ink-2:       #52514e;
+    --ink-muted:   #898781;
+    --grid:        #e1e0d9;
+    --baseline:    #c3c2b7;
+    --border:      rgba(11,11,11,0.10);
+    --good:        #006300;
+    --bad:         #d03b3b;
+    --warn-bg:     #fdf6e3;
+    --sharp:       #898781;   /* neutral — the sharp anchor is not a model */
+    --s1: #2a78d6;  /* blue    */
+    --s2: #eb6834;  /* orange  */
+    --s3: #1baf7a;  /* aqua    */
+    --s4: #eda100;  /* yellow  */
+    --s5: #e87ba4;  /* magenta */
+    --s6: #008300;  /* green   */
+    --mode-live:   #0ca30c;
+    --mode-shadow: #eda100;
+    --mode-dis:    #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page:        #0d0d0d;
+      --surface:     #1a1a19;
+      --ink:         #ffffff;
+      --ink-2:       #c3c2b7;
+      --ink-muted:   #898781;
+      --grid:        #2c2c2a;
+      --baseline:    #383835;
+      --border:      rgba(255,255,255,0.10);
+      --good:        #0ca30c;
+      --bad:         #e66767;
+      --warn-bg:     #2a2416;
+      --s1: #3987e5;
+      --s2: #d95926;
+      --s3: #199e70;
+      --s4: #c98500;
+      --s5: #d55181;
+      --s6: #008300;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  main { max-width: 980px; margin: 0 auto; padding: 32px 20px 96px; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 4px; }
+  h2 { font-size: 22px; margin: 48px 0 12px; padding-top: 12px; border-top: 1px solid var(--grid); }
+  h3 { font-size: 17px; margin: 28px 0 8px; }
+  h4 { font-size: 15px; margin: 20px 0 6px; }
+  p  { margin: 8px 0; }
+  .subtitle { color: var(--ink-2); margin-bottom: 24px; }
+  a { color: var(--s1); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, .mono {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88em;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.5px 4px;
+  }
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  pre code { border: 0; padding: 0; background: transparent; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0;
+    font-size: 13.5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .table-wrap { overflow-x: auto; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  th { color: var(--ink-2); font-weight: 600; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.03em; }
+  tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    columns: 2;
+    column-gap: 32px;
+    font-size: 14px;
+  }
+  .toc ol { margin: 0; padding-left: 18px; }
+  .toc li { margin: 3px 0; break-inside: avoid; }
+  @media (max-width: 640px) { .toc { columns: 1; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin: 18px 0;
+  }
+  .card h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 2px 10px;
+    color: #fff;
+  }
+  .badge.live   { background: var(--mode-live); }
+  .badge.shadow { background: var(--mode-shadow); color: #1a1a19; }
+  .badge.note   { background: var(--ink-muted); }
+
+  .tiles { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 14px; }
+  .tile {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    min-width: 120px;
+    background: var(--page);
+  }
+  .tile .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-muted); }
+  .tile .v { font-size: 18px; font-weight: 650; margin-top: 1px; }
+  .tile .v small { font-size: 12px; font-weight: 400; color: var(--ink-2); }
+
+  /* Blend composition bar: sharp anchor + confidence-nominal model shares */
+  .bar {
+    display: flex;
+    height: 26px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--grid);
+    gap: 2px;             /* 2px surface gap between fills */
+    padding: 0;
+    margin: 12px 0 6px;
+  }
+  .bar .seg { display: block; min-width: 3px; height: 100%; }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    margin-bottom: 8px;
+  }
+  .legend .item { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .chip { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+  .legend b { color: var(--ink); font-weight: 600; }
+  .barnote { font-size: 12px; color: var(--ink-muted); margin: 2px 0 10px; }
+
+  .callout {
+    border-left: 3px solid var(--s4);
+    background: var(--warn-bg);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  .good { color: var(--good); font-weight: 600; }
+  .bad  { color: var(--bad);  font-weight: 600; }
+  ul, ol { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--grid); color: var(--ink-muted); font-size: 12.5px; }
+  .formula {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    margin: 12px 0;
+    overflow-x: auto;
+    white-space: pre;
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>evmax — Model Blend Design &amp; Sector Statistics</h1>
+<p class="subtitle">
+  Design document for the per-sector ensemble blends: how a blended probability is computed,
+  which models carry weight in each sector, the validation statistics behind every weight,
+  and the gates that decide whether a blend's output can become a live play.
+  All weights and constants below were verified against the code on
+  <b>2026&#8209;08&#8209;02</b> (commit <code>afc35d4</code>); each claim cites its source file.
+</p>
+
+<nav class="toc" aria-label="Table of contents">
+<ol>
+  <li><a href="#mechanism">Blend mechanism</a></li>
+  <li><a href="#sharp-weight">Sharp-weight resolution &amp; auto-tune</a></li>
+  <li><a href="#disagreement">Disagreement ramp</a></li>
+  <li><a href="#gates">Live-play gates</a></li>
+  <li><a href="#sectors">Sector-by-sector blends</a>
+    <ol>
+      <li><a href="#nba">NBA</a> · <a href="#wnba">WNBA</a></li>
+      <li><a href="#ncaab">NCAAB</a> · <a href="#ncaaw">NCAAW</a></li>
+      <li><a href="#nfl">NFL</a> · <a href="#ncaaf">NCAAF</a></li>
+      <li><a href="#soccer">Soccer</a> · <a href="#worldcup">World Cup</a></li>
+      <li><a href="#tennis">Tennis</a> · <a href="#baseball">Baseball</a></li>
+      <li><a href="#nhl">NHL</a> · <a href="#ufc">UFC</a> · <a href="#esports">LoL / CS2</a></li>
+    </ol>
+  </li>
+  <li><a href="#props">Player-prop categories</a></li>
+  <li><a href="#elo-constants">Generic Elo constants per sector</a></li>
+  <li><a href="#guards">Cross-cutting freshness &amp; contamination guards</a></li>
+  <li><a href="#validation">Validation &amp; promotion statistics</a></li>
+  <li><a href="#rejected">Rejected-experiment ledger</a></li>
+  <li><a href="#change-rules">Change-management rules</a></li>
+</ol>
+</nav>
+
+<!-- ================================================================ -->
+<h2 id="mechanism">1. Blend mechanism</h2>
+
+<p>
+  Every game-level probability evmax prices comes from one function:
+  <code>EnsembleModelAgent</code> in
+  <code>evmax/agents/models/ensemble_agent.py</code>. The blend combines two sides:
+  a <b>model side</b> (the sector's statistical agents) and a <b>sharp side</b>
+  (the devigged Pinnacle line). The sharp side is the anchor; the model side is the
+  deviation-generating voice.
+</p>
+
+<h3>Execution order</h3>
+<ol>
+  <li><b>Each model agent predicts independently.</b> An agent returns
+      <code>(true_prob_a, true_prob_b, true_prob_draw, confidence, sample_size, notes)</code>
+      or <code>None</code> when it has no basis to predict (missing state, wrong sector,
+      staleness guard).</li>
+  <li><b>Confidence gate.</b> A prediction with <code>confidence &le; 0.45</code> is
+      excluded from the blend and recorded in the why-not diagnostics as
+      <i>gated</i> (<code>ensemble_agent.py:598</code>). The gate value is 0.45 for
+      every sector and every model.</li>
+  <li><b>Effective weight.</b> Each surviving prediction gets
+      <code>eff_w = w &times; confidence</code>, where <code>w</code> is the sector's
+      entry in <code>SECTOR_WEIGHT_OVERRIDES</code> (falling back to the model's class
+      weight when the sector has no override). A model whose effective weight is
+      &le; 0 also drops out — and drops out of <code>model_sources</code>, which
+      matters for the tennis gate (see <a href="#gates">§4</a>).</li>
+  <li><b>Model-side weighted average.</b> Probabilities are averaged with
+      <code>eff_w</code> weights and renormalized by the sum of effective weights.
+      Weights therefore do not need to sum to 1 (soccer's sum is 0.90; NHL's is 0.45 —
+      renormalization makes only the ratios matter).</li>
+  <li><b>Model-side isotonic calibration.</b> <code>ModelCalibrator</code> applies a
+      per-sector isotonic correction keyed <code>"{sector}_ensemble"</code>
+      <em>before</em> sharp blending. Sharp lines are already well calibrated;
+      calibrating after the sharp mix would double-correct
+      (<code>ensemble_agent.py:654</code>). Sectors without a fitted calibration get
+      the identity map.</li>
+  <li><b>Sharp blend.</b> The final probability is a convex combination:</li>
+</ol>
+
+<div class="formula">blended = sw · sharp_devigged  +  (1 − sw) · calibrated_model_avg
+
+where  sw = disagreement_ramp( base_sharp_weight, |model − sharp| gap )</div>
+
+<ol start="7">
+  <li><b>Disagreement ramp.</b> When the model side visibly disagrees with sharp,
+      <code>sw</code> ramps up toward a cap — the blend defers to the side that
+      walk-forwards show is usually right (<a href="#disagreement">§3</a>).</li>
+  <li><b>Adjustment layers.</b> Injury (&minus;10% per-team cap), late-news, rest and
+      playoff adjustments apply on top of the blend. These append tokens to
+      <code>model_sources</code> but are <em>not</em> counted as model signal by the
+      gates (<a href="#gates">§4</a>).</li>
+  <li><b>Diagnostics.</b> Every event carries a fired / gated / missing classification
+      per configured model (<code>BlendedPrediction.diagnostics</code>), persisted to
+      <code>ev_predictions.model_diagnostics</code> and inspectable via
+      <code>evmax cleanup shadow show --why</code>.</li>
+</ol>
+
+<p>
+  Degenerate cases: with <b>no models</b> the blend passes sharp through unchanged
+  (this is what the sharp-passthrough detector hunts for); with <b>no sharp</b> the
+  calibrated model average is used alone.
+</p>
+
+<!-- ================================================================ -->
+<h2 id="sharp-weight">2. Sharp-weight resolution &amp; auto-tune</h2>
+
+<p>The base sharp weight is resolved with three levels of precedence (highest wins):</p>
+<ol>
+  <li><b>Per-event override</b> — soccer only: <code>sharp_weight_for_ticker()</code>
+      maps the Kalshi series prefix to a league tier
+      (<code>data/soccer_league_tiers.yaml</code>): top-5 European leagues + UCL/UEL
+      = <b>0.85</b>, MLS and unmatched series = <b>0.40</b>.</li>
+  <li><b>Per-sector config</b> — <code>sharp_weight_by_sector</code> in
+      <code>data/model_config.json</code>. Current values:
+      nba <b>0.70</b>, tennis <b>0.85</b>, baseball <b>0.88</b>, soccer <b>0.88</b>
+      (superseded per-event by the tier map), ufc <b>0.88</b>, lol <b>1.00</b>,
+      cs2 <b>1.00</b>.</li>
+  <li><b>Global default</b> — <code>sharp_weight = 0.85</code>. Sectors with no
+      per-sector entry (nfl, ncaab, ncaaw, ncaaf, worldcup, wnba, nhl) use this.</li>
+</ol>
+
+<p>
+  <code>evmax cleanup adjust</code> auto-tunes the global weight weekly from the
+  Brier comparison of blended vs sharp probabilities on resolved outcomes, bounded to
+  <b>[0.40, 0.95]</b>. It has never needed to move off 0.85:
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Adjusted</th><th class="num">n</th><th class="num">Brier (model)</th><th class="num">Brier (sharp)</th><th class="num">Weight old &rarr; new</th></tr></thead>
+  <tbody>
+    <tr><td>2026-03-16</td><td class="num">146</td><td class="num">0.2191</td><td class="num">0.2225</td><td class="num">0.85 &rarr; 0.85</td></tr>
+    <tr><td>2026-05-07</td><td class="num">254</td><td class="num">0.2248</td><td class="num">0.2250</td><td class="num">0.85 &rarr; 0.85</td></tr>
+    <tr><td>2026-05-30</td><td class="num">180</td><td class="num">0.1864</td><td class="num">0.1855</td><td class="num">0.85 &rarr; 0.85</td></tr>
+    <tr><td>2026-07-21</td><td class="num">159</td><td class="num">0.2122</td><td class="num">0.2160</td><td class="num">0.85 &rarr; 0.85</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="barnote">Source: <code>data/model_config.json</code> <code>brier_history</code>. The blend has beaten the raw sharp line in 3 of 4 audit windows — small margins, consistent sign.</p>
+
+<div class="callout">
+  <b>Design principle:</b> the edge evmax harvests is mostly <em>Kalshi-vs-Pinnacle price
+  deviation</em>, not out-forecasting Pinnacle. High sharp weights (0.70–1.00) are
+  deliberate: the model side exists to (a) catch the cases where the sharp snapshot is
+  stale, (b) regularize, and (c) prove independent signal exists before a sector is
+  allowed to bet live (the anti-passthrough gates in §4).
+</div>
+
+<!-- ================================================================ -->
+<h2 id="disagreement">3. Disagreement ramp</h2>
+
+<p>
+  <code>_disagreement_sharp_weight()</code> boosts the sharp weight when the model
+  side and sharp pull apart. Mechanism: compute the max per-leg
+  <code>|model − sharp|</code> gap; below <code>threshold</code> the base weight is
+  unchanged; above it, linearly ramp toward <code>cap</code>, saturating at
+  <code>saturate_at</code>.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Scope</th><th class="num">Threshold</th><th class="num">Saturate at</th><th class="num">Cap</th><th>Rationale</th></tr></thead>
+  <tbody>
+    <tr><td>Global default</td><td class="num">0.10</td><td class="num">0.30</td><td class="num">0.95</td><td>Soccer walk-forward (n=2606): on argmax disagreements, sharp right 41.6% vs model 30.6%.</td></tr>
+    <tr><td>Soccer override</td><td class="num">0.04</td><td class="num">0.10</td><td class="num">1.00</td><td>See bucket table below — sharp is provably right even in the 4–7&nbsp;pt band, which the default ramp ignored.</td></tr>
+    <tr><td>Tennis</td><td colspan="3" class="num">— (default)</td><td>An aggressive override <code>(0.02, 0.10, 1.00)</code> was <b>removed 2026-05-02</b>: walk-forward (n=2576) showed it wiped out the small real model edge (flat 0.85 Brier 0.2087 vs sharp-only 0.2091; with override: 0.2091, tied with pure sharp).</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h4>Soccer disagreement profile (walk-forward, n=4406, seasons 2324–2526)</h4>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Bucket</th><th class="num">n</th><th class="num">Model %</th><th class="num">Sharp %</th><th class="num">Actual %</th></tr></thead>
+  <tbody>
+    <tr><td>model &gt; sharp by 7+ pts</td><td class="num">921</td><td class="num">40.7</td><td class="num">29.5</td><td class="num">24.2</td></tr>
+    <tr><td>model &gt; sharp by 4–7 pts</td><td class="num">585</td><td class="num">39.8</td><td class="num">34.3</td><td class="num">29.4</td></tr>
+    <tr><td>model &lt; sharp by 4–7 pts</td><td class="num">442</td><td class="num">50.2</td><td class="num">55.6</td><td class="num">53.2</td></tr>
+    <tr><td>model &lt; sharp by 7+ pts</td><td class="num">753</td><td class="num">51.4</td><td class="num">63.4</td><td class="num">64.0</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="barnote">In every bucket the realized frequency sits on sharp's side of the model. The V4 override (0.04 / 0.10 / 1.00) starts deferring at 4&nbsp;pts and goes to pure sharp at 10&nbsp;pts; 2526 holdout binary Brier 0.19523 &rarr; 0.19506 vs the sharp-only ceiling of 0.19499.</p>
+
+<!-- ================================================================ -->
+<h2 id="gates">4. Live-play gates</h2>
+
+<p>
+  Two structural gates in <code>evmax/agents/odds/ev_gap_agent.py</code> prevent a gap
+  from becoming a live (bankroll-sized) play when the blend's output is not genuinely
+  model-driven. A gap that fails either gate gets <code>full_blend=False</code>: hidden
+  from the play table, Kelly zeroed, excluded from the exposure budget, and demoted to
+  <code>mode='shadow'</code> at persistence — still logged for calibration.
+</p>
+
+<h3>4.1 <code>REQUIRED_BLEND_MODELS</code> — all-of gate (tennis)</h3>
+<p>
+  A tennis live play requires <b>all four</b> primary models in
+  <code>model_sources</code>: <code>tennis_surface</code>,
+  <code>tennis_serve_return</code>, <code>tennis_form</code>,
+  <code>tennis_advanced</code> (h2h and ranking_trend are optional — they structurally
+  cannot fire on most matches). Rationale: walk-forward (n=2576, 2025+2026) shows the
+  full blend beats sharp by <b>+2.6 Brier/1000</b> while sparse blends are a wash —
+  a sparse-blend "edge" is thin Kalshi-vs-Pinnacle arb, not model edge.
+</p>
+<div class="callout">
+  <b>Gotcha (load-bearing):</b> <code>_blend</code> skips any model with
+  <code>eff_w &le; 0</code>, so a model set to weight 0 in
+  <code>SECTOR_WEIGHT_OVERRIDES</code> vanishes from <code>model_sources</code> — for a
+  sector with a <code>REQUIRED_BLEND_MODELS</code> entry that silently demotes
+  <em>every</em> play to shadow. Never zero a required blend model's weight; floor it.
+  This is why tennis serve_return sits at 0.10 even though its metric optimum is 0.
+</div>
+
+<h3>4.2 <code>MIN_NONSHARP_MODELS</code> — any-N-of floor</h3>
+<p>
+  Complementary floor: a live play needs at least <code>min_count</code> genuine model
+  tokens for the listed market types. Tokens in <code>_NON_MODEL_TOKENS</code> count
+  zero: <code>sharp</code>, <code>sharp(capped)</code>, <code>injury</code>,
+  <code>late_news</code>, <code>rest</code>, <code>playoff</code>,
+  <code>advance_derived</code>, <code>spread_dist</code>, <code>total_dist</code>,
+  <code>no_side</code>.
+</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Sector</th><th class="num">Min models</th><th>Market types</th><th>Motivating incident</th></tr></thead>
+  <tbody>
+    <tr><td>soccer</td><td class="num">1</td><td>moneyline</td><td>MLS scanned 2026-07-09 before it was seeded &rarr; 11 sharp-passthrough rows logged as LIVE plays.</td></tr>
+    <tr><td>worldcup</td><td class="num">1</td><td>moneyline, advance</td><td>Same failure class; advance markets additionally price off a derived anchor.</td></tr>
+    <tr><td>ncaaf</td><td class="num">1</td><td>moneyline</td><td>Early-season / FCS opponents blend to sharp-only. Launches in shadow, so the gate bites exactly at promotion.</td></tr>
+  </tbody>
+</table>
+</div>
+<p>
+  Sectors absent from both gates (ufc, lol, cs2, nhl…) are unaffected: sharp dominance
+  there is by design. Soccer totals are deliberately excluded from the floor — no model
+  prices them, so a floor would demote 100% of them.
+</p>
+
+<h3>4.3 The sharp-passthrough detector</h3>
+<p>
+  The promotion board computes <b>blend divergence</b> — mean
+  <code>|blended − sharp|</code> in probability points — per (sector, market, venue).
+  A moneyline divergence under 0.5&nbsp;pp means the blend is a sharp passthrough and
+  any apparent EV is venue divergence, not model edge. Reference snapshot (30d ML,
+  2026-07-19): <b>wnba 4.82&nbsp;pp</b> vs tennis 0.17 / baseball 0.10 / soccer 0.00.
+</p>
+
+<!-- ================================================================ -->
+<h2 id="sectors">5. Sector-by-sector blends</h2>
+
+<p>
+  Each card shows the sector's <b>blend composition bar</b>: the gray segment is the
+  sharp anchor at the sector's base sharp weight; colored segments are each model's
+  nominal share of the final blend
+  (<code>(1 − sw) × weight / Σweights</code>). Runtime shares differ: each model's
+  weight is multiplied by its live confidence and renormalized, gated models drop out
+  entirely, and the disagreement ramp can push the sharp share higher. Weights come
+  from <code>SECTOR_WEIGHT_OVERRIDES</code> (<code>ensemble_agent.py:85</code>);
+  a weight of 0 in that table means "explicitly excluded" and is listed under the bar,
+  not drawn.
+</p>
+
+<!-- ============ NBA ============ -->
+<div class="card" id="nba">
+<h3>NBA <span class="badge live">live</span></h3>
+<div class="tiles">
+  <div class="tile"><div class="k">Sharp weight</div><div class="v">0.70</div></div>
+  <div class="tile"><div class="k">Models</div><div class="v">6</div></div>
+  <div class="tile"><div class="k">Data source</div><div class="v"><small>nba_api LeagueDashTeamStats</small></div></div>
+</div>
+<div class="bar" role="img" aria-label="NBA blend: sharp 70%, efficiency 9%, possession sim 9%, elo 3%, form 3%, shot quality 3%, matchup 3%">
+  <span class="seg" style="width:70%;background:var(--sharp)" title="sharp 0.70"></span>
+  <span class="seg" style="width:9%;background:var(--s1)" title="efficiency 0.30 of model side"></span>
+  <span class="seg" style="width:9%;background:var(--s2)" title="possession_sim 0.30"></span>
+  <span class="seg" style="width:3%;background:var(--s3)" title="elo 0.10"></span>
+  <span class="seg" style="width:3%;background:var(--s4)" title="form 0.10"></span>
+  <span class="seg" style="width:3%;background:var(--s5)" title="shot_quality 0.10"></span>
+  <span class="seg" style="width:3%;background:var(--s6)" title="matchup 0.10"></span>
+</div>
+<div class="legend">
+  <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.70</b></span>
+  <span class="item"><span class="chip" style="background:var(--s1)"></span>efficiency <b>0.30</b></span>
+  <span class="item"><span class="chip" style="background:var(--s2)"></span>possession_sim <b>0.30</b></span>
+  <span class="item"><span class="chip" style="background:var(--s3)"></span>elo <b>0.10</b></span>
+  <span class="item"><span class="chip" style="background:var(--s4)"></span>form <b>0.10</b></span>
+  <span class="item"><span class="chip" style="background:var(--s5)"></span>shot_quality <b>0.10</b></span>
+  <span class="item"><span class="chip" style="background:var(--s6)"></span>matchup <b>0.10</b></span>
+</div>
+<p class="barnote">Explicitly zeroed: poisson (basketball scoring is not a Poisson process; the bucketed matrix distorted margin variance).</p>
+<ul>
+  <li><b>Efficiency</b>: ORTG/DRTG/pace via Dean&nbsp;Oliver formulas; constants HOME_EDGE_PTS=3.2, SCORE_STDEV=12.0, pace clip [80,&nbsp;120].</li>
+  <li><b>Possession sim</b>: reuses the efficiency state; 10k Monte&nbsp;Carlo possession simulations per matchup.</li>
+  <li>NBA has the <em>lowest</em> sharp weight of any sector (0.70): the four-model NBA stack is the deepest sector-specific stack and earns 30% of the blend.</li>
+  <li>NBA and WNBA are parallel stacks with <b>zero shared files</b> — different data sources, different constants; never merged for DRY.</li>
+</ul>
+</div>
+
+<!-- ============ WNBA ============ -->
+<div class="card" id="wnba">
+<h3>WNBA <span class="badge live">live</span></h3>
+<div class="tiles">
+  <div class="tile"><div class="k">Sharp weight</div><div class="v">0.85 <small>(global)</small></div></div>
+  <div class="tile"><div class="k">Blend Brier (sweep)</div><div class="v">0.2019 <small>was 0.2061</small></div></div>
+  <div class="tile"><div class="k">Sweep sample</div><div class="v">321 <small>2025 walk-fwd games</small></div></div>
+  <div class="tile"><div class="k">30d ML divergence</div><div class="v">4.82 pp <small>highest of any sector</small></div></div>
+</div>
+<div class="bar" role="img" aria-label="WNBA blend: sharp 85%, wnba possession sim 6.75%, wnba efficiency 6%, elo 2.25%">
+  <span class="seg" style="width:85%;background:var(--sharp)" title="sharp 0.85"></span>
+  <span class="seg" style="width:6.75%;background:var(--s2)" title="wnba_possession_sim 0.45"></span>
+  <span class="seg" style="width:6%;background:var(--s1)" title="wnba_efficiency 0.40"></span>
+  <span class="seg" style="width:2.25%;background:var(--s3)" title="elo 0.15"></span>
+</div>
+<div class="legend">
+  <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.85</b></span>
+  <span class="item"><span class="chip" style="background:var(--s2)"></span>wnba_possession_sim <b>0.45</b></span>
+  <span class="item"><span class="chip" style="background:var(--s1)"></span>wnba_efficiency <b>0.40</b></span>
+  <span class="item"><span class="chip" style="background:var(--s3)"></span>elo <b>0.15</b></span>
+</div>
+<p class="barnote">Explicitly zeroed: form (worst standalone, Brier 0.2303 — every top-20 sweep combo had form=0), poisson.</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Model (standalone, 2025 walk-forward)</th><th class="num">Brier</th></tr></thead>
+  <tbody>
+    <tr><td>wnba_efficiency</td><td class="num">0.2020</td></tr>
+    <tr><td>wnba_possession_sim</td><td class="num">0.2022</td></tr>
+    <tr><td>generic elo</td><td class="num">0.2227</td></tr>
+    <tr><td>form</td><td class="num">0.2303</td></tr>
+    <tr><td><b>Re-tuned blend (2026-05-14, <code>sweep_wnba_weights.py</code>)</b></td><td class="num"><b>0.2019</b></td></tr>
+  </tbody>
+</table>
+</div>
+<ul>
+  <li>ESPN box-score data; WNBA-tuned constants HOME_EDGE_PTS=2.6, SCORE_STDEV=12.5, pace clip [65,&nbsp;100], MIN_GAMES=4 with empirical-Bayes shrinkage (k=8) at predict time.</li>
+  <li>Elo runs an early-season K boost: 3&times; at the opener, decaying to baseline by game 20 (only sector with the boost — it pairs with the annual offseason regression).</li>
+  <li><b>Spread/total are not scanner products.</b> They are <code>disabled_market_types</code>; the anchored-entry pipeline (<code>watch-listings --log-entries</code>) owns them. Full-season candlestick backfill verdict: spread <b>LAY +1.32&nbsp;pp CLV</b> over 116 declustered games (p&lt;0.001, falsification-clean); spread TAKE killed (n=106, &minus;0.10&nbsp;pp); totals underpowered (n=26/32).</li>
+  <li>Spread pricing mixes 0% possession-sim (per-sector override): the walk-forward showed blend Brier <em>monotonic</em> in sim weight — 0.2394 at w=0 &rarr; 0.2465 at w=0.35 vs Kalshi.</li>
+  <li>The 4.82&nbsp;pp blend divergence is the reference example of a blend with a genuine model voice (vs the ~0&nbsp;pp passthrough sectors).</li>
+</ul>
+</div>
+
+<!-- ============ NCAAB ============ -->
+<div class="card" id="ncaab">
+<h3>NCAAB <span class="badge live">live</span> <span class="badge note">season-windowed</span></h3>
+<div class="tiles">
+  <div class="tile"><div class="k">Sharp weight</div><div class="v">0.85 <small>(global)</small></div></div>
+  <div class="tile"><div class="k">Holdout Brier (25-26)</div><div class="v">0.1911 <small>vs 0.2038 old</small></div></div>
+  <div class="tile"><div class="k">Holdout acc</div><div class="v">70.2% <small>vs 68.4%</small></div></div>
+  <div class="tile"><div class="k">Holdout n</div><div class="v">4,878</div></div>
+</div>
+<div class="bar" role="img" aria-label="NCAAB blend: sharp 85%, efficiency 9%, possession sim 3%, elo 1.5%, form 1.5%">
+  <span class="seg" style="width:85%;background:var(--sharp)" title="sharp 0.85"></span>
+  <span class="seg" style="width:9%;background:var(--s1)" title="ncaab_efficiency 0.60"></span>
+  <span class="seg" style="width:3%;background:var(--s2)" title="ncaab_possession_sim 0.20"></span>
+  <span class="seg" style="width:1.5%;background:var(--s3)" title="elo 0.10"></span>
+  <span class="seg" style="width:1.5%;background:var(--s4)" title="form 0.10"></span>
+</div>
+<div class="legend">
+  <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.85</b></span>
+  <span class="item"><span class="chip" style="background:var(--s1)"></span>ncaab_efficiency <b>0.60</b></span>
+  <span class="item"><span class="chip" style="background:var(--s2)"></span>ncaab_possession_sim <b>0.20</b></span>
+  <span class="item"><span class="chip" style="background:var(--s3)"></span>elo <b>0.10</b></span>
+  <span class="item"><span class="chip" style="background:var(--s4)"></span>form <b>0.10</b></span>
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Model (standalone, 2025-26 holdout)</th><th class="num">Brier</th></tr></thead>
+  <tbody>
+    <tr><td>ncaab_efficiency (opponent-adjusted ORTG/DRTG, ridge solver)</td><td class="num">0.1917</td></tr>
+    <tr><td>ncaab_possession_sim (vectorized 10k MC)</td><td class="num">0.1918</td></tr>
+    <tr><td>generic elo</td><td class="num">0.2045</td></tr>
+    <tr><td>form</td><td class="num">0.2136</td></tr>
+  </tbody>
+</table>
+</div>
+<ul>
+  <li>The efficiency core is the KenPom-style opponent adjustment in <code>_college_efficiency.py</code>: ridge log-least-squares with jointly estimated HCA — raw Dean&nbsp;Oliver ratings cannot substitute in a 360-team league with wildly unequal schedules.</li>
+  <li>Constants swept on 2024-25 <em>only</em>, held out on 2025-26: SCORE_STDEV=10.5, SHRINK_K=6, MIN_GAMES=4, pace clip [55,&nbsp;90].</li>
+  <li>Train-optimal weights zeroed elo+sim, but everything within 0.0004 Brier was holdout-equivalent (noise floor); elo/form are <b>floored at 0.10</b> so the blend has a fallback every November while the staleness guard silences prior-season efficiency ratings until each team reaches 4 games.</li>
+</ul>
+</div>
+
+<!-- ============ NCAAW ============ -->
+<div class="card" id="ncaaw">
+<h3>NCAAW <span class="badge live">live</span> <span class="badge note">season-windowed</span></h3>
+<div class="tiles">
+  <div class="tile"><div class="k">Sharp weight</div><div class="v">0.85 <small>(global)</small></div></div>
+  <div class="tile"><div class="k">Holdout Brier (25-26)</div><div class="v">0.1608 <small>vs 0.1861 elo+form</small></div></div>
+  <div class="tile"><div class="k">Holdout acc</div><div class="v">75.5% <small>vs 73.1%</small></div></div>
+  <div class="tile"><div class="k">Holdout n</div><div class="v">4,731</div></div>
+</div>
+<div class="bar" role="img" aria-label="NCAAW blend: sharp 85%, efficiency 9%, possession sim 3%, elo 1.5%, form 1.5%">
+  <span class="seg" style="width:85%;background:var(--sharp)" title="sharp 0.85"></span>
+  <span class="seg" style="width:9%;background:var(--s1)" title="ncaaw_efficiency 0.60"></span>
+  <span class="seg" style="width:3%;background:var(--s2)" title="ncaaw_possession_sim 0.20"></span>
+  <span class="seg" style="width:1.5%;background:var(--s3)" title="elo 0.10"></span>
+  <span class="seg" style="width:1.5%;background:var(--s4)" title="form 0.10"></span>
+</div>
+<div class="legend">
+  <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.85</b></span>
+  <span class="item"><span class="chip" style="background:var(--s1)"></span>ncaaw_efficiency <b>0.60</b></span>
+  <span class="item"><span class="chip" style="background:var(--s2)"></span>ncaaw_possession_sim <b>0.20</b></span>
+  <span class="item"><span class="chip" style="background:var(--s3)"></span>elo <b>0.10</b></span>
+  <span class="item"><span class="chip" style="background:var(--s4)"></span>form <b>0.10</b></span>
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Model (standalone, 2025-26 holdout)</th><th class="num">Brier</th></tr></thead>
+  <tbody>
+    <tr><td>ncaaw_efficiency</td><td class="num">0.1602</td></tr>
+    <tr><td>ncaaw_possession_sim (pace clip [55,&nbsp;92])</td><td class="num">0.1618</td></tr>
+    <tr><td>generic elo — <b>calibrated</b> K=35, home adv 80 (MODEL-2)</td><td class="num">0.1767</td></tr>
+    <tr><td>generic elo on old uncalibrated NBA defaults</td><td class="num">0.1873</td></tr>
+    <tr><td>form</td><td class="num">0.1942</td></tr>
+  </tbody>
+</table>
+</div>
+<ul>
+  <li>Deliberately identical weights to NCAAB; the two college leagues share <em>only</em> the math core (<code>_college_efficiency.py</code>) — never state files or constants, and neither touches the NBA/WNBA stacks.</li>
+  <li>Women's college shows the strongest model performance of any sector (Brier 0.16 territory) — the extreme skill spread separates cleanly under opponent adjustment.</li>
+  <li>The elo K sweep kept preferring K past 50, not chased: a cold-start walk overstates K for a warm live state that also stacks MOV/SOS/recency multipliers. 35 is the in-grid winner on train <em>and</em> holdout.</li>
+</ul>
+</div>
+
+<!-- ============ NFL ============ -->
+<div class="card" id="nfl">
+<h3>NFL <span class="badge live">live</span> <span class="badge note">season-windowed</span></h3>
+<div class="tiles">
+  <div class="tile"><div class="k">Sharp weight</div><div class="v">0.85 <small>(global)</small></div></div>
+  <div class="tile"><div class="k">Blend Brier (3 seasons)</div><div class="v">0.2210</div></div>
+  <div class="tile"><div class="k">vs old blend</div><div class="v good">+0.0030 <small>&Delta;Brier, +1.01 pp acc</small></div></div>
+</div>
+<div class="bar" role="img" aria-label="NFL blend: sharp 85%, form 4.5%, nfl efficiency 3.75%, qb elo 3.75%, elo 3%">
+  <span class="seg" style="width:85%;background:var(--sharp)" title="sharp 0.85"></span>
+  <span class="seg" style="width:4.5%;background:var(--s4)" title="form 0.30"></span>
+  <span class="seg" style="width:3.75%;background:var(--s1)" title="nfl_efficiency 0.25"></span>
+  <span class="seg" style="width:3.75%;background:var(--s2)" title="nfl_qb_elo 0.25"></span>
+  <span class="seg" style="width:3%;background:var(--s3)" title="elo 0.20"></span>
+</div>
+<div class="legend">
+  <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.85</b></span>
+  <span class="item"><span class="chip" style="background:var(--s4)"></span>form <b>0.30</b></span>
+  <span class="item"><span class="chip" style="background:var(--s1)"></span>nfl_efficiency <b>0.25</b></span>
+  <span class="item"><span class="chip" style="background:var(--s2)"></span>nfl_qb_elo <b>0.25</b></span>
+  <span class="item"><span class="chip" style="background:var(--s3)"></span>elo <b>0.20</b></span>
+</div>
+<p class="barnote">Explicitly zeroed: poisson (NFL scoring is drive-based, not minute-uniform). Generic elo is down-weighted to 0.20 because nfl_qb_elo overlaps it.</p>
+<ul>
+  <li><b>nfl_efficiency</b>: opponent-adjusted off/def EPA per play from <code>nflreadpy</code> PBP, garbage-time WP filter [0.10,&nbsp;0.90], season decay 0.45 over 6 seasons. HOME_EDGE_PTS=2.0, SCORE_STDEV=13.5.</li>
+  <li><b>nfl_qb_elo</b>: team_base + per-QB delta so starter swaps shift effective Elo without retraining team strength (K=25, QB_UPDATE_SHARE=0.60, delta clamp &plusmn;200). Best individual model across the 3-season backtest: Brier <b>0.2259</b> vs generic elo 0.2279.</li>
+  <li><b>Form at 0.30 is counterintuitive but proven:</b> every redistribution of form weight (to 0.20/0.10/0.0) lost on combined Brier <em>and</em> the 2526 holdout; form=0 collapsed &minus;0.0086 Brier / &minus;2.80 pp accuracy on the holdout. Do not re-attempt without new evidence.</li>
+  <li>Freshness guard: <code>nfl_state_is_stale_for_today</code> silences a frozen prior-season seed during Sep–Feb (season wraps the year boundary).</li>
+</ul>
+</div>
+
+<!-- ============ NCAAF ============ -->
+<div class="card" id="ncaaf">
+<h3>NCAAF <span class="badge shadow">shadow</span> <span class="badge note">added 2026-08-01</span></h3>
+<div class="tiles">
+  <div class="tile"><div class="k">Sharp weight</div><div class="v">0.85 <small>(global)</small></div></div>
+  <div class="tile"><div class="k">Holdout Brier (2024)</div><div class="v">0.1947 <small>70% acc</small></div></div>
+  <div class="tile"><div class="k">Holdout n</div><div class="v">803</div></div>
+  <div class="tile"><div class="k">Promotion gate</div><div class="v"><small>n&ge;30 resolved, CLV &ge; 0</small></div></div>
+</div>
+<div class="bar" role="img" aria-label="NCAAF blend: sharp 85%, ncaaf efficiency 8.25%, elo 3.75%, form 3%">
+  <span class="seg" style="width:85%;background:var(--sharp)" title="sharp 0.85"></span>
+  <span class="seg" style="width:8.25%;background:var(--s1)" title="ncaaf_efficiency 0.55"></span>
+  <span class="seg" style="width:3.75%;background:var(--s3)" title="elo 0.25"></span>
+  <span class="seg" style="width:3%;background:var(--s4)" title="form 0.20"></span>
+</div>
+<div class="legend">
+  <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.85</b></span>
+  <span class="item"><span class="chip" style="background:var(--s1)"></span>ncaaf_efficiency <b>0.55</b></span>
+  <span class="item"><span class="chip" style="background:var(--s3)"></span>elo <b>0.25</b></span>
+  <span class="item"><span class="chip" style="background:var(--s4)"></span>form <b>0.20</b></span>
+</div>
+<p class="barnote">Phase-2 <em>initial</em> weights — to be swept + held out by <code>backtest_ncaaf_efficiency.py</code> before promotion off shadow. elo/form are floored so the preseason weeks still carry independent generic signal (and satisfy the MIN_NONSHARP floor).</p>
+<p>
+  <b>ncaaf_efficiency</b> is the fourth parallel efficiency stack
+  (<code>_cfb_efficiency.py</code>): opponent-adjusted <b>EPA/play</b> with an
+  <b>additive</b> ridge solver (EPA is signed and roughly zero-mean, so the
+  basketball log-multiplicative solver does not apply) and an embedded
+  <b>preseason-prior ramp</b>: <code>w(gp) = gp / (gp + k)</code>, k=3 — week 3 is
+  &asymp;50/50 prior vs in-season. Constants: HOME_EDGE_PTS=2.5, SCORE_STDEV=16.5,
+  PLAYS_PER_TEAM_GAME=70. Data is ESPN play-by-play (the cfbfastR pbp mirror is stale
+  &le;2022).
+</p>
+<h4>The ramp is the whole point — 2024 holdout ablation</h4>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Week bucket</th><th class="num">Prior-only Brier</th><th class="num">In-season-only</th><th class="num">Ramp (shipped)</th></tr></thead>
+  <tbody>
+    <tr><td>Weeks 0–3</td><td class="num">0.185</td><td class="num bad">0.232</td><td class="num">0.187</td></tr>
+    <tr><td>Weeks 9+</td><td class="num bad">0.230</td><td class="num">0.198</td><td class="num">0.198</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="barnote">The ramp tracks the best of {prior, in-season} in every week bucket — the SP+/FPI-style shrinkage confirmed on holdout, not asserted. The backtest's market column is a crude spread&rarr;&Phi; reference; the real market test is live CLV.</p>
+</div>
+
+<!-- ============ Soccer ============ -->
+<div class="card" id="soccer">
+<h3>Soccer (club) <span class="badge live">live</span></h3>
+<div class="tiles">
+  <div class="tile"><div class="k">Sharp weight</div><div class="v">0.85 / 0.40 <small>top-tier / MLS (per-event)</small></div></div>
+  <div class="tile"><div class="k">Disagreement ramp</div><div class="v">0.04 / 0.10 / 1.00</div></div>
+  <div class="tile"><div class="k">Gate</div><div class="v"><small>&ge;1 non-sharp model (ML)</small></div></div>
+</div>
+<div class="bar" role="img" aria-label="Soccer top-tier blend: sharp 85%, poisson 6.7%, xg 4.2%, elo 2.5%, form 1.7%">
+  <span class="seg" style="width:85%;background:var(--sharp)" title="sharp 0.85 (top-tier)"></span>
+  <span class="seg" style="width:6.67%;background:var(--s1)" title="poisson 0.40"></span>
+  <span class="seg" style="width:4.17%;background:var(--s2)" title="xg 0.25"></span>
+  <span class="seg" style="width:2.5%;background:var(--s3)" title="elo 0.15"></span>
+  <span class="seg" style="width:1.67%;background:var(--s4)" title="form 0.10"></span>
+</div>
+<div class="legend">
+  <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.85</b> (top-tier)</span>
+  <span class="item"><span class="chip" style="background:var(--s1)"></span>poisson <b>0.40</b></span>
+  <span class="item"><span class="chip" style="background:var(--s2)"></span>xg <b>0.25</b></span>
+  <span class="item"><span class="chip" style="background:var(--s3)"></span>elo <b>0.15</b></span>
+  <span class="item"><span class="chip" style="background:var(--s4)"></span>form <b>0.10</b></span>
+</div>
+<p class="barnote">Model weights sum to 0.90 and are renormalized at blend time (shares shown normalized). For MLS (sharp weight 0.40) the model side carries 60% of the blend: poisson 26.7%, xg 16.7%, elo 10.0%, form 6.7%.</p>
+<ul>
+  <li><b>League tiers are the core design.</b> Walk-forward on 2,606 games: in top-5 European leagues Pinnacle's closing Brier is the informational ceiling (~0.1981–0.2097) and the stat blend at sharp weight 0.40 drags it by 0.003–0.007. Top-tier keeps 15% model contribution as a regularizer; the disagreement ramp (§3) pushes to pure sharp on wide gaps. MLS is thinner and less adversarial, so the models keep the 0.40 default.</li>
+  <li><b>Poisson</b> is football-only by construction (<code>SUPPORTED_SECTORS = {"soccer", "worldcup"}</code>): Dixon-Coles with draw mass, essential for the 3-way TIE market. The agent-level gate exists because per-sector weight overrides only re-weight <em>listed</em> models — an unlisted poisson would fall back to its 0.30 class weight (this silently contaminated NCAAB and baseball blends before 2026-06-01).</li>
+  <li><b>xG</b> reads ESPN shots / shots-on-target into <code>soccer_xg_state.json</code>; seed names are canonicalized via NameNormalizer (raw ESPN displayNames orphaned the entire xG seed at predict time until fixed).</li>
+  <li>The MIN_NONSHARP floor (§4.2) exists because of this sector: unseeded MLS produced 11 live sharp-passthrough rows in July 2026.</li>
+  <li>Soccer totals have no model pricing them and are excluded from the floor by product decision.</li>
+</ul>
+</div>
+
+<!-- ============ World Cup ============ -->
+<div class="card" id="worldcup">
+<h3>World Cup (national teams) <span class="badge shadow">shadow</span></h3>
+<div class="tiles">
+  <div class="tile"><div class="k">Sharp weight</div><div class="v">0.85 <small>(global)</small></div></div>
+  <div class="tile"><div class="k">Shadow CLV (07-06)</div><div class="v bad">&minus;0.51 pp <small>33% pos, n=108</small></div></div>
+  <div class="tile"><div class="k">Gate</div><div class="v"><small>&ge;1 non-sharp model (ML + advance)</small></div></div>
+</div>
+<div class="bar" role="img" aria-label="World Cup blend: sharp 85%, poisson 6.7%, xg 4.2%, elo 2.5%, form 1.7%">
+  <span class="seg" style="width:85%;background:var(--sharp)" title="sharp 0.85"></span>
+  <span class="seg" style="width:6.67%;background:var(--s1)" title="poisson 0.40"></span>
+  <span class="seg" style="width:4.17%;background:var(--s2)" title="xg 0.25"></span>
+  <span class="seg" style="width:2.5%;background:var(--s3)" title="elo 0.15"></span>
+  <span class="seg" style="width:1.67%;background:var(--s4)" title="form 0.10"></span>
+</div>
+<div class="legend">
+  <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.85</b></span>
+  <span class="item"><span class="chip" style="background:var(--s1)"></span>poisson <b>0.40</b></span>
+  <span class="item"><span class="chip" style="background:var(--s2)"></span>xg <b>0.25</b></span>
+  <span class="item"><span class="chip" style="background:var(--s3)"></span>elo <b>0.15</b></span>
+  <span class="item"><span class="chip" style="background:var(--s4)"></span>form <b>0.10</b></span>
+</div>
+<ul>
+  <li><b>Mirrors club soccer's weights but never its state.</b> Every model reads its own national-team namespace (<code>elo_state['worldcup']</code>, <code>poisson_state['worldcup']</code>, <code>soccer_xg_state['worldcup']</code>) — club strength is meaningless for national sides.</li>
+  <li>Neutral-venue adjustments: Elo K=40 with HOME_ADVANTAGE_ELO=0; Poisson uses symmetric league averages 1.30/1.30 (no home edge).</li>
+  <li><b>Advance markets</b> (<code>KXWCADVANCE</code>) have no live Pinnacle anchor — Pinnacle's "To Reach X" specials freeze at the team's previous kickoff. Both anchor and model probability derive from the same game's regulation 3-way via <code>derive_advance_prob</code>: <code>P(adv) = p_win + p_draw·(0.55·r + 0.45·0.5)</code>, <code>r = p_win/(p_win+p_opp)</code>. The 0.55 extra-time share was calibrated against Kalshi's liquid advance mids: 2.0&nbsp;pp mean absolute error vs 3.4&nbsp;pp for the pure ratio.</li>
+  <li>Residual structural SOS bias in the Poisson (underdog-only +EV) was confirmed by shadow CLV (&minus;0.51&nbsp;pp, n=108) and answered with a sharp-lean rather than more model fitting — do not re-chase with fitting.</li>
+</ul>
+</div>
+
+<!-- ============ Tennis ============ -->
+<div class="card" id="tennis">
+<h3>Tennis <span class="badge live">live</span> <span class="badge note">full-blend gated</span></h3>
+<div class="tiles">
+  <div class="tile"><div class="k">Sharp weight</div><div class="v">0.85</div></div>
+  <div class="tile"><div class="k">Full blend vs sharp</div><div class="v good">+2.6 <small>Brier/1000, n=2576</small></div></div>
+  <div class="tile"><div class="k">Models</div><div class="v">6 <small>4 required for live</small></div></div>
+</div>
+<div class="bar" role="img" aria-label="Tennis blend: sharp 85%, form 5.25%, surface 4.5%, advanced 2.25%, serve/return 1.5%, h2h 0.75%, ranking trend 0.75%">
+  <span class="seg" style="width:85%;background:var(--sharp)" title="sharp 0.85"></span>
+  <span class="seg" style="width:5.25%;background:var(--s1)" title="tennis_form 0.35"></span>
+  <span class="seg" style="width:4.5%;background:var(--s2)" title="tennis_surface 0.30"></span>
+  <span class="seg" style="width:2.25%;background:var(--s3)" title="tennis_advanced 0.15"></span>
+  <span class="seg" style="width:1.5%;background:var(--s4)" title="tennis_serve_return 0.10"></span>
+  <span class="seg" style="width:0.75%;background:var(--s5)" title="tennis_h2h 0.05"></span>
+  <span class="seg" style="width:0.75%;background:var(--s6)" title="tennis_ranking_trend 0.05"></span>
+</div>
+<div class="legend">
+  <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.85</b></span>
+  <span class="item"><span class="chip" style="background:var(--s1)"></span>tennis_form <b>0.35</b></span>
+  <span class="item"><span class="chip" style="background:var(--s2)"></span>tennis_surface <b>0.30</b></span>
+  <span class="item"><span class="chip" style="background:var(--s3)"></span>tennis_advanced <b>0.15</b></span>
+  <span class="item"><span class="chip" style="background:var(--s4)"></span>tennis_serve_return <b>0.10</b></span>
+  <span class="item"><span class="chip" style="background:var(--s5)"></span>tennis_h2h <b>0.05</b></span>
+  <span class="item"><span class="chip" style="background:var(--s6)"></span>tennis_ranking_trend <b>0.05</b></span>
+</div>
+<p class="barnote">All six models are seeded from Tennis Abstract (leaderboard Elo + per-match <code>matchmx</code>) after the Sackmann GitHub repos went offline 2026-06-27.</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Statistic</th><th class="num">Value</th><th>Context</th></tr></thead>
+  <tbody>
+    <tr><td>Full blend vs sharp (walk-forward 2025+2026)</td><td class="num good">+2.6 / 1000</td><td>n=2576; sparse blends are a wash &rarr; the all-of-4 gate.</td></tr>
+    <tr><td>2026-06-27 retune (serve 0.25&rarr;0.10, form 0.20&rarr;0.35)</td><td class="num">0.210039 &rarr; 0.209732</td><td>Holdout Brier; train 0.207937 &rarr; 0.207750. Leave-one-out found serve_return net-negative at 0.25.</td></tr>
+    <tr><td>Surface Elo source validation (Wayback walk-forward)</td><td class="num">0.2239 / 64.0%</td><td>n=2865 ATP; Pinnacle 0.2094. Beats the old tennis-data source by &minus;0.0137 Brier / +10 pp acc.</td></tr>
+    <tr><td>Ranking-trend rework (2026-06-10)</td><td class="num">0.2530 &rarr; 0.2249</td><td>Acc 49.8% &rarr; 64.2%. The old raw-spots nudge was coin-flip noise.</td></tr>
+    <tr><td>Blend vs Pinnacle <em>close</em> (faithful PIT harness)</td><td class="num">0.21151 vs 0.21011</td><td>Bootstrap 95% CI of the diff [&minus;0.23, +2.99]/1000 — <b>does not beat the close</b>.</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="callout">
+  <b>Do not fine-tune tennis weights on close-Brier.</b> Weight differences sit below
+  the noise floor on every offline close-anchored signal; the train/holdout sign flips,
+  and a coordinate-descent optimizer goes degenerate (pumps h2h to 0.50 on 84 firing
+  matches). The models' edge, if any, is CLV against the stale live line — use
+  <code>cleanup shadow clv</code> as a tripwire, never as a tuning objective.
+</div>
+</div>
+
+<!-- ============ Baseball ============ -->
+<div class="card" id="baseball">
+<h3>Baseball (MLB) <span class="badge shadow">shadow</span></h3>
+<div class="tiles">
+  <div class="tile"><div class="k">Sharp weight</div><div class="v">0.88</div></div>
+  <div class="tile"><div class="k">v1 CLV (07-12 gate)</div><div class="v bad">&minus;0.49 pp <small>failed promotion</small></div></div>
+  <div class="tile"><div class="k">Totals</div><div class="v"><small>disabled (see ledger)</small></div></div>
+</div>
+<div class="bar" role="img" aria-label="Baseball blend: sharp 88%, pitcher v2 6%, elo 3%, form 3%">
+  <span class="seg" style="width:88%;background:var(--sharp)" title="sharp 0.88"></span>
+  <span class="seg" style="width:6%;background:var(--s1)" title="pitcher_v2 0.50"></span>
+  <span class="seg" style="width:3%;background:var(--s3)" title="elo 0.25"></span>
+  <span class="seg" style="width:3%;background:var(--s4)" title="form 0.25"></span>
+</div>
+<div class="legend">
+  <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.88</b></span>
+  <span class="item"><span class="chip" style="background:var(--s1)"></span>pitcher_v2 <b>0.50</b></span>
+  <span class="item"><span class="chip" style="background:var(--s3)"></span>elo <b>0.25</b></span>
+  <span class="item"><span class="chip" style="background:var(--s4)"></span>form <b>0.25</b></span>
+</div>
+<p class="barnote">Elo runs K=6 (162-game season — avoid per-game overreaction). Poisson was removed from baseball's <code>SUPPORTED_SECTORS</code> 2026-06-01 after silently contributing at its 0.30 class-weight fallback.</p>
+<ul>
+  <li><b>pitcher_v2</b> (2026-07-19 rework; renamed from <code>pitcher</code> so the contamination filter dates every v1 row out of the clean shadow sample): starter quality is an <b>xERA-led blend</b> (0.45·xERA + 0.35·FIP + 0.20·ERA when Savant expected-stats are seeded), park normalization on the pitcher's sample, a 60/40 starter/available-bullpen blend with fatigue rules, and a team-offense multiplier clamped [0.85,&nbsp;1.15]. Every component degrades independently to v1 behavior.</li>
+  <li><b>Hard dependency:</b> baseball moneyline is skipped entirely when either starter is unseeded — running without the pitcher model measured <b>&minus;23% live ROI</b>.</li>
+  <li>A/B ship gate per component (<code>backtest_baseball_ab.py</code>, frozen prior-season xERA, 2025 train / 2026 holdout): (a) blend not worse than v1, (b) standalone &ge;2/1000 better, (c) coverage &ge;95%. The bullpen-only component carries a documented prior null (&Delta;+0.0012 worse on 2025) — components ship individually only if they clear.</li>
+  <li>Promotion path: v2 shadow re-validation after the v1 CLV gate failure; totals stay disabled (twice-confirmed stale-line selection, §11).</li>
+</ul>
+</div>
+
+<!-- ============ NHL ============ -->
+<div class="card" id="nhl">
+<h3>NHL <span class="badge shadow">shadow</span></h3>
+<div class="tiles">
+  <div class="tile"><div class="k">Sharp weight</div><div class="v">0.85 <small>(global)</small></div></div>
+  <div class="tile"><div class="k">Elo calibration</div><div class="v">0.2528 <small>vs 0.2572 naive (25-26 holdout)</small></div></div>
+</div>
+<div class="bar" role="img" aria-label="NHL blend: sharp 85%, nhl xg 10%, form 5%">
+  <span class="seg" style="width:85%;background:var(--sharp)" title="sharp 0.85"></span>
+  <span class="seg" style="width:10%;background:var(--s1)" title="nhl_xg 0.30"></span>
+  <span class="seg" style="width:5%;background:var(--s4)" title="form 0.15"></span>
+</div>
+<div class="legend">
+  <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.85</b></span>
+  <span class="item"><span class="chip" style="background:var(--s1)"></span>nhl_xg <b>0.30</b></span>
+  <span class="item"><span class="chip" style="background:var(--s4)"></span>form <b>0.15</b></span>
+</div>
+<p class="barnote">Model weights sum to 0.45 and renormalize: xG carries 2/3 of the model side, form 1/3. Elo is explicitly zeroed in the ensemble.</p>
+<ul>
+  <li><b>nhl_xg</b>: MoneyPuck team 5v5 xGF/60 + xGA/60 &rarr; projected goal margin &rarr; <code>&Phi;(margin / 2.05)</code> with HOME_EDGE_GOALS=0.18.</li>
+  <li>Generic Elo <em>state</em> was calibrated 2026-07-18 (MODEL-2: cold-start grid sweep, winner K=6 / home&nbsp;adv&nbsp;48; held-out 2025-26 Brier 0.2528 vs 0.2572 for untuned defaults), but the ensemble weight remains 0.0 — the code comment is explicit that calibrating the state and wiring the blend are separate calls. Flipping elo on requires a blend-level backtest first.</li>
+  <li>Goalie GSAx, special teams, and B2B fatigue are v2/v3 and will take weight from nhl_xg/form when they ship.</li>
+</ul>
+</div>
+
+<!-- ============ UFC ============ -->
+<div class="card" id="ufc">
+<h3>UFC / MMA <span class="badge shadow">shadow</span></h3>
+<div class="tiles">
+  <div class="tile"><div class="k">Sharp weight</div><div class="v">0.88</div></div>
+  <div class="tile"><div class="k">Holdout Brier (2025+)</div><div class="v">0.2250 <small>vs 0.2463 baseline</small></div></div>
+</div>
+<div class="bar" role="img" aria-label="UFC blend: sharp 88%, ufc rating 12%">
+  <span class="seg" style="width:88%;background:var(--sharp)" title="sharp 0.88"></span>
+  <span class="seg" style="width:12%;background:var(--s1)" title="ufc_rating 1.0 (sole model)"></span>
+</div>
+<div class="legend">
+  <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.88</b></span>
+  <span class="item"><span class="chip" style="background:var(--s1)"></span>ufc_rating <b>1.0</b> (sole non-sharp model)</span>
+</div>
+<p class="barnote">elo/form/poisson explicitly zeroed — their <code>ufc</code> state is not maintained and would sit below the confidence gate anyway. Safe to zero because UFC has no REQUIRED_BLEND_MODELS entry.</p>
+<ul>
+  <li><b>ufc_rating</b>: Glicko-2 per fighter (each bout its own rating period, inactivity RD inflation, validated against Glickman's paper example) plus a logistic feature layer on point-in-time differentials: age, layoff, recent-KO-loss, experience, shrunk win rate, last-3 streak, reach, height, finish rate, KO-absorbed.</li>
+  <li>Coefficients fitted on fights &le;2024, holdout 2025+; the feature layer is only embedded when the backtest verdict is VALIDATED_BLEND (see <code>docs/ufc-model-eval.md</code>).</li>
+  <li>Per-minute volume stats (SLpM/SApM/TD) are structurally absent: ESPN's MMA API has no per-fight strike counts and ufcstats.com is bot-gated.</li>
+  <li>Moneyline only; the exotic UFC series (rounds / method / distance) are deliberately not wired.</li>
+</ul>
+</div>
+
+<!-- ============ esports ============ -->
+<div class="card" id="esports">
+<h3>LoL &amp; CS2 <span class="badge shadow">shadow</span></h3>
+<div class="tiles">
+  <div class="tile"><div class="k">Sharp weight</div><div class="v">1.00</div></div>
+  <div class="tile"><div class="k">Models</div><div class="v">0 <small>sharp-only by design</small></div></div>
+</div>
+<div class="bar" role="img" aria-label="Esports blend: 100% sharp">
+  <span class="seg" style="width:100%;background:var(--sharp)" title="sharp 1.00"></span>
+</div>
+<div class="legend">
+  <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>1.00</b></span>
+</div>
+<p>
+  Pure sharp passthrough, by design: any edge is Kalshi-vs-Pinnacle price deviation.
+  <code>models: [sharp]</code> in the registry; resolution via bo3.gg. This is the
+  "esports precedent" cited whenever a sector deliberately runs sharp-dominant.
+</p>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="props">6. Player-prop categories</h2>
+
+<p>
+  Props do not run through the ensemble blend — each prop stack prices against the
+  Pinnacle anchor directly (<code>ev/prop_pricing.py</code>) with a model rate blended
+  in. All three are shadow; rows land in <code>prop_observations</code>.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Category</th><th>Mode</th><th>Model</th><th>Key statistics</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>nba_props</td><td><span class="badge shadow">shadow</span></td>
+      <td>Daily L15 per-player cache; per-36 normalization + opponent adjustment</td>
+      <td>Demoted from live 2026-05-01: <b>&minus;223u over 575 bets</b>, 73% of the loss from the &lt;10&cent; long-shot bucket (isotonic-floor bias). Promotion requires the predict-37%/Brier gate.</td>
+    </tr>
+    <tr>
+      <td>nfl_props</td><td><span class="badge shadow">shadow</span></td>
+      <td>QB-only v1: point-in-time parquet history + schedule opponent adjustment</td>
+      <td>The MODEL-9 validation pattern's reference case: live Kelly gated on 2026 shadow validation.</td>
+    </tr>
+    <tr>
+      <td>baseball_props</td><td><span class="badge shadow">shadow</span></td>
+      <td>Season-to-date MLB Stats API rates blended with the Pinnacle anchor</td>
+      <td>7 stat types priced (915 props); Pinnacle anchors only K/Outs/TB/HR — Hits/H+R+RBI/RBI price via a TB-bridge. 230k-sample walk-forward: <b>pitcher props beat</b> the trailing-rate baseline; hitter props only tie form; HR unpredictable. Not wired into the coordinator until 2026-07-13 (zero rows logged before that despite scanning).</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="elo-constants">7. Generic Elo constants per sector</h2>
+
+<p>
+  The generic <code>EloModelAgent</code> is sector-parameterized
+  (<code>evmax/agents/models/elo_agent.py</code>). Defaults for unlisted sectors:
+  K=20, home advantage 0.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Sector</th><th class="num">K</th><th class="num">Home adv (Elo pts)</th><th>Note</th></tr></thead>
+  <tbody>
+    <tr><td>nfl</td><td class="num">25</td><td class="num">48</td><td>&asymp;3 pts / ~55% home win rate</td></tr>
+    <tr><td>nba</td><td class="num">20</td><td class="num">100</td><td>&asymp;6 pts / ~60% home win rate</td></tr>
+    <tr><td>wnba</td><td class="num">20</td><td class="num">60</td><td>Early-season K boost 3&times; &rarr; 1&times; by game 20 (pairs with offseason regression)</td></tr>
+    <tr><td>ncaab</td><td class="num">20</td><td class="num">70</td><td></td></tr>
+    <tr><td>ncaaw</td><td class="num">35</td><td class="num">80</td><td>MODEL-2 calibrated (2026-07-11): swept 2024-25, validated 2025-26</td></tr>
+    <tr><td>soccer</td><td class="num">30</td><td class="num">60</td><td></td></tr>
+    <tr><td>worldcup</td><td class="num">40</td><td class="num">0</td><td>~10 games/yr &rarr; larger K; neutral venues</td></tr>
+    <tr><td>baseball</td><td class="num">6</td><td class="num">32</td><td>162-game season &rarr; small K</td></tr>
+    <tr><td>nhl</td><td class="num">6</td><td class="num">48</td><td>MODEL-2 calibrated (2026-07-18); holdout 0.2528 vs 0.2572 naive. State only — ensemble weight still 0.</td></tr>
+    <tr><td>ufc</td><td class="num">32</td><td class="num">0</td><td>Few bouts/yr &rarr; larger K (superseded by ufc_rating in the blend)</td></tr>
+    <tr><td>lol / cs2</td><td class="num">20</td><td class="num">0</td><td>Not in the blend (sharp-only sectors)</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="guards">8. Cross-cutting freshness &amp; contamination guards</h2>
+
+<p>Guards that keep stale or contaminated state out of the blend, regardless of sector:</p>
+
+<ul>
+  <li><b>Elo/Form staleness (60 days).</b> Both agents return <code>None</code> when
+      their state (or the most recent team record) is &gt;60 days older than the game's
+      event date. Added after frozen March baseball ratings fired at 0.25 weight into
+      June blends. Legacy Elo states without a <code>last_updated</code> stamp are never
+      gated.</li>
+  <li><b>Seasonal staleness guards.</b> WNBA/NFL efficiency, NCAAB/NCAAW/NCAAF
+      efficiency, and the college sims silence prior-season seeds in-season until the
+      current-season re-seed lands. The WNBA guard exists because the offseason
+      regression script only touches Elo — stale efficiency ratings produced a
+      <b>+24&nbsp;pp chalk bias</b> over the 2026 opening month before the guard.</li>
+  <li><b>Preseason contamination guard (2026-08-01).</b> ESPN <code>season.type == 1</code>
+      games are dropped before the model-update feed — preseason/exhibition results must
+      never train ratings. Fail-open (missing field = regular season); soccer-like
+      sectors exempt (ESPN uses the field differently).</li>
+  <li><b>Exhibition filter.</b> The WNBA seed's <code>REAL_WNBA_TEAMS</code> allow-list
+      keeps the All-Star Game and international exhibitions out of league averages.</li>
+  <li><b>Off-season shadow downgrade.</b> <code>get_mode</code> downgrades a
+      YAML-live windowed sector to shadow outside its <code>season_window</code>, so a
+      forced out-of-season scan can never stake bankroll on frozen-seed predictions.
+      Self-restores when the window opens.</li>
+  <li><b>Double-feed ledger.</b> <code>applied_model_games</code> guarantees each game
+      trains Elo/Form/Poisson/xG state exactly once even when both
+      <code>cleanup resolve</code> and <code>update scores</code> run on the same date
+      (games were measurably double-counted before 2026-07-25).</li>
+  <li><b>Model-version contamination filters.</b> Shadow metrics exclude rows from
+      superseded code by default (the <code>pitcher</code>&rarr;<code>pitcher_v2</code>
+      rename, the pre-guard sharp-only soccer rows, the June-2026 baseball
+      multi-code-state window). <code>model_version</code> stamps the git SHA.</li>
+</ul>
+
+<!-- ================================================================ -->
+<h2 id="validation">9. Validation &amp; promotion statistics</h2>
+
+<h3>The standard lifecycle</h3>
+<ol>
+  <li><b>Offline walk-forward backtest</b> — parameters swept on a train season,
+      reported on a held-out season, never tuned on holdout. This validates the
+      <em>model</em>.</li>
+  <li><b>Shadow mode</b> — full pipeline runs, rows persist with
+      <code>mode='shadow'</code> and <code>captured_yes_price</code>, Kelly zeroed.
+      This validates the <em>live wiring</em> (matching, devig, resolution, injury
+      adjustments), not model edge.</li>
+  <li><b>Promotion</b> — <code>evmax cleanup shadow promote &lt;sector&gt;</code>,
+      which refuses below <b>30 clean current-code resolved rows</b>. The working gate
+      is n&ge;30 resolved with <b>CLV &ge; 0</b> on the venue's own book, with adequate
+      close-capture coverage.</li>
+</ol>
+
+<h3>Instruments</h3>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Instrument</th><th>What it measures</th></tr></thead>
+  <tbody>
+    <tr><td><code>cleanup shadow board</code></td><td>Per (sector, market, venue): clean/resolved counts, paired &Delta;Brier vs sharp, staleness-filtered CLV vs the gate constants, blend divergence pp, and a verdict (SHARP-PASSTHROUGH / COLLECTING / FAILING-CLV / PROMOTE-READY / LIVE-HEALTHY / LIVE-DEGRADING).</td></tr>
+    <tr><td><code>cleanup shadow clv</code></td><td>Entry&rarr;close CLV on the venue's own book. Judged <b>per side</b> for laddered markets (lay vs take are different products), per venue (separate shadow firewalls), with a staleness filter on the archived close (&gt;N&nbsp;h stale = capture gap, not a flat market).</td></tr>
+    <tr><td><code>cleanup value-audit</code></td><td>Weekly Brier vs entry-sharp <em>and</em> vs Pinnacle close, with significance. A sector is only ⚑actionable when the blend is significantly worse than sharp (z&le;&minus;1.64) or shows consistent calibration bias — both fixable in the models, never by gating plays. Beating the close is not expected; negative CLV with fine Brier is an entry-timing issue.</td></tr>
+    <tr><td><code>model_diagnostics</code> (why-not)</td><td>Separates recoverable coverage gaps (gated-thin, missing-from-state) from correctly-withheld matches, per event per model.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Key empirical facts the design leans on</h3>
+<ul>
+  <li><b>Entry timing dominates model quality for CLV.</b> Only the &lt;1h-pre-tip entry
+      window carries positive placed-bet CLV (+1.55&nbsp;pp); the night-before edge is
+      usually a stale Kalshi line reverting to the sharp close. The scan is a watchlist;
+      <code>pick</code> re-fetches live asks.</li>
+  <li><b>Sector timing verdicts differ.</b> WNBA spread: anchored near-listing entry
+      (lay side) is the validated product. Tennis: near-tip entry is <em>worse</em> than
+      scan-time (+1.34&nbsp;pp actual vs +0.47&nbsp;pp rescan, n=121) — the anchored-entry
+      machinery must not be rebuilt for tennis. Baseball totals: flat near tip, no CLV
+      path at all.</li>
+  <li><b>First value audit (2026-06-27), verified by four independent agents:</b> all
+      sector blends healthy or within noise; zero model-actionable gaps. NBA negative
+      CLV = timing; the soccer +9.21&nbsp;pp bucket = artifact; the WNBA deficit =
+      already-fixed May contamination.</li>
+</ul>
+
+<!-- ================================================================ -->
+<h2 id="rejected">10. Rejected-experiment ledger</h2>
+
+<p>
+  Negative results are design decisions. Each entry below was killed by a walk-forward
+  or holdout measurement; none should be re-attempted without new evidence that
+  addresses the recorded failure.
+</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Experiment</th><th>Verdict</th><th>Evidence</th></tr></thead>
+  <tbody>
+    <tr><td>NFL QB-Elo MOV scaling (FTE-style blowout multiplier)</td><td class="bad">Rejected 2026-06-11</td><td>Combined Brier 0.2210&rarr;0.2208 but the 2526 holdout degraded (&Delta;Acc &minus;0.35&rarr;&minus;1.05&nbsp;pp). Kept as a default-off lever.</td></tr>
+    <tr><td>NFL form-weight redistribution (0.30 &rarr; 0.20/0.10/0.0)</td><td class="bad">Rejected 2026-06-11</td><td>Every variant lost on combined Brier and on the 2526 holdout; form=0 collapsed &minus;0.0086 / &minus;2.80&nbsp;pp.</td></tr>
+    <tr><td>WNBA form &gt; 0 re-sweep</td><td class="bad">Rejected (2026 holdout)</td><td>Season regime shift: 2026 = efficiency/possession dominate, elo/form weak.</td></tr>
+    <tr><td>Form opponent-quality weighting (generic)</td><td class="bad">Reverted</td><td>Backtested net-negative.</td></tr>
+    <tr><td>Baseball totals model (two families: starter-FIP, team+park)</td><td class="bad">Rejected 2026-06-14</td><td>Both failed at r&asymp;0.07; single-game totals variance-dominated (ceiling ~0.18). Totals disabled after n=102 NO-side unders went &minus;15.2% ROI on stale-line selection.</td></tr>
+    <tr><td>Baseball isotonic calibration</td><td class="bad">Rejected</td><td>Holdout worse.</td></tr>
+    <tr><td>Tennis calibration promote (&plusmn;5.5&nbsp;pp underconfidence)</td><td class="bad">No promote 2026-07-01</td><td>Leak-free Wayback point-in-time harness showed the apparent underconfidence <em>was</em> the leak.</td></tr>
+    <tr><td>Tennis surface-speed index</td><td class="bad">Not wired 2026-07-01</td><td>Interaction real in-sample (p&asymp;0.02) but OOS below noise; ~0.1–0.2&nbsp;pp blend impact; ATP-only.</td></tr>
+    <tr><td>Tennis disagreement override (0.02/0.10/1.00)</td><td class="bad">Removed 2026-05-02</td><td>Made the 0.85 base behave like 1.00, wiping the small real model edge (h2h alone beat sharp by 0.0077 on its 863-game subset).</td></tr>
+    <tr><td>WNBA totals model</td><td class="bad">Rejected 2026-06-19</td><td>Walk-forward Brier 0.269 vs market 0.250 — the PIT replay's "edge" was lookahead.</td></tr>
+    <tr><td>WNBA schedule/fatigue spread features</td><td class="bad">Rejected 2026-07-06</td><td>OOS Brier worsens 0.2485&rarr;0.2519; b2b coefficient flips sign; sim has zero incremental signal vs market residual (corr +0.05).</td></tr>
+    <tr><td>Near-close re-scan workflow (all sectors)</td><td class="bad">Rejected-for-now 2026-07-11</td><td>Gated near-tip entries +1.70&nbsp;pp but n=20 vs the n&ge;50 power gate. Re-run mid-Aug 2026.</td></tr>
+    <tr><td>WNBA spread TAKE side (anchored entry)</td><td class="bad">Killed 2026-07-19</td><td>n=106, &minus;0.10&nbsp;pp — only the LAY side (+1.32&nbsp;pp, p&lt;0.001) shipped.</td></tr>
+    <tr><td>Golf outright recalibration (isotonic)</td><td class="bad">Fold</td><td>OOS recal helps make-cut +2.8% but hurts win &minus;5.2% / top-10 &minus;1.3%; no edge vs live market. Golf stays out of the scan pipeline.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================================================================ -->
+<h2 id="change-rules">11. Change-management rules</h2>
+
+<ol>
+  <li><b>Sweep on train, report on holdout.</b> Every weight in
+      <code>SECTOR_WEIGHT_OVERRIDES</code> traces to a script under
+      <code>scripts/backtest_*</code> / <code>scripts/sweep_*</code> with an explicit
+      train/holdout split. A weight change without a holdout number does not ship.</li>
+  <li><b>Never zero a required blend model.</b> Floor it (tennis serve_return = 0.10).
+      A zero weight removes the model from <code>model_sources</code> and silently
+      shadow-demotes every play in a REQUIRED_BLEND_MODELS sector.</li>
+  <li><b>Weight overrides only re-weight listed models.</b> An unlisted model falls
+      back to its class weight — gate unsupported sectors at the <em>agent</em>
+      (poisson's <code>SUPPORTED_SECTORS</code>), not by omission.</li>
+  <li><b>New model checklist:</b> add the canonical name to
+      <code>evmax/categories.py::KNOWN_MODELS</code> <em>and</em> the category's
+      <code>models:</code> list in <code>data/categories.yaml</code> —
+      <code>validate_registry()</code> fails at import time if either is missed. Tests
+      are required for any module with real logic.</li>
+  <li><b>Parallel stacks stay parallel.</b> NBA / WNBA / college (NCAAB+NCAAW) / NCAAF
+      are four independent efficiency stacks. Shared math cores are allowed only where
+      data source and formulas are identical (the college pair); constants and state
+      files never merge.</li>
+  <li><b>CLV is a tripwire, not an objective.</b> Weight fine-tuning targets holdout
+      Brier vs the entry anchor; close-anchored signals sit below the noise floor
+      (tennis §5). Gating plays is never the fix for a model gap — fix the models
+      (reweight / recalibrate) or lean sharper.</li>
+  <li><b>Never game the metric.</b> Optimization loops must not touch the eval,
+      fixtures, or holdout; kept iterations pass through the iteration-reviewer gate.</li>
+</ol>
+
+<footer>
+  evmax model-blend design doc · generated 2026-08-02 · verified against commit
+  <code>afc35d4</code> · primary sources:
+  <code>evmax/agents/models/ensemble_agent.py</code>,
+  <code>evmax/agents/odds/ev_gap_agent.py</code>,
+  <code>evmax/agents/models/elo_agent.py</code>,
+  <code>data/model_config.json</code>,
+  <code>data/categories.yaml</code>,
+  <code>data/soccer_league_tiers.yaml</code>, CLAUDE.md.
+  Weights shown are nominal; runtime shares scale by live model confidence and the
+  disagreement ramp.
+</footer>
+
+</main>
+</body>
+</html>
