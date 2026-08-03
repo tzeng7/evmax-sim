@@ -9,9 +9,9 @@
     "cs2": 1.0,
     "ufc": 0.88
   },
-  "last_brier_model": 0.212241,
-  "last_brier_sharp": 0.216003,
-  "last_adjusted": "2026-07-21",
+  "last_brier_model": 0.197215,
+  "last_brier_sharp": 0.203245,
+  "last_adjusted": "2026-08-03",
   "brier_history": [
     {
       "date": "2026-03-16",
@@ -42,6 +42,14 @@
       "brier_model": 0.212241,
       "brier_sharp": 0.216003,
       "n": 159,
+      "old_weight": 0.85,
+      "new_weight": 0.85
+    },
+    {
+      "date": "2026-08-03",
+      "brier_model": 0.197215,
+      "brier_sharp": 0.203245,
+      "n": 152,
       "old_weight": 0.85,
       "new_weight": 0.85
     }
