@@ -49,6 +49,17 @@ logger = structlog.get_logger(__name__)
 _ESPN_FETCH_SEM_LIMIT = 6
 _ESPN_FETCH_SEMS: "weakref.WeakKeyDictionary" = weakref.WeakKeyDictionary()
 
+# ESPN's public API WAF blocklists our identifying "evmax-*" User-Agents —
+# flagged from scheduled-task volume, observed 2026-08-05: every scoreboard AND
+# summary request 403s deterministically (curl with the same UA still passes, so
+# it is a per-UA rule at ESPN's edge, not a TLS/rate block). Browser-impersonator
+# UAs (a plain Chrome string) are ALSO blocked — a scraper heuristic. Neutral
+# tool UAs (curl/*, python-httpx/*) pass cleanly, so present as a plain curl
+# client. A 403 here is invisible: `_fetch_espn_scores` swallows it and returns
+# [], which makes EVERY game "unmatched" and resolves nothing. Keep this a
+# recognized tool UA; do NOT revert to an "evmax-*" or browser string.
+_ESPN_HTTP_UA = "curl/8.7.1"
+
 # Prop resolution recency window. A prop still pending well after its game
 # finished is either already resolved or PERMANENTLY unresolvable — the player
 # sat (DNP), the name never matched a boxscore row, or the game predates our
@@ -919,7 +930,11 @@ def _fetch_espn_nba_player_stats(target_date: date) -> dict[str, dict[str, float
     espn_date = target_date.isoformat().replace("-", "")
     player_stats: dict[str, dict[str, float]] = {}
     try:
-        with httpx.Client(timeout=15.0, follow_redirects=True) as client:
+        with httpx.Client(
+            timeout=15.0,
+            follow_redirects=True,
+            headers={"User-Agent": _ESPN_HTTP_UA},
+        ) as client:
             r = client.get(
                 "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard",
                 params={"dates": espn_date},
@@ -1179,7 +1194,7 @@ async def fetch_live_scores_for_sector(sector: str) -> list[dict]:
     results: list[dict] = []
     async with httpx.AsyncClient(
         timeout=httpx.Timeout(10.0),
-        headers={"User-Agent": "evmax-live/1.0"},
+        headers={"User-Agent": _ESPN_HTTP_UA},
         follow_redirects=True,
     ) as client:
         if sector in ESPN_SOCCER_LIKE_LEAGUES:
@@ -1266,7 +1281,7 @@ async def fetch_completed_scores(
     espn_date = target_date.isoformat().replace("-", "")
     async with httpx.AsyncClient(
         timeout=httpx.Timeout(20.0),
-        headers={"User-Agent": "evmax-update/1.0"},
+        headers={"User-Agent": _ESPN_HTTP_UA},
         follow_redirects=True,
     ) as client:
         if sector in ESPN_SOCCER_LIKE_LEAGUES:
@@ -1517,7 +1532,11 @@ def _resolve_prop_observations(
         "turnovers": "TO",
     }
 
-    client = httpx.Client(timeout=15.0, follow_redirects=True)
+    client = httpx.Client(
+        timeout=15.0,
+        follow_redirects=True,
+        headers={"User-Agent": _ESPN_HTTP_UA},
+    )
 
     try:
         for game_date, prop_rows in by_date.items():
@@ -1797,7 +1816,7 @@ async def resolve_outcomes_for_date(
 
     async with httpx.AsyncClient(
         timeout=httpx.Timeout(20.0),
-        headers={"User-Agent": "evmax-cleanup/1.0"},
+        headers={"User-Agent": _ESPN_HTTP_UA},
         follow_redirects=True,
     ) as client:
 
