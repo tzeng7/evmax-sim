@@ -2271,3 +2271,68 @@ class TestResolvePropObservationsWindow:
         assert n == 0
         assert recording == []  # no network fetch at all
         assert fake.get.call_count == 0
+
+
+# ---------------------------------------------------------------------------
+# ESPN User-Agent — regression guard (2026-08-05)
+#
+# ESPN's public-API WAF began 403-ing our identifying "evmax-*" User-Agents on
+# every scoreboard/summary request. `_fetch_espn_scores` swallows the 403 and
+# returns [], so resolution silently matched nothing: `evmax cleanup resolve`
+# reported 0 resolved / all-unmatched for otherwise-final games. The fix routes
+# every ESPN client through the neutral `_ESPN_HTTP_UA` tool string.
+# ---------------------------------------------------------------------------
+class TestEspnUserAgent:
+    def test_ua_constant_is_neutral_tool_ua(self):
+        from evmax.agents.cleanup.resolver import _ESPN_HTTP_UA
+        assert _ESPN_HTTP_UA, "UA must be non-empty"
+        # Our identifying prefix is exactly what ESPN blocklisted.
+        assert not _ESPN_HTTP_UA.lower().startswith("evmax")
+        # A browser-impersonator string is ALSO blocked (scraper heuristic).
+        assert "mozilla" not in _ESPN_HTTP_UA.lower()
+
+    def test_fetch_completed_scores_sends_neutral_ua(self):
+        """The async ESPN client must construct with the neutral UA header.
+
+        Fails before the fix: fetch_completed_scores built its AsyncClient with
+        headers={"User-Agent": "evmax-update/1.0"}.
+        """
+        from evmax.agents.cleanup import resolver as R
+
+        captured: dict = {}
+
+        class _FakeResp:
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {"events": []}
+
+        class _FakeAsyncClient:
+            def __init__(self, **kwargs):
+                captured.update(kwargs)
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *exc):
+                return False
+
+            async def get(self, url, params=None, **kw):
+                return _FakeResp()
+
+        with patch.object(R.httpx, "AsyncClient", _FakeAsyncClient):
+            asyncio.run(R.fetch_completed_scores("nba", date(2026, 8, 4)))
+
+        ua = captured.get("headers", {}).get("User-Agent")
+        assert ua == R._ESPN_HTTP_UA
+        assert not ua.lower().startswith("evmax")
+
+    def test_no_blocklisted_ua_literals_in_source(self):
+        """Guard against reintroducing any of the three blocklisted UA strings."""
+        import inspect
+        from evmax.agents.cleanup import resolver as R
+
+        src = inspect.getsource(R)
+        for blocked in ("evmax-live/1.0", "evmax-update/1.0", "evmax-cleanup/1.0"):
+            assert blocked not in src, f"blocklisted ESPN UA reintroduced: {blocked}"
