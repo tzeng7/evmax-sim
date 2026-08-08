@@ -33,6 +33,30 @@ def _display_label(yes_team: str, market_type: str, line) -> str:
     return format_outcome_label(yes_team=yes_team, market_type=market_type, line=line)
 
 
+def select_display_gaps(gaps: list, *, top: int, max_props: int) -> list:
+    """Pick which qualifying gaps the scan table prints, preserving the invariant
+    that every displayed row that was ALSO persisted as a live bet is visible.
+
+    Game-market gaps are the rows the scanner writes to ``ev_predictions`` as
+    ``mode='live'`` (props route to ``prop_observations`` instead). The
+    dashboard's Open Positions panel reads those live rows directly, so a game
+    play that is logged but hidden behind ``--top`` shows up as a position that
+    "never appeared in the scan" — the bug this function guards against.
+
+    Rules:
+      - Every game-market gap is shown (``--top`` never truncates them).
+      - ``--top`` caps only how many PROP rows fill the space left after the
+        game plays; ``--max_props`` still bounds props independently.
+
+    ``gaps`` is assumed already filtered (min_prob / tiered-EV / date / full
+    blend) and sorted by EV descending. Order is preserved.
+    """
+    prop_gaps = [g for g in gaps if g.market_type == "player_prop"]
+    game_gaps = [g for g in gaps if g.market_type != "player_prop"]
+    prop_room = max(0, top - len(game_gaps))
+    return game_gaps + prop_gaps[: min(max_props, prop_room)]
+
+
 def polymarket_live_ask(market_id: str, markets_by_id: dict) -> Optional[float]:
     """Resolve the live ask for a Polymarket US row from a freshly-fetched
     ``{market.id: PredictionMarket}`` map.
@@ -428,10 +452,10 @@ def scan(
         except Exception as _log_err:
             logger.warning("prop_log_failed", error=str(_log_err))
 
-    # Enforce per-type cap: at most max_props prop plays, rest are game markets
-    prop_gaps = [g for g in qualifying_gaps if g.market_type == "player_prop"]
-    game_gaps = [g for g in qualifying_gaps if g.market_type != "player_prop"]
-    gaps = (game_gaps + prop_gaps[:max_props])[:top]
+    # Enforce per-type cap: at most max_props prop plays, rest are game markets.
+    # `--top` must NEVER hide a live game play (it would then appear only in the
+    # dashboard's Open Positions, never in the scan table). See select_display_gaps.
+    gaps = select_display_gaps(qualifying_gaps, top=top, max_props=max_props)
 
     # Print injury summary — only for teams involved in the displayed plays
     if result.injury_reports and gaps:
