@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { fetchPortfolios, createDefaultPortfolios, scanPortfolios, syncPortfolioOutcomes } from '../lib/api'
 import type { Portfolio } from '../lib/types'
+import { AnimatedNumber } from './AnimatedNumber'
 
 interface Props {
   onSelect: (id: string) => void
@@ -112,7 +113,11 @@ export function PortfolioGrid({ onSelect, toast }: Props) {
                 <div
                   key={p.id}
                   className="panel card-clickable"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Open ${p.name} portfolio`}
                   onClick={() => onSelect(p.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(p.id) } }}
                   style={{ cursor: 'pointer', borderLeft: `3px solid ${SCENARIO_COLORS[p.scenario] || '#00d082'}`, marginBottom: 0 }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -125,9 +130,11 @@ export function PortfolioGrid({ onSelect, toast }: Props) {
                   </div>
 
                   <div style={{ fontSize: 23, fontWeight: 600, marginBottom: 6, fontFamily: 'var(--mono)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
-                    <span className={p.current_bankroll >= p.initial_bankroll ? 'green' : 'red'}>
-                      ${p.current_bankroll.toFixed(2)}
-                    </span>
+                    <AnimatedNumber
+                      value={p.current_bankroll}
+                      className={p.current_bankroll >= p.initial_bankroll ? 'green' : 'red'}
+                      format={(n) => `$${n.toFixed(2)}`}
+                    />
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, fontSize: 11, fontFamily: 'var(--mono)' }}>

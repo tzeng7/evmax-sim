@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { runScan, resolve } from '../lib/api'
 import { useCategories } from '../lib/useCategories'
 import { SectorMultiSelect } from './SectorMultiSelect'
@@ -103,13 +103,20 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
         style={{ width: 80 }}
         title="Bankroll ($)"
       />
-      <select value={kelly} onChange={e => setKelly(+e.target.value)} title="Kelly fraction" style={{ width: 112 }}>
-        <option value={0.1}>0.1× Kelly</option>
-        <option value={0.25}>0.25× Kelly</option>
-        <option value={0.5}>0.5× Kelly</option>
-        <option value={0.75}>0.75× Kelly</option>
-        <option value={1}>Full Kelly</option>
-      </select>
+      <div className="kelly-slider" title="Kelly fraction — drag to resize every stake live">
+        <label htmlFor="kelly-range">Kelly</label>
+        <input
+          id="kelly-range"
+          type="range"
+          min={0.1}
+          max={1}
+          step={0.05}
+          value={kelly}
+          onChange={e => setKelly(+e.target.value)}
+          style={{ '--pct': `${((kelly - 0.1) / 0.9) * 100}%` } as CSSProperties}
+        />
+        <span className="kelly-slider-val">{kelly.toFixed(2)}×</span>
+      </div>
       <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
         style={{ width: 138, fontSize: 11 }} title="From date" />
       <span className="muted">–</span>

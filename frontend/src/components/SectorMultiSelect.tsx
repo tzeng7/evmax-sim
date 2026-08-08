@@ -71,21 +71,21 @@ export function SectorMultiSelect({ value, onChange, emptyLabel = 'No sectors' }
         <span>{label}</span>
         <span className="sector-ms-caret">▾</span>
       </button>
-      {open && (
-        <div className="sector-ms-menu" role="listbox" aria-multiselectable="true">
-          <label className="sector-ms-item sector-ms-all">
-            <input type="checkbox" checked={allSelected} onChange={toggleAll} />
-            <span>All Sectors</span>
+      {/* Kept mounted so the exit animation can play; `visibility: hidden` when
+          closed keeps the checkboxes out of the tab order and a11y tree. */}
+      <div className={`sector-ms-menu ${open ? 'open' : ''}`} role="listbox" aria-multiselectable="true">
+        <label className="sector-ms-item sector-ms-all">
+          <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+          <span>All Sectors</span>
+        </label>
+        <div className="sector-ms-divider" />
+        {cats.map(c => (
+          <label key={c.key} className="sector-ms-item" title={c.display_name}>
+            <input type="checkbox" checked={selected.has(c.key)} onChange={() => toggle(c.key)} />
+            <span>{c.key.toUpperCase()}</span>
           </label>
-          <div className="sector-ms-divider" />
-          {cats.map(c => (
-            <label key={c.key} className="sector-ms-item" title={c.display_name}>
-              <input type="checkbox" checked={selected.has(c.key)} onChange={() => toggle(c.key)} />
-              <span>{c.key.toUpperCase()}</span>
-            </label>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   )
 }

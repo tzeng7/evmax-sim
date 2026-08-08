@@ -1,13 +1,14 @@
 import { useState, useCallback } from 'react'
 import type { Bet } from '../lib/types'
+import type { ToastOptions } from '../hooks/useToast'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
-import { updatePlaced, unplaceBets } from '../lib/api'
+import { updatePlaced, unplaceBets, pickBets } from '../lib/api'
 
 interface Props {
   bets: Bet[]
-  toast: (msg: string, type?: 'info' | 'ok' | 'err') => void
+  toast: (msg: string, type?: 'info' | 'ok' | 'err', opts?: ToastOptions) => void
   onChanged: () => void
 }
 
@@ -61,13 +62,32 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
     }
   }, [edits, toast, onChanged])
 
-  const handleRemove = useCallback(async (mid: string) => {
-    if (!confirm('Remove this bet from placed?')) return
+  // Removal is reversible, so skip the blocking confirm() and offer Undo in the
+  // toast instead (§16.2 forgiveness over friction). Undo re-places the bet at
+  // the exact fill it was removed at — captured before the async call so the
+  // refreshed list can't strip it out from under us.
+  const handleRemove = useCallback(async (b: Bet) => {
+    const mid = b.market_id
+    const fillPrice = b.placed_price || b.kalshi_yes_price || 0.5
+    const fillStake = b.placed_stake || (b.bankroll_used || 500) * (b.kelly_fraction || 0)
     try {
       const res = await unplaceBets([mid])
       if (res.removed > 0) {
-        toast('Bet removed', 'ok')
         onChanged()
+        toast('Bet removed', 'ok', {
+          action: {
+            label: 'Undo',
+            onClick: async () => {
+              try {
+                await pickBets([{ market_id: mid, fill_price: fillPrice, fill_stake: fillStake }])
+                toast('Bet restored', 'ok')
+                onChanged()
+              } catch (e) {
+                toast('Undo failed: ' + (e as Error).message, 'err')
+              }
+            },
+          },
+        })
       }
     } catch (e) {
       toast('Remove failed: ' + (e as Error).message, 'err')
@@ -103,7 +123,7 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
         <tbody>
           {filtered.map(b => (
             <tr key={b.market_id}>
-              <td><button className="btn-del" onClick={() => handleRemove(b.market_id)}>&times;</button></td>
+              <td><button className="btn-del" onClick={() => handleRemove(b)}>&times;</button></td>
               <td className="muted">{b.event_date}</td>
               <td><span className="badge">{b.sector}</span></td>
               <td><VenueLogo venue={b.venue} /></td>
