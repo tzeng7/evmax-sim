@@ -251,9 +251,13 @@ def show(
     print()
 
 
-# Default sectors refreshed by the resolve-time model-update hook. Mirrors the
-# `evmax update scores` default; ESPN-supported game sectors only.
-_UPDATE_HOOK_SECTORS = ["soccer", "worldcup", "nba", "wnba", "nfl", "ncaab", "nhl", "baseball"]
+# Sectors refreshed by the resolve-time model-update hook. Sourced from the one
+# canonical list in model_updater so this and the `evmax update scores` default
+# can never drift apart (they previously diverged — ncaaw/ncaaf missing from
+# both, worldcup missing from the CLI default).
+from evmax.agents.cleanup.model_updater import (  # noqa: E402
+    ESPN_MODEL_UPDATE_SECTORS as _UPDATE_HOOK_SECTORS,
+)
 
 
 @app.command("resolve")

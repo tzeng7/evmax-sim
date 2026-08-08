@@ -15,8 +15,14 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
+from evmax.agents.cleanup.model_updater import ESPN_MODEL_UPDATE_SECTORS
+
 app = typer.Typer(no_args_is_help=True)
 console = Console()
+
+# Default --sectors: the one canonical ESPN-fed sector list, shared with the
+# `evmax cleanup resolve` model-update hook so the two can't drift apart.
+_DEFAULT_SECTORS = ",".join(ESPN_MODEL_UPDATE_SECTORS)
 
 
 @app.command("scores")
@@ -28,12 +34,12 @@ def update_scores(
         help="Date to fetch scores for (YYYY-MM-DD). Defaults to yesterday.",
     ),
     sectors: str = typer.Option(
-        "soccer,nba,wnba,nfl,ncaab,nhl,baseball",
+        _DEFAULT_SECTORS,
         "--sectors",
         "-s",
         help=(
             "Comma-separated sectors to update. ESPN-supported: "
-            "soccer, nba, wnba, nfl, ncaab, ncaaw, nhl, baseball."
+            "soccer, worldcup, nba, wnba, nfl, ncaab, ncaaw, ncaaf, nhl, baseball."
         ),
     ),
     dry_run: bool = typer.Option(
