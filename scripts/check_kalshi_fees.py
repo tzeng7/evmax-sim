@@ -24,11 +24,14 @@ Verdicts:
                 multiplier tables / wording / effective date). Human review.
   inconclusive  fetch or parse failed (429 / format change) — never a false alarm.
 
+On drift the scheduled workflow opens/updates a GitHub issue (the sole alert
+channel) and fails the job. This script only reports the verdict; it does not
+notify anywhere itself.
+
 CLI:
   check_kalshi_fees.py                 # online: fetch, classify, write $GITHUB_OUTPUT, exit per verdict
   check_kalshi_fees.py --offline F     # classify a text file instead of fetching (tests / offline)
   check_kalshi_fees.py --update        # fetch and (re)write the snapshot (after reconciling fees.py)
-  check_kalshi_fees.py --notify-file R # POST result R's summary via evmax.notifications.Notifier
   check_kalshi_fees.py --json          # machine-readable result to stdout
 
 Exit codes (also mirrored as the `verdict` GITHUB_OUTPUT so the workflow can gate):
@@ -280,23 +283,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--url", default=DEFAULT_URL)
     ap.add_argument("--offline", metavar="TEXT_FILE", help="Parse this text file instead of fetching.")
     ap.add_argument("--update", action="store_true", help="Fetch and (re)write the committed snapshot.")
-    ap.add_argument("--notify-file", metavar="RESULT_JSON", help="POST a prior result's summary via Notifier.")
     ap.add_argument("--json", action="store_true", help="Emit the full result JSON to stdout.")
     ap.add_argument("--today", default=None, help="Override the fetched_at date (YYYY-MM-DD) for --update.")
     args = ap.parse_args(argv)
-
-    # Alert-only mode: read a result file and push it to the webhook(s).
-    if args.notify_file:
-        result = json.loads(Path(args.notify_file).read_text())
-        from evmax.notifications import Notifier
-
-        notifier = Notifier.from_settings()
-        if notifier.is_configured():
-            notifier.send_text(f":rotating_light: {result['summary']}\n{result['source_url']}")
-            print("notified")
-        else:
-            print("no webhook configured — skipping notify")
-        return 0
 
     # Acquire the schedule text.
     try:

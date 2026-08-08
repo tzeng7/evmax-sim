@@ -7,9 +7,9 @@
 # data/kalshi_fee_schedule.snapshot.json AND the live fees.py constants.
 #
 # Deliberately SEPARATE from ci.yml: it touches the network, so it must never
-# gate a PR. On drift it fails, alerts the webhook(s), and opens/updates an
-# issue. A fetch/parse failure (429, format change) is INCONCLUSIVE — a warning,
-# not a false fee alarm.
+# gate a PR. On drift it fails and opens/updates a GitHub issue (the sole alert
+# channel). A fetch/parse failure (429, format change) is INCONCLUSIVE — a
+# warning, not a false fee alarm.
 #
 # Security posture (mirrors ci.yml): actions pinned to a full SHA,
 # persist-credentials:false, least-privilege token. The PDF-derived summary is
@@ -51,13 +51,6 @@ jobs:
         id: check
         continue-on-error: true # the explicit "Fail on drift" step gates the job
         run: uv run --with 'pypdf==6.15.0' python scripts/check_kalshi_fees.py
-
-      - name: Notify webhooks on drift
-        if: steps.check.outputs.verdict == 'hard_drift' || steps.check.outputs.verdict == 'soft_drift'
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: uv run python scripts/check_kalshi_fees.py --notify-file kalshi-fee-result.json
 
       - name: Open or update drift issue
         if: steps.check.outputs.verdict == 'hard_drift' || steps.check.outputs.verdict == 'soft_drift'
