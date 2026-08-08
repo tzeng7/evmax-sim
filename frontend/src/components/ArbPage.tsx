@@ -126,10 +126,13 @@ export function ArbPage({ toast }: Props) {
 
       {!scanning && !result && (
         <div className="panel">
-          <p className="muted" style={{ margin: 0 }}>
-            Run a scan to fetch both venues' live books. Read-only — nothing is persisted
-            and no orders are placed.
-          </p>
+          <div className="empty-state">
+            <div className="empty-title">No scan yet</div>
+            <div style={{ maxWidth: 440 }}>
+              Run a scan to fetch both venues' live books. Read-only — nothing is
+              persisted and no orders are placed.
+            </div>
+          </div>
         </div>
       )}
     </>
