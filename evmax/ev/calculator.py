@@ -11,8 +11,43 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
+from evmax.fees import venue_fee_prob
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
+
+
+def effective_price(
+    market_price: float,
+    venue: Optional[str] = None,
+    *,
+    maker: bool = False,
+) -> float:
+    """Fee-inclusive per-contract entry cost on ``venue``.
+
+    Returns ``market_price + per-contract trading fee`` (probability / dollar
+    units, 0–1). Winning a binary contract still pays $1, but the venue's
+    trading fee raises what you actually paid to acquire it. The EV gate and
+    Kelly sizing must both price the contract at this cost, not the raw ask —
+    otherwise a gross edge that the fee fully eats still reads as +EV and gets
+    staked.
+
+    ``venue=None`` (or an unknown venue) returns ``market_price`` unchanged, so
+    every existing gross-of-fee caller keeps its behaviour until it opts in.
+
+    The fee is symmetric in ``p`` / ``1-p`` (``fee = θ·p·(1-p)``), so passing a
+    NO-side ask here is correct with no side-specific handling. The Polymarket
+    US maker path is a *rebate* (negative fee) — makers are paid — so the result
+    can dip below ``market_price`` there; the clamp keeps it inside the open
+    interval so downstream ``payout = 1 / effective_price`` stays finite.
+    """
+    if venue is None or not (0.0 < market_price < 1.0):
+        return market_price
+    try:
+        fee = venue_fee_prob(venue, market_price, maker=maker)
+    except ValueError:
+        # Unknown venue name — degrade to gross rather than raise on the hot path.
+        return market_price
+    return min(max(market_price + fee, 1e-4), 0.9999)
 
 
 def tiered_min_ev(true_prob: float, *, min_ev: float, min_prob: float) -> float:

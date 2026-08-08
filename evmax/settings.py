@@ -51,6 +51,17 @@ class Settings(BaseSettings):
     # EV threshold
     ev_threshold: float = Field(default=0.02, ge=0.0, le=1.0)  # 2%
 
+    # Price bets net of the venue's trading fee. When True (default), the EV
+    # gate and Kelly sizing treat a contract as costing `ask + venue_fee` (the
+    # quadratic θ·p·(1-p) fee from evmax/fees.py) instead of the raw ask, so a
+    # gross edge the fee eats no longer surfaces as a live play. The fee peaks
+    # near p=0.50 (~1.75¢ on Kalshi ⇒ ~3.5pp EV drag) and shrinks toward the
+    # extremes, so this is not a flat threshold bump — it re-prices coin-flip
+    # and longshot markets the most. Set False to revert to gross-of-fee
+    # pricing (offline analysis / backtest A/B). Displayed asks are unchanged;
+    # only EV and stake go net.
+    fees_in_pricing: bool = True
+
     # Minimum cumulative Kalshi volume to count a market as bettable.
     # Default 0 = disabled. Set per-sector or globally if you want to filter
     # out low-volume markets, but be aware that thin-volume sectors (WNBA,
