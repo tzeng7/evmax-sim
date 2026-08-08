@@ -1,9 +1,13 @@
 """Tests for the EV calculator."""
 
+import math
+
 import pytest
 from datetime import datetime, timezone
 
-from evmax.ev.calculator import calculate_ev, evaluate_market
+from evmax.ev.calculator import calculate_ev, effective_price, evaluate_market
+from evmax.ev.kelly import compute_kelly
+from evmax.fees import kalshi_fee_prob, polymarket_us_fee_prob
 from evmax.models.market import MarketSource, MarketType, PredictionMarket
 from evmax.models.odds import SharpBook, SharpOdds
 
@@ -72,6 +76,94 @@ class TestCalculateEV:
         assert ev == 0.0
         ev, edge = calculate_ev(1.0, 0.5)
         assert ev == 0.0
+
+
+class TestEffectivePrice:
+    def test_kalshi_taker_adds_quadratic_fee(self):
+        """Kalshi taker fee = 0.07·p·(1-p); at p=0.50 that is 1.75¢."""
+        eff = effective_price(0.50, "kalshi")
+        assert math.isclose(eff, 0.50 + 0.0175, abs_tol=1e-12)
+        assert math.isclose(eff - 0.50, kalshi_fee_prob(0.50), abs_tol=1e-12)
+
+    def test_none_venue_is_passthrough(self):
+        """venue=None returns the raw price unchanged (gross-of-fee callers)."""
+        assert effective_price(0.50, None) == 0.50
+        assert effective_price(0.42) == 0.42  # default venue is None
+
+    def test_unknown_venue_degrades_to_gross(self):
+        """An unrecognised venue name must not raise on the hot path."""
+        assert effective_price(0.50, "betfair") == 0.50
+
+    def test_degenerate_prices_passthrough(self):
+        """0/1 and out-of-range prices are returned unchanged."""
+        assert effective_price(0.0, "kalshi") == 0.0
+        assert effective_price(1.0, "kalshi") == 1.0
+        assert effective_price(-0.1, "kalshi") == -0.1
+
+    def test_polymarket_taker_cheaper_than_kalshi(self):
+        """PolyUS taker theta (0.06) < Kalshi taker (0.07) at the same price."""
+        assert effective_price(0.50, "polymarket_us") < effective_price(0.50, "kalshi")
+        assert math.isclose(
+            effective_price(0.50, "polymarket_us") - 0.50,
+            polymarket_us_fee_prob(0.50),
+            abs_tol=1e-12,
+        )
+
+    def test_polymarket_maker_rebate_lowers_cost(self):
+        """PolyUS maker fee is a rebate (negative) → effective cost below the ask."""
+        eff = effective_price(0.50, "polymarket_us", maker=True)
+        assert eff < 0.50
+        assert math.isclose(eff, 0.50 + polymarket_us_fee_prob(0.50, maker=True), abs_tol=1e-12)
+
+    def test_fee_is_symmetric_across_yes_no(self):
+        """fee(p) == fee(1-p): passing the NO-side ask needs no special handling."""
+        yes_fee = effective_price(0.30, "kalshi") - 0.30
+        no_fee = effective_price(0.70, "kalshi") - 0.70
+        assert math.isclose(yes_fee, no_fee, abs_tol=1e-12)
+
+    def test_fee_peaks_at_coinflip(self):
+        """The quadratic fee is largest at p=0.50 and shrinks toward the extremes."""
+        f_50 = effective_price(0.50, "kalshi") - 0.50
+        f_75 = effective_price(0.75, "kalshi") - 0.75
+        f_90 = effective_price(0.90, "kalshi") - 0.90
+        assert f_50 > f_75 > f_90
+
+    def test_high_price_clamped_below_one(self):
+        """Adding the fee near p=0.99 must not push the effective price to/above 1."""
+        assert effective_price(0.99, "kalshi") < 1.0
+
+
+class TestNetOfFeeEV:
+    def test_fee_reduces_ev_below_gate(self):
+        """A 4% gross coin-flip edge nets ~0.5% after the Kalshi fee — below 2%."""
+        true_prob = 0.52
+        gross_ev, _ = calculate_ev(0.50, true_prob)
+        net_ev, _ = calculate_ev(effective_price(0.50, "kalshi"), true_prob)
+        assert gross_ev > 0.02  # would pass the default gate gross
+        assert net_ev < gross_ev
+        assert net_ev < 0.02  # fails it net — the whole point of the change
+
+    def test_net_ev_drag_smaller_on_chalk(self):
+        """Fee drag on a heavy favorite is far smaller than on a coin flip."""
+        drag_coin = (
+            calculate_ev(0.50, 0.52)[0]
+            - calculate_ev(effective_price(0.50, "kalshi"), 0.52)[0]
+        )
+        drag_chalk = (
+            calculate_ev(0.90, 0.92)[0]
+            - calculate_ev(effective_price(0.90, "kalshi"), 0.92)[0]
+        )
+        assert drag_coin > drag_chalk
+
+    def test_kelly_stake_shrinks_net_of_fee(self):
+        """Sizing on the fee-inclusive price stakes strictly less than gross."""
+        true_prob = 0.56
+        gross_payout = 1.0 / 0.50
+        net_payout = 1.0 / effective_price(0.50, "kalshi")
+        gross = compute_kelly(true_prob, gross_payout, edge_pct=0.12, base_fraction=0.5)
+        net = compute_kelly(true_prob, net_payout, edge_pct=0.12, base_fraction=0.5)
+        assert net.kelly_fraction < gross.kelly_fraction
+        assert net.kelly_fraction > 0  # still a real edge here, just smaller
 
 
 class TestEvaluateMarket:

@@ -37,10 +37,11 @@ from evmax.agents.cleanup.listings_eval import (
     _sharp_game_key,
 )
 from evmax.agents.odds.ev_gap_agent import EVGap
-from evmax.ev.calculator import calculate_ev
+from evmax.ev.calculator import calculate_ev, effective_price
 from evmax.models.market import MarketType, PredictionMarket
 from evmax.models.odds import SharpOdds
 from evmax.sectors.registry import get_handler
+from evmax.settings import get_settings
 
 logger = structlog.get_logger(__name__)
 
@@ -114,6 +115,11 @@ def build_anchored_entries(
     normalize = lambda s: handler.normalize_team(s or "")  # noqa: E731
     anchors = _group_sharp(sharp_odds)
 
+    # This stream is Kalshi WNBA spread/total. Price the crossable ask net of
+    # the Kalshi trading fee (same rule as the scanner) unless fees are toggled
+    # off, so the anchored-entry EV gate matches the live pricing path.
+    fee_venue = "kalshi" if get_settings().fees_in_pricing else None
+
     gaps: list[EVGap] = []
     for m in markets:
         mt = m.market_type.value if hasattr(m.market_type, "value") else str(m.market_type)
@@ -170,10 +176,13 @@ def build_anchored_entries(
 
         # YES side (spread lay / total over-as-listed)
         if ask is not None and 0 < ask < 1:
-            edge = (fair - ask) * 100
+            # Gate the anchor edge and stored EV on the fee-inclusive ask, but
+            # keep kalshi_yes_price = raw crossable ask (CLV anchors to it).
+            eff_ask = effective_price(ask, fee_venue)
+            edge = (fair - eff_ask) * 100
             depth_usd = (d.get("yes_ask_depth_usd") if d else None) or 0.0
             if edge >= ev_min_pp and depth_usd >= depth_min_usd:
-                ev, _ = calculate_ev(ask, fair)
+                ev, _ = calculate_ev(eff_ask, fair)
                 gaps.append(EVGap(
                     market_id=m.id,
                     yes_team=yes_team,
@@ -189,10 +198,11 @@ def build_anchored_entries(
         # NO side (spread take / total under)
         if bid is not None and 0 < bid < 1:
             no_price = 1.0 - bid
-            edge = (bid - fair) * 100  # = fair_no - no_price
+            eff_no_price = effective_price(no_price, fee_venue)
+            edge = ((1.0 - fair) - eff_no_price) * 100  # fair_no - net no cost
             depth_usd = (d.get("yes_bid_depth_usd") if d else None) or 0.0
             if edge >= ev_min_pp and depth_usd >= depth_min_usd and 0 < no_price < 1:
-                ev, _ = calculate_ev(no_price, 1.0 - fair)
+                ev, _ = calculate_ev(eff_no_price, 1.0 - fair)
                 if mt == "spread":
                     no_team = next(iter(frozenset((home, away)) - {yes_team}), "?")
                     no_line = -m.line

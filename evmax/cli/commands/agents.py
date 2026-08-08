@@ -604,8 +604,9 @@ def verify(
     """Re-fetch live Kalshi ask prices and check which +EV bets are still actionable."""
     from evmax.agents.cleanup.db import get_connection
     from evmax.clients.kalshi import KalshiClient
-    from evmax.ev.calculator import calculate_ev
+    from evmax.ev.calculator import calculate_ev, effective_price
     from evmax.ev.kelly import compute_kelly
+    from evmax.settings import get_settings
 
     if date_filter:
         try:
@@ -752,15 +753,18 @@ def verify(
             )
             continue
 
-        live_ev, _ = calculate_ev(live_ask, blended_prob)
+        # Gate/size at the live ask net of the venue's trading fee (same rule
+        # as the scanner — see evmax.ev.calculator.effective_price).
+        settings = get_settings()
+        fee_venue = (r.get("venue") or "kalshi") if settings.fees_in_pricing else None
+        eff_live = effective_price(live_ask, fee_venue)
+        live_ev, _ = calculate_ev(eff_live, blended_prob)
         threshold = _tiered_min_ev(blended_prob)
         is_live = live_ev >= threshold and blended_prob >= min_prob
 
         # Kelly stake at live price
         if is_live:
-            from evmax.settings import get_settings
-            settings = get_settings()
-            payout = 1.0 / live_ask
+            payout = 1.0 / eff_live
             k = compute_kelly(
                 true_prob=blended_prob,
                 payout_decimal=payout,
@@ -811,6 +815,7 @@ def recompute_at_price(
     bankroll: float,
     min_ev: float,
     min_prob: float,
+    venue: Optional[str] = None,
 ) -> dict:
     """Recompute EV / live-gate / Kelly stake at a given Kalshi ask ``price``.
 
@@ -819,21 +824,27 @@ def recompute_at_price(
     the fattest scan-time edges are the most reverting. Returns
     ``{ev, is_live, kelly_fraction, stake}``; a missing/degenerate price (None,
     settled 0/1, or empty-book ≥0.99) yields a not-live, zero-stake result.
+
+    ``venue`` selects the trading-fee model (``"kalshi"`` / ``"polymarket_us"``);
+    the contract is priced net of that fee for both the gate and the stake.
+    ``venue=None`` prices gross of fees (the caller passes None when the
+    ``fees_in_pricing`` setting is off).
     """
-    from evmax.ev.calculator import calculate_ev
+    from evmax.ev.calculator import calculate_ev, effective_price
     from evmax.ev.kelly import compute_kelly
 
     if price is None or not (0 < price < 0.99):
         return {"ev": None, "is_live": False, "kelly_fraction": 0.0, "stake": 0.0}
 
-    ev, _ = calculate_ev(price, blended_prob)
+    eff_price = effective_price(price, venue)
+    ev, _ = calculate_ev(eff_price, blended_prob)
     threshold = tiered_min_ev(blended_prob, min_ev=min_ev, min_prob=min_prob)
     is_live = ev >= threshold and blended_prob >= min_prob
     kelly_fraction = 0.0
     if is_live:
         k = compute_kelly(
             true_prob=blended_prob,
-            payout_decimal=1.0 / price,
+            payout_decimal=1.0 / eff_price,
             edge_pct=ev,
             spread_pct=0.0,
             base_fraction=base_kelly,
@@ -1120,6 +1131,7 @@ def pick(
             bankroll=bankroll,
             min_ev=min_ev,
             min_prob=min_prob,
+            venue=(r.get("venue") or "kalshi") if settings.fees_in_pricing else None,
         )
 
         bets.append({

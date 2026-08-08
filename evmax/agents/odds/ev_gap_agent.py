@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
 
 from evmax.agents.base import Agent, AgentRequest, AgentResponse
-from evmax.ev.calculator import calculate_ev
+from evmax.ev.calculator import calculate_ev, effective_price
 from evmax.ev.kelly import compute_kelly
 from evmax.formatting import format_outcome_label
 from evmax.matching.engine import MatchingEngine
@@ -1131,7 +1131,13 @@ class EVGapAgent(Agent):
                 # Alignment is suspect — skip both YES and NO.
                 return _ret(None, None)
 
-        ev, edge_pct = calculate_ev(market.yes_price, blended_prob)
+        # Price the contract net of the venue's trading fee (see
+        # evmax.ev.calculator.effective_price) so a gross edge the fee eats
+        # doesn't surface as a live play. The raw ask is still what we display
+        # / store in kalshi_yes_price below; only EV and Kelly go net.
+        fee_venue = market.source.value if self._settings.fees_in_pricing else None
+        eff_price = effective_price(market.yes_price, fee_venue)
+        ev, edge_pct = calculate_ev(eff_price, blended_prob)
 
         # Sharp-only signals need a higher EV bar — vig removal alone can
         # produce phantom 2-3% edges that don't hold empirically.
@@ -1145,7 +1151,7 @@ class EVGapAgent(Agent):
         if ev < ev_floor:
             return _ret(None, blend_payload)
 
-        payout = 1.0 / market.yes_price
+        payout = 1.0 / eff_price
         kelly = compute_kelly(
             true_prob=blended_prob,
             payout_decimal=payout,
@@ -1251,7 +1257,9 @@ class EVGapAgent(Agent):
         blended_no = max(0.01, min(0.99, 1.0 - blend_payload["blended_prob_yes"]))
         sharp_no = max(0.01, min(0.99, 1.0 - blend_payload["sharp_true_prob_yes"]))
 
-        ev, edge_pct = calculate_ev(no_ask, blended_no)
+        fee_venue = market.source.value if self._settings.fees_in_pricing else None
+        eff_no_ask = effective_price(no_ask, fee_venue)
+        ev, edge_pct = calculate_ev(eff_no_ask, blended_no)
 
         # NO-side spreads run a 5% EV floor regardless of sector / model source.
         # Normal-CDF cover-prob conversion under-estimates fat tails on alt-line
@@ -1277,7 +1285,7 @@ class EVGapAgent(Agent):
             (opp_label or "?").lower().strip() or "?"
         )
 
-        payout = 1.0 / no_ask
+        payout = 1.0 / eff_no_ask
         kelly = compute_kelly(
             true_prob=blended_no,
             payout_decimal=payout,
@@ -1365,12 +1373,14 @@ class EVGapAgent(Agent):
         blended_under = max(0.01, min(0.99, 1.0 - blend_payload["blended_prob_yes"]))
         sharp_under = max(0.01, min(0.99, 1.0 - blend_payload["sharp_true_prob_yes"]))
 
-        ev, edge_pct = calculate_ev(no_ask, blended_under)
+        fee_venue = market.source.value if self._settings.fees_in_pricing else None
+        eff_no_ask = effective_price(no_ask, fee_venue)
+        ev, edge_pct = calculate_ev(eff_no_ask, blended_under)
         if ev < self._settings.ev_threshold:
             return None
         src_yes = blend_payload["src"]
 
-        payout = 1.0 / no_ask
+        payout = 1.0 / eff_no_ask
         kelly = compute_kelly(
             true_prob=blended_under,
             payout_decimal=payout,
@@ -1492,11 +1502,13 @@ class EVGapAgent(Agent):
             except Exception:
                 pass
 
-        ev, edge_pct = calculate_ev(market.yes_price, sharp_true_prob)
+        fee_venue = market.source.value if self._settings.fees_in_pricing else None
+        eff_price = effective_price(market.yes_price, fee_venue)
+        ev, edge_pct = calculate_ev(eff_price, sharp_true_prob)
         if ev < self._settings.ev_threshold:
             return None
 
-        payout = 1.0 / market.yes_price
+        payout = 1.0 / eff_price
         kelly = compute_kelly(
             true_prob=sharp_true_prob,
             payout_decimal=payout,

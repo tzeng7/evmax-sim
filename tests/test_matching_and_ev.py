@@ -882,12 +882,41 @@ class TestEvaluatePair:
             true_prob_a=0.54,
         )
         gap = self._call(market, sharp)
-        # (0.54/0.53) - 1 = 0.01887 → below 0.02 threshold
+        # Gross (0.54/0.53) - 1 = 0.01887 is already below the 0.02 gate; net
+        # of the Kalshi fee (eff≈0.5474) it is more negative still → None.
         assert gap is None
 
-    def test_ev_just_above_2pct_threshold_is_accepted(self):
-        """EV = ~2.1% → above threshold → gap returned."""
-        # price=0.48, true_prob=0.49 → EV = 0.49/0.48 - 1 ≈ 0.0208
+    def test_ev_above_threshold_net_of_fee_is_accepted(self):
+        """A NET-of-fee edge above the 2% gate → gap returned.
+
+        The scanner prices the contract at ask + Kalshi fee (0.07·p·(1-p)),
+        so the edge has to clear the gate AFTER the ~1.75¢ fee at p≈0.48.
+        price=0.48, true=0.52 → eff≈0.4975, net EV = 0.52/0.4975 - 1 ≈ 0.045.
+        """
+        market = _market(
+            team_home="pistons", team_away="warriors",
+            yes_price=0.48, yes_team="pistons",
+        )
+        sharp = _moneyline_sharp(
+            event_id="nba::2026-03-21::pistons_vs_warriors",
+            outcome_a="pistons", outcome_b="warriors",
+            true_prob_a=0.52,
+        )
+        gap = self._call(market, sharp)
+        assert gap is not None
+        assert gap.ev_pct >= 0.02
+        # EV is stored net of the fee, so it is strictly below the gross edge.
+        assert gap.ev_pct < (0.52 / 0.48 - 1.0)
+
+    def test_marginal_gross_edge_eaten_by_fee_returns_none(self):
+        """Regression: a 2.08% GROSS edge is rejected once fees are priced in.
+
+        price=0.48, true=0.49 → gross EV 0.49/0.48-1 ≈ 0.0208 (would have
+        passed the old gross gate), but the ~1.75¢ Kalshi fee at p=0.48 pushes
+        the effective cost to ≈0.4975, so net EV ≈ 0.49/0.4975-1 ≈ -1.5% → None.
+        This is the whole point of fee-aware pricing: the fee peaks on coin
+        flips and eats thin edges there.
+        """
         market = _market(
             team_home="pistons", team_away="warriors",
             yes_price=0.48, yes_team="pistons",
@@ -897,9 +926,9 @@ class TestEvaluatePair:
             outcome_a="pistons", outcome_b="warriors",
             true_prob_a=0.49,
         )
+        assert (0.49 / 0.48 - 1.0) > 0.02  # gross edge clears the old gate
         gap = self._call(market, sharp)
-        assert gap is not None
-        assert gap.ev_pct >= 0.02
+        assert gap is None  # net-of-fee it does not
 
     def test_invalid_yes_price_zero_returns_none(self):
         market = _market(yes_price=0.0)
