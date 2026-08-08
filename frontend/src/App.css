@@ -27,12 +27,24 @@
   --yellow: #e0b341;
   --accent: var(--amber);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
-  --shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.7);
-  --shadow-lg: 0 24px 56px -14px rgba(0, 0, 0, 0.8);
+  /* Depth: a soft ambient drop + a hairline top-edge highlight so surfaces
+     read as real material catching light, not flat rectangles. */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255, 255, 255, 0.02) inset;
+  --shadow: 0 12px 34px -14px rgba(0, 0, 0, 0.72), 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  --shadow-lg: 0 28px 60px -16px rgba(0, 0, 0, 0.82), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --edge-hi: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 
-  --radius: 14px;
+  --radius-lg: 18px;
+  --radius: 13px;
   --radius-sm: 9px;
+  --radius-xs: 7px;
+
+  /* Motion — stronger, more intentional curves than the CSS built-ins.
+     ease-out for enter/exit (instant response), ease-in-out for on-screen
+     movement, spring-ish for tactile presses. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   --display: "Inter", system-ui, sans-serif;
   --sans: "Inter", system-ui, sans-serif;
@@ -112,20 +124,25 @@ h2::before {
   padding: 9px 16px; border: 1px solid var(--border); border-radius: 999px;
   background: var(--panel-2); color: var(--text-dim); cursor: pointer;
   font-size: 12px; font-weight: 600; font-family: var(--sans); letter-spacing: 0.005em;
-  transition: background .15s, border-color .15s, color .15s, transform .08s, box-shadow .15s;
+  box-shadow: var(--edge-hi);
+  transition: background .18s var(--ease-out), border-color .18s var(--ease-out),
+              color .18s var(--ease-out), transform .13s var(--ease-out), box-shadow .18s var(--ease-out);
 }
 .btn:hover { border-color: var(--amber-line); color: var(--text); background: var(--elevated); }
-.btn:active { transform: translateY(1px); }
+/* Scale on press — the whole button (and its content) gives, so it feels
+   physically pressed rather than just nudged. */
+.btn:active { transform: scale(0.97); }
 .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--amber-soft); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 .btn.primary {
-  background: var(--amber); border-color: transparent; color: #04130d; font-weight: 700;
-  box-shadow: 0 2px 16px -6px rgba(0, 208, 130, 0.6);
+  background: linear-gradient(180deg, #12e08d, var(--amber) 60%, var(--amber-deep));
+  border-color: transparent; color: #04130d; font-weight: 700;
+  box-shadow: 0 4px 18px -6px rgba(0, 208, 130, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
-.btn.primary:hover { background: #16e597; color: #04130d; border-color: transparent; }
-.btn.danger { border-color: transparent; background: var(--red-soft); color: var(--red); }
+.btn.primary:hover { background: linear-gradient(180deg, #21ed99, #12dd8e 60%, var(--amber)); color: #04130d; border-color: transparent; }
+.btn.danger { border-color: transparent; background: var(--red-soft); color: var(--red); box-shadow: none; }
 .btn.danger:hover { background: rgba(240, 97, 109, 0.22); color: var(--red); }
-.btn.success { border-color: transparent; background: var(--green-soft); color: var(--green); }
+.btn.success { border-color: transparent; background: var(--green-soft); color: var(--green); box-shadow: none; }
 .btn.success:hover { background: rgba(0, 208, 130, 0.22); color: var(--green); }
 .btn-sm { padding: 6px 13px; font-size: 11.5px; }
 
@@ -139,11 +156,39 @@ h2::before {
 select, input[type="text"], input[type="number"], input[type="date"] {
   padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
   background: var(--panel-2); color: var(--text); font-size: 12px; font-family: var(--sans);
-  transition: border-color .15s, box-shadow .15s;
+  transition: border-color .18s var(--ease-out), box-shadow .18s var(--ease-out);
 }
-select:hover, input:hover { border-color: #34373d; }
+select:hover, input:hover { border-color: #3a3e45; }
 select:focus, input:focus { border-color: var(--amber); outline: none; box-shadow: 0 0 0 3px var(--amber-soft); }
 input[type="date"] { color-scheme: dark; font-family: var(--sans); font-size: 11.5px; }
+
+/* Native selects: dark popup + a custom chevron so they match the pill language */
+select {
+  appearance: none; -webkit-appearance: none; color-scheme: dark; cursor: pointer;
+  padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23767b85' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 11px center;
+}
+
+/* Custom checkbox — branded box with a spring-in check, replacing the OS control */
+input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; margin: 0; flex: none; position: relative;
+  width: 16px; height: 16px; border: 1.5px solid var(--border); border-radius: 5px;
+  background: var(--panel-2); cursor: pointer;
+  transition: background .15s var(--ease-out), border-color .15s var(--ease-out), box-shadow .15s var(--ease-out);
+}
+input[type="checkbox"]:hover { border-color: var(--amber-line); }
+input[type="checkbox"]:checked { background: var(--amber); border-color: var(--amber); }
+input[type="checkbox"]::after {
+  content: ""; position: absolute; left: 5px; top: 1.5px; width: 4px; height: 8px;
+  border: solid #04130d; border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0); transform-origin: center;
+  transition: transform .16s var(--ease-spring);
+}
+input[type="checkbox"]:checked::after { transform: rotate(45deg) scale(1); }
+input[type="checkbox"]:focus { box-shadow: none; }
+input[type="checkbox"]:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--amber-soft); }
+input[type="checkbox"]:disabled { opacity: 0.4; cursor: not-allowed; }
 
 td input[type="number"], td input[type="text"] {
   padding: 6px 8px; border: 1px solid var(--border); border-radius: 7px;
@@ -190,79 +235,109 @@ input[type="range"]:focus { outline: none; box-shadow: none; }
 input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--amber-soft); }
 input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--amber-soft); }
 
-/* ── Sector multi-select (checkbox dropdown) ── */
+/* ── Sector multi-select (command-menu style checklist) ── */
 .sector-ms { position: relative; display: inline-block; }
 .sector-ms-toggle {
   display: inline-flex; align-items: center; gap: 8px; justify-content: space-between;
-  min-width: 120px; padding: 8px 12px;
+  min-width: 134px; padding: 8px 12px;
   border: 1px solid var(--border); border-radius: var(--radius-sm);
-  background: var(--panel-2); color: var(--text); font-size: 12px;
-  font-family: var(--sans); cursor: pointer;
-  transition: border-color .15s, box-shadow .15s;
+  background: var(--panel-2); color: var(--text); font-size: 12px; font-weight: 500;
+  font-family: var(--sans); cursor: pointer; box-shadow: var(--edge-hi);
+  transition: border-color .18s var(--ease-out), background .18s var(--ease-out), box-shadow .18s var(--ease-out);
 }
-.sector-ms-toggle:hover { border-color: #34373d; }
-.sector-ms-toggle:focus { border-color: var(--amber); outline: none; box-shadow: 0 0 0 3px var(--amber-soft); }
-.sector-ms-caret { color: var(--muted); font-size: 10px; }
+.sector-ms-toggle:hover { border-color: #3a3e45; background: var(--elevated); }
+.sector-ms-toggle:active { transform: scale(0.98); }
+.sector-ms-toggle:focus-visible { border-color: var(--amber); outline: none; box-shadow: 0 0 0 3px var(--amber-soft); }
+.sector-ms-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sector-ms-caret { color: var(--muted); flex: none; transition: transform .22s var(--ease-out); }
+.sector-ms-toggle.open .sector-ms-caret { transform: rotate(180deg); }
+
 .sector-ms-menu {
-  position: absolute; top: calc(100% + 4px); left: 0; z-index: 30;
-  min-width: 160px; max-height: 280px; overflow-y: auto;
-  padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-  background: var(--panel-2); box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
-  /* Materialize from the toggle it belongs to (§7 anchored origin, §12): scale
-     + fade out of the top-left corner rather than popping in. Symmetric enter
-     and exit — the menu leaves the same way it arrived. */
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 30;
+  width: 222px; display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--panel-2); box-shadow: var(--shadow-lg);
+  /* Materialize from the toggle it belongs to (§7 anchored origin): scale + fade
+     out of the top-left corner. Symmetric enter/exit — leaves the way it came. */
   transform-origin: top left;
-  opacity: 0; transform: scale(0.96) translateY(-4px);
+  opacity: 0; transform: scale(0.96) translateY(-6px);
   visibility: hidden; pointer-events: none;
-  transition: opacity .18s cubic-bezier(.2,.7,.2,1),
-              transform .18s cubic-bezier(.2,.7,.2,1),
-              visibility 0s .18s;
+  transition: opacity .18s var(--ease-out), transform .18s var(--ease-out), visibility 0s .18s;
 }
 .sector-ms-menu.open {
   opacity: 1; transform: scale(1) translateY(0);
   visibility: visible; pointer-events: auto;
-  transition: opacity .18s cubic-bezier(.2,.7,.2,1),
-              transform .18s cubic-bezier(.2,.7,.2,1),
-              visibility 0s 0s;
+  transition: opacity .18s var(--ease-out), transform .18s var(--ease-out), visibility 0s 0s;
 }
+.sector-ms-search { padding: 8px; border-bottom: 1px solid var(--border-soft); }
+.sector-ms-search input {
+  width: 100%; padding: 7px 10px; font-size: 12px;
+  border: 1px solid var(--border); border-radius: var(--radius-xs);
+  background: var(--bg); color: var(--text);
+}
+.sector-ms-search input:focus { border-color: var(--amber-line); box-shadow: none; }
+.sector-ms-list { padding: 6px; overflow-y: auto; max-height: 244px; }
+.sector-ms-list::-webkit-scrollbar { width: 8px; }
+.sector-ms-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+.sector-ms-list::-webkit-scrollbar-thumb:hover { background: var(--amber-line); }
 .sector-ms-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px; border-radius: 7px; cursor: pointer;
-  font-size: 12px; color: var(--text); font-family: var(--sans);
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 8px; border-radius: var(--radius-xs); cursor: pointer;
+  font-size: 12px; color: var(--text-dim); font-family: var(--sans);
+  transition: background .14s var(--ease-out), color .14s var(--ease-out);
 }
-.sector-ms-item:hover { background: var(--elevated); }
-.sector-ms-item input[type="checkbox"] { cursor: pointer; accent-color: var(--amber); }
-.sector-ms-all { font-weight: 600; }
-.sector-ms-divider { height: 1px; margin: 4px 2px; background: var(--border); }
+.sector-ms-item:hover { background: var(--elevated); color: var(--text); }
+.sector-ms-all { font-weight: 600; color: var(--text); }
+.sector-ms-none { padding: 12px 8px; font-size: 12px; color: var(--muted); text-align: center; }
+.sector-ms-divider { height: 1px; margin: 5px 2px; background: var(--border-soft); }
+.sector-ms-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; border-top: 1px solid var(--border-soft);
+  font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.sector-ms-clear {
+  background: none; border: none; color: var(--amber); cursor: pointer;
+  font-size: 11px; font-weight: 600; font-family: var(--sans); padding: 3px 7px; border-radius: 6px;
+  transition: color .15s var(--ease-out), background .15s var(--ease-out);
+}
+.sector-ms-clear:hover { background: var(--amber-soft); }
+.sector-ms-clear:disabled { color: var(--muted); cursor: default; opacity: 0.55; }
+.sector-ms-clear:disabled:hover { background: none; }
 
 /* ── Segmented control ── */
 .segmented {
   display: inline-flex; padding: 3px; gap: 2px;
   background: var(--panel); border: 1px solid var(--border-soft); border-radius: 999px;
+  box-shadow: var(--edge-hi);
 }
 .segmented .btn, .segmented .seg {
   border: 1px solid transparent; background: transparent; color: var(--muted);
   padding: 6px 16px; border-radius: 999px; font-size: 12px; font-weight: 600; cursor: pointer;
-  font-family: var(--sans); letter-spacing: 0.005em; transition: all .15s;
+  font-family: var(--sans); letter-spacing: 0.005em;
+  transition: color .18s var(--ease-out), background .18s var(--ease-out),
+              border-color .18s var(--ease-out), transform .13s var(--ease-out);
 }
 .segmented .seg:hover { color: var(--text); }
-.segmented .seg:active { transform: scale(0.96); }
+.segmented .seg:active { transform: scale(0.95); }
 .segmented .seg:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--amber-soft); color: var(--text); }
 .segmented .seg.active, .pnl-tab.active, .range-btn.active, .settled-tab.active {
   background: var(--amber-soft); color: var(--amber); border-color: var(--amber-line);
+  box-shadow: var(--edge-hi);
 }
 
 /* ── KPI cards ── */
 .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 13px; margin-bottom: 24px; }
 .kpi {
   position: relative; background: var(--panel); border: 1px solid var(--border-soft);
-  border-radius: var(--radius); padding: 16px 17px 15px; overflow: hidden;
-  transition: border-color .15s, transform .12s, box-shadow .15s;
-  animation: rise 0.5s cubic-bezier(.2,.7,.2,1) both;
+  border-radius: var(--radius); padding: 17px 18px 16px; overflow: hidden;
+  box-shadow: var(--edge-hi);
+  transition: border-color .18s var(--ease-out), transform .18s var(--ease-out), box-shadow .18s var(--ease-out);
+  animation: rise 0.5s var(--ease-out) both;
 }
 .kpi::after {
   content: ""; position: absolute; left: 0; top: 0; right: 0; height: 2px;
   background: linear-gradient(90deg, var(--amber), transparent 70%);
+  opacity: 0.85;
 }
 .grid-kpi .kpi:nth-child(1) { animation-delay: .02s; }
 .grid-kpi .kpi:nth-child(2) { animation-delay: .06s; }
@@ -270,7 +345,7 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(
 .grid-kpi .kpi:nth-child(4) { animation-delay: .14s; }
 .grid-kpi .kpi:nth-child(5) { animation-delay: .18s; }
 .grid-kpi .kpi:nth-child(6) { animation-delay: .22s; }
-.kpi:hover { border-color: var(--border); transform: translateY(-2px); box-shadow: var(--shadow); }
+.kpi:hover { border-color: var(--border); transform: translateY(-3px); box-shadow: var(--shadow); }
 .kpi .label {
   color: var(--muted); font-size: 10px; letter-spacing: 0.04em;
   font-weight: 600; font-family: var(--sans); text-transform: uppercase;
@@ -284,9 +359,9 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(
 
 /* ── Panels ── */
 .panel {
-  background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius);
-  padding: 20px; margin-bottom: 18px; box-shadow: var(--shadow-sm);
-  animation: rise 0.45s cubic-bezier(.2,.7,.2,1) both;
+  background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius-lg);
+  padding: 22px; margin-bottom: 18px; box-shadow: var(--shadow-sm);
+  animation: rise 0.45s var(--ease-out) both;
 }
 .panel-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .panel-header h2 { margin-bottom: 0; }
@@ -295,15 +370,23 @@ input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(
 table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; }
 th {
   position: sticky; top: 0; z-index: 1;
-  text-align: left; padding: 10px 8px; color: var(--muted); font-weight: 600;
-  text-transform: uppercase; font-size: 10px; letter-spacing: 0.05em; font-family: var(--sans);
+  text-align: left; padding: 11px 10px; color: var(--muted); font-weight: 600;
+  text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; font-family: var(--sans);
   background: var(--panel); border-bottom: 1px solid var(--border);
 }
-td { padding: 10px 8px; border-bottom: 1px solid var(--border-soft); color: var(--text-dim); }
-tbody tr { transition: background .12s; }
-tbody tr:hover td { background: rgba(255, 255, 255, 0.035); color: var(--text); }
+td { padding: 11px 10px; border-bottom: 1px solid var(--border-soft); color: var(--text-dim); }
+tbody tr { transition: background .15s var(--ease-out); }
+tbody tr:hover td { background: rgba(255, 255, 255, 0.04); color: var(--text); }
 tbody tr:last-child td { border-bottom: none; }
 .num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); }
+
+/* ── Empty states ── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 44px 20px; text-align: center;
+  color: var(--muted); font-size: 13px;
+}
+.empty-state .empty-title { color: var(--text-dim); font-weight: 600; font-size: 14px; }
 
 /* ── Badges (rounded, Kalshi pill) ── */
 .badge {
@@ -347,10 +430,10 @@ tbody tr:last-child td { border-bottom: none; }
 @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
 
 /* ── Clickable cards ── */
-.card-clickable { transition: border-color .15s, transform .12s, box-shadow .15s; }
+.card-clickable { transition: border-color .18s var(--ease-out), transform .18s var(--ease-out), box-shadow .18s var(--ease-out); }
 .card-clickable:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--border); }
 /* Press feedback fires on pointer-down, not release — respond instantly (§1). */
-.card-clickable:active { transform: translateY(-1px) scale(0.994); transition: transform .08s; }
+.card-clickable:active { transform: translateY(-1px) scale(0.988); transition: transform .1s var(--ease-out); }
 .card-clickable:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--amber-soft); border-color: var(--amber-line); }
 
 /* ── Scroll areas ── */
