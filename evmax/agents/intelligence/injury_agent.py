@@ -1,9 +1,12 @@
 """InjuryReportAgent — fetches injury reports from ESPN public API and adjusts win probabilities.
 
-Data sources (all public, no auth required):
+Data sources (all public, no auth required). SECTOR_INJURY_URLS below is
+authoritative — it currently covers nba, nfl, ncaab, ncaaw, wnba, and soccer:
   NBA:   https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries
   NFL:   https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries
   NCAAB: https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/injuries
+  NCAAW: https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/injuries
+  WNBA:  https://site.api.espn.com/apis/site/v2/sports/basketball/wnba/injuries
   Soccer (EPL): https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/injuries
   Soccer (UCL): https://site.api.espn.com/apis/site/v2/sports/soccer/UEFA.CHAMPIONS/injuries
   Soccer (La Liga): https://site.api.espn.com/apis/site/v2/sports/soccer/ESP.1/injuries
@@ -18,10 +21,16 @@ Output: dict[team_name_normalized → InjuryReport]
 Probability adjustment logic:
   - Each injured player reduces their team's win probability.
   - Impact is based on:
-      1. injury_status: OUT (-0.045), DAY_TO_DAY (-0.025), QUESTIONABLE (-0.012)
+      1. injury_status, per STATUS_IMPACT below: OUT (-0.045), DOUBTFUL (-0.030),
+         DAY_TO_DAY (-0.025), QUESTIONABLE (-0.012), PROBABLE (-0.004), ACTIVE (0.0)
       2. player_tier: STAR (1.5×), STARTER (1.0×), ROTATION (0.5×)
   - STAR = top-3 PPG/RPG leader on their team (fetched from ESPN leaders endpoint)
-  - Total adjustment is capped at -0.12 per team (can't lose more than 12% regardless)
+  - Two caps apply, in this order:
+      1. `MAX_ADJ = 0.20` caps the report-level `probability_adjustment` a team
+         can accumulate from its own injury list.
+      2. `apply_adjustments` then floors the EFFECTIVE per-team adjustment at
+         -0.10 (`_adj_cap`), after the spread multiplier. The clamp is one-sided
+         (`max(-_adj_cap, raw)`) because `probability_adjustment` is never positive.
 
 The adjustment is additive on top of model/sharp probabilities.
 """
