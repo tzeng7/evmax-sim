@@ -36,7 +36,7 @@ def _empty_conn():
     return conn
 
 
-def _isolated_coordinator(tmp_path):
+def _isolated_coordinator(tmp_path, sector: str = "baseball"):
     """A real coordinator whose elo/form/poisson state paths point at tmp_path.
 
     Reading from production data/models/*.json would make the date assertions
@@ -45,7 +45,7 @@ def _isolated_coordinator(tmp_path):
     from evmax.agents.coordinator import AgentCoordinator
 
     coord = AgentCoordinator(
-        sectors=["baseball"], enable_models=True, respect_season_window=False
+        sectors=[sector], enable_models=True, respect_season_window=False
     )
     for agent in (coord.elo_agent, coord.form_agent, coord.poisson_agent):
         agent._state_path = tmp_path / f"{agent.name}_state.json"
@@ -78,6 +78,69 @@ def test_hook_advances_elo_and_form_state_dates(tmp_path):
     all_dates = [rec["date"] for recs in form_state.values() for rec in recs]
     assert all_dates, "form state did not record the game"
     assert max(all_dates) == "2026-06-09"
+
+
+@pytest.mark.parametrize(
+    "sector,home,away",
+    [
+        # Regression for R2: the resolve hook never fed ncaaw or ncaaf, so the
+        # calibrated NCAAW Elo (K=35/home 80) was never advanced and ncaaf
+        # never entered elo/form state at all. Both are ESPN_SPORT_MAP sectors,
+        # so feeding a completed game must advance their elo/form state.
+        ("ncaaw", "UConn", "Tennessee"),
+        ("ncaaf", "Georgia", "Alabama"),
+    ],
+)
+def test_hook_advances_state_for_ncaaw_and_ncaaf(tmp_path, sector, home, away):
+    coord = _isolated_coordinator(tmp_path, sector=sector)
+    scores = [{
+        "home_name": home, "away_name": away,
+        "home_score": 27, "away_score": 20,
+    }]
+
+    with patch.object(model_updater, "fetch_completed_scores", return_value=scores), \
+         patch.object(model_updater, "get_connection", return_value=_empty_conn()):
+        result = asyncio.run(
+            model_updater.update_models_for_date(
+                [sector], date(2026, 11, 21), coordinator=coord
+            )
+        )
+
+    assert result.updated == 1, f"{sector} game was not fed into the models"
+
+    # Elo: per-sector last_updated stamp advanced to the event date (no longer
+    # frozen at None / absent — the exact symptom the bug reported).
+    assert coord.elo_agent._state[sector]["last_updated"] == "2026-11-21"
+
+    # Form: the most-recent record for each team is the event date.
+    form_state = coord.form_agent._state[sector]
+    all_dates = [rec["date"] for recs in form_state.values() for rec in recs]
+    assert all_dates, f"{sector} form state did not record the game"
+    assert max(all_dates) == "2026-11-21"
+
+
+def test_hook_and_cli_default_share_one_sector_source():
+    """Drift guard: the resolve hook and `evmax update scores` default must be
+    the SAME canonical list, and both must include ncaaw + ncaaf.
+
+    The bug (R2) was exactly that these two hand-maintained lists diverged.
+    They now both reference model_updater.ESPN_MODEL_UPDATE_SECTORS, so this
+    test fails loudly if a future edit reintroduces a private copy that drifts.
+    """
+    from evmax.agents.cleanup.model_updater import ESPN_MODEL_UPDATE_SECTORS
+    from evmax.cli.commands.update import _DEFAULT_SECTORS
+
+    # Resolve-time hook is the canonical list itself.
+    assert cleanup_cmd._UPDATE_HOOK_SECTORS is ESPN_MODEL_UPDATE_SECTORS
+
+    # CLI default string is the canonical list, in order.
+    cli_default = [s for s in _DEFAULT_SECTORS.split(",") if s]
+    assert cli_default == ESPN_MODEL_UPDATE_SECTORS
+
+    # Both new sectors are present in both entry points.
+    for req in ("ncaaw", "ncaaf"):
+        assert req in cleanup_cmd._UPDATE_HOOK_SECTORS
+        assert req in cli_default
 
 
 def _runner_returning(*returns):
