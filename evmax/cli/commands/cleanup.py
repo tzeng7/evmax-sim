@@ -251,9 +251,13 @@ def show(
     print()
 
 
-# Default sectors refreshed by the resolve-time model-update hook. Mirrors the
-# `evmax update scores` default; ESPN-supported game sectors only.
-_UPDATE_HOOK_SECTORS = ["soccer", "worldcup", "nba", "wnba", "nfl", "ncaab", "nhl", "baseball"]
+# Sectors refreshed by the resolve-time model-update hook. Sourced from the one
+# canonical list in model_updater so this and the `evmax update scores` default
+# can never drift apart (they previously diverged — ncaaw/ncaaf missing from
+# both, worldcup missing from the CLI default).
+from evmax.agents.cleanup.model_updater import (  # noqa: E402
+    ESPN_MODEL_UPDATE_SECTORS as _UPDATE_HOOK_SECTORS,
+)
 
 
 @app.command("resolve")
@@ -354,118 +358,6 @@ def resolve(
         console.print(
             "  [dim]Tip: run [bold]evmax cleanup show[/bold] to check logged bets, "
             "or try [bold]--date YYYY-MM-DD[/bold] to target a specific game date.[/dim]"
-        )
-
-
-@app.command("close-lines")
-def close_lines(
-    target_date: Optional[str] = typer.Option(
-        None, "--date", "-d",
-        help="Date to capture closing lines for (YYYY-MM-DD). Defaults to today.",
-    ),
-) -> None:
-    """Capture Pinnacle closing lines for unresolved markets.
-
-    Run this at or just before game start time. Stores pinnacle_close_prob in
-    ev_outcomes (YES-aligned per the bet's yes_team) so backfill-clv can
-    populate ev_predictions.pinnacle_drift_pct + kalshi_clv_pct later.
-
-    CLV = pinnacle_close_prob - kalshi_yes_price (in pp).
-    Positive CLV means the sharpest book's eventual truth said our YES side
-    was MORE likely than what we paid Kalshi — i.e. we got a sharp price.
-    """
-    import asyncio
-    from evmax.agents.cleanup.db import get_connection
-    from evmax.clients.esports_pinnacle import PinnacleGuestClient
-
-    if target_date:
-        try:
-            d = date.fromisoformat(target_date)
-        except ValueError:
-            console.print(f"[red]Invalid date:[/red] {target_date!r} — use YYYY-MM-DD")
-            raise typer.Exit(1)
-    else:
-        d = date.today()
-
-    date_str = d.isoformat()
-    conn = get_connection()
-
-    # Get unresolved markets for this date that don't yet have a closing line.
-    # yes_team is needed to align Pinnacle's outcome_a/_b probs to the YES side
-    # we actually bet — without it, half the rows store the inverted prob.
-    rows = conn.execute(
-        """SELECT o.market_id, o.event_id, o.sector, p.sharp_true_prob,
-                  p.yes_team, p.market_type
-           FROM ev_outcomes o
-           JOIN ev_predictions p ON o.market_id = p.market_id
-           WHERE o.event_date = ?
-             AND o.outcome IS NULL
-             AND o.pinnacle_close_prob IS NULL""",
-        (date_str,),
-    ).fetchall()
-
-    if not rows:
-        console.print(f"[yellow]No unresolved markets without closing lines for {date_str}.[/yellow]")
-        conn.close()
-        return
-
-    console.print(f"[cyan]Capturing closing lines for {len(rows)} market(s) on {date_str}...[/cyan]")
-
-    # Group by sector to batch Pinnacle fetches
-    by_sector: dict[str, list] = {}
-    for r in rows:
-        by_sector.setdefault(r["sector"], []).append(dict(r))
-
-    async def _fetch_and_store() -> int:
-        from evmax.agents.cleanup.resolver import yes_aligned_close_prob
-        updated = 0
-        async with PinnacleGuestClient() as client:
-            for sector, markets in by_sector.items():
-                sharp_odds = await client.get_odds(sector)
-                sharp_by_event: dict[str, "SharpOdds"] = {so.event_id: so for so in sharp_odds}
-
-                for m in markets:
-                    so = sharp_by_event.get(m["event_id"])
-                    if so is None:
-                        continue
-                    mt = (m.get("market_type") or "").lower()
-                    if mt == "total":
-                        # Totals align by over/under side, not team label.
-                        side = (m.get("yes_team") or "").strip().lower()
-                        if side == "under":
-                            close_prob = so.true_prob_under
-                        elif side == "over":
-                            close_prob = so.true_prob_over
-                        else:
-                            close_prob = None
-                    else:
-                        close_prob = yes_aligned_close_prob(
-                            yes_team=m.get("yes_team"),
-                            outcome_a_label=so.outcome_a_label,
-                            outcome_b_label=so.outcome_b_label,
-                            true_prob_a=so.true_prob_a,
-                            true_prob_b=so.true_prob_b,
-                            true_prob_draw=so.true_prob_draw,
-                        )
-                    if close_prob is None:
-                        continue
-                    conn.execute(
-                        "UPDATE ev_outcomes SET pinnacle_close_prob = ? WHERE market_id = ?",
-                        (close_prob, m["market_id"]),
-                    )
-                    updated += 1
-
-        conn.commit()
-        return updated
-
-    updated = asyncio.run(_fetch_and_store())
-    conn.close()
-
-    console.print(f"  [green]Stored closing lines for {updated}/{len(rows)} market(s).[/green]")
-    if updated < len(rows):
-        console.print(
-            f"  [dim]{len(rows) - updated} market(s) had no matching Pinnacle event "
-            f"(may have already started or Pinnacle delisted).[/dim]"
         )
 
 

@@ -1572,7 +1572,7 @@ All settings live in `.env` (or environment variables):
 
 The full catalog — every bettable category, its models, mode, resolver, and status — lives in one registry: [`data/categories.yaml`](data/categories.yaml). Read it at runtime via `evmax.categories.all_categories()` or `evmax categories list`. The table below is a snapshot for orientation; the YAML is authoritative.
 
-All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api.arcadia.pinnacle.com/0.1`). 16 categories ship today:
+All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api.arcadia.pinnacle.com/0.1`). 17 categories ship today:
 
 | Category | Models | Market Types | Resolver | Mode |
 |----------|--------|--------------|----------|------|
@@ -1580,18 +1580,19 @@ All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api
 | `nfl` | NFL Efficiency + NFL QB Elo + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
 | `ncaab` | NCAAB Efficiency + PossessionSim + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
 | `ncaaw` | NCAAW Efficiency + PossessionSim + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
+| `ncaaf` | NCAAF Efficiency (opponent-adjusted EPA + preseason-prior ramp) + Elo + Form | moneyline (`spread` + `total` disabled) | espn_scoreboard | `shadow` (wip) |
 | `soccer` | Poisson + xG + Elo + Form | moneyline, total | espn_scoreboard | `live` |
 | `worldcup` | Poisson + xG + Elo + Form (national-team namespaces) | moneyline, advance | espn_scoreboard (`fifa.world`) | `shadow` |
 | `tennis` | Surface Elo + Serve/Return + Form + Advanced + H2H + Ranking Trend | moneyline | kalshi_settlement | `live` |
 | `baseball` | Pitcher + Elo + Form (probables via MLB Stats API) | moneyline, spread (`total` disabled) | espn_scoreboard | `shadow` |
-| `wnba` | WNBA Efficiency + WNBA PossessionSim + Elo | moneyline (`spread` + `total` → shadow) | espn_scoreboard | `live` |
+| `wnba` | WNBA Efficiency + WNBA PossessionSim + Elo | moneyline (`spread` + `total` **disabled** — owned by the anchored-entry trigger since 2026-07-19) | espn_scoreboard | `live` |
 | `nhl` | NHL xG (MoneyPuck) + Form | moneyline, spread, total | espn_scoreboard | `shadow` |
 | `lol` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
 | `cs2` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
 | `ufc` | UFC Rating (Glicko-2 + feature layer) | moneyline | kalshi_settlement | `shadow` |
 | `nba_props` | NBA Props Cache | player_prop | espn_boxscore | `shadow` |
 | `nfl_props` | NFL Props Cache (QB only v1) | player_prop | espn_boxscore | `shadow` (blocked) |
-| `baseball_props` | Baseball Props Model (K/Outs/TB/HR anchored; Hits/H+R+RBI/RBI model-priced) | player_prop | espn_boxscore | `shadow` (wip) |
+| `baseball_props` | Baseball Props Model (K/Outs/TB/HR anchored; Hits/H+R+RBI/RBI model-priced) | player_prop | mlb_statsapi | `shadow` (wip) |
 
 > Injury data (ESPN) is applied to NBA / NFL / NCAAB / NCAAW / soccer / WNBA (`SECTOR_INJURY_URLS` in `injury_agent.py`). `valorant` and `f1` sector handlers exist in the registry as **latent** sectors but have no Kalshi product, so they're absent from `SECTOR_SERIES_MAP` and cannot be bet today; `ufc` graduated from that latent list to a live `shadow` sector on 2026-07-11 (`KXUFCFIGHT`).
 
@@ -1605,16 +1606,17 @@ Every category runs in one of three modes (`evmax.modes.get_mode`):
 | `shadow` | EVGaps + pre-game YES ask persisted with `mode='shadow'`; **bankroll untouched** (Kelly skipped). Used for live-wiring validation before promotion. |
 | `disabled` | Scanner skips persistence entirely (gap still shows in the session's in-memory CLI output). |
 
-**Override precedence (highest wins):** runtime CLI flag (`--shadow`/`--live`/`--disabled`) > env var `EVMAX_CATEGORY_MODES` > YAML base. Per-market-type refinements `shadow_market_types` and `disabled_market_types` narrow a category to specific market types (e.g. baseball `total` is disabled; WNBA `total` stays shadow). Promote a category with `evmax cleanup shadow promote <category>` once validation passes.
+**Override precedence (highest wins):** runtime CLI flag (`--shadow`/`--live`/`--disabled`) > env var `EVMAX_CATEGORY_MODES` > YAML base. Per-market-type refinements `shadow_market_types` and `disabled_market_types` narrow a category to specific market types (e.g. baseball `total`, WNBA `spread`+`total`, and NCAAF `spread`+`total` are all in `disabled_market_types`; no category currently populates `shadow_market_types`). Promote a category with `evmax cleanup shadow promote <category>` once validation passes.
 
 **Kalshi series tickers per sector** (from `SECTOR_SERIES_MAP` in `kalshi.py`):
 
 | Sector | Kalshi Series |
 |--------|--------------|
 | NBA | `KXNBAGAME`, `KXNBASPREAD`, `KXNBATOTAL` |
-| NFL | `KXNFLGAME`, `KXNFLTOTAL` |
+| NFL | `KXNFLGAME`, `KXNFLSPREAD`, `KXNFLTOTAL` |
 | NCAAB | `KXNCAABGAME`, `KXNCAAMBGAME`, `KXNCAAMBSPREAD`, `KXNCAAMBTOTAL` |
 | NCAAW | `KXNCAAWBGAME`, `KXNCAAWBSPREAD`, `KXNCAAWBTOTAL` |
+| NCAAF | `KXNCAAFGAME`, `KXNCAAFSPREAD`, `KXNCAAFTOTAL` |
 | Baseball | `KXMLBGAME`, `KXMLBSPREAD`, `KXMLBTOTAL` |
 | NHL | `KXNHLGAME`, `KXNHLSPREAD`, `KXNHLTOTAL` |
 | WNBA | `KXWNBAGAME`, `KXWNBASPREAD`, `KXWNBATOTAL` |

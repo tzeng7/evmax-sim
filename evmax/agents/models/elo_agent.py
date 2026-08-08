@@ -67,9 +67,11 @@ K_FACTORS: dict[str, float] = {
                       # at 35 — a cold-start walk overstates K for the warm live state that
                       # also stacks MOV/SOS/recency-K multipliers. A large K suits CFB's
                       # ~13-game season + heavy annual roster turnover (cf. worldcup's 40).
-                      # NOTE: elo is still UNSEEDED + absent from the resolve update hook
-                      # for ncaaf, so it stays gated (confidence 0.30) until activated —
-                      # these constants are correct-ahead-of-activation, not yet live.
+                      # NOTE: ncaaf elo starts the season UNSEEDED (empty elo_state.json),
+                      # so it's gated (confidence 0.30) until it warms up. As of #169 the
+                      # resolve hook DOES feed ncaaf, so elo warms automatically over
+                      # ~5 games/team and then predicts with these constants; a walk-
+                      # forward warm-seed is the only remaining step (see TODO MODEL-2).
     "soccer": 30.0,
     "worldcup": 40.0,  # national teams play ~10 games/yr → larger K to move on sparse data
     "baseball": 6.0,   # 162-game season → smaller K to avoid overreaction per game

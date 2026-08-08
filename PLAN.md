@@ -59,6 +59,11 @@
 
 **Intent:** Run `evmax cleanup close-lines` at game start time (add cron at T-15min, or manually).
 **Checkpoint:** ✅
+**RETIRED 2026-08-07:** the `close-lines` command and its `daily-close-lines-capture` task were
+removed — the query drove off `ev_outcomes WHERE outcome IS NULL`, which can never match (rows are
+only INSERTed post-resolution with a concrete outcome), so it was a permanent no-op. The
+`pinnacle_close_prob` column it was meant to fill is now populated by `watch-closes` (near-tip) and
+`backfill_clv` (post-resolution). See docs/SCHEDULED_RUNS.md History.
 
 ---
 
