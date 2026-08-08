@@ -71,7 +71,7 @@ body {
 /* ── Typography ── */
 h1 {
   font-family: var(--display);
-  font-size: 22px; font-weight: 800; letter-spacing: -0.02em;
+  font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15;
 }
 h2 {
   font-family: var(--display);
@@ -95,8 +95,11 @@ h2::before {
   border-bottom: 1px solid var(--border-soft);
 }
 .header-left { display: flex; align-items: baseline; gap: 13px; }
-.header-left h1 { color: var(--amber); transition: color .15s; }
+.header-left h1 { color: var(--amber); transition: color .15s, transform .08s; }
 .header-left h1:hover { color: var(--text); }
+.home-link { cursor: pointer; border-radius: 8px; }
+.home-link:active { transform: translateY(1px); }
+.home-link:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--amber-soft); }
 .subtitle {
   color: var(--muted); font-size: 11px; font-family: var(--sans); font-weight: 500;
   letter-spacing: 0.005em;
@@ -113,6 +116,7 @@ h2::before {
 }
 .btn:hover { border-color: var(--amber-line); color: var(--text); background: var(--elevated); }
 .btn:active { transform: translateY(1px); }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--amber-soft); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 .btn.primary {
   background: var(--amber); border-color: transparent; color: #04130d; font-weight: 700;
@@ -147,6 +151,45 @@ td input[type="number"], td input[type="text"] {
   font-family: var(--mono); text-align: right; font-variant-numeric: tabular-nums;
 }
 
+/* ── Kelly slider (direct-manipulation risk knob) ── */
+.kelly-slider { display: inline-flex; align-items: center; gap: 8px; }
+.kelly-slider label {
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.02em; cursor: pointer; user-select: none;
+}
+.kelly-slider-val {
+  min-width: 42px; font-family: var(--mono); font-size: 12px; font-weight: 600;
+  color: var(--text); font-variant-numeric: tabular-nums;
+}
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 92px; height: 4px; border-radius: 999px; cursor: pointer; margin: 0;
+  /* Filled track: brand-green up to the value, neutral after — the fill IS
+     the feedback, so the control reads as what it changes. */
+  background: linear-gradient(90deg, var(--amber) 0 var(--pct, 50%), var(--border) var(--pct, 50%) 100%);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--text); border: 2px solid var(--amber);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  transition: transform .12s cubic-bezier(.2,.7,.2,1), box-shadow .12s;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--amber);
+  background: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  transition: transform .12s cubic-bezier(.2,.7,.2,1), box-shadow .12s;
+}
+input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.1); }
+input[type="range"]:hover::-moz-range-thumb { transform: scale(1.1); }
+input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.22); }
+input[type="range"]:active::-moz-range-thumb { transform: scale(1.22); }
+/* Ring belongs on the thumb, not the whole track — override the generic
+   input:focus box-shadow from the form-controls block above. */
+input[type="range"]:focus { outline: none; box-shadow: none; }
+input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--amber-soft); }
+input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--amber-soft); }
+
 /* ── Sector multi-select (checkbox dropdown) ── */
 .sector-ms { position: relative; display: inline-block; }
 .sector-ms-toggle {
@@ -165,6 +208,22 @@ td input[type="number"], td input[type="text"] {
   min-width: 160px; max-height: 280px; overflow-y: auto;
   padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-sm);
   background: var(--panel-2); box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+  /* Materialize from the toggle it belongs to (§7 anchored origin, §12): scale
+     + fade out of the top-left corner rather than popping in. Symmetric enter
+     and exit — the menu leaves the same way it arrived. */
+  transform-origin: top left;
+  opacity: 0; transform: scale(0.96) translateY(-4px);
+  visibility: hidden; pointer-events: none;
+  transition: opacity .18s cubic-bezier(.2,.7,.2,1),
+              transform .18s cubic-bezier(.2,.7,.2,1),
+              visibility 0s .18s;
+}
+.sector-ms-menu.open {
+  opacity: 1; transform: scale(1) translateY(0);
+  visibility: visible; pointer-events: auto;
+  transition: opacity .18s cubic-bezier(.2,.7,.2,1),
+              transform .18s cubic-bezier(.2,.7,.2,1),
+              visibility 0s 0s;
 }
 .sector-ms-item {
   display: flex; align-items: center; gap: 8px;
@@ -187,6 +246,8 @@ td input[type="number"], td input[type="text"] {
   font-family: var(--sans); letter-spacing: 0.005em; transition: all .15s;
 }
 .segmented .seg:hover { color: var(--text); }
+.segmented .seg:active { transform: scale(0.96); }
+.segmented .seg:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--amber-soft); color: var(--text); }
 .segmented .seg.active, .pnl-tab.active, .range-btn.active, .settled-tab.active {
   background: var(--amber-soft); color: var(--amber); border-color: var(--amber-line);
 }
@@ -260,13 +321,23 @@ tbody tr:last-child td { border-bottom: none; }
 /* ── Toast ── */
 .toast {
   position: fixed; bottom: 26px; right: 26px; padding: 13px 18px;
+  display: inline-flex; align-items: center; gap: 14px;
   border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 500; z-index: 999;
   font-family: var(--sans); letter-spacing: 0.005em;
   opacity: 0; transform: translateY(10px); box-shadow: var(--shadow-lg);
   transition: opacity .25s ease, transform .25s ease; pointer-events: none;
   border: 1px solid var(--border); border-left-width: 3px;
 }
-.toast.show { opacity: 1; transform: translateY(0); }
+.toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.toast-action {
+  flex: none; padding: 4px 11px; border-radius: 999px; cursor: pointer;
+  background: transparent; border: 1px solid currentColor; color: inherit;
+  font-family: var(--sans); font-size: 11.5px; font-weight: 700; letter-spacing: 0.02em;
+  transition: background .15s, transform .08s;
+}
+.toast-action:hover { background: rgba(255, 255, 255, 0.12); }
+.toast-action:active { transform: translateY(1px); }
+.toast-action:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18); }
 .toast.info { background: #141b18; border-left-color: var(--amber); color: var(--text); }
 .toast.ok { background: #0c2018; border-left-color: var(--green); color: var(--green); }
 .toast.err { background: #241214; border-left-color: var(--red); color: var(--red); }
@@ -278,9 +349,12 @@ tbody tr:last-child td { border-bottom: none; }
 /* ── Clickable cards ── */
 .card-clickable { transition: border-color .15s, transform .12s, box-shadow .15s; }
 .card-clickable:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--border); }
+/* Press feedback fires on pointer-down, not release — respond instantly (§1). */
+.card-clickable:active { transform: translateY(-1px) scale(0.994); transition: transform .08s; }
+.card-clickable:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--amber-soft); border-color: var(--amber-line); }
 
 /* ── Scroll areas ── */
-.scroll-area { max-height: 420px; overflow-y: auto; border-radius: var(--radius-sm); }
+.scroll-area { max-height: 420px; overflow-y: auto; border-radius: var(--radius-sm); overscroll-behavior: contain; }
 .scroll-area::-webkit-scrollbar { width: 9px; height: 9px; }
 .scroll-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
 .scroll-area::-webkit-scrollbar-thumb:hover { background: var(--amber-line); }
@@ -293,7 +367,47 @@ tbody tr:last-child td { border-bottom: none; }
 }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
+/* ── Animated numbers (count-up + change flash) ── */
+.animated-num {
+  display: inline-block; border-radius: 6px;
+  padding: 0 2px; margin: 0 -2px; /* highlight bleed without shifting layout */
+}
+/* Direction-aware pulse: a rise flashes green, a drop flashes coral —
+   the direction of CHANGE, independent of the value's own sign. */
+.animated-num.flash-up { animation: numFlashUp .7s cubic-bezier(.2,.7,.2,1); }
+.animated-num.flash-down { animation: numFlashDown .7s cubic-bezier(.2,.7,.2,1); }
+@keyframes numFlashUp {
+  0% { background: var(--green-soft); box-shadow: 0 0 0 3px var(--green-soft); }
+  100% { background: transparent; box-shadow: 0 0 0 3px transparent; }
+}
+@keyframes numFlashDown {
+  0% { background: var(--red-soft); box-shadow: 0 0 0 3px var(--red-soft); }
+  100% { background: transparent; box-shadow: 0 0 0 3px transparent; }
+}
+
 /* ── Animations ── */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { *, body::before { animation: none !important; transition: none !important; } }
+
+/* ── Reduced transparency: frost the glass into solid surfaces (§14) ── */
+@media (prefers-reduced-transparency: reduce) {
+  .header {
+    background: var(--bg);
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  .sector-ms-menu, .toast { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .toast.info { background: #12161a; }
+  .toast.ok { background: #0c2018; }
+  .toast.err { background: #241214; }
+  .btn.primary { box-shadow: none; }
+}
+
+/* ── High contrast: defined borders, brighter muted text (§14) ── */
+@media (prefers-contrast: more) {
+  :root { --muted: #9aa0ab; --border: #3a3e45; --border-soft: #34373d; }
+  .btn, .badge, .kpi, .panel, .segmented,
+  select, input[type="text"], input[type="number"], input[type="date"],
+  .sector-ms-toggle { border-color: var(--text-dim); }
+  th { border-bottom-color: var(--text-dim); }
+}

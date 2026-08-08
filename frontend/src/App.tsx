@@ -38,7 +38,13 @@ export default function App() {
     <div className="app">
       <header className="header">
         <div className="header-left">
-          <h1 style={{ cursor: 'pointer' }} onClick={() => setPage({ kind: 'dashboard' })}>evmax</h1>
+          <h1
+            className="home-link"
+            role="button"
+            tabIndex={0}
+            onClick={() => setPage({ kind: 'dashboard' })}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPage({ kind: 'dashboard' }) } }}
+          >evmax</h1>
           <span className="subtitle">+EV prediction market dashboard</span>
         </div>
         <nav className="segmented">
