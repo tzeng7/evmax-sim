@@ -56,6 +56,20 @@ K_FACTORS: dict[str, float] = {
                       # separate 360 teams faster. The cold-start harness kept improving
                       # past K=50, but that overstates K for a warm persistent state that
                       # also stacks MOV/SOS/recency multipliers; 35 is the in-grid winner.
+    "ncaaf": 40.0,    # MODEL-2 (2026-08-07): swept via scripts/backtest_ncaaf_elo.py —
+                      # cold-start walk-forward grid K{16,20,25,32,40} × home_adv
+                      # {0,40,60,80,100}, warmup 2021-22 → rank 2023 → confirm 2024,
+                      # reported once on held-out 2025 (n=958). Winner K=40/home_adv=60:
+                      # holdout Brier 0.1836 / acc 72.2% vs the CURRENT fallback
+                      # K=20/home_adv=0 at 0.2057 / 68.5% (Δ+0.0221 Brier — the direct
+                      # cost of the zero-home-advantage bug). K=40 is the in-grid winner;
+                      # the grid was NOT extended past 40 for the SAME reason NCAAW capped
+                      # at 35 — a cold-start walk overstates K for the warm live state that
+                      # also stacks MOV/SOS/recency-K multipliers. A large K suits CFB's
+                      # ~13-game season + heavy annual roster turnover (cf. worldcup's 40).
+                      # NOTE: elo is still UNSEEDED + absent from the resolve update hook
+                      # for ncaaf, so it stays gated (confidence 0.30) until activated —
+                      # these constants are correct-ahead-of-activation, not yet live.
     "soccer": 30.0,
     "worldcup": 40.0,  # national teams play ~10 games/yr → larger K to move on sparse data
     "baseball": 6.0,   # 162-game season → smaller K to avoid overreaction per game
@@ -122,6 +136,13 @@ HOME_ADVANTAGE_ELO: dict[str, float] = {
     "ncaab": 70.0,
     "ncaaw": 80.0,    # MODEL-2 (2026-07-11): bracketed by the {0,40,60,80,100} sweep —
                       # 80 won on train AND holdout at every K. Similar to ncaab's 70.
+    "ncaaf": 60.0,    # MODEL-2 (2026-08-07): see K_FACTORS["ncaaf"] for the sweep
+                      # protocol/numbers. FBS home edge is ~2.5-3 pts / ~57-60% home win
+                      # rate; home_adv=60 (soccer/wnba level) beat {0,40,80,100} at the
+                      # winning K=40. Applying it on EVERY game (incl. neutral bowls, as
+                      # the live agent does) beat a neutral-aware variant on holdout
+                      # (0.1836 vs 0.1845), so no neutral-site change to the agent is
+                      # warranted.
     "soccer": 60.0,
     "worldcup": 0.0,  # neutral venues (2026 hosts aside) — no generic home edge
     "baseball": 32.0, # ~54% home win rate historically

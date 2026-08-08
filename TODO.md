@@ -149,11 +149,13 @@ _(BUG-4, BUG-5, and BUG-9 shipped — see "Recently Shipped" above.)_
 ### ~~MODEL-1 Tennis Surface Detection~~ ✅ SHIPPED (PR #5)
 Shipped via the Kalshi `event.product_metadata.competition` join — see Recently Shipped above.
 
-### MODEL-2 NCAAW and NHL Have No Calibrated K-Factor / Home Advantage [P2] — NCAAW half ✅ SHIPPED 2026-07-11
+### MODEL-2 NCAAW / NHL / NCAAF Have No Calibrated K-Factor / Home Advantage [P2] — NCAAW ✅ 2026-07-11 · NHL ✅ 2026-07-18 · NCAAF ✅ 2026-08-07
 **File:** `evmax/agents/models/elo_agent.py`
-`K_FACTORS` and `HOME_ADVANTAGE_ELO` have entries for `nba`, `nfl`, `ncaab`, `soccer`, `lol`, `cs2`, `wnba`, and now `ncaaw` (K=35, home_adv=80 Elo — swept on the 2024-25 walk-forward, validated on 2025-26 via `scripts/backtest_ncaab_efficiency.py --league womens`; elo standalone holdout Brier 0.1767 vs 0.1873 on the old uncalibrated defaults; see `docs/ncaab-blend-eval.md`). NHL is the only remaining sector silently using NBA defaults.
+`K_FACTORS` and `HOME_ADVANTAGE_ELO` now carry calibrated entries for every wired game sector — no sector silently uses the NBA-ish fallbacks any more. Latest: **NCAAF**, which was taking `K_FACTORS.get("ncaaf", 20.0)=20` and `HOME_ADVANTAGE_ELO.get("ncaaf", 0.0)=`**`0`** (a ZERO college-football home edge) while carrying ensemble weight 0.25. Swept via `scripts/backtest_ncaaf_elo.py` (cold-start walk-forward, warmup 2021-22 → rank 2023 → confirm 2024, held out on 2025, n=958): winner **K=40 / home_adv=60** → holdout Brier **0.1836** / acc 72.2% vs the K=20/home_adv=0 fallback at 0.2057 / 68.5% (**Δ+0.0221**, the direct cost of the bug). K=40 is the in-grid winner; grid deliberately not extended past 40 (same cold-start-overstates-K caveat NCAAW gave). Production-faithful "always apply home_adv" beat a neutral-aware variant on holdout (0.1836 vs 0.1845), so no neutral-site change to the agent.
 - ~~Add calibrated values for NCAAW~~ ✅ K=35 / home_adv=80 (higher K than NCAAB, as predicted)
-- Add NHL: K=16, home_adv=0.04 (puck-line markets exist)
+- ~~Add NHL~~ ✅ K=6 / home_adv=48 (swept `scripts/backtest_nhl_elo.py`, held out on 2025-26)
+- ~~Add NCAAF~~ ✅ K=40 / home_adv=60 (`scripts/backtest_ncaaf_elo.py`, 2026-08-07)
+- **[OPEN · P2] Activate ncaaf elo** — the calibrated constants are correct-ahead-of-activation but currently INERT: ncaaf has no `elo_state.json` key AND is absent from `_UPDATE_HOOK_SECTORS` (`cli/commands/cleanup.py`), the `evmax update scores` default, and `seed_espn.py`, so generic elo (and form) stay gated at confidence 0.30 and never enter the ncaaf blend. To make elo contribute: seed ncaaf elo walk-forward (the sweep already builds the state), add `ncaaf` to the resolve/update hooks, and re-seed weekly in season. Deferred 2026-08-07 by decision (calibrate-now / activate-later).
 
 ### MODEL-3 Form Model Draw Normalization Edge Case [P2]
 **File:** `evmax/agents/models/form_agent.py:168-176`
