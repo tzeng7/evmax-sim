@@ -15,8 +15,8 @@ by local scheduled tasks (see History below):
 All times America/Los_Angeles. Each task carries a small random jitter.
 
 **PR-within-the-run policy:** any scheduled run that creates code changes and commits
-(today: `weekly-drift-audit` and `weekly-value-audit` — every other task is forbidden
-from editing code) must finish the job inside the same run: work on a branch off `main`,
+(today: `weekly-drift-audit` and `biweekly-model-improve-graph` — every other task is
+forbidden from editing code) must finish the job inside the same run: work on a branch off `main`,
 `git push -u origin <branch>`, then `gh pr create` with explicit `--title`/`--body`
 (a bare `gh pr create` prompts interactively and hangs a headless run). If `gh pr create`
 fails, the push already preserved the work — the run reports the branch + compare URL so
@@ -50,12 +50,14 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 
 | Task | Local time | What it does |
 |---|---|---|
-| `weekly-seasonal-model-reseed` | Mon 07:04 | Season-aware reseed of the manual-seed states: WNBA efficiency (May–Oct), NFL efficiency + QB Elo (Sep–Feb), MLB pitcher_v2 (xERA+bullpen+FIP, Mar–Nov), UFC Glicko-2 ratings (weekly, no offseason) |
+| `weekly-seasonal-model-reseed` | Mon 07:04 | Season-aware reseed of the manual-seed states: WNBA efficiency (May–Oct), NFL efficiency + QB Elo (Sep–Feb), NCAAF efficiency EPA (Aug–Jan), MLB pitcher_v2 (xERA+bullpen+FIP, Mar–Nov), UFC Glicko-2 ratings (weekly, no offseason) |
+| `weekly-tennis-surface-elo-refresh` | Mon 07:15 | Refreshes ALL six tennis models from Tennis Abstract: surface Elo (leaderboards) + serve/return, advanced, form, h2h, ranking_trend (matchmx) |
 | `weekly-drift-audit` | Mon 07:56 | This audit — doc↔code drift, SAFE fixes on a branch + PR (spec: `.claude/commands/drift-audit.md`) |
 | `weekly-model-calibration` | Mon 08:07 | `cleanup metrics --weeks 4` + `cleanup adjust` (sharp_weight auto-tune, bounded 0.40–0.95) + shadow metrics review (reports promotion readiness, never promotes) |
-| `weekly-value-audit` | Mon 08:22 | Model-blend VALUE audit — Brier vs sharp/close + CLV per sector, model-side fixes only, propose-only PR (spec: `.claude/commands/value-audit.md`) |
-| `weekly-wnba-listings-robustness-check` | Mon 08:35 | Checks whether the WNBA spread listings-eval game sample has grown enough to re-evaluate the lay-side CLV "edge" for statistical power (read-only tripwire; no promotion) |
-| `weekly-tennis-surface-elo-refresh` | Mon 07:15 | Refreshes ALL six tennis models from Tennis Abstract: surface Elo (leaderboards) + serve/return, advanced, form, h2h, ranking_trend (matchmx) |
+| `weekly-calibration-tripwire` | Mon 08:34 | Read-only alert: fires only when a sector's blend shows a real, consistent calibration bias (n≥30, one-signed, ≥4pp) and names the `cleanup recalibrate` fix |
+| `weekly-wnba-listings-robustness-check` | Mon 08:35 | Checks whether the WNBA spread lay anchored-entry live shadow gate (n≥30, mean CLV≥0, %pos≥55%) has cleared for promotion (read-only tripwire; no promotion) |
+| `biweekly-model-improve-graph` | Mon + Thu 08:51 | Runs the versioned model-improve Workflow graph: value-audit gap → ONE model-side change → walk-forward + integrity/signal gates → PR or revert. Propose-only, never merges (graph: `.claude/workflows/model-improve.js`; ledger: `.claude/improvement-ledger.jsonl`) |
+| `weekly-wnba-total-anchored-backfill-check` | Mon 09:01 | Watches the WNBA total over/under anchored-entry backfill sample for a PROMOTE or KILL verdict (read-only) |
 
 ### Disabled (kept for reference)
 
@@ -65,7 +67,8 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 | `daily-updated-scan` | Disabled 2026-07-02 — the fixed 09:05 re-scan was likewise folded into the `ev-scan-90min-*` pair, which was itself removed (see below) |
 | `ev-scan-90min-on-hour` + `ev-scan-90min-half-hour` | Removed (confirmed by user 2026-07-18) — was the rolling ~90-min `evmax agents scan` + PushNotification pair that replaced the two fixed daily scans above; no automated scan currently runs, see the note under Daily |
 | `weekly-nba-props-shadow-metrics` | Disabled 2026-07-01 per user request; re-enable when NBA season restarts if nba_props promotion tracking resumes |
-| `weekly-tennis-rankings-refresh` | Deprecated 2026-06-27 (Sackmann repos offline); ranking_trend now rides the Mon tennis task. Still present as a disabled task — safe to delete the task folder |
+| `weekly-value-audit` | Disabled 2026-08-03 — SUPERSEDED by `biweekly-model-improve-graph` (the versioned Workflow graph subsumes the audit → one-change → gate → PR loop). Paused rather than deleted so it can be restored if the graph is rolled back; `.claude/commands/value-audit.md` is still the spec the graph's audit stage reads |
+| `weekly-tennis-rankings-refresh` | Deprecated 2026-06-27 (Sackmann repos offline); ranking_trend now rides the Mon tennis task. Task DELETED — deregistered and its `~/.claude/scheduled-tasks/` folder removed (confirmed gone 2026-08-03) |
 
 ---
 
@@ -88,6 +91,13 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 
 ## History
 
+- **2026-08-03** (weekly drift audit) three enabled tasks were missing from this doc and are
+  now listed: `weekly-calibration-tripwire`, `biweekly-model-improve-graph`, and
+  `weekly-wnba-total-anchored-backfill-check`. `weekly-value-audit` moved to Disabled (superseded
+  by the model-improve graph, so the PR-within-the-run policy now names that graph instead), the
+  `weekly-tennis-rankings-refresh` row was corrected (the task folder is gone, not merely
+  disabled), `weekly-seasonal-model-reseed` gained the NCAAF EPA reseed it has covered since
+  2026-08-01, and `daily-close-lines-capture` was annotated as a structural no-op.
 - **≤ 2026-06** this doc described claude.ai cloud routines (`mlb-fip-reseed`,
   `mlb-calibration-refit`, `Weekly Model Calibration`, `nightly-nba-proj`,
   tennis shadow validation, one-shots). Their duties were absorbed by the

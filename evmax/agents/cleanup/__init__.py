@@ -2,8 +2,15 @@
 
 Key modules:
 - db.py          — predictions.db schema (raw sqlite3, NOT the SQLAlchemy ORM in evmax/db.py)
-- logger.py      — writes EVGaps to ev_predictions + ev_outcomes after scan
-- resolver.py    — auto-resolves outcomes via ESPN / bo3.gg; updates ev_outcomes.result
+- logger.py      — writes EVGaps to ev_predictions (game bets) and prop_observations
+                   (rows whose event_id contains '::prop::'). It does NOT touch
+                   ev_outcomes — resolver.py is the sole writer of that table.
+- resolver.py    — auto-resolves outcomes via ESPN / bo3.gg / Kalshi+PolyUS settlement.
+                   `_write_outcome` is the ONLY code path that INSERTs a row into
+                   ev_outcomes, and it always supplies a non-null `outcome` (so no row is
+                   ever pending — see the close-lines note in docs/SCHEDULED_RUNS.md).
+                   ev_outcomes.pinnacle_close_prob is later UPDATEd in place, both here
+                   and from evmax/cli/commands/cleanup.py
 - prop_resolver.py — resolves prop bet outcomes via ESPN boxscores
 - metrics.py     — computes Brier scores; auto-tunes sharp_weight in data/model_config.json
 - value_audit.py — per-sector model-blend VALUE audit (Brier vs sharp & close + CLV) with

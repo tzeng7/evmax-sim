@@ -60,6 +60,32 @@ _PRESEASON_SEASON_TYPE = 1
 # Pinned at 65 to preserve the historical CLI behavior exactly.
 FUZZY_THRESHOLD = 65
 
+# Canonical set of ESPN-fed game sectors whose elo/form/poisson/xg state is
+# advanced by update_models_for_date. Both entry points reference THIS single
+# list so they cannot drift apart:
+#   - `evmax update scores` default --sectors (cli/commands/update.py)
+#   - the `evmax cleanup resolve` model-update hook (cli/commands/cleanup.py)
+# They previously diverged — ncaaw + ncaaf were missing from both (so the
+# NCAAW Elo calibrated 2026-07-11 was never incrementally fed and ncaaf never
+# entered elo/form state at all), and worldcup was missing from the CLI default
+# despite the hook feeding it. Membership matches the ESPN-scored game sectors
+# in resolver.ESPN_SPORT_MAP + resolver.ESPN_SOCCER_LIKE_LEAGUES (tennis/ufc
+# resolve via Kalshi settlement and refresh their own agents, not this hook;
+# f1 has no elo/form model). Off-season sectors are a no-op — fetch returns no
+# scores and they are silently skipped.
+ESPN_MODEL_UPDATE_SECTORS: list[str] = [
+    "soccer",
+    "worldcup",
+    "nba",
+    "wnba",
+    "nfl",
+    "ncaab",
+    "ncaaw",
+    "ncaaf",
+    "nhl",
+    "baseball",
+]
+
 
 @dataclass
 class GameUpdate:
