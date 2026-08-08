@@ -32,7 +32,6 @@ scheduled run ever merges its own PR.
 | Task | Local time | What it does |
 |---|---|---|
 | `daily-resolve-and-model-update` | 07:32 | `evmax update scores` + `cleanup resolve --date YESTERDAY` + `archive resolve --date YESTERDAY` — feeds ESPN finals into Elo/Form/Poisson/xG state and resolves outcomes |
-| `daily-close-lines-capture` | 08:04 | `evmax cleanup close-lines` — snapshots Pinnacle closing lines pre-tipoff (timing-sensitive; `watch-closes` under launchd covers this even when the app is closed) |
 | `ev-scan-light-midday` | 07:04 | Light scan #1 (10:04 ET): tonight's full US slate is listed AND sharp-anchored by now (Kalshi lists ~24h out, Pinnacle posts T-17–24h). Spec: `docs/scheduled-tasks/ev-scan-light.md` |
 | `ev-scan-light-afternoon` | 13:04 | Light scan #2 (16:04 ET): T-3h re-scan for the 19:00 ET wave — MLB lineups post, injuries land, stale morning edges re-checked |
 | `ev-scan-light-evening` | 15:34 | Light scan #3 (18:34 ET): T-0.5–2h from the main slate — the only entry window with demonstrated +CLV; these are the rows the fresh-close CLV gates score |
@@ -120,3 +119,18 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
   gate of listing-window density. launchd coalesces sleep-missed firings
   into one run at wake, and each sweep being a fresh process also fixed the
   recurring AsyncLimiter cross-event-loop RuntimeWarning.
+- **2026-08-07** `daily-close-lines-capture` retired (scheduled task deleted)
+  and the underlying `evmax cleanup close-lines` CLI command removed. The
+  command was a permanent no-op: it queried `ev_outcomes WHERE outcome IS NULL
+  AND pinnacle_close_prob IS NULL`, but the only path that INSERTs an
+  `ev_outcomes` row is `_write_outcome` (resolver.py), always called with a
+  concrete `outcome`. `ev_outcomes` is a resolution table — a row exists only
+  after a market resolves — so the pre-tipoff query matched 0 rows and the
+  task printed "No unresolved markets without closing lines" every day
+  (verified 0-match on 2026-07-19/07-30/08-01/08-03, and 0 of 3946 rows on
+  08-07). `ev_outcomes.pinnacle_close_prob` is already populated from genuine
+  near-tip data by `watch-closes` (`com.evmax.watch-closes`, near-tip Pinnacle
+  write) and `backfill_clv` (`resolver.py`, post-resolution write), so no
+  close capture was lost. A repoint to `ev_predictions` was rejected: the
+  08:04 slot would snapshot a stale morning line, not a close, and moving it
+  near tip would duplicate `watch-closes`.
