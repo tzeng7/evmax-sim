@@ -1,0 +1,21 @@
+Kalshi Exchange Fee Schedule — SYNTHETIC TEST FIXTURE
+(mirrors the structure/wording of kalshi.com/docs/kalshi-fee-schedule.pdf so the
+extractor can be tested offline; not the real document.)
+
+General / Taker Fees
+fees  =  round  up(M  x  0.07  x  C  x  P  x  (1-P))
+round  up  =  rounds  up  such  that  the  fee  +  positionCost  is  rounded  to  a  centicent
+
+Maker  Fees    fees  =  round  up(M  x  0.0175  x  C  x  P  x  (1-P))
+round  up  =  rounds  up  such  that  the  fee  +  positionCost  is  rounded  to  a  centicent
+
+Table  1:  Exchange  Taker  Fee  Schedule
+Series          Taker  Multiplier
+DEFAULT         1
+$0.07
+
+Table  2:  Exchange  Maker  Fee  Schedule
+Series          Maker  Multiplier
+DEFAULT         1
+
+Last  updated  and  effective:  July  7,  2026

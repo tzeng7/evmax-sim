@@ -1,0 +1,13 @@
+{
+  "source_url": "https://kalshi.com/docs/kalshi-fee-schedule.pdf",
+  "fetched_at": "2026-08-08",
+  "extracted": {
+    "taker_rate": 0.07,
+    "maker_rate": 0.0175,
+    "maker_mult": 0.25,
+    "effective_date": "July 7, 2026",
+    "formula": "round up(M x <rate> x C x P x (1-P))"
+  },
+  "content_sha256": "9648bf008a1c32395dcc9ab8b618b0193f7e935341cd2476a1acbd0013363d30",
+  "note": "Regenerate after Kalshi changes the schedule: reconcile evmax/fees.py, then `uv run --with pypdf==6.15.0 scripts/check_kalshi_fees.py --update`."
+}
