@@ -2180,3 +2180,89 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
         "n_pinn": len(pinn_drift_values),
         "n_kalshi": len(kalshi_clv_values),
     }
+
+
+def backfill_outcome_closes(
+    sector: Optional[str] = None,
+    since: Optional[str] = None,
+    until: Optional[str] = None,
+    dry_run: bool = False,
+) -> dict:
+    """Reconstruct ``ev_outcomes.pinnacle_close_prob`` for resolved MONEYLINE
+    rows directly from ``archive.db``.
+
+    Why this is separate from :func:`backfill_clv`: that function is driven by
+    an ``ev_predictions INNER JOIN ev_outcomes`` on ``market_id``. Any resolved
+    outcome row whose ``ev_predictions`` partner was pruned by maintenance (the
+    documented stale-delete that orphans ``ev_outcomes`` rows) is therefore
+    invisible to it, and its ``pinnacle_close_prob`` stays ``NULL`` forever even
+    though ``archive.db`` still holds the Pinnacle closing snapshot. This
+    backfill drives from ``ev_outcomes`` instead, so it reaches orphans, and it
+    reuses the exact selector ``backfill_clv`` uses
+    (:meth:`evmax.archiver.DataArchiver.get_closing_line_aligned`) — same strict
+    pre-tipoff filter (``fetched_at < event_date``), same YES-side alignment via
+    :func:`yes_aligned_close_prob`.
+
+    Scope is moneyline games only. Spread/total rows need a line that an
+    orphaned outcome row does not store (and the archive keeps only the primary
+    spread rung, so alt-line bets have no comparable close anyway); player-prop
+    rows (``::prop::``) have no game moneyline to align to. Idempotent — only
+    fills rows where ``pinnacle_close_prob IS NULL``. Read-only on archive.db.
+
+    Returns ``{"candidates": N, "filled": M, "no_archive_close": K}``.
+    """
+    from evmax.archiver import DataArchiver
+
+    archiver = DataArchiver()
+    conn = get_connection()
+
+    where = [
+        "outcome IS NOT NULL",
+        "pinnacle_close_prob IS NULL",
+        "event_id NOT LIKE '%::spread'",
+        "event_id NOT LIKE '%::total'",
+        "event_id NOT LIKE '%::prop::%'",
+    ]
+    params: list = []
+    if sector:
+        where.append("sector = ?")
+        params.append(sector)
+    if since:
+        where.append("event_date >= ?")
+        params.append(since)
+    if until:
+        where.append("event_date <= ?")
+        params.append(until)
+
+    rows = conn.execute(
+        f"SELECT market_id, event_id, yes_team FROM ev_outcomes "
+        f"WHERE {' AND '.join(where)}",
+        params,
+    ).fetchall()
+
+    filled = no_close = 0
+    for row in rows:
+        close = archiver.get_closing_line_aligned(row["event_id"], row["yes_team"])
+        if close is None:
+            no_close += 1
+            continue
+        if not dry_run:
+            conn.execute(
+                "UPDATE ev_outcomes SET pinnacle_close_prob = ? WHERE market_id = ?",
+                (close, row["market_id"]),
+            )
+        filled += 1
+
+    if not dry_run:
+        conn.commit()
+    conn.close()
+
+    logger.info(
+        "outcome_close_backfill_done",
+        sector=sector or "ALL",
+        candidates=len(rows),
+        filled=filled,
+        no_archive_close=no_close,
+        dry_run=dry_run,
+    )
+    return {"candidates": len(rows), "filled": filled, "no_archive_close": no_close}
