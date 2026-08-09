@@ -4,7 +4,7 @@ serve stats, bo5 amplification, opponent-adjusted form, and fatigue signal.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import AsyncMock
 
 import pytest
@@ -23,6 +23,7 @@ from evmax.agents.models.tennis_form_agent import (
     _FORM_WINDOW,
     _MIN_RECENT_MATCHES,
     _MAX_FATIGUE_PENALTY,
+    _STALE_DAYS,
 )
 from evmax.agents.models.tennis_model_agent import TennisModelAgent
 from evmax.models.market import PredictionMarket, MarketType
@@ -386,6 +387,65 @@ class TestTennisFormAgent:
         assert form_all is not None
         # Hard-only form should be much higher (all wins)
         assert form_hard > form_all
+
+    def _dated_matches(self, base: date, n: int = 6, step_days: int = 7):
+        """n dated wins ending at `base`, one every `step_days` going back."""
+        return [
+            {
+                "date": (base - timedelta(days=step_days * i)).isoformat(),
+                "won": True,
+                "opp_rank": 20,
+                "surface": "hard",
+            }
+            for i in range(n)
+        ]
+
+    def test_form_stale_returns_none(self):
+        """Ample matches but all older than _STALE_DAYS → skip (None).
+
+        Without the guard this fires a full-weight, full-confidence form score
+        computed entirely from last-season matches (the recency weights cancel
+        in the win-ratio; confidence keys off match count)."""
+        agent = TennisFormAgent()
+        ref = date(2026, 4, 15)
+        # Newest match 95 days before ref (2026-01-10) → stale.
+        matches = self._dated_matches(date(2026, 1, 10), n=6)
+        assert len(matches) >= _MIN_RECENT_MATCHES
+        assert agent._compute_form(matches, ref) is None
+
+    def test_form_boundary_at_stale_days(self):
+        """Exactly _STALE_DAYS old fires; one day older is skipped."""
+        agent = TennisFormAgent()
+        ref = date(2026, 4, 15)
+        fresh = self._dated_matches(ref - timedelta(days=_STALE_DAYS), n=6)
+        stale = self._dated_matches(ref - timedelta(days=_STALE_DAYS + 1), n=6)
+        assert agent._compute_form(fresh, ref) is not None   # 60d: not stale
+        assert agent._compute_form(stale, ref) is None       # 61d: stale
+
+    def test_form_unparseable_newest_date_fails_open(self):
+        """A missing/unparseable most-recent date must not silently skip."""
+        agent = TennisFormAgent()
+        ref = date(2026, 4, 15)
+        matches = self._dated_matches(ref - timedelta(days=5), n=6)
+        matches[0]["date"] = "not-a-date"  # sorts to the top (descending)
+        # Fail-open: still produces a form score rather than skipping.
+        assert agent._compute_form(matches, ref) is not None
+
+    @pytest.mark.asyncio
+    async def test_predict_pair_skips_when_a_player_is_stale(self):
+        """End-to-end: if either player's form is stale, predict_pair returns
+        None so the tennis full-blend gate demotes the play to shadow rather
+        than firing a stale-form model at weight 0.35."""
+        agent = TennisFormAgent()
+        agent._state = {
+            "matches": {
+                "sinner": self._dated_matches(date(2026, 4, 12), n=6),      # fresh
+                "alcaraz": self._dated_matches(date(2026, 1, 5), n=6),      # stale
+            }
+        }
+        market = _make_market(event_date=datetime(2026, 4, 15, tzinfo=timezone.utc))
+        sharp = _make_sharp()
+        assert await agent.predict_pair(market, sharp) is None
 
 
 # ---------------------------------------------------------------------------

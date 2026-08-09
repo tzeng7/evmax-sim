@@ -76,6 +76,18 @@ _MAX_FATIGUE_PENALTY = 0.04    # cap at 4% total discount
 # Minimum matches to produce a prediction
 _MIN_RECENT_MATCHES = 5
 
+# Staleness guard (days). Skip the player when their most recent match — of ANY
+# surface — is more than this many days before the game. The recency weights in
+# _compute_form cancel in the win-RATIO, and confidence keys off match COUNT, so
+# a stale-but-ample player (e.g. returning from a long injury layoff, or the
+# state seeded before the off-season) would otherwise fire a full-weight,
+# full-confidence "recent form" score computed entirely from last-season matches.
+# 60 days mirrors FormModelAgent's sibling skip and stays safe against the ~2-3
+# week matchmx reseed lag (a player active this week whose latest seeded match is
+# a couple of weeks old is still well inside the window). See the tennis
+# ranking-trend 6-week anchor and ufc_rating._is_stale for the same pattern.
+_STALE_DAYS = 60
+
 
 class TennisFormAgent(ModelAgent):
     """Opponent-adjusted recent form + fatigue for tennis."""
@@ -109,6 +121,20 @@ class TennisFormAgent(ModelAgent):
         """
         # Sort by date descending, take last N
         sorted_matches = sorted(matches, key=lambda m: m.get("date", ""), reverse=True)
+
+        # Staleness guard: if the player's most recent match (any surface) is
+        # more than _STALE_DAYS before the game, the "recent form" below is
+        # really last-season form. The recency weights cancel in the win-ratio
+        # and confidence keys off match count, so a stale player would otherwise
+        # fire at full weight. Skip instead (mirrors FormModelAgent's 60-day
+        # skip). Fail-open on a missing/unparseable most-recent date.
+        newest = sorted_matches[0].get("date") if sorted_matches else None
+        if newest:
+            try:
+                if (ref_date - date.fromisoformat(str(newest)[:10])).days > _STALE_DAYS:
+                    return None
+            except (ValueError, TypeError):
+                pass
 
         # Prefer surface-specific matches but fall back to all if too few
         if surface:
