@@ -136,6 +136,27 @@ async def test_sharp_only_fallback_lists_all_missing(tmp_path, monkeypatch):
     assert blend.model_sources == "sharp"
     assert blend.diagnostics["fired"] == {}
     assert set(blend.diagnostics["missing"]) == {"elo", "poisson"}
+    # Sharp-only fallback → no model share → default effective_sharp_weight 1.0,
+    # so the downstream injury/rest/playoff layers are fully suppressed (they
+    # would otherwise double-count news the pure-sharp blend already prices).
+    assert blend.effective_sharp_weight == 1.0
+
+
+@pytest.mark.asyncio
+async def test_effective_sharp_weight_populated_on_mixed_blend(ensemble):
+    """A model-carrying blend exposes the effective sharp weight so the
+    EV-gap agent can scale injury/rest/playoff to the model's share."""
+    market = _make_market()
+    sharp = _make_sharp("ev-3")
+    req = AgentRequest(
+        sector="soccer",
+        params={"pairs": [{"market": market, "sharp": sharp}], "sharp_weight": 0.85},
+    )
+    resp = await ensemble(req)
+    blend = resp.data["ev-3"]
+    # elo and sharp agree on the favorite, so no disagreement boost → base 0.85.
+    assert blend.effective_sharp_weight == pytest.approx(0.85)
+    assert 0.0 < blend.effective_sharp_weight <= 1.0
 
 
 def test_sector_model_names_scoped_to_registry(tmp_path, monkeypatch):
