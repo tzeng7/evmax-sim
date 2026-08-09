@@ -40,6 +40,7 @@ from __future__ import annotations
 import asyncio
 import re
 from dataclasses import dataclass, field
+from datetime import date, datetime, timezone
 from typing import Optional
 
 import httpx
@@ -90,6 +91,63 @@ TIER_MULTIPLIER = {"star": 1.5, "starter": 1.0, "rotation": 0.5}
 # A team missing its top 2 players should absolutely reflect > 12% impact.
 # Cap at 20% — losing your entire starting five is roughly a 20-25pp swing.
 MAX_ADJ = 0.20
+
+# ---------------------------------------------------------------------------
+# Injury-staleness decay — prevents an already-priced absence from being
+# double-counted.
+#
+# The injury adjustment exists to correct the model rating for information the
+# rating does NOT yet contain: a player who normally plays (and therefore
+# shaped the season-long elo / efficiency / form ratings) but is out for THIS
+# game. The correction is a DELTA between the roster that built the rating and
+# tonight's available roster.
+#
+# Once a player has been out for several games, that delta collapses: the
+# ratings are re-estimated on games the player already missed, so their absence
+# is baked into the rating (and into the sharp line, which we also blend). A
+# player who has been out for weeks — or, like a mid-season overseas departure,
+# permanently — carries ~zero NEW information, so their marginal win-prob impact
+# is ~0, not the full starter-OUT penalty.
+#
+# ESPN's per-entry `date` (status-change timestamp, captured as `reported_at`)
+# is the available proxy for "how long have they been gone" ≈ "how many games
+# the ratings have already absorbed":
+#   days_out <= INJURY_FRESH_DAYS  -> full impact (news is new; no games missed
+#                                     under the current rating yet)
+#   days_out >= INJURY_STALE_DAYS  -> zero impact (ratings + sharp already price
+#                                     it; adding more double-counts)
+# Linear ramp between. The window (~2 weeks ≈ 4-6 games for most sports) is when
+# recency-weighted models (form, elo) and a meaningful share of the season
+# aggregate have absorbed the absence. Fail-open: a missing/unparseable date
+# keeps full impact, so a genuine same-day scratch is never silently discounted.
+INJURY_FRESH_DAYS = 3
+INJURY_STALE_DAYS = 14
+
+
+def _injury_staleness_multiplier(
+    reported_at: Optional[str], reference: date
+) -> float:
+    """Fraction of a player's injury impact that is still NEW information.
+
+    `reported_at` is ESPN's status-change date (``"2026-06-28T00:25Z"``-style;
+    only the ``YYYY-MM-DD`` prefix is used, matching EloModelAgent._days_of_rest).
+    `reference` is the game/scan date. Returns 1.0 for a fresh absence, ramping
+    linearly to 0.0 once the absence is INJURY_STALE_DAYS old — by which point
+    the season-long ratings and the sharp line already reflect it. Fail-open
+    (1.0) when the date is missing or unparseable.
+    """
+    if not reported_at:
+        return 1.0
+    try:
+        reported = datetime.strptime(str(reported_at)[:10], "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return 1.0
+    days_out = (reference - reported).days
+    if days_out <= INJURY_FRESH_DAYS:
+        return 1.0
+    if days_out >= INJURY_STALE_DAYS:
+        return 0.0
+    return (INJURY_STALE_DAYS - days_out) / (INJURY_STALE_DAYS - INJURY_FRESH_DAYS)
 
 # ---------------------------------------------------------------------------
 # Known star players — fallback when ESPN leaders endpoint is unavailable.
@@ -376,6 +434,7 @@ class InjuryReportAgent(Agent):
         inj: dict,
         star_ids: set[str] | None = None,
         sector: str = "",
+        reference_date: Optional[date] = None,
     ) -> Optional[InjuredPlayer]:
         """Parse a single injury entry from ESPN JSON.
 
@@ -383,7 +442,13 @@ class InjuryReportAgent(Agent):
         Defaults to empty string so existing call sites and tests keep their
         original behavior — only sectors registered in SECTOR_POSITION_WEIGHTS
         get the position multiplier applied.
+
+        `reference_date` is the game/scan date against which the injury's age is
+        measured for the staleness decay (see _injury_staleness_multiplier).
+        Defaults to today (UTC) — injuries are fetched live for imminent games,
+        so fetch-day is within a day of the event date.
         """
+        ref_date = reference_date or datetime.now(timezone.utc).date()
         athlete = inj.get("athlete", {})
         name = athlete.get("displayName", "")
         # ESPN injuries API doesn't expose id directly — parse from playercard link href
@@ -429,6 +494,14 @@ class InjuryReportAgent(Agent):
         # status change. Format varies: usually "2026-05-11T18:45Z" or
         # similar; pass through as-is.
         reported_at = inj.get("date")
+
+        # Staleness decay: an absence the season-long ratings (and the sharp
+        # line) have already absorbed carries ~zero NEW information, so its
+        # marginal win-prob impact must not be re-applied on top. A weeks-old
+        # or permanent absence (e.g. a mid-season overseas departure) decays to
+        # zero, at which point the player is dropped from the report by the
+        # caller (`player.impact > 0`). See _injury_staleness_multiplier.
+        impact *= _injury_staleness_multiplier(reported_at, ref_date)
 
         return InjuredPlayer(
             name=name,
