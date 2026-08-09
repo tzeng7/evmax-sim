@@ -256,6 +256,7 @@ def show(
 # can never drift apart (they previously diverged — ncaaw/ncaaf missing from
 # both, worldcup missing from the CLI default).
 from evmax.agents.cleanup.model_updater import (  # noqa: E402
+    DEFAULT_MODEL_BACKFILL_DAYS,
     ESPN_MODEL_UPDATE_SECTORS as _UPDATE_HOOK_SECTORS,
 )
 
@@ -273,6 +274,16 @@ def resolve(
             "Elo/Form/Poisson/xG models so in-season state stays fresh. On by "
             "default — this is what keeps the daily cron from letting states go "
             "stale. Failures here never break resolution."
+        ),
+    ),
+    model_backfill_days: int = typer.Option(
+        DEFAULT_MODEL_BACKFILL_DAYS, "--model-backfill-days",
+        help=(
+            "Trailing window (days, ending on the resolve date) fed into the "
+            "models, so a resolve outage of up to this many days self-heals on "
+            "the next run. Idempotent via the applied_model_games ledger — "
+            "already-fed games are skipped. Use 1 for the old single-date "
+            "behavior. A longer outage needs a manual scripts/seed_espn.py."
         ),
     ),
 ) -> None:
@@ -327,11 +338,17 @@ def resolve(
     # depends on resolve always exiting cleanly). Off via --no-update-models.
     if update_models:
         try:
-            from evmax.agents.cleanup.model_updater import update_models_for_date
+            from evmax.agents.cleanup.model_updater import (
+                update_models_trailing_window,
+            )
 
             _t0 = time.perf_counter()
             upd = asyncio.run(
-                update_models_for_date(_UPDATE_HOOK_SECTORS, d, espn_cache=espn_cache)
+                update_models_trailing_window(
+                    _UPDATE_HOOK_SECTORS, d,
+                    lookback_days=model_backfill_days,
+                    espn_cache=espn_cache,
+                )
             )
             _upd_s = time.perf_counter() - _t0
             skipped_note = (
