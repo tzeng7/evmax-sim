@@ -24,6 +24,17 @@ from evmax.ev.odds_format import cents as _cents
 from evmax.formatting import format_outcome_label
 from evmax.models.market import is_prop_event, venue_label
 
+# The live re-pricing engine now lives in a testable module shared with
+# `evmax cleanup prune-stale`. Re-exported here so existing callers/tests that
+# import these names from `evmax.cli.commands.agents` keep working unchanged.
+from evmax.agents.cleanup.reprice import (  # noqa: E402,F401
+    fetch_polymarket_live_asks,
+    polymarket_live_ask,
+    reblend_with_fresh_sharp,
+    recompute_at_price,
+    reprice_rows,
+)
+
 app = typer.Typer(no_args_is_help=True)
 console = Console()
 
@@ -55,63 +66,6 @@ def select_display_gaps(gaps: list, *, top: int, max_props: int) -> list:
     game_gaps = [g for g in gaps if g.market_type != "player_prop"]
     prop_room = max(0, top - len(game_gaps))
     return game_gaps + prop_gaps[: min(max_props, prop_room)]
-
-
-def polymarket_live_ask(market_id: str, markets_by_id: dict) -> Optional[float]:
-    """Resolve the live ask for a Polymarket US row from a freshly-fetched
-    ``{market.id: PredictionMarket}`` map.
-
-    A stored PolyUS row id is ``polymarket_us:{slug}[:{side_key}]`` for the YES
-    side, with a ``:no`` suffix appended for the derived NO side of a spread or
-    total. Stripping ``:no`` recovers the market's own id, which is the map key.
-
-    Unlike Kalshi — where the WebSocket only returns the YES ask, so a NO ask is
-    approximated as ``1 - yes`` and understates the true ask by the spread —
-    Polymarket quotes BOTH sides in the same payload. So a NO row returns the
-    market's ``no_price`` DIRECTLY, an exact live ask with no spread fudge.
-
-    Returns ``None`` when the market is no longer listed (settled / closed → not
-    in the fresh map) or unquoted, so the caller falls back to the scan price.
-    """
-    is_no = market_id.endswith(":no")
-    base = market_id.removesuffix(":no")
-    market = markets_by_id.get(base)
-    if market is None:
-        return None
-    price = market.no_price if is_no else market.yes_price
-    if price is None:
-        return None
-    return max(0.0, min(1.0, float(price)))
-
-
-async def fetch_polymarket_live_asks(poly_rows: list[dict]) -> dict[str, Optional[float]]:
-    """Fetch current Polymarket US asks for ``poly_rows``, keyed by stored id.
-
-    Groups the rows by sector, re-fetches each sector's live league events with
-    the cache bypassed (``fresh=True``), and resolves every row's ask through
-    :func:`polymarket_live_ask`. A sector whose fetch raises is skipped — its
-    rows resolve to ``None`` and fall back to the scan price at the call site,
-    exactly like a Kalshi row whose ticker the WebSocket missed.
-    """
-    from evmax.clients.polymarket_us import PolymarketUSClient
-
-    sectors = sorted({(r.get("sector") or "").lower() for r in poly_rows if r.get("sector")})
-    markets_by_id: dict[str, object] = {}
-    if sectors:
-        async with PolymarketUSClient() as client:
-            results = await asyncio.gather(
-                *(client.get_markets(s, fresh=True) for s in sectors),
-                return_exceptions=True,
-            )
-        for res in results:
-            if isinstance(res, Exception):
-                continue
-            for market in res:
-                markets_by_id[market.id] = market
-    return {
-        r["market_id"]: polymarket_live_ask(r["market_id"], markets_by_id)
-        for r in poly_rows
-    }
 
 
 async def _scan_loop(
@@ -806,94 +760,6 @@ def verify(
     )
 
 
-def recompute_at_price(
-    *,
-    blended_prob: float,
-    price: Optional[float],
-    base_kelly: float,
-    max_kelly: float,
-    bankroll: float,
-    min_ev: float,
-    min_prob: float,
-    venue: Optional[str] = None,
-) -> dict:
-    """Recompute EV / live-gate / Kelly stake at a given Kalshi ask ``price``.
-
-    Pure helper so ``pick`` can size and gate a bet against the CURRENT price
-    instead of the stale scan-time ask — the fix for the selection curse where
-    the fattest scan-time edges are the most reverting. Returns
-    ``{ev, is_live, kelly_fraction, stake}``; a missing/degenerate price (None,
-    settled 0/1, or empty-book ≥0.99) yields a not-live, zero-stake result.
-
-    ``venue`` selects the trading-fee model (``"kalshi"`` / ``"polymarket_us"``);
-    the contract is priced net of that fee for both the gate and the stake.
-    ``venue=None`` prices gross of fees (the caller passes None when the
-    ``fees_in_pricing`` setting is off).
-    """
-    from evmax.ev.calculator import calculate_ev, effective_price
-    from evmax.ev.kelly import compute_kelly
-
-    if price is None or not (0 < price < 0.99):
-        return {"ev": None, "is_live": False, "kelly_fraction": 0.0, "stake": 0.0}
-
-    eff_price = effective_price(price, venue)
-    ev, _ = calculate_ev(eff_price, blended_prob)
-    threshold = tiered_min_ev(blended_prob, min_ev=min_ev, min_prob=min_prob)
-    is_live = ev >= threshold and blended_prob >= min_prob
-    kelly_fraction = 0.0
-    if is_live:
-        k = compute_kelly(
-            true_prob=blended_prob,
-            payout_decimal=1.0 / eff_price,
-            edge_pct=ev,
-            spread_pct=0.0,
-            base_fraction=base_kelly,
-            max_kelly=max_kelly,
-        )
-        kelly_fraction = k.kelly_fraction
-    return {
-        "ev": ev,
-        "is_live": is_live,
-        "kelly_fraction": kelly_fraction,
-        "stake": bankroll * kelly_fraction,
-    }
-
-
-def reblend_with_fresh_sharp(
-    *,
-    blended_prob: float,
-    scan_sharp_prob: Optional[float],
-    fresh_sharp_prob: Optional[float],
-    sharp_weight: Optional[float],
-) -> float:
-    """Re-derive ``blended_true_prob`` from a freshly re-fetched Pinnacle line.
-
-    Pure helper so ``pick`` can re-blend against the CURRENT sharp line instead
-    of the stale scan-time one — the other half of the entry-timing fix
-    (``recompute_at_price`` above only refreshes the Kalshi side). Measured on
-    resolved live bets: Pinnacle's own devigged prob drifts a median ~0.8pp /
-    p90 ~4pp between scan time and a T-60 pre-tip snapshot, and leaving
-    blended_true_prob frozen flips the bet/no-bet decision on ~19% of rows
-    (15% of those are false positives — pick() would size and place a bet that
-    no longer has an edge once the sharp line is fresh).
-
-    Mirrors ``EnsembleModelAgent._blend``'s linear formula exactly:
-    ``blended = sharp_weight * sharp_prob + (1 - sharp_weight) * model_prob``.
-    Shifting the frozen blend by ``sharp_weight * (fresh - scan)`` is
-    algebraically identical to backing out the model component and re-blending
-    it against the fresh sharp prob — provided the model component itself
-    hasn't moved, which holds over a scan-to-pick window since models only
-    update at resolve time / weekly seeds, never intraday. Falls back to the
-    frozen ``blended_prob`` unchanged when any input needed to re-derive is
-    missing (no fresh quote for this event, no recorded sharp_weight, spread/
-    total row, or ``--no-live``).
-    """
-    if scan_sharp_prob is None or fresh_sharp_prob is None or sharp_weight is None:
-        return blended_prob
-    updated = blended_prob + sharp_weight * (fresh_sharp_prob - scan_sharp_prob)
-    return max(0.001, min(0.999, updated))
-
-
 @app.command("pick")
 def pick(
     date_filter: Optional[str] = typer.Option(
@@ -915,10 +781,6 @@ def pick(
 ) -> None:
     """Interactively select which +EV bets you're placing. Records placed bets in the database."""
     from evmax.agents.cleanup.db import get_connection
-    from evmax.agents.cleanup.resolver import yes_aligned_close_prob
-    from evmax.clients.kalshi import KalshiClient
-    from evmax.ev.calculator import calculate_ev
-    from evmax.ev.kelly import compute_kelly
     from evmax.settings import get_settings
     import questionary
     from datetime import datetime as _dt
@@ -997,155 +859,31 @@ def pick(
 
     console.print(f"\n[bold cyan]evmax pick[/bold cyan] — {len(rows)} bets from scan\n")
 
-    def _tiered_min_ev(true_prob: float) -> float:
-        return tiered_min_ev(true_prob, min_ev=min_ev, min_prob=min_prob)
-
     settings = get_settings()
 
-    # Re-fetch live Kalshi asks so we gate/size at the price we'd ACTUALLY
-    # transact at now — not the stale scan ask. This is the entry-timing fix:
-    # the fattest scan-time edges are the most likely to have reverted by the
-    # time you place, so a bet only counts as live if its edge survives to here.
-    live_prices: dict[str, Optional[float]] = {}
-    if live:
-        # Kalshi rows refresh over the Kalshi WebSocket; Polymarket US rows
-        # refresh over the PolyUS gateway just below. Any row we can't re-quote
-        # (settled, unlisted, fetch error) falls back to its scan price, flagged.
-        raw_ids = [
-            dict(r)["market_id"] for r in rows
-            if (dict(r).get("venue") or "kalshi") == "kalshi"
-        ]
-        fetch_tickers = list({mid.removesuffix(":no") for mid in raw_ids})
-
-        async def _fetch_asks(tickers: list[str]) -> dict[str, Optional[float]]:
-            async with KalshiClient() as client:
-                return await client.get_market_asks_batch(tickers)
-
-        try:
-            yes_asks = asyncio.run(_fetch_asks(fetch_tickers))
-            for mid in raw_ids:
-                if mid.endswith(":no"):
-                    ya = yes_asks.get(mid.removesuffix(":no"))
-                    live_prices[mid] = (max(0.0, min(1.0, 1.0 - ya)) if ya is not None else None)
-                else:
-                    live_prices[mid] = yes_asks.get(mid)
-        except Exception as fetch_err:  # noqa: BLE001 — fall back to scan prices
-            console.print(f"[yellow]Live fetch failed ({fetch_err}); using scan prices.[/yellow]\n")
-            live = False
-
-        # Refresh the Polymarket US side over its own gateway. A PolyUS failure
-        # only affects PolyUS rows (they fall back to their scan price below) —
-        # it must NOT clear `live`, which still governs the Kalshi refresh and
-        # the Pinnacle re-blend for every row. Skipped when the Kalshi fetch
-        # already collapsed the run to scan mode (live is False), since every
-        # row falls back to its scan price then anyway.
-        poly_rows = [dict(r) for r in rows if (dict(r).get("venue")) == "polymarket_us"]
-        if live and poly_rows:
-            try:
-                live_prices.update(asyncio.run(fetch_polymarket_live_asks(poly_rows)))
-            except Exception as poly_err:  # noqa: BLE001 — fall back to scan prices
-                console.print(f"[yellow]Polymarket US live fetch failed ({poly_err}); using scan prices for PolyUS rows.[/yellow]\n")
-
-    # Re-fetch the CURRENT Pinnacle line (moneyline only) and re-derive
-    # blended_true_prob from it — the other half of the entry-timing fix.
-    # `live_prices` above refreshes the Kalshi side of the EV calc; without
-    # this, blended_true_prob/sharp_true_prob stayed frozen at scan time even
-    # though Pinnacle moves meaningfully in the scan->pick window (measured on
-    # resolved live bets: median |Δsharp| ~0.8pp / p90 ~4pp, and refreshing it
-    # flips the bet/no-bet decision on ~19% of rows — 15% of those are false
-    # positives pick() would have sized and placed). We don't re-run the full
-    # model/injury pipeline (expensive, and models don't move intraday) — just
-    # re-blend using the same linear formula EnsembleModelAgent uses:
-    #   blended = sharp_weight * sharp_prob + (1 - sharp_weight) * model_prob
-    # so shifting sharp_prob by the observed drift and holding sharp_weight +
-    # the model component (backed out algebraically) fixed reproduces exactly
-    # what a full re-blend would give, provided the model side hasn't moved.
-    fresh_sharp_odds: dict[str, object] = {}
-    if live:
-        from evmax.clients.esports_pinnacle import PinnacleGuestClient
-
-        ml_sectors = sorted({
-            dict(r)["sector"] for r in rows
-            if (dict(r).get("market_type") or "").lower() in ("moneyline", "ml", "")
-        })
-
-        async def _fetch_sharp(sectors: list[str]) -> dict[str, object]:
-            out: dict[str, object] = {}
-            async with PinnacleGuestClient() as client:
-                odds_lists = await asyncio.gather(
-                    *(client.get_odds(s) for s in sectors), return_exceptions=True
-                )
-            for odds in odds_lists:
-                if isinstance(odds, Exception):
-                    continue
-                for o in odds:
-                    out[o.event_id] = o
-            return out
-
-        if ml_sectors:
-            try:
-                fresh_sharp_odds = asyncio.run(_fetch_sharp(ml_sectors))
-            except Exception as sharp_err:  # noqa: BLE001 — keep frozen sharp line
-                console.print(f"[yellow]Pinnacle refresh failed ({sharp_err}); using scan-time sharp line.[/yellow]\n")
-
-    # Build enriched bet list. With --live we gate/size at the current ask;
-    # otherwise we fall back to the stale scan price (offline / --no-live).
-    bets = []
-    for r in [dict(r) for r in rows]:
-        blended_prob = r["blended_true_prob"]
-        scan_ask = r["kalshi_yes_price"]
-        live_ask = live_prices.get(r["market_id"]) if live else scan_ask
-        # On a settled/errored live fetch, fall back to the scan ask so the row
-        # still shows (flagged), rather than vanishing.
-        price = live_ask if live_ask is not None else scan_ask
-
-        # Re-derive blended_true_prob from the fresh Pinnacle line when we
-        # have one for this event + a recorded sharp_weight to re-blend with.
-        # Falls back to the frozen scan-time blend otherwise (missing weight,
-        # no fresh quote for this event, spread/total row, or --no-live).
-        pin_is_live = False
-        sharp_weight_used = r.get("sharp_weight_used")
-        fresh_so = fresh_sharp_odds.get(r["event_id"])
-        if fresh_so is not None and sharp_weight_used is not None and r.get("sharp_true_prob") is not None:
-            fresh_sharp_prob = yes_aligned_close_prob(
-                yes_team=r["yes_team"],
-                outcome_a_label=fresh_so.outcome_a_label,
-                outcome_b_label=fresh_so.outcome_b_label,
-                true_prob_a=fresh_so.true_prob_a,
-                true_prob_b=fresh_so.true_prob_b,
-            )
-            if fresh_sharp_prob is not None:
-                blended_prob = reblend_with_fresh_sharp(
-                    blended_prob=blended_prob,
-                    scan_sharp_prob=r["sharp_true_prob"],
-                    fresh_sharp_prob=fresh_sharp_prob,
-                    sharp_weight=sharp_weight_used,
-                )
-                pin_is_live = True
-
-        rc = recompute_at_price(
-            blended_prob=blended_prob,
-            price=price,
-            base_kelly=kelly,
-            max_kelly=settings.max_kelly_fraction,
-            bankroll=bankroll,
-            min_ev=min_ev,
-            min_prob=min_prob,
-            venue=(r.get("venue") or "kalshi") if settings.fees_in_pricing else None,
-        )
-
-        bets.append({
-            **r,
-            "blended_true_prob": blended_prob,
-            "pin_is_live": pin_is_live,
-            "scan_ask": scan_ask,
-            "live_ask": price,
-            "price_is_live": live and live_ask is not None,
-            "live_ev": rc["ev"] if rc["ev"] is not None else r["ev_pct"],
-            "is_live": rc["is_live"],
-            "kelly_fraction_used": rc["kelly_fraction"],
-            "stake": rc["stake"],
-        })
+    # Re-price every candidate against the CURRENT market — refresh the venue
+    # ask AND re-blend the fair off a freshly re-fetched Pinnacle line, then
+    # re-gate/re-size at that price. This is the entry-timing fix: the fattest
+    # scan-time edges are the most likely to have reverted by the time you
+    # place, so a bet only counts as live if its edge survives to the live
+    # price. Extracted into reprice_rows so `cleanup prune-stale` gates stale
+    # candidates against the identical rule.
+    bets = asyncio.run(reprice_rows(
+        [dict(r) for r in rows],
+        live=live,
+        kelly=kelly,
+        bankroll=bankroll,
+        min_ev=min_ev,
+        min_prob=min_prob,
+        fees_in_pricing=settings.fees_in_pricing,
+        max_kelly=settings.max_kelly_fraction,
+        on_warning=console.print,
+    ))
+    # A Kalshi-fetch failure inside reprice_rows collapses the run to scan mode;
+    # mirror that into `live` so the title/status branches below reflect what was
+    # actually priced.
+    if bets:
+        live = bets[0]["live_effective"]
 
     # Show a summary table first
     table = Table(

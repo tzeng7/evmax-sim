@@ -121,7 +121,7 @@ evmax/
     ├── app.py               # Typer root app
     └── commands/
         ├── agents.py        # evmax agents scan/verify/pick/seed/ratings/update
-        ├── cleanup.py       # evmax cleanup show/resolve/metrics/adjust/value-audit/watch-closes/watch-listings/listings-eval
+        ├── cleanup.py       # evmax cleanup show/resolve/metrics/adjust/value-audit/watch-closes/watch-listings/listings-eval/prune-stale
         ├── shadow.py        # evmax cleanup shadow show/metrics/clv/promote
         ├── categories.py    # evmax categories list/show/modes/validate
         ├── archive.py       # evmax archive stats/resolve/backtest/export
@@ -297,6 +297,23 @@ evmax cleanup watch-closes            # always-up; or `--once` per sweep
 # `com.evmax.watch-listings` (hourly; add --log-entries to its plist post-merge).
 evmax cleanup watch-listings --log-entries   # always-up; or `--once` per sweep
 evmax cleanup watch-listings -s wnba -m spread --once   # narrow one-off sweep
+
+# Background service — dynamically prune STALE un-picked candidates. Re-prices
+# every open live candidate (placed=0) against the CURRENT market via the same
+# engine `agents pick --live` uses (refresh the venue ask + re-blend the fair
+# off a fresh Pinnacle line, net of fees) and VOIDS any whose edge has reverted
+# below the flag threshold (void_reason='stale_reverted'), so the dashboard
+# "Open Positions" list and `cleanup show` stop showing phantom edges the live
+# line already erased. Un-voids its own rows if a line bounces back (hysteresis
+# dead-band) — needed because UNIQUE(market_id) freeze-on-first-insert means a
+# re-scan can't resurrect a voided row. Fail-safe: never voids on a
+# missing/empty-book (>=0.99) quote or an in-play game (tz-aware Pinnacle start
+# time), and only ever touches placed=0 live rows (placed/shadow/resolved are
+# untouched). Runs unattended via the Claude scheduled task
+# `prune-stale-open-positions` (every 2h, 11:00-23:00 PT, --once per run; see
+# docs/SCHEDULED_RUNS.md). `--interval`/loop mode also exists for a foreground run.
+evmax cleanup prune-stale --once --dry-run   # preview what would be voided
+evmax cleanup prune-stale --once              # one sweep; or bare for an --interval loop
 
 # One-time (re-runnable) — Kalshi candlestick backfill: reconstruct hourly
 # bid/ask trails for ALL archived WNBA spread/total tickers (public
@@ -499,6 +516,7 @@ erDiagram
         real captured_yes_price "ARCH-11: pre-game YES ask"
         text model_version "ARCH-11: lets us expire stale shadow"
         text venue "kalshi / polymarket_us"
+        text void_reason "NULL/manual=cancel; 'stale_reverted'=prune-stale auto-void"
     }
 
     prop_observations {
