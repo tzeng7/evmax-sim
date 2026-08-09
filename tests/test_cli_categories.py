@@ -49,8 +49,8 @@ def test_list_filter_by_mode_live(_reset_overrides):
 def test_list_filter_by_mode_shadow(_reset_overrides):
     result = runner.invoke(app, ["list", "--mode", "shadow"])
     assert result.exit_code == 0
-    # nfl_props and wnba ship as shadow in the YAML
-    assert "nfl_props" in result.stdout.lower()
+    # nhl ships as shadow in the YAML (nfl_props was disabled 2026-08-08)
+    assert "nhl" in result.stdout.lower()
 
 
 def test_list_empty_filter_prints_message(_reset_overrides):

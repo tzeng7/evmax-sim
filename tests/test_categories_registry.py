@@ -95,11 +95,14 @@ def test_categories_in_mode_live_contains_nba():
     assert "nfl" in live
 
 
-def test_nfl_props_is_shadow_by_default():
-    """Stage 4 ships with nfl_props in shadow until MODEL-9 validates."""
-    shadow = categories_in_mode("shadow")
-    assert "nfl_props" in shadow
-    assert get_category("nfl_props").mode == "shadow"
+def test_player_props_and_worldcup_are_disabled():
+    """Player-prop categories and worldcup were disabled 2026-08-08."""
+    disabled = categories_in_mode("disabled")
+    for key in ("nfl_props", "nba_props", "baseball_props", "worldcup"):
+        assert key in disabled
+        assert get_category(key).mode == "disabled"
+    # The shadow bucket is still populated by other categories.
+    assert "nhl" in categories_in_mode("shadow")
 
 
 def test_categories_in_mode_rejects_bad_mode():
