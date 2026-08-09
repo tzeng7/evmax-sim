@@ -24227,6 +24227,16 @@
     "new england": {
       "matches": [
         {
+          "date": "2026-08-08",
+          "goals_for": 0,
+          "goals_against": 2,
+          "sot": 2,
+          "shots": 9,
+          "xg": 0.81,
+          "xga": 2.28,
+          "is_home": true
+        },
+        {
           "date": "2026-08-01",
           "goals_for": 2,
           "goals_against": 2,
@@ -24415,16 +24425,6 @@
           "xg": 2.13,
           "xga": 1.47,
           "is_home": true
-        },
-        {
-          "date": "2025-09-20",
-          "goals_for": 0,
-          "goals_against": 1,
-          "sot": 1,
-          "shots": 8,
-          "xg": 0.51,
-          "xga": 1.56,
-          "is_home": false
         }
       ]
     },
@@ -25451,6 +25451,16 @@
     "houston": {
       "matches": [
         {
+          "date": "2026-08-08",
+          "goals_for": 2,
+          "goals_against": 0,
+          "sot": 7,
+          "shots": 13,
+          "xg": 2.28,
+          "xga": 0.81,
+          "is_home": false
+        },
+        {
           "date": "2026-08-01",
           "goals_for": 2,
           "goals_against": 0,
@@ -25639,16 +25649,6 @@
           "xg": 1.86,
           "xga": 2.1,
           "is_home": true
-        },
-        {
-          "date": "2025-09-28",
-          "goals_for": 1,
-          "goals_against": 3,
-          "sot": 4,
-          "shots": 8,
-          "xg": 1.32,
-          "xga": 2.43,
-          "is_home": false
         }
       ]
     },
