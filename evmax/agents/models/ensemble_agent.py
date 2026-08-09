@@ -60,6 +60,13 @@ class BlendedPrediction:
     # player is known but thin (recoverable by seeding); missing means the
     # lookup failed entirely.
     diagnostics: dict = field(default_factory=dict)
+    # Effective sharp weight actually used to combine sharp with the model side
+    # (post disagreement-boost). The downstream injury/rest/playoff adjustment
+    # layers scale their correction to the model's share of the blend,
+    # (1 - effective_sharp_weight), so they only correct the portion the models
+    # missed instead of double-counting news sharp has already priced. Defaults
+    # to 1.0 (sharp-only → model share 0 → those layers are suppressed).
+    effective_sharp_weight: float = 1.0
 
 
 class EnsembleModelAgent(Agent):
@@ -626,6 +633,12 @@ class EnsembleModelAgent(Agent):
         if not has_models and not has_sharp:
             return None
 
+        # Effective sharp weight for this event. Defaults to 1.0 (sharp-only),
+        # set to 0.0 for a model-only blend, and to the disagreement-boosted
+        # value in the mixed branch below. Persisted on BlendedPrediction so the
+        # downstream adjustment layers can scale to the model's share.
+        effective_sharp_weight = 1.0
+
         if not has_models:
             # No models — just use sharp directly
             prob_a = sharp.true_prob_a  # type: ignore[union-attr]
@@ -633,6 +646,7 @@ class EnsembleModelAgent(Agent):
             prob_draw = sharp.true_prob_draw  # type: ignore[union-attr]
         elif not has_sharp:
             # No sharp — just use model average
+            effective_sharp_weight = 0.0
             total_w = sum(c[0] for c in model_contribs)
             prob_a = sum(c[0] * c[1] for c in model_contribs) / total_w
             prob_b = sum(c[0] * c[2] for c in model_contribs) / total_w
@@ -722,4 +736,5 @@ class EnsembleModelAgent(Agent):
                 "gated": diag_gated,
                 "missing": missing,
             },
+            effective_sharp_weight=round(effective_sharp_weight, 4),
         )

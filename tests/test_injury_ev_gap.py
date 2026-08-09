@@ -40,9 +40,39 @@ from evmax.agents.intelligence.injury_agent import (
     STATUS_IMPACT,
     TIER_MULTIPLIER,
 )
-from evmax.agents.odds.ev_gap_agent import EVGap, EVGapAgent
+from evmax.agents.odds.ev_gap_agent import (
+    EVGap,
+    EVGapAgent,
+    scale_adjustment_to_model_share,
+)
 from evmax.models.market import MarketSource, MarketType, PredictionMarket
 from evmax.models.odds import SharpBook, SharpOdds
+
+
+# ---------------------------------------------------------------------------
+# scale_adjustment_to_model_share — the double-count fix helper
+# ---------------------------------------------------------------------------
+
+class TestScaleAdjustmentToModelShare:
+    def test_full_model_weight_keeps_whole_adjustment(self):
+        # model_weight=1.0 (pure model, esw=0) → keep the whole shove
+        assert scale_adjustment_to_model_share(0.70, 0.60, 1.0) == pytest.approx(0.60)
+
+    def test_zero_model_weight_suppresses_adjustment(self):
+        # model_weight=0.0 (sharp-only, esw=1) → no movement at all
+        assert scale_adjustment_to_model_share(0.70, 0.60, 0.0) == pytest.approx(0.70)
+
+    def test_partial_weight_keeps_that_share(self):
+        # esw=0.85 → model_weight=0.15 → keep 15% of the -0.10 shove
+        assert scale_adjustment_to_model_share(0.70, 0.60, 0.15) == pytest.approx(0.685)
+
+    def test_nba_weight_keeps_thirty_percent(self):
+        # NBA esw=0.70 → model_weight=0.30
+        assert scale_adjustment_to_model_share(0.70, 0.60, 0.30) == pytest.approx(0.67)
+
+    def test_direction_preserved_when_adjustment_raises(self):
+        # Opponent injury raises our prob; scaling preserves direction, shrinks size
+        assert scale_adjustment_to_model_share(0.60, 0.72, 0.15) == pytest.approx(0.618)
 
 
 # ---------------------------------------------------------------------------
@@ -667,8 +697,43 @@ class TestEvaluatePair:
         if gap is not None:
             assert gap.model_sources == "sharp(capped)"
 
+    def _model_blend(self, event_id, prob_a=0.60, prob_b=0.40, esw=0.85,
+                     sources="elo+sharp"):
+        """A real (model-carrying) blend for the injury/adjustment path.
+
+        The injury/rest/playoff scaling only fires when a model contributed —
+        it corrects the model's share (1 - effective_sharp_weight) of the blend.
+        """
+        class _Blend:
+            true_prob_a = prob_a
+            true_prob_b = prob_b
+            true_prob_draw = None
+            model_sources = sources
+            effective_sharp_weight = esw
+        return {event_id: _Blend()}
+
     def test_injury_adjustment_shifts_prob(self):
-        """Injury report for the YES team should reduce their blended_true_prob."""
+        """Injury report for the YES team should reduce their blended_true_prob
+        when a model contributed (the scaled adjustment still moves it down)."""
+        agent = self._agent()
+        market = _market(yes_price=0.40, yes_team="pistons")
+        sharp = _sharp(outcome_a="pistons", outcome_b="warriors", true_prob_a=0.60)
+        blended = self._model_blend(sharp.event_id, prob_a=0.60, prob_b=0.40)
+
+        report = _report("pistons", players=[_player(impact=0.045)])
+        gap_no_inj = agent._evaluate_pair(
+            market, sharp, 0.95, "nba", blended, {}, model_sources={}, kelly_base=0.5)
+        gap_with_inj = agent._evaluate_pair(
+            market, sharp, 0.95, "nba", blended, {"pistons": report},
+            model_sources={}, kelly_base=0.5)
+
+        # Injury reduces pistons' true prob → less EV
+        if gap_no_inj is not None and gap_with_inj is not None:
+            assert gap_with_inj.blended_true_prob < gap_no_inj.blended_true_prob
+
+    def test_injury_suppressed_on_sharp_only_blend(self):
+        """Double-count fix: with NO model in the blend, the blend IS sharp,
+        which already prices the injury — so the injury layer must not move it."""
         agent = self._agent()
         market = _market(yes_price=0.40, yes_team="pistons")
         sharp = _sharp(outcome_a="pistons", outcome_b="warriors", true_prob_a=0.60)
@@ -677,11 +742,42 @@ class TestEvaluatePair:
         gap_no_inj = agent._evaluate_pair(
             market, sharp, 0.95, "nba", {}, {}, model_sources={}, kelly_base=0.5)
         gap_with_inj = agent._evaluate_pair(
-            market, sharp, 0.95, "nba", {}, {"pistons": report}, model_sources={}, kelly_base=0.5)
+            market, sharp, 0.95, "nba", {}, {"pistons": report},
+            model_sources={}, kelly_base=0.5)
+        assert gap_no_inj is not None and gap_with_inj is not None
+        # No model share → adjustment fully suppressed → identical blended prob.
+        assert gap_with_inj.blended_true_prob == pytest.approx(
+            gap_no_inj.blended_true_prob)
 
-        # Injury reduces pistons' true prob → less EV
-        if gap_no_inj is not None and gap_with_inj is not None:
-            assert gap_with_inj.blended_true_prob < gap_no_inj.blended_true_prob
+    def test_injury_scaled_to_model_share_not_full(self):
+        """The applied injury shift is scaled to the model share (1 - esw), not
+        the full impact — the fix for over-applying to the 85%-sharp blend.
+
+        At esw=0.85 the shift must be far smaller than the full unscaled shift a
+        pure-model (esw=0) blend would receive from the same report."""
+        agent = self._agent()
+        market = _market(yes_price=0.40, yes_team="pistons")
+        sharp = _sharp(outcome_a="pistons", outcome_b="warriors", true_prob_a=0.60)
+        report = _report("pistons", players=[_player(impact=0.045)])
+
+        base = self._model_blend(sharp.event_id, prob_a=0.60, prob_b=0.40, esw=0.85)
+        full = self._model_blend(sharp.event_id, prob_a=0.60, prob_b=0.40, esw=0.0)
+
+        g_base = agent._evaluate_pair(
+            market, sharp, 0.95, "nba", base, {}, model_sources={}, kelly_base=0.5)
+        g_scaled = agent._evaluate_pair(
+            market, sharp, 0.95, "nba", base, {"pistons": report},
+            model_sources={}, kelly_base=0.5)
+        g_full = agent._evaluate_pair(
+            market, sharp, 0.95, "nba", full, {"pistons": report},
+            model_sources={}, kelly_base=0.5)
+        assert g_base and g_scaled and g_full
+        scaled_shift = g_base.blended_true_prob - g_scaled.blended_true_prob
+        full_shift = g_base.blended_true_prob - g_full.blended_true_prob
+        assert scaled_shift > 0                     # still moves down
+        assert full_shift > scaled_shift            # scaled is much smaller
+        # esw=0.85 keeps ~15% of the shove; allow slack for redistribution/caps.
+        assert scaled_shift == pytest.approx(0.15 * full_shift, rel=0.25)
 
     def test_chalk_yes_price_above_ceiling_returns_none(self):
         """YES at 0.92 should be filtered even when sharp says 0.96 → +EV."""

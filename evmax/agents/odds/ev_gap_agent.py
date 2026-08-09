@@ -220,6 +220,34 @@ def spread_sim_weight(sector: Optional[str]) -> float:
     )
 
 
+def scale_adjustment_to_model_share(
+    pre: float, adjusted: float, model_weight: float
+) -> float:
+    """Keep only the model's share of an injury/rest/playoff adjustment shove.
+
+    The injury / rest / playoff layers estimate the FULL win-probability impact
+    of news (a star OUT, a rested starter, a Game-7 home edge). They are applied
+    on top of ``blended_prob``, which is ``effective_sharp_weight * sharp +
+    (1 - effective_sharp_weight) * model``. Sharp — the dominant weight — has
+    already priced known news (that is exactly why these layers are skipped for
+    spreads). Only the model portion of the blend is uninformed, so re-applying
+    the FULL impact double-counts what sharp already knows and over-corrects the
+    blend by ``effective_sharp_weight * impact``.
+
+    ``model_weight`` is ``1 - effective_sharp_weight`` — the share of the blend
+    the adjustment is entitled to move. A sharp-only or drift-capped blend has
+    no model share (``model_weight == 0``), so the adjustment is fully
+    suppressed (pure sharp already prices the news).
+
+    Backtest (n=353 injury moneyline rows, 100% Pinnacle-close coverage): the
+    Pinnacle close realizes only ~9% of the full shove — regressing the realized
+    line move on our shove gives a slope of 0.09 [95% CI -0.01, 0.20], which
+    excludes 1.0 (full) and brackets the model-share scale. Full impact is
+    ~6-10x too large. Reproduce via scripts/backtest_adjustment_scaling.py.
+    """
+    return pre + model_weight * (adjusted - pre)
+
+
 def has_full_blend(
     sector: Optional[str],
     model_sources: Optional[str],
@@ -980,6 +1008,25 @@ class EVGapAgent(Agent):
             return _ret(None, None)
 
         # ------------------------------------------------------------------
+        # Adjustment-layer scaling — the injury/rest/playoff layers below
+        # correct the blend for news the MODELS have not absorbed. Sharp (the
+        # dominant blend weight) has already priced known injuries/rest/playoff,
+        # so applying the FULL adjustment to the whole (mostly-sharp) blend
+        # re-counts what sharp knows and over-corrects by
+        # effective_sharp_weight * impact. Scale each layer to the model's share
+        # of the blend, (1 - effective_sharp_weight). A sharp-only or
+        # drift-capped blend has no model share, so the adjustment is fully
+        # suppressed. Backtest (n=353 injury ML): the Pinnacle close realizes
+        # only ~9% of the full shove; full impact is 6-10x too large
+        # (scripts/backtest_adjustment_scaling.py).
+        if blend is not None and not skip_blend and src not in ("sharp", "sharp(capped)"):
+            adj_model_weight = max(
+                0.0, 1.0 - getattr(blend, "effective_sharp_weight", 1.0)
+            )
+        else:
+            adj_model_weight = 0.0
+
+        # ------------------------------------------------------------------
         # Step 4: Injury adjustment.
         # Skipped for:
         #   - totals: injury impact on team scoring is symmetric in O/U math
@@ -990,6 +1037,9 @@ class EVGapAgent(Agent):
         #     the relationship is non-linear. See commit `__PATH_B__` for the
         #     Cavaliers +9.5 case study where this layer drove EV from +1.3%
         #     (real model edge) to phantom +12.9%.
+        # The impact that survives is additionally scaled to adj_model_weight
+        # (see scale_adjustment_to_model_share) so sharp's already-priced share
+        # is not double-counted.
         # ------------------------------------------------------------------
         if injuries and not is_total and not used_spread_model:
             from evmax.agents.intelligence.injury_agent import InjuryReportAgent
@@ -1005,8 +1055,15 @@ class EVGapAgent(Agent):
                 # (the line was always reached with used_spread_model True).
                 # With Path B it can never fire, so default 1.0 is fine.
             )
-            if inj_notes:
-                blended_prob = new_b if yes_is_outcome_b else new_a
+            # Only tag/apply when there is a model share to correct — a
+            # sharp-only or drift-capped blend (adj_model_weight == 0) leaves
+            # blended_prob untouched, so it must not carry a "+injury" tag the
+            # injury-CLV analysis would key off.
+            if inj_notes and adj_model_weight > 0:
+                adjusted = new_b if yes_is_outcome_b else new_a
+                blended_prob = scale_adjustment_to_model_share(
+                    blended_prob, adjusted, adj_model_weight
+                )
                 src = f"{src}+injury"
 
             # Late-news edge detector. Pinnacle's algorithm typically adjusts
@@ -1046,8 +1103,11 @@ class EVGapAgent(Agent):
                 team_a=team_a,
                 team_b=team_b,
             )
-            if rest_notes:
-                blended_prob = new_b if yes_is_outcome_b else new_a
+            if rest_notes and adj_model_weight > 0:
+                adjusted = new_b if yes_is_outcome_b else new_a
+                blended_prob = scale_adjustment_to_model_share(
+                    blended_prob, adjusted, adj_model_weight
+                )
                 src = f"{src}+rest"
 
         # ------------------------------------------------------------------
@@ -1069,8 +1129,11 @@ class EVGapAgent(Agent):
                 team_b=team_b,
                 is_total=is_total,
             )
-            if playoff_notes:
-                blended_prob = new_b if yes_is_outcome_b else new_a
+            if playoff_notes and adj_model_weight > 0:
+                adjusted = new_b if yes_is_outcome_b else new_a
+                blended_prob = scale_adjustment_to_model_share(
+                    blended_prob, adjusted, adj_model_weight
+                )
                 src = f"{src}+playoff"
 
         # ------------------------------------------------------------------
