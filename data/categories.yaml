@@ -108,7 +108,7 @@ worldcup:
   display_name: "World Cup (national teams)"
   market_types: [moneyline, advance]
   models: [elo, form, poisson, xg, sharp]
-  mode: shadow
+  mode: disabled
   resolver: espn_scoreboard
   status: wip
   season_window: {start: "06-11", end: "07-19"}
@@ -198,7 +198,7 @@ nba_props:
   market_types: [player_prop]
   prop_stat_types: [points, rebounds, assists, threes, steals, blocks, points_rebounds_assists]
   models: [nba_props_cache]
-  mode: shadow
+  mode: disabled
   resolver: espn_boxscore
   status: shipped
   notes: "Demoted to shadow 2026-05-01: 2026-04-09→2026-05-01 actionable (ev>=2%) hit rate 15.3% vs model 25.6%, unit PnL -223u over 575 resolved bets, Brier 0.109 vs Kalshi 0.096 (worse than market). Largest leak in ev>=10% bucket (12.1% hit vs 25.0% predicted). Daily L15 game log cache at data/nba_props_cache.json; per-36-min normalization + opponent adjustment + streak/margin blends — root cause investigation pending."
@@ -208,7 +208,7 @@ nfl_props:
   market_types: [player_prop]
   prop_stat_types: [passing_yards, rushing_yards, receiving_yards, passing_tds, receptions, anytime_td]
   models: [nfl_props_cache_v1_qb_only]
-  mode: shadow
+  mode: disabled
   resolver: espn_boxscore
   status: blocked
   season_window: {start: "09-04", end: "02-15"}
@@ -219,7 +219,7 @@ baseball_props:
   market_types: [player_prop]
   prop_stat_types: [strikeouts, pitching_outs, total_bases, home_runs, hits, hits_runs_rbis, rbis]
   models: [baseball_props_model]
-  mode: shadow
+  mode: disabled
   resolver: mlb_statsapi
   status: wip
   season_window: {start: "03-20", end: "11-05"}
