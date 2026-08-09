@@ -203,6 +203,9 @@ def run_season(season, ep_seasons, params):
                 "week": w, "bucket": _bucket(w), "y": y,
                 "model": p_model, "prior": p_prior, "inseason": p_ins,
                 "market": p_mkt, "gp_min": min(rh.get("gp", 0), ra.get("gp", 0)),
+                # Game identity — lets a downstream blend sweep join elo/form
+                # probs onto the same game. Extra keys; report()/sweep ignore them.
+                "home": hn, "away": an, "date": g["date"], "neutral": neutral,
             })
     return results
 
