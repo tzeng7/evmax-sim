@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional
 
 import structlog
@@ -371,3 +371,54 @@ async def update_models_for_date(
             conn.close()
 
     return UpdateResult(games=games, updated=updated, skipped=skipped)
+
+
+# Default trailing-window size for the self-healing resolve backfill. The
+# resolve hook feeds only the SINGLE date it is given, so any day the resolve
+# task does not run leaves a PERMANENT hole in Elo/Form state (games are fed
+# once, in date order — an out-of-order backfill later would corrupt the
+# path-dependent ratings, so the only clean repair is a full re-seed). Feeding a
+# short trailing window on every run lets a transient multi-day outage self-heal
+# on the next successful run. 7 days covers the realistic case (a weekend/CI
+# gap); a catastrophic multi-week outage still needs a manual `seed_espn.py`
+# re-seed. Kept cheap by the `applied_model_games` ledger: already-fed games are
+# skipped, so a healthy daily cadence re-fetches ~7 idempotent no-op days.
+DEFAULT_MODEL_BACKFILL_DAYS = 7
+
+
+async def update_models_trailing_window(
+    sectors: list[str],
+    end_date: date,
+    coordinator=None,
+    *,
+    lookback_days: int = DEFAULT_MODEL_BACKFILL_DAYS,
+    dry_run: bool = False,
+    force: bool = False,
+    espn_cache: Optional[dict] = None,
+) -> UpdateResult:
+    """Feed models for the trailing window ``[end_date - (lookback_days-1), end_date]``.
+
+    Calls :func:`update_models_for_date` once per date in the window, oldest
+    first so games still enter Elo/Form in chronological order. The
+    ``applied_model_games`` ledger makes each call idempotent — games already in
+    state are skipped — so this only fills genuine holes left by a resolve
+    outage. The per-date :class:`UpdateResult` objects are aggregated into one.
+
+    ``lookback_days`` is clamped to at least 1 (``lookback_days=1`` reproduces
+    the old single-date behavior exactly). All other arguments pass straight
+    through to :func:`update_models_for_date`.
+    """
+    days = max(1, lookback_days)
+    all_games: list[GameUpdate] = []
+    updated = 0
+    skipped = 0
+    for offset in range(days - 1, -1, -1):  # oldest → newest (chronological)
+        d = end_date - timedelta(days=offset)
+        res = await update_models_for_date(
+            sectors, d, coordinator,
+            dry_run=dry_run, force=force, espn_cache=espn_cache,
+        )
+        all_games.extend(res.games)
+        updated += res.updated
+        skipped += res.skipped
+    return UpdateResult(games=all_games, updated=updated, skipped=skipped)
