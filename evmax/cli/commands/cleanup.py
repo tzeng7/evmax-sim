@@ -1148,6 +1148,195 @@ def void(
                   f"They are excluded from P&L but kept for audit.")
 
 
+def _render_prune_actions(actions: list[dict], counts: dict[str, int], *, dry_run: bool) -> None:
+    """Print the void/un-void actions a prune-stale sweep took (full table)."""
+    acted = [a for a in actions if a["action"] in ("void", "unvoid")]
+    n_void = counts.get("void", 0)
+    n_unvoid = counts.get("unvoid", 0)
+    if not acted:
+        skipped = sum(v for k, v in counts.items() if k.startswith("skip"))
+        noop = counts.get("noop", 0)
+        console.print(
+            f"[dim]{'[DRY RUN] ' if dry_run else ''}No stale candidates to prune "
+            f"({noop} still live, {skipped} skipped).[/dim]"
+        )
+        return
+
+    def _c(v: Optional[float]) -> str:
+        return f"{v * 100:.0f}¢" if v is not None else "—"
+
+    def _ev(v: Optional[float]) -> str:
+        return f"{v * 100:+.1f}%" if v is not None else "—"
+
+    table = Table(
+        title=f"{'[DRY RUN] ' if dry_run else ''}prune-stale — {n_void} voided, {n_unvoid} un-voided",
+        box=box.SIMPLE,
+    )
+    table.add_column("Action", width=7)
+    table.add_column("Event", min_width=24, no_wrap=False)
+    table.add_column("Outcome", min_width=16, no_wrap=False)
+    table.add_column("Ven", width=6)
+    table.add_column("Scan", justify="right", width=6)
+    table.add_column("Live", justify="right", width=6)
+    table.add_column("Scan EV", justify="right", width=8)
+    table.add_column("Live EV", justify="right", width=8)
+    table.add_column("Reason", no_wrap=False)
+    for a in acted:
+        colour = "red" if a["action"] == "void" else "green"
+        table.add_row(
+            f"[{colour}]{a['action']}[/{colour}]",
+            a.get("event_title") or "",
+            format_outcome_label(
+                yes_team=a.get("yes_team") or "",
+                market_type=a.get("market_type") or "",
+                line=a.get("line"),
+            ),
+            venue_label(a.get("venue") or "kalshi"),
+            _c(a.get("scan_ask")),
+            _c(a.get("live_ask")),
+            _ev(a.get("scan_ev")),
+            _ev(a.get("live_ev")),
+            a.get("reason") or "",
+        )
+    console.print(table)
+    if dry_run:
+        console.print("[dim]Dry run — no changes written. Remove --dry-run to apply.[/dim]")
+
+
+@app.command("prune-stale")
+def prune_stale(
+    interval: int = typer.Option(
+        300, "--interval", "-i",
+        help="Seconds to sleep between sweeps (default 5 min).",
+    ),
+    once: bool = typer.Option(
+        False, "--once",
+        help="Run a single sweep and exit (skip the loop).",
+    ),
+    lookahead: float = typer.Option(
+        12.0, "--lookahead", "-l",
+        help="Only prune candidates whose event tips off within the next N hours. "
+             "Reversion near tip is the meaningful signal (and a fresh Pinnacle "
+             "line only exists close to kickoff); a bounce-back is recovered via "
+             "un-void, so this can be widened safely.",
+    ),
+    sectors: str = typer.Option(
+        "all", "--sectors", "-s",
+        help="Comma-separated sectors, or 'all' for every game sector. Default: all.",
+    ),
+    min_ev: float = typer.Option(
+        0.02, "--min-ev",
+        help="Base EV threshold — matches scan/pick/verify. A candidate is voided "
+             "when its live EV falls below the tiered threshold at this base.",
+    ),
+    min_prob: float = typer.Option(
+        0.15, "--min-prob",
+        help="Minimum true-probability floor — matches scan/pick/verify.",
+    ),
+    hysteresis: float = typer.Option(
+        0.01, "--hysteresis",
+        help="Extra EV margin a previously-pruned candidate must clear to be "
+             "un-voided (anti-flap dead-band). Default 1 EV point.",
+    ),
+    bankroll: Optional[float] = typer.Option(
+        None, "--bankroll", "-b",
+        help="Bankroll for the logged would-be stake only — does NOT affect the "
+             "void decision (which is EV-gate based).",
+    ),
+    kelly: float = typer.Option(
+        0.5, "--kelly", "-k",
+        help="Kelly fraction for the logged would-be stake only.",
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run",
+        help="Report the actions a sweep WOULD take without writing.",
+    ),
+) -> None:
+    """Re-price un-picked live candidates and void the ones whose edge has reverted.
+
+    The scanner freezes each +EV gap at its scan-time price. As tip-off nears the
+    live venue ask reverts toward the sharp close and that edge goes phantom, yet
+    the un-picked candidate keeps showing it in the dashboard "Open Positions"
+    panel and `cleanup show`. This command re-prices those candidates against the
+    CURRENT market (the identical engine `agents pick --live` uses — refresh the
+    Kalshi/PolyUS ask AND re-blend the fair off a fresh Pinnacle line), then:
+
+      * VOIDS (void_reason='stale_reverted') any un-picked live candidate whose
+        live EV has reverted below the flag threshold, and
+      * UN-VOIDS its own prior stale-voids when the edge recovers past
+        threshold+hysteresis (a line bounce-back).
+
+    Fail-safe: it never voids on a missing/empty-book quote or an in-play game,
+    and only ever touches un-picked (placed=0) live rows — placed bets, shadow
+    rows and resolved rows are untouched. Voided rows drop out of the open list,
+    scan output and P&L (kept for audit).
+
+    Run it as an always-up launchd/systemd service (like watch-closes) so the
+    open list stays honest through the pre-tip reversion window.
+    """
+    from evmax.agents.cleanup.db import get_connection
+    from evmax.agents.cleanup.stale_positions import apply_actions, evaluate_candidates
+    from evmax.settings import get_settings
+
+    settings = get_settings()
+    sector_list = resolve_watch_sectors(sectors)
+
+    def _sweep() -> tuple[list[dict], dict[str, int]]:
+        now = datetime.now(timezone.utc)
+        today = now.date().isoformat()
+        # Coarse date ceiling (date-granular); the precise hour window is
+        # enforced in decide_actions against the tz-aware Pinnacle start time.
+        date_hi = (now + timedelta(hours=lookahead)).date().isoformat()
+        conn = get_connection()
+        try:
+            _bets, actions = asyncio.run(evaluate_candidates(
+                conn,
+                min_ev=min_ev,
+                min_prob=min_prob,
+                hysteresis=hysteresis,
+                kelly=kelly,
+                bankroll=bankroll if bankroll is not None else 250.0,
+                fees_in_pricing=settings.fees_in_pricing,
+                max_kelly=settings.max_kelly_fraction,
+                lookahead_hours=lookahead,
+                now=now,
+                today=today,
+                date_hi=date_hi,
+                sectors=sector_list,
+                on_warning=console.print,
+            ))
+            counts = apply_actions(conn, actions, dry_run=dry_run)
+        finally:
+            conn.close()
+        return actions, counts
+
+    if once:
+        actions, counts = _sweep()
+        _render_prune_actions(actions, counts, dry_run=dry_run)
+        return
+
+    console.print(
+        f"[cyan]prune-stale running[/cyan]  lookahead={lookahead}h  interval={interval}s  "
+        f"{'[yellow](dry run) [/yellow]' if dry_run else ''}[dim](Ctrl+C to stop)[/dim]"
+    )
+    try:
+        while True:
+            ts = datetime.now().strftime("%H:%M:%S")
+            try:
+                _actions, counts = _sweep()
+                acted = counts.get("void", 0) + counts.get("unvoid", 0)
+                if acted:
+                    console.print(
+                        f"[dim]{ts}[/dim]  voided {counts.get('void', 0)}  "
+                        f"un-voided {counts.get('unvoid', 0)}"
+                    )
+            except Exception as sweep_err:  # noqa: BLE001 — never kill the loop
+                console.print(f"[red]{ts}  sweep failed:[/red] {sweep_err}")
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        console.print("\n[dim]prune-stale stopped.[/dim]")
+
+
 @app.command("metrics")
 def metrics(
     weeks: int = typer.Option(1, "--weeks", "-w", help="Look-back window in weeks."),

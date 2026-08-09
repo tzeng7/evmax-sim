@@ -36,6 +36,7 @@ scheduled run ever merges its own PR.
 | `ev-scan-light-afternoon` | 13:04 | Light scan #2 (16:04 ET): T-3h re-scan for the 19:00 ET wave — MLB lineups post, injuries land, stale morning edges re-checked |
 | `ev-scan-light-evening` | 15:34 | Light scan #3 (18:34 ET): T-0.5–2h from the main slate — the only entry window with demonstrated +CLV; these are the rows the fresh-close CLV gates score |
 | `daily-evening-resolve` | 23:06 | `evmax cleanup resolve --date TODAY` + `cleanup show --date TODAY` — day's P/L |
+| `prune-stale-open-positions` | 11:00–23:00, every 2h (`0 11,13,15,17,19,21,23 * * *`) | `evmax cleanup prune-stale --lookahead 12 --once` — re-prices every un-picked LIVE candidate (`placed=0`) against the current venue ask + a fresh Pinnacle re-blend (the same engine `agents pick --live` uses) and VOIDs (`void_reason='stale_reverted'`) any whose edge reverted below the flag threshold, so the dashboard "Open Positions" list + `cleanup show` stop showing phantom edges the live line already erased. Un-voids its own rows on a bounce-back (hysteresis). Fail-safe: never voids on a missing/empty-book quote or an in-play game, and only touches `placed=0` live rows. Writes only the gitignored `predictions.db` — no git/PR step (forbidden from editing code) |
 
 The three `ev-scan-light-*` tasks are the **2026-07-19 replacement** for the removed 90-min pair
 (`ev-scan-90min-on-hour`/`half-hour`, removed 2026-07-18): 3×/day, evening-weighted, enough
@@ -91,6 +92,13 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 
 ## History
 
+- **2026-08-08** `evmax cleanup prune-stale` added — dynamic stale-candidate pruner (voids
+  un-picked live candidates whose edge reverted below the flag threshold; un-voids on recovery).
+  Scheduled as the Claude task `prune-stale-open-positions` (every 2h, 11:00–23:00 PT, listed under
+  Daily above) rather than a launchd agent — it only writes the gitignored `predictions.db`, so it
+  needs no always-up daemon, just the periodic CLI run. It becomes functional once the feature branch
+  (`claude/stale-positions-cleanup-bbec57`) merges to `main` (the task runs from the shared main
+  checkout). Preview any time with `evmax cleanup prune-stale --once --dry-run`.
 - **2026-08-03** (weekly drift audit) three enabled tasks were missing from this doc and are
   now listed: `weekly-calibration-tripwire`, `biweekly-model-improve-graph`, and
   `weekly-wnba-total-anchored-backfill-check`. `weekly-value-audit` moved to Disabled (superseded

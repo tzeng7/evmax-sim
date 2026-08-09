@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     model_version       TEXT,                       -- e.g. "nfl_props_v1_qb_only" — lets us expire stale shadow data
     venue               TEXT    NOT NULL DEFAULT 'kalshi',  -- prediction-market venue: kalshi | polymarket_us
     model_diagnostics   TEXT,                       -- JSON why-not diagnostics (fired/gated/missing per model)
+    void_reason         TEXT,                       -- why voided: NULL/manual=cancel; 'stale_reverted'=pruner auto-void
     UNIQUE(market_id)
 );
 
@@ -184,6 +185,7 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             venue               TEXT    NOT NULL DEFAULT 'kalshi',
             model_diagnostics   TEXT,
             minutes_to_tipoff   INTEGER,
+            void_reason         TEXT,
             UNIQUE(market_id)
         );
         INSERT INTO ev_predictions (
@@ -194,7 +196,7 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             voided, placed, placed_at, placed_price, placed_stake,
             pinnacle_drift_pct, kalshi_clv_pct,
             mode, captured_yes_price, model_version, venue, model_diagnostics,
-            minutes_to_tipoff
+            minutes_to_tipoff, void_reason
         )
         SELECT
             id, logged_at, scan_date, market_id, event_id, sector, yes_team,
@@ -204,7 +206,7 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             voided, placed, placed_at, placed_price, placed_stake,
             pinnacle_drift_pct, kalshi_clv_pct,
             mode, captured_yes_price, model_version, venue, model_diagnostics,
-            minutes_to_tipoff
+            minutes_to_tipoff, void_reason
         FROM ev_predictions_old;
         DROP TABLE ev_predictions_old;
         COMMIT;
@@ -278,6 +280,12 @@ def get_connection() -> sqlite3.Connection:
         # without re-running predict_pair. NULL on legacy rows and on
         # spread/total/prop rows (blend-priced moneyline family only).
         "ALTER TABLE ev_predictions ADD COLUMN model_diagnostics TEXT",
+        # 2026-08-08 — stale-position pruner audit trail. NULL on normal rows
+        # and on manual/game-cancel voids; 'stale_reverted' when
+        # `cleanup prune-stale` auto-voids a candidate whose edge reverted below
+        # the flag threshold. Lets the pruner un-void ONLY its own rows on a
+        # line bounce-back (freeze-on-first-insert means a re-scan can't).
+        "ALTER TABLE ev_predictions ADD COLUMN void_reason TEXT",
     ]:
         try:
             conn.execute(migration)
