@@ -216,7 +216,9 @@ def test_worldcup_registry_consistent():
 
     cats.validate_registry()  # raises on drift
     spec = next(c for c in cats.all_categories() if c.key == "worldcup")
-    assert spec.mode == "shadow"
+    # #185 (chore(categories): disable worldcup + player-prop sectors) flipped
+    # worldcup off; re-promoting it to shadow/live should re-trip this pin.
+    assert spec.mode == "disabled"
     # WC blend mirrors club soccer's: elo + form + poisson + xg + sharp, each on
     # the worldcup national-team namespace (never the club `soccer` pool).
     assert set(spec.models) == {"elo", "form", "poisson", "xg", "sharp"}

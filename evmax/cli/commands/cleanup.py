@@ -118,7 +118,14 @@ def show(
     wins    = sum(1 for r in rows if r["outcome"] == 1)
     losses  = sum(1 for r in rows if r["outcome"] == 0)
 
-    # P&L split: real (placed) vs simulated (all unpicked resolved bets)
+    # P&L split: real (placed) vs simulated (all unpicked resolved bets).
+    # P&L is net of the venue trading fee (a flat entry cost that hits win and
+    # loss equally) when fees_in_pricing is on — the same fee model that already
+    # gates/sizes entries, so realized ROI matches how the bet was sized.
+    from evmax.settings import get_settings
+    from evmax.fees import bet_pnl
+
+    fees_on = get_settings().fees_in_pricing
     real_staked = 0.0
     real_pnl    = 0.0
     sim_staked  = 0.0
@@ -127,14 +134,16 @@ def show(
         if r["outcome"] is None:
             continue
         price = r["placed_price"] if r["placed_price"] else r["kalshi_yes_price"]
+        fee_venue = (r["venue"] or "kalshi") if fees_on else None
+        won = r["outcome"] == 1
         if r["placed"] and r["placed_stake"]:
             stake = r["placed_stake"]
             real_staked += stake
-            real_pnl += stake * (1.0 / price - 1.0) if r["outcome"] == 1 else -stake
+            real_pnl += bet_pnl(stake, price, won, venue=fee_venue)
         else:
             stake = bankroll * (r["kelly_fraction"] or 0.0)
             sim_staked += stake
-            sim_pnl += stake * (1.0 / price - 1.0) if r["outcome"] == 1 else -stake
+            sim_pnl += bet_pnl(stake, price, won, venue=fee_venue)
 
     total_pnl    = real_pnl + sim_pnl
     total_staked = real_staked + sim_staked
@@ -176,16 +185,18 @@ def show(
         placed_marker = " [cyan]●[/cyan]" if r["placed"] else ""
 
         is_sim = not r["placed"]
+        row_fee_venue = (r["venue"] or "kalshi") if fees_on else None
         if r["outcome"] is None:
             result_str = "[dim]pending[/dim]"
             pnl_str = "[dim]—[/dim]"
         elif r["outcome"] == 1:
             result_str = "[bold green]WIN[/bold green]" + ("[dim] sim[/dim]" if is_sim else "")
-            profit = stake * (1.0 / price - 1.0)
+            profit = bet_pnl(stake, price, True, venue=row_fee_venue)
             pnl_str = f"[green]+${profit:.2f}[/green]" + ("[dim]*[/dim]" if is_sim else "")
         else:
             result_str = "[bold red]LOSS[/bold red]" + ("[dim] sim[/dim]" if is_sim else "")
-            pnl_str = f"[red]-${stake:.2f}[/red]" + ("[dim]*[/dim]" if is_sim else "")
+            loss = bet_pnl(stake, price, False, venue=row_fee_venue)
+            pnl_str = f"[red]-${abs(loss):.2f}[/red]" + ("[dim]*[/dim]" if is_sim else "")
 
         # Display Pinnacle drift here (legacy "CLV" column). This is NOT a
         # clean edge metric for our system — see backfill_clv docstring for
