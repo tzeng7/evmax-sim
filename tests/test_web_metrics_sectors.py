@@ -82,10 +82,12 @@ def test_metrics_includes_sector_breakdown(metrics_db):
     # CLV already in pp: mean(2.0, -1.0) = 0.5
     assert nba["avg_clv_pct"] == 0.5
     assert nba["clv_n"] == 2
-    # ROI: stake = 2 * (250 * 0.04) = 20; win pays 0.04*250*(1/0.5-1)=10,
-    # loss = -10 → pnl 0 → roi 0%
-    assert nba["pnl"] == 0.0
-    assert nba["roi_pct"] == 0.0
+    # ROI is net of the Kalshi trading fee (default venue). Each bet is
+    # stake $10 at 50c = 20 contracts; fee = ceil(0.07*20*0.25) = $0.35, paid
+    # on both win and loss. win = 10*(1/0.5-1) - 0.35 = 9.65; loss = -10 - 0.35
+    # = -10.35 → pnl -0.70 on $20 staked → roi -3.5%.
+    assert nba["pnl"] == pytest.approx(-0.70)
+    assert nba["roi_pct"] == pytest.approx(-3.5)
 
 
 def test_metrics_sector_handles_missing_clv(metrics_db):

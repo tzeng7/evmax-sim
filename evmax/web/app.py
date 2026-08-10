@@ -241,15 +241,19 @@ def _settled_prop_bets() -> list[dict[str, Any]]:
 
 
 def _bet_pnl(bet: dict[str, Any]) -> float:
+    from evmax.fees import bet_pnl as _fee_bet_pnl
+    from evmax.settings import get_settings
+
     bankroll = bet.get("bankroll_used") or 250.0
     kelly = bet.get("kelly_fraction") or 0.0
     stake = bet.get("placed_stake") or (bankroll * kelly)
     price = bet.get("placed_price") or bet.get("kalshi_yes_price") or 0.5
     if price <= 0 or price >= 1:
         return 0.0
-    if bet.get("outcome") == 1:
-        return stake * (1.0 / price - 1.0)
-    return -stake
+    # Net of the venue trading fee (flat entry cost, hits win and loss equally)
+    # when fees_in_pricing is on — matches how the bet was gated/sized.
+    fee_venue = (bet.get("venue") or "kalshi") if get_settings().fees_in_pricing else None
+    return _fee_bet_pnl(stake, price, bet.get("outcome") == 1, venue=fee_venue)
 
 
 def _profit_series(bets: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1049,7 +1053,7 @@ async def api_metrics(request: Request) -> JSONResponse:
         """
         SELECT p.sector, p.market_type, p.blended_true_prob, p.sharp_true_prob,
                p.ev_pct, p.kalshi_clv_pct, p.kelly_fraction, p.bankroll_used,
-               p.placed_stake, p.placed_price, p.kalshi_yes_price, o.outcome
+               p.placed_stake, p.placed_price, p.kalshi_yes_price, p.venue, o.outcome
         FROM ev_predictions p
         JOIN ev_outcomes o ON p.market_id = o.market_id
         WHERE p.voided = 0 AND o.outcome IS NOT NULL AND p.event_date >= ?

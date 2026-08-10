@@ -26,6 +26,7 @@ mirror what the venue actually charges on an order.
 from __future__ import annotations
 
 import math
+from typing import Optional
 
 KALSHI_TAKER_RATE = 0.07
 KALSHI_MAKER_RATE_MULT = 0.25  # × taker rate, designated series only
@@ -104,3 +105,64 @@ def polymarket_us_order_fee(
     raw = _quad(theta, price, contracts)
     sign = -1.0 if raw < 0 else 1.0
     return sign * _bankers_round_cents(abs(raw))
+
+
+def venue_order_fee(
+    venue: Optional[str], price: float, contracts: float, maker: bool = False
+) -> float:
+    """Dollar order fee by venue name, with the venue's rounding applied.
+
+    Dispatches to ``kalshi_order_fee`` / ``polymarket_us_order_fee``. Returns
+    ``0.0`` for ``venue=None`` or an unrecognised venue name, so a caller that
+    opts out of fee accounting (``settings.fees_in_pricing`` off) can pass
+    ``None`` and price gross. This differs from ``venue_fee_prob``, which raises
+    on an unknown venue — the P&L path must never crash a report on a stray
+    venue string, so it degrades to gross instead.
+    """
+    if venue is None:
+        return 0.0
+    v = venue.lower()
+    if v == "kalshi":
+        return kalshi_order_fee(price, contracts, maker=maker)
+    if v == "polymarket_us":
+        return polymarket_us_order_fee(price, contracts, maker=maker)
+    return 0.0
+
+
+# ---------------------------------------------------------------------------
+# Net-of-fee realized P&L for a settled binary bet
+# ---------------------------------------------------------------------------
+
+def bet_pnl(
+    stake: float,
+    price: float,
+    won: bool,
+    venue: Optional[str] = None,
+    maker: bool = False,
+) -> float:
+    """Net-of-fee dollar P&L for one settled binary contract bet.
+
+    ``stake`` is the contract NOTIONAL — the dollars spent on contracts,
+    ``= contracts × price`` — NOT fee-inclusive. The payout ratio ``1/price``
+    multiplies the notional only, so the fee must NOT be folded into ``stake``:
+    doing so would scale the fee by ``1/price`` on a win and over-credit it. The
+    venue's trading fee is instead a flat cost paid once at entry, collected by
+    the venue at trade time regardless of outcome, so it reduces the win P&L and
+    the loss P&L by the SAME amount::
+
+        contracts = stake / price
+        fee       = venue_order_fee(venue, price, contracts, maker)
+        won  →  stake · (1/price − 1) − fee
+        lost →  −stake − fee
+
+    ``venue=None`` prices gross (``fee = 0``) — the behaviour before fee
+    accounting, and what a caller passes when ``settings.fees_in_pricing`` is
+    off. A degenerate ``price`` outside the open interval (0, 1) yields ``0.0``.
+    """
+    if not (0.0 < price < 1.0):
+        return 0.0
+    contracts = stake / price
+    fee = venue_order_fee(venue, price, contracts, maker=maker)
+    if won:
+        return stake * (1.0 / price - 1.0) - fee
+    return -stake - fee
