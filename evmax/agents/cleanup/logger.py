@@ -154,6 +154,20 @@ def log_gaps(
                     model_sources=g.model_sources,
                 )
 
+            # Maker-only demotion: gaps that clear the EV floor ONLY as a maker
+            # (maker_only=True) are fill-contingent — they require a resting
+            # limit order and are not crossable at the current ask. Log them for
+            # visibility/calibration, but never as live bankroll rows. Promote to
+            # a real position with `evmax agents fill` once the order fills.
+            if mode == "live" and getattr(g, "maker_only", False):
+                mode = "shadow"
+                logger.info(
+                    "prediction_demoted_maker_only",
+                    market_id=g.market_id,
+                    sector=g.sector,
+                    maker_ev_pct=getattr(g, "maker_ev_pct", None),
+                )
+
             # Venue shadow firewall (MODEL-9): a non-Kalshi venue stays in
             # shadow until its settings flag is flipped, regardless of the
             # category's mode. Mirrors the coordinator's venue_gaps_shadowed
@@ -188,8 +202,8 @@ def log_gaps(
                      blended_true_prob, ev_pct, kelly_fraction, volume_usd,
                      model_sources, sharp_weight_used, bankroll_used, line,
                      mode, captured_yes_price, model_version, minutes_to_tipoff,
-                     venue, model_diagnostics)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     venue, model_diagnostics, maker_ev_pct)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         sd,
                         g.market_id,
@@ -215,6 +229,7 @@ def log_gaps(
                         getattr(g, "minutes_to_tipoff", None),
                         getattr(g, "venue", "kalshi"),
                         getattr(g, "model_diagnostics", None),
+                        getattr(g, "maker_ev_pct", None),
                     ),
                 )
                 if conn.execute("SELECT changes()").fetchone()[0]:

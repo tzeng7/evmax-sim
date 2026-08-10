@@ -54,7 +54,7 @@ def _settled_bets() -> list[dict[str, Any]]:
                    p.blended_true_prob, p.sharp_true_prob, p.ev_pct,
                    p.kelly_fraction, p.bankroll_used, p.model_sources,
                    p.placed, p.placed_stake, p.placed_price, p.line, p.venue,
-                   o.outcome
+                   p.maker_fill, o.outcome
             FROM ev_predictions p
             JOIN ev_outcomes o ON p.market_id = o.market_id
             WHERE p.voided = 0 AND o.outcome IS NOT NULL
@@ -79,7 +79,7 @@ def _placed_bets() -> list[dict[str, Any]]:
                    p.blended_true_prob, p.ev_pct, p.kelly_fraction,
                    p.bankroll_used, p.volume_usd, p.model_sources,
                    p.placed, p.placed_stake, p.placed_price, p.market_id, p.line,
-                   p.venue
+                   p.venue, p.maker_fill
             FROM ev_predictions p
             LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
             WHERE p.placed = 1 AND p.voided = 0 AND (o.outcome IS NULL)
@@ -128,7 +128,8 @@ def _open_bets() -> list[dict[str, Any]]:
                    p.yes_team, p.market_type, p.kalshi_yes_price,
                    p.blended_true_prob, p.ev_pct, p.kelly_fraction,
                    p.bankroll_used, p.volume_usd, p.model_sources,
-                   p.placed, p.placed_stake, p.market_id, p.line, p.venue
+                   p.placed, p.placed_stake, p.market_id, p.line, p.venue,
+                   p.maker_fill
             FROM ev_predictions p
             INNER JOIN (
                 SELECT market_id, MAX(id) AS max_id
@@ -251,9 +252,13 @@ def _bet_pnl(bet: dict[str, Any]) -> float:
     if price <= 0 or price >= 1:
         return 0.0
     # Net of the venue trading fee (flat entry cost, hits win and loss equally)
-    # when fees_in_pricing is on — matches how the bet was gated/sized.
+    # when fees_in_pricing is on — matches how the bet was gated/sized. A maker
+    # fill (recorded via `evmax agents fill`) is charged the maker fee, not taker.
     fee_venue = (bet.get("venue") or "kalshi") if get_settings().fees_in_pricing else None
-    return _fee_bet_pnl(stake, price, bet.get("outcome") == 1, venue=fee_venue)
+    return _fee_bet_pnl(
+        stake, price, bet.get("outcome") == 1,
+        venue=fee_venue, maker=bool(bet.get("maker_fill")),
+    )
 
 
 def _profit_series(bets: list[dict[str, Any]]) -> list[dict[str, Any]]:

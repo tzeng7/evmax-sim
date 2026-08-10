@@ -215,6 +215,32 @@ class TestEVGapAgent:
         assert gap.blended_true_prob == pytest.approx(0.58, abs=0.001)
 
     @pytest.mark.asyncio
+    async def test_maker_only_gap_surfaced(self):
+        """A coin-flip edge the taker fee eats but the maker fee spares is
+        surfaced as a maker-only gap: maker_only=True, maker_ev_pct clears the
+        floor, taker ev_pct is below it, and Kelly is zero (fill-contingent —
+        not crossable at the ask, promoted via `agents fill` once it fills)."""
+        agent = EVGapAgent()
+        # yes=0.50, true=0.525: taker nets ~1.4% (<2%), maker nets ~4% (>=2%).
+        market = make_market(yes_price=0.50, yes_team="lakers")
+        sharp = make_sharp(prob_a=0.525, prob_b=0.475, team_a="lakers")
+
+        with patch.object(agent._matching, "match_all", return_value=[(market, sharp, 95.0)]):
+            req = AgentRequest(
+                sector="nba",
+                params={"kalshi_markets": [market], "sharp_odds": [sharp]},
+            )
+            resp = await agent(req)
+
+        assert resp.status == "ok"
+        assert len(resp.data) >= 1
+        gap: EVGap = resp.data[0]
+        assert gap.maker_only is True
+        assert gap.ev_pct < 0.02
+        assert gap.maker_ev_pct is not None and gap.maker_ev_pct >= 0.02
+        assert gap.kelly_fraction == 0.0
+
+    @pytest.mark.asyncio
     async def test_negative_ev_filtered(self):
         agent = EVGapAgent()
         # Kalshi price higher than true prob → negative EV

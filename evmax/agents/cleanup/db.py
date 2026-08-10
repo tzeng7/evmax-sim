@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     venue               TEXT    NOT NULL DEFAULT 'kalshi',  -- prediction-market venue: kalshi | polymarket_us
     model_diagnostics   TEXT,                       -- JSON why-not diagnostics (fired/gated/missing per model)
     void_reason         TEXT,                       -- why voided: NULL/manual=cancel; 'stale_reverted'=pruner auto-void
+    maker_ev_pct        REAL,                       -- EV if opened as a resting limit order (maker fee); >= ev_pct
+    maker_fill          INTEGER NOT NULL DEFAULT 0, -- 1=placed as a maker fill (P&L applies the maker fee, not taker)
     UNIQUE(market_id)
 );
 
@@ -286,6 +288,13 @@ def get_connection() -> sqlite3.Connection:
         # the flag threshold. Lets the pruner un-void ONLY its own rows on a
         # line bounce-back (freeze-on-first-insert means a re-scan can't).
         "ALTER TABLE ev_predictions ADD COLUMN void_reason TEXT",
+        # 2026-08-09 — maker-fee surfacing. maker_ev_pct = EV if the position is
+        # opened as a resting limit order (maker fee) rather than crossing the
+        # spread (taker fee); populated on every game-market row. maker_fill = 1
+        # when a maker-only shadow row is promoted to a real position via
+        # `evmax agents fill`, so the net-of-fee P&L path charges the maker fee.
+        "ALTER TABLE ev_predictions ADD COLUMN maker_ev_pct REAL",
+        "ALTER TABLE ev_predictions ADD COLUMN maker_fill INTEGER NOT NULL DEFAULT 0",
     ]:
         try:
             conn.execute(migration)

@@ -66,6 +66,8 @@ def _make_db() -> sqlite3.Connection:
             venue TEXT NOT NULL DEFAULT 'kalshi',
             minutes_to_tipoff INTEGER,
             model_diagnostics TEXT,
+            maker_ev_pct REAL,
+            maker_fill INTEGER NOT NULL DEFAULT 0,
             UNIQUE(market_id, scan_date)
         );
         CREATE TABLE prop_observations (
@@ -566,6 +568,51 @@ class TestPartialBlendDemotion:
             "SELECT mode FROM ev_predictions WHERE market_id = 'nba-default'"
         ).fetchone()
         assert row["mode"] == "live"
+
+
+class TestMakerOnlyDemotion:
+    """maker_only gaps clear the floor only as a resting limit order — they are
+    fill-contingent, so log_gaps demotes a live one to shadow (never bankroll)
+    and persists maker_ev_pct. Promote to a real position with `agents fill`."""
+
+    def test_maker_only_live_gap_demoted_to_shadow(self, patched_db):
+        gap = replace(
+            _gap("m-only", sector="nba"),
+            ev_pct=0.014,          # taker below the floor
+            maker_ev_pct=0.041,    # maker clears it
+            maker_only=True,
+            kelly_fraction=0.0,    # no live taker stake
+        )
+        inserted = log_gaps([gap], mode_resolver=lambda c: "live")
+        assert inserted == 1
+        row = patched_db.execute(
+            "SELECT mode, maker_ev_pct FROM ev_predictions WHERE market_id = 'm-only'"
+        ).fetchone()
+        assert row["mode"] == "shadow"
+        assert row["maker_ev_pct"] == pytest.approx(0.041)
+
+    def test_taker_clearing_gap_stays_live_with_maker_ev(self, patched_db):
+        gap = replace(
+            _gap("m-taker", sector="nba"),
+            ev_pct=0.05,
+            maker_ev_pct=0.08,
+            maker_only=False,
+        )
+        log_gaps([gap], mode_resolver=lambda c: "live")
+        row = patched_db.execute(
+            "SELECT mode, maker_ev_pct FROM ev_predictions WHERE market_id = 'm-taker'"
+        ).fetchone()
+        assert row["mode"] == "live"
+        assert row["maker_ev_pct"] == pytest.approx(0.08)
+
+    def test_default_gap_has_null_maker_ev(self, patched_db):
+        # A gap constructed without maker fields (legacy path) is null-safe.
+        log_gaps([_gap("m-legacy", sector="nba")], mode_resolver=lambda c: "live")
+        row = patched_db.execute(
+            "SELECT mode, maker_ev_pct FROM ev_predictions WHERE market_id = 'm-legacy'"
+        ).fetchone()
+        assert row["mode"] == "live"
+        assert row["maker_ev_pct"] is None
 
 
 class TestShadowVenueDemotion:
