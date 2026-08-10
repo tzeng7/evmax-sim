@@ -1,306 +1,6 @@
 {
   "ncaaf": {
     "teams": {
-      "miami": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.12641,
-        "def_epa_prior": -0.14475,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "MIA"
-      },
-      "vanderbilt": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.15959,
-        "def_epa_prior": -0.03152,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "VAN"
-      },
-      "louisiana": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.06559,
-        "def_epa_prior": 0.05063,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "UL"
-      },
-      "oregon": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.15104,
-        "def_epa_prior": -0.13298,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "ORE"
-      },
-      "virginia tech": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.01387,
-        "def_epa_prior": 0.0113,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "VT"
-      },
-      "iowa state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.03814,
-        "def_epa_prior": -0.06082,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "ISU"
-      },
-      "louisiana tech": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.05242,
-        "def_epa_prior": 0.0249,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "LT"
-      },
-      "north texas": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.04403,
-        "def_epa_prior": 0.05225,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "UNT"
-      },
-      "ohio": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.00218,
-        "def_epa_prior": 0.00121,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "OHIO"
-      },
-      "miami oh": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.11653,
-        "def_epa_prior": 0.01448,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "M-OH"
-      },
-      "missouri": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.06119,
-        "def_epa_prior": -0.07545,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "MIZ"
-      },
-      "baylor": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.04031,
-        "def_epa_prior": 0.02379,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "BAY"
-      },
-      "tennessee": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.09831,
-        "def_epa_prior": -0.03905,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "TENN"
-      },
-      "north carolina": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.0337,
-        "def_epa_prior": 0.00983,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "UNC"
-      },
-      "florida atlantic": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.0224,
-        "def_epa_prior": 0.07773,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "FAU"
-      },
-      "western kentucky": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.04727,
-        "def_epa_prior": -0.01788,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "WKU"
-      },
-      "michigan": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.10969,
-        "def_epa_prior": -0.03469,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "MICH"
-      },
-      "lsu": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.00283,
-        "def_epa_prior": -0.07699,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "LSU"
-      },
-      "pittsburgh": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.03347,
-        "def_epa_prior": -0.15968,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "PITT"
-      },
-      "oklahoma": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.01314,
-        "def_epa_prior": -0.14492,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "OU"
-      },
-      "illinois": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.03796,
-        "def_epa_prior": -0.03129,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "ILL"
-      },
-      "colorado state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.05076,
-        "def_epa_prior": 0.0782,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "CSU"
-      },
-      "san jos\u00e9 state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.01172,
-        "def_epa_prior": 0.07054,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "SJSU"
-      },
-      "delaware": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.02293,
-        "def_epa_prior": 0.10576,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "DEL"
-      },
-      "oklahoma state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.08871,
-        "def_epa_prior": 0.04464,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "OKST"
-      },
-      "massachusetts": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.14599,
-        "def_epa_prior": 0.18118,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "MASS"
-      },
-      "toledo": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.01468,
-        "def_epa_prior": -0.04741,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "TOL"
-      },
-      "colorado": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.03683,
-        "def_epa_prior": 0.0121,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "COLO"
-      },
-      "wisconsin": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.03349,
-        "def_epa_prior": -0.05477,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "WIS"
-      },
-      "washington": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.09413,
-        "def_epa_prior": -0.09037,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "WASH"
-      },
       "troy": {
         "off_epa_adj": 0.0,
         "def_epa_adj": 0.0,
@@ -310,376 +10,6 @@
         "off_success_rate": 0.0,
         "def_success_rate": 0.0,
         "abbrev": "TROY"
-      },
-      "northern illinois": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.1021,
-        "def_epa_prior": 0.07335,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "NIU"
-      },
-      "memphis": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.01888,
-        "def_epa_prior": -0.00089,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "MEM"
-      },
-      "kentucky": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.00717,
-        "def_epa_prior": -0.03997,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "UK"
-      },
-      "georgia tech": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.08055,
-        "def_epa_prior": 0.01941,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "GT"
-      },
-      "indiana": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.18297,
-        "def_epa_prior": -0.18407,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "IU"
-      },
-      "arizona state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.02712,
-        "def_epa_prior": -0.05459,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "ASU"
-      },
-      "iowa": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.06187,
-        "def_epa_prior": -0.11225,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "IOWA"
-      },
-      "boston college": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.00993,
-        "def_epa_prior": 0.04389,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "BC"
-      },
-      "smu": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.07763,
-        "def_epa_prior": -0.05624,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "SMU"
-      },
-      "tcu": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.04005,
-        "def_epa_prior": -0.00892,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "TCU"
-      },
-      "east carolina": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.03232,
-        "def_epa_prior": -0.017,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "ECU"
-      },
-      "western michigan": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.00881,
-        "def_epa_prior": -0.0952,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "WMU"
-      },
-      "james madison": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.03816,
-        "def_epa_prior": -0.05221,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "JMU"
-      },
-      "utah": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.14155,
-        "def_epa_prior": -0.0924,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "UTAH"
-      },
-      "nevada": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.09528,
-        "def_epa_prior": 0.05267,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "NEV"
-      },
-      "new mexico state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.11127,
-        "def_epa_prior": 0.05945,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "NMSU"
-      },
-      "ball state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.10886,
-        "def_epa_prior": 0.06451,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "BALL"
-      },
-      "washington state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.03345,
-        "def_epa_prior": -0.00899,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "WSU"
-      },
-      "northwestern": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.01305,
-        "def_epa_prior": -0.05107,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "NU"
-      },
-      "hawaii": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.02509,
-        "def_epa_prior": 0.02297,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "HAW"
-      },
-      "boise state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.01801,
-        "def_epa_prior": -0.03759,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "BOIS"
-      },
-      "south carolina": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.00878,
-        "def_epa_prior": -0.0719,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "SC"
-      },
-      "navy": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.04745,
-        "def_epa_prior": 0.03725,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "NAVY"
-      },
-      "mississippi state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.02368,
-        "def_epa_prior": -0.03168,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "MSST"
-      },
-      "utah state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.04285,
-        "def_epa_prior": 0.0388,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "USU"
-      },
-      "arkansas": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.10175,
-        "def_epa_prior": 0.03437,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "ARK"
-      },
-      "buffalo": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.09867,
-        "def_epa_prior": 0.03189,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "BUFF"
-      },
-      "middle tennessee": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.13691,
-        "def_epa_prior": 0.09035,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "MTSU"
-      },
-      "kent state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.06853,
-        "def_epa_prior": 0.11744,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "KENT"
-      },
-      "maryland": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.04291,
-        "def_epa_prior": -0.03599,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "MD"
-      },
-      "florida international": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.09757,
-        "def_epa_prior": -0.01629,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "FIU"
-      },
-      "purdue": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.01574,
-        "def_epa_prior": 0.04058,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "PUR"
-      },
-      "kansas": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.0626,
-        "def_epa_prior": 0.01798,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "KU"
-      },
-      "virginia": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.04521,
-        "def_epa_prior": -0.08308,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "UVA"
-      },
-      "texas state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.0014,
-        "def_epa_prior": -0.00081,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "TXST"
-      },
-      "louisville": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.03747,
-        "def_epa_prior": -0.09218,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "LOU"
-      },
-      "liberty": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.10644,
-        "def_epa_prior": -0.00449,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "LIB"
       },
       "ole miss": {
         "off_epa_adj": 0.0,
@@ -691,166 +21,6 @@
         "def_success_rate": 0.0,
         "abbrev": "MISS"
       },
-      "florida state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.15645,
-        "def_epa_prior": -0.01583,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "FSU"
-      },
-      "texas": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.03204,
-        "def_epa_prior": -0.08166,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "TEX"
-      },
-      "new mexico": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.00567,
-        "def_epa_prior": 0.01918,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "UNM"
-      },
-      "marshall": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.06312,
-        "def_epa_prior": -0.04688,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "MRSH"
-      },
-      "georgia": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.10075,
-        "def_epa_prior": -0.08251,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "UGA"
-      },
-      "arizona": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.06644,
-        "def_epa_prior": -0.08197,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "ARIZ"
-      },
-      "bowling green": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.10674,
-        "def_epa_prior": 0.00175,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "BGSU"
-      },
-      "coastal carolina": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.08003,
-        "def_epa_prior": 0.04116,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "CCU"
-      },
-      "nebraska": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.05015,
-        "def_epa_prior": 0.00716,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "NEB"
-      },
-      "california": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.00168,
-        "def_epa_prior": -0.01264,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "CAL"
-      },
-      "kansas state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.03121,
-        "def_epa_prior": -0.04983,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "KSU"
-      },
-      "georgia state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.03717,
-        "def_epa_prior": 0.09903,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "GAST"
-      },
-      "houston": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.01736,
-        "def_epa_prior": -0.01884,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "HOU"
-      },
-      "utsa": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.01701,
-        "def_epa_prior": -0.00024,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "UTSA"
-      },
-      "fresno state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.0996,
-        "def_epa_prior": -0.03742,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "FRES"
-      },
-      "stanford": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.03382,
-        "def_epa_prior": -0.06915,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "STAN"
-      },
       "byu": {
         "off_epa_adj": 0.0,
         "def_epa_adj": 0.0,
@@ -860,466 +30,6 @@
         "off_success_rate": 0.0,
         "def_success_rate": 0.0,
         "abbrev": "BYU"
-      },
-      "sacramento state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.11242,
-        "def_epa_prior": 0.12266,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "SAC"
-      },
-      "wake forest": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.00856,
-        "def_epa_prior": -0.08116,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "WAKE"
-      },
-      "michigan state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.02026,
-        "def_epa_prior": 0.01184,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "MSU"
-      },
-      "sam houston": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.1519,
-        "def_epa_prior": 0.1199,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "SHSU"
-      },
-      "uab": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.05808,
-        "def_epa_prior": 0.1594,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "UAB"
-      },
-      "kennesaw state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.01631,
-        "def_epa_prior": 0.0628,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "KENN"
-      },
-      "akron": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.0733,
-        "def_epa_prior": 0.06004,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "AKR"
-      },
-      "syracuse": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.04985,
-        "def_epa_prior": 0.01206,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "SYR"
-      },
-      "nc state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.09057,
-        "def_epa_prior": -0.02079,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "NCSU"
-      },
-      "ucf": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.00594,
-        "def_epa_prior": -0.03501,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "UCF"
-      },
-      "auburn": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.03424,
-        "def_epa_prior": -0.07673,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "AUB"
-      },
-      "texas tech": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.07767,
-        "def_epa_prior": -0.19523,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "TTU"
-      },
-      "uconn": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.07386,
-        "def_epa_prior": 0.05646,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "CONN"
-      },
-      "air force": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.04412,
-        "def_epa_prior": 0.11755,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "AFA"
-      },
-      "tulsa": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.09102,
-        "def_epa_prior": 0.04969,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "TLSA"
-      },
-      "alabama": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.09349,
-        "def_epa_prior": -0.079,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "ALA"
-      },
-      "notre dame": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.17089,
-        "def_epa_prior": -0.13467,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "ND"
-      },
-      "temple": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.01088,
-        "def_epa_prior": 0.05228,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "TEM"
-      },
-      "charlotte": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.15085,
-        "def_epa_prior": 0.07956,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "CLT"
-      },
-      "jacksonville state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.04476,
-        "def_epa_prior": 0.0629,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "JVST"
-      },
-      "penn state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.07157,
-        "def_epa_prior": -0.0615,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "PSU"
-      },
-      "ucla": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.03096,
-        "def_epa_prior": 0.02668,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "UCLA"
-      },
-      "central michigan": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.09116,
-        "def_epa_prior": 0.00807,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "CMU"
-      },
-      "unlv": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.0308,
-        "def_epa_prior": -0.01559,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "UNLV"
-      },
-      "southern miss": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.05357,
-        "def_epa_prior": 0.0405,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "USM"
-      },
-      "army": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.02704,
-        "def_epa_prior": 0.01665,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "ARMY"
-      },
-      "app state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.06396,
-        "def_epa_prior": 0.06415,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "APP"
-      },
-      "duke": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.08178,
-        "def_epa_prior": 0.01847,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "DUKE"
-      },
-      "eastern michigan": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.01588,
-        "def_epa_prior": 0.13984,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "EMU"
-      },
-      "wyoming": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.09577,
-        "def_epa_prior": 0.00248,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "WYO"
-      },
-      "old dominion": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.02107,
-        "def_epa_prior": -0.07198,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "ODU"
-      },
-      "ul monroe": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.07812,
-        "def_epa_prior": 0.08929,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "ULM"
-      },
-      "south florida": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.08069,
-        "def_epa_prior": -0.02594,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "USF"
-      },
-      "san diego state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.013,
-        "def_epa_prior": -0.02583,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "SDSU"
-      },
-      "south alabama": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.04521,
-        "def_epa_prior": 0.08535,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "USA"
-      },
-      "rutgers": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.04475,
-        "def_epa_prior": 0.05457,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "RUTG"
-      },
-      "florida": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.01158,
-        "def_epa_prior": -0.06903,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "FLA"
-      },
-      "west virginia": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.03671,
-        "def_epa_prior": -0.02391,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "WVU"
-      },
-      "rice": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.11939,
-        "def_epa_prior": 0.08614,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "RICE"
-      },
-      "minnesota": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.02423,
-        "def_epa_prior": -0.01325,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "MINN"
-      },
-      "ohio state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.13287,
-        "def_epa_prior": -0.15824,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "OSU"
-      },
-      "usc": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.12849,
-        "def_epa_prior": -0.05622,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "USC"
-      },
-      "cincinnati": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.09266,
-        "def_epa_prior": 0.00619,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "CIN"
-      },
-      "arkansas state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": -0.04668,
-        "def_epa_prior": 0.03108,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "ARST"
-      },
-      "north dakota state": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.01299,
-        "def_epa_prior": 0.0142,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "NDSU"
-      },
-      "tulane": {
-        "off_epa_adj": 0.0,
-        "def_epa_adj": 0.0,
-        "off_epa_prior": 0.01165,
-        "def_epa_prior": -0.01485,
-        "gp": 0,
-        "off_success_rate": 0.0,
-        "def_success_rate": 0.0,
-        "abbrev": "TULN"
       },
       "clemson": {
         "off_epa_adj": 0.0,
@@ -1331,15 +41,345 @@
         "def_success_rate": 0.0,
         "abbrev": "CLEM"
       },
-      "oregon state": {
+      "rice": {
         "off_epa_adj": 0.0,
         "def_epa_adj": 0.0,
-        "off_epa_prior": -0.094,
-        "def_epa_prior": 0.04398,
+        "off_epa_prior": -0.11939,
+        "def_epa_prior": 0.08614,
         "gp": 0,
         "off_success_rate": 0.0,
         "def_success_rate": 0.0,
-        "abbrev": "ORST"
+        "abbrev": "RICE"
+      },
+      "sacramento state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.11242,
+        "def_epa_prior": 0.12266,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "SAC"
+      },
+      "tcu": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.04005,
+        "def_epa_prior": -0.00892,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "TCU"
+      },
+      "maryland": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.04291,
+        "def_epa_prior": -0.03599,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "MD"
+      },
+      "old dominion": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.02107,
+        "def_epa_prior": -0.07198,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ODU"
+      },
+      "indiana": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.18297,
+        "def_epa_prior": -0.18407,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "IU"
+      },
+      "virginia": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.04521,
+        "def_epa_prior": -0.08308,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "UVA"
+      },
+      "south carolina": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.00878,
+        "def_epa_prior": -0.0719,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "SC"
+      },
+      "georgia tech": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.08055,
+        "def_epa_prior": 0.01941,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "GT"
+      },
+      "north texas": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.04403,
+        "def_epa_prior": 0.05225,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "UNT"
+      },
+      "toledo": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.01468,
+        "def_epa_prior": -0.04741,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "TOL"
+      },
+      "kansas state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.03121,
+        "def_epa_prior": -0.04983,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "KSU"
+      },
+      "coastal carolina": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.08003,
+        "def_epa_prior": 0.04116,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "CCU"
+      },
+      "alabama": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.09349,
+        "def_epa_prior": -0.079,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ALA"
+      },
+      "michigan": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.10969,
+        "def_epa_prior": -0.03469,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "MICH"
+      },
+      "kansas": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.0626,
+        "def_epa_prior": 0.01798,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "KU"
+      },
+      "wyoming": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.09577,
+        "def_epa_prior": 0.00248,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "WYO"
+      },
+      "texas state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.0014,
+        "def_epa_prior": -0.00081,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "TXST"
+      },
+      "ball state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.10886,
+        "def_epa_prior": 0.06451,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "BALL"
+      },
+      "georgia state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.03717,
+        "def_epa_prior": 0.09903,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "GAST"
+      },
+      "purdue": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.01574,
+        "def_epa_prior": 0.04058,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "PUR"
+      },
+      "georgia southern": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.01549,
+        "def_epa_prior": 0.09953,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "GASO"
+      },
+      "ucf": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.00594,
+        "def_epa_prior": -0.03501,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "UCF"
+      },
+      "louisville": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.03747,
+        "def_epa_prior": -0.09218,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "LOU"
+      },
+      "tennessee": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.09831,
+        "def_epa_prior": -0.03905,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "TENN"
+      },
+      "middle tennessee": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.13691,
+        "def_epa_prior": 0.09035,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "MTSU"
+      },
+      "illinois": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.03796,
+        "def_epa_prior": -0.03129,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ILL"
+      },
+      "texas tech": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.07767,
+        "def_epa_prior": -0.19523,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "TTU"
+      },
+      "arkansas": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.10175,
+        "def_epa_prior": 0.03437,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ARK"
+      },
+      "michigan state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.02026,
+        "def_epa_prior": 0.01184,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "MSU"
+      },
+      "unlv": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.0308,
+        "def_epa_prior": -0.01559,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "UNLV"
+      },
+      "memphis": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.01888,
+        "def_epa_prior": -0.00089,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "MEM"
+      },
+      "boston college": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.00993,
+        "def_epa_prior": 0.04389,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "BC"
+      },
+      "massachusetts": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.14599,
+        "def_epa_prior": 0.18118,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "MASS"
       },
       "missouri state": {
         "off_epa_adj": 0.0,
@@ -1351,6 +391,206 @@
         "def_success_rate": 0.0,
         "abbrev": "MOST"
       },
+      "san diego state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.013,
+        "def_epa_prior": -0.02583,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "SDSU"
+      },
+      "army": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.02704,
+        "def_epa_prior": 0.01665,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ARMY"
+      },
+      "oklahoma": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.01314,
+        "def_epa_prior": -0.14492,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "OU"
+      },
+      "ohio state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.13287,
+        "def_epa_prior": -0.15824,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "OSU"
+      },
+      "uab": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.05808,
+        "def_epa_prior": 0.1594,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "UAB"
+      },
+      "tulsa": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.09102,
+        "def_epa_prior": 0.04969,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "TLSA"
+      },
+      "eastern michigan": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.01588,
+        "def_epa_prior": 0.13984,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "EMU"
+      },
+      "utah": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.14155,
+        "def_epa_prior": -0.0924,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "UTAH"
+      },
+      "auburn": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.03424,
+        "def_epa_prior": -0.07673,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "AUB"
+      },
+      "louisiana": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.06559,
+        "def_epa_prior": 0.05063,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "UL"
+      },
+      "fresno state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.0996,
+        "def_epa_prior": -0.03742,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "FRES"
+      },
+      "iowa state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.03814,
+        "def_epa_prior": -0.06082,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ISU"
+      },
+      "stanford": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.03382,
+        "def_epa_prior": -0.06915,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "STAN"
+      },
+      "delaware": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.02293,
+        "def_epa_prior": 0.10576,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "DEL"
+      },
+      "nc state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.09057,
+        "def_epa_prior": -0.02079,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "NCSU"
+      },
+      "ul monroe": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.07812,
+        "def_epa_prior": 0.08929,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ULM"
+      },
+      "florida atlantic": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.0224,
+        "def_epa_prior": 0.07773,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "FAU"
+      },
+      "texas": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.03204,
+        "def_epa_prior": -0.08166,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "TEX"
+      },
+      "liberty": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.10644,
+        "def_epa_prior": -0.00449,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "LIB"
+      },
+      "california": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.00168,
+        "def_epa_prior": -0.01264,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "CAL"
+      },
       "utep": {
         "off_epa_adj": 0.0,
         "def_epa_adj": 0.0,
@@ -1360,6 +600,96 @@
         "off_success_rate": 0.0,
         "def_success_rate": 0.0,
         "abbrev": "UTEP"
+      },
+      "ucla": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.03096,
+        "def_epa_prior": 0.02668,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "UCLA"
+      },
+      "north carolina": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.0337,
+        "def_epa_prior": 0.00983,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "UNC"
+      },
+      "pittsburgh": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.03347,
+        "def_epa_prior": -0.15968,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "PITT"
+      },
+      "ohio": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.00218,
+        "def_epa_prior": 0.00121,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "OHIO"
+      },
+      "florida state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.15645,
+        "def_epa_prior": -0.01583,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "FSU"
+      },
+      "south alabama": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.04521,
+        "def_epa_prior": 0.08535,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "USA"
+      },
+      "colorado state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.05076,
+        "def_epa_prior": 0.0782,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "CSU"
+      },
+      "cincinnati": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.09266,
+        "def_epa_prior": 0.00619,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "CIN"
+      },
+      "western michigan": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.00881,
+        "def_epa_prior": -0.0952,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "WMU"
       },
       "texas a m": {
         "off_epa_adj": 0.0,
@@ -1371,15 +701,685 @@
         "def_success_rate": 0.0,
         "abbrev": "TA&M"
       },
-      "georgia southern": {
+      "nebraska": {
         "off_epa_adj": 0.0,
         "def_epa_adj": 0.0,
-        "off_epa_prior": 0.01549,
-        "def_epa_prior": 0.09953,
+        "off_epa_prior": 0.05015,
+        "def_epa_prior": 0.00716,
         "gp": 0,
         "off_success_rate": 0.0,
         "def_success_rate": 0.0,
-        "abbrev": "GASO"
+        "abbrev": "NEB"
+      },
+      "mississippi state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.02368,
+        "def_epa_prior": -0.03168,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "MSST"
+      },
+      "arizona state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.02712,
+        "def_epa_prior": -0.05459,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ASU"
+      },
+      "northwestern": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.01305,
+        "def_epa_prior": -0.05107,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "NU"
+      },
+      "wisconsin": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.03349,
+        "def_epa_prior": -0.05477,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "WIS"
+      },
+      "nevada": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.09528,
+        "def_epa_prior": 0.05267,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "NEV"
+      },
+      "west virginia": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.03671,
+        "def_epa_prior": -0.02391,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "WVU"
+      },
+      "oregon": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.15104,
+        "def_epa_prior": -0.13298,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ORE"
+      },
+      "new mexico state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.11127,
+        "def_epa_prior": 0.05945,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "NMSU"
+      },
+      "western kentucky": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.04727,
+        "def_epa_prior": -0.01788,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "WKU"
+      },
+      "south florida": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.08069,
+        "def_epa_prior": -0.02594,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "USF"
+      },
+      "buffalo": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.09867,
+        "def_epa_prior": 0.03189,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "BUFF"
+      },
+      "smu": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.07763,
+        "def_epa_prior": -0.05624,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "SMU"
+      },
+      "temple": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.01088,
+        "def_epa_prior": 0.05228,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "TEM"
+      },
+      "bowling green": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.10674,
+        "def_epa_prior": 0.00175,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "BGSU"
+      },
+      "boise state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.01801,
+        "def_epa_prior": -0.03759,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "BOIS"
+      },
+      "colorado": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.03683,
+        "def_epa_prior": 0.0121,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "COLO"
+      },
+      "vanderbilt": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.15959,
+        "def_epa_prior": -0.03152,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "VAN"
+      },
+      "houston": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.01736,
+        "def_epa_prior": -0.01884,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "HOU"
+      },
+      "east carolina": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.03232,
+        "def_epa_prior": -0.017,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ECU"
+      },
+      "lsu": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.00283,
+        "def_epa_prior": -0.07699,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "LSU"
+      },
+      "sam houston": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.1519,
+        "def_epa_prior": 0.1199,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "SHSU"
+      },
+      "rutgers": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.04475,
+        "def_epa_prior": 0.05457,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "RUTG"
+      },
+      "georgia": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.10075,
+        "def_epa_prior": -0.08251,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "UGA"
+      },
+      "app state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.06396,
+        "def_epa_prior": 0.06415,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "APP"
+      },
+      "central michigan": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.09116,
+        "def_epa_prior": 0.00807,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "CMU"
+      },
+      "kentucky": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.00717,
+        "def_epa_prior": -0.03997,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "UK"
+      },
+      "kennesaw state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.01631,
+        "def_epa_prior": 0.0628,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "KENN"
+      },
+      "florida international": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.09757,
+        "def_epa_prior": -0.01629,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "FIU"
+      },
+      "minnesota": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.02423,
+        "def_epa_prior": -0.01325,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "MINN"
+      },
+      "kent state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.06853,
+        "def_epa_prior": 0.11744,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "KENT"
+      },
+      "san jos\u00e9 state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.01172,
+        "def_epa_prior": 0.07054,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "SJSU"
+      },
+      "utah state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.04285,
+        "def_epa_prior": 0.0388,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "USU"
+      },
+      "duke": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.08178,
+        "def_epa_prior": 0.01847,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "DUKE"
+      },
+      "usc": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.12849,
+        "def_epa_prior": -0.05622,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "USC"
+      },
+      "north dakota state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.01299,
+        "def_epa_prior": 0.0142,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "NDSU"
+      },
+      "washington": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.09413,
+        "def_epa_prior": -0.09037,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "WASH"
+      },
+      "arkansas state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.04668,
+        "def_epa_prior": 0.03108,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ARST"
+      },
+      "marshall": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.06312,
+        "def_epa_prior": -0.04688,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "MRSH"
+      },
+      "iowa": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.06187,
+        "def_epa_prior": -0.11225,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "IOWA"
+      },
+      "virginia tech": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.01387,
+        "def_epa_prior": 0.0113,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "VT"
+      },
+      "new mexico": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.00567,
+        "def_epa_prior": 0.01918,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "UNM"
+      },
+      "syracuse": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.04985,
+        "def_epa_prior": 0.01206,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "SYR"
+      },
+      "florida": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.01158,
+        "def_epa_prior": -0.06903,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "FLA"
+      },
+      "penn state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.07157,
+        "def_epa_prior": -0.0615,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "PSU"
+      },
+      "navy": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.04745,
+        "def_epa_prior": 0.03725,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "NAVY"
+      },
+      "miami oh": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.11653,
+        "def_epa_prior": 0.01448,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "M-OH"
+      },
+      "akron": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.0733,
+        "def_epa_prior": 0.06004,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "AKR"
+      },
+      "northern illinois": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.1021,
+        "def_epa_prior": 0.07335,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "NIU"
+      },
+      "missouri": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.06119,
+        "def_epa_prior": -0.07545,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "MIZ"
+      },
+      "oklahoma state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.08871,
+        "def_epa_prior": 0.04464,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "OKST"
+      },
+      "tulane": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.01165,
+        "def_epa_prior": -0.01485,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "TULN"
+      },
+      "washington state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.03345,
+        "def_epa_prior": -0.00899,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "WSU"
+      },
+      "notre dame": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.17089,
+        "def_epa_prior": -0.13467,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ND"
+      },
+      "jacksonville state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.04476,
+        "def_epa_prior": 0.0629,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "JVST"
+      },
+      "hawaii": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.02509,
+        "def_epa_prior": 0.02297,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "HAW"
+      },
+      "louisiana tech": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.05242,
+        "def_epa_prior": 0.0249,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "LT"
+      },
+      "james madison": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.03816,
+        "def_epa_prior": -0.05221,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "JMU"
+      },
+      "air force": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.04412,
+        "def_epa_prior": 0.11755,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "AFA"
+      },
+      "wake forest": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.00856,
+        "def_epa_prior": -0.08116,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "WAKE"
+      },
+      "charlotte": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.15085,
+        "def_epa_prior": 0.07956,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "CLT"
+      },
+      "baylor": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.04031,
+        "def_epa_prior": 0.02379,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "BAY"
+      },
+      "oregon state": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.094,
+        "def_epa_prior": 0.04398,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ORST"
+      },
+      "arizona": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.06644,
+        "def_epa_prior": -0.08197,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "ARIZ"
+      },
+      "southern miss": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": -0.05357,
+        "def_epa_prior": 0.0405,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "USM"
+      },
+      "utsa": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.01701,
+        "def_epa_prior": -0.00024,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "UTSA"
+      },
+      "uconn": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.07386,
+        "def_epa_prior": 0.05646,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "CONN"
+      },
+      "miami": {
+        "off_epa_adj": 0.0,
+        "def_epa_adj": 0.0,
+        "off_epa_prior": 0.12641,
+        "def_epa_prior": -0.14475,
+        "gp": 0,
+        "off_success_rate": 0.0,
+        "def_success_rate": 0.0,
+        "abbrev": "MIA"
       }
     },
     "league_mean_epa": 0.00634,
@@ -1390,6 +1390,6 @@
     ],
     "prior_season": 2025,
     "prior_regress": 0.5,
-    "fetched_at": "2026-08-03"
+    "fetched_at": "2026-08-10"
   }
 }
