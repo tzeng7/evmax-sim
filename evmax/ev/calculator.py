@@ -67,6 +67,72 @@ def tiered_min_ev(true_prob: float, *, min_ev: float, min_prob: float) -> float:
 
 
 @dataclass
+class FeePricedEV:
+    """EV of one binary contract priced under BOTH execution modes.
+
+    A resting limit order that fills is charged the venue's *maker* fee (on
+    Kalshi, 25% of the taker rate on maker-fee series, ~$0 elsewhere; on
+    Polymarket US, a rebate). Crossing the spread is charged the *taker* fee.
+    The scanner gates on the taker fee by default, so a gap that only clears
+    net-of-fee as a maker is dropped and never surfaces. This struct exposes
+    both so the caller can surface maker-only opportunities explicitly.
+
+    Fields:
+      taker_* — EV / edge / decimal payout at the taker effective price.
+      maker_* — the same at the maker effective price (>= taker EV; the maker
+                fee is never larger than the taker fee).
+      passes  — True when EITHER mode clears ``ev_floor`` (the relaxed gate).
+      maker_only — True when the taker EV is below the floor but the maker EV
+                clears it. These are fill-contingent: they require a resting
+                order and are NOT crossable at the current ask, so callers size
+                them at zero live stake and log them as shadow.
+    """
+
+    taker_ev: float
+    taker_edge: float
+    taker_payout: float
+    maker_ev: float
+    maker_edge: float
+    maker_payout: float
+    passes: bool
+    maker_only: bool
+
+
+def dual_ev(
+    market_price: float,
+    true_prob: float,
+    venue: Optional[str],
+    ev_floor: float,
+) -> FeePricedEV:
+    """Price a contract net of BOTH the taker and maker fee, against ``ev_floor``.
+
+    ``venue=None`` (fee accounting off) collapses both modes to the gross price,
+    so ``maker_ev == taker_ev``, ``maker_only`` is always False, and ``passes``
+    reduces to the pre-fee ``taker_ev >= ev_floor`` gate — byte-identical to the
+    old single-mode path. This keeps the ``fees_in_pricing=False`` behaviour
+    unchanged.
+    """
+    eff_taker = effective_price(market_price, venue, maker=False)
+    eff_maker = effective_price(market_price, venue, maker=True)
+    taker_ev, taker_edge = calculate_ev(eff_taker, true_prob)
+    maker_ev, maker_edge = calculate_ev(eff_maker, true_prob)
+    taker_payout = 1.0 / eff_taker if eff_taker > 0 else 0.0
+    maker_payout = 1.0 / eff_maker if eff_maker > 0 else 0.0
+    passes = taker_ev >= ev_floor or maker_ev >= ev_floor
+    maker_only = taker_ev < ev_floor <= maker_ev
+    return FeePricedEV(
+        taker_ev=taker_ev,
+        taker_edge=taker_edge,
+        taker_payout=taker_payout,
+        maker_ev=maker_ev,
+        maker_edge=maker_edge,
+        maker_payout=maker_payout,
+        passes=passes,
+        maker_only=maker_only,
+    )
+
+
+@dataclass
 class EVResult:
     outcome: str  # "yes" or "no"
     market_implied_prob: float

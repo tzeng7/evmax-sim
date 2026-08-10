@@ -5,7 +5,7 @@ import math
 import pytest
 from datetime import datetime, timezone
 
-from evmax.ev.calculator import calculate_ev, effective_price, evaluate_market
+from evmax.ev.calculator import calculate_ev, dual_ev, effective_price, evaluate_market
 from evmax.ev.kelly import compute_kelly
 from evmax.fees import kalshi_fee_prob, polymarket_us_fee_prob
 from evmax.models.market import MarketSource, MarketType, PredictionMarket
@@ -164,6 +164,47 @@ class TestNetOfFeeEV:
         net = compute_kelly(true_prob, net_payout, edge_pct=0.12, base_fraction=0.5)
         assert net.kelly_fraction < gross.kelly_fraction
         assert net.kelly_fraction > 0  # still a real edge here, just smaller
+
+
+class TestDualEV:
+    def test_taker_clears_is_not_maker_only(self):
+        """When the taker EV already clears the floor, maker_only is False."""
+        r = dual_ev(0.50, 0.55, "kalshi", 0.02)
+        assert r.passes is True
+        assert r.maker_only is False
+        assert r.taker_ev >= 0.02
+        assert r.maker_ev >= r.taker_ev  # maker fee never larger than taker
+
+    def test_maker_only_when_fee_straddles_floor(self):
+        """Taker EV below the floor but maker EV above it → maker_only play."""
+        # p=0.50, prob=0.525: taker nets ~1.4% (<2%), maker nets ~4% (>=2%).
+        r = dual_ev(0.50, 0.525, "kalshi", 0.02)
+        assert r.taker_ev < 0.02 <= r.maker_ev
+        assert r.maker_only is True
+        assert r.passes is True
+
+    def test_neither_clears_does_not_pass(self):
+        """A gross edge too small even for the maker fee fails the gate entirely."""
+        r = dual_ev(0.50, 0.505, "kalshi", 0.02)
+        assert r.maker_ev < 0.02
+        assert r.passes is False
+        assert r.maker_only is False
+
+    def test_fees_off_collapses_both_modes(self):
+        """venue=None makes maker == taker and can never be maker_only."""
+        r = dual_ev(0.50, 0.53, None, 0.02)
+        assert math.isclose(r.taker_ev, r.maker_ev, abs_tol=1e-12)
+        assert r.maker_only is False
+        # reduces to the pre-fee gate
+        assert r.passes is (calculate_ev(0.50, 0.53)[0] >= 0.02)
+
+    def test_payouts_match_effective_prices(self):
+        """taker/maker payout = 1 / effective price under each mode."""
+        r = dual_ev(0.60, 0.66, "kalshi", 0.02)
+        assert math.isclose(r.taker_payout, 1.0 / effective_price(0.60, "kalshi"), abs_tol=1e-12)
+        assert math.isclose(
+            r.maker_payout, 1.0 / effective_price(0.60, "kalshi", maker=True), abs_tol=1e-12
+        )
 
 
 class TestEvaluateMarket:

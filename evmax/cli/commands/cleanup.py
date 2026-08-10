@@ -87,7 +87,7 @@ def show(
                    p.market_type, p.line, p.venue,
                    p.kalshi_yes_price, p.sharp_true_prob, p.blended_true_prob, p.ev_pct,
                    p.kelly_fraction, p.volume_usd, p.model_sources,
-                   p.placed, p.placed_price, p.placed_stake,
+                   p.placed, p.placed_price, p.placed_stake, p.maker_fill,
                    o.outcome, o.pinnacle_close_prob
             FROM ev_predictions p
             INNER JOIN (
@@ -135,15 +135,16 @@ def show(
             continue
         price = r["placed_price"] if r["placed_price"] else r["kalshi_yes_price"]
         fee_venue = (r["venue"] or "kalshi") if fees_on else None
+        is_maker = bool(r["maker_fill"])  # placed as a resting limit order → maker fee
         won = r["outcome"] == 1
         if r["placed"] and r["placed_stake"]:
             stake = r["placed_stake"]
             real_staked += stake
-            real_pnl += bet_pnl(stake, price, won, venue=fee_venue)
+            real_pnl += bet_pnl(stake, price, won, venue=fee_venue, maker=is_maker)
         else:
             stake = bankroll * (r["kelly_fraction"] or 0.0)
             sim_staked += stake
-            sim_pnl += bet_pnl(stake, price, won, venue=fee_venue)
+            sim_pnl += bet_pnl(stake, price, won, venue=fee_venue, maker=is_maker)
 
     total_pnl    = real_pnl + sim_pnl
     total_staked = real_staked + sim_staked
@@ -186,16 +187,17 @@ def show(
 
         is_sim = not r["placed"]
         row_fee_venue = (r["venue"] or "kalshi") if fees_on else None
+        row_is_maker = bool(r["maker_fill"])
         if r["outcome"] is None:
             result_str = "[dim]pending[/dim]"
             pnl_str = "[dim]—[/dim]"
         elif r["outcome"] == 1:
             result_str = "[bold green]WIN[/bold green]" + ("[dim] sim[/dim]" if is_sim else "")
-            profit = bet_pnl(stake, price, True, venue=row_fee_venue)
+            profit = bet_pnl(stake, price, True, venue=row_fee_venue, maker=row_is_maker)
             pnl_str = f"[green]+${profit:.2f}[/green]" + ("[dim]*[/dim]" if is_sim else "")
         else:
             result_str = "[bold red]LOSS[/bold red]" + ("[dim] sim[/dim]" if is_sim else "")
-            loss = bet_pnl(stake, price, False, venue=row_fee_venue)
+            loss = bet_pnl(stake, price, False, venue=row_fee_venue, maker=row_is_maker)
             pnl_str = f"[red]-${abs(loss):.2f}[/red]" + ("[dim]*[/dim]" if is_sim else "")
 
         # Display Pinnacle drift here (legacy "CLV" column). This is NOT a

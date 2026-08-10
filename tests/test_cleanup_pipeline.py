@@ -75,6 +75,8 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     minutes_to_tipoff   INTEGER,
     model_diagnostics   TEXT,
     venue               TEXT    NOT NULL DEFAULT 'kalshi',
+    maker_ev_pct        REAL,
+    maker_fill          INTEGER NOT NULL DEFAULT 0,
     UNIQUE(market_id)
 );
 """

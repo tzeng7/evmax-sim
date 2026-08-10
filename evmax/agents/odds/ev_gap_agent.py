@@ -20,8 +20,8 @@ from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
 
 from evmax.agents.base import Agent, AgentRequest, AgentResponse
-from evmax.ev.calculator import calculate_ev, effective_price
-from evmax.ev.kelly import compute_kelly
+from evmax.ev.calculator import calculate_ev, dual_ev, effective_price
+from evmax.ev.kelly import KellyResult, compute_kelly
 from evmax.formatting import format_outcome_label
 from evmax.matching.engine import MatchingEngine
 from evmax.matching.prop_matcher import PropMatcher
@@ -88,6 +88,17 @@ class EVGap:
     # model blend (moneyline family) — spread/total distribution pricing and
     # props carry None. Persisted to ev_predictions.model_diagnostics.
     model_diagnostics: Optional[str] = None
+    # Maker-fee EV: EV of this contract if the position is opened as a resting
+    # limit order (maker fee) instead of crossing the spread (taker fee).
+    # Always >= ev_pct (the maker fee is never larger than the taker fee).
+    # None when fee accounting is off. See evmax.ev.calculator.dual_ev.
+    maker_ev_pct: Optional[float] = None
+    # True when this gap clears the EV floor ONLY as a maker — the taker EV
+    # (ev_pct) is below the floor. Fill-contingent: sized at zero live stake,
+    # demoted to mode='shadow' at persistence, tagged MAKER in the play table.
+    # Promote to a real position with `evmax agents fill` once the resting
+    # order actually fills.
+    maker_only: bool = False
 
     @property
     def edge_label(self) -> str:
@@ -1194,13 +1205,14 @@ class EVGapAgent(Agent):
                 # Alignment is suspect — skip both YES and NO.
                 return _ret(None, None)
 
-        # Price the contract net of the venue's trading fee (see
-        # evmax.ev.calculator.effective_price) so a gross edge the fee eats
-        # doesn't surface as a live play. The raw ask is still what we display
-        # / store in kalshi_yes_price below; only EV and Kelly go net.
+        # Price the contract net of the venue's trading fee, under BOTH taker
+        # (cross the spread) and maker (rest a limit order) execution — see
+        # evmax.ev.calculator.dual_ev. The gate passes if EITHER mode clears the
+        # floor; a gap that clears only as a maker is fill-contingent (see
+        # EVGap.maker_only) — surfaced with its maker EV, but sized at zero live
+        # stake and demoted to shadow. The raw ask is still what we display /
+        # store in kalshi_yes_price below.
         fee_venue = market.source.value if self._settings.fees_in_pricing else None
-        eff_price = effective_price(market.yes_price, fee_venue)
-        ev, edge_pct = calculate_ev(eff_price, blended_prob)
 
         # Sharp-only signals need a higher EV bar — vig removal alone can
         # produce phantom 2-3% edges that don't hold empirically.
@@ -1211,18 +1223,25 @@ class EVGapAgent(Agent):
         elif sector_lower == "baseball" and src == "sharp":
             ev_floor = 0.05  # Baseball sharp-only needs bigger edge (stale model data)
 
-        if ev < ev_floor:
+        priced = dual_ev(market.yes_price, blended_prob, fee_venue, ev_floor)
+        if not priced.passes:
             return _ret(None, blend_payload)
 
-        payout = 1.0 / eff_price
-        kelly = compute_kelly(
-            true_prob=blended_prob,
-            payout_decimal=payout,
-            edge_pct=edge_pct,
-            spread_pct=market.spread_pct,
-            base_fraction=kelly_base,
-            max_kelly=self._settings.max_kelly_fraction,
-        )
+        ev, edge_pct = priced.taker_ev, priced.taker_edge
+        if priced.maker_only:
+            # Not crossable at the current ask — no live taker stake. The maker
+            # EV is the signal; the position becomes real only if the resting
+            # limit order fills (`evmax agents fill`).
+            kelly = KellyResult(0.0, 0.0, 0.0, 0.0, 0.0)
+        else:
+            kelly = compute_kelly(
+                true_prob=blended_prob,
+                payout_decimal=priced.taker_payout,
+                edge_pct=edge_pct,
+                spread_pct=market.spread_pct,
+                base_fraction=kelly_base,
+                max_kelly=self._settings.max_kelly_fraction,
+            )
 
         is_steam = bool(steam_events and sharp.event_id in steam_events)
 
@@ -1242,6 +1261,8 @@ class EVGapAgent(Agent):
             sharp_true_prob=sharp_true_prob,
             blended_true_prob=blended_prob,
             ev_pct=ev,
+            maker_ev_pct=priced.maker_ev,
+            maker_only=priced.maker_only,
             kelly_full=kelly.kelly_full,
             kelly_fraction=kelly.kelly_fraction,
             match_confidence=confidence,
@@ -1321,9 +1342,6 @@ class EVGapAgent(Agent):
         sharp_no = max(0.01, min(0.99, 1.0 - blend_payload["sharp_true_prob_yes"]))
 
         fee_venue = market.source.value if self._settings.fees_in_pricing else None
-        eff_no_ask = effective_price(no_ask, fee_venue)
-        ev, edge_pct = calculate_ev(eff_no_ask, blended_no)
-
         # NO-side spreads run a 5% EV floor regardless of sector / model source.
         # Normal-CDF cover-prob conversion under-estimates fat tails on alt-line
         # covers, so the scanner's standard 2% threshold mostly surfaces tail
@@ -1331,8 +1349,10 @@ class EVGapAgent(Agent):
         # sharp-only, archive sample, scripts/backtest_no_side_spreads.py):
         # EV>=2% NO-side ROI -11c/$1; EV>=5% cleared breakeven.
         ev_floor = max(self._settings.ev_threshold, 0.05)
-        if ev < ev_floor:
+        priced = dual_ev(no_ask, blended_no, fee_venue, ev_floor)
+        if not priced.passes:
             return None
+        ev, edge_pct = priced.taker_ev, priced.taker_edge
         src_yes = blend_payload["src"]
 
         # Opponent name = whichever sharp outcome the YES side did NOT cover.
@@ -1348,15 +1368,17 @@ class EVGapAgent(Agent):
             (opp_label or "?").lower().strip() or "?"
         )
 
-        payout = 1.0 / eff_no_ask
-        kelly = compute_kelly(
-            true_prob=blended_no,
-            payout_decimal=payout,
-            edge_pct=edge_pct,
-            spread_pct=market.spread_pct,
-            base_fraction=kelly_base,
-            max_kelly=self._settings.max_kelly_fraction,
-        )
+        if priced.maker_only:
+            kelly = KellyResult(0.0, 0.0, 0.0, 0.0, 0.0)
+        else:
+            kelly = compute_kelly(
+                true_prob=blended_no,
+                payout_decimal=priced.taker_payout,
+                edge_pct=edge_pct,
+                spread_pct=market.spread_pct,
+                base_fraction=kelly_base,
+                max_kelly=self._settings.max_kelly_fraction,
+            )
 
         is_steam = bool(steam_events and sharp.event_id in steam_events)
         velocity, vel_flag = self._compute_velocity(sharp.event_id)
@@ -1376,6 +1398,8 @@ class EVGapAgent(Agent):
             sharp_true_prob=sharp_no,
             blended_true_prob=blended_no,
             ev_pct=ev,
+            maker_ev_pct=priced.maker_ev,
+            maker_only=priced.maker_only,
             kelly_full=kelly.kelly_full,
             kelly_fraction=kelly.kelly_fraction,
             match_confidence=confidence,
@@ -1437,21 +1461,23 @@ class EVGapAgent(Agent):
         sharp_under = max(0.01, min(0.99, 1.0 - blend_payload["sharp_true_prob_yes"]))
 
         fee_venue = market.source.value if self._settings.fees_in_pricing else None
-        eff_no_ask = effective_price(no_ask, fee_venue)
-        ev, edge_pct = calculate_ev(eff_no_ask, blended_under)
-        if ev < self._settings.ev_threshold:
+        priced = dual_ev(no_ask, blended_under, fee_venue, self._settings.ev_threshold)
+        if not priced.passes:
             return None
+        ev, edge_pct = priced.taker_ev, priced.taker_edge
         src_yes = blend_payload["src"]
 
-        payout = 1.0 / eff_no_ask
-        kelly = compute_kelly(
-            true_prob=blended_under,
-            payout_decimal=payout,
-            edge_pct=edge_pct,
-            spread_pct=market.spread_pct,
-            base_fraction=kelly_base,
-            max_kelly=self._settings.max_kelly_fraction,
-        )
+        if priced.maker_only:
+            kelly = KellyResult(0.0, 0.0, 0.0, 0.0, 0.0)
+        else:
+            kelly = compute_kelly(
+                true_prob=blended_under,
+                payout_decimal=priced.taker_payout,
+                edge_pct=edge_pct,
+                spread_pct=market.spread_pct,
+                base_fraction=kelly_base,
+                max_kelly=self._settings.max_kelly_fraction,
+            )
 
         is_steam = bool(steam_events and sharp.event_id in steam_events)
         velocity, vel_flag = self._compute_velocity(sharp.event_id)
@@ -1468,6 +1494,8 @@ class EVGapAgent(Agent):
             sharp_true_prob=sharp_under,
             blended_true_prob=blended_under,
             ev_pct=ev,
+            maker_ev_pct=priced.maker_ev,
+            maker_only=priced.maker_only,
             kelly_full=kelly.kelly_full,
             kelly_fraction=kelly.kelly_fraction,
             match_confidence=confidence,

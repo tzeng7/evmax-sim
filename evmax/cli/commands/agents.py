@@ -349,10 +349,21 @@ def scan(
     # All gaps that pass display filters (no top-N cap yet) — these are what get logged.
     # Logging uses the same date + min_prob + tiered EV as the display so that
     # verify only shows bets the user actually saw (or would have seen) in the scan.
+    # A gap qualifies if it clears the tiered floor at the TAKER price (a
+    # crossable live play) OR only at the MAKER price (a fill-contingent
+    # limit-order play, surfaced tagged MAKER and logged as shadow). Without
+    # the maker clause, maker-only gaps are dropped before display and never
+    # seen — the exact plays the fee gate hides.
     qualifying_gaps = [
         g for g in result.top_gaps
         if g.blended_true_prob >= min_prob
-        and g.ev_pct >= _tiered_min_ev(g.blended_true_prob)
+        and (
+            g.ev_pct >= _tiered_min_ev(g.blended_true_prob)
+            or (
+                getattr(g, "maker_ev_pct", None) is not None
+                and g.maker_ev_pct >= _tiered_min_ev(g.blended_true_prob)
+            )
+        )
         and _matches_date(g)
     ]
 
@@ -464,6 +475,7 @@ def scan(
     table.add_column("Fair", justify="right", width=6)
     table.add_column("Edge", justify="right", width=5)
     table.add_column("EV%", justify="right", style="green bold", width=6)
+    table.add_column("MkEV%", justify="right", width=6)
     table.add_column("K%", justify="right", width=6)
     table.add_column("Stake", justify="right", style="cyan bold", width=7)
     table.add_column("N", justify="right", width=3)
@@ -495,6 +507,19 @@ def scan(
         odds_ok = gap.blended_true_prob >= gap.kalshi_yes_price * 1.02
         odds_color = "green" if odds_ok else "red"
         ev_str = f"[{ev_color}]{gap.ev_pct*100:+.1f}%{'?' if ev_suspicious else ''}[/{ev_color}]"
+        # Maker-fee EV column. Highlighted when this row is maker-only (clears
+        # the floor only as a resting limit order, not crossable at the ask) —
+        # those rows also carry a MAKER tag on the Outcome and log as shadow.
+        maker_ev = getattr(gap, "maker_ev_pct", None)
+        maker_only = getattr(gap, "maker_only", False)
+        if maker_ev is None:
+            mkev_str = "[dim]—[/dim]"
+        else:
+            mk_color = "bold magenta" if maker_only else "dim"
+            mkev_str = f"[{mk_color}]{maker_ev*100:+.1f}%[/{mk_color}]"
+        outcome_cell = gap.display_label[:22]
+        if maker_only:
+            outcome_cell = f"{outcome_cell} [bold magenta]MAKER[/bold magenta]"
         l15_str = str(gap.prop_l15_games) if is_prop and gap.prop_l15_games else "[dim]—[/dim]"
         if min_vol and is_prop:
             l15_str = f"[bold yellow]{l15_str}![/bold yellow]"
@@ -513,11 +538,12 @@ def scan(
             gap.sector.upper(),
             venue_label(getattr(gap, "venue", None)),
             gap.event_title[:28],
-            gap.display_label[:22],
+            outcome_cell,
             f"[{odds_color}]{ask_odds}[/{odds_color}]",
             f"[bold]{fair_odds}[/bold]",
             f"[{edge_color}]{edge_cents:+d}¢[/{edge_color}]",
             ev_str,
+            mkev_str,
             f"{gap.kelly_fraction*100:.2f}%",
             f"${stake:.2f}",
             l15_str,
@@ -1066,6 +1092,116 @@ def pick(
 
     total = sum(b["fill_stake"] for b in filled_bets)
     console.print(f"\n[bold green]Recorded {placed_count} bet(s)[/bold green] — total at risk: [cyan]${total:.2f}[/cyan]\n")
+
+
+@app.command("fill")
+def fill(
+    market_id: str = typer.Argument(
+        ..., help="market_id of the maker-only (shadow) row whose limit order filled.",
+    ),
+    price: float = typer.Option(
+        ..., "--price", "-p",
+        help="Fill price — cents (e.g. 47) or a fraction (e.g. 0.47).",
+    ),
+    stake: float = typer.Option(
+        ..., "--stake", "-s",
+        help="Dollar stake = contract notional (contracts × price).",
+    ),
+) -> None:
+    """Record a filled maker limit order as a real placed bet.
+
+    Maker-only plays surface tagged MAKER in `scan` and log as mode='shadow'
+    — they are fill-contingent (they need a resting limit order and are not
+    crossable at the current ask). When your order actually fills, promote the
+    shadow row to a live position with this command:
+
+      placed=1, mode='live', maker_fill=1, placed_price/placed_stake recorded.
+
+    maker_fill=1 tells the net-of-fee P&L to charge the MAKER fee, not the
+    taker fee.
+
+    \b
+    Example:
+      evmax agents fill KXNBA-26MAR21-BOS -p 47 -s 25
+    """
+    from datetime import datetime as _dt
+    from evmax.agents.cleanup.db import get_connection
+    from evmax.fees import venue_order_fee
+
+    # Accept cents (>1) or a fraction (<=1).
+    fill_prob = price / 100.0 if price > 1.0 else price
+    if not (0.0 < fill_prob < 1.0):
+        console.print(
+            f"[red]Invalid price:[/red] {price!r} — give cents (0–100) or a fraction (0–1)."
+        )
+        raise typer.Exit(1)
+    if stake <= 0:
+        console.print(f"[red]Invalid stake:[/red] {stake!r} — must be > 0.")
+        raise typer.Exit(1)
+
+    conn = get_connection()
+    row = conn.execute(
+        """SELECT market_id, event_title, yes_team, market_type, line, sector,
+                  venue, mode, placed, voided, maker_ev_pct
+           FROM ev_predictions WHERE market_id = ?""",
+        (market_id,),
+    ).fetchone()
+    if row is None:
+        console.print(f"[red]No prediction row for market_id[/red] {market_id!r}.")
+        conn.close()
+        raise typer.Exit(1)
+    if row["placed"]:
+        console.print(
+            f"[yellow]{market_id} is already placed[/yellow] — not overwriting. "
+            "Void it first if you need to re-record."
+        )
+        conn.close()
+        raise typer.Exit(1)
+    if row["voided"]:
+        console.print(f"[yellow]{market_id} is voided[/yellow] — not filling a voided row.")
+        conn.close()
+        raise typer.Exit(1)
+
+    venue = row["venue"] or "kalshi"
+    contracts = stake / fill_prob
+    maker_fee = venue_order_fee(venue, fill_prob, contracts, maker=True)
+
+    now_str = _dt.now(timezone.utc).isoformat()
+    conn.execute(
+        """UPDATE ev_predictions
+           SET placed = 1, placed_at = ?, placed_price = ?, placed_stake = ?,
+               mode = 'live', maker_fill = 1
+           WHERE market_id = ?""",
+        (now_str, fill_prob, stake, market_id),
+    )
+    conn.commit()
+    conn.close()
+
+    label = _display_label(row["yes_team"], row["market_type"], row["line"])
+    t = Table(box=box.SIMPLE, show_header=True, title="Maker Fill Recorded")
+    t.add_column("Event", min_width=24)
+    t.add_column("Outcome", width=20)
+    t.add_column("Fill ¢", justify="right", width=7)
+    t.add_column("Stake", justify="right", width=8)
+    t.add_column("Maker fee", justify="right", width=10)
+    t.add_row(
+        (row["event_title"] or "?")[:30],
+        label,
+        _cents(fill_prob),
+        f"${stake:.2f}",
+        f"${maker_fee:.2f}",
+    )
+    console.print()
+    console.print(t)
+    if row["mode"] != "shadow":
+        console.print(
+            f"[dim]Note: row was mode='{row['mode']}', not a shadow maker-only row — "
+            "recorded as a maker fill anyway.[/dim]"
+        )
+    console.print(
+        f"\n[bold green]Promoted {market_id} to a live placed maker bet[/bold green] "
+        "(maker_fill=1 — P&L uses the maker fee).\n"
+    )
 
 
 @app.command("resolve")
