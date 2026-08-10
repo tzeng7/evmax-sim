@@ -497,6 +497,12 @@ def _gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         from evmax.settings import get_settings
         if not get_settings().polymarket_us_live:
             gap_mode = "shadow"
+    # Maker-only gaps clear the floor only as a resting limit order — not
+    # crossable at the ask, so they are never a live taker pick. Mirror the
+    # shadow demotion log_gaps applies, so the dashboard badge and the (disabled)
+    # pick checkbox match how the row will actually persist.
+    if gap_mode == "live" and getattr(g, "maker_only", False):
+        gap_mode = "shadow"
     line_val = (
         None if g.line is None
         else float(g.line) if isinstance(g.line, (int, float))
@@ -517,6 +523,17 @@ def _gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         "sharp_true_prob": round(getattr(g, "sharp_true_prob", 0) or 0, 4),
         "ev_pct_raw": round(g.ev_pct, 4),
         "ev_pct": round(g.ev_pct * 100, 2),
+        # Maker execution: EV if opened as a resting limit order (maker fee),
+        # whether it clears ONLY as a maker, and the max price to rest the buy at.
+        "maker_ev_pct": (
+            round(g.maker_ev_pct * 100, 2)
+            if getattr(g, "maker_ev_pct", None) is not None else None
+        ),
+        "maker_only": bool(getattr(g, "maker_only", False)),
+        "maker_limit_price": (
+            round(g.maker_limit_price, 4)
+            if getattr(g, "maker_limit_price", None) is not None else None
+        ),
         "kelly_pct": round(g.kelly_fraction * 100, 2),
         "kelly_fraction": round(g.kelly_fraction, 4),
         "stake": round(bankroll * g.kelly_fraction, 2),

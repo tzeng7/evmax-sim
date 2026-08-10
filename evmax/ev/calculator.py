@@ -132,6 +132,45 @@ def dual_ev(
     )
 
 
+def max_maker_limit_price(
+    true_prob: float,
+    venue: Optional[str],
+    ev_floor: float,
+) -> Optional[float]:
+    """Highest limit-order price at which a RESTING maker buy still clears ``ev_floor``.
+
+    A maker rests a buy below the ask and waits to be filled; the lower the
+    resting price, the higher the EV but the less likely the fill. This returns
+    the ceiling: rest your buy at or below this price to stay at or above
+    ``ev_floor`` EV, net of the maker fee.
+
+    Derivation: EV(L) = true_prob / eff_maker(L) − 1 ≥ ev_floor is equivalent to
+    ``eff_maker(L) ≤ true_prob / (1 + ev_floor)``. ``eff_maker`` (the maker
+    effective price from :func:`effective_price`) is monotonically increasing in
+    ``L``, so the largest qualifying ``L`` is found by bisection. ``venue=None``
+    makes ``eff_maker(L) = L`` and the answer reduces to ``true_prob / (1 +
+    ev_floor)`` (the gross fair-minus-floor price).
+
+    Returns None on a degenerate ``true_prob`` (outside the open interval) so
+    callers can treat "no limit price" as "don't show one".
+    """
+    if not (0.0 < true_prob < 1.0):
+        return None
+    target_cost = true_prob / (1.0 + ev_floor)
+    lo, hi = 1e-4, 0.9999
+    # eff_maker(lo) should be well below target for any gap that passed the gate;
+    # guard the pathological case so bisection can't return a bogus high price.
+    if effective_price(lo, venue, maker=True) > target_cost:
+        return None
+    for _ in range(40):
+        mid = (lo + hi) / 2.0
+        if effective_price(mid, venue, maker=True) <= target_cost:
+            lo = mid
+        else:
+            hi = mid
+    return lo
+
+
 @dataclass
 class EVResult:
     outcome: str  # "yes" or "no"

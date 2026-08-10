@@ -139,6 +139,8 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
             <th style={{ width: 30 }}></th>
             <th>Date</th><th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
             <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">Model</th><th className="num">EV</th>
+            <th className="num" title="EV if opened as a resting limit order (maker fee)">Maker EV</th>
+            <th className="num" title="Rest your buy at or below this price to stay at/above the EV floor">Limit ¢</th>
             <th className="num">Fill ¢</th><th className="num">Stake ($)</th><th>Models</th>
           </tr>
         </thead>
@@ -166,6 +168,13 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
                       title={`mode=${mode} — logged for tracking, not pickable`}
                     >{mode}</span>
                   )}
+                  {g.maker_only && (
+                    <span
+                      className="badge"
+                      style={{ marginLeft: 4, background: 'rgba(198,120,221,0.13)', color: '#c678dd', borderColor: 'rgba(198,120,221,0.32)' }}
+                      title="Clears the EV floor only as a resting limit order (maker fee). Rest at/below the Limit ¢ price; record the fill with `evmax agents fill`."
+                    >MAKER</span>
+                  )}
                 </td>
                 <td><VenueLogo venue={g.venue} /></td>
                 <td>{g.event_title}</td>
@@ -174,6 +183,12 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
                 <td className="num">{probToCents(g.true_prob)}</td>
                 <td className="num">{(g.true_prob * 100).toFixed(1)}%</td>
                 <td className="num green">{g.ev_pct.toFixed(1)}%</td>
+                <td className="num" style={{ color: '#c678dd' }}>
+                  {g.maker_ev_pct != null ? `${g.maker_ev_pct.toFixed(1)}%` : '—'}
+                </td>
+                <td className="num" style={{ color: '#c678dd' }}>
+                  {g.maker_limit_price != null ? probToCents(g.maker_limit_price) : '—'}
+                </td>
                 <td className="num">
                   <input type="text" value={fills[g.market_id]?.odds || askOdds}
                     onChange={e => updateFill(g.market_id, 'odds', e.target.value)}
