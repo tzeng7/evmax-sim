@@ -151,7 +151,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
             return (
               <tr key={g.market_id} style={isLive ? undefined : { opacity: 0.55 }}>
                 <td>
-                  <input type="checkbox" className="check" checked={selected.has(g.market_id)}
+                  <input type="checkbox" checked={selected.has(g.market_id)}
                     disabled={!isLive}
                     title={isLive ? '' : `${mode} mode — not pickable`}
                     onChange={() => toggle(g.market_id)} />
