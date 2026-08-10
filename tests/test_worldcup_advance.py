@@ -229,6 +229,19 @@ class TestDeriveAdvanceProb:
 
 
 class TestEvGapAdvance:
+    @pytest.fixture(autouse=True)
+    def _enable_worldcup(self):
+        # #185 disabled worldcup in production config, and _evaluate_pair returns
+        # None for a disabled sector's market_type. These tests exercise the
+        # advance-derivation LOGIC, which is independent of the deployment on/off
+        # switch — force worldcup back on for the duration. The two rejects-tests
+        # still return None via the advance/regulation mismatch guard.
+        from evmax.modes import clear_runtime_overrides, set_runtime_overrides
+
+        set_runtime_overrides({"worldcup": "shadow"})
+        yield
+        clear_runtime_overrides()
+
     def _blend(self, p_a=0.55, p_b=0.20, p_draw=0.25) -> BlendedPrediction:
         return BlendedPrediction(
             event_id="worldcup::2026-07-09::france_vs_morocco",

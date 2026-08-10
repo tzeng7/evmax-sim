@@ -570,6 +570,18 @@ class TestFetchPlayerStatsNflMerge:
 class TestLogPropFromSharp:
     """Test that log_prop_from_sharp logs raw SharpOdds+Market pairs."""
 
+    @pytest.fixture(autouse=True)
+    def _enable_nba_props(self):
+        # #185 disabled the *_props sectors in production config, which makes
+        # log_prop_from_sharp drop the row before insert. This test exercises the
+        # persistence path itself, so force nba_props back to a logging mode
+        # independent of the deployment switch.
+        from evmax.modes import clear_runtime_overrides, set_runtime_overrides
+
+        set_runtime_overrides({"nba_props": "shadow"})
+        yield
+        clear_runtime_overrides()
+
     def test_log_prop_from_sharp_inserts(self, tmp_path, monkeypatch):
         import sqlite3
         from datetime import date, datetime
