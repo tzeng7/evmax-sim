@@ -239,6 +239,9 @@ class TestEVGapAgent:
         assert gap.ev_pct < 0.02
         assert gap.maker_ev_pct is not None and gap.maker_ev_pct >= 0.02
         assert gap.kelly_fraction == 0.0
+        # A limit price to rest at is surfaced, and it's below fair value.
+        assert gap.maker_limit_price is not None
+        assert gap.maker_limit_price < gap.blended_true_prob
 
     @pytest.mark.asyncio
     async def test_negative_ev_filtered(self):

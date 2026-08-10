@@ -55,6 +55,7 @@ export interface Bet {
   outcome?: number
   status?: 'upcoming' | 'in_progress'
   venue?: string
+  maker_fill?: number  // 1 = placed as a maker fill (P&L uses the maker fee)
 }
 
 export interface ScanGap {
@@ -76,6 +77,10 @@ export interface ScanGap {
   volume: number
   mode?: string
   venue?: string
+  // Maker execution (net of the maker fee, not the taker fee):
+  maker_ev_pct?: number | null      // EV % if opened as a resting limit order
+  maker_only?: boolean              // clears the EV floor ONLY as a maker
+  maker_limit_price?: number | null // max price (prob 0-1) to rest the buy at
 }
 
 export interface ScanResult {

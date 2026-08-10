@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
 
 from evmax.agents.base import Agent, AgentRequest, AgentResponse
-from evmax.ev.calculator import calculate_ev, dual_ev, effective_price
+from evmax.ev.calculator import calculate_ev, dual_ev, effective_price, max_maker_limit_price
 from evmax.ev.kelly import KellyResult, compute_kelly
 from evmax.formatting import format_outcome_label
 from evmax.matching.engine import MatchingEngine
@@ -99,6 +99,11 @@ class EVGap:
     # Promote to a real position with `evmax agents fill` once the resting
     # order actually fills.
     maker_only: bool = False
+    # The highest limit-order price at which a resting maker buy still clears the
+    # EV floor (net of the maker fee) — i.e. "rest your buy at or below this ¢".
+    # None when fee accounting is off or the price is degenerate. See
+    # evmax.ev.calculator.max_maker_limit_price.
+    maker_limit_price: Optional[float] = None
 
     @property
     def edge_label(self) -> str:
@@ -1228,6 +1233,7 @@ class EVGapAgent(Agent):
             return _ret(None, blend_payload)
 
         ev, edge_pct = priced.taker_ev, priced.taker_edge
+        maker_limit = max_maker_limit_price(blended_prob, fee_venue, ev_floor)
         if priced.maker_only:
             # Not crossable at the current ask — no live taker stake. The maker
             # EV is the signal; the position becomes real only if the resting
@@ -1263,6 +1269,7 @@ class EVGapAgent(Agent):
             ev_pct=ev,
             maker_ev_pct=priced.maker_ev,
             maker_only=priced.maker_only,
+            maker_limit_price=maker_limit,
             kelly_full=kelly.kelly_full,
             kelly_fraction=kelly.kelly_fraction,
             match_confidence=confidence,
@@ -1353,6 +1360,7 @@ class EVGapAgent(Agent):
         if not priced.passes:
             return None
         ev, edge_pct = priced.taker_ev, priced.taker_edge
+        maker_limit = max_maker_limit_price(blended_no, fee_venue, ev_floor)
         src_yes = blend_payload["src"]
 
         # Opponent name = whichever sharp outcome the YES side did NOT cover.
@@ -1400,6 +1408,7 @@ class EVGapAgent(Agent):
             ev_pct=ev,
             maker_ev_pct=priced.maker_ev,
             maker_only=priced.maker_only,
+            maker_limit_price=maker_limit,
             kelly_full=kelly.kelly_full,
             kelly_fraction=kelly.kelly_fraction,
             match_confidence=confidence,
@@ -1465,6 +1474,7 @@ class EVGapAgent(Agent):
         if not priced.passes:
             return None
         ev, edge_pct = priced.taker_ev, priced.taker_edge
+        maker_limit = max_maker_limit_price(blended_under, fee_venue, self._settings.ev_threshold)
         src_yes = blend_payload["src"]
 
         if priced.maker_only:
@@ -1496,6 +1506,7 @@ class EVGapAgent(Agent):
             ev_pct=ev,
             maker_ev_pct=priced.maker_ev,
             maker_only=priced.maker_only,
+            maker_limit_price=maker_limit,
             kelly_full=kelly.kelly_full,
             kelly_fraction=kelly.kelly_fraction,
             match_confidence=confidence,
