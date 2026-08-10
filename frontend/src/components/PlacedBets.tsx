@@ -125,7 +125,16 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
             <tr key={b.market_id}>
               <td><button className="btn-del" onClick={() => handleRemove(b)}>&times;</button></td>
               <td className="muted">{b.event_date}</td>
-              <td><span className="badge">{b.sector}</span></td>
+              <td>
+                <span className="badge">{b.sector}</span>
+                {b.maker_fill === 1 && (
+                  <span
+                    className="badge"
+                    style={{ marginLeft: 4, background: 'rgba(198,120,221,0.13)', color: '#c678dd', borderColor: 'rgba(198,120,221,0.32)' }}
+                    title="Placed as a maker fill — P&L uses the maker fee"
+                  >MAKER</span>
+                )}
+              </td>
               <td><VenueLogo venue={b.venue} /></td>
               <td>{b.event_title}</td>
               <td>{outcomeLabel(b)}</td>

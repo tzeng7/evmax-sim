@@ -5,7 +5,13 @@ import math
 import pytest
 from datetime import datetime, timezone
 
-from evmax.ev.calculator import calculate_ev, dual_ev, effective_price, evaluate_market
+from evmax.ev.calculator import (
+    calculate_ev,
+    dual_ev,
+    effective_price,
+    evaluate_market,
+    max_maker_limit_price,
+)
 from evmax.ev.kelly import compute_kelly
 from evmax.fees import kalshi_fee_prob, polymarket_us_fee_prob
 from evmax.models.market import MarketSource, MarketType, PredictionMarket
@@ -205,6 +211,41 @@ class TestDualEV:
         assert math.isclose(
             r.maker_payout, 1.0 / effective_price(0.60, "kalshi", maker=True), abs_tol=1e-12
         )
+
+
+class TestMakerLimitPrice:
+    def test_resting_at_limit_yields_floor_ev(self):
+        L = max_maker_limit_price(0.55, "kalshi", 0.02)
+        assert L is not None
+        ev_at_limit, _ = calculate_ev(effective_price(L, "kalshi", maker=True), 0.55)
+        assert ev_at_limit == pytest.approx(0.02, abs=1e-3)
+
+    def test_below_limit_beats_floor_above_misses(self):
+        L = max_maker_limit_price(0.55, "kalshi", 0.02)
+        below, _ = calculate_ev(effective_price(L - 0.02, "kalshi", maker=True), 0.55)
+        above, _ = calculate_ev(effective_price(L + 0.02, "kalshi", maker=True), 0.55)
+        assert below > 0.02 > above
+
+    def test_limit_is_below_true_prob(self):
+        # You never rest a buy above fair value.
+        assert max_maker_limit_price(0.55, "kalshi", 0.02) < 0.55
+
+    def test_fees_off_is_fair_over_one_plus_floor(self):
+        L = max_maker_limit_price(0.60, None, 0.02)
+        assert L == pytest.approx(0.60 / 1.02, abs=1e-3)
+
+    def test_maker_limit_above_taker_break_even(self):
+        # The maker fee is smaller than the taker fee, so you can rest higher and
+        # still clear the floor than you could paying the taker ask.
+        target = 0.55 / 1.02
+        maker_L = max_maker_limit_price(0.55, "kalshi", 0.02)
+        # taker break-even for the same floor: eff_taker(L)=target
+        assert effective_price(maker_L, "kalshi", maker=True) == pytest.approx(target, abs=1e-3)
+        assert effective_price(maker_L, "kalshi", maker=False) > target  # taker would miss here
+
+    def test_degenerate_prob_returns_none(self):
+        assert max_maker_limit_price(0.0, "kalshi", 0.02) is None
+        assert max_maker_limit_price(1.0, "kalshi", 0.02) is None
 
 
 class TestEvaluateMarket:
