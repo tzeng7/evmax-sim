@@ -194,6 +194,39 @@ class TestSeriesTeamCodeMaps:
         assert m.team_away == "seattle"
 
 
+class TestParseMarketBids:
+    """_parse_market carries the REST book's best bids onto PredictionMarket so
+    the maker-bid recommendation has a real resting price to improve on."""
+
+    def _raw(self, **over) -> dict:
+        base = {
+            "ticker": "KXNBAGAME-26MAR15LALBOS-LAL",
+            "title": "Boston vs Los Angeles Winner?",
+            "yes_bid_dollars": "0.40",
+            "yes_ask_dollars": "0.45",
+            "no_bid_dollars": "0.53",
+            "no_ask_dollars": "0.58",
+            "volume_fp": 10,
+            "open_interest_fp": 5,
+        }
+        base.update(over)
+        return base
+
+    def test_bids_populated_from_book(self) -> None:
+        m = _client()._parse_market(self._raw(), "nba")
+        assert m is not None
+        # asks drive the prices, bids are carried separately
+        assert m.yes_price == 0.45 and m.no_price == 0.58
+        assert m.yes_bid == 0.40 and m.no_bid == 0.53
+
+    def test_missing_bid_side_is_none(self) -> None:
+        # Empty bid side (0) must surface as None — no fabricated rest price.
+        m = _client()._parse_market(self._raw(yes_bid_dollars="0"), "nba")
+        assert m is not None
+        assert m.yes_bid is None
+        assert m.no_bid == 0.53
+
+
 class TestGetMarketCandlesticks:
     """get_market_candlesticks — historical OHLC bid/ask backfill endpoint."""
 

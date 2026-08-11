@@ -1258,6 +1258,13 @@ class KalshiClient(BaseAPIClient):
                 if event_ticker:
                     competition = competitions.get(event_ticker)
 
+            # Best resting bids (for maker limit-order placement). Kalshi's REST
+            # payload carries them directly; keep only a sane 0<x<1 value so a
+            # missing/empty bid side surfaces as None (no maker rest price) rather
+            # than a fabricated 0.
+            yes_bid_val = yes_bid if 0.0 < yes_bid < 1.0 else None
+            no_bid_val = no_bid if 0.0 < no_bid < 1.0 else None
+
             return PredictionMarket(
                 id=f"kalshi:{ticker}",
                 source=MarketSource.kalshi,
@@ -1267,6 +1274,8 @@ class KalshiClient(BaseAPIClient):
                 ticker=ticker,
                 yes_price=max(0.01, min(0.99, yes_price)),
                 no_price=max(0.01, min(0.99, no_price)),
+                yes_bid=yes_bid_val,
+                no_bid=no_bid_val,
                 volume_usd=float(volume),
                 open_interest_usd=float(open_interest),
                 team_home=team_home,

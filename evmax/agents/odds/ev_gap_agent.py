@@ -20,7 +20,13 @@ from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
 
 from evmax.agents.base import Agent, AgentRequest, AgentResponse
-from evmax.ev.calculator import calculate_ev, dual_ev, effective_price, max_maker_limit_price
+from evmax.ev.calculator import (
+    calculate_ev,
+    dual_ev,
+    effective_price,
+    max_maker_limit_price,
+    suggested_maker_bid,
+)
 from evmax.ev.kelly import KellyResult, compute_kelly
 from evmax.formatting import format_outcome_label
 from evmax.matching.engine import MatchingEngine
@@ -104,6 +110,21 @@ class EVGap:
     # None when fee accounting is off or the price is degenerate. See
     # evmax.ev.calculator.max_maker_limit_price.
     maker_limit_price: Optional[float] = None
+    # The concrete price to REST a maker buy at, given the live book: one tick
+    # above the current best bid, never crossing the ask or exceeding the maker
+    # ceiling (see evmax.ev.calculator.suggested_maker_bid). This is the
+    # actionable "bid to set" — distinct from maker_limit_price (a break-even
+    # ceiling that can sit above the ask). None when there's no fillable +EV
+    # maker rest price (no bid ladder, fees off, or bid already past the ceiling).
+    maker_bid_price: Optional[float] = None
+    # Maker EV (fraction) if the resting order fills at maker_bid_price. >= the
+    # maker EV at the ask, since maker_bid_price <= ask.
+    maker_bid_ev_pct: Optional[float] = None
+    # Kelly fraction sized at maker_bid_price with the maker payout — the
+    # suggested stake for the resting order (bankroll × this). Advisory only:
+    # maker plays log as shadow and touch no bankroll until the fill is recorded
+    # via `evmax agents fill`.
+    maker_bid_kelly_fraction: Optional[float] = None
 
     @property
     def edge_label(self) -> str:
@@ -310,6 +331,44 @@ def _minutes_to_tipoff(event_date: Optional[datetime]) -> Optional[int]:
     et = event_date if event_date.tzinfo else event_date.replace(tzinfo=timezone.utc)
     delta = (et - now).total_seconds() / 60.0
     return max(0, int(delta))
+
+
+def _maker_bid_plan(
+    true_prob: float,
+    ask: float,
+    best_bid: Optional[float],
+    maker_limit: Optional[float],
+    fee_venue: Optional[str],
+    spread_pct: float,
+    kelly_base: float,
+    max_kelly: float,
+) -> tuple[Optional[float], Optional[float], Optional[float]]:
+    """Resolve the actionable maker rest price, its EV, and a suggested size.
+
+    Returns ``(bid_price, bid_ev, bid_kelly_fraction)`` — the concrete price to
+    rest a maker buy at, the maker EV if it fills there, and the Kelly fraction
+    sized at that fill (all None when there's no fillable +EV maker rest price,
+    or when fee accounting is off so ``fee_venue`` is None). See
+    :func:`evmax.ev.calculator.suggested_maker_bid`.
+    """
+    if fee_venue is None:
+        return None, None, None
+    bid = suggested_maker_bid(best_bid, ask, maker_limit)
+    if bid is None:
+        return None, None, None
+    eff = effective_price(bid, fee_venue, maker=True)
+    if not (0.0 < eff < 1.0):
+        return bid, None, None
+    ev, edge = calculate_ev(eff, true_prob)
+    kelly = compute_kelly(
+        true_prob=true_prob,
+        payout_decimal=1.0 / eff,
+        edge_pct=edge,
+        spread_pct=spread_pct,
+        base_fraction=kelly_base,
+        max_kelly=max_kelly,
+    )
+    return bid, ev, kelly.kelly_fraction
 
 
 def _total_event_title(sharp: SharpOdds) -> str:
@@ -1234,6 +1293,14 @@ class EVGapAgent(Agent):
 
         ev, edge_pct = priced.taker_ev, priced.taker_edge
         maker_limit = max_maker_limit_price(blended_prob, fee_venue, ev_floor)
+        # Actionable maker rest price: buying YES rests at the best YES bid
+        # (raw from Kalshi's book, or the 1 − no-ask complement when the venue
+        # exposes no bid ladder, e.g. Polymarket US).
+        best_yes_bid = market.yes_bid if market.yes_bid is not None else (1.0 - market.no_price)
+        maker_bid, maker_bid_ev, maker_bid_kelly = _maker_bid_plan(
+            blended_prob, market.yes_price, best_yes_bid, maker_limit,
+            fee_venue, market.spread_pct, kelly_base, self._settings.max_kelly_fraction,
+        )
         if priced.maker_only:
             # Not crossable at the current ask — no live taker stake. The maker
             # EV is the signal; the position becomes real only if the resting
@@ -1270,6 +1337,9 @@ class EVGapAgent(Agent):
             maker_ev_pct=priced.maker_ev,
             maker_only=priced.maker_only,
             maker_limit_price=maker_limit,
+            maker_bid_price=maker_bid,
+            maker_bid_ev_pct=maker_bid_ev,
+            maker_bid_kelly_fraction=maker_bid_kelly,
             kelly_full=kelly.kelly_full,
             kelly_fraction=kelly.kelly_fraction,
             match_confidence=confidence,
@@ -1361,6 +1431,13 @@ class EVGapAgent(Agent):
             return None
         ev, edge_pct = priced.taker_ev, priced.taker_edge
         maker_limit = max_maker_limit_price(blended_no, fee_venue, ev_floor)
+        # Actionable maker rest price for the NO side: rest at the best NO bid
+        # (raw, or the 1 − yes-ask complement when no bid ladder is exposed).
+        best_no_bid = market.no_bid if market.no_bid is not None else (1.0 - market.yes_price)
+        maker_bid, maker_bid_ev, maker_bid_kelly = _maker_bid_plan(
+            blended_no, no_ask, best_no_bid, maker_limit,
+            fee_venue, market.spread_pct, kelly_base, self._settings.max_kelly_fraction,
+        )
         src_yes = blend_payload["src"]
 
         # Opponent name = whichever sharp outcome the YES side did NOT cover.
@@ -1409,6 +1486,9 @@ class EVGapAgent(Agent):
             maker_ev_pct=priced.maker_ev,
             maker_only=priced.maker_only,
             maker_limit_price=maker_limit,
+            maker_bid_price=maker_bid,
+            maker_bid_ev_pct=maker_bid_ev,
+            maker_bid_kelly_fraction=maker_bid_kelly,
             kelly_full=kelly.kelly_full,
             kelly_fraction=kelly.kelly_fraction,
             match_confidence=confidence,
@@ -1475,6 +1555,12 @@ class EVGapAgent(Agent):
             return None
         ev, edge_pct = priced.taker_ev, priced.taker_edge
         maker_limit = max_maker_limit_price(blended_under, fee_venue, self._settings.ev_threshold)
+        # Actionable maker rest price for the UNDER (NO) side.
+        best_no_bid = market.no_bid if market.no_bid is not None else (1.0 - market.yes_price)
+        maker_bid, maker_bid_ev, maker_bid_kelly = _maker_bid_plan(
+            blended_under, no_ask, best_no_bid, maker_limit,
+            fee_venue, market.spread_pct, kelly_base, self._settings.max_kelly_fraction,
+        )
         src_yes = blend_payload["src"]
 
         if priced.maker_only:
@@ -1507,6 +1593,9 @@ class EVGapAgent(Agent):
             maker_ev_pct=priced.maker_ev,
             maker_only=priced.maker_only,
             maker_limit_price=maker_limit,
+            maker_bid_price=maker_bid,
+            maker_bid_ev_pct=maker_bid_ev,
+            maker_bid_kelly_fraction=maker_bid_kelly,
             kelly_full=kelly.kelly_full,
             kelly_fraction=kelly.kelly_fraction,
             match_confidence=confidence,

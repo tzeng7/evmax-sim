@@ -242,6 +242,36 @@ class TestEVGapAgent:
         # A limit price to rest at is surfaced, and it's below fair value.
         assert gap.maker_limit_price is not None
         assert gap.maker_limit_price < gap.blended_true_prob
+        # And an ACTIONABLE bid to set: strictly below the ask (a maker rests,
+        # never crosses), with a positive suggested stake even though the taker
+        # Kelly is zero, and a maker EV at that fill that clears the floor.
+        assert gap.maker_bid_price is not None
+        assert gap.maker_bid_price < gap.kalshi_yes_price
+        assert gap.maker_bid_ev_pct is not None and gap.maker_bid_ev_pct >= 0.02
+        assert gap.maker_bid_kelly_fraction is not None and gap.maker_bid_kelly_fraction > 0.0
+
+    @pytest.mark.asyncio
+    async def test_maker_bid_uses_raw_book_bid(self):
+        """The rest price improves the venue's REAL best bid by one tick, not the
+        1 − no-ask complement. With a wide book (raw yes_bid far below the ask),
+        the suggested bid tracks yes_bid + 1¢."""
+        agent = EVGapAgent()
+        market = make_market(yes_price=0.50, yes_team="lakers")
+        # Wide book: real best YES bid rests at 0.44, well below the 0.50 ask.
+        market.yes_bid = 0.44
+        sharp = make_sharp(prob_a=0.525, prob_b=0.475, team_a="lakers")
+
+        with patch.object(agent._matching, "match_all", return_value=[(market, sharp, 95.0)]):
+            req = AgentRequest(
+                sector="nba",
+                params={"kalshi_markets": [market], "sharp_odds": [sharp]},
+            )
+            resp = await agent(req)
+
+        gap: EVGap = resp.data[0]
+        # One tick above the real bid (0.44 → 0.45), NOT the complement of the
+        # no-ask (which would sit near 0.49).
+        assert gap.maker_bid_price == pytest.approx(0.45)
 
     @pytest.mark.asyncio
     async def test_negative_ev_filtered(self):

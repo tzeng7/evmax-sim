@@ -11,6 +11,7 @@ from evmax.ev.calculator import (
     effective_price,
     evaluate_market,
     max_maker_limit_price,
+    suggested_maker_bid,
 )
 from evmax.ev.kelly import compute_kelly
 from evmax.fees import kalshi_fee_prob, polymarket_us_fee_prob
@@ -246,6 +247,48 @@ class TestMakerLimitPrice:
     def test_degenerate_prob_returns_none(self):
         assert max_maker_limit_price(0.0, "kalshi", 0.02) is None
         assert max_maker_limit_price(1.0, "kalshi", 0.02) is None
+
+
+class TestSuggestedMakerBid:
+    # Screenshot regime: fair 0.568, ask 0.54, floor 0.02 → ceiling ~0.5525.
+    LIMIT = max_maker_limit_price(0.568, "kalshi", 0.02)
+
+    def test_improves_best_bid_by_one_tick(self):
+        # Best bid 0.51, ask 0.54 → rest one tick up at 0.52 (queue priority,
+        # still below the ask, still under the +EV ceiling).
+        assert suggested_maker_bid(0.51, 0.54, self.LIMIT) == pytest.approx(0.52)
+
+    def test_never_crosses_the_ask(self):
+        # 1-tick spread (bid 0.53, ask 0.54): improving would cross, so join the
+        # bid at 0.53 instead.
+        assert suggested_maker_bid(0.53, 0.54, self.LIMIT) == pytest.approx(0.53)
+
+    def test_result_is_strictly_below_ask(self):
+        for bid in (0.30, 0.45, 0.50, 0.53):
+            rest = suggested_maker_bid(bid, 0.54, self.LIMIT)
+            assert rest is not None and rest < 0.54
+
+    def test_never_exceeds_the_maker_ceiling(self):
+        # Wide book, bid near the ceiling: capped at the floored ceiling, never
+        # above it (would drop below the EV floor).
+        rest = suggested_maker_bid(0.55, 0.60, self.LIMIT)
+        assert rest is not None
+        assert rest <= math.floor(self.LIMIT * 100) / 100.0
+
+    def test_none_when_bid_past_ceiling(self):
+        # Best bid already above the +EV maker ceiling → no fillable +EV rest.
+        assert suggested_maker_bid(0.56, 0.60, self.LIMIT) is None
+
+    def test_none_on_missing_inputs(self):
+        assert suggested_maker_bid(None, 0.54, self.LIMIT) is None       # no bid ladder
+        assert suggested_maker_bid(0.51, 0.54, None) is None            # fees off
+        assert suggested_maker_bid(0.60, 0.54, self.LIMIT) is None      # bid >= ask (degenerate)
+
+    def test_rest_price_clears_ev_floor_as_maker(self):
+        # Whatever price it returns, filling there as a maker is >= the floor.
+        rest = suggested_maker_bid(0.51, 0.54, self.LIMIT)
+        ev, _ = calculate_ev(effective_price(rest, "kalshi", maker=True), 0.568)
+        assert ev >= 0.02
 
 
 class TestEvaluateMarket:

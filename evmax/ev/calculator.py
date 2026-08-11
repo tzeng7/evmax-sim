@@ -8,6 +8,7 @@ Flag any market where EV >= threshold (default 2%).
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Optional
 
@@ -169,6 +170,48 @@ def max_maker_limit_price(
         else:
             hi = mid
     return lo
+
+
+def suggested_maker_bid(
+    best_bid: Optional[float],
+    ask: float,
+    maker_limit: Optional[float],
+    tick: float = 0.01,
+) -> Optional[float]:
+    """The concrete limit price to REST a maker buy at, given the live book.
+
+    ``max_maker_limit_price`` returns a break-even *ceiling* that can sit above
+    the current ask (the maker fee is so much smaller than the taker fee that
+    even overpaying the taker ask can stay +EV). That ceiling is not a place-
+    this-order price: a limit buy at or above the ask crosses the spread and
+    fills as a *taker*, forfeiting the maker fee. To actually rest as a maker
+    the order must sit strictly below the ask.
+
+    This returns where to rest: one ``tick`` above the current best bid — gaining
+    queue priority — but never at/above the ask (would cross) and never above
+    the maker ceiling (would drop below the EV floor). All arithmetic is done on
+    the integer-cent grid so the result lands on a real Kalshi price.
+
+    Returns None when there is no +EV maker rest price at the current book:
+      - a required input is missing (no bid ladder, fees off, degenerate ask), or
+      - the best bid has already run past the maker ceiling — joining it would be
+        below the EV floor, and resting under it would never fill.
+    """
+    if best_bid is None or maker_limit is None:
+        return None
+    if not (0.0 < best_bid < ask < 1.0):
+        return None
+    bid_c = round(best_bid * 100)
+    ask_c = round(ask * 100)
+    # Floor the ceiling to the cent below it so the rest price stays <= ceiling
+    # (never rounds up past the EV floor).
+    limit_c = math.floor(maker_limit * 100)
+    tick_c = max(1, round(tick * 100))
+    rest_c = min(bid_c + tick_c, ask_c - tick_c, limit_c)
+    if rest_c < bid_c:
+        # Best bid already exceeds the +EV maker ceiling — no fillable +EV rest.
+        return None
+    return rest_c / 100.0
 
 
 @dataclass
