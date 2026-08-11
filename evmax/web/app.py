@@ -534,6 +534,20 @@ def _gap_to_dict(g, bankroll: float) -> dict[str, Any]:
             round(g.maker_limit_price, 4)
             if getattr(g, "maker_limit_price", None) is not None else None
         ),
+        # Actionable maker rest price (the bid to set), its EV if filled there,
+        # and a Kelly-sized stake fraction at that fill. See suggested_maker_bid.
+        "maker_bid_price": (
+            round(g.maker_bid_price, 4)
+            if getattr(g, "maker_bid_price", None) is not None else None
+        ),
+        "maker_bid_ev_pct": (
+            round(g.maker_bid_ev_pct * 100, 2)
+            if getattr(g, "maker_bid_ev_pct", None) is not None else None
+        ),
+        "maker_bid_kelly_fraction": (
+            round(g.maker_bid_kelly_fraction, 4)
+            if getattr(g, "maker_bid_kelly_fraction", None) is not None else None
+        ),
         "kelly_pct": round(g.kelly_fraction * 100, 2),
         "kelly_fraction": round(g.kelly_fraction, 4),
         "stake": round(bankroll * g.kelly_fraction, 2),

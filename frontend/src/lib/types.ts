@@ -80,7 +80,10 @@ export interface ScanGap {
   // Maker execution (net of the maker fee, not the taker fee):
   maker_ev_pct?: number | null      // EV % if opened as a resting limit order
   maker_only?: boolean              // clears the EV floor ONLY as a maker
-  maker_limit_price?: number | null // max price (prob 0-1) to rest the buy at
+  maker_limit_price?: number | null // ceiling: max price (prob 0-1) still +EV as a maker
+  maker_bid_price?: number | null   // actionable: the price (prob 0-1) to REST the buy at
+  maker_bid_ev_pct?: number | null  // EV % if the resting order fills at maker_bid_price
+  maker_bid_kelly_fraction?: number | null // Kelly fraction sized at that fill (suggested stake)
 }
 
 export interface ScanResult {

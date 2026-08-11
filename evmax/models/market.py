@@ -97,8 +97,14 @@ class PredictionMarket(BaseModel):
     title: str = ""
     ticker: str = ""
 
-    yes_price: float  # 0.0–1.0
-    no_price: float  # 0.0–1.0
+    yes_price: float  # 0.0–1.0 — best YES ask (cost to buy YES as a taker)
+    no_price: float  # 0.0–1.0 — best NO ask (cost to buy NO as a taker)
+    # Best resting bids (highest price a buyer is offering) — what a MAKER would
+    # join or improve to rest a limit order without crossing the spread. None
+    # when the venue doesn't expose a bid ladder (e.g. Polymarket US quotes a
+    # single price per side; callers derive the bid as 1 − opposite-side ask).
+    yes_bid: Optional[float] = None  # 0.0–1.0
+    no_bid: Optional[float] = None   # 0.0–1.0
     volume_usd: float = 0.0
     open_interest_usd: float = 0.0
 

@@ -477,6 +477,7 @@ def scan(
     table.add_column("EV%", justify="right", style="green bold", width=6)
     table.add_column("MkEV%", justify="right", width=6)
     table.add_column("Lim¢", justify="right", width=5)
+    table.add_column("Bid¢", justify="right", width=5)
     table.add_column("K%", justify="right", width=6)
     table.add_column("Stake", justify="right", style="cyan bold", width=7)
     table.add_column("N", justify="right", width=3)
@@ -524,6 +525,10 @@ def scan(
         # Limit ¢: rest a maker buy at or below this to stay >= the EV floor.
         maker_limit = getattr(gap, "maker_limit_price", None)
         lim_str = f"[magenta]{_cents(maker_limit)}[/magenta]" if maker_limit is not None else "[dim]—[/dim]"
+        # Bid¢: the actionable price to REST a maker buy at (improves the best
+        # bid by a tick without crossing) — distinct from Lim¢ (the ceiling).
+        maker_bid = getattr(gap, "maker_bid_price", None)
+        bid_str = f"[bold magenta]{_cents(maker_bid)}[/bold magenta]" if maker_bid is not None else "[dim]—[/dim]"
         l15_str = str(gap.prop_l15_games) if is_prop and gap.prop_l15_games else "[dim]—[/dim]"
         if min_vol and is_prop:
             l15_str = f"[bold yellow]{l15_str}![/bold yellow]"
@@ -549,6 +554,7 @@ def scan(
             ev_str,
             mkev_str,
             lim_str,
+            bid_str,
             f"{gap.kelly_fraction*100:.2f}%",
             f"${stake:.2f}",
             l15_str,

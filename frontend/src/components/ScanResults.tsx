@@ -26,6 +26,19 @@ function recomputedStake(g: ScanGap, bankroll: number, kelly: number, scanKelly:
   return bankroll * Math.min(scaled, 0.05)
 }
 
+// Default Fill ¢ / Stake ($) for a row. Maker-only plays are not crossable at
+// the ask (taker Kelly is zeroed), so seed them to the actionable resting bid
+// and the maker-sized Kelly stake instead — the numbers you'd actually place
+// and later record with `evmax agents fill`. All other rows use the taker ask
+// and the taker Kelly stake.
+function defaultFill(g: ScanGap, bankroll: number, kelly: number, scanKelly: number): { odds: string; stake: string } {
+  if (g.maker_only && g.maker_bid_price != null) {
+    const frac = g.maker_bid_kelly_fraction ?? 0
+    return { odds: probToCents(g.maker_bid_price), stake: (bankroll * Math.min(frac, 0.05)).toFixed(2) }
+  }
+  return { odds: probToCents(g.kalshi_price), stake: recomputedStake(g, bankroll, kelly, scanKelly).toFixed(2) }
+}
+
 export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
   const [sector, setSector] = useState('')
   const [dateFilter, setDateFilter] = useState('')
@@ -38,7 +51,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     setSelected(new Set(gaps.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
     const f: Record<string, { odds: string; stake: string }> = {}
     for (const g of gaps) {
-      f[g.market_id] = { odds: probToCents(g.kalshi_price), stake: recomputedStake(g, bankroll, kelly, scanKelly).toFixed(2) }
+      f[g.market_id] = defaultFill(g, bankroll, kelly, scanKelly)
     }
     setFills(f)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -51,10 +64,10 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     setFills(prev => {
       const next: Record<string, { odds: string; stake: string }> = {}
       for (const g of gaps) {
-        const stake = recomputedStake(g, bankroll, kelly, scanKelly).toFixed(2)
+        const def = defaultFill(g, bankroll, kelly, scanKelly)
         next[g.market_id] = {
-          odds: prev[g.market_id]?.odds ?? probToCents(g.kalshi_price),
-          stake,
+          odds: prev[g.market_id]?.odds ?? def.odds,
+          stake: def.stake,
         }
       }
       return next
@@ -140,7 +153,8 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
             <th>Date</th><th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
             <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">Model</th><th className="num">EV</th>
             <th className="num" title="EV if opened as a resting limit order (maker fee)">Maker EV</th>
-            <th className="num" title="Rest your buy at or below this price to stay at/above the EV floor">Limit ¢</th>
+            <th className="num" title="Ceiling — rest at or below this and you stay ≥ the EV floor as a maker. Can sit ABOVE the ask; it is not a place-order price. Use Bid ¢.">Limit ¢</th>
+            <th className="num" title="The bid to SET: rest your maker buy here (one tick above the current best bid, still below the ask). Fills as a maker, not a taker. Record the fill with `evmax agents fill`.">Bid ¢</th>
             <th className="num">Fill ¢</th><th className="num">Stake ($)</th><th>Models</th>
           </tr>
         </thead>
@@ -172,7 +186,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
                     <span
                       className="badge"
                       style={{ marginLeft: 4, background: 'rgba(198,120,221,0.13)', color: '#c678dd', borderColor: 'rgba(198,120,221,0.32)' }}
-                      title="Clears the EV floor only as a resting limit order (maker fee). Rest at/below the Limit ¢ price; record the fill with `evmax agents fill`."
+                      title="Clears the EV floor only as a resting limit order (maker fee), not crossable at the ask. Rest your buy at the Bid ¢ price (Fill ¢ / Stake are pre-seeded to it); record the fill with `evmax agents fill`."
                     >MAKER</span>
                   )}
                 </td>
@@ -188,6 +202,10 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
                 </td>
                 <td className="num" style={{ color: '#c678dd' }}>
                   {g.maker_limit_price != null ? probToCents(g.maker_limit_price) : '—'}
+                </td>
+                <td className="num" style={{ color: '#c678dd', fontWeight: 600 }}
+                  title={g.maker_bid_ev_pct != null ? `+${g.maker_bid_ev_pct.toFixed(1)}% EV if filled here` : undefined}>
+                  {g.maker_bid_price != null ? probToCents(g.maker_bid_price) : '—'}
                 </td>
                 <td className="num">
                   <input type="text" value={fills[g.market_id]?.odds || askOdds}
