@@ -8364,67 +8364,67 @@
   },
   "baseball": {
     "ratings": {
-      "yankees": 1504.86,
+      "yankees": 1501.1,
       "astros": 1522.63,
-      "red sox": 1539.42,
-      "twins": 1481.64,
+      "red sox": 1544.8,
+      "twins": 1476.83,
       "rays": 1524.18,
       "mets": 1518.9,
-      "tigers": 1525.83,
-      "phillies": 1476.65,
+      "tigers": 1528.42,
+      "phillies": 1481.46,
       "orioles": 1489.0,
-      "pirates": 1467.46,
+      "pirates": 1473.7,
       "braves": 1506.49,
-      "blue jays": 1528.4,
+      "blue jays": 1523.02,
       "cardinals": 1496.55,
-      "nationals": 1496.28,
-      "cubs": 1543.16,
-      "guardians": 1491.15,
-      "reds": 1489.18,
+      "nationals": 1501.48,
+      "cubs": 1537.96,
+      "guardians": 1488.56,
+      "reds": 1492.64,
       "padres": 1544.49,
-      "dodgers": 1529.04,
+      "dodgers": 1525.43,
       "giants": 1532.38,
-      "angels": 1464.45,
+      "angels": 1469.01,
       "athletics": 1436.53,
-      "mariners": 1455.36,
-      "white sox": 1496.02,
+      "mariners": 1459.12,
+      "white sox": 1492.56,
       "diamondbacks": 1504.91,
       "rockies": 1462.9,
-      "brewers": 1526.51,
-      "rangers": 1487.44,
-      "marlins": 1471.92,
+      "brewers": 1530.12,
+      "rangers": 1482.88,
+      "marlins": 1465.68,
       "royals": 1486.27
     },
     "game_counts": {
-      "yankees": 85,
+      "yankees": 86,
       "astros": 80,
-      "red sox": 83,
-      "twins": 85,
+      "red sox": 84,
+      "twins": 86,
       "rays": 83,
       "mets": 81,
-      "tigers": 88,
-      "phillies": 86,
+      "tigers": 89,
+      "phillies": 87,
       "orioles": 78,
-      "pirates": 84,
+      "pirates": 85,
       "braves": 80,
-      "blue jays": 99,
+      "blue jays": 100,
       "cardinals": 80,
-      "nationals": 83,
-      "cubs": 89,
-      "guardians": 85,
-      "reds": 80,
+      "nationals": 84,
+      "cubs": 90,
+      "guardians": 86,
+      "reds": 81,
       "padres": 84,
-      "dodgers": 97,
+      "dodgers": 98,
       "giants": 80,
-      "angels": 85,
+      "angels": 86,
       "athletics": 81,
-      "mariners": 91,
-      "white sox": 83,
+      "mariners": 92,
+      "white sox": 84,
       "diamondbacks": 84,
       "rockies": 75,
-      "brewers": 93,
-      "rangers": 85,
-      "marlins": 82,
+      "brewers": 94,
+      "rangers": 86,
+      "marlins": 83,
       "royals": 83
     },
     "h2h": {
@@ -8600,8 +8600,8 @@
       },
       "blue jays::red sox": {
         "a_wins": 4,
-        "b_wins": 2,
-        "games": 6
+        "b_wins": 3,
+        "games": 7
       },
       "phillies::yankees": {
         "a_wins": 1,
@@ -8959,9 +8959,9 @@
         "games": 3
       },
       "angels::rangers": {
-        "a_wins": 2,
+        "a_wins": 3,
         "b_wins": 1,
-        "games": 3
+        "games": 4
       },
       "diamondbacks::rockies": {
         "a_wins": 1,
@@ -8990,63 +8990,73 @@
       },
       "guardians::tigers": {
         "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
+        "b_wins": 2,
+        "games": 3
       },
       "marlins::pirates": {
         "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
+        "b_wins": 1,
+        "games": 3
       },
       "cubs::nationals": {
         "a_wins": 2,
-        "b_wins": 0,
-        "games": 2
+        "b_wins": 1,
+        "games": 3
       },
       "mariners::yankees": {
-        "a_wins": 0,
+        "a_wins": 1,
         "b_wins": 2,
-        "games": 2
+        "games": 3
       },
       "reds::white sox": {
-        "a_wins": 1,
+        "a_wins": 2,
         "b_wins": 1,
-        "games": 2
+        "games": 3
+      },
+      "phillies::twins": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "brewers::dodgers": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
       }
     },
     "season_games": {
-      "yankees": 21,
+      "yankees": 22,
       "astros": 22,
-      "red sox": 22,
-      "twins": 23,
+      "red sox": 23,
+      "twins": 24,
       "rays": 23,
       "mets": 22,
-      "tigers": 22,
-      "phillies": 23,
+      "tigers": 23,
+      "phillies": 24,
       "orioles": 21,
-      "pirates": 22,
+      "pirates": 23,
       "braves": 23,
-      "blue jays": 24,
+      "blue jays": 25,
       "cardinals": 24,
-      "nationals": 23,
-      "cubs": 23,
-      "guardians": 21,
-      "reds": 21,
+      "nationals": 24,
+      "cubs": 24,
+      "guardians": 22,
+      "reds": 22,
       "padres": 24,
-      "dodgers": 22,
+      "dodgers": 23,
       "giants": 23,
-      "angels": 22,
+      "angels": 23,
       "athletics": 23,
-      "mariners": 22,
-      "white sox": 22,
+      "mariners": 23,
+      "white sox": 23,
       "diamondbacks": 24,
       "rockies": 21,
-      "brewers": 23,
-      "rangers": 23,
-      "marlins": 22,
+      "brewers": 24,
+      "rangers": 24,
+      "marlins": 23,
       "royals": 23
     },
-    "last_updated": "2026-08-12"
+    "last_updated": "2026-08-13"
   },
   "ncaab": {
     "ratings": {
@@ -19369,53 +19379,53 @@
   },
   "wnba": {
     "ratings": {
-      "mystics": 1553.67,
-      "dream": 1575.25,
+      "mystics": 1543.24,
+      "dream": 1584.79,
       "wings": 1562.32,
       "lynx": 1765.53,
       "valkyries": 1710.82,
-      "sparks": 1418.66,
-      "liberty": 1608.27,
-      "aces": 1637.34,
+      "sparks": 1414.32,
+      "liberty": 1612.61,
+      "aces": 1647.77,
       "fever": 1640.61,
       "sky": 1388.68,
       "mercury": 1425.3,
       "storm": 1335.05,
-      "sun": 1325.17,
+      "sun": 1315.63,
       "fire": 1408.78,
       "tempo": 1342.56
     },
     "game_counts": {
-      "mystics": 76,
-      "dream": 79,
+      "mystics": 77,
+      "dream": 80,
       "wings": 78,
       "lynx": 86,
       "valkyries": 79,
-      "sparks": 76,
-      "liberty": 82,
-      "aces": 91,
+      "sparks": 77,
+      "liberty": 83,
+      "aces": 92,
       "fever": 86,
       "sky": 78,
       "mercury": 90,
       "storm": 82,
-      "sun": 75,
+      "sun": 76,
       "tempo": 33,
       "fire": 33
     },
     "season_games": {
-      "mystics": 32,
-      "dream": 32,
+      "mystics": 33,
+      "dream": 33,
       "wings": 34,
       "lynx": 35,
       "valkyries": 33,
-      "sparks": 32,
-      "liberty": 35,
-      "aces": 35,
+      "sparks": 33,
+      "liberty": 36,
+      "aces": 36,
       "fever": 33,
       "sky": 34,
       "mercury": 35,
       "storm": 35,
-      "sun": 31,
+      "sun": 32,
       "fire": 33,
       "tempo": 33
     },
@@ -19496,9 +19506,9 @@
         "games": 5
       },
       "aces::mystics": {
-        "a_wins": 3,
+        "a_wins": 4,
         "b_wins": 3,
-        "games": 6
+        "games": 7
       },
       "fever::liberty": {
         "a_wins": 3,
@@ -19511,9 +19521,9 @@
         "games": 7
       },
       "dream::sun": {
-        "a_wins": 5,
+        "a_wins": 6,
         "b_wins": 1,
-        "games": 6
+        "games": 7
       },
       "sky::sparks": {
         "a_wins": 4,
@@ -19746,9 +19756,9 @@
         "games": 5
       },
       "liberty::sparks": {
-        "a_wins": 3,
+        "a_wins": 4,
         "b_wins": 2,
-        "games": 5
+        "games": 6
       },
       "lynx::sky": {
         "a_wins": 5,
@@ -19946,7 +19956,7 @@
         "games": 1
       }
     },
-    "last_updated": "2026-08-12"
+    "last_updated": "2026-08-13"
   },
   "nba": {
     "ratings": {
