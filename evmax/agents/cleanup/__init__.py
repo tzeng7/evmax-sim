@@ -30,6 +30,10 @@ Key modules:
                    harness (`scripts/eval_near_close_rescan.py`), Phase 1 gate for
                    the proposed `agents rescan` workflow (2026-07-11: REJECTED,
                    see docs/near-close-rescan-eval.md)
+- maker_fill.py   — records a filled maker limit order as a real placed position
+                   (placed=1, mode='live', maker_fill=1). Shared by `evmax agents fill`
+                   and the dashboard's POST /api/fill so both validate identically.
+                   Never commits — the caller owns the transaction.
 - maintenance.py — prune old rows, vacuum DB
 - adjustment.py  — manual outcome overrides and void handling
 
