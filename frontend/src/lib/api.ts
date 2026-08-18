@@ -52,6 +52,32 @@ export async function pickBets(bets: { market_id: string; fill_price: number | n
   }).then(json)
 }
 
+export interface MakerFillRow {
+  market_id: string
+  fill_price: number
+  fill_stake: number
+  contracts: number
+  maker_fee: number
+  venue: string
+  prior_mode: string
+  event_title: string
+}
+export interface MakerFillResult { filled: number; fills: MakerFillRow[]; skipped?: PickSkip[] }
+
+// Record filled maker limit orders. A maker-only play is not crossable at the
+// ask, so it logs as shadow and /api/pick refuses it — this is the path that
+// turns one into a real position once your resting order actually fills.
+// fill_price accepts cents or a fraction; the server normalizes.
+export async function recordMakerFills(
+  fills: { market_id: string; fill_price: number | null; fill_stake: number | null }[],
+): Promise<MakerFillResult> {
+  return fetch('/api/fill', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fills }),
+  }).then(json)
+}
+
 export async function pickByIds(market_ids: string[]): Promise<PickResult> {
   return fetch('/api/pick', {
     method: 'POST',

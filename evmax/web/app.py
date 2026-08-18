@@ -253,7 +253,8 @@ def _bet_pnl(bet: dict[str, Any]) -> float:
         return 0.0
     # Net of the venue trading fee (flat entry cost, hits win and loss equally)
     # when fees_in_pricing is on — matches how the bet was gated/sized. A maker
-    # fill (recorded via `evmax agents fill`) is charged the maker fee, not taker.
+    # fill (recorded via `evmax agents fill` or POST /api/fill) is charged the
+    # maker fee, not taker.
     fee_venue = (bet.get("venue") or "kalshi") if get_settings().fees_in_pricing else None
     return _fee_bet_pnl(
         stake, price, bet.get("outcome") == 1,
@@ -867,6 +868,52 @@ async def api_pick(request: Request) -> JSONResponse:
     return JSONResponse({"placed": placed, "skipped": skipped})
 
 
+@app.post("/api/fill")
+async def api_fill(request: Request) -> JSONResponse:
+    """Record filled maker limit orders as real placed positions.
+
+    The dashboard counterpart of ``evmax agents fill``. A maker-only play is not
+    crossable at the ask, so it persists as ``mode='shadow'`` and ``/api/pick``
+    correctly refuses it — picking it would record a taker fill at a price that
+    was never +EV. This endpoint is the other half of that workflow: once your
+    resting order actually fills, it promotes the row to a live position with
+    ``maker_fill=1`` so the P&L charges the maker fee.
+
+    Body::
+
+        { "fills": [{"market_id": "...", "fill_price": 0.47, "fill_stake": 12.5}, ...] }
+
+    ``fill_price`` accepts cents (47) or a fraction (0.47). Rows that cannot be
+    filled are reported in ``skipped`` with a reason slug rather than failing the
+    whole batch, so one stale selection never discards the rest of the fills.
+    """
+    from evmax.agents.cleanup.maker_fill import (
+        MakerFillError, _as_dict, record_maker_fill,
+    )
+
+    body = await request.json()
+    fills_list: list[dict] = body.get("fills", [])
+    if not fills_list:
+        return JSONResponse({"error": "No fills provided"}, status_code=400)
+
+    conn = _conn()
+    recorded: list[dict[str, Any]] = []
+    skipped: list[dict] = []
+    for item in fills_list:
+        mid = item.get("market_id")
+        try:
+            result = record_maker_fill(
+                conn, mid, item.get("fill_price"), item.get("fill_stake"),
+            )
+        except MakerFillError as err:
+            skipped.append({"market_id": mid, "reason": str(err)})
+            continue
+        recorded.append(_as_dict(result))
+    conn.commit()
+    conn.close()
+    return JSONResponse({"filled": len(recorded), "fills": recorded, "skipped": skipped})
+
+
 @app.post("/api/update-placed")
 async def api_update_placed(request: Request) -> JSONResponse:
     """Update fill price and stake on already-placed bets."""
@@ -918,8 +965,21 @@ async def api_unplace(request: Request) -> JSONResponse:
     conn = _conn()
     removed = 0
     for mid in market_ids:
+        # Un-placing a maker fill must undo the whole promotion record_maker_fill
+        # made, not just the placement:
+        #   maker_fill -> 0, because _bet_pnl charges the MAKER fee off this flag.
+        #     Leaving it set would price a later TAKER pick at the maker fee.
+        #   mode -> 'shadow', because the row only became live as part of that
+        #     promotion. A maker-only play is not crossable at the ask, so
+        #     leaving it live would make it taker-pickable at a price that was
+        #     never +EV.
+        # Demoting to shadow is safe even for a row that was already live before
+        # its fill: log_gaps upgrades an unplaced shadow row back to live on the
+        # next scan that still qualifies it (prediction_upgraded_shadow_to_live).
         cur = conn.execute(
-            "UPDATE ev_predictions SET placed = 0, placed_at = NULL, placed_price = NULL, placed_stake = NULL WHERE market_id = ? AND placed = 1",
+            "UPDATE ev_predictions SET placed = 0, placed_at = NULL, placed_price = NULL, "
+            "placed_stake = NULL, mode = CASE WHEN maker_fill = 1 THEN 'shadow' ELSE mode END, "
+            "maker_fill = 0 WHERE market_id = ? AND placed = 1",
             (mid,),
         )
         if cur.rowcount > 0:

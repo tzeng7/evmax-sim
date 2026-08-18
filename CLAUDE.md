@@ -120,7 +120,7 @@ evmax/
 └── cli/
     ├── app.py               # Typer root app
     └── commands/
-        ├── agents.py        # evmax agents scan/verify/pick/seed/ratings/update
+        ├── agents.py        # evmax agents scan/verify/pick/fill/seed/ratings/update
         ├── cleanup.py       # evmax cleanup show/resolve/metrics/adjust/value-audit/watch-closes/watch-listings/listings-eval/prune-stale
         ├── shadow.py        # evmax cleanup shadow show/metrics/clv/promote
         ├── categories.py    # evmax categories list/show/modes/validate

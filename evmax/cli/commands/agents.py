@@ -1135,60 +1135,23 @@ def fill(
     Example:
       evmax agents fill KXNBA-26MAR21-BOS -p 47 -s 25
     """
-    from datetime import datetime as _dt
     from evmax.agents.cleanup.db import get_connection
-    from evmax.fees import venue_order_fee
-
-    # Accept cents (>1) or a fraction (<=1).
-    fill_prob = price / 100.0 if price > 1.0 else price
-    if not (0.0 < fill_prob < 1.0):
-        console.print(
-            f"[red]Invalid price:[/red] {price!r} — give cents (0–100) or a fraction (0–1)."
-        )
-        raise typer.Exit(1)
-    if stake <= 0:
-        console.print(f"[red]Invalid stake:[/red] {stake!r} — must be > 0.")
-        raise typer.Exit(1)
+    from evmax.agents.cleanup.maker_fill import MakerFillError, record_maker_fill
 
     conn = get_connection()
-    row = conn.execute(
-        """SELECT market_id, event_title, yes_team, market_type, line, sector,
-                  venue, mode, placed, voided, maker_ev_pct
-           FROM ev_predictions WHERE market_id = ?""",
-        (market_id,),
-    ).fetchone()
-    if row is None:
-        console.print(f"[red]No prediction row for market_id[/red] {market_id!r}.")
+    try:
+        result = record_maker_fill(conn, market_id, price, stake)
+    except MakerFillError as err:
         conn.close()
+        # An already-placed or voided row is a no-op the user should notice but
+        # not a malformed request, so it reads as a warning, not an error.
+        color = "yellow" if err.reason in ("already_placed", "voided") else "red"
+        console.print(f"[{color}]{err}[/{color}]")
         raise typer.Exit(1)
-    if row["placed"]:
-        console.print(
-            f"[yellow]{market_id} is already placed[/yellow] — not overwriting. "
-            "Void it first if you need to re-record."
-        )
-        conn.close()
-        raise typer.Exit(1)
-    if row["voided"]:
-        console.print(f"[yellow]{market_id} is voided[/yellow] — not filling a voided row.")
-        conn.close()
-        raise typer.Exit(1)
-
-    venue = row["venue"] or "kalshi"
-    contracts = stake / fill_prob
-    maker_fee = venue_order_fee(venue, fill_prob, contracts, maker=True)
-
-    now_str = _dt.now(timezone.utc).isoformat()
-    conn.execute(
-        """UPDATE ev_predictions
-           SET placed = 1, placed_at = ?, placed_price = ?, placed_stake = ?,
-               mode = 'live', maker_fill = 1
-           WHERE market_id = ?""",
-        (now_str, fill_prob, stake, market_id),
-    )
     conn.commit()
     conn.close()
 
-    label = _display_label(row["yes_team"], row["market_type"], row["line"])
+    label = _display_label(result.yes_team, result.market_type, result.line)
     t = Table(box=box.SIMPLE, show_header=True, title="Maker Fill Recorded")
     t.add_column("Event", min_width=24)
     t.add_column("Outcome", width=20)
@@ -1196,17 +1159,17 @@ def fill(
     t.add_column("Stake", justify="right", width=8)
     t.add_column("Maker fee", justify="right", width=10)
     t.add_row(
-        (row["event_title"] or "?")[:30],
+        (result.event_title or "?")[:30],
         label,
-        _cents(fill_prob),
-        f"${stake:.2f}",
-        f"${maker_fee:.2f}",
+        _cents(result.fill_prob),
+        f"${result.stake:.2f}",
+        f"${result.maker_fee:.2f}",
     )
     console.print()
     console.print(t)
-    if row["mode"] != "shadow":
+    if result.prior_mode != "shadow":
         console.print(
-            f"[dim]Note: row was mode='{row['mode']}', not a shadow maker-only row — "
+            f"[dim]Note: row was mode='{result.prior_mode}', not a shadow maker-only row — "
             "recorded as a maker fill anyway.[/dim]"
         )
     console.print(
