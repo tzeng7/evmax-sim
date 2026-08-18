@@ -7347,6 +7347,16 @@
     "elche": {
       "matches": [
         {
+          "date": "2026-08-17",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 6,
+          "shots": 11,
+          "xg": 1.95,
+          "xga": 1.05,
+          "is_home": false
+        },
+        {
           "date": "2026-05-23",
           "goals_for": 1,
           "goals_against": 1,
@@ -7535,16 +7545,6 @@
           "xg": 1.65,
           "xga": 2.91,
           "is_home": true
-        },
-        {
-          "date": "2026-01-10",
-          "goals_for": 1,
-          "goals_against": 1,
-          "sot": 1,
-          "shots": 5,
-          "xg": 0.42,
-          "xga": 1.56,
-          "is_home": false
         }
       ]
     },
@@ -29638,6 +29638,20 @@
           "shots": 17,
           "xg": 1.32,
           "xga": 2.25,
+          "is_home": true
+        }
+      ]
+    },
+    "deportivo": {
+      "matches": [
+        {
+          "date": "2026-08-17",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 3,
+          "shots": 8,
+          "xg": 1.05,
+          "xga": 1.95,
           "is_home": true
         }
       ]
