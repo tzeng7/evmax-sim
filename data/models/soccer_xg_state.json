@@ -4287,6 +4287,16 @@
     "rayo vallecano": {
       "matches": [
         {
+          "date": "2026-08-20",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 3,
+          "shots": 8,
+          "xg": 1.05,
+          "xga": 1.26,
+          "is_home": true
+        },
+        {
           "date": "2026-08-15",
           "goals_for": 1,
           "goals_against": 2,
@@ -4475,16 +4485,6 @@
           "xg": 1.41,
           "xga": 1.77,
           "is_home": true
-        },
-        {
-          "date": "2026-01-18",
-          "goals_for": 0,
-          "goals_against": 3,
-          "sot": 3,
-          "shots": 14,
-          "xg": 1.23,
-          "xga": 2.22,
-          "is_home": false
         }
       ]
     },
@@ -5307,6 +5307,16 @@
     "alav\u00e9s": {
       "matches": [
         {
+          "date": "2026-08-20",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 3,
+          "shots": 15,
+          "xg": 1.26,
+          "xga": 1.05,
+          "is_home": false
+        },
+        {
           "date": "2026-08-15",
           "goals_for": 3,
           "goals_against": 0,
@@ -5495,16 +5505,6 @@
           "xg": 2.94,
           "xga": 1.62,
           "is_home": true
-        },
-        {
-          "date": "2026-01-18",
-          "goals_for": 0,
-          "goals_against": 1,
-          "sot": 0,
-          "shots": 8,
-          "xg": 0.24,
-          "xga": 2.31,
-          "is_home": false
         }
       ]
     },
