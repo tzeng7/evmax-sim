@@ -26,13 +26,38 @@ class Settings(BaseSettings):
     polymarket_api_key: str = ""          # keyId from polymarket.us/developer
     polymarket_us_secret_key: str = ""    # Ed25519 secretKey (shown once)
     polymarket_us_base_url: str = "https://gateway.polymarket.us"
+    # Portfolio/account API lives on a DIFFERENT host than the gateway
+    # (market-data) API. Balance + positions are served from api.polymarket.us,
+    # not gateway.polymarket.us. Ed25519-signed, same key pair.
+    polymarket_us_api_base_url: str = "https://api.polymarket.us"
     polymarket_us_enabled: bool = True    # kill-switch for the venue fetch
     # Venue-level shadow firewall (MODEL-9 pattern): until True, every
     # Polymarket US gap is demoted to mode='shadow' at persistence and its
     # Kelly is zeroed — logged for calibration/CLV validation, never sized
     # against the bankroll. Flip after the venue clears the usual shadow
     # gates (n>=30 resolved, CLV >= 0, no matching/parse errors).
+    #
+    # ``polymarket_us_live`` is the MASTER switch: True clears the firewall for
+    # ALL sectors at once. Leave it False and use ``polymarket_us_live_sectors``
+    # to clear the firewall for SPECIFIC sectors only — mirroring the per-
+    # category granularity of the Kalshi mode registry, so a single sector
+    # (e.g. wnba moneyline) can go live on Polymarket while every other Poly
+    # sector stays shadow. A sector still only goes live if its category mode
+    # resolves to ``live`` upstream (get_mode) — the allowlist refines the
+    # venue firewall, it does not override a shadow/disabled category.
     polymarket_us_live: bool = False
+    # Comma-separated sector allowlist, e.g. "wnba,tennis". Whitespace and case
+    # are normalized; empty means "no per-sector exceptions" (firewall fully up
+    # unless the master switch is True). Env: POLYMARKET_US_LIVE_SECTORS.
+    #
+    # ``wnba`` is cleared as the first Poly-live sector (2026-08-22): WNBA is
+    # the only Poly market with genuine model divergence from the sharp line
+    # (~3.9pp on moneyline, matching Kalshi's own WNBA divergence) rather than
+    # sharp-passthrough, and after the near-tip CLV capture fix its Poly ML
+    # sample reached n=82 with mean CLV +0.37pp. Only WNBA MONEYLINE actually
+    # goes live: wnba spread/total resolve to shadow upstream via the category's
+    # shadow_market_types, so the sector-level clear can't promote them.
+    polymarket_us_live_sectors: str = "wnba"
 
     # Database
     database_url: str = "sqlite+aiosqlite:///./evmax.db"
@@ -123,6 +148,29 @@ class Settings(BaseSettings):
             # Market reads are unauthenticated — not a blocker for scanning.
             missing.append("KALSHI_PRIVATE_KEY_PATH (optional — needed for WS price refresh + trading, not scanning)")
         return missing
+
+    def polymarket_us_live_sector_set(self) -> set[str]:
+        """Parsed, normalized allowlist from ``polymarket_us_live_sectors``.
+
+        Lowercased, whitespace-trimmed, empties dropped. Cheap to recompute —
+        the string is tiny and get_settings() is cached.
+        """
+        raw = self.polymarket_us_live_sectors or ""
+        return {s.strip().lower() for s in raw.split(",") if s.strip()}
+
+    def polymarket_us_sector_live(self, sector: Optional[str]) -> bool:
+        """Whether the Polymarket US venue firewall is CLEARED for ``sector``.
+
+        True when the master switch ``polymarket_us_live`` is on (all sectors),
+        or when ``sector`` is in the per-sector allowlist. A gap only reaches a
+        live persistence if its category mode also resolves to ``live``
+        upstream — this method only governs the venue firewall, not the mode.
+        """
+        if self.polymarket_us_live:
+            return True
+        if not sector:
+            return False
+        return sector.lower() in self.polymarket_us_live_sector_set()
 
     # Matching
     fuzzy_threshold: int = 88  # rapidfuzz score threshold

@@ -301,6 +301,55 @@ class PolymarketUSClient(BaseAPIClient):
         settlement = data.get("settlement")
         return float(settlement) if settlement is not None else None
 
+    async def get_balance(self, currency: str = "USD") -> Optional[float]:
+        """TOTAL account wealth in DOLLARS for ``currency`` (Kelly base), or None.
+
+        ``GET /v1/account/balances`` on the PORTFOLIO host (api.polymarket.us,
+        NOT the gateway host used for market data), Ed25519-signed. Returns
+        total equity = ``currentBalance + assetAvailable``:
+
+          * ``currentBalance`` — fiat cash, excluding security values.
+          * ``assetAvailable`` — "available collateral value of all securities",
+            the mark-to-market value of open positions. NOT ``assetNotional``,
+            which is face value (contracts × $1) and overstates a sub-$1
+            position, nor ``buyingPower``, which nets out open orders and is
+            deployable-cash, not total wealth.
+
+        Total wealth (cash + position value) is the Kelly base the user chose:
+        placing a fairly-priced bet moves cash into an equal-value position, so
+        the bankroll stays ~constant rather than shrinking per bet. Returns None
+        when no key material is configured or the call fails — the caller falls
+        back to a manual bankroll rather than sizing real money against a guess.
+        """
+        path = "/v1/account/balances"
+        headers = self._sign_request("GET", path)
+        if not headers:
+            return None
+        if self._client is None:
+            raise RuntimeError("Client not initialised — use async context manager")
+        url = get_settings().polymarket_us_api_base_url.rstrip("/") + path
+        try:
+            await _POLYMARKET_US_RATE_LIMITER.acquire()
+            resp = await self._client.get(url, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            logger.warning("polymarket_us_balance_fetch_failed", error=str(e))
+            return None
+        balances = data.get("balances") or []
+        target = currency.upper()
+        for b in balances:
+            if (b.get("currency") or "").upper() == target:
+                cash = b.get("currentBalance")
+                if cash is None:
+                    return None
+                positions = b.get("assetAvailable") or 0
+                try:
+                    return round(float(cash) + float(positions), 2)
+                except (TypeError, ValueError):
+                    return None
+        return None
+
     async def get_market_sides(self, market_slug: str) -> list[dict[str, Any]]:
         """Raw ``marketSides`` for a market slug (works after close/settle).
 

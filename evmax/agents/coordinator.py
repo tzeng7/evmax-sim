@@ -694,28 +694,35 @@ class AgentCoordinator:
                 sectors=sorted({g.sector for g in partial_blend_gaps}),
             )
 
-        # Venue shadow firewall: until polymarket_us_live is flipped, gaps
-        # from the new venue are shadow-bound — kelly zeroed, excluded from
-        # the exposure budget, demoted to mode='shadow' by log_gaps. Same
-        # treatment as partial-blend gaps above.
-        shadow_venue_gaps: list = []
-        if not get_settings().polymarket_us_live:
-            shadow_venue_gaps = [
-                dataclasses.replace(g, kelly_fraction=0.0)
-                for g in result.ev_gaps
-                if getattr(g, "venue", "kalshi") != "kalshi"
-            ]
-            if shadow_venue_gaps:
-                result.ev_gaps = [
-                    g for g in result.ev_gaps
-                    if getattr(g, "venue", "kalshi") == "kalshi"
-                ]
-                self.log.info(
-                    "venue_gaps_shadowed",
-                    count=len(shadow_venue_gaps),
-                    venue="polymarket_us",
-                    sectors=sorted({g.sector for g in shadow_venue_gaps}),
-                )
+        # Venue shadow firewall: a Polymarket US gap is shadow-bound — kelly
+        # zeroed, excluded from the exposure budget, demoted to mode='shadow'
+        # by log_gaps — UNLESS its sector clears the per-sector allowlist
+        # (settings.polymarket_us_sector_live). Same treatment as partial-blend
+        # gaps above. Any other non-Kalshi venue has no live path and is always
+        # shadow-bound.
+        _settings = get_settings()
+
+        def _venue_gap_live(g) -> bool:
+            v = getattr(g, "venue", "kalshi")
+            if v == "kalshi":
+                return True
+            if v == "polymarket_us":
+                return _settings.polymarket_us_sector_live(g.sector)
+            return False
+
+        shadow_venue_gaps = [
+            dataclasses.replace(g, kelly_fraction=0.0)
+            for g in result.ev_gaps
+            if not _venue_gap_live(g)
+        ]
+        if shadow_venue_gaps:
+            result.ev_gaps = [g for g in result.ev_gaps if _venue_gap_live(g)]
+            self.log.info(
+                "venue_gaps_shadowed",
+                count=len(shadow_venue_gaps),
+                venue="polymarket_us",
+                sectors=sorted({g.sector for g in shadow_venue_gaps}),
+            )
 
         pre_guard = len(result.ev_gaps)
         # Load Kelly fractions from bets the user already placed in earlier
