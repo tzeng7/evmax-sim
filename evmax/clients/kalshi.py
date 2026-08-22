@@ -619,6 +619,50 @@ class KalshiClient(BaseAPIClient):
             logger.warning("kalshi_sign_failed", error=str(e))
             return {}
 
+    async def get_balance(self) -> Optional[float]:
+        """TOTAL account wealth in DOLLARS (Kelly bankroll base), or None.
+
+        ``GET /portfolio/balance`` (RSA-PSS signed). Returns total equity =
+        ``(balance + portfolio_value) / 100`` where ``balance`` is available
+        cash and ``portfolio_value`` is the mark-to-market value of open
+        positions — both in integer cents. Total wealth (cash + positions) is
+        the theoretically correct Kelly base: placing a fairly-priced bet moves
+        cash into a position of equal value, so the bankroll stays ~constant
+        instead of shrinking with each bet (which cash-only would do).
+
+        Returns None when no key material is configured, the key lacks
+        portfolio scope, or the call fails — the caller falls back to a manual
+        bankroll rather than sizing real money against a guess (never
+        fail-open).
+        """
+        from urllib.parse import urlsplit
+
+        # Signed path must include the base_url path prefix (/trade-api/v2);
+        # httpx re-adds it to the request URL from base_url, so the relative
+        # request path stays "/portfolio/balance".
+        signed_path = urlsplit(self.base_url).path + "/portfolio/balance"
+        headers = self._sign_request("GET", signed_path)
+        if not headers:
+            return None
+        if self._client is None:
+            raise RuntimeError("Client not initialised — use async context manager")
+        try:
+            await _KALSHI_RATE_LIMITER.acquire()
+            resp = await self._client.get("/portfolio/balance", headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            logger.warning("kalshi_balance_fetch_failed", error=str(e))
+            return None
+        cash_cents = data.get("balance")
+        if cash_cents is None:
+            return None
+        positions_cents = data.get("portfolio_value") or 0
+        try:
+            return round((float(cash_cents) + float(positions_cents)) / 100.0, 2)
+        except (TypeError, ValueError):
+            return None
+
     async def get_markets(
         self,
         sector: str,

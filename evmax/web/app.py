@@ -496,7 +496,7 @@ def _gap_to_dict(g, bankroll: float) -> dict[str, Any]:
     # what log_gaps will persist (see prediction_demoted_shadow_venue).
     if gap_mode == "live" and gap_venue == "polymarket_us":
         from evmax.settings import get_settings
-        if not get_settings().polymarket_us_live:
+        if not get_settings().polymarket_us_sector_live(getattr(g, "sector", None)):
             gap_mode = "shadow"
     # Maker-only gaps clear the floor only as a resting limit order — not
     # crossable at the ask, so they are never a live taker pick. Mirror the
@@ -734,6 +734,25 @@ async def api_categories() -> JSONResponse:
     return JSONResponse({"categories": cats})
 
 
+@app.get("/api/balance")
+async def api_balance(venue: str = Query("", alias="venue")) -> JSONResponse:
+    """Live TOTAL account wealth per venue (cash + open positions), for the
+    venue filter to seed the Kelly bankroll.
+
+    ``{"balances": {"kalshi": 512.34, "polymarket_us": null}}`` — a null means
+    no credentials / fetch failure, and the UI keeps the manual bankroll for
+    that venue rather than sizing against a guess. Read-only; never mutates.
+    """
+    from evmax.clients.balances import SUPPORTED_VENUES, fetch_all_balances
+
+    targets = [venue.lower()] if venue else list(SUPPORTED_VENUES)
+    targets = [v for v in targets if v in SUPPORTED_VENUES]
+    if not targets:
+        return JSONResponse({"error": f"unknown venue {venue!r}"}, status_code=400)
+    balances = await fetch_all_balances(targets)
+    return JSONResponse({"balances": balances})
+
+
 @app.post("/api/scan")
 async def api_scan(request: Request) -> JSONResponse:
     """Run a full agent scan and return EV gaps.
@@ -747,6 +766,15 @@ async def api_scan(request: Request) -> JSONResponse:
     sectors_str = body.get("sectors") or _default_scan_sectors()
     bankroll = float(body.get("bankroll", 500))
     kelly = float(body.get("kelly", 0.5))
+    # Optionally source the bankroll from a venue's LIVE balance (the venue
+    # filter's "size against my actual balance" flow). Falls back to the passed
+    # bankroll if the balance is unavailable; the source is echoed back so the
+    # UI can show whether real capital or the manual figure was used.
+    bankroll_venue = (body.get("bankroll_venue") or "").strip().lower() or None
+    bankroll_source = "manual"
+    if bankroll_venue:
+        from evmax.clients.balances import resolve_bankroll
+        bankroll, bankroll_source = await resolve_bankroll(bankroll, bankroll_venue)
     date_from = body.get("date_from", "")
     date_to = body.get("date_to", "")
     fan_out = body.get("fan_out_portfolios", True)
@@ -800,6 +828,8 @@ async def api_scan(request: Request) -> JSONResponse:
         "markets_matched": cycle.markets_matched,
         "sectors": sectors,
         "portfolio_results": portfolio_results,
+        "bankroll": round(bankroll, 2),
+        "bankroll_source": bankroll_source,
     })
 
 

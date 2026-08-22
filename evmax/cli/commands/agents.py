@@ -130,6 +130,12 @@ def scan(
     no_injuries: bool = typer.Option(False, "--no-injuries", help="Skip injury report agent."),
     sharp_weight: float = typer.Option(0.85, "--sharp-weight", help="Weight for Pinnacle in ensemble blend."),
     bankroll: float = typer.Option(250.0, "--bankroll", "-b", help="Current bankroll in USD."),
+    bankroll_venue: Optional[str] = typer.Option(
+        None, "--bankroll-venue",
+        help="Size against a venue's LIVE balance instead of --bankroll: "
+             "kalshi | polymarket_us. Falls back to --bankroll if the balance "
+             "call fails (no credentials / error).",
+    ),
     kelly: float = typer.Option(0.5, "--kelly", "-k", help="Kelly fraction (0.5=half, 0.25=quarter)."),
     min_ev: float = typer.Option(0.02, "--min-ev", help="Base minimum EV threshold (scaled up automatically for low-prob bets)."),
     min_prob: float = typer.Option(0.15, "--min-prob", help="Minimum true probability floor. Bets below this are excluded regardless of EV."),
@@ -255,6 +261,21 @@ def scan(
     _cfg = _load_cfg()
     if _cfg.get("sharp_weight") and sharp_weight == 0.85:
         sharp_weight = _cfg["sharp_weight"]
+
+    # Optionally size against a venue's LIVE balance instead of --bankroll.
+    if bankroll_venue:
+        from evmax.clients.balances import resolve_bankroll as _resolve_bankroll
+        bankroll, _bk_source = asyncio.run(_resolve_bankroll(bankroll, bankroll_venue))
+        if _bk_source.startswith("live:"):
+            console.print(
+                f"[green]Bankroll ${bankroll:,.2f}[/green] "
+                f"[dim](live {bankroll_venue} balance)[/dim]"
+            )
+        else:
+            console.print(
+                f"[yellow]⚠ {bankroll_venue} balance unavailable — sizing against "
+                f"--bankroll ${bankroll:,.2f} instead.[/yellow]"
+            )
 
     coordinator = AgentCoordinator(
         sectors=sector_list,
@@ -1176,6 +1197,60 @@ def fill(
         f"\n[bold green]Promoted {market_id} to a live placed maker bet[/bold green] "
         "(maker_fill=1 — P&L uses the maker fee).\n"
     )
+
+
+@app.command("balance")
+def balance(
+    venue: Optional[str] = typer.Option(
+        None, "--venue", "-v",
+        help="Limit to one venue: kalshi | polymarket_us. Default: both.",
+    ),
+) -> None:
+    """Show live TOTAL account wealth per venue (the Kelly bankroll base).
+
+    Total wealth = cash + open-position value: Kalshi balance + portfolio_value
+    (GET /portfolio/balance); Polymarket US currentBalance + assetAvailable
+    (GET /v1/account/balances). Requires the venue's API key
+    material in .env. A venue with no credentials or a fetch error shows
+    "n/a" — scan/pick fall back to the manual --bankroll for that venue
+    rather than sizing against a guess.
+
+    \b
+    Example:
+      evmax agents balance
+      evmax agents balance --venue kalshi
+    """
+    from evmax.clients.balances import SUPPORTED_VENUES, fetch_all_balances
+
+    if venue:
+        v = venue.lower()
+        if v not in SUPPORTED_VENUES:
+            console.print(
+                f"[red]Unknown venue {venue!r}. Choose from: {', '.join(SUPPORTED_VENUES)}[/red]"
+            )
+            raise typer.Exit(1)
+        targets = [v]
+    else:
+        targets = list(SUPPORTED_VENUES)
+
+    balances = asyncio.run(fetch_all_balances(targets))
+
+    t = Table(box=box.SIMPLE, show_header=True, title="Live Account Balances")
+    t.add_column("Venue", min_width=16)
+    t.add_column("Total wealth (USD)", justify="right", width=18)
+    for v in targets:
+        bal = balances.get(v)
+        t.add_row(
+            venue_label(v) if v != "polymarket_us" else "Polymarket US",
+            f"${bal:,.2f}" if bal is not None else "[dim]n/a[/dim]",
+        )
+    console.print()
+    console.print(t)
+    if any(balances.get(v) is None for v in targets):
+        console.print(
+            "[dim]n/a = no API credentials configured or the balance call "
+            "failed; sizing falls back to --bankroll for that venue.[/dim]"
+        )
 
 
 @app.command("resolve")
