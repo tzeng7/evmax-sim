@@ -7,6 +7,13 @@ Active clients (used in live pipeline):
                        sharp-odds source for both the scan pipeline and `evmax project`.
 - mlb_statsapi.py    — MLBStatsClient: official MLB Stats API (free, no key); primary source for
                        baseball probable starters, keyed by stable team id (ESPN scoreboard fallback)
+- polymarket_us.py   — PolymarketUSClient: Polymarket US gateway (public market data) + Ed25519-
+                       auth balance fetch. Second venue alongside Kalshi (behind the per-sector
+                       shadow firewall, settings.polymarket_us_sector_live).
+- balances.py        — Live TOTAL-WEALTH balance fetch, venue-agnostic (fetch_balance /
+                       fetch_all_balances / resolve_bankroll). Feeds the Kelly bankroll from a
+                       venue's real account (Kalshi balance+portfolio_value; PolyUS
+                       currentBalance+assetAvailable). Fail-soft: None → manual bankroll.
 
 Seed-time clients (NOT in the live scan pipeline):
 - tennisabstract.py  — Tennis Abstract scrapers, the replacement for Sackmann's offline (2026)
