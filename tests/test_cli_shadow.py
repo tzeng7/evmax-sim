@@ -352,7 +352,7 @@ def _make_clv_db(tmp_path: Path, rows: list[tuple]) -> Path:
         """
         CREATE TABLE ev_predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            scan_date TEXT, market_id TEXT, event_id TEXT, sector TEXT,
+            scan_date TEXT, market_id TEXT, event_id TEXT, event_title TEXT, sector TEXT,
             market_type TEXT, line REAL, model_sources TEXT, mode TEXT,
             kalshi_clv_pct REAL, venue TEXT NOT NULL DEFAULT 'kalshi',
             placed INTEGER DEFAULT 0, placed_at TEXT

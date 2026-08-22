@@ -457,6 +457,125 @@ def clv_clears(n: int, mean_clv_pp: float, frac_positive: float) -> bool:
     )
 
 
+def _fetch_clv_rows(
+    category: str,
+    market_type: Optional[str] = None,
+    mode: Optional[str] = None,
+    since: Optional[str] = None,
+    side: Optional[str] = None,
+    venue: Optional[str] = None,
+    max_staleness_h: Optional[float] = None,
+    sources_token: Optional[str] = None,
+) -> tuple[list, int]:
+    """Fetch a category's current-code resolved CLV rows.
+
+    Shared row-fetch behind ``clv_stats`` and the ``clv-tiers`` segmentation:
+    applies the identical category / market_type / mode / since / side / venue /
+    staleness filters and the contamination guard, so every CLV lens scores the
+    same row set. Each returned row also carries ``event_title`` for downstream
+    grouping. See ``clv_stats`` for the per-parameter semantics. Returns
+    ``(kept_rows, excluded_stale)``.
+    """
+    from evmax.agents.cleanup.contamination import is_contaminated
+    from evmax.agents.cleanup.db import get_connection
+
+    where = ["p.kalshi_clv_pct IS NOT NULL", "o.outcome IS NOT NULL"]
+    params: list = []
+    if category.endswith("_props"):
+        where.append("(p.sector = ? AND p.event_id LIKE '%::prop::%')")
+        params.append(category[: -len("_props")])
+    else:
+        where.append("p.sector = ?")
+        params.append(category)
+    if market_type is not None:
+        where.append("p.market_type = ?")
+        params.append(market_type)
+    if mode is not None:
+        where.append("p.mode = ?")
+        params.append(mode)
+    if since is not None:
+        where.append("p.scan_date >= ?")
+        params.append(since)
+    if side is not None:
+        if side not in ("lay", "take"):
+            raise ValueError(f"side must be 'lay' or 'take', got {side!r}")
+        where.append("p.line < 0" if side == "lay" else "p.line > 0")
+    if venue is not None:
+        if venue not in ("kalshi", "polymarket_us"):
+            raise ValueError(
+                f"venue must be 'kalshi' or 'polymarket_us', got {venue!r}"
+            )
+        where.append("p.venue = ?")
+        params.append(venue)
+    if max_staleness_h is not None and max_staleness_h < 0:
+        raise ValueError(f"max_staleness_h must be >= 0, got {max_staleness_h!r}")
+    if sources_token is not None:
+        where.append("p.model_sources LIKE ?")
+        params.append(f"%{sources_token}%")
+    sql = f"""
+        SELECT p.sector, p.market_type, p.model_sources, p.line, p.kalshi_clv_pct,
+               p.event_id, p.event_title, p.venue, p.placed, p.placed_at,
+               p.market_id
+        FROM ev_predictions p
+        INNER JOIN ev_outcomes o ON p.market_id = o.market_id
+        WHERE {' AND '.join(where)}
+    """
+    with get_connection() as conn:
+        rows = conn.execute(sql, params).fetchall()
+
+    kept = [
+        r for r in rows
+        if not is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"])
+    ]
+
+    excluded_stale = 0
+    if max_staleness_h is not None:
+        from evmax.agents.cleanup.resolver import close_lookup_ticker
+        from evmax.archiver import DataArchiver
+
+        archiver = DataArchiver()
+        fresh = []
+        for r in kept:
+            # Staleness only applies to Kalshi close snapshots; PolyUS rows have
+            # no Kalshi close and are passed through untouched.
+            if (r["venue"] or "kalshi") != "kalshi":
+                fresh.append(r)
+                continue
+            ticker, _is_no = close_lookup_ticker(r["market_id"])
+            if not ticker:
+                excluded_stale += 1  # no anchor => untrustworthy close, drop
+                continue
+            not_before = r["placed_at"] if (r["placed"] and r["placed_at"]) else None
+            staleness = archiver.get_kalshi_close_staleness_h(
+                ticker, r["event_id"], not_before=not_before
+            )
+            if staleness is None or staleness > max_staleness_h:
+                excluded_stale += 1
+                continue
+            fresh.append(r)
+        kept = fresh
+
+    return kept, excluded_stale
+
+
+def _aggregate_clv(kept: list, excluded_stale: int = 0) -> dict:
+    """Aggregate kept CLV rows into the clv_stats result dict."""
+    clvs = [r["kalshi_clv_pct"] for r in kept]
+    n = len(clvs)
+    if n == 0:
+        return {"n": 0, "mean_clv_pp": 0.0, "frac_positive": 0.0,
+                "clears": False, "excluded_stale": excluded_stale}
+    mean_clv = sum(clvs) / n
+    frac_pos = sum(1 for c in clvs if c > 0) / n
+    return {
+        "n": n,
+        "mean_clv_pp": round(mean_clv, 3),
+        "frac_positive": round(frac_pos, 3),
+        "clears": clv_clears(n, mean_clv, frac_pos),
+        "excluded_stale": excluded_stale,
+    }
+
+
 def clv_stats(
     category: str,
     market_type: Optional[str] = None,
@@ -503,98 +622,12 @@ def clv_stats(
     'anchored_entry' isolates the watch-listings anchored-entry rows from
     historical scan-time rows without --since gymnastics.
     """
-    from evmax.agents.cleanup.contamination import is_contaminated
-    from evmax.agents.cleanup.db import get_connection
-
-    where = ["p.kalshi_clv_pct IS NOT NULL", "o.outcome IS NOT NULL"]
-    params: list = []
-    if category.endswith("_props"):
-        where.append("(p.sector = ? AND p.event_id LIKE '%::prop::%')")
-        params.append(category[: -len("_props")])
-    else:
-        where.append("p.sector = ?")
-        params.append(category)
-    if market_type is not None:
-        where.append("p.market_type = ?")
-        params.append(market_type)
-    if mode is not None:
-        where.append("p.mode = ?")
-        params.append(mode)
-    if since is not None:
-        where.append("p.scan_date >= ?")
-        params.append(since)
-    if side is not None:
-        if side not in ("lay", "take"):
-            raise ValueError(f"side must be 'lay' or 'take', got {side!r}")
-        where.append("p.line < 0" if side == "lay" else "p.line > 0")
-    if venue is not None:
-        if venue not in ("kalshi", "polymarket_us"):
-            raise ValueError(
-                f"venue must be 'kalshi' or 'polymarket_us', got {venue!r}"
-            )
-        where.append("p.venue = ?")
-        params.append(venue)
-    if max_staleness_h is not None and max_staleness_h < 0:
-        raise ValueError(f"max_staleness_h must be >= 0, got {max_staleness_h!r}")
-    if sources_token is not None:
-        where.append("p.model_sources LIKE ?")
-        params.append(f"%{sources_token}%")
-    sql = f"""
-        SELECT p.sector, p.market_type, p.model_sources, p.line, p.kalshi_clv_pct,
-               p.event_id, p.venue, p.placed, p.placed_at, p.market_id
-        FROM ev_predictions p
-        INNER JOIN ev_outcomes o ON p.market_id = o.market_id
-        WHERE {' AND '.join(where)}
-    """
-    with get_connection() as conn:
-        rows = conn.execute(sql, params).fetchall()
-
-    kept = [
-        r for r in rows
-        if not is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"])
-    ]
-
-    excluded_stale = 0
-    if max_staleness_h is not None:
-        from evmax.agents.cleanup.resolver import close_lookup_ticker
-        from evmax.archiver import DataArchiver
-
-        archiver = DataArchiver()
-        fresh = []
-        for r in kept:
-            # Staleness only applies to Kalshi close snapshots; PolyUS rows have
-            # no Kalshi close and are passed through untouched.
-            if (r["venue"] or "kalshi") != "kalshi":
-                fresh.append(r)
-                continue
-            ticker, _is_no = close_lookup_ticker(r["market_id"])
-            if not ticker:
-                excluded_stale += 1  # no anchor => untrustworthy close, drop
-                continue
-            not_before = r["placed_at"] if (r["placed"] and r["placed_at"]) else None
-            staleness = archiver.get_kalshi_close_staleness_h(
-                ticker, r["event_id"], not_before=not_before
-            )
-            if staleness is None or staleness > max_staleness_h:
-                excluded_stale += 1
-                continue
-            fresh.append(r)
-        kept = fresh
-
-    clvs = [r["kalshi_clv_pct"] for r in kept]
-    n = len(clvs)
-    if n == 0:
-        return {"n": 0, "mean_clv_pp": 0.0, "frac_positive": 0.0,
-                "clears": False, "excluded_stale": excluded_stale}
-    mean_clv = sum(clvs) / n
-    frac_pos = sum(1 for c in clvs if c > 0) / n
-    return {
-        "n": n,
-        "mean_clv_pp": round(mean_clv, 3),
-        "frac_positive": round(frac_pos, 3),
-        "clears": clv_clears(n, mean_clv, frac_pos),
-        "excluded_stale": excluded_stale,
-    }
+    kept, excluded_stale = _fetch_clv_rows(
+        category, market_type=market_type, mode=mode, since=since,
+        side=side, venue=venue, max_staleness_h=max_staleness_h,
+        sources_token=sources_token,
+    )
+    return _aggregate_clv(kept, excluded_stale)
 
 
 @app.command("clv")
@@ -675,6 +708,113 @@ def clv(
         f"  % bets with +CLV = {s['frac_positive']*100:.0f}%{stale_line}\n"
         f"  gate: n≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
         f"%pos≥{CLV_MIN_FRAC_POSITIVE*100:.0f}%  →  {verdict}"
+    )
+
+
+@app.command("clv-tiers")
+def clv_tiers(
+    category: str = typer.Argument(
+        "ncaaf", help="Category to segment (only 'ncaaf' is tiered)."
+    ),
+    market_type: Optional[str] = typer.Option(
+        None, "--market-type", "-m", help="Restrict to one market type."
+    ),
+    mode: Optional[str] = typer.Option(
+        None, "--mode", help="Restrict to one mode (live/shadow). Default: all."
+    ),
+    since: Optional[str] = typer.Option(
+        None, "--since", help="Only score rows scanned on/after YYYY-MM-DD."
+    ),
+    venue: Optional[str] = typer.Option(
+        None, "--venue",
+        help="Restrict to one exchange: 'kalshi' or 'polymarket_us'.",
+    ),
+    max_staleness_h: Optional[float] = typer.Option(
+        None, "--max-staleness-h",
+        help="Exclude Kalshi rows whose archived close is > this many h before T-30.",
+    ),
+    sources_token: Optional[str] = typer.Option(
+        None, "--sources-token",
+        help="Keep only rows whose model_sources contains this token.",
+    ),
+) -> None:
+    """Segment resolved CLV by conference tier — the CFB soft-market edge test.
+
+    Groups a category's current-code resolved CLV rows by matchup tier (G5 = both
+    Group-of-Five, cross = one of each, P4 = both Power-4, FCS = a buy game or an
+    unmapped team) and reports per-tier CLV against the same promotion gate that
+    ``clv`` uses. The thesis is that softer, less-watched G5 games carry more
+    entry->close edge than efficiently-priced marquee P4 games; this is where the
+    live sample proves or kills it. Only 'ncaaf' carries a conference-tier map.
+    """
+    if category != "ncaaf":
+        console.print(
+            "[red]clv-tiers only supports 'ncaaf' — it is the only sector with a "
+            "conference-tier map.[/red]"
+        )
+        raise typer.Exit(1)
+
+    from evmax.sectors.ncaaf_tiers import TIER_ORDER, matchup_tier, split_event_title
+
+    kept, excluded_stale = _fetch_clv_rows(
+        category, market_type=market_type, mode=mode, since=since,
+        venue=venue, max_staleness_h=max_staleness_h, sources_token=sources_token,
+    )
+
+    buckets: dict[str, list] = {tier: [] for tier in TIER_ORDER}
+    for r in kept:
+        a, b = split_event_title(r["event_title"])
+        buckets[matchup_tier(a, b)].append(r)
+
+    label = f"{category}" + (f" / {market_type}" if market_type else "")
+    label += f" [{mode}]" if mode else " [all modes]"
+    if since:
+        label += f" since {since}"
+    if venue:
+        label += f" venue={venue}"
+
+    total = sum(len(v) for v in buckets.values())
+    if total == 0:
+        note = ""
+        if max_staleness_h is not None and excluded_stale:
+            note = f" ({excluded_stale} excluded as stale-capture)"
+        console.print(
+            f"[yellow]No current-code resolved CLV rows for {label} yet.{note}[/yellow]\n"
+            "Tier segmentation is wired and will populate as ncaaf games resolve "
+            "with backfilled CLV (watch-closes + backfill_clv over the season)."
+        )
+        return
+
+    _TIER_DESC = {
+        "G5": "G5 · both Group-of-Five (softest)",
+        "cross": "cross · P4 vs G5",
+        "P4": "P4 · both Power-4 (hardest)",
+        "FCS": "FCS · buy game / unmapped",
+    }
+    table = Table(title=f"NCAAF CLV by conference tier — {label}", box=box.SIMPLE)
+    table.add_column("Tier", no_wrap=True)
+    table.add_column("Games", justify="right")
+    table.add_column("CLV rows", justify="right")
+    table.add_column("mean CLV", justify="right")
+    table.add_column("% +CLV", justify="right")
+    table.add_column("gate", justify="center")
+    for tier in TIER_ORDER:
+        rows = buckets[tier]
+        games = len({r["event_id"] for r in rows})
+        s = _aggregate_clv(rows)
+        if s["n"] == 0:
+            table.add_row(_TIER_DESC[tier], str(games), "0", "—", "—", "—")
+            continue
+        gate = "[green]✓[/green]" if s["clears"] else "[red]✗[/red]"
+        table.add_row(
+            _TIER_DESC[tier], str(games), str(s["n"]),
+            f"{s['mean_clv_pp']:+.2f}pp", f"{s['frac_positive']*100:.0f}%", gate,
+        )
+    console.print(table)
+    console.print(
+        f"  gate: n≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
+        f"%pos≥{CLV_MIN_FRAC_POSITIVE*100:.0f}%  ·  thesis: G5 CLV > P4 CLV"
+        + (f"  ·  {excluded_stale} stale-excluded" if excluded_stale else "")
     )
 
 
