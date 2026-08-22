@@ -3,7 +3,7 @@ import type { ScanGap } from '../lib/types'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
-import { pickBets } from '../lib/api'
+import { pickBets, recordMakerFills } from '../lib/api'
 
 interface Props {
   gaps: ScanGap[]
@@ -45,6 +45,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
   const [selected, setSelected] = useState<Set<string>>(() => new Set(gaps.map(g => g.market_id)))
   const [fills, setFills] = useState<Record<string, { odds: string; stake: string }>>({})
   const [picking, setPicking] = useState(false)
+  const [filling, setFilling] = useState(false)
 
   // Reset selection when gaps change
   useMemo(() => {
@@ -102,11 +103,15 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
   }
 
   const handlePick = useCallback(async () => {
-    const bets = [...selected].map(mid => ({
-      market_id: mid,
-      fill_price: centsToProb(fills[mid]?.odds || ''),
-      fill_stake: parseFloat(fills[mid]?.stake || '0'),
-    }))
+    // Maker-only rows are excluded: they are not crossable at the ask, so
+    // /api/pick rejects them. They go through handleFill instead.
+    const bets = gaps
+      .filter(g => !g.maker_only && selected.has(g.market_id))
+      .map(g => ({
+        market_id: g.market_id,
+        fill_price: centsToProb(fills[g.market_id]?.odds || ''),
+        fill_stake: parseFloat(fills[g.market_id]?.stake || '0'),
+      }))
     if (!bets.length) return
     setPicking(true)
     try {
@@ -127,11 +132,42 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     } finally {
       setPicking(false)
     }
-  }, [selected, fills, toast, onPicked])
+  }, [gaps, selected, fills, toast, onPicked])
+
+  const handleFill = useCallback(async () => {
+    const rows = gaps
+      .filter(g => g.maker_only && selected.has(g.market_id))
+      .map(g => ({
+        market_id: g.market_id,
+        fill_price: centsToProb(fills[g.market_id]?.odds || ''),
+        fill_stake: parseFloat(fills[g.market_id]?.stake || '0'),
+      }))
+    if (!rows.length) return
+    setFilling(true)
+    try {
+      const res = await recordMakerFills(rows)
+      if (res.filled > 0) {
+        const fee = res.fills.reduce((a, f) => a + f.maker_fee, 0)
+        const skippedNote = res.skipped?.length ? ` \u00b7 skipped ${res.skipped.length}` : ''
+        toast(`Recorded ${res.filled} maker fill(s) \u00b7 fees $${fee.toFixed(2)}${skippedNote}`, 'ok')
+      } else {
+        const first = res.skipped?.[0]
+        const more = (res.skipped?.length ?? 0) > 1 ? ` (+${(res.skipped!.length) - 1} more)` : ''
+        toast(first ? `Recorded 0 \u2014 ${first.reason}${more}` : 'Recorded 0 maker fill(s)', 'err')
+      }
+      onPicked()
+    } catch (e) {
+      toast('Maker fill failed: ' + (e as Error).message, 'err')
+    } finally {
+      setFilling(false)
+    }
+  }, [gaps, selected, fills, toast, onPicked])
 
   if (!gaps.length) return null
 
-  const checkedCount = [...selected].filter(mid => filtered.some(g => g.market_id === mid)).length
+  const checkedRows = filtered.filter(g => selected.has(g.market_id))
+  const pickCount = checkedRows.filter(g => !g.maker_only).length
+  const fillCount = checkedRows.filter(g => g.maker_only).length
 
   return (
     <div className="panel">
@@ -164,12 +200,21 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
             const outcome = outcomeLabel(g)
             const mode = g.mode || 'live'
             const isLive = mode === 'live'
+            // A maker-only row logs as shadow (fill-contingent) but is still
+            // selectable — its selection arms "Record Maker Fill", never the
+            // taker pick, which the ask price would make -EV.
+            const isMaker = !!g.maker_only
+            const selectable = isLive || isMaker
             return (
               <tr key={g.market_id} style={isLive ? undefined : { opacity: 0.55 }}>
                 <td>
                   <input type="checkbox" checked={selected.has(g.market_id)}
-                    disabled={!isLive}
-                    title={isLive ? '' : `${mode} mode — not pickable`}
+                    disabled={!selectable}
+                    title={
+                      isMaker
+                        ? 'Maker-only — select, set Fill ¢ / Stake to what actually filled, then "Record Maker Fill"'
+                        : isLive ? '' : `${mode} mode — not pickable`
+                    }
                     onChange={() => toggle(g.market_id)} />
                 </td>
                 <td className="muted">{g.event_date}</td>
@@ -186,7 +231,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
                     <span
                       className="badge"
                       style={{ marginLeft: 4, background: 'rgba(198,120,221,0.13)', color: '#c678dd', borderColor: 'rgba(198,120,221,0.32)' }}
-                      title="Clears the EV floor only as a resting limit order (maker fee), not crossable at the ask. Rest your buy at the Bid ¢ price (Fill ¢ / Stake are pre-seeded to it); record the fill with `evmax agents fill`."
+                      title="Clears the EV floor only as a resting limit order (maker fee), not crossable at the ask. Rest your buy at the Bid ¢ price (Fill ¢ / Stake are pre-seeded to it). Once it fills, tick this row and hit Record Maker Fill (or run `evmax agents fill`)."
                     >MAKER</span>
                   )}
                 </td>
@@ -223,9 +268,18 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
           })}
         </tbody>
       </table>
-      <div style={{ marginTop: 8 }}>
-        <button className="btn success" disabled={checkedCount === 0 || picking} onClick={handlePick}>
-          {picking ? 'Placing...' : `Pick Selected (${checkedCount})`}
+      <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
+        <button className="btn success" disabled={pickCount === 0 || picking} onClick={handlePick}>
+          {picking ? 'Placing...' : `Pick Selected (${pickCount})`}
+        </button>
+        <button
+          className="btn"
+          style={{ borderColor: 'rgba(198,120,221,0.45)', color: '#c678dd' }}
+          disabled={fillCount === 0 || filling}
+          onClick={handleFill}
+          title="Record selected MAKER rows as filled limit orders — placed at the Fill ¢ / Stake shown, charged the maker fee."
+        >
+          {filling ? 'Recording...' : `Record Maker Fill (${fillCount})`}
         </button>
       </div>
     </div>
