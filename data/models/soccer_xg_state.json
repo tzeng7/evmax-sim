@@ -3471,6 +3471,16 @@
     "arsenal": {
       "matches": [
         {
+          "date": "2026-08-21",
+          "goals_for": 3,
+          "goals_against": 0,
+          "sot": 6,
+          "shots": 20,
+          "xg": 2.22,
+          "xga": 0.39,
+          "is_home": true
+        },
+        {
           "date": "2026-05-30",
           "goals_for": 1,
           "goals_against": 1,
@@ -3658,16 +3668,6 @@
           "shots": 18,
           "xg": 2.97,
           "xga": 0.57,
-          "is_home": true
-        },
-        {
-          "date": "2026-04-25",
-          "goals_for": 1,
-          "goals_against": 0,
-          "sot": 4,
-          "shots": 11,
-          "xg": 1.41,
-          "xga": 1.2,
           "is_home": true
         }
       ]
@@ -5919,6 +5919,16 @@
     "sociedad": {
       "matches": [
         {
+          "date": "2026-08-21",
+          "goals_for": 0,
+          "goals_against": 1,
+          "sot": 3,
+          "shots": 9,
+          "xg": 1.08,
+          "xga": 2.43,
+          "is_home": false
+        },
+        {
           "date": "2026-05-23",
           "goals_for": 1,
           "goals_against": 1,
@@ -6107,16 +6117,6 @@
           "xg": 1.83,
           "xga": 3.18,
           "is_home": true
-        },
-        {
-          "date": "2026-01-09",
-          "goals_for": 2,
-          "goals_against": 1,
-          "sot": 5,
-          "shots": 12,
-          "xg": 1.71,
-          "xga": 0.99,
-          "is_home": false
         }
       ]
     },
@@ -7551,6 +7551,16 @@
     "betis": {
       "matches": [
         {
+          "date": "2026-08-21",
+          "goals_for": 1,
+          "goals_against": 0,
+          "sot": 7,
+          "shots": 18,
+          "xg": 2.43,
+          "xga": 1.08,
+          "is_home": true
+        },
+        {
           "date": "2026-04-16",
           "goals_for": 2,
           "goals_against": 4,
@@ -7738,16 +7748,6 @@
           "shots": 7,
           "xg": 1.02,
           "xga": 0.81,
-          "is_home": false
-        },
-        {
-          "date": "2026-04-12",
-          "goals_for": 1,
-          "goals_against": 1,
-          "sot": 3,
-          "shots": 8,
-          "xg": 1.05,
-          "xga": 1.44,
           "is_home": false
         }
       ]
@@ -16119,6 +16119,16 @@
     "marseille": {
       "matches": [
         {
+          "date": "2026-08-21",
+          "goals_for": 4,
+          "goals_against": 0,
+          "sot": 8,
+          "shots": 14,
+          "xg": 2.58,
+          "xga": 0.69,
+          "is_home": true
+        },
+        {
           "date": "2026-01-28",
           "goals_for": 0,
           "goals_against": 3,
@@ -16307,16 +16317,6 @@
           "xg": 2.43,
           "xga": 1.98,
           "is_home": true
-        },
-        {
-          "date": "2026-02-20",
-          "goals_for": 0,
-          "goals_against": 2,
-          "sot": 4,
-          "shots": 17,
-          "xg": 1.59,
-          "xga": 1.44,
-          "is_home": false
         }
       ]
     },
@@ -18975,6 +18975,16 @@
     "strasbourg": {
       "matches": [
         {
+          "date": "2026-08-21",
+          "goals_for": 0,
+          "goals_against": 4,
+          "sot": 2,
+          "shots": 5,
+          "xg": 0.69,
+          "xga": 2.58,
+          "is_home": false
+        },
+        {
           "date": "2026-05-17",
           "goals_for": 5,
           "goals_against": 4,
@@ -19163,16 +19173,6 @@
           "xg": 0.9,
           "xga": 0.81,
           "is_home": true
-        },
-        {
-          "date": "2025-12-06",
-          "goals_for": 0,
-          "goals_against": 1,
-          "sot": 0,
-          "shots": 3,
-          "xg": 0.09,
-          "xga": 0.99,
-          "is_home": false
         }
       ]
     },
@@ -29666,6 +29666,20 @@
           "shots": 5,
           "xg": 0.42,
           "xga": 2.07,
+          "is_home": false
+        }
+      ]
+    },
+    "coventry city": {
+      "matches": [
+        {
+          "date": "2026-08-21",
+          "goals_for": 0,
+          "goals_against": 3,
+          "sot": 1,
+          "shots": 4,
+          "xg": 0.39,
+          "xga": 2.22,
           "is_home": false
         }
       ]
