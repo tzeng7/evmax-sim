@@ -39,6 +39,10 @@
   --radius-sm: 9px;
   --radius-xs: 7px;
 
+  /* One height for every interactive control in the header toolbar, so the
+     whole row shares a single baseline instead of a jagged mix of paddings. */
+  --control-h: 34px;
+
   /* Motion — stronger, more intentional curves than the CSS built-ins.
      ease-out for enter/exit (instant response), ease-in-out for on-screen
      movement, spring-ish for tactile presses. */
@@ -96,25 +100,98 @@ h2::before {
   background: var(--amber); box-shadow: 0 0 10px var(--amber-line); flex: none;
 }
 
-/* ── Header (sticky, frosted, hairline) ── */
-.header {
+/* ── Top bar (sticky, frosted) — two clear tiers ──
+   Tier 1 (.topbar-bar): identity + navigation.
+   Tier 2 (.topbar-tools): the scan toolbar (dashboard only).
+   The frosted surface + hairline span full width; the inner rows are
+   constrained to the content column so brand, nav, and tools all align
+   with the page body below. */
+.topbar {
   position: sticky; top: 0; z-index: 50;
-  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
-  padding: 15px 30px;
   background: rgba(10, 11, 13, 0.82);
   backdrop-filter: saturate(150%) blur(16px);
   -webkit-backdrop-filter: saturate(150%) blur(16px);
   border-bottom: 1px solid var(--border-soft);
 }
-.header-left { display: flex; align-items: baseline; gap: 13px; }
-.header-left h1 { color: var(--amber); transition: color .15s, transform .08s; }
-.header-left h1:hover { color: var(--text); }
+.topbar-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 20px; flex-wrap: wrap;
+  max-width: 1340px; margin: 0 auto; padding: 14px 30px;
+}
+.topbar-tools {
+  max-width: 1340px; margin: 0 auto; padding: 12px 30px;
+  border-top: 1px solid var(--border-soft);
+  /* Faint lift so tier 2 reads as its own surface, not more of the nav row. */
+  background: rgba(255, 255, 255, 0.014);
+}
+/* Right cluster of tier 1: navigation, a hairline, then the primary verbs.
+   Grouping the actions with nav keeps them top-level and always on one line,
+   instead of trailing the parameter toolbar below. */
+.topbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.topbar-div { width: 1px; height: 22px; background: var(--border); flex: none; }
+.topbar-actions { display: inline-flex; align-items: center; gap: 8px; }
+.brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.brand h1 { color: var(--amber); transition: color .15s, transform .08s; }
+.brand h1:hover { color: var(--text); }
 .home-link { cursor: pointer; border-radius: 8px; }
 .home-link:active { transform: translateY(1px); }
 .home-link:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--amber-soft); }
 .subtitle {
   color: var(--muted); font-size: 11px; font-family: var(--sans); font-weight: 500;
   letter-spacing: 0.005em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (max-width: 640px) { .subtitle { display: none; } }
+
+/* ── Scan toolbar — related controls clustered, clusters hairline-divided ── */
+.toolbar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px;
+}
+.tool-group { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.tool-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--muted); white-space: nowrap; user-select: none;
+}
+/* Hairline cluster divider. Hidden once the toolbar wraps to keep stray
+   verticals from floating at the start of a wrapped line. */
+.tool-sep { width: 1px; align-self: stretch; min-height: 22px; background: var(--border); flex: none; }
+/* Push the primary actions to the right edge — and keep them there even when
+   the toolbar wraps them onto their own line (margin-auto survives the wrap). */
+.tool-actions { margin-left: auto; }
+.tool-dash { color: var(--muted); }
+.tool-venue { max-width: 168px; }
+.tool-bankroll { width: 94px; text-align: right; font-variant-numeric: tabular-nums; }
+.tool-date { width: 140px; }
+
+/* Every control in the toolbar shares one height for a clean baseline. */
+.toolbar select,
+.toolbar input[type="text"],
+.toolbar input[type="number"],
+.toolbar input[type="date"],
+.toolbar .btn,
+.toolbar .icon-btn,
+.toolbar .sector-ms-toggle {
+  height: var(--control-h);
+}
+
+/* Square icon button (refresh live balance) — matches the control height. */
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: var(--control-h); padding: 0; font-size: 15px; line-height: 1;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--panel-2); color: var(--text-dim); cursor: pointer;
+  box-shadow: var(--edge-hi);
+  transition: background .18s var(--ease-out), border-color .18s var(--ease-out),
+              color .18s var(--ease-out), transform .13s var(--ease-out);
+}
+.icon-btn:hover { border-color: var(--amber-line); color: var(--text); background: var(--elevated); }
+.icon-btn:active { transform: scale(0.94); }
+.icon-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--amber-soft); }
+.icon-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+@media (max-width: 760px) {
+  .topbar-bar, .topbar-tools { padding-left: 16px; padding-right: 16px; }
+  .tool-sep, .topbar-div { display: none; }
 }
 
 /* ── Buttons ── */
@@ -199,8 +276,8 @@ td input[type="number"], td input[type="text"] {
 /* ── Kelly slider (direct-manipulation risk knob) ── */
 .kelly-slider { display: inline-flex; align-items: center; gap: 8px; }
 .kelly-slider label {
-  font-size: 11px; font-weight: 600; color: var(--muted);
-  letter-spacing: 0.02em; cursor: pointer; user-select: none;
+  font-size: 10px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; user-select: none;
 }
 .kelly-slider-val {
   min-width: 42px; font-family: var(--mono); font-size: 12px; font-weight: 600;
@@ -474,10 +551,11 @@ tbody tr:last-child td { border-bottom: none; }
 
 /* ── Reduced transparency: frost the glass into solid surfaces (§14) ── */
 @media (prefers-reduced-transparency: reduce) {
-  .header {
+  .topbar {
     background: var(--bg);
     backdrop-filter: none; -webkit-backdrop-filter: none;
   }
+  .topbar-tools { background: var(--panel); }
   .sector-ms-menu, .toast { backdrop-filter: none; -webkit-backdrop-filter: none; }
   .toast.info { background: #12161a; }
   .toast.ok { background: #0c2018; }
