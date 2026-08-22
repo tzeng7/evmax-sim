@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import { runScan, resolve, fetchBalances } from '../lib/api'
 import { useCategories } from '../lib/useCategories'
 import { SectorMultiSelect } from './SectorMultiSelect'
@@ -31,9 +32,13 @@ interface Props {
   ) => void
   onResolve: () => void
   toast: (msg: string, type?: 'info' | 'ok' | 'err') => void
+  // The primary Scan/Resolve verbs render into this top-bar slot (a portal),
+  // so they sit with navigation as top-level actions instead of trailing the
+  // parameter row. Until the slot mounts they simply don't render.
+  actionsSlot?: HTMLElement | null
 }
 
-export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScanComplete, onResolve, toast }: Props) {
+export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScanComplete, onResolve, toast, actionsSlot }: Props) {
   const cats = useCategories()
   const allSectors = cats.map(c => c.key).join(',')
   // Sector list comes from the registry via /api/categories. Default the
@@ -158,51 +163,71 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
     }
   }
 
+  const actions = (
+    <>
+      <button className="btn primary" onClick={handleScan} disabled={scanning}>
+        {scanning ? 'Scanning...' : 'Scan'}
+      </button>
+      <button className="btn" onClick={handleResolve} disabled={resolving}>
+        {resolving ? 'Resolving...' : 'Resolve'}
+      </button>
+    </>
+  )
+
   return (
-    <div className="actions">
-      <SectorMultiSelect value={sectors} onChange={setSectors} />
-      <select
-        value={bankrollVenue}
-        onChange={e => setBankrollVenue(e.target.value)}
-        style={{ fontSize: 11 }}
-        title="Bankroll source — Manual, or size Kelly against a venue's live total-wealth balance"
-      >
-        {BANKROLL_VENUES.map(o => (
-          <option key={o.value || 'manual'} value={o.value}>
-            {o.value ? `${o.label} (live)` : o.label}
-          </option>
-        ))}
-      </select>
-      <input
-        type="number"
-        value={bankrollStr}
-        onChange={e => handleBankrollChange(e.target.value)}
-        style={{ width: 80 }}
-        readOnly={!!bankrollVenue}
-        title={bankrollVenue
-          ? `Live ${venueLabel(bankrollVenue)} balance — Kelly is sized against this at scan time`
-          : 'Bankroll ($)'}
-      />
-      {bankrollVenue && (
-        <span
-          className="muted"
-          style={{ fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+    <div className="toolbar">
+      <div className="tool-group">
+        <span className="tool-label">Sectors</span>
+        <SectorMultiSelect value={sectors} onChange={setSectors} />
+      </div>
+
+      <span className="tool-sep" aria-hidden="true" />
+
+      <div className="tool-group">
+        <span className="tool-label">Bankroll</span>
+        <select
+          className="tool-venue"
+          value={bankrollVenue}
+          onChange={e => setBankrollVenue(e.target.value)}
+          title="Bankroll source — Manual, or size Kelly against a venue's live total-wealth balance"
         >
-          <span className={`badge${liveBalance != null ? '' : ' warn'}`}>
-            {balanceLoading ? 'live …' : liveBalance != null ? 'LIVE' : 'no creds'}
-          </span>
-          <button
-            className="btn"
-            onClick={() => loadBalance(bankrollVenue)}
-            disabled={balanceLoading}
-            style={{ padding: '2px 8px', fontSize: 11 }}
-            title="Refresh live balance"
-          >
-            ⟳
-          </button>
-        </span>
-      )}
-      <div className="kelly-slider" title="Kelly fraction — drag to resize every stake live">
+          {BANKROLL_VENUES.map(o => (
+            <option key={o.value || 'manual'} value={o.value}>
+              {o.value ? `${o.label} (live)` : o.label}
+            </option>
+          ))}
+        </select>
+        <input
+          type="number"
+          className="tool-bankroll"
+          value={bankrollStr}
+          onChange={e => handleBankrollChange(e.target.value)}
+          readOnly={!!bankrollVenue}
+          title={bankrollVenue
+            ? `Live ${venueLabel(bankrollVenue)} balance — Kelly is sized against this at scan time`
+            : 'Bankroll ($)'}
+        />
+        {bankrollVenue && (
+          <>
+            <span className={`badge${liveBalance != null ? '' : ' warn'}`}>
+              {balanceLoading ? 'live …' : liveBalance != null ? 'LIVE' : 'no creds'}
+            </span>
+            <button
+              className="icon-btn"
+              onClick={() => loadBalance(bankrollVenue)}
+              disabled={balanceLoading}
+              title="Refresh live balance"
+              aria-label="Refresh live balance"
+            >
+              ⟳
+            </button>
+          </>
+        )}
+      </div>
+
+      <span className="tool-sep" aria-hidden="true" />
+
+      <div className="tool-group kelly-slider" title="Kelly fraction — drag to resize every stake live">
         <label htmlFor="kelly-range">Kelly</label>
         <input
           id="kelly-range"
@@ -216,17 +241,24 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
         />
         <span className="kelly-slider-val">{kelly.toFixed(2)}×</span>
       </div>
-      <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-        style={{ width: 138, fontSize: 11 }} title="From date" />
-      <span className="muted">–</span>
-      <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-        style={{ width: 138, fontSize: 11 }} title="To date" />
-      <button className="btn primary" onClick={handleScan} disabled={scanning}>
-        {scanning ? 'Scanning...' : 'Scan'}
-      </button>
-      <button className="btn" onClick={handleResolve} disabled={resolving}>
-        {resolving ? 'Resolving...' : 'Resolve'}
-      </button>
+
+      <span className="tool-sep" aria-hidden="true" />
+
+      <div className="tool-group">
+        <span className="tool-label">Range</span>
+        <input type="date" className="tool-date" value={dateFrom}
+          onChange={e => setDateFrom(e.target.value)} title="From date" />
+        <span className="tool-dash" aria-hidden="true">–</span>
+        <input type="date" className="tool-date" value={dateTo}
+          onChange={e => setDateTo(e.target.value)} title="To date" />
+      </div>
+
+      {/* Scan/Resolve live in the top bar (portalled to actionsSlot). When the
+          slot isn't mounted yet, fall back to rendering them inline so the
+          verbs are never missing. */}
+      {actionsSlot
+        ? createPortal(actions, actionsSlot)
+        : <div className="tool-group tool-actions">{actions}</div>}
     </div>
   )
 }

@@ -25,6 +25,9 @@ export default function App() {
   const { toast, ...toastProps } = useToast()
   const [view, setView] = useState<'all' | 'placed'>('all')
   const [page, setPage] = useState<Page>({ kind: 'dashboard' })
+  // Top-bar slot that ActionBar portals its Scan/Resolve verbs into, so the
+  // primary actions sit with navigation rather than trailing the toolbar.
+  const [actionsSlot, setActionsSlot] = useState<HTMLDivElement | null>(null)
   // Lifted to App so ScanResults can re-size stakes live when these change
   // without forcing a re-scan. ActionBar still owns the inputs.
   const [bankrollStr, setBankrollStr] = useState('250')
@@ -36,60 +39,72 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="header">
-        <div className="header-left">
-          <h1
-            className="home-link"
-            role="button"
-            tabIndex={0}
-            onClick={() => setPage({ kind: 'dashboard' })}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPage({ kind: 'dashboard' }) } }}
-          >evmax</h1>
-          <span className="subtitle">+EV prediction market dashboard</span>
+      <header className="topbar">
+        <div className="topbar-bar">
+          <div className="brand">
+            <h1
+              className="home-link"
+              role="button"
+              tabIndex={0}
+              onClick={() => setPage({ kind: 'dashboard' })}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPage({ kind: 'dashboard' }) } }}
+            >evmax</h1>
+            <span className="subtitle">+EV prediction market dashboard</span>
+          </div>
+          <div className="topbar-right">
+            <nav className="segmented">
+              <button
+                className={`seg ${page.kind === 'dashboard' ? 'active' : ''}`}
+                onClick={() => setPage({ kind: 'dashboard' })}
+              >
+                Dashboard
+              </button>
+              <button
+                className={`seg ${page.kind === 'metrics' ? 'active' : ''}`}
+                onClick={() => setPage({ kind: 'metrics' })}
+              >
+                Metrics
+              </button>
+              <button
+                className={`seg ${page.kind === 'board' ? 'active' : ''}`}
+                onClick={() => setPage({ kind: 'board' })}
+              >
+                Board
+              </button>
+              <button
+                className={`seg ${page.kind === 'arb' ? 'active' : ''}`}
+                onClick={() => setPage({ kind: 'arb' })}
+              >
+                Arb
+              </button>
+              <button
+                className={`seg ${page.kind === 'portfolios' || page.kind === 'portfolio' ? 'active' : ''}`}
+                onClick={() => setPage({ kind: 'portfolios' })}
+              >
+                Portfolios
+              </button>
+            </nav>
+            {page.kind === 'dashboard' && (
+              <>
+                <span className="topbar-div" aria-hidden="true" />
+                <div className="topbar-actions" ref={setActionsSlot} />
+              </>
+            )}
+          </div>
         </div>
-        <nav className="segmented">
-          <button
-            className={`seg ${page.kind === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setPage({ kind: 'dashboard' })}
-          >
-            Dashboard
-          </button>
-          <button
-            className={`seg ${page.kind === 'metrics' ? 'active' : ''}`}
-            onClick={() => setPage({ kind: 'metrics' })}
-          >
-            Metrics
-          </button>
-          <button
-            className={`seg ${page.kind === 'board' ? 'active' : ''}`}
-            onClick={() => setPage({ kind: 'board' })}
-          >
-            Board
-          </button>
-          <button
-            className={`seg ${page.kind === 'arb' ? 'active' : ''}`}
-            onClick={() => setPage({ kind: 'arb' })}
-          >
-            Arb
-          </button>
-          <button
-            className={`seg ${page.kind === 'portfolios' || page.kind === 'portfolio' ? 'active' : ''}`}
-            onClick={() => setPage({ kind: 'portfolios' })}
-          >
-            Portfolios
-          </button>
-        </nav>
-        <div style={{ flex: 1 }} />
         {page.kind === 'dashboard' && (
-          <ActionBar
-            bankrollStr={bankrollStr}
-            setBankrollStr={setBankrollStr}
-            kelly={kelly}
-            setKelly={setKelly}
-            onScanComplete={dash.setScanResults}
-            onResolve={dash.refresh}
-            toast={toast}
-          />
+          <div className="topbar-tools">
+            <ActionBar
+              bankrollStr={bankrollStr}
+              setBankrollStr={setBankrollStr}
+              kelly={kelly}
+              setKelly={setKelly}
+              onScanComplete={dash.setScanResults}
+              onResolve={dash.refresh}
+              toast={toast}
+              actionsSlot={actionsSlot}
+            />
+          </div>
         )}
       </header>
 
