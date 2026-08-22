@@ -1,9 +1,18 @@
-import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult, PromotionBoardResult } from './types'
+import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult, PromotionBoardResult, VenueBalances } from './types'
 
 const json = (r: Response) => r.json()
 
 export async function fetchCategories(): Promise<Category[]> {
   return fetch('/api/categories').then(json).then((d: { categories: Category[] }) => d.categories)
+}
+
+// Live total-wealth balance per venue (cash + open positions). Omit `venue` to
+// fetch every supported venue at once. A null value means no credentials / the
+// fetch failed — the UI keeps the manual bankroll rather than sizing against a
+// guess.
+export async function fetchBalances(venue?: string): Promise<VenueBalances> {
+  const qs = venue ? `?venue=${encodeURIComponent(venue)}` : ''
+  return fetch(`/api/balance${qs}`).then(json).then((d: { balances: VenueBalances }) => d.balances)
 }
 
 export async function fetchDashboard(): Promise<{
@@ -33,6 +42,9 @@ export async function runScan(params: {
   kelly: number
   date_from: string
   date_to: string
+  // When set, the server sizes Kelly against this venue's LIVE balance and
+  // ignores `bankroll` (falling back to it only if the balance is unavailable).
+  bankroll_venue?: string
 }): Promise<ScanResult> {
   return fetch('/api/scan', {
     method: 'POST',

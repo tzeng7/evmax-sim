@@ -92,7 +92,17 @@ export interface ScanResult {
   markets_matched: number
   sectors: string[]
   portfolio_results?: { portfolio_id: string; portfolio_name: string; gaps_logged: number }[]
+  // The bankroll Kelly was actually sized against, plus where it came from.
+  // bankroll_source is "manual", "live:{venue}", or "manual_fallback" (a venue
+  // was requested but its live balance was unavailable). Present when the scan
+  // was asked to size against a venue balance (bankroll_venue).
+  bankroll?: number
+  bankroll_source?: string
 }
+
+// venue -> live total-wealth USD (cash + open positions), or null when the
+// venue has no credentials / the fetch failed. Returned by GET /api/balance.
+export type VenueBalances = Record<string, number | null>
 
 export interface Portfolio {
   id: string
