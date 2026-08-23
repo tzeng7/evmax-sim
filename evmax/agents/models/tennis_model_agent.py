@@ -32,6 +32,7 @@ State file: data/models/tennis_surface_state.json
 
 from __future__ import annotations
 
+from datetime import date, datetime
 from typing import Optional
 
 import structlog
@@ -176,6 +177,16 @@ DEFAULT_SURFACE = "hard"
 # K-factor for tennis Elo updates
 K_FACTOR = 24.0
 
+# Staleness guard (days). Drop surface Elo when neither a resolve-time update
+# nor the weekly Tennis-Abstract reseed has refreshed the store within this many
+# days of the match. Surface Elo (0.30 of the tennis blend) draws from a
+# DIFFERENT source (TA leaderboards) than the matchmx-fed models, so a double
+# outage (resolve stopped AND reseed failed) can freeze it while form/serve/
+# advanced stay fresh — passing the full-blend gate on stale ratings. 60 days
+# matches the tennis form guard; a healthy weekly reseed keeps the stamp <7d old.
+# Legacy state without the stamp is never stale (back-compat).
+SURFACE_ELO_STALE_DAYS = 60
+
 # ATP ranking → approximate starting Elo
 # Based on empirical calibration: rank 1 ≈ 1900, rank 100 ≈ 1550
 def ranking_to_elo(rank: Optional[int]) -> float:
@@ -309,6 +320,24 @@ class TennisModelAgent(ModelAgent):
     # Prediction
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _is_stale(last_updated: Optional[str], reference: Optional[date]) -> bool:
+        """True when the surface-Elo store's ``last_updated`` is older than
+        SURFACE_ELO_STALE_DAYS before ``reference`` (the match date, or today).
+
+        A missing stamp (legacy state) is NOT stale — the guard is disabled so
+        pre-stamp state keeps contributing. An unparseable stamp is treated as
+        stale (a corrupt stamp shouldn't be trusted as fresh).
+        """
+        if not last_updated:
+            return False
+        ref = reference or date.today()
+        try:
+            lu = date.fromisoformat(str(last_updated)[:10])
+        except (ValueError, TypeError):
+            return True
+        return (ref - lu).days > SURFACE_ELO_STALE_DAYS
+
     async def predict_pair(
         self,
         market: PredictionMarket,
@@ -322,6 +351,14 @@ class TennisModelAgent(ModelAgent):
         player_b = (sharp_odds.outcome_b_label or market.team_away or "").lower().strip()
 
         if not player_a or not player_b:
+            return None
+
+        # Staleness guard: drop surface Elo when the store is frozen (a resolve
+        # outage AND a stopped weekly reseed). Legacy state without the stamp is
+        # never stale, so existing state keeps contributing until refreshed.
+        _ed = getattr(market, "event_date", None)
+        ref = _ed.date() if isinstance(_ed, datetime) else None
+        if self._is_stale(self._state.get("last_updated"), ref):
             return None
 
         surface, is_indoor = self._resolve_surface(
@@ -482,6 +519,14 @@ class TennisModelAgent(ModelAgent):
         if sector != "tennis":
             return
 
+        # Stamp the store's freshness for the staleness guard (predict_pair drops
+        # surface Elo when neither this nor the weekly reseed has run within
+        # SURFACE_ELO_STALE_DAYS of the match). Keep the MAX date seen.
+        if event_date:
+            prev = self._state.get("last_updated")
+            if prev is None or event_date > prev:
+                self._state["last_updated"] = event_date
+
         player_a = team_a.lower().strip()
         player_b = team_b.lower().strip()
         surf = surface.lower().strip() if surface else "overall"
@@ -634,6 +679,9 @@ class TennisModelAgent(ModelAgent):
         # Idempotent reset — ranking priors (atp/wta_rankings) are preserved.
         self._state["ratings"] = {}
         self._state["game_counts"] = {}
+        # The weekly reseed IS the freshness signal for surface Elo — stamp it so
+        # the staleness guard stays satisfied even when no games are resolving.
+        self._state["last_updated"] = date.today().isoformat()
 
         seeded: dict[str, int] = {}
         for surface, ratings in ratings_by_surface.items():

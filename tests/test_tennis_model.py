@@ -781,3 +781,45 @@ class TestCountLookupSurnameFallback:
         assert agent._get_count("sinner", "hard") >= MIN_SURFACE_GAMES
         expected = min(0.80, 0.55 + 0.005 * 12)
         assert expected == pytest.approx(0.61)
+
+
+# ---------------------------------------------------------------------------
+# Surface-Elo staleness guard (Family-2, live sector)
+# ---------------------------------------------------------------------------
+
+
+class TestSurfaceEloStaleness:
+    """Surface Elo draws from a DIFFERENT source (TA leaderboards) than the
+    matchmx-fed models, so it can freeze while they stay fresh and pass the
+    full-blend gate. The store-level last_updated guard drops it when frozen."""
+
+    @pytest.mark.asyncio
+    async def test_stale_store_drops_surface_elo(self, agent):
+        agent.seed_surface_ratings("hard", {"sinner": 1900.0, "alcaraz": 1700.0})
+        agent._state["last_updated"] = "2026-01-01"   # match 2026-06-05 → >60d
+        pred = await agent.predict_pair(make_tennis_market(), make_tennis_sharp())
+        assert pred is None
+
+    @pytest.mark.asyncio
+    async def test_fresh_store_fires(self, agent):
+        agent.seed_surface_ratings("hard", {"sinner": 1900.0, "alcaraz": 1700.0})
+        agent._state["last_updated"] = "2026-06-01"   # 4d before match
+        pred = await agent.predict_pair(make_tennis_market(), make_tennis_sharp())
+        assert pred is not None
+
+    @pytest.mark.asyncio
+    async def test_legacy_no_stamp_is_never_stale(self, agent):
+        # No last_updated (legacy state) → guard disabled → still predicts.
+        agent.seed_surface_ratings("hard", {"sinner": 1900.0, "alcaraz": 1700.0})
+        pred = await agent.predict_pair(make_tennis_market(), make_tennis_sharp())
+        assert pred is not None
+
+    def test_reseed_stamps_last_updated_today(self, agent):
+        from datetime import date
+        agent.seed_precomputed_surface_elo({"hard": {"sinner": 1900.0}})
+        assert agent._state["last_updated"] == date.today().isoformat()
+
+    def test_resolve_update_stamps_last_updated(self, agent):
+        agent.update("sinner", "alcaraz", 2, 0, "tennis",
+                     event_date="2026-06-04", surface="hard")
+        assert agent._state["last_updated"] == "2026-06-04"
