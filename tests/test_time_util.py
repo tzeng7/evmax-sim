@@ -67,3 +67,31 @@ def test_baseball_evening_game_uses_eastern_calendar():
     pair Kalshi's game 1 with Pinnacle's game 2 in a back-to-back series."""
     commence = datetime(2026, 5, 13, 1, 10, tzinfo=timezone.utc)
     assert kalshi_game_day(commence, "baseball") == "2026-05-12"
+
+
+# ---------------------------------------------------------------------------
+# Naive-datetime hardening (defensive backstop)
+# ---------------------------------------------------------------------------
+
+
+def test_naive_datetime_treated_as_utc_us_sector():
+    """A NAIVE datetime must be read as UTC, not the server's local tz — else
+    .astimezone() shifts the game day on a non-UTC host (the launchd tasks run
+    on a PT Mac). 01:30 UTC on Apr 21 is 21:30 ET on Apr 20 → game day Apr 20."""
+    naive = datetime(2026, 4, 21, 1, 30)  # no tzinfo; intended as UTC
+    assert kalshi_game_day(naive, "nba") == "2026-04-20"
+
+
+def test_naive_datetime_non_us_sector_uses_utc_date():
+    naive = datetime(2026, 4, 21, 1, 30)
+    assert kalshi_game_day(naive, "soccer") == "2026-04-21"
+
+
+def test_naive_matches_explicit_utc_regardless_of_runner_tz():
+    """A naive datetime and the SAME instant made explicitly UTC must produce
+    the identical game day — the invariant the naive→UTC coercion guarantees
+    on any host timezone."""
+    naive = datetime(2026, 4, 21, 1, 30)
+    aware = datetime(2026, 4, 21, 1, 30, tzinfo=timezone.utc)
+    for sector in ("nba", "baseball", "soccer", "tennis"):
+        assert kalshi_game_day(naive, sector) == kalshi_game_day(aware, sector), sector
