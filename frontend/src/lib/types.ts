@@ -84,6 +84,12 @@ export interface ScanGap {
   maker_bid_price?: number | null   // actionable: the price (prob 0-1) to REST the buy at
   maker_bid_ev_pct?: number | null  // EV % if the resting order fills at maker_bid_price
   maker_bid_kelly_fraction?: number | null // Kelly fraction sized at that fill (suggested stake)
+  // Best-execution alternative (GAP 3): when the same bet is also +EV on the
+  // OTHER venue, this row is the better book and these carry the alternative so
+  // you can still line-shop. null when the bet is quoted on only one venue.
+  alt_venue?: string | null
+  alt_venue_price?: number | null   // the other venue's YES ask (prob 0-1)
+  alt_venue_ev_pct?: number | null  // the other venue's EV %
 }
 
 export interface ScanResult {

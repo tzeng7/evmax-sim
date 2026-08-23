@@ -604,6 +604,49 @@ class TestMatchEspn:
         assert _match_espn(pred, scores) == 1
 
     # ------------------------------------------------------------------
+    # Push guard: an INTEGER spread/total line where the result lands exactly
+    # on the line is a REFUND, not a loss. Kalshi uses N.5 lines so this can't
+    # occur there, but the guard stops a future integer line from silently
+    # grading a push as a loss (which would corrupt CLV / Brier / the auto-tuner).
+    # ------------------------------------------------------------------
+
+    def test_spread_integer_line_exact_push_is_none(self):
+        # Favorite -7 wins by exactly 7 → push (refund), not a loss.
+        scores = [_make_score("Boston Celtics", 107, "Washington Wizards", 100)]
+        pred = _make_pred(
+            "nba::2026-03-19::celtics_vs_wizards::spread",
+            "celtics", market_type="spread", line=-7.0,
+        )
+        assert _match_espn(pred, scores) is None
+
+    def test_spread_integer_dog_line_exact_push_is_none(self):
+        # Dog +7 loses by exactly 7 → push.
+        scores = [_make_score("Boston Celtics", 107, "Washington Wizards", 100)]
+        pred = _make_pred(
+            "nba::2026-03-19::celtics_vs_wizards::spread",
+            "wizards", market_type="spread", line=7.0,
+        )
+        assert _match_espn(pred, scores) is None
+
+    def test_spread_half_line_never_pushes(self):
+        # Regression: a .5 line with a 7-point win still grades (no false push).
+        scores = [_make_score("Boston Celtics", 107, "Washington Wizards", 100)]
+        pred = _make_pred(
+            "nba::2026-03-19::celtics_vs_wizards::spread",
+            "celtics", market_type="spread", line=-7.5,
+        )
+        assert _match_espn(pred, scores) == 0  # win by 7 < 7.5 → NO, not a push
+
+    def test_total_integer_line_exact_push_is_none(self):
+        # Combined score lands exactly on an integer total line → push.
+        scores = [_make_score("Houston Astros", 6, "Los Angeles Angels", 6)]
+        pred = _make_pred(
+            "baseball::2026-06-10::angels_vs_astros::total::12",
+            "over", market_type="total", line=12.0,
+        )
+        assert _match_espn(pred, scores) is None
+
+    # ------------------------------------------------------------------
     # Total / over-under resolution — regression for BUG where _match_espn
     # required resolving the YES *side* before grading. yes_team for totals
     # is "over"/"under", which never fuzzy-matches a team slug; whenever

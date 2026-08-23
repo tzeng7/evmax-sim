@@ -635,6 +635,26 @@ class KalshiClient(BaseAPIClient):
         bankroll rather than sizing real money against a guess (never
         fail-open).
         """
+        data = await self._get_portfolio_balance_data()
+        if data is None:
+            return None
+        cash_cents = data.get("balance")
+        if cash_cents is None:
+            return None
+        positions_cents = data.get("portfolio_value") or 0
+        try:
+            return round((float(cash_cents) + float(positions_cents)) / 100.0, 2)
+        except (TypeError, ValueError):
+            return None
+
+    async def _get_portfolio_balance_data(self) -> Optional[dict]:
+        """Signed ``GET /portfolio/balance`` → raw payload dict, or None.
+
+        Shared by :meth:`get_balance` (total wealth) and
+        :meth:`get_cash_balance` (deployable cash) so the RSA-PSS signing and
+        the fail-soft error handling live in one place. Returns None on
+        no-credentials / network error (never fail-open).
+        """
         from urllib.parse import urlsplit
 
         # Signed path must include the base_url path prefix (/trade-api/v2);
@@ -650,16 +670,29 @@ class KalshiClient(BaseAPIClient):
             await _KALSHI_RATE_LIMITER.acquire()
             resp = await self._client.get("/portfolio/balance", headers=headers)
             resp.raise_for_status()
-            data = resp.json()
+            return resp.json()
         except Exception as e:
             logger.warning("kalshi_balance_fetch_failed", error=str(e))
+            return None
+
+    async def get_cash_balance(self) -> Optional[float]:
+        """DEPLOYABLE CASH in DOLLARS (per-venue fundability cap base), or None.
+
+        ``GET /portfolio/balance`` → ``balance / 100`` — the available-cash
+        field ONLY, EXCLUDING ``portfolio_value`` (open-position value). A new
+        bet is funded from cash, not from the mark-to-market value of open
+        positions, so the per-venue cash cap sizes against this figure. This is
+        distinct from :meth:`get_balance` (total wealth = cash + positions),
+        which is the Kelly base. Fail-soft: None on no-credentials / error.
+        """
+        data = await self._get_portfolio_balance_data()
+        if data is None:
             return None
         cash_cents = data.get("balance")
         if cash_cents is None:
             return None
-        positions_cents = data.get("portfolio_value") or 0
         try:
-            return round((float(cash_cents) + float(positions_cents)) / 100.0, 2)
+            return round(float(cash_cents) / 100.0, 2)
         except (TypeError, ValueError):
             return None
 

@@ -101,3 +101,50 @@ def test_web_badge_tennis_poly_stays_shadow_under_wnba_allowlist(monkeypatch):
     monkeypatch.setattr(get_settings(), "polymarket_us_live_sectors", "wnba")
     d = _gap_to_dict(_gap("tennis"), bankroll=500.0)
     assert d["mode"] == "shadow"
+
+
+# ---------------------------------------------------------------------------
+# _venue_is_live — per-scan venue selection ∩ firewall (GAP: venue scoping)
+# ---------------------------------------------------------------------------
+
+from evmax.agents.coordinator import _venue_is_live  # noqa: E402
+
+
+class _FakeSettings:
+    def __init__(self, live_sectors):
+        self._live = {s.lower() for s in live_sectors}
+
+    def polymarket_us_sector_live(self, sector):
+        return (sector or "").lower() in self._live
+
+
+def test_venue_is_live_kalshi_always_when_no_selection():
+    assert _venue_is_live("kalshi", "nba", None, _FakeSettings([])) is True
+
+
+def test_venue_is_live_poly_gated_by_firewall():
+    s = _FakeSettings(["wnba"])
+    assert _venue_is_live("polymarket_us", "wnba", None, s) is True
+    assert _venue_is_live("polymarket_us", "nba", None, s) is False
+
+
+def test_selection_restricts_unselected_venue_out():
+    """Selecting only PolyUS makes a Kalshi gap non-live (the user opted out of
+    Kalshi for this scan)."""
+    s = _FakeSettings(["wnba"])
+    assert _venue_is_live("kalshi", "nba", {"polymarket_us"}, s) is False
+
+
+def test_selection_cannot_override_firewall():
+    """Picking a venue never forces an un-validated PolyUS sector live — the
+    firewall still gates within the selection."""
+    s = _FakeSettings([])  # no PolyUS sector cleared
+    assert _venue_is_live("polymarket_us", "wnba", {"polymarket_us"}, s) is False
+
+
+def test_both_selected_allows_each_subject_to_firewall():
+    s = _FakeSettings(["wnba"])
+    both = {"kalshi", "polymarket_us"}
+    assert _venue_is_live("kalshi", "nba", both, s) is True
+    assert _venue_is_live("polymarket_us", "wnba", both, s) is True
+    assert _venue_is_live("polymarket_us", "nba", both, s) is False

@@ -334,6 +334,23 @@ class PossessionSimAgent(ModelAgent):
         if sector != "nba":
             return None
 
+        # Freshness guard: possession_sim shares efficiency_state.json with
+        # EfficiencyAgent, which RE-FETCHES when the state goes stale. As a pure
+        # CONSUMER, possession_sim can't re-fetch, so it ABSTAINS (returns None,
+        # dropping out of the blend) on a stale state rather than sizing a live
+        # bet on frozen ratings after a resolve outage or a stopped weekly seed
+        # (the Family-2 / WNBA-feed-gap lesson). Mirrors the same fetched_at
+        # freshness check EfficiencyAgent applies — fail-soft: an unreachable
+        # ESPN with a valid fetched_at is treated as fresh, an empty fetched_at
+        # as stale.
+        eff_data = self._load_efficiency_state()
+        if not eff_data.get("teams"):
+            return None
+        from evmax.agents.models._nba_freshness import state_is_fresh
+        if not await state_is_fresh(eff_data.get("fetched_at", "")):
+            self.log.info("possession_sim_state_stale", fetched_at=eff_data.get("fetched_at", ""))
+            return None
+
         team_a = (sharp_odds.outcome_a_label or market.team_home or "").lower().strip()
         team_b = (sharp_odds.outcome_b_label or market.team_away or "").lower().strip()
 

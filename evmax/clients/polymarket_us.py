@@ -321,20 +321,8 @@ class PolymarketUSClient(BaseAPIClient):
         when no key material is configured or the call fails — the caller falls
         back to a manual bankroll rather than sizing real money against a guess.
         """
-        path = "/v1/account/balances"
-        headers = self._sign_request("GET", path)
-        if not headers:
-            return None
-        if self._client is None:
-            raise RuntimeError("Client not initialised — use async context manager")
-        url = get_settings().polymarket_us_api_base_url.rstrip("/") + path
-        try:
-            await _POLYMARKET_US_RATE_LIMITER.acquire()
-            resp = await self._client.get(url, headers=headers)
-            resp.raise_for_status()
-            data = resp.json()
-        except Exception as e:
-            logger.warning("polymarket_us_balance_fetch_failed", error=str(e))
+        data = await self._get_balances_payload()
+        if data is None:
             return None
         balances = data.get("balances") or []
         target = currency.upper()
@@ -346,6 +334,59 @@ class PolymarketUSClient(BaseAPIClient):
                 positions = b.get("assetAvailable") or 0
                 try:
                     return round(float(cash) + float(positions), 2)
+                except (TypeError, ValueError):
+                    return None
+        return None
+
+    async def _get_balances_payload(self) -> Optional[dict]:
+        """Signed ``GET /v1/account/balances`` → raw payload dict, or None.
+
+        Shared by :meth:`get_balance` (total wealth) and
+        :meth:`get_cash_balance` (deployable cash) so the Ed25519 signing and
+        the fail-soft error handling live in one place. Returns None on
+        no-credentials / network error (never fail-open).
+        """
+        path = "/v1/account/balances"
+        headers = self._sign_request("GET", path)
+        if not headers:
+            return None
+        if self._client is None:
+            raise RuntimeError("Client not initialised — use async context manager")
+        url = get_settings().polymarket_us_api_base_url.rstrip("/") + path
+        try:
+            await _POLYMARKET_US_RATE_LIMITER.acquire()
+            resp = await self._client.get(url, headers=headers)
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            logger.warning("polymarket_us_balance_fetch_failed", error=str(e))
+            return None
+
+    async def get_cash_balance(self, currency: str = "USD") -> Optional[float]:
+        """DEPLOYABLE CASH in DOLLARS for ``currency`` (fundability cap), or None.
+
+        ``GET /v1/account/balances`` → ``buyingPower`` (the deployable-cash
+        figure that nets out resting open orders), falling back to
+        ``currentBalance`` (fiat cash) when ``buyingPower`` is absent. A new bet
+        is funded from cash, not from the value locked in open positions, so the
+        per-venue cash cap sizes against this. This is distinct from
+        :meth:`get_balance` (total wealth = currentBalance + assetAvailable),
+        which is the Kelly base. Fail-soft: None on no-credentials / error.
+        """
+        data = await self._get_balances_payload()
+        if data is None:
+            return None
+        balances = data.get("balances") or []
+        target = currency.upper()
+        for b in balances:
+            if (b.get("currency") or "").upper() == target:
+                cash = b.get("buyingPower")
+                if cash is None:
+                    cash = b.get("currentBalance")
+                if cash is None:
+                    return None
+                try:
+                    return round(float(cash), 2)
                 except (TypeError, ValueError):
                     return None
         return None

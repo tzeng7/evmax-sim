@@ -30,11 +30,24 @@ Seeding:
 from __future__ import annotations
 
 import math
+from datetime import date, datetime
 from typing import Optional
 
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
+
+# Staleness guard (days). Drop poisson when the sector's ratings haven't been
+# fed a result within this many days of the game being predicted — a resolve
+# outage or a stopped weekly seed leaves the attack/defense rates FROZEN, and a
+# frozen 40%-of-the-blend model must not silently size a live bet (the Family-2
+# / WNBA-feed-gap lesson). worldcup gets a much longer window: national teams
+# play in bursts with long gaps between international windows, and you only bet
+# them DURING an active window (recent matches present), so 180d still catches
+# a season-dead seed without over-dropping between windows. Mirrors
+# EloModelAgent.STALE_DAYS; legacy state without the stamp is never stale.
+POISSON_STALE_DAYS: dict[str, int] = {"soccer": 60, "worldcup": 180}
+_POISSON_DEFAULT_STALE_DAYS = 60
 
 # Default league-average goals per game (home / away)
 LEAGUE_AVG_DEFAULTS: dict[str, dict[str, float]] = {
@@ -252,6 +265,27 @@ class PoissonModelAgent(ModelAgent):
     # Prediction
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _is_stale(
+        last_updated: Optional[str], sector: str, reference: Optional[date]
+    ) -> bool:
+        """True when the sector's ``last_updated`` is older than its
+        POISSON_STALE_DAYS before ``reference`` (the game date, or today).
+
+        A missing ``last_updated`` (legacy seed) is NOT stale — the guard is
+        disabled so pre-stamp state keeps contributing. An unparseable stamp is
+        treated as stale (a corrupt stamp shouldn't be trusted as fresh).
+        """
+        if not last_updated:
+            return False
+        ref = reference or date.today()
+        try:
+            lu = date.fromisoformat(str(last_updated)[:10])
+        except (ValueError, TypeError):
+            return True
+        threshold = POISSON_STALE_DAYS.get(sector, _POISSON_DEFAULT_STALE_DAYS)
+        return (ref - lu).days > threshold
+
     async def predict_pair(
         self,
         market: PredictionMarket,
@@ -259,6 +293,14 @@ class PoissonModelAgent(ModelAgent):
     ) -> Optional[ModelAgentPrediction]:
         sector = (market.sector or "").lower()
         if sector not in SUPPORTED_SECTORS:
+            return None
+
+        # Staleness guard: drop poisson when the sector's ratings are frozen
+        # (a resolve outage / stopped seed). Legacy state without the stamp is
+        # never stale, so existing seeds keep contributing until update() runs.
+        _ed = getattr(market, "event_date", None)
+        ref = _ed.date() if isinstance(_ed, datetime) else None
+        if self._is_stale(self._state.get(sector, {}).get("last_updated"), sector, ref):
             return None
 
         home = (sharp_odds.outcome_a_label or market.team_home or "").lower().strip()
@@ -359,6 +401,14 @@ class PoissonModelAgent(ModelAgent):
         sector = sector.lower()
         if sector not in self._state:
             self._state[sector] = {"league_avg": dict(LEAGUE_AVG_DEFAULTS.get(sector, {"home": 1.5, "away": 1.2})), "teams": {}}
+
+        # Stamp the sector's freshness for the staleness guard (predict_pair
+        # drops poisson when this is older than POISSON_STALE_DAYS before the
+        # game). Keep the MAX date seen so out-of-order feeds don't regress it.
+        if event_date:
+            prev = self._state[sector].get("last_updated")
+            if prev is None or event_date > prev:
+                self._state[sector]["last_updated"] = event_date
 
         avg = self._league_avg(sector)
         teams = self._state[sector]["teams"]

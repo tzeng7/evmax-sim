@@ -602,6 +602,15 @@ def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
             opp_score = as_ if yes_is_home else hs
             margin = yes_score - opp_score
             cover_threshold = -threshold if line_val > 0 else threshold
+            if margin == cover_threshold:
+                # Exact push — the margin lands on the line, so the bet is a
+                # refund, not a loss. Kalshi spreads are always N.5 so this
+                # cannot occur there; the guard stops a future INTEGER line from
+                # silently grading a push as a loss (which would corrupt CLV,
+                # Brier, ROI and the auto-tuner). Returns None (stays pending —
+                # the score path can't void); a full push→void path is a
+                # documented future option.
+                return None
             return 1 if margin > cover_threshold else 0
 
         if market_type in ("total", "over_under"):
@@ -613,6 +622,12 @@ def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
             threshold = float(pred["line"])
             total = hs + as_
             side = (pred.get("yes_team") or "").lower()
+            if total == threshold:
+                # Exact push (integer line) — a refund, not a loss. Kalshi
+                # totals are always N.5 so this can't occur there; guard against
+                # a future integer line mis-grading a push (same rationale as
+                # the spread push guard above).
+                return None
             if side == "over":
                 return 1 if total > threshold else 0
             if side == "under":

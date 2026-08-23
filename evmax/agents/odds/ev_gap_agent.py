@@ -125,6 +125,15 @@ class EVGap:
     # maker plays log as shadow and touch no bankroll until the fill is recorded
     # via `evmax agents fill`.
     maker_bid_kelly_fraction: Optional[float] = None
+    # Best-execution annotation (GAP 3): when the SAME bet (same outcome + side)
+    # is also +EV on the OTHER venue, the display layer collapses the two legs
+    # to one actionable row on the better venue and records the alternative here
+    # so the user can still line-shop. View-layer only — both venue rows are
+    # still persisted independently for CLV/shadow. See
+    # evmax.ev.best_execution.collapse_best_execution.
+    alt_venue: Optional[str] = None
+    alt_venue_price: Optional[float] = None       # the other venue's YES ask (0–1)
+    alt_venue_ev_pct: Optional[float] = None       # the other venue's taker EV (fraction)
 
     @property
     def edge_label(self) -> str:
