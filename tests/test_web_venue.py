@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import dataclasses
+
 from evmax.agents.odds.ev_gap_agent import EVGap
 from evmax.settings import get_settings
 from evmax.web.app import _gap_to_dict
@@ -45,3 +47,27 @@ def test_gap_to_dict_polymarket_gap_live_after_promotion(monkeypatch):
     monkeypatch.setattr(get_settings(), "polymarket_us_live", True)
     d = _gap_to_dict(_gap("polymarket_us"), bankroll=500.0)
     assert d["mode"] == "live"
+
+
+def test_gap_to_dict_single_venue_has_no_options():
+    """A single-venue gap serializes venue_options as None (no dropdown)."""
+    d = _gap_to_dict(_gap("kalshi"), bankroll=500.0)
+    assert d["venue_options"] is None
+
+
+def test_gap_to_dict_serializes_venue_options(monkeypatch):
+    """A dual-venue winner serializes each leg as a full row dict (with its own
+    venue / market_id) and never recurses into nested options."""
+    monkeypatch.setattr(get_settings(), "polymarket_us_live", True)
+    winner = _gap("polymarket_us")
+    alt = dataclasses.replace(
+        _gap("kalshi"), market_id="kalshi:VEN-TEST", ev_pct=0.04, kelly_fraction=0.0,
+    )
+    winner = dataclasses.replace(winner, venue_options=[winner, alt])
+    d = _gap_to_dict(winner, bankroll=500.0)
+    opts = d["venue_options"]
+    assert opts is not None and len(opts) == 2
+    assert {o["venue"] for o in opts} == {"polymarket_us", "kalshi"}
+    assert {o["market_id"] for o in opts} == {"polymarket_us:VEN-TEST", "kalshi:VEN-TEST"}
+    # Each serialized option is a leaf — no nested dropdown payload.
+    assert all(o["venue_options"] is None for o in opts)

@@ -79,17 +79,30 @@ def collapse_best_execution(gaps: list[EVGap]) -> list[EVGap]:
             continue
         ranked = sorted(legs, key=_rank, reverse=True)
         winner = ranked[0]
+        # Carry the FULL ranked leg set (winner first) as venue_options so the
+        # display can offer a venue dropdown instead of hiding the other book
+        # behind an annotation. ``ranked`` holds the original legs, each with
+        # venue_options=None — the replaced winner below is the only leg that
+        # carries the list, so serializing it never recurses. Every leg here
+        # already cleared the taker-OR-maker EV floor (it came from
+        # cycle.plays()), so the dropdown surfaces exactly the +EV venues.
+        replace_kwargs: dict = {}
+        distinct_venues = {g.venue for g in ranked}
+        if len(distinct_venues) > 1:
+            replace_kwargs["venue_options"] = ranked
         # Annotate the best leg on a DIFFERENT venue (a real line-shop
-        # alternative for the same bet), if any. Same-venue duplicates — which
-        # should not occur, one venue quotes a market once — collapse silently.
+        # alternative for the same bet), if any — kept for API back-compat and
+        # the single-alt fallback note. Same-venue duplicates — which should not
+        # occur, one venue quotes a market once — collapse silently.
         alt = next((g for g in ranked[1:] if g.venue != winner.venue), None)
         if alt is not None:
-            winner = dataclasses.replace(
-                winner,
+            replace_kwargs.update(
                 alt_venue=alt.venue,
                 alt_venue_price=alt.kalshi_yes_price,
                 alt_venue_ev_pct=alt.ev_pct,
             )
+        if replace_kwargs:
+            winner = dataclasses.replace(winner, **replace_kwargs)
         out.append(winner)
     return out
 

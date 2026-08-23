@@ -572,6 +572,15 @@ def _gap_to_dict(g, bankroll: float) -> dict[str, Any]:
             round(g.alt_venue_ev_pct * 100, 2)
             if getattr(g, "alt_venue_ev_pct", None) is not None else None
         ),
+        # Full venue option set for the display dropdown (best-execution winner
+        # first). Each entry is the same dict shape as this row, so the frontend
+        # can swap the row's price/EV/stake/market_id to the chosen venue. None
+        # when the bet is quoted on a single venue. Nested legs carry
+        # venue_options=None, so this serialization never recurses.
+        "venue_options": (
+            [_gap_to_dict(leg, bankroll) for leg in g.venue_options]
+            if getattr(g, "venue_options", None) else None
+        ),
     }
 
 
