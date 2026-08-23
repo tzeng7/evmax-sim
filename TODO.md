@@ -156,7 +156,7 @@ Shipped via the Kalshi `event.product_metadata.competition` join — see Recentl
 - ~~Add NHL: K=16, home_adv=0.04 (puck-line markets exist)~~ ✅ 2026-07-18 landed **K=6 / home_adv=48**, not the guessed K=16/0.04 — swept via `scripts/backtest_nhl_elo.py` over {6,10,14,20,25} × home_adv {0,20,32,48,60}, ranked on 2023-24 and confirmed on 2024-25 (`elo_agent.py:67,133`)
 - ~~Add calibrated `ncaaf` K + home_adv~~ ✅ 2026-08-07 **K=40 / home_adv=60** (`scripts/backtest_ncaaf_elo.py`)
 - OPEN (blend, not calibration): `SECTOR_WEIGHT_OVERRIDES["nhl"]` still holds `elo: 0.0`. The calibration precondition is met, so raising it is now a walk-forward blend decision.
-- **[OPEN · P2] Warm-seed ncaaf elo** — the K=40/home_adv=60 constants are correct but ncaaf elo starts the 2026 season from an EMPTY `elo_state.json` (no key). As of #169 ncaaf IS fed through the resolve-time model-update hook (canonical `ESPN_MODEL_UPDATE_SECTORS` in `model_updater.py`), so elo now warms automatically as games resolve and enters the blend once each team clears the confidence gate (~5 games). A walk-forward seed (the sweep already builds the state) would warm-start it from week 0 instead of ~week 5 — the only remaining activation step. Form is dark for ncaaf until the same hook feeds it likewise.
+- ~~**[P2] Warm-seed ncaaf elo**~~ ✅ 2026-08-08 (PR #179) — ncaaf elo is warm-seeded from a regressed prior-season carry-forward, so `elo_state.json['ncaaf']` ships populated (ratings + game_counts, `last_updated 2026-08-08`, K=40/home_adv=60) and elo can enter the blend at week 0 instead of warming ~5 games via the #169 resolve hook. Form stays dark for ncaaf until that same hook feeds it its first resolved 2026 games (expected — no `ncaaf` key in `form_state.json` yet).
 
 ### MODEL-3 Form Model Draw Normalization Edge Case [P2]
 **File:** `evmax/agents/models/form_agent.py:168-176`
@@ -743,7 +743,7 @@ Solved by reading Kalshi's `event.product_metadata.competition` field instead of
 | P1 | MODEL-11 WNBA shadow validation + promote to live | Blocks 2026 WNBA live betting; walk-forward passes but needs live-price confirmation |
 | P1 | MODEL-14 NBA props post-calibration validation | Just landed — need 2-3 wks of live data to confirm Path A behaviour holds |
 | P1 | PROPS-1 NFL props backend | Merged into MODEL-9 (kalshi.py typo fix ships with the shadow PR) |
-| P2 | MODEL-2 Elo calibration — NHL ✅ SHIPPED 2026-07-18, `ncaaf` still open | NHL now K=6 / home_adv=48. `ncaaf` has no entry in either dict and falls through to K=20 / home_adv=**0.0** while carrying elo at 0.25. Separately, the `nhl` ensemble `elo: 0.0` weight is an open blend decision |
+| P2 | MODEL-2 Elo calibration — ✅ all wired sectors done (NCAAW 07-11, NHL 07-18, NCAAF 08-07) | NCAAF now **K=40 / home_adv=60** and warm-seeded (PR #179); no sector uses the NBA-ish fallbacks. Remaining item is a blend decision, not calibration: `SECTOR_WEIGHT_OVERRIDES["nhl"]` still holds `elo: 0.0`. |
 | P2 | MODEL-6 Tennis indoor court modifier | Waits on live indoor-event data; `is_indoor` seam already in MODEL-1 |
 | P2 | MODEL-13 WNBA player_impact agent | WNBA star-out impact is ~8-10pt swing; bigger gain than MODEL-12. Needs data-source decision first. |
 | P2 | TEST-3 PinnacleGuestClient tests | Only live sharp source untested |

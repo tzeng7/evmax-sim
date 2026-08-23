@@ -920,3 +920,51 @@ class TestAdjustSharpWeight:
         assert len(saved["brier_history"]) == 1
         assert "brier_model" in saved["brier_history"][0]
         assert "new_weight" in saved["brier_history"][0]
+
+
+class TestComputeBrierContamination:
+    """DANGER A fix: the LIVE sharp_weight auto-tuner must exclude
+    superseded-code rows — the same is_contaminated guard the shadow-promotion
+    path uses — so contaminated predictions can't nudge live sizing."""
+
+    def _seed_baseball(self, conn, specs):
+        """specs: list of (model_sources, outcome) baseball moneyline rows."""
+        scan_date = (date.today() - timedelta(days=7)).isoformat()
+        for i, (srcs, outcome) in enumerate(specs):
+            mid = f"kalshi:CONTAM-{i}"
+            conn.execute(
+                "INSERT INTO ev_predictions (scan_date, market_id, event_id, sector, "
+                "yes_team, market_type, kalshi_yes_price, sharp_true_prob, "
+                "blended_true_prob, ev_pct, kelly_fraction, volume_usd, model_sources, "
+                "sharp_weight_used) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (scan_date, mid, f"ev::{i}", "baseball", "team", "moneyline",
+                 0.50, 0.55, 0.60, 0.05, 0.025, 1000.0, srcs, 0.85),
+            )
+            conn.execute(
+                "INSERT INTO ev_outcomes (market_id, event_id, sector, yes_team, outcome, "
+                "sharp_true_prob, blended_true_prob, result_source) VALUES (?,?,?,?,?,?,?,?)",
+                (mid, f"ev::{i}", "baseball", "team", outcome, 0.55, 0.60, "espn"),
+            )
+        conn.commit()
+
+    def test_contaminated_rows_excluded_from_brier(self):
+        from evmax.agents.cleanup.metrics import compute_brier_scores
+        conn = _make_in_memory_db()
+        # 1 clean (pitcher_v2), 1 contaminated (baseball poisson = superseded code)
+        self._seed_baseball(conn, [
+            ("elo+pitcher_v2+sharp", 1),   # clean
+            ("elo+poisson+sharp", 1),      # contaminated
+        ])
+        with patch("evmax.agents.cleanup.metrics.get_connection", return_value=conn):
+            result = compute_brier_scores(weeks=52)
+        assert result is not None
+        assert result["n"] == 1            # only the clean row counted
+
+    def test_all_contaminated_returns_none(self):
+        from evmax.agents.cleanup.metrics import compute_brier_scores
+        conn = _make_in_memory_db()
+        # both contaminated: baseball ML with poisson, and ML without pitcher
+        self._seed_baseball(conn, [("elo+poisson+sharp", 1), ("elo+sharp", 0)])
+        with patch("evmax.agents.cleanup.metrics.get_connection", return_value=conn):
+            result = compute_brier_scores(weeks=52)
+        assert result is None              # no clean rows → no tuning signal

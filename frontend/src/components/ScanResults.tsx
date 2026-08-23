@@ -3,7 +3,7 @@ import type { ScanGap } from '../lib/types'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
-import { pickBets } from '../lib/api'
+import { pickBets, recordMakerFills } from '../lib/api'
 
 interface Props {
   gaps: ScanGap[]
@@ -13,6 +13,13 @@ interface Props {
   scanKelly: number
   toast: (msg: string, type?: 'info' | 'ok' | 'err') => void
   onPicked: () => void
+}
+
+// Short venue label for the best-execution "· also {venue}" annotation.
+function venueShort(v?: string | null): string {
+  if (v === 'polymarket_us') return 'Poly'
+  if (v === 'kalshi') return 'Kalshi'
+  return v ?? ''
 }
 
 // Approximate re-sizing of a gap's stake when bankroll / Kelly multiplier
@@ -39,19 +46,50 @@ function defaultFill(g: ScanGap, bankroll: number, kelly: number, scanKelly: num
   return { odds: probToCents(g.kalshi_price), stake: recomputedStake(g, bankroll, kelly, scanKelly).toFixed(2) }
 }
 
+// The venue legs for a row: the full best-execution option set when the same
+// bet is quoted on multiple venues (winner first), else the row itself. Every
+// leg here already cleared the taker-OR-maker EV floor server-side.
+function legsOf(g: ScanGap): ScanGap[] {
+  return g.venue_options && g.venue_options.length > 1 ? g.venue_options : [g]
+}
+
+// Compact dropdown label for one venue leg: venue + its taker EV, with a
+// "mkr" tag when the leg only clears as a maker (its taker stake is zeroed).
+function venueOptionLabel(l: ScanGap): string {
+  const ev = `${l.ev_pct.toFixed(1)}%`
+  return `${venueShort(l.venue)} · ${ev}${l.maker_only ? ' mkr' : ''}`
+}
+
 export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
   const [sector, setSector] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [selected, setSelected] = useState<Set<string>>(() => new Set(gaps.map(g => g.market_id)))
   const [fills, setFills] = useState<Record<string, { odds: string; stake: string }>>({})
+  // Per-row chosen venue, keyed by the row's (winner) market_id. Absent = use
+  // the best-execution winner. Lets the user line-shop / route pick+fill to the
+  // other venue without a rescan.
+  const [venueSel, setVenueSel] = useState<Record<string, string>>({})
   const [picking, setPicking] = useState(false)
+  const [filling, setFilling] = useState(false)
+
+  // The venue leg a row is currently acting on: the winner (g itself, which
+  // carries the cash-cap-adjusted stake) when its own venue is selected or no
+  // choice was made, else the chosen option leg.
+  const activeLeg = useCallback((g: ScanGap): ScanGap => {
+    const sel = venueSel[g.market_id]
+    if (!sel || sel === g.venue) return g
+    return legsOf(g).find(l => l.venue === sel) ?? g
+  }, [venueSel])
 
   // Reset selection when gaps change
   useMemo(() => {
     setSelected(new Set(gaps.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
+    setVenueSel({})
     const f: Record<string, { odds: string; stake: string }> = {}
     for (const g of gaps) {
-      f[g.market_id] = defaultFill(g, bankroll, kelly, scanKelly)
+      // Seed a fill default for every venue leg so switching the dropdown shows
+      // that venue's own ask / maker bid / stake, not the winner's.
+      for (const leg of legsOf(g)) f[leg.market_id] = defaultFill(leg, bankroll, kelly, scanKelly)
     }
     setFills(f)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -64,10 +102,12 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     setFills(prev => {
       const next: Record<string, { odds: string; stake: string }> = {}
       for (const g of gaps) {
-        const def = defaultFill(g, bankroll, kelly, scanKelly)
-        next[g.market_id] = {
-          odds: prev[g.market_id]?.odds ?? def.odds,
-          stake: def.stake,
+        for (const leg of legsOf(g)) {
+          const def = defaultFill(leg, bankroll, kelly, scanKelly)
+          next[leg.market_id] = {
+            odds: prev[leg.market_id]?.odds ?? def.odds,
+            stake: def.stake,
+          }
         }
       }
       return next
@@ -102,11 +142,17 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
   }
 
   const handlePick = useCallback(async () => {
-    const bets = [...selected].map(mid => ({
-      market_id: mid,
-      fill_price: centsToProb(fills[mid]?.odds || ''),
-      fill_stake: parseFloat(fills[mid]?.stake || '0'),
-    }))
+    // Maker-only rows are excluded: they are not crossable at the ask, so
+    // /api/pick rejects them. They go through handleFill instead.
+    const bets = gaps
+      .filter(g => selected.has(g.market_id))
+      .map(g => activeLeg(g))
+      .filter(leg => !leg.maker_only)
+      .map(leg => ({
+        market_id: leg.market_id,
+        fill_price: centsToProb(fills[leg.market_id]?.odds || ''),
+        fill_stake: parseFloat(fills[leg.market_id]?.stake || '0'),
+      }))
     if (!bets.length) return
     setPicking(true)
     try {
@@ -127,11 +173,44 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     } finally {
       setPicking(false)
     }
-  }, [selected, fills, toast, onPicked])
+  }, [gaps, selected, fills, activeLeg, toast, onPicked])
+
+  const handleFill = useCallback(async () => {
+    const rows = gaps
+      .filter(g => selected.has(g.market_id))
+      .map(g => activeLeg(g))
+      .filter(leg => leg.maker_only)
+      .map(leg => ({
+        market_id: leg.market_id,
+        fill_price: centsToProb(fills[leg.market_id]?.odds || ''),
+        fill_stake: parseFloat(fills[leg.market_id]?.stake || '0'),
+      }))
+    if (!rows.length) return
+    setFilling(true)
+    try {
+      const res = await recordMakerFills(rows)
+      if (res.filled > 0) {
+        const fee = res.fills.reduce((a, f) => a + f.maker_fee, 0)
+        const skippedNote = res.skipped?.length ? ` \u00b7 skipped ${res.skipped.length}` : ''
+        toast(`Recorded ${res.filled} maker fill(s) \u00b7 fees $${fee.toFixed(2)}${skippedNote}`, 'ok')
+      } else {
+        const first = res.skipped?.[0]
+        const more = (res.skipped?.length ?? 0) > 1 ? ` (+${(res.skipped!.length) - 1} more)` : ''
+        toast(first ? `Recorded 0 \u2014 ${first.reason}${more}` : 'Recorded 0 maker fill(s)', 'err')
+      }
+      onPicked()
+    } catch (e) {
+      toast('Maker fill failed: ' + (e as Error).message, 'err')
+    } finally {
+      setFilling(false)
+    }
+  }, [gaps, selected, fills, activeLeg, toast, onPicked])
 
   if (!gaps.length) return null
 
-  const checkedCount = [...selected].filter(mid => filtered.some(g => g.market_id === mid)).length
+  const checkedRows = filtered.filter(g => selected.has(g.market_id)).map(activeLeg)
+  const pickCount = checkedRows.filter(leg => !leg.maker_only).length
+  const fillCount = checkedRows.filter(leg => leg.maker_only).length
 
   return (
     <div className="panel">
@@ -150,7 +229,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <thead>
           <tr>
             <th style={{ width: 30 }}></th>
-            <th>Date</th><th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
+            <th>Date</th><th>Sector</th><th style={{ minWidth: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
             <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">Model</th><th className="num">EV</th>
             <th className="num" title="EV if opened as a resting limit order (maker fee)">Maker EV</th>
             <th className="num" title="Ceiling — rest at or below this and you stay ≥ the EV floor as a maker. Can sit ABOVE the ask; it is not a place-order price. Use Bid ¢.">Limit ¢</th>
@@ -160,16 +239,28 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         </thead>
         <tbody>
           {filtered.map(g => {
-            const askOdds = probToCents(g.kalshi_price)
-            const outcome = outcomeLabel(g)
-            const mode = g.mode || 'live'
+            const leg = activeLeg(g)
+            const legs = legsOf(g)
+            const hasDropdown = legs.length > 1
+            const askOdds = probToCents(leg.kalshi_price)
+            const outcome = outcomeLabel(leg)
+            const mode = leg.mode || 'live'
             const isLive = mode === 'live'
+            // A maker-only leg logs as shadow (fill-contingent) but is still
+            // selectable — its selection arms "Record Maker Fill", never the
+            // taker pick, which the ask price would make -EV.
+            const isMaker = !!leg.maker_only
+            const selectable = isLive || isMaker
             return (
               <tr key={g.market_id} style={isLive ? undefined : { opacity: 0.55 }}>
                 <td>
                   <input type="checkbox" checked={selected.has(g.market_id)}
-                    disabled={!isLive}
-                    title={isLive ? '' : `${mode} mode — not pickable`}
+                    disabled={!selectable}
+                    title={
+                      isMaker
+                        ? 'Maker-only — select, set Fill ¢ / Stake to what actually filled, then "Record Maker Fill"'
+                        : isLive ? '' : `${mode} mode — not pickable`
+                    }
                     onChange={() => toggle(g.market_id)} />
                 </td>
                 <td className="muted">{g.event_date}</td>
@@ -182,50 +273,91 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
                       title={`mode=${mode} — logged for tracking, not pickable`}
                     >{mode}</span>
                   )}
-                  {g.maker_only && (
+                  {isMaker && (
                     <span
                       className="badge"
                       style={{ marginLeft: 4, background: 'rgba(198,120,221,0.13)', color: '#c678dd', borderColor: 'rgba(198,120,221,0.32)' }}
-                      title="Clears the EV floor only as a resting limit order (maker fee), not crossable at the ask. Rest your buy at the Bid ¢ price (Fill ¢ / Stake are pre-seeded to it); record the fill with `evmax agents fill`."
+                      title="Clears the EV floor only as a resting limit order (maker fee), not crossable at the ask. Rest your buy at the Bid ¢ price (Fill ¢ / Stake are pre-seeded to it). Once it fills, tick this row and hit Record Maker Fill (or run `evmax agents fill`)."
                     >MAKER</span>
                   )}
                 </td>
-                <td><VenueLogo venue={g.venue} /></td>
+                <td>
+                  {hasDropdown ? (
+                    <select
+                      value={leg.venue ?? ''}
+                      onChange={e => setVenueSel(prev => ({ ...prev, [g.market_id]: e.target.value }))}
+                      title="Same bet on multiple venues — pick which book to bet. Ask, EV, maker fields and stake below follow your choice. 'mkr' = that venue clears only as a maker."
+                      style={{ fontSize: 11, maxWidth: 120 }}
+                    >
+                      {legs.map(l => (
+                        <option key={l.venue ?? l.market_id} value={l.venue ?? ''}>
+                          {venueOptionLabel(l)}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <VenueLogo venue={leg.venue} />
+                  )}
+                </td>
                 <td>{g.event_title}</td>
-                <td>{outcome}</td>
+                <td>
+                  {outcome}
+                  {!hasDropdown && g.alt_venue && (
+                    <span
+                      className="muted"
+                      style={{ marginLeft: 6, fontSize: 10 }}
+                      title={`Same bet also +EV on ${venueShort(g.alt_venue)}`
+                        + (g.alt_venue_price != null ? ` at ${probToCents(g.alt_venue_price)}` : '')
+                        + (g.alt_venue_ev_pct != null ? ` (EV ${g.alt_venue_ev_pct.toFixed(1)}%)` : '')
+                        + ' — this row is the better book'}
+                    >
+                      · also {venueShort(g.alt_venue)}
+                      {g.alt_venue_price != null ? ` ${probToCents(g.alt_venue_price)}` : ''}
+                    </span>
+                  )}
+                </td>
                 <td className="num">{askOdds}</td>
-                <td className="num">{probToCents(g.true_prob)}</td>
-                <td className="num">{(g.true_prob * 100).toFixed(1)}%</td>
-                <td className="num green">{g.ev_pct.toFixed(1)}%</td>
+                <td className="num">{probToCents(leg.true_prob)}</td>
+                <td className="num">{(leg.true_prob * 100).toFixed(1)}%</td>
+                <td className="num green">{leg.ev_pct.toFixed(1)}%</td>
                 <td className="num" style={{ color: '#c678dd' }}>
-                  {g.maker_ev_pct != null ? `${g.maker_ev_pct.toFixed(1)}%` : '—'}
+                  {leg.maker_ev_pct != null ? `${leg.maker_ev_pct.toFixed(1)}%` : '—'}
                 </td>
                 <td className="num" style={{ color: '#c678dd' }}>
-                  {g.maker_limit_price != null ? probToCents(g.maker_limit_price) : '—'}
+                  {leg.maker_limit_price != null ? probToCents(leg.maker_limit_price) : '—'}
                 </td>
                 <td className="num" style={{ color: '#c678dd', fontWeight: 600 }}
-                  title={g.maker_bid_ev_pct != null ? `+${g.maker_bid_ev_pct.toFixed(1)}% EV if filled here` : undefined}>
-                  {g.maker_bid_price != null ? probToCents(g.maker_bid_price) : '—'}
+                  title={leg.maker_bid_ev_pct != null ? `+${leg.maker_bid_ev_pct.toFixed(1)}% EV if filled here` : undefined}>
+                  {leg.maker_bid_price != null ? probToCents(leg.maker_bid_price) : '—'}
                 </td>
                 <td className="num">
-                  <input type="text" value={fills[g.market_id]?.odds || askOdds}
-                    onChange={e => updateFill(g.market_id, 'odds', e.target.value)}
+                  <input type="text" value={fills[leg.market_id]?.odds || askOdds}
+                    onChange={e => updateFill(leg.market_id, 'odds', e.target.value)}
                     style={{ width: 64 }} />
                 </td>
                 <td className="num">
-                  <input type="number" value={fills[g.market_id]?.stake || ''}
-                    onChange={e => updateFill(g.market_id, 'stake', e.target.value)}
+                  <input type="number" value={fills[leg.market_id]?.stake || ''}
+                    onChange={e => updateFill(leg.market_id, 'stake', e.target.value)}
                     style={{ width: 70 }} min="0.01" step="0.01" />
                 </td>
-                <td className="muted" style={{ fontSize: 10 }}>{g.model_sources}</td>
+                <td className="muted" style={{ fontSize: 10 }}>{leg.model_sources}</td>
               </tr>
             )
           })}
         </tbody>
       </table>
-      <div style={{ marginTop: 8 }}>
-        <button className="btn success" disabled={checkedCount === 0 || picking} onClick={handlePick}>
-          {picking ? 'Placing...' : `Pick Selected (${checkedCount})`}
+      <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
+        <button className="btn success" disabled={pickCount === 0 || picking} onClick={handlePick}>
+          {picking ? 'Placing...' : `Pick Selected (${pickCount})`}
+        </button>
+        <button
+          className="btn"
+          style={{ borderColor: 'rgba(198,120,221,0.45)', color: '#c678dd' }}
+          disabled={fillCount === 0 || filling}
+          onClick={handleFill}
+          title="Record selected MAKER rows as filled limit orders — placed at the Fill ¢ / Stake shown, charged the maker fee."
+        >
+          {filling ? 'Recording...' : `Record Maker Fill (${fillCount})`}
         </button>
       </div>
     </div>

@@ -84,6 +84,18 @@ export interface ScanGap {
   maker_bid_price?: number | null   // actionable: the price (prob 0-1) to REST the buy at
   maker_bid_ev_pct?: number | null  // EV % if the resting order fills at maker_bid_price
   maker_bid_kelly_fraction?: number | null // Kelly fraction sized at that fill (suggested stake)
+  // Best-execution alternative (GAP 3): when the same bet is also +EV on the
+  // OTHER venue, this row is the better book and these carry the alternative so
+  // you can still line-shop. null when the bet is quoted on only one venue.
+  alt_venue?: string | null
+  alt_venue_price?: number | null   // the other venue's YES ask (prob 0-1)
+  alt_venue_ev_pct?: number | null  // the other venue's EV %
+  // Full venue option set (best-execution winner first) when the same bet is
+  // quoted on more than one venue. Each entry is a full ScanGap for one venue,
+  // so the Venue cell renders a dropdown and selecting a venue swaps the row's
+  // price / EV / maker fields / stake / market_id. Absent (or length 1) means a
+  // single-venue bet — no dropdown. Nested legs have venue_options undefined.
+  venue_options?: ScanGap[] | null
 }
 
 export interface ScanResult {
@@ -92,7 +104,17 @@ export interface ScanResult {
   markets_matched: number
   sectors: string[]
   portfolio_results?: { portfolio_id: string; portfolio_name: string; gaps_logged: number }[]
+  // The bankroll Kelly was actually sized against, plus where it came from.
+  // bankroll_source is "manual", "live:{venue}", or "manual_fallback" (a venue
+  // was requested but its live balance was unavailable). Present when the scan
+  // was asked to size against a venue balance (bankroll_venue).
+  bankroll?: number
+  bankroll_source?: string
 }
+
+// venue -> live total-wealth USD (cash + open positions), or null when the
+// venue has no credentials / the fetch failed. Returned by GET /api/balance.
+export type VenueBalances = Record<string, number | null>
 
 export interface Portfolio {
   id: string

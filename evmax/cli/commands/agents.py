@@ -130,6 +130,14 @@ def scan(
     no_injuries: bool = typer.Option(False, "--no-injuries", help="Skip injury report agent."),
     sharp_weight: float = typer.Option(0.85, "--sharp-weight", help="Weight for Pinnacle in ensemble blend."),
     bankroll: float = typer.Option(250.0, "--bankroll", "-b", help="Current bankroll in USD."),
+    bankroll_venue: Optional[str] = typer.Option(
+        None, "--bankroll-venue",
+        help="Size against live venue balance(s) instead of --bankroll: "
+             "kalshi | polymarket_us | both. 'both' sums the venues' total "
+             "wealth and scopes plays to them; a single venue scopes to it. "
+             "Each selected venue's stakes are capped at its deployable cash. "
+             "Falls back to --bankroll if a balance call fails.",
+    ),
     kelly: float = typer.Option(0.5, "--kelly", "-k", help="Kelly fraction (0.5=half, 0.25=quarter)."),
     min_ev: float = typer.Option(0.02, "--min-ev", help="Base minimum EV threshold (scaled up automatically for low-prob bets)."),
     min_prob: float = typer.Option(0.15, "--min-prob", help="Minimum true probability floor. Bets below this are excluded regardless of EV."),
@@ -256,6 +264,28 @@ def scan(
     if _cfg.get("sharp_weight") and sharp_weight == 0.85:
         sharp_weight = _cfg["sharp_weight"]
 
+    # Venue selection: --bankroll-venue kalshi|polymarket_us|both sizes against
+    # the selected venues' LIVE total wealth, scopes live plays to them, and
+    # caps each venue's stakes at its deployable cash. Fail-soft to --bankroll.
+    _selected_venues: Optional[list[str]] = None
+    _cash_by_venue: dict[str, float] = {}
+    if bankroll_venue:
+        from evmax.clients.balances import resolve_bankroll_plan as _resolve_plan
+        _plan = asyncio.run(_resolve_plan(bankroll, bankroll_venue))
+        bankroll = _plan.bankroll
+        _selected_venues = _plan.selected_venues
+        _cash_by_venue = _plan.cash_by_venue
+        if _plan.source.startswith("live:"):
+            console.print(
+                f"[green]Bankroll ${bankroll:,.2f}[/green] "
+                f"[dim](live {bankroll_venue} balance)[/dim]"
+            )
+        else:
+            console.print(
+                f"[yellow]⚠ {bankroll_venue} balance unavailable — sizing against "
+                f"--bankroll ${bankroll:,.2f} instead.[/yellow]"
+            )
+
     coordinator = AgentCoordinator(
         sectors=sector_list,
         enable_models=not no_models,
@@ -264,6 +294,7 @@ def scan(
         bankroll=bankroll,
         kelly_fraction=kelly,
         respect_season_window=not sectors_explicit,
+        selected_venues=_selected_venues,
     )
 
     console.print(f"\n[bold cyan]evmax agent scan[/bold cyan] — sectors: {', '.join(sector_list)}\n")
@@ -417,6 +448,18 @@ def scan(
         except Exception as _log_err:
             logger.warning("prop_log_failed", error=str(_log_err))
 
+    # GAP 3: collapse the SAME bet quoted on both venues to one best-execution
+    # row (the alternative venue annotated on the Outcome cell) so the scan
+    # table can't invite an accidental double. Display-layer only — both venue
+    # rows were already persisted via loggable_gaps above.
+    from evmax.ev.best_execution import apply_venue_cash_cap, collapse_best_execution
+    qualifying_gaps = collapse_best_execution(qualifying_gaps)
+    # GAP 2: scale each venue's summed stakes to fit its deployable cash. Runs
+    # on the collapsed set (one venue per bet). No-op unless a venue was
+    # selected (cash unknown under a manual bankroll).
+    if _cash_by_venue:
+        qualifying_gaps = apply_venue_cash_cap(qualifying_gaps, bankroll, _cash_by_venue)
+
     # Enforce per-type cap: at most max_props prop plays, rest are game markets.
     # `--top` must NEVER hide a live game play (it would then appear only in the
     # dashboard's Open Positions, never in the scan table). See select_display_gaps.
@@ -522,6 +565,13 @@ def scan(
         outcome_cell = gap.display_label[:22]
         if maker_only:
             outcome_cell = f"{outcome_cell} [bold magenta]MAKER[/bold magenta]"
+        # GAP 3: same bet also live on the other venue — annotate the cheaper
+        # alternative so the collapsed single row still line-shops.
+        alt_venue = getattr(gap, "alt_venue", None)
+        if alt_venue:
+            alt_price = getattr(gap, "alt_venue_price", None)
+            price_txt = f" {_cents(alt_price)}" if alt_price is not None else ""
+            outcome_cell = f"{outcome_cell} [dim]·also {venue_label(alt_venue)}{price_txt}[/dim]"
         # Limit ¢: rest a maker buy at or below this to stay >= the EV floor.
         maker_limit = getattr(gap, "maker_limit_price", None)
         lim_str = f"[magenta]{_cents(maker_limit)}[/magenta]" if maker_limit is not None else "[dim]—[/dim]"
@@ -807,6 +857,12 @@ def pick(
     min_ev: float = typer.Option(0.02, "--min-ev", help="Base EV threshold for 'still live' check."),
     min_prob: float = typer.Option(0.15, "--min-prob", help="Minimum true probability floor."),
     bankroll: Optional[float] = typer.Option(None, "--bankroll", "-b", help="Bankroll for stake calculation (default: value used at scan time)."),
+    bankroll_venue: Optional[str] = typer.Option(
+        None, "--bankroll-venue",
+        help="Size against live venue balance(s): kalshi | polymarket_us | both. "
+             "Caps each venue's stakes at its deployable cash. Falls back to "
+             "--bankroll / the scan-time bankroll if a balance call fails.",
+    ),
     kelly: float = typer.Option(0.5, "--kelly", "-k", help="Kelly fraction."),
     show_stale: bool = typer.Option(False, "--show-stale", help="Also show bets whose edge has evaporated."),
     live: bool = typer.Option(
@@ -894,6 +950,27 @@ def pick(
     stored_bankroll = next((dict(r)["bankroll_used"] for r in rows if dict(r).get("bankroll_used")), None)
     bankroll = bankroll if bankroll is not None else (stored_bankroll or 250.0)
 
+    # Venue selection (mirrors scan): --bankroll-venue sizes against live venue
+    # balance(s) and caps each selected venue's stakes at its deployable cash.
+    # Applied inside reprice_rows so placement respects fundability, not just
+    # the scan-time display. No-op (cash unknown) when the flag is absent.
+    _cash_by_venue: dict[str, float] = {}
+    if bankroll_venue:
+        from evmax.clients.balances import resolve_bankroll_plan as _resolve_plan
+        _plan = asyncio.run(_resolve_plan(bankroll, bankroll_venue))
+        bankroll = _plan.bankroll
+        _cash_by_venue = _plan.cash_by_venue
+        if _plan.source.startswith("live:"):
+            console.print(
+                f"[green]Bankroll ${bankroll:,.2f}[/green] "
+                f"[dim](live {bankroll_venue} balance)[/dim]"
+            )
+        else:
+            console.print(
+                f"[yellow]⚠ {bankroll_venue} balance unavailable — sizing against "
+                f"${bankroll:,.2f} instead.[/yellow]"
+            )
+
     console.print(f"\n[bold cyan]evmax pick[/bold cyan] — {len(rows)} bets from scan\n")
 
     settings = get_settings()
@@ -915,6 +992,7 @@ def pick(
         fees_in_pricing=settings.fees_in_pricing,
         max_kelly=settings.max_kelly_fraction,
         on_warning=console.print,
+        cash_by_venue=_cash_by_venue,
     ))
     # A Kalshi-fetch failure inside reprice_rows collapses the run to scan mode;
     # mirror that into `live` so the title/status branches below reflect what was
@@ -1135,60 +1213,23 @@ def fill(
     Example:
       evmax agents fill KXNBA-26MAR21-BOS -p 47 -s 25
     """
-    from datetime import datetime as _dt
     from evmax.agents.cleanup.db import get_connection
-    from evmax.fees import venue_order_fee
-
-    # Accept cents (>1) or a fraction (<=1).
-    fill_prob = price / 100.0 if price > 1.0 else price
-    if not (0.0 < fill_prob < 1.0):
-        console.print(
-            f"[red]Invalid price:[/red] {price!r} — give cents (0–100) or a fraction (0–1)."
-        )
-        raise typer.Exit(1)
-    if stake <= 0:
-        console.print(f"[red]Invalid stake:[/red] {stake!r} — must be > 0.")
-        raise typer.Exit(1)
+    from evmax.agents.cleanup.maker_fill import MakerFillError, record_maker_fill
 
     conn = get_connection()
-    row = conn.execute(
-        """SELECT market_id, event_title, yes_team, market_type, line, sector,
-                  venue, mode, placed, voided, maker_ev_pct
-           FROM ev_predictions WHERE market_id = ?""",
-        (market_id,),
-    ).fetchone()
-    if row is None:
-        console.print(f"[red]No prediction row for market_id[/red] {market_id!r}.")
+    try:
+        result = record_maker_fill(conn, market_id, price, stake)
+    except MakerFillError as err:
         conn.close()
+        # An already-placed or voided row is a no-op the user should notice but
+        # not a malformed request, so it reads as a warning, not an error.
+        color = "yellow" if err.reason in ("already_placed", "voided") else "red"
+        console.print(f"[{color}]{err}[/{color}]")
         raise typer.Exit(1)
-    if row["placed"]:
-        console.print(
-            f"[yellow]{market_id} is already placed[/yellow] — not overwriting. "
-            "Void it first if you need to re-record."
-        )
-        conn.close()
-        raise typer.Exit(1)
-    if row["voided"]:
-        console.print(f"[yellow]{market_id} is voided[/yellow] — not filling a voided row.")
-        conn.close()
-        raise typer.Exit(1)
-
-    venue = row["venue"] or "kalshi"
-    contracts = stake / fill_prob
-    maker_fee = venue_order_fee(venue, fill_prob, contracts, maker=True)
-
-    now_str = _dt.now(timezone.utc).isoformat()
-    conn.execute(
-        """UPDATE ev_predictions
-           SET placed = 1, placed_at = ?, placed_price = ?, placed_stake = ?,
-               mode = 'live', maker_fill = 1
-           WHERE market_id = ?""",
-        (now_str, fill_prob, stake, market_id),
-    )
     conn.commit()
     conn.close()
 
-    label = _display_label(row["yes_team"], row["market_type"], row["line"])
+    label = _display_label(result.yes_team, result.market_type, result.line)
     t = Table(box=box.SIMPLE, show_header=True, title="Maker Fill Recorded")
     t.add_column("Event", min_width=24)
     t.add_column("Outcome", width=20)
@@ -1196,23 +1237,77 @@ def fill(
     t.add_column("Stake", justify="right", width=8)
     t.add_column("Maker fee", justify="right", width=10)
     t.add_row(
-        (row["event_title"] or "?")[:30],
+        (result.event_title or "?")[:30],
         label,
-        _cents(fill_prob),
-        f"${stake:.2f}",
-        f"${maker_fee:.2f}",
+        _cents(result.fill_prob),
+        f"${result.stake:.2f}",
+        f"${result.maker_fee:.2f}",
     )
     console.print()
     console.print(t)
-    if row["mode"] != "shadow":
+    if result.prior_mode != "shadow":
         console.print(
-            f"[dim]Note: row was mode='{row['mode']}', not a shadow maker-only row — "
+            f"[dim]Note: row was mode='{result.prior_mode}', not a shadow maker-only row — "
             "recorded as a maker fill anyway.[/dim]"
         )
     console.print(
         f"\n[bold green]Promoted {market_id} to a live placed maker bet[/bold green] "
         "(maker_fill=1 — P&L uses the maker fee).\n"
     )
+
+
+@app.command("balance")
+def balance(
+    venue: Optional[str] = typer.Option(
+        None, "--venue", "-v",
+        help="Limit to one venue: kalshi | polymarket_us. Default: both.",
+    ),
+) -> None:
+    """Show live TOTAL account wealth per venue (the Kelly bankroll base).
+
+    Total wealth = cash + open-position value: Kalshi balance + portfolio_value
+    (GET /portfolio/balance); Polymarket US currentBalance + assetAvailable
+    (GET /v1/account/balances). Requires the venue's API key
+    material in .env. A venue with no credentials or a fetch error shows
+    "n/a" — scan/pick fall back to the manual --bankroll for that venue
+    rather than sizing against a guess.
+
+    \b
+    Example:
+      evmax agents balance
+      evmax agents balance --venue kalshi
+    """
+    from evmax.clients.balances import SUPPORTED_VENUES, fetch_all_balances
+
+    if venue:
+        v = venue.lower()
+        if v not in SUPPORTED_VENUES:
+            console.print(
+                f"[red]Unknown venue {venue!r}. Choose from: {', '.join(SUPPORTED_VENUES)}[/red]"
+            )
+            raise typer.Exit(1)
+        targets = [v]
+    else:
+        targets = list(SUPPORTED_VENUES)
+
+    balances = asyncio.run(fetch_all_balances(targets))
+
+    t = Table(box=box.SIMPLE, show_header=True, title="Live Account Balances")
+    t.add_column("Venue", min_width=16)
+    t.add_column("Total wealth (USD)", justify="right", width=18)
+    for v in targets:
+        bal = balances.get(v)
+        t.add_row(
+            venue_label(v) if v != "polymarket_us" else "Polymarket US",
+            f"${bal:,.2f}" if bal is not None else "[dim]n/a[/dim]",
+        )
+    console.print()
+    console.print(t)
+    if any(balances.get(v) is None for v in targets):
+        console.print(
+            "[dim]n/a = no API credentials configured or the balance call "
+            "failed; sizing falls back to --bankroll for that venue.[/dim]"
+        )
 
 
 @app.command("resolve")

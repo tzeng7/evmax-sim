@@ -253,7 +253,8 @@ def _bet_pnl(bet: dict[str, Any]) -> float:
         return 0.0
     # Net of the venue trading fee (flat entry cost, hits win and loss equally)
     # when fees_in_pricing is on — matches how the bet was gated/sized. A maker
-    # fill (recorded via `evmax agents fill`) is charged the maker fee, not taker.
+    # fill (recorded via `evmax agents fill` or POST /api/fill) is charged the
+    # maker fee, not taker.
     fee_venue = (bet.get("venue") or "kalshi") if get_settings().fees_in_pricing else None
     return _fee_bet_pnl(
         stake, price, bet.get("outcome") == 1,
@@ -495,7 +496,7 @@ def _gap_to_dict(g, bankroll: float) -> dict[str, Any]:
     # what log_gaps will persist (see prediction_demoted_shadow_venue).
     if gap_mode == "live" and gap_venue == "polymarket_us":
         from evmax.settings import get_settings
-        if not get_settings().polymarket_us_live:
+        if not get_settings().polymarket_us_sector_live(getattr(g, "sector", None)):
             gap_mode = "shadow"
     # Maker-only gaps clear the floor only as a resting limit order — not
     # crossable at the ask, so they are never a live taker pick. Mirror the
@@ -558,6 +559,28 @@ def _gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         "volume_usd": g.volume_usd or 0,
         "mode": gap_mode,
         "venue": gap_venue,
+        # Best-execution alternative (GAP 3): when the same bet is also +EV on
+        # the OTHER venue, the display collapses to this (better) row and carries
+        # the alternative's price/EV so the user can still line-shop. None when
+        # this bet is quoted on only one venue.
+        "alt_venue": getattr(g, "alt_venue", None),
+        "alt_venue_price": (
+            round(g.alt_venue_price, 2)
+            if getattr(g, "alt_venue_price", None) is not None else None
+        ),
+        "alt_venue_ev_pct": (
+            round(g.alt_venue_ev_pct * 100, 2)
+            if getattr(g, "alt_venue_ev_pct", None) is not None else None
+        ),
+        # Full venue option set for the display dropdown (best-execution winner
+        # first). Each entry is the same dict shape as this row, so the frontend
+        # can swap the row's price/EV/stake/market_id to the chosen venue. None
+        # when the bet is quoted on a single venue. Nested legs carry
+        # venue_options=None, so this serialization never recurses.
+        "venue_options": (
+            [_gap_to_dict(leg, bankroll) for leg in g.venue_options]
+            if getattr(g, "venue_options", None) else None
+        ),
     }
 
 
@@ -606,6 +629,8 @@ async def _run_unified_scan(
     fan_out_portfolio_ids: list[str] | None,
     date_from: str = "",
     date_to: str = "",
+    selected_venues: list[str] | None = None,
+    cash_by_venue: dict[str, float] | None = None,
 ) -> tuple[Any, list[dict[str, Any]], list[dict[str, Any]]]:
     """Single shared scan path. Runs the coordinator once, logs game gaps to
     ``ev_predictions``, and (if requested) fans the same gaps out to active
@@ -620,7 +645,10 @@ async def _run_unified_scan(
     """
     from evmax.agents.coordinator import AgentCoordinator
 
-    coord = AgentCoordinator(sectors=sectors, bankroll=bankroll, kelly_fraction=kelly)
+    coord = AgentCoordinator(
+        sectors=sectors, bankroll=bankroll, kelly_fraction=kelly,
+        selected_venues=selected_venues,
+    )
     cycle = await coord.run_cycle()
 
     # Log game-level gaps to ev_predictions so "Pick Selected" can resolve by
@@ -649,7 +677,20 @@ async def _run_unified_scan(
     # cycle.plays() drops partial-blend (shadow, $0.00-stake) gaps. They're
     # still logged above via loggable_gaps(). The dashboard deliberately does
     # NOT apply the CLI's min_prob/tiered-EV floor (it shows all ≥2% gaps).
-    gap_dicts = [_gap_to_dict(g, bankroll) for g in cycle.plays(require_full_blend=True)]
+    # GAP 3: collapse the SAME bet quoted on both venues to one best-execution
+    # row (the alternative venue annotated on it) so the play list can't invite
+    # an accidental double. View-layer only — both venue rows were persisted
+    # above via loggable_gaps(); the ledger fan-out below reduces further,
+    # side-agnostically, to one position per game outcome.
+    from evmax.ev.best_execution import apply_venue_cash_cap, collapse_best_execution
+    collapsed_plays = collapse_best_execution(list(cycle.plays(require_full_blend=True)))
+    # GAP 2: scale each venue's summed stakes to fit its deployable cash (a new
+    # bet is funded from cash, not the value locked in open positions). Runs on
+    # the collapsed set so each bet routes to one venue. No-op when cash is
+    # unknown (manual bankroll).
+    if cash_by_venue:
+        collapsed_plays = apply_venue_cash_cap(collapsed_plays, bankroll, cash_by_venue)
+    gap_dicts = [_gap_to_dict(g, bankroll) for g in collapsed_plays]
 
     portfolio_results: list[dict[str, Any]] = []
     if fan_out_portfolio_ids is not None:
@@ -733,6 +774,25 @@ async def api_categories() -> JSONResponse:
     return JSONResponse({"categories": cats})
 
 
+@app.get("/api/balance")
+async def api_balance(venue: str = Query("", alias="venue")) -> JSONResponse:
+    """Live TOTAL account wealth per venue (cash + open positions), for the
+    venue filter to seed the Kelly bankroll.
+
+    ``{"balances": {"kalshi": 512.34, "polymarket_us": null}}`` — a null means
+    no credentials / fetch failure, and the UI keeps the manual bankroll for
+    that venue rather than sizing against a guess. Read-only; never mutates.
+    """
+    from evmax.clients.balances import SUPPORTED_VENUES, fetch_all_balances
+
+    targets = [venue.lower()] if venue else list(SUPPORTED_VENUES)
+    targets = [v for v in targets if v in SUPPORTED_VENUES]
+    if not targets:
+        return JSONResponse({"error": f"unknown venue {venue!r}"}, status_code=400)
+    balances = await fetch_all_balances(targets)
+    return JSONResponse({"balances": balances})
+
+
 @app.post("/api/scan")
 async def api_scan(request: Request) -> JSONResponse:
     """Run a full agent scan and return EV gaps.
@@ -746,6 +806,17 @@ async def api_scan(request: Request) -> JSONResponse:
     sectors_str = body.get("sectors") or _default_scan_sectors()
     bankroll = float(body.get("bankroll", 500))
     kelly = float(body.get("kelly", 0.5))
+    # Venue selection (dashboard dropdown): "" = Manual, "kalshi",
+    # "polymarket_us", or "both". Resolves the Kelly base (total wealth of the
+    # selected venues), the live-play scoping, and the per-venue deployable cash
+    # for the fundability cap — all fail-soft to the manual bankroll. The source
+    # is echoed so the UI shows whether real capital or the manual figure was
+    # used.
+    bankroll_venue = (body.get("bankroll_venue") or "").strip().lower() or None
+    from evmax.clients.balances import resolve_bankroll_plan
+    plan = await resolve_bankroll_plan(bankroll, bankroll_venue)
+    bankroll = plan.bankroll
+    bankroll_source = plan.source
     date_from = body.get("date_from", "")
     date_to = body.get("date_to", "")
     fan_out = body.get("fan_out_portfolios", True)
@@ -761,6 +832,8 @@ async def api_scan(request: Request) -> JSONResponse:
         fan_out_portfolio_ids=fan_out_arg,
         date_from=date_from,
         date_to=date_to,
+        selected_venues=plan.selected_venues,
+        cash_by_venue=plan.cash_by_venue,
     )
 
     # Filter for the placement table view
@@ -799,6 +872,8 @@ async def api_scan(request: Request) -> JSONResponse:
         "markets_matched": cycle.markets_matched,
         "sectors": sectors,
         "portfolio_results": portfolio_results,
+        "bankroll": round(bankroll, 2),
+        "bankroll_source": bankroll_source,
     })
 
 
@@ -867,6 +942,52 @@ async def api_pick(request: Request) -> JSONResponse:
     return JSONResponse({"placed": placed, "skipped": skipped})
 
 
+@app.post("/api/fill")
+async def api_fill(request: Request) -> JSONResponse:
+    """Record filled maker limit orders as real placed positions.
+
+    The dashboard counterpart of ``evmax agents fill``. A maker-only play is not
+    crossable at the ask, so it persists as ``mode='shadow'`` and ``/api/pick``
+    correctly refuses it — picking it would record a taker fill at a price that
+    was never +EV. This endpoint is the other half of that workflow: once your
+    resting order actually fills, it promotes the row to a live position with
+    ``maker_fill=1`` so the P&L charges the maker fee.
+
+    Body::
+
+        { "fills": [{"market_id": "...", "fill_price": 0.47, "fill_stake": 12.5}, ...] }
+
+    ``fill_price`` accepts cents (47) or a fraction (0.47). Rows that cannot be
+    filled are reported in ``skipped`` with a reason slug rather than failing the
+    whole batch, so one stale selection never discards the rest of the fills.
+    """
+    from evmax.agents.cleanup.maker_fill import (
+        MakerFillError, _as_dict, record_maker_fill,
+    )
+
+    body = await request.json()
+    fills_list: list[dict] = body.get("fills", [])
+    if not fills_list:
+        return JSONResponse({"error": "No fills provided"}, status_code=400)
+
+    conn = _conn()
+    recorded: list[dict[str, Any]] = []
+    skipped: list[dict] = []
+    for item in fills_list:
+        mid = item.get("market_id")
+        try:
+            result = record_maker_fill(
+                conn, mid, item.get("fill_price"), item.get("fill_stake"),
+            )
+        except MakerFillError as err:
+            skipped.append({"market_id": mid, "reason": str(err)})
+            continue
+        recorded.append(_as_dict(result))
+    conn.commit()
+    conn.close()
+    return JSONResponse({"filled": len(recorded), "fills": recorded, "skipped": skipped})
+
+
 @app.post("/api/update-placed")
 async def api_update_placed(request: Request) -> JSONResponse:
     """Update fill price and stake on already-placed bets."""
@@ -918,8 +1039,21 @@ async def api_unplace(request: Request) -> JSONResponse:
     conn = _conn()
     removed = 0
     for mid in market_ids:
+        # Un-placing a maker fill must undo the whole promotion record_maker_fill
+        # made, not just the placement:
+        #   maker_fill -> 0, because _bet_pnl charges the MAKER fee off this flag.
+        #     Leaving it set would price a later TAKER pick at the maker fee.
+        #   mode -> 'shadow', because the row only became live as part of that
+        #     promotion. A maker-only play is not crossable at the ask, so
+        #     leaving it live would make it taker-pickable at a price that was
+        #     never +EV.
+        # Demoting to shadow is safe even for a row that was already live before
+        # its fill: log_gaps upgrades an unplaced shadow row back to live on the
+        # next scan that still qualifies it (prediction_upgraded_shadow_to_live).
         cur = conn.execute(
-            "UPDATE ev_predictions SET placed = 0, placed_at = NULL, placed_price = NULL, placed_stake = NULL WHERE market_id = ? AND placed = 1",
+            "UPDATE ev_predictions SET placed = 0, placed_at = NULL, placed_price = NULL, "
+            "placed_stake = NULL, mode = CASE WHEN maker_fill = 1 THEN 'shadow' ELSE mode END, "
+            "maker_fill = 0 WHERE market_id = ? AND placed = 1",
             (mid,),
         )
         if cur.rowcount > 0:

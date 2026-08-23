@@ -11,6 +11,7 @@ placed earlier without auto-coordinating across scans.
 
 from __future__ import annotations
 
+import dataclasses
 import sqlite3
 from datetime import datetime, timezone
 from typing import Any
@@ -19,6 +20,7 @@ import pytest
 
 from evmax.agents.coordinator import (
     _apply_exposure_guard,
+    _apply_joint_kelly,
     _base_event,
     _load_placed_exposure,
 )
@@ -248,6 +250,8 @@ def _setup_test_db() -> sqlite3.Connection:
             market_id TEXT NOT NULL,
             event_id TEXT,
             kelly_fraction REAL,
+            placed_stake REAL,
+            bankroll_used REAL,
             placed INTEGER NOT NULL DEFAULT 0,
             voided INTEGER NOT NULL DEFAULT 0,
             mode TEXT NOT NULL DEFAULT 'live'
@@ -296,21 +300,67 @@ class TestLoadPlacedExposure:
         assert _load_placed_exposure() == {}
 
     def test_sums_placed_unresolved_live_bets(self, patched_conn):
+        # dollars = kelly * bankroll_used when no placed_stake: 0.03*1000 + 0.02*1000
         _insert(patched_conn,
                 scan_date="2026-04-30",
                 market_id="kalshi:A",
                 event_id="nba::2026-04-30::lakers_vs_warriors",
-                kelly_fraction=0.03,
+                kelly_fraction=0.03, bankroll_used=1000.0,
                 placed=1, voided=0, mode="live")
         _insert(patched_conn,
                 scan_date="2026-04-30",
                 market_id="kalshi:B",
                 event_id="nba::2026-04-30::lakers_vs_warriors::spread",
-                kelly_fraction=0.02,
+                kelly_fraction=0.02, bankroll_used=1000.0,
                 placed=1, voided=0, mode="live")
         out = _load_placed_exposure()
-        # Both bets share the same base_event; total = 0.05
-        assert out == {"nba::2026-04-30::lakers_vs_warriors": pytest.approx(0.05)}
+        # Both bets share the same base_event; total = $50 (not "0.05")
+        assert out == {"nba::2026-04-30::lakers_vs_warriors": pytest.approx(50.0)}
+
+    def test_mixed_bankroll_bases_sum_in_dollars(self, patched_conn):
+        """GAP 1 regression: a 5% bet on a $200 base and a 5% bet on an $800
+        base are $10 and $40 — the guard must see $50, never a raw fraction
+        sum of 0.10. This is the bug that broke the cap across venues with
+        unequal balances."""
+        _insert(patched_conn,
+                scan_date="2026-04-30",
+                market_id="polymarket_us:A",
+                event_id="wnba::2026-04-30::aces_vs_liberty",
+                kelly_fraction=0.05, bankroll_used=200.0,
+                placed=1, voided=0, mode="live")
+        _insert(patched_conn,
+                scan_date="2026-04-30",
+                market_id="kalshi:A",
+                event_id="wnba::2026-04-30::aces_vs_liberty",
+                kelly_fraction=0.05, bankroll_used=800.0,
+                placed=1, voided=0, mode="live")
+        out = _load_placed_exposure()
+        assert out == {"wnba::2026-04-30::aces_vs_liberty": pytest.approx(50.0)}
+
+    def test_prefers_placed_stake_over_kelly_times_bankroll(self, patched_conn):
+        """placed_stake is the REAL amount staked (may differ from the sized
+        kelly*bankroll if the user placed a custom amount) — it wins."""
+        _insert(patched_conn,
+                scan_date="2026-04-30",
+                market_id="kalshi:A",
+                event_id="nba::2026-04-30::lakers_vs_warriors",
+                kelly_fraction=0.05, bankroll_used=1000.0, placed_stake=42.0,
+                placed=1, voided=0, mode="live")
+        out = _load_placed_exposure()
+        # $42 (placed_stake), NOT $50 (kelly*bankroll)
+        assert out == {"nba::2026-04-30::lakers_vs_warriors": pytest.approx(42.0)}
+
+    def test_skips_row_without_stake_or_bankroll(self, patched_conn):
+        """A placed row with neither placed_stake nor bankroll_used can't be
+        valued in dollars, so it's skipped rather than counted as a bare
+        fraction (normal rows always carry bankroll_used)."""
+        _insert(patched_conn,
+                scan_date="2026-04-30",
+                market_id="kalshi:A",
+                event_id="nba::2026-04-30::lakers_vs_warriors",
+                kelly_fraction=0.05,
+                placed=1, voided=0, mode="live")
+        assert _load_placed_exposure() == {}
 
     def test_excludes_unplaced_bets(self, patched_conn):
         _insert(patched_conn,
@@ -356,11 +406,73 @@ class TestLoadPlacedExposure:
                 scan_date="2026-04-30",
                 market_id="kalshi:ML",
                 event_id="nba::2026-04-30::knicks_vs_hawks",
-                kelly_fraction=0.025, placed=1, voided=0, mode="live")
+                kelly_fraction=0.025, bankroll_used=1000.0,
+                placed=1, voided=0, mode="live")
         _insert(patched_conn,
                 scan_date="2026-04-30",
                 market_id="kalshi:SPREAD",
                 event_id="nba::2026-04-30::knicks_vs_hawks::spread",
-                kelly_fraction=0.030, placed=1, voided=0, mode="live")
+                kelly_fraction=0.030, bankroll_used=1000.0,
+                placed=1, voided=0, mode="live")
         out = _load_placed_exposure()
-        assert out == {"nba::2026-04-30::knicks_vs_hawks": pytest.approx(0.055)}
+        # $25 + $30 = $55 on the shared base_event
+        assert out == {"nba::2026-04-30::knicks_vs_hawks": pytest.approx(55.0)}
+
+
+# ---------------------------------------------------------------------------
+# _apply_joint_kelly grouping key (GAP 5)
+# ---------------------------------------------------------------------------
+
+
+class TestJointKellyGrouping:
+    def test_ml_and_spread_same_game_are_one_joint_event(self, monkeypatch):
+        """GAP 5: ML + spread of ONE game must size as a single joint event
+        (shared gross cap), not two independent events. Assert
+        joint_kelly_fractions is called ONCE with both legs — not twice with
+        one leg each (the old split(PROP_MARKER)[0] key left ::spread on, so
+        the two never grouped)."""
+        import evmax.ev.joint_kelly as jk
+
+        calls: list[int] = []
+
+        class _R:
+            def __init__(self, n: int):
+                self.fractions = [0.03] * n
+
+        def _fake(legs, config):
+            calls.append(len(legs))
+            return _R(len(legs))
+
+        monkeypatch.setattr(jk, "joint_kelly_fractions", _fake)
+
+        ml = _gap("kalshi:ML", "nba::2026-04-30::lakers_vs_warriors", yes_team="lakers")
+        spread = dataclasses.replace(
+            _gap("kalshi:SPREAD", "nba::2026-04-30::lakers_vs_warriors::spread",
+                 yes_team="lakers"),
+            market_type="spread", line=-4.5,
+        )
+        out = _apply_joint_kelly([ml, spread])
+        assert calls == [2]           # one event, both legs — not [1, 1]
+        assert len(out) == 2
+
+    def test_different_games_are_separate_joint_events(self, monkeypatch):
+        """Two distinct games must remain separate joint events (one call
+        each), so grouping doesn't over-merge unrelated bets."""
+        import evmax.ev.joint_kelly as jk
+
+        calls: list[int] = []
+
+        class _R:
+            def __init__(self, n: int):
+                self.fractions = [0.03] * n
+
+        def _fake(legs, config):
+            calls.append(len(legs))
+            return _R(len(legs))
+
+        monkeypatch.setattr(jk, "joint_kelly_fractions", _fake)
+
+        g1 = _gap("kalshi:G1", "nba::2026-04-30::lakers_vs_warriors", yes_team="lakers")
+        g2 = _gap("kalshi:G2", "nba::2026-04-30::knicks_vs_hawks", yes_team="knicks")
+        _apply_joint_kelly([g1, g2])
+        assert sorted(calls) == [1, 1]

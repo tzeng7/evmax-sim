@@ -139,6 +139,38 @@ class TestPredict:
         assert abs(result.true_prob_a + result.true_prob_b + result.true_prob_draw - 1.0) < 0.01
         assert "xG" in result.notes
 
+    def test_drops_on_stale_matches(self, tmp_path: Path):
+        """Family-2 guard: matches all >STALE_DAYS before the game (a resolve
+        outage / stopped seed) → xG abstains rather than sizing on frozen form."""
+        from datetime import datetime, timezone
+        from unittest.mock import MagicMock
+        agent = _fresh_agent(tmp_path)
+        _record_n_matches(agent, "arsenal", 8)   # dates 2026-03-10..17
+        _record_n_matches(agent, "chelsea", 8)
+        market = MagicMock(
+            sector="soccer", team_home="arsenal", team_away="chelsea",
+            event_date=datetime(2026, 6, 15, tzinfo=timezone.utc),  # ~90d later
+        )
+        sharp = MagicMock(outcome_a_label="arsenal", outcome_b_label="chelsea",
+                          event_id="soccer::test")
+        import asyncio
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
+
+    def test_fires_when_recent(self, tmp_path: Path):
+        from datetime import datetime, timezone
+        from unittest.mock import MagicMock
+        agent = _fresh_agent(tmp_path)
+        _record_n_matches(agent, "arsenal", 8)   # dates 2026-03-10..17
+        _record_n_matches(agent, "chelsea", 8)
+        market = MagicMock(
+            sector="soccer", team_home="arsenal", team_away="chelsea",
+            event_date=datetime(2026, 3, 20, tzinfo=timezone.utc),  # 3d later
+        )
+        sharp = MagicMock(outcome_a_label="arsenal", outcome_b_label="chelsea",
+                          event_id="soccer::test")
+        import asyncio
+        assert asyncio.run(agent.predict_pair(market, sharp)) is not None
+
     def test_save_and_load_roundtrip(self, tmp_path: Path):
         agent = _fresh_agent(tmp_path)
         _record_n_matches(agent, "liverpool", 6)

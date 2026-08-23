@@ -572,17 +572,36 @@ class DataArchiver:
                 if lower_dt is not None and lower_dt > upper_dt:
                     upper_dt = tipoff
 
-            sql = (
-                "SELECT yes_price, fetched_at FROM archived_kalshi_markets "
-                "WHERE ticker = ? AND fetched_at <= ?"
-            )
-            params: list[object] = [ticker, upper_dt.isoformat()]
-            if lower_dt is not None:
-                sql += " AND fetched_at >= ?"
-                params.append(lower_dt.isoformat())
-            sql += " ORDER BY fetched_at DESC LIMIT 1"
+            def _latest(upper_iso: str, inclusive: bool):
+                op = "<=" if inclusive else "<"
+                sql = (
+                    "SELECT yes_price, fetched_at FROM archived_kalshi_markets "
+                    f"WHERE ticker = ? AND fetched_at {op} ?"
+                )
+                params: list[object] = [ticker, upper_iso]
+                if lower_dt is not None:
+                    sql += " AND fetched_at >= ?"
+                    params.append(lower_dt.isoformat())
+                sql += " ORDER BY fetched_at DESC LIMIT 1"
+                return conn.execute(sql, params).fetchone()
 
-            row = conn.execute(sql, params).fetchone()
+            # Primary window: latest snapshot at/before the T-minutes_before
+            # target. ~30 min pre-tip is the "close" proxy that avoids late
+            # info-shock prints; a densely-snapshotted ticker (Kalshi ladders
+            # listed days out) always has a snapshot here.
+            row = _latest(upper_dt.isoformat(), inclusive=True)
+
+            # Near-tip-only capture fallback. Some venues (Polymarket US) are
+            # only snapshotted in the final ~30 min before tip, so EVERY
+            # snapshot lands INSIDE the T-minutes_before window and the primary
+            # query finds nothing — silently dropping the row's CLV. When no
+            # pre-target snapshot exists, relax the upper bound to STRICTLY
+            # before tipoff and take the latest pre-tip print: it is the truest
+            # available close. Bounded ``< tipoff`` so in-game post-tip prints
+            # (info-corrupted, trending to 0/1) are never selected. Skipped when
+            # the upper bound was already relaxed to tipoff for a late fill.
+            if row is None and upper_dt < tipoff:
+                row = _latest(tipoff.isoformat(), inclusive=False)
         if not row:
             return None
         try:

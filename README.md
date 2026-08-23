@@ -226,6 +226,23 @@ evmax agents pick --date 2026-03-23 --bankroll 250 --kelly 0.5   # --live is the
 
 Run `evmax cleanup watch-closes --once` on a 5-minute schedule (the `com.evmax.watch-closes` launchd agent does this via `StartInterval` 300) so a near-tip Kalshi snapshot is captured for every game — that's what gives placed-bet CLV a genuine post-entry close to measure against. See `docs/SCHEDULED_RUNS.md`.
 
+### Record a filled maker limit order
+
+```bash
+evmax agents fill KXNBA-26MAR21-BOS -p 47 -s 25    # -p takes cents or a fraction
+```
+
+A play tagged **MAKER** clears the EV floor only as a *resting limit order* — it is not
+crossable at the current ask, so it logs as `mode='shadow'` and `pick` correctly refuses
+it. Rest your buy at the **Bid ¢** price the scan table shows. When that order actually
+fills, `fill` promotes the row to a live position (`placed=1`, `mode='live'`,
+`maker_fill=1`) so P&L charges the maker fee rather than the taker fee.
+
+The dashboard does the same thing without the CLI: tick the MAKER row in Scan Results, set
+**Fill ¢** / **Stake ($)** to what actually filled, and press **Record Maker Fill**. Both
+routes share one implementation, so they cannot drift. To undo a fill, remove the bet from
+Placed Bets — that reverts the whole promotion, not just the placement.
+
 ### Show only high-confidence plays
 
 ```bash

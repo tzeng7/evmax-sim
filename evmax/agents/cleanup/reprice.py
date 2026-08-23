@@ -170,6 +170,44 @@ def reblend_with_fresh_sharp(
     return max(0.001, min(0.999, updated))
 
 
+def apply_cash_cap_to_bets(
+    bets: list[dict], cash_by_venue: Optional[dict[str, float]]
+) -> None:
+    """In-place per-venue cash cap on re-priced bets (GAP 2 at placement).
+
+    Scale each venue's summed LIVE stakes down to fit its deployable cash. The
+    Kelly base is total wealth, but a new bet is funded from cash, so a venue
+    whose wealth is mostly locked in open positions can be told to stake more
+    than it can fund. Cash is a LIVE overlay (it changes as positions settle),
+    so it is applied here at re-price time rather than persisted at scan.
+
+    Fail-soft: a venue absent from ``cash_by_venue`` (cash unknown, or not
+    selected) is left uncapped; an empty / None map is a no-op. Mutates the
+    ``kelly_fraction_used`` and ``stake`` of scaled bets in place.
+    """
+    if not cash_by_venue:
+        return
+    requested: dict[str, float] = {}
+    for b in bets:
+        if not b.get("is_live") or (b.get("kelly_fraction_used") or 0.0) <= 0:
+            continue
+        v = b.get("venue") or "kalshi"
+        requested[v] = requested.get(v, 0.0) + (b.get("stake") or 0.0)
+    scale: dict[str, float] = {}
+    for v, req in requested.items():
+        cash = cash_by_venue.get(v)
+        if cash is None or req <= 0 or req <= cash:
+            continue
+        scale[v] = cash / req
+    if not scale:
+        return
+    for b in bets:
+        f = scale.get(b.get("venue") or "kalshi")
+        if f is not None and (b.get("kelly_fraction_used") or 0.0) > 0:
+            b["kelly_fraction_used"] = round(b["kelly_fraction_used"] * f, 4)
+            b["stake"] = round((b.get("stake") or 0.0) * f, 2)
+
+
 async def reprice_rows(
     rows: list[dict],
     *,
@@ -181,6 +219,7 @@ async def reprice_rows(
     fees_in_pricing: bool,
     max_kelly: float,
     on_warning: Optional[Callable[[str], None]] = None,
+    cash_by_venue: Optional[dict[str, float]] = None,
 ) -> list[dict]:
     """Re-price each candidate row against the CURRENT market.
 
@@ -211,6 +250,11 @@ async def reprice_rows(
 
     ``on_warning(msg)`` receives the same human warnings pick prints on a fetch
     failure; pass ``console.print`` to reproduce them, or ``None`` to silence.
+
+    ``cash_by_venue`` (``{venue: deployable_cash}``) caps each venue's summed
+    live stakes at its cash (see :func:`apply_cash_cap_to_bets`). Pass it from a
+    venue-selection plan at placement time; ``None`` (the default, and what the
+    background pruner passes) skips the cap.
     """
     from evmax.agents.cleanup.resolver import yes_aligned_close_prob
     from evmax.clients.kalshi import KalshiClient
@@ -351,4 +395,8 @@ async def reprice_rows(
             "live_effective": live,
         })
 
+    # GAP 2 at placement: scale each selected venue's summed live stakes to fit
+    # its deployable cash (no-op when cash_by_venue is None/empty — manual
+    # bankroll, or the background pruner which never places).
+    apply_cash_cap_to_bets(bets, cash_by_venue)
     return bets

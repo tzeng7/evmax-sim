@@ -118,7 +118,8 @@ def compute_brier_scores(weeks: int = 1) -> Optional[dict]:
 
     conn = get_connection()
     rows = conn.execute(
-        """SELECT o.outcome, o.sharp_true_prob, o.blended_true_prob
+        """SELECT o.outcome, o.sharp_true_prob, o.blended_true_prob,
+                  p.sector, p.market_type, p.model_sources, p.line
            FROM ev_outcomes o
            JOIN ev_predictions p ON o.market_id = p.market_id
            INNER JOIN (
@@ -132,6 +133,18 @@ def compute_brier_scores(weeks: int = 1) -> Optional[dict]:
         (since,),
     ).fetchall()
     conn.close()
+
+    # Drop rows produced by a superseded code state — the SAME contamination
+    # guard the shadow-promotion path applies. Without this, the LIVE
+    # sharp_weight auto-tuner (which sizes real bets) could be nudged by
+    # predictions a later code change already invalidated. is_contaminated
+    # returns False for sectors without rules, so this only removes
+    # documented-contamination rows.
+    from evmax.agents.cleanup.contamination import is_contaminated
+    rows = [
+        r for r in rows
+        if not is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"])
+    ]
 
     if not rows:
         return None

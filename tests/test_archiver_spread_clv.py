@@ -354,6 +354,51 @@ def test_kalshi_close_none_when_no_post_entry_snapshot(temp_archive_db):
     assert archiver.get_kalshi_close_price(TICKER, EVENT_ID, not_before=tip - timedelta(minutes=5)) is None
 
 
+def _seed_near_tip_only_fixture(archiver):
+    """Tipoff anchor + snapshots ONLY inside the T-30 window (tip-20m, tip-8m).
+
+    Mirrors Polymarket US, whose watch-closes captures land near-tip only, so
+    every snapshot falls inside the T-minutes_before close window.
+    """
+    tip = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+    archiver.open_session("so", ["nba"], "test")
+    archiver.archive_sharp_odds("so", "nba", [_ml_sharp(EVENT_ID, 0.5, tip - timedelta(hours=4), tip)])
+    archiver.archive_kalshi_snapshot("k1", "nba", [{"ticker": TICKER, "yes_price": 0.61, "event_id": EVENT_ID}], fetched_at=tip - timedelta(minutes=20))
+    archiver.archive_kalshi_snapshot("k2", "nba", [{"ticker": TICKER, "yes_price": 0.64, "event_id": EVENT_ID}], fetched_at=tip - timedelta(minutes=8))
+    return tip
+
+
+def test_kalshi_close_falls_back_to_near_tip_when_no_pre_target_snapshot(temp_archive_db):
+    """When every snapshot is inside the T-30 window (near-tip-only capture, the
+    Polymarket US pattern), the primary T-30 query finds nothing; the fallback
+    relaxes to strictly-pre-tip and returns the LATEST pre-tip print (tip-8m =
+    0.64) instead of silently dropping the row's CLV."""
+    archiver = DataArchiver()
+    _seed_near_tip_only_fixture(archiver)
+    assert archiver.get_kalshi_close_price(TICKER, EVENT_ID) == pytest.approx(0.64)
+
+
+def test_kalshi_close_fallback_excludes_post_tip_prints(temp_archive_db):
+    """The near-tip fallback is bounded STRICTLY before tipoff: an in-game
+    post-tip print (tip+10m) must never be selected. With only post-tip
+    snapshots the close is None, not the info-corrupted in-game price."""
+    archiver = DataArchiver()
+    tip = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
+    archiver.open_session("so", ["nba"], "test")
+    archiver.archive_sharp_odds("so", "nba", [_ml_sharp(EVENT_ID, 0.5, tip - timedelta(hours=4), tip)])
+    archiver.archive_kalshi_snapshot("k1", "nba", [{"ticker": TICKER, "yes_price": 0.90, "event_id": EVENT_ID}], fetched_at=tip + timedelta(minutes=10))
+    assert archiver.get_kalshi_close_price(TICKER, EVENT_ID) is None
+
+
+def test_kalshi_close_primary_wins_over_near_tip_fallback(temp_archive_db):
+    """The fallback must NOT change behaviour when a pre-target snapshot exists:
+    the legacy fixture (snap at tip-1h) still returns 0.50, not the tip-20m
+    near-tip print — the fallback only fires when the primary query is empty."""
+    archiver = DataArchiver()
+    _seed_kalshi_clv_fixture(archiver)
+    assert archiver.get_kalshi_close_price(TICKER, EVENT_ID) == pytest.approx(0.50)
+
+
 def test_archive_kalshi_snapshot_round_trips(temp_archive_db):
     """The lightweight snapshot primitive lands a row get_kalshi_close_price reads."""
     archiver = DataArchiver()
