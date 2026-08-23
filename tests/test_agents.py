@@ -1015,6 +1015,52 @@ class TestPoissonModelAgent:
         assert pred is not None
         assert pred.true_prob_a > 0.5   # Man City strong attack vs weak Bournemouth defense
 
+    @pytest.mark.asyncio
+    async def test_predict_drops_on_stale_state(self, tmp_path, monkeypatch):
+        """Family-2 guard: a frozen state (last result >STALE_DAYS before the
+        game — a resolve outage / stopped seed) drops poisson from the blend."""
+        from datetime import datetime, timezone
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = PoissonModelAgent()
+        agent._state_path = tmp_path / "poisson_state.json"
+        agent.update("manchester city", "bournemouth", 3, 0, "soccer", event_date="2026-01-01")
+        market = make_market(sector="soccer", team_home="manchester city", team_away="bournemouth")
+        market = market.model_copy(update={
+            "sector": "soccer", "event_date": datetime(2026, 6, 1, tzinfo=timezone.utc),
+        })
+        sharp = make_sharp(team_a="manchester city", team_b="bournemouth", sector="soccer")
+        assert await agent.predict_pair(market, sharp) is None
+
+    @pytest.mark.asyncio
+    async def test_predict_fires_when_fresh(self, tmp_path, monkeypatch):
+        from datetime import datetime, timezone
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = PoissonModelAgent()
+        agent._state_path = tmp_path / "poisson_state.json"
+        agent.update("manchester city", "bournemouth", 3, 0, "soccer", event_date="2026-05-20")
+        market = make_market(sector="soccer", team_home="manchester city", team_away="bournemouth")
+        market = market.model_copy(update={
+            "sector": "soccer", "event_date": datetime(2026, 6, 1, tzinfo=timezone.utc),
+        })
+        sharp = make_sharp(team_a="manchester city", team_b="bournemouth", sector="soccer")
+        assert await agent.predict_pair(market, sharp) is not None  # 12d → fresh
+
+    @pytest.mark.asyncio
+    async def test_worldcup_uses_longer_stale_window(self, tmp_path, monkeypatch):
+        """~90 days stale: soccer's 60d window would drop, but worldcup's 180d
+        window keeps firing (national teams have long gaps between windows)."""
+        from datetime import datetime, timezone
+        monkeypatch.setattr("evmax.agents.models.base.STATE_DIR", tmp_path)
+        agent = PoissonModelAgent()
+        agent._state_path = tmp_path / "poisson_state.json"
+        agent.update("brazil", "france", 2, 1, "worldcup", event_date="2026-03-01")
+        market = make_market(sector="worldcup", team_home="brazil", team_away="france")
+        market = market.model_copy(update={
+            "sector": "worldcup", "event_date": datetime(2026, 6, 1, tzinfo=timezone.utc),
+        })
+        sharp = make_sharp(team_a="brazil", team_b="france", sector="worldcup")
+        assert await agent.predict_pair(market, sharp) is not None  # 92d < 180d
+
     def test_poisson_is_football_only(self):
         """Poisson serves only the two football sectors — club `soccer` and
         national-team `worldcup`, both genuine low-count goal processes.

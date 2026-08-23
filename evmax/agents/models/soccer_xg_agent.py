@@ -45,6 +45,16 @@ LEAGUE_AVG_AWAY = 1.15
 # how the soccer ensemble leans on xG. Membership here gates predict_pair.
 SUPPORTED_SECTORS = {"soccer", "worldcup"}
 
+# Staleness guard (days). Drop xG when EITHER team's most recent stored match is
+# older than this before the game — a resolve outage / stopped seed leaves the
+# rolling xG rates frozen, and a frozen 25%-of-the-blend model must not size a
+# live bet on stale form (the Family-2 lesson). Unlike poisson, xG stores dated
+# matches, so this is a form-style per-team recency check (no separate stamp).
+# worldcup gets a longer window — national teams have long gaps between
+# international windows, and you only bet them during an active window.
+XG_STALE_DAYS: dict[str, int] = {"soccer": 60, "worldcup": 180}
+_XG_DEFAULT_STALE_DAYS = 60
+
 # Per-sector mean goals used as the opponent-defense baseline. Club soccer skews
 # higher than international football; the World Cup baseline is the symmetric
 # neutral-venue average that the Poisson agent uses for `worldcup`.
@@ -285,6 +295,30 @@ class SoccerXgAgent(ModelAgent):
         # Clamp to reasonable range
         return max(0.3, min(4.0, lam))
 
+    def _latest_match_date(self, team: str, sector: str) -> Optional[str]:
+        """ISO date of a team's most recent stored match (matches[0]), or None.
+
+        ``record_match`` inserts at index 0, so matches[0] is the freshest.
+        """
+        data = self._teams_for(sector).get(self._resolve_team_key(team, sector))
+        if not data:
+            return None
+        matches = data.get("matches", [])
+        return matches[0].get("date") if matches else None
+
+    @staticmethod
+    def _is_stale(match_date: Optional[str], sector: str, reference: date) -> bool:
+        """True when ``match_date`` is older than the sector's XG_STALE_DAYS
+        before ``reference``. An unparseable date does NOT trigger the guard
+        (historical data quirk — don't drop a prediction on a malformed date).
+        """
+        try:
+            md = date.fromisoformat(str(match_date)[:10])
+        except (ValueError, TypeError):
+            return False
+        threshold = XG_STALE_DAYS.get(sector, _XG_DEFAULT_STALE_DAYS)
+        return (reference - md).days > threshold
+
     async def predict_pair(
         self,
         market: PredictionMarket,
@@ -298,6 +332,19 @@ class SoccerXgAgent(ModelAgent):
         team_b = (sharp_odds.outcome_b_label or market.team_away or "").lower().strip()
         if not team_a or not team_b:
             return None
+
+        # Staleness guard: drop xG when EITHER team's most recent match is more
+        # than STALE_DAYS before this game (frozen state from a resolve outage /
+        # stopped seed). Both teams feed the score projection, so one stale side
+        # is enough to withhold. A team with no data is already dropped below by
+        # _regressed_lambda; this adds the "has data but stale" case.
+        _ed = getattr(market, "event_date", None)
+        ref = _ed.date() if isinstance(_ed, datetime) else None
+        if ref is not None:
+            for _t in (team_a, team_b):
+                latest = self._latest_match_date(_t, sector)
+                if latest is not None and self._is_stale(latest, sector, ref):
+                    return None
 
         lam_a = self._regressed_lambda(team_a, is_home=True, opponent=team_b, sector=sector)
         lam_b = self._regressed_lambda(team_b, is_home=False, opponent=team_a, sector=sector)
