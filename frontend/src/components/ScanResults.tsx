@@ -15,6 +15,13 @@ interface Props {
   onPicked: () => void
 }
 
+// Short venue label for the best-execution "· also {venue}" annotation.
+function venueShort(v?: string | null): string {
+  if (v === 'polymarket_us') return 'Poly'
+  if (v === 'kalshi') return 'Kalshi'
+  return v ?? ''
+}
+
 // Approximate re-sizing of a gap's stake when bankroll / Kelly multiplier
 // diverge from the scan-time snapshot. The stored kelly_fraction is
 // K_full × scan_kelly × liquidity_discount, capped at 5%, so scaling by
@@ -237,7 +244,22 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
                 </td>
                 <td><VenueLogo venue={g.venue} /></td>
                 <td>{g.event_title}</td>
-                <td>{outcome}</td>
+                <td>
+                  {outcome}
+                  {g.alt_venue && (
+                    <span
+                      className="muted"
+                      style={{ marginLeft: 6, fontSize: 10 }}
+                      title={`Same bet also +EV on ${venueShort(g.alt_venue)}`
+                        + (g.alt_venue_price != null ? ` at ${probToCents(g.alt_venue_price)}` : '')
+                        + (g.alt_venue_ev_pct != null ? ` (EV ${g.alt_venue_ev_pct.toFixed(1)}%)` : '')
+                        + ' — this row is the better book'}
+                    >
+                      · also {venueShort(g.alt_venue)}
+                      {g.alt_venue_price != null ? ` ${probToCents(g.alt_venue_price)}` : ''}
+                    </span>
+                  )}
+                </td>
                 <td className="num">{askOdds}</td>
                 <td className="num">{probToCents(g.true_prob)}</td>
                 <td className="num">{(g.true_prob * 100).toFixed(1)}%</td>

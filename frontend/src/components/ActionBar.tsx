@@ -12,6 +12,10 @@ const BANKROLL_VENUES: { value: string; label: string }[] = [
   { value: '', label: 'Manual' },
   { value: 'kalshi', label: 'Kalshi' },
   { value: 'polymarket_us', label: 'Polymarket US' },
+  // 'both' sizes against the SUM of both venues' live total wealth and scopes
+  // plays to both; single-venue values scope to that one venue. The server
+  // (resolve_bankroll_plan) re-resolves this authoritatively at scan time.
+  { value: 'both', label: 'Both (combined)' },
 ]
 
 const venueLabel = (v: string) =>
@@ -74,6 +78,21 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
     }
     setBalanceLoading(true)
     try {
+      if (venue === 'both') {
+        // Combined: sum every venue's live total wealth (the server re-resolves
+        // this at scan time; this is the preview). null only if BOTH are
+        // unavailable.
+        const balances = await fetchBalances()
+        const vals = Object.values(balances).filter((b): b is number => b != null)
+        const total = vals.length ? vals.reduce((a, b) => a + b, 0) : null
+        setLiveBalance(total)
+        if (total != null) {
+          setBankrollStr(total.toFixed(2))
+        } else {
+          toast('No live balance for either venue (no credentials?) — using manual bankroll', 'info')
+        }
+        return
+      }
       const balances = await fetchBalances(venue)
       const bal = balances[venue] ?? null
       setLiveBalance(bal)

@@ -559,6 +559,19 @@ def _gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         "volume_usd": g.volume_usd or 0,
         "mode": gap_mode,
         "venue": gap_venue,
+        # Best-execution alternative (GAP 3): when the same bet is also +EV on
+        # the OTHER venue, the display collapses to this (better) row and carries
+        # the alternative's price/EV so the user can still line-shop. None when
+        # this bet is quoted on only one venue.
+        "alt_venue": getattr(g, "alt_venue", None),
+        "alt_venue_price": (
+            round(g.alt_venue_price, 2)
+            if getattr(g, "alt_venue_price", None) is not None else None
+        ),
+        "alt_venue_ev_pct": (
+            round(g.alt_venue_ev_pct * 100, 2)
+            if getattr(g, "alt_venue_ev_pct", None) is not None else None
+        ),
     }
 
 
@@ -607,6 +620,8 @@ async def _run_unified_scan(
     fan_out_portfolio_ids: list[str] | None,
     date_from: str = "",
     date_to: str = "",
+    selected_venues: list[str] | None = None,
+    cash_by_venue: dict[str, float] | None = None,
 ) -> tuple[Any, list[dict[str, Any]], list[dict[str, Any]]]:
     """Single shared scan path. Runs the coordinator once, logs game gaps to
     ``ev_predictions``, and (if requested) fans the same gaps out to active
@@ -621,7 +636,10 @@ async def _run_unified_scan(
     """
     from evmax.agents.coordinator import AgentCoordinator
 
-    coord = AgentCoordinator(sectors=sectors, bankroll=bankroll, kelly_fraction=kelly)
+    coord = AgentCoordinator(
+        sectors=sectors, bankroll=bankroll, kelly_fraction=kelly,
+        selected_venues=selected_venues,
+    )
     cycle = await coord.run_cycle()
 
     # Log game-level gaps to ev_predictions so "Pick Selected" can resolve by
@@ -650,7 +668,20 @@ async def _run_unified_scan(
     # cycle.plays() drops partial-blend (shadow, $0.00-stake) gaps. They're
     # still logged above via loggable_gaps(). The dashboard deliberately does
     # NOT apply the CLI's min_prob/tiered-EV floor (it shows all ≥2% gaps).
-    gap_dicts = [_gap_to_dict(g, bankroll) for g in cycle.plays(require_full_blend=True)]
+    # GAP 3: collapse the SAME bet quoted on both venues to one best-execution
+    # row (the alternative venue annotated on it) so the play list can't invite
+    # an accidental double. View-layer only — both venue rows were persisted
+    # above via loggable_gaps(); the ledger fan-out below reduces further,
+    # side-agnostically, to one position per game outcome.
+    from evmax.ev.best_execution import apply_venue_cash_cap, collapse_best_execution
+    collapsed_plays = collapse_best_execution(list(cycle.plays(require_full_blend=True)))
+    # GAP 2: scale each venue's summed stakes to fit its deployable cash (a new
+    # bet is funded from cash, not the value locked in open positions). Runs on
+    # the collapsed set so each bet routes to one venue. No-op when cash is
+    # unknown (manual bankroll).
+    if cash_by_venue:
+        collapsed_plays = apply_venue_cash_cap(collapsed_plays, bankroll, cash_by_venue)
+    gap_dicts = [_gap_to_dict(g, bankroll) for g in collapsed_plays]
 
     portfolio_results: list[dict[str, Any]] = []
     if fan_out_portfolio_ids is not None:
@@ -766,15 +797,17 @@ async def api_scan(request: Request) -> JSONResponse:
     sectors_str = body.get("sectors") or _default_scan_sectors()
     bankroll = float(body.get("bankroll", 500))
     kelly = float(body.get("kelly", 0.5))
-    # Optionally source the bankroll from a venue's LIVE balance (the venue
-    # filter's "size against my actual balance" flow). Falls back to the passed
-    # bankroll if the balance is unavailable; the source is echoed back so the
-    # UI can show whether real capital or the manual figure was used.
+    # Venue selection (dashboard dropdown): "" = Manual, "kalshi",
+    # "polymarket_us", or "both". Resolves the Kelly base (total wealth of the
+    # selected venues), the live-play scoping, and the per-venue deployable cash
+    # for the fundability cap — all fail-soft to the manual bankroll. The source
+    # is echoed so the UI shows whether real capital or the manual figure was
+    # used.
     bankroll_venue = (body.get("bankroll_venue") or "").strip().lower() or None
-    bankroll_source = "manual"
-    if bankroll_venue:
-        from evmax.clients.balances import resolve_bankroll
-        bankroll, bankroll_source = await resolve_bankroll(bankroll, bankroll_venue)
+    from evmax.clients.balances import resolve_bankroll_plan
+    plan = await resolve_bankroll_plan(bankroll, bankroll_venue)
+    bankroll = plan.bankroll
+    bankroll_source = plan.source
     date_from = body.get("date_from", "")
     date_to = body.get("date_to", "")
     fan_out = body.get("fan_out_portfolios", True)
@@ -790,6 +823,8 @@ async def api_scan(request: Request) -> JSONResponse:
         fan_out_portfolio_ids=fan_out_arg,
         date_from=date_from,
         date_to=date_to,
+        selected_venues=plan.selected_venues,
+        cash_by_venue=plan.cash_by_venue,
     )
 
     # Filter for the placement table view

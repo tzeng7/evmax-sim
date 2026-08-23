@@ -132,9 +132,11 @@ def scan(
     bankroll: float = typer.Option(250.0, "--bankroll", "-b", help="Current bankroll in USD."),
     bankroll_venue: Optional[str] = typer.Option(
         None, "--bankroll-venue",
-        help="Size against a venue's LIVE balance instead of --bankroll: "
-             "kalshi | polymarket_us. Falls back to --bankroll if the balance "
-             "call fails (no credentials / error).",
+        help="Size against live venue balance(s) instead of --bankroll: "
+             "kalshi | polymarket_us | both. 'both' sums the venues' total "
+             "wealth and scopes plays to them; a single venue scopes to it. "
+             "Each selected venue's stakes are capped at its deployable cash. "
+             "Falls back to --bankroll if a balance call fails.",
     ),
     kelly: float = typer.Option(0.5, "--kelly", "-k", help="Kelly fraction (0.5=half, 0.25=quarter)."),
     min_ev: float = typer.Option(0.02, "--min-ev", help="Base minimum EV threshold (scaled up automatically for low-prob bets)."),
@@ -262,11 +264,18 @@ def scan(
     if _cfg.get("sharp_weight") and sharp_weight == 0.85:
         sharp_weight = _cfg["sharp_weight"]
 
-    # Optionally size against a venue's LIVE balance instead of --bankroll.
+    # Venue selection: --bankroll-venue kalshi|polymarket_us|both sizes against
+    # the selected venues' LIVE total wealth, scopes live plays to them, and
+    # caps each venue's stakes at its deployable cash. Fail-soft to --bankroll.
+    _selected_venues: Optional[list[str]] = None
+    _cash_by_venue: dict[str, float] = {}
     if bankroll_venue:
-        from evmax.clients.balances import resolve_bankroll as _resolve_bankroll
-        bankroll, _bk_source = asyncio.run(_resolve_bankroll(bankroll, bankroll_venue))
-        if _bk_source.startswith("live:"):
+        from evmax.clients.balances import resolve_bankroll_plan as _resolve_plan
+        _plan = asyncio.run(_resolve_plan(bankroll, bankroll_venue))
+        bankroll = _plan.bankroll
+        _selected_venues = _plan.selected_venues
+        _cash_by_venue = _plan.cash_by_venue
+        if _plan.source.startswith("live:"):
             console.print(
                 f"[green]Bankroll ${bankroll:,.2f}[/green] "
                 f"[dim](live {bankroll_venue} balance)[/dim]"
@@ -285,6 +294,7 @@ def scan(
         bankroll=bankroll,
         kelly_fraction=kelly,
         respect_season_window=not sectors_explicit,
+        selected_venues=_selected_venues,
     )
 
     console.print(f"\n[bold cyan]evmax agent scan[/bold cyan] — sectors: {', '.join(sector_list)}\n")
@@ -438,6 +448,18 @@ def scan(
         except Exception as _log_err:
             logger.warning("prop_log_failed", error=str(_log_err))
 
+    # GAP 3: collapse the SAME bet quoted on both venues to one best-execution
+    # row (the alternative venue annotated on the Outcome cell) so the scan
+    # table can't invite an accidental double. Display-layer only — both venue
+    # rows were already persisted via loggable_gaps above.
+    from evmax.ev.best_execution import apply_venue_cash_cap, collapse_best_execution
+    qualifying_gaps = collapse_best_execution(qualifying_gaps)
+    # GAP 2: scale each venue's summed stakes to fit its deployable cash. Runs
+    # on the collapsed set (one venue per bet). No-op unless a venue was
+    # selected (cash unknown under a manual bankroll).
+    if _cash_by_venue:
+        qualifying_gaps = apply_venue_cash_cap(qualifying_gaps, bankroll, _cash_by_venue)
+
     # Enforce per-type cap: at most max_props prop plays, rest are game markets.
     # `--top` must NEVER hide a live game play (it would then appear only in the
     # dashboard's Open Positions, never in the scan table). See select_display_gaps.
@@ -543,6 +565,13 @@ def scan(
         outcome_cell = gap.display_label[:22]
         if maker_only:
             outcome_cell = f"{outcome_cell} [bold magenta]MAKER[/bold magenta]"
+        # GAP 3: same bet also live on the other venue — annotate the cheaper
+        # alternative so the collapsed single row still line-shops.
+        alt_venue = getattr(gap, "alt_venue", None)
+        if alt_venue:
+            alt_price = getattr(gap, "alt_venue_price", None)
+            price_txt = f" {_cents(alt_price)}" if alt_price is not None else ""
+            outcome_cell = f"{outcome_cell} [dim]·also {venue_label(alt_venue)}{price_txt}[/dim]"
         # Limit ¢: rest a maker buy at or below this to stay >= the EV floor.
         maker_limit = getattr(gap, "maker_limit_price", None)
         lim_str = f"[magenta]{_cents(maker_limit)}[/magenta]" if maker_limit is not None else "[dim]—[/dim]"

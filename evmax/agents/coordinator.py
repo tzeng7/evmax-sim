@@ -75,7 +75,7 @@ from evmax.agents.models.wnba_possession_sim_agent import WNBAPossessionSimAgent
 from evmax.agents.intelligence.injury_agent import InjuryReportAgent, InjuryReport
 from evmax.agents.intelligence.playoff_agent import PlayoffAgent, PlayoffSeries
 from evmax.agents.intelligence.standings_agent import StandingsAgent, TeamStanding
-from evmax.models.market import MarketSource, PredictionMarket, PROP_MARKER, is_prop_event
+from evmax.models.market import MarketSource, PredictionMarket, is_prop_event
 from evmax.models.odds import SharpOdds, SharpBook
 from evmax.matching.engine import MatchingEngine
 from evmax.settings import get_settings
@@ -243,13 +243,46 @@ def _base_event(event_id: str) -> str:
     return "::".join(parts[:3])
 
 
-def _load_placed_exposure() -> dict[str, float]:
-    """Sum kelly_fraction of already-placed un-resolved live bets per base event.
+def _venue_is_live(
+    venue: str,
+    sector: Optional[str],
+    selected_venues: Optional[set[str]],
+    settings,
+) -> bool:
+    """Whether a gap on ``venue`` is a live play.
 
-    Lets the exposure guard respect bets the user placed in EARLIER scans
-    today. Without this, repeated scans on the same game day can stack
-    multiple new bets on top of existing placements and silently breach
-    the 8% per-game cap.
+    A gap is live only when it is BOTH within the per-scan venue selection (if
+    any) AND cleared by the PolyUS shadow firewall. The selection only ever
+    RESTRICTS: ``selected_venues=None`` means no restriction (all venues,
+    firewall still applies), and selecting a venue can never force an
+    un-validated PolyUS sector live — the firewall (``polymarket_us_sector_live``)
+    still gates within the selection. Kalshi is always firewall-clear.
+    """
+    if selected_venues is not None and venue not in selected_venues:
+        return False
+    if venue == "kalshi":
+        return True
+    if venue == "polymarket_us":
+        return settings.polymarket_us_sector_live(sector)
+    return False
+
+
+def _load_placed_exposure() -> dict[str, float]:
+    """Sum DOLLARS at risk from already-placed un-resolved live bets, per base event.
+
+    Returns DOLLARS, not Kelly fractions. Fractions from bets sized against
+    different bankroll bases are NOT additive: a 5% bet on a $200 venue and a
+    5% bet on an $800 venue are $10 and $40, not "10%". Summing the raw
+    fractions (the old behaviour) silently breaks the per-game cap the moment
+    two bets used different bases — different venues, or a bankroll that changed
+    between scans. Dollars are always additive. The caller divides this by the
+    current scan bankroll to recover the fraction of THIS bankroll already
+    committed to each game.
+
+    Per row, dollars = ``placed_stake`` when recorded (the real amount staked),
+    else ``kelly_fraction * bankroll_used`` (the stake sized at scan time). A
+    row with neither is skipped (can't be valued) — normal rows always carry
+    ``bankroll_used``.
 
     Includes only:
       - placed = 1     (user confirmed bet placement, not just flagged)
@@ -263,7 +296,7 @@ def _load_placed_exposure() -> dict[str, float]:
         with get_connection() as conn:
             rows = conn.execute(
                 """
-                SELECT p.event_id, p.kelly_fraction
+                SELECT p.event_id, p.kelly_fraction, p.placed_stake, p.bankroll_used
                 FROM ev_predictions p
                 LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
                 WHERE p.placed = 1
@@ -280,10 +313,18 @@ def _load_placed_exposure() -> dict[str, float]:
     for r in rows:
         eid = r["event_id"] if isinstance(r, dict) else r[0]
         kf = r["kelly_fraction"] if isinstance(r, dict) else r[1]
+        stake = r["placed_stake"] if isinstance(r, dict) else r[2]
+        bankroll_used = r["bankroll_used"] if isinstance(r, dict) else r[3]
         if not eid:
             continue
+        if stake is not None and float(stake) > 0:
+            dollars = float(stake)
+        elif kf is not None and bankroll_used:
+            dollars = float(kf) * float(bankroll_used)
+        else:
+            continue
         base = _base_event(eid)
-        exposure[base] = exposure.get(base, 0.0) + float(kf or 0.0)
+        exposure[base] = exposure.get(base, 0.0) + dollars
     return exposure
 
 
@@ -315,12 +356,17 @@ def _apply_joint_kelly(
         joint_kelly_fractions,
     )
 
-    base_event_key = lambda g: (g.event_id or "").split(PROP_MARKER)[0]
+    # Group by the SAME base-event key the exposure guard and prior_exposure
+    # use (_base_event: strips ::spread / ::total so ML + spread + total of one
+    # game co-group; groups props by player). The old split(PROP_MARKER)[0] key
+    # left the market-type suffix on, so ML and spread of one game were sized as
+    # two independent events — defeating the whole correlation-aware point (and
+    # mis-aligning with prior_exposure, which is _base_event-keyed).
     prior = dict(prior_exposure or {})
 
     by_event: dict[str, list[EVGap]] = {}
     for g in gaps:
-        by_event.setdefault(base_event_key(g), []).append(g)
+        by_event.setdefault(_base_event(g.event_id or ""), []).append(g)
 
     guarded: list[EVGap] = []
     for base, group in by_event.items():
@@ -479,6 +525,12 @@ class AgentCoordinator:
         enable_injuries: If True, fetch ESPN injury reports and adjust probs.
         bankroll:       Current bankroll in USD (default $250).
         kelly_fraction: Kelly multiplier (0.5 = half Kelly, 0.25 = quarter Kelly).
+        selected_venues: Restrict live plays to these venues (the dashboard's
+                        venue selection). None = no restriction (all venues,
+                        subject to the firewall). The selection only ever
+                        RESTRICTS — it never overrides the PolyUS shadow
+                        firewall, so picking a venue can't force an un-validated
+                        sector live.
     """
 
     def __init__(
@@ -490,6 +542,7 @@ class AgentCoordinator:
         bankroll: float = 250.0,
         kelly_fraction: float = 0.5,
         respect_season_window: bool = True,
+        selected_venues: Optional[list[str]] = None,
     ) -> None:
         from evmax.sectors.registry import ALL_SECTORS
         from evmax.categories import get_category
@@ -526,6 +579,13 @@ class AgentCoordinator:
         self._enable_injuries = enable_injuries
         self._bankroll = bankroll
         self._kelly_fraction = kelly_fraction
+        # Per-scan venue restriction (dashboard venue selection). None = all
+        # venues. Normalized to a lowercase set; empty selection is treated as
+        # None (no restriction) so a stray empty list can't silently drop
+        # every play.
+        self._selected_venues: Optional[set[str]] = (
+            {v.lower() for v in selected_venues} if selected_venues else None
+        )
 
         self.bus = AgentBus()
 
@@ -703,12 +763,12 @@ class AgentCoordinator:
         _settings = get_settings()
 
         def _venue_gap_live(g) -> bool:
-            v = getattr(g, "venue", "kalshi")
-            if v == "kalshi":
-                return True
-            if v == "polymarket_us":
-                return _settings.polymarket_us_sector_live(g.sector)
-            return False
+            return _venue_is_live(
+                getattr(g, "venue", "kalshi"),
+                getattr(g, "sector", None),
+                self._selected_venues,
+                _settings,
+            )
 
         shadow_venue_gaps = [
             dataclasses.replace(g, kelly_fraction=0.0)
@@ -725,16 +785,25 @@ class AgentCoordinator:
             )
 
         pre_guard = len(result.ev_gaps)
-        # Load Kelly fractions from bets the user already placed in earlier
-        # scans today so the per-game cap is cumulative across scans, not
-        # per-scan. A 4% morning placement leaves only 4% for new bets in
-        # the afternoon scan on the same game.
-        prior_exposure = _load_placed_exposure()
+        # Bets the user already placed in earlier scans today make the per-game
+        # cap cumulative across scans, not per-scan. _load_placed_exposure
+        # returns DOLLARS at risk per game (additive across venues / a changed
+        # bankroll); convert to a fraction of THIS scan's bankroll W so the
+        # fraction-based guard and joint-Kelly caps stay consistent — a game
+        # already holding $X of exposure has committed X/W of the current
+        # bankroll, whatever base each prior bet was originally sized against.
+        prior_exposure_dollars = _load_placed_exposure()
+        W = self._bankroll
+        prior_exposure = (
+            {b: d / W for b, d in prior_exposure_dollars.items()}
+            if W and W > 0 else {}
+        )
         if prior_exposure:
             self.log.info(
                 "exposure_prior_loaded",
                 games_with_prior=len(prior_exposure),
-                total_prior=round(sum(prior_exposure.values()), 4),
+                total_prior_dollars=round(sum(prior_exposure_dollars.values()), 2),
+                bankroll=round(float(W), 2),
             )
         if get_settings().joint_kelly_enabled:
             _jk = get_settings()
