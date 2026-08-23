@@ -857,6 +857,12 @@ def pick(
     min_ev: float = typer.Option(0.02, "--min-ev", help="Base EV threshold for 'still live' check."),
     min_prob: float = typer.Option(0.15, "--min-prob", help="Minimum true probability floor."),
     bankroll: Optional[float] = typer.Option(None, "--bankroll", "-b", help="Bankroll for stake calculation (default: value used at scan time)."),
+    bankroll_venue: Optional[str] = typer.Option(
+        None, "--bankroll-venue",
+        help="Size against live venue balance(s): kalshi | polymarket_us | both. "
+             "Caps each venue's stakes at its deployable cash. Falls back to "
+             "--bankroll / the scan-time bankroll if a balance call fails.",
+    ),
     kelly: float = typer.Option(0.5, "--kelly", "-k", help="Kelly fraction."),
     show_stale: bool = typer.Option(False, "--show-stale", help="Also show bets whose edge has evaporated."),
     live: bool = typer.Option(
@@ -944,6 +950,27 @@ def pick(
     stored_bankroll = next((dict(r)["bankroll_used"] for r in rows if dict(r).get("bankroll_used")), None)
     bankroll = bankroll if bankroll is not None else (stored_bankroll or 250.0)
 
+    # Venue selection (mirrors scan): --bankroll-venue sizes against live venue
+    # balance(s) and caps each selected venue's stakes at its deployable cash.
+    # Applied inside reprice_rows so placement respects fundability, not just
+    # the scan-time display. No-op (cash unknown) when the flag is absent.
+    _cash_by_venue: dict[str, float] = {}
+    if bankroll_venue:
+        from evmax.clients.balances import resolve_bankroll_plan as _resolve_plan
+        _plan = asyncio.run(_resolve_plan(bankroll, bankroll_venue))
+        bankroll = _plan.bankroll
+        _cash_by_venue = _plan.cash_by_venue
+        if _plan.source.startswith("live:"):
+            console.print(
+                f"[green]Bankroll ${bankroll:,.2f}[/green] "
+                f"[dim](live {bankroll_venue} balance)[/dim]"
+            )
+        else:
+            console.print(
+                f"[yellow]⚠ {bankroll_venue} balance unavailable — sizing against "
+                f"${bankroll:,.2f} instead.[/yellow]"
+            )
+
     console.print(f"\n[bold cyan]evmax pick[/bold cyan] — {len(rows)} bets from scan\n")
 
     settings = get_settings()
@@ -965,6 +992,7 @@ def pick(
         fees_in_pricing=settings.fees_in_pricing,
         max_kelly=settings.max_kelly_fraction,
         on_warning=console.print,
+        cash_by_venue=_cash_by_venue,
     ))
     # A Kalshi-fetch failure inside reprice_rows collapses the run to scan mode;
     # mirror that into `live` so the title/status branches below reflect what was

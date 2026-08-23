@@ -388,3 +388,67 @@ def test_prune_stale_command_registered():
     output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
     for flag in ("--dry-run", "--interval", "--once", "--lookahead", "--hysteresis", "--min-ev"):
         assert flag in output
+
+
+# ---------------------------------------------------------------------------
+# apply_cash_cap_to_bets — per-venue cash cap at placement (GAP 2)
+# ---------------------------------------------------------------------------
+
+from evmax.agents.cleanup.reprice import apply_cash_cap_to_bets  # noqa: E402
+
+
+def _cbet(market_id, venue, kf, stake, is_live=True):
+    return {
+        "market_id": market_id, "venue": venue,
+        "kelly_fraction_used": kf, "stake": stake, "is_live": is_live,
+    }
+
+
+def test_cash_cap_scales_venue_over_cash():
+    bets = [_cbet("k:a", "kalshi", 0.05, 50.0), _cbet("k:b", "kalshi", 0.03, 30.0)]
+    apply_cash_cap_to_bets(bets, {"kalshi": 40.0})  # $80 requested, $40 cash → ×0.5
+    assert bets[0]["stake"] == pytest.approx(25.0)
+    assert bets[1]["stake"] == pytest.approx(15.0)
+    assert bets[0]["kelly_fraction_used"] == pytest.approx(0.025)
+    assert bets[1]["kelly_fraction_used"] == pytest.approx(0.015)
+
+
+def test_cash_cap_under_cash_unchanged():
+    bets = [_cbet("k:a", "kalshi", 0.03, 30.0)]
+    apply_cash_cap_to_bets(bets, {"kalshi": 100.0})
+    assert bets[0]["stake"] == pytest.approx(30.0)
+    assert bets[0]["kelly_fraction_used"] == pytest.approx(0.03)
+
+
+def test_cash_cap_missing_venue_uncapped():
+    bets = [_cbet("k:a", "kalshi", 0.05, 50.0)]
+    apply_cash_cap_to_bets(bets, {"polymarket_us": 5.0})  # no kalshi entry
+    assert bets[0]["stake"] == pytest.approx(50.0)
+
+
+def test_cash_cap_ignores_non_live_bets():
+    # a non-live bet's stake must not count toward the venue's requested sum
+    bets = [
+        _cbet("k:a", "kalshi", 0.05, 50.0),
+        _cbet("k:dead", "kalshi", 0.0, 0.0, is_live=False),
+    ]
+    apply_cash_cap_to_bets(bets, {"kalshi": 50.0})  # $50 == $50 → no scale
+    assert bets[0]["stake"] == pytest.approx(50.0)
+
+
+def test_cash_cap_per_venue_independent():
+    bets = [
+        _cbet("k:a", "kalshi", 0.05, 50.0),          # $50 ≤ $50 → ok
+        _cbet("p:a", "polymarket_us", 0.05, 50.0),   # $50 > $25 → half
+    ]
+    apply_cash_cap_to_bets(bets, {"kalshi": 50.0, "polymarket_us": 25.0})
+    assert bets[0]["stake"] == pytest.approx(50.0)
+    assert bets[1]["stake"] == pytest.approx(25.0)
+
+
+def test_cash_cap_empty_map_is_noop():
+    bets = [_cbet("k:a", "kalshi", 0.05, 50.0)]
+    apply_cash_cap_to_bets(bets, None)
+    assert bets[0]["stake"] == pytest.approx(50.0)
+    apply_cash_cap_to_bets(bets, {})
+    assert bets[0]["stake"] == pytest.approx(50.0)
