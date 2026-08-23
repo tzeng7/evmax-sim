@@ -13,7 +13,7 @@ with Kalshi's ticker convention, sector-by-sector.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 # Sectors whose Kalshi ticker date follows US calendar day (most US sports).
@@ -46,6 +46,16 @@ def kalshi_game_day(event_date: datetime | None, sector: str) -> str:
     """
     if event_date is None:
         return "unknown"
+    # Coerce a NAIVE datetime to UTC. Otherwise `.astimezone()` interprets it as
+    # the SERVER's local time and silently shifts the game day on a non-UTC host
+    # — the launchd tasks run on a PT Mac, so a naive UTC timestamp would land on
+    # the wrong Kalshi calendar day and re-introduce the exact off-by-one this
+    # module exists to prevent (mismatched matching, then mis-resolution / bad
+    # CLV downstream). Every current producer already feeds tz-aware UTC (the
+    # noon-UTC ticker anchor; commence_times parsed Z→+00:00), so this is a
+    # defensive backstop, not a behaviour change for existing callers.
+    if event_date.tzinfo is None:
+        event_date = event_date.replace(tzinfo=timezone.utc)
     if sector in _US_SECTORS:
         return event_date.astimezone(_US_TZ).strftime("%Y-%m-%d")
     return event_date.strftime("%Y-%m-%d")
