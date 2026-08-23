@@ -125,7 +125,8 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
       const res = await pickBets(bets)
       if (res.placed > 0) {
         const skippedNote = res.skipped?.length ? ` · skipped ${res.skipped.length}` : ''
-        toast(`Placed ${res.placed} bet(s)${skippedNote}`, 'ok')
+        const cappedNote = res.cash_capped ? ` · capped to venue cash (${Object.keys(res.cash_capped).join(', ')})` : ''
+        toast(`Placed ${res.placed} bet(s)${skippedNote}${cappedNote}`, 'ok')
       } else if (res.skipped?.length) {
         const first = res.skipped[0]
         const more = res.skipped.length > 1 ? ` (+${res.skipped.length - 1} more)` : ''
