@@ -868,6 +868,48 @@ async def api_scan(request: Request) -> JSONResponse:
     })
 
 
+async def _cap_pending_to_cash(pending: list[dict]) -> dict | None:
+    """Scale each venue's summed pending fill stakes to fit its deployable cash.
+
+    A new bet is funded from CASH, not the value locked in open positions, so a
+    venue whose wealth is mostly positions cannot fund an arbitrarily large
+    pick. The scan→ScanResults flow already caps stakes client-side, but the
+    Open-Positions 'Pick All' places from stored rows that bypass it — this is
+    the server-side backstop for every web placement.
+
+    Fail-soft: a venue with no available cash figure is left uncapped; an empty
+    batch or a total balance-fetch failure is a no-op (so manual-bankroll users
+    with no credentials are unaffected). Mutates ``fill_stake`` in place and
+    returns ``{venue: scale}`` for any scaled venue, else None.
+    """
+    if not pending:
+        return None
+    from evmax.clients.balances import fetch_cash_balances
+
+    venues = sorted({b["venue"] for b in pending})
+    try:
+        cash = await fetch_cash_balances(venues)
+    except Exception:
+        return None
+
+    requested: dict[str, float] = {}
+    for b in pending:
+        requested[b["venue"]] = requested.get(b["venue"], 0.0) + (b["fill_stake"] or 0.0)
+    scale: dict[str, float] = {}
+    for v, req in requested.items():
+        c = cash.get(v)
+        if c is None or req <= 0 or req <= c:
+            continue
+        scale[v] = c / req
+    if not scale:
+        return None
+    for b in pending:
+        f = scale.get(b["venue"])
+        if f is not None:
+            b["fill_stake"] = round((b["fill_stake"] or 0.0) * f, 2)
+    return {v: round(s, 4) for v, s in scale.items()}
+
+
 @app.post("/api/pick")
 async def api_pick(request: Request) -> JSONResponse:
     """Mark selected bets as placed in the database.
@@ -876,6 +918,9 @@ async def api_pick(request: Request) -> JSONResponse:
       { "bets": [{"market_id": "...", "fill_price": 0.45, "fill_stake": 12.50}, ...] }
     or legacy:
       { "market_ids": ["..."] }
+
+    Placement is capped server-side to each venue's deployable cash (fail-soft;
+    see :func:`_cap_pending_to_cash`).
     """
     body = await request.json()
     bets_list: list[dict] = body.get("bets", [])
@@ -890,8 +935,8 @@ async def api_pick(request: Request) -> JSONResponse:
 
     now_str = datetime.now(timezone.utc).isoformat()
     conn = _conn()
-    placed = 0
     skipped: list[dict] = []
+    pending: list[dict] = []  # validated fills awaiting the cash cap + record
     for bet in bets_list:
         mid = bet.get("market_id")
         if not mid:
@@ -901,7 +946,7 @@ async def api_pick(request: Request) -> JSONResponse:
         # Diagnose why a market_id might not be pickable. Each branch is a
         # distinct silent-skip this endpoint used to swallow.
         diag = conn.execute(
-            "SELECT kalshi_yes_price, kelly_fraction, bankroll_used, voided, mode, placed "
+            "SELECT kalshi_yes_price, kelly_fraction, bankroll_used, voided, mode, placed, venue "
             "FROM ev_predictions WHERE market_id = ? ORDER BY id DESC LIMIT 1",
             (mid,),
         ).fetchone()
@@ -922,15 +967,29 @@ async def api_pick(request: Request) -> JSONResponse:
         fill_price = bet.get("fill_price") or diag["kalshi_yes_price"]
         default_stake = round((diag["bankroll_used"] or 500.0) * (diag["kelly_fraction"] or 0.0), 2)
         fill_stake = bet.get("fill_stake") or default_stake
+        pending.append({
+            "market_id": mid,
+            "fill_price": fill_price,
+            "fill_stake": float(fill_stake or 0.0),
+            "venue": (diag["venue"] or "kalshi"),
+        })
 
+    # Cap the batch to each venue's deployable cash before recording (fail-soft).
+    cash_capped = await _cap_pending_to_cash(pending)
+
+    placed = 0
+    for b in pending:
         conn.execute(
             "UPDATE ev_predictions SET placed = 1, placed_at = ?, placed_price = ?, placed_stake = ? WHERE market_id = ?",
-            (now_str, fill_price, fill_stake, mid),
+            (now_str, b["fill_price"], round(b["fill_stake"], 2), b["market_id"]),
         )
         placed += 1
     conn.commit()
     conn.close()
-    return JSONResponse({"placed": placed, "skipped": skipped})
+    result: dict = {"placed": placed, "skipped": skipped}
+    if cash_capped:
+        result["cash_capped"] = cash_capped
+    return JSONResponse(result)
 
 
 @app.post("/api/fill")

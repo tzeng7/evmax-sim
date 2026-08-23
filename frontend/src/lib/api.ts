@@ -54,7 +54,9 @@ export async function runScan(params: {
 }
 
 export interface PickSkip { market_id: string | null; reason: string }
-export interface PickResult { placed: number; skipped?: PickSkip[] }
+// cash_capped is {venue: scale} — present when the server scaled the batch's
+// stakes down to fit a venue's deployable cash.
+export interface PickResult { placed: number; skipped?: PickSkip[]; cash_capped?: Record<string, number> }
 
 export async function pickBets(bets: { market_id: string; fill_price: number | null; fill_stake: number | null }[]): Promise<PickResult> {
   return fetch('/api/pick', {
