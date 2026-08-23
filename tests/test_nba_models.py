@@ -336,6 +336,29 @@ class TestPossessionSim:
         result = asyncio.run(agent.predict_pair(market, sharp))
         assert result is None
 
+    def test_predict_stale_state_abstains(self):
+        """Family-2 guard: a stale efficiency state (fetched_at behind the last
+        completed NBA game) must drop possession_sim from the blend, not size a
+        live bet on frozen ratings. Mirrors EfficiencyAgent's freshness guard on
+        the shared state."""
+        async def _async_false(*_a, **_k):
+            return False
+
+        agent = self._make_agent()  # MOCK_EFF_STATE has teams + a fetched_at
+        market, sharp = _make_pair("thunder", "suns")
+        with patch("evmax.agents.models._nba_freshness.state_is_fresh", new=_async_false):
+            result = asyncio.run(agent.predict_pair(market, sharp))
+        assert result is None
+
+    def test_predict_fresh_state_produces_prediction(self):
+        """With a fresh state the guard passes and a prediction is produced."""
+        agent = self._make_agent()
+        market, sharp = _make_pair("thunder", "suns")
+        with patch("evmax.agents.models._nba_freshness.state_is_fresh", new=_async_true):
+            result = asyncio.run(agent.predict_pair(market, sharp))
+        assert result is not None
+        assert result.model_name == "possession_sim"
+
     def test_strong_vs_weak_favors_strong(self):
         agent = self._make_agent()
         market, sharp = _make_pair("thunder", "bad", 0.85)
