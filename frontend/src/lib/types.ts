@@ -90,6 +90,12 @@ export interface ScanGap {
   alt_venue?: string | null
   alt_venue_price?: number | null   // the other venue's YES ask (prob 0-1)
   alt_venue_ev_pct?: number | null  // the other venue's EV %
+  // Full venue option set (best-execution winner first) when the same bet is
+  // quoted on more than one venue. Each entry is a full ScanGap for one venue,
+  // so the Venue cell renders a dropdown and selecting a venue swaps the row's
+  // price / EV / maker fields / stake / market_id. Absent (or length 1) means a
+  // single-venue bet — no dropdown. Nested legs have venue_options undefined.
+  venue_options?: ScanGap[] | null
 }
 
 export interface ScanResult {

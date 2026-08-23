@@ -125,6 +125,58 @@ class TestCollapse:
 
 
 # ---------------------------------------------------------------------------
+# venue_options (dropdown) — the full ranked leg set carried on the winner
+# ---------------------------------------------------------------------------
+
+
+class TestVenueOptions:
+    def test_two_venues_attach_ranked_options(self):
+        """A dual-venue bet carries every leg (winner first) so the display can
+        offer a venue dropdown."""
+        kalshi = _gap("kalshi:A", EID, venue="kalshi", ev=0.04, price=0.46)
+        poly = _gap("polymarket_us:A", EID, venue="polymarket_us", ev=0.06, price=0.44)
+        out = collapse_best_execution([kalshi, poly])
+        assert len(out) == 1
+        opts = out[0].venue_options
+        assert opts is not None and len(opts) == 2
+        assert opts[0].venue == "polymarket_us"          # best-execution winner first
+        assert {o.venue for o in opts} == {"kalshi", "polymarket_us"}
+        # Nested option legs must not themselves carry options (no recursion).
+        assert all(o.venue_options is None for o in opts)
+
+    def test_single_venue_has_no_options(self):
+        out = collapse_best_execution([_gap("kalshi:A", EID, venue="kalshi")])
+        assert out[0].venue_options is None
+
+    def test_opposite_sides_have_no_options(self):
+        """Different bets (opposite ML sides) stay as separate rows — no dropdown."""
+        a = _gap("kalshi:A", EID, venue="kalshi", yes_team="lakers")
+        b = _gap("polymarket_us:B", EID, venue="polymarket_us", yes_team="warriors")
+        out = collapse_best_execution([a, b])
+        assert all(g.venue_options is None for g in out)
+
+    def test_options_include_maker_only_leg(self):
+        """Mirrors the real dual-venue row: both legs zero-Kelly, one venue
+        clears only as a maker. The dropdown must surface both, preserving each
+        leg's maker_only flag so the display can tag the maker book."""
+        kalshi = _gap("kalshi:A", EID, venue="kalshi", ev=0.015, kelly=0.0)
+        kalshi.maker_only = True
+        poly = _gap("polymarket_us:A", EID, venue="polymarket_us", ev=0.021, kelly=0.0)
+        out = collapse_best_execution([kalshi, poly])
+        assert out[0].venue == "polymarket_us"           # higher EV wins the tie of zeros
+        opts = {o.venue: o for o in out[0].venue_options}
+        assert opts["kalshi"].maker_only is True
+        assert opts["polymarket_us"].maker_only is False
+
+    def test_does_not_mutate_input_options(self):
+        kalshi = _gap("kalshi:A", EID, venue="kalshi", ev=0.06)
+        poly = _gap("polymarket_us:A", EID, venue="polymarket_us", ev=0.04)
+        collapse_best_execution([kalshi, poly])
+        assert kalshi.venue_options is None
+        assert poly.venue_options is None
+
+
+# ---------------------------------------------------------------------------
 # apply_venue_cash_cap (GAP 2)
 # ---------------------------------------------------------------------------
 
