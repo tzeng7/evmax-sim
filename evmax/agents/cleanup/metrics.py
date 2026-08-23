@@ -63,6 +63,13 @@ def load_config() -> dict:
     historical hardcoded overrides.
     """
     cfg: dict = dict(_DEFAULT_CONFIG)
+    # dict(_DEFAULT_CONFIG) is a SHALLOW copy — the nested mutable containers
+    # would otherwise be shared with the module-level default. Callers mutate
+    # them in place (the per-sector auto-tuner writes sharp_weight_by_sector;
+    # every run appends to brier_history), so give each load its own copies or
+    # those writes leak into _DEFAULT_CONFIG for the process lifetime.
+    cfg["sharp_weight_by_sector"] = dict(_DEFAULT_CONFIG["sharp_weight_by_sector"])
+    cfg["brier_history"] = list(_DEFAULT_CONFIG["brier_history"])
     if CONFIG_PATH.exists():
         try:
             cfg.update(json.loads(CONFIG_PATH.read_text()))
@@ -195,7 +202,8 @@ def compute_brier_scores_by_sector(weeks: int = 4) -> list[dict]:
 
     conn = get_connection()
     rows = conn.execute(
-        """SELECT p.sector, o.outcome, o.sharp_true_prob, o.blended_true_prob
+        """SELECT p.sector, o.outcome, o.sharp_true_prob, o.blended_true_prob,
+                  p.market_type, p.model_sources, p.line
            FROM ev_outcomes o
            JOIN ev_predictions p ON o.market_id = p.market_id
            INNER JOIN (
@@ -210,8 +218,14 @@ def compute_brier_scores_by_sector(weeks: int = 4) -> list[dict]:
     ).fetchall()
     conn.close()
 
+    # Same contamination guard the global compute_brier_scores + the shadow path
+    # use — this feeds the PER-SECTOR auto-tuner, so superseded-code rows must
+    # not drive a sector's live sharp_weight.
+    from evmax.agents.cleanup.contamination import is_contaminated
     by_sector: dict[str, list] = {}
     for r in rows:
+        if is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"]):
+            continue
         by_sector.setdefault((r["sector"] or "").lower(), []).append(r)
 
     out: list[dict] = []
@@ -235,11 +249,25 @@ def compute_brier_scores_by_sector(weeks: int = 4) -> list[dict]:
 
 
 def adjust_sharp_weight(force: bool = False) -> dict:
-    """
-    Auto-adjust sharp_weight based on 4-week Brier score comparison.
+    """Auto-adjust sharp_weight PER SECTOR from 4-week per-sector Brier.
 
-    Returns a result dict with keys: adjusted, reason, sharp_weight, direction,
-    brier_model, brier_sharp, n, improvement_pct.
+    DANGER-B fix. Previously ONE global ``sharp_weight`` was tuned on a POOLED
+    all-sector Brier, so a high-volume weak sector dragged the fallback weight
+    that unrelated sectors rely on. Now each sector with ≥30 clean resolved
+    LIVE bets is tuned on ITS OWN Brier, writing ``sharp_weight_by_sector[sector]``:
+
+      * improvement (bs−bm)/bs > +5%  → models beating sharp → lower that
+        sector's weight by 0.05 (floor 0.40);
+      * improvement < −5%             → models worse → raise by 0.05 (cap 0.95);
+      * otherwise                     → hold.
+
+    LOCKED sectors — those in ``_DEFAULT_SHARP_WEIGHT_BY_SECTOR`` (tennis,
+    baseball) — are pinned high for documented thin-stack reasons and are NEVER
+    auto-moved. Sectors with n<30 keep the static global fallback (never tuned
+    on thin data). The 7-day cooldown and [0.40, 0.95] bounds are unchanged.
+
+    Returns ``{adjusted: bool, reason?: str, sectors: [ {sector, n, old_weight,
+    new_weight, brier_model, brier_sharp, improvement_pct, direction} ]}``.
     """
     cfg = load_config()
     today = date.today().isoformat()
@@ -252,68 +280,67 @@ def adjust_sharp_weight(force: bool = False) -> dict:
             return {
                 "adjusted": False,
                 "reason": f"Adjusted {days_since}d ago (min 7d). Use --force to override.",
-                "sharp_weight": cfg["sharp_weight"],
+                "sectors": [],
             }
 
-    scores = compute_brier_scores(weeks=4)
-    n = scores["n"] if scores else 0
-
-    if scores is None or n < 30:
+    by_sector = compute_brier_scores_by_sector(weeks=4)
+    eligible = [s for s in by_sector if s["n"] >= 30]
+    if not eligible:
+        total = sum(s["n"] for s in by_sector)
         return {
             "adjusted": False,
-            "reason": f"Insufficient data: {n} resolved predictions (need 30+).",
-            "sharp_weight": cfg["sharp_weight"],
+            "reason": f"Insufficient data: no sector with 30+ resolved predictions ({total} total).",
+            "sectors": [],
         }
 
-    bm = scores["brier_model"]
-    bs = scores["brier_sharp"]
-    # Positive improvement = model is better than sharp-only
-    improvement = (bs - bm) / bs if bs > 0 else 0.0
+    locked = {s.lower() for s in _DEFAULT_SHARP_WEIGHT_BY_SECTOR}
+    by_map = cfg.setdefault("sharp_weight_by_sector", {})
+    fallback = float(cfg.get("sharp_weight", 0.85))
 
-    old_weight = cfg["sharp_weight"]
-    new_weight = old_weight
+    results: list[dict] = []
+    any_changed = False
+    for s in eligible:
+        sector = (s["sector"] or "").lower()
+        if sector in locked:
+            continue  # deliberately-pinned sector — never auto-tune
+        bm, bs, n = s["brier_model"], s["brier_sharp"], s["n"]
+        improvement = (bs - bm) / bs if bs > 0 else 0.0
+        old_w = float(by_map.get(sector, fallback))
+        new_w = old_w
+        if improvement > 0.05:
+            new_w = max(0.40, round(old_w - 0.05, 2))
+            direction = "down (models improving vs sharp)"
+        elif improvement < -0.05:
+            new_w = min(0.95, round(old_w + 0.05, 2))
+            direction = "up (models underperforming vs sharp)"
+        else:
+            direction = "flat (no significant difference)"
+        if new_w != old_w:
+            by_map[sector] = new_w
+            any_changed = True
+        results.append({
+            "sector": sector, "n": n, "old_weight": old_w, "new_weight": new_w,
+            "brier_model": bm, "brier_sharp": bs,
+            "improvement_pct": round(improvement * 100, 2), "direction": direction,
+        })
 
-    if improvement > 0.05:
-        new_weight = max(0.40, round(old_weight - 0.05, 2))
-        direction = "↓ (models improving vs sharp)"
-    elif improvement < -0.05:
-        new_weight = min(0.95, round(old_weight + 0.05, 2))
-        direction = "↑ (models underperforming vs sharp)"
-    else:
-        direction = "= (no significant difference)"
-
-    changed = new_weight != old_weight
-
-    cfg["sharp_weight"] = new_weight
-    cfg["last_brier_model"] = bm
-    cfg["last_brier_sharp"] = bs
     cfg["last_adjusted"] = today
     cfg.setdefault("brier_history", []).append({
-        "date":       today,
-        "brier_model": bm,
-        "brier_sharp": bs,
-        "n":           n,
-        "old_weight":  old_weight,
-        "new_weight":  new_weight,
+        "date": today,
+        "per_sector": [
+            {"sector": r["sector"], "n": r["n"], "old_weight": r["old_weight"],
+             "new_weight": r["new_weight"], "brier_model": r["brier_model"],
+             "brier_sharp": r["brier_sharp"]}
+            for r in results
+        ],
     })
     save_config(cfg)
 
     logger.info(
-        "sharp_weight_adjusted",
-        old=old_weight,
-        new=new_weight,
-        brier_model=bm,
-        brier_sharp=bs,
-        n=n,
-        improvement_pct=round(improvement * 100, 2),
+        "sharp_weight_adjusted_by_sector",
+        changed=any_changed,
+        weights={r["sector"]: r["new_weight"] for r in results},
     )
 
-    return {
-        "adjusted":       changed,
-        "direction":      direction,
-        "sharp_weight":   new_weight,
-        "brier_model":    bm,
-        "brier_sharp":    bs,
-        "n":              n,
-        "improvement_pct": round(improvement * 100, 2),
-    }
+    return {"adjusted": any_changed, "sectors": results,
+            "sharp_weight_by_sector": dict(by_map)}

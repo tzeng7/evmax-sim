@@ -500,27 +500,33 @@ class TestLoadSaveConfig:
 # metrics.py: compute_brier_scores and adjust_sharp_weight
 # ---------------------------------------------------------------------------
 
-def _seed_outcomes(conn: sqlite3.Connection, rows: list[dict]) -> None:
-    """Seed ev_predictions + ev_outcomes for Brier testing."""
+def _seed_outcomes(conn: sqlite3.Connection, rows: list[dict], sector: str = "nba") -> None:
+    """Seed ev_predictions + ev_outcomes for Brier testing (one sector)."""
     scan_date = (date.today() - timedelta(days=7)).isoformat()
     for i, r in enumerate(rows):
-        mid = f"kalshi:BRIER-{i}"
+        mid = f"kalshi:BRIER-{sector}-{i}"
+        eid = f"ev::{sector}::{i}"
         conn.execute(
             "INSERT INTO ev_predictions (scan_date, market_id, event_id, sector, yes_team, "
             "market_type, kalshi_yes_price, sharp_true_prob, blended_true_prob, ev_pct, "
             "kelly_fraction, volume_usd, model_sources, sharp_weight_used) "
             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (scan_date, mid, f"ev::{i}", "nba", "team", "moneyline",
+            (scan_date, mid, eid, sector, "team", "moneyline",
              0.50, r["sharp_prob"], r["blend_prob"], 0.05, 0.025, 1000.0, "sharp", 0.85),
         )
         conn.execute(
             "INSERT INTO ev_outcomes (market_id, event_id, sector, yes_team, outcome, "
             "sharp_true_prob, blended_true_prob, result_source) "
             "VALUES (?,?,?,?,?,?,?,?)",
-            (mid, f"ev::{i}", "nba", "team", r["outcome"],
+            (mid, eid, sector, "team", r["outcome"],
              r["sharp_prob"], r["blend_prob"], "espn"),
         )
     conn.commit()
+
+
+def _sector_row(result: dict, sector: str):
+    """Extract one sector's per-sector adjust result, or None."""
+    return next((s for s in result.get("sectors", []) if s["sector"] == sector), None)
 
 
 class TestComputeBrierScores:
@@ -623,21 +629,24 @@ class TestBrierBySector:
                 (mid, f"ev::nba::{i}", "nba", "team", 1, 0.5, 0.9, "espn"),
             )
 
-        # Soccer: model is worse (blend=0.3 vs sharp=0.6 on outcome=1)
+        # NFL: model is worse (blend=0.3 vs sharp=0.6 on outcome=1). Uses NFL
+        # (no contamination rule) rather than soccer — sharp-only soccer ML is a
+        # documented contaminated signature that compute_brier_scores_by_sector
+        # now filters out.
         for i in range(4):
-            mid = f"kalshi:SOC-{i}"
+            mid = f"kalshi:NFL-{i}"
             conn.execute(
                 "INSERT INTO ev_predictions (scan_date, market_id, event_id, sector, yes_team, "
                 "market_type, kalshi_yes_price, sharp_true_prob, blended_true_prob, ev_pct, "
                 "kelly_fraction, volume_usd, model_sources, sharp_weight_used) "
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (scan_date, mid, f"ev::soc::{i}", "soccer", "team", "moneyline",
+                (scan_date, mid, f"ev::nfl::{i}", "nfl", "team", "moneyline",
                  0.50, 0.6, 0.3, 0.05, 0.025, 1000.0, "sharp", 0.85),
             )
             conn.execute(
                 "INSERT INTO ev_outcomes (market_id, event_id, sector, yes_team, outcome, "
                 "sharp_true_prob, blended_true_prob, result_source) VALUES (?,?,?,?,?,?,?,?)",
-                (mid, f"ev::soc::{i}", "soccer", "team", 1, 0.6, 0.3, "espn"),
+                (mid, f"ev::nfl::{i}", "nfl", "team", 1, 0.6, 0.3, "espn"),
             )
         conn.commit()
 
@@ -649,7 +658,7 @@ class TestBrierBySector:
         assert result[0]["sector"] == "nba"
         assert result[0]["n"] == 6
         assert result[0]["edge_pct"] > 0  # model beats sharp
-        assert result[1]["sector"] == "soccer"
+        assert result[1]["sector"] == "nfl"
         assert result[1]["n"] == 4
         assert result[1]["edge_pct"] < 0  # sharp beats model
 
@@ -715,7 +724,7 @@ class TestBrierDedupRegression:
         scans_3 = [(base + timedelta(days=i)).isoformat() for i in range(3)]
         scans_1 = [base.isoformat()]
         self._seed_market_with_scans(
-            conn, "kalshi:SOC-1", "soccer", scans_3,
+            conn, "kalshi:NFL-1", "nfl", scans_3,
             first_blend=0.70, later_blend=0.85, outcome=1,
         )
         self._seed_market_with_scans(
@@ -727,7 +736,7 @@ class TestBrierDedupRegression:
             result = compute_brier_scores_by_sector(weeks=52)
 
         by_sector = {r["sector"]: r for r in result}
-        assert by_sector["soccer"]["n"] == 1
+        assert by_sector["nfl"]["n"] == 1
         assert by_sector["nba"]["n"] == 1
 
 
@@ -838,8 +847,9 @@ class TestAdjustSharpWeight:
                 result = adjust_sharp_weight(force=True)
 
         assert result["adjusted"] is True
-        assert result["sharp_weight"] < 0.85
-        assert result["sharp_weight"] == pytest.approx(0.80)  # decreased by 0.05
+        nba = _sector_row(result, "nba")
+        assert nba is not None
+        assert nba["new_weight"] == pytest.approx(0.80)  # 0.85 − 0.05
 
     def test_model_underperforming_increases_weight(self):
         """When sharp Brier < model Brier by > 5%, sharp_weight should increase."""
@@ -860,8 +870,9 @@ class TestAdjustSharpWeight:
                 result = adjust_sharp_weight(force=True)
 
         assert result["adjusted"] is True
-        assert result["sharp_weight"] > 0.85
-        assert result["sharp_weight"] == pytest.approx(0.90)  # increased by 0.05
+        nba = _sector_row(result, "nba")
+        assert nba is not None
+        assert nba["new_weight"] == pytest.approx(0.90)  # 0.85 + 0.05
 
     def test_sharp_weight_bounded_at_min(self):
         """sharp_weight should not go below 0.40."""
@@ -879,7 +890,8 @@ class TestAdjustSharpWeight:
                  patch("evmax.agents.cleanup.metrics.get_connection", return_value=conn):
                 result = adjust_sharp_weight(force=True)
 
-        assert result["sharp_weight"] >= 0.40
+        nba = _sector_row(result, "nba")
+        assert nba is not None and nba["new_weight"] >= 0.40
 
     def test_sharp_weight_bounded_at_max(self):
         """sharp_weight should not go above 0.95."""
@@ -898,7 +910,8 @@ class TestAdjustSharpWeight:
                  patch("evmax.agents.cleanup.metrics.get_connection", return_value=conn):
                 result = adjust_sharp_weight(force=True)
 
-        assert result["sharp_weight"] <= 0.95
+        nba = _sector_row(result, "nba")
+        assert nba is not None and nba["new_weight"] <= 0.95
 
     def test_history_appended_on_adjustment(self):
         """Brier history should be recorded after adjustment."""
@@ -918,8 +931,56 @@ class TestAdjustSharpWeight:
                 saved = json.loads(p.read_text())
 
         assert len(saved["brier_history"]) == 1
-        assert "brier_model" in saved["brier_history"][0]
-        assert "new_weight" in saved["brier_history"][0]
+
+    def test_per_sector_no_cross_drag(self):
+        """DANGER B: each sector tunes on its OWN Brier — a weak sector can't
+        drag a strong sector's weight (the whole point of the fix)."""
+        from evmax.agents.cleanup.metrics import adjust_sharp_weight
+
+        cfg = self._base_config(sharp_weight=0.85)
+        conn = _make_in_memory_db()
+        # nba: model WORSE than sharp → its weight should go UP
+        _seed_outcomes(conn, [{"sharp_prob": 0.8, "blend_prob": 0.3, "outcome": 1}] * 35, sector="nba")
+        # nfl: model BETTER than sharp → its weight should go DOWN, independently
+        _seed_outcomes(conn, [{"sharp_prob": 0.5, "blend_prob": 0.9, "outcome": 1}] * 35, sector="nfl")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p = Path(tmpdir) / "model_config.json"
+            p.write_text(json.dumps(cfg))
+            with patch("evmax.agents.cleanup.metrics.CONFIG_PATH", p), \
+                 patch("evmax.agents.cleanup.metrics.get_connection", return_value=conn):
+                result = adjust_sharp_weight(force=True)
+
+        nba = _sector_row(result, "nba")
+        nfl = _sector_row(result, "nfl")
+        assert nba is not None and nfl is not None
+        assert nba["new_weight"] == pytest.approx(0.90)   # up (models worse)
+        assert nfl["new_weight"] == pytest.approx(0.80)   # down (models better)
+
+    def test_locked_sectors_not_tuned(self):
+        """Deliberately-pinned sectors (tennis/baseball) are never auto-moved,
+        even when their Brier would trigger an adjustment."""
+        from evmax.agents.cleanup.metrics import adjust_sharp_weight
+
+        cfg = self._base_config(sharp_weight=0.85)
+        conn = _make_in_memory_db()
+        # tennis: model much better → WOULD lower its weight, but tennis is locked
+        _seed_outcomes(conn, [{"sharp_prob": 0.5, "blend_prob": 0.9, "outcome": 1}] * 35, sector="tennis")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p = Path(tmpdir) / "model_config.json"
+            p.write_text(json.dumps(cfg))
+            with patch("evmax.agents.cleanup.metrics.CONFIG_PATH", p), \
+                 patch("evmax.agents.cleanup.metrics.get_connection", return_value=conn):
+                result = adjust_sharp_weight(force=True)
+                saved = json.loads(p.read_text())
+
+        assert _sector_row(result, "tennis") is None        # skipped, not tuned
+        assert result["adjusted"] is False                  # nothing changed
+        # tennis stays at its pinned default (1.00), untouched by the tuner
+        assert saved["sharp_weight_by_sector"]["tennis"] == pytest.approx(1.00)
+        # brier_history now records a per-sector breakdown (new format)
+        assert "per_sector" in saved["brier_history"][0]
 
 
 class TestComputeBrierContamination:
