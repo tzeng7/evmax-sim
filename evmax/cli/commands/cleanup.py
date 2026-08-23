@@ -1515,21 +1515,25 @@ def adjust(
     result = adjust_sharp_weight(force=force)
 
     if not result["adjusted"]:
-        console.print(f"[yellow]No adjustment:[/yellow] {result.get('reason', '')}")
-        console.print(f"  sharp_weight remains [bold]{result['sharp_weight']:.2f}[/bold]")
+        console.print(f"[yellow]No adjustment:[/yellow] {result.get('reason', 'no sector changed')}")
+        for s in result.get("sectors", []):
+            console.print(
+                f"  {s['sector']}: weight [bold]{s['new_weight']:.2f}[/bold] "
+                f"({s['direction']}, n={s['n']})"
+            )
         return
 
+    console.print("[green]sharp_weight adjusted per sector:[/green]")
+    for s in result["sectors"]:
+        if s["new_weight"] != s["old_weight"]:
+            console.print(
+                f"  [bold]{s['sector']}[/bold]: {s['old_weight']:.2f} → "
+                f"[bold cyan]{s['new_weight']:.2f}[/bold cyan]  "
+                f"(Brier model={s['brier_model']:.5f} vs sharp={s['brier_sharp']:.5f}, "
+                f"{s['improvement_pct']:+.1f}%, {s['direction']}, n={s['n']})"
+            )
     console.print(
-        f"[green]sharp_weight adjusted[/green]  "
-        f"Brier model={result['brier_model']:.5f} vs sharp={result['brier_sharp']:.5f} "
-        f"({result['improvement_pct']:+.1f}% improvement)"
-    )
-    console.print(
-        f"  {result['direction']}  →  "
-        f"[bold cyan]sharp_weight = {result['sharp_weight']:.2f}[/bold cyan]"
-    )
-    console.print(
-        "  [dim]Run [bold]evmax agents scan[/bold] — it will pick up the new weight automatically.[/dim]"
+        "  [dim]Run [bold]evmax agents scan[/bold] — it picks up the new weights automatically.[/dim]"
     )
 
 
