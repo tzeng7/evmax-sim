@@ -5715,6 +5715,16 @@
     "valencia": {
       "matches": [
         {
+          "date": "2026-08-25",
+          "goals_for": 0,
+          "goals_against": 1,
+          "sot": 3,
+          "shots": 16,
+          "xg": 1.29,
+          "xga": 1.26,
+          "is_home": true
+        },
+        {
           "date": "2026-08-22",
           "goals_for": 0,
           "goals_against": 0,
@@ -5903,16 +5913,6 @@
           "xg": 1.65,
           "xga": 2.1,
           "is_home": true
-        },
-        {
-          "date": "2026-01-18",
-          "goals_for": 1,
-          "goals_against": 0,
-          "sot": 1,
-          "shots": 7,
-          "xg": 0.48,
-          "xga": 1.23,
-          "is_home": false
         }
       ]
     },
@@ -7551,6 +7551,16 @@
     "betis": {
       "matches": [
         {
+          "date": "2026-08-25",
+          "goals_for": 1,
+          "goals_against": 0,
+          "sot": 3,
+          "shots": 15,
+          "xg": 1.26,
+          "xga": 1.29,
+          "is_home": false
+        },
+        {
           "date": "2026-08-21",
           "goals_for": 1,
           "goals_against": 0,
@@ -7739,16 +7749,6 @@
           "xg": 1.65,
           "xga": 2.52,
           "is_home": true
-        },
-        {
-          "date": "2026-04-21",
-          "goals_for": 3,
-          "goals_against": 2,
-          "sot": 3,
-          "shots": 7,
-          "xg": 1.02,
-          "xga": 0.81,
-          "is_home": false
         }
       ]
     },
