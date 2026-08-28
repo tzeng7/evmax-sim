@@ -23,6 +23,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Optional
 
+import httpx
 import structlog
 
 from evmax.clients.base import BaseAPIClient
@@ -200,6 +201,41 @@ def parse_prop_description(description: str) -> Optional[tuple[str, str]]:
     return None
 
 
+def classify_pinnacle_error(exc: BaseException) -> tuple[Optional[int], str]:
+    """Classify a Pinnacle fetch failure into ``(status_code, reason)``.
+
+    Pinnacle is the sole sharp anchor; when it fails the scan must fail CLEAR
+    (produce no plays — never price a bet against a stale line) but the operator
+    needs to know WHY. Distinguishes the two failure modes that actually happen:
+    a maintenance window (503) and the US geo-block (403 ``BAD_LOCATION``,
+    observed intermittently), plus rate-limiting and network errors.
+
+    Reasons: ``maintenance`` | ``geo_block`` | ``forbidden`` | ``rate_limited``
+    | ``http_error`` | ``timeout`` | ``network`` | ``error``.
+    """
+    if isinstance(exc, httpx.HTTPStatusError):
+        code = exc.response.status_code
+        if code == 503:
+            return code, "maintenance"
+        if code == 403:
+            body = ""
+            try:
+                body = (exc.response.text or "").upper()
+            except Exception:  # noqa: BLE001 — body may be unreadable
+                body = ""
+            if "BAD_LOCATION" in body or "LOCATION" in body:
+                return code, "geo_block"
+            return code, "forbidden"
+        if code == 429:
+            return code, "rate_limited"
+        return code, "http_error"
+    if isinstance(exc, httpx.TimeoutException):
+        return None, "timeout"
+    if isinstance(exc, httpx.TransportError):
+        return None, "network"
+    return None, "error"
+
+
 class PinnacleGuestClient(BaseAPIClient):
     """
     Fetches sharp Pinnacle odds from the public guest Arcadia API.
@@ -217,6 +253,35 @@ class PinnacleGuestClient(BaseAPIClient):
                 "X-Api-Key": "CmX2KcMrXuFmNg6YFbmTxE0y9CIrOi0R",
             },
         )
+        # Set to {"sector", "status", "reason"} when the most recent top-level
+        # fetch failed (matchups list); reset to None on a successful fetch. Lets
+        # a caller / the heartbeat probe know Pinnacle is down and WHY.
+        self.last_error: Optional[dict] = None
+
+    async def probe(self, sector: str = "nba") -> dict:
+        """Lightweight reachability check (one matchups fetch), for the heartbeat.
+
+        Returns ``{"ok": bool, "status": int|None, "reason": str}``. Measures
+        whether the request SUCCEEDS, not whether markets are listed (an empty
+        off-season list is still ``ok``). Never raises — a probe failure is data.
+        """
+        sector = sector.lower()
+        if sector not in SECTOR_SPORT_LEAGUES:
+            sector = "nba"
+        sport_id, _ = SECTOR_SPORT_LEAGUES[sector]
+        try:
+            data = await self._logged_get(
+                f"/sports/{sport_id}/matchups",
+                params={"withSpecials": "false"},
+                sector=sector,
+                purpose="probe",
+            )
+        except Exception as e:  # noqa: BLE001 — probe reports, never raises
+            status, reason = classify_pinnacle_error(e)
+            self.last_error = {"sector": sector, "status": status, "reason": reason}
+            return {"ok": False, "status": status, "reason": reason}
+        self.last_error = None
+        return {"ok": isinstance(data, list), "status": 200, "reason": "ok"}
 
     async def _logged_get(
         self,
@@ -289,8 +354,15 @@ class PinnacleGuestClient(BaseAPIClient):
                 purpose="list_prop_matchups",
             )
         except Exception as e:
-            logger.warning("pinnacle_guest_props_matchups_failed", sector=sector, error=str(e))
+            status, reason = classify_pinnacle_error(e)
+            self.last_error = {"sector": f"{sector}_props", "status": status, "reason": reason}
+            logger.warning(
+                "pinnacle_guest_props_matchups_failed",
+                sector=sector, status=status, reason=reason, error=str(e),
+            )
             return []
+
+        self.last_error = None
 
         if not isinstance(all_matchups, list):
             return []
@@ -460,8 +532,18 @@ class PinnacleGuestClient(BaseAPIClient):
                 purpose="list_matchups",
             )
         except Exception as e:
-            logger.warning("pinnacle_guest_matchups_failed", sector=sector, error=str(e))
+            status, reason = classify_pinnacle_error(e)
+            self.last_error = {"sector": sector, "status": status, "reason": reason}
+            # Fail CLEAR: no sharp anchor → no plays for this sector. Distinct
+            # reason so a maintenance window / geo-block isn't an indistinct blip.
+            logger.warning(
+                "pinnacle_guest_matchups_failed",
+                sector=sector, status=status, reason=reason, error=str(e),
+            )
             return []
+
+        # Fetch succeeded — clear any prior failure marker for this client.
+        self.last_error = None
 
         if not isinstance(all_matchups, list):
             return []

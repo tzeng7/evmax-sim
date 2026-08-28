@@ -152,3 +152,42 @@ class TestRunHeartbeat:
         assert result["ok"] is False
         assert result["notified"] is False
         assert fake.calls == []
+
+
+class TestPinnacleCheck:
+    def test_ok_probe_no_issue(self):
+        assert hb._pinnacle_issue({"ok": True, "status": 200, "reason": "ok"}) is None
+
+    def test_down_probe_is_critical(self):
+        issue = hb._pinnacle_issue({"ok": False, "status": 403, "reason": "geo_block"})
+        assert issue["severity"] == "critical"
+        assert issue["check"] == "pinnacle"
+        assert "geo_block" in issue["detail"]
+
+    def test_opt_in_probe_included_when_enabled(self, monkeypatch):
+        monkeypatch.setattr(hb, "check_cadence", lambda **k: [])
+        monkeypatch.setattr(hb, "check_seed_states", lambda **k: [])
+        monkeypatch.setattr(
+            hb, "check_pinnacle",
+            lambda: [{"check": "pinnacle", "severity": "critical", "detail": "down"}],
+        )
+        fake = _FakeNotifier()
+        monkeypatch.setattr(Notifier, "from_settings", staticmethod(lambda: fake))
+
+        result = hb.run_heartbeat(check_pinnacle_reachability=True, notify=True)
+        assert result["ok"] is False
+        assert any(i["check"] == "pinnacle" for i in result["issues"])
+        assert fake.calls[0][2] == "critical"
+
+    def test_probe_skipped_by_default(self, monkeypatch):
+        monkeypatch.setattr(hb, "check_cadence", lambda **k: [])
+        monkeypatch.setattr(hb, "check_seed_states", lambda **k: [])
+        called = {"n": 0}
+
+        def _tracked():
+            called["n"] += 1
+            return []
+        monkeypatch.setattr(hb, "check_pinnacle", _tracked)
+
+        hb.run_heartbeat(check_pinnacle_reachability=False)
+        assert called["n"] == 0  # no network probe unless explicitly asked

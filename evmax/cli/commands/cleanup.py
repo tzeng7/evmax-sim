@@ -2261,17 +2261,22 @@ def heartbeat_cmd(
         10, "--state-stale-days",
         help="Flag a seed-maintained model state whose stamp is older than N days (in-season).",
     ),
+    check_pinnacle: bool = typer.Option(
+        False, "--check-pinnacle",
+        help="Also probe Pinnacle reachability (one live request) — the sole sharp anchor.",
+    ),
     notify: bool = typer.Option(
         False, "--notify",
         help="Push a Slack/Discord alert if any health issue is found.",
     ),
 ) -> None:
-    """Pipeline dead-man's-switch: detect a silently-stopped cadence or a
-    frozen seed state, and (optionally) push an alert.
+    """Pipeline dead-man's-switch: detect a silently-stopped cadence, a frozen
+    seed state, or an unreachable Pinnacle, and (optionally) push an alert.
 
     Catches the failure modes that only show up as *absent* rows: the daily
-    scheduled tasks not firing (app closed), resolve erroring every run, or a
-    weekly reseed silently 403ing (the UFC ``ufc_rating`` freeze).
+    scheduled tasks not firing (app closed), resolve erroring every run, a weekly
+    reseed silently 403ing (the UFC ``ufc_rating`` freeze), or a Pinnacle
+    maintenance/geo-block outage (with ``--check-pinnacle``).
     """
     from evmax.agents.cleanup.heartbeat import run_heartbeat
 
@@ -2279,6 +2284,7 @@ def heartbeat_cmd(
         max_resolve_age_h=max_resolve_age_h,
         max_scan_age_days=max_scan_age_days,
         state_stale_days=state_stale_days,
+        check_pinnacle_reachability=check_pinnacle,
         notify=notify,
     )
     if result["ok"]:

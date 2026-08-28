@@ -174,22 +174,60 @@ def check_seed_states(
     return issues
 
 
+def _pinnacle_issue(probe_result: dict) -> Optional[dict]:
+    """Pure decision for a Pinnacle probe result."""
+    if probe_result.get("ok"):
+        return None
+    reason = probe_result.get("reason", "error")
+    status = probe_result.get("status")
+    return {
+        "check": "pinnacle", "severity": "critical",
+        "detail": (f"Pinnacle unreachable (reason={reason}, status={status}) — "
+                   "the sole sharp anchor is down, no new EV can be discovered"),
+    }
+
+
+def check_pinnacle() -> list[dict]:
+    """Probe Pinnacle reachability (one request) and flag it if down.
+
+    Network I/O — opt-in only (keeps the default heartbeat offline/fast).
+    """
+    import asyncio
+
+    from evmax.clients.esports_pinnacle import PinnacleGuestClient
+
+    async def _run() -> dict:
+        async with PinnacleGuestClient() as client:
+            return await client.probe()
+
+    try:
+        result = asyncio.run(_run())
+    except Exception as e:  # noqa: BLE001 — a probe crash is itself the signal
+        result = {"ok": False, "status": None, "reason": f"probe_error:{e}"}
+    issue = _pinnacle_issue(result)
+    return [issue] if issue else []
+
+
 def run_heartbeat(
     now: Optional[datetime] = None,
     max_resolve_age_h: float = 36.0,
     max_scan_age_days: int = 1,
     state_stale_days: int = 10,
+    check_pinnacle_reachability: bool = False,
     notify: bool = False,
 ) -> dict:
     """Run all checks; if ``notify`` and anything is wrong, push one alert.
 
     Returns ``{"ok": bool, "issues": [...], "notified": bool}``. Severity is
-    ``critical`` when the resolve cadence has stopped, else ``warning``.
+    ``critical`` when the resolve cadence has stopped or Pinnacle is down, else
+    ``warning``. ``check_pinnacle_reachability`` adds a live network probe.
     """
     now = now or datetime.now()
     issues = check_cadence(
         now=now, max_resolve_age_h=max_resolve_age_h, max_scan_age_days=max_scan_age_days
     ) + check_seed_states(now=now, stale_days=state_stale_days)
+    if check_pinnacle_reachability:
+        issues = issues + check_pinnacle()
 
     notified = False
     if issues and notify:
