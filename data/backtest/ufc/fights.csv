@@ -2309,7 +2309,7 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 400841527,220278,UFC Fight Night: Hendricks vs. Thompson,2016-02-07,Welterweight,3960472,Mike Jackson,3960470,Mickey Gall,b,True,1,0:45,submission,Rear Naked Choke
 400841530,219324,UFC Fight Night: Cerrone vs. Oliveira,2016-02-22,W Bantamweight,3075001,Lauren Murphy,3965432,Kelly Faszholz,a,True,3,4:55,ko_tko,Punches
 400841530,219395,UFC Fight Night: Cerrone vs. Oliveira,2016-02-22,Welterweight,3074494,Alex Garcia,3093653,Sean Strickland,b,True,3,4:25,ko_tko,Punches
-400841530,219396,UFC Fight Night: Cerrone vs. Oliveira,2016-02-22,Middleweight,2512976,Anthony Smith,3957070,Leonardo Guimaraes,a,True,3,5:00,decision,
+400841530,219396,UFC Fight Night: Cerrone vs. Oliveira,2016-02-22,Middleweight,2512976,Anthony Smith,3957070,Leonardo Guimarães,a,True,3,5:00,decision,
 400841530,219397,UFC Fight Night: Cerrone vs. Oliveira,2016-02-22,Heavyweight,2558062,Shamil Abdurakhimov,3058475,Anthony Hamilton,a,True,3,5:00,decision,
 400841530,219398,UFC Fight Night: Cerrone vs. Oliveira,2016-02-22,Middleweight,2560056,Derek Brunson,2335784,Roan Carneiro,a,True,1,2:38,ko_tko,Punches
 400841530,219400,UFC Fight Night: Cerrone vs. Oliveira,2016-02-22,Middleweight,2502414,Chris Camozzi,2335698,Joe Riggs,a,True,1,0:26,ko_tko,Knees
@@ -2592,7 +2592,7 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 400893902,226561,UFC Fight Night: Poirier vs. Johnson,2016-09-18,Welterweight,3003518,Augusto Montano,3172112,Belal Muhammad,b,True,3,4:19,ko_tko,Punches
 400893902,226562,UFC Fight Night: Poirier vs. Johnson,2016-09-18,Welterweight,2335784,Roan Carneiro,2515913,Kenny Robertson,a,True,3,5:00,decision,
 400893902,226637,UFC Fight Night: Poirier vs. Johnson,2016-09-18,Lightweight,3027534,Chris Wade,3332412,Islam Makhachev,b,True,3,5:00,decision,
-400893902,228632,UFC Fight Night: Poirier vs. Johnson,2016-09-18,Middleweight,3108772,Antonio Carlos Jr.,3957070,Leonardo Guimaraes,a,True,3,4:46,submission,Rear Naked Choke
+400893902,228632,UFC Fight Night: Poirier vs. Johnson,2016-09-18,Middleweight,3108772,Antonio Carlos Jr.,3957070,Leonardo Guimarães,a,True,3,4:46,submission,Rear Naked Choke
 400893903,226949,UFC Fight Night: Cyborg vs. Lansberg,2016-09-24,Lightweight,3060122,Alan Patrick,3023355,Stevie Ray,a,True,3,5:00,decision,
 400893903,227132,UFC Fight Night: Cyborg vs. Lansberg,2016-09-24,Welterweight,3045887,Vicente Luque,2492784,Hector Urbina,a,True,1,1:00,ko_tko,Punch
 400893903,227136,UFC Fight Night: Cyborg vs. Lansberg,2016-09-24,Lightweight,3901117,Glaico Franca,4021934,Gregor Gillespie,b,True,3,5:00,decision,
@@ -6915,7 +6915,7 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600048324,401706845,UFC Fight Night: Cannonier vs. Borralho,2024-08-25,Featherweight,5204223,Kaan Ofli,4914573,Mairon Santos,b,True,2,1:30,ko_tko,Punch
 600047774,401690353,"Dana White's Contender Series: Season 8, Week 3",2024-08-28,Middleweight,5211225,Andrey Pulyaev,4705665,Liam Anderson,a,True,3,5:00,decision,
 600047774,401698247,"Dana White's Contender Series: Season 8, Week 3",2024-08-28,Featherweight,5144006,Bogdan Grad,5212738,Michael Aswell,a,True,3,5:00,decision,
-600047774,401698248,"Dana White's Contender Series: Season 8, Week 3",2024-08-28,Middleweight,5138111,Marco Tulio,5013686,Matthieu Duclos,a,True,2,2:38,ko_tko,Spinning Back Kick
+600047774,401698248,"Dana White's Contender Series: Season 8, Week 3",2024-08-28,Middleweight,5138111,Marco Tulio,5013686,Matthieu Letho Duclos,a,True,2,2:38,ko_tko,Spinning Back Kick
 600047774,401698249,"Dana White's Contender Series: Season 8, Week 3",2024-08-28,Bantamweight,5212854,Malcolm Wellmaker,4421157,Adam Bramhald,a,True,1,2:29,ko_tko,Punch
 600047774,401708027,"Dana White's Contender Series: Season 8, Week 3",2024-08-28,Flyweight,5211224,Jack Duffy,5195917,Nick Piccininni,b,True,3,5:00,decision,
 600047775,401690354,"Dana White's Contender Series: Season 8, Week 4",2024-09-04,Welterweight,4701954,Seokhyeon Ko,5214599,Igor Cavalcanti,a,True,3,5:00,decision,
@@ -7474,7 +7474,7 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600054141,401809213,UFC Fight Night: Walker vs. Zhang,2025-08-23,Welterweight,5138994,Taiyilake Nueraji,4425962,Kiefer Crosbie,a,True,1,3:33,ko_tko,Elbows
 600055005,401804266,"Dana White's Contender Series: Season 9, Week 3",2025-08-27,Featherweight,4915407,Damon Wilson,5099679,Marcio Barbosa,b,True,1,4:14,ko_tko,Punches
 600055005,401804267,"Dana White's Contender Series: Season 9, Week 3",2025-08-27,Light Heavyweight,5291025,Abdul-Rakhman Yakhyaev,5220971,Alik Lorenz,a,True,1,0:30,ko_tko,Punches
-600055005,401804268,"Dana White's Contender Series: Season 9, Week 3",2025-08-27,Lightweight,5180489,Cristian Perez,5085291,Manoel Sousa,b,True,3,3:00,ko_tko,Punches
+600055005,401804268,"Dana White's Contender Series: Season 9, Week 3",2025-08-27,Lightweight,5180489,Cristian Pérez,5085291,Manoel Sousa,b,True,3,3:00,ko_tko,Punches
 600055005,401813457,"Dana White's Contender Series: Season 9, Week 3",2025-08-27,Middleweight,5216997,Trent Miller,5291085,Ryan Gandra,b,True,1,2:51,ko_tko,Punches
 600055005,401813458,"Dana White's Contender Series: Season 9, Week 3",2025-08-27,Heavyweight,5302831,Donte Johnson,4413642,Darion Abbey,a,True,1,1:04,ko_tko,Punches
 600055006,401794187,"Dana White's Contender Series: Season 9, Week 4",2025-09-03,Welterweight,5228596,Jack Congdon,4629138,Jean-Paul Lebosnoyani,b,True,1,1:08,ko_tko,Punch
@@ -7997,3 +7997,55 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600059339,401902575,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Bantamweight,5131951,Borislav Nikolic,5310571,Mark Vologdin,a,True,3,5:00,decision,
 600059339,401902576,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,Heavyweight,5312090,Jovan Leka,4064714,Alexander Poppeck,a,True,1,2:22,ko_tko,Kick
 600059339,401902577,UFC Fight Night: Medić vs. Rodriguez,2026-08-01,W Strawweight,5364788,Marina Spasić,5145495,Stephanie Luciano,b,True,1,3:20,submission,Rear Naked Choke
+600060621,401897976,UFC Fight Night: Gamrot vs Salkilld,2026-08-08,Light Heavyweight,5213352,Diyar Nurgozhay,4691323,Bruno Lopes,a,True,1,4:59,ko_tko,Punches
+600060621,401897978,UFC Fight Night: Gamrot vs Salkilld,2026-08-08,Heavyweight,5080572,Louie Sutherland,5351808,José Montanha,b,True,1,1:50,submission,Neck Crank
+600060621,401897979,UFC Fight Night: Gamrot vs Salkilld,2026-08-08,Heavyweight,5239615,Steven Asplund,5282610,Guilherme Pat,a,True,3,5:00,decision,
+600060621,401902680,UFC Fight Night: Gamrot vs Salkilld,2026-08-08,W Flyweight,4912582,Juliana Miller,5159959,Ravena Oliveira,a,True,2,1:38,submission,Rear Naked Choke
+600060621,401903508,UFC Fight Night: Gamrot vs Salkilld,2026-08-08,Lightweight,5085291,Manoel Sousa,5092208,Richie Miranda,a,True,3,5:00,decision,
+600060621,401905693,UFC Fight Night: Gamrot vs Salkilld,2026-08-08,W Strawweight,5097909,Gigi Canuto,5278269,Carol Foro,b,True,3,5:00,decision,
+600060621,401906585,UFC Fight Night: Gamrot vs Salkilld,2026-08-08,Featherweight,4010864,Miles Johns,4887310,Gianni Vazquez,a,True,1,3:09,ko_tko,Punch
+600060621,401886039,UFC Fight Night: Gamrot vs Salkilld,2026-08-09,Lightweight,3068125,Mateusz Gamrot,5157667,Quillan Salkilld,b,True,1,4:25,submission,Rear Naked Choke
+600060621,401887661,UFC Fight Night: Gamrot vs Salkilld,2026-08-09,W Strawweight,4233196,Amanda Lemos,5075992,Alexia Thainara,b,True,3,5:00,decision,
+600060621,401897977,UFC Fight Night: Gamrot vs Salkilld,2026-08-09,Lightweight,3026133,Diego Ferreira,3900088,Billy Quarantillo,a,True,3,5:00,decision,
+600060621,401902681,UFC Fight Night: Gamrot vs Salkilld,2026-08-09,Welterweight,4706975,Billy Ray Goff,5290957,Ty Miller,b,True,3,0:15,ko_tko,Punches
+600060621,401902723,UFC Fight Night: Gamrot vs Salkilld,2026-08-09,Featherweight,2504168,Darren Elkins,5213179,Yadier del Valle,b,True,1,0:35,ko_tko,Punch
+600060732,401891536,"Dana White's Contender Series: Season 10, Week 1",2026-08-11,Heavyweight,3128853,Anthony Wint,5364347,Matt Adams,a,True,1,0:34,ko_tko,Punches
+600060732,401903467,"Dana White's Contender Series: Season 10, Week 1",2026-08-11,Lightweight,5364834,Fabrizio Escarrega,5364833,Abe Alsaghir,b,True,3,5:00,decision,
+600060732,401903468,"Dana White's Contender Series: Season 10, Week 1",2026-08-11,Flyweight,5264405,Bilal Hasan,5277466,Mridul Saikia,a,True,1,0:45,ko_tko,Punches
+600060732,401903469,"Dana White's Contender Series: Season 10, Week 1",2026-08-11,Featherweight,5116823,Tom Pagliarulo,5310573,Ananias Mulumba,a,True,3,4:24,ko_tko,Punches
+600060732,401903470,"Dana White's Contender Series: Season 10, Week 1",2026-08-11,Middleweight,5282317,Jon Kunneman,4687604,Joe Kropschot,b,True,3,5:00,decision,
+600059185,401869338,UFC 330: Makhachev vs. Machado Garry,2026-08-15,Middleweight,3045887,Vicente Luque,4815999,Tresean Gore,b,True,3,5:00,decision,
+600059185,401881926,UFC 330: Makhachev vs. Machado Garry,2026-08-15,Welterweight,3970873,Jeremiah Wells,5050129,Myktybek Orolbai,a,True,3,1:24,submission,Guillotine Choke
+600059185,401886763,UFC 330: Makhachev vs. Machado Garry,2026-08-15,Welterweight,3001914,Neil Magny,4297311,Ramiz Brahimaj,a,True,2,3:20,ko_tko,Punches
+600059185,401902724,UFC 330: Makhachev vs. Machado Garry,2026-08-15,Middleweight,5302831,Donte Johnson,2478987,Eric McConico,a,True,1,1:38,ko_tko,Punch
+600059185,401905373,UFC 330: Makhachev vs. Machado Garry,2026-08-15,Welterweight,2959422,Chidi Njokuani,4411888,Joel Álvarez,a,True,3,5:00,decision,
+600059185,401905694,UFC 330: Makhachev vs. Machado Garry,2026-08-15,Light Heavyweight,5308871,Rafael Tobias,5119021,Lucas Fernando,b,True,3,1:10,ko_tko,Knee
+600059185,401909737,UFC 330: Makhachev vs. Machado Garry,2026-08-15,Catch Weight,4375156,Charles Johnson,5150021,Eduardo Chapolin,a,True,3,1:36,submission,Twister
+600059185,401869336,UFC 330: Makhachev vs. Machado Garry,2026-08-16,Welterweight,3332412,Islam Makhachev,4738092,Ian Machado Garry,a,True,5,5:00,decision,
+600059185,401878072,UFC 330: Makhachev vs. Machado Garry,2026-08-16,W Strawweight,4021217,Mackenzie Dern,4089026,Gillian Robertson,a,True,5,5:00,decision,
+600059185,401879330,UFC 330: Makhachev vs. Machado Garry,2026-08-16,Lightweight,2526299,Edson Barboza,5074131,Esteban Ribovics,b,True,2,1:32,ko_tko,Punches
+600059185,401881928,UFC 330: Makhachev vs. Machado Garry,2026-08-16,Middleweight,5211221,Mansur Abdul-Malik,4685871,Dustin Stoltzfus,b,True,2,4:25,submission,Rear Naked Choke
+600059185,401886764,UFC 330: Makhachev vs. Machado Garry,2026-08-16,Lightweight,4339490,Jalin Turner,5172124,Kauê Fernandes,a,True,1,0:39,ko_tko,Punches
+600060733,401903488,"Dana White's Contender Series: Season 10, Week 2",2026-08-18,Featherweight,5116187,Roman Puga,5369439,Taner Trembley,a,True,3,5:00,decision,
+600060733,401903489,"Dana White's Contender Series: Season 10, Week 2",2026-08-18,Light Heavyweight,5220971,Alik Lorenz,5307811,Mahamed Aly,a,True,1,2:23,ko_tko,Punches
+600060733,401903490,"Dana White's Contender Series: Season 10, Week 2",2026-08-18,Lightweight,5139609,Logan Paxton,5180489,Cristian Pérez,b,True,2,1:06,ko_tko,Punch
+600060733,401903492,"Dana White's Contender Series: Season 10, Week 2",2026-08-18,Middleweight,5369435,Douglas Rodrigues,5216997,Trent Miller,b,True,2,1:04,submission,Von Flue Choke
+600060733,401903502,"Dana White's Contender Series: Season 10, Week 2",2026-08-18,Welterweight,5215178,Namo Fazil,5056138,Kaik Brito,b,True,3,0:12,ko_tko,Punch
+600060493,401887541,UFC Fight Night: Hernandez vs. Rodrigues,2026-08-22,Heavyweight,4245094,Kennedy Nzechukwu,5145498,Shamil Gaziev,b,True,1,1:20,ko_tko,Punch
+600060493,401887542,UFC Fight Night: Hernandez vs. Rodrigues,2026-08-22,Middleweight,5057023,Wes Schultz,5291733,Jackson McVey,b,True,1,4:13,ko_tko,Knee
+600060493,401887543,UFC Fight Night: Hernandez vs. Rodrigues,2026-08-22,W Strawweight,5157674,Shanelle Dyer,4836482,Elise Reed,a,True,3,1:42,ko_tko,Punches
+600060493,401911626,UFC Fight Night: Hernandez vs. Rodrigues,2026-08-22,Lightweight,5085318,Gauge Young,5397038,Stan Dorsainvil,b,True,3,5:00,decision,
+600060493,401911627,UFC Fight Night: Hernandez vs. Rodrigues,2026-08-22,Lightweight,3163772,Chris Padilla,4277795,Nasrat Haqparast,a,True,3,4:59,submission,Arm Triangle
+600060493,401911628,UFC Fight Night: Hernandez vs. Rodrigues,2026-08-22,Featherweight,5099679,Marcio Barbosa,5243186,Ryan Kuse,a,True,1,2:47,ko_tko,Punch
+600060493,401911629,UFC Fight Night: Hernandez vs. Rodrigues,2026-08-22,Featherweight,3915502,Jamall Emmers,4958170,Lerryan Douglas,a,True,1,3:38,ko_tko,Punch
+600060493,401881939,UFC Fight Night: Hernandez vs. Rodrigues,2026-08-23,Middleweight,4290956,Anthony Hernandez,4690541,Gregory Rodrigues,b,True,5,5:00,decision,
+600060493,401881940,UFC Fight Night: Hernandez vs. Rodrigues,2026-08-23,W Flyweight,5172179,Carli Judice,5308769,Jeisla Chaves,a,True,1,1:39,ko_tko,Kick
+600060493,401887539,UFC Fight Night: Hernandez vs. Rodrigues,2026-08-23,Light Heavyweight,4423880,Reinier de Ridder,4411508,Roman Dolidze,a,True,1,4:01,ko_tko,Punches
+600060493,401887540,UFC Fight Night: Hernandez vs. Rodrigues,2026-08-23,Heavyweight,4421246,Serghei Spivac,5060483,Vitor Petrino,b,True,3,5:00,decision,
+600060493,401911624,UFC Fight Night: Hernandez vs. Rodrigues,2026-08-23,Lightweight,5157668,MarQuel Mederos,4419470,Mason Jones,a,True,2,2:07,ko_tko,Punches
+600060493,401911625,UFC Fight Night: Hernandez vs. Rodrigues,2026-08-23,Heavyweight,3128853,Anthony Wint,5397621,Terrance Chatman,a,True,1,4:29,submission,Arm Triangle
+600060734,401891538,"Dana White's Contender Series: Season 10, Week 3",2026-08-25,W Bantamweight,5369428,Bella Mir,5394582,Alex Apodaca,b,True,3,5:00,decision,
+600060734,401907018,"Dana White's Contender Series: Season 10, Week 3",2026-08-25,Heavyweight,5149190,Mario Piazzon,5220468,Guilherme Uriel,b,True,1,0:50,submission,Guillotine Choke
+600060734,401907063,"Dana White's Contender Series: Season 10, Week 3",2026-08-25,Welterweight,4351084,Gary Balletto,5364353,Sean Clancy Jr.,b,True,2,3:54,ko_tko,Elbows
+600060734,401907064,"Dana White's Contender Series: Season 10, Week 3",2026-08-25,Welterweight,5361909,Ronald Humphrey,5364354,Alexis Miranda,a,True,1,4:03,submission,Rear Naked Choke
+600060734,401907065,"Dana White's Contender Series: Season 10, Week 3",2026-08-25,Middleweight,5264647,Carlos Petruzzella,5296770,Nick Galanti,b,True,1,0:35,ko_tko,Punch
