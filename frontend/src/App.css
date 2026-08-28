@@ -457,6 +457,14 @@ tbody tr:hover td { background: rgba(255, 255, 255, 0.04); color: var(--text); }
 tbody tr:last-child td { border-bottom: none; }
 .num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); }
 
+/* Wide tables (e.g. Scan Results, 16 cols with inputs) can exceed the panel's
+   inner width. Let them scroll horizontally inside the panel instead of
+   spilling past its border; the page body never scrolls sideways. */
+.table-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
+.table-scroll::-webkit-scrollbar { height: 9px; }
+.table-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+.table-scroll::-webkit-scrollbar-thumb:hover { background: var(--amber-line); }
+
 /* ── Empty states ── */
 .empty-state {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
