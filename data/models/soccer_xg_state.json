@@ -5103,6 +5103,16 @@
     "barcelona": {
       "matches": [
         {
+          "date": "2026-08-27",
+          "goals_for": 2,
+          "goals_against": 0,
+          "sot": 10,
+          "shots": 22,
+          "xg": 3.36,
+          "xga": 0.15,
+          "is_home": true
+        },
+        {
           "date": "2026-08-23",
           "goals_for": 5,
           "goals_against": 0,
@@ -5291,16 +5301,6 @@
           "xg": 1.47,
           "xga": 0.12,
           "is_home": false
-        },
-        {
-          "date": "2026-04-22",
-          "goals_for": 1,
-          "goals_against": 0,
-          "sot": 3,
-          "shots": 10,
-          "xg": 1.11,
-          "xga": 0.99,
-          "is_home": true
         }
       ]
     },
@@ -6123,6 +6123,16 @@
     "celta vigo": {
       "matches": [
         {
+          "date": "2026-08-27",
+          "goals_for": 1,
+          "goals_against": 2,
+          "sot": 2,
+          "shots": 4,
+          "xg": 0.66,
+          "xga": 1.74,
+          "is_home": true
+        },
+        {
           "date": "2026-08-22",
           "goals_for": 0,
           "goals_against": 0,
@@ -6311,16 +6321,6 @@
           "xg": 0.36,
           "xga": 1.68,
           "is_home": false
-        },
-        {
-          "date": "2026-05-03",
-          "goals_for": 3,
-          "goals_against": 1,
-          "sot": 4,
-          "shots": 6,
-          "xg": 1.26,
-          "xga": 1.53,
-          "is_home": true
         }
       ]
     },
@@ -6531,6 +6531,16 @@
     "athletic": {
       "matches": [
         {
+          "date": "2026-08-27",
+          "goals_for": 0,
+          "goals_against": 2,
+          "sot": 0,
+          "shots": 5,
+          "xg": 0.15,
+          "xga": 3.36,
+          "is_home": false
+        },
+        {
           "date": "2026-08-22",
           "goals_for": 1,
           "goals_against": 3,
@@ -6719,16 +6729,6 @@
           "xg": 1.95,
           "xga": 1.14,
           "is_home": true
-        },
-        {
-          "date": "2026-03-14",
-          "goals_for": 0,
-          "goals_against": 3,
-          "sot": 9,
-          "shots": 20,
-          "xg": 3.03,
-          "xga": 2.04,
-          "is_home": false
         }
       ]
     },
@@ -7959,6 +7959,16 @@
     "osasuna": {
       "matches": [
         {
+          "date": "2026-08-27",
+          "goals_for": 2,
+          "goals_against": 1,
+          "sot": 5,
+          "shots": 13,
+          "xg": 1.74,
+          "xga": 0.66,
+          "is_home": false
+        },
+        {
           "date": "2026-08-24",
           "goals_for": 0,
           "goals_against": 0,
@@ -8147,16 +8157,6 @@
           "xg": 1.77,
           "xga": 1.41,
           "is_home": false
-        },
-        {
-          "date": "2026-01-17",
-          "goals_for": 3,
-          "goals_against": 2,
-          "sot": 5,
-          "shots": 16,
-          "xg": 1.83,
-          "xga": 1.74,
-          "is_home": true
         }
       ]
     },
