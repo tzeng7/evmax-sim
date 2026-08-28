@@ -79,10 +79,12 @@ and whatever else your scope targets.
 ```bash
 uv run evmax categories validate          # hard registry consistency gate
 uv run python scripts/check_doc_sync.py $(git -C . ls-files 'evmax/**/*.py' 'data/categories.yaml' | head -400)
+uv run python scripts/check_kalshi_series.py  # SECTOR_SERIES_MAP vs the LIVE Kalshi /series API — exit 1 on STALE tickers
 uv run pytest tests/ -q                    # functionality drift often surfaces as failures
 ```
 
 - `categories validate` failing = a real config/registry drift (SECTOR_SERIES_MAP vs YAML, unknown model/resolver). Capture it.
+- `check_kalshi_series.py` `[STALE]` output = a wired ticker that no longer exists on Kalshi (a phantom/typo that silently returns zero markets, the ARCH-12 bug). `[NEW]` = a live series matching a sector prefix that we don't yet poll. STALE is a real finding; NEW is informational. Network-dependent — if Kalshi is unreachable, note it and continue.
 - A failing test suite is itself a drift signal — note which tests fail and whether the failure reflects code drifting from intent. **Do not "fix" a failing test by editing the test/fixture** (see Guardrails).
 - `check_doc_sync.py` output is advisory hints about which docs pair with which source — use it to aim the semantic sweep, not as findings on its own.
 
