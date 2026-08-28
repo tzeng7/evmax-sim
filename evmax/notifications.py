@@ -17,6 +17,8 @@ Example Slack message:
 from __future__ import annotations
 
 import json
+import time
+import urllib.error
 import urllib.request
 from typing import TYPE_CHECKING
 
@@ -28,6 +30,14 @@ if TYPE_CHECKING:
     from evmax.agents.coordinator import CycleResult
 
 logger = structlog.get_logger(__name__)
+
+# Delivery is retried with exponential backoff so a transient 429 / 5xx / network
+# blip doesn't silently drop an alert. 4xx (other than 429) is a permanent
+# failure — a bad/revoked webhook URL — and is not retried.
+_MAX_RETRIES = 3
+_RETRY_BACKOFF_S = 0.5  # 0.5s, 1.0s, 2.0s between attempts
+
+_SEVERITY_EMOJI = {"info": "ℹ️", "warning": "⚠️", "critical": "🚨"}
 
 
 class Notifier:
@@ -89,24 +99,64 @@ class Notifier:
         if self.is_configured():
             self._send(text)
 
-    def _send(self, text: str) -> None:
-        """POST text to all configured webhooks."""
-        if self._slack_url:
-            self._post(self._slack_url, {"text": text})
-        if self._discord_url:
-            self._post(self._discord_url, {"content": text})
+    def notify_alert(self, title: str, message: str, *, severity: str = "warning") -> bool:
+        """Send an OPERATIONAL alert (data source down, model degrading, a
+        missed scheduled run) — distinct from an EV-cycle notification.
 
-    def _post(self, url: str, payload: dict) -> None:
-        try:
-            data = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                url,
-                data=data,
-                headers={"Content-Type": "application/json"},
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                if resp.status not in (200, 204):
-                    logger.warning("notification_non_ok", url=url[:40], status=resp.status)
-        except Exception as e:
-            logger.warning("notification_send_failed", url=url[:40], error=str(e))
+        Not gated on ``min_ev``; prefixed with a severity marker; and returns
+        whether delivery actually succeeded so an ops caller (e.g. the S4
+        heartbeat) can react to a dead webhook rather than assume it got out.
+        Returns ``False`` when no webhook is configured.
+        """
+        if not self.is_configured():
+            return False
+        emoji = _SEVERITY_EMOJI.get(severity, "⚠️")
+        text = f"{emoji} *evmax {severity}* — {title}\n{message}"
+        return self._send(text)
+
+    def _send(self, text: str) -> bool:
+        """POST text to all configured webhooks. Returns True only if every
+        configured webhook accepted the message."""
+        ok = True
+        if self._slack_url:
+            ok = self._post(self._slack_url, {"text": text}) and ok
+        if self._discord_url:
+            ok = self._post(self._discord_url, {"content": text}) and ok
+        return ok
+
+    def _post(self, url: str, payload: dict) -> bool:
+        """POST with exponential-backoff retry. Returns True on delivery.
+
+        Retries transient failures (network error, 429, 5xx); a non-429 4xx is
+        treated as permanent (revoked/malformed webhook) and fails fast."""
+        data = json.dumps(payload).encode("utf-8")
+        for attempt in range(_MAX_RETRIES):
+            try:
+                req = urllib.request.Request(
+                    url,
+                    data=data,
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    if resp.status in (200, 204):
+                        return True
+                    logger.warning(
+                        "notification_non_ok", url=url[:40], status=resp.status,
+                        attempt=attempt,
+                    )
+            except urllib.error.HTTPError as e:
+                logger.warning(
+                    "notification_http_error", url=url[:40], status=e.code,
+                    attempt=attempt,
+                )
+                if not (e.code >= 500 or e.code == 429):
+                    return False  # permanent — do not retry
+            except Exception as e:  # noqa: BLE001 — network/URL error, retry
+                logger.warning(
+                    "notification_send_failed", url=url[:40], error=str(e),
+                    attempt=attempt,
+                )
+            if attempt < _MAX_RETRIES - 1:
+                time.sleep(_RETRY_BACKOFF_S * (2 ** attempt))
+        return False
