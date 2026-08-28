@@ -16,12 +16,79 @@ All times America/Los_Angeles. Each task carries a small random jitter.
 
 **PR-within-the-run policy:** any scheduled run that creates code changes and commits
 (today: `weekly-drift-audit` and `biweekly-model-improve-graph` — every other task is
-forbidden from editing code) must finish the job inside the same run: work on a branch off `main`,
-`git push -u origin <branch>`, then `gh pr create` with explicit `--title`/`--body`
-(a bare `gh pr create` prompts interactively and hangs a headless run). If `gh pr create`
-fails, the push already preserved the work — the run reports the branch + compare URL so
-the PR can be opened manually. Commits must never end a run stranded local-only, and no
-scheduled run ever merges its own PR.
+forbidden from editing code) must finish the job inside the same run: work off the **live
+remote tip** (`origin/main`) in an **isolated git worktree**, `git push` the branch, then
+`gh pr create` with explicit `--title`/`--body` (a bare `gh pr create` prompts interactively
+and hangs a headless run). If `gh pr create` fails, the push already preserved the work — the
+run reports the branch + compare URL so the PR can be opened manually. Commits must never end
+a run stranded local-only, and no scheduled run ever merges its own PR.
+
+### Git isolation for state/code-altering tasks (`scripts/sched_worktree.py`)
+
+Several tasks mutate git-tracked artifacts — model-state tasks rewrite
+`data/models/*.json` / `data/model_config.json`; the two code tasks edit `evmax/` + docs.
+They all run against the **one shared checkout** at `/Users/ktzeng/Projects/evmax`. Two
+failure modes used to follow, and this is how they are now prevented:
+
+1. **Working-tree collision.** A checkout has one checked-out branch and one working tree.
+   When two tasks overlapped, task A's `git switch main` / `git pull` yanked the tree out
+   from under task B mid-run, silently discarding uncommitted state (the 2026-07-21
+   collision; the 2026-08-20 pre-commit stash-timeout loss).
+2. **Un-mergeable PRs.** The state artifacts are whole-file regenerated JSON — two PRs that
+   both rewrite `elo_state.json` cannot three-way-merge, and each branched off a possibly
+   stale *local* main. Concurrent PRs deadlock on branch-protection "require up-to-date"
+   → reads as "won't pass CI/CD". (The CI test job itself does not fail on a JSON reseed;
+   the block is PR *mergeability*.)
+
+**The fix** is `scripts/sched_worktree.py`, called by every state/code task instead of
+switching branches in the shared checkout:
+
+- `open` — `git fetch origin`, then create an **isolated worktree** whose branch is cut from
+  `origin/main` (the live remote tip), never local main. Worktrees share the object store
+  (cheap) but have independent working trees + HEADs, so parallel runs can never fight over
+  one checked-out branch. Prints the worktree path.
+- `ship` — stage **only** the owned files (never `git add -A`), commit (`--no-verify` by
+  default so a slow pre-commit stash cannot swallow another task's tree; `--run-hooks` for
+  code tasks), push, ensure exactly one open PR, remove the worktree.
+
+**State tasks pass `--rolling`:** they all accumulate onto ONE long-lived branch
+(`bot/model-state`) so there is only ever a single open state PR. Each task owns a **disjoint**
+set of files and the branch is always re-anchored to `origin/main`, so a merged PR leaves the
+branch clean (next run rebuilds from live main) and an unmerged PR is preserved (the new
+task's owned files are added on top). Regenerated state is idempotent, so on any rebase
+trouble the safe fallback is to re-anchor to `origin/main` and let the seed script reproduce
+the current-truth file. **Code tasks omit `--rolling`** → a fresh dated branch off
+`origin/main` each run (their diffs are real code that must pass review + CI on its own).
+
+The shared checkout now **stays permanently on a clean `main`** — all work happens in
+worktrees — so no task ever runs `git switch` / `git reset --hard` / `git checkout -- .` /
+`git clean` there. Canonical shape a task's SYNC/SHIP steps reduce to:
+
+```bash
+REPO=/Users/ktzeng/Projects/evmax
+# STEP 0 — SYNC: refresh the helper from the live remote (safe on clean main),
+# then open an isolated worktree on origin/main. No branch switch, no reset.
+git -C "$REPO" pull --ff-only --quiet          # keeps scripts/sched_worktree.py current
+WT=$(python "$REPO/scripts/sched_worktree.py" open --rolling \
+        --branch bot/model-state --print-path)
+cd "$WT"
+# ... run this task's seed scripts here; they rewrite ONLY this task's owned files in $WT ...
+
+# STEP N — SHIP: stage only the owned files, single rolling PR, remove worktree.
+python "$REPO/scripts/sched_worktree.py" ship --rolling \
+    --branch bot/model-state --worktree "$WT" \
+    --title "chore(models): <what was reseeded>" \
+    --body  "Automated reseed." \
+    -- data/models/<owned-file-a>.json data/models/<owned-file-b>.json
+```
+
+**Rollout status:** the helper + its tests landed first (this is a repo file, so it must be
+on `main` before any task calls it). The per-task SKILL.md SYNC/SHIP blocks are converted to
+the shape above once the helper is merged — do NOT flip a task config before merge, or the
+task cannot find the helper. Tasks to convert: `weekly-seasonal-model-reseed`,
+`weekly-tennis-surface-elo-refresh`, `daily-resolve-and-model-update`, `daily-evening-resolve`,
+`weekly-model-calibration` (all `--rolling`), plus `weekly-drift-audit` and the
+`biweekly-model-improve-graph` graph (dated branches, `--run-hooks`).
 
 ---
 
