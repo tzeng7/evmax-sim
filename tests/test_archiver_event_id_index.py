@@ -1,6 +1,6 @@
 """Regression test for the missing archived_sharp_odds(event_id) index.
 
-Every per-event closing-line lookup (``get_closing_line``, ``get_line_history``,
+Every per-event closing-line lookup (``get_line_history``,
 ``get_kalshi_close_price`` / ``get_kalshi_close_staleness_h`` via
 ``_select_kalshi_close``, ``get_closing_line_aligned``) filters
 ``archived_sharp_odds`` by ``event_id`` alone. Without an index on that column
@@ -49,7 +49,7 @@ def test_event_id_lookup_uses_index_not_full_scan(temp_archive_db):
     conn = _get_connection()
     try:
         # Same query shape as DataArchiver._select_kalshi_close /
-        # get_closing_line: WHERE event_id = ? ... ORDER BY fetched_at DESC.
+        # get_closing_line_aligned: WHERE event_id = ? ... ORDER BY fetched_at DESC.
         plan = conn.execute(
             """EXPLAIN QUERY PLAN
                SELECT event_date FROM archived_sharp_odds
