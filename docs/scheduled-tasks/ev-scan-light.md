@@ -19,10 +19,18 @@ plays three times a day — the exact failure the guard exists to stop.
 ## Task body (identical for all three)
 
 1. `cd ~/Projects/evmax`
-2. Run: `uv run evmax agents scan` (default in-season sectors; the mode
-   registry + full-blend/sharp-only guards apply automatically at
-   persistence — shadow sectors log shadow, disabled market types drop).
+2. Run: `uv run evmax agents scan --bankroll-venue kalshi --bankroll 500 --kelly 0.5 --date TODAY`
+   (default in-season sectors; the mode registry + full-blend/sharp-only
+   guards apply automatically at persistence — shadow sectors log shadow,
+   disabled market types drop). `--bankroll-venue kalshi` sizes Kelly against
+   the **live Kalshi balance** (cash + open-position value, `GET
+   /portfolio/balance`) and scopes live plays to Kalshi; the `--bankroll 500`
+   is the fail-soft fallback used only if the authenticated balance call fails
+   (no creds / network), so real money is never sized against a fabricated
+   figure. PolyUS is effectively unfunded, so Kalshi-only scoping is intended —
+   any PolyUS rows log as shadow. The scan echoes which bankroll it used.
 3. Report, in the task summary:
+   - the bankroll used (live Kalshi balance vs the $500 fallback)
    - gaps found per sector, split live/shadow (the scan output's mode counts)
    - top 3 live plays by EV (Event · Outcome · EV% · Kelly)
    - any `prediction_demoted_partial_blend` / no-pitcher-skip counts (these
