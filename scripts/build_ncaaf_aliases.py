@@ -126,6 +126,9 @@ CURATED_ALIASES: dict[str, str] = {
     "louisiana lafayette": "louisiana",
     "ul lafayette": "louisiana",
     "louisiana monroe": "ul monroe",
+    # Kalshi spells ULM "Louisiana-Monroe" with a hyphen; NameNormalizer keeps
+    # hyphens, so the space form above misses it. Guard the hyphen spelling too.
+    "louisiana-monroe": "ul monroe",
     "la monroe": "ul monroe",
     "sam houston state": "sam houston",
     "jax state": "jacksonville state",
@@ -213,15 +216,194 @@ def build_alias_map(teams: dict[str, dict]) -> dict[str, str]:
     return dict(sorted(aliases.items()))
 
 
+# --- Kalshi ticker outcome codes (live-derived) ---------------------------------
+#
+# Kalshi's KXNCAAFGAME markets identify each team by a short per-market outcome
+# code embedded in the ticker (e.g. "-PSU", "-OSU"), which is what the scanner
+# parses into team_home/team_away. Those codes are NOT knowable from ESPN — they
+# only exist once Kalshi lists live markets. Each market, however, carries a
+# readable ``yes_sub_title`` for its outcome (e.g. code "PSU" → "Penn St."), so
+# the code→canonical map is DERIVED from the live series rather than hand-typed.
+
+KALSHI_MARKETS_URL = "https://api.elections.kalshi.com/trade-api/v2/markets"
+
+
+def _expand_state_abbrev(name: str) -> str:
+    """Expand a trailing "St."/"St" to "State".
+
+    Kalshi abbreviates "State" as "St." in ``yes_sub_title`` (e.g. "Penn St.",
+    "Ohio St.", "San Jose St."), while ESPN — and therefore every canonical in
+    this map — spells it out. In FBS a word-final "St." is always "State" (no FBS
+    program is a leading-"Saint" school), so this expansion is unambiguous. It is
+    applied ONLY here at generation time, to turn the readable title into a form
+    the alias map can resolve; at runtime the scanner sees the bare code, so no
+    normalizer change is needed.
+    """
+    import re
+
+    return re.sub(r"\bSt\.?$", "State", name.strip())
+
+
+def fetch_kalshi_codes(series: str) -> dict[str, set[str]]:
+    """Return {outcome_code(lower) → {distinct yes_sub_titles}} for a live series.
+
+    Public market-data endpoint, no auth. Paginated via ``cursor``. Totals
+    markets (numeric outcome codes) are skipped — only team-side codes carry a
+    team ``yes_sub_title``.
+
+    Crucially this collects the FULL SET of names seen per code, not the last
+    one: Kalshi assigns codes per-market and occasionally reuses a 3-letter code
+    for two different schools (e.g. "csu" = Colorado St. in one game, Central
+    State (OH) in another). The caller needs every name to detect that reuse.
+    """
+    import re
+
+    codes: dict[str, set[str]] = {}
+    cursor: str | None = None
+    with httpx.Client(timeout=30) as client:
+        for _ in range(20):  # generous page cap; series is a few hundred markets
+            params = {"series_ticker": series, "status": "open", "limit": 200}
+            if cursor:
+                params["cursor"] = cursor
+            r = client.get(KALSHI_MARKETS_URL, params=params)
+            r.raise_for_status()
+            body = r.json()
+            for m in body.get("markets", []):
+                ticker = m.get("ticker") or ""
+                if "-" not in ticker:
+                    continue
+                outcome = ticker.rsplit("-", 1)[1]
+                if outcome.isdigit():  # totals line, not a team
+                    continue
+                code = re.sub(r"\d+$", "", outcome).lower()  # spread appends the line
+                sub = (m.get("yes_sub_title") or "").strip()
+                if code and sub:
+                    codes.setdefault(code, set()).add(sub)
+            cursor = body.get("cursor")
+            if not cursor:
+                break
+    return codes
+
+
+def derive_kalshi_code_aliases(
+    raw_codes: dict[str, set[str]], aliases: dict[str, str]
+) -> tuple[
+    dict[str, str],
+    list[tuple[str, str]],
+    list[tuple[str, list[str]]],
+    list[tuple[str, str, str]],
+]:
+    """Resolve live Kalshi outcome codes to canonicals using the built map.
+
+    Returns ``(resolved, skipped, ambiguous, collisions)``:
+      * ``resolved``   – {code → canonical} for codes that resolve to EXACTLY ONE
+        canonical the map already knows (an FBS-schedule team Pinnacle can also
+        price).
+      * ``skipped``    – [(code, derived)] dropped because no name resolves to a
+        known FBS canonical (D2/NAIA buy-game opponents; they never appear in
+        Pinnacle's FBS-only feed, so an alias could not produce a match anyway).
+      * ``ambiguous``  – [(code, [names])] where the code's names resolve to more
+        than one distinct canonical, i.e. Kalshi reuses the code across schools.
+        NEVER emitted — guessing one would mislabel the other's markets (the
+        Miami FL/OH · same-surname rule). These demote to shadow at runtime.
+      * ``collisions`` – [(code, existing_value, derived)] where the code is
+        already an alias key with a DIFFERENT value; left untouched for review.
+    """
+    known_canonicals = set(aliases.values())
+    resolved: dict[str, str] = {}
+    skipped: list[tuple[str, str]] = []
+    ambiguous: list[tuple[str, list[str]]] = []
+    collisions: list[tuple[str, str, str]] = []
+    for code, names in sorted(raw_codes.items()):
+        canons = {aliases.get(_norm_key(_expand_state_abbrev(n)), _norm_key(_expand_state_abbrev(n))) for n in names}
+        fbs = canons & known_canonicals
+        if not fbs:
+            # No name resolves to a team the map (and Pinnacle) knows — non-FBS.
+            skipped.append((code, sorted(canons)[0] if canons else ""))
+            continue
+        if len(canons) > 1:
+            # Code reused across ≥2 distinct entities (one is a matchable FBS
+            # team) — cannot disambiguate from the bare code. Never guess.
+            ambiguous.append((code, sorted(names)))
+            continue
+        canonical = fbs.pop()
+        if code in aliases and aliases[code] != canonical:
+            collisions.append((code, aliases[code], canonical))
+            continue
+        resolved[code] = canonical
+    return resolved, skipped, ambiguous, collisions
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--season", type=int, default=2024, choices=sorted(SEASON_WINDOWS))
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--with-kalshi-codes",
+        action="store_true",
+        help="Also fetch the live KXNCAAFGAME series and merge its per-market "
+        "outcome codes (derived from yes_sub_title) into the alias map. Requires "
+        "network + Kalshi to have listed markets. Re-run during the season as the "
+        "full FBS slate lists.",
+    )
+    ap.add_argument("--kalshi-series", default="KXNCAAFGAME")
     args = ap.parse_args()
 
     print(f"Walking {args.season} FBS scoreboard…", file=sys.stderr)
     teams = fetch_season_teams(args.season)
     aliases = build_alias_map(teams)
+
+    code_note = (
+        "# per-market ticker outcome codes are NOT here yet (only knowable once\n"
+        "# KXNCAAFGAME lists live markets) — re-run this script with\n"
+        "# --with-kalshi-codes during the first live scan of the season.\n"
+    )
+    if args.with_kalshi_codes:
+        print(
+            f"Fetching live {args.kalshi_series} codes…", file=sys.stderr
+        )
+        try:
+            raw = fetch_kalshi_codes(args.kalshi_series)
+        except Exception as e:  # noqa: BLE001 — network best-effort, never fatal
+            print(f"  WARN Kalshi fetch failed ({e}); codes not merged", file=sys.stderr)
+            raw = {}
+        if raw:
+            resolved, skipped, ambiguous, collisions = derive_kalshi_code_aliases(
+                raw, aliases
+            )
+            aliases.update(resolved)
+            aliases = dict(sorted(aliases.items()))
+            today = dt.date.today().isoformat()
+            code_note = (
+                f"# per-market ticker outcome codes: {len(resolved)} live-derived from\n"
+                f"# {args.kalshi_series} on {today} (yes_sub_title → canonical, trailing\n"
+                "# 'St.'→'State'). Non-FBS buy-game opponents and codes Kalshi reuses\n"
+                "# across schools are dropped (they demote to shadow, never misprice).\n"
+                "# Re-run --with-kalshi-codes as more games list.\n"
+            )
+            print(
+                f"  merged {len(resolved)} Kalshi codes; skipped {len(skipped)} non-FBS; "
+                f"{len(ambiguous)} ambiguous; {len(collisions)} collisions",
+                file=sys.stderr,
+            )
+            if collisions:
+                for code, old, new in collisions:
+                    print(f"    COLLISION {code}: {old!r} kept (derived {new!r})", file=sys.stderr)
+            if ambiguous:
+                for code, names in ambiguous:
+                    existing = aliases.get(code)
+                    tail = (
+                        f"ESPN abbrev mapping {existing!r} retained (dominant meaning)"
+                        if existing
+                        else "left unmapped → demotes to shadow"
+                    )
+                    print(
+                        f"    AMBIGUOUS {code}: {names} — not merged from Kalshi; {tail}",
+                        file=sys.stderr,
+                    )
+            if skipped:
+                preview = ", ".join(c for c, _ in skipped[:20])
+                print(f"    skipped codes: {preview}{' …' if len(skipped) > 20 else ''}", file=sys.stderr)
 
     doc = {
         "aliases": aliases,
@@ -233,9 +415,7 @@ def main() -> int:
         f"# regenerate. Source: ESPN {args.season} FBS scoreboard (groups=80).\n"
         "#\n"
         "# Canonical = NameNormalizer-normalized ESPN school location. Kalshi\n"
-        "# per-market ticker outcome codes are NOT here yet (only knowable once\n"
-        "# KXNCAAFGAME lists live markets) — add them under a '# Kalshi codes'\n"
-        "# block during the first live scan of the season (MLS/Torino precedent).\n"
+        + code_note
     )
     text = header + yaml.safe_dump(doc, sort_keys=True, allow_unicode=True, width=100)
     if args.dry_run:

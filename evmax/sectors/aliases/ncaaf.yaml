@@ -4,13 +4,16 @@
 # regenerate. Source: ESPN 2024 FBS scoreboard (groups=80).
 #
 # Canonical = NameNormalizer-normalized ESPN school location. Kalshi
-# per-market ticker outcome codes are NOT here yet (only knowable once
-# KXNCAAFGAME lists live markets) — add them under a '# Kalshi codes'
-# block during the first live scan of the season (MLS/Torino precedent).
+# per-market ticker outcome codes: 226 live-derived from
+# KXNCAAFGAME on 2026-08-27 (yes_sub_title → canonical, trailing
+# 'St.'→'State'). Non-FBS buy-game opponents and codes Kalshi reuses
+# across schools are dropped (they demote to shadow, never misprice).
+# Re-run --with-kalshi-codes as more games list.
 aliases:
   aamu: alabama a m
   abilene christian wildcats: abilene christian
   abilene chrstn: abilene christian
+  ac: abilene christian
   acu: abilene christian
   afa: air force
   air force falcons: air force
@@ -38,7 +41,9 @@ aliases:
   arkansas st: arkansas state
   arkansas state red wolves: arkansas state
   arkansas-pine bluff golden lions: arkansas-pine bluff
+  army: army
   army black knights: army
+  arpb: arkansas-pine bluff
   arst: arkansas state
   asu: arizona state
   aub: auburn
@@ -61,10 +66,12 @@ aliases:
   brigham young: byu
   bry: bryant
   bryant bulldogs: bryant
+  bsu: boise state
   buck: bucknell
   bucknell bison: bucknell
   buff: buffalo
   buffalo bulls: buffalo
+  byu: byu
   byu cougars: byu
   c arkansas: central arkansas
   c connecticut: central connecticut
@@ -73,17 +80,21 @@ aliases:
   cal poly mustangs: cal poly
   california golden bears: california
   cam: campbell
+  camp: campbell
   campbell fighting camels: campbell
   cark: central arkansas
+  ccar: coastal carolina
   ccsu: central connecticut
   ccu: coastal carolina
   central arkansas bears: central arkansas
   central connecticut blue devils: central connecticut
   central florida: ucf
   central michigan chippewas: central michigan
+  char: charlotte
   charleston so: charleston southern
   charleston southern buccaneers: charleston southern
   charlotte 49ers: charlotte
+  chat: chattanooga
   chattanooga mocs: chattanooga
   chso: charleston southern
   cin: cincinnati
@@ -103,6 +114,7 @@ aliases:
   colorado state rams: colorado state
   conn: uconn
   connecticut: uconn
+  cook: bethune-cookman
   cp: cal poly
   csu: colorado state
   del: delaware
@@ -110,6 +122,7 @@ aliases:
   delaware st: delaware state
   delaware state hornets: delaware state
   dsu: delaware state
+  duke: duke
   duke blue devils: duke
   duq: duquesne
   duquesne dukes: duquesne
@@ -127,6 +140,8 @@ aliases:
   ecu: east carolina
   eiu: eastern illinois
   eku: eastern kentucky
+  eky: eastern kentucky
+  elon: elon
   elon phoenix: elon
   emu: eastern michigan
   etam: east texas a m
@@ -185,10 +200,12 @@ aliases:
   illinois st: illinois state
   illinois state redbirds: illinois state
   ilst: illinois state
+  ind: indiana
   indiana hoosiers: indiana
   indiana st: indiana state
   indiana state sycamores: indiana state
   inst: indiana state
+  iowa: iowa
   iowa hawkeyes: iowa
   iowa state cyclones: iowa state
   isu: iowa state
@@ -224,6 +241,7 @@ aliases:
   liberty flames: liberty
   lin: lindenwood
   lindenwood lions: lindenwood
+  linw: lindenwood
   liu: long island university
   long island: long island university
   long island university sharks: long island university
@@ -233,7 +251,9 @@ aliases:
   louisiana ragin cajuns: louisiana
   louisiana state: lsu
   louisiana tech bulldogs: louisiana tech
+  louisiana-monroe: ul monroe
   louisville cardinals: louisville
+  lsu: lsu
   lsu tigers: lsu
   lt: louisiana tech
   m-oh: miami oh
@@ -244,6 +264,7 @@ aliases:
   massachusetts minutemen: massachusetts
   mcn: mcneese
   mcneese cowboys: mcneese
+  mcns: mcneese
   md: maryland
   me: maine
   mem: memphis
@@ -275,6 +296,8 @@ aliases:
   missouri state bears: missouri state
   missouri tigers: missouri
   miz: missouri
+  mizz: missouri
+  moh: miami oh
   monm: monmouth
   monmouth hawks: monmouth
   mont: montana
@@ -285,13 +308,16 @@ aliases:
   morgan st: morgan state
   morgan state bears: morgan state
   most: missouri state
+  mosu: missouri state
   mrmk: merrimack
   mrsh: marshall
   msst: mississippi state
   msu: michigan state
   mtst: montana state
   mtsu: middle tennessee
+  mtu: middle tennessee
   mur: murray state
+  murr: murray state
   murray st: murray state
   murray state racers: murray state
   n arizona: northern arizona
@@ -300,12 +326,14 @@ aliases:
   n illinois: northern illinois
   n.c. state: nc state
   nau: northern arizona
+  navy: navy
   navy midshipmen: navy
   nc a t: north carolina a t
   nc central: north carolina central
   nc state wolfpack: nc state
   ncat: north carolina a t
   nccu: north carolina central
+  ncst: nc state
   ncsu: nc state
   nd: notre dame
   ndsu: north dakota state
@@ -340,11 +368,14 @@ aliases:
   northwestern wildcats: northwestern
   notre dame fighting irish: notre dame
   nu: northwestern
+  nw: northwestern
   nwestern st: northwestern state
   nwst: northwestern state
   odu: old dominion
+  ohio: ohio
   ohio bobcats: ohio
   ohio state buckeyes: ohio state
+  okla: oklahoma
   oklahoma sooners: oklahoma
   oklahoma st: oklahoma state
   oklahoma state cowboys: oklahoma state
@@ -358,6 +389,7 @@ aliases:
   orst: oregon state
   osu: ohio state
   ou: oklahoma
+  peay: austin peay
   penn: pennsylvania
   penn state nittany lions: penn state
   pennsylvania quakers: pennsylvania
@@ -373,6 +405,7 @@ aliases:
   purdue boilermakers: purdue
   pv: prairie view a m
   rhode island rams: rhode island
+  rice: rice
   rice owls: rice
   rich: richmond
   richmond spiders: richmond
@@ -401,6 +434,7 @@ aliases:
   san josé state spartans: san josé state
   sc: south carolina
   sc state: south carolina state
+  scar: south carolina
   scst: south carolina state
   sdak: south dakota
   sdst: south dakota state
@@ -416,6 +450,7 @@ aliases:
   shu: sacred heart
   siu: southern illinois
   sjsu: san josé state
+  smu: smu
   smu mustangs: smu
   so california: usc
   so carolina: south carolina
@@ -438,14 +473,17 @@ aliases:
   stanford cardinal: stanford
   stbk: stony brook
   stephen f. austin lumberjacks: stephen f. austin
+  ston: stony brook
   stony brook seawolves: stony brook
   suu: southern utah
   syr: syracuse
   syracuse orange: syracuse
   ta m: texas a m
   tar: tarleton state
+  tarl: tarleton state
   tarleton st: tarleton state
   tarleton state texans: tarleton state
+  tcu: tcu
   tcu horned frogs: tcu
   tem: temple
   temple owls: temple
@@ -471,20 +509,26 @@ aliases:
   tol: toledo
   toledo rockets: toledo
   tow: towson
+  tows: towson
   towson tigers: towson
+  troy: troy
   troy trojans: troy
   ttu: texas tech
   tulane green wave: tulane
   tuln: tulane
   tulsa golden hurricane: tulsa
+  txam: texas a m
   txso: texas southern
   txst: texas state
+  uab: uab
   uab blazers: uab
   ualbany great danes: ualbany
   uapb: arkansas-pine bluff
   uc davis aggies: uc davis
   ucd: uc davis
+  ucf: ucf
   ucf knights: ucf
+  ucla: ucla
   ucla bruins: ucla
   uconn huskies: uconn
   uga: georgia
@@ -492,6 +536,7 @@ aliases:
   ul: louisiana
   ul lafayette: louisiana
   ul monroe warhawks: ul monroe
+  ull: louisiana
   ulm: ul monroe
   umass: massachusetts
   una: north alabama
@@ -500,22 +545,27 @@ aliases:
   und: north dakota
   unh: new hampshire
   uni: northern iowa
+  unlv: unlv
   unlv rebels: unlv
   unm: new mexico
   unt: north texas
   uri: rhode island
   usa: south alabama
+  usc: usc
   usc trojans: usc
   usf: south florida
   usm: southern miss
   usu: utah state
   ut martin skyhawks: ut martin
+  utah: utah
   utah state aggies: utah state
   utah tech trailblazers: utah tech
   utah utes: utah
   utc: chattanooga
+  utep: utep
   utep miners: utep
   utm: ut martin
+  utsa: utsa
   utsa roadrunners: utsa
   utu: utah tech
   uva: virginia
@@ -525,6 +575,7 @@ aliases:
   villanova wildcats: villanova
   virginia cavaliers: virginia
   virginia tech hokies: virginia tech
+  vmi: vmi
   vmi keydets: vmi
   vt: virginia tech
   w carolina: western carolina
@@ -541,6 +592,7 @@ aliases:
   washington state cougars: washington state
   wcu: western carolina
   web: weber state
+  webb: gardner-webb
   weber st: weber state
   weber state wildcats: weber state
   west virginia mountaineers: west virginia
@@ -554,6 +606,7 @@ aliases:
   wisconsin badgers: wisconsin
   wiu: western illinois
   wku: western kentucky
+  wm: william mary
   wmu: western michigan
   wof: wofford
   wofford terriers: wofford
