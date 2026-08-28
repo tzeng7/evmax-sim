@@ -225,6 +225,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
           <button className="btn btn-sm" onClick={deselectAll}>Deselect All</button>
         </div>
       </div>
+      <div className="table-scroll">
       <table>
         <thead>
           <tr>
@@ -346,6 +347,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
           })}
         </tbody>
       </table>
+      </div>
       <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
         <button className="btn success" disabled={pickCount === 0 || picking} onClick={handlePick}>
           {picking ? 'Placing...' : `Pick Selected (${pickCount})`}
