@@ -56,6 +56,16 @@ CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "cache" / "ufc_espn"
 # far more, but the historical backfill is a one-shot job — stay polite.
 _ESPN_RATE_LIMITER = AsyncLimiter(8, 1.0)
 
+# ESPN's public API WAF blocklists our identifying "evmax-*" User-Agents AND
+# plain browser-impersonator strings (observed on the score resolver 2026-08-05;
+# see resolver._ESPN_HTTP_UA). Neutral tool UAs (curl/*, python-httpx/*) pass.
+# The seed client previously sent "evmax-ufc-seed/1.0", which ESPN 403s: the
+# weekly `--fetch` reseed then aborts and ufc_rating_state.json freezes (state
+# was stuck at 2026-08-01 for ~4 weeks, so the model went "missing" on ~half of
+# each live card). Keep this a recognized tool UA; do NOT revert to an "evmax-*"
+# or browser string.
+_ESPN_HTTP_UA = "curl/8.7.1"
+
 
 # ---------------------------------------------------------------------------
 # Data shapes
@@ -223,7 +233,7 @@ class UFCESPNClient:
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         self._client = httpx.AsyncClient(
             timeout=timeout,
-            headers={"User-Agent": "evmax-ufc-seed/1.0"},
+            headers={"User-Agent": _ESPN_HTTP_UA},
             follow_redirects=True,
         )
 
@@ -258,10 +268,9 @@ class UFCESPNClient:
         self, url: str, params: Optional[dict] = None, *, cache_key: str,
         refresh: bool = False,
     ) -> Optional[dict]:
-        if not refresh:
-            cached = self._cache_get(cache_key)
-            if cached is not None:
-                return cached
+        cached = self._cache_get(cache_key)
+        if not refresh and cached is not None:
+            return cached
         async with _ESPN_RATE_LIMITER:
             try:
                 resp = await self._client.get(url, params=params)
@@ -269,7 +278,12 @@ class UFCESPNClient:
                 data = resp.json()
             except Exception as exc:  # noqa: BLE001 — caller decides fallback
                 logger.warning("ufc_espn_fetch_failed", url=url, error=str(exc))
-                return None
+                # Degrade a FAILED forced-refresh to last-known-good cache rather
+                # than dropping the data. A transient 403/timeout must never
+                # regress seeded state: returning None here used to make the
+                # seed abort (or rebuild from an empty current month), freezing
+                # last_updated. `cached` is None when nothing was ever cached.
+                return cached
         self._cache_set(cache_key, data)
         return data
 

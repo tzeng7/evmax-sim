@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 
+import httpx
+
 from evmax.clients.ufc_espn import (
+    UFCESPNClient,
+    _ESPN_HTTP_UA,
     normalize_method,
     parse_athlete,
     parse_scoreboard,
@@ -108,3 +113,84 @@ class TestParseAthlete:
         assert bio.height_in is None
         assert bio.reach_in is None
         assert bio.stance is None
+
+
+class TestEspnUserAgent:
+    """ESPN's WAF 403s "evmax-*" and browser-impersonator UAs; only neutral
+    tool UAs pass. Regression guard: the client once sent "evmax-ufc-seed/1.0",
+    which 403'd every scoreboard request, so the weekly `--fetch` reseed aborted
+    and ufc_rating_state.json froze (state stuck at 2026-08-01 for ~4 weeks →
+    ufc_rating "missing" on ~half of each live card)."""
+
+    def test_ua_constant_is_not_a_blocked_string(self):
+        assert not _ESPN_HTTP_UA.lower().startswith("evmax")
+        assert "mozilla" not in _ESPN_HTTP_UA.lower()  # not a browser string
+
+    def test_client_sends_the_neutral_ua(self):
+        async def _run():
+            client = UFCESPNClient()
+            try:
+                return client._client.headers["user-agent"]
+            finally:
+                await client._client.aclose()
+
+        assert asyncio.run(_run()) == _ESPN_HTTP_UA
+
+
+class _NoRateLimit:
+    """No-op async context manager: isolates the cache-fallback tests from the
+    module-level AsyncLimiter (which warns when reused across asyncio.run loops)."""
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return False
+
+
+class TestRefreshCacheFallback:
+    """A FAILED forced-refresh must degrade to last-known-good cache, never
+    drop the data — otherwise a transient 403/timeout regresses seeded state."""
+
+    def test_failed_forced_refresh_returns_cached(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "evmax.clients.ufc_espn._ESPN_RATE_LIMITER", _NoRateLimit(),
+        )
+
+        async def _run():
+            client = UFCESPNClient(cache_dir=tmp_path)
+            client._cache_set("scoreboard_202608", {"events": [{"id": "1"}]})
+
+            async def _boom(*args, **kwargs):
+                raise httpx.ConnectError("simulated 403/timeout")
+
+            client._client.get = _boom  # type: ignore[assignment]
+            try:
+                return await client._get_json(
+                    "http://x", cache_key="scoreboard_202608", refresh=True,
+                )
+            finally:
+                await client._client.aclose()
+
+        assert asyncio.run(_run()) == {"events": [{"id": "1"}]}
+
+    def test_failed_fetch_with_no_cache_returns_none(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "evmax.clients.ufc_espn._ESPN_RATE_LIMITER", _NoRateLimit(),
+        )
+
+        async def _run():
+            client = UFCESPNClient(cache_dir=tmp_path)
+
+            async def _boom(*args, **kwargs):
+                raise httpx.ConnectError("simulated 403/timeout")
+
+            client._client.get = _boom  # type: ignore[assignment]
+            try:
+                return await client._get_json(
+                    "http://x", cache_key="never_cached", refresh=True,
+                )
+            finally:
+                await client._client.aclose()
+
+        assert asyncio.run(_run()) is None
