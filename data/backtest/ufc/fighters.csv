@@ -1130,6 +1130,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 3128221,Joby Sanchez,1991-06-24,66.0,68.0,Orthodox
 3128373,Alejandro Perez,1989-09-02,66.0,67.0,Orthodox
 3128474,Josh Wick,1994-10-04,69.0,69.0,Switch
+3128853,Anthony Wint,1995-09-14,71.0,78.0,Orthodox
 3129344,Kailin Curran,1991-04-11,63.0,65.0,Orthodox
 3130180,Nolan Ticman,1988-05-17,66.0,69.0,Orthodox
 3132040,Shinsho Anzai,1985-12-01,67.0,70.5,Orthodox
@@ -1331,7 +1332,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 3956260,Ryan Hall,1985-02-22,70.0,70.5,Southpaw
 3956295,Jingnan Xiong,1988-01-12,65.0,64.0,Switch
 3956305,Chris Fishgold,1992-06-06,68.0,68.0,Orthodox
-3957070,Leonardo Guimaraes,1982-04-15,72.0,73.0,Orthodox
+3957070,Leonardo Guimarães,1982-04-15,72.0,73.0,Orthodox
 3957071,Giga Chikadze,1988-08-25,72.0,74.0,Orthodox
 3957136,David Teymur,1989-05-01,69.0,73.0,Southpaw
 3958094,Jarjis Danho,1983-10-15,75.0,74.5,Orthodox
@@ -1452,7 +1453,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 4046059,Cody Stamann,1989-11-09,66.0,64.5,Orthodox
 4046338,Charlie Ward,1980-12-17,71.0,75.0,Orthodox
 4046608,Daichi Abe,1991-11-27,71.0,71.0,Orthodox
-4046629,Montana De La Rosa,1995-02-14,67.0,68.0,Orthodox
+4046629,Montana De La Rosa,1995-02-14,67.0,69.0,Orthodox
 4047571,Bailey Schoenfelder,1997-09-22,75.0,76.0,Orthodox
 4049391,Josh Hokit,1997-11-12,73.0,73.5,Orthodox
 4050996,Torrez Finney,1998-10-24,68.0,75.0,Orthodox
@@ -1468,13 +1469,13 @@ athlete_id,name,dob,height_in,reach_in,stance
 4063786,Mandel Nallo,1989-07-26,72.0,75.0,Orthodox
 4063869,John Castaneda,1991-12-18,66.0,71.0,Switch
 4064692,Askar Askarov,1992-10-09,66.0,67.0,Orthodox
-4064714,Alexander Poppeck,1992-04-06,74.0,,Orthodox
+4064714,Alexander Poppeck,1992-04-06,74.0,75.0,Orthodox
 4064854,Darren Stewart,1990-12-30,72.0,74.0,Orthodox
 4064883,Jamie Mullarkey,1994-08-17,72.0,74.0,Orthodox
 4064994,Poliana Botelho,1988-12-15,68.0,67.0,Orthodox
 4064997,Viviane Pereira,1993-08-28,60.0,63.0,Orthodox
 4064999,Silvana Gomez Juarez,1984-12-06,63.0,65.0,Orthodox
-4065006,Tyrell Fortune,1990-07-04,74.0,77.0,--
+4065006,Tyrell Fortune,1990-07-04,74.0,75.0,Orthodox
 4065047,Sean Lally,1990-11-04,72.0,74.5,Orthodox
 4065597,Stephanie Egger,1988-08-12,66.0,68.0,Orthodox
 4065598,Miranda Maverick,1997-07-01,63.0,65.5,Southpaw
@@ -1599,7 +1600,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 4241041,Zabit Magomedsharipov,1991-03-01,73.0,73.0,Orthodox
 4243343,Max Mustaki,1987-11-07,72.0,,Orthodox
 4243624,Tracy Cortez,1993-12-10,65.0,65.5,Orthodox
-4243873,Jesus Pinedo,1996-06-22,71.0,74.0,Southpaw
+4243873,Jesus Pinedo,1996-06-22,72.0,74.0,Southpaw
 4243885,Kai Kara-France,1993-03-26,64.0,69.0,Orthodox
 4244337,Kaytlin Neil,1992-01-07,68.0,69.0,--
 4245091,Everett Sims,1988-09-04,72.0,77.5,Southpaw
@@ -1635,7 +1636,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 4275020,Yaroslav Amosov,1993-09-09,72.0,75.0,Orthodox
 4275043,JunYong Park,1991-02-27,70.0,73.0,Orthodox
 4275487,Yan Xiaonan,1989-06-16,65.0,63.0,Orthodox
-4276646,Saygid Izagakhmaev,1994-09-03,73.0,74.0,--
+4276646,Saygid Izagakhmaev,1994-09-03,73.0,74.0,Orthodox
 4276994,Josh Parisian,1989-06-28,76.0,79.0,Orthodox
 4277049,Priscila Cachoeira,1988-08-19,67.0,65.0,Orthodox
 4277795,Nasrat Haqparast,1995-08-22,70.0,72.0,Southpaw
@@ -1737,6 +1738,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 4350872,Jay Cucciniello,1986-07-23,67.0,,Orthodox
 4350873,Tyler Diamond,1991-03-18,67.0,69.0,Orthodox
 4350925,Patchy Mix,1993-08-16,71.0,70.0,Southpaw
+4351084,Gary Balletto,1995-01-20,70.0,70.0,Switch
 4351085,Bassil Hafez,1992-01-31,71.0,72.0,Orthodox
 4351319,Youssef Zalal,1996-09-04,70.0,72.0,Switch
 4354318,Edmen Shahbazyan,1997-11-20,74.0,75.0,Orthodox
@@ -2023,6 +2025,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 4687434,Jacob Malkoun,1995-08-26,69.0,73.0,Orthodox
 4687537,Lance Gibson Jr.,1995-02-02,69.0,72.5,Southpaw
 4687590,Bruno Oliveira,1984-05-02,76.0,80.0,Orthodox
+4687604,Joe Kropschot,1995-06-19,75.0,79.0,Orthodox
 4688408,Matthew Semelsberger,1992-11-23,73.0,75.0,Switch
 4688447,Kai Kamaka III,1995-01-05,67.0,69.0,Orthodox
 4688449,Zviad Lazishvili,1991-10-25,66.0,69.0,Orthodox
@@ -2089,7 +2092,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 4795284,Lucas Brennan,2000-06-03,70.0,71.0,Southpaw
 4799517,Christian Edwards,1998-11-05,77.0,78.5,--
 4801267,Josiane Nunes,1993-12-23,62.0,67.0,Southpaw
-4801725,Dione Barbosa,1992-05-08,66.0,66.0,Orthodox
+4801725,Dione Barbosa,1992-05-08,66.0,66.5,Orthodox
 4807973,Julien LeBlanc,1992-01-21,74.0,74.0,Southpaw
 4812389,Shannon Ross,1989-05-12,66.0,66.0,Switch
 4813565,Ding Meng,1994-09-27,74.0,73.0,Orthodox
@@ -2100,7 +2103,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 4815999,Tresean Gore,1994-06-21,72.0,75.0,Switch
 4816062,Chad Anheliger,1986-12-01,66.0,64.5,Orthodox
 4816066,Piera Rodriguez,1992-11-11,63.0,63.5,Orthodox
-4816283,Mitch Ramirez,1992-11-03,71.0,71.0,Orthodox
+4816283,Mitch Ramirez,1992-11-03,71.0,70.5,Orthodox
 4820964,Feng Xiaocan,2001-12-27,67.0,66.5,Southpaw
 4828707,Jack Della Maddalena,1996-09-10,71.0,73.0,Switch
 4830364,Kevin Jousset,1993-05-02,74.0,75.0,Orthodox
@@ -2236,11 +2239,11 @@ athlete_id,name,dob,height_in,reach_in,stance
 4997217,Steve Erceg,1995-07-27,68.0,68.0,Orthodox
 5001014,Cody Haddon,1998-09-08,67.0,69.0,Orthodox
 5001016,SeungGuk Choi,1996-12-26,66.0,64.0,Orthodox
-5001017,Sean Gauci,1996-10-07,65.0,64.0,Switch
+5001017,Sean Gauci,1996-10-07,65.0,65.0,Switch
 5007635,Josefine Knutsson,1996-01-16,63.0,60.0,Orthodox
 5007668,Caio Machado,1994-07-20,76.0,78.0,Southpaw
 5007669,Paulo Renato Jr.,1994-01-25,72.0,73.0,Orthodox
-5013686,Matthieu Duclos,1995-04-04,75.0,77.0,Orthodox
+5013686,Matthieu Letho Duclos,1995-04-04,75.0,77.0,Orthodox
 5016786,Farid Basharat,1997-08-02,68.0,71.0,Orthodox
 5027356,Hyder Amil,1990-05-28,69.0,70.0,Switch
 5028019,Fatima Kline,2000-07-12,66.0,67.5,Orthodox
@@ -2254,7 +2257,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5048900,Trevor Peek,1995-01-09,69.0,70.0,Switch
 5050129,Myktybek Orolbai,1998-02-10,70.0,74.0,Orthodox
 5053878,Eduardo Neves,2000-03-16,74.0,78.5,Orthodox
-5056138,Kaik Brito,1997-03-26,71.0,72.5,Orthodox
+5056138,Kaik Brito,1997-03-26,71.0,74.0,Orthodox
 5056143,Nayara Maia,1990-07-25,65.0,66.0,Orthodox
 5056144,Tereza Bleda,2001-11-30,69.0,71.0,Orthodox
 5057023,Wes Schultz,1996-08-09,74.0,77.0,Orthodox
@@ -2301,7 +2304,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5077398,Lucas Alexander,1995-07-28,71.0,73.0,Orthodox
 5077399,Cameron Saaiman,2000-12-20,68.0,67.0,Southpaw
 5077400,Josh Wang-Kim,1992-11-16,69.0,71.0,Switch
-5077789,Caolán Loughran,1996-05-18,66.0,68.0,Orthodox
+5077789,Caolán Loughran,1996-05-18,66.0,67.0,Orthodox
 5078114,Billy Elekana,1995-05-28,75.0,77.5,Southpaw
 5078213,Hamdy Abdelwahab,1993-01-22,74.0,72.0,Southpaw
 5078230,Zachary Borrego,1996-07-18,74.0,78.0,Switch
@@ -2326,11 +2329,13 @@ athlete_id,name,dob,height_in,reach_in,stance
 5088886,Daniel Marcos,1993-03-07,67.0,69.0,Orthodox
 5088891,Mateus Mendonca,1999-01-17,66.0,71.5,Orthodox
 5088916,Sam Patterson,1996-04-30,75.0,78.0,Orthodox
+5092208,Richie Miranda,1994-08-12,69.0,74.0,Southpaw
 5092398,Nurullo Aliev,2000-12-08,70.0,72.0,Orthodox
 5092399,Malik Lewis,1996-03-04,72.0,75.0,Orthodox
 5092403,Trey Waters,1995-02-21,77.0,77.0,Orthodox
 5093447,Jarno Errens,1994-11-17,71.0,73.0,Orthodox
 5093484,Montse Rendon,1989-03-16,68.0,68.0,Orthodox
+5097909,Gigi Canuto,2002-11-16,62.0,64.0,Orthodox
 5099679,Marcio Barbosa,1998-05-22,66.0,70.5,Orthodox
 5099732,Alden Coria,1998-04-24,68.0,67.0,Orthodox
 5100571,Robert Ruchała,1998-05-15,70.0,72.0,Switch
@@ -2340,11 +2345,13 @@ athlete_id,name,dob,height_in,reach_in,stance
 5109011,Paddy McCorry,1997-12-09,75.0,73.0,Switch
 5109762,Gabriel Santos,1996-11-28,69.0,70.0,Orthodox
 5110006,Elves Brener,1997-09-27,70.0,72.5,Orthodox
-5110297,Eliezer Kubanza,1997-12-23,71.0,,Orthodox
+5110297,Eliezer Kubanza,1997-12-23,71.0,75.0,Orthodox
 5110465,Demba Seck,1993-07-07,73.0,74.0,Orthodox
 5110469,Luana Santos,2000-04-16,66.0,67.0,Orthodox
 5115163,Emrah Sonmez,1992-06-26,70.0,71.0,Orthodox
-5119021,Lucas Fernando,1997-01-10,75.0,81.5,--
+5116187,Roman Puga,1996-09-17,68.0,71.0,Orthodox
+5116823,Tom Pagliarulo,1997-06-19,72.0,74.0,Switch
+5119021,Lucas Fernando,1997-01-10,75.0,80.5,Orthodox
 5119536,Eduardo Torres Caut,1995-04-26,67.0,70.0,Orthodox
 5119702,Alexander Soldatkin,1993-06-10,74.0,75.0,Orthodox
 5119740,Steven Koslow,1997-01-22,67.0,69.0,Switch
@@ -2376,6 +2383,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5138563,Quang Le,1991-10-18,66.0,70.0,Orthodox
 5138994,Taiyilake Nueraji,2001-01-12,74.0,75.0,Southpaw
 5139556,Talita Alencar,1990-10-17,61.0,58.5,Orthodox
+5139609,Logan Paxton,1995-08-04,70.0,70.0,Orthodox
 5140897,Nyamjargal Tumendemberel,1998-03-22,67.0,71.0,Orthodox
 5141967,Azat Maksum,1995-02-02,67.0,70.0,Southpaw
 5142277,Rose Conceição,1997-05-13,65.0,65.0,Orthodox
@@ -2448,7 +2456,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5172179,Carli Judice,1999-03-02,67.0,68.0,Southpaw
 5172335,Dorian Ramos,1993-12-31,68.0,70.0,Orthodox
 5174604,Rashid Vagabov,1998-06-27,67.0,63.0,Orthodox
-5180489,Cristian Perez,1999-08-17,69.0,72.0,Orthodox
+5180489,Cristian Pérez,1999-08-17,69.0,72.0,Orthodox
 5185662,Aleksandre Topuria,1996-01-28,67.0,68.0,Orthodox
 5189560,Robelis Despaigne,1988-09-09,79.0,84.0,Orthodox
 5192314,Losene Keita,1997-12-30,67.0,72.0,Orthodox
@@ -2487,6 +2495,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5213352,Diyar Nurgozhay,1997-04-22,74.0,74.0,Southpaw
 5214599,Igor Cavalcanti,1997-10-10,71.0,79.5,Orthodox
 5214652,Gable Steveson,2000-05-31,71.0,74.0,Orthodox
+5215178,Namo Fazil,1996-10-29,71.0,71.0,Orthodox
 5215272,Aaron Tau,1993-08-21,64.0,66.0,Switch
 5216713,Navajo Stirling,1997-11-07,76.0,79.0,Orthodox
 5216849,Kevin Christian,1995-01-21,79.0,80.0,Orthodox
@@ -2511,7 +2520,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5220883,Francesco Mazzeo,1997-09-23,75.0,75.0,Orthodox
 5220971,Alik Lorenz,1997-01-25,74.0,77.5,Orthodox
 5222338,Cam Teague,1998-02-13,70.0,69.0,Orthodox
-5223435,Jose Miguel Delgado,1998-04-21,71.0,74.0,Switch
+5223435,Jose Miguel Delgado,1998-04-21,71.0,73.0,Switch
 5223853,Leslie Hernandez,1997-12-29,63.0,64.5,Orthodox
 5223854,Julieta Martinez,2004-09-14,61.0,62.0,Orthodox
 5224461,Taiga Iwasaki,1997-07-07,73.0,73.0,Orthodox
@@ -2523,23 +2532,28 @@ athlete_id,name,dob,height_in,reach_in,stance
 5236383,Hecher Sosa,1995-08-25,68.0,70.0,Orthodox
 5239615,Steven Asplund,1998-07-16,77.0,78.0,Orthodox
 5240957,Sean Sharaf,1993-07-11,75.0,77.0,Orthodox
+5243186,Ryan Kuse,1994-06-24,69.0,71.0,Orthodox
 5245078,Axel Sola,1997-09-17,72.0,74.0,Southpaw
 5248207,Zach Scroggin,1996-03-09,75.0,74.0,Orthodox
 5252475,Roberto Romero,2000-01-30,68.0,70.0,Orthodox
 5261515,Alice Pereira,2005-12-20,70.0,71.0,Orthodox
 5264398,Julius Walker,1999-07-16,76.0,78.0,Orthodox
+5264405,Bilal Hasan,2001-07-16,67.0,70.0,Switch
 5264462,Colby Thicknesse,1999-06-23,67.0,69.0,Orthodox
 5264470,Alibi Idiris,1994-10-22,66.0,68.0,Orthodox
 5264471,Jimmy Drago,1995-02-18,70.0,71.0,Orthodox
+5264647,Carlos Petruzzella,1997-03-29,71.0,,Orthodox
 5264925,Mantas Kondratavičius,1999-07-17,74.0,75.5,Orthodox
 5265556,Radley da Silva,1995-06-20,69.0,71.0,Orthodox
 5277050,Justice Torres,1997-10-19,68.0,66.5,Southpaw
 5277351,Sebastian Szalay,1994-02-03,66.0,66.0,Orthodox
+5277466,Mridul Saikia,1997-05-09,67.0,68.5,Orthodox
 5278267,Sulangrangbo,2005-07-17,69.0,66.0,Southpaw
 5278268,Magno Dias,1995-11-30,65.0,67.0,Orthodox
 5278269,Carol Foro,1997-03-21,62.0,61.5,Orthodox
 5279283,George Mangos,2003-08-19,70.0,70.0,Switch
 5282139,JooSang Yoo,1994-01-21,67.0,71.0,Orthodox
+5282317,Jon Kunneman,1999-07-14,72.0,77.0,Orthodox
 5282411,Michael Oliveira,1998-01-21,73.0,78.5,Orthodox
 5282412,Cody Chovancek,1998-07-24,68.0,67.0,Switch
 5282610,Guilherme Pat,1994-04-20,77.0,81.0,Orthodox
@@ -2558,7 +2572,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5291025,Abdul-Rakhman Yakhyaev,2001-01-03,74.0,78.0,Orthodox
 5291085,Ryan Gandra,1995-05-08,73.0,74.5,Orthodox
 5291733,Jackson McVey,1999-03-25,76.0,77.0,Southpaw
-5292014,Felipe Franco,2001-01-01,73.0,76.0,Orthodox
+5292014,Felipe Franco,2001-01-22,73.0,76.0,Orthodox
 5292022,Damian Pinas,2002-03-12,73.0,79.5,Orthodox
 5292023,Anthony Guarascio,1994-02-26,74.0,72.0,Orthodox
 5292169,Kaushik Saikumar,1997-12-11,70.0,71.0,Orthodox
@@ -2571,12 +2585,13 @@ athlete_id,name,dob,height_in,reach_in,stance
 5296254,Mario Mingaj,1998-10-28,75.0,78.0,Orthodox
 5296753,Baisangur Susurkaev,2001-01-08,74.0,79.0,Orthodox
 5296762,Brandon Holmes,1997-02-05,74.0,74.0,Orthodox
+5296770,Nick Galanti,1998-06-18,73.0,,Southpaw
 5302274,Marwan Rahiki,2002-05-10,70.0,72.0,Orthodox
 5302831,Donte Johnson,1999-01-25,68.0,74.0,Southpaw
 5307524,Freddy Vidal,1994-05-06,75.0,79.5,Orthodox
 5307799,Santiago Luna,2004-08-06,69.0,74.0,Orthodox
 5307810,Iwo Baraniewski,1998-11-20,72.0,73.5,Orthodox
-5307811,Mahamed Aly,1994-01-11,75.0,78.0,Orthodox
+5307811,Mahamed Aly,1994-01-11,75.0,77.0,Orthodox
 5307813,Mackson Lee,1999-01-06,73.0,75.0,Orthodox
 5307814,Tommy Gantt,1993-01-09,71.0,76.5,Orthodox
 5307815,Adam Livingston,2001-08-15,74.0,71.5,Orthodox
@@ -2613,14 +2628,27 @@ athlete_id,name,dob,height_in,reach_in,stance
 5350560,Artur Minev,2003-09-27,69.0,69.5,Orthodox
 5350562,Farman Hasanov,1995-08-01,72.0,74.5,Orthodox
 5351430,Vlasto Čepo,1995-01-25,72.0,73.0,Orthodox
+5351808,José Montanha,1996-08-25,76.0,76.0,Orthodox
 5360467,Magomed Tuchalov,1999-12-30,77.0,78.0,Orthodox
 5361791,Nina Milošević,1996-08-08,65.0,67.0,Orthodox
+5361909,Ronald Humphrey,2000-09-20,71.0,77.0,Orthodox
 5362337,Shane Collins,2000-03-08,69.0,71.0,Orthodox
 5362725,Jefferson Nascimento,1998-11-19,68.0,70.0,--
 5364334,Damian Rzepecki,2001-11-23,70.0,71.0,Orthodox
+5364347,Matt Adams,1997-09-07,71.0,75.0,Orthodox
+5364353,Sean Clancy Jr.,2002-11-25,74.0,,Orthodox
+5364354,Alexis Miranda,1999-01-03,74.0,76.5,Orthodox
 5364788,Marina Spasić,1994-07-11,64.0,64.0,Orthodox
+5364833,Abe Alsaghir,2001-07-01,68.0,71.0,Orthodox
+5364834,Fabrizio Escarrega,1998-02-18,69.0,74.0,Orthodox
 5369414,John Garza,2002-10-30,67.0,68.0,Orthodox
+5369428,Bella Mir,2003-07-01,67.0,67.0,Southpaw
+5369435,Douglas Rodrigues,1999-01-13,72.0,74.0,Orthodox
 5369438,Muhammad Said,1996-01-10,74.0,73.0,Orthodox
+5369439,Taner Trembley,1994-12-28,69.0,69.0,Orthodox
 5369555,RJ Harris,1998-10-01,78.0,80.0,Orthodox
 5369722,Damien Anderson,1997-01-04,68.0,69.0,Southpaw
 5369723,Ezra Elliott,2000-05-18,70.0,72.0,--
+5394582,Alex Apodaca,1994-06-30,67.0,71.5,Switch
+5397038,Stan Dorsainvil,2000-05-12,70.0,76.0,Orthodox
+5397621,Terrance Chatman,1997-05-05,74.0,76.0,Orthodox
