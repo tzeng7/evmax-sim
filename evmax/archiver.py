@@ -468,26 +468,6 @@ class DataArchiver:
             ).fetchall()
         return [(r["fetched_at"], r["true_prob_a"]) for r in rows]
 
-    def get_closing_line(self, event_id: str) -> float | None:
-        """Return the last archived Pinnacle true_prob_a for an event (moneyline only).
-
-        This is the 'closing line' — the last snapshot before the game started.
-        Used for CLV calculation. DEPRECATED for ev_outcomes writes — prefer
-        :meth:`get_closing_line_aligned` so CLV reflects the YES side actually
-        bet on rather than always-side-a.
-        """
-        with _get_connection() as conn:
-            row = conn.execute(
-                """SELECT true_prob_a
-                   FROM archived_sharp_odds
-                   WHERE event_id = ?
-                     AND spread_line IS NULL
-                   ORDER BY fetched_at DESC
-                   LIMIT 1""",
-                (event_id,),
-            ).fetchone()
-        return row["true_prob_a"] if row else None
-
     def get_kalshi_close_price(
         self,
         ticker: str,

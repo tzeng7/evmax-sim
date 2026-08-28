@@ -47,7 +47,7 @@ PTS_PER_RIM_PCT = 0.40  # rim attempts are fewer than 3s for most teams
 # Standard deviation for NBA scoring
 SCORE_STDEV = 12.0
 
-# Team abbreviation mapping (reuse from player_impact)
+# Team abbreviation mapping (ESPN tricode → canonical slug)
 TEAM_ABBREV: dict[str, str] = {
     "ATL": "hawks", "BOS": "celtics", "BKN": "nets", "CHA": "hornets",
     "CHI": "bulls", "CLE": "cavaliers", "DAL": "mavericks", "DEN": "nuggets",

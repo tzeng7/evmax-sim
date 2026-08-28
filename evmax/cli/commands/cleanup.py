@@ -2189,3 +2189,113 @@ def backfill_clv_cmd(
         )
     else:
         console.print("[dim]No resolved bets found missing CLV.[/dim]")
+
+
+@app.command("clv-monitor")
+def clv_monitor_cmd(
+    days: int = typer.Option(
+        30, "--days", help="Window (days) for the CLV computation."
+    ),
+    staleness_h: float = typer.Option(
+        3.0, "--staleness-h",
+        help="Drop rows whose archived close snapshot is >N h before the T-30 target.",
+    ),
+    sector: str = typer.Option(
+        None, "--sector", help="Restrict to one sector."
+    ),
+    notify: bool = typer.Option(
+        False, "--notify",
+        help="Push a Slack/Discord alert if any live book is degrading.",
+    ),
+) -> None:
+    """CLV tripwire: flag LIVE sectors whose realized CLV has gone negative.
+
+    CLV is an entry-timing signal, NOT a model target — a degrading book means
+    the entry window / selection is stale, fixable by WHEN we enter, never by
+    reweighting the blend. Reuses the promotion board's LIVE-DEGRADING verdict
+    (live-mode group, CLV n >= 30, mean CLV < 0).
+    """
+    from evmax.agents.cleanup.clv_monitor import run_clv_tripwire
+
+    result = run_clv_tripwire(
+        days=days, staleness_h=staleness_h, sector=sector, notify=notify
+    )
+    degrading = result["degrading"]
+    if not degrading:
+        console.print(
+            f"[green]✓ No live book bleeding CLV over the last {days}d.[/green]"
+        )
+        return
+
+    console.print(
+        f"\n  [bold red]{len(degrading)} live book(s) degrading "
+        f"(CLV < 0, n >= 30):[/bold red]"
+    )
+    for r in degrading:
+        clv = r.get("clv") or {}
+        console.print(
+            f"  • {r['sector']} {r['market_type']} [{r['venue']}] — "
+            f"mean CLV [red]{clv.get('mean_clv_pp', 0.0):+.2f}pp[/red] "
+            f"(n={clv.get('n', 0)}, {clv.get('frac_positive', 0.0) * 100:.0f}% pos)"
+        )
+    console.print(
+        "[dim]  Entry-timing/selection issue — inspect the entry window, "
+        "not the model blend.[/dim]"
+    )
+    if notify:
+        state = "sent" if result["notified"] else "NOT sent (no webhook or delivery failed)"
+        console.print(f"[dim]  Alert: {state}.[/dim]")
+
+
+@app.command("heartbeat")
+def heartbeat_cmd(
+    max_resolve_age_h: float = typer.Option(
+        36.0, "--max-resolve-age-h",
+        help="Flag if the last resolve wrote more than N hours ago.",
+    ),
+    max_scan_age_days: int = typer.Option(
+        1, "--max-scan-age-days",
+        help="Flag if the latest scan_date is more than N days old.",
+    ),
+    state_stale_days: int = typer.Option(
+        10, "--state-stale-days",
+        help="Flag a seed-maintained model state whose stamp is older than N days (in-season).",
+    ),
+    check_pinnacle: bool = typer.Option(
+        False, "--check-pinnacle",
+        help="Also probe Pinnacle reachability (one live request) — the sole sharp anchor.",
+    ),
+    notify: bool = typer.Option(
+        False, "--notify",
+        help="Push a Slack/Discord alert if any health issue is found.",
+    ),
+) -> None:
+    """Pipeline dead-man's-switch: detect a silently-stopped cadence, a frozen
+    seed state, or an unreachable Pinnacle, and (optionally) push an alert.
+
+    Catches the failure modes that only show up as *absent* rows: the daily
+    scheduled tasks not firing (app closed), resolve erroring every run, a weekly
+    reseed silently 403ing (the UFC ``ufc_rating`` freeze), or a Pinnacle
+    maintenance/geo-block outage (with ``--check-pinnacle``).
+    """
+    from evmax.agents.cleanup.heartbeat import run_heartbeat
+
+    result = run_heartbeat(
+        max_resolve_age_h=max_resolve_age_h,
+        max_scan_age_days=max_scan_age_days,
+        state_stale_days=state_stale_days,
+        check_pinnacle_reachability=check_pinnacle,
+        notify=notify,
+    )
+    if result["ok"]:
+        console.print("[green]✓ Pipeline healthy — cadence and seed states are fresh.[/green]")
+        return
+
+    console.print(f"\n  [bold red]{len(result['issues'])} health issue(s):[/bold red]")
+    for i in result["issues"]:
+        color = "red" if i["severity"] == "critical" else "yellow"
+        console.print(f"  • [{color}]{i['severity']}[/{color}] {i['detail']}")
+    if notify:
+        state = "sent" if result["notified"] else "NOT sent (no webhook or delivery failed)"
+        console.print(f"[dim]  Alert: {state}.[/dim]")
+    raise typer.Exit(code=1)

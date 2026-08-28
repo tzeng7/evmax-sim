@@ -38,6 +38,9 @@ data/backtest/college_efficiency/
 # ESPN MLB boxscore cache for the baseball walk-forward (~2,400 JSONs;
 # re-fetched on demand by espn_walkforward._fetch_baseball_boxscore)
 data/backtest/cache/
+# WNBA injury-impact walk-forward pickles (reproducible via
+# scripts/backtest_wnba_injury_impact.py --refresh)
+data/backtest/wnba_injury/
 
 # Logs
 *.log

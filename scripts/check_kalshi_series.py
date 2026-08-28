@@ -48,6 +48,61 @@ def fetch_market_count(series_ticker: str) -> int:
     return len(r.json().get("markets", []))
 
 
+def _sector_prefixes(our_map: dict[str, list[str]]) -> dict[str, set[str]]:
+    """Longest alpha prefix (>=4 chars) per sector. E.g. KXNBAGAME → KXNBA."""
+    prefixes: dict[str, set[str]] = {}
+    for sector, tickers in our_map.items():
+        found: set[str] = set()
+        for t in tickers:
+            prefix = ""
+            for ch in t:
+                if ch.isalpha():
+                    prefix += ch
+                else:
+                    break
+            if len(prefix) >= 4:
+                found.add(prefix)
+        prefixes[sector] = found
+    return prefixes
+
+
+def classify_series(
+    our_map: dict[str, list[str]],
+    kalshi_tickers: set[str],
+) -> tuple[list[tuple[str, str]], list[tuple[str, str]], list[tuple[str, str]]]:
+    """Pure classification of our series map against the live Kalshi ticker set.
+
+    Returns three ``(ticker, sector)`` lists:
+      ok    — our ticker exists on Kalshi
+      stale — our ticker is NOT on Kalshi (phantom / typo / retired series)
+      new   — a Kalshi ticker matches one of our sector prefixes but is missing
+              from our map (a potential missed market)
+
+    No network I/O — the caller supplies ``kalshi_tickers`` so this is unit-testable.
+    """
+    our_tickers: dict[str, str] = {}
+    for sector, tickers in our_map.items():
+        for t in tickers:
+            our_tickers[t] = sector
+
+    ok: list[tuple[str, str]] = []
+    stale: list[tuple[str, str]] = []
+    for ticker, sector in sorted(our_tickers.items(), key=lambda x: (x[1], x[0])):
+        (ok if ticker in kalshi_tickers else stale).append((ticker, sector))
+
+    prefixes = _sector_prefixes(our_map)
+    our_set = set(our_tickers)
+    new: list[tuple[str, str]] = []
+    for kt in sorted(kalshi_tickers):
+        if kt in our_set:
+            continue
+        for sector, sector_prefixes in prefixes.items():
+            if any(kt.startswith(p) for p in sector_prefixes):
+                new.append((kt, sector))
+                break
+    return ok, stale, new
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -63,48 +118,9 @@ def main() -> int:
     kalshi_tickers = fetch_sports_series()
     print(f"  {len(kalshi_tickers)} sports series on Kalshi\n")
 
-    # Flatten our map into {ticker: sector}
-    our_tickers: dict[str, str] = {}
-    for sector, tickers in SECTOR_SERIES_MAP.items():
-        for t in tickers:
-            our_tickers[t] = sector
-
-    # Build sector prefixes for NEW detection. E.g., if we have KXNBAGAME
-    # and KXNBASPREAD under "nba", the prefix is "KXNBA".
-    sector_prefixes: dict[str, set[str]] = {}
-    for sector, tickers in SECTOR_SERIES_MAP.items():
-        prefixes = set()
-        for t in tickers:
-            # Take the longest alpha prefix before any digit or special char
-            prefix = ""
-            for ch in t:
-                if ch.isalpha():
-                    prefix += ch
-                else:
-                    break
-            if len(prefix) >= 4:
-                prefixes.add(prefix)
-        sector_prefixes[sector] = prefixes
-
-    ok_tickers: list[tuple[str, str]] = []
-    stale_tickers: list[tuple[str, str]] = []
-    new_tickers: list[tuple[str, str]] = []  # (ticker, matched_sector)
-
-    for ticker, sector in sorted(our_tickers.items(), key=lambda x: (x[1], x[0])):
-        if ticker in kalshi_tickers:
-            ok_tickers.append((ticker, sector))
-        else:
-            stale_tickers.append((ticker, sector))
-
-    # Find NEW: Kalshi tickers matching our sector prefixes but not in our map
-    our_set = set(our_tickers.keys())
-    for kt in sorted(kalshi_tickers):
-        if kt in our_set:
-            continue
-        for sector, prefixes in sector_prefixes.items():
-            if any(kt.startswith(p) for p in prefixes):
-                new_tickers.append((kt, sector))
-                break
+    ok_tickers, stale_tickers, new_tickers = classify_series(
+        SECTOR_SERIES_MAP, kalshi_tickers
+    )
 
     # Report
     for ticker, sector in ok_tickers:
