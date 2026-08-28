@@ -141,3 +141,122 @@ class TestNcaafAliasReconciliation:
         out = h.enrich_market(m)
         assert out.team_home == "ohio state"
         assert out.team_away == "texas"
+
+
+class TestNcaafKalshiTickerCodes:
+    """The scanner parses team_home/team_away as Kalshi's per-market outcome
+    CODES (e.g. "psu", "osu"), not readable names. The alias map's live-derived
+    "# Kalshi codes" block (scripts/build_ncaaf_aliases.py --with-kalshi-codes)
+    must resolve each code to the same ESPN-canonical Pinnacle normalizes to, or
+    an FBS game silently fails to match and demotes to shadow. These guard the
+    codes that need the 'St.'→'State' expansion and the ambiguity handling."""
+
+    @pytest.fixture(scope="class")
+    def nz(self):
+        return NameNormalizer("ncaaf")
+
+    @pytest.mark.parametrize(
+        "code,canonical",
+        [
+            # Codes whose yes_sub_title uses the "St." abbreviation — these all
+            # failed before the generator's trailing-St.→State expansion.
+            ("psu", "penn state"),
+            ("osu", "ohio state"),
+            ("orst", "oregon state"),
+            ("asu", "arizona state"),
+            ("bsu", "boise state"),
+            ("msu", "michigan state"),
+            ("msst", "mississippi state"),
+            ("wsu", "washington state"),
+            ("ndsu", "north dakota state"),
+            ("nmsu", "new mexico state"),
+            ("app", "app state"),
+            ("sjsu", "san josé state"),
+            # ULM: Kalshi spells it "Louisiana-Monroe" (hyphen); the curated
+            # hyphen alias must carry it to the ESPN "UL Monroe" canonical.
+            ("ulm", "ul monroe"),
+            # Plain codes.
+            ("gt", "georgia tech"),
+            ("moh", "miami oh"),
+            ("ecu", "east carolina"),
+            ("mcns", "mcneese"),
+        ],
+    )
+    def test_code_resolves_to_canonical(self, nz, code, canonical):
+        assert nz.normalize(code) == canonical
+
+    @pytest.mark.parametrize(
+        "code,dominant",
+        [
+            # csu/ksu/web are legit ESPN abbreviations for FBS teams AND get
+            # reused by Kalshi for a D2 school in a buy game. The generator
+            # refuses to MERGE a guess, but the ESPN abbreviation stands and
+            # resolves the dominant (FBS) meaning — that's what matches Pinnacle.
+            ("csu", "colorado state"),
+            ("ksu", "kansas state"),
+        ],
+    )
+    def test_reused_code_keeps_fbs_meaning(self, nz, code, dominant):
+        assert nz.normalize(code) == dominant
+
+    def test_state_schools_have_distinct_codes(self, nz):
+        # Kalshi disambiguates the "* State" family with distinct codes; a
+        # collapse here would cross-match two different programs.
+        canons = {
+            nz.normalize(c) for c in ("msu", "msst", "mosu", "mtst", "murr")
+        }
+        assert canons == {
+            "michigan state",
+            "mississippi state",
+            "missouri state",
+            "montana state",
+            "murray state",
+        }
+
+    def test_code_market_matches_pinnacle_event(self):
+        """End-to-end: a Kalshi moneyline market carrying bare outcome codes,
+        after enrich_market, builds the exact canonical key Pinnacle emits and
+        the MatchingEngine pairs them."""
+        import datetime as dt
+
+        from evmax.matching.engine import MatchingEngine
+        from evmax.models.odds import SharpBook, SharpOdds
+
+        h = get_handler("ncaaf")
+        # Fri-night ET kickoff; kalshi_game_day must land it on 2026-09-05 ET.
+        kickoff = dt.datetime(2026, 9, 5, 23, 30, tzinfo=dt.timezone.utc)
+        mkt = PredictionMarket(
+            id="kalshi:KXNCAAFGAME-26SEP05LSUCLEM-LSU",
+            source=MarketSource.kalshi,
+            sector="ncaaf",
+            ticker="KXNCAAFGAME-26SEP05LSUCLEM-LSU",
+            title="LSU vs Clemson",
+            team_home="lsu",   # bare Kalshi outcome codes, as the parser leaves them
+            team_away="clem",
+            yes_team="lsu",
+            market_type=MarketType.moneyline,
+            yes_price=0.52,
+            no_price=0.48,
+            event_date=kickoff,
+        )
+        enriched = h.enrich_market(mkt)
+        assert enriched.team_home == "lsu"
+        assert enriched.team_away == "clemson"
+
+        eng = MatchingEngine()
+        expected_key = "ncaaf::2026-09-05::lsu_vs_clemson"
+        assert eng.build_market_key(enriched) == expected_key
+
+        pinn = SharpOdds(
+            event_id=expected_key,
+            book=SharpBook.pinnacle,
+            sector="ncaaf",
+            outcome_a_label="LSU",
+            outcome_b_label="Clemson",
+            outcome_a_decimal=1.90,
+            outcome_b_decimal=1.95,
+            event_date=kickoff,
+        )
+        result = eng.match(enriched, [pinn])
+        assert result is not None
+        assert result[0].event_id == expected_key
