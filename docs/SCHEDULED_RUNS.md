@@ -92,6 +92,17 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 
 ## History
 
+- **2026-08-28** the three `ev-scan-light-*` tasks switched from a hardcoded
+  `--bankroll 500` to `--bankroll-venue kalshi --bankroll 500`: they now size
+  Kelly against the **live Kalshi balance** (cash + open-position value, `GET
+  /portfolio/balance`), with the `--bankroll 500` retained only as the
+  fail-soft fallback if the authenticated balance call fails. `--bankroll-venue
+  kalshi` also scopes live plays to Kalshi; PolyUS was effectively unfunded
+  ($0.73 vs Kalshi $1,575.96 at the time), so the scoping is intended and
+  PolyUS rows simply log as shadow. Shared spec updated
+  (`docs/scheduled-tasks/ev-scan-light.md`); the SKILL.md prompts for
+  `ev-scan-light-{midday,afternoon,evening}` were updated via the
+  `scheduled-tasks` MCP tools.
 - **2026-08-08** `evmax cleanup prune-stale` added — dynamic stale-candidate pruner (voids
   un-picked live candidates whose edge reverted below the flag threshold; un-voids on recovery).
   Scheduled as the Claude task `prune-stale-open-positions` (every 2h, 11:00–23:00 PT, listed under
