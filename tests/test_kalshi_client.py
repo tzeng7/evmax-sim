@@ -340,3 +340,138 @@ class TestGetMarketCandlesticks:
         c._get = boom  # type: ignore[method-assign]
         out = await c.get_market_candlesticks("KXWNBASPREAD", "T", 1, 2)
         assert out == []
+
+
+class TestGetAllPages:
+    """_get_all_pages follows Kalshi's cursor across every page.
+
+    Regression for the 2026-08-30 finding: Kalshi's /markets endpoint is
+    cursor-paginated and caps each page (~200) regardless of the `limit` sent,
+    so a single GET silently truncated any high-volume series. NCAAF lists 500+
+    open KXNCAAFGAME markets and the first page is dominated by early-sorting
+    FCS tickers — the FBS games the scanner actually prices (e.g.
+    KXNCAAFGAME-26AUG29SJSUUSC) sat on page 2 and never reached matching.
+    """
+
+    @staticmethod
+    def _stub_pages(client: KalshiClient, pages: list) -> list:
+        """Serve `pages` (list of (markets, cursor)) in order; record call params."""
+        calls: list = []
+        seq = iter(pages)
+
+        async def fake_get(path, params=None):
+            calls.append((path, params))
+            markets, cursor = next(seq)
+            return {"markets": markets, "cursor": cursor}
+
+        client._get = fake_get  # type: ignore[method-assign]
+        return calls
+
+    async def test_follows_cursor_across_pages(self) -> None:
+        c = _client()
+        calls = self._stub_pages(c, [
+            ([{"ticker": "A"}, {"ticker": "B"}], "CUR2"),
+            ([{"ticker": "C"}], ""),  # empty cursor => stop
+        ])
+        out = await c._get_all_pages(
+            "/markets", {"series_ticker": "X", "limit": 200}, "markets"
+        )
+        assert [m["ticker"] for m in out] == ["A", "B", "C"]
+        assert calls[1][1]["cursor"] == "CUR2"  # page 2 carried page 1's cursor
+        assert len(calls) == 2
+
+    async def test_single_page_when_no_cursor(self) -> None:
+        c = _client()
+        calls = self._stub_pages(c, [([{"ticker": "A"}], None)])
+        out = await c._get_all_pages(
+            "/markets", {"series_ticker": "X", "limit": 200}, "markets"
+        )
+        assert [m["ticker"] for m in out] == ["A"]
+        assert len(calls) == 1
+        assert "cursor" not in calls[0][1]
+
+    async def test_stops_on_empty_batch_even_with_cursor(self) -> None:
+        # Kalshi can hand back a stale cursor with no markets; must not spin.
+        c = _client()
+        calls = self._stub_pages(c, [([], "GHOST")])
+        out = await c._get_all_pages(
+            "/markets", {"series_ticker": "X", "limit": 200}, "markets"
+        )
+        assert out == []
+        assert len(calls) == 1
+
+    async def test_respects_page_cap(self) -> None:
+        from evmax.clients.kalshi import _MAX_KALSHI_PAGES
+
+        c = _client()
+        calls: list = []
+
+        async def never_ending(path, params=None):
+            calls.append(params)
+            return {"markets": [{"ticker": f"T{len(calls)}"}], "cursor": "always"}
+
+        c._get = never_ending  # type: ignore[method-assign]
+        out = await c._get_all_pages(
+            "/markets", {"series_ticker": "X", "limit": 200}, "markets"
+        )
+        assert len(calls) == _MAX_KALSHI_PAGES
+        assert len(out) == _MAX_KALSHI_PAGES
+
+
+class TestGetMarketsPagination:
+    """get_markets surfaces markets from EVERY page, not just page 1.
+
+    End-to-end regression for the SJSU/USC miss: the 8 Aug-29 FBS games sat on
+    page 2 of KXNCAAFGAME and never reached the scanner because get_markets
+    fetched only the first page.
+    """
+
+    @staticmethod
+    def _raw(ticker: str, title: str) -> dict:
+        return {
+            "ticker": ticker, "title": title,
+            "yes_bid_dollars": "0.40", "yes_ask_dollars": "0.45",
+            "no_bid_dollars": "0.50", "no_ask_dollars": "0.60",
+            "volume_fp": 10, "open_interest_fp": 5,
+        }
+
+    async def test_page_two_market_reaches_caller(self, monkeypatch) -> None:
+        from types import SimpleNamespace
+        import evmax.clients.kalshi as kalshi_mod
+
+        cfg = SimpleNamespace(
+            offline_mode=False, cache_ttl_secs=0, kalshi_ws_enabled=False
+        )
+        monkeypatch.setattr(kalshi_mod, "get_settings", lambda: cfg)
+
+        c = _client()
+        calls: list = []
+
+        async def fake_get(path, params=None):
+            calls.append(params)
+            st = (params or {}).get("series_ticker")
+            cur = (params or {}).get("cursor")
+            if path == "/markets" and st == "KXNCAAFGAME":
+                if cur is None:
+                    return {"markets": [self._raw(
+                        "KXNCAAFGAME-26AUG29ALSUFAMU-FAMU", "Florida A&M wins")],
+                        "cursor": "PAGE2"}
+                if cur == "PAGE2":
+                    return {"markets": [self._raw(
+                        "KXNCAAFGAME-26AUG29SJSUUSC-USC", "USC wins")],
+                        "cursor": ""}
+            return {"markets": [], "cursor": ""}
+
+        c._get = fake_get  # type: ignore[method-assign]
+        markets = await c.get_markets("ncaaf")
+        tickers = [m.ticker for m in markets]
+
+        # The page-2 FBS market (and the page-1 market) both surfaced.
+        assert "KXNCAAFGAME-26AUG29SJSUUSC-USC" in tickers
+        assert "KXNCAAFGAME-26AUG29ALSUFAMU-FAMU" in tickers
+
+        # Pagination actually happened: KXNCAAFGAME was queried twice, the
+        # second call carrying page 1's cursor.
+        game_calls = [p for p in calls if (p or {}).get("series_ticker") == "KXNCAAFGAME"]
+        assert len(game_calls) == 2
+        assert game_calls[1]["cursor"] == "PAGE2"
