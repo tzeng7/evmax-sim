@@ -34,6 +34,15 @@ logger = structlog.get_logger(__name__)
 # Previous value (3/s) was overly conservative and caused 13s+ scan times.
 _KALSHI_RATE_LIMITER = AsyncLimiter(10, 1.0)
 
+# Kalshi's /markets and /events collection endpoints are cursor-paginated and
+# cap each page well below large `limit` values, so a single GET returns only
+# the first page. High-volume series overflow one page (NCAAF lists 500+ open
+# KXNCAAFGAME markets across FBS + FCS + lower divisions), and the first page is
+# dominated by early-sorting FCS tickers — which silently dropped the FBS games
+# the scanner actually prices (e.g. 26AUG29 SJSU-USC lived on page 2 and never
+# reached matching). Follow the cursor up to this many pages per series.
+_MAX_KALSHI_PAGES = 30
+
 # YYMONDD date format used in Kalshi game tickers (e.g. "26FEB24" → 2026-02-24)
 _MONTH_MAP = {
     "JAN": 1, "FEB": 2, "MAR": 3, "APR": 4, "MAY": 5, "JUN": 6,
@@ -696,6 +705,36 @@ class KalshiClient(BaseAPIClient):
         except (TypeError, ValueError):
             return None
 
+    async def _get_all_pages(
+        self,
+        path: str,
+        params: dict[str, Any],
+        list_key: str,
+    ) -> list[dict[str, Any]]:
+        """GET a cursor-paginated Kalshi collection endpoint in full.
+
+        Kalshi's /markets and /events return at most one page per call and
+        expose a `cursor` for the next page; a large `limit` does NOT widen
+        the page. A single GET therefore silently truncates any series with
+        more than one page of results. Follow the cursor until it is empty
+        (or a page is empty), capped at _MAX_KALSHI_PAGES as a runaway guard.
+        Each page independently acquires a rate-limiter token.
+        """
+        items: list[dict[str, Any]] = []
+        cursor: Optional[str] = None
+        for _ in range(_MAX_KALSHI_PAGES):
+            await _KALSHI_RATE_LIMITER.acquire()
+            page_params = dict(params)
+            if cursor:
+                page_params["cursor"] = cursor
+            data = await self._get(path, params=page_params)
+            batch = data.get(list_key, []) or []
+            items.extend(batch)
+            cursor = data.get("cursor")
+            if not cursor or not batch:
+                break
+        return items
+
     async def get_markets(
         self,
         sector: str,
@@ -727,44 +766,40 @@ class KalshiClient(BaseAPIClient):
 
         async def _fetch_prefix(prefix: str) -> list[PredictionMarket]:
             try:
-                # Each _get must independently acquire a rate-limiter token;
-                # do not share one acquire between markets and events calls.
-                await _KALSHI_RATE_LIMITER.acquire()
-                markets_task = self._get(
-                    "/markets",
-                    params={"status": status, "series_ticker": prefix, "limit": limit},
-                )
+                base_params = {"status": status, "series_ticker": prefix, "limit": limit}
+                # Follow the cursor to fetch EVERY page — a single call only
+                # returns Kalshi's first page, which drops overflow markets
+                # for high-volume series (see _MAX_KALSHI_PAGES above).
+                markets_task = self._get_all_pages("/markets", base_params, "markets")
                 if fetch_events:
-                    await _KALSHI_RATE_LIMITER.acquire()
                     # Kalshi's /events endpoint caps `limit` at 200 (201+ →
                     # 400 Bad Request), unlike /markets which allows up to 1000.
                     # Cap it independently so a larger markets `limit` can't 400
-                    # the events call. Also keep events NON-FATAL: an events
-                    # failure must not wipe the markets — it only costs surface
-                    # detection and (for the short "{Name} wins" titles) the
-                    # matchup join, both of which degrade to the title parse.
-                    events_task = self._get(
-                        "/events",
-                        params={
-                            "status": status,
-                            "series_ticker": prefix,
-                            "limit": min(limit, 200),
-                        },
-                    )
-                    data, events_data = await asyncio.gather(
+                    # the events call. Both are cursor-paginated, so page through
+                    # each. Keep events NON-FATAL: an events failure must not
+                    # wipe the markets — it only costs surface detection and
+                    # (for the short "{Name} wins" titles) the matchup join,
+                    # both of which degrade to the title parse.
+                    event_params = {
+                        "status": status,
+                        "series_ticker": prefix,
+                        "limit": min(limit, 200),
+                    }
+                    events_task = self._get_all_pages("/events", event_params, "events")
+                    market_rows, event_rows = await asyncio.gather(
                         markets_task, events_task, return_exceptions=True,
                     )
-                    if isinstance(data, BaseException):
-                        raise data  # markets are essential — fail the prefix
-                    if isinstance(events_data, BaseException):
+                    if isinstance(market_rows, BaseException):
+                        raise market_rows  # markets are essential — fail the prefix
+                    if isinstance(event_rows, BaseException):
                         logger.warning(
                             "kalshi_events_fetch_failed",
-                            prefix=prefix, error=str(events_data),
+                            prefix=prefix, error=str(event_rows),
                         )
-                        events_data = None
+                        event_rows = None
                 else:
-                    data = await markets_task
-                    events_data = None
+                    market_rows = await markets_task
+                    event_rows = None
 
                 # Build event_ticker → competition / matchup-title dicts for
                 # tennis joins. The competition drives surface detection; the
@@ -773,10 +808,10 @@ class KalshiClient(BaseAPIClient):
                 # format 2026-08) no longer do.
                 competitions: Optional[dict[str, str]] = None
                 event_titles: Optional[dict[str, str]] = None
-                if events_data is not None:
+                if event_rows is not None:
                     competitions = {}
                     event_titles = {}
-                    for ev in events_data.get("events", []) or []:
+                    for ev in event_rows:
                         et = ev.get("event_ticker")
                         if not et:
                             continue
@@ -789,7 +824,7 @@ class KalshiClient(BaseAPIClient):
                             event_titles[et] = ev_title
 
                 parsed = []
-                for m in data.get("markets", []):
+                for m in market_rows:
                     if is_prop_sector:
                         stat_type = _PROP_SERIES_TO_STAT.get(prefix.upper(), "unknown")
                         p = self._parse_prop_market(m, sector, stat_type)
