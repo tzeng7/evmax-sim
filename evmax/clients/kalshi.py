@@ -736,19 +736,46 @@ class KalshiClient(BaseAPIClient):
                 )
                 if fetch_events:
                     await _KALSHI_RATE_LIMITER.acquire()
+                    # Kalshi's /events endpoint caps `limit` at 200 (201+ →
+                    # 400 Bad Request), unlike /markets which allows up to 1000.
+                    # Cap it independently so a larger markets `limit` can't 400
+                    # the events call. Also keep events NON-FATAL: an events
+                    # failure must not wipe the markets — it only costs surface
+                    # detection and (for the short "{Name} wins" titles) the
+                    # matchup join, both of which degrade to the title parse.
                     events_task = self._get(
                         "/events",
-                        params={"status": status, "series_ticker": prefix, "limit": limit},
+                        params={
+                            "status": status,
+                            "series_ticker": prefix,
+                            "limit": min(limit, 200),
+                        },
                     )
-                    data, events_data = await asyncio.gather(markets_task, events_task)
+                    data, events_data = await asyncio.gather(
+                        markets_task, events_task, return_exceptions=True,
+                    )
+                    if isinstance(data, BaseException):
+                        raise data  # markets are essential — fail the prefix
+                    if isinstance(events_data, BaseException):
+                        logger.warning(
+                            "kalshi_events_fetch_failed",
+                            prefix=prefix, error=str(events_data),
+                        )
+                        events_data = None
                 else:
                     data = await markets_task
                     events_data = None
 
-                # Build event_ticker → competition dict for tennis joins.
+                # Build event_ticker → competition / matchup-title dicts for
+                # tennis joins. The competition drives surface detection; the
+                # event title ("A vs B") carries BOTH competitors, which the
+                # short "{Name} wins" market titles (Kalshi changed the tennis
+                # format 2026-08) no longer do.
                 competitions: Optional[dict[str, str]] = None
+                event_titles: Optional[dict[str, str]] = None
                 if events_data is not None:
                     competitions = {}
+                    event_titles = {}
                     for ev in events_data.get("events", []) or []:
                         et = ev.get("event_ticker")
                         if not et:
@@ -757,6 +784,9 @@ class KalshiClient(BaseAPIClient):
                         comp = pm.get("competition")
                         if comp:
                             competitions[et] = comp
+                        ev_title = ev.get("title")
+                        if ev_title:
+                            event_titles[et] = ev_title
 
                 parsed = []
                 for m in data.get("markets", []):
@@ -764,7 +794,11 @@ class KalshiClient(BaseAPIClient):
                         stat_type = _PROP_SERIES_TO_STAT.get(prefix.upper(), "unknown")
                         p = self._parse_prop_market(m, sector, stat_type)
                     else:
-                        p = self._parse_market(m, sector, competitions=competitions)
+                        p = self._parse_market(
+                            m, sector,
+                            competitions=competitions,
+                            event_titles=event_titles,
+                        )
                     if p:
                         parsed.append(p)
                 return parsed
@@ -1182,6 +1216,7 @@ class KalshiClient(BaseAPIClient):
         raw: dict[str, Any],
         sector: str,
         competitions: Optional[dict[str, str]] = None,
+        event_titles: Optional[dict[str, str]] = None,
     ) -> Optional[PredictionMarket]:
         """Parse a raw Kalshi market dict into a PredictionMarket.
 
@@ -1192,6 +1227,10 @@ class KalshiClient(BaseAPIClient):
         If ``competitions`` is provided (tennis only), the market's
         ``event_ticker`` is looked up in the dict to populate
         ``PredictionMarket.competition`` (e.g. "ATP Munich").
+
+        If ``event_titles`` is provided (tennis only), the market's
+        ``event_ticker`` is looked up to recover the "A vs B" matchup — the
+        short "{Name} wins" market titles no longer carry the opponent.
         """
         try:
             ticker = raw.get("ticker", "")
@@ -1260,8 +1299,27 @@ class KalshiClient(BaseAPIClient):
             # --- Teams: for tennis use title (ticker codes are 3-letter abbreviations);
             # for other sectors parse 3-letter codes from ticker, fall back to title ---
             if sector == "tennis":
-                team_home, team_away = self._extract_teams_from_title(title)
-                yes_team = self._extract_tennis_yes_player(title, sector)
+                # Kalshi changed the tennis market title to the short form
+                # "{Full Name} wins" (2026-08), dropping the "A vs B" matchup
+                # the old "Will {Name} win the {A} vs {B}" parser relied on.
+                # Recover both competitors from the parent EVENT title (joined
+                # by event_ticker) and the YES player from the market's
+                # yes_sub_title (the exact full name). Fall back to the legacy
+                # title parse when the event join / subtitle are unavailable,
+                # so old-format markets and cached data still parse.
+                event_ticker = raw.get("event_ticker")
+                event_title = (
+                    (event_titles or {}).get(event_ticker) if event_ticker else None
+                )
+                team_home, team_away = self._extract_teams_from_title(
+                    event_title or title
+                )
+                yes_sub = (raw.get("yes_sub_title") or "").strip()
+                if yes_sub:
+                    from evmax.matching.normalizer import NameNormalizer
+                    yes_team = NameNormalizer(sector).normalize(yes_sub)
+                else:
+                    yes_team = self._extract_tennis_yes_player(title, sector)
             elif sector == "ufc":
                 # UFC ticker codes are 3-letter surname truncations (SAI/PIM)
                 # with no alias table — parse the title instead, like tennis.
