@@ -462,11 +462,9 @@ The ORM models (`EVBetORM`, `SharpOddsORM`, `PredictionMarketORM`) are defined b
 - Rename `pinnacle.py` → `pinnacle_theodds.py` (or delete if confirmed dead)
 - Update all imports
 
-### ARCH-4 NFL Props Fetched But Never Evaluated [P2]
-**File:** `evmax/agents/coordinator.py` (~line 570)
-NFL prop series (`KXNFLPAS`, `KXNFLREC`, etc.) are fetched from Kalshi but `_fetch_props()` returns `None` for non-NBA sectors. The Kalshi API calls are real, the data is discarded. Either:
-- Implement NFL prop probability computation (similar to `nba_stats.py`)
-- Or: remove NFL prop series from `KALSHI_PROP_SERIES` until the backend exists
+### ~~ARCH-4 NFL Props Fetched But Never Evaluated~~ ✅ SHIPPED
+**File:** `evmax/agents/coordinator.py:896`
+Both halves of this item are closed. The placeholder series names (`KXNFLPAS`, `KXNFLRSH`, `KXNFLTD`) were replaced with the real tickers on 2026-04-15 (`58e6150`), and `KALSHI_PROP_SERIES` no longer exists anywhere in `evmax/` — `SECTOR_SERIES_MAP` is the single map. Prop evaluation is no longer NBA-only either: `_PROP_SECTORS = {"nba", "nfl", "baseball"}` gates `_fetch_props()`, so NFL and MLB props are priced, not discarded (MODEL-9 for NFL, `baseball_props` for MLB). All three prop categories are currently `mode: disabled` in `data/categories.yaml` (PR #185), which is a product decision, not a missing backend.
 
 ### ARCH-5 Kelly `confidence_discount` Parameter is Dead [P3]
 **File:** `evmax/ev/kelly.py:91-93`
@@ -701,7 +699,7 @@ Why it matters: CLV is the leading indicator for model sharpness. Brier needs 10
 ## Section 6 — Player Props (In Progress)
 
 ### PROPS-1 Define NFL Props Backend Before Fetching [P1]
-Currently NFL prop Kalshi series are fetched but silently discarded (see ARCH-4). Implement or disable.
+Superseded on both halves (see ARCH-4): the backend exists (`_PROP_SECTORS` includes `nfl`, so NFL props are priced, not discarded) and the category is currently `mode: disabled` in `data/categories.yaml`. What remains is the MODEL-9 shadow-validation clock, which cannot start until `nfl_props` is re-enabled to `shadow` — see the NFL-props block in [`docs/SEASON_START.md`](docs/SEASON_START.md).
 
 ### PROPS-2 Add Combo Stat Prop Parsing Test [P2]
 `KXNBAPRA` (points+rebounds+assists) — verify the Kalshi title regex in `kalshi.py` correctly parses combo stat thresholds (e.g., "Jokic 55.5+ PRA" → player=Jokic, stat=points_rebounds_assists, threshold=55.5).
