@@ -5,10 +5,10 @@ No credentials required. Replaces TheOddsAPI for Pinnacle sharp lines.
 Sport IDs:
   4  = Basketball (NBA id=487, NCAA Men's id=493, WNCAA id=583)
   12 = E Sports   (CS2, LoL, Valorant)
-  15 = Football   (NFL id=258)
+  15 = Football   (NFL id=889 — re-cut from 258 for the 2026 season)
   19 = Hockey     (NHL id=1456)
   29 = Soccer     (EPL id=1980, La Liga id=2196, Bundesliga id=1842,
-                   Serie A id=2436, Ligue 1 id=2036, UCL id=2186,
+                   Serie A id=2436, Ligue 1 id=2036, UCL id=2627 (was 2186 through 2025-26),
                    UEL id=2630, MLS id=2663)
 
 Odds are American format; we convert via american_to_decimal() + devig_two_way().
@@ -52,13 +52,20 @@ SECTOR_SPORT_LEAGUES: dict[str, tuple[int, list[int]]] = {
     "ncaab":    (4,  [493]),
     "ncaaw":    (4,  [583]),    # WNCAA
     "wnba":     (4,  [578]),    # WNBA
-    "nfl":      (15, [258]),
+    # NFL league id was 258 through the 2025 season; Pinnacle re-cut it to 889
+    # for 2026 (verified 2026-09-02 via GET /sports/15/leagues — the only
+    # football leagues listed are 876 CFL / 880 NCAA / 889 NFL). A stale id
+    # returns ZERO matchups, i.e. no sharp anchor and no NFL EV all season.
+    # Re-verify every league id at each season boundary (see docs/SEASON_START.md).
+    "nfl":      (15, [889]),
     "ncaaf":    (15, [880]),    # NCAA football (FBS) — sport 15, league 880 ("NCAA")
     "nhl":      (19, [1456]),   # NHL
     "baseball": (3,  [246]),    # MLB
     "ufc":      (22, []),       # Mixed Martial Arts — matched by league name
     "f1":       (44, []),       # Formula 1 — matched by league name
-    "soccer":   (29, [1980, 2196, 1842, 2436, 2036, 2186, 2630, 2663]),
+    # UCL re-cut 2186 → 2627 for 2026-27 (scripts/check_pinnacle_leagues.py,
+    # 2026-09-02: 2186 served 0 matchups, 2627 "UEFA - Champions League" 18).
+    "soccer":   (29, [1980, 2196, 1842, 2436, 2036, 2627, 2630, 2663]),
     #                EPL  LaLiga Bundes SerieA Ligue1 UCL   UEL   MLS
     "worldcup": (29, [2686]),   # FIFA - World Cup (national teams, 3-way w/ draw)
     "cs2":      (12, []),       # Esports — matched by league name
@@ -105,7 +112,7 @@ TOTALS_SECTORS = {"nba", "wnba", "nfl", "ncaab", "ncaaw", "ncaaf", "soccer", "ba
 TOTALS_MAIN_LINE_ONLY_SECTORS = {"baseball"}
 
 # Soccer leagues that have draws (all of them); MLS uses draws too
-SOCCER_DRAW_LEAGUES = {1980, 2196, 1842, 2436, 2036, 2186, 2630, 2663}
+SOCCER_DRAW_LEAGUES = {1980, 2196, 1842, 2436, 2036, 2627, 2630, 2663}
 
 # --- World Cup knockout "to advance" anchors -------------------------------
 # Pinnacle has NO live per-match "to advance" market. Its per-team "To Reach
@@ -146,6 +153,12 @@ _PROP_STAT_MAP: dict[str, str] = {
     "passing yards": "passing_yards", "passing yds": "passing_yards",
     "rushing yards": "rushing_yards", "rushing yds": "rushing_yards",
     "receiving yards": "receiving_yards", "receiving yds": "receiving_yards",
+    # NFL per-game specials observed live 2026-09-02 ("Christian McCaffrey
+    # Total Receptions", "Brock Purdy Total Touchdown Passes") — both are
+    # Kalshi series we trade (KXNFLREC / KXNFLPASSTDS).
+    "receptions": "receptions", "rec": "receptions",
+    "touchdown passes": "passing_tds", "passing touchdowns": "passing_tds",
+    "passing tds": "passing_tds", "td passes": "passing_tds",
     # --- MLB (added 2026-06-27). Pinnacle posts these as legacy-paren specials
     # with a "(must start)" qualifier suffix, e.g. "Rafael Devers (Home Runs)
     # (must start)" / "Michael Lorenzen (Total Strikeouts)(must start)". The
@@ -379,55 +392,105 @@ class PinnacleGuestClient(BaseAPIClient):
             logger.info("pinnacle_guest_no_props", sector=sector)
             return []
 
-        results = await asyncio.gather(
-            *(self._fetch_prop_matchup(m, sector) for m in prop_matchups),
-            return_exceptions=True,
-        )
+        # Price the specials off ONE bulk sport-level straight-markets fetch.
+        # The per-matchup ``/matchups/{id}/markets/related/straight`` endpoint
+        # is geo-blocked from the US for SPECIAL matchups specifically (403
+        # BAD_LOCATION — verified 2026-09-02: the parent game's matchup id
+        # serves fine, every prop special's id 403s), which is why props were
+        # the sector the intermittent geo-block "hit hardest". The bulk
+        # ``/sports/{sport_id}/markets/straight`` endpoint (NO ``withSpecials``
+        # param — passing it trips the same block) still carries every
+        # special's over/under market keyed by ``matchupId``. Matchups the
+        # bulk index lacks fall back to the per-matchup fetch, and a bulk
+        # failure degrades to the old per-matchup path for everything.
+        by_matchup = await self._fetch_bulk_straight_index(sport_id, sector)
+        bulk_hits = [m for m in prop_matchups if m.get("id") in by_matchup]
+        bulk_misses = [m for m in prop_matchups if m.get("id") not in by_matchup]
 
         props: list[SharpOdds] = []
-        for r in results:
-            if isinstance(r, SharpOdds):
-                props.append(r)
-            elif isinstance(r, list):
-                props.extend(r)
+        for m in bulk_hits:
+            parsed = self._parse_prop_matchup(m, by_matchup[m.get("id")], sector)
+            if parsed is not None:
+                props.append(parsed)
 
-        logger.info("pinnacle_props_fetched", sector=sector, count=len(props))
+        if bulk_misses:
+            results = await asyncio.gather(
+                *(self._fetch_prop_matchup(m, sector) for m in bulk_misses),
+                return_exceptions=True,
+            )
+            for r in results:
+                if isinstance(r, SharpOdds):
+                    props.append(r)
+                elif isinstance(r, list):
+                    props.extend(r)
+
+        logger.info(
+            "pinnacle_props_fetched",
+            sector=sector,
+            count=len(props),
+            bulk_priced=len(bulk_hits),
+            per_matchup_fallback=len(bulk_misses),
+        )
         logger.info(
             "pinnacle_scan_done",
             sector=f"{sector}_props",
             sport_id=sport_id,
             league_ids=league_ids or None,
             parent_matchups=len(prop_matchups),
-            http_calls=1 + len(prop_matchups),
+            http_calls=1 + (1 if by_matchup else 0) + len(bulk_misses),
             total_markets=len(props),
             duration_ms=round((time.perf_counter() - prop_t0) * 1000, 1),
         )
         return props
 
+    async def _fetch_bulk_straight_index(
+        self, sport_id: int, sector: str
+    ) -> dict[int, list[dict]]:
+        """Fetch ``/sports/{sport_id}/markets/straight`` once and index it by matchupId.
+
+        Returns an empty dict on any failure (callers fall back to per-matchup
+        fetches) so a bulk outage can never make props WORSE than before.
+        Deliberately sends no query params: ``withSpecials=true`` on this
+        endpoint triggers the same US geo-block as the per-special fetch,
+        while the bare call already includes the specials' markets.
+        """
+        try:
+            data = await self._logged_get(
+                f"/sports/{sport_id}/markets/straight",
+                sector=f"{sector}_props",
+                purpose="list_prop_markets_bulk",
+            )
+        except Exception as e:  # noqa: BLE001 — degrade to per-matchup path
+            status, reason = classify_pinnacle_error(e)
+            logger.warning(
+                "pinnacle_props_bulk_markets_failed",
+                sector=sector, status=status, reason=reason, error=str(e),
+            )
+            return {}
+        if not isinstance(data, list):
+            return {}
+        by_matchup: dict[int, list[dict]] = {}
+        for mk in data:
+            mid = mk.get("matchupId")
+            if mid is None:
+                continue
+            by_matchup.setdefault(mid, []).append(mk)
+        return by_matchup
+
     async def _fetch_prop_matchup(self, matchup: dict, sector: str) -> Optional[SharpOdds]:
-        """Fetch and parse a single player prop special matchup."""
+        """Fetch and parse a single player prop special matchup (per-matchup path).
+
+        Kept as the fallback for specials the bulk straight-markets index
+        lacks; from the US this endpoint 403s for special matchup ids, so the
+        bulk path in ``get_prop_odds`` is the one that normally prices props.
+        """
         matchup_id = matchup.get("id")
-        special = matchup.get("special") or {}
-        description = special.get("description", "")
-
-        parsed = parse_prop_description(description)
-        if parsed is None:
-            logger.debug("pinnacle_prop_unparsed", description=description)
+        if parse_prop_description((matchup.get("special") or {}).get("description", "")) is None:
+            logger.debug(
+                "pinnacle_prop_unparsed",
+                description=(matchup.get("special") or {}).get("description", ""),
+            )
             return None
-        player_raw, stat_type = parsed
-
-        # Normalize player name
-        from evmax.players import normalize_player_name
-        player_norm = normalize_player_name(player_raw, sector)
-
-        # Fetch markets for this prop matchup
-        start_time = matchup.get("startTime", "")
-        event_date: Optional[datetime] = None
-        if start_time:
-            try:
-                event_date = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
-            except ValueError:
-                pass
 
         try:
             markets_data = await self._logged_get(
@@ -448,6 +511,38 @@ class PinnacleGuestClient(BaseAPIClient):
         # type=='total' we'd pick is the parent game total — see the Randle
         # assists case where matching against a 218.0 line wiped 50% of props.
         own_markets = [mk for mk in markets_data if mk.get("matchupId") == matchup_id]
+        return self._parse_prop_matchup(matchup, own_markets, sector)
+
+    def _parse_prop_matchup(
+        self, matchup: dict, own_markets: list[dict], sector: str
+    ) -> Optional[SharpOdds]:
+        """Parse one prop special + ITS OWN straight markets into a SharpOdds.
+
+        Pure (no network): ``own_markets`` must already be filtered to this
+        matchup's id, whether it came from the bulk sport-level index or the
+        per-matchup endpoint.
+        """
+        special = matchup.get("special") or {}
+        description = special.get("description", "")
+
+        parsed = parse_prop_description(description)
+        if parsed is None:
+            logger.debug("pinnacle_prop_unparsed", description=description)
+            return None
+        player_raw, stat_type = parsed
+
+        # Normalize player name
+        from evmax.players import normalize_player_name
+        player_norm = normalize_player_name(player_raw, sector)
+
+        start_time = matchup.get("startTime", "")
+        event_date: Optional[datetime] = None
+        if start_time:
+            try:
+                event_date = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+            except ValueError:
+                pass
+
         ou_market = next(
             (mk for mk in own_markets if mk.get("type") == "total"),
             None,

@@ -208,11 +208,11 @@ nfl_props:
   market_types: [player_prop]
   prop_stat_types: [passing_yards, rushing_yards, receiving_yards, passing_tds, receptions, anytime_td]
   models: [nfl_props_cache_v1_qb_only]
-  mode: disabled
+  mode: shadow
   resolver: espn_boxscore
   status: blocked
   season_window: {start: "09-04", end: "02-15"}
-  notes: "Stage 4 backtest shipped (PR #6) — QB-only NO-side ROI +79% at ev>=3% vol>=1000. Live betting blocked on MODEL-9 (shadow validation against pre-game prices). kalshi.py SECTOR_SERIES_MAP still has phantom series names (KXNFLPAS etc.); the fix ships with MODEL-9 so no NFL prop markets are fetched in scan today."
+  notes: "Stage 4 backtest shipped (PR #6) — QB-only NO-side ROI +79% at ev>=3% vol>=1000. Live betting blocked on MODEL-9 (shadow validation against pre-game prices). 2026-09-02 season-start audit: flipped disabled -> shadow so the MODEL-9 shadow clock starts Week 1 (the 2026-08-08 disable was a Pinnacle-geo-block workaround, not a model verdict). The Kalshi series are real (KXNFLPASSYDS/RSHYDS/RECYDS/ANYTD/PASSTDS/REC, 396 open Week-1 markets) and Pinnacle props are now priced off the bulk /sports/15/markets/straight index because the per-special endpoint is geo-blocked from the US. nflverse publishes the season's weekly-stats parquet only after Week 1, so early-September props ride the prior season's history (the cache skips an unpublished season instead of failing)."
 
 baseball_props:
   display_name: "MLB player props"

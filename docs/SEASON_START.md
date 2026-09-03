@@ -50,9 +50,15 @@ exactly this failure mode; other sectors have no equivalent gate — see Gaps).
    from the pool (fuzzy fallback at threshold 88 catches some, not all).
 4. **Confirm Pinnacle league coverage.** `PinnacleGuestClient` fetches by
    sport/league; a league id that changed over the summer yields zero sharp
-   anchors and therefore zero computable EV. Also remember the measured posting
-   windows (memory: Pinnacle posts ~T-17–24h for US majors) — early-listed
-   Kalshi markets are unanchored noise until Pinnacle posts.
+   anchors and therefore zero computable EV — and nothing downstream can tell
+   that apart from an off-season. This is not hypothetical: the 2026-09-02
+   NFL audit found NFL re-cut 258 → 889 and UCL 2186 → 2627.
+   ```bash
+   python3 scripts/check_pinnacle_leagues.py [-s nfl,nba]   # exit 1 on STALE ids; prints the replacement
+   ```
+   Also remember the measured posting windows (memory: Pinnacle posts
+   ~T-17–24h for US majors) — early-listed Kalshi markets are unanchored
+   noise until Pinnacle posts.
 5. **Run the sector's seed scripts** (per-sector section below) and sanity-check
    the state file's season stamp.
 6. **Decide the mode.** Anything with a new model, new market type, or a full
@@ -98,13 +104,18 @@ staleness:
 `weekly-seasonal-model-reseed`, `nfl_state_is_stale_for_today` guard,
 `season_window` auto-reopen.
 
+- [x] **Pinnacle league id** — 2026: 258 → 889 (fixed 2026-09-02; the stale
+      id returned zero matchups). Re-run `check_pinnacle_leagues.py -s nfl`
+      each August.
 - [ ] **Manually run both seeds the week of kickoff** — don't rely on the
       Monday task alone. Until 2026 PBP exists in `nflreadpy`, the seeds write
       `seasons_used` maxing at 2025 and the staleness guard keeps
-      `nfl_efficiency`/`nfl_qb_elo` blanked, so **Week 1 runs on sharp-only**
-      (Elo 60d-stale from February, Form stale, both NFL models guarded).
-      That's by design; just know the first real model-informed week is Week 2,
-      after the first Monday reseed ingests Week 1 PBP:
+      `nfl_efficiency`/`nfl_qb_elo` blanked, so **Week 1 runs on generic Elo +
+      sharp** (Form stale, both NFL models guarded; `elo_state['nfl']` has no
+      `last_updated` stamp so the 60d guard does not apply to it — which is
+      exactly why the offseason regression below matters). That's by design;
+      just know the first real model-informed week is Week 2, after the first
+      Monday reseed ingests Week 1 PBP:
       ```bash
       uv run python scripts/seed_nfl_efficiency.py
       uv run python scripts/seed_nfl_qb_elo.py     # also refreshes current_starters
@@ -113,27 +124,36 @@ staleness:
       QB moves after the first reseed with 2026 data (the per-QB delta layer is
       the whole point of this model).
 - [ ] Alias check for any franchise rename/relocation.
-- [ ] Generic Elo (0.20 weight) carries raw February ratings into September —
-      NFL is the #2 target for offseason regression (section 5; ⅓-toward-mean
-      prior). `nfl_qb_elo` and `nfl_efficiency` don't need it (weekly full
-      re-walk-forward / built-in season decay).
+- [x] **Offseason Elo regression** (built + applied 2026-09-02): generic Elo
+      (0.20 weight) carried raw February ratings into September. Now
+      `python scripts/offseason_regress.py --sector nfl --drop afc,nfc` shrinks
+      every team ⅓ toward 1500 (keep=0.667 — swept, not copied: see §5) and
+      drops the Pro Bowl `afc`/`nfc` keys from elo + form state. Run it once
+      per offseason after the Super Bowl state is final. `nfl_qb_elo` and
+      `nfl_efficiency` don't need it (weekly full re-walk-forward / built-in
+      season decay).
 - [ ] Do **not** re-attempt the backtest-rejected levers (QB-Elo MOV,
       form-weight redistribution — form stays 0.30; see the NFL blend audit
       memory) without new evidence.
 
 ### NFL props — same window · `shadow`, `status: blocked`
 
-This is the biggest "produce" item of the fall (MODEL-9):
+This is the biggest "produce" item of the fall (MODEL-9). Re-opened
+`disabled → shadow` on 2026-09-02 so the shadow clock starts Week 1:
 
-- [ ] **Fix the phantom Kalshi series names.** `SECTOR_SERIES_MAP` still holds
-      placeholder tickers (`KXNFLPAS` etc.) so *zero NFL prop markets are
-      fetched today*. Audit real series via `check_kalshi_series.py --probe`
-      once Kalshi lists 2026 NFL props, then correct the map (registry
-      validation will hold `categories.yaml` in sync).
-- [ ] Start the weekly feature refresh: `scripts/fetch_nfl_features.py`
-      (repopulates `data/backtest/nfl_props/*.parquet` that
-      `evmax/clients/nfl_props_cache.py` reads point-in-time). Needs a
-      scheduled home — it's in no task today (see Gaps).
+- [x] **Kalshi series are real** (`KXNFLPASSYDS/RSHYDS/RECYDS/ANYTD/PASSTDS/REC`,
+      fixed 2026-04; 396 open Week-1 markets on 2026-09-02).
+- [x] **Pinnacle prop prices** come off the bulk `/sports/15/markets/straight`
+      index (2026-09-02): the per-special endpoint is geo-blocked from the US,
+      which had silently zeroed every props sector. `Total Receptions` /
+      `Total Touchdown Passes` labels were added to the parser the same day
+      (44/44 Week-1 specials priced).
+- [x] **Feature parquets self-heal**: `nfl_props_cache` downloads the nflverse
+      parquets on its first stale/missing refresh and now skips a season whose
+      weekly-stats file is not published yet (2026's 404s until Week 1 is
+      played) instead of failing the whole refresh — no scheduled
+      `fetch_nfl_features.py` run is needed for the scan path (the script
+      remains the backtest's bulk fetch).
 - [ ] Accumulate 3–4 weeks of shadow rows against pre-game prices, then apply
       the props promotion gate (predict-37%/Brier — see
       `project_props_validation_gate` memory). QB-only v1; NO-side ROI +79% in
@@ -271,7 +291,7 @@ Not every sector needs it. Two code facts frame the decision:
 | Sector | Effective Elo weight | Verdict |
 |---|---|---|
 | **NCAAB** | ~0.35 class weight (**no `SECTOR_WEIGHT_OVERRIDES` entry**); with Poisson hard-excluded from basketball, the model side is just elo+form → **Elo ≈ 58% of the model blend after normalization** | **YES — strongest case by far.** Transfer-portal roster churn is the worst of any sector, and since Form is stale-gated in opening weeks, raw March ratings would be the *only* model firing into November games. The WNBA +24pp-chalk-bias pattern at higher weight. Ship before Nov 1. |
-| **NFL** | 0.20 (generic elo only) | **YES, moderate.** `nfl_qb_elo` is re-walk-forwarded from PBP weekly and `nfl_efficiency` has season-decay 0.45 built in — only generic Elo carries raw February ratings. FiveThirtyEight's classic ⅓-toward-mean is the prior. |
+| **NFL** | 0.20 (generic elo only) | ✅ **SHIPPED 2026-09-02** — `scripts/offseason_regress.py --sector nfl` with keep=0.667 (exactly 538's ⅓-toward-mean), swept by `scripts/backtest_nfl_elo_regression.py` (walk-forward 2015–2025 on the production update: opening-6-weeks Brier 0.2307 vs 0.2372 unregressed on the 2019–23 rank window, +6.9/1000 on 2024 confirm, +13.0/1000 on the untouched 2025 holdout; full-season also improved). Early-K boost swept on top and REJECTED (every variant worse) → no `EARLY_K_BOOST` entry. `nfl_qb_elo` / `nfl_efficiency` don't need it. |
 | Baseball | 0.25 | Include in the script, defer the run — K=6 over 162 games self-corrects fast, the sector is shadow, and the next boundary is March 2027. |
 | NBA | 0.10 | Marginal. The four NBA-specific models (0.80 combined) self-refresh from `nba_api`; regressing a 0.10-weight input barely moves the blend. Do it for consistency or skip. |
 | Soccer (club) | 0.15 | **NO.** Subtlety: the staleness guard never trips (MLS keeps the sector's `last_updated` fresh through the European summer), so August ratings do fire un-regressed — but club soccer has the highest year-over-year squad persistence of any sport (ClubElo doesn't regress between seasons at all). The real August work is promoted-club aliases. |
@@ -297,8 +317,8 @@ Not every sector needs it. Two code facts frame the decision:
 | Sector | Next start | Mode | Seed script(s) | Scheduled reseed | Staleness guard | Offseason Elo regression |
 |---|---|---|---|---|---|---|
 | soccer | ~Aug 15 | live | `seed_espn.py`, `seed_soccer_xg.py` (backfill only) | resolve-time auto | elo/form 60d (rarely trips — year-round) | n/a (no offseason) |
-| nfl | Sep 4 window | live | `seed_nfl_efficiency.py`, `seed_nfl_qb_elo.py` | ✅ weekly task (Sep–Feb) | ✅ source-season + elo/form 60d | ❌ build — #2 target (§5) |
-| nfl_props | Sep 4 window | shadow (blocked) | `fetch_nfl_features.py` | ❌ none | n/a (cache) | n/a |
+| nfl | Sep 4 window | live | `seed_nfl_efficiency.py`, `seed_nfl_qb_elo.py` | ✅ weekly task (Sep–Feb) | ✅ source-season + elo/form 60d | ✅ `offseason_regress.py --sector nfl` (keep=0.667, §5) |
+| nfl_props | Sep 4 window | shadow (blocked) | cache self-downloads nflverse parquets (`fetch_nfl_features.py` = backtest bulk fetch) | n/a (auto on refresh) | n/a (cache) | n/a |
 | nhl | ~Oct 7 | shadow | `seed_nhl_xg.py` | ❌ none | ❌ none on nhl_xg | ❌ none (elo not in blend) |
 | nba | ~Oct 20 | live | none needed (nba_api self-fetch) | auto at scan time | freshness helper + elo/form 60d | ❌ none |
 | ncaab | Nov 1 window | live | `seed_espn.py --sectors ncaab` | ❌ none | elo/form 60d | ❌ build — #1 target (§5) |

@@ -3477,22 +3477,6 @@
         "opp": "bears",
         "home": false
       }
-    ],
-    "afc": [
-      {
-        "date": "2026-02-04",
-        "won": false,
-        "opp": "nfc",
-        "home": true
-      }
-    ],
-    "nfc": [
-      {
-        "date": "2026-02-04",
-        "won": true,
-        "opp": "afc",
-        "home": false
-      }
     ]
   },
   "lol": {},

@@ -96,11 +96,17 @@ def test_categories_in_mode_live_contains_nba():
 
 
 def test_player_props_and_worldcup_are_disabled():
-    """Player-prop categories and worldcup were disabled 2026-08-08."""
+    """NBA/MLB player props and worldcup were disabled 2026-08-08.
+
+    nfl_props was re-opened as ``shadow`` on 2026-09-02 so the MODEL-9 shadow
+    validation clock runs from Week 1 of the 2026 season.
+    """
     disabled = categories_in_mode("disabled")
-    for key in ("nfl_props", "nba_props", "baseball_props", "worldcup"):
+    for key in ("nba_props", "baseball_props", "worldcup"):
         assert key in disabled
         assert get_category(key).mode == "disabled"
+    assert "nfl_props" not in disabled
+    assert get_category("nfl_props").mode == "shadow"
     # The shadow bucket is still populated by other categories.
     assert "nhl" in categories_in_mode("shadow")
 

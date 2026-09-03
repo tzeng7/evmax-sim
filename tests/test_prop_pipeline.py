@@ -719,6 +719,11 @@ class TestParsePropDescription:
                 "Shai Gilgeous-Alexander Total Points",
                 ("Shai Gilgeous-Alexander", "points"),
             ),
+            # NFL per-game specials seen live 2026-09-02 — both map to Kalshi
+            # series we trade (KXNFLREC / KXNFLPASSTDS); were unparsed before.
+            ("Christian McCaffrey Total Receptions", ("Christian McCaffrey", "receptions")),
+            ("Brock Purdy Total Touchdown Passes", ("Brock Purdy", "passing_tds")),
+            ("Deebo Samuel Sr. Total Receptions", ("Deebo Samuel Sr.", "receptions")),
             # Legacy paren format still works
             ("Luka Doncic (Points)", ("Luka Doncic", "points")),
             ("LeBron James (Rebounds)", ("LeBron James", "rebounds")),
