@@ -8,6 +8,13 @@
 
 ## Recently Shipped
 
+### NFL 2026 season-start prep (PR #241, 2026-09-03)
+- ✅ **Pinnacle league-id drift** — NFL 258 → 889 (stale id = zero matchups = no sharp anchor, no NFL EV) and UCL 2186 → 2627, both caught by the new `scripts/check_pinnacle_leagues.py` (season-start checklist item 4; exit 1 on STALE).
+- ✅ **Props geo-block root cause** — Pinnacle 403s `BAD_LOCATION` from the US only for per-matchup market fetches of SPECIAL matchups; `get_prop_odds` now prices every special off the bulk `/sports/{id}/markets/straight` index (44/44 Week-1 NFL specials priced in 2 HTTP calls, was 0). `Total Receptions` / `Total Touchdown Passes` labels added.
+- ✅ **nfl_props disabled → shadow** (MODEL-9 clock from Week 1); `_download_parquets` skips an nflverse season whose weekly-stats file is unpublished (2026's 404s until Week 1 is played) instead of failing the refresh.
+- ✅ **Generic Elo offseason regression** — `scripts/offseason_regress.py --sector nfl --drop afc,nfc`, keep=0.667 swept walk-forward by `scripts/backtest_nfl_elo_regression.py` (2019–23 rank 0.2307 vs 0.2372, 2024 confirm +6.9/1000, 2025 holdout 0.2403 vs 0.2533); early-K boost rejected → no `EARLY_K_BOOST` entry. Applied to `elo_state['nfl']`.
+- ✅ **`ev-scan-nfl-sunday-early`** Claude scheduled task (Sun 09:15 PT, in-season only) for the 1pm-ET pick window.
+
 ### Diversification build — soccer/tennis/baseball model independence + promotion board (branch claude/diversify-wnba-moneyline)
 Landed 2026-07-19. Motivated by the measured sharp-passthrough diagnosis: 30d ML blend
 divergence from sharp was wnba **4.82pp** (the only working sector) vs tennis 0.17 /
@@ -296,7 +303,8 @@ Middle bins are well-calibrated. Tails miss by 10–18pp. The ROI filter picks e
 - ✅ `nfl_props_cache.py` disk-cache layer — wraps the pure compute function from PR #6 Stage 4 with parquet-backed feature lookup. Reuses `data/backtest/nfl_props/{weekly_stats,rosters,schedules}.parquet` directly, point-in-time history per (player, season, week), schedule-based opponent resolution with defense adjustment, lazy module-level memoization. Re-run `scripts/fetch_nfl_features.py` weekly during NFL season to refresh.
 - ✅ `coordinator._fetch_props()` NFL branch — mirrors the NBA path, calls `compute_nfl_prop_prob_cached` and emits `SharpOdds`.
 - ✅ `prop_resolver` NFL support — ESPN boxscore extraction now knows `passing_yards`, `passing_tds`, `rushing_yards`, `rushing_tds`, `receiving_yards`, `receiving_tds`, `receptions`. `fetch_player_stats` refactored to MERGE stats across stat_groups so a QB's passing + rushing rows land on the same player dict (pre-refactor the second group overwrote the first). `anytime_td` derived post-merge as `rushing_tds + receiving_tds`.
-- ✅ Shadow mode config was already in place via ARCH-11 — `data/categories.yaml` ships `nfl_props: mode: shadow`.
+- ✅ Shadow mode config was already in place via ARCH-11 — `data/categories.yaml` ships `nfl_props: mode: shadow`. (Disabled 2026-08-08 as a geo-block workaround; **re-opened as shadow 2026-09-02** once the Pinnacle bulk-pricing fix below landed.)
+- ✅ **2026-09-02 (PR #241): Pinnacle prop prices actually flow.** The per-special market endpoint is geo-blocked from the US (the reason props "went dark"); `get_prop_odds` now prices off the bulk sport-level straight-markets index — 44/44 Week-1 NFL specials priced. Parser learned `Total Receptions` / `Total Touchdown Passes`. `_download_parquets` tolerates the unpublished current-season weekly-stats parquet (skips it, keeps the prior season), so the scan path self-heals with no `fetch_nfl_features.py` run. First in-memory scan (T-7d) surfaced 29 YES-side threshold props at +40…+173% EV on 6–25¢ asks — the cheap-longshot bucket the nba_props lesson says to gate BEFORE any live flip; shadow-only for now.
 - ✅ Tests: 14 new NFL cache-layer tests (parquet load, name normalization, point-in-time history, schedule opponent, coordinator `_fetch_props` integration) + 7 new resolver NFL tests (per-stat extraction, merge-across-groups, anytime_td derivation). Total suite 902 → 923.
 
 **Still pending — validation itself (needs 2026 NFL regular season data):**
@@ -462,8 +470,9 @@ The ORM models (`EVBetORM`, `SharpOddsORM`, `PredictionMarketORM`) are defined b
 - Rename `pinnacle.py` → `pinnacle_theodds.py` (or delete if confirmed dead)
 - Update all imports
 
-### ARCH-4 NFL Props Fetched But Never Evaluated [P2]
+### ~~ARCH-4 NFL Props Fetched But Never Evaluated~~ ✅ CLOSED (MODEL-9 infra + PR #241)
 **File:** `evmax/agents/coordinator.py` (~line 570)
+*Superseded: the phantom series names were fixed under MODEL-9, `_fetch_props()` has an NFL branch, and as of PR #241 the Pinnacle side prices too (bulk straight-markets index). Kept for history.*
 NFL prop series (`KXNFLPAS`, `KXNFLREC`, etc.) are fetched from Kalshi but `_fetch_props()` returns `None` for non-NBA sectors. The Kalshi API calls are real, the data is discarded. Either:
 - Implement NFL prop probability computation (similar to `nba_stats.py`)
 - Or: remove NFL prop series from `KALSHI_PROP_SERIES` until the backend exists

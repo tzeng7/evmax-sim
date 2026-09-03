@@ -8,6 +8,7 @@ Three Claude scheduled tasks share this body; they differ only in their slot:
 | `ev-scan-light-midday` | 07:04 | 10:04 | Tonight's full US slate is listed AND sharp-anchored (Kalshi lists ~24h out; Pinnacle posts T-17–24h for US sports — see project_pinnacle_posting_windows). The volume workhorse: MLB day+night, WNBA, MLS, in-progress Euro tennis, weekend Euro soccer listed for tomorrow (from Aug). |
 | `ev-scan-light-afternoon` | 13:04 | 16:04 | T-3h re-scan for the 19:00 ET wave: MLB lineups post ~3-4h pre-game (feeds the pitcher_v2 pen/lineup signals), injury news lands, stale morning edges get re-checked. |
 | `ev-scan-light-evening` | 15:34 | 18:34 | T-0.5–2h from the main MLB/WNBA slate and T-1–4h from MLS. The only entry window with demonstrated positive CLV (see the Placed-bet CLV notes) — these rows are what the fresh-close CLV promotion gates actually score. |
+| `ev-scan-nfl-sunday-early` | Sun 09:15 | Sun 12:15 | **NFL season only (09-04→02-15; the task self-skips otherwise).** Added 2026-09-02: NFL's 1pm-ET Sunday slate kicks at 10:00 PT, so its T-1h pick window fell between the 07:04 and 13:04 runs. The 4:25pm-ET wave (13:04 = T-21m) and the night games (15:34) were already covered. |
 
 ## ⚠️ Activation gate
 
@@ -47,5 +48,7 @@ volume: the gates want n≥30 clean resolved rows and CLV %pos≥55 on genuine
 near-tip closes. `watch-closes` (launchd, 5-min) already snapshots closes for
 live AND shadow rows — each scan multiplies the rows that get a genuine close
 anchor. Two of the three runs sit in the pre-evening window (evening-weighted
-per the user's decision); no 4th run — weekend Euro-morning kickoffs are
-pre-listed 24h out, so the Fri/Sat runs cover them.
+per the user's decision); no 4th daily run — weekend Euro-morning kickoffs are
+pre-listed 24h out, so the Fri/Sat runs cover them. The one exception is the
+Sunday-only, in-season `ev-scan-nfl-sunday-early` slot above: NFL's 1pm-ET
+slate is the single slate whose pick window no daily run reaches.

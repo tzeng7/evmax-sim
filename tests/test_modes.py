@@ -36,10 +36,10 @@ def _clean_state(monkeypatch):
 
 
 def test_base_mode_returns_yaml_value():
-    # The shipped YAML has nba=live, nhl=shadow, nfl_props=disabled
+    # The shipped YAML has nba=live, nhl=shadow, nba_props=disabled
     assert get_mode("nba") == "live"
     assert get_mode("nhl") == "shadow"
-    assert get_mode("nfl_props") == "disabled"
+    assert get_mode("nba_props") == "disabled"
 
 
 def test_is_live_shadow_disabled_booleans():
@@ -50,10 +50,11 @@ def test_is_live_shadow_disabled_booleans():
     assert is_shadow("nhl")
     assert not is_live("nhl")
 
-    # Player props were disabled 2026-08-08.
-    assert is_disabled("nfl_props")
-    assert not is_live("nfl_props")
-    assert not is_shadow("nfl_props")
+    # NBA/MLB player props were disabled 2026-08-08; nfl_props was re-opened
+    # as shadow for the 2026 season (MODEL-9 shadow validation clock).
+    assert is_disabled("nba_props")
+    assert not is_live("nba_props")
+    assert not is_shadow("nba_props")
 
 
 # -------------------------------------------------------------------------
