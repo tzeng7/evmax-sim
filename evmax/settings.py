@@ -158,6 +158,20 @@ class Settings(BaseSettings):
         raw = self.polymarket_us_live_sectors or ""
         return {s.strip().lower() for s in raw.split(",") if s.strip()}
 
+    @property
+    def discord_bot_configured(self) -> bool:
+        """True when the bot token and at least one target (channel or DM user) are set."""
+        return bool(self.discord_bot_token and (self.discord_channel_id or self.discord_dm_user_id))
+
+    def discord_allowed_users(self) -> frozenset[int]:
+        """Parsed ``DISCORD_ALLOWED_USER_IDS`` (empty = no restriction)."""
+        out: set[int] = set()
+        for tok in (self.discord_allowed_user_ids or "").split(","):
+            tok = tok.strip()
+            if tok.isdigit():
+                out.add(int(tok))
+        return frozenset(out)
+
     def polymarket_us_sector_live(self, sector: Optional[str]) -> bool:
         """Whether the Polymarket US venue firewall is CLEARED for ``sector``.
 
@@ -179,6 +193,20 @@ class Settings(BaseSettings):
     slack_webhook_url: Optional[str] = None
     discord_webhook_url: Optional[str] = None
     notification_min_ev_pct: float = 5.0  # only notify when EV >= this %
+
+    # Discord BOT (evmax/discord_bot/) — distinct from the plain-text webhook
+    # above. With a bot token + channel id, every scan cycle posts its play
+    # list to the channel as the dashboard's Scan Results table (same rows,
+    # order, columns — evmax.web.playlist), operational alerts post as colored
+    # embeds, and `evmax discord run` serves the /scan /plays /settled /status
+    # slash commands. Ids are Discord snowflakes; kept as strings.
+    discord_bot_token: str = ""
+    discord_channel_id: str = ""        # channel receiving the scan feed + alerts (optional if DM set)
+    discord_dm_user_id: str = ""        # your user id: feed + alerts go to your DMs (bot must share a server with you)
+    discord_guild_id: str = ""          # optional: guild-scoped slash-command sync (instant)
+    discord_allowed_user_ids: str = ""  # comma-separated user ids allowed to run commands; empty = any member
+    discord_scan_feed: bool = True      # post each scan cycle's play table to the channel
+    discord_post_empty_scans: bool = False  # also post cycles with 0 plays (a scan heartbeat)
 
     # Kalshi WebSocket (real-time orderbook prices)
     kalshi_ws_url: str = "wss://api.elections.kalshi.com/trade-api/ws/v2"

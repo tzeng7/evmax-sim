@@ -117,8 +117,10 @@ evmax/
 ├── portfolios.py            # Multi-portfolio simulated bankrolls (tables live in predictions.db)
 ├── players/                 # Player-code mappings for prop resolution (nba/nfl/baseball)
 ├── web/                     # Web dashboard app (launched via evmax dashboard)
+│   └── playlist.py          # THE dashboard play list (gap_to_dict / dashboard_play_dicts / filter_scan_view) — shared by /api/scan AND the Discord feed so the two can't drift
 ├── archiver.py              # Archive all Kalshi/Pinnacle data to archive.db
-├── notifications.py         # Slack + Discord webhook alerts
+├── notifications.py         # Slack + Discord webhook alerts (+ the Discord BOT channel transport: scan feed + embed alerts)
+├── discord_bot/             # Discord bot (docs/DISCORD_BOT.md): client.py REST poster (stdlib, bot token) · embeds.py dashboard-parity tables · feed.py per-cycle scan feed (+ suppress_scan_feed ContextVar) · handlers.py framework-free slash-command bodies · bot.py discord.py gateway wiring (optional extra `evmax[discord]`)
 └── cli/
     ├── app.py               # Typer root app
     └── commands/
@@ -134,7 +136,8 @@ evmax/
         ├── portfolio.py     # evmax portfolio (multi-portfolio management/scanning)
         ├── dashboard.py     # evmax dashboard (web UI)
         ├── arb.py           # evmax arb scan (cross-venue Kalshi↔PolyUS arbitrage, read-only)
-        └── update.py        # evmax update scores (auto ESPN model updates)
+        ├── update.py        # evmax update scores (auto ESPN model updates)
+        └── discord.py       # evmax discord run (slash-command gateway bot) / test (post a test embed to the channel)
 ```
 
 ### Modeling
@@ -409,6 +412,18 @@ evmax cleanup shadow promote nfl_props            # flip shadow → live once va
 evmax cleanup shadow board --days 30              # promotion scoreboard: per (sector, market, venue) — clean-n, ΔBrier vs sharp, CLV gates, blend-divergence pp (sharp-passthrough detector), verdict. Also the dashboard "Board" tab.
 evmax cleanup shadow clv wnba -m spread --side lay --venue kalshi --max-staleness-h 3  # Kalshi entry→close CLV, the promotion lens for laddered markets. --side lay/take splits by bet direction (line sign) — the 2026-07 audit found the sides are different products at scan entry (laying ~breakeven, taking bleeds −2.2pp buying a NO-side run-up), so judge spread promotion per side, never pooled. --venue kalshi|polymarket_us isolates one exchange (the venues sit behind separate shadow firewalls — one thin PolyUS row must not flip a Kalshi-sized sample; 2026-07-12 audit: pooled lay −0.35pp was a single −18pp PolyUS outlier over Kalshi-only +0.18pp). --max-staleness-h N drops rows whose archived "close" snapshot is >N h before the T-30 target (a watch-closes capture gap, not a flat market — 68% of exact-zero WNBA spread CLV rows had a 3-21h stale close; Kalshi-only, off by default). --since drops a stale period. --sources-token anchored_entry (2026-07-19) isolates the watch-listings anchored-entry stream (model_sources contains the token) from historical scan-time rows — the gate read for WNBA spread/total promotion.
 evmax cleanup shadow clv-tiers ncaaf [--max-staleness-h 3]  # NCAAF-only: segment resolved CLV by conference tier (G5 = both Group-of-Five, cross = one each, P4 = both Power-4, FCS = buy game/unmapped) to test the CFB soft-market edge thesis — do less-watched G5 games carry more entry→close CLV than efficiently-priced marquee P4 games? Tier map evmax/sectors/aliases/ncaaf_tiers.yaml is GENERATED from ESPN conferenceId by scripts/build_ncaaf_tiers.py (re-run yearly after realignment); helper evmax/sectors/ncaaf_tiers.py. Shares the exact clv gate + contamination filter as `shadow clv` via _fetch_clv_rows.
+
+# Discord bot (docs/DISCORD_BOT.md) — once DISCORD_BOT_TOKEN + a target
+# (DISCORD_DM_USER_ID = the bot DMs you, and/or DISCORD_CHANNEL_ID) are in .env,
+# EVERY scan cycle (CLI, the ev-scan-light-* tasks, the dashboard's
+# Scan button) posts its play list to the channel as the dashboard's Scan
+# Results panel — same rows/order/columns, built by evmax/web/playlist.py, the
+# module /api/scan itself uses. Operational alerts (heartbeat, clv-monitor,
+# arb --notify) arrive as colored embeds. No min-EV gate (DISCORD_SCAN_FEED=false
+# turns the feed off; DISCORD_POST_EMPTY_SCANS=true also posts 0-play cycles).
+evmax discord test                    # post a test embed → verifies token + channel + perms
+evmax discord run                     # gateway bot: /scan /plays /settled /status /help
+                                      # (needs `uv sync --extra discord`; launchd template in docs/launchd/)
 ```
 
 ### WNBA-specific maintenance

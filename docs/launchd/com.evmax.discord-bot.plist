@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.evmax.discord-bot</string>
+
+    <!-- Long-lived gateway bot (slash commands). Unlike the once-per-firing
+         agents in docs/SCHEDULED_RUNS.md this process stays connected, so it
+         uses KeepAlive (restart on crash and after sleep) and no caffeinate
+         (that would keep the Mac awake permanently). The scan FEED does not
+         need this service; it posts over REST from every scan process.
+         Requires the optional extra: uv sync with the discord extra.
+         Install:
+           cp docs/launchd/com.evmax.discord-bot.plist ~/Library/LaunchAgents/
+           launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.evmax.discord-bot.plist
+         Restart after code changes:
+           launchctl kickstart -k gui/$(id -u)/com.evmax.discord-bot -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/ktzeng/Projects/evmax/.venv/bin/evmax</string>
+        <string>discord</string>
+        <string>run</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/ktzeng/Projects/evmax</string>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/ktzeng/Projects/evmax/logs/launchd.discord-bot.out</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/ktzeng/Projects/evmax/logs/launchd.discord-bot.err</string>
+</dict>
+</plist>

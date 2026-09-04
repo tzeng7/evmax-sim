@@ -40,6 +40,11 @@ dependencies = [
 evmax = "evmax.cli.app:app"
 
 [project.optional-dependencies]
+# Gateway (slash-command) bot only — the scan feed posts over REST with the
+# stdlib. `uv sync --extra discord` / `pip install 'evmax[discord]'`.
+discord = [
+    "discord.py>=2.4",
+]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",

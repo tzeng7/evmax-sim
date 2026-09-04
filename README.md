@@ -263,6 +263,26 @@ evmax agents scan --no-injuries --bankroll 250 --kelly 0.5
 
 ---
 
+### Discord bot: scan feed + slash commands
+
+With `DISCORD_BOT_TOKEN` plus a target (`DISCORD_DM_USER_ID` to be DM'd, or
+`DISCORD_CHANNEL_ID`) in `.env`, every scan cycle — CLI,
+the scheduled light scans, the dashboard's Scan button — posts its play list to the
+channel as the dashboard's **Scan Results** panel: same rows, same order, same
+columns (Date · Sector · Venue · Event · Outcome · Ask · Fair Value · Model · EV ·
+Maker EV · Limit ¢ · Bid ¢ · Fill ¢ · Stake · Models), because both are built by
+`evmax/web/playlist.py`. Operational alerts arrive as colored embeds.
+
+```bash
+evmax discord test          # post a test embed — verifies token, channel and permissions
+evmax discord run           # slash commands: /scan /plays /settled /status /help  (uv sync --extra discord)
+```
+
+Setup (Developer Portal, invite URL, ids, launchd template) is in
+[docs/DISCORD_BOT.md](docs/DISCORD_BOT.md).
+
+---
+
 ## Real-Time Price Feed (WebSocket)
 
 evmax connects to Kalshi's WebSocket API (`wss://api.elections.kalshi.com/trade-api/ws/v2`) for sub-second orderbook prices. This replaces the REST API polling that has a ~60s cache lag.
@@ -1569,6 +1589,13 @@ All settings live in `.env` (or environment variables):
 | `SLACK_WEBHOOK_URL` | — | Post EV alerts to Slack |
 | `DISCORD_WEBHOOK_URL` | — | Post EV alerts to Discord |
 | `NOTIFICATION_MIN_EV_PCT` | `5.0` | Min EV% to trigger a notification |
+| `DISCORD_BOT_TOKEN` | — | Discord **bot** transport (see [docs/DISCORD_BOT.md](docs/DISCORD_BOT.md)): every scan cycle posts its play list to a channel as the dashboard's Scan Results table; alerts arrive as embeds |
+| `DISCORD_CHANNEL_ID` | — | Channel that receives the bot's scan feed + alerts (optional if `DISCORD_DM_USER_ID` is set) |
+| `DISCORD_DM_USER_ID` | — | Your user id: the bot DMs you the scan feed + alerts instead of (or as well as) the channel |
+| `DISCORD_GUILD_ID` | — | Optional: guild-scoped slash-command sync (instant) + lockdown for `evmax discord run` |
+| `DISCORD_ALLOWED_USER_IDS` | — | Optional comma-separated user ids allowed to run the slash commands (empty = any member) |
+| `DISCORD_SCAN_FEED` | `true` | Post each scan cycle's play table to the bot channel |
+| `DISCORD_POST_EMPTY_SCANS` | `false` | Also post cycles with zero plays (scan heartbeat) |
 
 **Agent coordinator parameters** (passed as CLI flags or programmatically):
 

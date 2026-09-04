@@ -908,9 +908,14 @@ class AgentCoordinator:
             correlation_id=correlation_id,
         ))
 
-        # Fire notifications (sync, non-blocking — uses urllib internally)
+        # Fire notifications. The notifier is synchronous (urllib) and the
+        # Discord scan feed may post several messages with retry/backoff, so
+        # run it in a worker thread rather than stalling the loop (the
+        # dashboard process serves other requests). Feed suppression is a
+        # ContextVar and to_thread copies the context, so a /scan-suppressed
+        # cycle stays suppressed here.
         try:
-            self._notifier.notify_cycle(result)
+            await asyncio.to_thread(self._notifier.notify_cycle, result)
         except Exception:
             pass
 

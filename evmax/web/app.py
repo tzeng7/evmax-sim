@@ -14,6 +14,11 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from evmax.formatting import format_outcome_label_for_row
+from evmax.web.playlist import (
+    dashboard_play_dicts,
+    filter_scan_view,
+    gap_to_dict,
+)
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 PREDICTIONS_DB = ROOT / "data" / "predictions.db"
@@ -471,117 +476,11 @@ def api_summary(days: int = 0, view: str = "all") -> JSONResponse:
     return JSONResponse(_summary_stats(bets))
 
 
-def _gap_to_dict(g, bankroll: float) -> dict[str, Any]:
-    """Shape a single EVGap into the canonical dict used by both the dashboard
-    scan view and the portfolio fan-out. Carries both ``kalshi_yes_price`` /
-    ``blended_true_prob`` (portfolio names) and ``kalshi_price`` / ``true_prob``
-    (display names) so downstream consumers can read either."""
-    from evmax.agents.cleanup.logger import _gap_category_key
-    from evmax.modes import get_mode
-
-    label_row = {
-        "market_type": g.market_type or "",
-        "yes_team": g.yes_team or "",
-        "line": g.line,
-        "prop_player_name": g.prop_player_name,
-        "prop_stat_type": g.prop_stat_type,
-        "prop_threshold": g.prop_threshold,
-    }
-    try:
-        gap_mode = get_mode(_gap_category_key(g), g.market_type)
-    except Exception:
-        gap_mode = "live"
-    gap_venue = getattr(g, "venue", "kalshi") or "kalshi"
-    # Mirror the venue shadow firewall so the dashboard's mode badge matches
-    # what log_gaps will persist (see prediction_demoted_shadow_venue).
-    if gap_mode == "live" and gap_venue == "polymarket_us":
-        from evmax.settings import get_settings
-        if not get_settings().polymarket_us_sector_live(getattr(g, "sector", None)):
-            gap_mode = "shadow"
-    # Maker-only gaps clear the floor only as a resting limit order — not
-    # crossable at the ask, so they are never a live taker pick. Mirror the
-    # shadow demotion log_gaps applies, so the dashboard badge and the (disabled)
-    # pick checkbox match how the row will actually persist.
-    if gap_mode == "live" and getattr(g, "maker_only", False):
-        gap_mode = "shadow"
-    line_val = (
-        None if g.line is None
-        else float(g.line) if isinstance(g.line, (int, float))
-        else str(g.line)
-    )
-    return {
-        "event_title": g.event_title or "",
-        "event_id": g.event_id or "",
-        "yes_team": g.yes_team or "",
-        "market_type": g.market_type or "",
-        "display_label": _display_label_for_row(label_row),
-        "line": line_val,
-        "sector": g.sector or "",
-        "kalshi_price": round(g.kalshi_yes_price, 2),
-        "kalshi_yes_price": round(g.kalshi_yes_price, 4),
-        "true_prob": round(g.blended_true_prob, 3),
-        "blended_true_prob": round(g.blended_true_prob, 4),
-        "sharp_true_prob": round(getattr(g, "sharp_true_prob", 0) or 0, 4),
-        "ev_pct_raw": round(g.ev_pct, 4),
-        "ev_pct": round(g.ev_pct * 100, 2),
-        # Maker execution: EV if opened as a resting limit order (maker fee),
-        # whether it clears ONLY as a maker, and the max price to rest the buy at.
-        "maker_ev_pct": (
-            round(g.maker_ev_pct * 100, 2)
-            if getattr(g, "maker_ev_pct", None) is not None else None
-        ),
-        "maker_only": bool(getattr(g, "maker_only", False)),
-        "maker_limit_price": (
-            round(g.maker_limit_price, 4)
-            if getattr(g, "maker_limit_price", None) is not None else None
-        ),
-        # Actionable maker rest price (the bid to set), its EV if filled there,
-        # and a Kelly-sized stake fraction at that fill. See suggested_maker_bid.
-        "maker_bid_price": (
-            round(g.maker_bid_price, 4)
-            if getattr(g, "maker_bid_price", None) is not None else None
-        ),
-        "maker_bid_ev_pct": (
-            round(g.maker_bid_ev_pct * 100, 2)
-            if getattr(g, "maker_bid_ev_pct", None) is not None else None
-        ),
-        "maker_bid_kelly_fraction": (
-            round(g.maker_bid_kelly_fraction, 4)
-            if getattr(g, "maker_bid_kelly_fraction", None) is not None else None
-        ),
-        "kelly_pct": round(g.kelly_fraction * 100, 2),
-        "kelly_fraction": round(g.kelly_fraction, 4),
-        "stake": round(bankroll * g.kelly_fraction, 2),
-        "model_sources": g.model_sources or "",
-        "market_id": g.market_id or "",
-        "event_date": str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else ""),
-        "volume": g.volume_usd or 0,
-        "volume_usd": g.volume_usd or 0,
-        "mode": gap_mode,
-        "venue": gap_venue,
-        # Best-execution alternative (GAP 3): when the same bet is also +EV on
-        # the OTHER venue, the display collapses to this (better) row and carries
-        # the alternative's price/EV so the user can still line-shop. None when
-        # this bet is quoted on only one venue.
-        "alt_venue": getattr(g, "alt_venue", None),
-        "alt_venue_price": (
-            round(g.alt_venue_price, 2)
-            if getattr(g, "alt_venue_price", None) is not None else None
-        ),
-        "alt_venue_ev_pct": (
-            round(g.alt_venue_ev_pct * 100, 2)
-            if getattr(g, "alt_venue_ev_pct", None) is not None else None
-        ),
-        # Full venue option set for the display dropdown (best-execution winner
-        # first). Each entry is the same dict shape as this row, so the frontend
-        # can swap the row's price/EV/stake/market_id to the chosen venue. None
-        # when the bet is quoted on a single venue. Nested legs carry
-        # venue_options=None, so this serialization never recurses.
-        "venue_options": (
-            [_gap_to_dict(leg, bankroll) for leg in g.venue_options]
-            if getattr(g, "venue_options", None) else None
-        ),
-    }
+# The per-row scan dict + the play-list selection/filters live in
+# evmax.web.playlist (shared with the Discord scan feed so the two surfaces
+# render the same rows in the same order). Alias kept so existing call sites
+# and tests importing it from here keep working.
+_gap_to_dict = gap_to_dict
 
 
 def _portfolio_gap_category(gap: dict[str, Any]) -> str:
@@ -677,20 +576,13 @@ async def _run_unified_scan(
     # cycle.plays() drops partial-blend (shadow, $0.00-stake) gaps. They're
     # still logged above via loggable_gaps(). The dashboard deliberately does
     # NOT apply the CLI's min_prob/tiered-EV floor (it shows all ≥2% gaps).
-    # GAP 3: collapse the SAME bet quoted on both venues to one best-execution
-    # row (the alternative venue annotated on it) so the play list can't invite
-    # an accidental double. View-layer only — both venue rows were persisted
-    # above via loggable_gaps(); the ledger fan-out below reduces further,
+    # GAP 3 (same-bet dual-venue collapse to one best-execution row) and GAP 2
+    # (per-venue deployable-cash cap) are applied inside dashboard_play_dicts —
+    # the one definition of the play list, shared with the Discord scan feed.
+    # View-layer only — both venue rows were persisted above via
+    # loggable_gaps(); the ledger fan-out below reduces further,
     # side-agnostically, to one position per game outcome.
-    from evmax.ev.best_execution import apply_venue_cash_cap, collapse_best_execution
-    collapsed_plays = collapse_best_execution(list(cycle.plays(require_full_blend=True)))
-    # GAP 2: scale each venue's summed stakes to fit its deployable cash (a new
-    # bet is funded from cash, not the value locked in open positions). Runs on
-    # the collapsed set so each bet routes to one venue. No-op when cash is
-    # unknown (manual bankroll).
-    if cash_by_venue:
-        collapsed_plays = apply_venue_cash_cap(collapsed_plays, bankroll, cash_by_venue)
-    gap_dicts = [_gap_to_dict(g, bankroll) for g in collapsed_plays]
+    gap_dicts = dashboard_play_dicts(cycle, bankroll, cash_by_venue)
 
     portfolio_results: list[dict[str, Any]] = []
     if fan_out_portfolio_ids is not None:
@@ -793,37 +685,39 @@ async def api_balance(venue: str = Query("", alias="venue")) -> JSONResponse:
     return JSONResponse({"balances": balances})
 
 
-@app.post("/api/scan")
-async def api_scan(request: Request) -> JSONResponse:
-    """Run a full agent scan and return EV gaps.
+async def run_dashboard_scan(
+    sectors_str: str = "",
+    bankroll: float = 500.0,
+    kelly: float = 0.5,
+    date_from: str = "",
+    date_to: str = "",
+    bankroll_venue: str | None = None,
+    fan_out_portfolios: bool = True,
+    portfolio_ids: list[str] | None = None,
+) -> dict[str, Any]:
+    """The dashboard scan, as a plain coroutine: run one cycle, persist, fan out
+    to portfolios, and return the ``/api/scan`` payload (``gaps`` is the
+    Scan Results table — dashboard_play_dicts + filter_scan_view).
 
-    Also fans the scan out to all active portfolios by default so the placement
-    table and the portfolio cards are guaranteed to come from the same cycle.
-    Set ``fan_out_portfolios: false`` to opt out, or pass ``portfolio_ids`` to
-    target a subset.
+    ``/api/scan`` is a thin JSON wrapper over this; the Discord ``/scan`` slash
+    command calls it directly so a scan run from Discord returns exactly the
+    rows the React dashboard would show.
     """
-    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
-    sectors_str = body.get("sectors") or _default_scan_sectors()
-    bankroll = float(body.get("bankroll", 500))
-    kelly = float(body.get("kelly", 0.5))
+    sectors_str = sectors_str or _default_scan_sectors()
     # Venue selection (dashboard dropdown): "" = Manual, "kalshi",
     # "polymarket_us", or "both". Resolves the Kelly base (total wealth of the
     # selected venues), the live-play scoping, and the per-venue deployable cash
     # for the fundability cap — all fail-soft to the manual bankroll. The source
     # is echoed so the UI shows whether real capital or the manual figure was
     # used.
-    bankroll_venue = (body.get("bankroll_venue") or "").strip().lower() or None
+    bankroll_venue = (bankroll_venue or "").strip().lower() or None
     from evmax.clients.balances import resolve_bankroll_plan
     plan = await resolve_bankroll_plan(bankroll, bankroll_venue)
     bankroll = plan.bankroll
     bankroll_source = plan.source
-    date_from = body.get("date_from", "")
-    date_to = body.get("date_to", "")
-    fan_out = body.get("fan_out_portfolios", True)
-    portfolio_ids = body.get("portfolio_ids", []) or []
 
     sectors = [s.strip() for s in sectors_str.split(",") if s.strip()]
-    fan_out_arg: list[str] | None = list(portfolio_ids) if fan_out else None
+    fan_out_arg: list[str] | None = list(portfolio_ids or []) if fan_out_portfolios else None
 
     cycle, gap_dicts, portfolio_results = await _run_unified_scan(
         sectors=sectors,
@@ -836,37 +730,12 @@ async def api_scan(request: Request) -> JSONResponse:
         cash_by_venue=plan.cash_by_venue,
     )
 
-    # Filter for the placement table view
-    gaps = list(gap_dicts)
-    if date_from and date_to:
-        gaps = [g for g in gaps if date_from <= g["event_date"] <= date_to]
-    elif date_from:
-        gaps = [g for g in gaps if g["event_date"] >= date_from]
-    elif date_to:
-        gaps = [g for g in gaps if g["event_date"] <= date_to]
-    else:
-        today_str = date.today().isoformat()
-        tomorrow_str = (date.today() + timedelta(days=1)).isoformat()
-        gaps = [g for g in gaps if g["event_date"] in (today_str, tomorrow_str)]
+    # Filter for the placement table view: date window (default today +
+    # tomorrow), no esports map handicaps, no player props, nothing already
+    # placed. Shared with the Discord feed via evmax.web.playlist.
+    gaps = filter_scan_view(gap_dicts, date_from, date_to)
 
-    # Drop esports map handicaps (LoL/CS2 set handicaps not on Kalshi).
-    gaps = [g for g in gaps if g["market_type"] != "map_handicap"]
-
-    # Hide player props from the scan UI — anchor pricing produces hundreds
-    # of prop gaps per cycle which clutter the game-market display. Props
-    # still flow into prop_observations + portfolio_bets via the underlying
-    # cycle, just not surfaced in the dashboard's scan list.
-    gaps = [g for g in gaps if g["market_type"] != "player_prop"]
-
-    # Exclude markets already placed
-    with _conn() as conn:
-        placed_mids = {r[0] for r in conn.execute(
-            "SELECT DISTINCT market_id FROM ev_predictions "
-            "WHERE placed = 1 AND voided = 0 AND mode = 'live'"
-        ).fetchall()}
-    gaps = [g for g in gaps if g["market_id"] not in placed_mids]
-
-    return JSONResponse({
+    return {
         "gaps": gaps,
         "markets_fetched": cycle.markets_fetched,
         "markets_matched": cycle.markets_matched,
@@ -874,7 +743,30 @@ async def api_scan(request: Request) -> JSONResponse:
         "portfolio_results": portfolio_results,
         "bankroll": round(bankroll, 2),
         "bankroll_source": bankroll_source,
-    })
+    }
+
+
+@app.post("/api/scan")
+async def api_scan(request: Request) -> JSONResponse:
+    """Run a full agent scan and return EV gaps.
+
+    Also fans the scan out to all active portfolios by default so the placement
+    table and the portfolio cards are guaranteed to come from the same cycle.
+    Set ``fan_out_portfolios: false`` to opt out, or pass ``portfolio_ids`` to
+    target a subset.
+    """
+    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    payload = await run_dashboard_scan(
+        sectors_str=body.get("sectors") or "",
+        bankroll=float(body.get("bankroll", 500)),
+        kelly=float(body.get("kelly", 0.5)),
+        date_from=body.get("date_from", ""),
+        date_to=body.get("date_to", ""),
+        bankroll_venue=body.get("bankroll_venue"),
+        fan_out_portfolios=body.get("fan_out_portfolios", True),
+        portfolio_ids=body.get("portfolio_ids", []) or [],
+    )
+    return JSONResponse(payload)
 
 
 @app.post("/api/pick")
