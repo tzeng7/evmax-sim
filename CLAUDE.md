@@ -85,6 +85,7 @@ evmax/
 │   ├── tennisabstract.py    # Tennis Abstract: Elo leaderboards + matchmx per-match data + winners/errors (SEED-time)
 │   ├── ufc_espn.py          # ESPN MMA public API: UFC results/methods/bios (SEED-time; ufcstats.com is JS-gated)
 │   ├── cfb_espn.py          # ESPN CFB play-by-play (drives/plays) for EPA (SEED/backtest-time; disk-cached; cfbfastR pbp mirror is stale ≤2022)
+│   ├── cfb_fpi.py           # ESPN FPI for ncaaf_efficiency_v2's preseason prior: live fitt powerindex (SEED-time, frozen per season) + Wayback page parser (backtest history via scripts/build_ncaaf_fpi_history.py)
 │   ├── balances.py          # Live TOTAL-WEALTH fetch (Kelly bankroll base = cash + open positions), venue-agnostic. Kalshi (balance+portfolio_value)/100; PolyUS currentBalance+assetAvailable on api.polymarket.us (NOT assetNotional=face value, NOT buyingPower=deployable). fetch_balance/fetch_all_balances/resolve_bankroll — all FAIL-SOFT (None on no-creds/error → manual bankroll)
 │   └── base.py              # BaseAPIClient
 ├── sectors/                 # SectorHandler ABC + per-sport implementations
