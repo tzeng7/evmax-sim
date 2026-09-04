@@ -57,12 +57,13 @@ nba:
 nfl:
   display_name: "NFL"
   market_types: [moneyline, spread, total]
+  shadow_market_types: [spread, total]
   models: [elo, form, nfl_efficiency, nfl_qb_elo, sharp]
   mode: live
   resolver: espn_scoreboard
   status: shipped
   season_window: {start: "09-04", end: "02-15"}
-  notes: "Poisson dropped 2026-05-01: NFL is not a Poisson-distributed scoring process. Replaced by nfl_efficiency (opponent-adjusted EPA/play) and nfl_qb_elo (team Elo split into team_base + per-QB delta to capture starter swaps), both seeded weekly from nflreadpy PBP — see MODEL-13."
+  notes: "Poisson dropped 2026-05-01: NFL is not a Poisson-distributed scoring process. Replaced by nfl_efficiency (opponent-adjusted EPA/play) and nfl_qb_elo (team Elo split into team_base + per-QB delta to capture starter swaps), both seeded weekly from nflreadpy PBP — see MODEL-13. 2026-09-03: spread + total opened in shadow_market_types for the 2026 season — no NFL row has ever been logged in this system, KXNFLSPREAD was wired only 2026-08-01, and every NFL spread/total prediction is sharp-only (no model prices them), i.e. pure Kalshi-vs-Pinnacle divergence — the same shape that lost baseball totals −15% ROI and bled WNBA spread-take −2.2pp CLV. Promote per side via `cleanup shadow clv nfl -m spread --side lay|take` once n>=30 with CLV>=0, never pooled. Moneyline stays live."
 
 ncaab:
   display_name: "NCAAB (Men's College Basketball)"

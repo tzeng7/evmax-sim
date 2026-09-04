@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
+from datetime import date
 from typing import Optional
 
 import structlog
@@ -115,6 +116,73 @@ class NflQbEloModelAgent(ModelAgent):
     def _sector_state(self) -> dict:
         return self._state.get("nfl", {})
 
+    def __init__(self) -> None:
+        super().__init__()
+        # PRE-game starter overrides (depth chart + injury report), keyed by
+        # team full name → pbp-format QB name. Empty → fall back to
+        # `current_starters` (the LAST game's max-attempts passer, which is
+        # blind to a mid-week change). See evmax/clients/nfl_depth_charts.py.
+        self._pregame_starters: dict[str, str] = {}
+        self._pregame_starters_source: str = ""
+
+    def set_pregame_starters(self, starters: dict[str, str], source: str = "depth_chart") -> None:
+        self._pregame_starters = {
+            str(t).lower().strip(): str(q) for t, q in (starters or {}).items() if q
+        }
+        self._pregame_starters_source = source if self._pregame_starters else ""
+
+    def clear_pregame_starters(self) -> None:
+        self._pregame_starters = {}
+        self._pregame_starters_source = ""
+
+    def refresh_pregame_starters(
+        self,
+        out_players: Optional[dict[str, "set[str] | list[str]"]] = None,
+        *,
+        as_of: Optional[date] = None,
+        season: Optional[int] = None,
+    ) -> int:
+        """Load depth-chart starters (minus QBs the injury report rules out).
+
+        `as_of=None` → latest snapshot (live scans); a date → snapshots
+        strictly before it (walk-forward replays). Fail-soft: any error
+        leaves the overrides EMPTY so predictions fall back to
+        `current_starters`. Returns the number of teams overridden.
+        """
+        try:
+            from evmax.clients.nfl_depth_charts import resolve_pregame_starters
+            resolved = resolve_pregame_starters(
+                season or active_nfl_season(), as_of=as_of, out_players=out_players,
+            )
+        except Exception as e:  # noqa: BLE001 — never let a data hiccup kill the model
+            logger.warning("nfl_pregame_starters_failed", error=str(e))
+            self.clear_pregame_starters()
+            return 0
+        starters = {t: d["starter"] for t, d in resolved.items() if d.get("starter")}
+        self.set_pregame_starters(starters, source="depth_chart")
+        current = self._sector_state().get("current_starters", {}) if self._state else {}
+        changed = {t: (current.get(t), q) for t, q in starters.items() if current.get(t) != q}
+        skipped = {t: d["skipped"] for t, d in resolved.items() if d.get("skipped")}
+        logger.info(
+            "nfl_pregame_starters_loaded",
+            teams=len(starters), changed_vs_last_game=len(changed),
+            changes={t: f"{a}->{b}" for t, (a, b) in list(changed.items())[:8]},
+            injury_skips=skipped or None,
+        )
+        return len(starters)
+
+    def _effective_starter(
+        self, current_starters: dict, team_key: Optional[str]
+    ) -> tuple[Optional[str], str]:
+        """(starter, source) — pre-game override first, else last-game passer."""
+        if team_key is None:
+            return None, "none"
+        override = self._pregame_starters.get(team_key)
+        if override:
+            return override, "depth"
+        last = self._starter_for(current_starters, team_key)
+        return last, ("pbp" if last else "none")
+
     def _team_base(self, teams: dict, team_key: Optional[str]) -> float:
         if team_key is None:
             return DEFAULT_ELO
@@ -177,8 +245,8 @@ class NflQbEloModelAgent(ModelAgent):
         if home_key is None or away_key is None:
             return None
 
-        home_starter = self._starter_for(current_starters, home_key)
-        away_starter = self._starter_for(current_starters, away_key)
+        home_starter, home_src = self._effective_starter(current_starters, home_key)
+        away_starter, away_src = self._effective_starter(current_starters, away_key)
 
         home_eff = (
             self._team_base(teams, home_key)
@@ -209,8 +277,8 @@ class NflQbEloModelAgent(ModelAgent):
             confidence = 0.80
 
         notes = (
-            f"home={home_starter or '?'}({self._qb_delta(qb_deltas, home_starter):+.0f}) "
-            f"away={away_starter or '?'}({self._qb_delta(qb_deltas, away_starter):+.0f}) "
+            f"home={home_starter or '?'}({self._qb_delta(qb_deltas, home_starter):+.0f},{home_src}) "
+            f"away={away_starter or '?'}({self._qb_delta(qb_deltas, away_starter):+.0f},{away_src}) "
             f"team_base={self._team_base(teams, home_key):.0f}/{self._team_base(teams, away_key):.0f}"
         )
 

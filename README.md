@@ -1623,7 +1623,7 @@ Every category runs in one of three modes (`evmax.modes.get_mode`):
 | `shadow` | EVGaps + pre-game YES ask persisted with `mode='shadow'`; **bankroll untouched** (Kelly skipped). Used for live-wiring validation before promotion. |
 | `disabled` | Scanner skips persistence entirely (gap still shows in the session's in-memory CLI output). |
 
-**Override precedence (highest wins):** runtime CLI flag (`--shadow`/`--live`/`--disabled`) > env var `EVMAX_CATEGORY_MODES` > YAML base. Per-market-type refinements `shadow_market_types` and `disabled_market_types` narrow a category to specific market types (e.g. baseball `total`, WNBA `spread`+`total`, and NCAAF `spread`+`total` are all in `disabled_market_types`; no category currently populates `shadow_market_types`). Promote a category with `evmax cleanup shadow promote <category>` once validation passes.
+**Override precedence (highest wins):** runtime CLI flag (`--shadow`/`--live`/`--disabled`) > env var `EVMAX_CATEGORY_MODES` > YAML base. Per-market-type refinements `shadow_market_types` and `disabled_market_types` narrow a category to specific market types (e.g. baseball `total`, WNBA `spread`+`total`, and NCAAF `spread`+`total` are all in `disabled_market_types`; NFL `spread`+`total` are in `shadow_market_types` for the 2026 season — sharp-only pricing with no NFL betting history, promote per side via the CLV lens). Promote a category with `evmax cleanup shadow promote <category>` once validation passes.
 
 **Kalshi series tickers per sector** (from `SECTOR_SERIES_MAP` in `kalshi.py`):
 

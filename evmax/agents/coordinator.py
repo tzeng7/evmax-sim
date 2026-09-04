@@ -665,6 +665,39 @@ class AgentCoordinator:
 
         self.log = structlog.get_logger(__name__)
 
+    # QB statuses that rule a listed depth-chart QB out of Sunday's start.
+    _QB_OUT_STATUSES = frozenset({
+        "OUT", "INJURED RESERVE", "IR", "SUSPENSION", "SUSPENDED", "DOUBTFUL",
+        "PHYSICALLY UNABLE TO PERFORM", "PUP", "NON-FOOTBALL INJURY",
+    })
+
+    async def _prime_nfl_pregame_starters(self, injuries: dict) -> None:
+        """Load depth-chart QB starters into nfl_qb_elo, skipping injured-out QBs.
+
+        `injuries` is the sector's ESPN report (team full name → InjuryReport).
+        Runs the nflreadpy fetch in a thread so the event loop is not blocked;
+        fail-soft — the agent falls back to its last-game starters on error.
+        """
+        agent = getattr(self, "nfl_qb_elo_agent", None)
+        if agent is None or not hasattr(agent, "refresh_pregame_starters"):
+            return
+        out_players: dict[str, set[str]] = {}
+        for team, report in (injuries or {}).items():
+            for p in getattr(report, "players", None) or []:
+                if (getattr(p, "position", "") or "").upper() != "QB":
+                    continue
+                if (getattr(p, "status", "") or "").upper().strip() in self._QB_OUT_STATUSES:
+                    out_players.setdefault(str(team).lower().strip(), set()).add(p.name)
+        try:
+            n = await asyncio.to_thread(agent.refresh_pregame_starters, out_players)
+        except Exception as e:  # noqa: BLE001 — never let a data hiccup kill the cycle
+            self.log.warning("nfl_pregame_starters_failed", error=str(e))
+            return
+        self.log.info(
+            "nfl_pregame_starters_primed",
+            teams=n, qb_out={t: sorted(v) for t, v in out_players.items()} or None,
+        )
+
     def _all_agents(self) -> list[Agent]:
         return [
             self.kalshi_agent, self.polymarket_us_agent,
@@ -1069,6 +1102,10 @@ class AgentCoordinator:
                     event_id = pair["sharp"].event_id
                     sharp_weight_by_event[event_id] = sharp_weight_for_ticker(market.ticker)
 
+            # NFL: give nfl_qb_elo a PRE-game starter (depth chart minus QBs the
+            # injury report rules out) instead of last week's passer.
+            if sector.lower() == "nfl":
+                await self._prime_nfl_pregame_starters(injuries)
             ensemble_req = AgentRequest(
                 sector=sector,
                 params={

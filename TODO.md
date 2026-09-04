@@ -14,6 +14,10 @@
 - ✅ **nfl_props disabled → shadow** (MODEL-9 clock from Week 1); `_download_parquets` skips an nflverse season whose weekly-stats file is unpublished (2026's 404s until Week 1 is played) instead of failing the refresh.
 - ✅ **Generic Elo offseason regression** — `scripts/offseason_regress.py --sector nfl --drop afc,nfc`, keep=0.667 swept walk-forward by `scripts/backtest_nfl_elo_regression.py` (2019–23 rank 0.2307 vs 0.2372, 2024 confirm +6.9/1000, 2025 holdout 0.2403 vs 0.2533); early-K boost rejected → no `EARLY_K_BOOST` entry. Applied to `elo_state['nfl']`.
 - ✅ **`ev-scan-nfl-sunday-early`** Claude scheduled task (Sun 09:15 PT, in-season only) for the 1pm-ET pick window.
+- ✅ **NFL spread + total → `shadow_market_types`** (sharp-only pricing, no NFL betting history; promote per side via the CLV lens).
+- ✅ **Pre-game QB starters for `nfl_qb_elo`** — `evmax/clients/nfl_depth_charts.py` (nflverse depth charts, both schemas) minus ESPN-Out/IR QBs, primed by the coordinator before the NFL ensemble. Gated in `backtest_nfl_efficiency.py`: changed-starter subset (n=175) standalone Brier 0.2254 → 0.2157, blend 0.2232 → 0.2190; every season incl. the 2025 holdout improved.
+- ❌ **NFL rest layer** — kickoff-keyed table swept (`backtest_nfl_elo_regression.py --rest`): within noise, worse on holdout → NFL has NO rest entry (old dead table removed). Rest is now measured to the game date for every sector (was scan date).
+- ❌ **NFL margin-based form** — helps 2023-24, hurts 2024-25 + the 2025-26 holdout at every shrink (0.3–1.0) → `MARGIN_FORM_SECTORS` ships empty; records keep the `margin` field; the walk-forward form predictor now runs the agent path. Follow-up if revisited: n-dependent shrink (untried).
 
 ### Diversification build — soccer/tennis/baseball model independence + promotion board (branch claude/diversify-wnba-moneyline)
 Landed 2026-07-19. Motivated by the measured sharp-passthrough diagnosis: 30d ML blend
