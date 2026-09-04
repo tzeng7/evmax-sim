@@ -31,8 +31,19 @@ Protocol (leak-free, mirrors scripts/backtest_nhl_elo.py):
     Rule 2 of §5: a boost without the season_games reset just amplifies
     late-season noise, so it is never evaluated without regression.
 
+  - --rest {off,legacy,proposed}: rest-layer comparison (skips the keep/boost
+    sweep). `off` = no rest adjustment (what the keep sweep uses — it is about
+    the offseason boundary); `legacy` = the pre-2026-09 table {0:-30,1:0,2:10,
+    3:10} with its days<=7 → table[min(days,3)] lookup (i.e. "+10 for any 4–7
+    day gap, nothing for a bye"); `proposed` = the current REST_ELO_ADJ["nfl"]
+    through EloModelAgent.rest_adjustment. Days of rest come from the replay
+    schedule itself (team's previous game), i.e. measured to kickoff. Scored
+    on the FULL season (rest matters every week); the "affected" subset =
+    games where either side had 3–4 or 13–21 rest days.
+
 Usage:
     uv run python scripts/backtest_nfl_elo_regression.py
+    uv run python scripts/backtest_nfl_elo_regression.py --rest proposed
     uv run python scripts/backtest_nfl_elo_regression.py --keep-grid 1.0,0.8,0.667,0.5 --boost-grid 1.0,2.0
 """
 
@@ -100,10 +111,35 @@ class _ReplayClock(date):
         return cls._now
 
 
-def make_agent() -> EloModelAgent:
+LEGACY_NFL_REST = {0: -30.0, 1: 0.0, 2: 10.0, 3: 10.0}
+
+
+def _legacy_rest_adjustment(days):
+    """The pre-2026-09 lookup: days<=7 → table[min(days, 3)], else 0."""
+    if days is None or days > 7:
+        return 0.0
+    return LEGACY_NFL_REST.get(min(days, max(LEGACY_NFL_REST)), 0.0)
+
+
+def make_agent(rest: str = "off", rest_days: Optional[dict[str, Optional[int]]] = None) -> EloModelAgent:
+    """Cold-start agent. `rest_days` is the live dict the walk updates per game
+    (team → days since its previous replay game); the rest layer reads it in
+    place of form_state.json. Congestion is soccer-only and stays off."""
     agent = EloModelAgent()
     agent._state = {}                      # cold start; production state untouched
-    agent._rest_elo_bonus = lambda sector, team: 0.0  # type: ignore[method-assign]
+    agent._congestion_penalty = lambda sector, team, reference=None: 0.0  # type: ignore[method-assign]
+    if rest == "off" or rest_days is None:
+        agent._rest_elo_bonus = lambda sector, team, reference=None: 0.0  # type: ignore[method-assign]
+    elif rest == "legacy":
+        agent._rest_elo_bonus = (  # type: ignore[method-assign]
+            lambda sector, team, reference=None: _legacy_rest_adjustment(rest_days.get(team))
+        )
+    elif rest == "proposed":
+        agent._days_of_rest = (  # type: ignore[method-assign]
+            lambda sector, team, reference=None: rest_days.get(team)
+        )
+    else:
+        raise ValueError(f"unknown rest variant {rest!r}")
     return agent
 
 
@@ -115,16 +151,20 @@ def regress(agent: EloModelAgent, keep: float) -> None:
 
 
 def walk_forward(games: list[dict], keep: float, boost: float, decay: int,
-                 score_seasons: set[int]) -> dict[int, dict[str, list[float]]]:
-    """Replay all games; return per-season Brier lists {season: {'open': [...], 'full': [...]}}."""
+                 score_seasons: set[int], rest: str = "off") -> dict[int, dict[str, list[float]]]:
+    """Replay all games; return per-season Brier lists
+    {season: {'open': [...], 'full': [...], 'affected': [...]}} — 'affected' =
+    full-season games where either side had 3–4 or 13–21 rest days."""
     if boost > 1.0:
         elo_mod.EARLY_K_BOOST[SECTOR] = boost
         elo_mod.EARLY_K_DECAY_GAMES[SECTOR] = decay
     else:
         elo_mod.EARLY_K_BOOST.pop(SECTOR, None)
         elo_mod.EARLY_K_DECAY_GAMES.pop(SECTOR, None)
-    agent = make_agent()
-    out: dict[int, dict[str, list[float]]] = defaultdict(lambda: {"open": [], "full": []})
+    rest_days: dict[str, Optional[int]] = {}
+    last_game: dict[str, date] = {}
+    agent = make_agent(rest, rest_days)
+    out: dict[int, dict[str, list[float]]] = defaultdict(lambda: {"open": [], "full": [], "affected": []})
     cur: Optional[int] = None
     for g in games:
         if g["season"] != cur:
@@ -132,13 +172,20 @@ def walk_forward(games: list[dict], keep: float, boost: float, decay: int,
                 regress(agent, keep)
             cur = g["season"]
         _ReplayClock._now = g["gameday"]
+        for t in (g["home"], g["away"]):
+            rest_days[t] = (g["gameday"] - last_game[t]).days if t in last_game else None
         if g["season"] in score_seasons and g["hs"] != g["as"]:
-            p_home, _, _ = agent._win_probs(SECTOR, g["home"], g["away"])
+            p_home, _, _ = agent._win_probs(SECTOR, g["home"], g["away"], g["gameday"])
             b = (p_home - (1.0 if g["hs"] > g["as"] else 0.0)) ** 2
             out[g["season"]]["full"].append(b)
             if g["game_type"] == "REG" and g["week"] <= OPENING_WEEKS:
                 out[g["season"]]["open"].append(b)
+            if any(d is not None and (3 <= d <= 4 or 13 <= d <= 21)
+                   for d in (rest_days[g["home"]], rest_days[g["away"]])):
+                out[g["season"]]["affected"].append(b)
         agent.update(g["home"], g["away"], g["hs"], g["as"], SECTOR, event_date=g["gameday"].isoformat())
+        last_game[g["home"]] = g["gameday"]
+        last_game[g["away"]] = g["gameday"]
     return out
 
 
@@ -160,6 +207,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--keep-grid", default=",".join(str(k) for k in DEFAULT_KEEP_GRID))
     ap.add_argument("--boost-grid", default=",".join(str(b) for b in DEFAULT_BOOST_GRID))
     ap.add_argument("--decay-grid", default=",".join(str(d) for d in DEFAULT_DECAY_GRID))
+    ap.add_argument("--rest", default=None, choices=["off", "legacy", "proposed"],
+                    help="Run ONLY the rest-layer comparison at --keep (skips the keep/boost sweep)")
+    ap.add_argument("--keep", type=float, default=0.667, help="keep used by --rest (default: the shipped 0.667)")
     args = ap.parse_args(argv)
 
     rank_seasons = [int(s) for s in args.rank_seasons.split(",") if s]
@@ -180,6 +230,21 @@ def main(argv: Optional[list[str]] = None) -> int:
     saved_decay = dict(elo_mod.EARLY_K_DECAY_GAMES)
     elo_mod.date = _ReplayClock  # type: ignore[assignment]
     try:
+        if args.rest is not None:
+            print(f"\nREST-LAYER comparison at keep={args.keep:.3f}, no boost "
+                  f"(full-season Brier; 'affected' = either side rested 3–4 or 13–21 days)")
+            print(f"{'variant':>9} {'rank full':>10} {'rank affct':>10} {'n':>4}  "
+                  f"{'conf full':>10} {'conf affct':>10} {'n':>4}  {'hold full':>10} {'hold affct':>10} {'n':>4}")
+            for variant in ("off", "legacy", "proposed"):
+                res = walk_forward(games, args.keep, 1.0, 0, score_seasons, rest=variant)
+                r_full, _ = _pooled(res, rank_seasons, "full"); r_aff, r_n = _pooled(res, rank_seasons, "affected")
+                c_full, _ = _pooled(res, [confirm], "full"); c_aff, c_n = _pooled(res, [confirm], "affected")
+                h_full, _ = _pooled(res, [holdout], "full"); h_aff, h_n = _pooled(res, [holdout], "affected")
+                tag = " <- CLI choice" if variant == args.rest else ""
+                print(f"{variant:>9} {r_full:10.4f} {r_aff:10.4f} {r_n:4d}  {c_full:10.4f} {c_aff:10.4f} {c_n:4d}  "
+                      f"{h_full:10.4f} {h_aff:10.4f} {h_n:4d}{tag}")
+            return 0
+
         # ---- Stage 1: regression coefficient, no boost ----
         print(f"\n{'keep':>6} {'rank open':>10} {'n':>5} {'rank full':>10}  {'conf open':>10} {'n':>4} {'conf full':>10}")
         rows = []

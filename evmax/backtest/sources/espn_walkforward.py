@@ -1027,7 +1027,7 @@ def _form_predict(
     staleness is checked relative to it (not wall-clock today), which is
     essential for historical replays.
     """
-    from evmax.agents.models.form_agent import HOME_ADJ, GameRecord
+    from evmax.agents.models.form_agent import GameRecord
 
     state = form._state.get(sector, {})
     home_records_raw = state.get(home, [])
@@ -1041,16 +1041,12 @@ def _form_predict(
     if form._is_stale(home_records, game_date) or form._is_stale(away_records, game_date):
         return None
 
-    fa = form._form_rate(home_records)
-    fb = form._form_rate(away_records)
-
-    if fa + fb == 0 or fa + fb == 2 * fa * fb:
-        prob = 0.5
-    else:
-        prob = (fa - fa * fb) / (fa + fb - 2 * fa * fb)
-
-    ha = HOME_ADJ.get(sector, 0.0)
-    return max(0.01, min(0.99, prob + ha))
+    # Delegate the form → probability step to the agent so the replay runs
+    # the exact live path (margin form for MARGIN_FORM_SECTORS, else log5 on
+    # the W/L rate + HOME_ADJ). Before 2026-09-03 this re-implemented log5
+    # here, which silently bypassed any agent-side change.
+    prob, _ = form.pair_home_probability(sector, home_records, away_records)
+    return max(0.01, min(0.99, prob))
 
 
 def _poisson_predict(poisson: PoissonModelAgent, sector: str, home: str, away: str) -> Optional[float]:
@@ -1146,21 +1142,33 @@ def _form_update(
     away: str,
     home_won: bool,
     game_date: date,
+    home_score: Optional[float] = None,
+    away_score: Optional[float] = None,
 ) -> None:
-    """Add game record to form state."""
+    """Add game record to form state (with the point margin when scores are given)."""
     if sector not in form._state:
         form._state[sector] = {}
 
     state = form._state[sector]
     date_str = game_date.isoformat()
+    margin = (
+        float(home_score) - float(away_score)
+        if home_score is not None and away_score is not None else None
+    )
 
     if home not in state:
         state[home] = []
-    state[home].append({"date": date_str, "won": home_won, "opp": away, "home": True})
+    rec_home = {"date": date_str, "won": home_won, "opp": away, "home": True}
+    if margin is not None:
+        rec_home["margin"] = margin
+    state[home].append(rec_home)
 
     if away not in state:
         state[away] = []
-    state[away].append({"date": date_str, "won": not home_won, "opp": home, "home": False})
+    rec_away = {"date": date_str, "won": not home_won, "opp": home, "home": False}
+    if margin is not None:
+        rec_away["margin"] = -margin
+    state[away].append(rec_away)
 
 
 def _poisson_update(

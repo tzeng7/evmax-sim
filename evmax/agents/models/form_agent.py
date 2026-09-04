@@ -76,6 +76,32 @@ MIN_GAMES: int = 3
 SHRINKAGE_PRIOR_N: float = 6.0
 SHRINKAGE_BASELINE: float = 0.5
 
+# Margin-based form. Win/loss form throws the score away: over a 17-game NFL
+# season a 3-point loss and a 30-point loss are the same record. For sectors
+# listed here, when EVERY in-window record carries a `margin`, form is the
+# exponentially-weighted average point margin (home-edge adjusted), the
+# difference shrunk toward 0, converted to P(home) through the sector's
+# score stdev. Any in-window record without a margin (legacy rows, or a
+# sector not listed) falls back to W/L form unchanged.
+#
+# NFL: backtest-REJECTED 2026-09-03 (scripts/backtest_nfl_efficiency.py
+# --form-shrink, walk-forward 2324/2425/2526, W/L form vs margin form inside
+# the shipped P2 v1 blend). Margin form helped 2023-24 at every shrink
+# (0.2377 → 0.234x) but HURT 2024-25 and the 2025-26 holdout at every
+# shrink swept: shrink 0.3 / 0.5 / 0.7 / 1.0 → holdout blend Brier
+# 0.2252 / 0.2226 / 0.2209 / 0.2197 vs 0.2194 with W/L form; 2024-25
+# 0.2164 / 0.2142 / 0.2127 / 0.2113 vs 0.2110. W/L form's Bayesian
+# sample-size shrinkage toward 0.5 is doing real work that a scale-only
+# shrink on the margin does not replicate; an n-dependent shrink was NOT
+# tried (one change per iteration) and is the follow-up if this is revisited.
+# So the set ships EMPTY: records still carry `margin` (cheap, and it is
+# what any future margin model needs), and the harness toggles the sector
+# in to score the `form_margin` column.
+MARGIN_FORM_SECTORS: set[str] = set()
+MARGIN_FORM_PARAMS: dict[str, dict[str, float]] = {
+    "nfl": {"home_edge": 2.0, "score_stdev": 13.5, "shrink": 0.5},
+}
+
 
 @dataclass
 class GameRecord:
@@ -84,6 +110,7 @@ class GameRecord:
     opp: str     # opponent name (normalized)
     home: bool   # was this team the home team?
     drew: bool = False  # soccer only; legacy records default False (= L if won=False)
+    margin: Optional[float] = None  # this team's score minus opponent's (None on legacy rows)
 
 
 class FormModelAgent(ModelAgent):
@@ -164,6 +191,58 @@ class FormModelAgent(ModelAgent):
         return raw * shrinkage + SHRINKAGE_BASELINE * (1.0 - shrinkage)
 
     @staticmethod
+    def _margin_rate(records: list[GameRecord], params: dict[str, float]) -> Optional[float]:
+        """Exponentially-weighted average margin over the WINDOW, home-edge adjusted.
+
+        Returns None when any in-window record lacks a margin so the caller
+        falls back to W/L form (mixed legacy/new state must never blend two
+        different definitions of form).
+        """
+        recent = sorted(records, key=lambda r: r.date, reverse=True)[:WINDOW]
+        if not recent or any(r.margin is None for r in recent):
+            return None
+        home_edge = float(params.get("home_edge", 0.0))
+        total_w = 0.0
+        acc = 0.0
+        for i, rec in enumerate(recent):
+            w = DECAY ** i
+            adj = (rec.margin or 0.0) - (home_edge if rec.home else -home_edge)
+            acc += w * adj
+            total_w += w
+        return acc / total_w if total_w > 0 else None
+
+    @staticmethod
+    def _norm_cdf(z: float) -> float:
+        return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
+
+    def pair_home_probability(
+        self, sector: str, recs_a: list[GameRecord], recs_b: list[GameRecord]
+    ) -> tuple[float, str]:
+        """P(team_a wins) for team_a at home, plus a notes fragment.
+
+        Single source of truth for the form → probability step, shared by
+        `predict_pair` and the walk-forward harness so a replay exercises the
+        exact live path (margin form for MARGIN_FORM_SECTORS when every
+        in-window record carries a margin; log5 on W/L form otherwise).
+        """
+        if sector in MARGIN_FORM_SECTORS:
+            params = MARGIN_FORM_PARAMS.get(sector, {})
+            m_a = self._margin_rate(recs_a, params)
+            m_b = self._margin_rate(recs_b, params)
+            if m_a is not None and m_b is not None:
+                pred_margin = (float(params.get("shrink", 0.5)) * (m_a - m_b)
+                               + float(params.get("home_edge", 0.0)))
+                prob_a = self._norm_cdf(pred_margin / float(params.get("score_stdev", 13.5)))
+                prob_a = min(0.95, max(0.05, prob_a))
+                return prob_a, f"margin_a={m_a:+.1f} margin_b={m_b:+.1f} pred={pred_margin:+.1f} "
+        form_a = self._form_rate(recs_a)
+        form_b = self._form_rate(recs_b)
+        prob_a = self._log5(form_a, form_b)
+        home_adj = HOME_ADJ.get(sector, 0.03)
+        prob_a = min(0.95, max(0.05, prob_a + home_adj))  # team_a is home
+        return prob_a, f"form_a={form_a:.3f} form_b={form_b:.3f} "
+
+    @staticmethod
     def _is_stale(records: list[GameRecord], reference: Optional[date] = None) -> bool:
         """True when the most recent record is older than STALE_DAYS.
 
@@ -225,12 +304,7 @@ class FormModelAgent(ModelAgent):
         if self._is_stale(recs_a, reference) or self._is_stale(recs_b, reference):
             return None
 
-        form_a = self._form_rate(recs_a)
-        form_b = self._form_rate(recs_b)
-
-        prob_a = self._log5(form_a, form_b)
-        home_adj = HOME_ADJ.get(sector, 0.03)
-        prob_a = min(0.95, max(0.05, prob_a + home_adj))  # team_a is home
+        prob_a, form_note = self.pair_home_probability(sector, recs_a, recs_b)
         prob_b = 1.0 - prob_a
         prob_draw: Optional[float] = None
 
@@ -256,10 +330,7 @@ class FormModelAgent(ModelAgent):
             confidence=confidence,
             weight=self.weight,
             sample_size=sample,
-            notes=(
-                f"form_a={form_a:.3f} form_b={form_b:.3f} "
-                f"log5={prob_a:.3f} n={sample}"
-            ),
+            notes=form_note + f"p={prob_a:.3f} n={sample}",
         )
 
     # ------------------------------------------------------------------
@@ -287,7 +358,9 @@ class FormModelAgent(ModelAgent):
         if sector not in self._state:
             self._state[sector] = {}
 
-        def _add_record(team: str, won: bool, opp: str, home: bool, drew: bool) -> None:
+        def _add_record(
+            team: str, won: bool, opp: str, home: bool, drew: bool, margin: float
+        ) -> None:
             if team not in self._state[sector]:
                 self._state[sector][team] = []
             existing = self._state[sector][team]
@@ -296,15 +369,16 @@ class FormModelAgent(ModelAgent):
             if any((r["date"], r["opp"], r["home"]) == key for r in existing):
                 return
             existing.append(
-                {"date": date_str, "won": won, "opp": opp, "home": home, "drew": drew}
+                {"date": date_str, "won": won, "opp": opp, "home": home, "drew": drew,
+                 "margin": float(margin)}
             )
             # Keep only the most recent 2×WINDOW entries to control file size
             self._state[sector][team] = sorted(
                 existing, key=lambda r: r["date"], reverse=True
             )[: WINDOW * 2]
 
-        _add_record(team_a, a_won, team_b, home=True, drew=drew)
-        _add_record(team_b, b_won, team_a, home=False, drew=drew)
+        _add_record(team_a, a_won, team_b, home=True, drew=drew, margin=score_a - score_b)
+        _add_record(team_b, b_won, team_a, home=False, drew=drew, margin=score_b - score_a)
 
         self.log.debug("form_updated", team_a=team_a, team_b=team_b, a_won=a_won)
 

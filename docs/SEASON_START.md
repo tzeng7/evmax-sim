@@ -120,9 +120,16 @@ staleness:
       uv run python scripts/seed_nfl_efficiency.py
       uv run python scripts/seed_nfl_qb_elo.py     # also refreshes current_starters
       ```
-- [ ] Verify `current_starters` in `nfl_qb_elo_state.json` reflects offseason
-      QB moves after the first reseed with 2026 data (the per-QB delta layer is
-      the whole point of this model).
+- [x] **QB starters are pre-game now** (2026-09-03): `nfl_qb_elo` reads the
+      nflverse depth chart (minus ESPN-Out/IR QBs) before every NFL ensemble
+      run, so offseason moves and mid-week scratches are priced the week they
+      happen — `current_starters` (last game's passer) is only the fallback.
+      Spot-check the `nfl_pregame_starters_loaded` log line on the first scan
+      of each week (it lists `changed_vs_last_game`).
+- [x] **Spread + total open in `shadow_market_types`** (2026-09-03): both are
+      sharp-only for NFL (no model prices them) and the sector has no betting
+      history here. Promote per side via `cleanup shadow clv nfl -m spread
+      --side lay|take` once n≥30 with CLV≥0; never pooled.
 - [ ] Alias check for any franchise rename/relocation.
 - [x] **Offseason Elo regression** (built + applied 2026-09-02): generic Elo
       (0.20 weight) carried raw February ratings into September. Now

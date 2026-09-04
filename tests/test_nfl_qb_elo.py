@@ -412,3 +412,76 @@ class TestUpdateNoop:
         agent.update("kansas city chiefs", "buffalo bills", 27, 24, "nfl", "2025-09-08")
         after = dict(agent._state["nfl"])
         assert before == after
+
+
+class TestPregameStarters:
+    """Depth-chart / injury-aware PRE-game starter overrides (2026-09-03).
+
+    `current_starters` is the LAST game's passer, so a mid-week change was
+    invisible until after the game it mattered for. Overrides win when set,
+    fall back to `current_starters` when absent, and a failed refresh must
+    leave the model exactly as it was (fail-soft)."""
+
+    @staticmethod
+    def _agent():
+        from evmax.agents.models.nfl_qb_elo_agent import NflQbEloModelAgent
+        a = NflQbEloModelAgent()
+        a._state = {"nfl": {
+            "team_base": {"kansas city chiefs": 1560.0, "denver broncos": 1500.0},
+            "qb_deltas": {"P.Mahomes": 120.0, "G.Minshew": -20.0, "B.Nix": 30.0},
+            "qb_games": {"P.Mahomes": 80, "G.Minshew": 30, "B.Nix": 30},
+            "current_starters": {"kansas city chiefs": "P.Mahomes", "denver broncos": "B.Nix"},
+            "seasons_used": [2020, 2021, 2022, 2023, 2024, 2025, 2026],
+        }}
+        return a
+
+    @staticmethod
+    def _predict(agent, home="kansas city chiefs", away="denver broncos"):
+        import asyncio
+        from evmax.models.market import MarketSource, PredictionMarket
+        from evmax.models.odds import SharpBook, SharpOdds
+        market = PredictionMarket(id="t", market_id="t", event_id="e", sector="nfl", team_home=home, team_away=away,
+                                  source=MarketSource.kalshi, yes_price=0.5, no_price=0.5)
+        sharp = SharpOdds(event_id="e", book=SharpBook.pinnacle, sector="nfl", outcome_a_label=home,
+                          outcome_b_label=away, outcome_a_decimal=2.0, outcome_b_decimal=2.0,
+                          true_prob_a=0.5, true_prob_b=0.5)
+        return asyncio.run(agent.predict_pair(market, sharp))
+
+    def test_override_replaces_last_game_passer_and_is_visible_in_notes(self):
+        a = self._agent()
+        base = self._predict(a)
+        assert "home=P.Mahomes(+120,pbp)" in base.notes
+        a.set_pregame_starters({"Kansas City Chiefs": "G.Minshew"})
+        swapped = self._predict(a)
+        assert "home=G.Minshew(-20,depth)" in swapped.notes and "away=B.Nix(+30,pbp)" in swapped.notes
+        assert swapped.true_prob_a < base.true_prob_a
+        a.clear_pregame_starters()
+        assert self._predict(a).true_prob_a == base.true_prob_a
+
+    def test_refresh_uses_client_and_reports_changes(self, monkeypatch):
+        a = self._agent()
+        import evmax.clients.nfl_depth_charts as dcmod
+        monkeypatch.setattr(dcmod, "resolve_pregame_starters", lambda season, **kw: {
+            "kansas city chiefs": {"starter": "G.Minshew", "full_name": "Gardner Minshew II", "rank": 2, "skipped": ["Patrick Mahomes"]},
+            "denver broncos": {"starter": "B.Nix", "full_name": "Bo Nix", "rank": 1, "skipped": []},
+        })
+        assert a.refresh_pregame_starters({"kansas city chiefs": {"Patrick Mahomes"}}) == 2
+        assert a._pregame_starters == {"kansas city chiefs": "G.Minshew", "denver broncos": "B.Nix"}
+        assert a._pregame_starters_source == "depth_chart"
+
+    def test_refresh_is_fail_soft(self, monkeypatch):
+        a = self._agent()
+        a.set_pregame_starters({"kansas city chiefs": "G.Minshew"})
+        import evmax.clients.nfl_depth_charts as dcmod
+        def boom(season, **kw): raise RuntimeError("nflverse down")
+        monkeypatch.setattr(dcmod, "resolve_pregame_starters", boom)
+        assert a.refresh_pregame_starters() == 0
+        assert a._pregame_starters == {}
+        assert "home=P.Mahomes(+120,pbp)" in self._predict(a).notes
+
+    def test_backup_with_no_history_lowers_confidence(self):
+        a = self._agent()
+        a.set_pregame_starters({"kansas city chiefs": "C.Oladokun"})   # not in qb_deltas / qb_games
+        pred = self._predict(a)
+        assert "home=C.Oladokun(+0,depth)" in pred.notes
+        assert pred.confidence <= 0.55
