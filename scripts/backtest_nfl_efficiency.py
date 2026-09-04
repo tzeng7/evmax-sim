@@ -68,6 +68,9 @@ from evmax.backtest.sources.espn_walkforward import (
 )
 from evmax.agents.models.elo_agent import EloModelAgent
 from evmax.agents.models.form_agent import FormModelAgent
+from evmax.agents.models import form_agent as form_mod
+from evmax.agents.models.nfl_efficiency_agent import NFL_NICKNAME_TO_NAME
+from evmax.clients.nfl_depth_charts import load_qb_chart_rows, resolve_pregame_starters
 from evmax.agents.models.poisson_agent import PoissonModelAgent
 from evmax.matching.normalizer import NameNormalizer
 from evmax.models.market import PredictionMarket, MarketSource
@@ -109,6 +112,21 @@ CANDIDATE_BLENDS: dict[str, dict[str, float]] = {
     "P2 v5: qb_elo replaces elo (eff 0.30 / qb_elo 0.40 / form 0.30, no elo)": {
         "elo": 0.0, "form": 0.30, "poisson": 0.0,
         "nfl_efficiency": 0.30, "nfl_qb_elo": 0.40},
+    # 2026-09-03 season-start variants (gated here before shipping):
+    #  - depth-chart starters: nfl_qb_elo priced with the PRE-game QB from the
+    #    nflverse depth chart (strictly-before-game-day snapshot / that week's
+    #    chart) instead of the LAST game's passer.
+    #  - margin form: form_agent's NFL margin-based form (EW average point
+    #    margin, shrunk, Φ(pred/13.5)) instead of the W/L rate.
+    "P2 v1 + depth-chart starters": {
+        "elo": 0.20, "form": 0.30, "poisson": 0.0,
+        "nfl_efficiency": 0.25, "nfl_qb_elo": 0.0, "nfl_qb_elo_depth": 0.25},
+    "P2 v1 + margin form": {
+        "elo": 0.20, "form": 0.0, "form_margin": 0.30, "poisson": 0.0,
+        "nfl_efficiency": 0.25, "nfl_qb_elo": 0.25},
+    "P2 v1 + depth starters + margin form": {
+        "elo": 0.20, "form": 0.0, "form_margin": 0.30, "poisson": 0.0,
+        "nfl_efficiency": 0.25, "nfl_qb_elo": 0.0, "nfl_qb_elo_depth": 0.25},
 }
 
 # Backwards-compat: kept so any external code referencing this still works.
@@ -127,6 +145,9 @@ class GamePrediction:
     poisson: Optional[float] = None
     nfl_efficiency: Optional[float] = None
     nfl_qb_elo: Optional[float] = None
+    nfl_qb_elo_depth: Optional[float] = None   # qb_elo with the pre-game depth-chart starter
+    form_margin: Optional[float] = None        # margin-based form (NFL)
+    starter_changed: bool = False              # depth-chart starter != last-game passer (either side)
 
 
 def _ensemble(probs: dict[str, Optional[float]], weights: dict[str, float]) -> Optional[float]:
@@ -220,14 +241,21 @@ def _print_metric_row(label: str, brier: float, acc: float, ll: float, n: int) -
 def _evaluate(
     preds: list[GamePrediction],
     season_filter: Optional[set[str]] = None,
+    changed_only: bool = False,
 ) -> dict[str, dict[str, float]]:
-    """Compute per-model and per-ensemble metrics over the given season filter."""
+    """Compute per-model and per-ensemble metrics over the given season filter.
+
+    `changed_only` restricts to games where the depth-chart starter differed
+    from the last-game passer on either side — the subset the depth-chart
+    variant exists for."""
     if season_filter is not None:
         preds = [p for p in preds if p.season in season_filter]
+    if changed_only:
+        preds = [p for p in preds if p.starter_changed]
 
     out: dict[str, dict[str, float]] = {}
 
-    for model_name in ["elo", "form", "poisson", "nfl_efficiency", "nfl_qb_elo"]:
+    for model_name in ["elo", "form", "form_margin", "poisson", "nfl_efficiency", "nfl_qb_elo", "nfl_qb_elo_depth"]:
         ps = []
         actuals = []
         for p in preds:
@@ -254,9 +282,11 @@ def _evaluate(
             probs = {
                 "elo": p.elo,
                 "form": p.form,
+                "form_margin": p.form_margin,
                 "poisson": p.poisson,
                 "nfl_efficiency": p.nfl_efficiency,
                 "nfl_qb_elo": p.nfl_qb_elo,
+                "nfl_qb_elo_depth": p.nfl_qb_elo_depth,
             }
             ens = _ensemble(probs, weights)
             if ens is not None:
@@ -403,7 +433,13 @@ def main() -> int:
     ap.add_argument("--no-reseed", action="store_true",
                     help="Disable intra-season re-seeding. State is frozen to a single "
                          "pre-eval-period snapshot per season. Useful as a baseline.")
+    ap.add_argument("--form-shrink", type=float, default=None,
+                    help="Shrink for the NFL margin-form variant (default: form_agent MARGIN_FORM_PARAMS)")
+    ap.add_argument("--no-depth", action="store_true",
+                    help="Skip the depth-chart starter variant (no nflverse depth-chart fetch)")
     args = ap.parse_args()
+    if args.form_shrink is not None:
+        form_mod.MARGIN_FORM_PARAMS.setdefault("nfl", {})["shrink"] = args.form_shrink
 
     if args.restore_only:
         # Restore both backup files if present
@@ -454,6 +490,20 @@ def main() -> int:
                 pl.col("game_date").cast(pl.Date)
             )
         print(f"[qb_elo] indexed {len(games_with_starters)} games with starters")
+
+        # Depth-chart starters (pre-game) + game_date → NFL week map (the ≤2024
+        # weekly chart schema is keyed by week; 2025+ snapshots by date).
+        week_by_date: dict[date, int] = {}
+        for r in pbp.select(["game_date", "week"]).unique().iter_rows(named=True):
+            gd = r["game_date"]
+            gd = gd if isinstance(gd, date) else date.fromisoformat(str(gd)[:10])
+            if r["week"] is not None:
+                week_by_date[gd] = int(r["week"])
+        depth_rows: dict[int, list] = {}
+        if not args.no_depth:
+            for yr in sorted({int(f"20{s[:2]}") for s in seasons}):
+                depth_rows[yr] = load_qb_chart_rows(yr)
+                print(f"[depth] season {yr}: {len(depth_rows[yr])} QB chart rows")
 
         # Walk-forward fresh elo / form / poisson
         elo = EloModelAgent(); elo._state = {}
@@ -508,21 +558,51 @@ def main() -> int:
                     n_reseeds += 1
 
                 elo_p = _elo_predict(elo, "nfl", home, away)
+                form_mod.MARGIN_FORM_SECTORS.discard("nfl")
                 form_p = _form_predict(form, "nfl", home, away, game_date)
+                form_mod.MARGIN_FORM_SECTORS.add("nfl")
+                form_margin_p = _form_predict(form, "nfl", home, away, game_date)
                 pois_p = _poisson_predict(poisson, "nfl", home, away)
                 nfl_eff_p = _agent_predict(nfl_eff, home, away)
+                qb_elo.clear_pregame_starters()
                 qb_elo_p = _agent_predict(qb_elo, home, away)
+
+                # Depth-chart variant: production falls back to the last-game
+                # passer whenever no chart covers a team, so a game with no
+                # chart at all scores the SAME as the pbp variant (never None —
+                # that would silently drop qb_elo from the blend for that game
+                # and confound the comparison).
+                qb_elo_depth_p: Optional[float] = qb_elo_p
+                starter_changed = False
+                rows = depth_rows.get(_season_of(game_date))
+                if rows:
+                    resolved = resolve_pregame_starters(
+                        _season_of(game_date), as_of=game_date,
+                        week=week_by_date.get(game_date), rows=rows,
+                    )
+                    overrides = {t: d["starter"] for t, d in resolved.items() if d.get("starter")}
+                    if overrides:
+                        cur = (qb_elo._state.get("nfl") or {}).get("current_starters", {})
+                        for t in (NFL_NICKNAME_TO_NAME.get(home, home), NFL_NICKNAME_TO_NAME.get(away, away)):
+                            if overrides.get(t) and cur.get(t) and overrides[t] != cur[t]:
+                                starter_changed = True
+                        qb_elo.set_pregame_starters(overrides)
+                        qb_elo_depth_p = _agent_predict(qb_elo, home, away)
+                        qb_elo.clear_pregame_starters()
 
                 all_preds.append(GamePrediction(
                     season=s, game_date=game_date, home=home, away=away,
                     home_won=home_won,
                     elo=elo_p, form=form_p, poisson=pois_p,
                     nfl_efficiency=nfl_eff_p, nfl_qb_elo=qb_elo_p,
+                    nfl_qb_elo_depth=qb_elo_depth_p, form_margin=form_margin_p,
+                    starter_changed=starter_changed,
                 ))
 
                 # Walk-forward updates (after prediction, before next game)
                 _elo_update(elo, "nfl", home, away, home_won, game_date)
-                _form_update(form, "nfl", home, away, home_won, game_date)
+                _form_update(form, "nfl", home, away, home_won, game_date,
+                             home_score=g["home_score"], away_score=g["away_score"])
                 _poisson_update(poisson, "nfl", home, away, g["home_score"], g["away_score"])
 
         print(f"\n[reseed] performed {n_reseeds} re-seeds across the walk-forward")
@@ -536,6 +616,14 @@ def main() -> int:
 
         combined = _evaluate(all_preds)
         _print_table("Combined (all seasons)", combined)
+
+        n_changed = sum(1 for p in all_preds if p.starter_changed)
+        if n_changed:
+            print(f"\n=== CHANGED-STARTER SUBSET (depth-chart QB != last-game passer on either side): "
+                  f"{n_changed} of {len(all_preds)} games ===")
+            for s in seasons:
+                _print_table(f"Season {s} — changed starters only", _evaluate(all_preds, {s}, changed_only=True))
+            _print_table("Combined — changed starters only", _evaluate(all_preds, changed_only=True))
 
         # Gate summary table — best blend per evaluation period
         print()

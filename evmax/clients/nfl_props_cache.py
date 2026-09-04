@@ -30,6 +30,7 @@ import io
 import re
 import time
 import unicodedata
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Optional
@@ -226,39 +227,67 @@ def _download_parquets() -> bool:
     _NFL_DATA_DIR.mkdir(parents=True, exist_ok=True)
     logger.info("nfl_props_downloading_parquets", seasons=seasons)
 
-    try:
-        # Weekly stats — one file per season
-        frames = []
-        for y in seasons:
-            url = f"{_NFLVERSE}/stats_player/stats_player_week_{y}.parquet"
-            logger.debug("nfl_props_fetch", url=url)
-            req = urllib.request.Request(url, headers={"User-Agent": "evmax-scan"})
+    def _fetch(url: str) -> Optional["pd.DataFrame"]:
+        """GET one nflverse parquet; None on 404 (season not published yet).
+
+        nflverse only cuts ``stats_player_week_{season}.parquet`` once that
+        season has a played week, so in the Sep window ``_current_seasons()``
+        names a file that 404s until Week 1 is in the books (verified
+        2026-09-02: ``..._2026.parquet`` 404, ``roster_weekly_2026`` 200).
+        Treating that as a hard failure left the cache permanently empty for
+        the whole season opener; a missing season is skipped instead and the
+        prior season still feeds the point-in-time history.
+        """
+        logger.debug("nfl_props_fetch", url=url)
+        req = urllib.request.Request(url, headers={"User-Agent": "evmax-scan"})
+        try:
             with urllib.request.urlopen(req, timeout=60) as r:
                 blob = r.read()
-            df = pd.read_parquet(io.BytesIO(blob))
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                logger.warning("nfl_props_parquet_not_published", url=url)
+                return None
+            raise
+        return pd.read_parquet(io.BytesIO(blob))
+
+    try:
+        # Weekly stats — one file per season; skip seasons not yet published
+        frames = []
+        skipped: list[int] = []
+        for y in seasons:
+            df = _fetch(f"{_NFLVERSE}/stats_player/stats_player_week_{y}.parquet")
+            if df is None:
+                skipped.append(y)
+                continue
             if "season" not in df.columns:
                 df["season"] = y
             frames.append(df)
+        if not frames:
+            logger.warning("nfl_props_download_failed", error="no weekly-stats season available", seasons=seasons)
+            return False
         weekly = pd.concat(frames, ignore_index=True)
         weekly.to_parquet(_WEEKLY_PATH, index=False)
 
         # Schedules — single file covers all seasons
-        url = f"{_NFLVERSE}/schedules/games.parquet"
-        req = urllib.request.Request(url, headers={"User-Agent": "evmax-scan"})
-        with urllib.request.urlopen(req, timeout=60) as r:
-            blob = r.read()
-        schedules = pd.read_parquet(io.BytesIO(blob))
+        schedules = _fetch(f"{_NFLVERSE}/schedules/games.parquet")
+        if schedules is None:
+            logger.warning("nfl_props_download_failed", error="schedules parquet missing")
+            return False
         schedules = schedules[schedules.season.isin(seasons)].reset_index(drop=True)
         schedules.to_parquet(_SCHEDULES_PATH, index=False)
 
-        # Rosters — one file per season
+        # Rosters — one file per season; the current season's roster file IS
+        # published pre-season (rookies/offseason moves), so keep it even when
+        # its weekly stats aren't out yet — that is what lets a Week 1 prop on
+        # a traded player resolve to the right gsis_id.
         frames = []
         for y in seasons:
-            url = f"{_NFLVERSE}/weekly_rosters/roster_weekly_{y}.parquet"
-            req = urllib.request.Request(url, headers={"User-Agent": "evmax-scan"})
-            with urllib.request.urlopen(req, timeout=60) as r:
-                blob = r.read()
-            frames.append(pd.read_parquet(io.BytesIO(blob)))
+            df = _fetch(f"{_NFLVERSE}/weekly_rosters/roster_weekly_{y}.parquet")
+            if df is not None:
+                frames.append(df)
+        if not frames:
+            logger.warning("nfl_props_download_failed", error="no roster season available", seasons=seasons)
+            return False
         rosters = pd.concat(frames, ignore_index=True)
         rosters.to_parquet(_ROSTERS_PATH, index=False)
 
@@ -267,6 +296,7 @@ def _download_parquets() -> bool:
             weekly_rows=len(weekly),
             schedule_rows=len(schedules),
             roster_rows=len(rosters),
+            weekly_seasons_skipped=skipped or None,
         )
         return True
     except Exception as e:

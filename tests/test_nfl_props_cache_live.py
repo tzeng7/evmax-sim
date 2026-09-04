@@ -465,3 +465,86 @@ class TestComputeNflPropDiagnostics:
     def test_roster_only_player_without_gamelog_returns_none(self, nfl_parquets):
         # "Unknown Vet" is in rosters but has no weekly rows → no by_player df.
         assert nfl_props_cache.compute_nfl_prop_diagnostics("Unknown Vet") is None
+
+
+class TestDownloadParquets:
+    """nflverse publishes ``stats_player_week_{season}.parquet`` only once that
+    season has a played week, so in early September ``_current_seasons()``
+    names a file that 404s. The download must skip that season (keeping the
+    prior season's history) rather than fail the whole refresh — a hard
+    failure left the cache empty for the entire season opener."""
+
+    @staticmethod
+    def _install(monkeypatch, tmp_path, *, missing_stats_seasons):
+        import io
+        import urllib.error
+
+        d = tmp_path / "nfl_props"
+        monkeypatch.setattr(nfl_props_cache, "_NFL_DATA_DIR", d)
+        monkeypatch.setattr(nfl_props_cache, "_WEEKLY_PATH", d / "weekly_stats.parquet")
+        monkeypatch.setattr(nfl_props_cache, "_ROSTERS_PATH", d / "rosters.parquet")
+        monkeypatch.setattr(nfl_props_cache, "_SCHEDULES_PATH", d / "schedules.parquet")
+        monkeypatch.setattr(nfl_props_cache, "_current_seasons", lambda: [2025, 2026])
+        calls: list[str] = []
+
+        def _parquet_bytes(df):
+            buf = io.BytesIO()
+            df.to_parquet(buf, index=False)
+            return buf.getvalue()
+
+        class _Resp:
+            def __init__(self, blob): self._blob = blob
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+            def read(self): return self._blob
+
+        def fake_urlopen(req, timeout=60):
+            url = req.full_url
+            calls.append(url)
+            if "stats_player_week_" in url:
+                season = int(url.rsplit("_", 1)[1].split(".")[0])
+                if season in missing_stats_seasons:
+                    raise urllib.error.HTTPError(url, 404, "Not Found", None, None)
+                df = pd.DataFrame([{"player_id": "A", "season": season, "week": 1, "passing_yards": 100}])
+            elif "schedules/games.parquet" in url:
+                df = pd.DataFrame([
+                    {"season": 2020, "week": 1, "gameday": "2020-09-10", "home_team": "KC", "away_team": "HOU"},
+                    {"season": 2025, "week": 1, "gameday": "2025-09-07", "home_team": "KC", "away_team": "LV"},
+                    {"season": 2026, "week": 1, "gameday": "2026-09-13", "home_team": "KC", "away_team": "LV"},
+                ])
+            elif "roster_weekly_" in url:
+                season = int(url.rsplit("_", 1)[1].split(".")[0])
+                df = pd.DataFrame([{"player_display_name": "X", "gsis_id": "A", "season": season}])
+            else:
+                raise AssertionError(url)
+            return _Resp(_parquet_bytes(df))
+
+        monkeypatch.setattr(nfl_props_cache.urllib.request, "urlopen", fake_urlopen)
+        return d, calls
+
+    def test_skips_unpublished_current_season_and_keeps_prior(self, tmp_path, monkeypatch):
+        d, calls = self._install(monkeypatch, tmp_path, missing_stats_seasons={2026})
+        assert nfl_props_cache._download_parquets() is True
+        weekly = pd.read_parquet(d / "weekly_stats.parquet")
+        assert set(weekly["season"]) == {2025}
+        # The 2026 ROSTER file is published pre-season and must be kept.
+        rosters = pd.read_parquet(d / "rosters.parquet")
+        assert set(rosters["season"]) == {2025, 2026}
+        schedules = pd.read_parquet(d / "schedules.parquet")
+        assert set(schedules["season"]) == {2025, 2026}
+        assert any("stats_player_week_2026" in c for c in calls)
+
+    def test_fails_clear_when_no_stats_season_is_published(self, tmp_path, monkeypatch):
+        d, _ = self._install(monkeypatch, tmp_path, missing_stats_seasons={2025, 2026})
+        assert nfl_props_cache._download_parquets() is False
+        assert not (d / "weekly_stats.parquet").exists()
+
+    def test_non_404_http_error_still_fails(self, tmp_path, monkeypatch):
+        import urllib.error
+        d, _ = self._install(monkeypatch, tmp_path, missing_stats_seasons=set())
+
+        def boom(req, timeout=60):
+            raise urllib.error.HTTPError(req.full_url, 500, "Server Error", None, None)
+
+        monkeypatch.setattr(nfl_props_cache.urllib.request, "urlopen", boom)
+        assert nfl_props_cache._download_parquets() is False

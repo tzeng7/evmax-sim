@@ -55,6 +55,15 @@ Soccer (see MIN_NONSHARP_MODELS in ``ev_gap_agent.py``):
     demotes those to shadow, so any live-mode sharp-only soccer ML row is
     pre-guard.
 
+NCAAF (see the NCAAF Efficiency row in CLAUDE.md):
+  - ``moneyline`` with the v1 ``ncaaf_efficiency`` token but NOT
+    ``ncaaf_efficiency_v2``: v2 (2026-09-03) replaced the EPA-only margin
+    with EPA + opponent-adjusted success rate on an FPI-mixed preseason
+    prior (held-out Brier −5 to −7/1000 on 2023/2024/2025) and renamed the
+    model so the promotion sample only scores v2-priced rows — the
+    pitcher → pitcher_v2 precedent. Rows without either token (elo+sharp
+    early-season blends) are legitimate and stay clean.
+
 To add a sector rule later, append to ``CONTAMINATION_RULES`` — the metrics
 command and any SQL caller pick it up automatically.
 """
@@ -127,6 +136,15 @@ CONTAMINATION_RULES: dict[str, list[RowRule]] = {
         # (the unseeded-MLS sharp-passthrough failure) predates the guard —
         # current code demotes those to shadow instead of logging them live.
         lambda mt, src, line: mt == "moneyline" and _nonsharp_count(src) == 0,
+    ],
+    "ncaaf": [
+        # ncaaf_efficiency_v2 shipped 2026-09-03 (EPA + success rate, FPI-mixed
+        # prior; model renamed). A v1-token row was priced by the superseded
+        # EPA-only margin. `_has` is a substring test, so exclude the v2 token
+        # explicitly; rows carrying neither token are not flagged.
+        lambda mt, src, line: (
+            mt == "moneyline" and _has(src, "ncaaf_efficiency") and not _has(src, "ncaaf_efficiency_v2")
+        ),
     ],
 }
 

@@ -30,6 +30,19 @@ The file was originally written for esports but was extended to cover every spor
   on error so the agent falls back cleanly
 - Structured to add lineups / bullpen (the same schedule endpoint hydrates both)
 
+### `nfl_depth_charts.py` — nflverse depth charts → pre-game QB starters
+
+- Feeds `nfl_qb_elo` the QB who will actually start (nflverse depth charts:
+  2025+ near-daily `dt` snapshots, ≤2024 weekly `depth_team` rows — both
+  schemas normalized to `QbChartRow`) minus any QB the ESPN injury report
+  lists Out / IR / Suspension / Doubtful. `current_starters` (the LAST game's
+  passer) is only the fallback.
+- Primed by `AgentCoordinator._prime_nfl_pregame_starters` before the NFL
+  ensemble runs (fetch in a thread, 6h in-process TTL, fail-soft → no
+  overrides). `pbp_passer_name` maps "Michael Penix Jr." → "M.Penix" to match
+  the `qb_deltas` keys. Gated in `scripts/backtest_nfl_efficiency.py`
+  (`nfl_qb_elo_depth` column).
+
 ## Seed-time clients (not in the live scan pipeline)
 
 ### `tennisabstract.py` — Tennis Abstract scrapers

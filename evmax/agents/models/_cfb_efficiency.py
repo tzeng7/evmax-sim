@@ -276,6 +276,7 @@ def aggregate_game_sides(
     from collections import defaultdict
 
     side_epa: dict[tuple, list[float]] = defaultdict(list)
+    side_succ: dict[tuple, int] = defaultdict(int)
     side_meta: dict[tuple, tuple] = {}
     tally = defaultdict(lambda: {
         "gp_games": set(), "off_plays": 0, "off_success": 0,
@@ -298,6 +299,7 @@ def aggregate_game_sides(
         side_epa[key].append(epa)
         side_meta[key] = (off, dfn)
         succ = is_success(p["down"], p.get("distance") or 0, p.get("yards_gained") or 0)
+        side_succ[key] += int(succ)
         if off in fbs_ids:
             tally[off]["off_plays"] += 1
             tally[off]["off_success"] += int(succ)
@@ -324,6 +326,10 @@ def aggregate_game_sides(
             "off_id": off_pool,
             "def_id": def_pool,
             "epa": sum(epas) / len(epas),
+            # success rate over the SAME filtered scrimmage plays — the second
+            # rating dimension of ncaaf_efficiency_v2 (opponent-adjusted by the
+            # same solver via value_key="sr").
+            "sr": side_succ[(gid, off)] / len(epas),
             "plays": len(epas),
             "side": side,
         })
@@ -355,17 +361,27 @@ def build_team_ratings(
     Sign convention matches the NFL agent: off_epa_adj > 0 = better offense;
     def_epa_adj = EPA allowed vs league (LOWER = better defense). So the solver's
     def_allowed rating is stored directly as def_epa_adj and net = off − def.
+
+    v2 (2026-09-03) adds the same solve on per-game-side SUCCESS RATE:
+    off_sr_adj / def_sr_adj (league-relative, def = success rate allowed, lower
+    = better). Success rate is the one play-level signal that added held-out
+    value on top of EPA (2023/2024/2025 walk-forward, scripts/backtest_ncaaf_v2.py);
+    explosiveness, pass/rush splits, turnover splits and special teams did not.
+    The raw (un-adjusted) tallies are kept for back-compat / diagnostics.
     """
     game_sides, tally = aggregate_game_sides(
         plays, fbs_ids, games_by_id, ep_table, garbage_margin, min_plays
     )
     adj = opponent_adjust_epa(game_sides, ridge=ridge)
+    adj_sr = opponent_adjust_epa(game_sides, ridge=ridge, value_key="sr")
     teams: dict[str, dict] = {}
     for tid in fbs_ids:
         t = tally.get(tid, {"gp": 0, "off_success_rate": 0.0, "def_success_rate": 0.0})
         teams[tid] = {
             "off_epa_adj": adj["off"].get(tid, 0.0),
             "def_epa_adj": adj["def_allowed"].get(tid, 0.0),
+            "off_sr_adj": adj_sr["off"].get(tid, 0.0),
+            "def_sr_adj": adj_sr["def_allowed"].get(tid, 0.0),
             "gp": t["gp"],
             "off_success_rate": t["off_success_rate"],
             "def_success_rate": t["def_success_rate"],
@@ -374,6 +390,8 @@ def build_team_ratings(
         "teams": teams,
         "league_mean_epa": adj["league_mean_epa"],
         "hfa_epa": adj["hfa"],
+        "league_mean_sr": adj_sr["league_mean_epa"],
+        "hfa_sr": adj_sr["hfa"],
     }
 
 
@@ -388,8 +406,13 @@ def opponent_adjust_epa(
     tol: float = 1e-5,
     ridge: float = 1.0,
     estimate_hfa: bool = True,
+    value_key: str = "epa",
 ) -> dict:
     """Solve league-relative offensive / defensive EPA-per-play ratings.
+
+    ``value_key`` selects the per-game-side response column ("epa" by default;
+    "sr" for success rate) — the additive model and solver are identical for
+    any zero-mean-ish per-play average, so v2's success-rate ratings reuse it.
 
     Additive model, one observation per (game, offense side):
 
@@ -433,7 +456,7 @@ def opponent_adjust_epa(
             continue
         off_i.append(_idx(gs["off_id"]))
         def_i.append(_idx(gs["def_id"]))
-        epa.append(float(gs["epa"]))
+        epa.append(float(gs[value_key]))
         w.append(pl)
         side.append(float(gs.get("side", 0.0)))
 
@@ -540,6 +563,85 @@ def blended_net(stats: dict, k: float) -> float:
     net_in = stats.get("off_epa_adj", 0.0) - stats.get("def_epa_adj", 0.0)
     net_prior = stats.get("off_epa_prior", 0.0) - stats.get("def_epa_prior", 0.0)
     return w * net_in + (1.0 - w) * net_prior
+
+
+# ---------------------------------------------------------------------------
+# v2: FPI-mixed preseason prior + success-rate second dimension
+# ---------------------------------------------------------------------------
+
+STATE_SCHEMA_V2 = 2
+
+
+def state_has_v2_schema(sector_state: dict) -> bool:
+    """True when the seed wrote the v2 fields (off/def_sr_adj + priors, fpi_prior)."""
+    try:
+        return int(sector_state.get("schema_version", 1)) >= STATE_SCHEMA_V2
+    except (TypeError, ValueError):
+        return False
+
+
+def epa_prior_net(stats: dict, fpi_share: float, plays_per_team: float) -> float:
+    """Effective preseason net-EPA/play prior for one team.
+
+    The regressed prior-season EPA prior (off_epa_prior − def_epa_prior) is
+    mixed with the team's PRESEASON FPI (``fpi_prior``: points vs the FBS
+    mean, converted to EPA/play by dividing by plays per game) when the state
+    carries one. Teams without an FPI row (or fpi_share == 0) fall back to the
+    EPA-only prior — never imputed. 50/50 was the shipped share: pure FPI was
+    equal-or-slightly-better on the three holdouts, the mix degrades
+    gracefully when the FPI fetch fails.
+    """
+    net_prior = stats.get("off_epa_prior", 0.0) - stats.get("def_epa_prior", 0.0)
+    fpi = stats.get("fpi_prior")
+    if fpi is None or fpi_share <= 0.0 or plays_per_team <= 0:
+        return net_prior
+    return (1.0 - fpi_share) * net_prior + fpi_share * (float(fpi) / plays_per_team)
+
+
+def blended_component(
+    stats: dict,
+    k: float,
+    comp: str = "epa",
+    fpi_share: float = 0.0,
+    plays_per_team: float = 70.0,
+) -> float:
+    """Ramp-blended league-relative net rating for one component.
+
+    comp="epa" → off_epa_adj − def_epa_adj, prior via :func:`epa_prior_net`
+    (FPI-mixed). comp="sr" → off_sr_adj − def_sr_adj with the regressed
+    off/def_sr_prior. Same ramp w(gp) = gp/(gp+k) as :func:`blended_net`.
+    """
+    gp = stats.get("gp", 0)
+    w = prior_ramp_weight(gp, k)
+    net_in = stats.get(f"off_{comp}_adj", 0.0) - stats.get(f"def_{comp}_adj", 0.0)
+    if comp == "epa":
+        net_prior = epa_prior_net(stats, fpi_share, plays_per_team)
+    else:
+        net_prior = stats.get(f"off_{comp}_prior", 0.0) - stats.get(f"def_{comp}_prior", 0.0)
+    return w * net_in + (1.0 - w) * net_prior
+
+
+def project_win_prob_v2(
+    d_epa: float,
+    d_sr: float,
+    epa_pts: float,
+    sr_pts: float,
+    home_edge_pts: float,
+    score_stdev: float,
+    neutral: bool = False,
+) -> tuple[float, float]:
+    """v2 margin model: margin = epa_pts·Δnet_epa + sr_pts·Δnet_sr + home edge.
+
+    d_epa / d_sr are home-minus-away component deltas (EPA/play and success
+    rate). epa_pts / sr_pts are points of margin per unit delta — frozen
+    constants fit by no-intercept OLS on 2024 and held out on 2023 + 2025
+    (scripts/backtest_ncaaf_v2.py --fit). Returns (prob_home, margin), prob
+    clipped to [0.02, 0.98] like v1.
+    """
+    edge = 0.0 if neutral else home_edge_pts
+    margin = epa_pts * d_epa + sr_pts * d_sr + edge
+    p = _normal_cdf(margin / score_stdev)
+    return max(0.02, min(0.98, p)), margin
 
 
 # ---------------------------------------------------------------------------

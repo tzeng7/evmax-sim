@@ -66,7 +66,7 @@ KNOWN_MODELS: set[str] = {
     # NCAA football advanced agent (opponent-adjusted EPA/play + preseason-prior
     # ramp; own math file, ESPN play-by-play source). Wired into the ncaaf
     # ensemble in Phase 2 — registered here so the category models list validates.
-    "ncaaf_efficiency",
+    "ncaaf_efficiency_v2",
     # NHL-specific advanced agents
     "nhl_xg",
     # College basketball advanced agents (parallel stack: shared math core in

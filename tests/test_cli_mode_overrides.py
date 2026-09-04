@@ -79,12 +79,12 @@ def test_disabled_flag_installs_override(_reset_overrides):
 
 
 def test_live_flag_can_force_disabled_to_live(_reset_overrides):
-    """The YAML ships nfl_props as disabled. --live should flip it to live."""
+    """The YAML ships nba_props as disabled. --live should flip it to live."""
     # Baseline (with the autouse reset): mode reflects YAML
-    assert get_mode("nfl_props") == "disabled"
-    result = _invoke("--live", "nfl_props")
+    assert get_mode("nba_props") == "disabled"
+    result = _invoke("--live", "nba_props")
     assert result.exit_code == 0
-    assert get_mode("nfl_props") == "live"
+    assert get_mode("nba_props") == "live"
 
 
 def test_multiple_categories_in_one_flag(_reset_overrides):
@@ -115,7 +115,8 @@ def test_no_flags_produces_no_override_message(_reset_overrides):
     assert "Mode overrides for this run" not in result.stdout
     # And the YAML defaults apply
     assert get_mode("nba") == "live"
-    assert get_mode("nfl_props") == "disabled"
+    assert get_mode("nba_props") == "disabled"
+    assert get_mode("nfl_props") == "shadow"   # re-opened for the 2026 season
 
 
 def test_clv_backfill_summary_prints_without_error(_reset_overrides):
