@@ -714,7 +714,7 @@ Why it matters: CLV is the leading indicator for model sharpness. Brier needs 10
 ## Section 6 — Player Props (In Progress)
 
 ### PROPS-1 Define NFL Props Backend Before Fetching [P1]
-Currently NFL prop Kalshi series are fetched but silently discarded (see ARCH-4). Implement or disable.
+Superseded on both halves (see ARCH-4): the backend exists (`_PROP_SECTORS` includes `nfl`, so NFL props are priced, not discarded) and the category was re-opened `disabled → shadow` on 2026-09-02 (PR #241, once Pinnacle prop prices flowed again off the bulk straight-markets index), so the MODEL-9 shadow-validation clock runs from Week 1 — see the NFL-props block in [`docs/SEASON_START.md`](docs/SEASON_START.md).
 
 ### PROPS-2 Add Combo Stat Prop Parsing Test [P2]
 `KXNBAPRA` (points+rebounds+assists) — verify the Kalshi title regex in `kalshi.py` correctly parses combo stat thresholds (e.g., "Jokic 55.5+ PRA" → player=Jokic, stat=points_rebounds_assists, threshold=55.5).

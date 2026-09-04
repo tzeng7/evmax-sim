@@ -22,7 +22,7 @@ below is only the part that doesn't.
 | **Resolve-time model auto-update** | The daily `daily-resolve-and-model-update` scheduled task (07:32) runs `evmax update scores` + `cleanup resolve`, feeding completed ESPN scores into Elo/Form/Poisson state for the game sectors and shot stats into the xG agent for soccer/worldcup. This is the self-heal path that un-gates Elo/Form after the first few game days. | `evmax/agents/cleanup/model_updater.py` |
 | **NBA stat models self-refresh** | `efficiency` / `shot_quality` / `matchup` / `possession_sim` fetch current-season `LeagueDashTeamStats` from `nba_api` at scan time (with an ESPN-driven freshness check and a circuit breaker). No manual seed exists or is needed for NBA. | `evmax/agents/models/_nba_freshness.py` |
 | **Source-season staleness guards (NFL, WNBA)** | `nfl_state_is_stale_for_today` / `state_is_stale_for_today` blank `nfl_efficiency`, `nfl_qb_elo`, `wnba_efficiency`, `wnba_possession_sim` whenever the seeded state's season is behind the active season — a frozen prior-season seed cannot silently fire. NHL's `nhl_xg` has **no such guard** (see Gaps). | `nfl_efficiency_agent.py:84`, `wnba_efficiency_agent.py:117` |
-| **`weekly-seasonal-model-reseed` task** | Monday 07:04, season-aware: WNBA efficiency (May–Oct), NFL efficiency + QB Elo (Sep–Feb), MLB pitcher FIP (Mar–Nov). Covers exactly three sports — NHL, NCAAB/W, and soccer are **not** in it. | `~/.claude/scheduled-tasks/weekly-seasonal-model-reseed/SKILL.md`, [`docs/SCHEDULED_RUNS.md`](SCHEDULED_RUNS.md) |
+| **`weekly-seasonal-model-reseed` task** | Monday 07:04, season-aware: WNBA efficiency (May–Oct), NFL efficiency + QB Elo (Sep–Feb), MLB pitcher_v2 (Mar–Nov), UFC Glicko-2 ratings (weekly, no offseason). NCAAF efficiency has its **own** task since 2026-09-03 — `weekly-ncaaf-efficiency-reseed`, Monday 07:10, Aug–Jan, isolated-worktree + rolling `bot/model-state` PR. NHL, NCAAB/W, and soccer are **not** in either. | `~/.claude/scheduled-tasks/weekly-seasonal-model-reseed/SKILL.md`, [`docs/SCHEDULED_RUNS.md`](SCHEDULED_RUNS.md) |
 
 **Net effect of the guards:** for roughly the first week of any restarted
 season, the blend degrades toward sharp-passthrough (Pinnacle devig at
@@ -268,8 +268,12 @@ below generalize from — its offseason-gap incident (+24pp chalk bias, May
    `scripts/offseason_regress.py --sector <s> [--moves <yaml>]` — shrinkage
    toward 1500 with a per-sector coefficient; the roster-move YAML stays
    optional and human-reviewed. Keep it manual-by-design like WNBA's.
-4. **NCAAW Elo calibration** (before Nov, MODEL-2/SECTOR-2) — turns NCAAW's
-   opening month from sharp-only into an actual blend.
+4. ~~**NCAAW Elo calibration** (before Nov, MODEL-2/SECTOR-2)~~ — **DONE
+   2026-07-11.** Generic Elo now runs NCAAW-calibrated `K=35` /
+   `HOME_ADVANTAGE_ELO=80` (`elo_agent.py`), swept on 2024-25 and held out on
+   2025-26. The NHL half of MODEL-2 closed later, on 2026-07-18
+   (`K=6` / `HOME_ADVANTAGE_ELO=48`); raising NHL's 0 ensemble weight is now an
+   open blend decision, not a blocked calibration.
 5. **Polymarket US league-slug checker** — `check_kalshi_series.py` equivalent
    for `POLYMARKET_US_LEAGUE_MAP`; both venues share the season-boundary drift
    risk (matters more once the venue promotion gate clears).

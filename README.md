@@ -4,7 +4,7 @@ evmax uses a multi-agent pipeline to find positive expected value (+EV) opportun
 
 Sharp odds come from the **Pinnacle guest API** (`guest.api.arcadia.pinnacle.com`), which is keyless — the only API credential you need is a Kalshi key for live price refresh and trading (Polymarket US market data is fetched from the public gateway, no key). Every bettable category, its models, mode, and resolver are declared in one registry: [`data/categories.yaml`](data/categories.yaml).
 
-**Venues:** markets from both exchanges merge into one pool; `PredictionMarket.source` / `EVGap.venue` / the `venue` DB column carry the venue through matching → EV → persistence, and dedup keys are venue-aware (the same game on both venues = two independent books). Polymarket US is behind a **venue shadow firewall** (`polymarket_us_live=false`): its gaps log as `mode='shadow'` with Kelly zeroed until the venue clears the shadow-validation gates; `polymarket_us_enabled=false` kills the fetch entirely.
+**Venues:** markets from both exchanges merge into one pool; `PredictionMarket.source` / `EVGap.venue` / the `venue` DB column carry the venue through matching → EV → persistence, and dedup keys are venue-aware (the same game on both venues = two independent books). Polymarket US is behind a **per-sector venue shadow firewall**: a PolyUS gap logs as `mode='shadow'` with Kelly zeroed unless its sector is cleared — either by the master switch `polymarket_us_live=true` (all sectors) or by the `polymarket_us_live_sectors` allowlist (shipped default `wnba`, 2026-08-22). A cleared sector still only goes live if its category mode resolves to `live` upstream. `polymarket_us_enabled=false` kills the fetch entirely.
 
 ---
 
@@ -1537,8 +1537,8 @@ evmax agents scan --shadow nfl_props --live wnba --disabled nhl
 # Monte Carlo simulation + paper-bet tracking
 evmax sim list --status open
 evmax sim resolve
-evmax report
-evmax report bankroll
+evmax report report
+evmax report report --bankroll
 
 # Multi-portfolio management and comparison
 evmax portfolio list
@@ -1563,7 +1563,8 @@ All settings live in `.env` (or environment variables):
 | `KALSHI_WS_ENABLED` | `true` | WebSocket real-time prices; set `false` for REST-only |
 | `KALSHI_WS_SNAPSHOT_TIMEOUT` | `5.0` | Seconds to wait per ticker snapshot before REST fallback |
 | `POLYMARKET_US_ENABLED` | `true` | Kill-switch for the Polymarket US market fetch |
-| `POLYMARKET_US_LIVE` | `false` | Venue shadow firewall — until `true`, every Polymarket US gap logs as shadow with Kelly zeroed |
+| `POLYMARKET_US_LIVE` | `false` | Venue shadow firewall MASTER switch — `true` clears the firewall for every sector at once |
+| `POLYMARKET_US_LIVE_SECTORS` | `wnba` | Comma-separated per-sector allowlist that clears the firewall for those sectors only (the category's own mode must still resolve to `live`) |
 | `EVMAX_CATEGORY_MODES` | — | Per-category mode override, e.g. `'{"nba":"disabled"}'` (CLI flags rank higher) |
 | `EVMAX_JOINT_KELLY_ENABLED` | `false` | Correlation-aware joint Kelly sizing (see [Joint Kelly](#joint-kelly-optional-correlation-aware)) |
 | `SLACK_WEBHOOK_URL` | — | Post EV alerts to Slack |
@@ -1599,7 +1600,7 @@ All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api
 | `ncaaw` | NCAAW Efficiency + PossessionSim + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
 | `ncaaf` | NCAAF Efficiency (opponent-adjusted EPA + preseason-prior ramp) + Elo + Form | moneyline (`spread` + `total` disabled) | espn_scoreboard | `shadow` (wip) |
 | `soccer` | Poisson + xG + Elo + Form | moneyline, total | espn_scoreboard | `live` |
-| `worldcup` | Poisson + xG + Elo + Form (national-team namespaces) | moneyline, advance | espn_scoreboard (`fifa.world`) | `shadow` |
+| `worldcup` | Poisson + xG + Elo + Form (national-team namespaces) | moneyline, advance | espn_scoreboard (`fifa.world`) | `disabled` (wip) |
 | `tennis` | Surface Elo + Serve/Return + Form + Advanced + H2H + Ranking Trend | moneyline | kalshi_settlement | `live` |
 | `baseball` | Pitcher + Elo + Form (probables via MLB Stats API) | moneyline, spread (`total` disabled) | espn_scoreboard | `shadow` |
 | `wnba` | WNBA Efficiency + WNBA PossessionSim + Elo | moneyline (`spread` + `total` **disabled** — owned by the anchored-entry trigger since 2026-07-19) | espn_scoreboard | `live` |
@@ -1607,9 +1608,9 @@ All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api
 | `lol` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
 | `cs2` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
 | `ufc` | UFC Rating (Glicko-2 + feature layer) | moneyline | kalshi_settlement | `shadow` |
-| `nba_props` | NBA Props Cache | player_prop | espn_boxscore | `shadow` |
+| `nba_props` | NBA Props Cache | player_prop | espn_boxscore | `disabled` |
 | `nfl_props` | NFL Props Cache (QB only v1) | player_prop | espn_boxscore | `shadow` (blocked) |
-| `baseball_props` | Baseball Props Model (K/Outs/TB/HR anchored; Hits/H+R+RBI/RBI model-priced) | player_prop | mlb_statsapi | `shadow` (wip) |
+| `baseball_props` | Baseball Props Model (K/Outs/TB/HR anchored; Hits/H+R+RBI/RBI model-priced) | player_prop | mlb_statsapi | `disabled` (wip) |
 
 > Injury data (ESPN) is applied to NBA / NFL / NCAAB / NCAAW / soccer / WNBA (`SECTOR_INJURY_URLS` in `injury_agent.py`). `valorant` and `f1` sector handlers exist in the registry as **latent** sectors but have no Kalshi product, so they're absent from `SECTOR_SERIES_MAP` and cannot be bet today; `ufc` graduated from that latent list to a live `shadow` sector on 2026-07-11 (`KXUFCFIGHT`).
 
@@ -1656,7 +1657,7 @@ Every category runs in one of three modes (`evmax.modes.get_mode`):
 - **Advance (World Cup knockouts)** — "Team X advances" including extra time / penalties. Distinct from `KXWCGAME`, which settles on the 90' regulation result. Pinnacle has no live per-match advance market, so both the sharp anchor and model prob are derived from the same game's regulation 3-way via `derive_advance_prob` in `evmax/ev/devig.py`. Advance records carry a `::advance` event-key suffix so they can never cross-match regulation records.
 - **Player props** — over/under a player stat line (NBA / NFL / MLB props)
 
-**Polymarket US coverage:** 8 sectors fetch from the Polymarket US gateway alongside Kalshi (`POLYMARKET_US_LEAGUE_MAP` in `evmax/clients/polymarket_us.py`): NBA, WNBA, NFL, NCAAB (`cbb`), MLB, NHL, soccer (`epl`/`ucl`/`mls`), tennis (`atp`/`wta`). All Polymarket US gaps log as shadow until the venue firewall lifts.
+**Polymarket US coverage:** 8 sectors fetch from the Polymarket US gateway alongside Kalshi (`POLYMARKET_US_LEAGUE_MAP` in `evmax/clients/polymarket_us.py`): NBA, WNBA, NFL, NCAAB (`cbb`), MLB, NHL, soccer (`epl`/`ucl`/`mls`), tennis (`atp`/`wta`). PolyUS gaps log as shadow unless their sector is cleared by `polymarket_us_live_sectors` (default `wnba`) or the `polymarket_us_live` master switch.
 
 ---
 
