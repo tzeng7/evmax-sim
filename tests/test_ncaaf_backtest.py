@@ -53,3 +53,28 @@ def test_brier_skips_missing():
     rows = [{"model": 0.8, "y": 1}, {"model": None, "y": 0}]
     (_, _), n = bt._brier(rows, "model")
     assert n == 1   # the None row is skipped, not counted as 0
+
+
+def test_orient_spreads_matches_full_names_and_flips_away_rows():
+    """cfbfastR's `abbr` column carries full team names for 2023+ ("Penn State");
+    the old abbreviation-only join matched ~5% of rows. Home rows keep their
+    sign, away rows flip, abbreviations still work as a fallback, unmatched
+    labels and unknown games are skipped, and the median spans books."""
+    games = [
+        {"game_id": "1", "home": {"location": "Penn State", "abbr": "PSU"},
+         "away": {"location": "Ohio State", "abbr": "OSU"}},
+        {"game_id": "2", "home": {"location": "South Florida", "abbr": "USF"},
+         "away": {"location": "Old Dominion", "abbr": "ODU"}},
+    ]
+    rows = [
+        ("1", "Penn State", 3.5),        # home row, full name
+        ("1", "Ohio State", -3.5),       # away row, flipped -> +3.5
+        (1.0, "OSU", -4.5),              # abbreviation fallback, float game id -> +4.5
+        ("1", "Nobody", 9.0),            # unmatched label skipped
+        ("2", "South Florida", -4.0),
+        ("2", "Old Dominion", 4.0),
+        ("2", "USF", float("nan")),      # NaN skipped
+        ("3", "Penn State", 1.0),        # unknown game skipped
+    ]
+    out = bt._orient_spreads(rows, games)
+    assert out == {"1": 3.5, "2": -4.0}

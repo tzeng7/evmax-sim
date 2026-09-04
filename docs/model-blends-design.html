@@ -666,19 +666,19 @@ where  sw = disagreement_ramp( base_sharp_weight, |model − sharp| gap )</div>
 </div>
 <div class="bar" role="img" aria-label="NCAAF blend: sharp 85%, ncaaf efficiency 8.25%, elo 3.75%, form 3%">
   <span class="seg" style="width:85%;background:var(--sharp)" title="sharp 0.85"></span>
-  <span class="seg" style="width:8.25%;background:var(--s1)" title="ncaaf_efficiency 0.55"></span>
+  <span class="seg" style="width:8.25%;background:var(--s1)" title="ncaaf_efficiency_v2 0.55"></span>
   <span class="seg" style="width:3.75%;background:var(--s3)" title="elo 0.25"></span>
   <span class="seg" style="width:3%;background:var(--s4)" title="form 0.20"></span>
 </div>
 <div class="legend">
   <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.85</b></span>
-  <span class="item"><span class="chip" style="background:var(--s1)"></span>ncaaf_efficiency <b>0.55</b></span>
+  <span class="item"><span class="chip" style="background:var(--s1)"></span>ncaaf_efficiency_v2 <b>0.55</b></span>
   <span class="item"><span class="chip" style="background:var(--s3)"></span>elo <b>0.25</b></span>
   <span class="item"><span class="chip" style="background:var(--s4)"></span>form <b>0.20</b></span>
 </div>
 <p class="barnote">Phase-2 <em>initial</em> weights — to be swept + held out by <code>backtest_ncaaf_efficiency.py</code> before promotion off shadow. elo/form are floored so the preseason weeks still carry independent generic signal (and satisfy the MIN_NONSHARP floor).</p>
 <p>
-  <b>ncaaf_efficiency</b> is the fourth parallel efficiency stack
+  <b>ncaaf_efficiency_v2</b> (EPA + success rate, FPI-mixed prior) is the fourth parallel efficiency stack
   (<code>_cfb_efficiency.py</code>): opponent-adjusted <b>EPA/play</b> with an
   <b>additive</b> ridge solver (EPA is signed and roughly zero-mean, so the
   basketball log-multiplicative solver does not apply) and an embedded

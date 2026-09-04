@@ -118,3 +118,41 @@ def test_half_helper():
     assert C._half(3) == 2
     assert C._half(5) == 2   # OT folds into half 2 (dropped downstream)
     assert C._half(None) == 1
+
+
+class _FakeResp:
+    def __init__(self, payload):
+        self._p = payload
+
+    def raise_for_status(self):
+        return None
+
+    def json(self):
+        return self._p
+
+
+class _FakeClient:
+    def __init__(self, payload):
+        self._p = payload
+
+    def get(self, *a, **k):
+        return _FakeResp(self._p)
+
+
+def test_fetch_scoreboard_day_skips_events_without_competitions():
+    """A placeholder event with no `competitions` block must not abort the day
+    walk (it killed the 2026-09-03 reseed with a KeyError)."""
+    import datetime as dt
+
+    payload = {"events": [
+        {"id": "1"},  # placeholder — no competitions
+        {"id": "2", "date": "2026-09-05T20:00Z", "competitions": [{
+            "neutralSite": False, "status": {"type": {"completed": True}},
+            "competitors": [
+                {"homeAway": "home", "score": "31", "team": {"id": "10", "abbreviation": "A", "location": "Alpha"}},
+                {"homeAway": "away", "score": "10", "team": {"id": "20", "abbreviation": "B", "location": "Beta"}},
+            ]}]},
+    ]}
+    games = C.fetch_scoreboard_day(_FakeClient(payload), dt.date(2026, 9, 5))
+    assert [g["game_id"] for g in games] == ["2"]
+    assert games[0]["home"]["id"] == "10" and games[0]["away"]["score"] == 10

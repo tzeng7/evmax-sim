@@ -158,7 +158,7 @@ def _make_ncaaf_clv_db(tmp_path: Path, rows: list[dict]) -> Path:
                 "ncaaf",
                 "moneyline",
                 None,
-                "ncaaf_efficiency,elo,sharp",
+                "ncaaf_efficiency_v2,elo,sharp",
                 r.get("mode", "shadow"),
                 r["kalshi_clv_pct"],
             ),
