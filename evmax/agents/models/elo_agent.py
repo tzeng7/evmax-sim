@@ -171,7 +171,19 @@ H2H_MIN_GAMES = 2        # need at least 2 H2H meetings to apply
 # Back-to-back is the biggest factor — worth ~3 pts in NBA
 REST_ELO_ADJ: dict[str, dict[int, float]] = {
     "nba": {0: -75.0, 1: 0.0, 2: 15.0, 3: 25.0},   # 0=B2B, 1=normal, 2+=extra rest
-    "nfl": {0: -30.0, 1: 0.0, 2: 10.0, 3: 10.0},    # NFL rarely has B2B but short weeks matter
+    # NFL: NO rest entry (removed 2026-09-03). The pre-2026-09 table
+    # {0:-30,1:0,2:10,3:10} was effectively dead — the lookup clamped any
+    # 4–7 day gap onto the 3-day value (+10) so a Thursday short week got a
+    # BONUS and a bye (13–14 days) fell outside the 7-day horizon and got
+    # nothing. A proper kickoff-measured table {3-4d:-20, 8-12d:+10,
+    # 13-14d:+20} was swept by scripts/backtest_nfl_elo_regression.py --rest
+    # (walk-forward 2015–2025, production update): full-season Brier
+    # off/legacy/proposed = 0.2257/0.2258/0.2258 (rank 2019–23),
+    # 0.2078/0.2078/0.2077 (2024), 0.2273/0.2271/0.2278 (2025 holdout) — all
+    # within noise, proposed slightly WORSE on holdout, "off" best or tied on
+    # rank + holdout. The market and Elo itself already absorb NFL rest, so
+    # the sector carries no rest adjustment. Do not re-add without a holdout
+    # win on the rest-affected subset (n≈50/season).
     "ncaab": {0: -50.0, 1: 0.0, 2: 10.0, 3: 15.0},
     "ncaaw": {0: -50.0, 1: 0.0, 2: 10.0, 3: 15.0},
     "wnba": {0: -50.0, 1: 0.0, 2: 10.0, 3: 15.0},
@@ -375,8 +387,16 @@ class EloModelAgent(ModelAgent):
     # Rest-day adjustment
     # ------------------------------------------------------------------
 
-    def _days_of_rest(self, sector: str, team: str) -> Optional[int]:
-        """Get days since last game for a team from form_state.json."""
+    def _days_of_rest(
+        self, sector: str, team: str, reference: Optional[date] = None
+    ) -> Optional[int]:
+        """Days between a team's most recent form_state game and `reference`.
+
+        `reference` is the date of the game being predicted; it defaults to
+        today for legacy callers. The event date matters: a Sunday game
+        scanned on Wednesday is 3 days after the last game AT SCAN TIME but 7
+        days after it AT KICKOFF, and the rest table is about kickoff.
+        """
         try:
             if not FORM_STATE_PATH.exists():
                 return None
@@ -388,12 +408,14 @@ class EloModelAgent(ModelAgent):
             if not last_date_str:
                 return None
             last_date = datetime.strptime(last_date_str[:10], "%Y-%m-%d").date()
-            return (date.today() - last_date).days
+            return ((reference or date.today()) - last_date).days
         except Exception:
             return None
 
-    def _games_in_last_n_days(self, sector: str, team: str, days: int = 7) -> int:
-        """Count games played in the last N days from form_state."""
+    def _games_in_last_n_days(
+        self, sector: str, team: str, days: int = 7, reference: Optional[date] = None
+    ) -> int:
+        """Count games played in the N days before `reference` (default today) from form_state."""
         try:
             if not FORM_STATE_PATH.exists():
                 return 0
@@ -401,7 +423,7 @@ class EloModelAgent(ModelAgent):
             games = form.get(sector, {}).get(team, [])
             if not games:
                 return 0
-            cutoff = date.today() - __import__("datetime").timedelta(days=days)
+            cutoff = (reference or date.today()) - __import__("datetime").timedelta(days=days)
             count = 0
             for g in games:
                 d_str = g.get("date", "")[:10]
@@ -418,31 +440,49 @@ class EloModelAgent(ModelAgent):
         except Exception:
             return 0
 
-    def _congestion_penalty(self, sector: str, team: str) -> float:
+    def _congestion_penalty(
+        self, sector: str, team: str, reference: Optional[date] = None
+    ) -> float:
         """Elo penalty for fixture congestion (soccer: UCL midweek + league weekend).
 
         Teams playing 3+ games in 7 days get a meaningful fatigue penalty.
         """
         if sector != "soccer":
             return 0.0
-        games = self._games_in_last_n_days(sector, team, days=7)
+        games = self._games_in_last_n_days(sector, team, days=7, reference=reference)
         if games >= 3:
             return -40.0
         if games >= 2:
             return -15.0
         return 0.0
 
-    def _rest_elo_bonus(self, sector: str, team: str) -> float:
-        """Return Elo bonus/penalty based on days of rest + fixture congestion."""
-        days = self._days_of_rest(sector, team)
-        base = 0.0
-        if days is not None and days <= 7:
-            adj_table = REST_ELO_ADJ.get(sector)
-            if adj_table:
-                clamped = min(days, max(adj_table.keys()))
-                base = adj_table.get(clamped, 0.0)
+    @staticmethod
+    def rest_adjustment(sector: str, days: Optional[int]) -> float:
+        """Rest Elo adjustment for `days` since the last game (pure table lookup).
 
-        congestion = self._congestion_penalty(sector, team)
+        Step function over the sector's REST_ELO_ADJ keys: the value of the
+        largest key <= days, within a horizon of max(7, largest key) days;
+        beyond the horizon (a long layoff, the season opener) it is 0. For
+        the legacy 0..3-keyed tables this reproduces the old behaviour
+        exactly (4–7 days → the 3-day value, 8+ → 0); it only differs for
+        tables that carry explicit long-rest keys (NFL bye / short week).
+        """
+        adj_table = REST_ELO_ADJ.get(sector)
+        if days is None or not adj_table:
+            return 0.0
+        horizon = max(7, max(adj_table))
+        if days > horizon:
+            return 0.0
+        eligible = [k for k in adj_table if k <= days]
+        key = max(eligible) if eligible else min(adj_table)
+        return adj_table.get(key, 0.0)
+
+    def _rest_elo_bonus(
+        self, sector: str, team: str, reference: Optional[date] = None
+    ) -> float:
+        """Return Elo bonus/penalty based on days of rest + fixture congestion."""
+        base = self.rest_adjustment(sector, self._days_of_rest(sector, team, reference))
+        congestion = self._congestion_penalty(sector, team, reference)
         return base + congestion
 
     # ------------------------------------------------------------------
@@ -472,7 +512,7 @@ class EloModelAgent(ModelAgent):
         if self._is_stale(self._last_updated(sector), reference):
             return None
 
-        prob_a, prob_b, prob_draw = self._win_probs(sector, team_a, team_b)
+        prob_a, prob_b, prob_draw = self._win_probs(sector, team_a, team_b, reference)
 
         count_a = self._get_count(sector, team_a)
         count_b = self._get_count(sector, team_b)
@@ -516,19 +556,20 @@ class EloModelAgent(ModelAgent):
         return base
 
     def _win_probs(
-        self, sector: str, team_a: str, team_b: str
+        self, sector: str, team_a: str, team_b: str, reference: Optional[date] = None
     ) -> tuple[float, float, Optional[float]]:
         """
         Compute head-to-head win probabilities with home advantage, H2H, and rest adjustments.
         team_a is treated as home (outcome_a_label from Pinnacle = home team).
+        `reference` is the game date (rest is measured to kickoff, not to scan time).
         """
         elo_a = self._get_rating(sector, team_a)
         elo_b = self._get_rating(sector, team_b)
         home_bonus = HOME_ADVANTAGE_ELO.get(sector, 0.0)
 
-        # Rest-day adjustments (temporary Elo bonus/penalty)
-        rest_a = self._rest_elo_bonus(sector, team_a)
-        rest_b = self._rest_elo_bonus(sector, team_b)
+        # Rest-day adjustments (temporary Elo bonus/penalty), measured to the game date
+        rest_a = self._rest_elo_bonus(sector, team_a, reference)
+        rest_b = self._rest_elo_bonus(sector, team_b, reference)
 
         effective_a = elo_a + home_bonus + rest_a
         effective_b = elo_b + rest_b
