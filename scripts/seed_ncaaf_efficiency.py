@@ -68,6 +68,11 @@ def _norm(s: str) -> str:
     return s
 
 
+def _is_placeholder_team(tid: str, location: str | None) -> bool:
+    """ESPN placeholder side (TBD opponent): negative id and/or a 'TBD' name."""
+    return str(tid).startswith("-") or _norm(location or "") == "tbd"
+
+
 def _fbs_universe(games: list[dict]) -> tuple[set[str], dict[str, str], dict[str, str]]:
     """Return (fbs_ids, id→canonical_name, id→abbrev) from a season's games."""
     appear: dict[str, int] = defaultdict(int)
@@ -76,6 +81,11 @@ def _fbs_universe(games: list[dict]) -> tuple[set[str], dict[str, str], dict[str
     for g in games:
         for s in ("home", "away"):
             tid = g[s]["id"]
+            if _is_placeholder_team(tid, g[s].get("location")):
+                # ESPN's "TBD" placeholder sides (ids -1/-2) sit on every
+                # not-yet-set December championship/bowl slot — 50+ appearances
+                # on a full-schedule walk, so they would pass the FBS filter.
+                continue
             appear[tid] += 1
             name[tid] = _norm(g[s].get("location") or "")
             abbr[tid] = g[s].get("abbr") or ""
@@ -83,14 +93,28 @@ def _fbs_universe(games: list[dict]) -> tuple[set[str], dict[str, str], dict[str
     return fbs, name, abbr
 
 
-def _season_ratings(season: int, ep_table: dict | None, ridge: float):
+def _season_ratings(season: int, ep_table: dict | None, ridge: float,
+                    in_season: bool = False):
     """Fetch a season, build FBS universe + opponent-adjusted ratings.
 
     If ep_table is None, build it from this season's own plays (structural,
     leaguewide — not a team-level leak). Returns (ratings, id→name, id→abbr,
-    ep_table, n_games)."""
-    plays, games = C.fetch_season_plays(season)
-    fbs, name, abbr = _fbs_universe(games)
+    ep_table, n_games).
+
+    ``in_season=True`` derives the FBS universe from the FULL SCHEDULE
+    (completed + upcoming games) instead of completed games only. Early in a
+    season no team has reached FBS_MIN_APPEARANCES completed games, so a
+    completed-only universe is EMPTY and every team is pooled as FCS — the
+    in-season ratings then never populate (gp stays 0 until ~week 6) and the
+    prior→in-season ramp silently never engages. The walk-forward backtests
+    see whole seasons and never hit this. (Found on the 2026-09-03 reseed.)"""
+    if in_season:
+        schedule = C.fetch_season_games(season, only_completed=False)
+        plays, games = C.fetch_season_plays(season, games=schedule)
+        fbs, name, abbr = _fbs_universe(schedule)
+    else:
+        plays, games = C.fetch_season_plays(season)
+        fbs, name, abbr = _fbs_universe(games)
     games_by_id = {g["game_id"]: g for g in games}
     table = ep_table or E.build_ep_table(plays)
     ratings = E.build_team_ratings(plays, fbs, games_by_id, table, ridge=ridge)
@@ -126,7 +150,7 @@ def main() -> int:
 
     print(f"Building in-season {season} ratings…", file=sys.stderr)
     in_ratings, in_name, in_abbr, _t, in_games = _season_ratings(
-        season, ep_table, args.ridge
+        season, ep_table, args.ridge, in_season=True
     )
 
     # Canonical-name-keyed prior net, regressed toward 0.
