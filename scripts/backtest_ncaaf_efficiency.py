@@ -60,16 +60,47 @@ def _bucket(week: int) -> str:
     return "9+"
 
 
-def _load_home_spreads(season: int, games: list[dict]) -> dict[str, float]:
-    """Closing HOME spread per ESPN game_id, correctly oriented.
+def _orient_spreads(rows, games: list[dict]) -> dict[str, float]:
+    """Median closing HOME spread per ESPN game_id from (game_id, team_label, line)
+    rows, correctly oriented (negative = home favored).
 
-    The cfbfastR betting parquet has one row per (game, team, book) where `abbr`
-    is the team the `lines` value belongs to. We orient by matching that abbr to
-    the game's HOME abbreviation (from the ESPN games metadata — same ESPN
-    source, so abbrs match), and take the median home spread across books.
-    Negative = home favored. Games whose home abbr can't be matched are omitted
-    (their market cell is blank).
+    The cfbfastR betting parquet has one row per (game, team, book); the row's
+    ``abbr`` column is the team the ``lines`` value belongs to. For 2023+ that
+    column carries the ESPN team NAME ("Penn State", "South Florida"), older
+    seasons carried the abbreviation — so match the normalized location first
+    and the ESPN abbreviation as a fallback (the abbreviation-only join matched
+    ~5% of 2023-25 rows and left the market column near-blank). Away-team rows
+    are flipped to the home perspective. Unmatched rows are skipped.
     """
+    key: dict[str, tuple[tuple[str, str], tuple[str, str]]] = {}
+    for g in games:
+        key[g["game_id"]] = (
+            (_norm(g["home"].get("location") or ""), (g["home"].get("abbr") or "").upper()),
+            (_norm(g["away"].get("location") or ""), (g["away"].get("abbr") or "").upper()),
+        )
+    per_game: dict[str, list[float]] = defaultdict(list)
+    for gid, label, line in rows:
+        try:
+            g = str(int(gid))
+            line = float(line)
+        except (TypeError, ValueError):
+            continue
+        if g not in key or line != line:  # NaN guard
+            continue
+        (h_loc, h_abbr), (a_loc, a_abbr) = key[g]
+        lab_n = _norm(label)
+        lab_u = (label or "").upper()
+        if lab_n and (lab_n == h_loc or lab_u == h_abbr):
+            per_game[g].append(line)
+        elif lab_n and (lab_n == a_loc or lab_u == a_abbr):
+            per_game[g].append(-line)
+    return {g: float(np.median(v)) for g, v in per_game.items() if v}
+
+
+def _load_home_spreads(season: int, games: list[dict], col: str = "lines") -> dict[str, float]:
+    """Closing (``col="lines"``) or opening (``col="opening_lines"``) HOME spread
+    per ESPN game_id from the cfbfastR betting parquet — see :func:`_orient_spreads`.
+    Games with no matched book row are omitted (their market cell is blank)."""
     import httpx
     import pandas as pd
 
@@ -81,14 +112,8 @@ def _load_home_spreads(season: int, games: list[dict]) -> dict[str, float]:
     except Exception as e:  # noqa: BLE001
         print(f"  WARN: market parquet unavailable ({e})", file=sys.stderr)
         return {}
-    df = df[(df.season == season) & (df.market_type == "spread") & df.lines.notna()].copy()
-    home_abbr = {g["game_id"]: (g["home"].get("abbr") or "").upper() for g in games}
-    per_game: dict[str, list[float]] = defaultdict(list)
-    for gid, abbr, line in zip(df.game_id, df.abbr, df.lines):
-        g = str(int(gid))
-        if home_abbr.get(g) and (abbr or "").upper() == home_abbr[g]:
-            per_game[g].append(float(line))
-    return {g: float(np.median(v)) for g, v in per_game.items() if v}
+    df = df[(df.season == season) & (df.market_type == "spread") & df[col].notna()]
+    return _orient_spreads(zip(df.game_id, df.abbr, df[col]), games)
 
 
 def build_prior(prior_season: int, regress: float, ridge: float, ep_table):

@@ -68,7 +68,13 @@ def fetch_scoreboard_day(client: httpx.Client, day: dt.date) -> list[dict]:
         return []
     games = []
     for e in events:
-        comp = e["competitions"][0]
+        # ESPN occasionally lists a placeholder event (TBD/postponed) with no
+        # competitions block — skip it rather than abort the whole day walk
+        # (2026-09-03: the Week-2 scoreboard carried one and killed the reseed).
+        comps = e.get("competitions") or []
+        if not comps or not e.get("id"):
+            continue
+        comp = comps[0]
         status = comp.get("status", {}).get("type", {})
         home = away = None
         for c in comp["competitors"]:
@@ -235,14 +241,20 @@ def fetch_season_plays(
     game_ids: Optional[Iterable[str]] = None,
     max_workers: int = 8,
     use_cache: bool = True,
+    games: Optional[list[dict]] = None,
 ) -> tuple[list[dict], list[dict]]:
     """Fetch + parse plays for a full season (or a subset of game_ids).
 
     Returns (play_rows, games) where games is the scoreboard metadata list
     (used for FBS-id set, final scores, dates). Summaries are fetched
-    concurrently and cached to disk.
+    concurrently and cached to disk. Pass ``games`` (e.g. a full-schedule
+    list from ``fetch_season_games(season, only_completed=False)``) to skip
+    the scoreboard walk; only its COMPLETED rows are fetched/parsed.
     """
-    games = fetch_season_games(season)
+    if games is None:
+        games = fetch_season_games(season)
+    else:
+        games = [g for g in games if g.get("completed")]
     if game_ids is not None:
         wanted = set(game_ids)
         games = [g for g in games if g["game_id"] in wanted]
