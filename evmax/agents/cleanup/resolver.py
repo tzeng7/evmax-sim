@@ -212,6 +212,9 @@ _ACRONYM_EXPAND: dict[str, str] = {
     "losc lille":               "lille",
     "rc lens":                  "lens",
     "stade brestois":           "brest",
+    "stade brestois 29":        "brest",         # ESPN's current display name
+    # MLS: "nycfc" shares no token with ESPN's "New York City FC".
+    "nycfc":                    "new york city fc",
     "ogc nice":                 "nice",
     "toulouse fc":              "toulouse",
     "fc nantes":                "nantes",

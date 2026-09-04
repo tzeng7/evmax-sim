@@ -2392,6 +2392,10 @@ class TestUclSlugsResolveAgainstEspn:
         "lask linz": "LASK Linz", "viking": "Viking FK", "bodo glimt": "Bodo/Glimt",
         "shakhtar donetsk": "Shakhtar Donetsk", "slavia prague": "Slavia Prague",
         "man united": "Manchester United", "inter miami": "Inter Miami CF",
+        "brest": "Stade Brestois 29", "nycfc": "New York City FC",
+        "athletic": "Athletic Club", "racing santander": "Racing Santander",
+        "koln": "FC Cologne", "hamburg": "Hamburg SV", "mainz": "1. FSV Mainz 05",
+        "union saint-gilloise": "Union Saint-Gilloise", "hapoel beer sheva": "Hapoel Be'er Sheva",
     }
 
     def test_slugs_clear_threshold(self):
