@@ -284,3 +284,40 @@ class TestMatchingEngine:
         assert len(results) == 1
         winner_market = results[0][0]
         assert winner_market.id == "kalshi:KXNBAGAME-26APR18HOULAL-LAL"
+
+
+class TestNormalizerIdempotence:
+    """normalize(normalize(x)) == normalize(x) for every canonical.
+
+    Regression for 2026-09-04: the noise-word strip ran on already-canonical
+    names, so "man united" → "man" on the Kalshi ticker-code path while
+    Pinnacle's "Manchester United" → "man united", and the Champions League
+    Man United vs Sabah market fuzzy-scored 77 < 88 against its sharp line.
+    """
+
+    def test_united_canonicals_survive_second_pass(self):
+        from evmax.matching.normalizer import NameNormalizer
+        n = NameNormalizer("soccer")
+        assert n.normalize("Manchester United") == "man united"
+        assert n.normalize("man united") == "man united"
+        assert n.normalize("dc united") == "dc united"
+        assert n.normalize_event_key("sabah", "man united", "2026-09-10", "soccer") == (
+            "soccer::2026-09-10::sabah_vs_man_united"
+        )
+
+    def test_every_soccer_canonical_is_fixed_point(self):
+        from evmax.matching.normalizer import NameNormalizer
+        from evmax.sectors.registry import get_handler
+        n = NameNormalizer("soccer")
+        bad = sorted({
+            c for c in set(get_handler("soccer")._aliases.values())
+            if n.normalize(c) != c
+        })
+        assert bad == [], bad
+
+    def test_non_canonical_noise_still_stripped(self):
+        from evmax.matching.normalizer import NameNormalizer
+        n = NameNormalizer("soccer")
+        # Unknown club: noise words are still removed.
+        assert n.normalize("Sabah FK") == "sabah"
+        assert n.normalize("Newcastle United") == "newcastle"

@@ -198,6 +198,10 @@ _ACRONYM_EXPAND: dict[str, str] = {
     "mgladbach":                "borussia monchengladbach",
     "m gladbach":               "borussia monchengladbach",
     "monchengladbach":          "borussia monchengladbach",
+    "gladbach":                 "borussia monchengladbach",   # canonical since 2026-09-04
+    # Inter: canonical slug "inter" scores 52.6 against ESPN's "Internazionale"
+    # (token_set_ratio has no shared token), so expand it to ESPN's form.
+    "inter":                    "internazionale",
     # ESPN display names that differ significantly from our stored slugs
     # (ESPN uses English/formal names; we store short slugs from Kalshi tickers)
     "fc cologne":               "koln",         # ESPN: "FC Cologne" → slug: "koln"
@@ -208,6 +212,9 @@ _ACRONYM_EXPAND: dict[str, str] = {
     "losc lille":               "lille",
     "rc lens":                  "lens",
     "stade brestois":           "brest",
+    "stade brestois 29":        "brest",         # ESPN's current display name
+    # MLS: "nycfc" shares no token with ESPN's "New York City FC".
+    "nycfc":                    "new york city fc",
     "ogc nice":                 "nice",
     "toulouse fc":              "toulouse",
     "fc nantes":                "nantes",

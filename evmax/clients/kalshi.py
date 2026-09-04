@@ -151,7 +151,9 @@ _SERIES_TEAM_CODE_MAPS: dict[str, dict[str, str]] = {
         "ne": "new england",
         "nyc": "nycfc",
         "rbny": "red bulls",
+        "nyrb": "red bulls",
         "ny": "red bulls",
+        "dcu": "dc united",
         "orl": "orlando",
         "phi": "philadelphia",
         "por": "portland",
@@ -164,7 +166,57 @@ _SERIES_TEAM_CODE_MAPS: dict[str, dict[str, str]] = {
         "tor": "toronto",
         "van": "vancouver",
     },
+    # UEFA Champions League — 2026-27 league-phase codes, read off the live
+    # KXUCLGAME tickers on 2026-09-04 (matchday 1, 18 games / 36 clubs). The
+    # flat soccer.yaml map only carried the big-five-league codes, so 13 of
+    # 18 games never matched Pinnacle (13 clubs' codes were missing outright
+    # and Kalshi's INT normalized to "inter" while Pinnacle's "Internazionale"
+    # did not). Canonicals are what Pinnacle's full names normalize to.
+    "KXUCLGAME": {
+        "aek": "aek athens",
+        "ars": "arsenal",
+        "ask": "lask linz",
+        "atm": "atletico",
+        "avl": "aston villa",
+        "bar": "barcelona",
+        "bmu": "bayern",
+        "bog": "bodo glimt",
+        "bru": "brugge",
+        "bvb": "dortmund",
+        "com": "como",
+        "fcp": "porto",
+        "fen": "fenerbahce",
+        "fey": "feyenoord",
+        "gal": "galatasaray",
+        "int": "inter",
+        "lfc": "liverpool",
+        "lil": "lille",
+        "mci": "man city",
+        "mun": "man united",
+        "nap": "napoli",
+        "psg": "psg",
+        "psv": "psv",
+        "rbb": "betis",
+        "rbl": "leipzig",
+        "rcl": "lens",
+        "rma": "real madrid",
+        "rom": "roma",
+        "sbh": "sabah",
+        "sha": "shakhtar donetsk",
+        "sla": "slavia prague",
+        "slo": "slovan bratislava",
+        "spo": "sporting cp",
+        "vfb": "stuttgart",
+        "vik": "viking",
+        "vil": "villarreal",
+    },
 }
+
+
+_EVENT_SUBTITLE_CODES_RE = re.compile(r"^\s*([A-Z0-9]{2,5})\s+vs\.?\s+([A-Z0-9]{2,5})\b", re.IGNORECASE)
+
+# Sectors whose /events rows are joined onto markets at parse time.
+_EVENT_TITLE_SECTORS: frozenset[str] = frozenset({"tennis", "soccer"})
 
 
 def _series_team_code_map(ticker: str) -> Optional[dict[str, str]]:
@@ -762,7 +814,13 @@ class KalshiClient(BaseAPIClient):
         # Tennis only: also fetch parent events to get product_metadata.competition,
         # which is the primary signal for TennisModelAgent surface detection.
         # Non-tennis sectors skip this — no behavior change, no extra latency.
-        fetch_events = sector.lower() == "tennis"
+        # Tennis needs the event join for the "{Name} wins" titles; soccer
+        # needs it because ticker team codes are a per-league namespace that
+        # goes stale every promotion/qualification cycle and collides across
+        # series (LEV = Leverkusen in KXBUNDESLIGAGAME, Levante in
+        # KXLALIGAGAME). The event title "Home vs Away" carries both clubs
+        # by name (2026-09-04 audit: 57 of 190 open soccer games unmatched).
+        fetch_events = sector.lower() in _EVENT_TITLE_SECTORS
 
         async def _fetch_prefix(prefix: str) -> list[PredictionMarket]:
             try:
@@ -808,9 +866,11 @@ class KalshiClient(BaseAPIClient):
                 # format 2026-08) no longer do.
                 competitions: Optional[dict[str, str]] = None
                 event_titles: Optional[dict[str, str]] = None
+                event_codes: Optional[dict[str, tuple[str, str]]] = None
                 if event_rows is not None:
                     competitions = {}
                     event_titles = {}
+                    event_codes = {}
                     for ev in event_rows:
                         et = ev.get("event_ticker")
                         if not et:
@@ -822,6 +882,13 @@ class KalshiClient(BaseAPIClient):
                         ev_title = ev.get("title")
                         if ev_title:
                             event_titles[et] = ev_title
+                        # Soccer event sub_title is "RBB vs RMA (Sep 4)" — the
+                        # per-event code pair in HOME-AWAY order, which the
+                        # ticker split can't recover for a TIE outcome on
+                        # variable-width codes (NYCNYRB).
+                        codes = _EVENT_SUBTITLE_CODES_RE.match(ev.get("sub_title") or "")
+                        if codes:
+                            event_codes[et] = (codes.group(1).lower(), codes.group(2).lower())
 
                 parsed = []
                 for m in market_rows:
@@ -833,6 +900,7 @@ class KalshiClient(BaseAPIClient):
                             m, sector,
                             competitions=competitions,
                             event_titles=event_titles,
+                            event_codes=event_codes,
                         )
                     if p:
                         parsed.append(p)
@@ -1252,6 +1320,7 @@ class KalshiClient(BaseAPIClient):
         sector: str,
         competitions: Optional[dict[str, str]] = None,
         event_titles: Optional[dict[str, str]] = None,
+        event_codes: Optional[dict[str, tuple[str, str]]] = None,
     ) -> Optional[PredictionMarket]:
         """Parse a raw Kalshi market dict into a PredictionMarket.
 
@@ -1390,6 +1459,37 @@ class KalshiClient(BaseAPIClient):
                 # so there's no team-side YES for totals — set "over" so the
                 # EV gap agent's yes_team_norm == "under" check resolves to False.
                 yes_team = "over" if is_total else self._extract_yes_team(ticker, sector)
+                # Soccer: prefer the event title's full club names over the
+                # ticker codes. Kalshi soccer event titles are "Home vs Away"
+                # (verified against Pinnacle's home/away on 2026-09-04) and
+                # the market's yes_sub_title is the YES club's full name (or
+                # "Tie"). Codes remain the fallback when the events join is
+                # unavailable (cached/offline data, events fetch failure).
+                # Precedence per side: curated series code map (exact) >
+                # event-title club name > flat alias on the ticker code.
+                # Kalshi's title spellings drift ("Bodoe Glimt", "Eindhoven",
+                # "New York RB"), so a code the series map knows always wins.
+                if sector == "soccer" and event_titles:
+                    ev_key = raw.get("event_ticker")
+                    ev_title = event_titles.get(ev_key) if ev_key else None
+                    ev_home, ev_away = self._teams_from_event_title(ev_title, sector)
+                    if ev_home and ev_away:
+                        codes = (event_codes or {}).get(ev_key) if ev_key else None
+                        if codes and code_map:
+                            team_home = code_map.get(codes[0], ev_home)
+                            team_away = code_map.get(codes[1], ev_away)
+                        else:
+                            team_home, team_away = ev_home, ev_away
+                        if not is_total:
+                            ys = (raw.get("yes_sub_title") or "").strip()
+                            out_code = re.sub(r"\d+$", "", ticker.rsplit("-", 1)[-1]).lower()
+                            if ys.lower() in ("tie", "draw") or out_code == "tie":
+                                yes_team = "tie"
+                            elif code_map and out_code in code_map:
+                                yes_team = code_map[out_code]
+                            elif ys:
+                                from evmax.matching.normalizer import NameNormalizer
+                                yes_team = NameNormalizer(sector).normalize(ys)
             # Prefer Kalshi's authoritative `floor_strike` field over parsing
             # the integer suffix out of the ticker. Kalshi uses different
             # ticker conventions per series — NBA encodes ticker_int = floor(line)
@@ -1527,16 +1627,21 @@ class KalshiClient(BaseAPIClient):
                 return None, None
             # Fall through to the 3+3 fallback below.
 
-        if outcome_code and len(team_pair) > len(outcome_code):
-            ends_with = team_pair.endswith(outcome_code)
-            starts_with = team_pair.startswith(outcome_code)
+        # Try the full outcome first (codes can legitimately end in digits —
+        # Bundesliga "M05" for Mainz 05 — and blindly stripping them turned
+        # M05SGE into "05sge" / "m"), then the digit-stripped spread form.
+        for code in dict.fromkeys([outcome, outcome_code]):
+            if not code or len(team_pair) <= len(code):
+                continue
+            ends_with = team_pair.endswith(code)
+            starts_with = team_pair.startswith(code)
             # Prefer endswith (outcome = HOME); fall back to startswith (outcome = AWAY).
             # If both match (e.g. palindromic codes — extremely unlikely), the 3+3
             # legacy split below would tie-break, but we never observe this in real data.
             if ends_with and not starts_with:
-                return outcome_code.lower(), team_pair[:-len(outcome_code)].lower()
+                return code.lower(), team_pair[:-len(code)].lower()
             if starts_with and not ends_with:
-                return team_pair[len(outcome_code):].lower(), outcome_code.lower()
+                return team_pair[len(code):].lower(), code.lower()
 
         # Legacy fallback: deterministic 3+3 split for sports with fixed-width codes.
         if len(team_pair) == 6:
@@ -1567,6 +1672,27 @@ class KalshiClient(BaseAPIClient):
             flags=re.IGNORECASE,
         )
         return cleaned.strip()
+
+    def _teams_from_event_title(
+        self, title: Optional[str], sector: str,
+    ) -> tuple[Optional[str], Optional[str]]:
+        """Split a Kalshi EVENT title "Home vs Away" into normalized names.
+
+        Returns (home, away) as sector canonicals, or (None, None) when the
+        title is missing or has no " vs " separator.
+        """
+        if not title:
+            return None, None
+        m = re.split(r"\s+vs\.?\s+", title.strip(), maxsplit=1, flags=re.IGNORECASE)
+        if len(m) != 2 or not m[0].strip() or not m[1].strip():
+            return None, None
+        from evmax.matching.normalizer import NameNormalizer
+        n = NameNormalizer(sector)
+        home = n.normalize(m[0].strip().rstrip("?"))
+        away = n.normalize(m[1].strip().rstrip("?"))
+        if not home or not away:
+            return None, None
+        return home, away
 
     def _extract_teams_from_title(self, title: str) -> tuple[Optional[str], Optional[str]]:
         """Fall-back: extract teams from market title text."""

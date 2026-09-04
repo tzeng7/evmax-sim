@@ -194,6 +194,92 @@ class TestSeriesTeamCodeMaps:
         assert m.team_away == "seattle"
 
 
+class TestUclSeriesTeamCodeMap:
+    """KXUCLGAME ticker codes resolve through the series-scoped map.
+
+    Regression for 2026-09-04: 13 of 18 Champions League matchday-1 games
+    never matched Pinnacle because their Kalshi codes (SLA/SBH/COM/SHA/PSV/
+    FEN/SPO/SLO/VIK/FEY/RBB/FCP/ASK/AEK) were absent from soccer.yaml, and
+    Real Madrid vs Inter failed on the Pinnacle side ("Internazionale" did
+    not normalize to "inter"). Every code observed on the live tickers must
+    map to the canonical Pinnacle's full name normalizes to.
+    """
+
+    # (ticker, expected yes_team, expected home, expected away)
+    LIVE_TICKERS = [
+        ("KXUCLGAME-26SEP10SLARCL-SLA", "slavia prague", "lens", "slavia prague"),
+        ("KXUCLGAME-26SEP10MUNSBH-SBH", "sabah", "sabah", "man united"),
+        ("KXUCLGAME-26SEP10COMRBL-COM", "como", "leipzig", "como"),
+        ("KXUCLGAME-26SEP10PSVSHA-SHA", "shakhtar donetsk", "shakhtar donetsk", "psv"),
+        ("KXUCLGAME-26SEP10FENROM-FEN", "fenerbahce", "roma", "fenerbahce"),
+        ("KXUCLGAME-26SEP09SPOGAL-SPO", "sporting cp", "galatasaray", "sporting cp"),
+        ("KXUCLGAME-26SEP09PSGSLO-SLO", "slovan bratislava", "slovan bratislava", "psg"),
+        ("KXUCLGAME-26SEP09VFBVIK-VIK", "viking", "viking", "stuttgart"),
+        ("KXUCLGAME-26SEP09BARFEY-FEY", "feyenoord", "feyenoord", "barcelona"),
+        ("KXUCLGAME-26SEP08RMAINT-INT", "inter", "inter", "real madrid"),
+        ("KXUCLGAME-26SEP08LILRBB-RBB", "betis", "betis", "lille"),
+        ("KXUCLGAME-26SEP08FCPMCI-FCP", "porto", "man city", "porto"),
+        ("KXUCLGAME-26SEP08AEKASK-ASK", "lask linz", "lask linz", "aek athens"),
+        ("KXUCLGAME-26SEP10BMUBOG-BOG", "bodo glimt", "bodo glimt", "bayern"),
+    ]
+
+    def _raw(self, ticker: str) -> dict:
+        return {
+            "ticker": ticker,
+            "title": "x wins",
+            "yes_bid_dollars": "0.40",
+            "yes_ask_dollars": "0.45",
+            "no_bid_dollars": "0.50",
+            "no_ask_dollars": "0.60",
+            "volume_fp": 10,
+            "open_interest_fp": 5,
+        }
+
+    def test_every_live_code_resolves(self) -> None:
+        from evmax.clients.kalshi import _SERIES_TEAM_CODE_MAPS
+        ucl = _SERIES_TEAM_CODE_MAPS["KXUCLGAME"]
+        for ticker, yes, home, away in self.LIVE_TICKERS:
+            m = _client()._parse_market(self._raw(ticker), "soccer")
+            assert m is not None, ticker
+            assert (m.yes_team, m.team_home, m.team_away) == (yes, home, away), ticker
+        assert ucl["int"] == "inter" and ucl["sha"] == "shakhtar donetsk"
+
+    def test_ucl_canonicals_match_pinnacle_names(self) -> None:
+        """Pinnacle/ESPN full names must land on the same canonical as the code."""
+        from evmax.clients.kalshi import _SERIES_TEAM_CODE_MAPS
+        from evmax.matching.normalizer import NameNormalizer
+        n = NameNormalizer("soccer")
+        ucl = _SERIES_TEAM_CODE_MAPS["KXUCLGAME"]
+        pairs = {
+            "int": ["Internazionale", "Inter", "FC Internazionale"],
+            "fey": ["Feyenoord", "Feyenoord Rotterdam"],
+            "psv": ["PSV", "PSV Eindhoven"],
+            "vfb": ["Stuttgart", "VfB Stuttgart"],
+            "spo": ["Sporting CP", "Sporting Lisbon"],
+            "rbb": ["Real Betis"],
+            "fcp": ["Porto", "FC Porto"],
+            "sbh": ["Sabah FK"],
+            "ask": ["LASK Linz", "LASK"],
+            "aek": ["AEK Athens"],
+            "sha": ["Shakhtar Donetsk"],
+            "sla": ["Slavia Prague"],
+            "slo": ["Slovan Bratislava"],
+            "vik": ["Viking", "Viking FK"],
+            "com": ["Como"],
+            "fen": ["Fenerbahce"],
+            "bog": ["Bodo Glimt", "Bodo/Glimt"],
+            "rcl": ["Lens", "RC Lens"],
+        }
+        for code, names in pairs.items():
+            for name in names:
+                assert n.normalize(name) == ucl[code], (code, name, n.normalize(name))
+
+    def test_mls_map_unaffected(self) -> None:
+        from evmax.clients.kalshi import _series_team_code_map
+        assert _series_team_code_map("KXMLSGAME-26JUL16MTLTOR-TOR")["tor"] == "toronto"
+        assert "tor" not in _series_team_code_map("KXUCLGAME-26SEP08RMAINT-INT")
+
+
 class TestParseMarketBids:
     """_parse_market carries the REST book's best bids onto PredictionMarket so
     the maker-bid recommendation has a real resting price to improve on."""
@@ -475,3 +561,87 @@ class TestGetMarketsPagination:
         game_calls = [p for p in calls if (p or {}).get("series_ticker") == "KXNCAAFGAME"]
         assert len(game_calls) == 2
         assert game_calls[1]["cursor"] == "PAGE2"
+
+
+class TestSoccerEventTitleJoin:
+    """Soccer markets take both clubs from the Kalshi EVENT title (2026-09-04).
+
+    Ticker codes are a per-league namespace that goes stale every promotion
+    cycle and collides across series (LEV = Leverkusen / Levante). The event
+    title "Home vs Away" plus the market's yes_sub_title resolve every club
+    by name through the same normalizer Pinnacle's names use.
+    """
+
+    def _raw(self, ticker: str, event_ticker: str, yes_sub: str) -> dict:
+        return {
+            "ticker": ticker, "event_ticker": event_ticker, "title": f"{yes_sub} wins",
+            "yes_sub_title": yes_sub,
+            "yes_bid_dollars": "0.40", "yes_ask_dollars": "0.45",
+            "no_bid_dollars": "0.50", "no_ask_dollars": "0.60",
+            "volume_fp": 10, "open_interest_fp": 5,
+        }
+
+    def test_lev_collision_resolved_by_event_title(self) -> None:
+        ev = {"KXLALIGAGAME-26SEP13LEVBAR": "Levante vs Barcelona"}
+        m = _client()._parse_market(
+            self._raw("KXLALIGAGAME-26SEP13LEVBAR-LEV", "KXLALIGAGAME-26SEP13LEVBAR", "Levante"),
+            "soccer", event_titles=ev,
+        )
+        assert (m.team_home, m.team_away, m.yes_team) == ("levante", "barcelona", "levante")
+
+    def test_four_letter_mls_tie_market_gets_teams(self) -> None:
+        # Kalshi's title truncates to "New York RB"; the subtitle codes route
+        # through the curated KXMLSGAME map instead.
+        ev = {"KXMLSGAME-26SEP18NYCNYRB": "New York City vs New York RB"}
+        codes = {"KXMLSGAME-26SEP18NYCNYRB": ("nyc", "nyrb")}
+        m = _client()._parse_market(
+            self._raw("KXMLSGAME-26SEP18NYCNYRB-TIE", "KXMLSGAME-26SEP18NYCNYRB", "Tie"),
+            "soccer", event_titles=ev, event_codes=codes,
+        )
+        assert (m.team_home, m.team_away, m.yes_team) == ("nycfc", "red bulls", "tie")
+
+    def test_series_code_map_beats_title_spelling(self) -> None:
+        ev = {"KXUCLGAME-26SEP10BMUBOG": "Bayern vs Bodoe Glimt"}
+        codes = {"KXUCLGAME-26SEP10BMUBOG": ("bmu", "bog")}
+        m = _client()._parse_market(
+            self._raw("KXUCLGAME-26SEP10BMUBOG-BOG", "KXUCLGAME-26SEP10BMUBOG", "Bodoe Glimt"),
+            "soccer", event_titles=ev, event_codes=codes,
+        )
+        assert (m.team_home, m.team_away, m.yes_team) == ("bayern", "bodo glimt", "bodo glimt")
+
+    def test_subtitle_code_regex(self) -> None:
+        from evmax.clients.kalshi import _EVENT_SUBTITLE_CODES_RE
+        m = _EVENT_SUBTITLE_CODES_RE.match("RBB vs RMA (Sep 4)")
+        assert (m.group(1), m.group(2)) == ("RBB", "RMA")
+        assert _EVENT_SUBTITLE_CODES_RE.match("NYC vs NYRB (Sep 18)").group(2) == "NYRB"
+
+    def test_unknown_promoted_club_resolves_by_name(self) -> None:
+        ev = {"KXEPLGAME-26SEP05HULAVL": "Hull vs Aston Villa"}
+        m = _client()._parse_market(
+            self._raw("KXEPLGAME-26SEP05HULAVL-HUL", "KXEPLGAME-26SEP05HULAVL", "Hull"),
+            "soccer", event_titles=ev,
+        )
+        assert (m.team_home, m.team_away, m.yes_team) == ("hull city", "aston villa", "hull city")
+
+    def test_falls_back_to_codes_without_event_join(self) -> None:
+        m = _client()._parse_market(
+            self._raw("KXUCLGAME-26SEP10SLARCL-SLA", "KXUCLGAME-26SEP10SLARCL", "Slavia Prague"),
+            "soccer", event_titles=None,
+        )
+        assert m.yes_team == "slavia prague"
+        assert {m.team_home, m.team_away} == {"lens", "slavia prague"}
+
+    def test_events_fetched_for_soccer(self) -> None:
+        from evmax.clients.kalshi import _EVENT_TITLE_SECTORS
+        assert {"soccer", "tennis"} <= set(_EVENT_TITLE_SECTORS)
+
+
+class TestTickerCodesWithDigits:
+    def test_mainz_m05_not_digit_stripped(self) -> None:
+        c = _client()
+        assert c._extract_teams_from_ticker("KXBUNDESLIGAGAME-26SEP06HSVM05-M05", "soccer") == ("m05", "hsv")
+        assert c._extract_teams_from_ticker("KXBUNDESLIGAGAME-26SEP12M05SGE-SGE", "soccer") == ("sge", "m05")
+
+    def test_spread_digits_still_stripped(self) -> None:
+        c = _client()
+        assert c._extract_teams_from_ticker("KXNBASPREAD-26MAR09DENOKC-OKC7", "nba") == ("okc", "den")

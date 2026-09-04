@@ -2379,3 +2379,32 @@ class TestEspnUserAgent:
         src = inspect.getsource(R)
         for blocked in ("evmax-live/1.0", "evmax-update/1.0", "evmax-cleanup/1.0"):
             assert blocked not in src, f"blocklisted ESPN UA reintroduced: {blocked}"
+
+
+class TestUclSlugsResolveAgainstEspn:
+    """Every KXUCLGAME canonical must fuzzy-match ESPN's display name (2026-09-04)."""
+
+    ESPN = {
+        "inter": "Internazionale", "gladbach": "Borussia Mönchengladbach",
+        "feyenoord": "Feyenoord Rotterdam", "psv": "PSV Eindhoven",
+        "stuttgart": "VfB Stuttgart", "sporting cp": "Sporting CP",
+        "betis": "Real Betis", "porto": "FC Porto", "sabah": "Sabah FK",
+        "lask linz": "LASK Linz", "viking": "Viking FK", "bodo glimt": "Bodo/Glimt",
+        "shakhtar donetsk": "Shakhtar Donetsk", "slavia prague": "Slavia Prague",
+        "man united": "Manchester United", "inter miami": "Inter Miami CF",
+        "brest": "Stade Brestois 29", "nycfc": "New York City FC",
+        "athletic": "Athletic Club", "racing santander": "Racing Santander",
+        "koln": "FC Cologne", "hamburg": "Hamburg SV", "mainz": "1. FSV Mainz 05",
+        "union saint-gilloise": "Union Saint-Gilloise", "hapoel beer sheva": "Hapoel Be'er Sheva",
+    }
+
+    def test_slugs_clear_threshold(self):
+        from evmax.agents.cleanup.resolver import FUZZY_THRESHOLD, _fuzzy_team_match
+        low = {s: _fuzzy_team_match(s, e) for s, e in self.ESPN.items()
+               if _fuzzy_team_match(s, e) < FUZZY_THRESHOLD}
+        assert low == {}, low
+
+    def test_inter_expansion_does_not_hijack_inter_miami(self):
+        from evmax.agents.cleanup.resolver import _fuzzy_team_match, _to_fuzz
+        assert _to_fuzz("inter miami") == "inter miami"
+        assert _fuzzy_team_match("inter miami", "Internazionale") < 72
