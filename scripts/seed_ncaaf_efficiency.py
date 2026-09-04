@@ -82,6 +82,11 @@ def _norm(s: str) -> str:
     return s
 
 
+def _is_placeholder_team(tid: str, location: str | None) -> bool:
+    """ESPN placeholder side (TBD opponent): negative id and/or a 'TBD' name."""
+    return str(tid).startswith("-") or _norm(location or "") == "tbd"
+
+
 def _fbs_universe(games: list[dict]) -> tuple[set[str], dict[str, str], dict[str, str]]:
     """Return (fbs_ids, id→canonical_name, id→abbrev) from a season's games."""
     appear: dict[str, int] = defaultdict(int)
@@ -90,6 +95,11 @@ def _fbs_universe(games: list[dict]) -> tuple[set[str], dict[str, str], dict[str
     for g in games:
         for s in ("home", "away"):
             tid = g[s]["id"]
+            if _is_placeholder_team(tid, g[s].get("location")):
+                # ESPN's "TBD" placeholder sides (ids -1/-2) sit on every
+                # not-yet-set December championship/bowl slot — 50+ appearances
+                # on a full-schedule walk, so they would pass the FBS filter.
+                continue
             appear[tid] += 1
             name[tid] = _norm(g[s].get("location") or "")
             abbr[tid] = g[s].get("abbr") or ""

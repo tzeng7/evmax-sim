@@ -156,3 +156,32 @@ def test_fetch_scoreboard_day_skips_events_without_competitions():
     games = C.fetch_scoreboard_day(_FakeClient(payload), dt.date(2026, 9, 5))
     assert [g["game_id"] for g in games] == ["2"]
     assert games[0]["home"]["id"] == "10" and games[0]["away"]["score"] == 10
+
+
+def _sched_game(gid: str, completed: bool) -> dict:
+    return {"game_id": gid, "date": "2026-09-05", "neutral": False, "completed": completed,
+            "home": {"id": "1", "abbr": "HOM", "location": "Home"},
+            "away": {"id": "2", "abbr": "AWY", "location": "Away"}}
+
+
+def test_fetch_season_plays_with_schedule_skips_walk_and_keeps_completed_only(monkeypatch):
+    """Passing a pre-fetched schedule must bypass the scoreboard walk and parse
+    only COMPLETED rows — upcoming games have no plays to fetch."""
+    def _boom(*a, **k):
+        raise AssertionError("fetch_season_games must not be called when games= is given")
+
+    fetched: list[str] = []
+
+    def _fake_summary(gid, client=None, use_cache=True):
+        fetched.append(gid)
+        return {}  # parse_game_plays({}) -> [] — the parser is covered above
+
+    monkeypatch.setattr(C, "fetch_season_games", _boom)
+    monkeypatch.setattr(C, "fetch_game_summary", _fake_summary)
+
+    schedule = [_sched_game("done", True), _sched_game("future", False)]
+    rows, games = C.fetch_season_plays(2026, games=schedule, max_workers=1)
+
+    assert rows == []
+    assert [g["game_id"] for g in games] == ["done"]   # upcoming row dropped
+    assert fetched == ["done"]                          # only the completed game fetched

@@ -88,7 +88,9 @@ the shape above once the helper is merged — do NOT flip a task config before m
 task cannot find the helper. Tasks to convert: `weekly-seasonal-model-reseed`,
 `weekly-tennis-surface-elo-refresh`, `daily-resolve-and-model-update`, `daily-evening-resolve`,
 `weekly-model-calibration` (all `--rolling`), plus `weekly-drift-audit` and the
-`biweekly-model-improve-graph` graph (dated branches, `--run-hooks`).
+`biweekly-model-improve-graph` graph (dated branches, `--run-hooks`). `weekly-ncaaf-efficiency-reseed`
+(created 2026-09-03) was written directly on this shape and is the first task running it — its
+SKILL.md is the reference conversion for the others.
 
 ---
 
@@ -119,7 +121,8 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 
 | Task | Local time | What it does |
 |---|---|---|
-| `weekly-seasonal-model-reseed` | Mon 07:04 | Season-aware reseed of the manual-seed states: WNBA efficiency (May–Oct), NFL efficiency + QB Elo (Sep–Feb), NCAAF efficiency EPA (Aug–Jan), MLB pitcher_v2 (xERA+bullpen+FIP, Mar–Nov), UFC Glicko-2 ratings (weekly, no offseason) |
+| `weekly-seasonal-model-reseed` | Mon 07:04 | Season-aware reseed of the manual-seed states: WNBA efficiency (May–Oct), NFL efficiency + QB Elo (Sep–Feb), MLB pitcher_v2 (xERA+bullpen+FIP, Mar–Nov), UFC Glicko-2 ratings (weekly, no offseason). NCAAF was carved out into its own task on 2026-09-03 (next row) so each state file has exactly one owner |
+| `weekly-ncaaf-efficiency-reseed` | Mon 07:10 (Aug–Jan; self-skips otherwise) | `python scripts/seed_ncaaf_efficiency.py` — opponent-adjusted EPA/play + regressed preseason prior from ESPN play-by-play, refreshed after each Saturday slate (Sunday's late games are final by then). **First task on the `sched_worktree.py` pattern:** `open --rolling` an isolated worktree off `origin/main`, symlink the shared checkout's gitignored `data/cache/cfb_espn` into it (per-worktree cache path; ~900 prior-season summaries would otherwise refetch), run the seed, then `ship --rolling` ONLY `data/models/ncaaf_efficiency_state.json` onto the single `bot/model-state` PR. Ship gate: `fetched_at` == run date, `seasons_used` == current season, and — once games have been played — `gp>0` for the teams that played; a state failing the gate is reported, never shipped (the 2026-09-03 Week-1 bug produced a "fresh" state with `gp==0` for all 138 teams) |
 | `weekly-tennis-surface-elo-refresh` | Mon 07:15 | Refreshes ALL six tennis models from Tennis Abstract: surface Elo (leaderboards) + serve/return, advanced, form, h2h, ranking_trend (matchmx) |
 | `weekly-drift-audit` | Mon 07:56 | This audit — doc↔code drift, SAFE fixes on a branch + PR (spec: `.claude/commands/drift-audit.md`) |
 | `weekly-model-calibration` | Mon 08:07 | `cleanup metrics --weeks 4` + `cleanup adjust` (sharp_weight auto-tune, bounded 0.40–0.95) + shadow metrics review (reports promotion readiness, never promotes) |
@@ -160,6 +163,18 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 
 ## History
 
+- **2026-09-03** `weekly-ncaaf-efficiency-reseed` created (Mon 07:10 PT, Aug–Jan) and the
+  NCAAF block removed from `weekly-seasonal-model-reseed`, so `ncaaf_efficiency_state.json`
+  has exactly one owner. Trigger: the state on `main` was still the 2026-08-24 pre-season
+  seed (`gp==0` for all 138 teams, `seasons_used [2025]`) after Week 0 + the Week-1 Thursday
+  games had been played — the seasonal task's 08-31 run never landed an NCAAF PR, and even a
+  successful run would have written `gp==0` everywhere: the seed derived the in-season FBS
+  universe from COMPLETED games with a ≥6-appearance filter, empty until ~week 6 (fixed the
+  same day — universe now comes from the full schedule — together with a guard for ESPN
+  placeholder events with no `competitions`, which aborted the day walk). The new task is
+  the first one on the `scripts/sched_worktree.py` isolated-worktree + rolling `bot/model-state`
+  PR shape and carries an explicit ship gate (`gp>0` for teams that played, `fetched_at`
+  advanced).
 - **2026-08-28** the three `ev-scan-light-*` tasks switched from a hardcoded
   `--bankroll 500` to `--bankroll-venue kalshi --bankroll 500`: they now size
   Kelly against the **live Kalshi balance** (cash + open-position value, `GET
