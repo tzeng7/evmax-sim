@@ -174,8 +174,8 @@ class EnsembleModelAgent(Agent):
             "form":           0.30,
             "poisson":        0.0,
         },
-        # NCAAF — opponent-adjusted EPA (ncaaf_efficiency) with an embedded
-        # preseason-prior ramp is the workhorse; generic elo + form supply
+        # NCAAF — opponent-adjusted EPA + success rate (ncaaf_efficiency_v2,
+        # 2026-09-03; FPI-mixed preseason prior) with an embedded ramp is the workhorse; generic elo + form supply
         # early-season and cross-check voices. These are the PHASE 2 INITIAL
         # weights, to be swept + held out by scripts/backtest_ncaaf_efficiency.py
         # (2022-24 sweep, 2025 holdout) before the sector promotes off shadow.
@@ -186,7 +186,7 @@ class EnsembleModelAgent(Agent):
         # based scoring); the agent is soccer/worldcup-gated so it never fires
         # here, but zero it explicitly for intent.
         "ncaaf": {
-            "ncaaf_efficiency": 0.55,
+            "ncaaf_efficiency_v2": 0.55,
             "elo":              0.25,
             "form":             0.20,
             "poisson":          0.0,

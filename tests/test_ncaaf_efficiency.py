@@ -239,10 +239,13 @@ def _agent_with_state(source_season):
     agent._state = {
         "ncaaf": {
             "source_season": source_season,
+            "schema_version": 2,  # v2 seed layout (sr ratings present)
             "teams": {
                 "ohio state": {"off_epa_adj": 0.20, "def_epa_adj": -0.20,
+                               "off_sr_adj": 0.05, "def_sr_adj": -0.04,
                                "off_epa_prior": 0.10, "def_epa_prior": -0.08, "gp": 10},
                 "kent state": {"off_epa_adj": -0.25, "def_epa_adj": 0.22,
+                               "off_sr_adj": -0.05, "def_sr_adj": 0.04,
                                "off_epa_prior": -0.10, "def_epa_prior": 0.09, "gp": 10},
             },
         }
@@ -278,7 +281,7 @@ def test_agent_predicts_favorite(monkeypatch):
     pred = asyncio.run(agent.predict_pair(m, s))
     assert pred is not None
     assert pred.true_prob_a > 0.85       # OSU heavy favorite
-    assert pred.model_name == "ncaaf_efficiency"
+    assert pred.model_name == "ncaaf_efficiency_v2"
 
 
 def test_agent_none_on_unresolved_team(monkeypatch):

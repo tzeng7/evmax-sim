@@ -1,0 +1,538 @@
+{
+ "season": 2023,
+ "snapshot": "http://web.archive.org/web/20230825034548/https://www.espn.com/college-football/fpi",
+ "teams": {
+  "103": {
+   "fpi": -2.9,
+   "name": "Boston College Eagles"
+  },
+  "113": {
+   "fpi": -17.2,
+   "name": "UMass Minutemen"
+  },
+  "12": {
+   "fpi": 1.1,
+   "name": "Arizona Wildcats"
+  },
+  "120": {
+   "fpi": 5.6,
+   "name": "Maryland Terrapins"
+  },
+  "127": {
+   "fpi": 8.7,
+   "name": "Michigan State Spartans"
+  },
+  "130": {
+   "fpi": 21.4,
+   "name": "Michigan Wolverines"
+  },
+  "135": {
+   "fpi": 7.7,
+   "name": "Minnesota Golden Gophers"
+  },
+  "142": {
+   "fpi": 6.4,
+   "name": "Missouri Tigers"
+  },
+  "145": {
+   "fpi": 13.4,
+   "name": "Ole Miss Rebels"
+  },
+  "150": {
+   "fpi": 2.9,
+   "name": "Duke Blue Devils"
+  },
+  "151": {
+   "fpi": -3.0,
+   "name": "East Carolina Pirates"
+  },
+  "152": {
+   "fpi": 7.3,
+   "name": "NC State Wolfpack"
+  },
+  "153": {
+   "fpi": 10.2,
+   "name": "North Carolina Tar Heels"
+  },
+  "154": {
+   "fpi": 5.0,
+   "name": "Wake Forest Demon Deacons"
+  },
+  "158": {
+   "fpi": 3.1,
+   "name": "Nebraska Cornhuskers"
+  },
+  "164": {
+   "fpi": -3.2,
+   "name": "Rutgers Scarlet Knights"
+  },
+  "166": {
+   "fpi": -16.3,
+   "name": "New Mexico State Aggies"
+  },
+  "167": {
+   "fpi": -14.6,
+   "name": "New Mexico Lobos"
+  },
+  "183": {
+   "fpi": 7.6,
+   "name": "Syracuse Orange"
+  },
+  "189": {
+   "fpi": -14.1,
+   "name": "Bowling Green Falcons"
+  },
+  "193": {
+   "fpi": -7.1,
+   "name": "Miami (OH) RedHawks"
+  },
+  "194": {
+   "fpi": 31.5,
+   "name": "Ohio State Buckeyes"
+  },
+  "195": {
+   "fpi": -6.7,
+   "name": "Ohio Bobcats"
+  },
+  "197": {
+   "fpi": 6.9,
+   "name": "Oklahoma State Cowboys"
+  },
+  "2": {
+   "fpi": 6.9,
+   "name": "Auburn Tigers"
+  },
+  "2005": {
+   "fpi": -5.2,
+   "name": "Air Force Falcons"
+  },
+  "2006": {
+   "fpi": -16.0,
+   "name": "Akron Zips"
+  },
+  "201": {
+   "fpi": 16.9,
+   "name": "Oklahoma Sooners"
+  },
+  "202": {
+   "fpi": -7.4,
+   "name": "Tulsa Golden Hurricane"
+  },
+  "2026": {
+   "fpi": -3.2,
+   "name": "Appalachian State Mountaineers"
+  },
+  "2032": {
+   "fpi": -7.8,
+   "name": "Arkansas State Red Wolves"
+  },
+  "204": {
+   "fpi": 10.5,
+   "name": "Oregon State Beavers"
+  },
+  "2050": {
+   "fpi": -9.5,
+   "name": "Ball State Cardinals"
+  },
+  "2084": {
+   "fpi": -8.4,
+   "name": "Buffalo Bulls"
+  },
+  "21": {
+   "fpi": -5.4,
+   "name": "San Diego State Aztecs"
+  },
+  "2116": {
+   "fpi": 10.0,
+   "name": "UCF Knights"
+  },
+  "2117": {
+   "fpi": -9.2,
+   "name": "Central Michigan Chippewas"
+  },
+  "213": {
+   "fpi": 17.5,
+   "name": "Penn State Nittany Lions"
+  },
+  "2132": {
+   "fpi": 4.9,
+   "name": "Cincinnati Bearcats"
+  },
+  "218": {
+   "fpi": -9.4,
+   "name": "Temple Owls"
+  },
+  "2199": {
+   "fpi": -9.4,
+   "name": "Eastern Michigan Eagles"
+  },
+  "221": {
+   "fpi": 7.5,
+   "name": "Pittsburgh Panthers"
+  },
+  "2226": {
+   "fpi": -4.1,
+   "name": "Florida Atlantic Owls"
+  },
+  "2229": {
+   "fpi": -16.1,
+   "name": "Florida International Panthers"
+  },
+  "2247": {
+   "fpi": -6.4,
+   "name": "Georgia State Panthers"
+  },
+  "228": {
+   "fpi": 19.4,
+   "name": "Clemson Tigers"
+  },
+  "2294": {
+   "fpi": 7.3,
+   "name": "Iowa Hawkeyes"
+  },
+  "23": {
+   "fpi": -7.9,
+   "name": "San Jos\u00e9 State Spartans"
+  },
+  "2305": {
+   "fpi": -1.2,
+   "name": "Kansas Jayhawks"
+  },
+  "2306": {
+   "fpi": 9.8,
+   "name": "Kansas State Wildcats"
+  },
+  "2309": {
+   "fpi": -11.8,
+   "name": "Kent State Golden Flashes"
+  },
+  "2335": {
+   "fpi": -7.2,
+   "name": "Liberty Flames"
+  },
+  "2348": {
+   "fpi": -8.2,
+   "name": "Louisiana Tech Bulldogs"
+  },
+  "235": {
+   "fpi": 1.3,
+   "name": "Memphis Tigers"
+  },
+  "238": {
+   "fpi": -2.8,
+   "name": "Vanderbilt Commodores"
+  },
+  "239": {
+   "fpi": 10.7,
+   "name": "Baylor Bears"
+  },
+  "2390": {
+   "fpi": 9.1,
+   "name": "Miami Hurricanes"
+  },
+  "2393": {
+   "fpi": -9.6,
+   "name": "Middle Tennessee Blue Raiders"
+  },
+  "24": {
+   "fpi": -2.6,
+   "name": "Stanford Cardinal"
+  },
+  "242": {
+   "fpi": -9.3,
+   "name": "Rice Owls"
+  },
+  "2426": {
+   "fpi": -9.3,
+   "name": "Navy Midshipmen"
+  },
+  "2429": {
+   "fpi": -10.9,
+   "name": "Charlotte 49ers"
+  },
+  "2433": {
+   "fpi": -15.2,
+   "name": "UL Monroe Warhawks"
+  },
+  "2439": {
+   "fpi": -8.7,
+   "name": "UNLV Rebels"
+  },
+  "2440": {
+   "fpi": -10.4,
+   "name": "Nevada Wolf Pack"
+  },
+  "245": {
+   "fpi": 12.7,
+   "name": "Texas A&M Aggies"
+  },
+  "2459": {
+   "fpi": -10.0,
+   "name": "Northern Illinois Huskies"
+  },
+  "248": {
+   "fpi": 2.5,
+   "name": "Houston Cougars"
+  },
+  "2483": {
+   "fpi": 15.0,
+   "name": "Oregon Ducks"
+  },
+  "249": {
+   "fpi": -4.4,
+   "name": "North Texas Mean Green"
+  },
+  "25": {
+   "fpi": 3.3,
+   "name": "California Golden Bears"
+  },
+  "2509": {
+   "fpi": 4.4,
+   "name": "Purdue Boilermakers"
+  },
+  "251": {
+   "fpi": 21.9,
+   "name": "Texas Longhorns"
+  },
+  "252": {
+   "fpi": 1.0,
+   "name": "BYU Cougars"
+  },
+  "2534": {
+   "fpi": -16.5,
+   "name": "Sam Houston Bearkats"
+  },
+  "254": {
+   "fpi": 14.9,
+   "name": "Utah Utes"
+  },
+  "256": {
+   "fpi": -6.1,
+   "name": "James Madison Dukes"
+  },
+  "2567": {
+   "fpi": 4.7,
+   "name": "SMU Mustangs"
+  },
+  "2572": {
+   "fpi": -6.6,
+   "name": "Southern Miss Golden Eagles"
+  },
+  "2579": {
+   "fpi": 5.6,
+   "name": "South Carolina Gamecocks"
+  },
+  "258": {
+   "fpi": -2.8,
+   "name": "Virginia Cavaliers"
+  },
+  "259": {
+   "fpi": -0.3,
+   "name": "Virginia Tech Hokies"
+  },
+  "26": {
+   "fpi": 6.4,
+   "name": "UCLA Bruins"
+  },
+  "2628": {
+   "fpi": 13.0,
+   "name": "TCU Horned Frogs"
+  },
+  "2633": {
+   "fpi": 15.2,
+   "name": "Tennessee Volunteers"
+  },
+  "2636": {
+   "fpi": 0.2,
+   "name": "UTSA Roadrunners"
+  },
+  "2638": {
+   "fpi": -13.8,
+   "name": "UTEP Miners"
+  },
+  "264": {
+   "fpi": 11.8,
+   "name": "Washington Huskies"
+  },
+  "2641": {
+   "fpi": 10.8,
+   "name": "Texas Tech Red Raiders"
+  },
+  "2649": {
+   "fpi": -3.8,
+   "name": "Toledo Rockets"
+  },
+  "265": {
+   "fpi": -0.2,
+   "name": "Washington State Cougars"
+  },
+  "2653": {
+   "fpi": -2.2,
+   "name": "Troy Trojans"
+  },
+  "2655": {
+   "fpi": 2.4,
+   "name": "Tulane Green Wave"
+  },
+  "2711": {
+   "fpi": -11.4,
+   "name": "Western Michigan Broncos"
+  },
+  "275": {
+   "fpi": 12.3,
+   "name": "Wisconsin Badgers"
+  },
+  "2751": {
+   "fpi": -5.5,
+   "name": "Wyoming Cowboys"
+  },
+  "276": {
+   "fpi": -0.9,
+   "name": "Marshall Thundering Herd"
+  },
+  "277": {
+   "fpi": 1.4,
+   "name": "West Virginia Mountaineers"
+  },
+  "278": {
+   "fpi": -2.5,
+   "name": "Fresno State Bulldogs"
+  },
+  "290": {
+   "fpi": -5.2,
+   "name": "Georgia Southern Eagles"
+  },
+  "295": {
+   "fpi": -10.1,
+   "name": "Old Dominion Monarchs"
+  },
+  "30": {
+   "fpi": 19.9,
+   "name": "USC Trojans"
+  },
+  "309": {
+   "fpi": -3.8,
+   "name": "Louisiana Ragin' Cajuns"
+  },
+  "324": {
+   "fpi": -4.3,
+   "name": "Coastal Carolina Chanticleers"
+  },
+  "326": {
+   "fpi": -11.5,
+   "name": "Texas State Bobcats"
+  },
+  "328": {
+   "fpi": -9.7,
+   "name": "Utah State Aggies"
+  },
+  "333": {
+   "fpi": 28.2,
+   "name": "Alabama Crimson Tide"
+  },
+  "344": {
+   "fpi": 7.8,
+   "name": "Mississippi State Bulldogs"
+  },
+  "349": {
+   "fpi": -8.3,
+   "name": "Army Black Knights"
+  },
+  "356": {
+   "fpi": 5.5,
+   "name": "Illinois Fighting Illini"
+  },
+  "36": {
+   "fpi": -11.6,
+   "name": "Colorado State Rams"
+  },
+  "38": {
+   "fpi": -7.1,
+   "name": "Colorado Buffaloes"
+  },
+  "41": {
+   "fpi": -11.0,
+   "name": "UConn Huskies"
+  },
+  "5": {
+   "fpi": -3.7,
+   "name": "UAB Blazers"
+  },
+  "52": {
+   "fpi": 15.0,
+   "name": "Florida State Seminoles"
+  },
+  "55": {
+   "fpi": -16.3,
+   "name": "Jacksonville State Gamecocks"
+  },
+  "57": {
+   "fpi": 12.7,
+   "name": "Florida Gators"
+  },
+  "58": {
+   "fpi": -8.4,
+   "name": "South Florida Bulls"
+  },
+  "59": {
+   "fpi": -0.6,
+   "name": "Georgia Tech Yellow Jackets"
+  },
+  "6": {
+   "fpi": -4.9,
+   "name": "South Alabama Jaguars"
+  },
+  "61": {
+   "fpi": 27.4,
+   "name": "Georgia Bulldogs"
+  },
+  "62": {
+   "fpi": -10.2,
+   "name": "Hawai'i Rainbow Warriors"
+  },
+  "66": {
+   "fpi": 5.6,
+   "name": "Iowa State Cyclones"
+  },
+  "68": {
+   "fpi": 1.7,
+   "name": "Boise State Broncos"
+  },
+  "77": {
+   "fpi": -1.1,
+   "name": "Northwestern Wildcats"
+  },
+  "8": {
+   "fpi": 9.0,
+   "name": "Arkansas Razorbacks"
+  },
+  "84": {
+   "fpi": -2.9,
+   "name": "Indiana Hoosiers"
+  },
+  "87": {
+   "fpi": 18.4,
+   "name": "Notre Dame Fighting Irish"
+  },
+  "9": {
+   "fpi": -0.4,
+   "name": "Arizona State Sun Devils"
+  },
+  "96": {
+   "fpi": 9.7,
+   "name": "Kentucky Wildcats"
+  },
+  "97": {
+   "fpi": 5.1,
+   "name": "Louisville Cardinals"
+  },
+  "98": {
+   "fpi": -5.3,
+   "name": "Western Kentucky Hilltoppers"
+  },
+  "99": {
+   "fpi": 22.1,
+   "name": "LSU Tigers"
+  }
+ }
+}

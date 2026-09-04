@@ -235,7 +235,7 @@ MIN_NONSHARP_MODELS: dict[str, dict] = {
     "worldcup": {"min_count": 1, "market_types": frozenset({"moneyline", "advance"})},
     # NCAA football: same failure mode as MLS — early-season and unseeded/FCS
     # opponents blend to sharp-only, which is thin Kalshi-vs-Pinnacle arb, not
-    # model edge. Require ≥1 genuine model (elo/form/ncaaf_efficiency) on a live
+    # model edge. Require ≥1 genuine model (elo/form/ncaaf_efficiency_v2) on a live
     # moneyline play; sharp-only rows demote to shadow. (ncaaf launches shadow,
     # so this bites at promotion, exactly when it should.)
     "ncaaf":    {"min_count": 1, "market_types": frozenset({"moneyline"})},
