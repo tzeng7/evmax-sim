@@ -7,6 +7,13 @@ Webhooks are configured via environment variables:
 
 Only bets with EV >= notification_min_ev_pct (default 5%) trigger notifications.
 
+A third transport — the Discord BOT channel (``DISCORD_BOT_TOKEN`` +
+``DISCORD_CHANNEL_ID``, see evmax/discord_bot/) — receives something different
+from the webhooks: the full scan play table exactly as the dashboard's Scan
+Results panel lays it out (no min-EV gate; ``DISCORD_SCAN_FEED`` toggles it),
+and operational alerts as colored embeds. Text sent via ``send_text`` reaches
+all three.
+
 Example Slack message:
   🎯 *evmax* — 3 +EV plays found (soccer, nba)
   • Chelsea wins   +185 → +210  EV=+8.3%  $12.50
@@ -28,6 +35,7 @@ from evmax.ev.odds_format import cents as _cents
 
 if TYPE_CHECKING:
     from evmax.agents.coordinator import CycleResult
+    from evmax.discord_bot.client import DiscordBotClient
 
 logger = structlog.get_logger(__name__)
 
@@ -43,35 +51,75 @@ _SEVERITY_EMOJI = {"info": "ℹ️", "warning": "⚠️", "critical": "🚨"}
 class Notifier:
     """Sends +EV alerts to configured Slack / Discord webhooks."""
 
-    def __init__(self, slack_url: str | None = None, discord_url: str | None = None, min_ev_pct: float = 5.0) -> None:
+    def __init__(
+        self,
+        slack_url: str | None = None,
+        discord_url: str | None = None,
+        min_ev_pct: float = 5.0,
+        discord_bot: "DiscordBotClient | None" = None,
+        *,
+        scan_feed: bool = True,
+        post_empty_scans: bool = False,
+    ) -> None:
         self._slack_url = slack_url
         self._discord_url = discord_url
         self._min_ev_pct = min_ev_pct
+        # Bot-channel transport (evmax.discord_bot). None when unconfigured.
+        self._discord_bot = discord_bot if (discord_bot and discord_bot.is_configured()) else None
+        self._scan_feed = scan_feed
+        self._post_empty_scans = post_empty_scans
 
     @classmethod
     def from_settings(cls) -> "Notifier":
         from evmax.settings import get_settings
         s = get_settings()
+        bot = None
+        if s.discord_bot_configured:
+            from evmax.discord_bot.client import DiscordBotClient
+            bot = DiscordBotClient(
+                s.discord_bot_token, s.discord_channel_id, dm_user_id=s.discord_dm_user_id,
+            )
         return cls(
             slack_url=s.slack_webhook_url,
             discord_url=s.discord_webhook_url,
             min_ev_pct=s.notification_min_ev_pct,
+            discord_bot=bot,
+            scan_feed=s.discord_scan_feed,
+            post_empty_scans=s.discord_post_empty_scans,
         )
 
     def is_configured(self) -> bool:
-        return bool(self._slack_url or self._discord_url)
+        return bool(self._slack_url or self._discord_url or self._discord_bot)
+
+    @property
+    def discord_bot(self) -> "DiscordBotClient | None":
+        return self._discord_bot
 
     def notify_cycle(self, result: "CycleResult") -> None:
-        """Send notification for a completed scan cycle if high-EV bets found."""
+        """Notify for a completed scan cycle.
+
+        Webhooks get the compact high-EV text alert (gated on ``min_ev_pct``).
+        The Discord bot channel gets the scan FEED: the dashboard's Scan
+        Results table for the cycle (every play it would list, same order and
+        columns — no min-EV gate), unless the feed is off or the calling
+        context suppressed it because it renders the cycle itself (the
+        ``/scan`` slash command).
+        """
         if not self.is_configured():
             return
 
-        top_gaps = [g for g in result.top_gaps if g.ev_pct >= self._min_ev_pct / 100]
-        if not top_gaps:
-            return
+        if self._slack_url or self._discord_url:
+            top_gaps = [g for g in result.top_gaps if g.ev_pct >= self._min_ev_pct / 100]
+            if top_gaps:
+                text = self._format_message(result, top_gaps)
+                self._send_webhooks(text)
 
-        text = self._format_message(result, top_gaps)
-        self._send(text)
+        if self._discord_bot and self._scan_feed:
+            from evmax.discord_bot.feed import post_scan_feed, scan_feed_suppressed
+            if not scan_feed_suppressed():
+                post_scan_feed(
+                    self._discord_bot, result, post_empty=self._post_empty_scans,
+                )
 
     def _format_message(self, result, gaps: list) -> str:
         sectors = sorted({g.sector for g in gaps})
@@ -112,11 +160,27 @@ class Notifier:
             return False
         emoji = _SEVERITY_EMOJI.get(severity, "⚠️")
         text = f"{emoji} *evmax {severity}* — {title}\n{message}"
-        return self._send(text)
+        if self._discord_bot is None:
+            return self._send(text)
+        # Bot channel gets a colored embed instead of the text line; webhooks
+        # keep the text.
+        from evmax.discord_bot.embeds import alert_embed
+        ok = self._send_webhooks(text)
+        return self._discord_bot.post_embeds(
+            [alert_embed(title, message, severity=severity)]
+        ) and ok
 
     def _send(self, text: str) -> bool:
-        """POST text to all configured webhooks. Returns True only if every
-        configured webhook accepted the message."""
+        """POST text to every configured transport (webhooks + bot channel).
+        Returns True only if every one accepted the message."""
+        ok = self._send_webhooks(text)
+        if self._discord_bot:
+            ok = self._discord_bot.post_text(text) and ok
+        return ok
+
+    def _send_webhooks(self, text: str) -> bool:
+        """POST text to the configured webhooks only. Returns True only if
+        every configured webhook accepted the message (True when none are)."""
         ok = True
         if self._slack_url:
             ok = self._post(self._slack_url, {"text": text}) and ok
