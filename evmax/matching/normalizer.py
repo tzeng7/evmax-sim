@@ -63,6 +63,12 @@ class NameNormalizer:
             pre_strip = self._handler.normalize_team(result)
             if pre_strip != result:
                 return pre_strip
+            # Already a canonical target → idempotent. Without this a
+            # canonical containing a noise word ("man united", "dc united")
+            # degrades on every re-normalization ("man", "dc"), so the
+            # Kalshi-side event key never equals the Pinnacle-side key.
+            if self._handler.is_canonical(result):
+                return result
 
         # Strip noise words from start/end
         parts = result.split()

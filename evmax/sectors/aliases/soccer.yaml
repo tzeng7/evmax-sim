@@ -82,7 +82,7 @@ aliases:
   # Bundesliga — 3-letter Kalshi codes
   "bmu": "bayern"
   "bvb": "dortmund"
-  "bmg": "m'gladbach"
+  "bmg": "gladbach"
   "fca": "augsburg"
   "fch": "heidenheim"
   "hsv": "hamburg"
@@ -104,7 +104,13 @@ aliases:
   "borussia dortmund": "dortmund"
   "rb leipzig": "leipzig"
   "bayer leverkusen": "leverkusen"
-  "borussia monchengladbach": "m'gladbach"
+  # canonical "gladbach": the old "m'gladbach" contained an apostrophe the
+  # normalizer strips, so it could never be a fixed point of normalize().
+  "borussia monchengladbach": "gladbach"
+  "borussia mönchengladbach": "gladbach"
+  "monchengladbach": "gladbach"
+  "m'gladbach": "gladbach"
+  "mgladbach": "gladbach"
   "sc freiburg": "freiburg"
   "eintracht frankfurt": "frankfurt"
   # German clubs with "1. FC" / "1." prefix that Pinnacle/TheOddsAPI uses
@@ -214,6 +220,29 @@ aliases:
   "qarabag": "qarabag"
   "qarabağ": "qarabag"
   # Champions League participants handled by club aliases above
+  # 2026-27 UCL league phase (2026-09-04): Pinnacle / ESPN spellings that
+  # otherwise normalize to a DIFFERENT canonical than the Kalshi ticker code
+  # (see _SERIES_TEAM_CODE_MAPS["KXUCLGAME"] in evmax/clients/kalshi.py).
+  "internazionale": "inter"
+  "inter milan": "inter"
+  "feyenoord rotterdam": "feyenoord"
+  "psv eindhoven": "psv"
+  "vfb stuttgart": "stuttgart"
+  "sporting lisbon": "sporting cp"
+  "sporting": "sporting cp"
+  "lask": "lask linz"
+  "sabah fk": "sabah"
+  "sabah fc": "sabah"
+  "viking fk": "viking"
+  "slovan": "slovan bratislava"
+  "sk slavia prague": "slavia prague"
+  "slavia praha": "slavia prague"
+  "shakhtar": "shakhtar donetsk"
+  "fk shakhtar donetsk": "shakhtar donetsk"
+  "como 1907": "como"
+  "rc lens": "lens"
+  "real betis": "betis"
+  "real betis balompie": "betis"
   # MLS
   "la galaxy": "la galaxy"
   "los angeles fc": "lafc"

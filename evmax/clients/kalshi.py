@@ -164,6 +164,50 @@ _SERIES_TEAM_CODE_MAPS: dict[str, dict[str, str]] = {
         "tor": "toronto",
         "van": "vancouver",
     },
+    # UEFA Champions League — 2026-27 league-phase codes, read off the live
+    # KXUCLGAME tickers on 2026-09-04 (matchday 1, 18 games / 36 clubs). The
+    # flat soccer.yaml map only carried the big-five-league codes, so 13 of
+    # 18 games never matched Pinnacle (13 clubs' codes were missing outright
+    # and Kalshi's INT normalized to "inter" while Pinnacle's "Internazionale"
+    # did not). Canonicals are what Pinnacle's full names normalize to.
+    "KXUCLGAME": {
+        "aek": "aek athens",
+        "ars": "arsenal",
+        "ask": "lask linz",
+        "atm": "atletico",
+        "avl": "aston villa",
+        "bar": "barcelona",
+        "bmu": "bayern",
+        "bog": "bodo glimt",
+        "bru": "brugge",
+        "bvb": "dortmund",
+        "com": "como",
+        "fcp": "porto",
+        "fen": "fenerbahce",
+        "fey": "feyenoord",
+        "gal": "galatasaray",
+        "int": "inter",
+        "lfc": "liverpool",
+        "lil": "lille",
+        "mci": "man city",
+        "mun": "man united",
+        "nap": "napoli",
+        "psg": "psg",
+        "psv": "psv",
+        "rbb": "betis",
+        "rbl": "leipzig",
+        "rcl": "lens",
+        "rma": "real madrid",
+        "rom": "roma",
+        "sbh": "sabah",
+        "sha": "shakhtar donetsk",
+        "sla": "slavia prague",
+        "slo": "slovan bratislava",
+        "spo": "sporting cp",
+        "vfb": "stuttgart",
+        "vik": "viking",
+        "vil": "villarreal",
+    },
 }
 
 

@@ -39,6 +39,23 @@ class SectorHandler(ABC):
                 data = yaml.safe_load(f) or {}
                 self._aliases = data.get("aliases", {})
 
+    def is_canonical(self, name: str) -> bool:
+        """True when `name` is already a canonical alias TARGET.
+
+        Lets NameNormalizer short-circuit before noise-word stripping so
+        normalization is idempotent: "man united" must stay "man united"
+        on a second pass instead of collapsing to "man" (2026-09-04 — the
+        Kalshi KXUCLGAME Man United vs Sabah key became sabah_vs_man and
+        fuzzy-scored 77 against Pinnacle's man_united_vs_sabah).
+        """
+        if not self._aliases:
+            return False
+        canon = getattr(self, "_canonical_set", None)
+        if canon is None:
+            canon = set(self._aliases.values())
+            self._canonical_set = canon
+        return name in canon
+
     def normalize_team(self, name: str) -> str:
         """
         Normalize a team name using the alias map.
