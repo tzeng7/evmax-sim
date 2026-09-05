@@ -38,11 +38,26 @@ The Discord table is built from the same code as the React dashboard's Scan Resu
 * **Title** — the panel header verbatim: `Scan Results — 12 plays (600 markets, 71 matched)`.
   The footer carries bankroll, Kelly, sectors, the date window, duration and any sector errors.
 
-Discord has no table markup, so the table is a monospace code block inside an embed. Long
-tables are split across embeds (each repeats the header, all share column widths) and
-across messages under Discord's caps (4096 chars per description, 6000 per message, 2000 for
-plain text). `/plays` mirrors the Open Positions panel and `/settled` the Recent Settled Bets
-panel + KPI summary the same way.
+Discord has no table markup, and an embed is only ~55 monospace characters wide on desktop
+(fewer on mobile), so a 15-column table would wrap every row into four lines. Each row is
+therefore rendered as a compact **card** — the same cells, in the panel's order, over a few
+short markdown lines:
+
+```
+🟢 **Brentford ML** — Brentford vs Sunderland
+soccer · Kalshi · 34.9% | Poly · 9.7% · 2026-09-05
+Ask **41¢** · fair 57.6¢ (57.6%) · EV **+34.9%** · stake **$83.24**
+maker EV 39.0% · limit 56¢ · bid 40¢
+`elo+form+poisson+xg+sharp`
+```
+
+🟢 = live row, 🟡 = shadow (with a `shadow` tag), 🟣 = maker-only (`MAKER` tag; its fill
+line shows the resting bid it seeds to). Maker cells the panel shows as `—` are omitted. Long
+lists split across embeds (a card never splits) and across messages under Discord's caps (4096
+chars per description, 6000 per message). `/plays` mirrors the Open Positions panel (3-line
+cards with the panel's `NEW` / `LIVE` tags) and `/settled` the Recent Settled Bets panel (✅ /
+❌ 2-line cards, P&L bold) + KPI summary the same way. The `*_row` cell builders in
+`evmax/discord_bot/embeds.py` remain the single source of every figure.
 
 ## Setup (once, ~5 minutes)
 

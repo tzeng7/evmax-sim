@@ -378,32 +378,53 @@ class TestScanTable:
         assert "sectors: nfl" in out[0]["footer"]["text"]
         assert "window: today + tomorrow" in out[0]["footer"]["text"]
 
-    def test_table_in_code_block_with_footer_and_errors(self):
+    def test_card_layout_with_footer_and_errors(self):
         out = E.scan_result_embeds(
-            [_row()], markets_fetched=10, markets_matched=5, bankroll=250, kelly=0.5,
+            [_row(alt_venue="polymarket_us", alt_venue_price=0.47)],
+            markets_fetched=10, markets_matched=5, bankroll=250, kelly=0.5,
             date_from="2026-09-04", date_to="2026-09-05", duration_s=3.31,
             errors=["nhl: timed out"], source="bankroll live:kalshi",
         )
         assert len(out) == 1
         d = out[0]["description"]
-        assert d.startswith("```\n") and d.endswith("\n```")
-        lines = d.strip("`\n").split("\n")
-        assert lines[0].split() == ["Date", "Sector", "Venue", "Event", "Outcome", "Ask",
-                                    "Fair", "Value", "Model", "EV", "Maker", "EV",
-                                    "Limit", "¢", "Bid", "¢", "Fill", "¢", "Stake", "($)", "Models"]
-        assert "Chiefs ML" in lines[2] and lines[2].startswith("2026-09-04")
+        assert "```" not in d  # cards are markdown, not a code-block table
+        lines = d.split("\n")
+        assert lines[0] == "🟢 **Chiefs ML** — Kansas City Chiefs vs Los Angeles Chargers"
+        assert lines[1] == "nfl · Kalshi (also Poly 47¢) · 2026-09-04"
+        assert lines[2] == "Ask **45¢** · fair 49¢ (49.0%) · EV **+4.1%** · stake **$5.00**"
+        assert lines[3] == "maker EV 5.2% · limit 48¢ · bid 46¢"
+        assert lines[4] == "`sharp,elo,form`"
+        assert max(len(l) for l in lines) < 80
         f = out[0]["footer"]["text"]
         assert "window: 2026-09-04 → 2026-09-05" in f and "3.3s" in f
         assert "errors: nhl: timed out" in f and "bankroll live:kalshi" in f
 
-    def test_long_table_chunks_under_description_cap_with_header_repeated(self):
+    def test_card_tags_shadow_maker_and_dropdown(self):
+        legs = [{"venue": "kalshi", "ev_pct": 4.1, "maker_only": False},
+                {"venue": "polymarket_us", "ev_pct": 3.2, "maker_only": True}]
+        c = E.scan_card(_row(mode="shadow", maker_only=True, venue_options=legs,
+                             maker_ev_pct=None, maker_limit_price=None,
+                             model_sources="sharp+total_dist+no_side"), 250.0)
+        lines = c.split("\n")
+        assert lines[0].startswith("🟣 **Chiefs ML** `shadow` `MAKER` — ")
+        assert lines[1] == "nfl · Kalshi · 4.1% | Poly · 3.2% mkr · 2026-09-04"
+        assert "stake **$7.50**" in lines[2]        # maker-sized stake
+        assert lines[3] == "bid 46¢"               # absent maker cols are omitted, fill==bid folded
+        assert lines[4] == "`sharp+total_dist+no_side`"  # underscores safe in a code span
+        c = E.scan_card(_row(maker_ev_pct=None, maker_limit_price=None, maker_bid_price=None), 250.0)
+        assert len(c.split("\n")) == 4  # no maker line at all
+
+    def test_md_escape(self):
+        assert E.md_escape("a_b*c") == "a\\_b\\*c"
+        assert E.md_escape(None) == ""
+
+    def test_long_list_chunks_under_description_cap_in_order(self):
         rows = [_row(market_id=f"KX{i}", event_title=f"Game number {i} with a long title") for i in range(200)]
         out = E.scan_result_embeds(rows, markets_fetched=1, markets_matched=1, bankroll=250, kelly=0.5)
         assert len(out) > 1
         for i, e in enumerate(out, 1):
             assert len(e["description"]) <= EMBED_DESCRIPTION_MAX
-            first = e["description"].split("\n")[1]
-            assert first.startswith("Date")
+            assert e["description"].startswith("🟢 **")   # a card never splits
             if i > 1:
                 assert e["title"].endswith(f"(cont. {i}/{len(out)})")
         assert "footer" in out[-1] and all("footer" not in e for e in out[:-1])
@@ -411,9 +432,15 @@ class TestScanTable:
         body = "\n".join(e["description"] for e in out)
         positions = [body.index(f"Game number {i} ") for i in range(200)]
         assert positions == sorted(positions)
+        assert body.count("Game number ") == 200
         # And the messages the client would send respect the 6000-char cap.
         for batch in batch_embeds(out):
             assert sum(embed_char_count(e) for e in batch) <= MESSAGE_EMBED_CHARS_MAX
+
+    def test_card_chunks_never_split_a_card(self):
+        cards = ["a" * 30, "b" * 30, "c" * 30]
+        assert E.card_chunks(cards, 65) == ["a" * 30 + "\n\n" + "b" * 30, "c" * 30]
+        assert E.card_chunks([], 10) == [""]
 
 
 class TestOpenAndSettledTables:
@@ -456,8 +483,24 @@ class TestOpenAndSettledTables:
         assert "2 bets · 1W / 1L · win rate 50.0% · P&L $-1.50 · ROI -7.5% · avg EV 4.0%" == out[0]["footer"]["text"]
         out = E.recent_settled_embeds(bets, summary=summary, placed_only=True)
         assert out[0]["title"].endswith("Placed Only")
-        lines = out[0]["description"].strip("`\n").split("\n")
-        assert len(lines) == 3  # header + rule + one row
+        assert out[0]["description"].count("\n\n") == 0  # exactly one card
+        assert out[0]["description"].startswith("✅ **")
+
+    def test_settled_and_open_cards(self):
+        b = {"event_date": "2026-09-03", "sector": "nba", "venue": "kalshi", "event_title": "A vs B",
+             "display_label": "A ML", "kalshi_yes_price": 0.445, "blended_true_prob": 0.494,
+             "ev_pct": 0.0525, "outcome": 0, "placed_stake": 10.0, "placed_price": 0.5}
+        assert E.settled_card(b) == ("❌ **A ML** — A vs B · **-$10.00**\n"
+                                     "nba · Kalshi · 2026-09-03 · ask 45c · model 49% · EV 5.3%")
+        b.update(outcome=1)
+        assert E.settled_card(b).startswith("✅ **A ML** — A vs B · **+$10.00**")
+        o = {"market_id": "M1", "status": "in_progress", "event_date": "2026-09-04", "sector": "wnba",
+             "venue": "polymarket_us", "event_title": "Aces vs Liberty", "display_label": "Aces ML",
+             "kalshi_yes_price": 0.61, "blended_true_prob": 0.667, "ev_pct": 0.0425, "kelly_fraction": 0.03}
+        assert E.open_position_card(o, 250.0, 0.5, {"M1"}) == (
+            "🟢 **Aces ML** `NEW` `LIVE` — Aces vs Liberty\n"
+            "wnba · Poly · 2026-09-04\n"
+            "Ask **61¢** · fair 66.7¢ · EV **+4.3%** · stake **$7.50**")
 
 
 class TestAlertAndStatus:

@@ -9,10 +9,16 @@ selection/order left to the caller (``evmax.web.playlist`` for the scan view,
 dashboard shows as a badge (``shadow`` mode, ``MAKER``, ``NEW``, ``LIVE``)
 is a text tag in the same column.
 
-Discord has no table markup, so each table is a code block inside an embed
-description. Long tables are split across embeds (each chunk repeats the
-header) and the :mod:`evmax.discord_bot.client` batches embeds into messages
-under Discord's per-message caps.
+Discord has no table markup and an embed is only ~55 monospace characters
+wide on desktop (fewer on mobile), so a 15-column table wraps every row into
+four unreadable lines. Each panel row is therefore rendered as a compact
+CARD — a few short markdown lines per play carrying every cell of the panel
+row in the panel's order (:func:`scan_card`, :func:`open_position_card`,
+:func:`settled_card`); the ``*_row`` cell builders remain the single source
+of the figures. Long lists are split across embeds
+(:func:`card_chunks`) and the :mod:`evmax.discord_bot.client` batches embeds
+into messages under Discord's per-message caps. :func:`render_table` /
+:func:`table_chunks` stay available for wide terminals.
 """
 
 from __future__ import annotations
@@ -100,6 +106,26 @@ def venue_short(v: Optional[str]) -> str:
     if v == "kalshi":
         return "Kalshi"
     return v or ""
+
+
+_MD_SPECIAL = "*_`~>"   # a lone "|" is harmless (only "||" spoilers), keep dropdown labels clean
+
+
+def md_escape(s: Any) -> str:
+    """Escape Discord markdown in free text (team names, labels) so an
+    underscore or asterisk can't italicise half a card."""
+    out = []
+    for ch in str(s or ""):
+        out.append("\\" + ch if ch in _MD_SPECIAL else ch)
+    return "".join(out)
+
+
+# Card mode markers: the dashboard's row badges as a leading glyph.
+GLYPH_LIVE = "🟢"
+GLYPH_SHADOW = "🟡"
+GLYPH_MAKER = "🟣"
+GLYPH_WON = "✅"
+GLYPH_LOST = "❌"
 
 
 # ---------------------------------------------------------------------------
@@ -217,6 +243,73 @@ def scan_rows(
     return [scan_row(g, bankroll, kelly, scan_kelly) for g in gaps]
 
 
+def scan_card(
+    g: dict[str, Any],
+    bankroll: float,
+    kelly: Optional[float] = None,
+    scan_kelly: Optional[float] = None,
+) -> str:
+    """One Scan Results row as a card (3–5 short lines). Same figures as
+    :func:`scan_row`, laid out for a ~50-character-wide embed::
+
+        🟢 **Chiefs ML** — Kansas City Chiefs vs Los Angeles Chargers
+        nfl · Kalshi · 2026-09-04
+        Ask **45¢** · fair 49¢ (49.0%) · EV **+4.1%** · stake **$5.00**
+        maker EV 5.2% · limit 48¢ · bid 46¢
+        `sharp,elo,form`
+
+    A shadow row leads with 🟡 and a `shadow` tag, a maker-only row with 🟣
+    and `MAKER` (its fill line shows the resting bid it seeds to). The venue
+    line carries the dashboard's venue-dropdown options when the bet is
+    quoted on two venues, and the outcome line the `also Poly 47¢` note."""
+    cells = scan_row(g, bankroll, kelly, scan_kelly)
+    (date, sector_cell, venue, event, outcome, ask, fair, model, ev,
+     maker_ev, limit, bid, fill, stake, models) = cells
+    mode = (g.get("mode") or "live")
+    is_maker = bool(g.get("maker_only"))
+    glyph = GLYPH_MAKER if is_maker else (GLYPH_LIVE if mode == "live" else GLYPH_SHADOW)
+    sector = str(g.get("sector") or "")
+    tags = ""
+    if mode != "live":
+        tags += f" `{mode}`"
+    if is_maker:
+        tags += " `MAKER`"
+
+    # The panel folds the `also Poly 47¢` note into the Outcome cell; on a card
+    # it reads better next to the venue, leaving the bold outcome clean.
+    label = str(g.get("display_label") or "")
+    also = outcome[len(label):].strip(" ·") if outcome.startswith(label) else ""
+    head = f"{glyph} **{md_escape(label)}**{tags} — {md_escape(event)}"
+    venue_s = md_escape(venue) + (f" ({md_escape(also)})" if also else "")
+    meta = " · ".join(x for x in (md_escape(sector), venue_s, date) if x)
+    ev_s = ev if ev.startswith("-") else f"+{ev}"
+    nums = f"Ask **{ask}** · fair {fair} ({model}) · EV **{ev_s}** · stake **${stake}**"
+    lines = [head, meta, nums]
+    maker_bits = []
+    if maker_ev != "—":
+        maker_bits.append(f"maker EV {maker_ev}")
+    if limit != "—":
+        maker_bits.append(f"limit {limit}")
+    if bid != "—":
+        maker_bits.append(f"bid {bid}")
+    if fill != ask and fill != bid:
+        maker_bits.append(f"fill {fill}")
+    if maker_bits:
+        lines.append(" · ".join(maker_bits))
+    if models:
+        lines.append(f"`{models}`")
+    return "\n".join(lines)
+
+
+def scan_cards(
+    gaps: Sequence[dict[str, Any]],
+    bankroll: float,
+    kelly: Optional[float] = None,
+    scan_kelly: Optional[float] = None,
+) -> list[str]:
+    return [scan_card(g, bankroll, kelly, scan_kelly) for g in gaps]
+
+
 def scan_title(n_plays: int, markets_fetched: int, markets_matched: int) -> str:
     """The Scan Results panel header, verbatim."""
     return f"Scan Results — {n_plays} plays ({markets_fetched} markets, {markets_matched} matched)"
@@ -258,9 +351,8 @@ def scan_result_embeds(
     if not gaps:
         return [_embed(title, "No +EV plays found.", COLOR_EMPTY, footer)]
 
-    rows = scan_rows(gaps, bankroll, kelly, kelly)
-    chunks = table_chunks(SCAN_HEADERS, rows, SCAN_ALIGN, TABLE_CHUNK_MAX)
-    return _table_embeds(title, chunks, COLOR_PLAYS, footer)
+    chunks = card_chunks(scan_cards(gaps, bankroll, kelly, kelly), EMBED_DESCRIPTION_MAX)
+    return _card_embeds(title, chunks, COLOR_PLAYS, footer)
 
 
 # ---------------------------------------------------------------------------
@@ -303,6 +395,24 @@ def open_position_row(
     ]
 
 
+def open_position_card(
+    b: dict[str, Any], bankroll: float, kelly: float, scan_mids: Optional[set[str]] = None
+) -> str:
+    """One Open Positions row as a 3-line card (figures from
+    :func:`open_position_row`)."""
+    tags, date, sector, venue, event, outcome, ask, fair, ev, stake = open_position_row(
+        b, bankroll, kelly, scan_mids,
+    )
+    glyph = GLYPH_LIVE
+    tag_s = "".join(f" `{tg}`" for tg in tags.split()) if tags else ""
+    ev_s = ev if ev.startswith("-") else f"+{ev}"
+    return "\n".join([
+        f"{glyph} **{md_escape(outcome)}**{tag_s} — {md_escape(event)}",
+        " · ".join(x for x in (md_escape(sector), md_escape(venue), date) if x),
+        f"Ask **{ask}** · fair {fair} · EV **{ev_s}** · stake **{stake}**",
+    ])
+
+
 def open_positions_embeds(
     bets: Sequence[dict[str, Any]],
     *,
@@ -322,11 +432,10 @@ def open_positions_embeds(
         footer += f" · {source}"
     if not rows_in:
         return [_embed(title, "No open positions.", COLOR_EMPTY, footer)]
-    rows = [open_position_row(b, bankroll, kelly, scan_mids) for b in rows_in[:OPEN_POSITIONS_ROW_CAP]]
+    cards = [open_position_card(b, bankroll, kelly, scan_mids) for b in rows_in[:OPEN_POSITIONS_ROW_CAP]]
     if len(rows_in) > OPEN_POSITIONS_ROW_CAP:
         footer += f" · showing {OPEN_POSITIONS_ROW_CAP} of {len(rows_in)}"
-    chunks = table_chunks(OPEN_HEADERS, rows, OPEN_ALIGN, TABLE_CHUNK_MAX)
-    return _table_embeds(title, chunks, COLOR_INFO, footer)
+    return _card_embeds(title, card_chunks(cards, EMBED_DESCRIPTION_MAX), COLOR_INFO, footer)
 
 
 # ---------------------------------------------------------------------------
@@ -364,6 +473,24 @@ def settled_row(b: dict[str, Any]) -> list[str]:
     ]
 
 
+def settled_card(b: dict[str, Any]) -> str:
+    """One Recent Settled Bets row as a 2-line card (figures from
+    :func:`settled_row`)::
+
+        ✅ **Wings ML** — Dallas Wings vs Connecticut Sun · **+$9.01**
+        wnba · Kalshi · 2026-08-30 · ask 90c · model 93% · EV 2.8%
+    """
+    date, sector, venue, event, outcome, ask, model, ev, result, pnl = settled_row(b)
+    glyph = GLYPH_WON if result == "WON" else GLYPH_LOST
+    amount = pnl[1:]  # strip "$"
+    pnl_s = f"-${amount[1:]}" if amount.startswith("-") else f"+${amount}"
+    return "\n".join([
+        f"{glyph} **{md_escape(outcome)}** — {md_escape(event)} · **{pnl_s}**",
+        " · ".join(x for x in (md_escape(sector), md_escape(venue), date,
+                               f"ask {ask}", f"model {model}", f"EV {ev}") if x),
+    ])
+
+
 def recent_settled_embeds(
     bets: Sequence[dict[str, Any]],
     *,
@@ -384,9 +511,8 @@ def recent_settled_embeds(
         )
     if not rows_in:
         return [_embed(title, "No settled bets.", COLOR_EMPTY, footer)]
-    rows = [settled_row(b) for b in rows_in[:RECENT_SETTLED_ROW_CAP]]
-    chunks = table_chunks(SETTLED_HEADERS, rows, SETTLED_ALIGN, TABLE_CHUNK_MAX)
-    return _table_embeds(title, chunks, COLOR_INFO, footer)
+    cards = [settled_card(b) for b in rows_in[:RECENT_SETTLED_ROW_CAP]]
+    return _card_embeds(title, card_chunks(cards, EMBED_DESCRIPTION_MAX), COLOR_INFO, footer)
 
 
 # ---------------------------------------------------------------------------
@@ -482,6 +608,41 @@ def table_chunks(
     if cur or not chunks:
         chunks.append(render_table(headers, cur, aligns, widths=widths))
     return chunks
+
+
+CARD_SEP = "\n\n"
+
+
+def card_chunks(cards: Sequence[str], max_chars: int) -> list[str]:
+    """Join cards with a blank line and split into descriptions of
+    ≤``max_chars``. Order is preserved; a card never splits."""
+    chunks: list[str] = []
+    cur: list[str] = []
+    cur_len = 0
+    for c in cards:
+        add = len(c) + (len(CARD_SEP) if cur else 0)
+        if cur and cur_len + add > max_chars:
+            chunks.append(CARD_SEP.join(cur))
+            cur, cur_len = [], 0
+            add = len(c)
+        cur.append(c)
+        cur_len += add
+    if cur or not chunks:
+        chunks.append(CARD_SEP.join(cur))
+    return chunks
+
+
+def _card_embeds(
+    title: str, chunks: list[str], color: int, footer: Optional[str]
+) -> list[dict[str, Any]]:
+    """One embed per card chunk (markdown, no code fence); continuation
+    embeds are titled ``(cont. i/n)`` and only the last carries the footer."""
+    out: list[dict[str, Any]] = []
+    total = len(chunks)
+    for i, chunk in enumerate(chunks, 1):
+        t = title if i == 1 else f"{title} (cont. {i}/{total})"
+        out.append(_embed(t, chunk, color, footer if i == total else None))
+    return out
 
 
 def code_block(text: str) -> str:
