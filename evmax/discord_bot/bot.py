@@ -105,11 +105,11 @@ def register_commands(
     @tree.command(name="scan", description="Run an EV scan and post the dashboard's Scan Results table")
     @app_commands.describe(
         sectors="Comma-separated sectors (default: every in-season game sector)",
-        bankroll="Bankroll in USD (default 250)",
+        bankroll="Bankroll in USD (default: DISCORD_BANKROLL_VENUE live balance, else 250)",
         kelly="Kelly multiplier 0–1 (default 0.5)",
         date_from="Window start YYYY-MM-DD (default today)",
         date_to="Window end YYYY-MM-DD (default tomorrow)",
-        bankroll_venue="Size against a venue's LIVE balance instead of --bankroll",
+        bankroll_venue="Size against a venue's LIVE balance (default: DISCORD_BANKROLL_VENUE)",
     )
     async def scan_cmd(
         interaction: Any,
@@ -128,7 +128,7 @@ def register_commands(
     @tree.command(name="plays", description="Open Positions — scanned, unplaced live rows awaiting a pick")
     @app_commands.describe(
         sector="Only this sector",
-        bankroll="Bankroll in USD for the Stake column (default 250)",
+        bankroll="Bankroll in USD for the Stake column (default: DISCORD_BANKROLL_VENUE live balance, else 250)",
         kelly="Kelly multiplier for the Stake column (default 0.5)",
     )
     async def plays_cmd(
@@ -166,7 +166,10 @@ def build_bot(settings: Any = None, handlers: Optional[CommandHandlers] = None) 
         raise RuntimeError("DISCORD_BOT_TOKEN is not set — see docs/DISCORD_BOT.md")
 
     guild_id = int(settings.discord_guild_id) if settings.discord_guild_id else None
-    handlers = handlers or CommandHandlers(allowed_user_ids=settings.discord_allowed_users())
+    handlers = handlers or CommandHandlers(
+        allowed_user_ids=settings.discord_allowed_users(),
+        default_bankroll_venue=getattr(settings, "discord_bankroll_venue", "") or "",
+    )
     intents = discord.Intents.default()  # slash commands need no privileged intents
 
     class EvmaxBot(discord.Client):

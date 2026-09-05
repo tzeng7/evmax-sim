@@ -793,3 +793,108 @@ class TestGatewayBot:
         inter = _Interaction()
         asyncio.run(send_reply(inter, Reply(content="nope", ephemeral=True), discord))
         assert inter.followup.calls == [{"content": "nope", "ephemeral": True}]
+
+
+class TestDefaultBankrollVenue:
+    """``DISCORD_BANKROLL_VENUE``: the bot assumes a venue's live balance when a
+    command is run without an explicit bankroll."""
+
+    def test_scan_defaults_to_venue_when_no_bankroll_given(self, monkeypatch):
+        seen: dict = {}
+
+        async def fake_scan(**kw):
+            seen.update(kw)
+            return {"gaps": [], "markets_fetched": 0, "markets_matched": 0, "sectors": [],
+                    "portfolio_results": [], "bankroll": 1664.84, "bankroll_source": "live:kalshi"}
+
+        monkeypatch.setattr("evmax.web.app.run_dashboard_scan", fake_scan)
+        h = CommandHandlers(default_bankroll_venue="Kalshi ")
+        r = _run(h.scan())
+        assert seen["bankroll_venue"] == "kalshi"
+        assert "Bankroll $1,664.84" in r.embeds[0]["footer"]["text"]
+        assert "bankroll live:kalshi" in r.embeds[0]["footer"]["text"]
+
+    def test_scan_explicit_bankroll_means_manual(self, monkeypatch):
+        seen: dict = {}
+
+        async def fake_scan(**kw):
+            seen.update(kw)
+            return {"gaps": [], "markets_fetched": 0, "markets_matched": 0, "sectors": [],
+                    "portfolio_results": [], "bankroll": 300.0, "bankroll_source": "manual"}
+
+        monkeypatch.setattr("evmax.web.app.run_dashboard_scan", fake_scan)
+        h = CommandHandlers(default_bankroll_venue="kalshi")
+        _run(h.scan(bankroll=300))
+        assert seen["bankroll_venue"] is None and seen["bankroll"] == 300.0
+        # An explicit venue still wins over the default.
+        _run(h.scan(bankroll_venue="both"))
+        assert seen["bankroll_venue"] == "both"
+
+    def test_scan_without_default_keeps_manual_250(self, monkeypatch):
+        seen: dict = {}
+
+        async def fake_scan(**kw):
+            seen.update(kw)
+            return {"gaps": [], "markets_fetched": 0, "markets_matched": 0, "sectors": [],
+                    "portfolio_results": [], "bankroll": 250.0, "bankroll_source": "manual"}
+
+        monkeypatch.setattr("evmax.web.app.run_dashboard_scan", fake_scan)
+        _run(CommandHandlers().scan())
+        assert seen["bankroll_venue"] is None and seen["bankroll"] == 250.0
+
+    def test_plays_sizes_stake_against_live_balance(self, monkeypatch):
+        from evmax.clients.balances import BankrollPlan
+
+        calls: list = []
+
+        async def fake_plan(bankroll, selection):
+            calls.append((bankroll, selection))
+            return BankrollPlan(1000.0, "live:kalshi", ["kalshi"], {"kalshi": 900.0})
+
+        monkeypatch.setattr("evmax.clients.balances.resolve_bankroll_plan", fake_plan)
+        bets = [{"market_id": "M1", "sector": "nba", "event_date": "2026-09-04", "kelly_fraction": 0.02,
+                 "event_title": "A vs B", "display_label": "A ML", "kalshi_yes_price": 0.4,
+                 "blended_true_prob": 0.5, "ev_pct": 0.05, "venue": "kalshi", "status": "upcoming"}]
+        monkeypatch.setattr("evmax.web.app._open_bets", lambda: bets)
+        r = _run(CommandHandlers(default_bankroll_venue="kalshi").plays())
+        assert calls == [(250.0, "kalshi")]
+        footer = r.embeds[0]["footer"]["text"]
+        assert "Bankroll $1,000.00" in footer and "bankroll live:kalshi" in footer
+        assert "$20.00" in r.embeds[0]["description"]  # 0.02 × 1000 at kelly 0.5
+
+    def test_plays_explicit_bankroll_skips_live_fetch(self, monkeypatch):
+        async def boom(bankroll, selection):
+            raise AssertionError("must not fetch a balance")
+
+        monkeypatch.setattr("evmax.clients.balances.resolve_bankroll_plan", boom)
+        monkeypatch.setattr("evmax.web.app._open_bets", lambda: [])
+        r = _run(CommandHandlers(default_bankroll_venue="kalshi").plays(bankroll=500))
+        assert "Bankroll $500.00" in r.embeds[0]["footer"]["text"]
+        assert "live:" not in r.embeds[0]["footer"]["text"]
+
+    def test_plays_fail_soft_when_balance_unavailable(self, monkeypatch):
+        from evmax.clients.balances import BankrollPlan
+
+        async def fallback(bankroll, selection):
+            return BankrollPlan(bankroll, "manual_fallback", ["kalshi"], {})
+
+        monkeypatch.setattr("evmax.clients.balances.resolve_bankroll_plan", fallback)
+        monkeypatch.setattr("evmax.web.app._open_bets", lambda: [])
+        r = _run(CommandHandlers(default_bankroll_venue="kalshi").plays())
+        footer = r.embeds[0]["footer"]["text"]
+        assert "Bankroll $250.00" in footer and "manual_fallback" in footer
+
+    def test_settings_field_and_bot_wiring(self, monkeypatch):
+        from evmax.settings import get_settings
+        s = get_settings()
+        assert hasattr(s, "discord_bankroll_venue")
+        monkeypatch.setattr(s, "discord_bankroll_venue", "both")
+        # build_bot needs discord.py; only check the handler construction path.
+        h = CommandHandlers(default_bankroll_venue=s.discord_bankroll_venue)
+        assert h._default_bankroll_venue == "both"
+
+    def test_option_descriptions_fit_discord_limit(self):
+        import re
+        src = open("evmax/discord_bot/bot.py", encoding="utf-8").read()
+        for m in re.finditer(r'^\s+\w+="([^"]+)",?$', src, re.M):
+            assert len(m.group(1)) <= 100, m.group(1)
