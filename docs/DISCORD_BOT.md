@@ -106,6 +106,7 @@ interactively.
 | `DISCORD_ALLOWED_USER_IDS` | — | Optional comma-separated user ids allowed to run commands. Empty = any member. |
 | `DISCORD_SCAN_FEED` | `true` | Post each scan cycle's play table to the channel. |
 | `DISCORD_POST_EMPTY_SCANS` | `false` | Also post cycles with zero plays (`No +EV plays found.` — a heartbeat that the scan ran). |
+| `DISCORD_BANKROLL_VENUE` | — | `kalshi` / `polymarket_us` / `both`: `/scan` and `/plays` size against that venue's **live balance** (cash + open positions, the CLI's `--bankroll-venue` plan) whenever you omit `bankroll`. An explicit `bankroll` is always manual; an explicit `bankroll_venue` wins. Unavailable balance → falls back to $250 and the footer says `manual_fallback`. The automatic feed reflects whatever bankroll the scan itself ran with (the scheduled scans already pass `--bankroll-venue kalshi`). |
 | `DISCORD_WEBHOOK_URL` | — | Unchanged: the pre-existing plain-text ≥5%-EV webhook alert. Independent of the bot. |
 
 Runtime layering: `Notifier.from_settings()` builds the bot client only when the token and at

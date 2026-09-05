@@ -310,12 +310,16 @@ def open_positions_embeds(
     kelly: float,
     scan_mids: Optional[set[str]] = None,
     sector: Optional[str] = None,
+    source: Optional[str] = None,
 ) -> list[dict[str, Any]]:
     """The Open Positions panel: unresolved, unplaced live rows (the dashboard
-    caps the render at 40)."""
+    caps the render at 40). ``source`` (e.g. ``bankroll live:kalshi``) is
+    appended to the footer when the bankroll came from a live balance."""
     rows_in = [b for b in bets if not sector or b.get("sector") == sector]
     title = f"Open Positions ({len(rows_in)})"
     footer = f"Bankroll ${bankroll:,.2f} · Kelly {kelly:g}"
+    if source:
+        footer += f" · {source}"
     if not rows_in:
         return [_embed(title, "No open positions.", COLOR_EMPTY, footer)]
     rows = [open_position_row(b, bankroll, kelly, scan_mids) for b in rows_in[:OPEN_POSITIONS_ROW_CAP]]
