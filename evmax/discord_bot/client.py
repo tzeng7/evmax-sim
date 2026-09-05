@@ -125,7 +125,8 @@ class DiscordBotClient:
     def _dm_channel(self) -> Optional[str]:
         """The DM channel for ``dm_user_id`` (created/opened via the API on
         first use, then cached). None when unset or the API refuses — e.g. the
-        bot shares no server with the user, or the user blocks server DMs."""
+        app is neither user-installed by nor sharing a server with the user
+        ("no mutual guilds"), or the user blocks server DMs."""
         if not self._dm_user_id:
             return None
         if self._dm_channel_id:

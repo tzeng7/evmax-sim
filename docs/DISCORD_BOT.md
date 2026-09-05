@@ -10,9 +10,9 @@ evmax can run as a Discord bot application. It does three things:
 
 The feed and alerts work as soon as `DISCORD_BOT_TOKEN` plus a target are in `.env`: either
 `DISCORD_DM_USER_ID` (the bot **direct-messages you**; no channel needed) or
-`DISCORD_CHANNEL_ID` (a server channel), or both. A DM needs no channel permissions at all —
-only that the bot shares a server with you (step 3 below) and your privacy settings allow
-DMs from server members.
+`DISCORD_CHANNEL_ID` (a server channel), or both. A DM needs no server at all: add the app to
+your **account** (a Discord *user install*, step 3 below) and the bot can DM you. Adding it to
+a server you're in works too, as long as your privacy settings allow DMs from server members.
 Nothing else in the pipeline changes: the feed is a third notifier transport next to the
 existing Slack / Discord webhooks (which keep sending the compact ≥5%-EV text alert).
 
@@ -54,14 +54,24 @@ interactively.
 2. **Bot token.** Left menu *Bot* → *Reset Token* → copy it into `.env`:
    `DISCORD_BOT_TOKEN=...`. Leave every *Privileged Gateway Intent* OFF — slash commands and
    channel posts need none.
-3. **Invite the bot.** Left menu *OAuth2* → *URL Generator* → scopes **`bot`** and
-   **`applications.commands`**; bot permissions **View Channels**, **Send Messages**,
-   **Embed Links** (integer `19456`). Open the generated URL, pick your server, authorize.
+3. **Add the bot.** Two options — pick one (or both):
+   * **To your account only (DM feed, no server).** Left menu *Installation* → under
+     *Installation Contexts* tick **User Install** → *Save Changes*. Open
+     `https://discord.com/oauth2/authorize?client_id=<APPLICATION_ID>&integration_type=1&scope=applications.commands`
+     (the application id is on *General Information*) and authorize — the dialog says *Add to
+     My Apps*. Verified 2026-09-04: a user-installed bot can open the DM and post the feed to it
+     with no shared server. The commands are registered for user installs too, so `/scan` etc.
+     are available in that DM once `evmax discord run` is up (leave `DISCORD_GUILD_ID` empty).
+   * **To a server (channel feed).** Left menu *OAuth2* → *URL Generator* → scopes **`bot`**
+     and **`applications.commands`**; bot permissions **View Channels**, **Send Messages**,
+     **Embed Links** (integer `19456`). Open the generated URL, pick your server, authorize.
 4. **Ids.** In Discord: *User Settings → Advanced → Developer Mode* ON. To be **DM'd**:
    right-click your own name (any message of yours, or your avatar) → *Copy User ID* →
    `DISCORD_DM_USER_ID`. For a **channel** feed instead/as well: right-click the channel →
-   *Copy Channel ID* → `DISCORD_CHANNEL_ID`. Right-click the server icon → *Copy Server ID* → `DISCORD_GUILD_ID` (recommended: commands sync instantly to
-   that server and the bot refuses interactions from any other). Optionally right-click your
+   *Copy Channel ID* → `DISCORD_CHANNEL_ID`. For a server install, right-click the server icon →
+   *Copy Server ID* → `DISCORD_GUILD_ID` (commands sync instantly to that server and the bot
+   refuses interactions from any other). Leave `DISCORD_GUILD_ID` EMPTY for a user install —
+   the commands must be global to appear in your DM. Optionally right-click your
    name → *Copy User ID* → `DISCORD_ALLOWED_USER_IDS` (comma-separated; empty = any member of
    the server may run commands — note `/scan` persists rows like the dashboard's Scan button).
 5. **Test the channel transport.**
@@ -91,7 +101,7 @@ interactively.
 |---|---|---|
 | `DISCORD_BOT_TOKEN` | — | Bot token from the Developer Portal. Enables the bot transport. |
 | `DISCORD_CHANNEL_ID` | — | Channel that receives the scan feed + alerts. Optional when a DM target is set. |
-| `DISCORD_DM_USER_ID` | — | Your user id: the bot DMs you the feed + alerts. Resolved to a DM channel once per process via `POST /users/@me/channels`. Requires a shared server. |
+| `DISCORD_DM_USER_ID` | — | Your user id: the bot DMs you the feed + alerts. Resolved to a DM channel once per process via `POST /users/@me/channels`. Needs the app added to your account (user install) or a shared server. |
 | `DISCORD_GUILD_ID` | — | Optional. Guild-scoped command sync (instant) + interaction lockdown. |
 | `DISCORD_ALLOWED_USER_IDS` | — | Optional comma-separated user ids allowed to run commands. Empty = any member. |
 | `DISCORD_SCAN_FEED` | `true` | Post each scan cycle's play table to the channel. |
@@ -143,8 +153,9 @@ it (`launchctl kickstart -k gui/$(id -u)/com.evmax.discord-bot`) after pulling c
 * **`evmax discord test` fails with 403 / "Missing Access".** The bot is not in the server or
   lacks View Channel / Send Messages / Embed Links on that channel. Re-run the invite URL or
   fix the channel permission overrides.
-* **DM never arrives / `discord_bot_dm_channel_failed` 403.** The bot shares no server with you
-  (run the invite URL) or your *Privacy Settings → Direct Messages* block server members. Also
+* **DM never arrives / 403 `Cannot send messages to this user due to having no mutual guilds`.**
+  The app is neither added to your account (user-install link, step 3) nor in a server you're
+  in, or your *Privacy Settings → Direct Messages* block server members. Also
   double-check `DISCORD_DM_USER_ID` is your USER id, not the server or channel id.
 * **404 "Unknown Channel".** `DISCORD_CHANNEL_ID` is not a channel id (server and user ids look
   identical — copy from the channel's context menu).

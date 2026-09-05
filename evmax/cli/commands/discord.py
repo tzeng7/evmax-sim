@@ -81,7 +81,7 @@ def test(
         console.print(
             f"[red]✗ Discord rejected the post to {client.describe_targets()}.[/red] "
             "Check the token; for a channel, that the bot is in the server with View Channel + "
-            "Send Messages + Embed Links; for a DM, that you share a server with the bot and "
-            "allow DMs from server members (Server → Privacy Settings)."
+            "Send Messages + Embed Links; for a DM, that the app is added to your account "
+            "(user install) or shares a server with you and you allow DMs from server members."
         )
         raise typer.Exit(1)
