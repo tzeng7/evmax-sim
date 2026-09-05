@@ -202,7 +202,7 @@ class Settings(BaseSettings):
     # slash commands. Ids are Discord snowflakes; kept as strings.
     discord_bot_token: str = ""
     discord_channel_id: str = ""        # channel receiving the scan feed + alerts (optional if DM set)
-    discord_dm_user_id: str = ""        # your user id: feed + alerts go to your DMs (bot must share a server with you)
+    discord_dm_user_id: str = ""        # your user id: feed + alerts go to your DMs (add the app to your account, or share a server)
     discord_guild_id: str = ""          # optional: guild-scoped slash-command sync (instant)
     discord_allowed_user_ids: str = ""  # comma-separated user ids allowed to run commands; empty = any member
     discord_scan_feed: bool = True      # post each scan cycle's play table to the channel
