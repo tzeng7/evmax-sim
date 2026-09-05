@@ -39,10 +39,12 @@ HELP_TEXT = (
     "**evmax commands**\n"
     "• `/scan [sectors] [bankroll] [kelly] [date_from] [date_to] [bankroll_venue]` — run a scan "
     "and post the dashboard's Scan Results table (also persists rows, like the dashboard).\n"
-    "• `/plays [sector]` — Open Positions: scanned, unplaced live rows awaiting a pick.\n"
+    "• `/plays [sector] [bankroll] [kelly]` — Open Positions: scanned, unplaced live rows awaiting a pick.\n"
     "• `/settled [placed_only]` — Recent Settled Bets with the KPI summary.\n"
     "• `/status [probe_pinnacle]` — pipeline health (cadence, seed states, Pinnacle).\n"
     "• `/help` — this message.\n"
+    "Bankroll: with `DISCORD_BANKROLL_VENUE` set (kalshi / polymarket_us / both) `/scan` and "
+    "`/plays` size against that venue's LIVE balance unless you pass `bankroll`.\n"
     "Every scan cycle run anywhere (CLI, scheduled, dashboard) also posts its play table "
     "to the feed channel automatically."
 )
@@ -76,10 +78,15 @@ class CommandHandlers:
         allowed_user_ids: frozenset[int] = frozenset(),
         default_bankroll: float = DEFAULT_BANKROLL,
         default_kelly: float = DEFAULT_KELLY,
+        default_bankroll_venue: str = "",
     ) -> None:
         self._allowed = allowed_user_ids
         self._default_bankroll = default_bankroll
         self._default_kelly = default_kelly
+        # ``DISCORD_BANKROLL_VENUE``: when set, a command run WITHOUT an explicit
+        # bankroll sizes against this venue's live balance (see ``/scan``,
+        # ``/plays``). An explicit ``bankroll`` always means "manual".
+        self._default_bankroll_venue = (default_bankroll_venue or "").strip().lower()
         self._scan_lock = asyncio.Lock()
 
     # ------------------------------------------------------------------
@@ -124,7 +131,12 @@ class CommandHandlers:
 
         Persists rows exactly like the dashboard's Scan button (``log_gaps`` +
         portfolio fan-out). The coordinator's own feed post is suppressed for
-        this cycle so the table appears once — as this reply."""
+        this cycle so the table appears once — as this reply.
+
+        Bankroll precedence: explicit ``bankroll_venue`` > explicit ``bankroll``
+        (manual) > ``DISCORD_BANKROLL_VENUE`` (live balance) > the $250 default."""
+        if not bankroll_venue and bankroll is None:
+            bankroll_venue = self._default_bankroll_venue
         bankroll = self._default_bankroll if bankroll is None else float(bankroll)
         kelly = self._default_kelly if kelly is None else float(kelly)
         if bankroll <= 0:
@@ -191,11 +203,22 @@ class CommandHandlers:
     ) -> Reply:
         from evmax.web.app import _open_bets
 
-        bankroll = self._default_bankroll if bankroll is None else float(bankroll)
         kelly = self._default_kelly if kelly is None else float(kelly)
+        source: Optional[str] = None
+        if bankroll is None and self._default_bankroll_venue:
+            # Size the Stake column against the live venue balance, exactly as
+            # a `--bankroll-venue` scan would. Fail-soft to the manual default.
+            from evmax.clients.balances import resolve_bankroll_plan
+
+            plan = await resolve_bankroll_plan(self._default_bankroll, self._default_bankroll_venue)
+            bankroll = plan.bankroll
+            source = f"bankroll {plan.source}"
+        else:
+            bankroll = self._default_bankroll if bankroll is None else float(bankroll)
         bets = await asyncio.to_thread(_open_bets)
         return Reply(embeds=open_positions_embeds(
             bets, bankroll=bankroll, kelly=kelly, sector=(sector or "").strip().lower() or None,
+            source=source,
         ))
 
     # ------------------------------------------------------------------

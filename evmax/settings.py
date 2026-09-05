@@ -207,6 +207,12 @@ class Settings(BaseSettings):
     discord_allowed_user_ids: str = ""  # comma-separated user ids allowed to run commands; empty = any member
     discord_scan_feed: bool = True      # post each scan cycle's play table to the channel
     discord_post_empty_scans: bool = False  # also post cycles with 0 plays (a scan heartbeat)
+    # Default bankroll for /scan and /plays: "kalshi" | "polymarket_us" | "both" sizes
+    # against that venue's LIVE total wealth (cash + open positions, the same
+    # `--bankroll-venue` plan the CLI uses) whenever the command is run without an
+    # explicit `bankroll`. Empty = the dashboard's manual $250 default. Fail-soft:
+    # an unavailable balance falls back to the manual figure and says so.
+    discord_bankroll_venue: str = ""
 
     # Kalshi WebSocket (real-time orderbook prices)
     kalshi_ws_url: str = "wss://api.elections.kalshi.com/trade-api/ws/v2"
