@@ -92,6 +92,8 @@ evmax/
 │   ├── registry.py          # Dict mapping sector name → SectorHandler instance
 │   ├── nfl.py / nba.py / wnba.py / ncaab.py / ncaaw.py / ncaaf.py / soccer.py / worldcup.py /
 │   │   baseball.py / nhl.py / tennis.py / ufc.py / lol.py / cs2.py  (+ latent: valorant/f1)
+│   ├── soccer_leagues.py    # League identity INSIDE the soccer sector (epl/laliga/.../mls): Kalshi series prefix + PolyUS slug → league; market-id derivation for the ev_predictions.league backfill
+│   ├── soccer_tiers.py      # data/soccer_league_tiers.yaml lookups keyed by league: tier sharp_weight (+ optional per-tier disagreement_ramp) for the coordinator
 │   └── aliases/             # YAML team name → canonical name mappings per sector
 ├── matching/
 │   └── engine.py            # Canonical key match → fuzzy fallback (rapidfuzz, threshold=88)
