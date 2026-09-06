@@ -71,7 +71,7 @@ POLYMARKET_US_LEAGUE_MAP: dict[str, list[str]] = {
     "ncaab": ["cbb"],
     "baseball": ["mlb"],
     "nhl": ["nhl"],
-    "soccer": ["epl", "ucl", "mls"],
+    "soccer": ["epl", "ucl", "mls", "lmx", "bra", "eflch"],
     "tennis": ["atp", "wta"],
 }
 
@@ -83,6 +83,7 @@ POLYMARKET_US_LEAGUE_MAP: dict[str, list[str]] = {
 _HOME_FIRST_LEAGUES = {
     "epl", "ucl", "mls", "atp", "wta",
     "fwc", "uefa", "lal", "bun", "sea",  # World Cup + extra soccer leagues
+    "lmx", "bra", "eflch",               # Liga MX / Brasileirão / Championship
     "lol", "cs2",                         # esports
 }
 

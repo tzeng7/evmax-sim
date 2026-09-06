@@ -96,6 +96,14 @@ SECTOR_SERIES_MAP: dict[str, list[str]] = {
         "KXSERIEAGAME",     # Serie A
         "KXLIGUE1GAME",     # Ligue 1
         "KXUELGAME",        # UEFA Europa League
+        # 2026-09-05 — five more leagues, all shadow at the LEAGUE level
+        # (data/soccer_league_tiers.yaml `shadow_leagues`) until each clears
+        # the per-league CLV gate (`cleanup shadow clv-leagues soccer`).
+        "KXLIGAMXGAME",           # Liga MX
+        "KXJLEAGUEGAME",          # J League
+        "KXEREDIVISIEGAME",       # Eredivisie
+        "KXBRASILEIROGAME",       # Brasileirão Série A
+        "KXEFLCHAMPIONSHIPGAME",  # EFL Championship
     ],
     # National-team World Cup — 3-way REGULATION match winner (TeamA / TeamB /
     # TIE, "does not include extra time or penalties" per Kalshi rules) plus

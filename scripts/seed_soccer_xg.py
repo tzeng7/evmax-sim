@@ -27,6 +27,8 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from evmax.agents.cleanup.resolver import _ESPN_HTTP_UA
+from evmax.sectors.soccer_leagues import espn_display_name
 from evmax.agents.models.soccer_xg_agent import MIN_MATCHES, SoccerXgAgent
 from evmax.matching.normalizer import NameNormalizer
 
@@ -41,6 +43,11 @@ SOCCER_LEAGUES = [
     ("soccer", "uefa.champions"),  # UCL
     ("soccer", "usa.1"),     # MLS
     ("soccer", "uefa.europa"),     # UEL
+    ("soccer", "mex.1"),     # Liga MX       (2026-09-05, league-shadowed)
+    ("soccer", "jpn.1"),     # J League
+    ("soccer", "ned.1"),     # Eredivisie
+    ("soccer", "bra.1"),     # Brasileirão
+    ("soccer", "eng.2"),     # EFL Championship
 ]
 
 
@@ -109,8 +116,8 @@ async def fetch_league_matches(
 
             matches.append({
                 "date": event_date,
-                "home": home.get("team", {}).get("displayName", ""),
-                "away": away.get("team", {}).get("displayName", ""),
+                "home": espn_display_name(league, home.get("team", {}).get("displayName", "")),
+                "away": espn_display_name(league, away.get("team", {}).get("displayName", "")),
                 "home_score": home_score,
                 "away_score": away_score,
                 "home_sot": home_sot,
@@ -154,7 +161,9 @@ async def main(since: str) -> None:
 
     async with httpx.AsyncClient(
         timeout=httpx.Timeout(30.0),
-        headers={"User-Agent": "evmax-seeder/1.0"},
+        # ESPN's WAF blocklists identifying "evmax-*" User-Agents (both seeds
+        # 403'd on every league on 2026-09-05); reuse the resolver's UA.
+        headers={"User-Agent": _ESPN_HTTP_UA},
         follow_redirects=True,
     ) as client:
         for sport, league in SOCCER_LEAGUES:
@@ -181,6 +190,11 @@ async def main(since: str) -> None:
                 )
                 total += 1
 
+    if total == 0:
+        # Abort WITHOUT writing: an all-failed fetch (ESPN 403 on 2026-09-05)
+        # would otherwise persist the emptied club store — the UFC-seed lesson.
+        print("ABORT: no matches fetched — leaving soccer_xg_state.json untouched")
+        return
     agent.save_state()
     teams = agent._state.get("teams", {})
     print(f"\nSeeded {total} matches across {len(teams)} teams")

@@ -101,6 +101,31 @@ def _series_to_weight() -> dict[str, float]:
     }
 
 
+@lru_cache(maxsize=1)
+def _shadow_leagues() -> frozenset[str]:
+    """Leagues listed under `shadow_leagues:` — league-level shadow inside the
+    soccer sector (mode is per SECTOR, so a newly wired league would otherwise
+    be live on its first scan). See the YAML header for the semantics."""
+    cfg = _load_tiers()
+    return frozenset(str(lg).lower() for lg in (cfg.get("shadow_leagues") or []))
+
+
+def league_is_live(league: Optional[str]) -> bool:
+    """False when `league` is on the tier config's shadow list.
+
+    A gap with no league (single-league sectors, or a soccer market whose
+    league could not be derived) is NOT held back — the list only ever
+    restricts leagues that are explicitly named.
+    """
+    if not league:
+        return True
+    return league.lower() not in _shadow_leagues()
+
+
+def shadow_leagues() -> frozenset[str]:
+    return _shadow_leagues()
+
+
 def default_sharp_weight() -> float:
     """Fallback weight used when a ticker doesn't map to any tier."""
     return float(_load_tiers().get("default_sharp_weight", 0.40))
@@ -160,3 +185,30 @@ def reset_cache() -> None:
     _load_tiers.cache_clear()
     _league_to_weight.cache_clear()
     _league_to_ramp.cache_clear()
+    _shadow_leagues.cache_clear()
+
+
+def remove_shadow_league(text: str, league: str) -> tuple[str, bool]:
+    """Drop `league` from the `shadow_leagues:` list in the tier YAML TEXT.
+
+    Line-based (like the categories.yaml mode flip) so comments and layout
+    survive. Returns (new_text, removed). Only the `- league` item lines that
+    sit under the `shadow_leagues:` key are touched.
+    """
+    lines = text.splitlines(keepends=True)
+    out: list[str] = []
+    in_block = False
+    removed = False
+    for line in lines:
+        stripped = line.strip()
+        if not line.startswith((" ", "\t", "-")) and stripped and not stripped.startswith("#"):
+            in_block = stripped.startswith("shadow_leagues:")
+            out.append(line)
+            continue
+        if in_block and stripped.startswith("-"):
+            item = stripped[1:].split("#", 1)[0].strip().strip("'\"")
+            if item.lower() == league.lower():
+                removed = True
+                continue
+        out.append(line)
+    return "".join(out), removed

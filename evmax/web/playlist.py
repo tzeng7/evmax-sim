@@ -53,6 +53,11 @@ def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         from evmax.settings import get_settings
         if not get_settings().polymarket_us_sector_live(getattr(g, "sector", None)):
             gap_mode = "shadow"
+    # League shadow list — mirror prediction_demoted_shadow_league.
+    if gap_mode == "live":
+        from evmax.sectors.soccer_tiers import league_is_live
+        if not league_is_live(getattr(g, "league", None)):
+            gap_mode = "shadow"
     # Maker-only gaps clear the floor only as a resting limit order — not
     # crossable at the ask, so they are never a live taker pick. Mirror the
     # shadow demotion log_gaps applies, so the dashboard badge and the (disabled)

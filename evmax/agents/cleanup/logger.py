@@ -23,6 +23,7 @@ from typing import Callable, Optional
 import structlog
 
 from evmax.sectors.soccer_leagues import league_for_market_id
+from evmax.sectors.soccer_tiers import league_is_live
 from evmax.agents.cleanup.db import get_connection
 from evmax.agents.odds.ev_gap_agent import EVGap
 from evmax.models.market import is_prop_event
@@ -185,6 +186,20 @@ def log_gaps(
                     market_id=g.market_id,
                     sector=g.sector,
                     venue=gap_venue,
+                )
+
+            # League shadow list (soccer_league_tiers.yaml `shadow_leagues`):
+            # mirrors the coordinator's league_gaps_shadowed so rows from any
+            # log_gaps caller are protected. Derive the league from the market
+            # id when the gap predates the field.
+            gap_league = getattr(g, "league", None) or league_for_market_id(g.market_id)
+            if mode == "live" and not league_is_live(gap_league):
+                mode = "shadow"
+                logger.info(
+                    "prediction_demoted_shadow_league",
+                    market_id=g.market_id,
+                    sector=g.sector,
+                    league=gap_league,
                 )
 
             event_date_str: Optional[str] = None

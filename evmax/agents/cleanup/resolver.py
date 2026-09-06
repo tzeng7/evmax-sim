@@ -28,6 +28,7 @@ import httpx
 import structlog
 from rapidfuzz import fuzz
 
+from evmax.sectors.soccer_leagues import espn_display_name
 from evmax.agents.cleanup.db import get_connection
 
 logger = structlog.get_logger(__name__)
@@ -156,6 +157,11 @@ ESPN_SOCCER_LEAGUES = [
     "uefa.champions", # UCL
     "uefa.europa",    # UEL
     "usa.1",          # MLS
+    "mex.1",          # Liga MX          (2026-09-05, league-shadowed)
+    "jpn.1",          # J League
+    "ned.1",          # Eredivisie
+    "bra.1",          # Brasileirão
+    "eng.2",          # EFL Championship
 ]
 
 # Sectors resolved via the ESPN *soccer* scoreboard API (sport path "soccer"),
@@ -377,8 +383,8 @@ async def _fetch_espn_scores(
         season_type = (event.get("season") or {}).get("type")
 
         results.append({
-            "home_name": home.get("team", {}).get("displayName", ""),
-            "away_name": away.get("team", {}).get("displayName", ""),
+            "home_name": espn_display_name(league, home.get("team", {}).get("displayName", "")),
+            "away_name": espn_display_name(league, away.get("team", {}).get("displayName", "")),
             "home_score": home_score,
             "away_score": away_score,
             "home_won": home_score > away_score,

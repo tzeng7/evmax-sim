@@ -831,6 +831,28 @@ class AgentCoordinator:
                 sectors=sorted({g.sector for g in shadow_venue_gaps}),
             )
 
+        # League shadow list (data/soccer_league_tiers.yaml `shadow_leagues`):
+        # a league newly wired into a LIVE sector stays shadow-bound — kelly
+        # zeroed, out of the live play list and exposure budget, demoted to
+        # mode='shadow' by log_gaps — until `cleanup shadow promote-league`
+        # clears it on per-league CLV. Same treatment as the venue firewall.
+        from evmax.sectors.soccer_tiers import league_is_live as _league_is_live
+
+        shadow_league_gaps = [
+            dataclasses.replace(g, kelly_fraction=0.0)
+            for g in result.ev_gaps
+            if not _league_is_live(getattr(g, "league", None))
+        ]
+        if shadow_league_gaps:
+            result.ev_gaps = [
+                g for g in result.ev_gaps if _league_is_live(getattr(g, "league", None))
+            ]
+            self.log.info(
+                "league_gaps_shadowed",
+                count=len(shadow_league_gaps),
+                leagues=sorted({g.league for g in shadow_league_gaps if g.league}),
+            )
+
         pre_guard = len(result.ev_gaps)
         # Bets the user already placed in earlier scans today make the per-game
         # cap cumulative across scans, not per-scan. _load_placed_exposure
@@ -877,6 +899,7 @@ class AgentCoordinator:
         # reach persistence.
         result.ev_gaps.extend(partial_blend_gaps)
         result.ev_gaps.extend(shadow_venue_gaps)
+        result.ev_gaps.extend(shadow_league_gaps)
         result.cycle_duration_s = time.perf_counter() - t0
 
         # Archive all raw fetched data for historical analysis
