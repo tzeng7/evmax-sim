@@ -109,7 +109,7 @@ evmax/
 │   ├── odds/                # KalshiOddsAgent, PolymarketUSOddsAgent, SharpOddsAgent, EVGapAgent
 │   ├── models/              # EloModelAgent, FormModelAgent, PoissonModelAgent, EnsembleModelAgent, TennisModelAgent
 │   ├── intelligence/        # InjuryReportAgent (ESPN public API)
-│   └── cleanup/             # db.py, logger.py, resolver.py, metrics.py, maintenance.py
+│   └── cleanup/             # db.py, logger.py, resolver.py, metrics.py, maintenance.py, integrity.py (ONE consolidated read-only ops sweep — folds heartbeat.py + clv_monitor.py + the calibration/gate tripwires, adds in-play / model-missing / match-rate / backlog / close-capture / passthrough / drawdown / launchd checks)
 ├── simulation/
 │   └── montecarlo.py        # Monte Carlo bankroll simulation
 ├── fees.py                  # Venue fee models — Kalshi taker 0.07·p·(1−p) ceil-to-cent/order (maker 25% of taker on designated series), Polymarket US taker 0.06·p·(1−p) / maker −0.0125 REBATE, banker's rounding (docs.polymarket.us/fees, eff. 2026-07-01)
@@ -127,7 +127,7 @@ evmax/
     ├── app.py               # Typer root app
     └── commands/
         ├── agents.py        # evmax agents scan/verify/pick/fill/balance/seed/ratings/update (scan --bankroll-venue sizes against a venue's live balance)
-        ├── cleanup.py       # evmax cleanup show/resolve/metrics/adjust/value-audit/watch-closes/watch-listings/listings-eval/prune-stale
+        ├── cleanup.py       # evmax cleanup show/resolve/metrics/adjust/value-audit/watch-closes/watch-listings/listings-eval/prune-stale/integrity
         ├── shadow.py        # evmax cleanup shadow show/metrics/clv/promote
         ├── categories.py    # evmax categories list/show/modes/validate
         ├── archive.py       # evmax archive stats/resolve/backtest/export
@@ -211,7 +211,7 @@ evmax/
 - **Model state files are declared, not derived**: `ModelAgent` loads `data/models/{name}_state.json` unless the subclass sets `state_filename`. A model whose NAME carries a version but whose seed keeps the old FILE (ncaaf_efficiency → `ncaaf_efficiency_v2`, 2026-09-03) MUST declare it — the rename silently loaded an empty state for two days (every NCAAF row was elo+sharp, diagnostics `missing: ncaaf_efficiency_v2`) because tests inject `agent._state` and never touch the path. `tests/test_ncaaf_v2.py::test_agent_loads_shipped_state_file_from_disk` guards it; add the same test for any renamed model. NCAAF ML rows without the v2 token are contaminated (v1-priced OR v2-silent) — see `contamination.py`.
 - **Kalshi ticker dates**: `_parse_ticker_date` anchors at **noon UTC** (not midnight) so downstream `.astimezone()` can't roll the game date back a day in negative-offset US time zones
 - **Pinnacle parallelism**: all `(sport_key × market_type)` combinations fetched simultaneously
-- **Pinnacle resilience (fail-clear)**: Pinnacle is the SOLE sharp anchor, so on an outage a scan fails CLEAR — `get_odds`/`get_prop_odds` return `[]` (no plays; a stale line is never priced into a bet) and record the reason on `client.last_error` via `classify_pinnacle_error` (`maintenance` 503 / `geo_block` 403 BAD_LOCATION / `rate_limited` 429 / `network` / `timeout`). `PinnacleGuestClient.probe()` is a one-request reachability check; `evmax cleanup heartbeat --check-pinnacle` surfaces a down anchor as a critical alert. There is NO stale-price fallback into live scans (a deliberate correctness-over-availability choice).
+- **Pinnacle resilience (fail-clear)**: Pinnacle is the SOLE sharp anchor, so on an outage a scan fails CLEAR — `get_odds`/`get_prop_odds` return `[]` (no plays; a stale line is never priced into a bet) and record the reason on `client.last_error` via `classify_pinnacle_error` (`maintenance` 503 / `geo_block` 403 BAD_LOCATION / `rate_limited` 429 / `network` / `timeout`). `PinnacleGuestClient.probe()` is a one-request reachability check; `evmax cleanup integrity --check-pinnacle` (the consolidated read-only sweep; `heartbeat` is the legacy alias) surfaces a down anchor as a critical alert. There is NO stale-price fallback into live scans (a deliberate correctness-over-availability choice).
 - **Pinnacle league ids drift between seasons — verify them at every season boundary**: `SECTOR_SPORT_LEAGUES` in `esports_pinnacle.py` is hand-maintained and a stale id silently returns ZERO matchups (no sharp anchor, no EV, indistinguishable from an off-season). The 2026-09-02 NFL audit found NFL re-cut 258→889 and UCL 2186→2627. `python scripts/check_pinnacle_leagues.py [-s nfl,nba]` diffs every configured id against `GET /sports/{sport_id}/leagues` (exit 1 on STALE, prints the replacement); it is season-start checklist item 4 in docs/SEASON_START.md next to `check_kalshi_series.py --probe`.
 - **Pinnacle player props are priced off the BULK straight-markets endpoint**: from the US the guest API 403s (`BAD_LOCATION`) the per-matchup `/matchups/{id}/markets/related/straight` fetch for SPECIAL matchups only (game matchup ids serve fine) — which is why props were the sector the intermittent geo-block "hit hardest". `get_prop_odds` now fetches `/sports/{sport_id}/markets/straight` once (NO `withSpecials` param — that trips the same block), indexes it by `matchupId`, and prices every special from it; specials the index lacks fall back to the per-matchup call, and a bulk failure degrades to the old path. 2 HTTP calls per props sector instead of 1+N.
 - **Bankroll persistence**: `bankroll_used` column in `ev_predictions` — verify/pick reuse scan-time bankroll automatically. Shadow rows do NOT touch bankroll (Kelly sizing is skipped for `mode='shadow'`).
@@ -388,6 +388,15 @@ evmax archive resolve --date YYYY-MM-DD
 # Check bet log
 evmax cleanup show --days 7
 
+# Twice daily (launchd com.evmax.integrity, 06:45 + 20:30; Monday adds --weekly) —
+# the ONE consolidated read-only integrity sweep: cadence, seed-state age, in-play /
+# absurd-EV live rows, a model newly missing from a blend, fetched-but-matched-zero
+# sectors (scan_sector_stats ledger), resolution backlog, close-capture coverage,
+# LIVE-DEGRADING CLV, live sharp-passthrough, live drawdown, launchd exits; --weekly
+# adds calibration bias + promotion-gate clearances. ONE alert at the worst severity.
+# `heartbeat` / `clv-monitor` / `calibration-alert` remain as standalone aliases.
+evmax cleanup integrity [--weekly] [--check-pinnacle] [--only inplay,match_rate] [--json] [--notify]
+
 # Weekly — calibrate models
 evmax cleanup metrics --weeks 4
 evmax cleanup adjust                            # auto-tune sharp_weight on Brier
@@ -423,7 +432,7 @@ evmax cleanup shadow clv-tiers ncaaf [--max-staleness-h 3]  # NCAAF-only: segmen
 # EVERY scan cycle (CLI, the ev-scan-light-* tasks, the dashboard's
 # Scan button) posts its play list to the channel as the dashboard's Scan
 # Results panel — same rows/order/columns, built by evmax/web/playlist.py, the
-# module /api/scan itself uses. Operational alerts (heartbeat, clv-monitor,
+# module /api/scan itself uses. Operational alerts (integrity sweep,
 # arb --notify) arrive as colored embeds. No min-EV gate (DISCORD_SCAN_FEED=false
 # turns the feed off; DISCORD_POST_EMPTY_SCANS=true also posts 0-play cycles).
 evmax discord test                    # post a test embed → verifies token + channel + perms

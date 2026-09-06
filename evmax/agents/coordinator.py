@@ -111,6 +111,10 @@ class CycleResult:
     cycle_duration_s: float = 0.0
     exposure_guard_dropped: int = 0
     errors: list[str] = field(default_factory=list)
+    # Per-sector fetch/match tallies for the scan_sector_stats ledger
+    # (logger.log_scan_stats): sector → {markets_fetched, markets_matched,
+    # ev_gaps, error}. A failed/timed-out sector gets zeros + its error text.
+    sector_stats: dict[str, dict] = field(default_factory=dict)
     bankroll: float = 250.0
     kelly_fraction: float = 0.5
     # Raw prop (SharpOdds, PredictionMarket) pairs for calibration logging
@@ -760,10 +764,20 @@ class AgentCoordinator:
             if isinstance(sr, Exception):
                 self.log.error("sector_failed", sector=sector, error=str(sr))
                 result.errors.append(f"{sector}: {sr}")
+                result.sector_stats[sector] = {
+                    "markets_fetched": 0, "markets_matched": 0,
+                    "ev_gaps": 0, "error": str(sr)[:200],
+                }
                 continue
             result.sectors_scanned.append(sector)
             result.markets_fetched += sr.get("markets_fetched", 0)
             result.markets_matched += sr.get("markets_matched", 0)
+            result.sector_stats[sector] = {
+                "markets_fetched": int(sr.get("markets_fetched", 0)),
+                "markets_matched": int(sr.get("markets_matched", 0)),
+                "ev_gaps": len(sr.get("ev_gaps", [])),
+                "error": None,
+            }
             result.ev_gaps.extend(sr.get("ev_gaps", []))
             result.blended_predictions.update(sr.get("blended_predictions", {}))
             if sr.get("injuries"):

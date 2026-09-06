@@ -445,6 +445,14 @@ class TestSectorFailureResilience:
         assert "nba" in result.sectors_scanned
         assert "nhl" not in result.sectors_scanned
         assert len(result.errors) >= 1
+
+        # Per-sector ledger input (scan_sector_stats): the healthy sector
+        # reports its fetch/match tallies, the crashed one zeros + its error.
+        assert result.sector_stats["nba"]["markets_fetched"] == 1
+        assert result.sector_stats["nba"]["markets_matched"] == 1
+        assert result.sector_stats["nba"]["error"] is None
+        assert result.sector_stats["nhl"]["markets_fetched"] == 0
+        assert "NHL sector crashed" in result.sector_stats["nhl"]["error"]
         assert any("nhl" in e.lower() for e in result.errors)
 
 

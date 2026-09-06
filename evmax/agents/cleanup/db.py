@@ -108,6 +108,25 @@ CREATE TABLE IF NOT EXISTS applied_model_games (
     team_b              TEXT    NOT NULL,           -- canonical slug used as model-state key (away)
     UNIQUE(sector, event_date, team_a, team_b)
 );
+
+-- One row per (scan cycle, sector): how many venue markets the cycle fetched and
+-- how many matched a Pinnacle event. Written by logger.log_scan_stats after every
+-- persisted cycle (CLI scan + dashboard/Discord scan). The integrity check's
+-- match-rate tripwire reads it: a sector that fetches markets but matches ZERO
+-- (the 2026-08 Kalshi pagination truncation, the UCL code-map gap, the tennis
+-- title-format break) is otherwise indistinguishable from an off-season.
+CREATE TABLE IF NOT EXISTS scan_sector_stats (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    scanned_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+    scan_date           TEXT    NOT NULL,           -- YYYY-MM-DD (local scan day)
+    source              TEXT    NOT NULL,           -- 'cli' / 'dashboard'
+    sector              TEXT    NOT NULL,
+    markets_fetched     INTEGER NOT NULL DEFAULT 0,
+    markets_matched     INTEGER NOT NULL DEFAULT 0,
+    ev_gaps             INTEGER NOT NULL DEFAULT 0,
+    error               TEXT                        -- sector exception text, NULL on success
+);
+CREATE INDEX IF NOT EXISTS idx_scan_sector_stats_date ON scan_sector_stats(scan_date, sector);
 """
 
 

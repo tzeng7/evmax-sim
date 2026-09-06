@@ -552,6 +552,14 @@ async def _run_unified_scan(
     )
     cycle = await coord.run_cycle()
 
+    # Per-sector fetch/match ledger (scan_sector_stats) for the integrity
+    # check's match-rate tripwire. Best-effort.
+    try:
+        from evmax.agents.cleanup.logger import log_scan_stats as _log_scan_stats
+        _log_scan_stats(cycle.sector_stats, source="dashboard")
+    except Exception:  # noqa: BLE001
+        pass
+
     # Log game-level gaps to ev_predictions so "Pick Selected" can resolve by
     # market_id. Props live in prop_observations via the underlying cycle.
     try:

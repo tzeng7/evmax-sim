@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.evmax.integrity</string>
+
+    <!-- Consolidated read-only integrity sweep (replaces com.evmax.heartbeat +
+         com.evmax.clv-monitor). Runs twice daily: 06:45 (after the 23:06
+         evening resolve and before the 07:04 morning scan) and 20:30 (after the
+         15:34 evening scan has logged the pick-window rows, so an in-play or
+         absurd-EV live row is caught the same day). Mondays add the weekly
+         review (calibration bias + promotion-gate clearances) via a second
+         calendar entry that passes -\-weekly. -\-notify pushes ONE alert only
+         when something is found, so a healthy day is silent.
+         StartCalendarInterval coalesces firings missed during sleep.
+
+         Install:
+           cp docs/launchd/com.evmax.integrity.plist ~/Library/LaunchAgents/
+           launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.evmax.integrity.plist
+         Retire the two agents it replaces:
+           launchctl bootout gui/$(id -u)/com.evmax.heartbeat
+           launchctl bootout gui/$(id -u)/com.evmax.clv-monitor
+           rm ~/Library/LaunchAgents/com.evmax.{heartbeat,clv-monitor}.plist
+    -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/sh</string>
+        <string>-c</string>
+        <string>if [ "$(date +%u)" = "1" ] &amp;&amp; [ "$(date +%H)" -lt 12 ]; then W=--weekly; else W=; fi; exec /Users/ktzeng/Projects/evmax/.venv/bin/evmax cleanup integrity --check-pinnacle --notify $W</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/ktzeng/Projects/evmax</string>
+
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>6</integer>
+            <key>Minute</key>
+            <integer>45</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>20</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+        </dict>
+    </array>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/ktzeng/Projects/evmax/logs/launchd.integrity.out</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/ktzeng/Projects/evmax/logs/launchd.integrity.err</string>
+</dict>
+</plist>

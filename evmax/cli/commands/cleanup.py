@@ -2210,6 +2210,8 @@ def clv_monitor_cmd(
 ) -> None:
     """CLV tripwire: flag LIVE sectors whose realized CLV has gone negative.
 
+    Folded into `evmax cleanup integrity` (check `clv`); kept as a standalone alias.
+
     CLV is an entry-timing signal, NOT a model target — a degrading book means
     the entry window / selection is stale, fixable by WHEN we enter, never by
     reweighting the blend. Reuses the promotion board's LIVE-DEGRADING verdict
@@ -2247,6 +2249,82 @@ def clv_monitor_cmd(
         console.print(f"[dim]  Alert: {state}.[/dim]")
 
 
+@app.command("integrity")
+def integrity_cmd(
+    weekly: bool = typer.Option(
+        False, "--weekly",
+        help="Also run the weekly review checks: calibration bias + promotion-gate clearances.",
+    ),
+    check_pinnacle: bool = typer.Option(
+        False, "--check-pinnacle",
+        help="Also probe Pinnacle reachability (one live request) — the sole sharp anchor.",
+    ),
+    only: str = typer.Option(
+        None, "--only",
+        help="Comma-separated subset of checks to run (see `evmax cleanup integrity --list`).",
+    ),
+    list_checks: bool = typer.Option(False, "--list", help="List the check names and exit."),
+    board_days: int = typer.Option(30, "--board-days", help="Window for the board-derived checks."),
+    as_json: bool = typer.Option(False, "--json", help="Print the result as JSON."),
+    notify: bool = typer.Option(
+        False, "--notify",
+        help="Push ONE Slack/Discord alert (worst severity) when anything is found.",
+    ),
+) -> None:
+    """Consolidated read-only integrity sweep — replaces `heartbeat` + `clv-monitor`
+    + the weekly calibration/gate tripwire tasks with ONE command and ONE alert.
+
+    Daily checks: cadence, seed-state age, in-play/absurd-EV live rows, a model
+    newly missing from a sector's blend, fetched-but-matched-zero sectors,
+    resolution backlog, close-capture coverage, LIVE-DEGRADING CLV, live sharp-
+    passthrough, live drawdown, launchd exit codes. `--weekly` adds calibration
+    bias and promotion-gate clearances. Never writes: it reports, you act.
+    """
+    from evmax.agents.cleanup.integrity import DAILY_CHECKS, WEEKLY_CHECKS, run_integrity
+
+    if list_checks:
+        console.print("daily:  " + ", ".join(DAILY_CHECKS) + ", pinnacle (opt-in)")
+        console.print("weekly: " + ", ".join(WEEKLY_CHECKS))
+        return
+
+    result = run_integrity(
+        weekly=weekly,
+        check_pinnacle=check_pinnacle,
+        notify=notify,
+        only={s.strip() for s in only.split(",") if s.strip()} if only else None,
+        board_days=board_days,
+    )
+    if as_json:
+        import json as _json
+        console.print_json(_json.dumps(result, default=str))
+        return
+
+    issues = result["issues"]
+    if result["ok"] and not issues:
+        console.print(
+            f"[green]✓ Integrity clean — {len(result['ran'])} check(s) ran, nothing to report.[/green]"
+        )
+    else:
+        n_act = sum(1 for i in issues if i["severity"] != "info")
+        head = f"{n_act} issue(s)" if n_act else "no issues"
+        n_info = len(issues) - n_act
+        if n_info:
+            head += f", {n_info} gate clearance(s)"
+        console.print(f"\n  [bold]{head}[/bold] across {len(result['ran'])} check(s):")
+        from rich.markup import escape as _esc
+        colors = {"critical": "red", "warning": "yellow", "info": "green"}
+        for i in issues:
+            c = colors.get(i["severity"], "yellow")
+            console.print(
+                f"  • [{c}]{i['severity']}[/{c}] [dim]{i['check']}[/dim] {_esc(i['detail'])}"
+            )
+    if result["failed"]:
+        console.print(f"[red]  Checks that crashed: {', '.join(result['failed'])}[/red]")
+    if notify:
+        state = "sent" if result["notified"] else "NOT sent (nothing to send, no webhook, or delivery failed)"
+        console.print(f"[dim]  Alert: {state}.[/dim]")
+
+
 @app.command("heartbeat")
 def heartbeat_cmd(
     max_resolve_age_h: float = typer.Option(
@@ -2272,6 +2350,9 @@ def heartbeat_cmd(
 ) -> None:
     """Pipeline dead-man's-switch: detect a silently-stopped cadence, a frozen
     seed state, or an unreachable Pinnacle, and (optionally) push an alert.
+
+    Folded into `evmax cleanup integrity` (checks cadence/states/pinnacle); kept
+    as a standalone alias.
 
     Catches the failure modes that only show up as *absent* rows: the daily
     scheduled tasks not firing (app closed), resolve erroring every run, a weekly
