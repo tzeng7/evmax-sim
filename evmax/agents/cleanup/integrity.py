@@ -84,6 +84,23 @@ GATE_WATCHES: list[dict] = [
         "venue": "kalshi", "sources_token": "anchored_entry", "max_staleness_h": 3.0,
         "promote_hint": "evmax cleanup shadow promote wnba (spread is a shadow_market_type — edit data/categories.yaml)",
     },
+    # NFL spread is a shadow_market_type (no NFL betting history in this system);
+    # judge promotion PER SIDE via Kalshi entry→close CLV, never pooled (the WNBA
+    # spread-take lesson: laying ~breakeven while taking bled −2.2pp). These use
+    # the regular scan rows, not the anchored-entry stream (that laddered lens is
+    # WNBA-specific). They stay quiet until enough resolved NFL spread rows exist.
+    {
+        "label": "nfl spread LAY (kalshi)",
+        "category": "nfl", "market_type": "spread", "side": "lay",
+        "venue": "kalshi", "max_staleness_h": 3.0,
+        "promote_hint": "evmax cleanup shadow clv nfl -m spread --side lay --venue kalshi; promote via data/categories.yaml shadow_market_types",
+    },
+    {
+        "label": "nfl spread TAKE (kalshi)",
+        "category": "nfl", "market_type": "spread", "side": "take",
+        "venue": "kalshi", "max_staleness_h": 3.0,
+        "promote_hint": "evmax cleanup shadow clv nfl -m spread --side take --venue kalshi; promote via data/categories.yaml shadow_market_types",
+    },
 ]
 
 

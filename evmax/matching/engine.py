@@ -253,7 +253,21 @@ class MatchingEngine:
             # playoff-series tickers).
             yes_side = (m.yes_team or "").lower().strip()
             venue = m.source.value if hasattr(m.source, "value") else str(m.source)
-            key = (s.event_id, mt, yes_side, venue)
+            # The LINE is part of the key for spread/total. A single Pinnacle
+            # spread record (::spread, the main line) is matched by EVERY Kalshi
+            # alternate-spread rung of the same game/side, so without the line
+            # in the key all but one rung collapse — the 2026-09-06 NFL scan
+            # dropped 874 of 1137 matched markets this way, and each dropped rung
+            # is a market that never gets an EV evaluation. The rungs are still
+            # priced off that one Pinnacle record via SpreadDistributionModel
+            # (gated to ±1σ from the main line in ev_gap_agent), so keeping every
+            # rung is exactly the intended behavior. Totals already embed the
+            # line in s.event_id, but a nearest-line fallback can map several
+            # Kalshi total lines onto one Pinnacle record — the line in the key
+            # protects those too. The playoff-duplicate collapse this dedup was
+            # built for is preserved: true duplicate listings share a line.
+            line_key = m.line if m.market_type in (MarketType.spread, MarketType.total) else None
+            key = (s.event_id, mt, yes_side, venue, line_key)
             existing = best.get(key)
             if existing is None:
                 best[key] = (m, s, conf)
@@ -262,7 +276,7 @@ class MatchingEngine:
             if s.event_date and m.event_date and em.event_date:
                 new_delta = abs((m.event_date - s.event_date).total_seconds())
                 old_delta = abs((em.event_date - s.event_date).total_seconds())
-                if new_delta < old_delta:
+                if new_delta < old_delta or (new_delta == old_delta and conf > existing[2]):
                     best[key] = (m, s, conf)
             elif conf > existing[2]:
                 best[key] = (m, s, conf)

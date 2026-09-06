@@ -510,17 +510,39 @@ def _gap_in_scan_window(
     if event_date is None:
         return True
     from evmax.clients.time_util import kalshi_game_day
+    from evmax.categories import persist_window as _persist_window
 
     day = kalshi_game_day(event_date, sector)
+
+    # Weekly sectors (NFL/NCAAF) declare scan_horizon_days so a daily-window
+    # scan still persists a slate that is days out. persist_window only ever
+    # widens the END of the range (never moves the start), so an explicit
+    # user-selected range that already covers the horizon is unaffected; a
+    # daily sector (no horizon) is returned unchanged.
+    def _widen(lo: str, hi: str) -> tuple[str, str]:
+        try:
+            lo_d = date.fromisoformat(lo)
+            hi_d = date.fromisoformat(hi)
+        except ValueError:
+            return lo, hi
+        w_lo, w_hi = _persist_window(sector, lo_d, hi_d)
+        return w_lo.isoformat(), w_hi.isoformat()
+
     if date_from and date_to:
-        return date_from <= day <= date_to
+        lo, hi = _widen(date_from, date_to)
+        return lo <= day <= hi
     if date_from:
+        # Open-ended upper bound already admits everything at/after date_from;
+        # the horizon can't make it more permissive, so leave it.
         return day >= date_from
     if date_to:
         return day <= date_to
     today_str = date.today().isoformat()
     tomorrow_str = (date.today() + timedelta(days=1)).isoformat()
-    return day in (today_str, tomorrow_str)
+    lo, hi = _widen(today_str, tomorrow_str)
+    if lo == today_str and hi == tomorrow_str:
+        return day in (today_str, tomorrow_str)  # daily sector, exact default
+    return lo <= day <= hi
 
 
 async def _run_unified_scan(

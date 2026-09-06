@@ -447,7 +447,7 @@ class PinnacleGuestClient(BaseAPIClient):
         return props
 
     async def _fetch_bulk_straight_index(
-        self, sport_id: int, sector: str
+        self, sport_id: int, sector: str, log_sector: Optional[str] = None
     ) -> dict[int, list[dict]]:
         """Fetch ``/sports/{sport_id}/markets/straight`` once and index it by matchupId.
 
@@ -456,11 +456,15 @@ class PinnacleGuestClient(BaseAPIClient):
         Deliberately sends no query params: ``withSpecials=true`` on this
         endpoint triggers the same US geo-block as the per-special fetch,
         while the bare call already includes the specials' markets.
+
+        ``log_sector`` overrides the sector label used in the structured log
+        (defaults to ``{sector}_props`` for the props path); the game path
+        passes the bare sector so its log line isn't mislabeled ``_props``.
         """
         try:
             data = await self._logged_get(
                 f"/sports/{sport_id}/markets/straight",
-                sector=f"{sector}_props",
+                sector=log_sector or f"{sector}_props",
                 purpose="list_prop_markets_bulk",
             )
         except Exception as e:  # noqa: BLE001 — degrade to per-matchup path
@@ -666,8 +670,28 @@ class PinnacleGuestClient(BaseAPIClient):
             logger.info("pinnacle_guest_no_matchups", sector=sector)
             return []
 
+        # Fetch the sport-wide straight-market index ONCE and serve each
+        # matchup's markets from it, instead of one per-matchup HTTP call each.
+        # The per-matchup /markets/related/straight endpoint intermittently 403s
+        # (US geo-block) and a single 403 silently deletes that whole game's
+        # ML + spread + total ladder; the bulk endpoint is the same one the
+        # props path already uses to dodge that block. Empty index (bulk
+        # outage) → every matchup falls back to its per-matchup fetch, so this
+        # can never be worse than the old path.
+        bulk_index = await self._fetch_bulk_straight_index(
+            sport_id, sector, log_sector=sector
+        )
+        # Matchups whose markets the bulk index lacks fall back to a per-matchup
+        # HTTP call; count them so the http_calls log is real, not a guess.
+        bulk_misses = [m for m in matchups if not bulk_index.get(m.get("id"))]
+
         results = await asyncio.gather(
-            *(self._fetch_matchup_odds(m, sector) for m in matchups),
+            *(
+                self._fetch_matchup_odds(
+                    m, sector, markets_override=bulk_index.get(m.get("id"))
+                )
+                for m in matchups
+            ),
             return_exceptions=True,
         )
 
@@ -680,11 +704,18 @@ class PinnacleGuestClient(BaseAPIClient):
             elif isinstance(r, Exception):
                 logger.warning("pinnacle_guest_odds_error", error=str(r))
 
-        # Per-market-type breakdown for the scan summary
+        # Per-market-type breakdown for the scan summary. SharpOdds has no
+        # market_type field — it distinguishes types via spread_line /
+        # total_line — so infer from those (the old getattr(o,"market_type")
+        # was always None and bucketed EVERY record as "moneyline").
         market_counts: dict[str, int] = {}
         for o in odds:
-            mt = getattr(o, "market_type", None)
-            key = str(mt.value) if mt is not None and hasattr(mt, "value") else (str(mt) if mt else "moneyline")
+            if o.spread_line is not None:
+                key = "spread"
+            elif o.total_line is not None:
+                key = "total"
+            else:
+                key = "moneyline"
             market_counts[key] = market_counts.get(key, 0) + 1
 
         logger.info("sharp_fetched", sector=sector, count=len(odds),
@@ -695,7 +726,9 @@ class PinnacleGuestClient(BaseAPIClient):
             sport_id=sport_id,
             league_ids=league_ids or None,
             parent_matchups=len(matchups),
-            http_calls=1 + len(matchups),  # 1 list + N per-matchup market fetches
+            # 1 matchup list + 1 bulk straight index (when it returned) +
+            # 1 per-matchup fallback for each bulk miss.
+            http_calls=1 + (1 if bulk_index else 0) + len(bulk_misses),
             market_counts=market_counts,
             total_markets=len(odds),
             duration_ms=round((time.perf_counter() - scan_t0) * 1000, 1),
@@ -707,8 +740,20 @@ class PinnacleGuestClient(BaseAPIClient):
 
         return odds
 
-    async def _fetch_matchup_odds(self, matchup: dict, sector: str) -> Optional[SharpOdds] | list[SharpOdds]:
-        """Fetch moneyline (and spread for non-soccer) for one matchup."""
+    async def _fetch_matchup_odds(
+        self,
+        matchup: dict,
+        sector: str,
+        markets_override: Optional[list[dict]] = None,
+    ) -> Optional[SharpOdds] | list[SharpOdds]:
+        """Fetch moneyline (and spread for non-soccer) for one matchup.
+
+        ``markets_override`` is this matchup's slice of the bulk straight-market
+        index (see get_odds). When provided (non-None, non-empty) it is used
+        directly and no per-matchup HTTP call is made — dodging the per-matchup
+        geo-block. A None/empty slice (bulk miss) falls back to the per-matchup
+        fetch, preserving the original behavior.
+        """
         matchup_id = matchup.get("id")
         if not matchup_id:
             return None
@@ -732,15 +777,26 @@ class PinnacleGuestClient(BaseAPIClient):
         away_norm = self._normalize(away, sector)
         base_event_id = f"{sector}::{date_str}::{home_norm}_vs_{away_norm}"
 
-        try:
-            markets_data = await self._logged_get(
-                f"/matchups/{matchup_id}/markets/related/straight",
-                sector=sector,
-                purpose="fetch_matchup_markets",
-            )
-        except Exception as e:
-            logger.debug("pinnacle_guest_markets_failed", matchup_id=matchup_id, error=str(e))
-            return None
+        if markets_override:
+            markets_data: Any = markets_override
+        else:
+            try:
+                markets_data = await self._logged_get(
+                    f"/matchups/{matchup_id}/markets/related/straight",
+                    sector=sector,
+                    purpose="fetch_matchup_markets",
+                )
+            except Exception as e:
+                # A per-matchup 403 (US geo-block) deletes this game's whole
+                # ML/spread/total ladder — surface it at warning with the
+                # classified status, not a silent debug line.
+                status, reason = classify_pinnacle_error(e)
+                logger.warning(
+                    "pinnacle_guest_markets_failed",
+                    matchup_id=matchup_id, sector=sector,
+                    status=status, reason=reason, error=str(e),
+                )
+                return None
 
         if not isinstance(markets_data, list):
             return None

@@ -196,6 +196,15 @@ class TestBoardDerived:
         out = ig._gate_watch_issues([(spec, {"n": 40, "clears": True, "mean_clv_pp": 0.8, "frac_positive": 0.6})])
         assert len(out) == 1 and out[0]["severity"] == "info" and "n=40" in out[0]["detail"]
 
+    def test_nfl_spread_lay_and_take_watches_present(self):
+        """NFL spread is a shadow_market_type judged per side — both lay and take
+        must be watched, keyed to nfl spread, so promotion evidence surfaces."""
+        nfl = [w for w in ig.GATE_WATCHES
+               if w["category"] == "nfl" and w["market_type"] == "spread"]
+        assert {w["side"] for w in nfl} == {"lay", "take"}
+        # regular scan rows, NOT the WNBA anchored-entry laddered stream
+        assert all("sources_token" not in w for w in nfl)
+
 
 class _FakeNotifier:
     def __init__(self, ok=True):

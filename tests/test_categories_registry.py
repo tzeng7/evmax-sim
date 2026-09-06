@@ -225,6 +225,40 @@ def test_validator_catches_unknown_resolver(tmp_path):
     reload_registry()
 
 
+def test_scan_horizon_days_parsed_and_defaults_none():
+    """nfl/ncaaf ship a 7-day persistence horizon; daily sectors have none."""
+    from evmax.categories import persist_window, scan_horizon_days
+    from datetime import date
+
+    assert get_category("nfl").scan_horizon_days == 7
+    assert get_category("ncaaf").scan_horizon_days == 7
+    assert get_category("nba").scan_horizon_days is None
+    assert scan_horizon_days("nfl") == 7
+    assert scan_horizon_days("nba") is None
+    # unknown category → None, never raises (persistence must not break)
+    assert scan_horizon_days("does_not_exist") is None
+
+    d = date(2026, 9, 6)
+    assert persist_window("nfl", d, d) == (d, date(2026, 9, 13))
+    assert persist_window("nba", d, d) == (d, d)  # daily unchanged
+    # never moves start earlier; keeps a range already past the horizon
+    far = date(2026, 9, 30)
+    assert persist_window("nfl", d, far) == (d, far)
+
+
+def test_validator_catches_bad_scan_horizon(tmp_path):
+    for bad_val, match in (("0", "must be >= 1"), ("-3", "must be >= 1"),
+                           ("abc", "must be an integer")):
+        bad = tmp_path / "broken.yaml"
+        _write_yaml(
+            bad,
+            _full_yaml("nba", _base_entry(extra=f"  scan_horizon_days: {bad_val}\n")),
+        )
+        with pytest.raises(ValueError, match=match):
+            reload_registry(bad)
+    reload_registry()
+
+
 def test_validator_catches_illegal_mode(tmp_path):
     bad = tmp_path / "broken.yaml"
     _write_yaml(

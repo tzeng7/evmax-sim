@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.evmax.watch-closes</string>
+
+    <!-- launchd-driven schedule: one fresh single-shot (once) sweep per firing.
+         StartInterval fires every 300s of awake time and coalesces missed
+         firings during sleep into one run on wake, so the first post-wake
+         sweep is immediate instead of stuck in a frozen time.sleep(300).
+         caffeinate -i is per-invocation: no idle sleep mid-sweep only.
+         lookahead 40 (was 30, changed 2026-07-12): get_kalshi_close_price
+         selects the latest snapshot AT OR BEFORE tipoff-30min, so a capture
+         window that only opens at T-30 produced zero qualifying snapshots
+         (disjoint windows) and every unplaced bet's "close" fell back to the
+         last hourly watch-listings sweep. Opening at T-40 gives ~2 firings
+         (T-40, T-35) that land before the T-30 cutoff. Keep this value
+         STRICTLY GREATER than the minutes_before=30 default in
+         evmax/archiver.py::get_kalshi_close_price (regression test:
+         test_watch_closes_lookahead_exceeds_close_target). Note: double
+         hyphens are illegal inside XML comments, so flag names here are
+         written without them. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/caffeinate</string>
+        <string>-i</string>
+        <string>/Users/ktzeng/Projects/evmax/.venv/bin/evmax</string>
+        <string>cleanup</string>
+        <string>watch-closes</string>
+        <string>--lookahead</string>
+        <string>40</string>
+        <string>--once</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/ktzeng/Projects/evmax</string>
+
+    <key>StartInterval</key>
+    <integer>300</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/ktzeng/Projects/evmax/logs/launchd.watch-closes.out</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/ktzeng/Projects/evmax/logs/launchd.watch-closes.err</string>
+</dict>
+</plist>

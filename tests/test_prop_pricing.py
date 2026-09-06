@@ -224,6 +224,10 @@ class TestFitDistribution:
         ("passing_yards",          250.5,  0.55, NormalProp),
         ("rushing_yards",           75.5,  0.50, NormalProp),
         ("receiving_yards",         65.5,  0.50, NormalProp),
+        # NFL count props (added 2026-09-06) — were previously unpriced (~31%
+        # of the NFL prop book dropped one dict entry short of tradeable).
+        ("receptions",               4.5,  0.50, NegBinomialProp),
+        ("passing_tds",              1.5,  0.55, PoissonProp),
     ])
     def test_correct_distribution_per_stat(self, stat, line, prob, expected_cls):
         d = fit_distribution(stat, line, prob)
@@ -277,6 +281,24 @@ class TestPriceKalshiThreshold:
         p = price_kalshi_threshold("passing_yards", 250.5, 0.55, kalshi_threshold=275)
         assert p is not None
         assert 0.0 < p < 0.55  # 275 above the line, below the anchor prob
+
+    def test_nfl_receptions_priced_at_ladder(self):
+        """Receptions anchor 4.5@0.50 → Kalshi 4+/5+/6+ all price (NegBin),
+        monotone decreasing, recovering the anchor at the cutoff."""
+        priced = {
+            t: price_kalshi_threshold("receptions", 4.5, 0.50, kalshi_threshold=t)
+            for t in [4, 5, 6, 7]
+        }
+        assert all(p is not None for p in priced.values())
+        assert priced[5] == pytest.approx(0.50, abs=1e-4)  # cutoff = ceil(4.5)
+        assert priced[4] > priced[5] > priced[6] > priced[7]
+
+    def test_nfl_passing_tds_priced(self):
+        """Passing TDs anchor 1.5@0.55 → Poisson; 2+ recovers the anchor prob."""
+        p2 = price_kalshi_threshold("passing_tds", 1.5, 0.55, kalshi_threshold=2)
+        assert p2 == pytest.approx(0.55, abs=1e-4)
+        p3 = price_kalshi_threshold("passing_tds", 1.5, 0.55, kalshi_threshold=3)
+        assert 0.0 < p3 < p2
 
     def test_unknown_stat_returns_none(self):
         assert price_kalshi_threshold("dunks", 5.5, 0.50, 4) is None
