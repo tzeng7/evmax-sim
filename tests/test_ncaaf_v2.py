@@ -289,11 +289,33 @@ def test_resolve_fpi_freeze_semantics():
 # ---------------------------------------------------------------------------
 
 
-def test_ncaaf_contamination_dates_v1_rows_only():
+def test_ncaaf_contamination_requires_v2_token_on_moneyline():
+    """Only rows v2 actually priced belong to the v2 promotion sample.
+
+    v1-token rows were priced by the superseded margin; token-less
+    (elo+sharp) rows were priced with v2 silent — 2026-09-03→09-05 the renamed
+    agent read a non-existent state file and withheld on every game.
+    """
     assert is_contaminated("ncaaf", "moneyline", "elo+ncaaf_efficiency+sharp") is True
+    assert is_contaminated("ncaaf", "moneyline", "elo+sharp") is True
     assert is_contaminated("ncaaf", "moneyline", "elo+ncaaf_efficiency_v2+sharp") is False
-    assert is_contaminated("ncaaf", "moneyline", "elo+sharp") is False
+    assert is_contaminated("ncaaf", "spread", "elo+sharp") is False
     assert is_contaminated("ncaaf", "spread", "elo+ncaaf_efficiency+sharp") is False
+
+
+def test_agent_loads_shipped_state_file_from_disk():
+    """Regression: the v2 rename derived the state path from the NEW model name
+    (ncaaf_efficiency_v2_state.json, non-existent) while the seed still wrote
+    ncaaf_efficiency_state.json, so a default-constructed agent held an empty
+    state and withheld on every game. The agent must load the shipped file."""
+    from evmax.agents.models.ncaaf_efficiency_agent import (
+        STATE_PATH, NcaafEfficiencyModelAgent,
+    )
+    agent = NcaafEfficiencyModelAgent()
+    assert agent._state_path == STATE_PATH
+    assert agent._state_path.exists(), "shipped state file missing"
+    assert E.state_has_v2_schema(agent._sector_state())
+    assert len(agent._sector_state().get("teams", {})) > 100
 
 
 # ---------------------------------------------------------------------------

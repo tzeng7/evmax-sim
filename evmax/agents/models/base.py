@@ -67,12 +67,18 @@ class ModelAgent(Agent, ModelBase):
     # Set in subclass
     name: str
     weight: float = 1.0
+    # State file basename under data/models. Defaults to "{name}_state.json".
+    # Declare it EXPLICITLY whenever the model name and the seed script's
+    # output file differ — a renamed model (ncaaf_efficiency → _v2, 2026-09-03)
+    # silently loaded an empty state for two days because the path was
+    # derived from the new name while the seed still wrote the old file.
+    state_filename: Optional[str] = None
 
     def __init__(self) -> None:
         Agent.__init__(self)
         self._state: dict[str, Any] = {}
         STATE_DIR.mkdir(parents=True, exist_ok=True)
-        self._state_path = STATE_DIR / f"{self.name}_state.json"
+        self._state_path = STATE_DIR / (self.state_filename or f"{self.name}_state.json")
         self.load_state()
 
     # ------------------------------------------------------------------
