@@ -120,6 +120,19 @@ staleness:
       uv run python scripts/seed_nfl_efficiency.py
       uv run python scripts/seed_nfl_qb_elo.py     # also refreshes current_starters
       ```
+      **2026-09-06 seed hardening:** both seeds now load PBP season-by-season
+      and SKIP an unpublished season (nflverse posts the current year's parquet
+      ~Week 1) instead of hard-failing, and `seed_nfl_efficiency.py` derives
+      `seasons_used` from the seasons ACTUALLY loaded (it previously wrote the
+      requested list, which could unblank the model on stale data). After the
+      Mon 09-14 run, verify `seasons_used` really contains 2026 AND team `gp>0`
+      before trusting the unblank.
+- [x] **Zero NFL rows ever persisted — fixed 2026-09-06.** Every scheduled scan
+      passes `--date TODAY`; NFL games are Thu/Sun/Mon, so the single-day persist
+      window dropped 100% of NFL gaps AFTER the ledger counted them (164–241
+      gaps/scan, 0 rows). `nfl`/`ncaaf` now declare `scan_horizon_days: 7` and
+      `persist_window` widens the persist range to the upcoming week. Confirm the
+      07:04 scan writes NFL rows the day after this merges.
 - [x] **QB starters are pre-game now** (2026-09-03): `nfl_qb_elo` reads the
       nflverse depth chart (minus ESPN-Out/IR QBs) before every NFL ensemble
       run, so offseason moves and mid-week scratches are priced the week they

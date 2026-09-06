@@ -126,3 +126,35 @@ def test_window_empty_range_defaults_to_today_tomorrow():
 def test_window_dateless_gap_kept():
     # None event_date → preserve prior persist-all behavior for dateless markets.
     assert _gap_in_scan_window(None, "tennis", date.today().isoformat(), "")
+
+
+# ---- sector-aware persistence horizon (scan_horizon_days) ----
+
+def test_window_weekly_sector_default_persists_within_horizon():
+    """NFL (scan_horizon_days=7) persists a game days out on a today/tomorrow
+    default scan — the fix for zero NFL rows ever persisting mid-week."""
+    today = date.today()
+    # 5 days out: dropped for a daily sector, kept for NFL.
+    five_out = _dt(today + timedelta(days=5))
+    assert not _gap_in_scan_window(five_out, "tennis", "", "")
+    assert _gap_in_scan_window(five_out, "nfl", "", "")
+    # Beyond the 7-day horizon: dropped even for NFL.
+    assert not _gap_in_scan_window(_dt(today + timedelta(days=9)), "nfl", "", "")
+
+
+def test_window_weekly_sector_explicit_single_day_widens():
+    """`--date TODAY` (range_start == range_end) still persists NFL's upcoming
+    slate; the daily sector stays pinned to the single day."""
+    today = date.today()
+    d = today.isoformat()
+    four_out = _dt(today + timedelta(days=4))
+    assert not _gap_in_scan_window(four_out, "tennis", d, d)
+    assert _gap_in_scan_window(four_out, "nfl", d, d)
+
+
+def test_window_horizon_never_moves_start_earlier():
+    """The horizon only widens the END — a game before range_start is dropped."""
+    today = date.today()
+    assert not _gap_in_scan_window(
+        _dt(today - timedelta(days=1)), "nfl", today.isoformat(), today.isoformat()
+    )

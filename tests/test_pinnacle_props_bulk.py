@@ -172,6 +172,106 @@ def test_bulk_failure_degrades_to_per_matchup_path():
     ]
 
 
+# ---------------------------------------------------------------------------
+# Game path (get_odds) also routes through the bulk straight-market index so a
+# single per-matchup 403 can't delete a whole game's ML/spread/total ladder.
+# ---------------------------------------------------------------------------
+
+def _ml(mid: int, home_price: int, away_price: int) -> dict:
+    return {
+        "matchupId": mid, "type": "moneyline", "period": 0, "status": "open",
+        "prices": [
+            {"designation": "home", "price": home_price},
+            {"designation": "away", "price": away_price},
+        ],
+    }
+
+
+def _spread(mid: int, home_hdp: float, home_price: int, away_price: int) -> dict:
+    return {
+        "matchupId": mid, "type": "spread", "period": 0, "status": "open",
+        "prices": [
+            {"designation": "home", "points": home_hdp, "price": home_price},
+            {"designation": "away", "points": -home_hdp, "price": away_price},
+        ],
+    }
+
+
+def _open_total(mid: int, line: float) -> dict:
+    """A game total the game path will parse (the shared _total() omits status)."""
+    return {
+        "matchupId": mid, "type": "total", "period": 0, "status": "open",
+        "prices": [
+            {"designation": "over", "points": line, "price": -110},
+            {"designation": "under", "points": line, "price": -110},
+        ],
+    }
+
+
+class _GameRecorder:
+    """Serves a bulk index carrying the parent game's ML/spread/total and
+    records every path, so we can assert the game path used the bulk index."""
+
+    def __init__(self, *, include_game_in_bulk=True, bulk_error=None):
+        self.calls: list[str] = []
+        self.include_game_in_bulk = include_game_in_bulk
+        self.bulk_error = bulk_error
+
+    async def __call__(self, path, params=None, *, sector, purpose):
+        self.calls.append(path)
+        if path == "/sports/15/matchups":
+            return [_MATCHUPS[0]]  # just the parent NFL game (matchup 100)
+        if path == "/sports/15/markets/straight":
+            if self.bulk_error is not None:
+                raise self.bulk_error
+            if not self.include_game_in_bulk:
+                return []  # game markets absent → per-matchup fallback
+            return [_ml(100, -150, 130), _spread(100, -3.5, -110, -110),
+                    _open_total(100, 47.5)]
+        if path == "/matchups/100/markets/related/straight":
+            return [_ml(100, -150, 130), _spread(100, -3.5, -110, -110),
+                    _open_total(100, 47.5)]
+        raise AssertionError(f"unexpected path {path}")
+
+
+def test_game_path_prices_from_bulk_index_without_per_matchup_call():
+    rec = _GameRecorder()
+    c = ep.PinnacleGuestClient()
+    c._logged_get = rec  # type: ignore[method-assign]
+    import evmax.settings as _s
+    # cache would short-circuit get_odds — force a live fetch
+    odds = _run(_fresh_get_odds(c))
+
+    kinds = {("spread" if o.spread_line is not None else
+              "total" if o.total_line is not None else "moneyline") for o in odds}
+    assert kinds == {"moneyline", "spread", "total"}
+    # bulk fetched once, NO per-matchup call for the game
+    assert rec.calls.count("/sports/15/markets/straight") == 1
+    assert not any("/matchups/100/" in c for c in rec.calls)
+
+
+def test_game_path_falls_back_when_bulk_lacks_game():
+    rec = _GameRecorder(include_game_in_bulk=False)
+    c = ep.PinnacleGuestClient()
+    c._logged_get = rec  # type: ignore[method-assign]
+    odds = _run(_fresh_get_odds(c))
+    assert odds  # still priced
+    # the game missing from the bulk → exactly one per-matchup fallback call
+    assert rec.calls.count("/matchups/100/markets/related/straight") == 1
+
+
+async def _fresh_get_odds(client):
+    """Call get_odds with the dev cache disabled so the mock is exercised."""
+    from evmax.settings import get_settings
+    s = get_settings()
+    old = s.cache_ttl_secs
+    object.__setattr__(s, "cache_ttl_secs", 0)
+    try:
+        return await client.get_odds("nfl")
+    finally:
+        object.__setattr__(s, "cache_ttl_secs", old)
+
+
 def test_parse_prop_matchup_is_pure_and_filters_to_own_total():
     c = ep.PinnacleGuestClient()
     matchup = _MATCHUPS[1]

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.evmax.watch-listings</string>
+
+    <!-- launchd-driven schedule: one fresh --once process per firing.
+         Missed firings during sleep coalesce into a single run on wake,
+         so a sleeping Mac catches up immediately instead of waiting out
+         a frozen in-process time.sleep(3600). caffeinate -i is
+         per-invocation only: it stops idle sleep mid-sweep, nothing more. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/caffeinate</string>
+        <string>-i</string>
+        <string>/Users/ktzeng/Projects/evmax/.venv/bin/evmax</string>
+        <string>cleanup</string>
+        <string>watch-listings</string>
+        <string>--once</string>
+        <string>--log-entries</string>
+        <string>--entry-sectors</string>
+        <string>wnba,baseball,nfl</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/ktzeng/Projects/evmax</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- One sweep at load/login so a reboot doesn't wait up to an hour. -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/ktzeng/Projects/evmax/logs/launchd.watch-listings.out</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/ktzeng/Projects/evmax/logs/launchd.watch-listings.err</string>
+</dict>
+</plist>

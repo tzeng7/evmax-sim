@@ -79,7 +79,18 @@ async def _scan_loop(
     date_filter,
     sharp_weight: float,
 ) -> None:
-    """Run agent scan continuously with adaptive intervals."""
+    """Run agent scan continuously with adaptive intervals.
+
+    NOTE: this monitoring loop does NOT persist rows to predictions.db and does
+    NOT print the play table — it only reports cycle cadence. The one-shot scan
+    path (no --loop) is the only one that logs gaps / scan stats. Use the
+    scheduled one-shot scans (ev-scan-*) for the shadow/CLV clock; --loop is a
+    live-watch aid only.
+    """
+    console.print(
+        "[yellow]⚠ --loop is a monitoring view only: it does NOT persist rows "
+        "or print the play table. Use a one-shot scan for logged plays.[/yellow]"
+    )
     cycle = 0
     while True:
         cycle += 1
@@ -380,7 +391,13 @@ def scan(
         if g.event_date is None:
             return True  # no date info — include by default
         ed = g.event_date.date() if hasattr(g.event_date, "date") else g.event_date
-        return range_start <= ed <= range_end
+        # Weekly sectors (NFL/NCAAF) declare scan_horizon_days so a daily-slate
+        # scan (--date TODAY) still persists a slate that is days out — without
+        # it every NFL gap is dropped mid-week (games are Thu/Sun/Mon). Daily
+        # sectors have no horizon and keep the exact [range_start, range_end].
+        from evmax.categories import persist_window as _persist_window
+        g_start, g_end = _persist_window(g.sector, range_start, range_end)
+        return g_start <= ed <= g_end
 
     def _tiered_min_ev(true_prob: float) -> float:
         return tiered_min_ev(true_prob, min_ev=min_ev, min_prob=min_prob)
@@ -537,9 +554,28 @@ def scan(
     table.add_column("Vol", justify="right", width=8)
     table.add_column("Cf", justify="center", width=4)
 
+    def _gap_logs_shadow(gap) -> bool:
+        """True if this gap will be persisted as mode='shadow' (so its stake is
+        not real bankroll). Mirrors log_gaps: category-shadow (nfl_props,
+        ncaaf), a shadow_market_type (nfl spread/total), and maker-only rows all
+        log as shadow. Venue/league/full-blend shadows already have kelly zeroed
+        upstream, so their stake is $0 regardless."""
+        if getattr(gap, "maker_only", False):
+            return True
+        try:
+            from evmax.modes import get_mode as _get_mode
+            from evmax.agents.cleanup.logger import _gap_category_key as _cat_key
+            return _get_mode(_cat_key(gap), gap.market_type) != "live"
+        except Exception:  # noqa: BLE001 — display must never crash the scan
+            return False
+
     total_stake = 0.0
     for i, gap in enumerate(gaps, 1):
-        stake = result.stake_for(gap)
+        logs_shadow = _gap_logs_shadow(gap)
+        # A shadow row is logged for calibration but stakes no bankroll — show
+        # $0.00 so "Total at risk" reflects only live plays (a shadow row used
+        # to display a real Kelly stake and inflate the at-risk total).
+        stake = 0.0 if logs_shadow else result.stake_for(gap)
         total_stake += stake
         is_prop = gap.market_type == "player_prop"
         # Flag suspiciously high EV on props (likely small sample / model artifact)
@@ -573,6 +609,8 @@ def scan(
         outcome_cell = gap.display_label[:22]
         if maker_only:
             outcome_cell = f"{outcome_cell} [bold magenta]MAKER[/bold magenta]"
+        elif logs_shadow:
+            outcome_cell = f"{outcome_cell} [dim yellow]SHADOW[/dim yellow]"
         # GAP 3: same bet also live on the other venue — annotate the cheaper
         # alternative so the collapsed single row still line-shops.
         alt_venue = getattr(gap, "alt_venue", None)
@@ -614,7 +652,7 @@ def scan(
             lim_str,
             bid_str,
             f"{gap.kelly_fraction*100:.2f}%",
-            f"${stake:.2f}",
+            (f"[dim]${stake:.2f}[/dim]" if logs_shadow else f"${stake:.2f}"),
             l15_str,
             bks_str,
             steam_str,

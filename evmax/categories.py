@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Iterable, Literal, Optional
 
@@ -175,6 +175,16 @@ class CategorySpec:
     # skip dead sectors (saves Kalshi rate-limit + Pinnacle API tokens).
     # Wrap-around windows (end < start, e.g. NFL "09-04" → "02-15") supported.
     season_window: Optional[SeasonWindow] = None
+    # Optional persistence-window horizon in DAYS. A daily-slate scan
+    # (`--date TODAY`, or the dashboard's today/tomorrow default) collapses the
+    # persist window to one/two days — correct for sectors that play every day
+    # (NBA, MLB), but it drops EVERY row for a weekly sector whose games are
+    # 3-7 days out (NFL is Thu/Sun/Mon; NCAAF is Sat). When set, the persist
+    # window for THIS sector extends `range_end` to at least
+    # `range_start + scan_horizon_days`, so a mid-week scan still logs the
+    # upcoming slate. Display range and other sectors are unaffected. None =
+    # daily behavior (the historical default). Validated as int >= 1.
+    scan_horizon_days: Optional[int] = None
 
     @property
     def is_prop(self) -> bool:
@@ -311,6 +321,21 @@ def _parse_entry(key: str, raw: dict) -> CategorySpec:
             end_day=parsed["end"][1],
         )
 
+    scan_horizon_days: Optional[int] = None
+    raw_horizon = raw.get("scan_horizon_days")
+    if raw_horizon is not None:
+        if isinstance(raw_horizon, bool) or not isinstance(raw_horizon, int):
+            raise ValueError(
+                f"category {key!r}: scan_horizon_days must be an integer, "
+                f"got {raw_horizon!r}"
+            )
+        if raw_horizon < 1:
+            raise ValueError(
+                f"category {key!r}: scan_horizon_days must be >= 1, "
+                f"got {raw_horizon}"
+            )
+        scan_horizon_days = raw_horizon
+
     return CategorySpec(
         key=key,
         display_name=display_name,
@@ -324,6 +349,7 @@ def _parse_entry(key: str, raw: dict) -> CategorySpec:
         shadow_market_types=shadow_market_types,
         disabled_market_types=disabled_market_types,
         season_window=season_window,
+        scan_horizon_days=scan_horizon_days,
     )
 
 
@@ -383,6 +409,39 @@ def is_in_season(key: str, today: Optional[date] = None) -> bool:
     KeyError for unknown categories.
     """
     return get_category(key).is_in_season(today)
+
+
+def scan_horizon_days(key: str) -> Optional[int]:
+    """Return the sector's persistence-window horizon in days, or None.
+
+    None means daily behavior (persist only the requested day). Unknown
+    categories return None rather than raising — persistence must never break
+    on a sector the registry has not been told about (e.g. a latent sector).
+    """
+    try:
+        return get_category(key).scan_horizon_days
+    except KeyError:
+        return None
+
+
+def persist_window(
+    key: str, range_start: date, range_end: date
+) -> tuple[date, date]:
+    """Widen a persistence date range for a weekly sector.
+
+    A daily-slate scan sets ``range_start == range_end == today`` (CLI
+    ``--date``) or today/tomorrow (dashboard default). That drops every row for
+    a sector whose games are days out. For a sector with ``scan_horizon_days``
+    set, extend ``range_end`` to at least ``range_start + horizon`` so the
+    upcoming weekly slate persists. ``range_start`` is never moved earlier, and
+    a caller-supplied ``range_end`` already beyond the horizon is kept. Sectors
+    without a horizon are returned unchanged.
+    """
+    horizon = scan_horizon_days(key)
+    if horizon is None:
+        return range_start, range_end
+    widened_end = range_start + timedelta(days=horizon)
+    return range_start, max(range_end, widened_end)
 
 
 def in_season_keys(keys: Iterable[str], today: Optional[date] = None) -> list[str]:

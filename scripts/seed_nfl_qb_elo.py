@@ -139,13 +139,32 @@ def main() -> int:
         seasons = list(range(current - DEFAULT_NUM_SEASONS + 1, current + 1))
 
     print(f"Loading PBP for seasons: {seasons}")
-    df = nfl.load_pbp(seasons=seasons)
+    # Load season-by-season so an unpublished season (nflverse hasn't posted the
+    # current year's parquet yet, early in a new season) is skipped rather than
+    # aborting the whole reseed — mirrors evmax/clients/nfl_props_cache.py.
+    frames: list[pl.DataFrame] = []
+    for season in seasons:
+        try:
+            frames.append(nfl.load_pbp(seasons=[season]))
+        except Exception as exc:  # noqa: BLE001 — nflreadpy re-raises 404 as ConnectionError
+            print(
+                f"  season {season}: PBP not available yet, skipping "
+                f"({type(exc).__name__})",
+                file=sys.stderr,
+            )
+    if not frames:
+        print("ERROR: no PBP loaded for any requested season — abort", file=sys.stderr)
+        return 1
+    df = pl.concat(frames, how="vertical_relaxed")
     print(f"  total rows: {len(df):,}")
 
     games = _games_with_starters(df)
     print(f"  unique games: {len(games)}")
 
     state, seasons_used = _walk_forward(games)
+    if not seasons_used:
+        print("ERROR: no games with identifiable starters — abort", file=sys.stderr)
+        return 1
 
     out = {
         "nfl": {

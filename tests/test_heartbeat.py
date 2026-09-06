@@ -90,6 +90,47 @@ class TestSeedStateIssue:
         assert "no last_updated" in issue["detail"]
 
 
+class TestResolveStamp:
+    def test_top_level_stamp(self):
+        assert hb._resolve_stamp({"last_updated": "2026-08-24"}, ["last_updated"]) == "2026-08-24"
+
+    def test_nested_stamp(self):
+        data = {"nfl": {"fetched_at": "2026-09-01", "teams": {}}}
+        assert hb._resolve_stamp(data, ["nfl", "fetched_at"]) == "2026-09-01"
+
+    def test_missing_path_returns_none(self):
+        assert hb._resolve_stamp({"nfl": {}}, ["nfl", "fetched_at"]) is None
+        assert hb._resolve_stamp({}, ["nfl", "fetched_at"]) is None
+        # non-str leaf → None (never a bogus stamp)
+        assert hb._resolve_stamp({"nfl": {"fetched_at": 12}}, ["nfl", "fetched_at"]) is None
+
+
+class TestCheckSeedStatesNestedStamp:
+    def test_stale_nested_nfl_stamp_warns_in_season(self, tmp_path, monkeypatch):
+        """A frozen NFL efficiency reseed (nested nfl.fetched_at) is flagged —
+        the gap the old top-level-only check missed for NFL/WNBA/NCAAF."""
+        monkeypatch.setattr(hb, "_MODELS_DIR", tmp_path)
+        # only the NFL efficiency check should fire; write just that file
+        (tmp_path / "nfl_efficiency_state.json").write_text(
+            '{"nfl": {"fetched_at": "2026-08-01", "teams": {}}}'
+        )
+        # NOW is 2026-08-28, in NFL's Sep-Feb window? NFL season is 09-04→02-15,
+        # so Aug 28 is OUT of season → no alert. Use an in-season date.
+        in_season_now = datetime(2026, 9, 20, 12, 0, 0)
+        issues = hb.check_seed_states(now=in_season_now, today=in_season_now.date())
+        labels = {i["check"] for i in issues}
+        assert any("nfl_efficiency" in c for c in labels), labels
+
+    def test_fresh_nested_nfl_stamp_ok(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(hb, "_MODELS_DIR", tmp_path)
+        in_season_now = datetime(2026, 9, 20, 12, 0, 0)
+        (tmp_path / "nfl_efficiency_state.json").write_text(
+            '{"nfl": {"fetched_at": "2026-09-19", "teams": {}}}'
+        )
+        issues = hb.check_seed_states(now=in_season_now, today=in_season_now.date())
+        assert not any("nfl_efficiency" in i["check"] for i in issues)
+
+
 class _FakeNotifier:
     def __init__(self, result=True):
         self.calls = []

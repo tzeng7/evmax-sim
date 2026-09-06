@@ -61,6 +61,17 @@ _STAT_DISTRIBUTION: dict[str, str] = {
     "passing_yards":           "normal",
     "rushing_yards":           "normal",
     "receiving_yards":         "normal",
+    # --- NFL count props (added 2026-09-06) ---
+    # These have live Pinnacle anchors (Total Receptions / Total Touchdown
+    # Passes on sport 15) but were previously absent from this table, so
+    # price_kalshi_threshold returned None and ~31% of the NFL prop book
+    # (unpriced=630 on the 2026-09-06 scan) was silently discarded one dict
+    # entry short of tradeable.
+    #   - receptions (WR/TE/RB per game): low mean (~3-6), overdispersed
+    #     (target share + game script drive variance) → NegBin.
+    #   - passing_tds (QB per game): low-mean, var/μ ≈ 1 → Poisson.
+    "receptions":              "negbin",
+    "passing_tds":             "poisson",
     # --- MLB player props (added 2026-06-27) ---
     # Per-game count stats. k values are PROVISIONAL priors pending calibration
     # in scripts/backtest_mlb_props.py against historical box scores — see the
@@ -111,6 +122,11 @@ _NEGBIN_STAT_K: dict[str, float] = {
     "threes":   16.0,
     "steals":   8.0,
     "blocks":   8.0,
+    # NFL receptions (PROVISIONAL — calibrate via scripts/backtest_prop_pricing.py
+    # --report-k against nflverse weekly logs before trusting tail thresholds).
+    # WR/TE per-game receptions are overdispersed around a low mean; k≈5 is the
+    # starting bracket, similar to MLB hitter counts.
+    "receptions":       5.0,
     # MLB (PROVISIONAL — calibrate via scripts/backtest_mlb_props.py --report-k
     # against historical box scores before trusting tail thresholds). Hitter
     # per-game counts are far more overdispersed than NBA stats (most games are

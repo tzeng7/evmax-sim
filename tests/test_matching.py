@@ -285,6 +285,53 @@ class TestMatchingEngine:
         winner_market = results[0][0]
         assert winner_market.id == "kalshi:KXNBAGAME-26APR18HOULAL-LAL"
 
+    def _spread_rung(self, engine, line, mid, event_date):
+        m = make_market("chiefs", "broncos", sector="nfl", event_date=event_date)
+        m.market_type = MarketType.spread
+        m.line = line
+        m.yes_team = "chiefs"
+        m.id = mid
+        return m
+
+    def test_match_all_keeps_every_spread_rung(self):
+        """A single Pinnacle ::spread record is matched by every Kalshi alt-spread
+        rung of the same game/side — the line must be in the dedup key so the
+        rungs don't collapse to one (the 2026-09-06 NFL 874-drop)."""
+        engine = MatchingEngine()
+        ed = datetime(2026, 9, 14, 12, tzinfo=timezone.utc)
+        base = engine.build_market_key(
+            make_market("chiefs", "broncos", sector="nfl", event_date=ed)
+        )
+        sharp = make_sharp(f"{base}::spread", sector="nfl")
+        sharp.spread_line = -7.5
+        sharp.event_date = ed
+
+        rungs = [
+            self._spread_rung(engine, -3.5, "kalshi:S-CHI-3", ed),
+            self._spread_rung(engine, -7.5, "kalshi:S-CHI-7", ed),
+            self._spread_rung(engine, -10.5, "kalshi:S-CHI-10", ed),
+        ]
+        results = engine.match_all(rungs, [sharp])
+        assert len(results) == 3
+        assert {m.line for m, _, _ in results} == {-3.5, -7.5, -10.5}
+
+    def test_match_all_collapses_duplicate_same_line_spread(self):
+        """Two duplicate listings for the identical game/side/line still collapse
+        to one — the original within-venue dedup intent is preserved."""
+        engine = MatchingEngine()
+        ed = datetime(2026, 9, 14, 12, tzinfo=timezone.utc)
+        base = engine.build_market_key(
+            make_market("chiefs", "broncos", sector="nfl", event_date=ed)
+        )
+        sharp = make_sharp(f"{base}::spread", sector="nfl")
+        sharp.spread_line = -7.5
+        sharp.event_date = ed
+
+        dup_a = self._spread_rung(engine, -7.5, "kalshi:S-dupA", ed)
+        dup_b = self._spread_rung(engine, -7.5, "kalshi:S-dupB", ed)
+        results = engine.match_all([dup_a, dup_b], [sharp])
+        assert len(results) == 1
+
 
 class TestNormalizerIdempotence:
     """normalize(normalize(x)) == normalize(x) for every canonical.

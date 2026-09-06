@@ -35,13 +35,40 @@ logger = structlog.get_logger(__name__)
 
 _MODELS_DIR = Path(__file__).resolve().parents[3] / "data" / "models"
 
-# Seed-maintained states with a readable top-level `last_updated` stamp, mapped
-# to the sector whose in-season status gates the check. Extend as more states
-# grow a top-level stamp.
+# Seed-maintained states whose freshness stamp is refreshed by the *weekly*
+# reseed (not the daily resolve hook), mapped to the sector whose in-season
+# status gates the check.
+#
+# `stamp_path` locates the timestamp inside the JSON (default ["last_updated"]).
+# The NFL / WNBA / NCAAF / pitcher states nest a per-sector `fetched_at` and
+# have a NO-OP update() — so a silently failing weekly reseed freezes them and
+# is caught by NEITHER the cadence check (resolve keeps running) NOR a
+# top-level-stamp check. `max_age_days` overrides the default staleness bound
+# per file (a weekly reseed should stamp within ~8 days).
 _SEED_STATE_CHECKS: list[dict] = [
     {"file": "ufc_rating_state.json", "sector": "ufc", "label": "ufc_rating"},
     {"file": "tennis_surface_state.json", "sector": "tennis", "label": "tennis_surface"},
+    {"file": "nfl_efficiency_state.json", "sector": "nfl", "label": "nfl_efficiency",
+     "stamp_path": ["nfl", "fetched_at"], "max_age_days": 8},
+    {"file": "nfl_qb_elo_state.json", "sector": "nfl", "label": "nfl_qb_elo",
+     "stamp_path": ["nfl", "fetched_at"], "max_age_days": 8},
+    {"file": "wnba_efficiency_state.json", "sector": "wnba", "label": "wnba_efficiency",
+     "stamp_path": ["fetched_at"], "max_age_days": 8},
+    {"file": "ncaaf_efficiency_state.json", "sector": "ncaaf", "label": "ncaaf_efficiency",
+     "stamp_path": ["ncaaf", "fetched_at"], "max_age_days": 8},
+    # pitcher_state.json deliberately omitted: it carries no freshness stamp
+    # (no fetched_at / last_updated), so it can't be age-checked here.
 ]
+
+
+def _resolve_stamp(data: dict, stamp_path: list[str]) -> Optional[str]:
+    """Walk a nested key path to the freshness stamp; None if any key is absent."""
+    node: object = data
+    for key in stamp_path:
+        if not isinstance(node, dict) or key not in node:
+            return None
+        node = node[key]
+    return node if isinstance(node, str) else None
 
 
 def _age_hours(iso: Optional[str], now: datetime) -> Optional[float]:
@@ -166,8 +193,10 @@ def check_seed_states(
             in_season = is_in_season(spec["sector"], today)
         except Exception:  # noqa: BLE001 — unknown sector → treat as in-season
             in_season = True
+        stamp = _resolve_stamp(data, spec.get("stamp_path", ["last_updated"]))
         issue = _seed_state_issue(
-            spec["label"], data.get("last_updated"), now, stale_days, in_season
+            spec["label"], stamp, now,
+            spec.get("max_age_days", stale_days), in_season,
         )
         if issue:
             issues.append(issue)

@@ -60,6 +60,31 @@ WP_LOWER, WP_UPPER = 0.10, 0.90
 EXPLOSIVE_YARDS = 15  # plays gaining 15+ yards
 
 
+def load_pbp_tolerant(seasons: list[int]) -> "pl.DataFrame":
+    """Load PBP season-by-season, skipping any season nflverse hasn't published.
+
+    nflreadpy.load_pbp raises (ConnectionError) on a 404 for an unpublished
+    season file. Early in a new season the current year's parquet does not
+    exist yet, and a single failing season must not abort the whole reseed
+    (the Monday task would then crash instead of refreshing the older seasons).
+    Mirrors the self-healing 404 tolerance in evmax/clients/nfl_props_cache.py.
+    Returns the concatenated frame of whatever loaded (possibly empty).
+    """
+    frames: list[pl.DataFrame] = []
+    for season in seasons:
+        try:
+            frames.append(nfl.load_pbp(seasons=[season]))
+        except Exception as exc:  # noqa: BLE001 — nflreadpy re-raises 404 as ConnectionError
+            print(
+                f"  season {season}: PBP not available yet, skipping "
+                f"({type(exc).__name__})",
+                file=sys.stderr,
+            )
+    if not frames:
+        return pl.DataFrame()
+    return pl.concat(frames, how="vertical_relaxed")
+
+
 def filter_valid_pbp(df: pl.DataFrame) -> pl.DataFrame:
     """Apply the standard EPA-quality filter: real plays, not garbage time.
 
@@ -214,13 +239,27 @@ def main() -> int:
         seasons = list(range(current - DEFAULT_NUM_SEASONS + 1, current + 1))
 
     print(f"Loading PBP for seasons: {seasons}")
-    df = nfl.load_pbp(seasons=seasons)
+    df = load_pbp_tolerant(seasons)
     print(f"  total rows: {len(df):,}")
+
+    if df.is_empty():
+        print("ERROR: no PBP loaded for any requested season — abort", file=sys.stderr)
+        return 1
 
     df = _filter_valid(df)
     print(f"  rows after filter: {len(df):,}")
 
-    current_season = max(seasons)
+    # seasons_used MUST reflect the seasons actually present in the loaded PBP,
+    # not the requested list. The nfl_efficiency staleness guard unblanks the
+    # model when max(seasons_used) >= the active NFL season, so writing the
+    # requested list would silently re-enable the model on data that does not
+    # contain the new season (e.g. before nflverse publishes Week 1 PBP).
+    seasons_used = sorted(int(s) for s in df["season"].unique().to_list())
+    if not seasons_used:
+        print("ERROR: loaded PBP has no season column values — abort", file=sys.stderr)
+        return 1
+
+    current_season = max(seasons_used)
     teams = compute_team_stats(df, current_season)
 
     if not teams:
@@ -231,7 +270,7 @@ def main() -> int:
         "nfl": {
             "teams": teams,
             "fetched_at": date.today().isoformat(),
-            "seasons_used": seasons,
+            "seasons_used": seasons_used,
             "season_decay": SEASON_DECAY,
             "wp_window": [WP_LOWER, WP_UPPER],
         }
