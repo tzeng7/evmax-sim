@@ -46434,7 +46434,7 @@
       "buffalo": 1473.6,
       "byu": 1734.05,
       "cal poly": 1460.88,
-      "california": 1516.72,
+      "california": 1463.82,
       "campbell": 1413.45,
       "central arkansas": 1425.1,
       "central connecticut": 1417.49,
@@ -46525,7 +46525,7 @@
       "miami oh": 1521.1,
       "michigan": 1729.43,
       "michigan state": 1499.21,
-      "middle tennessee": 1375.25,
+      "middle tennessee": 1402.96,
       "minnesota": 1624.04,
       "mississippi state": 1472.87,
       "missouri": 1642.34,
@@ -46535,7 +46535,7 @@
       "montana state": 1514.94,
       "morehead state": 1490.21,
       "morgan state": 1408.25,
-      "murray state": 1370.26,
+      "murray state": 1342.55,
       "navy": 1680.17,
       "nc state": 1542.36,
       "nebraska": 1579.64,
@@ -46628,7 +46628,7 @@
       "ualbany": 1431.65,
       "uc davis": 1508.1,
       "ucf": 1488.54,
-      "ucla": 1485.28,
+      "ucla": 1538.18,
       "uconn": 1585.61,
       "ul monroe": 1339.58,
       "unlv": 1626.21,
@@ -46697,7 +46697,7 @@
       "buffalo": 63,
       "byu": 66,
       "cal poly": 10,
-      "california": 63,
+      "california": 64,
       "campbell": 10,
       "central arkansas": 13,
       "central connecticut": 6,
@@ -46788,7 +46788,7 @@
       "miami oh": 69,
       "michigan": 70,
       "michigan state": 62,
-      "middle tennessee": 62,
+      "middle tennessee": 63,
       "minnesota": 66,
       "mississippi state": 64,
       "missouri": 66,
@@ -46798,7 +46798,7 @@
       "montana state": 10,
       "morehead state": 1,
       "morgan state": 8,
-      "murray state": 15,
+      "murray state": 16,
       "navy": 63,
       "nc state": 65,
       "nebraska": 63,
@@ -46891,7 +46891,7 @@
       "ualbany": 6,
       "uc davis": 10,
       "ucf": 65,
-      "ucla": 62,
+      "ucla": 63,
       "uconn": 64,
       "ul monroe": 61,
       "unlv": 68,
@@ -47106,7 +47106,11 @@
       "central michigan": 1,
       "mississippi valley state delta devils": 1,
       "nevada": 1,
-      "western kentucky": 1
+      "western kentucky": 1,
+      "middle tennessee": 1,
+      "murray state": 1,
+      "california": 1,
+      "ucla": 1
     },
     "h2h": {
       "san jos\u00e9 state::usc": {
@@ -47572,6 +47576,16 @@
       "nevada::western kentucky": {
         "a_wins": 1,
         "b_wins": 0,
+        "games": 1
+      },
+      "middle tennessee::murray state": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "california::ucla": {
+        "a_wins": 0,
+        "b_wins": 1,
         "games": 1
       }
     },
