@@ -1099,13 +1099,25 @@ class AgentCoordinator:
             # Top-5 European leagues get pushed toward pure sharp (Pinnacle is
             # the ceiling there); secondary leagues keep the sector default.
             # See data/soccer_league_tiers.yaml + evmax/sectors/soccer_tiers.py.
+            # Lookup is by LEAGUE (market.league — Kalshi series prefix or
+            # PolyUS league slug), ticker as the fallback, so a Polymarket US
+            # EPL market gets the top-tier weight too (it has no Kalshi ticker
+            # and used to fall to the 0.40 MLS default). A tier may also carry
+            # its own disagreement ramp (data/soccer_league_tiers.yaml).
             sharp_weight_by_event: dict[str, float] = {}
+            disagreement_by_event: dict[str, tuple[float, float, float]] = {}
             if sector.lower() == "soccer":
-                from evmax.sectors.soccer_tiers import sharp_weight_for_ticker
+                from evmax.sectors.soccer_tiers import (
+                    disagreement_ramp_for_market,
+                    sharp_weight_for_market,
+                )
                 for pair in pairs:
                     market = pair["market"]
                     event_id = pair["sharp"].event_id
-                    sharp_weight_by_event[event_id] = sharp_weight_for_ticker(market.ticker)
+                    sharp_weight_by_event[event_id] = sharp_weight_for_market(market)
+                    ramp = disagreement_ramp_for_market(market)
+                    if ramp is not None:
+                        disagreement_by_event[event_id] = ramp
 
             # NFL: give nfl_qb_elo a PRE-game starter (depth chart minus QBs the
             # injury report rules out) instead of last week's passer.
@@ -1117,6 +1129,7 @@ class AgentCoordinator:
                     "pairs": pairs,
                     "sharp_weight": sector_sharp_weight,
                     "sharp_weight_by_event": sharp_weight_by_event,
+                    "disagreement_by_event": disagreement_by_event,
                 },
                 correlation_id=correlation_id,
             )

@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     venue               TEXT    NOT NULL DEFAULT 'kalshi',
     maker_ev_pct        REAL,
     maker_fill          INTEGER NOT NULL DEFAULT 0,
+    league TEXT,
     UNIQUE(market_id)
 );
 """

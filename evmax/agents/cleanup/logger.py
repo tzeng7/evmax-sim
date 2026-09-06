@@ -22,6 +22,7 @@ from typing import Callable, Optional
 
 import structlog
 
+from evmax.sectors.soccer_leagues import league_for_market_id
 from evmax.agents.cleanup.db import get_connection
 from evmax.agents.odds.ev_gap_agent import EVGap
 from evmax.models.market import is_prop_event
@@ -202,8 +203,8 @@ def log_gaps(
                      blended_true_prob, ev_pct, kelly_fraction, volume_usd,
                      model_sources, sharp_weight_used, bankroll_used, line,
                      mode, captured_yes_price, model_version, minutes_to_tipoff,
-                     venue, model_diagnostics, maker_ev_pct)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     venue, model_diagnostics, maker_ev_pct, league)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         sd,
                         g.market_id,
@@ -230,6 +231,7 @@ def log_gaps(
                         getattr(g, "venue", "kalshi"),
                         getattr(g, "model_diagnostics", None),
                         getattr(g, "maker_ev_pct", None),
+                        getattr(g, "league", None) or league_for_market_id(g.market_id),
                     ),
                 )
                 if conn.execute("SELECT changes()").fetchone()[0]:

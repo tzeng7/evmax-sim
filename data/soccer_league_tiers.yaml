@@ -12,8 +12,21 @@
 #
 # Fallback: tickers not matching any tier use the `default_sharp_weight`.
 #
-# Kalshi series prefixes come from evmax/clients/kalshi.py::SECTOR_SERIES_MAP.
-# When Kalshi adds new soccer series, add them here too.
+# Tiers are keyed by canonical LEAGUE (evmax/sectors/soccer_leagues.py), which
+# is venue-agnostic: Kalshi markets resolve their league from the ticker series
+# prefix, Polymarket US markets from the league slug they were fetched under.
+# (Before 2026-09-05 the lookup was ticker-only, so every PolyUS soccer market
+# — which has no Kalshi ticker — silently fell to the MLS default of 0.40.)
+# A `kalshi_series:` list is still accepted and mapped through
+# KALSHI_SERIES_LEAGUE; when Kalshi adds a soccer series, add it to
+# SECTOR_SERIES_MAP + KALSHI_SERIES_LEAGUE and to a tier here.
+#
+# Optional per-tier `disagreement_ramp: {threshold, saturate_at, cap}` replaces
+# the SECTOR-level ramp in EnsembleModelAgent.DISAGREEMENT_OVERRIDES["soccer"]
+# for that tier's events. A tier WITHOUT one inherits the sector ramp
+# (0.04 / 0.10 / 1.00), which was calibrated on pooled top-5 + UEFA data
+# (n=4406, 2324–2526, MLS unseeded at the time). Set an MLS-specific ramp only
+# from an MLS-only per-bucket walk-forward (scripts/per_bucket_disagreement_perf.py).
 
 default_sharp_weight: 0.40
 
@@ -23,18 +36,27 @@ tiers:
     # sharp_weight=0.85 keeps a 15% model contribution as a regularizer — the
     # disagreement bump will push higher on wide gaps.
     sharp_weight: 0.85
-    kalshi_series:
-      - KXEPLGAME         # English Premier League
-      - KXLALIGAGAME      # La Liga
-      - KXBUNDESLIGAGAME  # Bundesliga
-      - KXSERIEAGAME      # Serie A
-      - KXLIGUE1GAME      # Ligue 1
-      - KXUCLGAME         # UEFA Champions League
-      - KXUELGAME         # UEFA Europa League
+    # Identical to the sector-level soccer ramp — stated explicitly so the
+    # per-league plumbing is exercised without changing today's blend.
+    disagreement_ramp: {threshold: 0.04, saturate_at: 0.10, cap: 1.00}
+    leagues:
+      - epl               # English Premier League   (KXEPLGAME / PolyUS epl)
+      - laliga            # La Liga                  (KXLALIGAGAME / lal)
+      - bundesliga        # Bundesliga               (KXBUNDESLIGAGAME / bun)
+      - seriea            # Serie A                  (KXSERIEAGAME / sea)
+      - ligue1            # Ligue 1                  (KXLIGUE1GAME)
+      - ucl               # UEFA Champions League    (KXUCLGAME / ucl)
+      - uel               # UEFA Europa League       (KXUELGAME / uefa)
 
   secondary:
     # Less liquid, less adversarial. Our models might actually help here, so
     # keep the default blend.
     sharp_weight: 0.40
-    kalshi_series:
-      - KXMLSGAME         # Major League Soccer
+    # NO disagreement_ramp: inherits the sector ramp (see header). Note the
+    # interaction: the sector ramp starts deferring to sharp at a 4pt model
+    # disagreement and is 100% sharp at 10pt, which erases the 0.60 model
+    # share on exactly the MLS games where a secondary-league edge could show
+    # (observed live divergence 0.8pp at sharp_weight 0.40). Pick an MLS ramp
+    # from an MLS-only walk-forward before changing this.
+    leagues:
+      - mls               # Major League Soccer      (KXMLSGAME / PolyUS mls)

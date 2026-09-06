@@ -90,6 +90,11 @@ class EVGap:
     # "kalshi" | "polymarket_us"). kalshi_yes_price above is the venue's YES
     # ask regardless of venue — the field name predates multi-venue support.
     venue: str = "kalshi"
+    # Canonical league inside a multi-league sector (soccer: epl/ucl/mls/...,
+    # evmax/sectors/soccer_leagues.py); None elsewhere. Persisted to
+    # ev_predictions.league so per-league CLV/Brier readouts don't have to
+    # reverse-engineer the ticker prefix (impossible for Polymarket US ids).
+    league: Optional[str] = None
     # JSON why-not diagnostics from the ensemble (BlendedPrediction.diagnostics:
     # fired/gated/missing per model). Only set on gaps whose price came from the
     # model blend (moneyline family) — spread/total distribution pricing and
@@ -1274,6 +1279,7 @@ class EVGapAgent(Agent):
                 market.market_type.value if market.market_type else "moneyline",
             ),
             venue=market.source.value,
+            league=getattr(market, "league", None),
             model_diagnostics=(
                 json.dumps(getattr(blend, "diagnostics", None))
                 if blend is not None and not skip_blend
@@ -1416,6 +1422,7 @@ class EVGapAgent(Agent):
             velocity_flag=vel_flag,
             book_count=getattr(sharp, "book_count", 1),
             venue=market.source.value,
+            league=getattr(market, "league", None),
         )
 
     # ------------------------------------------------------------------
@@ -1523,6 +1530,7 @@ class EVGapAgent(Agent):
             velocity_flag=vel_flag,
             book_count=getattr(sharp, "book_count", 1),
             venue=market.source.value,
+            league=getattr(market, "league", None),
         )
 
     def _evaluate_prop_pair(
@@ -1650,4 +1658,5 @@ class EVGapAgent(Agent):
             prop_minutes_volatile=sharp.prop_minutes_volatile,
             prop_minutes_cv=sharp.prop_minutes_cv,
             venue=market.source.value,
+            league=getattr(market, "league", None),
         )

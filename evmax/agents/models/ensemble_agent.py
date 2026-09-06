@@ -279,6 +279,14 @@ class EnsembleModelAgent(Agent):
         # system (top-5 European leagues get ~0.85, secondary leagues keep
         # the default). Missing events fall through to `sharp_weight`.
         sharp_weight_by_event: dict[str, float] = request.params.get("sharp_weight_by_event") or {}
+        # Per-event disagreement-ramp override: event_id → (threshold,
+        # saturate_at, cap). Used by the soccer league tiers so a secondary
+        # league can run a different ramp from the pooled top-5 calibration.
+        # Missing events fall through to DISAGREEMENT_OVERRIDES[sector] / the
+        # global defaults exactly as before.
+        disagreement_by_event: dict[str, tuple[float, float, float]] = (
+            request.params.get("disagreement_by_event") or {}
+        )
 
         if not pairs:
             return AgentResponse(agent_name=self.name, sector=sector, data={})
@@ -322,6 +330,7 @@ class EnsembleModelAgent(Agent):
             blend = self._blend(
                 event_id, model_preds, sharp, event_sharp_weight, sector,
                 sector_model_names=sector_models,
+                disagreement_params=disagreement_by_event.get(event_id),
             )
             if blend is not None:
                 blended[event_id] = blend
@@ -455,6 +464,7 @@ class EnsembleModelAgent(Agent):
         saturate_at: float = 0.30,
         cap: float = 0.95,
         sector: Optional[str] = None,
+        params: Optional[tuple[float, float, float]] = None,
     ) -> float:
         """Return a boosted sharp_weight when the stat blend disagrees with sharp.
 
@@ -478,8 +488,16 @@ class EnsembleModelAgent(Agent):
         When `sector` is provided and listed in DISAGREEMENT_OVERRIDES, the
         override values replace the defaults. Explicit threshold/saturate_at/
         cap kwargs always win over the override (used by the A/B harness).
+
+        `params` — an explicit (threshold, saturate_at, cap) triple that wins
+        over BOTH the sector override and the kwargs. This is the per-event
+        path (soccer league tiers): it is a real triple, not a "was the kwarg
+        left at its default" heuristic, so a tier that legitimately wants the
+        global defaults (0.10/0.30/0.95) isn't mistaken for "unset".
         """
-        if sector is not None:
+        if params is not None:
+            threshold, saturate_at, cap = params
+        elif sector is not None:
             override = EnsembleModelAgent.DISAGREEMENT_OVERRIDES.get(sector.lower())
             if override is not None:
                 # Only apply override values where the caller didn't pass an
@@ -585,8 +603,12 @@ class EnsembleModelAgent(Agent):
         sharp_weight: float,
         sector: str = "",
         sector_model_names: Optional[set[str]] = None,
+        disagreement_params: Optional[tuple[float, float, float]] = None,
     ) -> Optional[BlendedPrediction]:
         """Blend model predictions + sharp book.
+
+        `disagreement_params` — optional (threshold, saturate_at, cap) for this
+        event's disagreement ramp; overrides the sector-level entry.
 
         sharp_weight is a TRUE fraction [0,1]: the final probability is
           prob = sharp_weight × pinnacle_prob + (1 - sharp_weight) × model_prob
@@ -681,6 +703,7 @@ class EnsembleModelAgent(Agent):
                 sharp.true_prob_a, sharp.true_prob_b, sharp.true_prob_draw,
                 base_sharp_weight=sharp_weight,
                 sector=sector,
+                params=disagreement_params,
             )
             model_weight = 1.0 - effective_sharp_weight
             prob_a = effective_sharp_weight * sharp.true_prob_a + model_weight * model_a

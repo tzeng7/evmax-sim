@@ -22,6 +22,7 @@ import httpx
 import structlog
 from aiolimiter import AsyncLimiter
 
+from evmax.sectors.soccer_leagues import league_for_ticker
 from evmax.clients.base import BaseAPIClient
 from evmax.disk_cache import cache_get, cache_set, cache_get_offline
 from evmax.models.market import MarketSource, MarketType, PredictionMarket
@@ -1554,6 +1555,7 @@ class KalshiClient(BaseAPIClient):
                 event_date=event_date,
                 yes_team=yes_team,
                 competition=competition,
+                league=league_for_ticker(ticker),
             )
         except Exception as e:
             logger.warning("kalshi_parse_failed", error=str(e), raw=raw)

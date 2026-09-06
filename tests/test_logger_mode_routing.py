@@ -68,6 +68,7 @@ def _make_db() -> sqlite3.Connection:
             model_diagnostics TEXT,
             maker_ev_pct REAL,
             maker_fill INTEGER NOT NULL DEFAULT 0,
+            league TEXT,
             UNIQUE(market_id, scan_date)
         );
         CREATE TABLE prop_observations (
