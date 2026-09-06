@@ -25,6 +25,17 @@ from evmax.sectors import soccer_tiers
 # ---------------------------------------------------------------------------
 
 
+def test_league_display_maps_known_and_falls_back():
+    assert SL.league_display("epl") == "Premier League"
+    assert SL.league_display("ligamx") == "Liga MX"
+    # Unknown key falls back to the raw key; None stays None.
+    assert SL.league_display("newleague") == "newleague"
+    assert SL.league_display(None) is None
+    # Every configured league resolves to a non-empty display name.
+    for lg in SL.SOCCER_LEAGUES:
+        assert SL.league_display(lg)
+
+
 def test_kalshi_series_map_matches_sector_series_map():
     """Every soccer series the scanner polls must resolve to a league, and no
     league mapping may reference a series the scanner doesn't poll."""

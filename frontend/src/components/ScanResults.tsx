@@ -267,6 +267,13 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
                 <td className="muted">{g.event_date}</td>
                 <td>
                   <span className="badge">{g.sector}</span>
+                  {g.league_display && (
+                    <span
+                      className="badge"
+                      style={{ marginLeft: 4, background: 'rgba(97,175,239,0.13)', color: '#61afef', borderColor: 'rgba(97,175,239,0.32)' }}
+                      title={`League: ${g.league_display}`}
+                    >{g.league_display}</span>
+                  )}
                   {!isLive && (
                     <span
                       className="badge"

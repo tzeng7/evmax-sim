@@ -69,6 +69,10 @@ def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         else float(g.line) if isinstance(g.line, (int, float))
         else str(g.line)
     )
+    # League dimension inside the soccer sector (epl/ucl/mls/...); None for
+    # single-league sectors, so the frontend shows the badge only when set.
+    from evmax.sectors.soccer_leagues import league_display
+    league_key = getattr(g, "league", None) or None
     return {
         "event_title": g.event_title or "",
         "event_id": g.event_id or "",
@@ -77,6 +81,8 @@ def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         "display_label": format_outcome_label_for_row(label_row),
         "line": line_val,
         "sector": g.sector or "",
+        "league": league_key,
+        "league_display": league_display(league_key),
         "kalshi_price": round(g.kalshi_yes_price, 2),
         "kalshi_yes_price": round(g.kalshi_yes_price, 4),
         "true_prob": round(g.blended_true_prob, 3),

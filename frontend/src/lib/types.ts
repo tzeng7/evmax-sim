@@ -65,6 +65,10 @@ export interface ScanGap {
   display_label?: string
   line: number | string | null
   sector: string
+  // Soccer only: canonical league key (epl/ucl/mls/...) and its display name.
+  // null for single-league sectors, so the UI shows a league badge only for soccer.
+  league?: string | null
+  league_display?: string | null
   kalshi_price: number
   true_prob: number
   ev_pct: number

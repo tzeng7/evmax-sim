@@ -21,13 +21,15 @@ def _noon(days: int = 0) -> datetime:
 
 def _gap(market_id: str, *, ev: float = 0.05, venue: str = "kalshi", kelly: float = 0.02,
          market_type: str = "moneyline", full_blend: bool = True, days: int = 0,
-         yes_team: str = "lakers", event_id: str | None = None) -> EVGap:
+         yes_team: str = "lakers", event_id: str | None = None,
+         sector: str = "nba", league: str | None = None) -> EVGap:
     return EVGap(
         market_id=market_id,
         # Distinct event per market id unless a test wants the SAME bet on two
         # venues (best-execution collapse folds those into one row).
         event_id=event_id or f"nba::2026-07-08::lakers_vs_warriors_{market_id}",
-        sector="nba",
+        sector=sector,
+        league=league,
         yes_team=yes_team,
         market_type=market_type,
         kalshi_yes_price=0.45,
@@ -65,6 +67,19 @@ class TestDashboardPlayDicts:
         assert r["stake"] == 10.0 and r["kelly_pct"] == 2.0
         assert r["event_date"] == date.today().isoformat()
         assert r["venue"] == "kalshi" and r["mode"] == "live"
+
+    def test_soccer_gap_carries_league_and_display(self):
+        row = playlist.gap_to_dict(
+            _gap("S", sector="soccer", league="epl", event_id="soccer::2026-07-08::a_vs_b"),
+            500.0,
+        )
+        assert row["league"] == "epl"
+        assert row["league_display"] == "Premier League"
+
+    def test_non_soccer_gap_has_null_league(self):
+        row = playlist.gap_to_dict(_gap("N"), 500.0)
+        assert row["league"] is None
+        assert row["league_display"] is None
 
     def test_same_bet_on_two_venues_collapses_to_best_execution_row(self, monkeypatch):
         from evmax.settings import get_settings

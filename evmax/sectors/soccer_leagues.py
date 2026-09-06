@@ -87,6 +87,15 @@ def _series_prefix(ticker: str) -> str:
     return t.split("-", 1)[0].upper()
 
 
+def league_display(league: Optional[str]) -> Optional[str]:
+    """Human-readable name for a canonical league key (e.g. `epl` → 'Premier
+    League'), else None. Falls back to the raw key for a league not yet in
+    LEAGUE_DISPLAY so a newly-wired league still shows something."""
+    if not league:
+        return None
+    return LEAGUE_DISPLAY.get(league, league)
+
+
 def league_for_ticker(ticker: Optional[str]) -> Optional[str]:
     """League for a Kalshi ticker (optionally `kalshi:`-prefixed), else None."""
     if not ticker:
