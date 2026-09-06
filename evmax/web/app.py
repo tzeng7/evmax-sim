@@ -388,6 +388,7 @@ def api_promotion_board(
     days: int = Query(30, ge=1, le=365),
     sector: str = Query(None),
     staleness_h: float = Query(3.0, ge=0.0),
+    league: str = Query(None),
 ) -> JSONResponse:
     """Promotion scoreboard — per (sector, market_type, venue) health rows.
 
@@ -401,6 +402,7 @@ def api_promotion_board(
         days=days,
         staleness_h=staleness_h if staleness_h > 0 else None,
         sector=sector,
+        league=league,
     )
     return JSONResponse({"days": days, "rows": rows})
 

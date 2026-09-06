@@ -103,7 +103,7 @@ soccer:
   mode: live
   resolver: espn_scoreboard
   status: shipped
-  notes: "Draw markets handled as separate TIE outcomes. MLS + UEL resolution added in PR #1."
+  notes: "Draw markets handled as separate TIE outcomes. MLS + UEL resolution added in PR #1. ONE sector across 8 leagues by design (UCL/UEL need a shared club pool; per-league sectors would fragment every n>=30 gate). 2026-09-05: league is a first-class dimension INSIDE the sector — evmax/sectors/soccer_leagues.py (canonical epl/laliga/bundesliga/seriea/ligue1/ucl/uel/mls), ev_predictions.league (backfilled from the Kalshi ticker prefix / the PolyUS slug league token), `cleanup shadow clv-leagues soccer` + `--league` filters, and data/soccer_league_tiers.yaml keyed by league (fixed PolyUS soccer silently taking the 0.40 MLS weight) with an optional per-tier disagreement_ramp. Ship-state is blend-neutral; the MLS ramp is the open modelling decision (needs an MLS-only per-bucket walk-forward, judged on clv-leagues)."
 
 worldcup:
   display_name: "World Cup (national teams)"

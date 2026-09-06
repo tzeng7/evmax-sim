@@ -89,6 +89,11 @@ def show(
              "missing (player/team absent from state) or confidence-gated "
              "(known but thin) on each row.",
     ),
+    league: Optional[str] = typer.Option(
+        None, "--league", "-l",
+        help="Restrict to one league inside a multi-league sector (soccer: "
+             "epl/laliga/bundesliga/seriea/ligue1/ucl/uel/mls).",
+    ),
 ) -> None:
     """Show recent shadow predictions with model_prob, captured_yes_price,
     resolved outcome (if any), and edge."""
@@ -106,6 +111,9 @@ def show(
         else:
             where.append("p.sector = ?")
             params.append(category)
+    if league:
+        where.append("p.league = ?")
+        params.append(league.lower())
     if resolved_only:
         where.append("o.outcome IS NOT NULL")
 
@@ -128,6 +136,7 @@ def show(
         console.print(
             f"[yellow]No shadow predictions in the last {days} day(s)"
             + (f" for {category}" if category else "")
+            + (f" league={league}" if league else "")
             + ".[/yellow]"
         )
         return
@@ -216,6 +225,11 @@ def metrics(
         help="Include rows produced by a superseded code state (default: excluded). "
         "Off by default so the promotion gate only scores current-code rows.",
     ),
+    league: Optional[str] = typer.Option(
+        None, "--league", "-l",
+        help="Restrict to one league inside a multi-league sector (soccer: "
+             "epl/laliga/bundesliga/seriea/ligue1/ucl/uel/mls).",
+    ),
 ) -> None:
     """Compute Brier score, accuracy, and ROI for shadow predictions.
 
@@ -241,6 +255,9 @@ def metrics(
         else:
             where.append("p.sector = ?")
             params.append(category)
+    if league:
+        where.append("p.league = ?")
+        params.append(league.lower())
 
     sql = f"""
         SELECT p.sector, p.event_id, p.market_type, p.model_sources, p.line,
@@ -466,6 +483,7 @@ def _fetch_clv_rows(
     venue: Optional[str] = None,
     max_staleness_h: Optional[float] = None,
     sources_token: Optional[str] = None,
+    league: Optional[str] = None,
 ) -> tuple[list, int]:
     """Fetch a category's current-code resolved CLV rows.
 
@@ -512,10 +530,13 @@ def _fetch_clv_rows(
     if sources_token is not None:
         where.append("p.model_sources LIKE ?")
         params.append(f"%{sources_token}%")
+    if league is not None:
+        where.append("p.league = ?")
+        params.append(league.lower())
     sql = f"""
         SELECT p.sector, p.market_type, p.model_sources, p.line, p.kalshi_clv_pct,
                p.event_id, p.event_title, p.venue, p.placed, p.placed_at,
-               p.market_id
+               p.market_id, p.league
         FROM ev_predictions p
         INNER JOIN ev_outcomes o ON p.market_id = o.market_id
         WHERE {' AND '.join(where)}
@@ -585,6 +606,7 @@ def clv_stats(
     venue: Optional[str] = None,
     max_staleness_h: Optional[float] = None,
     sources_token: Optional[str] = None,
+    league: Optional[str] = None,
 ) -> dict:
     """Aggregate kalshi_clv_pct for a category's current-code resolved bets.
 
@@ -621,11 +643,17 @@ def clv_stats(
     the separation mechanism for strategy sub-streams sharing a category, e.g.
     'anchored_entry' isolates the watch-listings anchored-entry rows from
     historical scan-time rows without --since gymnastics.
+    `league` restricts a multi-league sector to one league (soccer: epl/ucl/
+    mls/... — ev_predictions.league, evmax/sectors/soccer_leagues.py). The
+    sector's edge is venue timing, and the tier sharp_weight / disagreement
+    ramp are league policies, so CLV is judged per league before either is
+    changed. Rows logged before the column existed are backfilled on open
+    (Kalshi ticker prefix / PolyUS slug league token).
     """
     kept, excluded_stale = _fetch_clv_rows(
         category, market_type=market_type, mode=mode, since=since,
         side=side, venue=venue, max_staleness_h=max_staleness_h,
-        sources_token=sources_token,
+        sources_token=sources_token, league=league,
     )
     return _aggregate_clv(kept, excluded_stale)
 
@@ -668,6 +696,11 @@ def clv(
              "'anchored_entry' isolates the watch-listings anchored-entry "
              "stream from historical scan-time rows.",
     ),
+    league: Optional[str] = typer.Option(
+        None, "--league", "-l",
+        help="Restrict to one league inside a multi-league sector (soccer: "
+             "epl/laliga/bundesliga/seriea/ligue1/ucl/uel/mls).",
+    ),
 ) -> None:
     """Report Kalshi CLV (entry→close) — the +EV signal for laddered markets.
 
@@ -678,13 +711,14 @@ def clv(
     s = clv_stats(
         category, market_type=market_type, mode=mode, since=since,
         side=side, venue=venue, max_staleness_h=max_staleness_h,
-        sources_token=sources_token,
+        sources_token=sources_token, league=league,
     )
     label = f"{category}" + (f" / {market_type}" if market_type else "")
     label += f" [{mode}]" if mode else " [all modes]"
     label += f" since {since}" if since else ""
     label += f" side={side}" if side else ""
     label += f" venue={venue}" if venue else ""
+    label += f" league={league}" if league else ""
     label += f" fresh≤{max_staleness_h:g}h" if max_staleness_h is not None else ""
     label += f" sources~{sources_token}" if sources_token else ""
     if s["n"] == 0:
@@ -818,6 +852,108 @@ def clv_tiers(
     )
 
 
+@app.command("clv-leagues")
+def clv_leagues(
+    category: str = typer.Argument(
+        "soccer", help="Category to segment (only 'soccer' is multi-league)."
+    ),
+    market_type: Optional[str] = typer.Option(
+        None, "--market-type", "-m", help="Restrict to one market type."
+    ),
+    mode: Optional[str] = typer.Option(
+        None, "--mode", help="Restrict to one mode (live/shadow). Default: all."
+    ),
+    since: Optional[str] = typer.Option(
+        None, "--since", help="Only score rows scanned on/after YYYY-MM-DD."
+    ),
+    venue: Optional[str] = typer.Option(
+        None, "--venue",
+        help="Restrict to one exchange: 'kalshi' or 'polymarket_us'.",
+    ),
+    max_staleness_h: Optional[float] = typer.Option(
+        None, "--max-staleness-h",
+        help="Exclude Kalshi rows whose archived close is > this many h before T-30.",
+    ),
+    sources_token: Optional[str] = typer.Option(
+        None, "--sources-token",
+        help="Keep only rows whose model_sources contains this token.",
+    ),
+) -> None:
+    """Segment resolved CLV by league — the per-league promotion lens for soccer.
+
+    The soccer sector prices every league through one blend but applies league
+    policy (tier sharp_weight, disagreement ramp — data/soccer_league_tiers.yaml)
+    per league, so the CLV those policies produce must be read per league too.
+    Uses the identical row set and gate as ``clv``; rows whose id resolves to
+    no league land in an 'unknown' bucket.
+    """
+    if category != "soccer":
+        console.print(
+            "[red]clv-leagues only supports 'soccer' — it is the only "
+            "multi-league sector.[/red]"
+        )
+        raise typer.Exit(1)
+
+    from evmax.sectors.soccer_leagues import LEAGUE_DISPLAY, SOCCER_LEAGUES
+
+    kept, excluded_stale = _fetch_clv_rows(
+        category, market_type=market_type, mode=mode, since=since,
+        venue=venue, max_staleness_h=max_staleness_h, sources_token=sources_token,
+    )
+
+    order = list(SOCCER_LEAGUES) + ["unknown"]
+    buckets: dict[str, list] = {lg: [] for lg in order}
+    for r in kept:
+        lg = (r["league"] or "unknown") if "league" in r.keys() else "unknown"
+        buckets.setdefault(lg, []).append(r)
+
+    label = f"{category}" + (f" / {market_type}" if market_type else "")
+    label += f" [{mode}]" if mode else " [all modes]"
+    if since:
+        label += f" since {since}"
+    if venue:
+        label += f" venue={venue}"
+
+    total = sum(len(v) for v in buckets.values())
+    if total == 0:
+        note = ""
+        if max_staleness_h is not None and excluded_stale:
+            note = f" ({excluded_stale} excluded as stale-capture)"
+        console.print(
+            f"[yellow]No current-code resolved CLV rows for {label} yet.{note}[/yellow]"
+        )
+        return
+
+    table = Table(title=f"Soccer CLV by league — {label}", box=box.SIMPLE)
+    table.add_column("League", no_wrap=True)
+    table.add_column("Games", justify="right")
+    table.add_column("CLV rows", justify="right")
+    table.add_column("mean CLV", justify="right")
+    table.add_column("% +CLV", justify="right")
+    table.add_column("gate", justify="center")
+    for lg in order:
+        rows = buckets.get(lg, [])
+        if not rows and lg == "unknown":
+            continue
+        games = len({r["event_id"] for r in rows})
+        stats = _aggregate_clv(rows)
+        name = LEAGUE_DISPLAY.get(lg, lg)
+        if stats["n"] == 0:
+            table.add_row(name, str(games), "0", "—", "—", "—")
+            continue
+        gate = "[green]✓[/green]" if stats["clears"] else "[red]✗[/red]"
+        table.add_row(
+            name, str(games), str(stats["n"]),
+            f"{stats['mean_clv_pp']:+.2f}pp", f"{stats['frac_positive']*100:.0f}%", gate,
+        )
+    console.print(table)
+    console.print(
+        f"  gate: n≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
+        f"%pos≥{CLV_MIN_FRAC_POSITIVE*100:.0f}%  ·  tier policy: data/soccer_league_tiers.yaml"
+        + (f"  ·  {excluded_stale} stale-excluded" if excluded_stale else "")
+    )
+
+
 @app.command("board")
 def board(
     days: int = typer.Option(30, "--days", "-d", help="Trailing window on game date."),
@@ -827,6 +963,11 @@ def board(
     staleness_h: float = typer.Option(
         3.0, "--staleness-h",
         help="CLV stale-close filter (hours before T-30). 0 disables.",
+    ),
+    league: Optional[str] = typer.Option(
+        None, "--league", "-l",
+        help="Restrict to one league inside a multi-league sector (soccer: "
+             "epl/laliga/bundesliga/seriea/ligue1/ucl/uel/mls).",
     ),
 ) -> None:
     """Promotion scoreboard — per (sector, market type, venue) health.
@@ -842,6 +983,7 @@ def board(
         days=days,
         staleness_h=staleness_h if staleness_h > 0 else None,
         sector=sector,
+        league=league,
     )
     if not rows:
         console.print("[yellow]No prediction rows in the window.[/yellow]")

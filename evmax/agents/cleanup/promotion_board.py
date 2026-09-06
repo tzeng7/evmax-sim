@@ -115,8 +115,13 @@ def compute_promotion_board(
     days: int = 30,
     staleness_h: Optional[float] = 3.0,
     sector: Optional[str] = None,
+    league: Optional[str] = None,
 ) -> list[dict]:
     """Build the board: one dict per (sector, market_type, venue).
+
+    ``league`` restricts a multi-league sector (soccer) to one league — the
+    Brier/divergence columns AND the CLV gate are both computed on that
+    league's rows only.
 
     ``days`` windows on event_date. ``staleness_h`` feeds clv_stats'
     stale-close filter (None disables it). ``sector`` restricts to one
@@ -141,6 +146,9 @@ def compute_promotion_board(
     if sector:
         where.append("p.sector = ?")
         params.append(sector.lower())
+    if league:
+        where.append("p.league = ?")
+        params.append(league.lower())
 
     sql = f"""
         SELECT p.sector, p.market_type, p.venue, p.mode, p.line,
@@ -198,6 +206,7 @@ def compute_promotion_board(
             mode=None,
             venue=ven if ven in ("kalshi", "polymarket_us") else None,
             max_staleness_h=staleness_h if ven == "kalshi" else None,
+            league=league,
         )
 
         mode = _effective_mode(sec, mt)

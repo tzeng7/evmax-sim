@@ -124,6 +124,10 @@ class PredictionMarket(BaseModel):
     # event.product_metadata.competition (e.g. "ATP Munich", "WTA Rouen").
     # Used by TennisModelAgent surface resolver. None for non-tennis sectors.
     competition: Optional[str] = None
+    # Canonical league inside a multi-league sector (soccer: epl/ucl/mls/...
+    # per evmax/sectors/soccer_leagues.py). Set from the Kalshi series prefix
+    # or the Polymarket US league slug; None for single-league sectors.
+    league: Optional[str] = None
     fetched_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @field_validator("yes_price", "no_price")

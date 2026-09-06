@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS ev_predictions (
     void_reason         TEXT,                       -- why voided: NULL/manual=cancel; 'stale_reverted'=pruner auto-void
     maker_ev_pct        REAL,                       -- EV if opened as a resting limit order (maker fee); >= ev_pct
     maker_fill          INTEGER NOT NULL DEFAULT 0, -- 1=placed as a maker fill (P&L applies the maker fee, not taker)
+    league              TEXT,                       -- league inside a multi-league sector (soccer: epl/ucl/mls/...); NULL elsewhere
     UNIQUE(market_id)
 );
 
@@ -188,6 +189,7 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             model_diagnostics   TEXT,
             minutes_to_tipoff   INTEGER,
             void_reason         TEXT,
+            league              TEXT,
             UNIQUE(market_id)
         );
         INSERT INTO ev_predictions (
@@ -198,7 +200,7 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             voided, placed, placed_at, placed_price, placed_stake,
             pinnacle_drift_pct, kalshi_clv_pct,
             mode, captured_yes_price, model_version, venue, model_diagnostics,
-            minutes_to_tipoff, void_reason
+            minutes_to_tipoff, void_reason, league
         )
         SELECT
             id, logged_at, scan_date, market_id, event_id, sector, yes_team,
@@ -208,7 +210,7 @@ def _migrate_unique_market_id(conn: sqlite3.Connection) -> None:
             voided, placed, placed_at, placed_price, placed_stake,
             pinnacle_drift_pct, kalshi_clv_pct,
             mode, captured_yes_price, model_version, venue, model_diagnostics,
-            minutes_to_tipoff, void_reason
+            minutes_to_tipoff, void_reason, league
         FROM ev_predictions_old;
         DROP TABLE ev_predictions_old;
         COMMIT;
@@ -295,6 +297,9 @@ def get_connection() -> sqlite3.Connection:
         # `evmax agents fill`, so the net-of-fee P&L path charges the maker fee.
         "ALTER TABLE ev_predictions ADD COLUMN maker_ev_pct REAL",
         "ALTER TABLE ev_predictions ADD COLUMN maker_fill INTEGER NOT NULL DEFAULT 0",
+        # 2026-09-05 — per-league dimension inside the soccer sector
+        # (evmax/sectors/soccer_leagues.py). Backfilled below for Kalshi rows.
+        "ALTER TABLE ev_predictions ADD COLUMN league TEXT",
     ]:
         try:
             conn.execute(migration)
@@ -304,4 +309,51 @@ def get_connection() -> sqlite3.Connection:
     # Table-rebuild migration runs AFTER column-add ALTERs so the new schema
     # and the old table have matching column sets for the INSERT ... SELECT.
     _migrate_unique_market_id(conn)
+    backfill_league_column(conn)
     return conn
+
+
+def backfill_league_column(conn: sqlite3.Connection) -> int:
+    """Fill ``ev_predictions.league`` for rows logged before the column existed.
+
+    Kalshi ids carry the league in the ticker series prefix (one prefix UPDATE
+    per series); Polymarket US ids carry it as the slug's second dash token
+    (``polymarket_us:atc-mls-...``), resolved per row in Python because SQL
+    LIKE can't pin the token position (a team code can equal a league slug).
+    Rows whose id resolves to no league stay NULL. Idempotent (only NULL rows
+    are touched); the cheap pending-check makes the every-connection call a
+    single indexed probe once the backfill has run. Returns rows updated.
+    """
+    from evmax.sectors.soccer_leagues import (
+        KALSHI_SERIES_LEAGUE,
+        league_for_polymarket_market_id,
+    )
+
+    pending = conn.execute(
+        "SELECT 1 FROM ev_predictions WHERE league IS NULL AND sector = 'soccer' "
+        "AND (market_id LIKE 'kalshi:%' OR market_id LIKE 'polymarket_us:%') LIMIT 1"
+    ).fetchone()
+    if pending is None:
+        return 0
+    updated = 0
+    for series, league in KALSHI_SERIES_LEAGUE.items():
+        cur = conn.execute(
+            "UPDATE ev_predictions SET league = ? "
+            "WHERE league IS NULL AND sector = 'soccer' AND market_id LIKE ?",
+            (league, f"kalshi:{series}-%"),
+        )
+        updated += cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
+    poly_rows = conn.execute(
+        "SELECT id, market_id FROM ev_predictions WHERE league IS NULL "
+        "AND sector = 'soccer' AND market_id LIKE 'polymarket_us:%'"
+    ).fetchall()
+    poly_updates = [
+        (lg, row[0])
+        for row in poly_rows
+        if (lg := league_for_polymarket_market_id(row[1])) is not None
+    ]
+    if poly_updates:
+        conn.executemany("UPDATE ev_predictions SET league = ? WHERE id = ?", poly_updates)
+        updated += len(poly_updates)
+    conn.commit()
+    return updated

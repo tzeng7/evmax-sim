@@ -48,6 +48,7 @@ import httpx
 import structlog
 from aiolimiter import AsyncLimiter
 
+from evmax.sectors.soccer_leagues import league_for_polymarket_slug
 from evmax.clients.base import BaseAPIClient
 from evmax.disk_cache import cache_get, cache_set, cache_get_offline
 from evmax.models.market import MarketSource, MarketType, PredictionMarket
@@ -421,6 +422,7 @@ class PolymarketUSClient(BaseAPIClient):
                                  Under via the NO-side total derivation
         """
         markets_out: list[PredictionMarket] = []
+        league_key = league_for_polymarket_slug(league)
         event_date = _parse_start(event.get("startTime") or event.get("startDate"))
         event_title = event.get("title") or event.get("description") or ""
         raw_markets = event.get("markets", []) or []
@@ -466,6 +468,9 @@ class PolymarketUSClient(BaseAPIClient):
                     slug=m.get("slug"),
                     error=str(e),
                 )
+        if league_key:
+            for mk in markets_out:
+                mk.league = league_key
         return markets_out
 
     def _extract_event_teams(

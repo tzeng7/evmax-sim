@@ -18,6 +18,8 @@ from typing import Optional
 
 import yaml
 
+from evmax.sectors.soccer_leagues import KALSHI_SERIES_LEAGUE, league_for_ticker
+
 _CONFIG_PATH = Path(__file__).resolve().parents[2] / "data" / "soccer_league_tiers.yaml"
 
 
@@ -32,21 +34,89 @@ def _load_tiers() -> dict:
     return data
 
 
+def _tier_leagues(tier: dict) -> set[str]:
+    """Leagues a tier covers: explicit `leagues:` plus any `kalshi_series:`
+    mapped through KALSHI_SERIES_LEAGUE (legacy config shape)."""
+    leagues = {str(lg).lower() for lg in (tier.get("leagues") or [])}
+    for series in tier.get("kalshi_series") or []:
+        lg = KALSHI_SERIES_LEAGUE.get(str(series).upper())
+        if lg:
+            leagues.add(lg)
+    return leagues
+
+
 @lru_cache(maxsize=1)
-def _series_to_weight() -> dict[str, float]:
-    """Flatten tiers into series_prefix → sharp_weight for fast lookup."""
+def _league_to_weight() -> dict[str, float]:
+    """Flatten tiers into league → sharp_weight for fast lookup."""
     cfg = _load_tiers()
     mapping: dict[str, float] = {}
     for tier_name, tier in (cfg.get("tiers") or {}).items():
         weight = float(tier.get("sharp_weight", cfg.get("default_sharp_weight", 0.40)))
-        for series in tier.get("kalshi_series") or []:
-            mapping[series.upper()] = weight
+        for lg in _tier_leagues(tier):
+            mapping[lg] = weight
     return mapping
+
+
+@lru_cache(maxsize=1)
+def _league_to_ramp() -> dict[str, tuple[float, float, float]]:
+    """Flatten tiers into league → (threshold, saturate_at, cap) for the
+    ensemble's disagreement ramp. Tiers without `disagreement_ramp` are absent
+    from the map, so their events fall through to the sector-level override in
+    EnsembleModelAgent.DISAGREEMENT_OVERRIDES (unchanged behaviour)."""
+    cfg = _load_tiers()
+    mapping: dict[str, tuple[float, float, float]] = {}
+    for tier_name, tier in (cfg.get("tiers") or {}).items():
+        ramp = tier.get("disagreement_ramp")
+        if not ramp:
+            continue
+        try:
+            params = (
+                float(ramp["threshold"]),
+                float(ramp["saturate_at"]),
+                float(ramp["cap"]),
+            )
+        except (KeyError, TypeError, ValueError) as e:
+            raise ValueError(
+                f"soccer_league_tiers.yaml tier {tier_name!r}: disagreement_ramp "
+                f"needs threshold/saturate_at/cap floats ({e})"
+            ) from e
+        if not (0.0 <= params[0] <= params[1] and 0.0 <= params[2] <= 1.0):
+            raise ValueError(
+                f"soccer_league_tiers.yaml tier {tier_name!r}: disagreement_ramp "
+                f"must satisfy 0 <= threshold <= saturate_at and 0 <= cap <= 1, got {params}"
+            )
+        for lg in _tier_leagues(tier):
+            mapping[lg] = params
+    return mapping
+
+
+def _series_to_weight() -> dict[str, float]:
+    """Series-prefix view of the league map (kept for callers/tests that
+    think in Kalshi series)."""
+    by_league = _league_to_weight()
+    return {
+        series: by_league[lg]
+        for series, lg in KALSHI_SERIES_LEAGUE.items()
+        if lg in by_league
+    }
 
 
 def default_sharp_weight() -> float:
     """Fallback weight used when a ticker doesn't map to any tier."""
     return float(_load_tiers().get("default_sharp_weight", 0.40))
+
+
+def sharp_weight_for_league(league: Optional[str]) -> float:
+    """Return the tier sharp_weight for a canonical league key.
+
+    Returns `default_sharp_weight()` when the league is None/unknown. This is
+    the venue-agnostic lookup: a Polymarket US market has no Kalshi ticker, so
+    before the league dimension existed PolyUS EPL/UCL games silently fell to
+    the 0.40 default meant for MLS.
+    """
+    if not league:
+        return default_sharp_weight()
+    return _league_to_weight().get(league.lower(), default_sharp_weight())
 
 
 def sharp_weight_for_ticker(ticker: Optional[str]) -> float:
@@ -56,15 +126,37 @@ def sharp_weight_for_ticker(ticker: Optional[str]) -> float:
     everything before the first `-`. Returns `default_sharp_weight()` when
     the ticker is empty or the series isn't configured.
     """
-    if not ticker:
-        return default_sharp_weight()
-    # Strip any leading "kalshi:" source prefix defensively.
-    t = ticker.split(":", 1)[-1] if ":" in ticker else ticker
-    series = t.split("-", 1)[0].upper()
-    return _series_to_weight().get(series, default_sharp_weight())
+    return sharp_weight_for_league(league_for_ticker(ticker))
+
+
+def sharp_weight_for_market(market) -> float:
+    """Tier sharp_weight for a PredictionMarket: league first (works for every
+    venue), ticker series as the fallback for markets that predate `league`."""
+    league = getattr(market, "league", None)
+    if league:
+        return sharp_weight_for_league(league)
+    return sharp_weight_for_ticker(getattr(market, "ticker", None))
+
+
+def disagreement_ramp_for_league(
+    league: Optional[str],
+) -> Optional[tuple[float, float, float]]:
+    """(threshold, saturate_at, cap) for the league's tier, or None when the
+    tier doesn't configure one (→ sector-level ramp applies)."""
+    if not league:
+        return None
+    return _league_to_ramp().get(league.lower())
+
+
+def disagreement_ramp_for_market(market) -> Optional[tuple[float, float, float]]:
+    league = getattr(market, "league", None) or league_for_ticker(
+        getattr(market, "ticker", None)
+    )
+    return disagreement_ramp_for_league(league)
 
 
 def reset_cache() -> None:
     """Clear caches. Useful in tests when the YAML is monkey-patched."""
     _load_tiers.cache_clear()
-    _series_to_weight.cache_clear()
+    _league_to_weight.cache_clear()
+    _league_to_ramp.cache_clear()
