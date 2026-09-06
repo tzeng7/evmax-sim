@@ -52,11 +52,15 @@ tiers:
     # Less liquid, less adversarial. Our models might actually help here, so
     # keep the default blend.
     sharp_weight: 0.40
-    # NO disagreement_ramp: inherits the sector ramp (see header). Note the
-    # interaction: the sector ramp starts deferring to sharp at a 4pt model
-    # disagreement and is 100% sharp at 10pt, which erases the 0.60 model
-    # share on exactly the MLS games where a secondary-league edge could show
-    # (observed live divergence 0.8pp at sharp_weight 0.40). Pick an MLS ramp
-    # from an MLS-only walk-forward before changing this.
+    # NO disagreement_ramp: inherits the sector ramp — by EVIDENCE, not by
+    # omission. The MLS-only walk-forward (scripts/mls_disagreement_ramp.py,
+    # docs/mls-disagreement-ramp-eval.md, 2026-09-05) found the close is the
+    # ceiling on MLS too: flat 0.40 with no ramp is +13.8/1000 3-way Brier
+    # WORSE than sharp-only on the 2026 holdout (z 2.9), the inherited ramp is
+    # within noise of sharp, and no swept ramp beats it outside noise. The
+    # "models might help here" rationale above is therefore unsupported on
+    # close-Brier; the 0.40 base survives only because the ramp caps it. Judge
+    # any base-weight change on `cleanup shadow clv-leagues soccer` (CLV),
+    # never on Brier.
     leagues:
       - mls               # Major League Soccer      (KXMLSGAME / PolyUS mls)
