@@ -331,15 +331,14 @@ class TestGetMarkets:
              patch("evmax.clients.polymarket_us.cache_get", return_value=None), \
              patch("evmax.clients.polymarket_us.cache_set"):
             markets = await client.get_markets("soccer")
-        # soccer maps to 3 leagues
-        assert mget.await_count == 3
+        from evmax.clients.polymarket_us import POLYMARKET_US_LEAGUE_MAP
+        slugs = POLYMARKET_US_LEAGUE_MAP["soccer"]
+        assert mget.await_count == len(slugs)
         called_paths = {c.args[0] for c in mget.await_args_list}
-        assert called_paths == {
-            "/v2/leagues/epl/events",
-            "/v2/leagues/ucl/events",
-            "/v2/leagues/mls/events",
-        }
-        assert len(markets) == 6  # 2 per moneyline event × 3 leagues
+        assert called_paths == {f"/v2/leagues/{sl}/events" for sl in slugs}
+        # epl/ucl/mls plus the 2026-09-05 league-shadowed additions
+        assert {"epl", "ucl", "mls", "lmx", "bra", "eflch"} <= set(slugs)
+        assert len(markets) == 2 * len(slugs)  # 2 markets per event per league
 
     @pytest.mark.asyncio
     async def test_unknown_sector_returns_empty(self):
@@ -364,7 +363,12 @@ class TestGetMarkets:
              patch("evmax.clients.polymarket_us.cache_get", return_value=None), \
              patch("evmax.clients.polymarket_us.cache_set"):
             markets = await client.get_markets("soccer")
-        assert len(markets) == 4  # ucl + mls parsed, epl failed
+        # Every soccer league but epl succeeds; each event yields 2 moneyline
+        # markets. Derive the count from the map so wiring a new league can't
+        # silently break this (it grew from 3 to 6 leagues on 2026-09-05).
+        from evmax.clients.polymarket_us import POLYMARKET_US_LEAGUE_MAP
+        n_ok = len(POLYMARKET_US_LEAGUE_MAP["soccer"]) - 1  # epl raised
+        assert len(markets) == 2 * n_ok
 
     @pytest.mark.asyncio
     async def test_fresh_bypasses_cache_read(self):

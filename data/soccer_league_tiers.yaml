@@ -30,6 +30,23 @@
 
 default_sharp_weight: 0.40
 
+# Per-LEAGUE shadow list — the league-level analogue of the per-sector mode
+# registry and the Polymarket US venue firewall. Mode is per SECTOR, so a
+# league added to `soccer` would otherwise be live on its first scan. A league
+# listed here still scans, matches, prices and LOGS (mode='shadow',
+# captured_yes_price set — it feeds `cleanup shadow clv-leagues soccer`), but
+# its gaps get Kelly zeroed, are dropped from the live play list, and never
+# touch the bankroll. Enforced at the same three sites as the venue firewall:
+# AgentCoordinator.run_cycle, logger.log_gaps, web/playlist. Promote with
+# `evmax cleanup shadow promote-league <league>` once the league bucket has
+# n>=30 clean resolved rows with CLV >= 0 (the same gate as `clv`).
+shadow_leagues:
+  - ligamx
+  - jleague
+  - eredivisie
+  - brasileirao
+  - championship
+
 tiers:
   top_tier:
     # Top-5 European leagues + UEFA competitions. Pinnacle is ceiling here.
@@ -47,6 +64,15 @@ tiers:
       - ligue1            # Ligue 1                  (KXLIGUE1GAME)
       - ucl               # UEFA Champions League    (KXUCLGAME / ucl)
       - uel               # UEFA Europa League       (KXUELGAME / uefa)
+      # 2026-09-05 additions. Top tier, NOT secondary: the MLS walk-forward
+      # (docs/mls-disagreement-ramp-eval.md) showed the close is the ceiling
+      # even in a "soft" league, so a new league starts at 0.85 and earns a
+      # lower weight only on per-league CLV evidence.
+      - ligamx            # Liga MX                  (KXLIGAMXGAME / lmx)
+      - jleague           # J League                 (KXJLEAGUEGAME)
+      - eredivisie        # Eredivisie               (KXEREDIVISIEGAME)
+      - brasileirao       # Brasileirão Série A      (KXBRASILEIROGAME / bra)
+      - championship      # EFL Championship         (KXEFLCHAMPIONSHIPGAME / eflch)
 
   secondary:
     # Less liquid, less adversarial. Our models might actually help here, so

@@ -28,6 +28,7 @@ from typing import Optional
 # Display order for per-league readouts (top-5 domestic, UEFA cups, MLS).
 SOCCER_LEAGUES: tuple[str, ...] = (
     "epl", "laliga", "bundesliga", "seriea", "ligue1", "ucl", "uel", "mls",
+    "ligamx", "jleague", "eredivisie", "brasileirao", "championship",
 )
 
 LEAGUE_DISPLAY: dict[str, str] = {
@@ -39,6 +40,11 @@ LEAGUE_DISPLAY: dict[str, str] = {
     "ucl": "Champions League",
     "uel": "Europa League",
     "mls": "MLS",
+    "ligamx": "Liga MX",
+    "jleague": "J League",
+    "eredivisie": "Eredivisie",
+    "brasileirao": "Brasileirão",
+    "championship": "Championship",
 }
 
 # Kalshi series prefix → league. Must stay in step with SECTOR_SERIES_MAP
@@ -52,6 +58,11 @@ KALSHI_SERIES_LEAGUE: dict[str, str] = {
     "KXUCLGAME": "ucl",
     "KXUELGAME": "uel",
     "KXMLSGAME": "mls",
+    "KXLIGAMXGAME": "ligamx",
+    "KXJLEAGUEGAME": "jleague",
+    "KXEREDIVISIEGAME": "eredivisie",
+    "KXBRASILEIROGAME": "brasileirao",
+    "KXEFLCHAMPIONSHIPGAME": "championship",
 }
 
 # Polymarket US league slug → league. Covers the betting map (epl/ucl/mls)
@@ -65,6 +76,9 @@ POLYMARKET_US_SLUG_LEAGUE: dict[str, str] = {
     "bun": "bundesliga",
     "sea": "seriea",
     "uefa": "uel",
+    "lmx": "ligamx",
+    "bra": "brasileirao",
+    "eflch": "championship",
 }
 
 
@@ -114,6 +128,25 @@ def league_for_market_id(market_id: Optional[str]) -> Optional[str]:
     if market_id.startswith("polymarket_us:"):
         return league_for_polymarket_market_id(market_id)
     return league_for_ticker(market_id)
+
+
+# ESPN displayName → the name every other source uses, keyed by ESPN league
+# slug. Needed where the SAME ESPN displayName denotes different clubs in
+# different leagues: ESPN calls Liga MX's Santos Laguna plain "Santos", which
+# normalizes to the canonical of Brazil's Santos FC (Pinnacle "Santos"). Seeds
+# and the resolve-time feed would merge the two clubs into one Elo entity.
+# Applied at every ESPN extraction site (resolver._fetch_espn_scores,
+# scripts/seed_espn.py, scripts/seed_soccer_xg.py) via espn_display_name().
+ESPN_DISPLAY_NAME_OVERRIDES: dict[str, dict[str, str]] = {
+    "mex.1": {"Santos": "Santos Laguna"},
+}
+
+
+def espn_display_name(league_slug: Optional[str], display_name: str) -> str:
+    """Resolve an ESPN displayName to its cross-source name for a league."""
+    if not league_slug or not display_name:
+        return display_name
+    return ESPN_DISPLAY_NAME_OVERRIDES.get(league_slug, {}).get(display_name, display_name)
 
 
 def is_known_league(league: Optional[str]) -> bool:

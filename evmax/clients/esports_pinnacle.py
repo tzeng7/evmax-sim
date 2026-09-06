@@ -65,8 +65,10 @@ SECTOR_SPORT_LEAGUES: dict[str, tuple[int, list[int]]] = {
     "f1":       (44, []),       # Formula 1 — matched by league name
     # UCL re-cut 2186 → 2627 for 2026-27 (scripts/check_pinnacle_leagues.py,
     # 2026-09-02: 2186 served 0 matchups, 2627 "UEFA - Champions League" 18).
-    "soccer":   (29, [1980, 2196, 1842, 2436, 2036, 2627, 2630, 2663]),
+    "soccer":   (29, [1980, 2196, 1842, 2436, 2036, 2627, 2630, 2663,
+                      2242, 2157, 1928, 1834, 1977]),
     #                EPL  LaLiga Bundes SerieA Ligue1 UCL   UEL   MLS
+    #                LigaMX JLeague Eredivisie Brasileirão Championship (2026-09-05)
     "worldcup": (29, [2686]),   # FIFA - World Cup (national teams, 3-way w/ draw)
     "cs2":      (12, []),       # Esports — matched by league name
     "lol":      (12, []),
@@ -112,7 +114,8 @@ TOTALS_SECTORS = {"nba", "wnba", "nfl", "ncaab", "ncaaw", "ncaaf", "soccer", "ba
 TOTALS_MAIN_LINE_ONLY_SECTORS = {"baseball"}
 
 # Soccer leagues that have draws (all of them); MLS uses draws too
-SOCCER_DRAW_LEAGUES = {1980, 2196, 1842, 2436, 2036, 2627, 2630, 2663}
+SOCCER_DRAW_LEAGUES = {1980, 2196, 1842, 2436, 2036, 2627, 2630, 2663,
+                       2242, 2157, 1928, 1834, 1977}
 
 # --- World Cup knockout "to advance" anchors -------------------------------
 # Pinnacle has NO live per-match "to advance" market. Its per-team "To Reach

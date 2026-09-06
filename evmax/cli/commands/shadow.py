@@ -954,6 +954,62 @@ def clv_leagues(
     )
 
 
+@app.command("promote-league")
+def promote_league(
+    league: str = typer.Argument(..., help="Soccer league key (e.g. 'ligamx')."),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt."),
+    force: bool = typer.Option(
+        False, "--force",
+        help="Promote even if the league's CLV gate does not clear.",
+    ),
+    max_staleness_h: Optional[float] = typer.Option(
+        3.0, "--max-staleness-h",
+        help="Stale-close filter for the CLV gate (hours before T-30). 0 disables.",
+    ),
+) -> None:
+    """Lift a league off the soccer `shadow_leagues` list (league-level shadow → live).
+
+    The league-level analogue of `promote`: a league wired into the live
+    soccer sector starts on data/soccer_league_tiers.yaml `shadow_leagues`
+    and only its OWN resolved CLV bucket (`clv-leagues`) can lift it — the
+    same gate `clv` applies (n>=MIN_CLV_RESOLVED, mean>=0, %pos floor).
+    """
+    from evmax.sectors import soccer_tiers
+    from evmax.sectors.soccer_leagues import LEAGUE_DISPLAY, SOCCER_LEAGUES
+
+    lg = league.lower()
+    if lg not in SOCCER_LEAGUES:
+        console.print(f"[red]Unknown soccer league {league!r}. Known: {', '.join(SOCCER_LEAGUES)}[/red]")
+        raise typer.Exit(1)
+    if soccer_tiers.league_is_live(lg):
+        console.print(f"[yellow]{LEAGUE_DISPLAY.get(lg, lg)} is not on the shadow list — nothing to do.[/yellow]")
+        return
+
+    stats = clv_stats(
+        "soccer", league=lg, max_staleness_h=max_staleness_h if max_staleness_h else None,
+    )
+    console.print(
+        f"  CLV gate for {LEAGUE_DISPLAY.get(lg, lg)}: n={stats['n']} "
+        f"mean={stats['mean_clv_pp']:+.2f}pp %pos={stats['frac_positive']*100:.0f}% "
+        + ("[green]clears[/green]" if stats["clears"] else "[red]does NOT clear[/red]")
+    )
+    if not stats["clears"] and not force:
+        console.print("[red]Refusing to promote — pass --force to override.[/red]")
+        raise typer.Exit(1)
+    if not yes and not typer.confirm(f"Lift {lg} off shadow_leagues (live bankroll on its plays)?"):
+        raise typer.Exit(0)
+
+    path = soccer_tiers._CONFIG_PATH
+    text = path.read_text()
+    new_text, removed = soccer_tiers.remove_shadow_league(text, lg)
+    if not removed:
+        console.print(f"[red]Could not find `- {lg}` under shadow_leagues in {path}.[/red]")
+        raise typer.Exit(1)
+    path.write_text(new_text)
+    soccer_tiers.reset_cache()
+    console.print(f"[green]{LEAGUE_DISPLAY.get(lg, lg)} promoted: removed from shadow_leagues in {path.name}.[/green]")
+
+
 @app.command("board")
 def board(
     days: int = typer.Option(30, "--days", "-d", help="Trailing window on game date."),

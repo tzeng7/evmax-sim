@@ -387,6 +387,32 @@ class EloModelAgent(ModelAgent):
     # Rest-day adjustment
     # ------------------------------------------------------------------
 
+    # form_state.json is ~2.3 MB. The rest/congestion features used to
+    # `json.loads` it on EVERY call — six parses per predicted pair — which
+    # was the entire soccer sector-timeout regression (2026-09-05 profile:
+    # 720 parses = 7.4 s of an 8.6 s / 120-pair batch; 38 s of the 45 s
+    # deadline on a 529-pair live scan). Parse once per file version, keyed
+    # on (mtime_ns, size) so a resolve-time form update is picked up on the
+    # next call without any explicit invalidation.
+    _form_cache_key: Optional[tuple[int, int]] = None
+    _form_cache: dict = {}
+
+    @classmethod
+    def _load_form_state(cls) -> dict:
+        try:
+            st = FORM_STATE_PATH.stat()
+        except FileNotFoundError:
+            cls._form_cache_key, cls._form_cache = None, {}
+            return {}
+        key = (st.st_mtime_ns, st.st_size)
+        if key != cls._form_cache_key:
+            try:
+                cls._form_cache = json.loads(FORM_STATE_PATH.read_text())
+            except Exception:
+                cls._form_cache = {}
+            cls._form_cache_key = key
+        return cls._form_cache
+
     def _days_of_rest(
         self, sector: str, team: str, reference: Optional[date] = None
     ) -> Optional[int]:
@@ -398,9 +424,7 @@ class EloModelAgent(ModelAgent):
         days after it AT KICKOFF, and the rest table is about kickoff.
         """
         try:
-            if not FORM_STATE_PATH.exists():
-                return None
-            form = json.loads(FORM_STATE_PATH.read_text())
+            form = self._load_form_state()
             games = form.get(sector, {}).get(team, [])
             if not games:
                 return None
@@ -417,9 +441,7 @@ class EloModelAgent(ModelAgent):
     ) -> int:
         """Count games played in the N days before `reference` (default today) from form_state."""
         try:
-            if not FORM_STATE_PATH.exists():
-                return 0
-            form = json.loads(FORM_STATE_PATH.read_text())
+            form = self._load_form_state()
             games = form.get(sector, {}).get(team, [])
             if not games:
                 return 0

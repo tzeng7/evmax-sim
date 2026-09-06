@@ -25,6 +25,8 @@ import httpx
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from evmax.agents.cleanup.resolver import _ESPN_HTTP_UA
+from evmax.sectors.soccer_leagues import espn_display_name
 from evmax.agents.models.elo_agent import EloModelAgent
 from evmax.agents.models.form_agent import FormModelAgent
 from evmax.agents.models.poisson_agent import PoissonModelAgent
@@ -133,14 +135,30 @@ SECTOR_CONFIGS: dict[str, dict] = {
             "ucl":        ("soccer", "UEFA.CHAMPIONS"),
             "mls":        ("soccer", "usa.1"),
             "uel":        ("soccer", "uefa.europa"),
+            # 2026-09-05 — league-shadowed additions (soccer_league_tiers.yaml)
+            "ligamx":       ("soccer", "mex.1"),
+            "jleague":      ("soccer", "jpn.1"),
+            "eredivisie":   ("soccer", "ned.1"),
+            "brasileirao":  ("soccer", "bra.1"),
+            "championship": ("soccer", "eng.2"),
         },
-        "months": _months("2025-08", "2026-06"),
+        # Trailing window to the current month (not a fixed "-06" end): the
+        # European season rolls over in August, and a fixed end silently left
+        # every 2026-27 promoted club (Bolton, Cardiff, ADO, Cambuur, ...) and
+        # the new season's first weeks out of the seed (found 2026-09-05).
+        "months": _months("2025-08", f"{date.today().year}-{date.today().month:02d}"),
         # Per-league month overrides. MLS runs Feb–Nov (calendar-year season),
         # so the shared Aug–Jun European window would miss most of it. The end
         # month is computed at runtime so weekly re-runs never truncate the
         # in-progress season.
         "league_months": {
             "mls": _months("2025-02", f"{date.today().year}-{date.today().month:02d}"),
+            # Calendar-year seasons (J League Feb–Dec, Brasileirão Mar–Dec) and
+            # Liga MX's Apertura/Clausura split (Jul–May) — same trailing window
+            # logic as MLS so a re-run never truncates the in-progress season.
+            "jleague":     _months("2025-02", f"{date.today().year}-{date.today().month:02d}"),
+            "brasileirao": _months("2025-03", f"{date.today().year}-{date.today().month:02d}"),
+            "ligamx":      _months("2025-07", f"{date.today().year}-{date.today().month:02d}"),
         },
     },
 }
@@ -207,8 +225,8 @@ async def fetch_espn_games(
 
             games.append({
                 "date": date_str,
-                "home": home["team"].get("displayName", ""),
-                "away": away["team"].get("displayName", ""),
+                "home": espn_display_name(league, home["team"].get("displayName", "")),
+                "away": espn_display_name(league, away["team"].get("displayName", "")),
                 "score_home": score_home,
                 "score_away": score_away,
             })
@@ -831,7 +849,9 @@ async def main(sectors: list[str], since: str | None = None) -> None:
 
     async with httpx.AsyncClient(
         timeout=httpx.Timeout(20.0),
-        headers={"User-Agent": "evmax-seeder/1.0"},
+        # ESPN's WAF blocklists identifying "evmax-*" User-Agents (both seeds
+        # 403'd on every league on 2026-09-05); reuse the resolver's UA.
+        headers={"User-Agent": _ESPN_HTTP_UA},
         follow_redirects=True,
     ) as client:
         for sector in sectors:
