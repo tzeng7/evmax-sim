@@ -126,8 +126,8 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 | `weekly-tennis-surface-elo-refresh` | Mon 07:15 | Refreshes ALL six tennis models from Tennis Abstract: surface Elo (leaderboards) + serve/return, advanced, form, h2h, ranking_trend (matchmx) |
 | `weekly-drift-audit` | Mon 07:56 | This audit — doc↔code drift, SAFE fixes on a branch + PR (spec: `.claude/commands/drift-audit.md`) |
 | `weekly-model-calibration` | Mon 08:07 | `cleanup metrics --weeks 4` + `cleanup adjust` (sharp_weight auto-tune, bounded 0.40–0.95) + shadow metrics review (reports promotion readiness, never promotes) |
-| `weekly-calibration-tripwire` | Mon 08:34 | Read-only alert: fires only when a sector's blend shows a real, consistent calibration bias (n≥30, one-signed, ≥4pp) and names the `cleanup recalibrate` fix |
-| `weekly-wnba-listings-robustness-check` | Mon 08:35 | Checks whether the WNBA spread lay anchored-entry live shadow gate (n≥30, mean CLV≥0, %pos≥55%) has cleared for promotion (read-only tripwire; no promotion) |
+| `weekly-calibration-tripwire` | — | **FOLDED 2026-09-05** into `evmax cleanup integrity --weekly` (check `calibration`), which the Monday-morning firing of the `com.evmax.integrity` launchd agent runs. Task deleted |
+| `weekly-wnba-listings-robustness-check` | — | **FOLDED 2026-09-05** into `evmax cleanup integrity --weekly` (check `gates`, `GATE_WATCHES` entry for WNBA spread lay anchored-entry; PROMOTE-READY board groups are reported the same way). Task deleted |
 | `biweekly-model-improve-graph` | Mon + Thu 08:51 | Runs the versioned model-improve Workflow graph: value-audit gap → ONE model-side change → walk-forward + integrity/signal gates → PR or revert. Propose-only, never merges (graph: `.claude/workflows/model-improve.js`; ledger: `.claude/improvement-ledger.jsonl`) |
 | `weekly-wnba-total-anchored-backfill-check` | Mon 09:01 | Watches the WNBA total over/under anchored-entry backfill sample for a PROMOTE or KILL verdict (read-only) |
 
@@ -150,6 +150,7 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 |---|---|---|
 | `com.evmax.watch-closes` | `StartInterval` 300 s → `--once` per firing | `evmax cleanup watch-closes --lookahead 40 --once` — near-tip Kalshi + Pinnacle close capture so placed-bet CLV has a genuine post-entry anchor. `--lookahead` bumped 30 → 40 on 2026-07-12 so the T-30 close-target window has qualifying snapshots (`get_kalshi_close_price` selects the latest snapshot at or before tipoff−30min). Converted from an always-up loop 2026-07-05: launchd coalesces firings missed during sleep into one run on wake |
 | `com.evmax.watch-listings` | `StartCalendarInterval` Minute=0 (hourly) → `--once` per firing | `evmax cleanup watch-listings --once` — LISTING→scan window capture (all game sectors, spread+total ladders): Kalshi snapshots + order-book depth + as-of Pinnacle anchor. Logs: `logs/launchd.watch-listings.{out,err}`. Converted from an always-up `--interval 3600` loop 2026-07-05: the in-process sleep froze across lid-close/forced sleep (1–17 sweeps/day vs 24 in archive.db), while calendar firings coalesce on wake. Each firing is a fresh process, so code changes are picked up automatically (no `launchctl kickstart` needed) and the cross-loop AsyncLimiter RuntimeWarning is gone. `caffeinate -i` is now per-invocation only |
+| `com.evmax.integrity` | `StartCalendarInterval` 06:45 + 20:30 daily (Monday 06:45 adds `--weekly`) | `evmax cleanup integrity --check-pinnacle --notify` — the ONE consolidated read-only integrity sweep + ONE alert (worst severity). Daily checks: resolve/scan cadence, seed-state stamp age, in-play/absurd-EV live rows, a model newly missing from a sector's blend (diagnostics AND model_sources fire-rate), fetched-but-matched-zero sectors (reads the `scan_sector_stats` ledger every persisted scan writes), resolution backlog, Kalshi close-capture coverage + archive snapshot age, LIVE-DEGRADING CLV, live sharp-passthrough, live drawdown, non-zero `com.evmax.*` launchd exits. `--weekly` adds calibration-bias verdicts and promotion-gate clearances (info severity). Template: `docs/launchd/com.evmax.integrity.plist` (install steps in its comment). Replaces `com.evmax.heartbeat` (09:00/21:00) and `com.evmax.clv-monitor` (09:20), both retired 2026-09-05 — `evmax cleanup heartbeat` / `clv-monitor` remain as standalone aliases |
 | `com.evmax.nba-resolve` | — | STOPPED (plist renamed `.plist.disabled`) — was a no-op in the NBA offseason |
 | `com.evmax.discord-bot` | `KeepAlive` (always-up; template only, NOT installed by default) | `evmax discord run` — the Discord slash-command gateway bot (`/scan /plays /settled /status`). Long-lived, so the template (`docs/launchd/com.evmax.discord-bot.plist`) uses `KeepAlive` + `ThrottleInterval` 30 and no `caffeinate`; restart with `launchctl kickstart -k` after code changes. The scan FEED (every cycle's play table posted to `DISCORD_CHANNEL_ID`) needs no service — it posts over REST from whichever process ran the scan (CLI, the `ev-scan-light-*` tasks, the dashboard). Setup + install steps: docs/DISCORD_BOT.md |
 
@@ -163,6 +164,23 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 ---
 
 ## History
+
+- **2026-09-05** operational tripwires CONSOLIDATED into `evmax cleanup integrity`
+  (`evmax/agents/cleanup/integrity.py`): the launchd `heartbeat` + `clv-monitor` agents and
+  the Claude tasks `weekly-calibration-tripwire` + `weekly-wnba-listings-robustness-check`
+  were four schedules, four notifier calls and four docs rows for what is one question
+  ("is the pipeline lying to me?"). One agent (`com.evmax.integrity`, 06:45 + 20:30, Monday
+  morning adds `--weekly`) now runs every read-only check and pushes ONE alert. Added
+  checks that the 2026-08/09 incidents were missing: in-play / absurd-EV live rows (the
+  Brentford +35% row logged 10 min after kickoff), a model newly missing from a sector's
+  blend (the `ncaaf_efficiency_v2` empty-state and the tennis_surface stale-stamp gating),
+  fetched-but-matched-zero sectors via the new `scan_sector_stats` ledger (Kalshi
+  pagination / UCL code map / tennis title format all looked like an off-season),
+  resolution backlog, close-capture coverage, live sharp-passthrough, live drawdown,
+  launchd exit codes. The four zombie disabled tasks (`daily-morning-scan`,
+  `daily-updated-scan`, `weekly-nba-props-shadow-metrics`, `baseball-spread-lay-gate-check`)
+  were deleted at the same time; `weekly-value-audit` stays paused (deliberate rollback
+  path for the model-improve graph).
 
 - **2026-09-03** `weekly-ncaaf-efficiency-reseed` created (Mon 07:10 PT, Aug–Jan) and the
   NCAAF block removed from `weekly-seasonal-model-reseed`, so `ncaaf_efficiency_state.json`

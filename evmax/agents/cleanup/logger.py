@@ -543,3 +543,46 @@ def log_prop_from_sharp(
         dropped_disabled=dropped_disabled,
     )
     return inserted
+
+
+def log_scan_stats(
+    sector_stats: dict[str, dict],
+    source: str = "cli",
+    scan_date: Optional[date] = None,
+) -> int:
+    """Append one ``scan_sector_stats`` row per sector for a finished cycle.
+
+    ``sector_stats`` is ``CycleResult.sector_stats`` (sector → markets_fetched /
+    markets_matched / ev_gaps / error). Pure bookkeeping for the integrity
+    check's match-rate tripwire; never raises to the caller (a ledger failure
+    must not fail a scan). Returns the number of rows written.
+    """
+    if not sector_stats:
+        return 0
+    sd = (scan_date or date.today()).isoformat()
+    written = 0
+    try:
+        with get_connection() as conn:
+            for sector, st in sector_stats.items():
+                conn.execute(
+                    """
+                    INSERT INTO scan_sector_stats
+                        (scan_date, source, sector, markets_fetched, markets_matched,
+                         ev_gaps, error)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        sd, source, sector,
+                        int(st.get("markets_fetched", 0) or 0),
+                        int(st.get("markets_matched", 0) or 0),
+                        int(st.get("ev_gaps", 0) or 0),
+                        st.get("error"),
+                    ),
+                )
+                written += 1
+            conn.commit()
+    except Exception as e:  # noqa: BLE001 — ledger is best-effort
+        logger.warning("scan_stats_log_error", error=str(e))
+        return written
+    logger.info("scan_stats_logged", rows=written, source=source, date=sd)
+    return written

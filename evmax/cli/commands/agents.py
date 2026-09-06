@@ -306,6 +306,14 @@ def scan(
 
     result = asyncio.run(coordinator.run_cycle())
 
+    # Per-sector fetch/match ledger (scan_sector_stats) — feeds the integrity
+    # check's match-rate tripwire. Best-effort; never blocks the scan.
+    try:
+        from evmax.agents.cleanup.logger import log_scan_stats as _log_scan_stats
+        _log_scan_stats(result.sector_stats, source="cli")
+    except Exception:  # noqa: BLE001
+        pass
+
     # Run maintenance checks after logging
     try:
         from evmax.agents.cleanup.maintenance import run_maintenance, MaintenanceReport

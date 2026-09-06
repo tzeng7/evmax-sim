@@ -774,3 +774,48 @@ def test_scanner_wnba_moneyline_still_live(patched_db):
     assert inserted == 1
     row = patched_db.execute("SELECT mode FROM ev_predictions").fetchone()
     assert row["mode"] == "live"
+
+
+# -------------------------------------------------------------------------
+# scan_sector_stats ledger (log_scan_stats) — feeds the integrity match-rate check
+# -------------------------------------------------------------------------
+
+
+def test_log_scan_stats_writes_one_row_per_sector(patched_db):
+    patched_db.executescript(
+        """
+        CREATE TABLE scan_sector_stats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            scanned_at TEXT NOT NULL DEFAULT (datetime('now')),
+            scan_date TEXT NOT NULL, source TEXT NOT NULL, sector TEXT NOT NULL,
+            markets_fetched INTEGER NOT NULL DEFAULT 0,
+            markets_matched INTEGER NOT NULL DEFAULT 0,
+            ev_gaps INTEGER NOT NULL DEFAULT 0, error TEXT
+        );
+        """
+    )
+    from evmax.agents.cleanup.logger import log_scan_stats
+
+    stats = {
+        "ncaaf": {"markets_fetched": 500, "markets_matched": 0, "ev_gaps": 0, "error": None},
+        "soccer": {"markets_fetched": 190, "markets_matched": 130, "ev_gaps": 7, "error": None},
+        "nfl": {"markets_fetched": 0, "markets_matched": 0, "ev_gaps": 0, "error": "timed out"},
+    }
+    assert log_scan_stats(stats, source="cli", scan_date=date(2026, 9, 5)) == 3
+    rows = patched_db.execute(
+        "SELECT sector, markets_fetched, markets_matched, ev_gaps, error, source, scan_date "
+        "FROM scan_sector_stats ORDER BY sector"
+    ).fetchall()
+    assert [tuple(r) for r in rows] == [
+        ("ncaaf", 500, 0, 0, None, "cli", "2026-09-05"),
+        ("nfl", 0, 0, 0, "timed out", "cli", "2026-09-05"),
+        ("soccer", 190, 130, 7, None, "cli", "2026-09-05"),
+    ]
+    assert log_scan_stats({}, source="cli") == 0
+
+
+def test_log_scan_stats_is_best_effort_on_missing_table(patched_db):
+    # No scan_sector_stats table in this DB → must swallow, not raise.
+    from evmax.agents.cleanup.logger import log_scan_stats
+
+    assert log_scan_stats({"nba": {"markets_fetched": 1}}, source="dashboard") == 0
