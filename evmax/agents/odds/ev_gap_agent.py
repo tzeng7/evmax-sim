@@ -29,6 +29,7 @@ from evmax.ev.calculator import (
 )
 from evmax.ev.kelly import KellyResult, compute_kelly
 from evmax.formatting import format_outcome_label
+from evmax.matching.alignment import YesOutcome, align_yes_side, alignment_looks_suspect
 from evmax.matching.engine import MatchingEngine
 from evmax.matching.prop_matcher import PropMatcher
 from evmax.modes import get_mode
@@ -468,6 +469,11 @@ class EVGapAgent(Agent):
         self._spread_model = SpreadDistributionModel()
         self._total_model = TotalDistributionModel()
         self._no_pitcher_skips = 0
+        # Per-sector count of markets dropped because the YES side could not be
+        # aligned to a sharp outcome (evmax.matching.alignment). Surfaced in
+        # the cycle summary so a broken alias map shows up as a number, not
+        # as a silently missing play.
+        self._alignment_failures: dict[str, int] = {}
         try:
             from evmax.archiver import DataArchiver
             self._archiver = DataArchiver()
@@ -600,6 +606,14 @@ class EVGapAgent(Agent):
                 count=self._no_pitcher_skips,
             )
             self._no_pitcher_skips = 0
+        if self._alignment_failures.get(sector):
+            self.log.warning(
+                "yes_alignment_failed_summary",
+                sector=sector,
+                count=self._alignment_failures[sector],
+                hint="fix the sector alias map / series code map — these markets were not priced",
+            )
+            self._alignment_failures[sector] = 0
 
         await self.publish(f"ev.gaps.{sector}", gaps, request.correlation_id)
 
@@ -687,92 +701,6 @@ class EVGapAgent(Agent):
         return round(velocity_pp_hr, 2), None
 
     # ------------------------------------------------------------------
-    # YES-team resolution via market fields
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _resolve_yes_via_market_teams(
-        yes_team_norm: str,
-        market: PredictionMarket,
-        sharp: SharpOdds,
-        sector: str,
-    ) -> Optional[tuple[float, bool]]:
-        """Resolve YES alignment using the market's team_home/team_away fields.
-
-        Returns (sharp_true_prob, yes_is_outcome_b) or None if unresolvable.
-        """
-        from evmax.matching.normalizer import NameNormalizer
-
-        home_raw = (market.team_home or "").lower()
-        away_raw = (market.team_away or "").lower()
-        if not home_raw or not away_raw:
-            return None
-
-        # Strip game-name suffixes Kalshi appends to away team names
-        _SUFFIXES = ["league of legends", "valorant", "cs2"]
-        for suffix in _SUFFIXES:
-            if home_raw.endswith(suffix):
-                home_raw = home_raw[: -len(suffix)].strip()
-            if away_raw.endswith(suffix):
-                away_raw = away_raw[: -len(suffix)].strip()
-
-        def _acronym(name: str) -> str:
-            return "".join(w[0] for w in name.split() if w)
-
-        def _matches_team(abbrev: str, team: str) -> bool:
-            if abbrev in team or team.startswith(abbrev):
-                return True
-            if any(w.startswith(abbrev) for w in team.split()):
-                return True
-            if abbrev == _acronym(team):
-                return True
-            return False
-
-        # Determine which market team the YES abbreviation belongs to
-        yes_is_home: Optional[bool] = None
-        home_hit = _matches_team(yes_team_norm, home_raw)
-        away_hit = _matches_team(yes_team_norm, away_raw)
-        if home_hit and not away_hit:
-            yes_is_home = True
-        elif away_hit and not home_hit:
-            yes_is_home = False
-
-        if yes_is_home is None:
-            # Name matching failed — try price-based alignment.
-            # Require the closer side to be tight AND meaningfully closer than the
-            # farther side, so near-coin-flip markets (where both distances are
-            # similar) can never be force-aligned to an arbitrary outcome.
-            ask = market.yes_price
-            dist_a = abs(ask - sharp.true_prob_a)
-            dist_b = abs(ask - sharp.true_prob_b)
-            closer = min(dist_a, dist_b)
-            gap = abs(dist_a - dist_b)
-            if closer > 0.04 or gap < 0.05:
-                return None
-            if dist_a < dist_b:
-                return sharp.true_prob_a, False
-            return sharp.true_prob_b, True
-
-        # Normalize the YES team's full name and match to sharp outcomes
-        normalizer = NameNormalizer(sector)
-        yes_full = home_raw if yes_is_home else away_raw
-        yes_norm = normalizer.normalize(yes_full)
-
-        outcome_a_norm = normalizer.normalize(sharp.outcome_a_label or "")
-        outcome_b_norm = normalizer.normalize(sharp.outcome_b_label or "")
-
-        from rapidfuzz import fuzz
-        score_a = fuzz.token_set_ratio(yes_norm, outcome_a_norm)
-        score_b = fuzz.token_set_ratio(yes_norm, outcome_b_norm)
-
-        if score_a > score_b and score_a >= 60:
-            return sharp.true_prob_a, False
-        elif score_b > score_a and score_b >= 60:
-            return sharp.true_prob_b, True
-
-        return None
-
-    # ------------------------------------------------------------------
     # Core evaluation
     # ------------------------------------------------------------------
 
@@ -846,80 +774,46 @@ class EVGapAgent(Agent):
             return _ret(None, None)
 
         # ------------------------------------------------------------------
-        # Step 1: YES-team alignment (which sharp prob belongs to the YES side?)
+        # Step 1: YES-side alignment (which sharp prob belongs to the YES side?)
         # ------------------------------------------------------------------
-        yes_team_norm = (market.yes_team or "").lower().strip()
-        outcome_a_norm = (sharp.outcome_a_label or "").lower().strip()
-        outcome_b_norm = (sharp.outcome_b_label or "").lower().strip()
-
-        is_draw = yes_team_norm in ("tie", "draw", "x", "draw/tie")
-
-        def _yes_matches(yes: str, candidate: str) -> bool:
-            """Check if YES team name matches a Pinnacle outcome label.
-
-            Uses fuzzy matching (rapidfuzz token_set_ratio) instead of raw substring
-            to avoid false positives like 'm' in 'hoffenheim' or 'oconnell' missing
-            "o'connell". Short names (<3 chars) require the candidate to START with
-            them as a word boundary (e.g. 'm' only matches 'mainz', not 'hoffenheim').
-            """
-            if not yes or not candidate:
-                return False
-            # Strip apostrophes/hyphens for comparison
-            y = yes.replace("'", "").replace("\u2019", "").replace("-", "")
-            c = candidate.replace("'", "").replace("\u2019", "").replace("-", "")
-            # Exact match (post-strip)
-            if y == c:
-                return True
-            # Short names (<3 chars): require word-boundary prefix match
-            if len(y) < 3:
-                words = c.split()
-                return any(w.startswith(y) for w in words) and not any(
-                    w.startswith(y) for w in (outcome_b_norm if candidate == outcome_a_norm else outcome_a_norm).split()
-                )
-            # Substring match (only if yes_team is 3+ chars to avoid spurious hits)
-            if y in c:
-                return True
-            # Fuzzy fallback for names with punctuation differences
-            from rapidfuzz import fuzz
-            return fuzz.token_set_ratio(y, c) >= 80
-
-        # Totals: YES side is "over" or "under" — not a team name
-        if is_total:
-            yes_is_under = yes_team_norm == "under"
-            if sharp.true_prob_over is None or sharp.true_prob_under is None:
-                return _ret(None, None)
-            sharp_true_prob = sharp.true_prob_under if yes_is_under else sharp.true_prob_over
-            yes_is_outcome_b = False
-        elif is_draw:
-            if sharp.true_prob_draw is None:
-                return _ret(None, None)
-            sharp_true_prob = sharp.true_prob_draw
-            yes_is_outcome_b = False
-            yes_is_under = False
-        elif _yes_matches(yes_team_norm, outcome_a_norm):
-            # YES team matches outcome_a (home/favorite)
-            sharp_true_prob = sharp.true_prob_a
-            yes_is_outcome_b = False
-            yes_is_under = False
-        elif _yes_matches(yes_team_norm, outcome_b_norm):
-            # YES team matches outcome_b (away/underdog)
-            sharp_true_prob = sharp.true_prob_b
-            yes_is_outcome_b = True
-            yes_is_under = False
-        else:
-            # Fallback: match YES team via market's own home/away fields.
-            # Kalshi esports use short tickers ("th", "dsg") that can't match
-            # Pinnacle labels directly. Determine which market team is YES,
-            # normalize it, then match against sharp outcomes.
-            resolved = self._resolve_yes_via_market_teams(
-                yes_team_norm, market, sharp, sector,
+        # Delegated to evmax.matching.alignment — the ONE place this question
+        # is answered. Canonical equality / unique token-subset / venue-team
+        # code resolution; never fuzzy, never "default to outcome A". An
+        # unresolvable YES side is not priced (fail-clear).
+        alignment = align_yes_side(market, sharp, self._matching.normalizer_for(sector))
+        if alignment is None:
+            self._alignment_failures[sector] = self._alignment_failures.get(sector, 0) + 1
+            self.log.warning(
+                "yes_alignment_failed",
+                sector=sector,
+                market_id=market.id,
+                yes_team=market.yes_team,
+                outcome_a=sharp.outcome_a_label,
+                outcome_b=sharp.outcome_b_label,
+                home=market.team_home,
+                away=market.team_away,
             )
-            if resolved is not None:
-                sharp_true_prob, yes_is_outcome_b = resolved
-            else:
-                sharp_true_prob = sharp.true_prob_a
-                yes_is_outcome_b = False
-            yes_is_under = False
+            return _ret(None, None)
+        sharp_true_prob = alignment.sharp_prob(sharp)
+        if sharp_true_prob is None:
+            return _ret(None, None)
+        yes_is_outcome_b = alignment.is_outcome_b
+        yes_is_under = alignment.is_under
+        is_draw = alignment.outcome is YesOutcome.DRAW
+        if alignment.method == "price":
+            self.log.info(
+                "yes_alignment_price_fallback",
+                sector=sector, market_id=market.id, yes_team=market.yes_team,
+                outcome=alignment.outcome.value,
+            )
+        if alignment_looks_suspect(alignment, market.yes_price, sharp):
+            self.log.warning(
+                "yes_alignment_suspect",
+                sector=sector, market_id=market.id, yes_team=market.yes_team,
+                outcome=alignment.outcome.value, method=alignment.method,
+                ask=market.yes_price, sharp_yes=sharp_true_prob,
+                outcome_a=sharp.outcome_a_label, outcome_b=sharp.outcome_b_label,
+            )
 
         # ------------------------------------------------------------------
         # Step 2a: Spread markets — blend Pinnacle CDF with sim distribution

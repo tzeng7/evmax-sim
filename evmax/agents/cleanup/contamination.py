@@ -139,12 +139,13 @@ CONTAMINATION_RULES: dict[str, list[RowRule]] = {
     ],
     "ncaaf": [
         # ncaaf_efficiency_v2 shipped 2026-09-03 (EPA + success rate, FPI-mixed
-        # prior; model renamed). A v1-token row was priced by the superseded
-        # EPA-only margin. `_has` is a substring test, so exclude the v2 token
-        # explicitly; rows carrying neither token are not flagged.
-        lambda mt, src, line: (
-            mt == "moneyline" and _has(src, "ncaaf_efficiency") and not _has(src, "ncaaf_efficiency_v2")
-        ),
+        # prior; model renamed). Any ML row WITHOUT the v2 token is outside the
+        # v2 promotion sample: v1-token rows were priced by the superseded
+        # EPA-only margin, and token-less (elo+sharp) rows were priced with v2
+        # silent — including 2026-09-03→09-05 when the renamed agent read a
+        # non-existent state file and withheld on every game. Mirrors the
+        # baseball "ML without pitcher_v2" rule.
+        lambda mt, src, line: mt == "moneyline" and not _has(src, "ncaaf_efficiency_v2"),
     ],
 }
 

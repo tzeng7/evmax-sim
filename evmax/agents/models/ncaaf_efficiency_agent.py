@@ -103,6 +103,10 @@ class NcaafEfficiencyModelAgent(ModelAgent):
 
     name = "ncaaf_efficiency_v2"
     weight = 0.55  # ensemble weight (set per-sector in SECTOR_WEIGHT_OVERRIDES)
+    # The seed writes ncaaf_efficiency_state.json (STATE_PATH above); the model
+    # NAME carries the version, the FILE does not. Without this the base class
+    # would look for ncaaf_efficiency_v2_state.json and load nothing.
+    state_filename = STATE_PATH.name
 
     def __init__(self) -> None:
         super().__init__()

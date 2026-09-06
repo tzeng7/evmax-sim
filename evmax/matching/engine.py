@@ -49,6 +49,10 @@ class MatchingEngine:
                 return json.load(f)
         return {}
 
+    def normalizer_for(self, sector: str) -> NameNormalizer:
+        """Sector normalizer (cached) — shared with the YES-side alignment step."""
+        return self._get_normalizer(sector)
+
     def _get_normalizer(self, sector: str) -> NameNormalizer:
         if sector not in self._normalizers:
             self._normalizers[sector] = NameNormalizer(sector)

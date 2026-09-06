@@ -518,19 +518,17 @@ class TestEVGapAgent:
         assert received[0].topic == "ev.gaps.nba"
 
     # ------------------------------------------------------------------
-    # ARCH-7: _resolve_yes_via_market_teams price-fallback
+    # ARCH-7 price fallback — now evmax.matching.alignment.price_align, and
+    # only reachable for PRICE_FALLBACK_SECTORS (esports ticker codes).
     # ------------------------------------------------------------------
 
-    def _price_fallback(self, ask: float, prob_a: float, prob_b: float):
-        """Invoke the price-based branch by passing a YES abbrev that matches neither team."""
-        market = make_market(yes_price=ask, team_home="lakers", team_away="celtics", yes_team="lakers")
-        sharp = make_sharp(prob_a=prob_a, prob_b=prob_b, team_a="lakers", team_b="celtics")
-        return EVGapAgent._resolve_yes_via_market_teams(
-            yes_team_norm="xxx",  # matches neither home nor away → forces price fallback
-            market=market,
-            sharp=sharp,
-            sector="nba",
-        )
+    @staticmethod
+    def _price_fallback(ask: float, prob_a: float, prob_b: float):
+        from evmax.matching.alignment import YesOutcome, price_align
+        out = price_align(ask, prob_a, prob_b)
+        if out is None:
+            return None
+        return (prob_a, False) if out is YesOutcome.A else (prob_b, True)
 
     def test_price_fallback_aligns_when_one_side_clearly_closer(self):
         # ask 0.60 vs (a=0.58, b=0.42): dist_a=0.02, dist_b=0.18 → align to a
@@ -543,11 +541,7 @@ class TestEVGapAgent:
         assert result == (0.42, True)
 
     def test_price_fallback_rejects_near_coin_flip(self):
-        """Regression for ARCH-7: near-50/50 markets must not be force-aligned.
-
-        At prob_a=0.52, prob_b=0.48, ask=0.50 both distances are 0.02 — the
-        old heuristic would silently pick outcome_a; the new logic rejects it.
-        """
+        """Regression for ARCH-7: near-50/50 markets must not be force-aligned."""
         result = self._price_fallback(ask=0.50, prob_a=0.52, prob_b=0.48)
         assert result is None
 
@@ -560,6 +554,14 @@ class TestEVGapAgent:
         # dist_a=0.05 exceeds 0.04 ceiling even though gap is large → reject
         result = self._price_fallback(ask=0.53, prob_a=0.58, prob_b=0.42)
         assert result is None
+
+    def test_price_fallback_not_used_outside_esports(self):
+        """An NBA market whose YES label matches nothing is NOT priced off the ask."""
+        from evmax.matching.alignment import align_yes_side
+        from evmax.matching.normalizer import NameNormalizer
+        market = make_market(yes_price=0.60, team_home="lakers", team_away="celtics", yes_team="xxx")
+        sharp = make_sharp(prob_a=0.58, prob_b=0.42, team_a="lakers", team_b="celtics")
+        assert align_yes_side(market, sharp, NameNormalizer("nba")) is None
 
 
 # ---------------------------------------------------------------------------
