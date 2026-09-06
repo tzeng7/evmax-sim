@@ -140676,6 +140676,46 @@
         "drew": false,
         "margin": -35.0
       }
+    ],
+    "middle tennessee": [
+      {
+        "date": "2026-09-05",
+        "won": true,
+        "opp": "murray state",
+        "home": true,
+        "drew": false,
+        "margin": 24.0
+      }
+    ],
+    "murray state": [
+      {
+        "date": "2026-09-05",
+        "won": false,
+        "opp": "middle tennessee",
+        "home": false,
+        "drew": false,
+        "margin": -24.0
+      }
+    ],
+    "california": [
+      {
+        "date": "2026-09-05",
+        "won": false,
+        "opp": "ucla",
+        "home": true,
+        "drew": false,
+        "margin": -21.0
+      }
+    ],
+    "ucla": [
+      {
+        "date": "2026-09-05",
+        "won": true,
+        "opp": "california",
+        "home": false,
+        "drew": false,
+        "margin": 21.0
+      }
     ]
   }
 }

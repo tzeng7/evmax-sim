@@ -5522,6 +5522,26 @@
         "attack": 3.0,
         "defense": 3.0,
         "games": 1
+      },
+      "middle tennessee": {
+        "attack": 3.0,
+        "defense": 3.0,
+        "games": 1
+      },
+      "murray state": {
+        "attack": 3.0,
+        "defense": 3.0,
+        "games": 1
+      },
+      "california": {
+        "attack": 3.0,
+        "defense": 3.0,
+        "games": 1
+      },
+      "ucla": {
+        "attack": 3.0,
+        "defense": 3.0,
+        "games": 1
       }
     },
     "last_updated": "2026-09-05"
