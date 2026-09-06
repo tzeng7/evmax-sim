@@ -312,6 +312,14 @@ async function tryFinding(target, idx) {
               {"ts":"<today>","loop":"model-improve-${spec.sector}","phase":"attempt",
                "hyp":"<rationale>","change":"<params>","decision":"keep-PR",
                "metric":"holdout_brier","value":<candidate>,"note":"Δ<improvement> vs baseline; PR <url>","sha":"<git rev-parse --short HEAD>"}
+           3b. AUTO-FIX CI (one pass, never merge — model-improve PRs stay human-reviewed):
+                 BUCKET=$(python3 /Users/ktzeng/Projects/evmax/scripts/sched_worktree.py watch-ci --branch ${impl.branch})
+               - 'pass' -> done; leave the PR open for review.
+               - 'fail' -> make ONE corrective attempt on THIS branch: read the failing check's logs
+                 (gh run view <run-id> --log-failed; the id/URL is printed in the watch-ci line), fix the
+                 cause with a focused commit (same Co-Authored-By trailer), git push, then run watch-ci
+                 ONCE more. Whatever the second result, STOP -- leave the PR open, never merge, never loop again.
+               - 'pending'/'error'/'none' -> report the bucket and leave the PR open.
            4. git switch main. If it conflicts, report and STOP — do not force. Leave branch ${impl.branch} pushed.
          Return action=kept with the PR url.`
       : `REVERT this evmax change — it did not clear the gates. The change is committed on branch
