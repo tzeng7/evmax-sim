@@ -21,7 +21,27 @@ remote tip** (`origin/main`) in an **isolated git worktree**, `git push` the bra
 `gh pr create` with explicit `--title`/`--body` (a bare `gh pr create` prompts interactively
 and hangs a headless run). If `gh pr create` fails, the push already preserved the work — the
 run reports the branch + compare URL so the PR can be opened manually. Commits must never end
-a run stranded local-only, and no scheduled run ever merges its own PR.
+a run stranded local-only.
+
+**Auto-merge / auto-fix-CI policy (2026-09-05):** the old blanket "no scheduled run ever
+merges its own PR" is replaced by a split keyed on what the PR contains, both implemented in
+`scripts/sched_worktree.py`:
+
+- **State PRs (the rolling `bot/model-state` branch) auto-merge on green CI.** The state
+  tasks pass `ship --merge-when-green`: after the push + PR, the helper polls
+  `gh pr checks` (its own `--ci-timeout`, never `gh`'s blocking `--watch`) and squash-merges
+  (`--delete-branch`) ONLY when every check passes. A red/pending/error CI leaves the PR open
+  and never fails the ship — the next run rebuilds from `origin/main` and retries. The merge
+  is gated on the helper's own poll because `main` has no branch protection / required checks,
+  so a bare `gh pr merge --auto` would land *before* CI ran. Regenerated JSON is idempotent
+  and the test suite does not read the committed state (conftest isolates writes to tmp), so
+  these PRs are effectively always green — auto-merge just stops the rolling PR from piling up.
+- **Code PRs (`weekly-drift-audit`, `biweekly-model-improve-graph`) stay human-reviewed** and
+  do NOT auto-merge. But a code task gets **one auto-fix pass** on red CI: after `ship`, the
+  run calls `sched_worktree.py watch-ci --branch <dated-branch>` (exit 0=pass / 1=fail /
+  2=pending / 3=error-none); on `fail` it pulls the failing check's logs, makes ONE fix commit,
+  re-pushes and re-watches, then stops — merged-when-green is deliberately NOT done here, the
+  PR is left for review whether the fix turned CI green or not.
 
 ### Git isolation for state/code-altering tasks (`scripts/sched_worktree.py`)
 

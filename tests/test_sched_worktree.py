@@ -13,6 +13,7 @@ properties that keep parallel scheduled runs from conflicting:
 
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import subprocess
 from pathlib import Path
@@ -257,3 +258,115 @@ def test_repo_slug_parses_ssh_and_https(repos):
     # and returns the trailing two path components.
     slug = sched._repo_slug(work)
     assert slug.endswith("origin.git") or "/" in slug
+
+
+# --------------------------------------------------------------------------- #
+# CI watch + auto-merge (state PRs only)
+# --------------------------------------------------------------------------- #
+def _cp(stdout="", stderr="", returncode=0):
+    return subprocess.CompletedProcess(args=[], returncode=returncode,
+                                       stdout=stdout, stderr=stderr)
+
+
+def _patch_gh(monkeypatch, handler):
+    """Route sched._run calls to ``handler(argv) -> CompletedProcess``.
+
+    Any non-gh shell-out raises so a stray call is caught, not run for real.
+    """
+    def fake_run(args, *, cwd=None, check=False, capture=True):
+        # _repo_slug shells out to git for the origin URL -- answer it locally
+        # so the handler only ever sees the gh calls under test.
+        if args[:1] == ["git"] and "get-url" in args:
+            return _cp(stdout="git@github.com:owner/repo.git\n", returncode=0)
+        assert args and args[0] == "gh", f"unexpected shell-out: {args}"
+        return handler(args)
+
+    monkeypatch.setattr(sched, "_run", fake_run)
+
+
+def test_watch_ci_all_pass(monkeypatch):
+    payload = '[{"name":"Python tests","bucket":"pass","state":"SUCCESS","link":"u"}]'
+    _patch_gh(monkeypatch, lambda argv: _cp(stdout=payload, returncode=0))
+    bucket, _ = sched._watch_ci(Path("."), "b", timeout_s=1, interval_s=0)
+    assert bucket == "pass"
+
+
+def test_watch_ci_reports_failure(monkeypatch):
+    payload = ('[{"name":"Frontend","bucket":"fail","state":"FAILURE",'
+               '"link":"http://run/1"},'
+               '{"name":"Python tests","bucket":"pass","state":"SUCCESS","link":""}]')
+    _patch_gh(monkeypatch, lambda argv: _cp(stdout=payload, returncode=1))
+    bucket, detail = sched._watch_ci(Path("."), "b", timeout_s=1, interval_s=0)
+    assert bucket == "fail"
+    assert "Frontend" in detail and "http://run/1" in detail
+
+
+def test_watch_ci_pending_times_out(monkeypatch):
+    payload = '[{"name":"Python tests","bucket":"pending","state":"IN_PROGRESS","link":""}]'
+    _patch_gh(monkeypatch, lambda argv: _cp(stdout=payload, returncode=8))
+    bucket, _ = sched._watch_ci(Path("."), "b", timeout_s=0, interval_s=0)
+    assert bucket == "pending"
+
+
+def test_watch_ci_no_checks(monkeypatch):
+    _patch_gh(monkeypatch, lambda argv: _cp(stdout="", returncode=0))
+    bucket, _ = sched._watch_ci(Path("."), "b", timeout_s=1, interval_s=0)
+    assert bucket == "none"
+
+
+def test_merge_when_green_merges_on_pass(monkeypatch):
+    calls = []
+
+    def handler(argv):
+        calls.append(argv)
+        if argv[1] == "pr" and argv[2] == "checks":
+            return _cp(stdout='[{"name":"CI","bucket":"pass","link":""}]', returncode=0)
+        return _cp(returncode=0)
+
+    _patch_gh(monkeypatch, handler)
+    args = argparse.Namespace(ci_timeout=1, ci_interval=0, merge_method="squash")
+    sched._merge_when_green(args, Path("."), "bot/model-state")
+    assert any(a[1:3] == ["pr", "merge"] for a in calls), "expected a merge on green CI"
+
+
+def test_merge_when_green_skips_on_fail(monkeypatch):
+    calls = []
+
+    def handler(argv):
+        calls.append(argv)
+        if argv[1] == "pr" and argv[2] == "checks":
+            return _cp(stdout='[{"name":"CI","bucket":"fail","link":"x"}]', returncode=1)
+        return _cp(returncode=0)
+
+    _patch_gh(monkeypatch, handler)
+    args = argparse.Namespace(ci_timeout=1, ci_interval=0, merge_method="squash")
+    sched._merge_when_green(args, Path("."), "bot/model-state")
+    assert not any(a[1:3] == ["pr", "merge"] for a in calls), "must NOT merge on red CI"
+
+
+def test_watch_ci_subcommand_exit_codes(monkeypatch, capsys):
+    _patch_gh(monkeypatch, lambda argv: _cp(stdout='[{"name":"CI","bucket":"fail"}]',
+                                            returncode=1))
+    rc = sched.main(["watch-ci", "--repo", ".", "--branch", "b",
+                     "--ci-timeout", "1", "--ci-interval", "0"])
+    assert rc == 1
+    assert capsys.readouterr().out.strip() == "fail"
+
+
+def test_ship_no_pr_never_merges(repos, tmp_path, monkeypatch):
+    """--merge-when-green with --no-pr (offline) must not shell out to gh."""
+    work, _ = repos
+    wt = tmp_path / "wt"
+    sched.main(["open", "--repo", str(work), "--branch", "bot/model-state",
+                "--rolling", "--worktree", str(wt)])
+    _write(wt, "data/models/elo_state.json", '{"v": 42}\n')
+
+    def boom(*a, **k):
+        raise AssertionError("gh must not be called with --no-pr")
+
+    monkeypatch.setattr(sched, "_merge_when_green", boom)
+    rc = sched.main(["ship", "--repo", str(work), "--branch", "bot/model-state",
+                     "--rolling", "--worktree", str(wt), "--no-pr",
+                     "--merge-when-green", "--title", "t",
+                     "--", "data/models/elo_state.json"])
+    assert rc == 0

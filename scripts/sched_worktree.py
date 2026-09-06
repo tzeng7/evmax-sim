@@ -287,6 +287,11 @@ def cmd_ship(args: argparse.Namespace) -> int:
 
     pr_url = _ensure_pr(args, repo, branch)
 
+    # Auto-merge gate (state PRs only). Runs after the PR exists and BEFORE the
+    # worktree is removed, so nothing about a red/pending CI leaves work stranded.
+    if getattr(args, "merge_when_green", False) and not args.no_pr and pr_url:
+        _merge_when_green(args, repo, branch)
+
     if not args.keep_worktree:
         _remove_worktree_if_present(repo, worktree)
 
@@ -346,6 +351,135 @@ def _push(
     return cp2.returncode
 
 
+def _watch_ci(
+    repo: Path,
+    branch: str,
+    *,
+    timeout_s: int,
+    interval_s: int,
+) -> tuple[str, str]:
+    """Poll a branch's PR checks until they settle or the timeout elapses.
+
+    Returns ``(bucket, detail)`` where ``bucket`` is one of ``pass`` / ``fail``
+    / ``pending`` / ``none`` / ``error``:
+
+    * ``pass``    -- every required check succeeded (or was skipped).
+    * ``fail``    -- at least one check failed; ``detail`` names the failed
+                    checks and their run URLs.
+    * ``pending`` -- still running when the timeout elapsed.
+    * ``none``    -- the PR has no checks at all (nothing to gate on).
+    * ``error``   -- ``gh`` could not be reached / no PR found.
+
+    Uses ``gh pr checks --json`` (never ``--watch``) so the timeout is ours and
+    a hung runner cannot block the scheduled run forever.
+    """
+    import time
+
+    slug = _repo_slug(repo)
+    deadline = time.monotonic() + timeout_s
+    while True:
+        cp = _run(
+            ["gh", "pr", "checks", branch, "--repo", slug,
+             "--json", "name,bucket,state,link"],
+            cwd=repo, check=False,
+        )
+        # gh exits 8 while checks are pending, 1 on failure, 0 on all-pass; a
+        # JSON payload is emitted in every case except a hard error.
+        out = cp.stdout.strip()
+        if not out:
+            err = (cp.stderr or "").strip()
+            low = err.lower()
+            if "no checks reported" in low or "no pull requests found" in low:
+                return "none", err or "no checks reported for the PR"
+            if cp.returncode == 0:
+                return "none", "no checks reported for the PR"
+            return "error", err or f"gh exited {cp.returncode}"
+        try:
+            import json as _json
+
+            checks = _json.loads(out)
+        except ValueError:
+            return "error", f"unparseable gh output: {out[:200]}"
+
+        if not checks:
+            return "none", "no checks reported for the PR"
+
+        buckets = [c.get("bucket", "") for c in checks]
+        failed = [c for c in checks if c.get("bucket") == "fail"]
+        pending = [c for c in checks if c.get("bucket") == "pending"]
+
+        if failed:
+            detail = "; ".join(
+                f"{c.get('name', '?')} ({c.get('link') or c.get('state', '')})"
+                for c in failed
+            )
+            return "fail", detail
+        if pending:
+            names = ", ".join(c.get("name", "?") for c in pending)
+            if time.monotonic() >= deadline:
+                return "pending", f"still pending after {timeout_s}s: {names}"
+            time.sleep(interval_s)
+            continue
+        # No failures, nothing pending -> everything passed or skipped.
+        if all(b in ("pass", "skipping", "cancel") for b in buckets):
+            return "pass", ", ".join(c.get("name", "?") for c in checks)
+        # Unknown bucket state -- treat conservatively as pending until timeout.
+        if time.monotonic() >= deadline:
+            return "pending", f"unresolved buckets after {timeout_s}s: {buckets}"
+        time.sleep(interval_s)
+
+
+def _merge_pr(repo: Path, branch: str, *, method: str = "squash") -> bool:
+    """Merge the branch's open PR via ``gh pr merge``. Returns success."""
+    cp = _run(
+        ["gh", "pr", "merge", branch, "--repo", _repo_slug(repo),
+         f"--{method}", "--delete-branch"],
+        cwd=repo, check=False,
+    )
+    if cp.returncode != 0:
+        _log(f"[merge] gh pr merge failed:\n{(cp.stderr or '').strip()}")
+        return False
+    return True
+
+
+def _merge_when_green(args: argparse.Namespace, repo: Path, branch: str) -> None:
+    """Watch CI for ``branch`` and squash-merge its PR only if CI is green.
+
+    Never fails the ship: the push + PR already succeeded, so a red/pending CI
+    just leaves the PR open for the next run (or a human) and logs why. This is
+    the auto-merge path for idempotent STATE PRs, gated on our own CI poll (the
+    repo has no branch protection / required checks, so a bare ``--auto`` merge
+    would land before CI even runs).
+    """
+    bucket, detail = _watch_ci(
+        repo, branch, timeout_s=args.ci_timeout, interval_s=args.ci_interval
+    )
+    if bucket in ("pass", "none"):
+        why = "CI green" if bucket == "pass" else "no CI checks to gate on"
+        _log(f"[merge] {why} ({detail}); squash-merging {branch}")
+        if _merge_pr(repo, branch, method=args.merge_method):
+            _log(f"[merge] merged {branch}")
+        return
+    _log(
+        f"[merge] NOT merging {branch}: CI bucket={bucket} ({detail}). PR left open."
+    )
+
+
+def cmd_watch_ci(args: argparse.Namespace) -> int:
+    """Standalone CI gate for code-task SKILLs' auto-fix loop.
+
+    Prints the settled bucket on stdout and exits 0=pass, 1=fail, 2=pending,
+    3=error/none, so a task can branch on ``$?`` (pass -> merge or done; fail ->
+    pull logs, attempt one fix, re-push, re-watch; pending -> report + move on).
+    """
+    bucket, detail = _watch_ci(
+        args.repo, args.branch, timeout_s=args.ci_timeout, interval_s=args.ci_interval
+    )
+    _log(f"[watch-ci] {args.branch}: {bucket} -- {detail}")
+    print(bucket)
+    return {"pass": 0, "fail": 1, "pending": 2}.get(bucket, 3)
+
+
 def _ensure_pr(args: argparse.Namespace, repo: Path, branch: str) -> str | None:
     if args.no_pr:
         _log("[ship] --no-pr: skipping PR creation")
@@ -392,6 +526,13 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="Single long-lived accumulating branch (state tasks). "
                              "Omit for a fresh dated branch off origin/main (code tasks).")
 
+    # Shared CI-polling knobs (ship --merge-when-green and the watch-ci subcommand).
+    ci = argparse.ArgumentParser(add_help=False)
+    ci.add_argument("--ci-timeout", type=int, default=900,
+                    help="Seconds to wait for CI checks to settle (default: %(default)s)")
+    ci.add_argument("--ci-interval", type=int, default=15,
+                    help="Seconds between CI status polls (default: %(default)s)")
+
     po = sub.add_parser("open", parents=[common],
                         help="Fetch origin and open an isolated worktree off the live remote tip")
     po.add_argument("--worktree", type=Path, default=None,
@@ -400,7 +541,7 @@ def _build_parser() -> argparse.ArgumentParser:
                     help="Print the worktree path (and nothing else) on stdout")
     po.set_defaults(func=cmd_open)
 
-    ps = sub.add_parser("ship", parents=[common],
+    ps = sub.add_parser("ship", parents=[common, ci],
                         help="Stage owned files, commit, push, ensure one PR, remove worktree")
     ps.add_argument("--worktree", type=Path, required=True,
                     help="Worktree path returned by `open --print-path`")
@@ -414,9 +555,21 @@ def _build_parser() -> argparse.ArgumentParser:
                     help="Push only; do not create/inspect a PR (offline/tests)")
     ps.add_argument("--keep-worktree", action="store_true",
                     help="Do not remove the worktree after shipping")
+    ps.add_argument("--merge-when-green", action="store_true",
+                    help="After pushing, watch CI and squash-merge the PR only if "
+                         "it passes (idempotent STATE PRs). Never merges a code "
+                         "task's PR -- leaves those for review.")
+    ps.add_argument("--merge-method", default="squash",
+                    choices=["squash", "merge", "rebase"],
+                    help="Merge method for --merge-when-green (default: %(default)s)")
     ps.add_argument("files", nargs="*",
                     help="Owned files to stage (place after `--`)")
     ps.set_defaults(func=cmd_ship)
+
+    pw = sub.add_parser("watch-ci", parents=[common, ci],
+                        help="Poll a branch's PR checks; print the bucket, exit "
+                             "0=pass 1=fail 2=pending 3=error/none (code-task auto-fix gate)")
+    pw.set_defaults(func=cmd_watch_ci)
     return p
 
 
