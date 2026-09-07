@@ -338,6 +338,18 @@ class TennisModelAgent(ModelAgent):
             return True
         return (ref - lu).days > SURFACE_ELO_STALE_DAYS
 
+    def surface_state_is_stale(self, today: Optional[date] = None) -> bool:
+        """True when the store's own ``last_updated`` stamp is already stale.
+
+        Public wrapper over :meth:`_is_stale` for seed scripts: surface ratings
+        whose freshest stamp is older than SURFACE_ELO_STALE_DAYS would be
+        silenced on arrival by the predict-time staleness guard. A seeder that
+        can only produce such a stamp (a failed live source falling back to
+        historical data) must refuse to ship rather than commit green with
+        dead-on-arrival ratings.
+        """
+        return self._is_stale(self._state.get("last_updated"), today or date.today())
+
     async def predict_pair(
         self,
         market: PredictionMarket,
