@@ -80,9 +80,12 @@ trouble the safe fallback is to re-anchor to `origin/main` and let the seed scri
 the current-truth file. **Code tasks omit `--rolling`** → a fresh dated branch off
 `origin/main` each run (their diffs are real code that must pass review + CI on its own).
 
-The shared checkout now **stays permanently on a clean `main`** — all work happens in
-worktrees — so no task ever runs `git switch` / `git reset --hard` / `git checkout -- .` /
-`git clean` there. Canonical shape a task's SYNC/SHIP steps reduce to:
+**Target state** (reached only for the converted tasks in the table above): the shared checkout
+**stays permanently on a clean `main`** — all work happens in worktrees — so no task ever runs
+`git switch` / `git reset --hard` / `git checkout -- .` / `git clean` there. `git reset --hard`,
+`git checkout -- .`, `git restore .` and `git clean` are forbidden in the shared checkout for
+EVERY task, converted or not (the 2026-07-21 data loss). Canonical shape a converted task's
+SYNC/SHIP steps reduce to:
 
 ```bash
 REPO=/Users/ktzeng/Projects/evmax
@@ -102,14 +105,28 @@ python "$REPO/scripts/sched_worktree.py" ship --rolling \
     -- data/models/<owned-file-a>.json data/models/<owned-file-b>.json
 ```
 
-**Rollout status — COMPLETE (verified 2026-09-07).** The helper + its tests landed on `main`
-first (a repo file must be on `main` before any task calls it; shipped in PR #259). Every task
-that mutates git-tracked artifacts now calls it: `weekly-seasonal-model-reseed`,
-`weekly-tennis-surface-elo-refresh`, `daily-resolve-and-model-update`, `daily-evening-resolve`,
-`weekly-model-calibration` (all `--rolling`), plus `weekly-ncaaf-efficiency-reseed` (`--rolling`;
-written directly on this shape 2026-09-03 and still the reference conversion) and the two code
-tasks `weekly-drift-audit` + `biweekly-model-improve-graph` (dated branches, `--run-hooks`,
-`watch-ci` auto-fix gate). Any NEW state/code task must be written on this shape from the start.
+**Rollout status — PARTIAL (audited 2026-09-07; the `open`/`ship` half is still outstanding).**
+The helper + its tests are merged (PR #259), so the old "do NOT flip a task config before merge"
+caveat no longer applies — any task may call it today. What actually shipped, per task:
+
+| Task | `open`/`ship` (worktree) | `watch-ci` (CI gate) |
+|---|---|---|
+| `weekly-ncaaf-efficiency-reseed` | ✅ `--rolling` — the reference conversion | via `ship --merge-when-green` |
+| `weekly-seasonal-model-reseed` | ❌ still to convert | ✅ |
+| `weekly-tennis-surface-elo-refresh` | ❌ still to convert | ✅ |
+| `weekly-model-calibration` | ❌ still to convert | ✅ |
+| `daily-resolve-and-model-update` | ❌ still to convert | ✅ |
+| `daily-evening-resolve` | ❌ still to convert | ✅ |
+| `weekly-drift-audit` | ❌ still to convert | ✅ |
+| `biweekly-model-improve-graph` | ❌ still to convert | ✅ (in the graph JS) |
+
+The seven unconverted tasks still base a dated branch **by content inside the shared checkout**
+(`git switch main && git pull --ff-only`, then branch) rather than in an isolated worktree. That
+keeps them exposed to failure mode 1 above whenever two of them overlap — the worktree conversion
+is what closes it, and it is a deliberate, larger follow-up, not an oversight. Until it lands, the
+"the shared checkout stays permanently on a clean `main`" paragraph below describes the TARGET
+state, not today's. Any NEW state/code task should be written on the `open`/`ship` shape from the
+start.
 
 ---
 
@@ -197,8 +214,11 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 - **2026-09-07** (weekly drift audit) three ENABLED tasks were missing from this doc and are
   now listed: `ev-scan-nfl-sunday-late` (Sun 12:45), `weekly-nfl-props-shadow-metrics` (Mon 08:30)
   and the one-time `nfl-week1-seed-verify-2026-09-14`, which gets its own "One-time" section.
-  Four corrections: the `sched_worktree.py` **Rollout status is now COMPLETE** (helper merged in
-  PR #259, and every state/code task's SKILL.md was verified to call it); `daily-morning-scan`,
+  Four corrections: the `sched_worktree.py` **Rollout status is now recorded as PARTIAL** with a
+  per-task table — the helper is merged (PR #259) and every task adopted `watch-ci`, but only
+  `weekly-ncaaf-efficiency-reseed` runs the `open`/`ship` worktree shape; the other seven still
+  branch inside the shared checkout, so the "all work happens in worktrees" paragraph is marked as
+  the target state rather than today's; `daily-morning-scan`,
   `daily-updated-scan` and `weekly-nba-props-shadow-metrics` are labelled DELETED rather than
   merely disabled, matching the 2026-09-05 History entry below and the live task registry (the
   fourth zombie, `baseball-spread-lay-gate-check`, gained a row); the "no automated scan currently
