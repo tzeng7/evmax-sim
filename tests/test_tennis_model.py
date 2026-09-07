@@ -823,3 +823,31 @@ class TestSurfaceEloStaleness:
         agent.update("sinner", "alcaraz", 2, 0, "tennis",
                      event_date="2026-06-04", surface="hard")
         assert agent._state["last_updated"] == "2026-06-04"
+
+
+# ---------------------------------------------------------------------------
+# surface_state_is_stale — the seed-side refuse guard against dead-on-arrival
+# ratings (a live-source outage falling back to a stale historical seed).
+# ---------------------------------------------------------------------------
+class TestSurfaceStateIsStale:
+    def test_fresh_stamp_is_not_stale(self, agent):
+        from datetime import date, timedelta
+        today = date(2026, 9, 7)
+        agent._state["last_updated"] = (today - timedelta(days=5)).isoformat()
+        assert agent.surface_state_is_stale(today=today) is False
+
+    def test_old_stamp_is_stale(self, agent):
+        from datetime import date
+        # The observed failure: a tennis-data.co.uk historical seed stamping a
+        # past max-event-date well beyond SURFACE_ELO_STALE_DAYS.
+        agent._state["last_updated"] = "2025-11-16"
+        assert agent.surface_state_is_stale(today=date(2026, 9, 7)) is True
+
+    def test_missing_stamp_is_not_stale(self, agent):
+        # Legacy state (no stamp) → guard disabled, mirrors predict-time behavior.
+        agent._state.pop("last_updated", None)
+        assert agent.surface_state_is_stale() is False
+
+    def test_unparseable_stamp_is_stale(self, agent):
+        agent._state["last_updated"] = "not-a-date"
+        assert agent.surface_state_is_stale() is True

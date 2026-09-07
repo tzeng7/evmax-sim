@@ -890,8 +890,20 @@ async def _resolve_via_kalshi(
             return pred["market_id"], verdict
 
         results = await asyncio.gather(*(_fetch_one(p) for p in preds), return_exceptions=True)
-        for r in results:
+        errors = 0
+        for r, pred in zip(results, preds):
             if isinstance(r, Exception):
+                # Do NOT swallow silently: a systematic settlement outage (expired
+                # Kalshi creds, delisted tickers) otherwise looks identical to
+                # "still open" and lets rows pile up unresolved with no signal.
+                # Log per-ticker and emit a summary the integrity sweep can catch.
+                errors += 1
+                logger.warning(
+                    "kalshi_settlement_error",
+                    market_id=pred.get("market_id"),
+                    sector=pred.get("sector"),
+                    error=str(r),
+                )
                 continue
             mid, verdict = r
             if verdict == "yes":
@@ -902,6 +914,14 @@ async def _resolve_via_kalshi(
                 voided.add(mid)
             else:
                 out[mid] = None
+        if errors:
+            level = logger.error if errors == len(preds) else logger.warning
+            level(
+                "kalshi_settlement_batch_errors",
+                errors=errors,
+                total=len(preds),
+                all_failed=errors == len(preds),
+            )
     return out, voided
 
 

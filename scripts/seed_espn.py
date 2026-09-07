@@ -639,7 +639,10 @@ async def seed_f1(cfg: dict, client: httpx.AsyncClient) -> None:
 
 async def seed_tennis(client: httpx.AsyncClient) -> None:
     """Seed tennis surface Elo from tennis-data.co.uk XLSX files + WTA rankings."""
-    from evmax.agents.models.tennis_model_agent import TennisModelAgent
+    from evmax.agents.models.tennis_model_agent import (
+        SURFACE_ELO_STALE_DAYS,
+        TennisModelAgent,
+    )
 
     print(f"\n{'='*60}")
     print(f"  Seeding TENNIS from tennis-data.co.uk (2024-2025)")
@@ -722,12 +725,34 @@ async def seed_tennis(client: httpx.AsyncClient) -> None:
                 surface=surface,
             )
 
+        # Refuse to ship dead-on-arrival ratings. This is a HISTORICAL seeder
+        # (load_tennis pins past seasons), so its freshest last_updated stamp is
+        # a past max-event-date. If that stamp is already stale, the predict-time
+        # staleness guard would silence surface Elo on every current match — so a
+        # weekly refresh accidentally routed here (instead of the live
+        # seed_tennis_abstract_elo.py path) would otherwise commit green with
+        # silenced ratings. Fail loud and DO NOT persist the stale surface state.
+        if agent.surface_state_is_stale():
+            stamp = agent._state.get("last_updated")
+            print(
+                f"  ERROR: historical tennis surface seed produced a stale "
+                f"last_updated={stamp} (> {SURFACE_ELO_STALE_DAYS}d old) — "
+                f"these ratings would be silenced on arrival. Refusing to save "
+                f"surface Elo. Use scripts/seed_tennis_abstract_elo.py for the "
+                f"live weekly refresh (it stamps today and aborts on an empty "
+                f"fetch instead of falling back to stale data).",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+
         agent.save_state()
         # Count ratings per surface
         for surface in ("hard", "clay", "grass", "indoor", "overall"):
             ratings = agent._ratings(surface)
             if ratings:
                 print(f"  {surface}: {len(ratings)} players rated")
+    except SystemExit:
+        raise
     except Exception as e:
         print(f"  WARN: Tennis historical seeding failed: {e}")
         print(f"  (WTA rankings were still seeded successfully)")

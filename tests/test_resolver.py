@@ -1542,6 +1542,59 @@ class TestResolveViaKalshi:
             out, voided = asyncio.run(_resolve_via_kalshi(preds))
         assert out == {} and voided == set()
 
+    def test_settlement_exception_is_logged_not_swallowed(self):
+        # Regression: a settlement lookup that RAISES (expired creds, delisted
+        # ticker) must not vanish silently — it left 21 tennis rows piling up
+        # unresolved with no signal. The failing row is absent from `out`
+        # (still pending) but a per-ticker warning + a batch-error summary fire.
+        import evmax.agents.cleanup.resolver as resolver_mod
+
+        class _RaisingKalshiClient(_FakeKalshiClient):
+            async def get_market_settlement(self, ticker: str):
+                if ticker == "T_BOOM":
+                    raise RuntimeError("kalshi 404 / auth")
+                return self._verdicts.get(ticker)
+
+        preds = [{"market_id": "kalshi:T_OK", "sector": "tennis"},
+                 {"market_id": "kalshi:T_BOOM", "sector": "tennis"}]
+        fake_log = MagicMock()
+        with patch("evmax.clients.kalshi.KalshiClient",
+                   lambda: _RaisingKalshiClient({"T_OK": "yes"})), \
+                patch.object(resolver_mod, "logger", fake_log):
+            out, voided = asyncio.run(_resolve_via_kalshi(preds))
+
+        assert out == {"kalshi:T_OK": 1}          # good row still resolves
+        assert "kalshi:T_BOOM" not in out          # failed row stays pending
+        # per-ticker error surfaced
+        assert any(c.args and c.args[0] == "kalshi_settlement_error"
+                   for c in fake_log.warning.call_args_list)
+        # batch summary surfaced (partial failure → warning, not error)
+        assert any(c.args and c.args[0] == "kalshi_settlement_batch_errors"
+                   for c in fake_log.warning.call_args_list)
+
+    def test_all_failed_logs_error(self):
+        # A total outage (every lookup raises) escalates to logger.error with
+        # all_failed=True — the signal the integrity sweep can escalate on.
+        import evmax.agents.cleanup.resolver as resolver_mod
+
+        class _AllRaiseKalshiClient(_FakeKalshiClient):
+            async def get_market_settlement(self, ticker: str):
+                raise RuntimeError("kalshi down")
+
+        preds = [{"market_id": "kalshi:A", "sector": "tennis"},
+                 {"market_id": "kalshi:B", "sector": "tennis"}]
+        fake_log = MagicMock()
+        with patch("evmax.clients.kalshi.KalshiClient",
+                   lambda: _AllRaiseKalshiClient({})), \
+                patch.object(resolver_mod, "logger", fake_log):
+            out, voided = asyncio.run(_resolve_via_kalshi(preds))
+
+        assert out == {} and voided == set()
+        err_calls = [c for c in fake_log.error.call_args_list
+                     if c.args and c.args[0] == "kalshi_settlement_batch_errors"]
+        assert err_calls, "total outage must escalate to logger.error"
+        assert err_calls[0].kwargs.get("all_failed") is True
+
 
 # ---------------------------------------------------------------------------
 # Polymarket US settlement resolution
