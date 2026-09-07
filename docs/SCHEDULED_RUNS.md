@@ -102,15 +102,14 @@ python "$REPO/scripts/sched_worktree.py" ship --rolling \
     -- data/models/<owned-file-a>.json data/models/<owned-file-b>.json
 ```
 
-**Rollout status:** the helper + its tests landed first (this is a repo file, so it must be
-on `main` before any task calls it). The per-task SKILL.md SYNC/SHIP blocks are converted to
-the shape above once the helper is merged — do NOT flip a task config before merge, or the
-task cannot find the helper. Tasks to convert: `weekly-seasonal-model-reseed`,
+**Rollout status — COMPLETE (verified 2026-09-07).** The helper + its tests landed on `main`
+first (a repo file must be on `main` before any task calls it; shipped in PR #259). Every task
+that mutates git-tracked artifacts now calls it: `weekly-seasonal-model-reseed`,
 `weekly-tennis-surface-elo-refresh`, `daily-resolve-and-model-update`, `daily-evening-resolve`,
-`weekly-model-calibration` (all `--rolling`), plus `weekly-drift-audit` and the
-`biweekly-model-improve-graph` graph (dated branches, `--run-hooks`). `weekly-ncaaf-efficiency-reseed`
-(created 2026-09-03) was written directly on this shape and is the first task running it — its
-SKILL.md is the reference conversion for the others.
+`weekly-model-calibration` (all `--rolling`), plus `weekly-ncaaf-efficiency-reseed` (`--rolling`;
+written directly on this shape 2026-09-03 and still the reference conversion) and the two code
+tasks `weekly-drift-audit` + `biweekly-model-improve-graph` (dated branches, `--run-hooks`,
+`watch-ci` auto-fix gate). Any NEW state/code task must be written on this shape from the start.
 
 ---
 
@@ -126,6 +125,7 @@ SKILL.md is the reference conversion for the others.
 | `ev-scan-light-evening` | 15:34 | Light scan #3 (18:34 ET): T-0.5–2h from the main slate — the only entry window with demonstrated +CLV; these are the rows the fresh-close CLV gates score |
 | `ev-scan-nfl-sunday-early` | Sun 09:15 (NFL season only, 09-04→02-15; self-skips otherwise) | Same light-scan body, added 2026-09-02: NFL 1pm-ET Sunday games kick at 10:00 PT, so their T-1h pick window (09:00–09:45 PT) fell between the 07:04 and 13:04 scans. The 4:25pm-ET wave is covered at 13:04 (T-21m). Spec: `docs/scheduled-tasks/ev-scan-light.md`. NOTE (2026-09-06 correction): the earlier claim that the 15:34 PT scan covers SNF/MNF/TNF is WRONG — 15:34 PT is ~T-1h45m to a 17:20 PT prime-time kickoff, outside the T-60..T-10 pick window. The prime-time waves are covered by `ev-scan-nfl-primetime` below. |
 | `ev-scan-nfl-primetime` | Thu+Sun+Mon 16:50 (NFL season only, 09-04→02-15; self-skips otherwise) | Added 2026-09-06: the T-30 pick window for TNF (Thu 17:20 PT / 20:20 ET), SNF (Sun 17:20 PT), and MNF (Mon 17:15 PT) — the only entry timing with demonstrated +CLV. Same light-scan body; push on any LIVE play EV≥5%. Spec: `docs/scheduled-tasks/ev-scan-light.md` |
+| `ev-scan-nfl-sunday-late` | Sun 12:45 (NFL season only, 09-04→02-15; self-skips otherwise) | Added 2026-09-06: the T-20 pick window for the 4:05pm-ET (13:05 PT) Sunday late-afternoon wave. Distinct from the 13:04 `ev-scan-light-afternoon` firing, which lands at T-21m for the 4:25pm-ET games only. Same light-scan body. Spec: `docs/scheduled-tasks/ev-scan-light.md` |
 | `daily-evening-resolve` | 23:06 | `evmax cleanup resolve --date TODAY` + `cleanup show --date TODAY` — day's P/L |
 | `prune-stale-open-positions` | 11:00–23:00, every 2h (`0 11,13,15,17,19,21,23 * * *`) | `evmax cleanup prune-stale --lookahead 12 --once` — re-prices every un-picked LIVE candidate (`placed=0`) against the current venue ask + a fresh Pinnacle re-blend (the same engine `agents pick --live` uses) and VOIDs (`void_reason='stale_reverted'`) any whose edge reverted below the flag threshold, so the dashboard "Open Positions" list + `cleanup show` stop showing phantom edges the live line already erased. Un-voids its own rows on a bounce-back (hysteresis). Fail-safe: never voids on a missing/empty-book quote or an in-play game, and only touches `placed=0` live rows. Writes only the gitignored `predictions.db` — no git/PR step (forbidden from editing code) |
 
@@ -150,16 +150,24 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 | `weekly-calibration-tripwire` | — | **FOLDED 2026-09-05** into `evmax cleanup integrity --weekly` (check `calibration`), which the Monday-morning firing of the `com.evmax.integrity` launchd agent runs. Task deleted |
 | `weekly-wnba-listings-robustness-check` | — | **FOLDED 2026-09-05** into `evmax cleanup integrity --weekly` (check `gates`, `GATE_WATCHES` entry for WNBA spread lay anchored-entry; PROMOTE-READY board groups are reported the same way). Task deleted |
 | `biweekly-model-improve-graph` | Mon + Thu 08:51 | Runs the versioned model-improve Workflow graph: value-audit gap → ONE model-side change → walk-forward + integrity/signal gates → PR or revert. Propose-only, never merges (graph: `.claude/workflows/model-improve.js`; ledger: `.claude/improvement-ledger.jsonl`) |
+| `weekly-nfl-props-shadow-metrics` | Mon 08:30 (NFL season) | MODEL-9 NFL prop shadow-validation readout — Brier/ROI split by price bucket over the `nfl_props` shadow rows. Produces no PR and promotes nothing; the first meaningful readout is after Week 3 (~2026-09-28), since `nfl_props` is `status: blocked` until the 2026 shadow sample clears |
 | `weekly-wnba-total-anchored-backfill-check` | Mon 09:01 | Watches the WNBA total over/under anchored-entry backfill sample for a PROMOTE or KILL verdict (read-only) |
+
+### One-time (fires once, then self-expires)
+
+| Task | Fires | What it does |
+|---|---|---|
+| `nfl-week1-seed-verify-2026-09-14` | Mon 2026-09-14 08:00 | Verifies the NFL model states actually ingested 2026 Week-1 PBP (`seasons_used` contains 2026, `gp>0`) after the first in-season `weekly-seasonal-model-reseed`, then reports NFL spread CLV per side (`cleanup shadow clv nfl -m spread --side lay|take`) toward lifting `spread`/`total` off `shadow_market_types`. Read-only |
 
 ### Disabled (kept for reference)
 
 | Task | Status |
 |---|---|
-| `daily-morning-scan` | Disabled 2026-07-02 — the fixed 01:01 scan was replaced by the interleaved `ev-scan-90min-*` pair (rolling 90-min scan + push-notify), which was itself removed (see below) |
-| `daily-updated-scan` | Disabled 2026-07-02 — the fixed 09:05 re-scan was likewise folded into the `ev-scan-90min-*` pair, which was itself removed (see below) |
-| `ev-scan-90min-on-hour` + `ev-scan-90min-half-hour` | Removed (confirmed by user 2026-07-18) — was the rolling ~90-min `evmax agents scan` + PushNotification pair that replaced the two fixed daily scans above; no automated scan currently runs, see the note under Daily |
-| `weekly-nba-props-shadow-metrics` | Disabled 2026-07-01 per user request; re-enable when NBA season restarts if nba_props promotion tracking resumes |
+| `daily-morning-scan` | Disabled 2026-07-02 (fixed 01:01 scan → the `ev-scan-90min-*` pair) — **task DELETED 2026-09-05** in the zombie-task cleanup; deregistered, SKILL.md folder left on disk |
+| `daily-updated-scan` | Disabled 2026-07-02 (fixed 09:05 re-scan → the `ev-scan-90min-*` pair) — **task DELETED 2026-09-05**, same cleanup |
+| `ev-scan-90min-on-hour` + `ev-scan-90min-half-hour` | Removed (confirmed by user 2026-07-18) — was the rolling ~90-min `evmax agents scan` + PushNotification pair that replaced the two fixed daily scans above. Automated scanning did NOT stop with them: the three `ev-scan-light-*` tasks (plus the three NFL-season waves) took it over on 2026-07-19, see the note under Daily |
+| `weekly-nba-props-shadow-metrics` | Disabled 2026-07-01 per user request — **task DELETED 2026-09-05**, same cleanup; re-create it if `nba_props` promotion tracking resumes |
+| `baseball-spread-lay-gate-check` | **Task DELETED 2026-09-05**, same cleanup (the gate readout is covered by `cleanup integrity --weekly`) |
 | `weekly-value-audit` | Disabled 2026-08-03 — SUPERSEDED by `biweekly-model-improve-graph` (the versioned Workflow graph subsumes the audit → one-change → gate → PR loop). Paused rather than deleted so it can be restored if the graph is rolled back; `.claude/commands/value-audit.md` is still the spec the graph's audit stage reads |
 | `weekly-tennis-rankings-refresh` | Deprecated 2026-06-27 (Sackmann repos offline); ranking_trend now rides the Mon tennis task. Task DELETED — deregistered and its `~/.claude/scheduled-tasks/` folder removed (confirmed gone 2026-08-03) |
 
@@ -185,6 +193,18 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 ---
 
 ## History
+
+- **2026-09-07** (weekly drift audit) three ENABLED tasks were missing from this doc and are
+  now listed: `ev-scan-nfl-sunday-late` (Sun 12:45), `weekly-nfl-props-shadow-metrics` (Mon 08:30)
+  and the one-time `nfl-week1-seed-verify-2026-09-14`, which gets its own "One-time" section.
+  Four corrections: the `sched_worktree.py` **Rollout status is now COMPLETE** (helper merged in
+  PR #259, and every state/code task's SKILL.md was verified to call it); `daily-morning-scan`,
+  `daily-updated-scan` and `weekly-nba-props-shadow-metrics` are labelled DELETED rather than
+  merely disabled, matching the 2026-09-05 History entry below and the live task registry (the
+  fourth zombie, `baseball-spread-lay-gate-check`, gained a row); the "no automated scan currently
+  runs" clause on the `ev-scan-90min-*` row was removed as false since 2026-07-19; and the
+  `prune-stale` unmerged-feature-branch caveat was replaced with its merge ref (PR #177).
+  Full report: `docs/drift-audits/2026-09-07.md`.
 
 - **2026-09-05** operational tripwires CONSOLIDATED into `evmax cleanup integrity`
   (`evmax/agents/cleanup/integrity.py`): the launchd `heartbeat` + `clv-monitor` agents and
@@ -230,9 +250,9 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
   un-picked live candidates whose edge reverted below the flag threshold; un-voids on recovery).
   Scheduled as the Claude task `prune-stale-open-positions` (every 2h, 11:00–23:00 PT, listed under
   Daily above) rather than a launchd agent — it only writes the gitignored `predictions.db`, so it
-  needs no always-up daemon, just the periodic CLI run. It becomes functional once the feature branch
-  (`claude/stale-positions-cleanup-bbec57`) merges to `main` (the task runs from the shared main
-  checkout). Preview any time with `evmax cleanup prune-stale --once --dry-run`.
+  needs no always-up daemon, just the periodic CLI run. Merged to `main` in PR #177
+  (`00b060d`), so the task is live — the shared checkout it runs from carries the command.
+  Preview any time with `evmax cleanup prune-stale --once --dry-run`.
 - **2026-08-03** (weekly drift audit) three enabled tasks were missing from this doc and are
   now listed: `weekly-calibration-tripwire`, `biweekly-model-improve-graph`, and
   `weekly-wnba-total-anchored-backfill-check`. `weekly-value-audit` moved to Disabled (superseded
