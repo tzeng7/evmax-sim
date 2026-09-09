@@ -313,12 +313,16 @@ evmax cleanup watch-closes            # always-up; or `--once` per sweep
 # Deliberately NO injuries/models: the devigged-Pinnacle anchor already impounds
 # news — this measures venue timing (Kalshi-vs-sharp convergence + fillability),
 # not forecasting. Writes archive.db only — UNLESS --log-entries is passed:
-# then qualifying WNBA spread/total anchored entries ALSO land in
+# then qualifying spread/total anchored entries for --entry-sectors (default
+# `wnba,nfl` — NFL added 2026-09-09 to accrue the spread anchored-entry CLV
+# sample; the only spread lane with a positive precedent, since every spread
+# forecasting model/sim has been walk-forward rejected) ALSO land in
 # predictions.db as mode='shadow' rows (model_sources '+anchored_entry',
 # captured_yes_price = crossable order-book price, EV>=2pp + depth>=$50 gates;
 # evmax/agents/cleanup/anchored_entry.py). The scanner's wnba spread/total are
 # disabled_market_types so it can't freeze market_ids at scan prices first —
-# the anchored trigger owns those markets. Runs unattended via launchd
+# the anchored trigger owns those markets (NFL spread/total are shadow_market_types,
+# so the anchored-entry rows are the measurable NFL spread stream). Runs unattended via launchd
 # `com.evmax.watch-listings` (hourly; add --log-entries to its plist post-merge).
 evmax cleanup watch-listings --log-entries   # always-up; or `--once` per sweep
 evmax cleanup watch-listings -s wnba -m spread --once   # narrow one-off sweep

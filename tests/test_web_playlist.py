@@ -68,6 +68,26 @@ class TestDashboardPlayDicts:
         assert r["event_date"] == date.today().isoformat()
         assert r["venue"] == "kalshi" and r["mode"] == "live"
 
+    def test_shadow_market_type_gap_shows_zero_stake(self):
+        # Regression: an NFL spread gap is shadow via shadow_market_types, but
+        # its in-memory kelly_fraction is NOT zeroed upstream (only venue/league
+        # firewalls zero Kelly in the coordinator). The feed must still render
+        # stake $0 to match the shadow badge — otherwise a shadow play advertises
+        # a phantom stake (the observed "Patriots -10.5 shadow · stake $20.20").
+        row = playlist.gap_to_dict(
+            _gap("SPRD", sector="nfl", market_type="spread", kelly=0.02,
+                 yes_team="patriots", event_id="nfl::2026-09-09::sea_vs_ne"),
+            500.0,
+        )
+        assert row["mode"] == "shadow"
+        assert row["stake"] == 0.0
+        # kelly_fraction itself is still reported (diagnostic), only stake zeroes
+        assert row["kelly_fraction"] == 0.02
+
+    def test_live_gap_stake_unchanged(self):
+        row = playlist.gap_to_dict(_gap("LV", kelly=0.02), 500.0)
+        assert row["mode"] == "live" and row["stake"] == 10.0
+
     def test_soccer_gap_carries_league_and_display(self):
         row = playlist.gap_to_dict(
             _gap("S", sector="soccer", league="epl", event_id="soccer::2026-07-08::a_vs_b"),

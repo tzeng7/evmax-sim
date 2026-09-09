@@ -115,9 +115,10 @@ def build_anchored_entries(
     normalize = lambda s: handler.normalize_team(s or "")  # noqa: E731
     anchors = _group_sharp(sharp_odds)
 
-    # This stream is Kalshi WNBA spread/total. Price the crossable ask net of
-    # the Kalshi trading fee (same rule as the scanner) unless fees are toggled
-    # off, so the anchored-entry EV gate matches the live pricing path.
+    # This stream is Kalshi laddered spread/total (WNBA + NFL per --entry-sectors;
+    # sector-generic here). Price the crossable ask net of the Kalshi trading fee
+    # (same rule as the scanner) unless fees are toggled off, so the anchored-entry
+    # EV gate matches the live pricing path.
     fee_venue = "kalshi" if get_settings().fees_in_pricing else None
 
     gaps: list[EVGap] = []

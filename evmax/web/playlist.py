@@ -117,7 +117,14 @@ def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         ),
         "kelly_pct": round(g.kelly_fraction * 100, 2),
         "kelly_fraction": round(g.kelly_fraction, 4),
-        "stake": round(bankroll * g.kelly_fraction, 2),
+        # Shadow rows never stake bankroll: log_gaps persists them mode='shadow'
+        # and Kelly is not acted on. Mirror that here so the displayed stake
+        # matches the badge — otherwise a gap demoted to shadow by market-type
+        # (e.g. NFL spread, shadow_market_types) or maker-only, whose in-memory
+        # kelly_fraction was never zeroed upstream, shows a phantom stake
+        # (a "shadow" play advertising $20.20). Venue/league-firewalled gaps
+        # already read $0 because the coordinator zeroes their Kelly upstream.
+        "stake": 0.0 if gap_mode == "shadow" else round(bankroll * g.kelly_fraction, 2),
         "model_sources": g.model_sources or "",
         "market_id": g.market_id or "",
         "event_date": str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else ""),
