@@ -819,8 +819,14 @@ def watch_listings(
              "gates at the crossable price; see anchored_entry.py).",
     ),
     entry_sectors: str = typer.Option(
-        "wnba", "--entry-sectors",
-        help="Comma-separated sectors eligible for --log-entries.",
+        "wnba,nfl", "--entry-sectors",
+        help="Comma-separated sectors eligible for --log-entries. NFL (2026-09-09) "
+             "joins WNBA to accumulate the spread anchored-entry CLV sample that "
+             "would settle whether NFL spread carries a lay/take entry edge — the "
+             "only spread lane with a positive precedent (WNBA lay +1.32pp); every "
+             "spread FORECASTING model/sim has been walk-forward rejected. Stays "
+             "shadow (Kelly-zeroed) until its own `shadow clv --sources-token "
+             "anchored_entry` bucket clears the gate.",
     ),
 ) -> None:
     """Capture the listing→scan window: prices + order-book DEPTH + sharp anchor.

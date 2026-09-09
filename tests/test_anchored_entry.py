@@ -112,6 +112,53 @@ class TestYesSide:
         assert "spread_dist" in gaps[0].model_sources
         assert "possession_sim" not in gaps[0].model_sources  # contamination-safe
 
+
+class TestNflSectorGeneric:
+    """NFL spread flows through the same sector-generic path (--entry-sectors
+    now defaults wnba,nfl). Proves the anchored-entry stream can accrue the NFL
+    spread CLV sample without any WNBA-specific coupling."""
+
+    def _nfl_spread_market(self, ask_line=-6.5, yes_team="patriots"):
+        return PredictionMarket(
+            id="kalshi:KXNFLSPREAD-26SEP13SEANE-NE6",
+            source=MarketSource.kalshi,
+            sector="nfl",
+            market_type=MarketType.spread,
+            ticker="KXNFLSPREAD-26SEP13SEANE-NE6",
+            yes_price=0.28,
+            no_price=0.77,
+            team_home="New England Patriots", team_away="Seattle Seahawks",
+            yes_team=yes_team, line=ask_line,
+            event_date=NOW,
+            volume_usd=100.0,
+        )
+
+    def _nfl_spread_sharp(self, prob_a=0.60, spread_line=-3.5):
+        # Pinnacle: Patriots -3.5 favorite. event_id tokens normalize to the
+        # same nicks the NFL handler produces for the market teams.
+        return SharpOdds(
+            event_id="nfl::2026-07-02::seahawks_vs_patriots::spread",
+            book=SharpBook.pinnacle,
+            sector="nfl",
+            outcome_a_label="New England Patriots",
+            outcome_b_label="Seattle Seahawks",
+            outcome_a_decimal=2.0, outcome_b_decimal=2.0,
+            true_prob_a=prob_a, true_prob_b=1 - prob_a,
+            margin=0.03, spread_line=spread_line, event_date=TIP,
+        )
+
+    def test_nfl_spread_anchored_entry_built(self):
+        m = self._nfl_spread_market()
+        gaps = build_anchored_entries(
+            [m], {m.ticker: book(ask=0.20)}, [self._nfl_spread_sharp()], "nfl", now=NOW)
+        lay = [g for g in gaps if g.market_id == m.id]
+        assert len(lay) == 1
+        assert lay[0].sector == "nfl"
+        assert lay[0].kalshi_yes_price == pytest.approx(0.20)  # crossable ask
+        assert "anchored_entry" in lay[0].model_sources
+        assert "spread_dist" in lay[0].model_sources
+        assert lay[0].kelly_fraction == 0.0  # shadow-only, never bankroll-sized
+
     def test_ev_gate_blocks_thin_edge(self):
         m = spread_market()
         gaps = build_anchored_entries(
