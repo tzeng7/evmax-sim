@@ -153,7 +153,9 @@ def compute_team_stats(df: pl.DataFrame, current_season: int) -> dict[str, dict]
         .group_by("posteam")
         .agg(
             ((pl.col("raw_def_epa") * pl.col("plays")).sum() / pl.col("plays").sum())
-            .alias("avg_opp_def_epa")
+            .alias("avg_opp_def_epa"),
+            ((pl.col("raw_def_success") * pl.col("plays")).sum() / pl.col("plays").sum())
+            .alias("avg_opp_def_success"),
         )
         .rename({"posteam": "team"})
     )
@@ -162,7 +164,9 @@ def compute_team_stats(df: pl.DataFrame, current_season: int) -> dict[str, dict]
         .group_by("defteam")
         .agg(
             ((pl.col("raw_off_epa") * pl.col("plays")).sum() / pl.col("plays").sum())
-            .alias("avg_opp_off_epa")
+            .alias("avg_opp_off_epa"),
+            ((pl.col("raw_off_success") * pl.col("plays")).sum() / pl.col("plays").sum())
+            .alias("avg_opp_off_success"),
         )
         .rename({"defteam": "team"})
     )
@@ -204,11 +208,18 @@ def compute_team_stats(df: pl.DataFrame, current_season: int) -> dict[str, dict]
 
         off_epa_adj = (row["raw_off_epa"] or 0.0) - (row["avg_opp_def_epa"] or 0.0)
         def_epa_adj = (row["raw_def_epa"] or 0.0) - (row["avg_opp_off_epa"] or 0.0)
+        # Opponent-adjusted success rate, same SoS subtraction as EPA — the
+        # second margin term (mirrors NCAAF v2's opponent-adjusted SR). Raw SR is
+        # kept below for diagnostics; the agent's margin reads the *_adj fields.
+        off_success_adj = (row["raw_off_success"] or 0.0) - (row["avg_opp_def_success"] or 0.0)
+        def_success_adj = (row["raw_def_success"] or 0.0) - (row["avg_opp_off_success"] or 0.0)
 
         out[full_name] = {
             "abbrev": abbrev,
             "off_epa_adj": round(off_epa_adj, 4),
             "def_epa_adj": round(def_epa_adj, 4),
+            "off_success_adj": round(off_success_adj, 4),
+            "def_success_adj": round(def_success_adj, 4),
             "off_success_rate": round(row["raw_off_success"] or 0.0, 4),
             "def_success_rate": round(row["raw_def_success"] or 0.0, 4),
             "off_explosive_rate": round(row["raw_off_explosive"] or 0.0, 4),

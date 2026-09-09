@@ -35,9 +35,14 @@ def _pair(home: str, away: str, sector: str = "nfl") -> tuple[PredictionMarket, 
     return market, sharp
 
 
-def _team_stats(off: float, defn: float, gp: int = 17) -> dict:
-    """Build a minimal team stats dict for testing predict_pair logic."""
-    return {
+def _team_stats(off: float, defn: float, gp: int = 17,
+                off_sr_adj: float | None = None, def_sr_adj: float | None = None) -> dict:
+    """Build a minimal team stats dict for testing predict_pair logic.
+
+    off_sr_adj/def_sr_adj default to None so the keys are absent — exercising the
+    back-compat path (older state predating the SR opponent-adjustment).
+    """
+    d = {
         "abbrev": "XXX",
         "off_epa_adj": off,
         "def_epa_adj": defn,
@@ -49,6 +54,11 @@ def _team_stats(off: float, defn: float, gp: int = 17) -> dict:
         "rz_td_rate_def": 0.55,
         "gp": gp,
     }
+    if off_sr_adj is not None:
+        d["off_success_adj"] = off_sr_adj
+    if def_sr_adj is not None:
+        d["def_success_adj"] = def_sr_adj
+    return d
 
 
 def _agent_with(teams: dict[str, dict]) -> NflEfficiencyModelAgent:
@@ -258,6 +268,52 @@ class TestNflEfficiencyStalenessGuard:
             assert asyncio.run(agent.predict_pair(market, sharp)) is not None
         finally:
             mod.nfl_state_is_stale_for_today = orig
+
+
+# ── SR-in-margin term (NCAAF v2 mirror; default-inert) ──────────────────────
+
+class TestSuccessRateMarginTerm:
+    def test_default_sr_weight_is_inert(self):
+        # SR_MARGIN_PTS ships 0.0: adding opponent-adjusted SR fields must NOT
+        # move live pricing (NFL ML is live). Prob with SR fields == prob without.
+        no_sr = _agent_with({
+            "a": _team_stats(0.10, -0.05),
+            "b": _team_stats(0.0, 0.0),
+        })
+        with_sr = _agent_with({
+            "a": _team_stats(0.10, -0.05, off_sr_adj=0.08, def_sr_adj=-0.06),
+            "b": _team_stats(0.0, 0.0, off_sr_adj=0.0, def_sr_adj=0.0),
+        })
+        m, s = _pair("a", "b")
+        p_no = asyncio.run(no_sr.predict_pair(m, s)).true_prob_a
+        p_yes = asyncio.run(with_sr.predict_pair(m, s)).true_prob_a
+        assert p_no == pytest.approx(p_yes)
+
+    def test_sr_weight_shifts_prob_toward_better_sr_team(self, monkeypatch):
+        import evmax.agents.models.nfl_efficiency_agent as mod
+        monkeypatch.setattr(mod, "SR_MARGIN_PTS", 70.0)  # a fitted-style weight
+        # Equal EPA; home has the better net success rate → home prob must rise
+        # above the coin-flip the EPA-only margin (+HOME_EDGE) would give.
+        agent = _agent_with({
+            "a": _team_stats(0.0, 0.0, off_sr_adj=0.05, def_sr_adj=-0.05),
+            "b": _team_stats(0.0, 0.0, off_sr_adj=0.0, def_sr_adj=0.0),
+        })
+        base = _agent_with({
+            "a": _team_stats(0.0, 0.0, off_sr_adj=0.0, def_sr_adj=0.0),
+            "b": _team_stats(0.0, 0.0, off_sr_adj=0.0, def_sr_adj=0.0),
+        })
+        m, s = _pair("a", "b")
+        p_sr = asyncio.run(agent.predict_pair(m, s)).true_prob_a
+        p_base = asyncio.run(base.predict_pair(m, s)).true_prob_a
+        assert p_sr > p_base
+
+    def test_missing_sr_fields_does_not_crash_when_weight_active(self, monkeypatch):
+        import evmax.agents.models.nfl_efficiency_agent as mod
+        monkeypatch.setattr(mod, "SR_MARGIN_PTS", 70.0)
+        # Old-shape state (no *_success_adj keys) → term reads 0.0, no KeyError.
+        agent = _agent_with({"a": _team_stats(0.10, -0.05), "b": _team_stats(0.0, 0.0)})
+        m, s = _pair("a", "b")
+        assert asyncio.run(agent.predict_pair(m, s)) is not None
 
 
 # ── Update is no-op ────────────────────────────────────────────────────────
