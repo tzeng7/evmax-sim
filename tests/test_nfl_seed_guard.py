@@ -83,3 +83,39 @@ class TestStalenessGuardHonorsSeasonsUsed:
     def test_guard_releases_once_2026_present(self):
         state = {"nfl": {"seasons_used": [2021, 2022, 2023, 2024, 2025, 2026]}}
         assert nfl_state_is_stale_for_today(state, today=date(2026, 9, 20)) is False
+
+
+class TestSuccessRateOpponentAdjustment:
+    """compute_team_stats opponent-adjusts success rate the same way as EPA
+    (mirrors NCAAF v2's opponent-adjusted SR). 3-team schedule so the SoS
+    subtraction is non-degenerate (a 2-team pair cancels to 0)."""
+
+    def _df(self):
+        # (posteam, defteam, success) per play; 3 games among KC/BUF/DEN.
+        plays = (
+            [("KC", "BUF", 1)] * 4 + [("BUF", "KC", 0)] * 2               # g1 KC@BUF
+            + [("KC", "DEN", 1), ("KC", "DEN", 0), ("DEN", "KC", 1), ("DEN", "KC", 1)]  # g2
+            + [("BUF", "DEN", 1), ("BUF", "DEN", 1), ("DEN", "BUF", 0), ("DEN", "BUF", 0)]  # g3
+        )
+        gids = ["g1"] * 6 + ["g2"] * 4 + ["g3"] * 4
+        return pl.DataFrame({
+            "season": [2025] * len(plays),
+            "posteam": [p[0] for p in plays],
+            "defteam": [p[1] for p in plays],
+            "success": [float(p[2]) for p in plays],
+            "epa": [0.0] * len(plays),
+            "yards_gained": [4.0] * len(plays),
+            "yardline_100": [50] * len(plays),
+            "touchdown": [0.0] * len(plays),
+            "game_id": gids,
+        })
+
+    def test_off_success_is_opponent_adjusted(self):
+        stats = seed.compute_team_stats(self._df(), current_season=2025)
+        kc = stats["kansas city chiefs"]
+        assert "off_success_adj" in kc and "def_success_adj" in kc
+        # raw_off_success[KC]=5/6; avg_opp_def_success weighted by KC's plays
+        # (4 vs BUF def=4/6, 2 vs DEN def=3/4) = 0.6944 → adj ≈ +0.139
+        assert kc["off_success_adj"] == pytest.approx(0.1389, abs=0.005)
+        # raw SR is still kept for diagnostics and is NOT the adjusted value
+        assert kc["off_success_rate"] == pytest.approx(0.8333, abs=0.005)

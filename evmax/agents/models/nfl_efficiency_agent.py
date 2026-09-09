@@ -58,6 +58,19 @@ STATE_PATH = Path(__file__).resolve().parents[3] / "data" / "models" / "nfl_effi
 HOME_EDGE_PTS = 2.0          # ~+2 pts home, consistent with the +48 Elo home advantage
 SCORE_STDEV = 13.5           # NFL margin σ — empirical, used by FTE-style models
 PLAYS_PER_TEAM_GAME = 64.0   # offensive plays per team per game (league avg)
+
+# Margin coefficients (mirrors NCAAF v2's V2_EPA_PTS / V2_SR_PTS two-term margin):
+#   margin = EPA_MARGIN_PTS·Δnet_epa/play + SR_MARGIN_PTS·Δnet_success_rate + HOME_EDGE_PTS
+# EPA_MARGIN_PTS defaults to PLAYS_PER_TEAM_GAME so the EPA term is byte-identical
+# to the pre-SR margin. SR_MARGIN_PTS defaults to 0.0 → the success-rate term is
+# INERT and NFL moneyline pricing is UNCHANGED. NFL ML is LIVE, so the term must
+# not move live probabilities until the coefficient is fitted and validated by
+# scripts/backtest_nfl_sr_margin.py (no-intercept OLS walk-forward, held out,
+# promoted on CLV not Brier — the NCAAF v2 protocol). Set both constants to the
+# harness's fitted pair to activate. Requires the seed's opponent-adjusted SR
+# fields (off_success_adj/def_success_adj); on older state the term reads 0.0.
+EPA_MARGIN_PTS = PLAYS_PER_TEAM_GAME
+SR_MARGIN_PTS = 0.0
 MIN_GAMES = 6                # ~4 weeks; below this confidence collapses
 LOW_CONF_GAMES = 9           # ~9 games → moderate confidence
 HIGH_CONF_GAMES = 13         # ~13 games → full confidence
@@ -244,11 +257,21 @@ class NflEfficiencyModelAgent(ModelAgent):
         net_b = stats_b["off_epa_adj"] - stats_b["def_epa_adj"]
         epa_diff_per_play = net_a - net_b
 
-        # Convert per-play differential to projected point margin.
-        # Each team gets PLAYS_PER_TEAM_GAME plays; the differential applies
-        # to A's scoring on offense and to A's defense limiting B equally,
-        # so we multiply by PLAYS_PER_TEAM_GAME (not 2x — symmetric).
-        margin = epa_diff_per_play * PLAYS_PER_TEAM_GAME + HOME_EDGE_PTS
+        # Net opponent-adjusted success rate, same sign logic as net EPA (high =
+        # good offense AND good defense). Read defensively: older state predating
+        # the seed's SR opponent-adjustment lacks these keys, so the term is 0.
+        net_sr_a = stats_a.get("off_success_adj", 0.0) - stats_a.get("def_success_adj", 0.0)
+        net_sr_b = stats_b.get("off_success_adj", 0.0) - stats_b.get("def_success_adj", 0.0)
+        sr_diff = net_sr_a - net_sr_b
+
+        # Two-term point margin (mirrors NCAAF v2). The EPA term is unchanged
+        # (EPA_MARGIN_PTS defaults to PLAYS_PER_TEAM_GAME); the SR term is inert
+        # until SR_MARGIN_PTS is set from the validated fit — see the constants.
+        margin = (
+            EPA_MARGIN_PTS * epa_diff_per_play
+            + SR_MARGIN_PTS * sr_diff
+            + HOME_EDGE_PTS
+        )
 
         prob_a = _normal_cdf(margin / SCORE_STDEV)
         prob_a = max(0.02, min(0.98, prob_a))
@@ -273,6 +296,7 @@ class NflEfficiencyModelAgent(ModelAgent):
             sample_size=min_gp,
             notes=(
                 f"net_epa={net_a:+.3f}/{net_b:+.3f} "
+                f"net_sr={net_sr_a:+.3f}/{net_sr_b:+.3f} "
                 f"margin={margin:+.1f} gp={gp_a}/{gp_b}"
             ),
         )
