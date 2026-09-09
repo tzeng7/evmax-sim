@@ -71,6 +71,23 @@ PLAYS_PER_TEAM_GAME = 64.0   # offensive plays per team per game (league avg)
 # fields (off_success_adj/def_success_adj); on older state the term reads 0.0.
 EPA_MARGIN_PTS = PLAYS_PER_TEAM_GAME
 SR_MARGIN_PTS = 0.0
+
+# Preseason-prior ramp (INERT by default). Weeks 1-N of a season the seed still
+# maxes at last season (`seasons_used` behind the active season, no current PBP),
+# so `nfl_state_is_stale_for_today` BLANKS the model and the blend runs on
+# elo+sharp only. But the state's SEASON_DECAY-weighted ratings ARE a usable
+# regressed prior (2025-dominant early). When PRESEASON_PRIOR_ENABLED is True the
+# model fires off that prior at a reduced confidence instead of going dark —
+# mirroring how strong early-season models carry a regressed prior rather than
+# starting blank (NCAAF v2 does this explicitly with an FPI prior + gp ramp).
+# Default False = EXACT current binary-blank behavior; live NFL pricing unchanged.
+# Validate with scripts/backtest_nfl_preseason_prior.py (does firing the prior in
+# weeks 1-4 beat blanking, out of sample?) and promote on CLV, not Brier — the
+# sharp line already prices preseason info. The reduced confidence keeps the prior
+# a MINORITY voice (near the 0.45 ensemble gate) so it never overrides elo+sharp.
+PRESEASON_PRIOR_ENABLED = False
+PRESEASON_PRIOR_CONFIDENCE = 0.45   # at the ensemble gate → minimal early-season weight
+
 MIN_GAMES = 6                # ~4 weeks; below this confidence collapses
 LOW_CONF_GAMES = 9           # ~9 games → moderate confidence
 HIGH_CONF_GAMES = 13         # ~13 games → full confidence
@@ -221,14 +238,19 @@ class NflEfficiencyModelAgent(ModelAgent):
         if sector != "nfl":
             return None
 
+        preseason_mode = False
         if nfl_state_is_stale_for_today(self._state):
-            logger.warning(
-                "nfl_efficiency_stale_seasons_used",
-                seasons_used=self._sector_state().get("seasons_used"),
-                active_season=active_nfl_season(),
-                hint="re-run scripts/seed_nfl_efficiency.py",
-            )
-            return None
+            if not PRESEASON_PRIOR_ENABLED:
+                logger.warning(
+                    "nfl_efficiency_stale_seasons_used",
+                    seasons_used=self._sector_state().get("seasons_used"),
+                    active_season=active_nfl_season(),
+                    hint="re-run scripts/seed_nfl_efficiency.py",
+                )
+                return None
+            # Ramp mode: don't blank — fire off the regressed prior (the
+            # SEASON_DECAY-weighted ratings) at reduced confidence.
+            preseason_mode = True
 
         sector_state = self._sector_state()
         teams = sector_state.get("teams", {})
@@ -278,7 +300,11 @@ class NflEfficiencyModelAgent(ModelAgent):
         prob_b = 1.0 - prob_a
 
         min_gp = min(gp_a, gp_b)
-        if min_gp >= HIGH_CONF_GAMES:
+        if preseason_mode:
+            # Prior-only fire (no current-season data yet): pin confidence at the
+            # gate so the prior is a minority voice, never an override of elo+sharp.
+            confidence = PRESEASON_PRIOR_CONFIDENCE
+        elif min_gp >= HIGH_CONF_GAMES:
             confidence = 0.85
         elif min_gp >= LOW_CONF_GAMES:
             confidence = 0.70
@@ -295,6 +321,7 @@ class NflEfficiencyModelAgent(ModelAgent):
             weight=self.weight,
             sample_size=min_gp,
             notes=(
+                f"{'preseason-prior ' if preseason_mode else ''}"
                 f"net_epa={net_a:+.3f}/{net_b:+.3f} "
                 f"net_sr={net_sr_a:+.3f}/{net_sr_b:+.3f} "
                 f"margin={margin:+.1f} gp={gp_a}/{gp_b}"

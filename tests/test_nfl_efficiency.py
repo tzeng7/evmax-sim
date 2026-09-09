@@ -316,6 +316,66 @@ class TestSuccessRateMarginTerm:
         assert asyncio.run(agent.predict_pair(m, s)) is not None
 
 
+# ── Preseason-prior ramp (inert by default) ─────────────────────────────────
+
+class TestPreseasonPriorRamp:
+    """When the seed is stale (weeks 1-N, seasons_used behind the active season)
+    the model blanks by default; the ramp flag instead fires the regressed prior
+    at reduced confidence. Uses a deliberately-stale state (max seasons_used <
+    active season during the Sep-Feb window)."""
+
+    def _stale_agent(self):
+        import evmax.agents.models.nfl_efficiency_agent as mod
+        from datetime import date
+        agent = _agent_with({
+            "kansas city chiefs": _team_stats(0.12, -0.06),
+            "buffalo bills": _team_stats(0.0, 0.0),
+        })
+        # Force a stale seed: seasons_used a year behind, evaluated in-season.
+        active = mod.active_nfl_season(date.today())
+        agent._state["nfl"]["seasons_used"] = [active - 2, active - 1]
+        return agent, mod
+
+    def test_default_blanks_when_stale(self, monkeypatch):
+        agent, mod = self._stale_agent()
+        monkeypatch.setattr(mod, "PRESEASON_PRIOR_ENABLED", False)
+        # Only run the assertion when the guard actually considers today in-season;
+        # otherwise the stale guard is inert and the test is vacuous.
+        if not mod.nfl_state_is_stale_for_today(agent._state):
+            import pytest
+            pytest.skip("today is out of the NFL season window; guard inert")
+        m, s = _pair("kansas city chiefs", "buffalo bills")
+        assert asyncio.run(agent.predict_pair(m, s)) is None  # blanked
+
+    def test_ramp_fires_prior_at_reduced_confidence(self, monkeypatch):
+        agent, mod = self._stale_agent()
+        monkeypatch.setattr(mod, "PRESEASON_PRIOR_ENABLED", True)
+        if not mod.nfl_state_is_stale_for_today(agent._state):
+            import pytest
+            pytest.skip("today is out of the NFL season window; guard inert")
+        m, s = _pair("kansas city chiefs", "buffalo bills")
+        pred = asyncio.run(agent.predict_pair(m, s))
+        assert pred is not None                               # no longer blank
+        assert pred.confidence == mod.PRESEASON_PRIOR_CONFIDENCE
+        assert pred.true_prob_a > 0.5                         # KC (better prior) favored
+        assert "preseason-prior" in pred.notes
+
+    def test_fresh_state_unaffected_by_flag(self, monkeypatch):
+        # A current-season seed is never stale → the flag changes nothing.
+        import evmax.agents.models.nfl_efficiency_agent as mod
+        monkeypatch.setattr(mod, "PRESEASON_PRIOR_ENABLED", True)
+        agent = _agent_with({
+            "kansas city chiefs": _team_stats(0.12, -0.06),
+            "buffalo bills": _team_stats(0.0, 0.0),
+        })
+        from datetime import date
+        agent._state["nfl"]["seasons_used"] = [mod.active_nfl_season(date.today())]
+        m, s = _pair("kansas city chiefs", "buffalo bills")
+        pred = asyncio.run(agent.predict_pair(m, s))
+        assert pred is not None and pred.confidence in (0.55, 0.70, 0.85)
+        assert "preseason-prior" not in pred.notes
+
+
 # ── Update is no-op ────────────────────────────────────────────────────────
 
 class TestUpdateIsNoOp:
