@@ -1557,8 +1557,8 @@ evmax agents scan --shadow nfl_props --live wnba --disabled nhl
 # Monte Carlo simulation + paper-bet tracking
 evmax sim list --status open
 evmax sim resolve
-evmax report
-evmax report bankroll
+evmax report report
+evmax report report --bankroll
 
 # Multi-portfolio management and comparison
 evmax portfolio list
@@ -1621,12 +1621,12 @@ All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api
 | Category | Models | Market Types | Resolver | Mode |
 |----------|--------|--------------|----------|------|
 | `nba` | Efficiency + PossessionSim + ShotQuality + Matchup + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
-| `nfl` | NFL Efficiency + NFL QB Elo + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
+| `nfl` | NFL Efficiency + NFL QB Elo + Elo + Form | moneyline (`spread` + `total` **shadow** — models price ML only) | espn_scoreboard | `live` |
 | `ncaab` | NCAAB Efficiency + PossessionSim + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
 | `ncaaw` | NCAAW Efficiency + PossessionSim + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
 | `ncaaf` | NCAAF Efficiency (opponent-adjusted EPA + preseason-prior ramp) + Elo + Form | moneyline (`spread` + `total` disabled) | espn_scoreboard | `shadow` (wip) |
 | `soccer` | Poisson + xG + Elo + Form | moneyline, total | espn_scoreboard | `live` |
-| `worldcup` | Poisson + xG + Elo + Form (national-team namespaces) | moneyline, advance | espn_scoreboard (`fifa.world`) | `shadow` |
+| `worldcup` | Poisson + xG + Elo + Form (national-team namespaces) | moneyline, advance | espn_scoreboard (`fifa.world`) | `disabled` (wip) |
 | `tennis` | Surface Elo + Serve/Return + Form + Advanced + H2H + Ranking Trend | moneyline | kalshi_settlement | `live` |
 | `baseball` | Pitcher + Elo + Form (probables via MLB Stats API) | moneyline, spread (`total` disabled) | espn_scoreboard | `shadow` |
 | `wnba` | WNBA Efficiency + WNBA PossessionSim + Elo | moneyline (`spread` + `total` **disabled** — owned by the anchored-entry trigger since 2026-07-19) | espn_scoreboard | `live` |
@@ -1634,11 +1634,11 @@ All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api
 | `lol` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
 | `cs2` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
 | `ufc` | UFC Rating (Glicko-2 + feature layer) | moneyline | kalshi_settlement | `shadow` |
-| `nba_props` | NBA Props Cache | player_prop | espn_boxscore | `shadow` |
+| `nba_props` | NBA Props Cache | player_prop | espn_boxscore | `disabled` |
 | `nfl_props` | NFL Props Cache (QB only v1) | player_prop | espn_boxscore | `shadow` (blocked) |
-| `baseball_props` | Baseball Props Model (K/Outs/TB/HR anchored; Hits/H+R+RBI/RBI model-priced) | player_prop | mlb_statsapi | `shadow` (wip) |
+| `baseball_props` | Baseball Props Model (K/Outs/TB/HR anchored; Hits/H+R+RBI/RBI model-priced) | player_prop | mlb_statsapi | `disabled` (wip) |
 
-> Injury data (ESPN) is applied to NBA / NFL / NCAAB / NCAAW / soccer / WNBA (`SECTOR_INJURY_URLS` in `injury_agent.py`). `valorant` and `f1` sector handlers exist in the registry as **latent** sectors but have no Kalshi product, so they're absent from `SECTOR_SERIES_MAP` and cannot be bet today; `ufc` graduated from that latent list to a live `shadow` sector on 2026-07-11 (`KXUFCFIGHT`).
+> Injury data (ESPN) is applied to NBA / NFL / NCAAB / NCAAW / soccer / WNBA (`SECTOR_INJURY_URLS` in `injury_agent.py`). `valorant` is registered in `evmax/sectors/registry.py` as a **latent** sector (no Kalshi product, absent from `SECTOR_SERIES_MAP`, cannot be bet today); `f1` has a handler file at `evmax/sectors/f1.py` but is NOT in `_REGISTRY`, so `get_handler("f1")` raises — activating it needs the registry entry plus a Kalshi series; `ufc` graduated from that latent list to a live `shadow` sector on 2026-07-11 (`KXUFCFIGHT`).
 
 ### Modes
 
