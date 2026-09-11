@@ -9,6 +9,7 @@ Supports 2-way markets (most sports) and 3-way markets (soccer with draw).
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass
 from typing import Optional
 
@@ -17,12 +18,21 @@ from scipy.optimize import brentq
 
 _log = logging.getLogger(__name__)
 
+# Selectable devig methods. Power is the shipped default (its favorite/underdog
+# exponent already handles asymmetry); shin and multiplicative are A/B
+# alternatives — see settings.devig_method and scripts/backtest_devig_ab.py.
+DEVIG_METHODS = ("power", "shin", "multiplicative")
+
 
 @dataclass
 class DevigResult:
     true_probs: list[float]
     margin: float  # vig as fraction, e.g. 0.04 = 4%
-    k: float  # power exponent found
+    k: float  # power exponent found (1.0 for non-power methods)
+    # Shin insider-trading fraction z (None for non-Shin methods). Exposed so a
+    # caller/backtest can inspect how much longshot-shading Shin applied.
+    z: Optional[float] = None
+    method: str = "power"
 
 
 def _objective(k: float, raw_probs: list[float]) -> float:
@@ -80,17 +90,130 @@ def devig_power_method(
     return DevigResult(true_probs=true_probs, margin=margin, k=k)
 
 
+def devig_multiplicative(decimals: list[float]) -> DevigResult:
+    """Proportional (multiplicative) devig: ``p_i = (1/d_i) / Σ(1/d_j)``.
+
+    The simplest method — divide out the booksum. Keeps every outcome's share
+    of the overround identical, so it does NOT correct favorite-longshot bias
+    (unlike power and shin). Included as an A/B baseline.
+    """
+    if len(decimals) < 2:
+        raise ValueError("Need at least 2 decimal odds")
+    if any(d <= 1.0 for d in decimals):
+        raise ValueError(f"All decimal odds must be > 1.0, got {decimals}")
+    raw = [1.0 / d for d in decimals]
+    total = sum(raw)
+    return DevigResult(
+        true_probs=[p / total for p in raw],
+        margin=total - 1.0,
+        k=1.0,
+        z=None,
+        method="multiplicative",
+    )
+
+
+def devig_shin(
+    decimals: list[float],
+    max_iter: int = 200,
+    tol: float = 1e-12,
+) -> DevigResult:
+    """Shin (1992, 1993) devig.
+
+    Models the book as facing a fraction ``z`` of insider traders and backs out
+    the true probabilities that shade LONGSHOTS DOWN and FAVOURITES UP relative
+    to the proportional devig — the standard favorite-longshot-bias correction.
+    Solves ``Σ_i p_i = 1`` for ``z ∈ [0, 1)`` where::
+
+        p_i = (sqrt(z² + 4(1 − z)·π_i²/o) − z) / (2(1 − z))
+
+    with ``π_i = 1/d_i`` the raw inverse odds and ``o = Σ π_i`` the booksum.
+    Reduces to the proportional devig (``π_i/o``, ``z ≈ 0``) for a fair or
+    near-fair book. On a non-vigged/arbitrage book (``o ≤ 1``) or if the root
+    solve fails, falls back to :func:`devig_multiplicative`.
+    """
+    if len(decimals) < 2:
+        raise ValueError("Need at least 2 decimal odds")
+    if any(d <= 1.0 for d in decimals):
+        raise ValueError(f"All decimal odds must be > 1.0, got {decimals}")
+
+    raw = [1.0 / d for d in decimals]
+    o = sum(raw)
+    margin = o - 1.0
+    n = len(raw)
+
+    if o <= 1.0 + 1e-12:
+        # No overround to remove — Shin's z collapses to 0.
+        mult = devig_multiplicative(decimals)
+        return DevigResult(
+            true_probs=mult.true_probs, margin=margin, k=1.0, z=0.0, method="shin"
+        )
+
+    def _sum_sqrt(z: float) -> float:
+        return sum(
+            math.sqrt(z * z + 4.0 * (1.0 - z) * (p * p) / o) for p in raw
+        )
+
+    # Σ p_i = 1  ⇔  Σ sqrt(...) = 2 + (n − 2)·z.
+    def _f(z: float) -> float:
+        return _sum_sqrt(z) - (2.0 + (n - 2) * z)
+
+    try:
+        # f(0) = 2(sqrt(o) − 1) > 0 for an over-round book; f is negative just
+        # below the degenerate z=1 root, so the interior insider fraction is
+        # bracketed on (0, 1).
+        z = brentq(_f, 1e-12, 1.0 - 1e-9, maxiter=max_iter, xtol=tol)
+    except (ValueError, RuntimeError):
+        _log.warning(
+            "devig_shin_fallback: root solve failed for decimals=%s, "
+            "using multiplicative devig",
+            decimals,
+        )
+        mult = devig_multiplicative(decimals)
+        return DevigResult(
+            true_probs=mult.true_probs, margin=margin, k=1.0, z=None, method="shin"
+        )
+
+    denom = 2.0 * (1.0 - z)
+    true_probs = [
+        (math.sqrt(z * z + 4.0 * (1.0 - z) * (p * p) / o) - z) / denom for p in raw
+    ]
+    # Normalise out any floating-point drift.
+    total = sum(true_probs)
+    true_probs = [p / total for p in true_probs]
+    return DevigResult(true_probs=true_probs, margin=margin, k=1.0, z=z, method="shin")
+
+
+def devig(decimals: list[float], method: str = "power") -> DevigResult:
+    """Devig ``decimals`` with the named method (``power``/``shin``/``multiplicative``).
+
+    ``power`` is the shipped default. An unknown method falls back to power (and
+    logs) rather than raising — a stray config value must never crash the scan.
+    """
+    m = (method or "power").lower()
+    if m == "power":
+        return devig_power_method(decimals)
+    if m == "shin":
+        return devig_shin(decimals)
+    if m == "multiplicative":
+        return devig_multiplicative(decimals)
+    _log.warning("devig_unknown_method=%s, falling back to power", method)
+    return devig_power_method(decimals)
+
+
 def devig_two_way(
     decimal_a: float,
     decimal_b: float,
+    method: str = "power",
 ) -> tuple[float, float, float]:
     """
     Convenience wrapper for standard two-way markets.
 
+    ``method`` selects the devig algorithm (default ``power`` — unchanged).
+
     Returns:
         (true_prob_a, true_prob_b, margin)
     """
-    result = devig_power_method([decimal_a, decimal_b])
+    result = devig([decimal_a, decimal_b], method=method)
     return result.true_probs[0], result.true_probs[1], result.margin
 
 
@@ -98,14 +221,17 @@ def devig_three_way(
     decimal_a: float,
     decimal_b: float,
     decimal_draw: float,
+    method: str = "power",
 ) -> tuple[float, float, float, float]:
     """
     Convenience wrapper for three-way markets (soccer).
 
+    ``method`` selects the devig algorithm (default ``power`` — unchanged).
+
     Returns:
         (true_prob_a, true_prob_b, true_prob_draw, margin)
     """
-    result = devig_power_method([decimal_a, decimal_b, decimal_draw])
+    result = devig([decimal_a, decimal_b, decimal_draw], method=method)
     return result.true_probs[0], result.true_probs[1], result.true_probs[2], result.margin
 
 

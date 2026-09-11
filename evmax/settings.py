@@ -253,6 +253,14 @@ class Settings(BaseSettings):
     # Matching
     fuzzy_threshold: int = 88  # rapidfuzz score threshold
 
+    # Devig method for the Pinnacle sharp anchor: "power" (default — its
+    # favorite/underdog exponent already handles asymmetry), "shin" (models an
+    # insider fraction; shades longshots down), or "multiplicative" (proportional,
+    # no favorite-longshot correction). Power is the shipped behaviour; flip via
+    # env DEVIG_METHOD to A/B a sector on CLV (scripts/backtest_devig_ab.py) —
+    # promote per market shape on the evidence, never on this default.
+    devig_method: str = "power"
+
     # Push notifications (Slack and/or Discord webhooks)
     slack_webhook_url: Optional[str] = None
     discord_webhook_url: Optional[str] = None

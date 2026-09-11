@@ -98,7 +98,7 @@ evmax/
 ├── matching/
 │   └── engine.py            # Canonical key match → fuzzy fallback (rapidfuzz, threshold=88)
 ├── ev/
-│   ├── devig.py             # Power Method via scipy.optimize.brentq (2-way + 3-way)
+│   ├── devig.py             # Devig methods (2-way + 3-way): power (default, brentq exponent) · shin (insider-fraction, shades longshots down) · multiplicative (proportional). `devig(decimals, method=)` dispatch; `settings.devig_method` (env DEVIG_METHOD) selects it and the Pinnacle client threads it through every sharp line. Power is the shipped default — A/B a sector via `scripts/backtest_devig_ab.py`, promote on CLV not Brier (the tennis lesson)
 │   ├── calculator.py        # EV = (true_prob × payout) - 1; YES-side only
 │   └── kelly.py             # Kelly fraction with confidence + liquidity discounts, 5% cap
 ├── models_ml/

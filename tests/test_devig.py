@@ -83,3 +83,112 @@ class TestDevigConvenience:
         decimal = american_to_decimal(original)
         back = decimal_to_american(decimal)
         assert abs(back - original) <= 1  # Rounding tolerance
+
+
+# ---------------------------------------------------------------------------
+# Shin + multiplicative devig (A/B alternatives to Power) and the dispatcher.
+# Validated by mathematical properties, not against prod — the closed form is
+# deterministic and its invariants (sum-to-1, favorite-longshot direction,
+# fair-book reduction) are checkable without market data.
+# ---------------------------------------------------------------------------
+from evmax.ev.devig import devig, devig_shin, devig_multiplicative  # noqa: E402
+
+
+class TestMultiplicativeDevig:
+    def test_proportional_and_sums_to_one(self):
+        r = devig_multiplicative([1.5, 2.8])
+        raw = [1 / 1.5, 1 / 2.8]
+        total = sum(raw)
+        assert r.true_probs[0] == pytest.approx(raw[0] / total)
+        assert sum(r.true_probs) == pytest.approx(1.0)
+        assert r.method == "multiplicative"
+
+    def test_favorite_higher(self):
+        r = devig_multiplicative([1.5, 2.8])
+        assert r.true_probs[0] > r.true_probs[1]
+
+    def test_rejects_bad_odds(self):
+        with pytest.raises(ValueError):
+            devig_multiplicative([1.0, 2.0])
+        with pytest.raises(ValueError):
+            devig_multiplicative([2.0])
+
+
+class TestShinDevig:
+    def test_sums_to_one_and_z_in_range(self):
+        r = devig_shin([1.5, 2.8])
+        assert sum(r.true_probs) == pytest.approx(1.0)
+        assert r.z is not None and 0.0 <= r.z < 1.0
+        assert r.method == "shin"
+
+    def test_symmetric_book_is_half_half_with_known_z(self):
+        # Hand-derived from the closed form for two -110 sides (1.90909 dec):
+        # π=1/1.90909=0.52381, o=1.04762, π²/o=0.26191; setting p=0.5 gives
+        # z² − 1.04763·z + 0.04763 = 0 → z ≈ 0.0476, probs 0.5/0.5.
+        r = devig_shin([1.90909, 1.90909])
+        assert r.true_probs[0] == pytest.approx(0.5, abs=1e-6)
+        assert r.true_probs[1] == pytest.approx(0.5, abs=1e-6)
+        assert r.z == pytest.approx(0.0476, abs=2e-3)
+
+    def test_shades_longshot_down_vs_proportional(self):
+        # THE point of Shin: correct favorite-longshot bias. The favourite's
+        # true prob is HIGHER, the longshot's LOWER, than the proportional devig.
+        odds = [1.4, 3.0]
+        shin = devig_shin(odds)
+        prop = devig_multiplicative(odds)
+        assert shin.true_probs[0] > prop.true_probs[0]  # favourite up
+        assert shin.true_probs[1] < prop.true_probs[1]  # longshot down
+        # Hand-computed reference (z ≈ 0.0497): ~[0.690, 0.309].
+        assert shin.true_probs[0] == pytest.approx(0.690, abs=3e-3)
+        assert shin.true_probs[1] == pytest.approx(0.309, abs=3e-3)
+
+    def test_fair_book_reduces_to_proportional(self):
+        # No overround → no insider signal → z≈0 → proportional probs.
+        r = devig_shin([2.0, 2.0])
+        assert r.true_probs[0] == pytest.approx(0.5)
+        assert r.z == pytest.approx(0.0, abs=1e-9)
+
+    def test_three_way_sums_to_one(self):
+        r = devig_shin([2.1, 3.5, 3.2])
+        assert len(r.true_probs) == 3
+        assert sum(r.true_probs) == pytest.approx(1.0)
+        assert all(p > 0 for p in r.true_probs)
+
+    def test_monotonic_in_raw_prob(self):
+        # Higher raw implied (shorter odds) → higher devigged prob, always.
+        r = devig_shin([1.3, 2.5, 6.0])
+        assert r.true_probs[0] > r.true_probs[1] > r.true_probs[2]
+
+
+class TestDevigDispatch:
+    def test_power_is_default_and_unchanged(self):
+        # The dispatcher's power path must equal the direct power method exactly
+        # — this is what keeps the shipped devig_method="power" behaviour inert.
+        from evmax.ev.devig import devig_power_method
+
+        direct = devig_power_method([1.5, 2.8])
+        via = devig([1.5, 2.8], method="power")
+        assert via.true_probs == direct.true_probs
+
+    def test_two_way_default_matches_power(self):
+        # devig_two_way with no method arg is byte-identical to the old behaviour.
+        a, b, m = devig_two_way(1.5, 2.8)
+        from evmax.ev.devig import devig_power_method
+
+        r = devig_power_method([1.5, 2.8])
+        assert (a, b) == (r.true_probs[0], r.true_probs[1])
+
+    def test_method_selects_algorithm(self):
+        assert devig([1.5, 2.8], method="shin").method == "shin"
+        assert devig([1.5, 2.8], method="multiplicative").method == "multiplicative"
+
+    def test_unknown_method_falls_back_to_power(self):
+        r = devig([1.5, 2.8], method="bogus")
+        assert r.method == "power"
+
+    def test_two_way_and_three_way_forward_method(self):
+        # The Pinnacle client passes method= through these wrappers.
+        a, b, _ = devig_two_way(1.4, 3.0, method="shin")
+        assert a > b  # favourite still higher, just Shin-shaded
+        pa, pb, pd, _ = devig_three_way(2.1, 3.5, 3.2, method="multiplicative")
+        assert pa + pb + pd == pytest.approx(1.0)
