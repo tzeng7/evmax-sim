@@ -35,7 +35,11 @@ from evmax.matching.prop_matcher import PropMatcher
 from evmax.modes import get_mode
 from evmax.models.market import PredictionMarket, MarketType
 from evmax.models.odds import SharpOdds
-from evmax.models_ml.spread_distribution import SpreadDistributionModel
+from evmax.models_ml.spread_distribution import (
+    SpreadDistributionModel,
+    SPREAD_LADDER_ENABLED,
+    SPREAD_LADDER_LINE_TOLERANCE,
+)
 from evmax.models_ml.total_distribution import TotalDistributionModel, is_game_total
 from evmax.ev.devig import derive_advance_prob
 from evmax.settings import get_settings
@@ -254,6 +258,9 @@ MIN_NONSHARP_MODELS: dict[str, dict] = {
 _NON_MODEL_TOKENS = frozenset({
     "", "sharp", "sharp(capped)", "injury", "late_news", "rest", "playoff",
     "advance_derived", "spread_dist", "total_dist", "no_side",
+    # sharp_ladder = priced off the book's own alt-spread rung; it is the sharp
+    # price, not an independent model signal, so it counts as non-model.
+    "sharp_ladder",
 })
 
 # How much of the possession-sim cover probability to mix into the market-anchored
@@ -824,14 +831,36 @@ class EVGapAgent(Agent):
         # Step 2a: Spread markets — blend Pinnacle CDF with sim distribution
         # ------------------------------------------------------------------
         used_spread_model = False
+        used_spread_ladder = False
         if market.market_type == MarketType.spread and market.line is not None:
-            spread_result = self._spread_model.predict(
-                sharp_odds=sharp,
-                target_line=market.line,
-                sector=sector,
-                yes_is_underdog=yes_is_outcome_b,
+            # Ladder hit: the matched Pinnacle record is the rung for THIS line
+            # (its |spread_line| ≈ the market |line|), so `sharp_true_prob` — the
+            # book's devigged cover prob, already oriented to the YES side by
+            # align_yes_side above — IS the fair. No CDF, no σ, no sim overlay:
+            # we read the book's own price instead of extrapolating one. Inert
+            # while the flag is off (the matcher emits no exact-line alt rungs,
+            # and a main-line rung still takes the CDF path below).
+            ladder_hit = (
+                SPREAD_LADDER_ENABLED
+                and sharp.spread_line is not None
+                and abs(abs(sharp.spread_line) - abs(market.line))
+                <= SPREAD_LADDER_LINE_TOLERANCE
             )
-            if spread_result is not None:
+            if ladder_hit:
+                used_spread_model = True   # skip the ensemble blend (step 3)
+                used_spread_ladder = True
+                # sharp_true_prob already set from alignment.sharp_prob(sharp).
+            else:
+                spread_result = self._spread_model.predict(
+                    sharp_odds=sharp,
+                    target_line=market.line,
+                    sector=sector,
+                    yes_is_underdog=yes_is_outcome_b,
+                )
+                if spread_result is None:
+                    # CDF gap-filler bailed (line too far) — blend is unreliable
+                    # for both YES and NO. Skip the NO-side too.
+                    return _ret(None, None)
                 sharp_true_prob = spread_result.true_prob
                 used_spread_model = True
 
@@ -863,10 +892,6 @@ class EVGapAgent(Agent):
                 # to False here previously caused underdog-cover injury
                 # adjustments to flow in the WRONG direction (e.g., PHI
                 # injured → P(PHI covers) went UP).
-            else:
-                # Spread distribution model bailed (line too far) — blend is
-                # unreliable for both YES and NO. Skip the NO-side too.
-                return _ret(None, None)
 
         # ------------------------------------------------------------------
         # Step 2b: Total markets — use TotalDistributionModel (line-adjusted)
@@ -932,7 +957,12 @@ class EVGapAgent(Agent):
             src = model_sources.get(sharp.event_id, blend.model_sources)
         else:
             blended_prob = sharp_true_prob
-            if used_spread_model:
+            if used_spread_ladder:
+                # Priced off the book's own alt-spread rung for this exact line —
+                # no CDF. The token lets `cleanup shadow clv --sources-token
+                # sharp_ladder` isolate ladder-priced rows from extrapolated ones.
+                src = "sharp+sharp_ladder"
+            elif used_spread_model:
                 sim = self._sim_for_sector(sector) if spread_sim_weight(sector) > 0 else None
                 has_sim = sim is not None and sharp.event_id in getattr(sim, "_margin_cache", {})
                 src = "sharp+spread_dist+possession_sim" if has_sim else "sharp+spread_dist"
