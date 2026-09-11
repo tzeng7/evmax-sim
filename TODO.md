@@ -842,14 +842,19 @@ Novig/ProphetX listing-time prices are the most likely stale). Promote per
 (sector, market, venue, side) on `cleanup shadow clv --sources-token
 anchored_entry`. Needs accrued prod snapshots; extends existing machinery.
 
-### VENUE-6 Devig A/B verdict [P2 — needs prod backtest]
-Run `scripts/backtest_devig_ab.py` on prod to size the effect, then a shadow run
-per candidate sector under `DEVIG_METHOD=shin` (or multiplicative) and read
-`cleanup shadow clv`. If a sector/market shape clears CLV (not just Brier), bake
-it in permanently by adding ONE line to `devig.DEVIG_METHOD_BY_SECTOR` (e.g.
-`{"soccer": "shin"}`) — no runtime flag, automatic thereafter. Most likely to
-help 3-way soccer/worldcup and longshot legs. Power stays the default everywhere
-else.
+### VENUE-6 Devig auto-selection [P2 — SHIPPED; runs itself on prod]
+Per-sector devig is AUTO-SELECTED, zero-bandwidth: the weekly integrity sweep
+(`check_devig`) runs the power/shin/multiplicative A/B over resolved lines and
+SURFACES a one-tap recommendation when a non-power method clears the gate
+(SIGNIFICANT paired Brier-vs-outcome: Δ≥2/1000 AND z≥1.64 AND n≥200; power
+sticky). Applying it is `evmax cleanup devig promote <sector>` (writes
+`data/models/devig_method_state.json`, no code edit — like `adjust` writing
+model_config.json). `evmax cleanup devig show` prints the A/B on demand;
+`scripts/backtest_devig_ab.py` is the manual lens. Devig quality is calibration
+vs OUTCOMES, not CLV (it extracts the book's own probability, not a forecast) —
+the tennis lesson lives on as the significance guard. Nothing further to do;
+the recommendation appears in the Monday sweep if soccer/worldcup 3-way or a
+longshot-heavy sector ever earns it.
 
 ---
 

@@ -598,6 +598,39 @@ def check_launchd() -> list[dict]:
 # calibration — value-audit bias verdicts (weekly)
 # ---------------------------------------------------------------------------
 
+def check_devig(days: int = 120) -> list[dict]:
+    """Surface a per-sector devig-method recommendation when one clears the gate.
+
+    Auto-runs the power/shin/multiplicative A/B over recently-resolved lines and
+    emits an ``info`` issue (never marks the sweep unhealthy) with the exact
+    one-tap command when a non-power method beats power significantly. This is
+    the "auto-surface" half of the auto-surface + one-tap-flip design — the
+    operator never investigates; the sweep flags a winner and applying it is one
+    command. Fail-soft: any error (no archive.db off-prod) yields no issues.
+    """
+    try:
+        from evmax.ev.devig_selection import recommend_devig_methods
+    except Exception as e:  # noqa: BLE001
+        logger.warning("integrity_devig_import_failed", error=str(e))
+        return []
+    try:
+        recs = recommend_devig_methods(days=days)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("integrity_devig_failed", error=str(e))
+        return []
+    issues: list[dict] = []
+    for r in recs:
+        if not r.is_actionable:
+            continue
+        issues.append(_issue(
+            "devig", "info",
+            f"{r.sector}: {r.best_method} beats power by "
+            f"{r.delta * 1000:.1f}/1000 Brier (z={r.z:.1f}, n={r.n}) — one-tap: "
+            f"`evmax cleanup devig promote {r.sector}`",
+        ))
+    return issues
+
+
 def check_calibration(weeks: int = 8) -> list[dict]:
     from evmax.agents.cleanup.value_audit import compute_value_audit
 
@@ -626,7 +659,7 @@ DAILY_CHECKS = (
     "cadence", "states", "inplay", "model_missing", "match_rate", "resolution",
     "close_capture", "board", "drawdown", "launchd",
 )
-WEEKLY_CHECKS = ("calibration", "gates")
+WEEKLY_CHECKS = ("calibration", "gates", "devig")
 
 
 def run_integrity(
@@ -663,6 +696,7 @@ def run_integrity(
         "launchd": check_launchd,
         "calibration": check_calibration,
         "gates": check_gate_watches,
+        "devig": check_devig,
     }
 
     issues: list[dict] = []

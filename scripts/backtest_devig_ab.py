@@ -12,11 +12,14 @@ the raw decimals) that later resolved (predictions.db `ev_outcomes`), it
 re-devigs the SAME decimals three ways and scores each method's side-A
 probability against whether side A actually won. Lower Brier is better.
 
-The live promotion gate is CLV, not Brier (the tennis lesson: an offline
-close-anchored Brier edge below the noise floor does not translate). Use this to
-size the effect and catch sign bugs; promote a sector/market to a non-power
-method only after `cleanup shadow clv` on a shadow run under
-`DEVIG_METHOD=<method>` clears.
+This manual lens complements the AUTOMATIC selector
+(``evmax/ev/devig_selection.py``, surfaced weekly by the integrity sweep,
+applied via ``evmax cleanup devig promote``). Devig quality is calibration vs
+OUTCOMES (Brier), not CLV — devigging EXTRACTS the book's own probability, it
+isn't a forecast trying to beat the close. The tennis lesson survives only as
+the SIGNIFICANCE guard: the auto-gate needs a material Brier delta (>=2/1000)
+AND a paired z (>=1.64) AND n>=200, so a noise-floor edge never flips a sector.
+Use this to size the effect and catch sign bugs by hand.
 
 Read-only. Runs on the prod box (needs archive.db + predictions.db). Prints a
 per-(sector, market-shape, method) Brier table; writes nothing.

@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -23,24 +24,73 @@ _log = logging.getLogger(__name__)
 # alternatives — see settings.devig_method and scripts/backtest_devig_ab.py.
 DEVIG_METHODS = ("power", "shin", "multiplicative")
 
-# Per-sector devig, baked from CLV evidence (scripts/backtest_devig_ab.py) — the
-# same "set once in code, never flip at runtime" pattern as
-# ensemble_agent.SECTOR_WEIGHT_OVERRIDES. Empty = power everywhere, the shipped
-# state, so the operator changes NOTHING out of the box. To promote a sector to
-# a non-power method after its CLV clears, add ONE line here (e.g.
-# {"soccer": "shin"}); it is then permanent and automatic. The global
-# settings.devig_method is only the fallback default / A/B experiment override.
+# Optional CODE-level hard override, highest precedence. Normally EMPTY — the
+# per-sector method is chosen automatically (see below), not hand-maintained.
+# Use this only to pin a sector's method in code regardless of the auto-selector
+# (e.g. to force power during an incident). Empty = defer to the auto-selection.
 DEVIG_METHOD_BY_SECTOR: dict[str, str] = {}
+
+# Persisted per-sector selection, written by `evmax cleanup devig promote` (the
+# one-tap flip the weekly integrity sweep surfaces). NOT hand-edited and NOT a
+# code file, so promoting a sector needs no commit. Shipped absent = power
+# everywhere. Read here (cached) so the Pinnacle client pays no per-line cost.
+DEVIG_METHOD_STATE_PATH = Path(__file__).resolve().parents[2] / "data" / "models" / "devig_method_state.json"
+
+_SELECTED_METHODS_CACHE: Optional[dict[str, str]] = None
+
+
+def _load_selected_methods() -> dict[str, str]:
+    """Persisted {sector: method} selection, cached for the process.
+
+    Missing/malformed file → empty (power everywhere). Unknown method values are
+    dropped defensively so a corrupt state can never pick a non-existent devig.
+    """
+    global _SELECTED_METHODS_CACHE
+    if _SELECTED_METHODS_CACHE is not None:
+        return _SELECTED_METHODS_CACHE
+    selected: dict[str, str] = {}
+    try:
+        import json
+
+        raw = json.loads(DEVIG_METHOD_STATE_PATH.read_text())
+        for sector, method in (raw.get("methods") or raw).items():
+            m = str(method).lower()
+            if m in DEVIG_METHODS:
+                selected[str(sector).lower()] = m
+    except (FileNotFoundError, ValueError, AttributeError, OSError):
+        selected = {}
+    _SELECTED_METHODS_CACHE = selected
+    return selected
+
+
+def invalidate_selected_methods_cache() -> None:
+    """Drop the cached selection so the next resolve re-reads the state file.
+
+    Called after a write (the one-tap promote) so a same-process reader sees it.
+    """
+    global _SELECTED_METHODS_CACHE
+    _SELECTED_METHODS_CACHE = None
 
 
 def resolve_devig_method(sector: Optional[str], default: str = "power") -> str:
-    """The devig method for ``sector``: its baked-in override, else ``default``.
+    """The devig method for ``sector``, chosen automatically. No hand-tuning.
 
-    ``default`` is the global fallback (settings.devig_method). This is what the
-    Pinnacle client calls per line, so each sector automatically gets its
-    validated method with no runtime configuration.
+    Precedence, highest first:
+      1. ``DEVIG_METHOD_BY_SECTOR`` — code hard override (normally empty).
+      2. the persisted auto-selection (``devig_method_state.json``, written by
+         the one-tap ``cleanup devig promote`` the weekly sweep surfaces).
+      3. ``default`` — the global fallback (settings.devig_method), i.e. power.
+
+    This is what the Pinnacle client calls per line, so each sector gets its
+    validated method with zero runtime configuration.
     """
-    return DEVIG_METHOD_BY_SECTOR.get((sector or "").lower(), default or "power")
+    s = (sector or "").lower()
+    if s in DEVIG_METHOD_BY_SECTOR:
+        return DEVIG_METHOD_BY_SECTOR[s]
+    selected = _load_selected_methods()
+    if s in selected:
+        return selected[s]
+    return default or "power"
 
 
 @dataclass

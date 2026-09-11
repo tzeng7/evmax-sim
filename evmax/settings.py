@@ -255,10 +255,11 @@ class Settings(BaseSettings):
 
     # GLOBAL FALLBACK devig method for the Pinnacle sharp anchor: "power"
     # (default — its favorite/underdog exponent already handles asymmetry),
-    # "shin", or "multiplicative". You do NOT flip this per run: the method is
-    # resolved PER SECTOR via devig.DEVIG_METHOD_BY_SECTOR (baked from CLV
-    # evidence, empty = power everywhere), and this is only the fallback for
-    # sectors without an override. Leave it "power"; set env DEVIG_METHOD only to
+    # "shin", or "multiplicative". You never manage this per sector: the method
+    # is auto-selected per sector (the weekly integrity sweep surfaces a
+    # gate-clearing winner, applied via `evmax cleanup devig promote <sector>`,
+    # persisted to devig_method_state.json). This is only the fallback for
+    # sectors with no selection. Leave it "power"; set env DEVIG_METHOD only to
     # A/B every sector at once during an experiment (scripts/backtest_devig_ab.py).
     devig_method: str = "power"
 

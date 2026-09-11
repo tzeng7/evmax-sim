@@ -98,7 +98,7 @@ evmax/
 ├── matching/
 │   └── engine.py            # Canonical key match → fuzzy fallback (rapidfuzz, threshold=88)
 ├── ev/
-│   ├── devig.py             # Devig methods (2-way + 3-way): power (default, brentq exponent) · shin (insider-fraction, shades longshots down) · multiplicative (proportional). `devig(decimals, method=)` dispatch. Method is resolved PER SECTOR by `resolve_devig_method(sector, fallback)` reading `DEVIG_METHOD_BY_SECTOR` (baked from CLV evidence, same set-once pattern as `SECTOR_WEIGHT_OVERRIDES`; EMPTY = power everywhere, the shipped state — nothing to flip at runtime). `settings.devig_method` (env DEVIG_METHOD, default power) is only the global fallback / A/B experiment lever. The Pinnacle client resolves per line. Promote a sector to a non-power method via `scripts/backtest_devig_ab.py` → one line in the map, on CLV not Brier (the tennis lesson)
+│   ├── devig.py             # Devig methods (2-way + 3-way): power (default, brentq exponent) · shin (insider-fraction, shades longshots down) · multiplicative (proportional). `devig(decimals, method=)` dispatch. Method is resolved PER SECTOR by `resolve_devig_method(sector, fallback)` (precedence: `DEVIG_METHOD_BY_SECTOR` code hard-override, normally empty → persisted `data/models/devig_method_state.json` → `settings.devig_method` fallback = power). Selection is AUTOMATIC + ZERO-BANDWIDTH: the weekly integrity sweep (`check_devig`) runs the A/B and SURFACES a one-tap recommendation when a non-power method clears the gate; applying it is `evmax cleanup devig promote <sector>` (writes the state JSON, no code edit/commit — like `adjust` writing model_config.json). Gate = SIGNIFICANT paired Brier-vs-outcome improvement (Δ≥2/1000 AND z≥1.64 AND n≥200), power sticky — see `evmax/ev/devig_selection.py`. Devig quality is calibration vs OUTCOMES (Brier), NOT CLV: devigging extracts the book's own probability, it isn't a forecast trying to beat the close — the tennis lesson survives only as the significance guard (a marginal edge never flips). `scripts/backtest_devig_ab.py` is the manual lens
 │   ├── calculator.py        # EV = (true_prob × payout) - 1; YES-side only
 │   └── kelly.py             # Kelly fraction with confidence + liquidity discounts, 5% cap
 ├── models_ml/
@@ -127,7 +127,7 @@ evmax/
     ├── app.py               # Typer root app
     └── commands/
         ├── agents.py        # evmax agents scan/verify/pick/fill/balance/seed/ratings/update (scan --bankroll-venue sizes against a venue's live balance)
-        ├── cleanup.py       # evmax cleanup show/resolve/metrics/adjust/value-audit/watch-closes/watch-listings/listings-eval/prune-stale/integrity
+        ├── cleanup.py       # evmax cleanup show/resolve/metrics/adjust/devig/value-audit/watch-closes/watch-listings/listings-eval/prune-stale/integrity
         ├── shadow.py        # evmax cleanup shadow show/metrics/clv/promote
         ├── categories.py    # evmax categories list/show/modes/validate
         ├── archive.py       # evmax archive stats/resolve/backtest/export
