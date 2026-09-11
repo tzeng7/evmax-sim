@@ -253,12 +253,13 @@ class Settings(BaseSettings):
     # Matching
     fuzzy_threshold: int = 88  # rapidfuzz score threshold
 
-    # Devig method for the Pinnacle sharp anchor: "power" (default — its
-    # favorite/underdog exponent already handles asymmetry), "shin" (models an
-    # insider fraction; shades longshots down), or "multiplicative" (proportional,
-    # no favorite-longshot correction). Power is the shipped behaviour; flip via
-    # env DEVIG_METHOD to A/B a sector on CLV (scripts/backtest_devig_ab.py) —
-    # promote per market shape on the evidence, never on this default.
+    # GLOBAL FALLBACK devig method for the Pinnacle sharp anchor: "power"
+    # (default — its favorite/underdog exponent already handles asymmetry),
+    # "shin", or "multiplicative". You do NOT flip this per run: the method is
+    # resolved PER SECTOR via devig.DEVIG_METHOD_BY_SECTOR (baked from CLV
+    # evidence, empty = power everywhere), and this is only the fallback for
+    # sectors without an override. Leave it "power"; set env DEVIG_METHOD only to
+    # A/B every sector at once during an experiment (scripts/backtest_devig_ab.py).
     devig_method: str = "power"
 
     # Push notifications (Slack and/or Discord webhooks)

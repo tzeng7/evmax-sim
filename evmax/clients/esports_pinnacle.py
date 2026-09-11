@@ -34,6 +34,7 @@ from evmax.ev.devig import (
     derive_advance_prob,
     devig_three_way,
     devig_two_way,
+    resolve_devig_method,
 )
 from evmax.models.odds import SharpBook, SharpOdds
 from evmax.settings import get_settings
@@ -273,8 +274,10 @@ class PinnacleGuestClient(BaseAPIClient):
         # fetch failed (matchups list); reset to None on a successful fetch. Lets
         # a caller / the heartbeat probe know Pinnacle is down and WHY.
         self.last_error: Optional[dict] = None
-        # Devig method for every sharp line this client produces. Read once from
-        # settings; "power" (default) is byte-identical to the prior behaviour.
+        # Global fallback devig method (settings.devig_method, default "power").
+        # The actual method per line is resolve_devig_method(sector, this), so a
+        # sector with a baked-in override (DEVIG_METHOD_BY_SECTOR) uses it
+        # automatically — no runtime configuration. "power" everywhere by default.
         from evmax.settings import get_settings
         self._devig_method = get_settings().devig_method
 
@@ -581,7 +584,7 @@ class PinnacleGuestClient(BaseAPIClient):
             over_dec  = american_to_decimal(int(over_entry["price"]))
             under_dec = american_to_decimal(int(under_entry["price"]))
             prob_over, prob_under, margin = devig_two_way(
-                over_dec, under_dec, method=self._devig_method
+                over_dec, under_dec, method=resolve_devig_method(sector, self._devig_method)
             )
         except Exception as e:
             logger.debug("pinnacle_prop_devig_failed", error=str(e))
@@ -933,13 +936,13 @@ class PinnacleGuestClient(BaseAPIClient):
             if draw_price is not None:
                 draw_dec = american_to_decimal(int(draw_price))
                 prob_a, prob_b, prob_draw, margin = devig_three_way(
-                    home_dec, away_dec, draw_dec, method=self._devig_method
+                    home_dec, away_dec, draw_dec, method=resolve_devig_method(sector, self._devig_method)
                 )
             else:
                 draw_dec = None
                 prob_draw = None
                 prob_a, prob_b, margin = devig_two_way(
-                    home_dec, away_dec, method=self._devig_method
+                    home_dec, away_dec, method=resolve_devig_method(sector, self._devig_method)
                 )
         except Exception as e:
             logger.debug("pinnacle_guest_devig_failed", error=str(e))
@@ -995,7 +998,7 @@ class PinnacleGuestClient(BaseAPIClient):
             cover_dec = american_to_decimal(int(cover_price))
             other_dec = american_to_decimal(int(other_price))
             prob_cover, prob_other, margin = devig_two_way(
-                cover_dec, other_dec, method=self._devig_method
+                cover_dec, other_dec, method=resolve_devig_method(sector, self._devig_method)
             )
         except Exception as e:
             logger.debug("pinnacle_guest_spread_devig_failed", error=str(e))
@@ -1044,7 +1047,7 @@ class PinnacleGuestClient(BaseAPIClient):
             over_dec  = american_to_decimal(int(over_entry["price"]))
             under_dec = american_to_decimal(int(under_entry["price"]))
             prob_over, prob_under, margin = devig_two_way(
-                over_dec, under_dec, method=self._devig_method
+                over_dec, under_dec, method=resolve_devig_method(sector, self._devig_method)
             )
         except Exception as e:
             logger.debug("pinnacle_guest_totals_devig_failed", error=str(e))

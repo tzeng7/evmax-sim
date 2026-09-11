@@ -768,8 +768,11 @@ never Brier.
   entry fee θ=0.03 + half-taker maker rebate; ProphetX 2% commission on net
   WINNINGS (winners only) modeled as the breakeven-prob shift for EV and a
   winners-only profit commission for realized P&L. Validated (breakeven ⇒ EV 0).
-- Shin + multiplicative devig alternatives (`ev/devig.py`, `settings.devig_method`,
-  `scripts/backtest_devig_ab.py`) — default power (inert).
+- Shin + multiplicative devig alternatives (`ev/devig.py`,
+  `scripts/backtest_devig_ab.py`). Method is resolved PER SECTOR via
+  `DEVIG_METHOD_BY_SECTOR` (empty = power everywhere — nothing to flip at
+  runtime); `settings.devig_method` is only the global fallback / experiment
+  lever.
 
 ### VENUE-1 Novig market-data client [P1 — blocked on credentials]
 Novig is a CFTC-designated contract market (Aug 2026) with full order/market-data
@@ -840,11 +843,13 @@ Novig/ProphetX listing-time prices are the most likely stale). Promote per
 anchored_entry`. Needs accrued prod snapshots; extends existing machinery.
 
 ### VENUE-6 Devig A/B verdict [P2 — needs prod backtest]
-Run `scripts/backtest_devig_ab.py` on prod, then a shadow run per candidate
-sector under `DEVIG_METHOD=shin` (or multiplicative) and read `cleanup shadow clv`.
-Adopt a non-power method for a sector/market shape ONLY if it clears CLV (not just
-Brier). Most likely to help 3-way soccer/worldcup and longshot legs. Power stays
-the global default.
+Run `scripts/backtest_devig_ab.py` on prod to size the effect, then a shadow run
+per candidate sector under `DEVIG_METHOD=shin` (or multiplicative) and read
+`cleanup shadow clv`. If a sector/market shape clears CLV (not just Brier), bake
+it in permanently by adding ONE line to `devig.DEVIG_METHOD_BY_SECTOR` (e.g.
+`{"soccer": "shin"}`) — no runtime flag, automatic thereafter. Most likely to
+help 3-way soccer/worldcup and longshot legs. Power stays the default everywhere
+else.
 
 ---
 

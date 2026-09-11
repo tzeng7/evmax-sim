@@ -192,3 +192,29 @@ class TestDevigDispatch:
         assert a > b  # favourite still higher, just Shin-shaded
         pa, pb, pd, _ = devig_three_way(2.1, 3.5, 3.2, method="multiplicative")
         assert pa + pb + pd == pytest.approx(1.0)
+
+
+class TestPerSectorDevigResolution:
+    def test_default_is_power_everywhere(self):
+        # Empty override map (shipped state) → every sector resolves to the
+        # global fallback, so the operator changes nothing out of the box.
+        from evmax.ev.devig import resolve_devig_method
+
+        assert resolve_devig_method("soccer", "power") == "power"
+        assert resolve_devig_method("nba", "power") == "power"
+        assert resolve_devig_method(None, "power") == "power"
+
+    def test_baked_override_wins_over_global_default(self, monkeypatch):
+        # Simulate promoting soccer to shin once its CLV clears — one map entry,
+        # permanent and automatic, with no runtime flag.
+        import evmax.ev.devig as d
+
+        monkeypatch.setattr(d, "DEVIG_METHOD_BY_SECTOR", {"soccer": "shin"})
+        assert d.resolve_devig_method("soccer", "power") == "shin"
+        assert d.resolve_devig_method("nba", "power") == "power"  # untouched sectors
+
+    def test_case_insensitive_sector(self, monkeypatch):
+        import evmax.ev.devig as d
+
+        monkeypatch.setattr(d, "DEVIG_METHOD_BY_SECTOR", {"soccer": "shin"})
+        assert d.resolve_devig_method("Soccer", "power") == "shin"

@@ -23,6 +23,25 @@ _log = logging.getLogger(__name__)
 # alternatives — see settings.devig_method and scripts/backtest_devig_ab.py.
 DEVIG_METHODS = ("power", "shin", "multiplicative")
 
+# Per-sector devig, baked from CLV evidence (scripts/backtest_devig_ab.py) — the
+# same "set once in code, never flip at runtime" pattern as
+# ensemble_agent.SECTOR_WEIGHT_OVERRIDES. Empty = power everywhere, the shipped
+# state, so the operator changes NOTHING out of the box. To promote a sector to
+# a non-power method after its CLV clears, add ONE line here (e.g.
+# {"soccer": "shin"}); it is then permanent and automatic. The global
+# settings.devig_method is only the fallback default / A/B experiment override.
+DEVIG_METHOD_BY_SECTOR: dict[str, str] = {}
+
+
+def resolve_devig_method(sector: Optional[str], default: str = "power") -> str:
+    """The devig method for ``sector``: its baked-in override, else ``default``.
+
+    ``default`` is the global fallback (settings.devig_method). This is what the
+    Pinnacle client calls per line, so each sector automatically gets its
+    validated method with no runtime configuration.
+    """
+    return DEVIG_METHOD_BY_SECTOR.get((sector or "").lower(), default or "power")
+
 
 @dataclass
 class DevigResult:

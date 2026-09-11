@@ -98,7 +98,7 @@ evmax/
 ├── matching/
 │   └── engine.py            # Canonical key match → fuzzy fallback (rapidfuzz, threshold=88)
 ├── ev/
-│   ├── devig.py             # Devig methods (2-way + 3-way): power (default, brentq exponent) · shin (insider-fraction, shades longshots down) · multiplicative (proportional). `devig(decimals, method=)` dispatch; `settings.devig_method` (env DEVIG_METHOD) selects it and the Pinnacle client threads it through every sharp line. Power is the shipped default — A/B a sector via `scripts/backtest_devig_ab.py`, promote on CLV not Brier (the tennis lesson)
+│   ├── devig.py             # Devig methods (2-way + 3-way): power (default, brentq exponent) · shin (insider-fraction, shades longshots down) · multiplicative (proportional). `devig(decimals, method=)` dispatch. Method is resolved PER SECTOR by `resolve_devig_method(sector, fallback)` reading `DEVIG_METHOD_BY_SECTOR` (baked from CLV evidence, same set-once pattern as `SECTOR_WEIGHT_OVERRIDES`; EMPTY = power everywhere, the shipped state — nothing to flip at runtime). `settings.devig_method` (env DEVIG_METHOD, default power) is only the global fallback / A/B experiment lever. The Pinnacle client resolves per line. Promote a sector to a non-power method via `scripts/backtest_devig_ab.py` → one line in the map, on CLV not Brier (the tennis lesson)
 │   ├── calculator.py        # EV = (true_prob × payout) - 1; YES-side only
 │   └── kelly.py             # Kelly fraction with confidence + liquidity discounts, 5% cap
 ├── models_ml/
