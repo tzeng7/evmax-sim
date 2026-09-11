@@ -66,6 +66,34 @@ _LOW_SCORING_MAX_ABS_LINE: dict[str, float] = {
 }
 
 
+# --- Alt-spread ladder (INERT by default) -----------------------------------
+# When True, the pipeline reads Pinnacle's OWN alternate-spread ladder and prices
+# each venue rung off the book's devigged price for that same line, instead of
+# extrapolating a normal CDF off the main line. Enables three coordinated pieces,
+# all no-ops while False: the Pinnacle client emits one SharpOdds per alt rung
+# (is_alternate=True); the matcher prefers the rung nearest a market's line; and
+# ev_gap takes that rung's devigged cover prob directly (token `sharp_ladder`),
+# skipping SpreadDistributionModel. Default False → today's pricing byte-for-byte,
+# including for the live NBA/NCAAB/NCAAW spreads. Flip per sector only on the
+# phase-4 replay + CLV evidence (scripts/backtest_spread_ladder_replay.py).
+SPREAD_LADDER_ENABLED: bool = False
+# A venue rung "hits" a Pinnacle rung when their lines agree within this many
+# points (half a point = same line up to Kalshi/Pinnacle half-point convention).
+SPREAD_LADDER_LINE_TOLERANCE: float = 0.5
+
+# --- Tail gate for the CDF gap-filler (phase 3, INERT by default) ------------
+# The normal CDF only prices a target line within SPREAD_MAX_SIGMA·σ of the main
+# line. 1.0 reproduces today's gate (NFL ±14). Tightening to ~0.5 drops the
+# deep-tail rungs where the Gaussian overstates cover mass and manufactures the
+# phantom nickel EVs; those rungs then either take a real ladder price (above) or
+# go unpriced. Kept at 1.0 here so this ships inert; tighten with the ladder.
+SPREAD_MAX_SIGMA: float = 1.0
+# Optional hard per-sector cap on |target_line| for the CDF path, independent of
+# σ. Empty = inert. Populate (e.g. {"nfl": 7.0, "nba": 5.0}) alongside a tighter
+# SPREAD_MAX_SIGMA to bound the extrapolation absolutely, not just in σ units.
+_SPREAD_MAX_ABS_LINE: dict[str, float] = {}
+
+
 @dataclass
 class SpreadPrediction:
     true_prob: float      # P(yes_team covers target_line)
@@ -118,6 +146,18 @@ class SpreadDistributionModel:
         # far-from-pickem runline sails through. The normal-CDF cover prob is
         # unreliable that deep into a skewed margin distribution regardless of
         # where the sharp line sits — reject it outright.
+        # Phase-3 absolute cap (inert until _SPREAD_MAX_ABS_LINE is populated):
+        # bound the CDF gap-filler's reach independent of σ so the deep tail
+        # goes unpriced rather than mis-priced.
+        abs_cap = _SPREAD_MAX_ABS_LINE.get(sector)
+        if abs_cap is not None and abs(target_line) > abs_cap:
+            logger.debug(
+                "spread_model_abs_line_capped",
+                event_id=sharp_odds.event_id, sector=sector,
+                target_line=target_line, abs_cap=abs_cap,
+            )
+            return None
+
         max_abs = _LOW_SCORING_MAX_ABS_LINE.get(sector)
         if max_abs is not None and abs(target_line) > max_abs:
             logger.debug(
@@ -142,10 +182,11 @@ class SpreadDistributionModel:
             )
             return None
 
-        # Reject Kalshi lines that are more than 1 sigma away from Pinnacle's line.
+        # Reject Kalshi lines more than SPREAD_MAX_SIGMA·σ from Pinnacle's line.
         # Beyond this range the normal distribution extrapolation becomes unreliable
         # (tail probabilities are very sensitive to small errors in the inferred mean).
-        if line_distance > 1.0 * sigma:
+        # SPREAD_MAX_SIGMA defaults to 1.0 (today's gate); tighten it with the ladder.
+        if line_distance > SPREAD_MAX_SIGMA * sigma:
             logger.debug(
                 "spread_model_line_too_far",
                 event_id=sharp_odds.event_id,

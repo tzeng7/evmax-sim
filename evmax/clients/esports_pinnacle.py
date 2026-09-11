@@ -830,17 +830,22 @@ class PinnacleGuestClient(BaseAPIClient):
         # Soccer + World Cup use Asian-handicap goal lines we don't model and
         # whose Kalshi spread series aren't wired, so skip them like club soccer.
         if sector not in NAME_MATCHED_SECTORS and sector not in ("soccer", "worldcup"):
-            spread_market = next(
-                (m for m in markets_data
-                 if m.get("matchupId") == matchup_id
-                 and m.get("type") == "spread"
-                 and m.get("period") == 0
-                 and not m.get("isAlternate", False)
-                 and m.get("status") == "open"),
-                None,
-            )
-            if spread_market:
-                spread_odds = self._parse_spread(spread_market, base_event_id, sector, home, away, event_date)
+            from evmax.models_ml.spread_distribution import SPREAD_LADDER_ENABLED
+            spread_markets = [
+                m for m in markets_data
+                if m.get("matchupId") == matchup_id
+                and m.get("type") == "spread"
+                and m.get("period") == 0
+                and m.get("status") == "open"
+                # Ladder OFF → only the main line, exactly as before. Ladder ON →
+                # every rung (main + alternates), each priced off its own devig.
+                and (SPREAD_LADDER_ENABLED or not m.get("isAlternate", False))
+            ]
+            for spread_market in spread_markets:
+                spread_odds = self._parse_spread(
+                    spread_market, base_event_id, sector, home, away, event_date,
+                    is_alternate=bool(spread_market.get("isAlternate", False)),
+                )
                 if spread_odds:
                     results.append(spread_odds)
 
@@ -949,6 +954,7 @@ class PinnacleGuestClient(BaseAPIClient):
     def _parse_spread(
         self, market: dict, base_event_id: str, sector: str,
         home: str, away: str, event_date: Optional[datetime],
+        is_alternate: bool = False,
     ) -> Optional[SharpOdds]:
         prices = market.get("prices", [])
         if len(prices) < 2:
@@ -983,8 +989,15 @@ class PinnacleGuestClient(BaseAPIClient):
             logger.debug("pinnacle_guest_spread_devig_failed", error=str(e))
             return None
 
+        # Main line keeps the bare ::spread id (back-compat: the matcher's exact
+        # match and every existing spread test key off it). Alternate rungs embed
+        # their line so each is a distinct record the nearest-line matcher can pick.
+        event_id = (
+            f"{base_event_id}::spread::{cover_point}" if is_alternate
+            else f"{base_event_id}::spread"
+        )
         return SharpOdds(
-            event_id=f"{base_event_id}::spread",
+            event_id=event_id,
             book=SharpBook.pinnacle,
             sector=sector,
             outcome_a_label=covering_team,
@@ -995,6 +1008,7 @@ class PinnacleGuestClient(BaseAPIClient):
             true_prob_b=prob_other,
             spread_line=cover_point,
             margin=margin,
+            is_alternate=is_alternate,
             event_date=event_date,
         )
 

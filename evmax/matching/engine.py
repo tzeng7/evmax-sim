@@ -138,6 +138,30 @@ class MatchingEngine:
 
         sharp_keys = [so.event_id for so in sharp_odds_list]
 
+        # 0. Alt-spread ladder: prefer the Pinnacle spread rung whose line matches
+        # this market's line (main OR alternate) over the bare main-line exact
+        # match below. A hit lets ev_gap price off the book's own devigged cover
+        # prob for that exact line instead of extrapolating a normal CDF. When the
+        # nearest rung is farther than the tolerance, fall through to the main-line
+        # exact match → the CDF gap-filler (today's behaviour). Inert when the
+        # ladder flag is off (no alt rungs are emitted, so this only ever finds
+        # the main line, which the exact match would return anyway).
+        from evmax.models_ml.spread_distribution import SPREAD_LADDER_ENABLED
+        if (
+            SPREAD_LADDER_ENABLED
+            and market.market_type == MarketType.spread
+            and market.line is not None
+        ):
+            nearest = self._find_nearest_spread(market, sharp_odds_list)
+            if nearest:
+                so, score = nearest
+                logger.debug(
+                    "match_spread_ladder", market_id=market.id,
+                    kalshi_line=market.line, sharp_line=so.spread_line,
+                    event_id=so.event_id,
+                )
+                return so, score
+
         # 1. Exact match
         for so in sharp_odds_list:
             if so.event_id == market_key:
@@ -217,6 +241,47 @@ class MatchingEngine:
 
         # Confidence penalty: 5 points per unit of line distance
         confidence = max(50.0, 95.0 - best_dist * 5.0)
+        return best_so, confidence
+
+    def _find_nearest_spread(
+        self,
+        market: PredictionMarket,
+        sharp_odds_list: list[SharpOdds],
+    ) -> Optional[tuple[SharpOdds, float]]:
+        """Find the Pinnacle spread rung whose |line| is nearest the market's
+        |line|, within SPREAD_LADDER_LINE_TOLERANCE. Compares absolute lines so
+        it is side-agnostic — a Kalshi "Pats -16.5" and "Seahawks +16.5" both
+        match the Pinnacle 16.5 rung; align_yes_side orients the side downstream.
+        Considers the main line (event_id ::spread) and every alternate rung
+        (::spread::<line>) for this game."""
+        from evmax.models_ml.spread_distribution import SPREAD_LADDER_LINE_TOLERANCE
+
+        if not market.team_home or not market.team_away or not market.event_date:
+            return None
+        normalizer = self._get_normalizer(market.sector)
+        date_str = kalshi_game_day(market.event_date, market.sector)
+        base_key = normalizer.normalize_event_key(
+            market.team_home, market.team_away, date_str, market.sector
+        )
+        main_id = f"{base_key}::spread"
+        alt_prefix = f"{base_key}::spread::"
+        target = abs(market.line or 0.0)
+
+        best_so: Optional[SharpOdds] = None
+        best_dist = float("inf")
+        for so in sharp_odds_list:
+            if not (so.event_id == main_id or so.event_id.startswith(alt_prefix)):
+                continue
+            if so.spread_line is None:
+                continue
+            dist = abs(target - abs(so.spread_line))
+            if dist <= SPREAD_LADDER_LINE_TOLERANCE and dist < best_dist:
+                best_dist = dist
+                best_so = so
+        if best_so is None:
+            return None
+        # Exact line → 98; a half-point off → 93.
+        confidence = max(90.0, 98.0 - best_dist * 10.0)
         return best_so, confidence
 
     def match_all(

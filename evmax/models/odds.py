@@ -70,6 +70,12 @@ class SharpOdds(BaseModel):
 
     # Spread-specific: line from outcome_a's perspective (e.g. -7.5 means team_a -7.5)
     spread_line: Optional[float] = None
+    # True when this record is one rung of the book's ALTERNATE spread/total
+    # ladder rather than the main line. Lets a venue alt-spread rung price off
+    # the book's own posted price for that same line instead of extrapolating a
+    # normal CDF off the main line (the alt-spread-ladder feature). The main line
+    # is always is_alternate=False. Carried onto totals too for symmetry.
+    is_alternate: bool = False
 
     # Totals-specific: devigged over/under probabilities and the posted line
     total_line: Optional[float] = None
