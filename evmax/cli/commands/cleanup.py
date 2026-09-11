@@ -1539,6 +1539,123 @@ def adjust(
     )
 
 
+devig_app = typer.Typer(no_args_is_help=False, help="Per-sector devig method (auto-selected).")
+app.add_typer(devig_app, name="devig")
+
+
+@devig_app.callback(invoke_without_command=True)
+def _devig_default(ctx: typer.Context) -> None:
+    """Show the devig A/B + recommendations when no subcommand is given."""
+    if ctx.invoked_subcommand is None:
+        _devig_show(days=120)
+
+
+@devig_app.command("show")
+def devig_show(
+    days: int = typer.Option(120, help="Resolved-line window for the A/B."),
+) -> None:
+    """Per-sector power/shin/multiplicative A/B and any gate-clearing recommendation."""
+    _devig_show(days=days)
+
+
+def _devig_show(days: int) -> None:
+    from rich.table import Table
+
+    from evmax.ev.devig import resolve_devig_method
+    from evmax.ev.devig_selection import recommend_devig_methods
+
+    recs = recommend_devig_methods(days=days)
+    if not recs:
+        console.print(
+            "[yellow]No devig A/B data[/yellow] — needs resolved rows joined to archived "
+            "Pinnacle lines (runs on the prod box). Every sector uses "
+            f"[bold]{resolve_devig_method(None)}[/bold] until a challenger clears the gate."
+        )
+        return
+    table = Table(title=f"Devig method A/B (last {days}d)")
+    table.add_column("Sector")
+    table.add_column("Current")
+    table.add_column("Best")
+    table.add_column("ΔBrier/1000", justify="right")
+    table.add_column("z", justify="right")
+    table.add_column("n", justify="right")
+    table.add_column("Verdict")
+    for r in sorted(recs, key=lambda x: -x.delta):
+        verdict = (
+            "[green]PROMOTE-READY[/green]" if r.is_actionable
+            else ("[dim]already applied[/dim]" if r.best_method == r.current_method != "power"
+                  else "[dim]power (no edge)[/dim]")
+        )
+        table.add_row(
+            r.sector, r.current_method, r.best_method,
+            f"{r.delta * 1000:+.1f}", f"{r.z:.1f}", str(r.n), verdict,
+        )
+    console.print(table)
+    actionable = [r for r in recs if r.is_actionable]
+    if actionable:
+        console.print("\n[bold]One-tap to apply:[/bold]")
+        for r in actionable:
+            console.print(f"  evmax cleanup devig promote {r.sector}")
+
+
+@devig_app.command("promote")
+def devig_promote(
+    sector: str = typer.Argument(..., help="Sector to switch off power."),
+    method: Optional[str] = typer.Argument(
+        None, help="Method (power/shin/multiplicative); default = the recommended winner."
+    ),
+    days: int = typer.Option(120, help="Window for the gate check."),
+    force: bool = typer.Option(False, "--force", help="Apply even if the gate isn't cleared."),
+) -> None:
+    """Apply a per-sector devig method (the one-tap flip). Gated unless --force."""
+    from evmax.ev.devig_selection import (
+        DEVIG_SELECT_MIN_BRIER_DELTA,
+        recommend_devig_methods,
+        save_selected_method,
+    )
+
+    sector = sector.lower()
+    recs = {r.sector: r for r in recommend_devig_methods(days=days)}
+    rec = recs.get(sector)
+
+    if method is None:
+        if rec is None:
+            console.print(f"[red]No A/B data for '{sector}'[/red] — pass a method explicitly or run on the prod box.")
+            raise typer.Exit(1)
+        method = rec.best_method
+    method = method.lower()
+
+    if method != "power" and not force:
+        if rec is None or not rec.is_actionable or rec.best_method != method:
+            reason = (
+                "no recommendation" if rec is None
+                else f"gate not cleared (Δ={rec.delta * 1000:+.1f}/1000, z={rec.z:.1f}, n={rec.n}; "
+                     f"need Δ≥{DEVIG_SELECT_MIN_BRIER_DELTA * 1000:.0f}/1000)"
+            )
+            console.print(f"[red]Refusing to promote {sector}→{method}:[/red] {reason}. Use --force to override.")
+            raise typer.Exit(1)
+
+    save_selected_method(sector, method)
+    if method == "power":
+        console.print(f"[green]{sector} reverted to power[/green] (persisted).")
+    else:
+        console.print(
+            f"[green]{sector} → {method}[/green] (persisted to devig_method_state.json). "
+            "Next scan prices this sector with it automatically."
+        )
+
+
+@devig_app.command("clear")
+def devig_clear(
+    sector: str = typer.Argument(..., help="Sector to revert to power."),
+) -> None:
+    """Revert a sector to power (removes its persisted selection)."""
+    from evmax.ev.devig_selection import clear_selected_method
+
+    clear_selected_method(sector.lower())
+    console.print(f"[green]{sector.lower()} reverted to power[/green].")
+
+
 @app.command("value-audit")
 def value_audit(
     weeks: int = typer.Option(12, "--weeks", "-w", help="Look-back window in weeks."),

@@ -105,6 +105,10 @@ def venue_short(v: Optional[str]) -> str:
         return "Poly"
     if v == "kalshi":
         return "Kalshi"
+    if v == "novig":
+        return "Novig"
+    if v == "prophetx":
+        return "ProphetX"
     return v or ""
 
 

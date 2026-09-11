@@ -59,6 +59,25 @@ class Settings(BaseSettings):
     # shadow_market_types, so the sector-level clear can't promote them.
     polymarket_us_live_sectors: str = "wnba"
 
+    # ---- P2P exchange venues (Novig, ProphetX) ----
+    # Same per-venue shadow-firewall pattern as Polymarket US: a gap on one of
+    # these venues is demoted to mode='shadow' (Kelly zeroed) at persistence
+    # UNLESS the venue's master switch is on OR its sector is in the venue's
+    # allowlist. Enforced through the shared ``venue_sector_live`` below at the
+    # same three sites as PolyUS (coordinator run_cycle, logger.log_gaps,
+    # web/playlist). No market-data CLIENT is wired for either venue yet — both
+    # require an authenticated account (docs.prophetx.co Market Data API,
+    # docs.novig.com), so ``*_enabled`` stays False until a client lands and the
+    # coordinator gates its fetch on it (parity with ``polymarket_us_enabled``).
+    # The firewall, fee models (evmax/fees.py) and MarketSource enum are ready
+    # so that plugging a client in is a bounded change behind these switches.
+    novig_enabled: bool = False       # kill-switch for the (pending) Novig fetch
+    novig_live: bool = False          # master firewall switch (all sectors)
+    novig_live_sectors: str = ""      # per-sector allowlist, e.g. "wnba,tennis"
+    prophetx_enabled: bool = False    # kill-switch for the (pending) ProphetX fetch
+    prophetx_live: bool = False       # master firewall switch (all sectors)
+    prophetx_live_sectors: str = ""   # per-sector allowlist
+
     # Database
     database_url: str = "sqlite+aiosqlite:///./evmax.db"
 
@@ -149,14 +168,22 @@ class Settings(BaseSettings):
             missing.append("KALSHI_PRIVATE_KEY_PATH (optional — needed for WS price refresh + trading, not scanning)")
         return missing
 
+    @staticmethod
+    def _sector_allowlist_set(raw: Optional[str]) -> set[str]:
+        """Parse a comma-separated sector allowlist string into a normalized set.
+
+        Lowercased, whitespace-trimmed, empties dropped. Shared by every
+        per-venue firewall allowlist (Poly / Novig / ProphetX).
+        """
+        return {s.strip().lower() for s in (raw or "").split(",") if s.strip()}
+
     def polymarket_us_live_sector_set(self) -> set[str]:
         """Parsed, normalized allowlist from ``polymarket_us_live_sectors``.
 
         Lowercased, whitespace-trimmed, empties dropped. Cheap to recompute —
         the string is tiny and get_settings() is cached.
         """
-        raw = self.polymarket_us_live_sectors or ""
-        return {s.strip().lower() for s in raw.split(",") if s.strip()}
+        return self._sector_allowlist_set(self.polymarket_us_live_sectors)
 
     @property
     def discord_bot_configured(self) -> bool:
@@ -186,8 +213,55 @@ class Settings(BaseSettings):
             return False
         return sector.lower() in self.polymarket_us_live_sector_set()
 
+    def _venue_allowlist_live(
+        self, master: bool, raw_sectors: Optional[str], sector: Optional[str]
+    ) -> bool:
+        """Firewall clearance for a per-venue (master switch, allowlist) pair."""
+        if master:
+            return True
+        if not sector:
+            return False
+        return sector.lower() in self._sector_allowlist_set(raw_sectors)
+
+    def venue_sector_live(self, venue: Optional[str], sector: Optional[str]) -> bool:
+        """Whether the shadow firewall is CLEARED for ``(venue, sector)``.
+
+        The single per-venue firewall dispatch used by the coordinator, logger,
+        and dashboard. Kalshi is the home venue and is always clear. Every other
+        venue — Polymarket US and the P2P exchanges (Novig, ProphetX) — sits
+        behind its own shadow firewall: cleared only when the venue's master
+        switch is on OR the sector is in the venue's allowlist. An unknown venue
+        is never live. A gap still only reaches a live persistence if its
+        category mode also resolves to ``live`` upstream (get_mode) — this
+        governs the venue firewall only.
+        """
+        v = (venue or "kalshi").lower()
+        if v == "kalshi":
+            return True
+        if v == "polymarket_us":
+            return self.polymarket_us_sector_live(sector)
+        if v == "novig":
+            return self._venue_allowlist_live(
+                self.novig_live, self.novig_live_sectors, sector
+            )
+        if v == "prophetx":
+            return self._venue_allowlist_live(
+                self.prophetx_live, self.prophetx_live_sectors, sector
+            )
+        return False
+
     # Matching
     fuzzy_threshold: int = 88  # rapidfuzz score threshold
+
+    # GLOBAL FALLBACK devig method for the Pinnacle sharp anchor: "power"
+    # (default — its favorite/underdog exponent already handles asymmetry),
+    # "shin", or "multiplicative". You never manage this per sector: the method
+    # is auto-selected per sector (the weekly integrity sweep surfaces a
+    # gate-clearing winner, applied via `evmax cleanup devig promote <sector>`,
+    # persisted to devig_method_state.json). This is only the fallback for
+    # sectors with no selection. Leave it "power"; set env DEVIG_METHOD only to
+    # A/B every sector at once during an experiment (scripts/backtest_devig_ab.py).
+    devig_method: str = "power"
 
     # Push notifications (Slack and/or Discord webhooks)
     slack_webhook_url: Optional[str] = None

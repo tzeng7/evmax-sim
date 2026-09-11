@@ -177,8 +177,8 @@ def log_gaps(
             gap_venue = getattr(g, "venue", "kalshi")
             if (
                 mode == "live"
-                and gap_venue == "polymarket_us"
-                and not get_settings().polymarket_us_sector_live(g.sector)
+                and gap_venue != "kalshi"
+                and not get_settings().venue_sector_live(gap_venue, g.sector)
             ):
                 mode = "shadow"
                 logger.info(

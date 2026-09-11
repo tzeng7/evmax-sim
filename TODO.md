@@ -747,6 +747,117 @@ Solved by reading Kalshi's `event.product_metadata.competition` field instead of
 
 ---
 
+## Section 8 — Venue Expansion (P2P exchanges) [P1 — where the CA edge lives]
+
+**Context.** California is prediction-market-only, so the tradeable venue set is
+P2P exchanges (Kalshi, Polymarket US, Novig, ProphetX), not sportsbooks. The
+OddsJam soft-book playbook does not apply — exchanges are close to sharp. The
+edges that DO exist on exchanges are (1) maker vs taker fees (2.5–4pp of stake,
+larger than any model edge we've measured), (2) cross-venue dislocation, and
+(3) entry timing. This section tracks that workstream. North-star metric
+throughout: **net-of-fee CLV on executed (or simulated-executed) positions** —
+never Brier.
+
+### ✅ Shipped foundation (this branch — `claude/remote-control-y92ad9`)
+- Generic per-venue shadow firewall `settings.venue_sector_live(venue, sector)`
+  routed through all three sites (coordinator, logger, playlist). Any non-Kalshi
+  venue is shadow-firewalled by the same machinery.
+- `MarketSource.novig` / `.prophetx` + labels; firewall settings
+  (`novig_*` / `prophetx_*`, default fully-up; `*_enabled` default False).
+- Fee models (`evmax/fees.py`, verified from public schedules): Novig quadratic
+  entry fee θ=0.03 + half-taker maker rebate; ProphetX 2% commission on net
+  WINNINGS (winners only) modeled as the breakeven-prob shift for EV and a
+  winners-only profit commission for realized P&L. Validated (breakeven ⇒ EV 0).
+- Shin + multiplicative devig alternatives (`ev/devig.py`,
+  `scripts/backtest_devig_ab.py`). Method is resolved PER SECTOR via
+  `DEVIG_METHOD_BY_SECTOR` (empty = power everywhere — nothing to flip at
+  runtime); `settings.devig_method` is only the global fallback / experiment
+  lever.
+
+### VENUE-1 Novig market-data client [P1 — blocked on credentials]
+Novig is a CFTC-designated contract market (Aug 2026) with full order/market-data
+HTTP endpoints + real-time order book, BUT the API is account-gated — there is NO
+public unauthenticated endpoint like PolyUS's `/v2/leagues/{slug}/events`, and
+`docs.novig.com` is egress-blocked from the build sandbox. **Do NOT write the
+client against guessed endpoints** (the PolyUS client works because it was built
+against verified live payloads). To unblock:
+1. Obtain a Novig account + API credentials (the operator has access).
+2. Capture one real market-data response per shape (moneyline, spread, total) —
+   paste the JSON or provide creds to fetch it once.
+3. Build `evmax/clients/novig.py` mirroring `polymarket_us.py`: `get_markets(sector)`
+   returning `PredictionMarket(source=MarketSource.novig, id="novig:{...}")`,
+   canonicalized team names, full-game filter, per-side YES markets. Add a
+   `NOVIG_LEAGUE_MAP` (sector → Novig league/slug) verified against the catalog.
+4. Wire the fetch in `coordinator.run_cycle` gated on `settings.novig_enabled`
+   (parity with `polymarket_us_enabled`), merge into the pool (matching/EV are
+   venue-agnostic already).
+5. Settlement/resolution path (mirror PolyUS `get_market_settlement`) +
+   close-capture keying (`novig:` prefix, like `polymarket_us:`).
+6. Tests against the captured fixture (parse → PredictionMarket), like
+   `tests/test_polymarket_us_client.py`.
+7. Ships shadow-only (firewall up); promote a sector via
+   `polymarket_us_live_sectors`-style allowlist only after n≥30 resolved + CLV≥0
+   on Novig's own book.
+
+### VENUE-2 ProphetX market-data client [P1 — blocked on sandbox account]
+ProphetX exposes a documented **read-only Market Data API** (JSON/HTTPS:
+tournaments → events → markets → prices/quantities) + a Display Partners API, but
+both need a sandbox/production account (contact ProphetX to become an API user);
+`docs.prophetx.co` is egress-blocked from the sandbox. Same 7 steps as VENUE-1
+(`evmax/clients/prophetx.py`, `PROPHETX_LEAGUE_MAP`, `settings.prophetx_enabled`).
+Note the ProphetX **quantity/`available` fields** are the resting depth needed for
+the maker/fill work (VENUE-4). Fee model already correct (winnings commission).
+
+### VENUE-3 Cross-venue best-execution + middles [P2]
+- Best-execution routing across all venues already works via
+  `evmax/ev/best_execution.py` (`collapse_best_execution`) — Novig/ProphetX flow
+  through automatically once their clients emit rows. Verify with a 3+ venue
+  fixture once a second exchange lands.
+- **Middles** (new): same game, non-overlapping lines on two venues where both
+  legs can win (e.g. buy Over 44.5 on venue X + Under 46.5 on venue Y). Extend
+  `evmax/arb.py` with a middle-detection pass alongside the complete-outcome
+  basket; gate on combined cost < 1 + expected middle-hit value net of both
+  venues' fees. Read-only `arb scan --middles` first; niche/transient, so size
+  the opportunity before building sizing.
+
+### VENUE-4 Maker-execution offline simulator [P1 — blocked on archive.db]
+The largest single EV lever (fees ≈ 2.5–4pp). Before any live maker order:
+1. Build an offline fill simulator over `archive.db` `archived_orderbook_depth`
+   + Kalshi candlesticks (`scripts/backfill_kalshi_candles.py`): for each logged
+   would-be bet, simulate resting a limit at `fair − target_edge` (net of the
+   maker fee/rebate — Novig/PolyUS makers are PAID) and mark it filled if the
+   book traded through the post price before tip.
+2. Score **fill rate × net-of-fee CLV of fills** per (sector, venue), and compare
+   to the taker CLV. Ship live maker orders only where maker CLV − taker CLV >
+   the fee delta, per lane.
+3. Needs the prod `archive.db` (order-book depth capture) — not runnable in a
+   fresh clone. The fee groundwork (maker rebates, `FeePricedEV.maker_*`,
+   `effective_price(maker=True)`) is already in place.
+
+### VENUE-5 Generalized timing / steam capture [P2 — blocked on prod data]
+Generalize the WNBA/NFL `watch-listings --log-entries` anchored-entry stream into
+a sector- and venue-agnostic timing engine: on a Pinnacle move, snapshot every
+exchange within N minutes and log the per-venue lag (the lag IS the edge —
+Novig/ProphetX listing-time prices are the most likely stale). Promote per
+(sector, market, venue, side) on `cleanup shadow clv --sources-token
+anchored_entry`. Needs accrued prod snapshots; extends existing machinery.
+
+### VENUE-6 Devig auto-selection [P2 — SHIPPED; runs itself on prod]
+Per-sector devig is AUTO-SELECTED, zero-bandwidth: the weekly integrity sweep
+(`check_devig`) runs the power/shin/multiplicative A/B over resolved lines and
+SURFACES a one-tap recommendation when a non-power method clears the gate
+(SIGNIFICANT paired Brier-vs-outcome: Δ≥2/1000 AND z≥1.64 AND n≥200; power
+sticky). Applying it is `evmax cleanup devig promote <sector>` (writes
+`data/models/devig_method_state.json`, no code edit — like `adjust` writing
+model_config.json). `evmax cleanup devig show` prints the A/B on demand;
+`scripts/backtest_devig_ab.py` is the manual lens. Devig quality is calibration
+vs OUTCOMES, not CLV (it extracts the book's own probability, not a forecast) —
+the tennis lesson lives on as the significance guard. Nothing further to do;
+the recommendation appears in the Monday sweep if soccer/worldcup 3-way or a
+longshot-heavy sector ever earns it.
+
+---
+
 ## Priority Order (open items only)
 
 | Priority | Item | Impact |

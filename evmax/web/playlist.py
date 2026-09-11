@@ -48,10 +48,11 @@ def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         gap_mode = "live"
     gap_venue = getattr(g, "venue", "kalshi") or "kalshi"
     # Mirror the venue shadow firewall so the dashboard's mode badge matches
-    # what log_gaps will persist (see prediction_demoted_shadow_venue).
-    if gap_mode == "live" and gap_venue == "polymarket_us":
+    # what log_gaps will persist (see prediction_demoted_shadow_venue). Any
+    # non-Kalshi venue (Polymarket US, Novig, ProphetX) is gated per-sector.
+    if gap_mode == "live" and gap_venue != "kalshi":
         from evmax.settings import get_settings
-        if not get_settings().polymarket_us_sector_live(getattr(g, "sector", None)):
+        if not get_settings().venue_sector_live(gap_venue, getattr(g, "sector", None)):
             gap_mode = "shadow"
     # League shadow list — mirror prediction_demoted_shadow_league.
     if gap_mode == "live":

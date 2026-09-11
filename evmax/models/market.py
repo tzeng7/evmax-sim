@@ -30,6 +30,14 @@ class MarketSource(str, enum.Enum):
     kalshi = "kalshi"
     polymarket = "polymarket"          # legacy international CLOB (never wired)
     polymarket_us = "polymarket_us"    # Polymarket US (CFTC-regulated exchange)
+    # P2P sports exchanges (CFTC-regulated as of Aug 2026). Both sit behind the
+    # per-venue shadow firewall (settings.venue_sector_live) exactly like
+    # polymarket_us; a market-data client for each is pending an authenticated
+    # account (docs.prophetx.co Market Data API / docs.novig.com), so no scan
+    # emits these sources yet — the enum, fee models (evmax/fees.py) and
+    # firewall are in place so wiring a client in is a bounded change.
+    novig = "novig"                    # Novig exchange (0% commission, taker θ=0.03)
+    prophetx = "prophetx"              # ProphetX exchange (2% commission on net winnings)
 
 
 # Short human-readable venue labels for text surfaces (CLI tables, logs).
@@ -38,6 +46,8 @@ VENUE_LABELS: dict[str, str] = {
     MarketSource.kalshi.value: "Kalshi",
     MarketSource.polymarket.value: "Poly",
     MarketSource.polymarket_us.value: "PolyUS",
+    MarketSource.novig.value: "Novig",
+    MarketSource.prophetx.value: "ProphetX",
 }
 
 

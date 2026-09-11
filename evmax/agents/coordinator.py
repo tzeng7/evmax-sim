@@ -256,19 +256,17 @@ def _venue_is_live(
     """Whether a gap on ``venue`` is a live play.
 
     A gap is live only when it is BOTH within the per-scan venue selection (if
-    any) AND cleared by the PolyUS shadow firewall. The selection only ever
+    any) AND cleared by that venue's shadow firewall. The selection only ever
     RESTRICTS: ``selected_venues=None`` means no restriction (all venues,
     firewall still applies), and selecting a venue can never force an
-    un-validated PolyUS sector live — the firewall (``polymarket_us_sector_live``)
-    still gates within the selection. Kalshi is always firewall-clear.
+    un-validated non-Kalshi sector live — the firewall
+    (``settings.venue_sector_live``) still gates within the selection. Kalshi is
+    always firewall-clear; every other venue (Polymarket US, Novig, ProphetX)
+    is gated per-sector.
     """
     if selected_venues is not None and venue not in selected_venues:
         return False
-    if venue == "kalshi":
-        return True
-    if venue == "polymarket_us":
-        return settings.polymarket_us_sector_live(sector)
-    return False
+    return settings.venue_sector_live(venue, sector)
 
 
 def _load_placed_exposure() -> dict[str, float]:
@@ -801,12 +799,12 @@ class AgentCoordinator:
                 sectors=sorted({g.sector for g in partial_blend_gaps}),
             )
 
-        # Venue shadow firewall: a Polymarket US gap is shadow-bound — kelly
-        # zeroed, excluded from the exposure budget, demoted to mode='shadow'
-        # by log_gaps — UNLESS its sector clears the per-sector allowlist
-        # (settings.polymarket_us_sector_live). Same treatment as partial-blend
-        # gaps above. Any other non-Kalshi venue has no live path and is always
-        # shadow-bound.
+        # Venue shadow firewall: a non-Kalshi gap (Polymarket US, Novig,
+        # ProphetX) is shadow-bound — kelly zeroed, excluded from the exposure
+        # budget, demoted to mode='shadow' by log_gaps — UNLESS its sector
+        # clears the venue's per-sector allowlist (settings.venue_sector_live).
+        # Same treatment as partial-blend gaps above. An unknown venue has no
+        # live path and is always shadow-bound.
         _settings = get_settings()
 
         def _venue_gap_live(g) -> bool:
@@ -827,7 +825,9 @@ class AgentCoordinator:
             self.log.info(
                 "venue_gaps_shadowed",
                 count=len(shadow_venue_gaps),
-                venue="polymarket_us",
+                venues=sorted(
+                    {getattr(g, "venue", "kalshi") for g in shadow_venue_gaps}
+                ),
                 sectors=sorted({g.sector for g in shadow_venue_gaps}),
             )
 
