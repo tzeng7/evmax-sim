@@ -117,6 +117,16 @@ class _FakeSettings:
     def polymarket_us_sector_live(self, sector):
         return (sector or "").lower() in self._live
 
+    def venue_sector_live(self, venue, sector):
+        # Mirrors the real Settings dispatch closely enough for _venue_is_live:
+        # Kalshi always clear, PolyUS via the fake allowlist, others shadow.
+        v = (venue or "kalshi").lower()
+        if v == "kalshi":
+            return True
+        if v == "polymarket_us":
+            return self.polymarket_us_sector_live(sector)
+        return False
+
 
 def test_venue_is_live_kalshi_always_when_no_selection():
     assert _venue_is_live("kalshi", "nba", None, _FakeSettings([])) is True
@@ -148,3 +158,73 @@ def test_both_selected_allows_each_subject_to_firewall():
     assert _venue_is_live("kalshi", "nba", both, s) is True
     assert _venue_is_live("polymarket_us", "wnba", both, s) is True
     assert _venue_is_live("polymarket_us", "nba", both, s) is False
+
+
+# ---------------------------------------------------------------------------
+# Generic per-venue firewall (settings.venue_sector_live) — Novig / ProphetX
+# share the exact Polymarket US pattern (master switch OR per-sector allowlist)
+# ---------------------------------------------------------------------------
+
+def test_kalshi_is_always_firewall_clear():
+    s = Settings()
+    assert s.venue_sector_live("kalshi", "nba") is True
+    assert s.venue_sector_live("kalshi", None) is True
+
+
+def test_venue_sector_live_delegates_to_poly():
+    s = Settings(polymarket_us_live=False, polymarket_us_live_sectors="wnba")
+    assert s.venue_sector_live("polymarket_us", "wnba") is True
+    assert s.venue_sector_live("polymarket_us", "nba") is False
+
+
+def test_novig_default_firewall_fully_up():
+    """Shipped default: no client, no live sectors — every Novig gap is shadow."""
+    s = Settings()
+    assert s.novig_enabled is False
+    assert s.venue_sector_live("novig", "wnba") is False
+    assert s.venue_sector_live("novig", "nba") is False
+
+
+def test_novig_allowlist_clears_one_sector():
+    s = Settings(novig_live=False, novig_live_sectors=" WNBA , tennis ")
+    assert s.venue_sector_live("novig", "wnba") is True
+    assert s.venue_sector_live("novig", "WNBA") is True  # case-insensitive query
+    assert s.venue_sector_live("novig", "nba") is False
+
+
+def test_novig_master_switch_clears_all():
+    s = Settings(novig_live=True, novig_live_sectors="")
+    assert s.venue_sector_live("novig", "nba") is True
+    assert s.venue_sector_live("novig", "tennis") is True
+
+
+def test_prophetx_default_firewall_fully_up():
+    s = Settings()
+    assert s.prophetx_enabled is False
+    assert s.venue_sector_live("prophetx", "wnba") is False
+
+
+def test_prophetx_allowlist_is_independent_of_novig():
+    s = Settings(novig_live_sectors="wnba", prophetx_live_sectors="tennis")
+    assert s.venue_sector_live("novig", "wnba") is True
+    assert s.venue_sector_live("novig", "tennis") is False
+    assert s.venue_sector_live("prophetx", "tennis") is True
+    assert s.venue_sector_live("prophetx", "wnba") is False
+
+
+def test_unknown_venue_never_live():
+    s = Settings(novig_live=True, prophetx_live=True, polymarket_us_live=True)
+    assert s.venue_sector_live("betfair", "nba") is False
+
+
+def test_none_sector_never_live_for_p2p_without_master():
+    s = Settings(novig_live_sectors="wnba")
+    assert s.venue_sector_live("novig", None) is False
+
+
+def test_venue_is_live_routes_p2p_through_firewall():
+    """The coordinator gate shadow-bounds a P2P venue until its firewall clears."""
+    s = Settings(novig_live_sectors="wnba")
+    assert _venue_is_live("novig", "wnba", None, s) is True
+    assert _venue_is_live("novig", "nba", None, s) is False
+    assert _venue_is_live("prophetx", "wnba", None, s) is False  # not cleared
