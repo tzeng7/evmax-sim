@@ -830,16 +830,18 @@ class PinnacleGuestClient(BaseAPIClient):
         # Soccer + World Cup use Asian-handicap goal lines we don't model and
         # whose Kalshi spread series aren't wired, so skip them like club soccer.
         if sector not in NAME_MATCHED_SECTORS and sector not in ("soccer", "worldcup"):
-            from evmax.models_ml.spread_distribution import SPREAD_LADDER_ENABLED
+            from evmax.models_ml.spread_distribution import spread_ladder_enabled
+            ladder_on = spread_ladder_enabled(sector)
             spread_markets = [
                 m for m in markets_data
                 if m.get("matchupId") == matchup_id
                 and m.get("type") == "spread"
                 and m.get("period") == 0
                 and m.get("status") == "open"
-                # Ladder OFF → only the main line, exactly as before. Ladder ON →
-                # every rung (main + alternates), each priced off its own devig.
-                and (SPREAD_LADDER_ENABLED or not m.get("isAlternate", False))
+                # Ladder off for this sector → only the main line, exactly as
+                # before. On → every rung (main + alternates), each priced off
+                # its own devig.
+                and (ladder_on or not m.get("isAlternate", False))
             ]
             for spread_market in spread_markets:
                 spread_odds = self._parse_spread(

@@ -37,7 +37,7 @@ from evmax.models.market import PredictionMarket, MarketType
 from evmax.models.odds import SharpOdds
 from evmax.models_ml.spread_distribution import (
     SpreadDistributionModel,
-    SPREAD_LADDER_ENABLED,
+    spread_ladder_enabled,
     SPREAD_LADDER_LINE_TOLERANCE,
 )
 from evmax.models_ml.total_distribution import TotalDistributionModel, is_game_total
@@ -841,7 +841,7 @@ class EVGapAgent(Agent):
             # while the flag is off (the matcher emits no exact-line alt rungs,
             # and a main-line rung still takes the CDF path below).
             ladder_hit = (
-                SPREAD_LADDER_ENABLED
+                spread_ladder_enabled(sector)
                 and sharp.spread_line is not None
                 and abs(abs(sharp.spread_line) - abs(market.line))
                 <= SPREAD_LADDER_LINE_TOLERANCE

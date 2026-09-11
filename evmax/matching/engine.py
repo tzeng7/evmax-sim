@@ -146,9 +146,9 @@ class MatchingEngine:
         # exact match → the CDF gap-filler (today's behaviour). Inert when the
         # ladder flag is off (no alt rungs are emitted, so this only ever finds
         # the main line, which the exact match would return anyway).
-        from evmax.models_ml.spread_distribution import SPREAD_LADDER_ENABLED
+        from evmax.models_ml.spread_distribution import spread_ladder_enabled
         if (
-            SPREAD_LADDER_ENABLED
+            spread_ladder_enabled(market.sector)
             and market.market_type == MarketType.spread
             and market.line is not None
         ):

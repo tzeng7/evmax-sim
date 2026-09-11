@@ -1,5 +1,5 @@
 """Golden fixtures for the alt-spread ladder (evmax/models_ml/spread_distribution
-SPREAD_LADDER_ENABLED). Validates the parse → match → price loop across sectors
+SPREAD_LADDER_SECTORS). Validates the parse → match → price loop across sectors
 on synthetic Pinnacle `markets/straight` payloads shaped exactly like the live
 one (matchupId / type / period / status / isAlternate / prices[designation,
 points, price] — the fields _parse_spread already reads).
@@ -16,7 +16,6 @@ import asyncio
 import pytest
 
 import evmax.models_ml.spread_distribution as sd
-import evmax.agents.odds.ev_gap_agent as ev_mod
 from evmax.agents.odds.ev_gap_agent import EVGapAgent
 from evmax.clients.esports_pinnacle import PinnacleGuestClient
 from evmax.matching.engine import MatchingEngine
@@ -70,7 +69,7 @@ def _payload(matchup_id, main_pts, alt_pts):
 class TestClientEmitsLadder:
     @pytest.mark.parametrize("sector,home,away,main_pts,alt_pts", SECTORS)
     def test_flag_on_emits_all_rungs_with_sign(self, sector, home, away, main_pts, alt_pts, monkeypatch):
-        monkeypatch.setattr(sd, "SPREAD_LADDER_ENABLED", True)
+        monkeypatch.setattr(sd, "SPREAD_LADDER_SECTORS", frozenset({sector}))
         client = PinnacleGuestClient()
         payload = _payload("m1", main_pts, alt_pts)
         out = asyncio.run(client._fetch_matchup_odds(_matchup("m1", home, away), sector, markets_override=payload))
@@ -98,7 +97,7 @@ class TestClientEmitsLadder:
         assert probs == sorted(probs), "P(favorite covers) must rise as the line eases"
 
     def test_flag_off_emits_only_main_line(self, monkeypatch):
-        monkeypatch.setattr(sd, "SPREAD_LADDER_ENABLED", False)
+        monkeypatch.setattr(sd, "SPREAD_LADDER_SECTORS", frozenset())
         client = PinnacleGuestClient()
         payload = _payload("m1", -3.0, [-7.0, -16.5])
         out = asyncio.run(client._fetch_matchup_odds(_matchup("m1", "New England Patriots", "Seattle Seahawks"), "nfl", markets_override=payload))
@@ -131,7 +130,7 @@ class TestMatcherNearestSpread:
 
     @pytest.mark.parametrize("sector,home,away,main_pts,alt_pts", SECTORS)
     def test_flag_on_matches_exact_line_rung(self, sector, home, away, main_pts, alt_pts, monkeypatch):
-        monkeypatch.setattr(sd, "SPREAD_LADDER_ENABLED", True)
+        monkeypatch.setattr(sd, "SPREAD_LADDER_SECTORS", frozenset({sector}))
         recs, ed = self._sharps(sector, home, away, main_pts, alt_pts)
         target = alt_pts[-1]  # deepest rung
         eng = MatchingEngine()
@@ -150,7 +149,7 @@ class TestMatcherNearestSpread:
         assert conf >= 90.0
 
     def test_flag_off_matches_main_line(self, monkeypatch):
-        monkeypatch.setattr(sd, "SPREAD_LADDER_ENABLED", False)
+        monkeypatch.setattr(sd, "SPREAD_LADDER_SECTORS", frozenset())
         recs, ed = self._sharps("nfl", "New England Patriots", "Seattle Seahawks", -3.0, [-16.5])
         eng = MatchingEngine()
         norm = eng._get_normalizer("nfl")
@@ -186,7 +185,7 @@ class TestEvGapLadderPricing:
         )
 
     def test_ladder_uses_book_devig_not_cdf(self, monkeypatch):
-        monkeypatch.setattr(ev_mod, "SPREAD_LADDER_ENABLED", True)
+        monkeypatch.setattr(sd, "SPREAD_LADDER_SECTORS", frozenset({"nfl"}))
         agent = EVGapAgent()
         # matched record IS the -16.5 rung; its devigged cover prob is 0.077.
         rung = self._rung("nfl", -16.5, 0.077, is_alt=True)
@@ -202,7 +201,7 @@ class TestEvGapLadderPricing:
     def test_cdf_extrapolation_overstates_vs_ladder(self, monkeypatch):
         # Flag off: the matched record is the MAIN line (-3); the CDF extrapolates
         # to -16.5 and (per the documented tail bias) overstates the cover prob.
-        monkeypatch.setattr(ev_mod, "SPREAD_LADDER_ENABLED", False)
+        monkeypatch.setattr(sd, "SPREAD_LADDER_SECTORS", frozenset())
         agent = EVGapAgent()
         main = self._rung("nfl", -3.0, 0.50, is_alt=False)  # pick'em-ish favorite at -3
         gap = agent._evaluate_pair(
@@ -214,3 +213,30 @@ class TestEvGapLadderPricing:
         # the extrapolated cover prob is materially above the book's 0.077 rung —
         # this gap between the two paths IS the phantom-EV the ladder removes.
         assert gap.blended_true_prob > 0.077
+
+
+# --- Low-scoring sectors are hard-excluded even when allowlisted ---------------
+
+class TestLowScoringExcluded:
+    def test_helper_excludes_low_scoring(self, monkeypatch):
+        # baseball/nhl/soccer are never laddered — even if mistakenly allowlisted
+        # — so the ladder path can't bypass the ±1.5 run/puck-line cap.
+        monkeypatch.setattr(sd, "SPREAD_LADDER_SECTORS",
+                            frozenset({"baseball", "nhl", "soccer", "nba"}))
+        assert sd.spread_ladder_enabled("nba") is True
+        assert sd.spread_ladder_enabled("baseball") is False
+        assert sd.spread_ladder_enabled("nhl") is False
+        assert sd.spread_ladder_enabled("soccer") is False
+        assert sd.spread_ladder_enabled("nfl") is False   # not in the allowlist
+
+    def test_baseball_client_emits_only_main_even_when_allowlisted(self, monkeypatch):
+        # With baseball allowlisted, the client must STILL drop alternate run-line
+        # rungs (the deep −4.5 the 2-for-15 result killed) and emit only the main.
+        monkeypatch.setattr(sd, "SPREAD_LADDER_SECTORS", frozenset({"baseball"}))
+        client = PinnacleGuestClient()
+        payload = _payload("m1", -1.5, [-2.5, -4.5])
+        out = asyncio.run(client._fetch_matchup_odds(
+            _matchup("m1", "New York Yankees", "Boston Red Sox"), "baseball",
+            markets_override=payload))
+        spreads = [o for o in (out or []) if o.spread_line is not None]
+        assert len(spreads) == 1 and not spreads[0].is_alternate

@@ -67,19 +67,40 @@ _LOW_SCORING_MAX_ABS_LINE: dict[str, float] = {
 
 
 # --- Alt-spread ladder (INERT by default) -----------------------------------
-# When True, the pipeline reads Pinnacle's OWN alternate-spread ladder and prices
-# each venue rung off the book's devigged price for that same line, instead of
-# extrapolating a normal CDF off the main line. Enables three coordinated pieces,
-# all no-ops while False: the Pinnacle client emits one SharpOdds per alt rung
-# (is_alternate=True); the matcher prefers the rung nearest a market's line; and
-# ev_gap takes that rung's devigged cover prob directly (token `sharp_ladder`),
-# skipping SpreadDistributionModel. Default False → today's pricing byte-for-byte,
-# including for the live NBA/NCAAB/NCAAW spreads. Flip per sector only on the
-# phase-4 replay + CLV evidence (scripts/backtest_spread_ladder_replay.py).
-SPREAD_LADDER_ENABLED: bool = False
+# The pipeline can read Pinnacle's OWN alternate-spread ladder and price each
+# venue rung off the book's devigged price for that same line, instead of
+# extrapolating a normal CDF off the main line. Three coordinated pieces, all
+# no-ops for a sector not in the allowlist: the client emits one SharpOdds per
+# alt rung (is_alternate=True); the matcher prefers the rung nearest a market's
+# line; and ev_gap takes that rung's devigged cover prob directly (token
+# `sharp_ladder`), skipping SpreadDistributionModel.
+#
+# PER-SECTOR allowlist, not a global switch: enablement is a set of sectors, so
+# a sector is promoted only after ITS OWN phase-4 replay + CLV evidence
+# (scripts/backtest_spread_ladder_replay.py), exactly like league promotion.
+# Default empty → today's pricing byte-for-byte, including the live NBA/NCAAB/
+# NCAAW spreads. Add point-margin sectors (nfl/nba/ncaab/ncaaw/ncaaf/wnba) here
+# once each clears; never add a low-scoring sector (see spread_ladder_enabled).
+SPREAD_LADDER_SECTORS: frozenset[str] = frozenset()
 # A venue rung "hits" a Pinnacle rung when their lines agree within this many
 # points (half a point = same line up to Kalshi/Pinnacle half-point convention).
 SPREAD_LADDER_LINE_TOLERANCE: float = 0.5
+
+
+def spread_ladder_enabled(sector: Optional[str]) -> bool:
+    """True when the alt-spread ladder is live for ``sector``.
+
+    A sector must be in SPREAD_LADDER_SECTORS AND not be low-scoring. Low-scoring
+    sectors (baseball run line / NHL puck line / soccer handicap) are HARD-
+    excluded regardless of the allowlist: their margins are Skellam-shaped, their
+    alt ladders are thin, and — critically — the ladder path skips predict(), so
+    it would bypass the ±1.5 _LOW_SCORING_MAX_ABS_LINE gate that keeps a deep alt
+    run-line (the 2-for-15 baseball −4.5) from being priced. Excluding them here
+    keeps today's safe CDF-with-cap behaviour for those sectors."""
+    sec = (sector or "").lower()
+    if sec in _LOW_SCORING_SECTORS:
+        return False
+    return sec in SPREAD_LADDER_SECTORS
 
 # --- Tail gate for the CDF gap-filler (phase 3, INERT by default) ------------
 # The normal CDF only prices a target line within SPREAD_MAX_SIGMA·σ of the main

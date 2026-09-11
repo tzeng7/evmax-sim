@@ -1,4 +1,4 @@
-"""Phase-4 replay screen for the alt-spread ladder (SPREAD_LADDER_ENABLED).
+"""Phase-4 replay screen for the alt-spread ladder (SPREAD_LADDER_SECTORS).
 
 For every RESOLVED spread row in predictions.db, re-price the rung two ways and
 score both against the actual outcome, bucketed by how far the rung sits from the
@@ -109,7 +109,7 @@ def main() -> int:
             print(f"{sec:8} {b:15} {len(pairs):>5} {brier(pairs):>10.4f}")
     print("\nRead: the deep-tail bucket is where the CDF should look worst. On the")
     print("prod box, join archive.db's archived alt rungs to fill a ladder-Brier")
-    print("column beside CDF; flip SPREAD_LADDER_ENABLED for a sector only when the")
+    print("column beside CDF; add a sector to SPREAD_LADDER_SECTORS only when the")
     print("ladder is no worse everywhere AND wins the deep tail AND clears CLV.")
     return 0
 
