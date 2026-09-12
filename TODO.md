@@ -430,6 +430,88 @@ Middle bins are well-calibrated. Tails miss by 10–18pp. The ROI filter picks e
 
 ---
 
+### MODEL-17 NCAAF team-specific (churn-aware) preseason prior [P2 — keyless first]
+**Files:** `evmax/agents/models/_cfb_efficiency.py` (`epa_prior_net` / prior regression), `scripts/seed_ncaaf_efficiency.py`, `evmax/clients/cfb_fpi.py`, `scripts/backtest_ncaaf_v2.py`
+
+**Context.** `ncaaf_efficiency_v2` carries a UNIFORM 0.5-regressed, roster-blind
+prior-season EPA prior (mixed 50/50 with preseason FPI). `scripts/seed_ncaaf_elo.py`
+already diagnosed why that is the wrong tool: roster churn is HETEROGENEOUS — it
+guts a few programs and barely touches durable blue-bloods — so a uniform pull
+punishes the many stable teams to protect the few churned ones (Elo weeks-0-3
+Brier improves monotonically as regression LIGHTENS: 0.1811 @ f=0.5 → 0.1596 @
+f=1.0 on 2025). Its verdict: "the team-specific returning-production/recruiting
+prior is (a deferred model-side gap)." The CFBD community models (the pick'em
+leaderboard: JP+, Sasser, Metrics Consensus, DRatings…) all run this richer
+preseason prior — returning production + recruiting + coaching, decaying by week.
+Ours is otherwise the same stack (ridge-adjusted EPA+SR, margin→Φ).
+
+**Honest prior working against it.** ESPN's preseason FPI is ITSELF built from
+returning starters + recruiting + coaching, and the v2 ablation found pure FPI
+(`v2_fpi1`) ≥ the 50/50 mix on all three holdouts — so a raw additive roster
+term risks the collinearity trap that killed explosiveness (coefficient flips).
+Expect small aggregate Brier gain; the targeted upside is (a) heterogeneous churn
+the uniform pull can't express, (b) G5 / non-FPI-covered teams (fallback today is
+EPA-only), (c) a CLV-shaped edge in weeks 0-4. Reject-and-document is a fine outcome.
+
+**Design — modulate CARRY-THROUGH, don't add a level (the collinearity defence):**
+replace the uniform prior regression with a per-team retention factor
+`regress_i = clip(a + b·churn_i)` applied to `off/def_epa_prior` (and sr). High-
+retention teams keep more of last year's EPA; churned teams regress harder.
+`a, b` fit on the train season only. Ships INERT (`ROSTER_PRIOR_MODE="off"` /
+share=0 reproduces today byte-for-byte); missing churn row → today's prior,
+never imputed (the FPI rule).
+
+**Step 0 — KEYLESS churn signal (do this FIRST; no new dependencies, ~1 day, fully
+offline).** `churn_i = preseason FPI(S) − end-of-season FPI(S−1)` — ESPN's own
+estimate of offseason roster change, from sources we already ingest. Preseason
+FPI already exists for 2023-25 (`data/backtest/ncaaf_fpi/fpi_{season}.json`, live
++ Wayback); end-of-season FPI is the SAME Wayback mechanism in `cfb_fpi.py`
+pointed at ~January instead of August (`build_ncaaf_fpi_history.py`, add an
+`--end-of-season` snapshot). It is FPI-derived (more collinear) but modulates
+carry-through, not level. No API key, no local `.env` needed.
+
+**Step 1 — only if Step 0 is inconclusive/negative:** get a FREE CFBD API key
+(email signup; a few calls/season; `CFBD_API_KEY` in `.env` like other creds) and
+test raw returning production (`/player/returning`, Bill Connelly-style) and the
+talent composite (`/talent`, 247/Rivals/ESPN) as a richer, less-FPI-entangled
+churn signal. New `evmax/clients/cfbd.py` + `scripts/build_ncaaf_roster_history.py`
+→ frozen `data/backtest/ncaaf_roster/roster_{season}.json`, same preseason-freeze
+guard as FPI (`roster_season`, `--refresh-roster`). Known risk: CFBD keys teams by
+its own id/`school`; the seed resolves by canonical name (`fpi_prior_by_name` via
+`NameNormalizer`) — expect a handful of alias mismatches (Miami/USC/App-State
+class) on first build. BLOCKED today: operator has no access to the local device /
+`.env`, so Step 1 cannot start until that is restored — which is exactly why Step 0
+comes first. Optional secondary formulation once the plumbing exists: an ADDITIVE
+roster level term as a 3rd share in `epa_prior_net` (the CFBD-builder version;
+higher collinearity risk, cheap to test).
+
+**Validation protocol (decides everything).** Extend `scripts/backtest_ncaaf_v2.py`
+(already parameterizes the prior mix; carries `v2_nofpi`/`v2_fpi1`): fit on 2024
+ONLY, hold out 2023 + 2025 (the frozen-v2 protocol). New columns `v2_rosterA`
+(+ `_fpi1`, `_nofpi`; `v2_rosterB` if built). The comparison that matters is vs
+`v2_fpi1`, NOT vs `v2` — beating the mix while losing to pure FPI is a FAIL. Score
+by week bucket (0-3 / 4-8 / 9+): the effect must live in 0-3 and VANISH by 9+
+(it's a prior — still "helping" late = bug), and by conference tier via
+`evmax/sectors/ncaaf_tiers.py` (the G5 thesis). Collinearity check: coefficient
+sign/magnitude stable across all three seasons; a flip = reject (explosiveness
+precedent). Gate to ship inert: held-out weeks-0-3 Brier beats `v2_fpi1` on BOTH
+holdouts with stable coefficients. Gate to go LIVE: CLV not Brier —
+`evmax cleanup shadow clv-tiers ncaaf --max-staleness-h 3` on the accrued shadow
+stream after the flag flips (the v2 lesson: the sharp anchor absorbs ≤0.4/1000 of
+standalone Brier; value shows as CLV slope). Verdict → `docs/ncaaf-roster-prior-eval.md`,
+numbers either way.
+
+**Rollback/compat.** Flag off = unchanged live path. Fields are additive/optional
+→ no `schema_version` bump expected (v2 state + extra keys stays v2; pin in
+tests). The weekly `weekly-ncaaf-efficiency-reseed` task picks it up with zero
+change once the seed carries it.
+
+**Effort:** Step 0 ≈ 1 day to a walk-forward verdict, runnable in a fresh clone
+(backtest files are in-repo). Step 1 ≈ 2 more days if needed. Independent of
+PR #280.
+
+---
+
 ## Section 4 — Test Coverage Gaps
 
 ### TEST-3 PinnacleGuestClient Has Zero Tests [P2]
