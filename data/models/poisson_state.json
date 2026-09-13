@@ -4712,8 +4712,8 @@
     "teams": {
       "usc": {
         "attack": 3.0,
-        "defense": 1.6,
-        "games": 2
+        "defense": 2.066666666666667,
+        "games": 3
       },
       "san jos\u00e9 state": {
         "attack": 3.0,
@@ -4766,9 +4766,9 @@
         "games": 2
       },
       "hawaii": {
-        "attack": 2.1666666666666665,
+        "attack": 2.444444444444444,
         "defense": 3.0,
-        "games": 2
+        "games": 3
       },
       "florida state": {
         "attack": 3.0,
@@ -4778,7 +4778,7 @@
       "new mexico state": {
         "attack": 3.0,
         "defense": 3.0,
-        "games": 2
+        "games": 3
       },
       "unlv": {
         "attack": 2.555555555555556,
@@ -5518,7 +5518,7 @@
       "louisiana": {
         "attack": 3.0,
         "defense": 3.0,
-        "games": 1
+        "games": 2
       },
       "lamar": {
         "attack": 3.0,

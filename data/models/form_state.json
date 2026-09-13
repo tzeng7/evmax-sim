@@ -139337,6 +139337,14 @@
   "ncaaf": {
     "usc": [
       {
+        "date": "2026-09-12",
+        "won": true,
+        "opp": "louisiana",
+        "home": true,
+        "drew": false,
+        "margin": 19.0
+      },
+      {
         "date": "2026-09-04",
         "won": true,
         "opp": "fresno state",
@@ -139564,6 +139572,14 @@
     ],
     "hawaii": [
       {
+        "date": "2026-09-12",
+        "won": true,
+        "opp": "new mexico state",
+        "home": true,
+        "drew": false,
+        "margin": 10.0
+      },
+      {
         "date": "2026-09-05",
         "won": false,
         "opp": "unlv",
@@ -139597,6 +139613,14 @@
       }
     ],
     "new mexico state": [
+      {
+        "date": "2026-09-12",
+        "won": false,
+        "opp": "hawaii",
+        "home": false,
+        "drew": false,
+        "margin": -10.0
+      },
       {
         "date": "2026-09-05",
         "won": true,
@@ -141970,6 +141994,14 @@
       }
     ],
     "louisiana": [
+      {
+        "date": "2026-09-12",
+        "won": false,
+        "opp": "usc",
+        "home": false,
+        "drew": false,
+        "margin": -19.0
+      },
       {
         "date": "2026-09-05",
         "won": true,
