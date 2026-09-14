@@ -1,7 +1,7 @@
 {
-  "league_avg_ortg": 104.64,
-  "league_avg_drtg": 104.54,
-  "league_avg_pace": 83.06,
+  "league_avg_ortg": 104.72,
+  "league_avg_drtg": 104.6,
+  "league_avg_pace": 83.07,
   "teams": {
     "lynx": {
       "ortg": 111.03,
@@ -112,15 +112,15 @@
       "full_name": "las vegas aces"
     },
     "fire": {
-      "ortg": 103.65,
-      "drtg": 108.07,
-      "pace": 83.07,
-      "net": -4.42,
-      "efg": 0.5287,
-      "tov_pct": 0.1845,
-      "oreb_pct": 0.2428,
-      "ftr": 0.2691,
-      "gp": 40,
+      "ortg": 103.7,
+      "drtg": 108.96,
+      "pace": 83.21,
+      "net": -5.26,
+      "efg": 0.5268,
+      "tov_pct": 0.1823,
+      "oreb_pct": 0.2443,
+      "ftr": 0.2711,
+      "gp": 41,
       "full_name": "portland fire"
     },
     "sparks": {
@@ -172,19 +172,19 @@
       "full_name": "phoenix mercury"
     },
     "sky": {
-      "ortg": 100.54,
-      "drtg": 104.76,
-      "pace": 85.26,
-      "net": -4.22,
-      "efg": 0.4873,
-      "tov_pct": 0.1555,
-      "oreb_pct": 0.2209,
-      "ftr": 0.3305,
-      "gp": 39,
+      "ortg": 101.63,
+      "drtg": 104.79,
+      "pace": 85.29,
+      "net": -3.16,
+      "efg": 0.4943,
+      "tov_pct": 0.1556,
+      "oreb_pct": 0.2221,
+      "ftr": 0.3311,
+      "gp": 40,
       "full_name": "chicago sky"
     }
   },
-  "fetched_at": "2026-09-07",
+  "fetched_at": "2026-09-14",
   "source_season": "2026",
-  "n_games_aggregated": 307
+  "n_games_aggregated": 308
 }
