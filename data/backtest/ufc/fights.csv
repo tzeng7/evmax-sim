@@ -8081,3 +8081,21 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600059993,401914473,UFC Fight Night: Hooker vs. Parnasse,2026-09-05,Welterweight,5289841,Daniil Donchenko,4423214,Punahele Soriano,a,True,3,5:00,decision,
 600059993,401914474,UFC Fight Night: Hooker vs. Parnasse,2026-09-05,Flyweight,5142304,Michael Aljarouj,5401055,Fabia Sintes,b,True,3,5:00,decision,
 600059993,401916275,UFC Fight Night: Hooker vs. Parnasse,2026-09-05,Featherweight,3950354,Nathaniel Wood,5445620,Pavel Andrusca,b,True,3,5:00,decision,
+600060736,401891540,"Dana White's Contender Series: Season 10, Week 5",2026-09-08,Welterweight,5264395,Isaac Moreno,5291155,Reginaldo Junior,a,True,3,5:00,decision,
+600060736,401914107,"Dana White's Contender Series: Season 10, Week 5",2026-09-08,Light Heavyweight,5307124,Quentin Pasley,5369721,Arlind Berisha,a,True,1,4:41,ko_tko,Elbows
+600060736,401916056,"Dana White's Contender Series: Season 10, Week 5",2026-09-08,Middleweight,5364366,Martin Kozák,4816065,Christian Echols,a,True,2,1:32,ko_tko,Punch
+600060736,401916065,"Dana White's Contender Series: Season 10, Week 5",2026-09-08,Bantamweight,4907790,Kwon Won Il,5369425,Apollo Gomes,b,True,3,5:00,decision,
+600060736,401916066,"Dana White's Contender Series: Season 10, Week 5",2026-09-08,Flyweight,5362761,Colton Loud,5445622,Christian Natividad,b,True,1,1:10,ko_tko,Punch
+600060772,401897731,Noche UFC: Silva vs. Delgado,2026-09-12,Flyweight,3027545,Brandon Moreno,4238229,Joseph Morales,a,True,3,5:00,decision,
+600060772,401897732,Noche UFC: Silva vs. Delgado,2026-09-12,Catch Weight,2614020,Tim Elliott,5076027,Édgar Cháirez,a,True,3,5:00,decision,
+600060772,401897733,Noche UFC: Silva vs. Delgado,2026-09-12,Heavyweight,4903365,Waldo Cortes Acosta,3922557,Curtis Blaydes,b,True,3,5:00,decision,
+600060772,401897734,Noche UFC: Silva vs. Delgado,2026-09-12,W Flyweight,4608674,Manon Fiorot,3136287,Alexa Grasso,b,True,3,5:00,decision,
+600060772,401897736,Noche UFC: Silva vs. Delgado,2026-09-12,W Flyweight,3136289,JJ Aldrich,5338118,Regina Tarin,b,True,3,5:00,decision,
+600060772,401905192,Noche UFC: Silva vs. Delgado,2026-09-12,Bantamweight,4503229,David Martinez,4074001,Dan Ige,a,True,3,5:00,decision,
+600060772,401905193,Noche UFC: Silva vs. Delgado,2026-09-12,Welterweight,4038116,Ignacio Bahamondes,3132513,Muslim Salikhov,a,True,3,5:00,decision,
+600060772,401908491,Noche UFC: Silva vs. Delgado,2026-09-12,Featherweight,5212849,Tommy McMillen,5302274,Marwan Rahiki,a,True,3,5:00,decision,
+600060772,401913547,Noche UFC: Silva vs. Delgado,2026-09-12,Lightweight,4690549,Rafa Garcia,4773371,Rongzhu,b,True,3,5:00,decision,
+600060772,401914462,Noche UFC: Silva vs. Delgado,2026-09-12,Featherweight,5145766,Jean Silva,5223435,Jose Miguel Delgado,a,True,3,2:57,submission,Rear Naked Choke
+600060772,401914463,Noche UFC: Silva vs. Delgado,2026-09-12,Middleweight,5149815,Yousri Belgaroui,5211247,Djorden Santos,a,True,1,4:25,ko_tko,Punch
+600060772,401916463,Noche UFC: Silva vs. Delgado,2026-09-12,Lightweight,4079621,Drakkar Klose,5307814,Tommy Gantt,b,True,3,2:46,submission,Triangle Choke
+600060772,401916464,Noche UFC: Silva vs. Delgado,2026-09-12,Featherweight,5401058,Sean King III,5387599,Jessie Rosas,a,True,1,0:36,ko_tko,Slam
