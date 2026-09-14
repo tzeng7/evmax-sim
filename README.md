@@ -4,7 +4,7 @@ evmax uses a multi-agent pipeline to find positive expected value (+EV) opportun
 
 Sharp odds come from the **Pinnacle guest API** (`guest.api.arcadia.pinnacle.com`), which is keyless — the only API credential you need is a Kalshi key for live price refresh and trading (Polymarket US market data is fetched from the public gateway, no key). Every bettable category, its models, mode, and resolver are declared in one registry: [`data/categories.yaml`](data/categories.yaml).
 
-**Venues:** markets from both exchanges merge into one pool; `PredictionMarket.source` / `EVGap.venue` / the `venue` DB column carry the venue through matching → EV → persistence, and dedup keys are venue-aware (the same game on both venues = two independent books). Polymarket US is behind a **venue shadow firewall** (`polymarket_us_live=false`): its gaps log as `mode='shadow'` with Kelly zeroed until the venue clears the shadow-validation gates; `polymarket_us_enabled=false` kills the fetch entirely.
+**Venues:** markets from both exchanges merge into one pool; `PredictionMarket.source` / `EVGap.venue` / the `venue` DB column carry the venue through matching → EV → persistence, and dedup keys are venue-aware (the same game on both venues = two independent books). Polymarket US is behind a **per-sector venue shadow firewall**: a gap logs as `mode='shadow'` with Kelly zeroed unless its sector is cleared by `settings.venue_sector_live('polymarket_us', sector)` — true when the master switch `polymarket_us_live=true` (all sectors) OR the sector is in the `polymarket_us_live_sectors` allowlist. The shipped default is `polymarket_us_live=false` with `polymarket_us_live_sectors="wnba"`, so WNBA is the one cleared sector today (and only its moneyline, since wnba spread/total are `disabled_market_types`); every other sector stays shadow. A sector still only goes live if its category mode also resolves to `live`. `polymarket_us_enabled=false` kills the fetch entirely.
 
 ---
 
@@ -666,7 +666,7 @@ Expected-goals model driven by ESPN shot data (`shotsOnTarget` / `totalShots`). 
 
 #### NHL xG Model (`NhlXgModelAgent`, NHL-only, weight=0.30)
 
-Team 5-on-5 expected goals for/against per 60 (xGF/60, xGA/60), score-and-venue adjusted, sourced from MoneyPuck's public team CSVs. This is NHL's dominant non-sharp signal; generic Elo is held at 0 for NHL because its K-factor / home-advantage have never been calibrated for hockey, and Form contributes a small recency voice (0.15). Goalie GSAx and special-teams agents are planned for v2/v3.
+Team 5-on-5 expected goals for/against per 60 (xGF/60, xGA/60), score-and-venue adjusted, sourced from MoneyPuck's public team CSVs. This is NHL's dominant non-sharp signal; generic Elo is held at 0 for NHL, and Form contributes a small recency voice (0.15). That 0 is an unmade **blend decision**, not a blocked calibration: MODEL-2's NHL half closed 2026-07-18 — `elo_agent.py` carries `K_FACTORS["nhl"] = 6.0` / `HOME_ADVANTAGE_ELO["nhl"] = 48.0` (swept by `scripts/backtest_nhl_elo.py`) and `elo_state.json['nhl']` is seeded. Raising the weight needs a walk-forward, not a sweep. Goalie GSAx and special-teams agents are planned for v2/v3.
 
 **Seeding:** `scripts/seed_nhl_xg.py` (MoneyPuck team CSVs). NHL ships in `shadow` mode.
 
@@ -1583,7 +1583,8 @@ All settings live in `.env` (or environment variables):
 | `KALSHI_WS_ENABLED` | `true` | WebSocket real-time prices; set `false` for REST-only |
 | `KALSHI_WS_SNAPSHOT_TIMEOUT` | `5.0` | Seconds to wait per ticker snapshot before REST fallback |
 | `POLYMARKET_US_ENABLED` | `true` | Kill-switch for the Polymarket US market fetch |
-| `POLYMARKET_US_LIVE` | `false` | Venue shadow firewall — until `true`, every Polymarket US gap logs as shadow with Kelly zeroed |
+| `POLYMARKET_US_LIVE` | `false` | Venue shadow firewall MASTER switch — `true` clears every sector at once |
+| `POLYMARKET_US_LIVE_SECTORS` | `wnba` | Per-sector allowlist that refines the firewall without flipping the master switch (comma-separated). A listed sector still needs its category mode to resolve to `live` |
 | `EVMAX_CATEGORY_MODES` | — | Per-category mode override, e.g. `'{"nba":"disabled"}'` (CLI flags rank higher) |
 | `EVMAX_JOINT_KELLY_ENABLED` | `false` | Correlation-aware joint Kelly sizing (see [Joint Kelly](#joint-kelly-optional-correlation-aware)) |
 | `SLACK_WEBHOOK_URL` | — | Post EV alerts to Slack |
@@ -1683,7 +1684,7 @@ Every category runs in one of three modes (`evmax.modes.get_mode`):
 - **Advance (World Cup knockouts)** — "Team X advances" including extra time / penalties. Distinct from `KXWCGAME`, which settles on the 90' regulation result. Pinnacle has no live per-match advance market, so both the sharp anchor and model prob are derived from the same game's regulation 3-way via `derive_advance_prob` in `evmax/ev/devig.py`. Advance records carry a `::advance` event-key suffix so they can never cross-match regulation records.
 - **Player props** — over/under a player stat line (NBA / NFL / MLB props)
 
-**Polymarket US coverage:** 8 sectors fetch from the Polymarket US gateway alongside Kalshi (`POLYMARKET_US_LEAGUE_MAP` in `evmax/clients/polymarket_us.py`): NBA, WNBA, NFL, NCAAB (`cbb`), MLB, NHL, soccer (`epl`/`ucl`/`mls`), tennis (`atp`/`wta`). All Polymarket US gaps log as shadow until the venue firewall lifts.
+**Polymarket US coverage:** 8 sectors fetch from the Polymarket US gateway alongside Kalshi (`POLYMARKET_US_LEAGUE_MAP` in `evmax/clients/polymarket_us.py`): NBA, WNBA, NFL, NCAAB (`cbb`), MLB, NHL, soccer (`epl`/`ucl`/`mls`), tennis (`atp`/`wta`). Polymarket US gaps log as shadow unless their sector is on the `polymarket_us_live_sectors` allowlist (shipped default: `wnba`) or the `polymarket_us_live` master switch is on.
 
 ---
 
