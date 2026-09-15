@@ -4,7 +4,7 @@
       "eagles": 1527.89,
       "cowboys": 1463.48,
       "chargers": 1492.5,
-      "chiefs": 1461.59,
+      "chiefs": 1492.92,
       "falcons": 1483.49,
       "buccaneers": 1468.55,
       "browns": 1441.56,
@@ -21,7 +21,7 @@
       "giants": 1465.55,
       "jaguars": 1566.33,
       "panthers": 1457.56,
-      "broncos": 1568.34,
+      "broncos": 1537.01,
       "titans": 1407.85,
       "seahawks": 1612.71,
       "49ers": 1582.12,
@@ -38,7 +38,7 @@
       "eagles": 19,
       "cowboys": 18,
       "chargers": 19,
-      "chiefs": 17,
+      "chiefs": 18,
       "falcons": 18,
       "buccaneers": 18,
       "browns": 18,
@@ -55,7 +55,7 @@
       "giants": 18,
       "jaguars": 19,
       "panthers": 19,
-      "broncos": 19,
+      "broncos": 20,
       "titans": 18,
       "seahawks": 21,
       "49ers": 20,
@@ -73,12 +73,12 @@
       "bears": 1,
       "bengals": 1,
       "bills": 1,
-      "broncos": 0,
+      "broncos": 1,
       "browns": 1,
       "buccaneers": 1,
       "cardinals": 1,
       "chargers": 1,
-      "chiefs": 0,
+      "chiefs": 1,
       "colts": 1,
       "commanders": 1,
       "cowboys": 1,
@@ -177,6 +177,11 @@
         "a_wins": 0,
         "b_wins": 1,
         "games": 1
+      },
+      "broncos::chiefs": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
       }
     },
     "offseason_regression": {
@@ -188,7 +193,7 @@
       ],
       "moves": 0
     },
-    "last_updated": "2026-09-13"
+    "last_updated": "2026-09-14"
   },
   "lol": {
     "ratings": {
@@ -8481,67 +8486,67 @@
   },
   "baseball": {
     "ratings": {
-      "yankees": 1516.77,
+      "yankees": 1520.42,
       "astros": 1498.44,
       "red sox": 1561.44,
-      "twins": 1451.31,
+      "twins": 1447.66,
       "rays": 1532.13,
-      "mets": 1531.15,
-      "tigers": 1508.86,
+      "mets": 1527.28,
+      "tigers": 1512.61,
       "phillies": 1502.9,
-      "orioles": 1489.76,
+      "orioles": 1493.63,
       "pirates": 1494.52,
-      "braves": 1506.69,
-      "blue jays": 1531.41,
-      "cardinals": 1486.71,
+      "braves": 1503.49,
+      "blue jays": 1527.66,
+      "cardinals": 1489.69,
       "nationals": 1478.63,
-      "cubs": 1528.8,
-      "guardians": 1503.38,
-      "reds": 1468.56,
-      "padres": 1557.23,
-      "dodgers": 1542.87,
-      "giants": 1502.61,
-      "angels": 1457.22,
+      "cubs": 1532.0,
+      "guardians": 1499.24,
+      "reds": 1465.73,
+      "padres": 1559.48,
+      "dodgers": 1545.7,
+      "giants": 1499.63,
+      "angels": 1459.89,
       "athletics": 1445.89,
-      "mariners": 1456.52,
-      "white sox": 1492.69,
-      "diamondbacks": 1518.5,
-      "rockies": 1426.78,
+      "mariners": 1453.85,
+      "white sox": 1496.83,
+      "diamondbacks": 1520.78,
+      "rockies": 1424.53,
       "brewers": 1554.18,
       "rangers": 1480.43,
-      "marlins": 1457.1,
+      "marlins": 1454.82,
       "royals": 1516.52
     },
     "game_counts": {
-      "yankees": 109,
+      "yankees": 110,
       "astros": 104,
       "red sox": 108,
-      "twins": 108,
+      "twins": 109,
       "rays": 108,
-      "mets": 104,
-      "tigers": 112,
+      "mets": 105,
+      "tigers": 113,
       "phillies": 110,
-      "orioles": 103,
+      "orioles": 104,
       "pirates": 109,
-      "braves": 105,
-      "blue jays": 124,
-      "cardinals": 105,
+      "braves": 106,
+      "blue jays": 125,
+      "cardinals": 106,
       "nationals": 108,
-      "cubs": 114,
-      "guardians": 110,
-      "reds": 105,
-      "padres": 107,
-      "dodgers": 122,
-      "giants": 105,
-      "angels": 109,
+      "cubs": 115,
+      "guardians": 111,
+      "reds": 106,
+      "padres": 108,
+      "dodgers": 123,
+      "giants": 106,
+      "angels": 110,
       "athletics": 106,
-      "mariners": 116,
-      "white sox": 109,
-      "diamondbacks": 108,
-      "rockies": 99,
+      "mariners": 117,
+      "white sox": 110,
+      "diamondbacks": 109,
+      "rockies": 100,
       "brewers": 118,
       "rangers": 110,
-      "marlins": 107,
+      "marlins": 108,
       "royals": 108
     },
     "h2h": {
@@ -8836,9 +8841,9 @@
         "games": 6
       },
       "padres::rockies": {
-        "a_wins": 2,
+        "a_wins": 3,
         "b_wins": 0,
-        "games": 2
+        "games": 3
       },
       "dodgers::mariners": {
         "a_wins": 2,
@@ -9022,8 +9027,8 @@
       },
       "guardians::white sox": {
         "a_wins": 1,
-        "b_wins": 2,
-        "games": 3
+        "b_wins": 3,
+        "games": 4
       },
       "brewers::twins": {
         "a_wins": 2,
@@ -9531,14 +9536,14 @@
         "games": 3
       },
       "cardinals::giants": {
-        "a_wins": 0,
+        "a_wins": 1,
         "b_wins": 3,
-        "games": 3
+        "games": 4
       },
       "dodgers::reds": {
-        "a_wins": 3,
+        "a_wins": 4,
         "b_wins": 0,
-        "games": 3
+        "games": 4
       },
       "athletics::blue jays": {
         "a_wins": 2,
@@ -9609,41 +9614,71 @@
         "a_wins": 1,
         "b_wins": 2,
         "games": 3
+      },
+      "blue jays::tigers": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "mets::orioles": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "braves::cubs": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "twins::yankees": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
+      },
+      "angels::mariners": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "diamondbacks::marlins": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
       }
     },
     "season_games": {
-      "yankees": 45,
+      "yankees": 46,
       "astros": 46,
       "red sox": 47,
-      "twins": 46,
+      "twins": 47,
       "rays": 48,
-      "mets": 45,
-      "tigers": 46,
+      "mets": 46,
+      "tigers": 47,
       "phillies": 47,
-      "orioles": 46,
+      "orioles": 47,
       "pirates": 47,
-      "braves": 48,
-      "blue jays": 49,
-      "cardinals": 49,
+      "braves": 49,
+      "blue jays": 50,
+      "cardinals": 50,
       "nationals": 48,
-      "cubs": 48,
-      "guardians": 46,
-      "reds": 46,
-      "padres": 47,
-      "dodgers": 47,
-      "giants": 48,
-      "angels": 46,
+      "cubs": 49,
+      "guardians": 47,
+      "reds": 47,
+      "padres": 48,
+      "dodgers": 48,
+      "giants": 49,
+      "angels": 47,
       "athletics": 48,
-      "mariners": 47,
-      "white sox": 48,
-      "diamondbacks": 48,
-      "rockies": 45,
+      "mariners": 48,
+      "white sox": 49,
+      "diamondbacks": 49,
+      "rockies": 46,
       "brewers": 48,
       "rangers": 48,
-      "marlins": 47,
+      "marlins": 48,
       "royals": 48
     },
-    "last_updated": "2026-09-13"
+    "last_updated": "2026-09-14"
   },
   "ncaab": {
     "ratings": {
@@ -33417,7 +33452,7 @@
       "botafogo": 1505.51,
       "vasco da gama": 1467.19,
       "santos": 1530.94,
-      "bahia": 1562.44,
+      "bahia": 1570.57,
       "corinthians": 1456.33,
       "red bull bragantino": 1484.16,
       "cear\u00e1": 1451.3,
@@ -33435,8 +33470,8 @@
       "mazatlan fc": 1427.87,
       "pachuca": 1546.89,
       "monterrey": 1466.58,
-      "club leon": 1462.35,
-      "atletico san luis": 1437.18,
+      "club leon": 1473.41,
+      "atletico san luis": 1426.12,
       "guadalajara": 1602.71,
       "tigres uanl": 1508.49,
       "mls all-stars": 1519.82,
@@ -33487,12 +33522,12 @@
       "bournemouth": 1546.73,
       "girona": 1464.51,
       "rayo vallecano": 1493.98,
-      "villarreal": 1494.47,
+      "villarreal": 1479.87,
       "real oviedo": 1406.27,
       "rennes": 1590.81,
       "marseille": 1493.46,
       "aston villa": 1577.81,
-      "newcastle": 1526.52,
+      "newcastle": 1513.21,
       "brighton hove albion": 1543.37,
       "fulham": 1463.47,
       "sunderland": 1511.86,
@@ -33535,10 +33570,10 @@
       "strasbourg": 1551.09,
       "nantes": 1399.49,
       "psg": 1658.95,
-      "leeds": 1534.01,
+      "leeds": 1547.32,
       "everton": 1507.18,
       "elche": 1435.04,
-      "betis": 1601.69,
+      "betis": 1616.29,
       "real madrid": 1673.63,
       "osasuna": 1445.36,
       "bayern": 1755.86,
@@ -33561,7 +33596,7 @@
       "napoli": 1556.6,
       "milan": 1584.68,
       "cremonese": 1403.98,
-      "roma": 1624.49,
+      "roma": 1636.33,
       "bologna": 1486.6,
       "mainz": 1494.81,
       "koln": 1435.47,
@@ -33569,16 +33604,16 @@
       "hamburg": 1431.82,
       "cagliari": 1510.9,
       "fiorentina": 1464.78,
-      "como": 1637.23,
+      "como": 1643.93,
       "lazio": 1562.46,
       "atalanta": 1521.43,
       "pisa": 1345.22,
       "juventus": 1580.21,
-      "parma": 1455.31,
-      "udinese": 1495.38,
+      "parma": 1448.61,
+      "udinese": 1487.91,
       "hellas verona": 1376.23,
-      "inter": 1663.34,
-      "torino": 1459.78,
+      "inter": 1670.81,
+      "torino": 1447.94,
       "union st.-gilloise": 1488.3,
       "benfica": 1476.6,
       "qarabag": 1462.76,
@@ -33615,7 +33650,7 @@
       "panathinaikos": 1516.42,
       "coritiba": 1512.92,
       "athletico paranaense": 1562.37,
-      "remo": 1438.84,
+      "remo": 1430.71,
       "chapecoense": 1409.9,
       "v-varen nagasaki": 1463.55,
       "jef united chiba": 1402.22,
@@ -33712,7 +33747,7 @@
       "botafogo": 64,
       "vasco da gama": 64,
       "santos": 64,
-      "bahia": 64,
+      "bahia": 65,
       "corinthians": 65,
       "red bull bragantino": 64,
       "cear\u00e1": 38,
@@ -33730,8 +33765,8 @@
       "mazatlan fc": 34,
       "pachuca": 48,
       "monterrey": 45,
-      "club leon": 41,
-      "atletico san luis": 41,
+      "club leon": 42,
+      "atletico san luis": 42,
       "guadalajara": 48,
       "tigres uanl": 50,
       "mls all-stars": 2,
@@ -33782,12 +33817,12 @@
       "bournemouth": 42,
       "girona": 38,
       "rayo vallecano": 43,
-      "villarreal": 51,
+      "villarreal": 52,
       "real oviedo": 38,
       "rennes": 38,
       "marseille": 46,
       "aston villa": 58,
-      "newcastle": 53,
+      "newcastle": 54,
       "brighton hove albion": 42,
       "fulham": 42,
       "sunderland": 42,
@@ -33830,10 +33865,10 @@
       "strasbourg": 38,
       "nantes": 33,
       "psg": 56,
-      "leeds": 41,
+      "leeds": 42,
       "everton": 42,
       "elche": 43,
-      "betis": 55,
+      "betis": 56,
       "real madrid": 58,
       "osasuna": 43,
       "bayern": 52,
@@ -33856,7 +33891,7 @@
       "napoli": 51,
       "milan": 42,
       "cremonese": 38,
-      "roma": 52,
+      "roma": 53,
       "bologna": 56,
       "mainz": 37,
       "koln": 37,
@@ -33864,16 +33899,16 @@
       "hamburg": 37,
       "cagliari": 42,
       "fiorentina": 42,
-      "como": 42,
+      "como": 43,
       "lazio": 42,
       "atalanta": 54,
       "pisa": 38,
       "juventus": 52,
-      "parma": 41,
-      "udinese": 41,
+      "parma": 42,
+      "udinese": 42,
       "hellas verona": 38,
-      "inter": 52,
-      "torino": 41,
+      "inter": 53,
+      "torino": 42,
       "union st.-gilloise": 8,
       "benfica": 10,
       "qarabag": 10,
@@ -33910,7 +33945,7 @@
       "panathinaikos": 12,
       "coritiba": 27,
       "athletico paranaense": 27,
-      "remo": 26,
+      "remo": 27,
       "chapecoense": 26,
       "v-varen nagasaki": 27,
       "jef united chiba": 27,
@@ -34007,7 +34042,7 @@
       "botafogo": 64,
       "vasco da gama": 64,
       "santos": 64,
-      "bahia": 64,
+      "bahia": 65,
       "corinthians": 65,
       "red bull bragantino": 64,
       "cear\u00e1": 38,
@@ -34025,8 +34060,8 @@
       "mazatlan fc": 34,
       "pachuca": 48,
       "monterrey": 45,
-      "club leon": 41,
-      "atletico san luis": 41,
+      "club leon": 42,
+      "atletico san luis": 42,
       "guadalajara": 48,
       "tigres uanl": 50,
       "mls all-stars": 2,
@@ -34077,12 +34112,12 @@
       "bournemouth": 42,
       "girona": 38,
       "rayo vallecano": 43,
-      "villarreal": 51,
+      "villarreal": 52,
       "real oviedo": 38,
       "rennes": 38,
       "marseille": 46,
       "aston villa": 58,
-      "newcastle": 53,
+      "newcastle": 54,
       "brighton hove albion": 42,
       "fulham": 42,
       "sunderland": 42,
@@ -34125,10 +34160,10 @@
       "strasbourg": 38,
       "nantes": 33,
       "psg": 56,
-      "leeds": 41,
+      "leeds": 42,
       "everton": 42,
       "elche": 43,
-      "betis": 55,
+      "betis": 56,
       "real madrid": 58,
       "osasuna": 43,
       "bayern": 52,
@@ -34151,7 +34186,7 @@
       "napoli": 51,
       "milan": 42,
       "cremonese": 38,
-      "roma": 52,
+      "roma": 53,
       "bologna": 56,
       "mainz": 37,
       "koln": 37,
@@ -34159,16 +34194,16 @@
       "hamburg": 37,
       "cagliari": 42,
       "fiorentina": 42,
-      "como": 42,
+      "como": 43,
       "lazio": 42,
       "atalanta": 54,
       "pisa": 38,
       "juventus": 52,
-      "parma": 41,
-      "udinese": 41,
+      "parma": 42,
+      "udinese": 42,
       "hellas verona": 38,
-      "inter": 52,
-      "torino": 41,
+      "inter": 53,
+      "torino": 42,
       "union st.-gilloise": 8,
       "benfica": 10,
       "qarabag": 10,
@@ -34205,7 +34240,7 @@
       "panathinaikos": 12,
       "coritiba": 27,
       "athletico paranaense": 27,
-      "remo": 26,
+      "remo": 27,
       "chapecoense": 26,
       "v-varen nagasaki": 27,
       "jef united chiba": 27,
@@ -36453,8 +36488,8 @@
       },
       "atletico san luis::club leon": {
         "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
+        "b_wins": 2,
+        "games": 3
       },
       "juventude::sport": {
         "a_wins": 2,
@@ -37872,9 +37907,9 @@
         "games": 2
       },
       "inter::udinese": {
-        "a_wins": 1,
+        "a_wins": 2,
         "b_wins": 1,
-        "games": 2
+        "games": 3
       },
       "hellas verona::lazio": {
         "a_wins": 0,
@@ -38202,9 +38237,9 @@
         "games": 1
       },
       "roma::torino": {
-        "a_wins": 1,
+        "a_wins": 2,
         "b_wins": 1,
-        "games": 2
+        "games": 3
       },
       "atalanta::lecce": {
         "a_wins": 2,
@@ -43662,9 +43697,9 @@
         "games": 2
       },
       "leeds::newcastle": {
-        "a_wins": 0,
+        "a_wins": 1,
         "b_wins": 1,
-        "games": 1
+        "games": 2
       },
       "atalanta::bologna": {
         "a_wins": 2,
@@ -43827,9 +43862,9 @@
         "games": 1
       },
       "betis::villarreal": {
-        "a_wins": 1,
+        "a_wins": 2,
         "b_wins": 0,
-        "games": 1
+        "games": 2
       },
       "dortmund::st. pauli": {
         "a_wins": 1,
@@ -45302,9 +45337,9 @@
         "games": 1
       },
       "bahia::remo": {
-        "a_wins": 0,
+        "a_wins": 1,
         "b_wins": 1,
-        "games": 1
+        "games": 2
       },
       "chapecoense::internacional": {
         "a_wins": 0,
@@ -45967,9 +46002,9 @@
         "games": 1
       },
       "como::parma": {
-        "a_wins": 1,
+        "a_wins": 2,
         "b_wins": 0,
-        "games": 1
+        "games": 2
       },
       "genoa::milan": {
         "a_wins": 0,
@@ -46837,7 +46872,7 @@
         "games": 1
       }
     },
-    "last_updated": "2026-09-13"
+    "last_updated": "2026-09-14"
   },
   "ncaaf": {
     "ratings": {
