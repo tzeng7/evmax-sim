@@ -227,7 +227,7 @@ This is a deliberate deferral — not a cleanup chore. Pick the strategy that fi
 **Secondary cleanup tracked here:** the frozen 51-entry `indoor` bucket in state is cosmetic debt (~2KB disk, no correctness or perf impact) as long as MODEL-6 is pending. Do not ship a standalone cleanup script — fold it into MODEL-6's migration instead.
 
 ### MODEL-7 Non-QB NFL Prop Features (Usage, Target Share, Vegas Totals) [P3]
-**Files:** `evmax/clients/nfl_props_cache.py`, `evmax/backtest/sources/nfl_props.py`, `scripts/fetch_nfl_features.py`
+**Files:** `evmax/clients/nfl_props_cache.py`, `scripts/fetch_nfl_features.py` (NOTE: the Stage-4 backtest loader `evmax/backtest/sources/nfl_props.py` was deleted in `edb3d7b`, 2026-05-10 — recover it from `git show edb3d7b^:evmax/backtest/sources/nfl_props.py` or re-derive it before this item can run)
 
 **Context.** The Stage 4 backtest (see Recently Shipped) showed non-QB NFL stats (`rushing_yards`, `receiving_yards`, `receptions`, `anytime_td`) have Brier ≥ 0.21 and in some cases perform *worse* than the naive "always predict the base rate" prior. Receiving yards alone is 35% of the dataset and has Brier 0.254 vs prior 0.234. The current model for those stats uses only the player's L8-game rolling mean + Gaussian tail + streak adjustment + team-level opponent allowed-per-game. That feature set is insufficient for stats where per-game variance is dominated by usage shifts and game script, not mean skill.
 
@@ -418,7 +418,7 @@ Middle bins are well-calibrated. Tails miss by 10–18pp. The ROI filter picks e
 **Blocker for shot-type variance:** none — data is local. ~3-4 days of focused modelling.
 
 ### MODEL-16 Refit NBA props isotonic with opp_adj backfilled [P3]
-**File:** `scripts/calibrate_nba_props.py`, new team-stats backfill script
+**File:** `scripts/calibrate_nba_props.py` (NOTE: deleted — recover from history, `git log --diff-filter=D -- scripts/calibrate_nba_props.py`), new team-stats backfill script
 
 **Context.** The Path A calibration was fitted on a row set that did NOT include opp_adj because we don't have backfilled team defensive stats per game date. In production, opp_adj is applied between volatility shrinkage and isotonic — meaning isotonic operates on a slightly different distribution than what was fitted on. Opp_adj is bounded at ±15% so the drift is bounded, but the calibration would be tighter if we re-fit with opp_adj included.
 
@@ -453,11 +453,13 @@ No tests for the live in-game model.
 > Skipped for now (your brother's repo — leaving major arch decisions alone).
 > Listed here so they don't get forgotten if/when he wants to tackle them.
 
-### ARCH-1 Dead Code: `pipeline/runner.py` and `models_ml/sharp_only.py` [P2]
-`pipeline/runner.py` is a Phase 1 legacy module. It imports `SharpBooksModel` from `models_ml/sharp_only.py` and the old `PinnacleClient`. Neither is called by any CLI command.
-- Delete `evmax/pipeline/runner.py` (legacy, superseded by coordinator)
-- Delete `evmax/models_ml/sharp_only.py` (legacy placeholder model)
-- Confirm `evmax/clients/pinnacle.py` (TheOddsAPI) is also unused in live path, and if so, archive or delete it
+### ARCH-1 Dead Code: `pipeline/runner.py` and `models_ml/sharp_only.py` [P2] — ✅ DONE 2026-06-19
+`pipeline/runner.py` was a Phase 1 legacy module importing `SharpBooksModel` from `models_ml/sharp_only.py` and the old `PinnacleClient`; none was called by any CLI command.
+- ✅ `evmax/pipeline/runner.py` deleted (the whole `evmax/pipeline/` package is gone)
+- ✅ `evmax/models_ml/sharp_only.py` deleted
+- ✅ `evmax/clients/pinnacle.py` (TheOddsAPI) confirmed unused and deleted
+
+All three landed in `0f27511` ("chore: remove legacy Phase-1 pipeline, retire TheOddsAPI client, sync README"). Kept here rather than removed because ARCH-9 below reads as a follow-on to this item.
 
 ### ARCH-2 Dual Database Architecture Creates Schema Drift [P2]
 Two completely separate storage systems exist:
@@ -649,9 +651,9 @@ The immediate use case is MODEL-9 (NFL props need shadow validation before live)
 **Estimated effort:** ~2 hours including tests. Small, high-leverage, exactly the kind of automation that would have prevented the PR #6 typo discovery from taking a full research session.
 
 ### ARCH-9 Resurrect TheOddsAPI Legacy Client as Paid Fallback [P3]
-**Files:** `evmax/clients/pinnacle.py`, `evmax/agents/odds/sharp_agent.py`, `evmax/models/odds.py`
+**Files:** new `evmax/clients/theoddsapi.py` (see note), `evmax/agents/odds/sharp_agent.py`, `evmax/models/odds.py`
 
-The legacy `PinnacleClient` at `evmax/clients/pinnacle.py` is a fully-implemented TheOddsAPI wrapper (moneyline + spreads + totals + player props + quota tracking, ~900 lines) that was superseded by `PinnacleGuestClient` but never deleted. It's currently dead code — imported only by the dead `pipeline/runner.py` and by one vestigial `get_quota()` display call in `evmax/cli/commands/agents.py:382` that renders an empty string because `_quota` is never populated.
+> **Premise changed 2026-06-19 (ARCH-1).** This item was written while a legacy `PinnacleClient` — a fully-implemented TheOddsAPI wrapper (moneyline + spreads + totals + player props + quota tracking, ~900 lines) — still sat at `evmax/clients/pinnacle.py` as dead code. That file was **deleted** in `0f27511`, along with its only importers (`evmax/pipeline/runner.py` and the vestigial `get_quota()` display call in `evmax/cli/commands/agents.py`). So this is no longer "resurrect an existing client" — it is "re-implement one", recoverable from `git show 0f27511^:evmax/clients/pinnacle.py`. Re-price the effort accordingly before picking it up.
 
 Resurrecting it as a **commercial fallback** when Pinnacle Guest is unavailable is a real option:
 
