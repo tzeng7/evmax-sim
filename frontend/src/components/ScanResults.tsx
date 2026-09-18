@@ -206,11 +206,150 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     }
   }, [gaps, selected, fills, activeLeg, toast, onPicked])
 
+  // One rendered table row. Shared by the taker and maker tables so the two
+  // never drift on columns or behaviour — only the partition differs.
+  const renderRow = useCallback((g: ScanGap) => {
+    const leg = activeLeg(g)
+    const legs = legsOf(g)
+    const hasDropdown = legs.length > 1
+    const askOdds = probToCents(leg.kalshi_price)
+    const outcome = outcomeLabel(leg)
+    const mode = leg.mode || 'live'
+    const isLive = mode === 'live'
+    // A maker-only leg logs as shadow (fill-contingent) but is still
+    // selectable — its selection arms "Record Maker Fill", never the
+    // taker pick, which the ask price would make -EV.
+    const isMaker = !!leg.maker_only
+    const selectable = isLive || isMaker
+    return (
+      <tr key={g.market_id} style={isLive ? undefined : { opacity: 0.55 }}>
+        <td>
+          <input type="checkbox" checked={selected.has(g.market_id)}
+            disabled={!selectable}
+            title={
+              isMaker
+                ? 'Maker-only — select, set Fill ¢ / Stake to what actually filled, then "Record Maker Fill"'
+                : isLive ? '' : `${mode} mode — not pickable`
+            }
+            onChange={() => toggle(g.market_id)} />
+        </td>
+        <td className="muted">{g.event_date}</td>
+        <td>
+          <span className="badge">{g.sector}</span>
+          {g.league_display && (
+            <span
+              className="badge"
+              style={{ marginLeft: 4, background: 'rgba(97,175,239,0.13)', color: '#61afef', borderColor: 'rgba(97,175,239,0.32)' }}
+              title={`League: ${g.league_display}`}
+            >{g.league_display}</span>
+          )}
+          {!isLive && (
+            <span
+              className="badge"
+              style={{ marginLeft: 4, background: 'rgba(224,179,65,0.13)', color: '#e0b341', borderColor: 'rgba(224,179,65,0.32)' }}
+              title={`mode=${mode} — logged for tracking, not pickable`}
+            >{mode}</span>
+          )}
+          {isMaker && (
+            <span
+              className="badge"
+              style={{ marginLeft: 4, background: 'rgba(198,120,221,0.13)', color: '#c678dd', borderColor: 'rgba(198,120,221,0.32)' }}
+              title="Clears the EV floor only as a resting limit order (maker fee), not crossable at the ask. Rest your buy at the Bid ¢ price (Fill ¢ / Stake are pre-seeded to it). Once it fills, tick this row and hit Record Maker Fill (or run `evmax agents fill`)."
+            >MAKER</span>
+          )}
+        </td>
+        <td>
+          {hasDropdown ? (
+            <select
+              value={leg.venue ?? ''}
+              onChange={e => setVenueSel(prev => ({ ...prev, [g.market_id]: e.target.value }))}
+              title="Same bet on multiple venues — pick which book to bet. Ask, EV, maker fields and stake below follow your choice. 'mkr' = that venue clears only as a maker."
+              style={{ fontSize: 11, maxWidth: 120 }}
+            >
+              {legs.map(l => (
+                <option key={l.venue ?? l.market_id} value={l.venue ?? ''}>
+                  {venueOptionLabel(l)}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <VenueLogo venue={leg.venue} />
+          )}
+        </td>
+        <td>{g.event_title}</td>
+        <td>
+          {outcome}
+          {!hasDropdown && g.alt_venue && (
+            <span
+              className="muted"
+              style={{ marginLeft: 6, fontSize: 10 }}
+              title={`Same bet also +EV on ${venueShort(g.alt_venue)}`
+                + (g.alt_venue_price != null ? ` at ${probToCents(g.alt_venue_price)}` : '')
+                + (g.alt_venue_ev_pct != null ? ` (EV ${g.alt_venue_ev_pct.toFixed(1)}%)` : '')
+                + ' — this row is the better book'}
+            >
+              · also {venueShort(g.alt_venue)}
+              {g.alt_venue_price != null ? ` ${probToCents(g.alt_venue_price)}` : ''}
+            </span>
+          )}
+        </td>
+        <td className="num">{askOdds}</td>
+        <td className="num">{probToCents(leg.true_prob)}</td>
+        <td className="num">{(leg.true_prob * 100).toFixed(1)}%</td>
+        <td className="num green">{leg.ev_pct.toFixed(1)}%</td>
+        <td className="num" style={{ color: '#c678dd' }}>
+          {leg.maker_ev_pct != null ? `${leg.maker_ev_pct.toFixed(1)}%` : '—'}
+        </td>
+        <td className="num" style={{ color: '#c678dd' }}>
+          {leg.maker_limit_price != null ? probToCents(leg.maker_limit_price) : '—'}
+        </td>
+        <td className="num" style={{ color: '#c678dd', fontWeight: 600 }}
+          title={leg.maker_bid_ev_pct != null ? `+${leg.maker_bid_ev_pct.toFixed(1)}% EV if filled here` : undefined}>
+          {leg.maker_bid_price != null ? probToCents(leg.maker_bid_price) : '—'}
+        </td>
+        <td className="num">
+          <input type="text" value={fills[leg.market_id]?.odds || askOdds}
+            onChange={e => updateFill(leg.market_id, 'odds', e.target.value)}
+            style={{ width: 64 }} />
+        </td>
+        <td className="num">
+          <input type="number" value={fills[leg.market_id]?.stake || ''}
+            onChange={e => updateFill(leg.market_id, 'stake', e.target.value)}
+            style={{ width: 70 }} min="0.01" step="0.01" />
+        </td>
+        <td className="muted" style={{ fontSize: 10 }}>{leg.model_sources}</td>
+      </tr>
+    )
+  }, [activeLeg, selected, fills])
+
   if (!gaps.length) return null
+
+  // Split the filtered plays into the two execution styles the user acts on
+  // differently. A maker-only row (its best-execution winner clears the EV
+  // floor ONLY as a resting limit order) goes to the Maker table + "Record
+  // Maker Fill"; everything else is taker-crossable at the ask → Taker table
+  // + "Pick Selected". Partition on the row's own maker_only (the winner leg);
+  // the action handlers still gate on activeLeg(g).maker_only, so switching a
+  // row to a maker-only venue routes it to the right button regardless of
+  // which table it visually sits in.
+  const takerRows = filtered.filter(g => !g.maker_only)
+  const makerRows = filtered.filter(g => g.maker_only)
 
   const checkedRows = filtered.filter(g => selected.has(g.market_id)).map(activeLeg)
   const pickCount = checkedRows.filter(leg => !leg.maker_only).length
   const fillCount = checkedRows.filter(leg => leg.maker_only).length
+
+  const headerRow = (
+    <tr>
+      <th style={{ width: 30 }}></th>
+      <th>Date</th><th>Sector</th><th style={{ minWidth: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
+      <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">Model</th><th className="num">EV</th>
+      <th className="num" title="EV if opened as a resting limit order (maker fee)">Maker EV</th>
+      <th className="num" title="Ceiling — rest at or below this and you stay ≥ the EV floor as a maker. Can sit ABOVE the ask; it is not a place-order price. Use Bid ¢.">Limit ¢</th>
+      <th className="num" title="The bid to SET: rest your maker buy here (one tick above the current best bid, still below the ask). Fills as a maker, not a taker. Record the fill with `evmax agents fill`.">Bid ¢</th>
+      <th className="num">Fill ¢</th><th className="num">Stake ($)</th><th>Models</th>
+    </tr>
+  )
 
   return (
     <div className="panel">
@@ -225,140 +364,48 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
           <button className="btn btn-sm" onClick={deselectAll}>Deselect All</button>
         </div>
       </div>
-      <div className="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th style={{ width: 30 }}></th>
-            <th>Date</th><th>Sector</th><th style={{ minWidth: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
-            <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">Model</th><th className="num">EV</th>
-            <th className="num" title="EV if opened as a resting limit order (maker fee)">Maker EV</th>
-            <th className="num" title="Ceiling — rest at or below this and you stay ≥ the EV floor as a maker. Can sit ABOVE the ask; it is not a place-order price. Use Bid ¢.">Limit ¢</th>
-            <th className="num" title="The bid to SET: rest your maker buy here (one tick above the current best bid, still below the ask). Fills as a maker, not a taker. Record the fill with `evmax agents fill`.">Bid ¢</th>
-            <th className="num">Fill ¢</th><th className="num">Stake ($)</th><th>Models</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map(g => {
-            const leg = activeLeg(g)
-            const legs = legsOf(g)
-            const hasDropdown = legs.length > 1
-            const askOdds = probToCents(leg.kalshi_price)
-            const outcome = outcomeLabel(leg)
-            const mode = leg.mode || 'live'
-            const isLive = mode === 'live'
-            // A maker-only leg logs as shadow (fill-contingent) but is still
-            // selectable — its selection arms "Record Maker Fill", never the
-            // taker pick, which the ask price would make -EV.
-            const isMaker = !!leg.maker_only
-            const selectable = isLive || isMaker
-            return (
-              <tr key={g.market_id} style={isLive ? undefined : { opacity: 0.55 }}>
-                <td>
-                  <input type="checkbox" checked={selected.has(g.market_id)}
-                    disabled={!selectable}
-                    title={
-                      isMaker
-                        ? 'Maker-only — select, set Fill ¢ / Stake to what actually filled, then "Record Maker Fill"'
-                        : isLive ? '' : `${mode} mode — not pickable`
-                    }
-                    onChange={() => toggle(g.market_id)} />
-                </td>
-                <td className="muted">{g.event_date}</td>
-                <td>
-                  <span className="badge">{g.sector}</span>
-                  {g.league_display && (
-                    <span
-                      className="badge"
-                      style={{ marginLeft: 4, background: 'rgba(97,175,239,0.13)', color: '#61afef', borderColor: 'rgba(97,175,239,0.32)' }}
-                      title={`League: ${g.league_display}`}
-                    >{g.league_display}</span>
-                  )}
-                  {!isLive && (
-                    <span
-                      className="badge"
-                      style={{ marginLeft: 4, background: 'rgba(224,179,65,0.13)', color: '#e0b341', borderColor: 'rgba(224,179,65,0.32)' }}
-                      title={`mode=${mode} — logged for tracking, not pickable`}
-                    >{mode}</span>
-                  )}
-                  {isMaker && (
-                    <span
-                      className="badge"
-                      style={{ marginLeft: 4, background: 'rgba(198,120,221,0.13)', color: '#c678dd', borderColor: 'rgba(198,120,221,0.32)' }}
-                      title="Clears the EV floor only as a resting limit order (maker fee), not crossable at the ask. Rest your buy at the Bid ¢ price (Fill ¢ / Stake are pre-seeded to it). Once it fills, tick this row and hit Record Maker Fill (or run `evmax agents fill`)."
-                    >MAKER</span>
-                  )}
-                </td>
-                <td>
-                  {hasDropdown ? (
-                    <select
-                      value={leg.venue ?? ''}
-                      onChange={e => setVenueSel(prev => ({ ...prev, [g.market_id]: e.target.value }))}
-                      title="Same bet on multiple venues — pick which book to bet. Ask, EV, maker fields and stake below follow your choice. 'mkr' = that venue clears only as a maker."
-                      style={{ fontSize: 11, maxWidth: 120 }}
-                    >
-                      {legs.map(l => (
-                        <option key={l.venue ?? l.market_id} value={l.venue ?? ''}>
-                          {venueOptionLabel(l)}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <VenueLogo venue={leg.venue} />
-                  )}
-                </td>
-                <td>{g.event_title}</td>
-                <td>
-                  {outcome}
-                  {!hasDropdown && g.alt_venue && (
-                    <span
-                      className="muted"
-                      style={{ marginLeft: 6, fontSize: 10 }}
-                      title={`Same bet also +EV on ${venueShort(g.alt_venue)}`
-                        + (g.alt_venue_price != null ? ` at ${probToCents(g.alt_venue_price)}` : '')
-                        + (g.alt_venue_ev_pct != null ? ` (EV ${g.alt_venue_ev_pct.toFixed(1)}%)` : '')
-                        + ' — this row is the better book'}
-                    >
-                      · also {venueShort(g.alt_venue)}
-                      {g.alt_venue_price != null ? ` ${probToCents(g.alt_venue_price)}` : ''}
-                    </span>
-                  )}
-                </td>
-                <td className="num">{askOdds}</td>
-                <td className="num">{probToCents(leg.true_prob)}</td>
-                <td className="num">{(leg.true_prob * 100).toFixed(1)}%</td>
-                <td className="num green">{leg.ev_pct.toFixed(1)}%</td>
-                <td className="num" style={{ color: '#c678dd' }}>
-                  {leg.maker_ev_pct != null ? `${leg.maker_ev_pct.toFixed(1)}%` : '—'}
-                </td>
-                <td className="num" style={{ color: '#c678dd' }}>
-                  {leg.maker_limit_price != null ? probToCents(leg.maker_limit_price) : '—'}
-                </td>
-                <td className="num" style={{ color: '#c678dd', fontWeight: 600 }}
-                  title={leg.maker_bid_ev_pct != null ? `+${leg.maker_bid_ev_pct.toFixed(1)}% EV if filled here` : undefined}>
-                  {leg.maker_bid_price != null ? probToCents(leg.maker_bid_price) : '—'}
-                </td>
-                <td className="num">
-                  <input type="text" value={fills[leg.market_id]?.odds || askOdds}
-                    onChange={e => updateFill(leg.market_id, 'odds', e.target.value)}
-                    style={{ width: 64 }} />
-                </td>
-                <td className="num">
-                  <input type="number" value={fills[leg.market_id]?.stake || ''}
-                    onChange={e => updateFill(leg.market_id, 'stake', e.target.value)}
-                    style={{ width: 70 }} min="0.01" step="0.01" />
-                </td>
-                <td className="muted" style={{ fontSize: 10 }}>{leg.model_sources}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+
+      {/* Taker EV plays — crossable at the ask, placed with Pick Selected */}
+      <div className="subhead" style={{ margin: '4px 0 6px', fontSize: 12, fontWeight: 600 }}>
+        Taker EV Plays <span className="muted">({takerRows.length})</span>
+        <span className="muted" style={{ fontWeight: 400, marginLeft: 6, fontSize: 11 }}>
+          crossable at the ask
+        </span>
       </div>
-      <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
+      {takerRows.length === 0 ? (
+        <div className="muted" style={{ fontSize: 12, padding: '4px 0 8px' }}>No taker-EV plays.</div>
+      ) : (
+        <div className="table-scroll">
+          <table>
+            <thead>{headerRow}</thead>
+            <tbody>{takerRows.map(renderRow)}</tbody>
+          </table>
+        </div>
+      )}
+      <div style={{ marginTop: 8, marginBottom: 18, display: 'flex', gap: 6, alignItems: 'center' }}>
         <button className="btn success" disabled={pickCount === 0 || picking} onClick={handlePick}>
           {picking ? 'Placing...' : `Pick Selected (${pickCount})`}
         </button>
+      </div>
+
+      {/* Maker EV plays — clear only as a resting limit order, recorded with Record Maker Fill */}
+      <div className="subhead" style={{ margin: '4px 0 6px', fontSize: 12, fontWeight: 600, color: '#c678dd' }}>
+        Maker EV Plays <span className="muted">({makerRows.length})</span>
+        <span className="muted" style={{ fontWeight: 400, marginLeft: 6, fontSize: 11 }}>
+          rest a limit order — not +EV at the ask
+        </span>
+      </div>
+      {makerRows.length === 0 ? (
+        <div className="muted" style={{ fontSize: 12, padding: '4px 0 8px' }}>No maker-only plays.</div>
+      ) : (
+        <div className="table-scroll">
+          <table>
+            <thead>{headerRow}</thead>
+            <tbody>{makerRows.map(renderRow)}</tbody>
+          </table>
+        </div>
+      )}
+      <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
         <button
           className="btn"
           style={{ borderColor: 'rgba(198,120,221,0.45)', color: '#c678dd' }}
