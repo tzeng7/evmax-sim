@@ -127,6 +127,24 @@ def test_nba_is_not_a_prop_category():
     assert not get_category("nba").is_prop
 
 
+def test_soccer_total_ships_shadow_moneyline_stays_live():
+    """Soccer moneyline is live; total was demoted to shadow on 2026-09-17
+    after a systematic entry->close CLV loss (mean -0.95pp, 21% positive over
+    19 resolved games — no model prices soccer totals, so it is stale-line
+    selection that reverts). Guards against an accidental re-promotion: total
+    must not silently return to a live product without clearing the CLV gate.
+    """
+    from evmax.modes import get_mode
+
+    spec = get_category("soccer")
+    assert spec.mode == "live"
+    assert MarketType.total in spec.market_types
+    assert "total" in spec.shadow_market_types
+    # In-season live base, but the per-market-type downgrade applies.
+    assert get_mode("soccer", "moneyline") == "live"
+    assert get_mode("soccer", "total") == "shadow"
+
+
 # -------------------------------------------------------------------------
 # Validator — negative tests using a temporary broken YAML
 #
