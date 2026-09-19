@@ -130,24 +130,7 @@ def apply_venue_cash_cap(
     selected) is left uncapped; an empty map or ``bankroll <= 0`` is a no-op.
     Does not mutate inputs.
     """
-    if not cash_by_venue or not bankroll or bankroll <= 0:
-        return list(gaps)
-
-    requested: dict[str, float] = {}
-    for g in gaps:
-        kf = g.kelly_fraction or 0.0
-        if kf <= 0:
-            continue
-        v = getattr(g, "venue", "kalshi") or "kalshi"
-        requested[v] = requested.get(v, 0.0) + kf * bankroll
-
-    scale: dict[str, float] = {}
-    for v, req in requested.items():
-        cash = cash_by_venue.get(v)
-        if cash is None or req <= 0 or req <= cash:
-            continue
-        scale[v] = cash / req
-
+    scale = _venue_cash_cap_scales(gaps, bankroll, cash_by_venue)
     if not scale:
         return list(gaps)
 
@@ -161,3 +144,54 @@ def apply_venue_cash_cap(
         else:
             out.append(g)
     return out
+
+
+def _venue_requested(
+    gaps: list[EVGap], bankroll: float
+) -> dict[str, float]:
+    """Summed requested stake ($) per venue for the positive-Kelly legs."""
+    requested: dict[str, float] = {}
+    for g in gaps:
+        kf = g.kelly_fraction or 0.0
+        if kf <= 0:
+            continue
+        v = getattr(g, "venue", "kalshi") or "kalshi"
+        requested[v] = requested.get(v, 0.0) + kf * bankroll
+    return requested
+
+
+def _venue_cash_cap_scales(
+    gaps: list[EVGap], bankroll: float, cash_by_venue: dict[str, float]
+) -> dict[str, float]:
+    """Per-venue scale factor (< 1) for venues whose requested stake > cash.
+
+    Shared by :func:`apply_venue_cash_cap` (to scale) and
+    :func:`cash_capped_venues` (to report), so the two can never disagree on
+    which venues were capped.
+    """
+    if not cash_by_venue or not bankroll or bankroll <= 0:
+        return {}
+    scale: dict[str, float] = {}
+    for v, req in _venue_requested(gaps, bankroll).items():
+        cash = cash_by_venue.get(v)
+        if cash is None or req <= 0 or req <= cash:
+            continue
+        scale[v] = cash / req
+    return scale
+
+
+def cash_capped_venues(
+    gaps: list[EVGap], bankroll: float, cash_by_venue: dict[str, float]
+) -> dict[str, float]:
+    """The venues whose summed stakes were capped, mapped to their cash ($).
+
+    A view-layer companion to :func:`apply_venue_cash_cap`: it answers "which
+    venues had a stake reduced, and to what cash figure" so the display can show
+    a "capped by $X cash" note instead of a silently shrunk stake. Same inputs
+    and same cap rule as the scaler (they share
+    :func:`_venue_cash_cap_scales`), so a venue is reported here IFF its stakes
+    were actually scaled. Call on the COLLAPSED, pre-cap gap set — the same set
+    ``apply_venue_cash_cap`` receives — for the requested totals to match.
+    """
+    capped = _venue_cash_cap_scales(gaps, bankroll, cash_by_venue)
+    return {v: round(cash_by_venue[v], 2) for v in capped}
