@@ -654,6 +654,11 @@ class PolymarketUSClient(BaseAPIClient):
         short_side = next((s for s in sides if not s.get("long")), None)
         if long_side is None or short_side is None:
             return None
+        # Both sides must be TRADABLE, mirroring _parse_moneyline — a not-yet-open
+        # / placeholder alternate-spread rung carries a stale seed quote on a
+        # non-tradable side and would otherwise surface as a phantom edge.
+        if not long_side.get("tradable", True) or not short_side.get("tradable", True):
+            return None
         yes_price = _parse_quote(long_side)
         no_price = _parse_quote(short_side)
         line = m.get("line")
@@ -694,6 +699,13 @@ class PolymarketUSClient(BaseAPIClient):
             None,
         )
         if over_side is None or under_side is None:
+            return None
+        # Both sides must be TRADABLE, mirroring _parse_moneyline. A not-yet-open
+        # / placeholder totals market carries a stale seed quote (observed: a
+        # deep "Over 35.5" NFL rung parked at ~9¢) on a non-tradable side; without
+        # this gate it surfaced as a phantom +600% EV play for a market that does
+        # not actually trade on Polymarket US.
+        if not over_side.get("tradable", True) or not under_side.get("tradable", True):
             return None
         yes_price = _parse_quote(over_side)
         no_price = _parse_quote(under_side)

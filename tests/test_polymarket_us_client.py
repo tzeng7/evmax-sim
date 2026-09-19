@@ -259,6 +259,13 @@ class TestParseSpread:
         )
         assert _client()._parse_event(_event([raw]), "baseball", "mlb") == []
 
+    def test_untradable_side_skips_market(self):
+        # A placeholder / not-yet-open rung with a stale seed quote on a
+        # non-tradable side must NOT surface (phantom-edge regression).
+        raw = _spread_market()
+        raw["marketSides"][1]["tradable"] = False
+        assert _client()._parse_event(_event([raw]), "baseball", "mlb") == []
+
 
 class TestParseTotal:
 
@@ -274,6 +281,14 @@ class TestParseTotal:
 
     def test_first_five_total_filtered_out(self):
         raw = _total_market(line=3.5, smt="baseball_team_first_five_total")
+        assert _client()._parse_event(_event([raw]), "baseball", "mlb") == []
+
+    def test_untradable_side_skips_market(self):
+        # Regression for the phantom "Over 35.5 @ 9¢" NFL rows: a not-yet-open
+        # totals market carries a stale seed quote on a non-tradable side and
+        # must be dropped, not surfaced as a +600% EV play.
+        raw = _total_market()
+        raw["marketSides"][0]["tradable"] = False  # Over side not tradable
         assert _client()._parse_event(_event([raw]), "baseball", "mlb") == []
 
 
