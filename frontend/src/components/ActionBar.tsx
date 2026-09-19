@@ -6,16 +6,18 @@ import { SectorMultiSelect } from './SectorMultiSelect'
 import { fmtDate, fmtTomorrow, yesterday } from '../lib/odds'
 import type { ScanGap } from '../lib/types'
 
-// Venues that can seed the bankroll from their live account balance. Keys match
-// the backend `venue` column / balances.SUPPORTED_VENUES; '' means "Manual".
+// Bankroll BASE selector. Decoupled from play scope (2026-09-18): the choice
+// sets only the Kelly base + the per-venue fundability cash cap — it NEVER
+// hides or zeroes another venue's plays (resolve_bankroll_plan returns
+// selected_venues=None in every case). '' = Manual; 'auto' = combined live
+// total wealth across venues (the default); single-venue values size against
+// just that venue's wealth but STILL show + size every venue's plays. The
+// server re-resolves this authoritatively at scan time.
 const BANKROLL_VENUES: { value: string; label: string }[] = [
+  { value: 'auto', label: 'Auto (combined live)' },
   { value: '', label: 'Manual' },
-  { value: 'kalshi', label: 'Kalshi' },
-  { value: 'polymarket_us', label: 'Polymarket US' },
-  // 'both' sizes against the SUM of both venues' live total wealth and scopes
-  // plays to both; single-venue values scope to that one venue. The server
-  // (resolve_bankroll_plan) re-resolves this authoritatively at scan time.
-  { value: 'both', label: 'Both (combined)' },
+  { value: 'kalshi', label: 'Kalshi wealth' },
+  { value: 'polymarket_us', label: 'Polymarket US wealth' },
 ]
 
 const venueLabel = (v: string) =>
@@ -78,7 +80,7 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
     }
     setBalanceLoading(true)
     try {
-      if (venue === 'both') {
+      if (venue === 'auto' || venue === 'both') {
         // Combined: sum every venue's live total wealth (the server re-resolves
         // this at scan time; this is the preview). null only if BOTH are
         // unavailable.

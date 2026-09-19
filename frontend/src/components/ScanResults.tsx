@@ -15,6 +15,9 @@ interface Props {
   onPicked: () => void
 }
 
+const fmtUsd = (n: number) =>
+  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
+
 // Short venue label for the best-execution "· also {venue}" annotation.
 function venueShort(v?: string | null): string {
   if (v === 'polymarket_us') return 'Poly'
@@ -63,6 +66,11 @@ function venueOptionLabel(l: ScanGap): string {
 export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
   const [sector, setSector] = useState('')
   const [dateFilter, setDateFilter] = useState('')
+  // DISPLAY-only venue filter (decoupled from bankroll sizing): narrows which
+  // rows are shown, never how they are sized. '' = all venues. A row matches
+  // when the filtered venue is its actionable venue OR one of its line-shop
+  // options, so a cross-venue play stays visible under either venue.
+  const [venueFilter, setVenueFilter] = useState('')
   const [selected, setSelected] = useState<Set<string>>(() => new Set(gaps.map(g => g.market_id)))
   const [fills, setFills] = useState<Record<string, { odds: string; stake: string }>>({})
   // Per-row chosen venue, keyed by the row's (winner) market_id. Absent = use
@@ -114,13 +122,21 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     })
   }, [bankroll, kelly, scanKelly, gaps])
 
+  // Venues present across all rows (winner + line-shop options), for the filter.
+  const venuesPresent = useMemo(() => {
+    const s = new Set<string>()
+    for (const g of gaps) for (const l of legsOf(g)) if (l.venue) s.add(l.venue)
+    return Array.from(s).sort()
+  }, [gaps])
+
   const filtered = useMemo(() => {
     return gaps.filter(g => {
       if (sector && g.sector !== sector) return false
       if (dateFilter && g.event_date !== dateFilter) return false
+      if (venueFilter && !legsOf(g).some(l => l.venue === venueFilter)) return false
       return true
     })
-  }, [gaps, sector, dateFilter])
+  }, [gaps, sector, dateFilter, venueFilter])
 
   const toggle = (mid: string) => {
     setSelected(prev => {
@@ -316,6 +332,12 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
           <input type="number" value={fills[leg.market_id]?.stake || ''}
             onChange={e => updateFill(leg.market_id, 'stake', e.target.value)}
             style={{ width: 70 }} min="0.01" step="0.01" />
+          {g.cash_capped && leg.venue === g.venue && (
+            <div className="muted" style={{ fontSize: 9, color: '#e5c07b' }}
+              title={`Stake scaled down to ${venueShort(g.venue)} deployable cash (${fmtUsd(g.cash_cap_usd ?? 0)}). Kelly sized against total wealth; this bet is funded from cash.`}>
+              capped · {fmtUsd(g.cash_cap_usd ?? 0)} cash
+            </div>
+          )}
         </td>
         <td className="muted" style={{ fontSize: 10 }}>{leg.model_sources}</td>
       </tr>
@@ -359,7 +381,17 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
           <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
             style={{ fontSize: 11 }} />
           <SectorFilter value={sector} onChange={setSector} />
-          <button className="btn btn-sm" onClick={() => { setSector(''); setDateFilter('') }}>Clear</button>
+          {venuesPresent.length > 1 && (
+            <select value={venueFilter} onChange={e => setVenueFilter(e.target.value)}
+              style={{ fontSize: 11 }}
+              title="Display filter — narrows which venues' plays are shown. Does NOT change sizing (that's the bankroll dropdown).">
+              <option value="">All venues</option>
+              {venuesPresent.map(v => (
+                <option key={v} value={v}>{venueShort(v)}</option>
+              ))}
+            </select>
+          )}
+          <button className="btn btn-sm" onClick={() => { setSector(''); setDateFilter(''); setVenueFilter('') }}>Clear</button>
           <button className="btn btn-sm" onClick={selectAll}>Select All</button>
           <button className="btn btn-sm" onClick={deselectAll}>Deselect All</button>
         </div>

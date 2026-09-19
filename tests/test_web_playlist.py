@@ -105,6 +105,18 @@ class TestDashboardPlayDicts:
         row = playlist.gap_to_dict(_gap("LV", kelly=0.02), 500.0)
         assert row["mode"] == "live" and row["stake"] == 10.0
 
+    def test_firewall_clear_but_zero_kelly_is_shadow_not_live(self):
+        # A firewall-clear gap (nba ML on Kalshi) whose Kelly was zeroed
+        # UPSTREAM — e.g. the coordinator scoped plays to another venue via the
+        # bankroll-venue selection, or the exposure guard crowded the game out —
+        # must NOT wear a live badge next to a $0 stake. Badge is shadow so the
+        # display is coherent and live-first ordering sinks it below real plays.
+        row = playlist.gap_to_dict(_gap("Z", kelly=0.0), 500.0)
+        assert row["mode"] == "shadow"
+        assert row["stake"] == 0.0
+        # The raw fraction is still reported for diagnostics.
+        assert row["kelly_fraction"] == 0.0
+
     def test_soccer_gap_carries_league_and_display(self):
         row = playlist.gap_to_dict(
             _gap("S", sector="soccer", league="epl", event_id="soccer::2026-07-08::a_vs_b"),
@@ -132,6 +144,29 @@ class TestDashboardPlayDicts:
         assert rows[0]["alt_venue"] == "kalshi" and rows[0]["alt_venue_price"] == 0.45
         assert [o["venue"] for o in rows[0]["venue_options"]] == ["polymarket_us", "kalshi"]
         assert rows[0]["venue_options"][0]["venue_options"] is None  # never recurses
+
+    def test_cash_capped_rows_annotated(self):
+        # Two live Kalshi legs request 0.05+0.03 = 0.08 * $1000 = $80 > $40 cash
+        # → scaled AND tagged with the venue's cash so the UI can explain it.
+        rows = playlist.dashboard_play_dicts(
+            _cycle([
+                _gap("A", ev=0.09, kelly=0.05),
+                _gap("B", ev=0.06, kelly=0.03),
+            ]),
+            1000.0,
+            cash_by_venue={"kalshi": 40.0},
+        )
+        assert all(r.get("cash_capped") for r in rows)
+        assert all(r.get("cash_cap_usd") == 40.0 for r in rows)
+        # Stakes are the scaled (fundable) amounts, summing to the $40 cash.
+        assert round(sum(r["stake"] for r in rows), 2) == 40.0
+
+    def test_uncapped_rows_have_no_cash_flag(self):
+        rows = playlist.dashboard_play_dicts(
+            _cycle([_gap("A", ev=0.09, kelly=0.02)]), 1000.0,  # $20 < $100
+            cash_by_venue={"kalshi": 100.0},
+        )
+        assert "cash_capped" not in rows[0]
 
     def test_cash_cap_applied_when_known(self):
         rows = playlist.dashboard_play_dicts(
