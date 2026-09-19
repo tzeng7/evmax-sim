@@ -105,6 +105,18 @@ class TestDashboardPlayDicts:
         row = playlist.gap_to_dict(_gap("LV", kelly=0.02), 500.0)
         assert row["mode"] == "live" and row["stake"] == 10.0
 
+    def test_firewall_clear_but_zero_kelly_is_shadow_not_live(self):
+        # A firewall-clear gap (nba ML on Kalshi) whose Kelly was zeroed
+        # UPSTREAM — e.g. the coordinator scoped plays to another venue via the
+        # bankroll-venue selection, or the exposure guard crowded the game out —
+        # must NOT wear a live badge next to a $0 stake. Badge is shadow so the
+        # display is coherent and live-first ordering sinks it below real plays.
+        row = playlist.gap_to_dict(_gap("Z", kelly=0.0), 500.0)
+        assert row["mode"] == "shadow"
+        assert row["stake"] == 0.0
+        # The raw fraction is still reported for diagnostics.
+        assert row["kelly_fraction"] == 0.0
+
     def test_soccer_gap_carries_league_and_display(self):
         row = playlist.gap_to_dict(
             _gap("S", sector="soccer", league="epl", event_id="soccer::2026-07-08::a_vs_b"),
