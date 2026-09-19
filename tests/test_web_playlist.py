@@ -145,6 +145,29 @@ class TestDashboardPlayDicts:
         assert [o["venue"] for o in rows[0]["venue_options"]] == ["polymarket_us", "kalshi"]
         assert rows[0]["venue_options"][0]["venue_options"] is None  # never recurses
 
+    def test_cash_capped_rows_annotated(self):
+        # Two live Kalshi legs request 0.05+0.03 = 0.08 * $1000 = $80 > $40 cash
+        # → scaled AND tagged with the venue's cash so the UI can explain it.
+        rows = playlist.dashboard_play_dicts(
+            _cycle([
+                _gap("A", ev=0.09, kelly=0.05),
+                _gap("B", ev=0.06, kelly=0.03),
+            ]),
+            1000.0,
+            cash_by_venue={"kalshi": 40.0},
+        )
+        assert all(r.get("cash_capped") for r in rows)
+        assert all(r.get("cash_cap_usd") == 40.0 for r in rows)
+        # Stakes are the scaled (fundable) amounts, summing to the $40 cash.
+        assert round(sum(r["stake"] for r in rows), 2) == 40.0
+
+    def test_uncapped_rows_have_no_cash_flag(self):
+        rows = playlist.dashboard_play_dicts(
+            _cycle([_gap("A", ev=0.09, kelly=0.02)]), 1000.0,  # $20 < $100
+            cash_by_venue={"kalshi": 100.0},
+        )
+        assert "cash_capped" not in rows[0]
+
     def test_cash_cap_applied_when_known(self):
         rows = playlist.dashboard_play_dicts(
             _cycle([_gap("A", kelly=0.05), _gap("B", kelly=0.05, yes_team="warriors")]), 1000.0,
