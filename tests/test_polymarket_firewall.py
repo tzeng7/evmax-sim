@@ -55,12 +55,14 @@ def test_none_sector_is_never_live_without_master():
     assert s.polymarket_us_sector_live(None) is False
 
 
-def test_shipped_default_clears_wnba_only():
-    """The committed baseline: wnba is Poly-live, other sectors are not."""
+def test_shipped_default_clears_all_sectors():
+    """The committed baseline (2026-09-18): the master switch is ON, so every
+    Polymarket US sector clears the venue firewall — the allowlist is moot."""
     s = Settings()  # reads defaults (no .env in test env)
+    assert s.polymarket_us_live is True
     assert s.polymarket_us_sector_live("wnba") is True
-    assert s.polymarket_us_sector_live("tennis") is False
-    assert s.polymarket_us_sector_live("baseball") is False
+    assert s.polymarket_us_sector_live("tennis") is True
+    assert s.polymarket_us_sector_live("baseball") is True
 
 
 # ---------------------------------------------------------------------------

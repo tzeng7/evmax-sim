@@ -68,6 +68,23 @@ class TestDashboardPlayDicts:
         assert r["event_date"] == date.today().isoformat()
         assert r["venue"] == "kalshi" and r["mode"] == "live"
 
+    def test_live_plays_float_above_higher_ev_shadow_rows(self):
+        # A higher-EV shadow/watchlist row (NFL spread → shadow via
+        # shadow_market_types) must sit BELOW a lower-EV live bet: the top of
+        # the list is what a bettor can actually stake. EV order is preserved
+        # WITHIN each mode group (stable sort on the badge alone).
+        rows = playlist.dashboard_play_dicts(
+            _cycle([
+                _gap("SHADOW_HI", sector="nfl", market_type="spread", ev=0.20,
+                     yes_team="patriots", event_id="nfl::2026-09-14::sea_vs_ne"),
+                _gap("LIVE_LO", ev=0.03),
+                _gap("LIVE_HI", ev=0.05),
+            ]),
+            500.0,
+        )
+        assert [r["market_id"] for r in rows] == ["LIVE_HI", "LIVE_LO", "SHADOW_HI"]
+        assert [r["mode"] for r in rows] == ["live", "live", "shadow"]
+
     def test_shadow_market_type_gap_shows_zero_stake(self):
         # Regression: an NFL spread gap is shadow via shadow_market_types, but
         # its in-memory kelly_fraction is NOT zeroed upstream (only venue/league

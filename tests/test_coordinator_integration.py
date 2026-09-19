@@ -827,8 +827,21 @@ class TestPolymarketUsVenueCycle:
     @patch("evmax.agents.coordinator._load_steam_cache", return_value={})
     @patch("evmax.agents.coordinator._save_steam_cache")
     def test_polymarket_gap_fires_with_venue_and_zero_kelly(self, _save, _load):
-        coord = self._build_coord()
-        result = _run(coord.run_cycle())
+        # The shipped default now runs the Poly master switch ON (2026-09-18),
+        # so raise the firewall explicitly to exercise the zeroing behavior:
+        # an un-cleared Poly sector (nba is not in the allowlist) is shadow-bound.
+        from evmax.settings import get_settings
+        settings = get_settings()
+        orig_live = settings.polymarket_us_live
+        orig_sectors = settings.polymarket_us_live_sectors
+        settings.polymarket_us_live = False
+        settings.polymarket_us_live_sectors = "wnba"
+        try:
+            coord = self._build_coord()
+            result = _run(coord.run_cycle())
+        finally:
+            settings.polymarket_us_live = orig_live
+            settings.polymarket_us_live_sectors = orig_sectors
 
         assert result.markets_fetched == 2  # kalshi + polymarket merged
         by_venue = {g.venue: g for g in result.ev_gaps}

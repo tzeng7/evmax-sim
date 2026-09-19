@@ -179,7 +179,17 @@ def dashboard_play_dicts(
     collapsed = collapse_best_execution(list(cycle.plays(require_full_blend=True)))
     if cash_by_venue:
         collapsed = apply_venue_cash_cap(collapsed, bankroll, cash_by_venue)
-    return [gap_to_dict(g, bankroll) for g in collapsed]
+    rows = [gap_to_dict(g, bankroll) for g in collapsed]
+    # Float actionable (live-badged) plays above shadow/watchlist rows so the
+    # top of every surface is what a bettor can actually stake. STABLE sort on
+    # the mode badge alone keeps the EV-descending order WITHIN each group, so
+    # nothing else shifts — a high-EV shadow row (e.g. a firewalled or
+    # maker-only gap) no longer sits above a lower-EV live bet. The badge, not
+    # the raw stake, is the key: a live row whose Kelly rounded to $0 is still
+    # an actionable play. Propagates to /api/scan AND the Discord feed (both
+    # consume this list), keeping the two in parity.
+    rows.sort(key=lambda r: (r.get("mode") or "live") != "live")
+    return rows
 
 
 def default_scan_window() -> tuple[str, str]:
