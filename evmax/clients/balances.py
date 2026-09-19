@@ -223,11 +223,17 @@ async def resolve_bankroll_plan(
         logger.warning("bankroll_plan_unknown_selection", selection=selection)
         return BankrollPlan(bankroll, "manual", None, {})
 
-    # Single-venue BASE: size against this venue's wealth, but still cap EVERY
-    # venue's plays by their own cash (fundability) and never scope sizing.
+    # Single-venue BASE: size against this venue's wealth, cap ONLY this venue
+    # by its cash, and never scope sizing. Capping only the selected venue is
+    # deliberate: picking "Kalshi" means "treat my Kalshi account as the
+    # bankroll", so other venues' plays are shown sized against that base but
+    # NOT zeroed by their own (possibly $0 / unknown) cash — otherwise a venue
+    # you hold no free cash on would silently show $0 for every play, the exact
+    # "0.00 for the other venue" surprise. Use "auto" to cap every venue by its
+    # own cash (true multi-venue deployment).
     total = await fetch_balance(sel)
-    cash = await fetch_cash_balances(list(SUPPORTED_VENUES))
-    cash_by = {v: c for v, c in cash.items() if c is not None}
+    c = await fetch_cash_balance(sel)
+    cash_by = {sel: c} if c is not None else {}
     if total is None:
         logger.warning("bankroll_plan_single_unavailable", venue=sel, fallback=bankroll)
         return BankrollPlan(bankroll, "manual_fallback", None, cash_by)

@@ -271,24 +271,23 @@ class TestResolveBankrollPlan:
         assert plan.cash_by_venue == {}
 
     @pytest.mark.asyncio
-    async def test_single_venue_uses_total_wealth_and_caps_all_venues(self):
-        # Decoupled: a single-venue BASE sizes against that venue's wealth but
-        # NEVER scopes plays (selected_venues stays None) and caps EVERY venue's
-        # stakes by their own cash, so cross-venue plays stay fundability-capped.
+    async def test_single_venue_uses_total_wealth_caps_only_self(self):
+        # Decoupled: a single-venue BASE sizes against that venue's wealth,
+        # NEVER scopes plays (selected_venues stays None), and caps ONLY the
+        # selected venue — so the OTHER venue's plays are shown sized against
+        # this base, never zeroed by their own $0/unknown cash.
         with patch("evmax.clients.balances.fetch_balance", AsyncMock(return_value=800.0)), \
-             patch("evmax.clients.balances.fetch_cash_balances",
-                   AsyncMock(return_value={"kalshi": 300.0, "polymarket_us": 120.0})):
+             patch("evmax.clients.balances.fetch_cash_balance", AsyncMock(return_value=300.0)):
             plan = await resolve_bankroll_plan(500.0, "kalshi")
         assert plan.bankroll == pytest.approx(800.0)     # total wealth is the base
         assert plan.source == "live:kalshi"
         assert plan.selected_venues is None              # no scoping — decoupled
-        assert plan.cash_by_venue == {"kalshi": 300.0, "polymarket_us": 120.0}
+        assert plan.cash_by_venue == {"kalshi": 300.0}   # only the selected venue capped
 
     @pytest.mark.asyncio
     async def test_single_venue_unavailable_falls_back(self):
         with patch("evmax.clients.balances.fetch_balance", AsyncMock(return_value=None)), \
-             patch("evmax.clients.balances.fetch_cash_balances",
-                   AsyncMock(return_value={"kalshi": None, "polymarket_us": None})):
+             patch("evmax.clients.balances.fetch_cash_balance", AsyncMock(return_value=None)):
             plan = await resolve_bankroll_plan(500.0, "polymarket_us")
         assert plan.bankroll == 500.0
         assert plan.source == "manual_fallback"
