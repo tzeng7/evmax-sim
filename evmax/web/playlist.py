@@ -65,6 +65,19 @@ def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
     # pick checkbox match how the row will actually persist.
     if gap_mode == "live" and getattr(g, "maker_only", False):
         gap_mode = "shadow"
+    # Coherence with the coordinator's own sizing decision. A gap can be
+    # firewall-clear (venue + league + not maker) yet still have its Kelly
+    # zeroed UPSTREAM in run_cycle — most commonly because the scan's
+    # bankroll-venue selection (``selected_venues``) scoped plays to a DIFFERENT
+    # venue (e.g. bankroll=Kalshi zeroes every Polymarket US leg), or the
+    # exposure guard crowded the game out. A genuine live play always keeps
+    # kelly_fraction > 0, so a zero here means "not actionable under the current
+    # bankroll selection". Badge it shadow (not live) so the row does not wear a
+    # live badge next to a $0 stake — the counterintuitive state where the same
+    # Poly row flips to $0 the moment you switch the bankroll dropdown to Kalshi.
+    # Live-first ordering then correctly sinks it below the plays you can stake.
+    if gap_mode == "live" and (getattr(g, "kelly_fraction", 0.0) or 0.0) <= 0.0:
+        gap_mode = "shadow"
     line_val = (
         None if g.line is None
         else float(g.line) if isinstance(g.line, (int, float))
