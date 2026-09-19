@@ -153,10 +153,13 @@ class BankrollPlan:
         (manual), one venue's wealth (single), or the sum of the selected
         venues' wealth (combined). Never a fabricated figure — falls back to
         the passed bankroll if a live balance is unavailable.
-      * ``source``          — ``manual`` | ``live:{venue}`` | ``live:both`` |
+      * ``source``          — ``manual`` | ``live:{venue}`` | ``live:combined`` |
         ``manual_fallback`` (echoed to the UI so the user sees what was used).
-      * ``selected_venues`` — the venue restriction to pass to the coordinator.
-        ``None`` for manual (no restriction — all firewall-cleared venues show).
+      * ``selected_venues`` — ALWAYS ``None`` since 2026-09-18: the bankroll
+        selection no longer scopes which venues are actionable (sizing is
+        decoupled from fundability — see ``resolve_bankroll_plan``). Retained
+        for API/coordinator compatibility; a caller that genuinely wants to
+        restrict venues can still set it independently.
       * ``cash_by_venue``   — DEPLOYABLE CASH per selected venue for the
         fundability cap. Empty for manual (cash unknown → no cap) and omits any
         venue whose cash was unavailable (that venue is simply not capped).
@@ -171,14 +174,29 @@ class BankrollPlan:
 async def resolve_bankroll_plan(
     bankroll: float, selection: Optional[str]
 ) -> BankrollPlan:
-    """Resolve bankroll base + venue scoping + per-venue cash from a selection.
+    """Resolve the Kelly bankroll BASE and per-venue fundability cash.
 
-    ``selection`` mirrors the dashboard's venue dropdown:
-      * ``""`` / ``None`` / ``"manual"`` — manual bankroll, no scoping, no cash cap.
-      * ``"kalshi"`` / ``"polymarket_us"`` — that venue only: bankroll = its total
-        wealth, plays scoped to it, cash cap against its deployable cash.
-      * ``"both"`` / ``"all"`` — combined: bankroll = sum of both venues' total
-        wealth, both venues in scope, cash cap per venue.
+    DECOUPLED (2026-09-18): the bankroll selection sets the sizing BASE and the
+    per-venue cash cap only — it NEVER scopes which venues are actionable. Kelly
+    sizes against TOTAL risk capital (the industry pattern: OddsJam/brokerage
+    tools size against one bankroll and show every book); whether a specific bet
+    is fundable at its venue is handled by the per-venue cash cap
+    (:func:`evmax.ev.best_execution.apply_venue_cash_cap`), which scales a
+    stake down to that venue's deployable cash rather than hiding the play. So
+    ``selected_venues`` is ALWAYS ``None`` here — the previous single-venue
+    scoping (which zeroed every other venue's Kelly, so a Poly stake vanished
+    the moment you showed Kalshi's balance) is gone. The venue firewall
+    (``settings.venue_sector_live``) still gates un-promoted venues; that is a
+    model-validation gate, unrelated to the bankroll.
+
+    ``selection`` mirrors the dashboard's bankroll dropdown:
+      * ``""`` / ``None`` / ``"manual"`` — manual bankroll, no cash cap.
+      * ``"auto"`` / ``"both"`` / ``"all"`` — combined live TOTAL WEALTH across
+        every venue, per-venue cash cap. The default.
+      * ``"kalshi"`` / ``"polymarket_us"`` — size against THAT venue's total
+        wealth (a deliberate single-venue base), still with per-venue cash caps
+        for every venue so cross-venue plays remain fundability-capped, and
+        still with NO scoping (other venues' plays are shown and sized).
 
     Fail-soft throughout: any unavailable balance degrades to the manual
     bankroll (``manual_fallback``) and simply omits that venue's cash cap —
@@ -188,7 +206,7 @@ async def resolve_bankroll_plan(
     if not sel or sel == "manual":
         return BankrollPlan(bankroll, "manual", None, {})
 
-    if sel in ("both", "all"):
+    if sel in ("auto", "both", "all"):
         venues = list(SUPPORTED_VENUES)
         totals = await fetch_all_balances(venues)
         cash = await fetch_cash_balances(venues)
@@ -196,17 +214,21 @@ async def resolve_bankroll_plan(
         live_totals = {v: t for v, t in totals.items() if t is not None}
         if not live_totals:
             logger.warning("bankroll_plan_combined_unavailable", fallback=bankroll)
-            return BankrollPlan(bankroll, "manual_fallback", venues, cash_by)
-        return BankrollPlan(round(sum(live_totals.values()), 2), "live:both", venues, cash_by)
+            return BankrollPlan(bankroll, "manual_fallback", None, cash_by)
+        return BankrollPlan(
+            round(sum(live_totals.values()), 2), "live:combined", None, cash_by
+        )
 
     if sel not in SUPPORTED_VENUES:
         logger.warning("bankroll_plan_unknown_selection", selection=selection)
         return BankrollPlan(bankroll, "manual", None, {})
 
+    # Single-venue BASE: size against this venue's wealth, but still cap EVERY
+    # venue's plays by their own cash (fundability) and never scope sizing.
     total = await fetch_balance(sel)
-    c = await fetch_cash_balance(sel)
-    cash_by = {sel: c} if c is not None else {}
+    cash = await fetch_cash_balances(list(SUPPORTED_VENUES))
+    cash_by = {v: c for v, c in cash.items() if c is not None}
     if total is None:
         logger.warning("bankroll_plan_single_unavailable", venue=sel, fallback=bankroll)
-        return BankrollPlan(bankroll, "manual_fallback", [sel], cash_by)
-    return BankrollPlan(total, f"live:{sel}", [sel], cash_by)
+        return BankrollPlan(bankroll, "manual_fallback", None, cash_by)
+    return BankrollPlan(total, f"live:{sel}", None, cash_by)

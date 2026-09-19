@@ -271,57 +271,64 @@ class TestResolveBankrollPlan:
         assert plan.cash_by_venue == {}
 
     @pytest.mark.asyncio
-    async def test_single_venue_uses_total_wealth_and_cash(self):
+    async def test_single_venue_uses_total_wealth_and_caps_all_venues(self):
+        # Decoupled: a single-venue BASE sizes against that venue's wealth but
+        # NEVER scopes plays (selected_venues stays None) and caps EVERY venue's
+        # stakes by their own cash, so cross-venue plays stay fundability-capped.
         with patch("evmax.clients.balances.fetch_balance", AsyncMock(return_value=800.0)), \
-             patch("evmax.clients.balances.fetch_cash_balance", AsyncMock(return_value=300.0)):
+             patch("evmax.clients.balances.fetch_cash_balances",
+                   AsyncMock(return_value={"kalshi": 300.0, "polymarket_us": 120.0})):
             plan = await resolve_bankroll_plan(500.0, "kalshi")
         assert plan.bankroll == pytest.approx(800.0)     # total wealth is the base
         assert plan.source == "live:kalshi"
-        assert plan.selected_venues == ["kalshi"]
-        assert plan.cash_by_venue == {"kalshi": 300.0}   # cash is the cap base
+        assert plan.selected_venues is None              # no scoping — decoupled
+        assert plan.cash_by_venue == {"kalshi": 300.0, "polymarket_us": 120.0}
 
     @pytest.mark.asyncio
     async def test_single_venue_unavailable_falls_back(self):
         with patch("evmax.clients.balances.fetch_balance", AsyncMock(return_value=None)), \
-             patch("evmax.clients.balances.fetch_cash_balance", AsyncMock(return_value=None)):
+             patch("evmax.clients.balances.fetch_cash_balances",
+                   AsyncMock(return_value={"kalshi": None, "polymarket_us": None})):
             plan = await resolve_bankroll_plan(500.0, "polymarket_us")
         assert plan.bankroll == 500.0
         assert plan.source == "manual_fallback"
-        assert plan.selected_venues == ["polymarket_us"]
+        assert plan.selected_venues is None
         assert plan.cash_by_venue == {}
 
     @pytest.mark.asyncio
-    async def test_both_sums_total_wealth(self):
+    @pytest.mark.parametrize("sel", ["auto", "both", "all"])
+    async def test_combined_sums_total_wealth_no_scope(self, sel):
         with patch("evmax.clients.balances.fetch_all_balances",
                    AsyncMock(return_value={"kalshi": 800.0, "polymarket_us": 200.0})), \
              patch("evmax.clients.balances.fetch_cash_balances",
                    AsyncMock(return_value={"kalshi": 300.0, "polymarket_us": 150.0})):
-            plan = await resolve_bankroll_plan(500.0, "both")
+            plan = await resolve_bankroll_plan(500.0, sel)
         assert plan.bankroll == pytest.approx(1000.0)
-        assert plan.source == "live:both"
-        assert set(plan.selected_venues) == {"kalshi", "polymarket_us"}
+        assert plan.source == "live:combined"
+        assert plan.selected_venues is None              # never scopes sizing
         assert plan.cash_by_venue == {"kalshi": 300.0, "polymarket_us": 150.0}
 
     @pytest.mark.asyncio
-    async def test_both_partial_availability_sums_available(self):
+    async def test_combined_partial_availability_sums_available(self):
         with patch("evmax.clients.balances.fetch_all_balances",
                    AsyncMock(return_value={"kalshi": 800.0, "polymarket_us": None})), \
              patch("evmax.clients.balances.fetch_cash_balances",
                    AsyncMock(return_value={"kalshi": 300.0, "polymarket_us": None})):
-            plan = await resolve_bankroll_plan(500.0, "both")
+            plan = await resolve_bankroll_plan(500.0, "auto")
         assert plan.bankroll == pytest.approx(800.0)
-        assert plan.source == "live:both"
+        assert plan.source == "live:combined"
         assert plan.cash_by_venue == {"kalshi": 300.0}
 
     @pytest.mark.asyncio
-    async def test_both_none_available_falls_back(self):
+    async def test_combined_none_available_falls_back(self):
         with patch("evmax.clients.balances.fetch_all_balances",
                    AsyncMock(return_value={"kalshi": None, "polymarket_us": None})), \
              patch("evmax.clients.balances.fetch_cash_balances",
                    AsyncMock(return_value={"kalshi": None, "polymarket_us": None})):
-            plan = await resolve_bankroll_plan(500.0, "both")
+            plan = await resolve_bankroll_plan(500.0, "auto")
         assert plan.bankroll == 500.0
         assert plan.source == "manual_fallback"
+        assert plan.selected_venues is None
 
     @pytest.mark.asyncio
     async def test_unknown_selection_is_manual(self):
