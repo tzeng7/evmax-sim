@@ -45,7 +45,16 @@ class Settings(BaseSettings):
     # sector stays shadow. A sector still only goes live if its category mode
     # resolves to ``live`` upstream (get_mode) — the allowlist refines the
     # venue firewall, it does not override a shadow/disabled category.
-    polymarket_us_live: bool = False
+    #
+    # 2026-09-18: master switch flipped ON by owner decision — clears the
+    # Polymarket US firewall for ALL sectors at once, so ``polymarket_us_live_sectors``
+    # below is now moot (True short-circuits the per-sector check). NOTE this
+    # promotes sharp-passthrough PolyUS sectors (tennis divergence 0.17pp,
+    # baseball 0.055pp) whose apparent EV is Kalshi-vs-Poly venue arb rather than
+    # model edge, and underpowered sectors (nfl/baseball n<30 resolved) — a
+    # deliberate override of the per-sector n>=30 / CLV>=0 / divergence gate.
+    # Set back to False to restore the per-sector allowlist discipline.
+    polymarket_us_live: bool = True
     # Comma-separated sector allowlist, e.g. "wnba,tennis". Whitespace and case
     # are normalized; empty means "no per-sector exceptions" (firewall fully up
     # unless the master switch is True). Env: POLYMARKET_US_LIVE_SECTORS.
