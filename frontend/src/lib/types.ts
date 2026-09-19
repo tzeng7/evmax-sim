@@ -81,6 +81,11 @@ export interface ScanGap {
   volume: number
   mode?: string
   venue?: string
+  // Fundability cap (GAP 2): true when this venue's summed stakes were scaled
+  // down to its deployable cash, with that cash figure. The stake is the capped
+  // (fundable) amount; the note explains why it is smaller than raw Kelly.
+  cash_capped?: boolean
+  cash_cap_usd?: number
   // Maker execution (net of the maker fee, not the taker fee):
   maker_ev_pct?: number | null      // EV % if opened as a resting limit order
   maker_only?: boolean              // clears the EV floor ONLY as a maker

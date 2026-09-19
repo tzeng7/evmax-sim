@@ -15,6 +15,9 @@ interface Props {
   onPicked: () => void
 }
 
+const fmtUsd = (n: number) =>
+  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
+
 // Short venue label for the best-execution "· also {venue}" annotation.
 function venueShort(v?: string | null): string {
   if (v === 'polymarket_us') return 'Poly'
@@ -329,6 +332,12 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
           <input type="number" value={fills[leg.market_id]?.stake || ''}
             onChange={e => updateFill(leg.market_id, 'stake', e.target.value)}
             style={{ width: 70 }} min="0.01" step="0.01" />
+          {g.cash_capped && leg.venue === g.venue && (
+            <div className="muted" style={{ fontSize: 9, color: '#e5c07b' }}
+              title={`Stake scaled down to ${venueShort(g.venue)} deployable cash (${fmtUsd(g.cash_cap_usd ?? 0)}). Kelly sized against total wealth; this bet is funded from cash.`}>
+              capped · {fmtUsd(g.cash_cap_usd ?? 0)} cash
+            </div>
+          )}
         </td>
         <td className="muted" style={{ fontSize: 10 }}>{leg.model_sources}</td>
       </tr>

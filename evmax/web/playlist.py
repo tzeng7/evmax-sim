@@ -187,12 +187,28 @@ def dashboard_play_dicts(
     collapse keeps first-appearance order — and that order is what every
     surface renders. View-layer only: nothing here persists.
     """
-    from evmax.ev.best_execution import apply_venue_cash_cap, collapse_best_execution
+    from evmax.ev.best_execution import (
+        apply_venue_cash_cap,
+        cash_capped_venues,
+        collapse_best_execution,
+    )
 
     collapsed = collapse_best_execution(list(cycle.plays(require_full_blend=True)))
+    # Which venues had their stakes scaled down to deployable cash — computed on
+    # the PRE-cap set (same set the scaler sees) so the note reflects the real
+    # shortfall. Then apply the cap. See cash_capped_venues.
+    capped = cash_capped_venues(collapsed, bankroll, cash_by_venue) if cash_by_venue else {}
     if cash_by_venue:
         collapsed = apply_venue_cash_cap(collapsed, bankroll, cash_by_venue)
     rows = [gap_to_dict(g, bankroll) for g in collapsed]
+    # Surface the cash cap (GAP 2) instead of a silently shrunk stake: tag every
+    # row on a capped venue with the venue's deployable cash, so the UI can show
+    # "capped by $X cash". A stake that fits its venue's cash is never tagged.
+    for r in rows:
+        cash = capped.get(r.get("venue"))
+        if cash is not None and (r.get("stake") or 0.0) > 0:
+            r["cash_capped"] = True
+            r["cash_cap_usd"] = cash
     # Float actionable (live-badged) plays above shadow/watchlist rows so the
     # top of every surface is what a bettor can actually stake. STABLE sort on
     # the mode badge alone keeps the EV-descending order WITHIN each group, so

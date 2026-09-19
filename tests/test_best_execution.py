@@ -12,7 +12,11 @@ from datetime import datetime, timezone
 import pytest
 
 from evmax.agents.odds.ev_gap_agent import EVGap
-from evmax.ev.best_execution import apply_venue_cash_cap, collapse_best_execution
+from evmax.ev.best_execution import (
+    apply_venue_cash_cap,
+    cash_capped_venues,
+    collapse_best_execution,
+)
 
 
 def _gap(
@@ -229,3 +233,41 @@ class TestVenueCashCap:
         a = _gap("kalshi:A", EID, venue="kalshi", kelly=0.05)
         apply_venue_cash_cap([a], bankroll=1000.0, cash_by_venue={"kalshi": 10.0})
         assert a.kelly_fraction == pytest.approx(0.05)
+
+
+class TestCashCappedVenues:
+    """cash_capped_venues reports exactly the venues apply_venue_cash_cap scales."""
+
+    def test_reports_capped_venue_with_cash(self):
+        a = _gap("kalshi:A", EID, venue="kalshi", yes_team="lakers", kelly=0.05)
+        b = _gap("kalshi:B", EID + "::spread", venue="kalshi",
+                 market_type="spread", yes_team="lakers", kelly=0.03, line=-4.5)
+        capped = cash_capped_venues([a, b], bankroll=1000.0, cash_by_venue={"kalshi": 40.0})
+        assert capped == {"kalshi": 40.0}
+
+    def test_does_not_report_venue_under_cash(self):
+        a = _gap("kalshi:A", EID, venue="kalshi", kelly=0.03)  # $30 < $100
+        assert cash_capped_venues([a], bankroll=1000.0, cash_by_venue={"kalshi": 100.0}) == {}
+
+    def test_only_capped_venue_reported(self):
+        k = _gap("kalshi:A", EID, venue="kalshi", yes_team="lakers", kelly=0.05)  # $50 ≤ $50
+        p = _gap("polymarket_us:A", "nba::2026-04-30::x_vs_y", venue="polymarket_us",
+                 yes_team="x", kelly=0.05)  # $50 > $25
+        capped = cash_capped_venues(
+            [k, p], bankroll=1000.0,
+            cash_by_venue={"kalshi": 50.0, "polymarket_us": 25.0},
+        )
+        assert capped == {"polymarket_us": 25.0}
+
+    def test_agrees_with_scaler(self):
+        # A venue is reported IFF the scaler actually changed one of its legs.
+        a = _gap("kalshi:A", EID, venue="kalshi", kelly=0.05)
+        args = dict(bankroll=1000.0, cash_by_venue={"kalshi": 10.0})
+        scaled = apply_venue_cash_cap([a], **args)
+        capped = cash_capped_venues([a], **args)
+        assert ("kalshi" in capped) == (scaled[0].kelly_fraction != a.kelly_fraction)
+
+    def test_empty_and_zero_are_noop(self):
+        a = _gap("kalshi:A", EID, venue="kalshi", kelly=0.05)
+        assert cash_capped_venues([a], bankroll=1000.0, cash_by_venue={}) == {}
+        assert cash_capped_venues([a], bankroll=0.0, cash_by_venue={"kalshi": 1.0}) == {}
