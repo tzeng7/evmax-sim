@@ -299,6 +299,39 @@ def spread_sim_weight(sector: Optional[str]) -> float:
     )
 
 
+# Probability-space admission floor, in probability POINTS, per sector — the
+# favorite–longshot guard (see evmax.ev.calculator.dual_ev and
+# settings.edge_min_pp). A gap must clear BOTH the EV floor AND
+# (blended − fee-inclusive price)·100 >= this value, per execution mode.
+#
+# SHIPS EMPTY: every sector falls through to `settings.edge_min_pp` (default
+# 0.0 = off), so admission is byte-identical to the EV-only gate. Flip a
+# sector here ONLY after (a) the replay `scripts/backtest_sizing.py
+# --edge-min-pp 1,2,3 --modes shadow --include-unsized --sector <s>` shows the
+# dropped rows carry no growth, and (b) `cleanup shadow clv-prices <s>` shows
+# the cheap buckets are the over-stated ones — never on Brier alone (the NCAAF
+# v2 lesson: the sharp anchor absorbs standalone Brier gains). Motivation
+# (2026-09-19): own resolved rows show the blend +3.4pp / +3.8pp above the
+# realized win rate at 10-20c / 35-50c and at/below it on favorites, while the
+# EV% gate is ~18x easier to clear at 5c than at 90c for the same pp edge.
+EDGE_MIN_PP_BY_SECTOR: dict[str, float] = {}
+
+
+def resolve_edge_min_pp(sector: Optional[str], settings) -> float:
+    """Effective pp floor for a sector: code override > settings > 0.0 (off).
+
+    Defensive against mocked settings: only a real int/float counts (a bare
+    ``MagicMock`` attribute coerces to ``float(...) == 1.0``, which would turn
+    the floor ON in every test that mocks settings), mirroring the ``is True``
+    discipline in ``SizingConfig.from_settings``.
+    """
+    key = (sector or "").lower()
+    raw = EDGE_MIN_PP_BY_SECTOR.get(key, getattr(settings, "edge_min_pp", 0.0))
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        return 0.0
+    return max(0.0, float(raw))
+
+
 def scale_adjustment_to_model_share(
     pre: float, adjusted: float, model_weight: float
 ) -> float:
@@ -501,6 +534,11 @@ class EVGapAgent(Agent):
         # the cycle summary so a broken alias map shows up as a number, not
         # as a silently missing play.
         self._alignment_failures: dict[str, int] = {}
+        # Per-sector count of gaps that cleared the EV floor but were dropped
+        # by the probability-space floor (EDGE_MIN_PP_BY_SECTOR /
+        # settings.edge_min_pp). Surfaced in the cycle summary so an enabled
+        # floor's bite is a number, not a silent shrink of the play list.
+        self._edge_floor_drops: dict[str, int] = {}
         try:
             from evmax.archiver import DataArchiver
             self._archiver = DataArchiver()
@@ -641,6 +679,15 @@ class EVGapAgent(Agent):
                 hint="fix the sector alias map / series code map — these markets were not priced",
             )
             self._alignment_failures[sector] = 0
+        if self._edge_floor_drops.get(sector):
+            self.log.info(
+                "edge_pp_floor_dropped_summary",
+                sector=sector,
+                count=self._edge_floor_drops[sector],
+                edge_min_pp=resolve_edge_min_pp(sector, self._settings),
+                hint="cleared the EV floor but not the probability-space floor",
+            )
+            self._edge_floor_drops[sector] = 0
 
         await self.publish(f"ev.gaps.{sector}", gaps, request.correlation_id)
 
@@ -1249,12 +1296,22 @@ class EVGapAgent(Agent):
         elif sector_lower == "baseball" and src == "sharp":
             ev_floor = 0.05  # Baseball sharp-only needs bigger edge (stale model data)
 
-        priced = dual_ev(market.yes_price, blended_prob, fee_venue, ev_floor)
+        # Keyed on the REQUEST sector (like _alignment_failures), which is what
+        # the cycle summary logs and resets — never market.sector.
+        drop_key = (sector or "").lower()
+        edge_floor = resolve_edge_min_pp(drop_key, self._settings)
+        priced = dual_ev(
+            market.yes_price, blended_prob, fee_venue, ev_floor, edge_min_pp=edge_floor
+        )
         if not priced.passes:
+            if priced.ev_passes:
+                self._edge_floor_drops[drop_key] = self._edge_floor_drops.get(drop_key, 0) + 1
             return _ret(None, blend_payload)
 
         ev, edge_pct = priced.taker_ev, priced.taker_edge
-        maker_limit = max_maker_limit_price(blended_prob, fee_venue, ev_floor)
+        maker_limit = max_maker_limit_price(
+            blended_prob, fee_venue, ev_floor, edge_min_pp=edge_floor
+        )
         # Actionable maker rest price: buying YES rests at the best YES bid
         # (raw from Kalshi's book, or the 1 − no-ask complement when the venue
         # exposes no bid ladder, e.g. Polymarket US).
@@ -1403,11 +1460,17 @@ class EVGapAgent(Agent):
         # sharp-only, archive sample, scripts/backtest_no_side_spreads.py):
         # EV>=2% NO-side ROI -11c/$1; EV>=5% cleared breakeven.
         ev_floor = max(self._settings.ev_threshold, 0.05)
-        priced = dual_ev(no_ask, blended_no, fee_venue, ev_floor)
+        edge_floor = resolve_edge_min_pp(sector, self._settings)
+        priced = dual_ev(no_ask, blended_no, fee_venue, ev_floor, edge_min_pp=edge_floor)
+        if priced.ev_passes and not priced.passes:
+            key = (sector or "").lower()
+            self._edge_floor_drops[key] = self._edge_floor_drops.get(key, 0) + 1
         if not priced.passes:
             return None
         ev, edge_pct = priced.taker_ev, priced.taker_edge
-        maker_limit = max_maker_limit_price(blended_no, fee_venue, ev_floor)
+        maker_limit = max_maker_limit_price(
+            blended_no, fee_venue, ev_floor, edge_min_pp=edge_floor
+        )
         # Actionable maker rest price for the NO side: rest at the best NO bid
         # (raw, or the 1 − yes-ask complement when no bid ladder is exposed).
         best_no_bid = market.no_bid if market.no_bid is not None else (1.0 - market.yes_price)
@@ -1531,11 +1594,20 @@ class EVGapAgent(Agent):
         sharp_under = max(0.01, min(0.99, 1.0 - blend_payload["sharp_true_prob_yes"]))
 
         fee_venue = market.source.value if self._settings.fees_in_pricing else None
-        priced = dual_ev(no_ask, blended_under, fee_venue, self._settings.ev_threshold)
+        edge_floor = resolve_edge_min_pp(sector, self._settings)
+        priced = dual_ev(
+            no_ask, blended_under, fee_venue, self._settings.ev_threshold,
+            edge_min_pp=edge_floor,
+        )
+        if priced.ev_passes and not priced.passes:
+            key = (sector or "").lower()
+            self._edge_floor_drops[key] = self._edge_floor_drops.get(key, 0) + 1
         if not priced.passes:
             return None
         ev, edge_pct = priced.taker_ev, priced.taker_edge
-        maker_limit = max_maker_limit_price(blended_under, fee_venue, self._settings.ev_threshold)
+        maker_limit = max_maker_limit_price(
+            blended_under, fee_venue, self._settings.ev_threshold, edge_min_pp=edge_floor
+        )
         # Actionable maker rest price for the UNDER (NO) side.
         best_no_bid = market.no_bid if market.no_bid is not None else (1.0 - market.yes_price)
         maker_bid, maker_bid_ev, maker_bid_kelly = _maker_bid_plan(
@@ -1682,6 +1754,13 @@ class EVGapAgent(Agent):
         eff_price = effective_price(market.yes_price, fee_venue)
         ev, edge_pct = calculate_ev(eff_price, sharp_true_prob)
         if ev < self._settings.ev_threshold:
+            return None
+        # Same probability-space floor as the game-level gates (props are keyed
+        # by their game sector, e.g. 'nfl' for nfl_props).
+        edge_floor = resolve_edge_min_pp(sector, self._settings)
+        if edge_floor > 0 and (sharp_true_prob - eff_price) * 100.0 < edge_floor:
+            key = (sector or "").lower()
+            self._edge_floor_drops[key] = self._edge_floor_drops.get(key, 0) + 1
             return None
 
         payout = 1.0 / eff_price

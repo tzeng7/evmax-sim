@@ -328,6 +328,45 @@ def walk_forward_months(
 # Standard policies
 # --------------------------------------------------------------------------
 
+def edge_pp_for_row(r: ResolvedRow, *, fee_venue: Optional[str] = "kalshi") -> float:
+    """Probability-space edge ``(blended − fee-inclusive price)·100`` of a row.
+
+    The same quantity :func:`evmax.ev.calculator.dual_ev` gates on (taker mode)
+    when ``edge_min_pp`` is set, recomputed from the persisted columns so the
+    replay scores exactly the rule the live gate would apply.
+    """
+    eff = effective_price(r.price, fee_venue)
+    if not (0.0 < eff < 1.0):
+        return 0.0
+    return (r.blended - eff) * 100.0
+
+
+def make_gated_policy(
+    inner: SizingPolicy,
+    *,
+    edge_min_pp: float,
+    fee_venue: Optional[str] = "kalshi",
+) -> SizingPolicy:
+    """Admission-rule replay: zero the stake of rows below a pp edge floor.
+
+    Wraps a sizing policy so a row whose ``edge_pp_for_row`` is below
+    ``edge_min_pp`` is not played at all (stake 0) while every other row is
+    sized by ``inner`` unchanged. ``edge_min_pp <= 0`` is the identity. This
+    is the offline evidence for flipping a sector in
+    ``ev_gap_agent.EDGE_MIN_PP_BY_SECTOR``: run it on the FULL logged sample
+    (``load_resolved_rows(require_sized=False)`` — shadow rows carry Kelly 0),
+    and compare growth / bootstrap of the gated vs ungated policy.
+    """
+    floor = max(0.0, float(edge_min_pp or 0.0))
+
+    def policy(r: ResolvedRow) -> float:
+        if floor > 0 and edge_pp_for_row(r, fee_venue=fee_venue) < floor:
+            return 0.0
+        return inner(r)
+
+    return policy
+
+
 def make_kelly_policy(
     *,
     base_fraction: float = 0.5,

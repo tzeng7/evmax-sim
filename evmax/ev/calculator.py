@@ -82,9 +82,19 @@ class FeePricedEV:
       taker_* — EV / edge / decimal payout at the taker effective price.
       maker_* — the same at the maker effective price (>= taker EV; the maker
                 fee is never larger than the taker fee).
-      passes  — True when EITHER mode clears ``ev_floor`` (the relaxed gate).
-      maker_only — True when the taker EV is below the floor but the maker EV
-                clears it. These are fill-contingent: they require a resting
+      taker_edge_pp / maker_edge_pp — the PROBABILITY-SPACE edge
+                ``(true_prob − effective_price) · 100`` under each mode. The
+                EV% metric divides that edge by the price, so a fixed +2pp edge
+                reads +40% EV at 5c but +2.2% at 90c; the pp edge is the
+                undivided quantity the ``edge_min_pp`` floor gates on.
+      passes  — True when EITHER mode clears BOTH floors (``ev_floor`` AND
+                ``edge_min_pp``) — the relaxed gate.
+      ev_passes — True when EITHER mode clears ``ev_floor`` alone, ignoring the
+                pp floor. ``ev_passes and not passes`` identifies a row the pp
+                floor (and only the pp floor) dropped — the diagnostic callers
+                count so an enabled floor's bite is visible.
+      maker_only — True when the taker mode fails a floor but the maker mode
+                clears both. These are fill-contingent: they require a resting
                 order and are NOT crossable at the current ask, so callers size
                 them at zero live stake and log them as shadow.
     """
@@ -97,6 +107,9 @@ class FeePricedEV:
     maker_payout: float
     passes: bool
     maker_only: bool
+    taker_edge_pp: float = 0.0
+    maker_edge_pp: float = 0.0
+    ev_passes: bool = True
 
 
 def dual_ev(
@@ -104,6 +117,7 @@ def dual_ev(
     true_prob: float,
     venue: Optional[str],
     ev_floor: float,
+    edge_min_pp: float = 0.0,
 ) -> FeePricedEV:
     """Price a contract net of BOTH the taker and maker fee, against ``ev_floor``.
 
@@ -112,6 +126,20 @@ def dual_ev(
     reduces to the pre-fee ``taker_ev >= ev_floor`` gate — byte-identical to the
     old single-mode path. This keeps the ``fees_in_pricing=False`` behaviour
     unchanged.
+
+    ``edge_min_pp`` (default 0.0 = off) adds a PROBABILITY-SPACE floor that is
+    AND-ed with the EV floor per mode: a mode passes only when its EV clears
+    ``ev_floor`` AND its ``(true_prob − effective_price)·100`` clears
+    ``edge_min_pp``. With the default 0.0 this is an identity — any mode with
+    ``ev >= ev_floor >= 0`` already has a non-negative pp edge — so every
+    existing caller is byte-identical until a floor is set. (The one exception
+    is a measure-zero float tie at ``ev_floor == 0``: ``true_prob/eff − 1`` can
+    round to exactly ``0.0`` when ``true_prob`` is 1 ULP below ``eff``, where
+    the pp edge is ``−1e-17``; the shipped ``ev_threshold`` is 0.02.) Rationale: the EV%
+    gate is easiest to clear on cheap contracts (favorite–longshot), while
+    Kelly sizes on the pp edge scaled by ``1/(1−price)`` — the two disagree on
+    exactly the longshot rows, and the pp floor makes admission consistent with
+    sizing. See ``evmax.agents.odds.ev_gap_agent.EDGE_MIN_PP_BY_SECTOR``.
     """
     eff_taker = effective_price(market_price, venue, maker=False)
     eff_maker = effective_price(market_price, venue, maker=True)
@@ -119,8 +147,13 @@ def dual_ev(
     maker_ev, maker_edge = calculate_ev(eff_maker, true_prob)
     taker_payout = 1.0 / eff_taker if eff_taker > 0 else 0.0
     maker_payout = 1.0 / eff_maker if eff_maker > 0 else 0.0
-    passes = taker_ev >= ev_floor or maker_ev >= ev_floor
-    maker_only = taker_ev < ev_floor <= maker_ev
+    taker_edge_pp = (true_prob - eff_taker) * 100.0
+    maker_edge_pp = (true_prob - eff_maker) * 100.0
+    floor_pp = max(0.0, float(edge_min_pp or 0.0))
+    taker_ev_ok = taker_ev >= ev_floor
+    maker_ev_ok = maker_ev >= ev_floor
+    taker_ok = taker_ev_ok and taker_edge_pp >= floor_pp
+    maker_ok = maker_ev_ok and maker_edge_pp >= floor_pp
     return FeePricedEV(
         taker_ev=taker_ev,
         taker_edge=taker_edge,
@@ -128,8 +161,11 @@ def dual_ev(
         maker_ev=maker_ev,
         maker_edge=maker_edge,
         maker_payout=maker_payout,
-        passes=passes,
-        maker_only=maker_only,
+        passes=taker_ok or maker_ok,
+        maker_only=(not taker_ok) and maker_ok,
+        taker_edge_pp=taker_edge_pp,
+        maker_edge_pp=maker_edge_pp,
+        ev_passes=taker_ev_ok or maker_ev_ok,
     )
 
 
@@ -137,6 +173,7 @@ def max_maker_limit_price(
     true_prob: float,
     venue: Optional[str],
     ev_floor: float,
+    edge_min_pp: float = 0.0,
 ) -> Optional[float]:
     """Highest limit-order price at which a RESTING maker buy still clears ``ev_floor``.
 
@@ -152,12 +189,22 @@ def max_maker_limit_price(
     makes ``eff_maker(L) = L`` and the answer reduces to ``true_prob / (1 +
     ev_floor)`` (the gross fair-minus-floor price).
 
+    ``edge_min_pp`` (default 0.0 = off) additionally requires the resting price
+    to keep ``(true_prob − eff_maker(L))·100 ≥ edge_min_pp`` — the same
+    probability-space floor :func:`dual_ev` gates admission on — so the
+    advertised maker ceiling can never sit at a price the gate itself would
+    reject. The two constraints are both upper bounds on ``eff_maker(L)``, so
+    the ceiling is the tighter of the two.
+
     Returns None on a degenerate ``true_prob`` (outside the open interval) so
     callers can treat "no limit price" as "don't show one".
     """
     if not (0.0 < true_prob < 1.0):
         return None
     target_cost = true_prob / (1.0 + ev_floor)
+    floor_pp = max(0.0, float(edge_min_pp or 0.0))
+    if floor_pp > 0:
+        target_cost = min(target_cost, true_prob - floor_pp / 100.0)
     lo, hi = 1e-4, 0.9999
     # eff_maker(lo) should be well below target for any gap that passed the gate;
     # guard the pathological case so bisection can't return a bogus high price.

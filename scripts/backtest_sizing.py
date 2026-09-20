@@ -17,8 +17,10 @@ import argparse
 
 from evmax.backtest.sizing import (
     block_bootstrap_log_growth,
+    edge_pp_for_row,
     edge_ratio,
     load_resolved_rows,
+    make_gated_policy,
     make_kelly_policy,
     simulate,
     walk_forward_months,
@@ -44,6 +46,14 @@ def main() -> None:
         "--include-unsized", action="store_true",
         help="Keep rows the scanner sized at Kelly 0 (every shadow row). Required "
              "to replay a shadow sector such as nfl/ncaaf, which otherwise loads 0 rows.",
+    )
+    ap.add_argument(
+        "--edge-min-pp", default=None,
+        help="Comma-separated probability-point floors to sweep as an ADMISSION "
+             "rule (e.g. '0,1,2,3'): rows with (blended - fee-inclusive price)*100 "
+             "below the floor are not played. The evidence for flipping a sector in "
+             "ev_gap_agent.EDGE_MIN_PP_BY_SECTOR; pair with --include-unsized for "
+             "shadow sectors.",
     )
     args = ap.parse_args()
 
@@ -121,6 +131,32 @@ def main() -> None:
         shr_res = walk_forward_months(rows, wf_policy(kw), event_cap=cap)
         print(f"{name:22s} baseline logG={base_res.log_growth:+.3f} (n={base_res.n_bets}) "
               f"|  +shrinkage logG={shr_res.log_growth:+.3f} (n={shr_res.n_bets})")
+
+    if args.edge_min_pp:
+        print("\n== probability-space admission floor sweep (favorite–longshot guard) ==")
+        print("   gated = half-Kelly cap 5% on rows with edge_pp >= floor; the rest sit out.")
+        base_pol = make_kelly_policy(base_fraction=0.5, max_kelly=0.05)
+        for tok in args.edge_min_pp.split(","):
+            tok = tok.strip()
+            if not tok:
+                continue
+            try:
+                floor = float(tok)
+            except ValueError:
+                print(f"  (skipping non-numeric --edge-min-pp token {tok!r})")
+                continue
+            pol = make_gated_policy(base_pol, edge_min_pp=floor)
+            kept = [r for r in rows if floor <= 0 or edge_pp_for_row(r) >= floor]
+            dropped = [r for r in rows if floor > 0 and edge_pp_for_row(r) < floor]
+            res = simulate(rows, pol, event_cap=cap)
+            boot = block_bootstrap_log_growth(rows, pol, event_cap=cap, n_boot=args.boot)
+            dropped_txt = (
+                f"  dropped n={len(dropped):4d} edge_ratio={edge_ratio(dropped):.2f}"
+                if dropped else ""
+            )
+            print(f"floor={floor:4.1f}pp  kept n={len(kept):4d}  logG={res.log_growth:+.3f}  "
+                  f"maxDD={res.max_drawdown:5.1%}  boot5%={boot[5.0]:+.2f}  "
+                  f"boot50%={boot[50.0]:+.2f}{dropped_txt}")
 
     if args.sweep_base:
         print("\n== base-fraction sweep (Phase 2; select on 5th-pct bootstrap growth) ==")
