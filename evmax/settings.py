@@ -176,6 +176,20 @@ class Settings(BaseSettings):
     # at the source. 0.0 = off. 0.25 (25pp) only fires on gross disagreements.
     sizing_quarantine_pp: float = Field(default=0.0, ge=0.0, le=1.0)
 
+    # Probability-space admission floor (favorite–longshot guard). When > 0, a
+    # gap must clear BOTH the EV floor (`ev_threshold`) AND an absolute edge of
+    # this many probability POINTS, (blended − fee-inclusive price)·100, per
+    # execution mode (taker / maker) — see evmax.ev.calculator.dual_ev. The EV%
+    # gate is mechanically easiest to clear on cheap contracts (a +2pp edge is
+    # +40% EV at 5c but +2.2% at 90c) while Kelly sizes on the pp edge, so the
+    # two disagree on exactly the longshot rows; this floor makes admission
+    # consistent with sizing. Global default; the code map
+    # `ev_gap_agent.EDGE_MIN_PP_BY_SECTOR` overrides it per sector. 0.0 = off
+    # (byte-identical to the EV-only gate). Enable per sector only after the
+    # replay (`scripts/backtest_sizing.py --edge-min-pp`) and the per-bucket
+    # readout (`cleanup shadow clv-prices`) support it — never on Brier alone.
+    edge_min_pp: float = Field(default=0.0, ge=0.0, le=100.0)
+
     # Correlation-aware joint Kelly sizing (per-event). When enabled, legs that
     # share a game outcome (ML/spread on the same margin, over/under on the same
     # total) are sized jointly via a Gaussian-copula log-growth optimization
