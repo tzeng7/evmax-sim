@@ -40,10 +40,18 @@ def main() -> None:
     ap.add_argument("--event-cap", type=float, default=0.08)
     ap.add_argument("--boot", type=int, default=2000)
     ap.add_argument("--sweep-base", action="store_true")
+    ap.add_argument(
+        "--include-unsized", action="store_true",
+        help="Keep rows the scanner sized at Kelly 0 (every shadow row). Required "
+             "to replay a shadow sector such as nfl/ncaaf, which otherwise loads 0 rows.",
+    )
     args = ap.parse_args()
 
     modes = tuple(m.strip() for m in args.modes.split(",") if m.strip())
-    rows = load_resolved_rows(days=args.days, modes=modes, exclude_contaminated=True)
+    rows = load_resolved_rows(
+        days=args.days, modes=modes, exclude_contaminated=True,
+        require_sized=not args.include_unsized,
+    )
     if args.sector:
         rows = [r for r in rows if r.sector.lower() == args.sector.lower()]
     print(f"loaded {len(rows)} clean rows | days={args.days} modes={modes} "

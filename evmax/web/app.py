@@ -389,20 +389,31 @@ def api_promotion_board(
     sector: str = Query(None),
     staleness_h: float = Query(3.0, ge=0.0),
     league: str = Query(None),
+    price_bucket: str = Query(None),
 ) -> JSONResponse:
     """Promotion scoreboard — per (sector, market_type, venue) health rows.
 
     Same data as `evmax cleanup shadow board`: sample counts, Brier
     blend-vs-sharp, CLV gate status, and blend divergence (the
     sharp-passthrough detector). See promotion_board.compute_promotion_board.
+    ``price_bucket`` (0-10 … 90+) restricts every column to one OUR-side
+    entry-price bucket — the favorite–longshot lens.
     """
+    from evmax.agents.cleanup.price_buckets import validate_bucket
     from evmax.agents.cleanup.promotion_board import compute_promotion_board
 
+    # Validate the label up front so only a bad client input maps to 400; an
+    # internal ValueError inside the board still surfaces as a 500.
+    try:
+        price_bucket = validate_bucket(price_bucket)
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
     rows = compute_promotion_board(
         days=days,
         staleness_h=staleness_h if staleness_h > 0 else None,
         sector=sector,
         league=league,
+        price_bucket=price_bucket,
     )
     return JSONResponse({"days": days, "rows": rows})
 
