@@ -476,3 +476,40 @@ class TestJointKellyGrouping:
         g2 = _gap("kalshi:G2", "nba::2026-04-30::knicks_vs_hawks", yes_team="knicks")
         _apply_joint_kelly([g1, g2])
         assert sorted(calls) == [1, 1]
+
+
+# ---------------------------------------------------------------------------
+# _apply_depth_liquidity (Phase 3 — depth-keyed liquidity discount)
+# ---------------------------------------------------------------------------
+
+
+class TestDepthLiquidity:
+    def test_untouched_when_depth_unmeasured(self):
+        from evmax.agents.coordinator import _apply_depth_liquidity
+        g = _gap("m1", "nba::2026-04-30::g1", kelly=0.05)
+        out = _apply_depth_liquidity([g], bankroll=1000.0, alpha=1.0)
+        assert out[0].kelly_fraction == 0.05  # depth is None → no change
+
+    def test_caps_stake_at_depth(self):
+        from evmax.agents.coordinator import _apply_depth_liquidity
+        g = _gap("m1", "nba::2026-04-30::g1", kelly=0.05)
+        # $1000 bankroll × 5% = $50 wanted, but only $20 rests → discount 0.4.
+        g = dataclasses.replace(g, yes_ask_depth_usd=20.0)
+        out = _apply_depth_liquidity([g], bankroll=1000.0, alpha=1.0)
+        assert out[0].kelly_fraction == pytest.approx(0.05 * (20.0 / 50.0), abs=1e-4)
+
+    def test_no_discount_when_depth_exceeds_stake(self):
+        from evmax.agents.coordinator import _apply_depth_liquidity
+        g = dataclasses.replace(
+            _gap("m1", "nba::2026-04-30::g1", kelly=0.05), yes_ask_depth_usd=500.0
+        )
+        out = _apply_depth_liquidity([g], bankroll=1000.0, alpha=1.0)
+        assert out[0].kelly_fraction == 0.05
+
+    def test_noop_without_bankroll(self):
+        from evmax.agents.coordinator import _apply_depth_liquidity
+        g = dataclasses.replace(
+            _gap("m1", "nba::2026-04-30::g1", kelly=0.05), yes_ask_depth_usd=5.0
+        )
+        out = _apply_depth_liquidity([g], bankroll=0.0, alpha=1.0)
+        assert out[0].kelly_fraction == 0.05

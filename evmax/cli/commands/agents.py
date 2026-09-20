@@ -692,7 +692,7 @@ def verify(
     from evmax.agents.cleanup.db import get_connection
     from evmax.clients.kalshi import KalshiClient
     from evmax.ev.calculator import calculate_ev, effective_price
-    from evmax.ev.kelly import compute_kelly
+    from evmax.ev.sizing import SizingConfig, size_position
     from evmax.settings import get_settings
 
     if date_filter:
@@ -852,13 +852,16 @@ def verify(
         # Kelly stake at live price
         if is_live:
             payout = 1.0 / eff_live
-            k = compute_kelly(
+            k = size_position(
                 true_prob=blended_prob,
                 payout_decimal=payout,
                 edge_pct=live_ev,
+                sector=r["sector"],
+                price=live_ask,
                 spread_pct=0.0,
                 base_fraction=kelly,
                 max_kelly=settings.max_kelly_fraction,
+                config=SizingConfig.from_settings(settings),
             )
             stake = bankroll * k.kelly_fraction
             total_stake += stake

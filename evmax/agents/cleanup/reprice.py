@@ -92,6 +92,7 @@ def recompute_at_price(
     min_ev: float,
     min_prob: float,
     venue: Optional[str] = None,
+    sector: Optional[str] = None,
 ) -> dict:
     """Recompute EV / live-gate / Kelly stake at a given Kalshi ask ``price``.
 
@@ -107,7 +108,8 @@ def recompute_at_price(
     ``fees_in_pricing`` setting is off).
     """
     from evmax.ev.calculator import calculate_ev, effective_price
-    from evmax.ev.kelly import compute_kelly
+    from evmax.ev.sizing import SizingConfig, size_position
+    from evmax.settings import get_settings
 
     if price is None or not (0 < price < 0.99):
         return {"ev": None, "is_live": False, "kelly_fraction": 0.0, "stake": 0.0}
@@ -118,13 +120,19 @@ def recompute_at_price(
     is_live = ev >= threshold and blended_prob >= min_prob
     kelly_fraction = 0.0
     if is_live:
-        k = compute_kelly(
+        # Route through the shared sizing entry point so the pruner re-sizes a
+        # candidate with the SAME layers `agents pick` sized it with — no more
+        # spread_pct=0 divergence between scan and prune.
+        k = size_position(
             true_prob=blended_prob,
             payout_decimal=1.0 / eff_price,
             edge_pct=ev,
+            sector=sector,
+            price=price,
             spread_pct=0.0,
             base_fraction=base_kelly,
             max_kelly=max_kelly,
+            config=SizingConfig.from_settings(get_settings()),
         )
         kelly_fraction = k.kelly_fraction
     return {
@@ -377,6 +385,7 @@ async def reprice_rows(
             min_ev=min_ev,
             min_prob=min_prob,
             venue=(r.get("venue") or "kalshi") if fees_in_pricing else None,
+            sector=r.get("sector"),
         )
 
         bets.append({

@@ -1,14 +1,25 @@
-"""Fractional Kelly Criterion bet sizing.
+"""Fractional Kelly Criterion bet sizing (the innermost sizing primitive).
 
 K_full = (p × b - q) / b
   where b = payout - 1, p = true_prob, q = 1 - p
 
-Adjusted Kelly applies three discounts:
-  1. Base fraction (0.25) — quarter Kelly for Phase 1
-  2. Confidence discount — scales with edge, maxes at 100% at 20% edge
-  3. Liquidity discount — penalizes wide spreads
+``compute_kelly`` applies:
+  1. Base fraction (0.25–0.5) — fractional Kelly for parameter uncertainty.
+  2. Liquidity discount — the spread-over-mid proxy ``max(0.25, 1 − 5·spread_pct)``.
+  3. Hard cap at ``max_kelly`` (default 5% of bankroll) — the error backstop against a
+     wholly wrong probability. Validated as the tail control by the sizing replay
+     harness (scripts/backtest_sizing.py): cap 5% dominates cap 10% on both median and
+     5th-percentile growth, and uncapped sizing risks ruin on a mis-priced row.
 
-Final K is hard-capped at max_kelly_fraction (default 5% of bankroll).
+The confidence discount was REMOVED — Pinnacle devigged edges are trusted directly and
+edge size is already inside the full Kelly fraction. The principled successor (sizing on
+the out-of-sample-calibrated P(win|blended,price) to correct tail-selection bias) lives
+one layer up in evmax/ev/sizing.py as an opt-in, harness-gated layer; do not reintroduce
+an edge-scaled discount here.
+
+Callers should size through :func:`evmax.ev.sizing.size_position`, the single entry
+point that composes edge shrinkage and the depth-keyed liquidity discount on top of this
+primitive. ``compute_kelly`` stays the pure math with no I/O.
 """
 
 from __future__ import annotations
