@@ -140192,6 +140192,14 @@
     ],
     "san jos\u00e9 state": [
       {
+        "date": "2026-09-19",
+        "won": false,
+        "opp": "fresno state",
+        "home": true,
+        "drew": false,
+        "margin": -16.0
+      },
+      {
         "date": "2026-09-12",
         "won": true,
         "opp": "cal poly",
@@ -141153,6 +141161,14 @@
     ],
     "fresno state": [
       {
+        "date": "2026-09-19",
+        "won": true,
+        "opp": "san jos\u00e9 state",
+        "home": false,
+        "drew": false,
+        "margin": 16.0
+      },
+      {
         "date": "2026-09-12",
         "won": true,
         "opp": "sacramento state",
@@ -141170,6 +141186,14 @@
       }
     ],
     "purdue": [
+      {
+        "date": "2026-09-19",
+        "won": false,
+        "opp": "ucla",
+        "home": false,
+        "drew": false,
+        "margin": -14.0
+      },
       {
         "date": "2026-09-12",
         "won": false,
@@ -142012,6 +142036,14 @@
       }
     ],
     "oregon state": [
+      {
+        "date": "2026-09-19",
+        "won": true,
+        "opp": "montana",
+        "home": true,
+        "drew": false,
+        "margin": 35.0
+      },
       {
         "date": "2026-09-12",
         "won": false,
@@ -144075,6 +144107,14 @@
     ],
     "ucla": [
       {
+        "date": "2026-09-19",
+        "won": true,
+        "opp": "purdue",
+        "home": true,
+        "drew": false,
+        "margin": 14.0
+      },
+      {
         "date": "2026-09-12",
         "won": true,
         "opp": "san diego state",
@@ -144707,6 +144747,16 @@
         "home": false,
         "drew": false,
         "margin": -14.0
+      }
+    ],
+    "montana": [
+      {
+        "date": "2026-09-19",
+        "won": false,
+        "opp": "oregon state",
+        "home": false,
+        "drew": false,
+        "margin": -35.0
       }
     ]
   }
