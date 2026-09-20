@@ -4788,7 +4788,7 @@
       "san jos\u00e9 state": {
         "attack": 3.0,
         "defense": 3.0,
-        "games": 3
+        "games": 4
       },
       "tcu": {
         "attack": 3.0,
@@ -4986,14 +4986,14 @@
         "games": 3
       },
       "fresno state": {
-        "attack": 1.6,
-        "defense": 1.9166666666666667,
-        "games": 2
+        "attack": 2.066666666666667,
+        "defense": 2.0185185185185186,
+        "games": 3
       },
       "purdue": {
         "attack": 3.0,
         "defense": 3.0,
-        "games": 2
+        "games": 3
       },
       "indiana state": {
         "attack": 3.0,
@@ -5178,7 +5178,7 @@
       "oregon state": {
         "attack": 3.0,
         "defense": 3.0,
-        "games": 2
+        "games": 3
       },
       "west virginia": {
         "attack": 3.0,
@@ -5672,8 +5672,8 @@
       },
       "ucla": {
         "attack": 3.0,
-        "defense": 2.8888888888888893,
-        "games": 2
+        "defense": 2.925925925925926,
+        "games": 3
       },
       "notre dame": {
         "attack": 3.0,
@@ -5916,6 +5916,11 @@
         "games": 1
       },
       "south dakota": {
+        "attack": 3.0,
+        "defense": 3.0,
+        "games": 1
+      },
+      "montana": {
         "attack": 3.0,
         "defense": 3.0,
         "games": 1
