@@ -170,6 +170,21 @@ def log_gaps(
                     maker_ev_pct=getattr(g, "maker_ev_pct", None),
                 )
 
+            # Quarantine demotion (Phase 2 sizing safety gate): a gap whose
+            # blended prob grossly disagreed with BOTH the sharp anchor and the
+            # price is a wrong-probability row, not an edge. Log it for
+            # visibility but never as a live bankroll row.
+            if mode == "live" and getattr(g, "quarantined", False):
+                mode = "shadow"
+                logger.info(
+                    "prediction_demoted_quarantined",
+                    market_id=g.market_id,
+                    sector=g.sector,
+                    blended=getattr(g, "blended_true_prob", None),
+                    sharp=getattr(g, "sharp_true_prob", None),
+                    price=getattr(g, "kalshi_yes_price", None),
+                )
+
             # Venue shadow firewall (MODEL-9): a non-Kalshi venue stays in
             # shadow until its settings flag is flipped, regardless of the
             # category's mode. Mirrors the coordinator's venue_gaps_shadowed

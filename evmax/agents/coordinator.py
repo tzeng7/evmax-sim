@@ -423,6 +423,43 @@ def _apply_joint_kelly(
     return guarded
 
 
+def _apply_depth_liquidity(
+    gaps: list[EVGap],
+    *,
+    bankroll: float,
+    alpha: float = 1.0,
+    floor: float = 0.0,
+) -> list[EVGap]:
+    """Cap each gap's Kelly at its fillable top-of-book depth (Phase 3).
+
+    The depth discount is ``min(1, alpha·depth_usd / stake_usd)`` where the stake is
+    ``bankroll · kelly_fraction`` — i.e. do not stake more than ``alpha`` times what
+    rests at the ask, because the rest would not fill (or would move the price). A gap
+    whose depth is unmeasured (``yes_ask_depth_usd is None``) is left untouched, so
+    this is inert until a depth fetch populates the field. Uses the same formula as
+    :func:`evmax.ev.sizing.depth_liquidity_discount` so scan and sizing agree.
+    """
+    from evmax.ev.sizing import depth_liquidity_discount
+
+    if not bankroll or bankroll <= 0:
+        return gaps
+    out: list[EVGap] = []
+    for g in gaps:
+        depth = getattr(g, "yes_ask_depth_usd", None)
+        if depth is None or g.kelly_fraction <= 0:
+            out.append(g)
+            continue
+        stake = bankroll * g.kelly_fraction
+        disc = depth_liquidity_discount(depth, stake, alpha=alpha, floor=floor)
+        if disc is not None and disc < 1.0:
+            out.append(dataclasses.replace(
+                g, kelly_fraction=round(g.kelly_fraction * disc, 4)
+            ))
+        else:
+            out.append(g)
+    return out
+
+
 def _apply_exposure_guard(
     gaps: list[EVGap],
     max_event_exposure: float = 0.08,
@@ -673,6 +710,43 @@ class AgentCoordinator:
         "PHYSICALLY UNABLE TO PERFORM", "PUP", "NON-FOOTBALL INJURY",
     })
 
+    async def _populate_candidate_depth(self, gaps: list[EVGap]) -> None:
+        """Fetch top-of-book depth for the Kalshi CANDIDATES only (Phase 3).
+
+        Runs only when ``liquidity_depth_enabled`` and only for gaps that already
+        carry a live stake (kelly_fraction > 0) on Kalshi — a handful of tickers per
+        cycle, after the EV gate, so it is not a scan-wide fetch. Populates
+        ``gap.yes_ask_depth_usd`` in place; :func:`_apply_depth_liquidity` then caps
+        the stake at the fillable size. Fail-soft: any fetch error leaves depth None
+        (the spread proxy governs), never clears a stake.
+        """
+        from evmax.clients.kalshi import KalshiClient
+
+        # market_id → gaps (a NO-side row shares the market with its YES twin).
+        want: dict[str, list[EVGap]] = {}
+        for g in gaps:
+            if getattr(g, "venue", "kalshi") != "kalshi" or g.kelly_fraction <= 0:
+                continue
+            mid = (g.market_id or "").split(":", 1)[-1] if ":" in (g.market_id or "") else (g.market_id or "")
+            mid = mid[:-3] if mid.endswith(":no") else mid
+            if mid:
+                want.setdefault(mid, []).append(g)
+        if not want:
+            return
+        try:
+            async with KalshiClient() as kalshi:
+                books = await kalshi.get_market_books_batch(list(want))
+        except Exception as e:  # pragma: no cover - network path
+            self.log.debug("candidate_depth_fetch_failed", error=str(e))
+            return
+        for ticker, metrics in (books or {}).items():
+            if not metrics:
+                continue
+            key = ticker.split(":", 1)[-1] if ":" in ticker else ticker
+            depth = metrics.get("yes_ask_depth_usd")
+            for g in want.get(key, []):
+                g.yes_ask_depth_usd = depth
+
     async def _prime_nfl_pregame_starters(self, injuries: dict) -> None:
         """Load depth-chart QB starters into nfl_qb_elo, skipping injured-out QBs.
 
@@ -873,6 +947,18 @@ class AgentCoordinator:
                 games_with_prior=len(prior_exposure),
                 total_prior_dollars=round(sum(prior_exposure_dollars.values()), 2),
                 bankroll=round(float(W), 2),
+            )
+        # Depth-keyed liquidity discount (Phase 3): now that the scan bankroll W
+        # is known, cap each gap's Kelly at the fillable dollar depth. Off unless
+        # liquidity_depth_enabled; a no-op for any gap whose depth is unmeasured.
+        _lq = get_settings()
+        if _lq.liquidity_depth_enabled:
+            await self._populate_candidate_depth(result.ev_gaps)
+            result.ev_gaps = _apply_depth_liquidity(
+                result.ev_gaps,
+                bankroll=self._bankroll,
+                alpha=_lq.liquidity_depth_alpha,
+                floor=_lq.liquidity_depth_floor,
             )
         if get_settings().joint_kelly_enabled:
             _jk = get_settings()

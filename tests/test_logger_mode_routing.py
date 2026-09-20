@@ -820,3 +820,23 @@ def test_log_scan_stats_is_best_effort_on_missing_table(patched_db):
     from evmax.agents.cleanup.logger import log_scan_stats
 
     assert log_scan_stats({"nba": {"markets_fetched": 1}}, source="dashboard") == 0
+
+
+def test_log_gaps_quarantined_demoted_to_shadow(patched_db):
+    """A quarantined gap logs but is demoted to shadow, never live (Phase 2)."""
+    import dataclasses
+
+    g = dataclasses.replace(_gap("q1"), quarantined=True)
+    inserted = log_gaps([g], mode_resolver=lambda c: "live")
+    assert inserted == 1
+    rows = patched_db.execute(
+        "SELECT market_id, mode FROM ev_predictions"
+    ).fetchall()
+    assert rows[0]["mode"] == "shadow"
+
+
+def test_log_gaps_not_quarantined_stays_live(patched_db):
+    g = _gap("q2")  # quarantined defaults False
+    log_gaps([g], mode_resolver=lambda c: "live")
+    row = patched_db.execute("SELECT mode FROM ev_predictions").fetchone()
+    assert row["mode"] == "live"

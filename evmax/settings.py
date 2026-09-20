@@ -142,6 +142,40 @@ class Settings(BaseSettings):
     # peak. Set to 1.0 to disable the discount.
     same_side_kelly_discount: float = Field(default=0.5, ge=0.0, le=1.0)
 
+    # --- Sizing legitimacy layers (evmax/ev/sizing.py) ---------------------
+    # All default OFF: stake sizing is byte-identical to the pre-sizing.py
+    # compute_kelly path until a flag is flipped. Each layer turns on only after
+    # scripts/backtest_sizing.py (the sizing replay harness) validates it
+    # out-of-sample. The single entry point `size_position` is used regardless
+    # of the flags so the scan / pruner / pick paths can never re-diverge.
+    #
+    # Edge shrinkage (Phase 1): size on the calibrated P(win|blended,price) from
+    # data/models/edge_shrinkage_state.json instead of the raw blended prob,
+    # correcting the tail-selection bias (realized/predicted edge ≈ 0.6 in the
+    # top edge tercile). Fit with scripts/fit_edge_shrinkage.py. WALK-FORWARD
+    # STATUS 2026-09-19: the two-input logistic (and the single-λ edge-shrink
+    # variant) do NOT clear the growth gate on the current sample — pooling
+    # over-shrinks the sectors that carry real edge. Kept OFF; re-run the fitter
+    # + harness as per-sector samples grow past MIN_SECTOR_FIT_N.
+    edge_shrinkage_enabled: bool = False
+
+    # Liquidity discount keyed to fillable depth (Phase 3): replace the
+    # spread-over-mid proxy with min(1, alpha·depth_usd/stake_usd) when
+    # top-of-book depth is fetched for a candidate. depth_floor is the minimum
+    # multiplier applied to a depth-starved (but non-empty) book.
+    liquidity_depth_enabled: bool = False
+    liquidity_depth_alpha: float = Field(default=1.0, ge=0.0)
+    liquidity_depth_floor: float = Field(default=0.0, ge=0.0, le=1.0)
+
+    # Pre-persist quarantine (Phase 2): a safety gate, not a sizing knob. When
+    # > 0, any live moneyline-family row whose blended prob is more than this
+    # many probability POINTS from BOTH the sharp devigged prob AND the market
+    # price is demoted to shadow before it can be bankroll-sized. This is the
+    # explicit form of the error containment the hard cap does bluntly — it
+    # catches a wholly-wrong probability (a mis-aligned YES side, a stale seed)
+    # at the source. 0.0 = off. 0.25 (25pp) only fires on gross disagreements.
+    sizing_quarantine_pp: float = Field(default=0.0, ge=0.0, le=1.0)
+
     # Correlation-aware joint Kelly sizing (per-event). When enabled, legs that
     # share a game outcome (ML/spread on the same margin, over/under on the same
     # total) are sized jointly via a Gaussian-copula log-growth optimization

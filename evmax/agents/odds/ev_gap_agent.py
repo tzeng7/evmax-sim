@@ -28,6 +28,7 @@ from evmax.ev.calculator import (
     suggested_maker_bid,
 )
 from evmax.ev.kelly import KellyResult, compute_kelly
+from evmax.ev.sizing import SizingConfig, edge_is_quarantined, size_position
 from evmax.formatting import format_outcome_label
 from evmax.matching.alignment import YesOutcome, align_yes_side, alignment_looks_suspect
 from evmax.matching.engine import MatchingEngine
@@ -90,6 +91,16 @@ class EVGap:
     # gaps are hidden from the play table, excluded from the exposure budget,
     # and demoted to mode='shadow' at persistence — never bankroll-sized.
     full_blend: bool = True
+    # True when the pre-persist quarantine gate (evmax/ev/sizing.py) fired: the
+    # blended prob grossly disagreed with BOTH the sharp anchor and the price, so
+    # this is a wrong-probability row (mis-aligned side / stale seed), not an
+    # edge. Kelly is zeroed at construction and the logger demotes it to shadow.
+    quarantined: bool = False
+    # Top-of-book fillable dollars for this side (from the quoting market). Used
+    # by the depth-keyed liquidity discount (evmax/ev/sizing.py, Phase 3), which
+    # the coordinator applies once the scan bankroll is known. None = not
+    # measured → the spread proxy governs.
+    yes_ask_depth_usd: Optional[float] = None
     # Which prediction-market venue quoted this gap (MarketSource value:
     # "kalshi" | "polymarket_us"). kalshi_yes_price above is the venue's YES
     # ask regardless of venue — the field name predates multi-venue support.
@@ -481,6 +492,10 @@ class EVGapAgent(Agent):
         self._spread_model = SpreadDistributionModel()
         self._total_model = TotalDistributionModel()
         self._no_pitcher_skips = 0
+        # Sizing layers config (edge shrinkage / depth liquidity), built once so
+        # the shrinkage state file is read at most once per agent. All layers are
+        # off by default → size_position reduces to the old compute_kelly path.
+        self._sizing_cfg = SizingConfig.from_settings(self._settings)
         # Per-sector count of markets dropped because the YES side could not be
         # aligned to a sharp outcome (evmax.matching.alignment). Surfaced in
         # the cycle summary so a broken alias map shows up as a number, not
@@ -1248,19 +1263,31 @@ class EVGapAgent(Agent):
             blended_prob, market.yes_price, best_yes_bid, maker_limit,
             fee_venue, market.spread_pct, kelly_base, self._settings.max_kelly_fraction,
         )
-        if priced.maker_only:
-            # Not crossable at the current ask — no live taker stake. The maker
-            # EV is the signal; the position becomes real only if the resting
-            # limit order fills (`evmax agents fill`).
+        # Pre-persist quarantine (Phase 2 safety gate): a blended prob that
+        # grossly disagrees with BOTH the sharp anchor and the price is a
+        # wrong-probability row, not an edge. Zero its stake; the logger demotes
+        # it to shadow. Off unless sizing_quarantine_pp > 0.
+        quarantined = edge_is_quarantined(
+            blended_prob, sharp_true_prob, market.yes_price,
+            self._settings.sizing_quarantine_pp,
+        )
+        if priced.maker_only or quarantined:
+            # maker_only: not crossable at the current ask — no live taker stake;
+            # the maker EV is the signal, the position becomes real only if the
+            # resting limit order fills (`evmax agents fill`).
+            # quarantined: demoted to shadow, never bankroll-sized.
             kelly = KellyResult(0.0, 0.0, 0.0, 0.0, 0.0)
         else:
-            kelly = compute_kelly(
+            kelly = size_position(
                 true_prob=blended_prob,
                 payout_decimal=priced.taker_payout,
                 edge_pct=edge_pct,
+                sector=market.sector,
+                price=market.yes_price,
                 spread_pct=market.spread_pct,
                 base_fraction=kelly_base,
                 max_kelly=self._settings.max_kelly_fraction,
+                config=self._sizing_cfg,
             )
 
         is_steam = bool(steam_events and sharp.event_id in steam_events)
@@ -1289,6 +1316,8 @@ class EVGapAgent(Agent):
             maker_bid_kelly_fraction=maker_bid_kelly,
             kelly_full=kelly.kelly_full,
             kelly_fraction=kelly.kelly_fraction,
+            quarantined=quarantined,
+            yes_ask_depth_usd=market.yes_ask_depth_usd,
             match_confidence=confidence,
             volume_usd=market.volume_usd,
             spread_pct=market.spread_pct,
@@ -1404,13 +1433,16 @@ class EVGapAgent(Agent):
         if priced.maker_only:
             kelly = KellyResult(0.0, 0.0, 0.0, 0.0, 0.0)
         else:
-            kelly = compute_kelly(
+            kelly = size_position(
                 true_prob=blended_no,
                 payout_decimal=priced.taker_payout,
                 edge_pct=edge_pct,
+                sector=market.sector,
+                price=no_ask,
                 spread_pct=market.spread_pct,
                 base_fraction=kelly_base,
                 max_kelly=self._settings.max_kelly_fraction,
+                config=self._sizing_cfg,
             )
 
         is_steam = bool(steam_events and sharp.event_id in steam_events)
@@ -1515,12 +1547,15 @@ class EVGapAgent(Agent):
         if priced.maker_only:
             kelly = KellyResult(0.0, 0.0, 0.0, 0.0, 0.0)
         else:
-            kelly = compute_kelly(
+            kelly = size_position(
                 true_prob=blended_under,
                 payout_decimal=priced.taker_payout,
                 edge_pct=edge_pct,
+                sector=market.sector,
+                price=no_ask,
                 spread_pct=market.spread_pct,
                 base_fraction=kelly_base,
+                config=self._sizing_cfg,
                 max_kelly=self._settings.max_kelly_fraction,
             )
 
@@ -1650,13 +1685,16 @@ class EVGapAgent(Agent):
             return None
 
         payout = 1.0 / eff_price
-        kelly = compute_kelly(
+        kelly = size_position(
             true_prob=sharp_true_prob,
             payout_decimal=payout,
             edge_pct=edge_pct,
+            sector=sector,
+            price=market.yes_price,
             spread_pct=market.spread_pct,
             base_fraction=kelly_base,
             max_kelly=self._settings.max_kelly_fraction,
+            config=self._sizing_cfg,
         )
 
         player_display = (market.player_name or "?").replace("_", " ").title()

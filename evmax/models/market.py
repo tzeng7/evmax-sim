@@ -117,6 +117,11 @@ class PredictionMarket(BaseModel):
     no_bid: Optional[float] = None   # 0.0–1.0
     volume_usd: float = 0.0
     open_interest_usd: float = 0.0
+    # Top-of-book fillable dollars for a YES taker (the $ resting at the best NO
+    # bid). Populated only when a depth fetch runs for a candidate; None means
+    # "not measured" and the sizing layer falls back to the spread proxy. Used
+    # by the depth-keyed liquidity discount (evmax/ev/sizing.py, Phase 3).
+    yes_ask_depth_usd: Optional[float] = None
 
     team_home: Optional[str] = None
     team_away: Optional[str] = None
