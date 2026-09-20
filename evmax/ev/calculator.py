@@ -51,20 +51,21 @@ def effective_price(
     return min(max(market_price + fee, 1e-4), 0.9999)
 
 
-def tiered_min_ev(true_prob: float, *, min_ev: float, min_prob: float) -> float:
-    """Scale the minimum EV up for low-probability bets.
+def passes_play_floor(ev: float, true_prob: float, *, min_ev: float, min_prob: float) -> bool:
+    """The play-surface floor: ``true_prob >= min_prob AND ev >= min_ev``.
 
-    Formula: ``min_ev + max(0, min_prob - true_prob) * 0.5``. Examples
-    (min_ev=2%, min_prob=15%):
-      true_prob=0.08 → 2% + (0.15-0.08)*0.5 = 5.5%
-      true_prob=0.12 → 2% + (0.15-0.12)*0.5 = 3.5%
-      true_prob≥0.15 → 2% (floor, no scaling)
+    Single source for scan (display) / verify / pick / prune-stale, which all
+    decide "is this a stakeable play right now" on the same two numbers.
 
-    Single source for the scan/verify/pick commands, which all gate on the
-    same ramp. Takes the floors explicitly (the CLI copies closed over their
-    command's ``min_ev``/``min_prob`` params).
+    This replaces the former ``tiered_min_ev`` ramp (``min_ev + 0.5·max(0,
+    min_prob − true_prob)``), which was DEAD CODE at every call site: each
+    caller applied ``true_prob >= min_prob`` first, so the ramp's extra term was
+    always zero for a surviving row and the effective rule was exactly this
+    flat floor. Longshot admission is now handled where it belongs — the
+    agent-side probability-space floor (``dual_ev(edge_min_pp=)``), which gates
+    on absolute edge rather than scaling an EV% threshold.
     """
-    return min_ev + max(0.0, min_prob - true_prob) * 0.5
+    return true_prob >= min_prob and ev >= min_ev
 
 
 @dataclass

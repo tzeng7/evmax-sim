@@ -179,7 +179,7 @@ def dashboard_play_dicts(
     """The dashboard's actionable play list for one coordinator cycle.
 
     ``cycle.plays()`` drops partial-blend (shadow, $0.00-stake) gaps; the
-    dashboard deliberately does NOT apply the CLI's min_prob/tiered-EV floor
+    dashboard deliberately does NOT apply the CLI's min_prob/min_ev display floor
     (it shows all ≥2% gaps). The SAME bet quoted on both venues collapses to
     one best-execution row (GAP 3), then each venue's summed stakes are scaled
     to its deployable cash when that is known (GAP 2; no-op for a manual

@@ -1,25 +1,31 @@
 """Shared EV helpers extracted from copy-pasted CLI/notification logic:
-tiered_min_ev (calculator) and american_odds (odds_format)."""
+passes_play_floor (calculator) and american_odds (odds_format)."""
 
 from __future__ import annotations
 
 import pytest
 
-from evmax.ev.calculator import tiered_min_ev
+from evmax.ev.calculator import passes_play_floor
 from evmax.ev.odds_format import american_odds, cents
 
 
-class TestTieredMinEv:
-    def test_floor_no_scaling_at_or_above_min_prob(self):
-        assert tiered_min_ev(0.15, min_ev=0.02, min_prob=0.15) == pytest.approx(0.02)
-        assert tiered_min_ev(0.50, min_ev=0.02, min_prob=0.15) == pytest.approx(0.02)
+class TestPassesPlayFloor:
+    def test_both_floors_required(self):
+        assert passes_play_floor(0.02, 0.15, min_ev=0.02, min_prob=0.15) is True
+        assert passes_play_floor(0.019, 0.50, min_ev=0.02, min_prob=0.15) is False
+        assert passes_play_floor(0.30, 0.149, min_ev=0.02, min_prob=0.15) is False
 
-    def test_scales_up_for_longshots(self):
-        assert tiered_min_ev(0.08, min_ev=0.02, min_prob=0.15) == pytest.approx(0.055)
-        assert tiered_min_ev(0.12, min_ev=0.02, min_prob=0.15) == pytest.approx(0.035)
+    def test_no_longshot_ramp(self):
+        # The former tiered ramp raised the EV floor below min_prob; since a row
+        # below min_prob is excluded outright, the ramp never fired — the flat
+        # floor is the exact effective rule and the only one now.
+        assert passes_play_floor(0.03, 0.16, min_ev=0.02, min_prob=0.15) is True
+        assert passes_play_floor(0.99, 0.10, min_ev=0.02, min_prob=0.15) is False
 
-    def test_respects_custom_floors(self):
-        assert tiered_min_ev(0.0, min_ev=0.05, min_prob=0.20) == pytest.approx(0.15)
+    def test_removed_helper_is_gone(self):
+        import evmax.ev.calculator as calc
+
+        assert not hasattr(calc, "tiered_min_ev")
 
 
 class TestAmericanOdds:

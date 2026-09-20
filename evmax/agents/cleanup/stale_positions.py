@@ -37,7 +37,9 @@ from datetime import datetime, timedelta
 from typing import Callable, Optional
 
 from evmax.agents.cleanup.reprice import reprice_rows
-from evmax.ev.calculator import tiered_min_ev
+# The live/void gate is evmax.ev.calculator.passes_play_floor, applied inside
+# reprice.recompute_at_price (the `is_live` each bet carries); this module only
+# reads that flag and the flat `min_ev` threshold for the hysteresis band.
 
 # Marker written to ``ev_predictions.void_reason`` for a pruner auto-void. It is
 # what scopes un-void to the pruner's own rows — a manual/game-cancel void leaves
@@ -101,10 +103,11 @@ def decide_actions(
 
     ``bets`` is the output of :func:`reprice_rows`. Per bet, exactly one of:
 
-    - ``void`` — an open row whose edge reverted below the tiered flag threshold
-      at a real live price, for an upcoming game. This is the SAME gate
-      ``pick``/``verify``/scan use (``is_live=False``), so a voided candidate is
-      one the scanner would no longer flag at the current price.
+    - ``void`` — an open row whose edge reverted below the flag threshold
+      (``min_ev``, with the ``min_prob`` floor) at a real live price, for an
+      upcoming game. This is the SAME gate ``pick``/``verify``/scan use
+      (``passes_play_floor`` → ``is_live=False``), so a voided candidate is one
+      the scanner would no longer flag at the current price.
     - ``unvoid`` — a row the pruner previously voided whose live EV has recovered
       to ``threshold + hysteresis`` (the anti-flap dead-band), for an upcoming
       game.
@@ -121,8 +124,9 @@ def decide_actions(
     horizon = now + timedelta(hours=lookahead_hours) if lookahead_hours else None
     actions: list[dict] = []
     for b in bets:
-        blended = b["blended_true_prob"]
-        threshold = tiered_min_ev(blended, min_ev=min_ev, min_prob=min_prob)
+        # The flat EV floor is the void/unvoid threshold; min_prob is enforced
+        # inside `is_live` (recompute_at_price → passes_play_floor).
+        threshold = min_ev
         live_ev = b.get("live_ev_real")
         quote_ok = bool(b.get("price_is_live")) and live_ev is not None
         es = b.get("event_start")
@@ -139,10 +143,19 @@ def decide_actions(
             action, reason = "skip_future", "beyond lookahead window"
         elif open_row and not b.get("is_live"):
             action = "void"
-            reason = (
-                f"edge reverted: live EV {live_ev * 100:+.1f}% "
-                f"< {threshold * 100:.1f}% threshold"
-            )
+            blended = b.get("blended_true_prob")
+            if blended is not None and blended < min_prob and live_ev >= threshold:
+                # is_live failed on the probability floor, not on EV — say so,
+                # otherwise "EV +3.0% < 2.0%" reads as a contradiction.
+                reason = (
+                    f"below prob floor: blended {blended:.1%} < {min_prob:.0%} "
+                    f"(live EV {live_ev * 100:+.1f}%)"
+                )
+            else:
+                reason = (
+                    f"edge reverted: live EV {live_ev * 100:+.1f}% "
+                    f"< {threshold * 100:.1f}% threshold"
+                )
         elif pruner_voided and b.get("is_live") and live_ev >= threshold + hysteresis:
             action = "unvoid"
             reason = (

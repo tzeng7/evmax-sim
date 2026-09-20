@@ -23,7 +23,6 @@ from evmax.agents.cleanup.stale_positions import (
     evaluate_candidates,
     prune_candidates,
 )
-from evmax.ev.calculator import tiered_min_ev
 
 _NOW = datetime(2026, 8, 8, 18, 0, tzinfo=timezone.utc)
 _SOON = _NOW + timedelta(hours=2)      # upcoming, inside a 12h lookahead
@@ -164,7 +163,7 @@ def test_skip_future_beyond_lookahead():
 
 
 def test_unvoid_when_edge_recovers_past_hysteresis():
-    threshold = tiered_min_ev(0.60, min_ev=0.02, min_prob=0.15)
+    threshold = 0.02  # the flat min_ev floor (the tiered ramp was dead code and is gone)
     recovered = _bet(
         voided=1, void_reason=STALE_VOID_REASON,
         is_live=True, live_ev_real=threshold + 0.01 + 0.005,  # clears threshold+hysteresis
@@ -175,7 +174,7 @@ def test_unvoid_when_edge_recovers_past_hysteresis():
 def test_hysteresis_dead_band_holds_voided():
     # Edge back above the bare threshold (is_live True) but inside the dead-band
     # → stays voided (prevents flap across sweeps).
-    threshold = tiered_min_ev(0.60, min_ev=0.02, min_prob=0.15)
+    threshold = 0.02  # the flat min_ev floor (the tiered ramp was dead code and is gone)
     marginal = _bet(
         voided=1, void_reason=STALE_VOID_REASON,
         is_live=True, live_ev_real=threshold + 0.005,  # < threshold + hysteresis(0.01)

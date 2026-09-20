@@ -520,8 +520,8 @@ def _gap_in_scan_window(
     """
     if event_date is None:
         return True
+    from evmax.agents.coordinator import gap_in_persist_window
     from evmax.clients.time_util import kalshi_game_day
-    from evmax.categories import persist_window as _persist_window
 
     day = kalshi_game_day(event_date, sector)
 
@@ -530,30 +530,25 @@ def _gap_in_scan_window(
     # widens the END of the range (never moves the start), so an explicit
     # user-selected range that already covers the horizon is unaffected; a
     # daily sector (no horizon) is returned unchanged.
-    def _widen(lo: str, hi: str) -> tuple[str, str]:
-        try:
-            lo_d = date.fromisoformat(lo)
-            hi_d = date.fromisoformat(hi)
-        except ValueError:
-            return lo, hi
-        w_lo, w_hi = _persist_window(sector, lo_d, hi_d)
-        return w_lo.isoformat(), w_hi.isoformat()
-
     if date_from and date_to:
-        lo, hi = _widen(date_from, date_to)
-        return lo <= day <= hi
+        # Both bounds known → the SAME predicate the CLI persists on
+        # (coordinator.gap_in_persist_window), so the two scan surfaces can't
+        # drift on what lands in ev_predictions.
+        try:
+            lo_d, hi_d = date.fromisoformat(date_from), date.fromisoformat(date_to)
+        except ValueError:
+            return date_from <= day <= date_to
+        return gap_in_persist_window(event_date, sector, lo_d, hi_d)
     if date_from:
         # Open-ended upper bound already admits everything at/after date_from;
         # the horizon can't make it more permissive, so leave it.
         return day >= date_from
     if date_to:
         return day <= date_to
-    today_str = date.today().isoformat()
-    tomorrow_str = (date.today() + timedelta(days=1)).isoformat()
-    lo, hi = _widen(today_str, tomorrow_str)
-    if lo == today_str and hi == tomorrow_str:
-        return day in (today_str, tomorrow_str)  # daily sector, exact default
-    return lo <= day <= hi
+    # Empty range → today+tomorrow (the scan display default), through the
+    # same shared predicate (weekly-sector horizon applied).
+    today = date.today()
+    return gap_in_persist_window(event_date, sector, today, today + timedelta(days=1))
 
 
 async def _run_unified_scan(
@@ -618,7 +613,8 @@ async def _run_unified_scan(
     # The dashboard scan view + portfolio fan-out show only actionable plays:
     # cycle.plays() drops partial-blend (shadow, $0.00-stake) gaps. They're
     # still logged above via loggable_gaps(). The dashboard deliberately does
-    # NOT apply the CLI's min_prob/tiered-EV floor (it shows all ≥2% gaps).
+    # NOT apply the CLI's min_prob/min_ev display floor (it shows all ≥2% gaps);
+    # since 2026-09-20 both surfaces PERSIST the same agent-floor set.
     # GAP 3 (same-bet dual-venue collapse to one best-execution row) and GAP 2
     # (per-venue deployable-cash cap) are applied inside dashboard_play_dicts —
     # the one definition of the play list, shared with the Discord scan feed.
