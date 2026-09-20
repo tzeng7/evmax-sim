@@ -19,7 +19,7 @@ from rich.console import Console
 from rich.table import Table
 from rich import box
 
-from evmax.ev.calculator import tiered_min_ev
+from evmax.ev.calculator import passes_play_floor
 from evmax.ev.odds_format import cents as _cents
 from evmax.formatting import format_outcome_label
 from evmax.models.market import is_prop_event, venue_label
@@ -59,7 +59,7 @@ def select_display_gaps(gaps: list, *, top: int, max_props: int) -> list:
       - ``--top`` caps only how many PROP rows fill the space left after the
         game plays; ``--max_props`` still bounds props independently.
 
-    ``gaps`` is assumed already filtered (min_prob / tiered-EV / date / full
+    ``gaps`` is assumed already filtered (min_prob / min_ev / date / full
     blend) and sorted by EV descending. Order is preserved.
     """
     prop_gaps = [g for g in gaps if g.market_type == "player_prop"]
@@ -388,6 +388,10 @@ def scan(
         raise typer.Exit(1)
 
     def _matches_date(g) -> bool:
+        # DISPLAY window only (raw event_date calendar day). Persistence uses
+        # the ET Kalshi game-day via CycleResult.persistable_gaps — the same
+        # convention log_gaps writes — so the persisted set is a superset of
+        # what the table shows on the date axis, never a subset.
         if g.event_date is None:
             return True  # no date info — include by default
         ed = g.event_date.date() if hasattr(g.event_date, "date") else g.event_date
@@ -399,28 +403,24 @@ def scan(
         g_start, g_end = _persist_window(g.sector, range_start, range_end)
         return g_start <= ed <= g_end
 
-    def _tiered_min_ev(true_prob: float) -> float:
-        return tiered_min_ev(true_prob, min_ev=min_ev, min_prob=min_prob)
-
-    # All gaps that pass display filters (no top-N cap yet) — these are what get logged.
-    # Logging uses the same date + min_prob + tiered EV as the display so that
-    # verify only shows bets the user actually saw (or would have seen) in the scan.
-    # A gap qualifies if it clears the tiered floor at the TAKER price (a
-    # crossable live play) OR only at the MAKER price (a fill-contingent
-    # limit-order play, surfaced tagged MAKER and logged as shadow). Without
-    # the maker clause, maker-only gaps are dropped before display and never
-    # seen — the exact plays the fee gate hides.
-    qualifying_gaps = [
-        g for g in result.top_gaps
-        if g.blended_true_prob >= min_prob
-        and (
-            g.ev_pct >= _tiered_min_ev(g.blended_true_prob)
-            or (
-                getattr(g, "maker_ev_pct", None) is not None
-                and g.maker_ev_pct >= _tiered_min_ev(g.blended_true_prob)
-            )
+    def _clears_display_floor(g) -> bool:
+        # A gap is DISPLAYED if it clears the play floor at the TAKER price (a
+        # crossable live play) OR only at the MAKER price (a fill-contingent
+        # limit-order play, surfaced tagged MAKER and logged as shadow). Without
+        # the maker clause, maker-only gaps would never be seen — the exact plays
+        # the fee gate hides.
+        if passes_play_floor(g.ev_pct, g.blended_true_prob, min_ev=min_ev, min_prob=min_prob):
+            return True
+        maker_ev = getattr(g, "maker_ev_pct", None)
+        return maker_ev is not None and passes_play_floor(
+            maker_ev, g.blended_true_prob, min_ev=min_ev, min_prob=min_prob
         )
-        and _matches_date(g)
+
+    # Display list (no top-N cap yet). min_prob / min_ev are a PLAY-SURFACE
+    # policy: they decide what the table shows and what verify/pick will stake,
+    # not what is persisted — see loggable_gaps below.
+    qualifying_gaps = [
+        g for g in result.top_gaps if _clears_display_floor(g) and _matches_date(g)
     ]
 
     # Exclude events that have already been placed via pick
@@ -439,13 +439,17 @@ def scan(
     except Exception:
         pass  # DB unavailable — show all
 
-    # Log every qualifying game-market gap — full- AND partial-blend — to
-    # ev_predictions; log_gaps demotes partial-blend gaps (full_blend=False,
-    # e.g. tennis sans the full model blend) to mode='shadow' with zero stake.
-    # The play table below shows only full-blend gaps (g.full_blend is the same
-    # field CycleResult.plays() gates on), so blocked $0.00-stake rows stay off
-    # the table entirely.
-    loggable_gaps = [g for g in qualifying_gaps if not is_prop_event(g.event_id)]
+    # Persist THE shared row set — every agent-floor game-market gap in the
+    # window (CycleResult.persistable_gaps: props excluded, partial-blend
+    # included and demoted to shadow by log_gaps, weekly-sector horizon
+    # applied). This is the SAME list the dashboard scan logs, so
+    # ev_predictions no longer depends on which surface ran the scan. The
+    # display floor above (min_prob / min_ev / placed-exclusion) is NOT applied
+    # here: it is a play-surface policy, and verify/pick re-apply it against
+    # the LIVE price anyway. The play table below shows only full-blend gaps
+    # (g.full_blend is the same field CycleResult.plays() gates on), so
+    # blocked $0.00-stake rows stay off the table entirely.
+    loggable_gaps = result.persistable_gaps(range_start, range_end)
     qualifying_gaps = [g for g in qualifying_gaps if g.full_blend]
     if loggable_gaps:
         try:
@@ -528,7 +532,7 @@ def scan(
     table = Table(
         title=(
             f"+EV Plays — {len(gaps)} found | {range_start}" + (f" to {range_end}" if range_end != range_start else "") + f" | Bankroll ${bankroll:.0f} | {kelly:.0%} Kelly"
-            f" | min prob {min_prob:.0%} | base EV {min_ev:.0%} (tiered)"
+            f" | min prob {min_prob:.0%} | min EV {min_ev:.0%}"
         ),
         box=box.ROUNDED,
         show_lines=True,
@@ -737,9 +741,6 @@ def verify(
 
     console.print(f"\n[bold cyan]evmax verify[/bold cyan] — re-checking {len(rows)} bets for games on {target_date} ...\n")
 
-    def _tiered_min_ev(true_prob: float) -> float:
-        return tiered_min_ev(true_prob, min_ev=min_ev, min_prob=min_prob)
-
     # Fetch all live ask prices via WebSocket (one connection for all tickers)
     # with automatic REST fallback for any ticker missed by WS.
     async def _fetch_asks(tickers: list[str]) -> dict[str, Optional[float]]:
@@ -846,8 +847,7 @@ def verify(
         fee_venue = (r.get("venue") or "kalshi") if settings.fees_in_pricing else None
         eff_live = effective_price(live_ask, fee_venue)
         live_ev, _ = calculate_ev(eff_live, blended_prob)
-        threshold = _tiered_min_ev(blended_prob)
-        is_live = live_ev >= threshold and blended_prob >= min_prob
+        is_live = passes_play_floor(live_ev, blended_prob, min_ev=min_ev, min_prob=min_prob)
 
         # Kelly stake at live price
         if is_live:

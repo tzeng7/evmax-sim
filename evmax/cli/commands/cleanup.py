@@ -1262,8 +1262,8 @@ def prune_stale(
     ),
     min_ev: float = typer.Option(
         0.02, "--min-ev",
-        help="Base EV threshold — matches scan/pick/verify. A candidate is voided "
-             "when its live EV falls below the tiered threshold at this base.",
+        help="EV threshold — matches scan/pick/verify. A candidate is voided "
+             "when its live EV falls below this floor (with --min-prob).",
     ),
     min_prob: float = typer.Option(
         0.15, "--min-prob",

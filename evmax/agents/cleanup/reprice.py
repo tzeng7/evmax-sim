@@ -18,7 +18,7 @@ from __future__ import annotations
 import asyncio
 from typing import Callable, Optional
 
-from evmax.ev.calculator import tiered_min_ev
+from evmax.ev.calculator import passes_play_floor
 
 # Market types whose fresh Pinnacle two-way devig can be applied to the blend.
 # The empty string covers rows scanned before market_type was populated.
@@ -116,8 +116,7 @@ def recompute_at_price(
 
     eff_price = effective_price(price, venue)
     ev, _ = calculate_ev(eff_price, blended_prob)
-    threshold = tiered_min_ev(blended_prob, min_ev=min_ev, min_prob=min_prob)
-    is_live = ev >= threshold and blended_prob >= min_prob
+    is_live = passes_play_floor(ev, blended_prob, min_ev=min_ev, min_prob=min_prob)
     kelly_fraction = 0.0
     if is_live:
         # Route through the shared sizing entry point so the pruner re-sizes a

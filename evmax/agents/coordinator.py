@@ -33,7 +33,7 @@ import json
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -98,6 +98,30 @@ BASEBALL_PROP_MODEL_WEIGHT = 0.35
 _BASEBALL_BRIDGE_STATS = {"hits", "hits_runs_rbis", "rbis"}
 
 
+def gap_in_persist_window(
+    event_date, sector: Optional[str], range_start: date, range_end: date
+) -> bool:
+    """True when a gap's Kalshi game-day falls in ``[range_start, range_end]``.
+
+    THE persistence-window predicate, shared by ``CycleResult.persistable_gaps``
+    (CLI scan) and the dashboard's ``_gap_in_scan_window`` (web scan) so both
+    surfaces persist the same rows. Uses ``kalshi_game_day`` — the convention
+    ``log_gaps`` writes to ``ev_predictions.event_date`` — and widens the END
+    of the range by the sector's ``scan_horizon_days`` (``persist_window``: a
+    weekly sector's Sunday slate must survive a Wednesday ``--date TODAY``
+    scan; daily sectors are unchanged; the start is never moved). Dateless
+    gaps (rare) are kept, preserving the prior persist-all behaviour for them.
+    """
+    if event_date is None:
+        return True
+    from evmax.categories import persist_window as _persist_window
+    from evmax.clients.time_util import kalshi_game_day
+
+    day = date.fromisoformat(kalshi_game_day(event_date, sector or ""))
+    lo, hi = _persist_window(sector or "", range_start, range_end)
+    return lo <= day <= hi
+
+
 @dataclass
 class CycleResult:
     """Results from a single coordinator cycle."""
@@ -134,6 +158,28 @@ class CycleResult:
         """
         return [g for g in self.ev_gaps if not is_prop_event(g.event_id)]
 
+    def persistable_gaps(self, range_start: date, range_end: date) -> list[EVGap]:
+        """THE persisted row set for a scan over ``[range_start, range_end]``.
+
+        ``loggable_gaps()`` (every agent-floor game-market gap, props excluded,
+        partial-blend included) filtered by :func:`gap_in_persist_window` —
+        the Kalshi game-day of the gap, with the sector's ``scan_horizon_days``
+        widening the END of the range for weekly sectors.
+
+        Both scan surfaces (CLI ``agents scan`` and the dashboard ``/api/scan``)
+        MUST log exactly this list. Before 2026-09-20 the CLI logged only rows
+        that also cleared its display floor (``min_prob``/EV), while the web
+        logged every agent-floor gap — so ``ev_predictions`` held a different
+        row set depending on which surface ran the scan, silently biasing every
+        CLV / Brier / price-bucket sample by scan surface. Display floors
+        (``passes_play_floor``) are a play-surface policy and stay at the call
+        site; persistence is the agent floor plus the window, nothing else.
+        """
+        return [
+            g for g in self.loggable_gaps()
+            if gap_in_persist_window(g.event_date, g.sector, range_start, range_end)
+        ]
+
     def plays(
         self,
         *,
@@ -156,8 +202,9 @@ class CycleResult:
           marker).
         - ``drop_map_handicap``: drop esports map-handicap markets not on Kalshi.
 
-        Surface-specific policy (min_prob floors, tiered-EV ramps, date windows,
-        placed-exclusion, per-type caps) stays at the call site.
+        Surface-specific DISPLAY policy (min_prob / min_ev floors, date windows,
+        placed-exclusion, per-type caps) stays at the call site; PERSISTENCE is
+        not surface-specific — see ``persistable_gaps``.
         """
         gaps = self.top_gaps
         if require_full_blend:
