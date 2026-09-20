@@ -82,15 +82,25 @@ def load_resolved_rows(
     exclude_contaminated: bool = True,
     price_lo: float = 0.02,
     price_hi: float = 0.98,
+    require_sized: bool = True,
 ) -> list[ResolvedRow]:
     """Load resolved rows joined to their outcomes, newest ``days`` days.
 
     ``modes`` selects live and/or shadow rows — shadow rows carry the same blended
     probability, captured price, and outcome, so they are valid sizing evidence and
     roughly triple the sample. One row per market (latest scan) via GROUP BY.
+
+    ``require_sized`` (default True) keeps only rows the scanner actually sized
+    (``kelly_fraction > 0``) — the right sample for a *sizing* verdict on live
+    rows. Shadow rows carry Kelly = 0 by construction (shadow never stakes), so a
+    replay over a shadow sector (nfl / ncaaf today) must pass ``require_sized=
+    False`` or it loads zero rows. Any replay that scores an ADMISSION rule
+    (which rows should have been played at all) rather than a sizing rule
+    needs the full logged sample and should pass False.
     """
     mode_list = list(modes)
     placeholders = ",".join("?" for _ in mode_list)
+    sized_clause = "AND p.kelly_fraction > 0" if require_sized else ""
     con = sqlite3.connect(str(db_path))
     con.row_factory = sqlite3.Row
     try:
@@ -104,7 +114,7 @@ def load_resolved_rows(
             WHERE p.mode IN ({placeholders})
               AND o.outcome IS NOT NULL
               AND p.voided = 0
-              AND p.kelly_fraction > 0
+              {sized_clause}
               AND p.kalshi_yes_price > ?
               AND p.kalshi_yes_price < ?
               AND p.scan_date >= date('now', ?)

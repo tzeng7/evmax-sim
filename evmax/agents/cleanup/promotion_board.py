@@ -116,12 +116,19 @@ def compute_promotion_board(
     staleness_h: Optional[float] = 3.0,
     sector: Optional[str] = None,
     league: Optional[str] = None,
+    price_bucket: Optional[str] = None,
 ) -> list[dict]:
     """Build the board: one dict per (sector, market_type, venue).
 
     ``league`` restricts a multi-league sector (soccer) to one league — the
     Brier/divergence columns AND the CLV gate are both computed on that
     league's rows only.
+
+    ``price_bucket`` restricts every column to rows whose OUR-side entry price
+    (placed fill, else scan ask — the CLV anchor) falls in one bucket of
+    ``price_buckets.BUCKET_ORDER``. A filter, not a group key, so the row shape
+    is unchanged; the favorite–longshot lens for "is this group's health carried
+    by cheap contracts?".
 
     ``days`` windows on event_date. ``staleness_h`` feeds clv_stats'
     stale-close filter (None disables it). ``sector`` restricts to one
@@ -130,12 +137,14 @@ def compute_promotion_board(
     """
     from evmax.agents.cleanup.contamination import is_contaminated
     from evmax.agents.cleanup.db import get_connection
+    from evmax.agents.cleanup.price_buckets import bucket_for_row, validate_bucket
     from evmax.agents.cleanup.value_audit import _brier, _calibration, _paired_diff_stats
     from evmax.cli.commands.shadow import (
         MIN_CLEAN_RESOLVED,
         clv_stats,
     )
 
+    price_bucket = validate_bucket(price_bucket)
     since = (date.today() - timedelta(days=days)).isoformat()
     where = [
         "p.voided = 0",
@@ -154,6 +163,7 @@ def compute_promotion_board(
         SELECT p.sector, p.market_type, p.venue, p.mode, p.line,
                p.model_sources, p.model_diagnostics,
                p.blended_true_prob, p.sharp_true_prob,
+               p.placed, p.placed_price, p.kalshi_yes_price,
                o.outcome
         FROM ev_predictions p
         LEFT JOIN ev_outcomes o ON p.market_id = o.market_id
@@ -161,6 +171,8 @@ def compute_promotion_board(
     """
     with get_connection() as conn:
         rows = [dict(r) for r in conn.execute(sql, params).fetchall()]
+    if price_bucket is not None:
+        rows = [r for r in rows if bucket_for_row(r) == price_bucket]
 
     groups: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
     for r in rows:
@@ -207,6 +219,7 @@ def compute_promotion_board(
             venue=ven if ven in ("kalshi", "polymarket_us") else None,
             max_staleness_h=staleness_h if ven == "kalshi" else None,
             league=league,
+            price_bucket=price_bucket,
         )
 
         mode = _effective_mode(sec, mt)

@@ -43,6 +43,7 @@ def _make_db(path: Path) -> sqlite3.Connection:
             voided INTEGER NOT NULL DEFAULT 0,
             placed INTEGER NOT NULL DEFAULT 0,
             placed_at TEXT,
+            placed_price REAL,
             mode TEXT NOT NULL DEFAULT 'live',
             venue TEXT NOT NULL DEFAULT 'kalshi',
             kalshi_clv_pct REAL,

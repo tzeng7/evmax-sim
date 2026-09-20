@@ -484,19 +484,24 @@ def _fetch_clv_rows(
     max_staleness_h: Optional[float] = None,
     sources_token: Optional[str] = None,
     league: Optional[str] = None,
+    price_bucket: Optional[str] = None,
 ) -> tuple[list, int]:
     """Fetch a category's current-code resolved CLV rows.
 
-    Shared row-fetch behind ``clv_stats`` and the ``clv-tiers`` segmentation:
-    applies the identical category / market_type / mode / since / side / venue /
-    staleness filters and the contamination guard, so every CLV lens scores the
-    same row set. Each returned row also carries ``event_title`` for downstream
-    grouping. See ``clv_stats`` for the per-parameter semantics. Returns
+    Shared row-fetch behind ``clv_stats`` and the ``clv-tiers`` / ``clv-prices``
+    segmentations: applies the identical category / market_type / mode / since /
+    side / venue / staleness / price-bucket filters and the contamination guard,
+    so every CLV lens scores the same row set. Each returned row also carries
+    ``event_title`` (tier grouping), the entry-price columns (price bucketing)
+    and the blended / sharp probs + outcome (per-bucket calibration). See
+    ``clv_stats`` for the per-parameter semantics. Returns
     ``(kept_rows, excluded_stale)``.
     """
     from evmax.agents.cleanup.contamination import is_contaminated
     from evmax.agents.cleanup.db import get_connection
+    from evmax.agents.cleanup.price_buckets import bucket_for_row, validate_bucket
 
+    price_bucket = validate_bucket(price_bucket)
     where = ["p.kalshi_clv_pct IS NOT NULL", "o.outcome IS NOT NULL"]
     params: list = []
     if category.endswith("_props"):
@@ -536,7 +541,10 @@ def _fetch_clv_rows(
     sql = f"""
         SELECT p.sector, p.market_type, p.model_sources, p.line, p.kalshi_clv_pct,
                p.event_id, p.event_title, p.venue, p.placed, p.placed_at,
-               p.market_id, p.league
+               p.market_id, p.league,
+               p.kalshi_yes_price, p.placed_price,
+               p.blended_true_prob, p.sharp_true_prob,
+               o.outcome
         FROM ev_predictions p
         INNER JOIN ev_outcomes o ON p.market_id = o.market_id
         WHERE {' AND '.join(where)}
@@ -548,6 +556,10 @@ def _fetch_clv_rows(
         r for r in rows
         if not is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"])
     ]
+    if price_bucket is not None:
+        # Python-side: the entry price is COALESCE(placed fill, scan ask), the
+        # same anchor backfill_clv measured against (resolver.clv_entry_price).
+        kept = [r for r in kept if bucket_for_row(r) == price_bucket]
 
     excluded_stale = 0
     if max_staleness_h is not None:
@@ -607,6 +619,7 @@ def clv_stats(
     max_staleness_h: Optional[float] = None,
     sources_token: Optional[str] = None,
     league: Optional[str] = None,
+    price_bucket: Optional[str] = None,
 ) -> dict:
     """Aggregate kalshi_clv_pct for a category's current-code resolved bets.
 
@@ -649,11 +662,16 @@ def clv_stats(
     ramp are league policies, so CLV is judged per league before either is
     changed. Rows logged before the column existed are backfilled on open
     (Kalshi ticker prefix / PolyUS slug league token).
+    `price_bucket` restricts to rows whose OUR-side entry price (placed fill,
+    else scan ask — resolver.clv_entry_price) falls in one bucket of
+    ``price_buckets.BUCKET_ORDER`` (0-10 / 10-20 / ... / 90+). The favorite–
+    longshot lens: the EV% gate mechanically favors cheap contracts, so CLV and
+    calibration are judged per price bucket before any gate change.
     """
     kept, excluded_stale = _fetch_clv_rows(
         category, market_type=market_type, mode=mode, since=since,
         side=side, venue=venue, max_staleness_h=max_staleness_h,
-        sources_token=sources_token, league=league,
+        sources_token=sources_token, league=league, price_bucket=price_bucket,
     )
     return _aggregate_clv(kept, excluded_stale)
 
@@ -701,6 +719,11 @@ def clv(
         help="Restrict to one league inside a multi-league sector (soccer: "
              "epl/laliga/bundesliga/seriea/ligue1/ucl/uel/mls).",
     ),
+    price_bucket: Optional[str] = typer.Option(
+        None, "--price-bucket",
+        help="Restrict to one entry-price bucket of OUR side (0-10, 10-20, 20-35, "
+             "35-50, 50-65, 65-80, 80-90, 90+). See `clv-prices` for all at once.",
+    ),
 ) -> None:
     """Report Kalshi CLV (entry→close) — the +EV signal for laddered markets.
 
@@ -711,7 +734,7 @@ def clv(
     s = clv_stats(
         category, market_type=market_type, mode=mode, since=since,
         side=side, venue=venue, max_staleness_h=max_staleness_h,
-        sources_token=sources_token, league=league,
+        sources_token=sources_token, league=league, price_bucket=price_bucket,
     )
     label = f"{category}" + (f" / {market_type}" if market_type else "")
     label += f" [{mode}]" if mode else " [all modes]"
@@ -719,6 +742,7 @@ def clv(
     label += f" side={side}" if side else ""
     label += f" venue={venue}" if venue else ""
     label += f" league={league}" if league else ""
+    label += f" price={price_bucket}" if price_bucket else ""
     label += f" fresh≤{max_staleness_h:g}h" if max_staleness_h is not None else ""
     label += f" sources~{sources_token}" if sources_token else ""
     if s["n"] == 0:
@@ -849,6 +873,142 @@ def clv_tiers(
         f"  gate: n≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
         f"%pos≥{CLV_MIN_FRAC_POSITIVE*100:.0f}%  ·  thesis: G5 CLV > P4 CLV"
         + (f"  ·  {excluded_stale} stale-excluded" if excluded_stale else "")
+    )
+
+
+@app.command("clv-prices")
+def clv_prices(
+    category: str = typer.Argument(..., help="Category key (e.g. 'nfl', 'ncaaf')."),
+    market_type: Optional[str] = typer.Option(
+        None, "--market-type", "-m", help="Restrict to one market type."
+    ),
+    mode: Optional[str] = typer.Option(
+        None, "--mode", help="Restrict to one mode (live/shadow). Default: all."
+    ),
+    since: Optional[str] = typer.Option(
+        None, "--since", help="Only score rows scanned on/after YYYY-MM-DD."
+    ),
+    side: Optional[str] = typer.Option(
+        None, "--side",
+        help="Restrict laddered bets by direction: 'lay' (line<0) or 'take' (line>0).",
+    ),
+    venue: Optional[str] = typer.Option(
+        None, "--venue",
+        help="Restrict to one exchange: 'kalshi' or 'polymarket_us'.",
+    ),
+    max_staleness_h: Optional[float] = typer.Option(
+        None, "--max-staleness-h",
+        help="Exclude Kalshi rows whose archived close is > this many h before T-30.",
+    ),
+    sources_token: Optional[str] = typer.Option(
+        None, "--sources-token",
+        help="Keep only rows whose model_sources contains this token.",
+    ),
+    league: Optional[str] = typer.Option(
+        None, "--league", "-l",
+        help="Restrict to one league inside a multi-league sector (soccer).",
+    ),
+) -> None:
+    """Segment resolved CLV AND calibration by entry-price bucket — the favorite–
+    longshot lens.
+
+    Buckets a category's current-code resolved rows by the price of OUR side at
+    entry (placed fill, else scan ask — the exact CLV anchor) and reports, per
+    bucket, (a) calibration: realized win rate vs mean blended and sharp prob,
+    with blend−realized in pp (positive = the blend over-states the bucket),
+    and (b) Kalshi CLV against the same promotion gate ``clv`` uses, plus a z
+    so thin buckets read as noise. The EV% gate mechanically favors cheap
+    contracts (a +2pp edge is +40% EV at 5c, +2.2% at 90c) and the blend leans
+    toward underdogs early-season, so judge any gate or calibration change here,
+    per bucket, before making it.
+    """
+    from evmax.agents.cleanup.price_buckets import (
+        BUCKET_DESC,
+        BUCKET_ORDER,
+        bucket_for_row,
+        calibration_summary,
+    )
+    from evmax.agents.cleanup.value_audit import _clv_stats
+
+    kept, excluded_stale = _fetch_clv_rows(
+        category, market_type=market_type, mode=mode, since=since, side=side,
+        venue=venue, max_staleness_h=max_staleness_h, sources_token=sources_token,
+        league=league,
+    )
+
+    buckets: dict[str, list] = {b: [] for b in BUCKET_ORDER}
+    for r in kept:
+        buckets[bucket_for_row(r)].append(r)
+
+    label = f"{category}" + (f" / {market_type}" if market_type else "")
+    label += f" [{mode}]" if mode else " [all modes]"
+    label += f" since {since}" if since else ""
+    label += f" side={side}" if side else ""
+    label += f" venue={venue}" if venue else ""
+    label += f" league={league}" if league else ""
+    label += f" fresh≤{max_staleness_h:g}h" if max_staleness_h is not None else ""
+    label += f" sources~{sources_token}" if sources_token else ""
+
+    total = sum(len(v) for v in buckets.values())
+    if total == 0:
+        note = ""
+        if max_staleness_h is not None and excluded_stale:
+            note = f" ({excluded_stale} excluded as stale-capture)"
+        console.print(
+            f"[yellow]No current-code resolved CLV rows for {label} yet.{note}[/yellow]\n"
+            "Price-bucket segmentation is wired and will populate as games resolve "
+            "with backfilled CLV (watch-closes + backfill_clv)."
+        )
+        return
+
+    # Compact: 11 columns must fit an 80-col terminal without Rich ellipsizing
+    # the numbers, so cells are unit-free (units live in the headers) and the
+    # bucket cell is the short label (descriptions in the legend below).
+    table = Table(title=f"CLV + calibration by entry price — {label}", box=box.SIMPLE)
+    table.add_column("Bucket", no_wrap=True)
+    table.add_column("G", justify="right")        # distinct games
+    table.add_column("n", justify="right")        # CLV rows
+    table.add_column("win%", justify="right")
+    table.add_column("bl%", justify="right")      # mean blended prob
+    table.add_column("sh%", justify="right")      # mean sharp prob
+    table.add_column("Δpp", justify="right")      # blend − realized, pp
+    table.add_column("CLV", justify="right")      # mean kalshi CLV, pp
+    table.add_column("+%", justify="right")       # % rows with +CLV
+    table.add_column("z", justify="right")
+    table.add_column("gate", justify="center")
+    for b in BUCKET_ORDER:
+        rows = buckets[b]
+        if not rows and b == "unknown":
+            continue  # only show the unbucketable row when it has members
+        short = b if b == "unknown" else f"{b}c"
+        games = len({r["event_id"] for r in rows})
+        s = _aggregate_clv(rows)
+        if s["n"] == 0:
+            table.add_row(short, str(games), "0", "—", "—", "—", "—", "—", "—", "—", "—")
+            continue
+        cal = calibration_summary(rows)
+        z = (_clv_stats(rows) or {}).get("z", 0.0)
+        gate = "[green]✓[/green]" if s["clears"] else "[red]✗[/red]"
+        table.add_row(
+            short, str(games), str(s["n"]),
+            f"{cal['win_rate']*100:.1f}" if cal["win_rate"] is not None else "—",
+            f"{cal['mean_blended']*100:.1f}" if cal["mean_blended"] is not None else "—",
+            f"{cal['mean_sharp']*100:.1f}" if cal["mean_sharp"] is not None else "—",
+            (f"{cal['blend_minus_realized_pp']:+.1f}"
+             if cal["blend_minus_realized_pp"] is not None else "—"),
+            f"{s['mean_clv_pp']:+.2f}", f"{s['frac_positive']*100:.0f}",
+            f"{z:+.1f}", gate,
+        )
+    console.print(table)
+    console.print(
+        f"  gate: n≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
+        f"%pos≥{CLV_MIN_FRAC_POSITIVE*100:.0f}%  ·  Δpp = blend − realized win%; "
+        "> 0 means the blend over-states the bucket (favorite–longshot signature "
+        "on cheap contracts)  ·  z = CLV mean / se"
+        + (f"  ·  {excluded_stale} stale-excluded" if excluded_stale else "")
+    )
+    console.print(
+        "  buckets: " + "; ".join(BUCKET_DESC[b] for b in BUCKET_ORDER if b != "unknown")
     )
 
 
@@ -1025,6 +1185,11 @@ def board(
         help="Restrict to one league inside a multi-league sector (soccer: "
              "epl/laliga/bundesliga/seriea/ligue1/ucl/uel/mls).",
     ),
+    price_bucket: Optional[str] = typer.Option(
+        None, "--price-bucket",
+        help="Restrict every column to rows in one OUR-side entry-price bucket "
+             "(0-10 … 90+). Favorite–longshot lens; see `clv-prices`.",
+    ),
 ) -> None:
     """Promotion scoreboard — per (sector, market type, venue) health.
 
@@ -1040,6 +1205,7 @@ def board(
         staleness_h=staleness_h if staleness_h > 0 else None,
         sector=sector,
         league=league,
+        price_bucket=price_bucket,
     )
     if not rows:
         console.print("[yellow]No prediction rows in the window.[/yellow]")

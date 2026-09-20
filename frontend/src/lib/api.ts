@@ -173,8 +173,23 @@ export async function runArbScan(params: {
   }).then(json)
 }
 
-export async function fetchPromotionBoard(days: number, sector?: string): Promise<PromotionBoardResult> {
+export interface PromotionBoardFilters {
+  sector?: string
+  /** Soccer only: one league key (epl/laliga/…/mls). */
+  league?: string
+  /** OUR-side entry-price bucket: '0-10' | '10-20' | '20-35' | '35-50' | '50-65' | '65-80' | '80-90' | '90+'. */
+  priceBucket?: string
+}
+
+export async function fetchPromotionBoard(
+  days: number,
+  filters: PromotionBoardFilters | string = {},
+): Promise<PromotionBoardResult> {
+  // Back-compat: a bare string second arg is the sector.
+  const f: PromotionBoardFilters = typeof filters === 'string' ? { sector: filters } : filters
   const params = new URLSearchParams({ days: String(days) })
-  if (sector) params.set('sector', sector)
+  if (f.sector) params.set('sector', f.sector)
+  if (f.league) params.set('league', f.league)
+  if (f.priceBucket) params.set('price_bucket', f.priceBucket)
   return fetch(`/api/promotion-board?${params}`).then(json)
 }
