@@ -4,15 +4,23 @@ All models share the ModelAgent interface (predict / update / save_state / load_
 EnsembleModelAgent blends their outputs weighted by confidence; models below the 0.45
 gate are excluded from the blend entirely.
 
-Model weights and state files:
+Base class weights and state files for the agents exported here. These are the
+BASE weights; EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES wins per sector, so the
+effective weight in a given blend is usually the override, not the number below
+(e.g. tennis_surface blends at 0.30 on tennis, not 0.35). The agents not exported
+from this package (efficiency / possession_sim / shot_quality / matchup, the
+wnba_*, ncaab_*, ncaaw_*, ncaaf_* and nfl_* stacks, nhl_xg, soccer xg,
+tennis_advanced) carry their own class weights in their modules.
+
   EloModelAgent              weight=0.35  data/models/elo_state.json
   FormModelAgent             weight=0.25  data/models/form_state.json
   PoissonModelAgent          weight=0.30  data/models/poisson_state.json
-  TennisModelAgent           weight=0.45  data/models/tennis_surface_state.json        (tennis only)
-  TennisServeReturnAgent     weight=0.40  data/models/tennis_serve_return_state.json   (tennis only)
+  TennisModelAgent           weight=0.35  data/models/tennis_surface_state.json        (tennis only)
+  TennisServeReturnAgent     weight=0.15  data/models/tennis_serve_return_state.json   (tennis only)
   TennisH2HAgent             weight=0.10  data/models/tennis_h2h_state.json            (tennis only)
   TennisRankingTrendAgent    weight=0.10  data/models/tennis_ranking_trend_state.json  (tennis only)
-  PitcherModelAgent          weight=0.20  data/models/pitcher_state.json               (baseball only)
+  TennisFormAgent            weight=0.15  data/models/tennis_form_state.json           (tennis only)
+  PitcherModelAgent          weight=0.50  data/models/pitcher_v2_state.json            (baseball only)
   UFCRatingAgent             weight=1.0   data/models/ufc_rating_state.json            (ufc only)
 
 Sharp weight (Pinnacle) is separate from the model blend — controlled by sharp_weight
