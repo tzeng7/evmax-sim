@@ -119,6 +119,7 @@ caveat no longer applies — any task may call it today. What actually shipped, 
 | `daily-evening-resolve` | ❌ still to convert | ✅ |
 | `weekly-drift-audit` | ❌ still to convert | ✅ |
 | `biweekly-model-improve-graph` | ❌ still to convert | ✅ (in the graph JS) |
+| `weekly-clv-backfill` | ➖ N/A — writes only gitignored DBs (predictions.db / archive.db); no git artifact to ship, so the worktree/rolling-PR pattern does not apply | ➖ N/A (no PR) |
 
 The seven unconverted tasks still base a dated branch **by content inside the shared checkout**
 (`git switch main && git pull --ff-only`, then branch) rather than in an isolated worktree. That
@@ -169,6 +170,7 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 | `biweekly-model-improve-graph` | Mon + Thu 08:51 | Runs the versioned model-improve Workflow graph: value-audit gap → ONE model-side change → walk-forward + integrity/signal gates → PR or revert. Propose-only, never merges (graph: `.claude/workflows/model-improve.js`; ledger: `.claude/improvement-ledger.jsonl`) |
 | `weekly-nfl-props-shadow-metrics` | Mon 08:30 (NFL season) | MODEL-9 NFL prop shadow-validation readout — Brier/ROI split by price bucket over the `nfl_props` shadow rows. Produces no PR and promotes nothing; the first meaningful readout is after Week 3 (~2026-09-28), since `nfl_props` is `status: blocked` until the 2026 shadow sample clears |
 | `weekly-wnba-total-anchored-backfill-check` | Mon 09:01 | Watches the WNBA total over/under anchored-entry backfill sample for a PROMOTE or KILL verdict (read-only) |
+| `weekly-clv-backfill` | Mon 10:06 | The two CLV backfills no other schedule covers, run in the MAIN checkout (DB-only, no git/PR): (1) `scripts/backfill_outcome_closes.py` — fills `ev_outcomes.pinnacle_close_prob` for resolved outcomes whose `ev_predictions` partner was pruned (the inner-join blind spot `backfill_clv` cannot reach; 467 orphaned rows pending at creation, 2026-09-20), ALL sectors; (2) `scripts/backfill_kalshi_candles.py --sector nfl` — reconstructs NFL spread/total Kalshi candle trails for the anchored-entry CLV lens. Deliberately NOT here: the core `backfill_clv` (runs after every `cleanup resolve`) and WNBA candles (owned by `weekly-wnba-total-anchored-backfill-check`). Spec: `docs/scheduled-tasks/weekly-clv-backfill.md` |
 
 ### One-time (fires once, then self-expires)
 
