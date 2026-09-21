@@ -220,7 +220,7 @@ def main() -> int:
         df = pb.pitching_stats_bref(args.year)
     except Exception as e:
         print(f"ERROR: pybaseball BR fetch failed: {e}", file=sys.stderr)
-        print("State was NOT modified; existing pitcher_state.json is intact.", file=sys.stderr)
+        print("State was NOT modified; existing pitcher_v2_state.json is intact.", file=sys.stderr)
         return 1
 
     # MLB only (drop minor-league rows).

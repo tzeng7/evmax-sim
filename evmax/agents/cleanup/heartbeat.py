@@ -40,11 +40,12 @@ _MODELS_DIR = Path(__file__).resolve().parents[3] / "data" / "models"
 # status gates the check.
 #
 # `stamp_path` locates the timestamp inside the JSON (default ["last_updated"]).
-# The NFL / WNBA / NCAAF / pitcher states nest a per-sector `fetched_at` and
-# have a NO-OP update() — so a silently failing weekly reseed freezes them and
-# is caught by NEITHER the cadence check (resolve keeps running) NOR a
-# top-level-stamp check. `max_age_days` overrides the default staleness bound
-# per file (a weekly reseed should stamp within ~8 days).
+# The NFL / NCAAF states nest a per-sector `fetched_at`, WNBA carries one at
+# the top level, and all three have a NO-OP update() — so a silently failing
+# weekly reseed freezes them and is caught by NEITHER the cadence check
+# (resolve keeps running) NOR a default `last_updated` check.
+# `max_age_days` overrides the default staleness bound per file (a weekly
+# reseed should stamp within ~8 days).
 _SEED_STATE_CHECKS: list[dict] = [
     {"file": "ufc_rating_state.json", "sector": "ufc", "label": "ufc_rating"},
     {"file": "tennis_surface_state.json", "sector": "tennis", "label": "tennis_surface"},
@@ -56,8 +57,10 @@ _SEED_STATE_CHECKS: list[dict] = [
      "stamp_path": ["fetched_at"], "max_age_days": 8},
     {"file": "ncaaf_efficiency_state.json", "sector": "ncaaf", "label": "ncaaf_efficiency",
      "stamp_path": ["ncaaf", "fetched_at"], "max_age_days": 8},
-    # pitcher_state.json deliberately omitted: it carries no freshness stamp
-    # (no fetched_at / last_updated), so it can't be age-checked here.
+    # pitcher_v2_state.json deliberately omitted: it carries no freshness stamp
+    # (its keys are pitchers / team_starters / league_avg_era / relievers /
+    # league_pen_cfip / pen_seeded_at — no top-level fetched_at or
+    # last_updated), so it can't be age-checked here.
 ]
 
 
