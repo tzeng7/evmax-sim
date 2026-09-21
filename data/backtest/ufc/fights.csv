@@ -8099,3 +8099,20 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600060772,401914463,Noche UFC: Silva vs. Delgado,2026-09-12,Middleweight,5149815,Yousri Belgaroui,5211247,Djorden Santos,a,True,1,4:25,ko_tko,Punch
 600060772,401916463,Noche UFC: Silva vs. Delgado,2026-09-12,Lightweight,4079621,Drakkar Klose,5307814,Tommy Gantt,b,True,3,2:46,submission,Triangle Choke
 600060772,401916464,Noche UFC: Silva vs. Delgado,2026-09-12,Featherweight,5401058,Sean King III,5387599,Jessie Rosas,a,True,1,0:36,ko_tko,Slam
+600060737,401891541,"Dana White's Contender Series: Season 10, Week 6",2026-09-15,Welterweight,5369672,Zevan Hunt,5369676,Mayton Perea,b,True,1,0:45,ko_tko,Punches
+600060737,401918029,"Dana White's Contender Series: Season 10, Week 6",2026-09-15,Middleweight,4872704,Oscar Ravello,5214599,Igor Cavalcanti,b,True,1,1:38,ko_tko,Punches
+600060737,401918030,"Dana White's Contender Series: Season 10, Week 6",2026-09-15,Lightweight,5113920,Ednilson Santos,5210077,Akbar Abdullaev,b,True,1,0:19,ko_tko,Punch
+600060737,401918031,"Dana White's Contender Series: Season 10, Week 6",2026-09-15,Middleweight,5369427,Luis Hernandez,5369426,Hugo Guillon,a,True,2,1:01,submission,Rear Naked Choke
+600060737,401918032,"Dana White's Contender Series: Season 10, Week 6",2026-09-15,Featherweight,5369685,Tyshawn Williams,5057385,Antonio Monteiro,a,True,3,5:00,decision,
+600060963,401903511,UFC 331: Van vs. Pantoja 2,2026-09-19,W Flyweight,4699589,Casey O'Neill,5143888,Eduarda Moura,a,True,1,3:22,submission,Armbar
+600060963,401905379,UFC 331: Van vs. Pantoja 2,2026-09-19,Bantamweight,3155424,Marlon Vera,4421978,Charles Jourdain,a,True,3,2:02,ko_tko,Punch
+600060963,401905380,UFC 331: Van vs. Pantoja 2,2026-09-19,Heavyweight,3722422,Tai Tuivasa,5189560,Robelis Despaigne,b,True,3,5:00,decision,
+600060963,401905381,UFC 331: Van vs. Pantoja 2,2026-09-19,Middleweight,4354318,Edmen Shahbazyan,5077131,Brunno Ferreira,a,True,3,5:00,decision,
+600060963,401905382,UFC 331: Van vs. Pantoja 2,2026-09-19,Featherweight,3957071,Giga Chikadze,4422355,Joanderson Brito,b,True,1,1:57,ko_tko,Punches
+600060963,401905385,UFC 331: Van vs. Pantoja 2,2026-09-19,Middleweight,5291085,Ryan Gandra,4944080,Ozzy Diaz,a,True,1,2:04,ko_tko,Punch
+600060963,401905386,UFC 331: Van vs. Pantoja 2,2026-09-19,Featherweight,5212738,Michael Aswell,5282139,JooSang Yoo,a,True,3,5:00,decision,
+600060963,401903509,UFC 331: Van vs. Pantoja 2,2026-09-20,Flyweight,5120301,Joshua Van,2560746,Alexandre Pantoja,a,True,5,5:00,decision,
+600060963,401903510,UFC 331: Van vs. Pantoja 2,2026-09-20,Heavyweight,5214652,Gable Steveson,5240957,Sean Sharaf,b,True,1,0:12,ko_tko,Punch
+600060963,401905375,UFC 331: Van vs. Pantoja 2,2026-09-20,Lightweight,4419372,Arman Tsarukyan,5122238,Mauricio Ruffy,a,True,1,4:56,ko_tko,Elbow
+600060963,401905376,UFC 331: Van vs. Pantoja 2,2026-09-20,Featherweight,2532870,Patricio Pitbull,3093026,Dooho Choi,a,True,1,3:28,ko_tko,Punches
+600060963,401905378,UFC 331: Van vs. Pantoja 2,2026-09-20,Light Heavyweight,3948876,Alonzo Menifield,5307810,Iwo Baraniewski,a,True,3,5:00,decision,
