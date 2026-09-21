@@ -106,6 +106,39 @@ class TestClientEmitsLadder:
         assert len(spreads) == 1 and not spreads[0].is_alternate
 
 
+class TestCaptureOnlyOverride:
+    """The capture-only ``include_alternate_spreads`` override emits the ladder
+    even while the global SPREAD_LADDER_ENABLED flag is OFF, so watch-listings
+    can archive the book's rungs without changing live pricing."""
+
+    def test_override_emits_ladder_with_global_flag_off(self, monkeypatch):
+        monkeypatch.setattr(sd, "SPREAD_LADDER_ENABLED", False)
+        client = PinnacleGuestClient()
+        payload = _payload("m1", -3.0, [-7.0, -16.5])
+        out = asyncio.run(client._fetch_matchup_odds(
+            _matchup("m1", "New England Patriots", "Seattle Seahawks"),
+            "nfl", markets_override=payload, include_alternate_spreads=True,
+        ))
+        spreads = [o for o in (out or []) if o.spread_line is not None]
+        assert len(spreads) == 3, "override must emit main + both alt rungs"
+        alts = [s for s in spreads if s.is_alternate]
+        assert len(alts) == 2
+        for a in alts:
+            assert a.event_id.endswith(f"::spread::{a.spread_line}")
+
+    def test_override_default_off_leaves_main_only(self, monkeypatch):
+        # Global flag off AND no override → main line only (live-pricing path).
+        monkeypatch.setattr(sd, "SPREAD_LADDER_ENABLED", False)
+        client = PinnacleGuestClient()
+        payload = _payload("m1", -3.0, [-7.0, -16.5])
+        out = asyncio.run(client._fetch_matchup_odds(
+            _matchup("m1", "New England Patriots", "Seattle Seahawks"),
+            "nfl", markets_override=payload,
+        ))
+        spreads = [o for o in (out or []) if o.spread_line is not None]
+        assert len(spreads) == 1 and not spreads[0].is_alternate
+
+
 # --- Phase 2a: matcher prefers the exact-line rung -----------------------------
 
 class TestMatcherNearestSpread:
