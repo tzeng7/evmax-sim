@@ -2138,6 +2138,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 4869702,Thomas Petersen,1995-03-30,73.0,74.0,Southpaw
 4871197,Joao Elias,1995-01-08,63.0,64.5,Southpaw
 4871203,Gabriella Fernandes,1993-08-13,66.0,66.0,Southpaw
+4872704,Oscar Ravello,1998-09-27,70.0,72.0,Switch
 4873639,Darian Weeks,1993-11-23,71.0,72.0,Orthodox
 4873640,Jailton Almeida,1991-06-26,75.0,79.0,Orthodox
 4873641,Lucasz Sudolski,1993-06-15,76.0,75.5,Orthodox
@@ -2352,6 +2353,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5110297,Eliezer Kubanza,1997-12-23,71.0,,Orthodox
 5110465,Demba Seck,1993-07-07,73.0,74.0,Orthodox
 5110469,Luana Santos,2000-04-16,66.0,67.0,Orthodox
+5113920,Ednilson Santos,1992-03-07,69.0,73.0,Orthodox
 5115163,Emrah Sonmez,1992-06-26,70.0,71.0,Orthodox
 5116187,Roman Puga,1996-09-17,68.0,71.0,Orthodox
 5116823,Tom Pagliarulo,1997-06-19,72.0,74.0,Switch
@@ -2477,6 +2479,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5206516,Uran Satybaldiev,1994-08-10,76.0,79.0,Orthodox
 5207629,DongHun Choi,1999-01-02,65.0,66.0,Switch
 5207665,Shi Ming,1994-11-14,62.0,60.0,Orthodox
+5210077,Akbar Abdullaev,1997-09-21,69.0,70.0,Orthodox
 5210642,Isaac Thomson,2002-05-03,71.0,,--
 5211221,Mansur Abdul-Malik,1997-10-07,74.0,79.5,Orthodox
 5211222,Shannon Clark,1992-07-07,65.0,64.5,Orthodox
@@ -2661,6 +2664,8 @@ athlete_id,name,dob,height_in,reach_in,stance
 5369414,John Garza,2002-10-30,67.0,68.0,Orthodox
 5369424,Charlie Cleveland,1997-12-30,74.0,75.0,Southpaw
 5369425,Apollo Gomes,2000-07-10,68.0,70.5,Switch
+5369426,Hugo Guillon,1997-04-12,76.0,78.0,Orthodox
+5369427,Luis Hernandez,1996-08-22,69.0,73.0,Southpaw
 5369428,Bella Mir,2003-07-01,67.0,67.0,Southpaw
 5369435,Douglas Rodrigues,1999-01-13,72.0,74.0,Orthodox
 5369437,Silvestre Sanchez,2001-11-15,70.0,73.0,Orthodox
@@ -2668,6 +2673,9 @@ athlete_id,name,dob,height_in,reach_in,stance
 5369439,Taner Trembley,1994-12-28,69.0,69.0,Orthodox
 5369446,Adam Darby,1998-11-13,75.0,78.0,Orthodox
 5369555,RJ Harris,1998-10-01,78.0,80.0,Orthodox
+5369672,Zevan Hunt,1998-12-08,72.0,73.0,Orthodox
+5369676,Mayton Perea,2000-08-18,74.0,75.0,Orthodox
+5369685,Tyshawn Williams,1996-08-24,66.0,72.0,Switch
 5369721,Arlind Berisha,2000-11-05,78.0,77.0,Orthodox
 5369722,Damien Anderson,1997-01-04,68.0,69.0,Southpaw
 5369723,Ezra Elliott,2000-05-18,70.0,72.0,--
