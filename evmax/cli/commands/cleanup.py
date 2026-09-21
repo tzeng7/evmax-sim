@@ -828,6 +828,17 @@ def watch_listings(
              "shadow (Kelly-zeroed) until its own `shadow clv --sources-token "
              "anchored_entry` bucket clears the gate.",
     ),
+    capture_alt_spreads: bool = typer.Option(
+        True, "--capture-alt-spreads/--no-capture-alt-spreads",
+        help="When capturing spreads, also archive Pinnacle's OWN alternate-spread "
+             "ladder (::spread::<line> rungs) to archived_sharp_odds. CAPTURE ONLY "
+             "— it never touches live pricing (SPREAD_LADDER_ENABLED stays off) and "
+             "the alt rungs are excluded from the --log-entries anchored-entry feed. "
+             "This is what lets backtest_spread_ladder_replay.py compare the book's "
+             "own rung price against the normal-CDF gap-filler; without it the "
+             "archive holds only the main line and the ladder replay is n/a. "
+             "Inert unless 'spread' is in --market-types.",
+    ),
 ) -> None:
     """Capture the listing→scan window: prices + order-book DEPTH + sharp anchor.
 
@@ -896,24 +907,37 @@ def watch_listings(
             ]
             n_depth = archiver.archive_orderbook_depth(session_id, sector, depth_rows)
 
-            # 3. As-of sharp anchor (ML + spread devigged) for EV-at-entry evaluation
+            # 3. As-of sharp anchor (ML + spread devigged) for EV-at-entry evaluation.
+            # When --capture-alt-spreads and we're capturing spreads, request
+            # Pinnacle's full alt-rung ladder so archived_sharp_odds accrues the
+            # book's own per-line cover prob (::spread::<line>) for the ladder
+            # replay. Capture only: SPREAD_LADDER_ENABLED stays off, so live
+            # pricing is untouched, and the alt rungs are filtered out of the
+            # anchored-entry feed below.
             n_sharp = 0
             odds = []
+            want_alt = capture_alt_spreads and "spread" in type_set
             try:
                 async with PinnacleGuestClient() as pclient:
-                    odds = await pclient.get_odds(sector)
+                    odds = await pclient.get_odds(
+                        sector, include_alternate_spreads=want_alt
+                    )
                 if odds:
                     n_sharp = archiver.archive_sharp_odds(session_id, sector, odds)
             except Exception as perr:  # noqa: BLE001
                 console.print(f"[yellow]  [{sector}] pinnacle fetch failed: {perr}[/yellow]")
 
-            # 4. Anchored-entry shadow logging (opt-in, never aborts the sweep)
+            # 4. Anchored-entry shadow logging (opt-in, never aborts the sweep).
+            # Feed ONLY the main-line odds — alt rungs are for the archive/replay,
+            # never the shadow anchored-entry stream (which prices off the main
+            # line exactly as before this capture flag existed).
             if sector in entry_set and odds:
                 try:
                     from evmax.agents.cleanup.anchored_entry import build_anchored_entries
                     from evmax.agents.cleanup.logger import log_gaps
 
-                    entries = build_anchored_entries(wanted, books, odds, sector)
+                    main_odds = [o for o in odds if not o.is_alternate]
+                    entries = build_anchored_entries(wanted, books, main_odds, sector)
                     if entries:
                         n_logged = log_gaps(
                             entries, mode_resolver=lambda cat: "shadow",

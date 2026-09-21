@@ -612,14 +612,31 @@ class PinnacleGuestClient(BaseAPIClient):
             prop_stat_type=stat_type,
         )
 
-    async def get_odds(self, sector: str) -> list[SharpOdds]:
-        """Fetch devigged Pinnacle moneyline odds for a sector."""
+    async def get_odds(
+        self, sector: str, include_alternate_spreads: bool = False
+    ) -> list[SharpOdds]:
+        """Fetch devigged Pinnacle moneyline odds for a sector.
+
+        ``include_alternate_spreads`` is a CAPTURE-ONLY override. When True the
+        spread parse emits every rung of Pinnacle's alternate-spread ladder
+        (``::spread::<line>`` records, ``is_alternate=True``) in ADDITION to the
+        main line, regardless of the global ``SPREAD_LADDER_ENABLED`` flag. It
+        exists so the archiver can accrue the book's own alt-rung ladder for the
+        offline ladder-vs-CDF replay (``backtest_spread_ladder_replay.py``)
+        WITHOUT flipping the live-pricing flag. The alt rungs use a distinct
+        cache key so they can never leak into a live scan that reads the shared
+        ``pinnacle_{sector}`` cache. Default False → pricing is byte-for-byte the
+        old path.
+        """
         sector = sector.lower()
         if sector not in ALL_SECTORS:
             return []
 
         cfg = get_settings()
-        cache_key = f"pinnacle_{sector}"
+        cache_key = (
+            f"pinnacle_{sector}_altspread" if include_alternate_spreads
+            else f"pinnacle_{sector}"
+        )
 
         # Offline mode: always use cache (stale is fine)
         if cfg.offline_mode:
@@ -697,7 +714,8 @@ class PinnacleGuestClient(BaseAPIClient):
         results = await asyncio.gather(
             *(
                 self._fetch_matchup_odds(
-                    m, sector, markets_override=bulk_index.get(m.get("id"))
+                    m, sector, markets_override=bulk_index.get(m.get("id")),
+                    include_alternate_spreads=include_alternate_spreads,
                 )
                 for m in matchups
             ),
@@ -754,6 +772,7 @@ class PinnacleGuestClient(BaseAPIClient):
         matchup: dict,
         sector: str,
         markets_override: Optional[list[dict]] = None,
+        include_alternate_spreads: bool = False,
     ) -> Optional[SharpOdds] | list[SharpOdds]:
         """Fetch moneyline (and spread for non-soccer) for one matchup.
 
@@ -846,9 +865,14 @@ class PinnacleGuestClient(BaseAPIClient):
                 and m.get("type") == "spread"
                 and m.get("period") == 0
                 and m.get("status") == "open"
-                # Ladder OFF → only the main line, exactly as before. Ladder ON →
-                # every rung (main + alternates), each priced off its own devig.
-                and (SPREAD_LADDER_ENABLED or not m.get("isAlternate", False))
+                # Ladder OFF → only the main line, exactly as before. Ladder ON
+                # (global flag OR the capture-only override) → every rung
+                # (main + alternates), each priced off its own devig.
+                and (
+                    SPREAD_LADDER_ENABLED
+                    or include_alternate_spreads
+                    or not m.get("isAlternate", False)
+                )
             ]
             for spread_market in spread_markets:
                 spread_odds = self._parse_spread(
