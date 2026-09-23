@@ -659,6 +659,7 @@ class DataArchiver:
             true_prob_a=row["true_prob_a"],
             true_prob_b=row["true_prob_b"],
             true_prob_draw=row["true_prob_draw"],
+            sector=(event_id or "").split("::", 1)[0] or None,
         )
 
     def get_spread_closing_line_aligned(
@@ -744,6 +745,7 @@ class DataArchiver:
             true_prob_a=row["true_prob_a"],
             true_prob_b=row["true_prob_b"],
             true_prob_draw=row["true_prob_draw"],
+            sector=(event_id or "").split("::", 1)[0] or None,
         )
 
     def get_total_closing_line_aligned(

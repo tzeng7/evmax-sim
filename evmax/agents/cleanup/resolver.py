@@ -9,15 +9,21 @@ Data sources:
 Matching strategy:
   Primary team names are extracted from the event_id slug
   (e.g. "soccer::2026-03-18::atletico_madrid_vs_real_madrid" → ["atletico madrid", "real madrid"]).
-  Names are fuzzy-matched against ESPN displayName / bo3.gg team names using
-  rapidfuzz token_sort_ratio at a lenient threshold (72) — lower than the 88
-  used at scan time because we have far fewer candidates post-hoc.
+  The slug's two teams are mapped onto ESPN displayName / bo3.gg team names
+  as a strict bijection: sector-alias canonical equality, then token subset,
+  then rapidfuzz token_set_ratio ≥ 72 as a last resort — and exactly one
+  assignment must win (see "Strict team-name resolution" below). The YES
+  label is placed on one of the slug's own two teams by the alignment-stage
+  rules (``evmax.matching.alignment.resolve_team``). Ambiguity (nested names
+  such as "utah" / "utah state" that the alias map cannot separate) leaves
+  the row unresolved; it is never graded as the event's first team.
   Falls back to yes_team direct matching when the slug is unavailable.
 """
 
 from __future__ import annotations
 
 import asyncio
+import functools
 import sqlite3
 import unicodedata
 import weakref
@@ -28,6 +34,7 @@ import httpx
 import structlog
 from rapidfuzz import fuzz
 
+from evmax.matching.alignment import YesOutcome, clean, resolve_team
 from evmax.sectors.soccer_leagues import espn_display_name
 from evmax.agents.cleanup.db import get_connection
 
@@ -285,6 +292,172 @@ def _fuzzy_team_match(query: str, candidate: str) -> float:
 
 
 # ---------------------------------------------------------------------------
+# Strict team-name resolution (2026-09-22)
+# ---------------------------------------------------------------------------
+#
+# The resolver used to pick sides with ``token_set_ratio`` and break ties toward
+# team A. ``token_set_ratio`` scores ANY token-subset pair at 100
+# ("utah" vs "utah state", "michigan" vs "western michigan"), so when one
+# team's name contains the other's, both sides tied and the YES team was graded
+# as the event's first team — the same fuzzy-containment class as the
+# 2026-09-05 YES-alignment incident (evmax/matching/alignment.py). Measured:
+# NCAAF Western Michigan / Florida Atlantic / Washington State / Utah State
+# rows graded WON on games the favorite won.
+#
+# The rules below mirror the alignment stage: strongest rule first, every rule
+# must pick EXACTLY ONE side, ambiguity ⇒ None (unresolved, logged). Nothing
+# ever defaults to team A.
+
+MATCH_NONE = 0
+MATCH_FUZZY = 1
+MATCH_TOKENS = 2
+MATCH_CANONICAL = 3
+
+
+@functools.lru_cache(maxsize=64)
+def _sector_normalizer(sector: Optional[str]):
+    """The sector's NameNormalizer (alias maps), or None for an unknown/empty sector."""
+    if not sector:
+        return None
+    try:
+        from evmax.matching.normalizer import NameNormalizer
+
+        return NameNormalizer(sector)
+    except Exception:  # noqa: BLE001 — resolution must never die on a registry quirk
+        return None
+
+
+def _pred_sector(pred: dict) -> str:
+    """A prediction's sector: the explicit column, else the event_id prefix."""
+    sector = pred.get("sector")
+    if sector:
+        return str(sector)
+    return (pred.get("event_id") or "").split("::", 1)[0]
+
+
+@functools.lru_cache(maxsize=65536)
+def _team_match_level(query: str, candidate: str, sector: str = "") -> int:
+    """How strongly ``query`` (our team name) names ``candidate`` (a source's team).
+
+    Levels, strongest first:
+      MATCH_CANONICAL — equal after the sector alias map, or equal after the
+                        accent/punctuation/acronym folding of ``_to_fuzz``.
+      MATCH_NONE      — both names are KNOWN alias targets of the sector and
+                        they differ: two distinct teams, whatever the strings
+                        share ("washington" vs "Washington State Cougars").
+      MATCH_TOKENS    — every query token is a token of the candidate
+                        ("lakers" ⊆ "los angeles lakers").
+      MATCH_FUZZY     — token_set_ratio ≥ FUZZY_THRESHOLD (last resort for
+                        spellings the alias maps do not cover).
+
+    A level only RANKS one name against one candidate. Callers must still
+    demand that exactly one side wins (see ``_pick_unique``).
+    """
+    q_f = _to_fuzz(query or "")
+    c_f = _to_fuzz(candidate or "")
+    if not q_f or not c_f:
+        return MATCH_NONE
+    if q_f == c_f:
+        return MATCH_CANONICAL
+    normalizer = _sector_normalizer(sector)
+    if normalizer is not None:
+        q_n = clean(normalizer.normalize(query))
+        c_n = clean(normalizer.normalize(candidate))
+        if q_n and q_n == c_n:
+            return MATCH_CANONICAL
+        if normalizer.is_known(query) and normalizer.is_known(candidate):
+            return MATCH_NONE
+    if len(q_f) >= 3 and set(q_f.split()) <= set(c_f.split()):
+        return MATCH_TOKENS
+    if fuzz.token_set_ratio(q_f, c_f) >= FUZZY_THRESHOLD:
+        return MATCH_FUZZY
+    return MATCH_NONE
+
+
+def _pick_unique(level_first: int, level_second: int) -> Optional[tuple[bool, int]]:
+    """``(first_wins, level)`` when exactly one side wins at the strongest level.
+
+    Equivalent to running the rules strongest-first and stopping at the first
+    rule that hits: if both sides hit at that rule it is ambiguous (None), it
+    never falls through to "pick the first".
+    """
+    best = max(level_first, level_second)
+    if best <= MATCH_NONE or level_first == level_second:
+        return None
+    return level_first > level_second, best
+
+
+def _assign_pair(
+    team_a: str, team_b: str, first: str, second: str, sector: str,
+) -> Optional[tuple[bool, int]]:
+    """Map the event's two teams onto a result's two competitors as a bijection.
+
+    Returns ``(a_is_first, level)`` — the assignment whose WEAKER pair is
+    strictly stronger than the other assignment's weaker pair — or None when
+    both assignments tie (nested names the alias map cannot separate) or
+    neither holds.
+    """
+    straight = min(
+        _team_match_level(team_a, first, sector),
+        _team_match_level(team_b, second, sector),
+    )
+    swapped = min(
+        _team_match_level(team_a, second, sector),
+        _team_match_level(team_b, first, sector),
+    )
+    return _pick_unique(straight, swapped)
+
+
+def _yes_is_team_a(yes_team: str, team_a: str, team_b: str, sector: str) -> Optional[bool]:
+    """Which of the event's own two teams is the YES side (closed world).
+
+    Delegates to ``alignment.resolve_team`` (canonical → token subset →
+    reverse subset → venue ticker code), each rule exactly-one. None when the
+    YES label names neither or both.
+    """
+    r = resolve_team(yes_team, team_a, team_b, _sector_normalizer(sector), allow_codes=True)
+    if r is None:
+        return None
+    return r[0] is YesOutcome.A
+
+
+def _select_candidate(
+    candidates: list[tuple[int, int, int, dict, bool]],
+    pred: dict,
+    source: str,
+) -> Optional[tuple[dict, bool]]:
+    """Pick ONE result game from ``(level, date_dist, idx, score, flag)`` candidates.
+
+    The strongest match level wins. When more than one DISTINCT matchup ties at
+    that level the event is ambiguous (a "washington vs oregon" slug token-
+    matching both the real game and "Washington State vs Oregon State") ⇒ None.
+    Several games of the SAME matchup (a playoff series) resolve to the one
+    closest to the prediction date, first-listed on a tie — the pre-existing
+    series behaviour.
+    """
+    if not candidates:
+        return None
+    best = max(c[0] for c in candidates)
+    top = [c for c in candidates if c[0] == best]
+    matchups = {
+        frozenset((c[3].get("home_name") or c[3].get("team1_name") or "",
+                   c[3].get("away_name") or c[3].get("team2_name") or ""))
+        for c in top
+    }
+    if len(matchups) > 1:
+        logger.warning(
+            "resolver_ambiguous_event",
+            source=source,
+            market_id=pred.get("market_id"),
+            event_id=pred.get("event_id"),
+            candidates=sorted(sorted(m) for m in matchups)[:5],
+        )
+        return None
+    chosen = min(top, key=lambda c: (c[1], c[2]))
+    return chosen[3], chosen[4]
+
+
+# ---------------------------------------------------------------------------
 # ESPN helpers
 # ---------------------------------------------------------------------------
 
@@ -385,6 +558,10 @@ async def _fetch_espn_scores(
         results.append({
             "home_name": espn_display_name(league, home.get("team", {}).get("displayName", "")),
             "away_name": espn_display_name(league, away.get("team", {}).get("displayName", "")),
+            # ESPN team abbreviations ("CLB", "RSL") — a closed-world, exact
+            # fallback for a YES label that is a venue ticker code.
+            "home_abbr": home.get("team", {}).get("abbreviation", ""),
+            "away_abbr": away.get("team", {}).get("abbreviation", ""),
             "home_score": home_score,
             "away_score": away_score,
             "home_won": home_score > away_score,
@@ -468,278 +645,262 @@ async def _fetch_bo3_scores(
 # Matching helpers
 # ---------------------------------------------------------------------------
 
-def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
-    """Return 1 (YES won) / 0 (YES lost) / None (no match).
+_DRAW_LABELS = ("tie", "draw", "x")
 
-    Algorithm:
-      1. Extract team_a / team_b from event_id slug (primary source).
-      2. For each ESPN score, require BOTH teams to fuzzy-match home/away
-         (this is the event-identity gate — prevents cross-match collisions).
-      3. Determine which side (home/away) the YES team is on, return outcome.
-      4. Fall back to yes_team direct fuzzy match when slug is missing.
+
+def _espn_date_distance(pred_date: str, score: dict) -> Optional[int]:
+    """Days between the prediction date and a result's slate date.
+
+    None when either date is missing/unparseable (no guard applies); the
+    caller skips results more than one day away (a different game of a
+    multi-day series).
+    """
+    score_date = score.get("game_date", "")
+    if not (pred_date and score_date and len(pred_date) >= 10 and len(score_date) >= 10):
+        return None
+    try:
+        return abs((date.fromisoformat(pred_date[:10]) - date.fromisoformat(score_date[:10])).days)
+    except ValueError:
+        return None
+
+
+def _yes_side_by_abbreviation(yes_team: str, score: dict) -> Optional[bool]:
+    """``yes_is_home`` from an exact ESPN-abbreviation hit on exactly one side."""
+    y = clean(yes_team)
+    if not y:
+        return None
+    hit_home = y == clean(score.get("home_abbr") or "")
+    hit_away = y == clean(score.get("away_abbr") or "")
+    if hit_home == hit_away:
+        return None
+    return hit_home
+
+
+def _select_espn_game(pred: dict, scores: list[dict]) -> Optional[tuple[dict, Optional[bool]]]:
+    """Find the ONE ESPN result for ``pred`` and the side its YES team is on.
+
+    Returns ``(score, yes_is_home)``; ``yes_is_home`` is None for draw and
+    total markets (side-independent). Returns None when the game is not found
+    or cannot be identified unambiguously.
+
+      1. Event gate — the event_id slug's two teams must map onto the result's
+         home/away as a bijection (``_assign_pair``: exactly one assignment
+         wins). The strongest-matching game wins; distinct games tying at that
+         strength are ambiguous.
+      2. YES side — the YES label is placed on one of the slug's OWN two teams
+         (``_yes_is_team_a``, closed world), then carried through the gate's
+         assignment. Fallback: an exact ESPN abbreviation hit. Never team A by
+         default.
+      3. No slug (legacy ids) — the YES label must match exactly one
+         competitor of exactly one game.
     """
     slug_a, slug_b = _slug_teams(pred["event_id"])
-    yes_raw = _to_fuzz(pred["yes_team"])
-
-    # Determine yes alignment relative to slug (team_a vs team_b)
-    if slug_a and slug_b:
-        yes_a_score = _fuzzy_team_match(yes_raw, slug_a)
-        yes_b_score = _fuzzy_team_match(yes_raw, slug_b)
-        if yes_a_score >= FUZZY_THRESHOLD and yes_a_score >= yes_b_score:
-            yes_is_team_a: Optional[bool] = True
-        elif yes_b_score >= FUZZY_THRESHOLD:
-            yes_is_team_a = False
-        elif yes_a_score > yes_b_score:
-            # yes_team is an abbreviation (e.g. "hp", "cbu") — both scores below
-            # threshold but slug_a is relatively better. Trust the relative signal
-            # once the event-identity gate passes.
-            yes_is_team_a = True
-        elif yes_b_score > yes_a_score:
-            yes_is_team_a = False
-        else:
-            yes_is_team_a = None  # fall through to direct yes_team match (both score 0)
-    else:
-        slug_a = slug_b = ""
-        yes_is_team_a = None
-
-    # Prediction date for cross-day series guard
-    pred_date = pred.get("event_date", "")
-
-    # Total / over-under markets are side-independent: the combined score
-    # resolves them once the event gate confirms the game. yes_team here is
-    # "over"/"under", which never fuzzy-matches a team slug, so the per-side
-    # resolution below must be skipped — otherwise an over/under that ties
-    # against both slugs leaves yes_is_team_a=None and the bet is silently
-    # dropped (regression that left team-name-symmetric totals unresolved).
+    sector = _pred_sector(pred)
+    yes_team = pred.get("yes_team") or ""
+    yes_fuzz = _to_fuzz(yes_team)
+    pred_date = pred.get("event_date", "") or ""
     market_type = (pred.get("market_type") or "moneyline").lower()
-    side_independent = market_type in ("total", "over_under")
+    side_independent = market_type in ("total", "over_under") or yes_fuzz in _DRAW_LABELS
 
-    # In a multi-day series the 3-day fetch window holds several games for the
-    # same matchup. Evaluate the game closest to the prediction date first so
-    # "first gate-passing match wins" resolves the right game (e.g. Tue's game,
-    # not Mon's). The ±1-day guard below still absorbs off-by-one stored dates.
-    if pred_date and len(pred_date) >= 10:
-        try:
-            _pred_d = date.fromisoformat(pred_date[:10])
-
-            def _date_distance(s: dict) -> int:
-                sd = s.get("game_date", "")
-                try:
-                    return abs((date.fromisoformat(sd[:10]) - _pred_d).days)
-                except (ValueError, TypeError):
-                    return 99
-
-            scores = sorted(scores, key=_date_distance)
-        except ValueError:
-            pass
-
-    for score in scores:
+    candidates: list[tuple[int, int, int, dict, bool]] = []
+    for idx, score in enumerate(scores):
+        dist = _espn_date_distance(pred_date, score)
+        if dist is not None and dist > 1:
+            continue  # different day — wrong game in a multi-day series
         home_n = score["home_name"]
         away_n = score["away_name"]
-
-        # Cross-day series guard: if both the prediction and the ESPN result
-        # carry a date, skip results from a different calendar day. ESPN
-        # game_date is ISO format from competition.date (UTC); pred_date is
-        # the stored event_date. Allow same-day or ±1 day for UTC offset, but
-        # skip results clearly from a different game in the same series.
-        score_date = score.get("game_date", "")
-        if pred_date and score_date and len(pred_date) >= 10 and len(score_date) >= 10:
-            try:
-                pd = date.fromisoformat(pred_date[:10])
-                sd = date.fromisoformat(score_date[:10])
-                if abs((pd - sd).days) > 1:
-                    continue  # different day — wrong game in multi-day series
-            except ValueError:
-                pass
-
         if slug_a and slug_b:
-            # Gate: both slugs must match this score (ensures correct event)
-            a_home = _fuzzy_team_match(slug_a, home_n) >= FUZZY_THRESHOLD
-            a_away = _fuzzy_team_match(slug_a, away_n) >= FUZZY_THRESHOLD
-            b_home = _fuzzy_team_match(slug_b, home_n) >= FUZZY_THRESHOLD
-            b_away = _fuzzy_team_match(slug_b, away_n) >= FUZZY_THRESHOLD
-
-            if not ((a_home and b_away) or (a_away and b_home)):
-                continue  # not our event
-
-            # Soccer draw/tie market — resolve immediately after event gate,
-            # before yes_team side resolution (tie has no "home" side).
-            # Kalshi's soccer/worldcup game markets settle on the REGULATION
-            # result: a knockout game that went to extra time / penalties was
-            # by definition drawn after 90', so TIE resolves YES even though
-            # ESPN's final score (ET goals included) is not level.
-            if yes_raw in ("tie", "draw", "x"):
-                is_draw = (
-                    score.get("went_extra_time")
-                    or score["home_score"] == score["away_score"]
-                )
-                return 1 if is_draw else 0
-
-            # Resolve yes team side
-            if side_independent:
-                # total/over_under: event gate already confirmed the game;
-                # the combined score (not the YES side) decides the outcome.
-                yes_is_home = None
-            elif yes_is_team_a is True:
-                yes_is_home = a_home
-            elif yes_is_team_a is False:
-                yes_is_home = b_home
-            else:
-                # slug alignment failed — fall back to direct yes_team match
-                yes_is_home = _fuzzy_team_match(yes_raw, home_n) >= FUZZY_THRESHOLD
-                if not yes_is_home and _fuzzy_team_match(yes_raw, away_n) < FUZZY_THRESHOLD:
-                    continue  # can't determine side
+            r = _assign_pair(slug_a, slug_b, home_n, away_n, sector)
         else:
-            # No slug — direct yes_team match only
-            yes_is_home = _fuzzy_team_match(yes_raw, home_n) >= FUZZY_THRESHOLD
-            if not yes_is_home:
-                if _fuzzy_team_match(yes_raw, away_n) < FUZZY_THRESHOLD:
-                    continue  # this score doesn't involve our team
+            r = _pick_unique(
+                _team_match_level(yes_team, home_n, sector),
+                _team_match_level(yes_team, away_n, sector),
+            )
+        if r is None:
+            continue
+        flag, level = r
+        candidates.append((level, dist if dist is not None else 0, idx, score, flag))
 
-        hs = score.get("home_score")
-        as_ = score.get("away_score")
+    chosen = _select_candidate(candidates, pred, "espn")
+    if chosen is None:
+        return None
+    score, flag = chosen
 
-        if market_type == "spread":
-            # Kalshi spread tickers ask "does TEAM win by over N.5". We store
-            # the ticker's line as a NEGATIVE float for YES bets (e.g. -7.5
-            # = "wins by over 7.5"). The synthesized NO-side bet (the +spread
-            # cover) is stored with a POSITIVE line (e.g. +7.5 = "doesn't
-            # lose by 8 or more").
-            #   line < 0  →  YES covers iff margin >  threshold (wins by N+)
-            #   line > 0  →  YES covers iff margin > -threshold (loses by < N or wins)
-            if hs is None or as_ is None or pred.get("line") is None:
-                return None
-            line_val = float(pred["line"])
-            threshold = abs(line_val)
-            yes_score = hs if yes_is_home else as_
-            opp_score = as_ if yes_is_home else hs
-            margin = yes_score - opp_score
-            cover_threshold = -threshold if line_val > 0 else threshold
-            if margin == cover_threshold:
-                # Exact push — the margin lands on the line, so the bet is a
-                # refund, not a loss. Kalshi spreads are always N.5 so this
-                # cannot occur there; the guard stops a future INTEGER line from
-                # silently grading a push as a loss (which would corrupt CLV,
-                # Brier, ROI and the auto-tuner). Returns None (stays pending —
-                # the score path can't void); a full push→void path is a
-                # documented future option.
-                return None
-            return 1 if margin > cover_threshold else 0
+    if side_independent:
+        return score, None
+    if not (slug_a and slug_b):
+        return score, flag  # no-slug path: flag is yes_is_home
 
-        if market_type in ("total", "over_under"):
-            # Kalshi totals ask "will combined score be > line" (yes=over)
-            # or "< line" (yes=under). yes_team is set to "over"/"under"
-            # at the kalshi parse step.
-            if hs is None or as_ is None or pred.get("line") is None:
-                return None
-            threshold = float(pred["line"])
-            total = hs + as_
-            side = (pred.get("yes_team") or "").lower()
-            if total == threshold:
-                # Exact push (integer line) — a refund, not a loss. Kalshi
-                # totals are always N.5 so this can't occur there; guard against
-                # a future integer line mis-grading a push (same rationale as
-                # the spread push guard above).
-                return None
-            if side == "over":
-                return 1 if total > threshold else 0
-            if side == "under":
-                return 1 if total < threshold else 0
-            return None
-
-        if market_type == "advance":
-            # Knockout "to advance": winner INCLUDING extra time / penalties.
-            # ESPN's competitor `winner` flag marks the side that went through
-            # (set on the shootout winner even when the score is level).
-            hw, aw = score.get("home_winner"), score.get("away_winner")
-            if hw is None and aw is None:
-                # No winner flags — fall back to the final score, which is
-                # decisive unless the game went to penalties.
-                if hs is None or as_ is None or hs == as_:
-                    return None
-                hw, aw = hs > as_, as_ > hs
-            won = hw if yes_is_home else aw
-            if won is None:
-                return None
-            return 1 if won else 0
-
-        # Moneyline (default). Regulation result: a soccer knockout game that
-        # went to extra time was drawn after 90' — no team wins the regulation
-        # market even though ESPN's ET-inclusive score has a leader.
-        if score.get("went_extra_time"):
-            return 0
-        if yes_is_home:
-            return 1 if score["home_won"] else 0
-        else:
-            away_won = score["away_score"] > score["home_score"]
-            return 1 if away_won else 0
-
-    logger.debug(
-        "espn_no_match",
-        event_id=pred["event_id"],
-        yes_team=pred["yes_team"],
+    a_is_home = flag
+    yes_is_a = _yes_is_team_a(yes_team, slug_a, slug_b, sector)
+    if yes_is_a is not None:
+        return score, (a_is_home if yes_is_a else not a_is_home)
+    yes_is_home = _yes_side_by_abbreviation(yes_team, score)
+    if yes_is_home is not None:
+        return score, yes_is_home
+    logger.warning(
+        "resolver_yes_side_unresolved",
+        source="espn",
+        market_id=pred.get("market_id"),
+        event_id=pred.get("event_id"),
+        yes_team=yes_team,
         slug_a=slug_a,
         slug_b=slug_b,
-        scores_checked=len(scores),
     )
     return None
+
+
+def _match_espn(pred: dict, scores: list[dict]) -> Optional[int]:
+    """Return 1 (YES won) / 0 (YES lost) / None (no match or ambiguous).
+
+    Game identification and YES-side placement are strict (see
+    ``_select_espn_game``): a name that is contained in the opponent's name
+    ("utah" / "utah state") is decided by the sector alias map or by the more
+    specific name, and stays unresolved when neither can decide — it is never
+    graded as the event's first team.
+    """
+    selected = _select_espn_game(pred, scores)
+    if selected is None:
+        logger.debug(
+            "espn_no_match",
+            event_id=pred["event_id"],
+            yes_team=pred.get("yes_team"),
+            scores_checked=len(scores),
+        )
+        return None
+    score, yes_is_home = selected
+    market_type = (pred.get("market_type") or "moneyline").lower()
+    hs = score.get("home_score")
+    as_ = score.get("away_score")
+
+    # Soccer draw/tie market — resolved after the event gate, before any
+    # YES-side logic (tie has no "home" side). Kalshi's soccer/worldcup game
+    # markets settle on the REGULATION result: a knockout game that went to
+    # extra time / penalties was by definition drawn after 90', so TIE
+    # resolves YES even though ESPN's final score (ET goals included) is not
+    # level.
+    if _to_fuzz(pred.get("yes_team") or "") in _DRAW_LABELS:
+        is_draw = score.get("went_extra_time") or hs == as_
+        return 1 if is_draw else 0
+
+    if market_type == "spread":
+        # Kalshi spread tickers ask "does TEAM win by over N.5". We store
+        # the ticker's line as a NEGATIVE float for YES bets (e.g. -7.5
+        # = "wins by over 7.5"). The synthesized NO-side bet (the +spread
+        # cover) is stored with a POSITIVE line (e.g. +7.5 = "doesn't
+        # lose by 8 or more").
+        #   line < 0  →  YES covers iff margin >  threshold (wins by N+)
+        #   line > 0  →  YES covers iff margin > -threshold (loses by < N or wins)
+        if hs is None or as_ is None or pred.get("line") is None:
+            return None
+        line_val = float(pred["line"])
+        threshold = abs(line_val)
+        yes_score = hs if yes_is_home else as_
+        opp_score = as_ if yes_is_home else hs
+        margin = yes_score - opp_score
+        cover_threshold = -threshold if line_val > 0 else threshold
+        if margin == cover_threshold:
+            # Exact push — the margin lands on the line, so the bet is a
+            # refund, not a loss. Kalshi spreads are always N.5 so this
+            # cannot occur there; the guard stops a future INTEGER line from
+            # silently grading a push as a loss (which would corrupt CLV,
+            # Brier, ROI and the auto-tuner). Returns None (stays pending —
+            # the score path can't void); a full push→void path is a
+            # documented future option.
+            return None
+        return 1 if margin > cover_threshold else 0
+
+    if market_type in ("total", "over_under"):
+        # Kalshi totals ask "will combined score be > line" (yes=over)
+        # or "< line" (yes=under). yes_team is set to "over"/"under"
+        # at the kalshi parse step.
+        if hs is None or as_ is None or pred.get("line") is None:
+            return None
+        threshold = float(pred["line"])
+        total = hs + as_
+        side = (pred.get("yes_team") or "").lower()
+        if total == threshold:
+            # Exact push (integer line) — a refund, not a loss. Kalshi
+            # totals are always N.5 so this can't occur there; guard against
+            # a future integer line mis-grading a push (same rationale as
+            # the spread push guard above).
+            return None
+        if side == "over":
+            return 1 if total > threshold else 0
+        if side == "under":
+            return 1 if total < threshold else 0
+        return None
+
+    if market_type == "advance":
+        # Knockout "to advance": winner INCLUDING extra time / penalties.
+        # ESPN's competitor `winner` flag marks the side that went through
+        # (set on the shootout winner even when the score is level).
+        hw, aw = score.get("home_winner"), score.get("away_winner")
+        if hw is None and aw is None:
+            # No winner flags — fall back to the final score, which is
+            # decisive unless the game went to penalties.
+            if hs is None or as_ is None or hs == as_:
+                return None
+            hw, aw = hs > as_, as_ > hs
+        won = hw if yes_is_home else aw
+        if won is None:
+            return None
+        return 1 if won else 0
+
+    # Moneyline (default). Regulation result: a soccer knockout game that
+    # went to extra time was drawn after 90' — no team wins the regulation
+    # market even though ESPN's ET-inclusive score has a leader.
+    if score.get("went_extra_time"):
+        return 0
+    if yes_is_home:
+        return 1 if score["home_won"] else 0
+    return 1 if score["away_score"] > score["home_score"] else 0
 
 
 def _match_bo3(pred: dict, scores: list[dict]) -> Optional[int]:
     """Return 1 / 0 / None.
 
-    Fixes the original bug where team1_won was read from an arbitrary score
-    without first verifying the score belongs to this specific match.
-
-    Algorithm:
+    Algorithm (strict, same rules as ``_match_espn``):
       1. Extract slug_a / slug_b from event_id.
-      2. Find the score where slug_a fuzzy-matches one team AND slug_b matches
-         the other (event-identity gate).
-      3. Determine which team the YES side is, return outcome.
+      2. Place the YES label on one of the slug's own two teams (exactly one).
+      3. Find the ONE series whose two teams map onto slug_a / slug_b as a
+         bijection (event-identity gate); distinct series tying ⇒ None.
     """
     slug_a, slug_b = _slug_teams(pred["event_id"])
     if not slug_a:
         return None
+    sector = _pred_sector(pred)
 
-    yes_raw = _to_fuzz(pred["yes_team"])
-    yes_a_score = _fuzzy_team_match(yes_raw, slug_a)
-    yes_b_score = _fuzzy_team_match(yes_raw, slug_b)
-
-    if yes_a_score < FUZZY_THRESHOLD and yes_b_score < FUZZY_THRESHOLD:
+    yes_is_team_a = _yes_is_team_a(pred.get("yes_team") or "", slug_a, slug_b, sector)
+    if yes_is_team_a is None:
         logger.debug(
             "bo3_yes_team_no_slug_match",
             event_id=pred["event_id"],
-            yes_team=pred["yes_team"],
+            yes_team=pred.get("yes_team"),
         )
         return None
 
-    yes_is_team_a = yes_a_score >= yes_b_score
+    candidates: list[tuple[int, int, int, dict, bool]] = []
+    for idx, score in enumerate(scores):
+        r = _assign_pair(slug_a, slug_b, score["team1_name"], score["team2_name"], sector)
+        if r is None:
+            continue
+        a_is_team1, level = r
+        candidates.append((level, 0, idx, score, a_is_team1))
 
-    for score in scores:
-        t1n = score["team1_name"]
-        t2n = score["team2_name"]
-
-        # Gate: both event teams must match this score's teams
-        a_t1 = _fuzzy_team_match(slug_a, t1n) >= FUZZY_THRESHOLD
-        a_t2 = _fuzzy_team_match(slug_a, t2n) >= FUZZY_THRESHOLD
-        b_t1 = _fuzzy_team_match(slug_b, t1n) >= FUZZY_THRESHOLD
-        b_t2 = _fuzzy_team_match(slug_b, t2n) >= FUZZY_THRESHOLD
-
-        if a_t1 and b_t2:
-            # slug_a = team1, slug_b = team2
-            return 1 if (yes_is_team_a == score["team1_won"]) else 0
-        if a_t2 and b_t1:
-            # slug_a = team2, slug_b = team1
-            return 1 if (yes_is_team_a != score["team1_won"]) else 0
-
-    logger.debug(
-        "bo3_no_match",
-        event_id=pred["event_id"],
-        slug_a=slug_a,
-        slug_b=slug_b,
-        scores_checked=len(scores),
-    )
-    return None
+    chosen = _select_candidate(candidates, pred, "bo3")
+    if chosen is None:
+        logger.debug(
+            "bo3_no_match",
+            event_id=pred["event_id"],
+            slug_a=slug_a,
+            slug_b=slug_b,
+            scores_checked=len(scores),
+        )
+        return None
+    score, a_is_team1 = chosen
+    a_won = score["team1_won"] if a_is_team1 else not score["team1_won"]
+    return 1 if (yes_is_team_a == a_won) else 0
 
 
 _POLYMARKET_US_ID_PREFIX = "polymarket_us:"
@@ -1136,6 +1297,7 @@ def yes_aligned_close_prob(
     true_prob_a: float,
     true_prob_b: Optional[float] = None,
     true_prob_draw: Optional[float] = None,
+    sector: Optional[str] = None,
 ) -> Optional[float]:
     """Return the YES-aligned Pinnacle close prob given a bet's yes_team.
 
@@ -1146,6 +1308,12 @@ def yes_aligned_close_prob(
     market — see the WNBA Tempo/Mystics case where both ev_outcomes rows
     ended up with the same pinnacle_close_prob = 0.491 even though one
     side closed at 49.1% and the other at 50.9%.
+
+    Side choice uses the strict alignment rules (``alignment.resolve_team``:
+    canonical equality → token subset → reverse subset, each exactly-one;
+    the sector alias map joins in when ``sector`` is given). The old
+    either-direction SUBSTRING test checked side A first, so "utah" ⊂
+    "utah state" handed a Utah State bet Utah's close.
 
     Returns None when no alignment can be determined (caller should skip
     the bet rather than pollute CLV with the wrong side).
@@ -1164,15 +1332,26 @@ def yes_aligned_close_prob(
     if yt == "under" and true_prob_b is not None:
         return float(true_prob_b)
 
-    a = (outcome_a_label or "").lower().strip()
-    b = (outcome_b_label or "").lower().strip()
-    # Substring match either direction handles minor normalization drift
-    # ("indiana fever" vs "fever", etc.).
-    if a and (yt == a or yt in a or a in yt):
-        return float(true_prob_a)
-    if b and (yt == b or yt in b or b in yt) and true_prob_b is not None:
-        return float(true_prob_b)
-    return None
+    # Token-subset rules (either direction) still absorb label drift
+    # ("fever" vs "indiana fever"), but only when exactly one side matches.
+    # The two labels ARE the event's own two sides (closed world), so a venue
+    # ticker code ("g" → G2, "phi" → Philadelphia Union) may decide as well —
+    # again only when it prefixes exactly one label.
+    side = resolve_team(
+        yt, outcome_a_label, outcome_b_label, _sector_normalizer(sector), allow_codes=True,
+    )
+    if side is None:
+        logger.debug(
+            "close_prob_side_unresolved",
+            yes_team=yes_team,
+            outcome_a_label=outcome_a_label,
+            outcome_b_label=outcome_b_label,
+            sector=sector,
+        )
+        return None
+    if side[0] is YesOutcome.A:
+        return float(true_prob_a) if true_prob_a is not None else None
+    return float(true_prob_b) if true_prob_b is not None else None
 
 
 def _write_outcome(conn: sqlite3.Connection, pred: dict, outcome: int, source: str) -> None:

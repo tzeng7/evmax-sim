@@ -81,6 +81,18 @@ class NameNormalizer:
 
         return result
 
+    def is_known(self, name: str) -> bool:
+        """True when ``name`` normalizes to a canonical alias TARGET of this sector.
+
+        Two names that are both known and normalize to different canonicals are
+        two different teams — the alias map is authoritative, so no weaker rule
+        (token subset, fuzzy) may equate them ("washington" vs ESPN's
+        "Washington State Cougars").
+        """
+        if not self._handler or not name:
+            return False
+        return self._handler.is_canonical(self.normalize(name))
+
     def normalize_event_key(
         self,
         team_a: str,
