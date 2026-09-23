@@ -639,8 +639,8 @@ def log_scan_stats(
                     """
                     INSERT INTO scan_sector_stats
                         (scan_date, source, sector, markets_fetched, markets_matched,
-                         ev_gaps, error)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                         ev_gaps, error, sharp_events)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         sd, source, sector,
@@ -648,6 +648,9 @@ def log_scan_stats(
                         int(st.get("markets_matched", 0) or 0),
                         int(st.get("ev_gaps", 0) or 0),
                         st.get("error"),
+                        # None (NULL) when the cycle didn't report it (errored
+                        # sector) — "unknown", never a fabricated 0.
+                        (int(st["sharp_events"]) if st.get("sharp_events") is not None else None),
                     ),
                 )
                 written += 1

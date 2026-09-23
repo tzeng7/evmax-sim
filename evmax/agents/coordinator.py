@@ -868,6 +868,13 @@ class AgentCoordinator:
                 "markets_matched": int(sr.get("markets_matched", 0)),
                 "ev_gaps": len(sr.get("ev_gaps", [])),
                 "error": None,
+                # Game-level Pinnacle records this cycle could match against
+                # (props excluded, like the match step) — lets the integrity
+                # zero-match streak tell a parser break from "nothing posted".
+                "sharp_events": sum(
+                    1 for s in (sr.get("sharp_odds") or [])
+                    if getattr(s, "prop_player_name", None) is None
+                ),
             }
             result.ev_gaps.extend(sr.get("ev_gaps", []))
             result.blended_predictions.update(sr.get("blended_predictions", {}))

@@ -42,6 +42,15 @@ aliases:
   "jonathan jones": "jones"
   "alexandre pereira": "pereira"
   "volkanovski": "volkanovski"
+  # -- Venue spelling variants (2026-09-22 audit of live KXUFCFIGHT) --
+  # Kalshi's yes_sub_title / event sub_title vs Pinnacle + ESPN spellings.
+  # The canonical must equal what the Pinnacle label normalizes to.
+  "norma dumont viana": "dumont"     # Pinnacle/ESPN "Norma Dumont"
+  "dumont viana": "dumont"           # Kalshi event sub_title surname form
+  "alateng heili": "alatengheili"    # Pinnacle/ESPN "Alatengheili" (one token)
+  "heili": "alatengheili"            # Kalshi event sub_title surname form
+  # Generational suffixes (Jr/Sr/II/III/IV) are stripped by the handler
+  # itself ("Raul Rosas Jr" / "Raul Rosas Jr." → "rosas") — no entry needed.
   # -- "Last word is not the usual book surname" cases --
   # Pinnacle/Kalshi list "Ian Machado Garry" — last word already "garry",
   # but the short form "Ian Garry" appears in some feeds; both collapse fine
