@@ -303,3 +303,33 @@ def test_agent_none_when_stale():
     if dt.date.today().month in E.CFB_SEASON_MONTHS:
         pred = asyncio.run(agent.predict_pair(m, s))
         assert pred is None
+
+
+def test_play_epa_ignores_illegal_score_points():
+    """A cumulative/typo scoreboard delta (1400 on a 0-yard rush, ESPN game
+    401866418) must never be trusted as the play's value: the play falls back
+    to its end-state EP exactly as if it had not scored."""
+    table = E.build_ep_table(_synthetic_scoring_plays())
+    base = {
+        "down": 1, "distance": 10, "yards_to_goal": 5, "off_team": "A",
+        "score_off": True,
+        "end_down": 2, "end_yards_to_goal": 5, "end_team": "A", "end_distance": 10,
+    }
+    clean = E.play_epa(table, {**base, "score_points": 0})
+    corrupt = E.play_epa(table, {**base, "score_points": 1400})
+    assert corrupt == clean
+    assert abs(corrupt) < 10
+
+
+def test_build_ep_table_ignores_illegal_score_points():
+    plays = _synthetic_scoring_plays()
+    table = E.build_ep_table(plays)
+    poisoned = [dict(p) for p in plays]
+    for p in poisoned:
+        if p.get("score_points"):
+            p["score_points"] = 1400
+            break
+    table_poisoned = E.build_ep_table(poisoned)
+    # the poisoned score drops out; every EP stays in a football-plausible range
+    assert all(-8 <= v <= 8 for v in table_poisoned["ep"].values())
+    assert set(table_poisoned["ep"]) == set(table["ep"])

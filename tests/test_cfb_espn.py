@@ -185,3 +185,124 @@ def test_fetch_season_plays_with_schedule_skips_walk_and_keeps_completed_only(mo
     assert rows == []
     assert [g["game_id"] for g in games] == ["done"]   # upcoming row dropped
     assert fetched == ["done"]                          # only the completed game fetched
+
+
+# --- scoreboard-delta validation (2026-09 EPA corruption) --------------------
+# ESPN's running scoreboard is not reliable enough to difference blindly. Game
+# 401866418 carried a "14" typed as 1414 on a 0-yard rush, which the old parser
+# turned into a 1400-point play (+21 EPA/play for one game-side, then a 2-hop
+# rating corruption through the ridge solve). 720 illegal deltas were found over
+# 353 cached games 2021-2026. Each case below reproduces one observed mode.
+
+
+def _play(home, away, period=2, ptype="Rush", ytg=50):
+    return {
+        "period": {"number": period}, "type": {"text": ptype},
+        "homeScore": home, "awayScore": away, "statYardage": 0,
+        "start": {"down": 1, "distance": 10, "yardsToEndzone": ytg, "team": {"id": "1"}},
+        "end": {"down": 2, "distance": 10, "yardsToEndzone": ytg, "team": {"id": "1"}},
+    }
+
+
+def _one_drive(*plays):
+    return {"drives": {"previous": [{"team": {"id": "1"}, "plays": list(plays)}]}}
+
+
+def test_parse_scoreboard_typo_spike_is_not_a_score():
+    # (7, 14) -> (7, 1414) -> (7, 14): the observed game-401866418 pattern.
+    rows = C.parse_game_plays(
+        _one_drive(_play(7, 14), _play(7, 1414), _play(7, 14), _play(14, 14)), _meta()
+    )
+    assert [r["score_points"] for r in rows] == [0, 0, 0, 7]
+    # the spike never reaches the garbage-time margin either
+    assert rows[2]["off_margin_pre"] == 7 - 14
+
+
+def test_parse_missing_score_carries_forward():
+    # A play with no score fields used to read as 0-0, so the next play's delta
+    # became the whole cumulative score (the "pts 14/16/20" rows).
+    p_missing = _play(None, None)
+    rows = C.parse_game_plays(
+        _one_drive(_play(14, 7), p_missing, _play(14, 7), _play(21, 7)), _meta()
+    )
+    assert [r["score_points"] for r in rows] == [0, 0, 0, 7]
+    assert rows[1]["off_margin_pre"] == 14 - 7
+
+
+def test_parse_zero_zero_reset_mid_game_is_ignored():
+    rows = C.parse_game_plays(
+        _one_drive(_play(10, 3), _play(0, 0), _play(10, 3), _play(13, 3)), _meta()
+    )
+    assert [r["score_points"] for r in rows] == [0, 0, 0, 3]
+
+
+def test_parse_multi_score_jump_is_not_credited():
+    # A skipped play makes BOTH teams' scores move at once (7 + 3 = 10 in one
+    # delta). That is not one play's score — credit nothing, then resync.
+    rows = C.parse_game_plays(
+        _one_drive(_play(7, 14), _play(14, 17), _play(14, 24)), _meta()
+    )
+    assert [r["score_points"] for r in rows] == [0, 0, 7]
+    assert rows[2]["score_team"] == "2" and rows[2]["score_off"] is False
+
+
+def test_parse_single_team_illegal_jump_is_not_credited():
+    # One team +14 in one row (two TDs folded together) is not a legal play score.
+    rows = C.parse_game_plays(_one_drive(_play(0, 0), _play(14, 0), _play(16, 0)), _meta())
+    assert [r["score_points"] for r in rows] == [0, 0, 2]
+
+
+def test_parse_emits_only_legal_score_points():
+    rows = C.parse_game_plays(
+        _one_drive(_play(0, 0), _play(1400, 0), _play(-3, 0), _play("x", 0),
+                   _play(6, 0), _play(7, 0), _play(7, 2), _play(10, 2)),
+        _meta(),
+    )
+    pts = [r["score_points"] for r in rows]
+    assert pts == [0, 0, 0, 0, 6, 1, 2, 3]
+    assert all(p == 0 or p in C.LEGAL_PLAY_POINTS for p in pts)
+
+
+def test_parse_possession_from_play_start_team_not_drive():
+    """ESPN game 401856784 labels Baylor (home, id 1 here) drives as the
+    visitor's. The play's own start.team is the reliable possession field."""
+    mislabeled = {
+        "team": {"id": "2"},   # drive says AWAY has the ball…
+        "plays": [
+            {  # …but the snap is HOME's (start.team 1) and home keeps the ball
+                "period": {"number": 2}, "type": {"text": "Rush"},
+                "homeScore": 0, "awayScore": 0, "statYardage": 6,
+                "start": {"down": 1, "distance": 10, "yardsToEndzone": 60, "team": {"id": "1"}},
+                "end": {"down": 2, "distance": 4, "yardsToEndzone": 54, "team": {"id": "1"}},
+            },
+            {  # home TD on the same mislabeled drive
+                "period": {"number": 2}, "type": {"text": "Rushing Touchdown"},
+                "homeScore": 7, "awayScore": 0, "statYardage": 54,
+                "start": {"down": 2, "distance": 4, "yardsToEndzone": 54, "team": {"id": "1"}},
+                "end": {"down": -1, "distance": 0, "yardsToEndzone": 0, "team": {"id": "1"}},
+            },
+            {  # kickoff: start.team is the KICKING side — keep the drive team
+                "period": {"number": 2}, "type": {"text": "Kickoff"},
+                "homeScore": 7, "awayScore": 0, "statYardage": 0,
+                "start": {"down": 1, "distance": 10, "yardsToEndzone": 65, "team": {"id": "1"}},
+                "end": {"down": 1, "distance": 10, "yardsToEndzone": 75, "team": {"id": "2"}},
+            },
+        ],
+    }
+    rows = C.parse_game_plays({"drives": {"previous": [mislabeled]}}, _meta())
+    assert rows[0]["off_team"] == "1" and rows[0]["def_team"] == "2"
+    assert rows[0]["end_team"] == rows[0]["off_team"]      # no phantom turnover
+    assert rows[1]["score_off"] is True                   # offense scored its own TD
+    assert rows[2]["off_team"] == "2"                      # kickoff keeps drive team
+
+
+def test_parse_possession_falls_back_to_drive_team():
+    """No start.team, or one naming neither side → the drive team."""
+    drive = {"team": {"id": "1"}, "plays": [
+        _play(0, 0),
+        {**_play(0, 0), "start": {"down": 1, "distance": 10, "yardsToEndzone": 50}},
+        {**_play(0, 0), "start": {"down": 1, "distance": 10, "yardsToEndzone": 50,
+                                   "team": {"id": "999"}}},
+    ]}
+    rows = C.parse_game_plays({"drives": {"previous": [drive]}}, _meta())
+    assert [r["off_team"] for r in rows] == ["1", "1", "1"]
