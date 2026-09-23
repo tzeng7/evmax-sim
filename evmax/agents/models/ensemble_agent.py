@@ -542,6 +542,23 @@ class EnsembleModelAgent(Agent):
         At sharp=90%, extra ≈ 0.6 × 0.16 = 0.096, so effective sharp goes
         from 0.85 to ~0.99 — almost purely sharp at the extremes. At sharp=60%,
         extra ≈ 0.006 — negligible. This only affects extreme probabilities.
+
+        IMPORTANT — this runs on the ALREADY sharp-blended probability, so it is
+        a SECOND shrink, not a replacement weight. The model's effective share
+        of the final blend is
+
+            share = (1 − sharp_weight) · (1 − esw) · (1 − 1.5·(sharp − ½)²)
+
+        (esw = the disagreement-ramped weight used in the first blend) — i.e.
+        (1 − sw)² at a 50/50 line with no ramp: 0.0225 at sw 0.85, 0.0144 at
+        0.88, 0.36 at 0.40. This is the SHIPPED, evidence-backed behavior, not a
+        bug to "fix": a 2026-09-22 replay of resolved rows found every sector
+        where models actually carried ~30% of the blend (the 0.40 dashboard
+        rows) significantly worse than sharp (pooled ΔBrier +2.97/1000, z 2.9)
+        and no sector with evidence for more weight. Note the two shrinks
+        commute, so applying this to the model-only prob instead would change
+        nothing. ``cleanup adjust`` therefore moves the share quadratically
+        (sw 0.85 → 0.80 takes it 0.0225 → 0.04).
         """
         FLB_STRENGTH = 1.5
 
