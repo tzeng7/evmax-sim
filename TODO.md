@@ -166,7 +166,7 @@ Shipped via the Kalshi `event.product_metadata.competition` join — see Recentl
 - ~~Add calibrated values for NCAAW~~ ✅ K=35 / home_adv=80 (higher K than NCAAB, as predicted)
 - ~~Add NHL: K=16, home_adv=0.04 (puck-line markets exist)~~ ✅ 2026-07-18 landed **K=6 / home_adv=48**, not the guessed K=16/0.04 — swept via `scripts/backtest_nhl_elo.py` over {6,10,14,20,25} × home_adv {0,20,32,48,60}, ranked on 2023-24 and confirmed on 2024-25 (`elo_agent.py:67,133`)
 - ~~Add calibrated `ncaaf` K + home_adv~~ ✅ 2026-08-07 **K=40 / home_adv=60** (`scripts/backtest_ncaaf_elo.py`)
-- OPEN (blend, not calibration): `SECTOR_WEIGHT_OVERRIDES["nhl"]` still holds `elo: 0.0`. The calibration precondition is met, so raising it is now a walk-forward blend decision.
+- ~~OPEN (blend, not calibration): `SECTOR_WEIGHT_OVERRIDES["nhl"]` still holds `elo: 0.0`.~~ ✅ 2026-09-22 — NHL blend is now nhl_xg 0.30 (with the preseason-prior ramp) · elo 0.15 · form 0, from a point-in-time walk-forward (model-side Brier +5.7/1000 fit 2014–21, +5.6 confirm 2022–24, +1.6 holdout 2025, +16.4 first six weeks). No offseason regression (keep=1.0).
 - ~~**[P2] Warm-seed ncaaf elo**~~ ✅ 2026-08-08 (PR #179) — ncaaf elo is warm-seeded from a regressed prior-season carry-forward, so `elo_state.json['ncaaf']` ships populated (ratings + game_counts, `last_updated 2026-08-08`, K=40/home_adv=60) and elo can enter the blend at week 0 instead of warming ~5 games via the #169 resolve hook. Form stays dark for ncaaf until that same hook feeds it its first resolved 2026 games (expected — no `ncaaf` key in `form_state.json` yet).
 
 ### MODEL-3 Form Model Draw Normalization Edge Case [P2]
@@ -736,7 +736,7 @@ Currently `evmax cleanup show` displays game-level bets only. Props are logged t
 ## Section 7 — Sector Gaps
 
 ### ~~SECTOR-1 Hockey (NHL) Elo Calibration~~ ✅ SHIPPED 2026-07-18
-See MODEL-2 above — NHL Elo runs calibrated `K=6` / `home_adv=48` (`elo_agent.py:67,133`), and `elo_state.json['nhl']` is seeded. What remains is a blend decision, not a calibration: `SECTOR_WEIGHT_OVERRIDES["nhl"]` still holds `elo: 0.0`. (NHL outcome resolution is fixed in PR #1.)
+See MODEL-2 above — NHL Elo runs calibrated `K=6` / `home_adv=48` (`elo_agent.py:67,133`), and `elo_state.json['nhl']` is seeded. The blend decision followed on 2026-09-22: elo carries 0.15 in `SECTOR_WEIGHT_OVERRIDES["nhl"]` (see MODEL-2). (NHL outcome resolution is fixed in PR #1.)
 
 ### ~~SECTOR-2 NCAAW Elo Calibration~~ ✅ SHIPPED 2026-07-11
 Shipped with the NCAAB/NCAAW opponent-adjusted efficiency stack (K=35 / home_adv=80; see MODEL-2 above and `docs/ncaab-blend-eval.md`).
