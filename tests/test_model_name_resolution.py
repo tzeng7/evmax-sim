@@ -381,3 +381,12 @@ def test_ledger_matches_a_game_recorded_under_another_spelling(tmp_path):
     result, coord = _run_update("nba", day, scores, opener)
     assert result.skipped == 1
     assert coord.update_models.call_count == 0
+
+
+def test_paderborn_07_resolves_to_paderborn():
+    """ESPN's "Paderborn 07" created a duplicate Elo key (the 2026-08-29 Mainz
+    game was fed twice, once per spelling) — review finding on #323."""
+    from evmax.matching.normalizer import NameNormalizer
+
+    assert NameNormalizer("soccer").normalize("Paderborn 07") == "paderborn"
+    assert NameNormalizer("soccer").normalize("SC Paderborn 07") == "paderborn"
