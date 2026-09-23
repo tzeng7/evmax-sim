@@ -587,7 +587,11 @@ def _fetch_clv_rows(
 
     excluded_stale = 0
     if max_staleness_h is not None:
-        from evmax.agents.cleanup.resolver import close_lookup_ticker, clv_not_before
+        from evmax.agents.cleanup.resolver import (
+            close_lookup_ticker,
+            clv_near_tip_ok,
+            clv_not_before,
+        )
         from evmax.archiver import DataArchiver
 
         archiver = DataArchiver()
@@ -598,13 +602,16 @@ def _fetch_clv_rows(
             if (r["venue"] or "kalshi") != "kalshi":
                 fresh.append(r)
                 continue
-            ticker, _is_no = close_lookup_ticker(r["market_id"])
+            ticker, is_no = close_lookup_ticker(r["market_id"])
             if not ticker:
                 excluded_stale += 1  # no anchor => untrustworthy close, drop
                 continue
             not_before = clv_not_before(r["placed"], r["placed_at"], r["logged_at"])
+            # Same snapshot backfill_clv scored: same side, same near-tip rule.
             staleness = archiver.get_kalshi_close_staleness_h(
-                ticker, r["event_id"], not_before=not_before
+                ticker, r["event_id"], not_before=not_before,
+                side="no" if is_no else "yes",
+                near_tip_ok=clv_near_tip_ok(r["placed"], ticker),
             )
             if staleness is None or staleness > max_staleness_h:
                 excluded_stale += 1
@@ -802,10 +809,11 @@ def clv(
             f"(close snapshot > {max_staleness_h:g}h before T-30)"
         )
     console.print(
-        f"\n[bold]CLV — {label}[/bold]  (current-code resolved, n={s['n']})\n"
+        f"\n[bold]CLV — {label}[/bold]  (current-code resolved, n={s['n']} rows / "
+        f"{s.get('games', s['n'])} games)\n"
         f"  mean kalshi CLV = {s['mean_clv_pp']:+.2f}pp\n"
         f"  % bets with +CLV = {s['frac_positive']*100:.0f}%{stale_line}\n"
-        f"  gate: n≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
+        f"  gate: games≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
         f"%pos≥{CLV_MIN_FRAC_POSITIVE*100:.0f}%  →  {verdict}"
     )
 
@@ -911,7 +919,7 @@ def clv_tiers(
         )
     console.print(table)
     console.print(
-        f"  gate: n≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
+        f"  gate: games≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
         f"%pos≥{CLV_MIN_FRAC_POSITIVE*100:.0f}%  ·  thesis: G5 CLV > P4 CLV"
         + (f"  ·  {excluded_stale} stale-excluded" if excluded_stale else "")
     )
@@ -1042,7 +1050,7 @@ def clv_prices(
         )
     console.print(table)
     console.print(
-        f"  gate: n≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
+        f"  gate: games≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
         f"%pos≥{CLV_MIN_FRAC_POSITIVE*100:.0f}%  ·  Δpp = blend − realized win%; "
         "> 0 means the blend over-states the bucket (favorite–longshot signature "
         "on cheap contracts)  ·  z = CLV mean / se"
@@ -1149,7 +1157,7 @@ def clv_leagues(
         )
     console.print(table)
     console.print(
-        f"  gate: n≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
+        f"  gate: games≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp, "
         f"%pos≥{CLV_MIN_FRAC_POSITIVE*100:.0f}%  ·  tier policy: data/soccer_league_tiers.yaml"
         + (f"  ·  {excluded_stale} stale-excluded" if excluded_stale else "")
     )
@@ -1190,7 +1198,8 @@ def promote_league(
         "soccer", league=lg, max_staleness_h=max_staleness_h if max_staleness_h else None,
     )
     console.print(
-        f"  CLV gate for {LEAGUE_DISPLAY.get(lg, lg)}: n={stats['n']} "
+        f"  CLV gate for {LEAGUE_DISPLAY.get(lg, lg)}: n={stats['n']} rows / "
+        f"{stats.get('games', stats['n'])} games "
         f"mean={stats['mean_clv_pp']:+.2f}pp %pos={stats['frac_positive']*100:.0f}% "
         + ("[green]clears[/green]" if stats["clears"] else "[red]does NOT clear[/red]")
     )
@@ -1412,8 +1421,10 @@ def promote(
         cmsg = (
             f"[red]CLV does not clear for {category}:[/red] "
             f"mean={cstats['mean_clv_pp']:+.2f}pp, "
-            f"%pos={cstats['frac_positive']*100:.0f}% on n={cstats['n']} "
-            f"(need mean≥{CLV_MIN_MEAN_PP:+.1f}pp & %pos≥{CLV_MIN_FRAC_POSITIVE*100:.0f}%). "
+            f"%pos={cstats['frac_positive']*100:.0f}% on n={cstats['n']} rows / "
+            f"{cstats.get('games', cstats['n'])} games "
+            f"(need games≥{MIN_CLV_RESOLVED}, mean≥{CLV_MIN_MEAN_PP:+.1f}pp & "
+            f"%pos≥{CLV_MIN_FRAC_POSITIVE*100:.0f}%). "
             f"Beating the close — not Brier — is the +EV signal; this sample isn't."
         )
         if not force:

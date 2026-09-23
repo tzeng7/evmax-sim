@@ -69,10 +69,50 @@ def test_no_side_close_is_the_no_ask(archive):
     assert archive.get_kalshi_close_price(TICKER, EVENT_TOTAL, side="no") == pytest.approx(0.49)
 
 
-def test_no_side_close_falls_back_to_one_minus_yes_without_no_ask(archive):
+def test_no_side_close_skips_a_synthesized_no_ask(archive):
+    """A YES-only capture stores no_price = 1 − yes (the NO BID). A NO row must
+    never close there — no real NO ask means no close, not a bid-valued one."""
     _tipoff_anchor(archive, EVENT_TOTAL)
     _snapshot(archive, 0.55, None, TIP - timedelta(hours=1))  # archiver derives 0.45
-    assert archive.get_kalshi_close_price(TICKER, EVENT_TOTAL, side="no") == pytest.approx(0.45)
+    assert archive.get_kalshi_close_price(TICKER, EVENT_TOTAL) == pytest.approx(0.55)
+    assert archive.get_kalshi_close_price(TICKER, EVENT_TOTAL, side="no") is None
+
+
+def test_no_side_close_takes_the_latest_REAL_no_ask(archive):
+    _tipoff_anchor(archive, EVENT_TOTAL)
+    _snapshot(archive, 0.52, 0.51, TIP - timedelta(hours=3), session="real")  # two-sided
+    _snapshot(archive, 0.55, None, TIP - timedelta(hours=1), session="synth")  # YES-only
+    assert archive.get_kalshi_close_price(TICKER, EVENT_TOTAL, side="no") == pytest.approx(0.51)
+    assert archive.get_kalshi_close_price(TICKER, EVENT_TOTAL, side="yes") == pytest.approx(0.55)
+
+
+def test_unplaced_kalshi_rows_never_close_inside_the_near_tip_window(archive):
+    """Logged at T-20 with the only later print at T-10: an unplaced Kalshi row
+    gets no close (tennis in-play risk); a placed fill or a PolyUS row may use it."""
+    _tipoff_anchor(archive, EVENT_TOTAL)
+    _snapshot(archive, 0.58, 0.45, TIP - timedelta(minutes=10))
+    entry = TIP - timedelta(minutes=20)
+    assert archive.get_kalshi_close_price(TICKER, EVENT_TOTAL, not_before=entry,
+                                          near_tip_ok=False) is None
+    assert archive.get_kalshi_close_price(TICKER, EVENT_TOTAL, not_before=entry) == pytest.approx(0.58)
+
+
+def test_near_tip_fallback_needs_near_tip_ok(archive):
+    """With no snapshot at/before T-30 at all, only near-tip-eligible rows may
+    fall back to a (T-30, T) print."""
+    _tipoff_anchor(archive, EVENT_TOTAL)
+    _snapshot(archive, 0.58, 0.45, TIP - timedelta(minutes=10))
+    assert archive.get_kalshi_close_price(TICKER, EVENT_TOTAL, near_tip_ok=False) is None
+    assert archive.get_kalshi_close_price(TICKER, EVENT_TOTAL) == pytest.approx(0.58)
+
+
+def test_clv_near_tip_ok_rule():
+    from evmax.agents.cleanup.resolver import clv_near_tip_ok
+
+    assert clv_near_tip_ok(1, "KXNBAGAME-X") is True
+    assert clv_near_tip_ok(0, "polymarket_us:aec-wnba-x") is True
+    assert clv_near_tip_ok(0, "KXATPMATCH-X") is False
+    assert clv_near_tip_ok(0, None) is False
 
 
 def test_close_side_is_validated(archive):
@@ -292,3 +332,49 @@ def test_quotes_batch_rest_fallback_keeps_yes_and_leaves_no_unknown(monkeypatch)
     client.get_market_ask = _ask
     out = asyncio.run(client.get_market_quotes_batch(["A", "B"]))
     assert out == {"A": (0.42, None), "B": (None, None)}
+
+
+def test_board_verdict_too_few_games_is_collecting_not_failing():
+    from evmax.agents.cleanup.promotion_board import _verdict
+
+    clv = {"n": 40, "games": 2, "mean_clv_pp": 1.8, "frac_positive": 0.78, "clears": False}
+    assert _verdict("total", None, 40, clv, "shadow", 30) == "COLLECTING 2/30g"
+    failing = {"n": 60, "games": 35, "mean_clv_pp": -0.4, "frac_positive": 0.40, "clears": False}
+    assert _verdict("total", None, 60, failing, "shadow", 30) == "FAILING-CLV"
+
+
+def test_recompute_writes_a_backup_first(tmp_path, monkeypatch):
+    from typer.testing import CliRunner
+
+    from evmax.agents.cleanup import db as db_module
+    from evmax.agents.cleanup import resolver
+    from evmax.cli.commands.cleanup import app
+
+    db = tmp_path / "predictions.db"
+    sqlite3.connect(str(db)).close()
+    monkeypatch.setattr(db_module, "DB_PATH", db)
+    monkeypatch.setattr(resolver, "backfill_clv", lambda **kw: {
+        "updated": 0, "skipped": 0, "changed": 0, "mean_delta_pp": 0.0, "dry_run": kw["dry_run"]})
+
+    assert CliRunner().invoke(app, ["backfill-clv", "--recompute", "--dry-run"]).exit_code == 0
+    assert not list(tmp_path.glob("predictions_backup_before_clv_recompute_*.db"))
+    assert CliRunner().invoke(app, ["backfill-clv", "--recompute"]).exit_code == 0
+    assert len(list(tmp_path.glob("predictions_backup_before_clv_recompute_*.db"))) == 1
+
+
+def test_ws_fetch_asks_tolerates_a_ticker_without_a_snapshot(monkeypatch):
+    """fetch_quotes marks a snapshot-less ticker None; fetch_asks used to index it
+    (TypeError) and take down the live pick / prune-stale path."""
+    import asyncio
+
+    from evmax.clients import kalshi as kalshi_mod
+
+    ws_cls = next(v for k, v in vars(kalshi_mod).items()
+                  if isinstance(v, type) and hasattr(v, "fetch_quotes") and hasattr(v, "fetch_asks"))
+    ws = ws_cls.__new__(ws_cls)
+
+    async def _quotes(self, tickers):
+        return {"A": (0.41, 0.61), "B": None}
+
+    monkeypatch.setattr(ws_cls, "fetch_quotes", _quotes)
+    assert asyncio.run(ws.fetch_asks(["A", "B"])) == {"A": 0.41, "B": None}

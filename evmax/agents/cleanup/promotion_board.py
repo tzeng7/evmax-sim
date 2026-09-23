@@ -81,13 +81,18 @@ def _verdict(
         return "SHARP-PASSTHROUGH"
     if n_clean < min_clean:
         return f"COLLECTING {n_clean}/{min_clean}"
+    # The CLV sample is judged in independent GAMES (alt ladders log many
+    # correlated rungs per game): too few games is still collecting, not failing.
+    clv_games = clv.get("games", clv.get("n", 0))
     if mode == "shadow" and clv.get("clears"):
         return "PROMOTE-READY"
     if not clv.get("clears"):
         if mode == "live":
-            if clv.get("n", 0) >= min_clean and clv.get("mean_clv_pp", 0.0) < 0:
+            if clv_games >= min_clean and clv.get("mean_clv_pp", 0.0) < 0:
                 return "LIVE-DEGRADING"
             return "LIVE-HEALTHY"
+        if clv_games < min_clean:
+            return f"COLLECTING {clv_games}/{min_clean}g"
         return "FAILING-CLV"
     if mode == "live":
         return "LIVE-HEALTHY"

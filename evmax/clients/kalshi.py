@@ -323,7 +323,10 @@ class KalshiWSClient:
         `fetch_quotes` directly so the no-side ladder isn't discarded.
         """
         quotes = await self.fetch_quotes(tickers)
-        return {t: q[0] for t, q in quotes.items()}
+        # fetch_quotes marks a ticker that got no WS snapshot as None (so the
+        # caller falls back to REST) — indexing it raised TypeError and took
+        # down `agents pick --live` / `prune-stale` whenever one ticker missed.
+        return {t: (q[0] if q else None) for t, q in quotes.items()}
 
     async def fetch_quotes(
         self, tickers: list[str],

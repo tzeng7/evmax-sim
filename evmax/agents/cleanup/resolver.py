@@ -2092,6 +2092,19 @@ def clv_not_before(
     return logged_at
 
 
+def clv_near_tip_ok(placed: Optional[int], ticker: Optional[str]) -> bool:
+    """Whether a CLV close may come from inside (T-30, tip) for this row.
+
+    Placed bets may (their fill anchors the close; a late fill relaxes the
+    window to tipoff). Polymarket US rows may (that venue is only snapshotted
+    in the final ~30 min, so every PolyUS close is near-tip). UNPLACED Kalshi
+    rows may not: a scan logged in the last hour otherwise scored against
+    (T-30, T) prints, which in tennis — whose scheduled start is an estimate —
+    were in-play. Shared by ``backfill_clv`` and the shadow staleness filter.
+    """
+    return bool(placed) or bool(ticker and ticker.startswith("polymarket_us:"))
+
+
 def backfill_clv(
     since: Optional[date] = None,
     until: Optional[date] = None,
@@ -2182,7 +2195,7 @@ def backfill_clv(
         # Venue-aware ticker extraction: Kalshi ids lose their prefix (the
         # archive stores raw tickers), Polymarket US ids keep it (snapshots
         # are archived under the full prefixed id), and NO-side ``:no``
-        # suffixes are stripped with the close flipped to 1-yes below —
+        # suffixes are stripped and the close read on the NO side below —
         # otherwise the archive lookup never hits and the bet silently
         # loses its venue CLV.
         ticker, is_no_side = close_lookup_ticker(market_id)
@@ -2234,6 +2247,7 @@ def backfill_clv(
             kalshi_close = archiver.get_kalshi_close_price(
                 ticker, row["event_id"], not_before=not_before,
                 side="no" if is_no_side else "yes",
+                near_tip_ok=clv_near_tip_ok(row["placed"], ticker),
             )
             if kalshi_close is not None:
                 kalshi_clv_pp = (kalshi_close - entry_price) * 100

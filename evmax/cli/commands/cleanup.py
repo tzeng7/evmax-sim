@@ -2323,6 +2323,24 @@ def backfill_clv_cmd(
     since_date = _date.fromisoformat(since) if since else None
     until_date = _date.fromisoformat(until) if until else None
 
+    if recompute and not dry_run:
+        # A recompute overwrites (and can NULL) historical kalshi_clv_pct values
+        # — back the DB up first (predictions_backup_before_* convention).
+        import sqlite3 as _sqlite3
+        from datetime import datetime as _dt, timezone as _tz
+
+        from evmax.agents.cleanup.db import DB_PATH as _DB_PATH
+
+        _stamp = _dt.now(_tz.utc).strftime("%Y%m%d_%H%M%S")
+        _backup = _DB_PATH.with_name(f"predictions_backup_before_clv_recompute_{_stamp}.db")
+        _src = _sqlite3.connect(str(_DB_PATH))
+        _dst = _sqlite3.connect(str(_backup))
+        with _dst:
+            _src.backup(_dst)
+        _dst.close()
+        _src.close()
+        console.print(f"  backed up predictions.db → {_backup}")
+
     result = backfill_clv(
         since=since_date, until=until_date,
         recompute_kalshi_clv=recompute, dry_run=dry_run,
