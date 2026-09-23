@@ -10,6 +10,10 @@ Method:
      the true probability for any line (e.g., Kalshi's "wins by over X.5").
 
 Typical NBA margin standard deviation: ~11.5 points.
+
+Sectors in ``_PMF_SECTORS`` (NFL) replace step 2 with the key-number-aware
+discrete margin PMF in ``spread_pmf.py``. Those rows carry the
+``spread_pmf`` model_sources token instead of ``spread_dist``.
 """
 
 from __future__ import annotations
@@ -21,6 +25,7 @@ import structlog
 from scipy.stats import norm
 
 from evmax.models.odds import SharpOdds
+from evmax.models_ml import spread_pmf as _spread_pmf
 
 logger = structlog.get_logger(__name__)
 
@@ -93,12 +98,31 @@ SPREAD_MAX_SIGMA: float = 1.0
 # SPREAD_MAX_SIGMA to bound the extrapolation absolutely, not just in σ units.
 _SPREAD_MAX_ABS_LINE: dict[str, float] = {}
 
+# --- Key-number margin PMF (per sector) ---------------------------------------
+# Sectors listed here price alt-spread rungs with the fitted discrete margin PMF
+# in evmax/models_ml/spread_pmf.py (artifact data/models/{sector}_margin_pmf.json)
+# instead of the normal CDF. The PMF puts real mass on key numbers (NFL 3/7), so
+# a rung that crosses 3 or 7 gets the price the book's own ladder implies.
+# Validation (NFL, fit 2003-18, holdout 2019-25, 55,924 rungs): ΔBrier -1.62/1000
+# vs this normal with the same juice anchor (z -4.95, clustered by game), 7/7
+# walk-forward seasons better, 0.73pp vs 2.90pp MAE against Pinnacle's own alt
+# ladder. Rows priced this way carry the model_sources token `spread_pmf` (the
+# normal keeps `spread_dist`). Remove a sector from this set to revert it to
+# the normal CDF. A missing/invalid artifact falls back to the normal (logged
+# once). Only NFL ships an artifact; NFL spreads are shadow_market_types.
+_PMF_SECTORS: set[str] = {"nfl"}
+
+SPREAD_DIST_TOKEN = "spread_dist"   # normal-CDF pricing (this module)
+SPREAD_PMF_TOKEN = "spread_pmf"     # key-number margin PMF (spread_pmf.py)
+
 
 @dataclass
 class SpreadPrediction:
     true_prob: float      # P(yes_team covers target_line)
-    implied_mean: float   # inferred scoring margin mean
-    sigma: float          # standard deviation used
+    implied_mean: float   # inferred scoring margin mean (outcome_a / favorite axis)
+    sigma: float          # standard deviation used (PMF: its kernel width s(mu))
+    # Pricing method = the model_sources token the row should carry.
+    method: str = SPREAD_DIST_TOKEN
 
 
 class SpreadDistributionModel:
@@ -182,6 +206,17 @@ class SpreadDistributionModel:
             )
             return None
 
+        # Key-number margin PMF sectors (NFL). The PMF path applies its own gate
+        # on the TRUE distance along the favorite-margin axis, then prices. It
+        # returns (False, None) only when the PMF is unavailable for this row
+        # (no artifact, or no anchor root); the normal CDF below then prices it.
+        if sector in _PMF_SECTORS:
+            handled, pmf_pred = self._predict_pmf(
+                sharp_odds, target_line, sector, yes_is_underdog, sigma,
+            )
+            if handled:
+                return pmf_pred
+
         # Reject Kalshi lines more than SPREAD_MAX_SIGMA·σ from Pinnacle's line.
         # Beyond this range the normal distribution extrapolation becomes unreliable
         # (tail probabilities are very sensitive to small errors in the inferred mean).
@@ -227,4 +262,69 @@ class SpreadDistributionModel:
             true_prob=max(0.01, min(0.99, true_prob)),
             implied_mean=implied_mean,
             sigma=sigma,
+        )
+
+    def _predict_pmf(
+        self,
+        sharp_odds: SharpOdds,
+        target_line: float,
+        sector: str,
+        yes_is_underdog: bool,
+        sigma: float,
+    ) -> tuple[bool, Optional[SpreadPrediction]]:
+        """Price one rung with the sector's key-number margin PMF.
+
+        Returns ``(handled, prediction)``:
+          (True, pred)  — priced by the PMF (``pred.method == "spread_pmf"``).
+          (True, None)  — the rung is outside the PMF gate; do not price it.
+          (False, None) — the PMF is unavailable; the caller uses the normal CDF.
+
+        Gate: the distance is measured on the favorite-margin axis, where the
+        rung's threshold is ``t = -target_line`` (YES = favorite) or
+        ``t = target_line`` (YES = underdog), and the main line sits at
+        ``a = |spread_line|``. "Underdog wins by over 16.5" off a -3 main is
+        ``t = -16.5``, 19.5 points from the main line, and is rejected by a
+        14-point gate. Folding both lines through abs() would measure 13.5.
+        """
+        # The PMF is anchored on the MAIN line, where outcome_a is the favorite.
+        # An alternate rung's outcome_a can be the underdog, which would flip
+        # the signed key-number terms. The matcher never hands this method an
+        # alternate rung today (a ladder hit skips it), so this is a guard only.
+        if getattr(sharp_odds, "is_alternate", False):
+            return False, None
+        pmf = _spread_pmf.load_margin_pmf(sector)
+        if pmf is None:
+            return False, None
+
+        a = abs(sharp_odds.spread_line)
+        t_fav = _spread_pmf.favorite_threshold(target_line, yes_is_underdog)
+        true_distance = abs(t_fav - a)
+        if true_distance > SPREAD_MAX_SIGMA * sigma:
+            logger.debug(
+                "spread_pmf_line_too_far",
+                event_id=sharp_odds.event_id,
+                pinnacle_line=sharp_odds.spread_line,
+                target_line=target_line,
+                yes_is_underdog=yes_is_underdog,
+                distance=true_distance,
+            )
+            return True, None
+
+        mu = pmf.anchor(sharp_odds.spread_line, sharp_odds.true_prob_a)
+        true_prob = pmf.cover_probability(
+            sharp_odds.spread_line, sharp_odds.true_prob_a, target_line, yes_is_underdog,
+        )
+        if mu is None or true_prob is None:
+            logger.debug(
+                "spread_pmf_anchor_failed",
+                event_id=sharp_odds.event_id,
+                pinnacle_line=sharp_odds.spread_line,
+                true_prob_a=sharp_odds.true_prob_a,
+            )
+            return False, None
+        return True, SpreadPrediction(
+            true_prob=max(0.01, min(0.99, true_prob)),
+            implied_mean=mu,
+            sigma=pmf.sigma(mu),
+            method=SPREAD_PMF_TOKEN,
         )

@@ -2,6 +2,7 @@
 
 Active (called from agents/models/ and cli/commands/project.py):
 - spread_distribution.py  — Normal CDF win probability from spread + std dev
+- spread_pmf.py           — NFL key-number margin PMF (alt-spread rungs, _PMF_SECTORS)
 - total_distribution.py   — Over/under probability from projected total + std dev
 - point_projection.py     — Points projected per team (standalone projection workflow)
 - glicko2.py              — Glicko-2 rating math (pure functions, paper-validated);

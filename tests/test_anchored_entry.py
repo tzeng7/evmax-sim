@@ -156,8 +156,25 @@ class TestNflSectorGeneric:
         assert lay[0].sector == "nfl"
         assert lay[0].kalshi_yes_price == pytest.approx(0.20)  # crossable ask
         assert "anchored_entry" in lay[0].model_sources
-        assert "spread_dist" in lay[0].model_sources
+        # NFL prices alt rungs with the key-number margin PMF (_PMF_SECTORS);
+        # the token lets `--sources-token spread_pmf` isolate this stream.
+        assert "spread_pmf" in lay[0].model_sources
+        assert "spread_dist" not in lay[0].model_sources
         assert lay[0].kelly_fraction == 0.0  # shadow-only, never bankroll-sized
+
+    def test_nfl_spread_anchored_entry_normal_fallback_token(self, monkeypatch):
+        """With NFL removed from _PMF_SECTORS the stream reverts to the normal
+        CDF and carries the spread_dist token again (one-line revert path)."""
+        import evmax.models_ml.spread_distribution as sd
+
+        monkeypatch.setattr(sd, "_PMF_SECTORS", set())
+        m = self._nfl_spread_market()
+        gaps = build_anchored_entries(
+            [m], {m.ticker: book(ask=0.20)}, [self._nfl_spread_sharp()], "nfl", now=NOW)
+        lay = [g for g in gaps if g.market_id == m.id]
+        assert len(lay) == 1
+        assert "spread_dist" in lay[0].model_sources
+        assert "spread_pmf" not in lay[0].model_sources
 
     def test_ev_gate_blocks_thin_edge(self):
         m = spread_market()

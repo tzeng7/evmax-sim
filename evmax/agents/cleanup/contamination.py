@@ -64,6 +64,19 @@ NCAAF (see the NCAAF Efficiency row in CLAUDE.md):
     pitcher → pitcher_v2 precedent. Rows without either token (elo+sharp
     early-season blends) are legitimate and stay clean.
 
+NFL (see ``_PMF_SECTORS`` in ``models_ml/spread_distribution.py``):
+  - ``spread`` with the ``spread_dist`` token: the key-number margin PMF
+    (``models_ml/spread_pmf.py``, 2026-09-22) replaced the normal CDF for NFL
+    alt-spread pricing. PMF-priced rows carry ``spread_pmf`` instead. A
+    ``spread_dist`` NFL spread row was priced (and EV-selected) by the
+    superseded normal, which the 2019-2025 holdout showed misprices every rung
+    that crosses 3 or 7 (ΔBrier -1.62/1000 for the PMF, z -4.95). Excluding
+    these rows restarts the NFL spread CLV sample on PMF pricing only, the
+    ncaaf_efficiency_v2 precedent. The same rule also dates out rows priced
+    by the normal fallback (artifact missing). ``sharp_ladder`` rows are not
+    flagged. The superseded sample stays readable via
+    ``cleanup shadow metrics --include-contaminated``.
+
 To add a sector rule later, append to ``CONTAMINATION_RULES`` — the metrics
 command and any SQL caller pick it up automatically.
 """
@@ -98,6 +111,7 @@ def _has(model_sources: Optional[str], token: str) -> bool:
 _NON_MODEL_TOKENS = frozenset({
     "", "sharp", "sharp(capped)", "injury", "late_news", "rest", "playoff",
     "advance_derived", "spread_dist", "total_dist", "no_side",
+    "sharp_ladder", "spread_pmf",
 })
 
 
@@ -146,6 +160,14 @@ CONTAMINATION_RULES: dict[str, list[RowRule]] = {
         # non-existent state file and withheld on every game. Mirrors the
         # baseball "ML without pitcher_v2" rule.
         lambda mt, src, line: mt == "moneyline" and not _has(src, "ncaaf_efficiency_v2"),
+    ],
+    "nfl": [
+        # Key-number margin PMF shipped 2026-09-22 (_PMF_SECTORS in
+        # models_ml/spread_distribution.py). NFL spread rows still carrying the
+        # normal-CDF `spread_dist` token were priced and EV-selected by the
+        # superseded normal (or its missing-artifact fallback); PMF rows carry
+        # `spread_pmf`. Moneyline/total rows are untouched.
+        lambda mt, src, line: mt == "spread" and _has(src, "spread_dist"),
     ],
 }
 

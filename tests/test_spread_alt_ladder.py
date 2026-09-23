@@ -234,8 +234,10 @@ class TestEvGapLadderPricing:
 
     def test_cdf_extrapolation_overstates_vs_ladder(self, monkeypatch):
         # Flag off: the matched record is the MAIN line (-3); the CDF extrapolates
-        # to -16.5 and (per the documented tail bias) overstates the cover prob.
+        # to -16.5. NFL prices with the key-number PMF by default (_PMF_SECTORS),
+        # so disable it here to pin the normal-CDF path this test is about.
         monkeypatch.setattr(ev_mod, "SPREAD_LADDER_ENABLED", False)
+        monkeypatch.setattr(sd, "_PMF_SECTORS", set())
         agent = EVGapAgent()
         main = self._rung("nfl", -3.0, 0.50, is_alt=False)  # pick'em-ish favorite at -3
         gap = agent._evaluate_pair(
@@ -244,6 +246,8 @@ class TestEvGapLadderPricing:
         )
         assert gap is not None
         assert "spread_dist" in gap.model_sources        # CDF path, not the ladder
-        # the extrapolated cover prob is materially above the book's 0.077 rung —
-        # this gap between the two paths IS the phantom-EV the ladder removes.
+        # The extrapolated cover prob differs from the ladder test's synthetic
+        # 0.077 rung: the two paths are distinct. (The favorite -16.5 fair off a
+        # -3 main is ~0.15-0.16, 2003-25 empirical 0.159; 0.077 is closer to the
+        # UNDERDOG winning by 17+.)
         assert gap.blended_true_prob > 0.077
