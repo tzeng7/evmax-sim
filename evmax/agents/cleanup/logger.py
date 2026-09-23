@@ -72,10 +72,45 @@ def get_logged_market_ids(scan_date: Optional[date] = None) -> set[str]:
     return {r["market_id"] for r in rows}
 
 
+def stamped_sharp_weight(
+    gap: EVGap, global_weight: Optional[float], cfg: Optional[dict] = None
+) -> float:
+    """The BASE sharp weight the coordinator blended ``gap`` at.
+
+    This is the weight handed to the ensemble, not the final sharp share: the
+    disagreement ramp and the FLB re-blend (non-NBA) push the true share toward
+    1 − (1 − sw)². Mirrors ``AgentCoordinator.run_cycle``: soccer takes its league-tier weight
+    (``soccer_tiers.sharp_weight_for_market`` — league first, Kalshi ticker
+    series as the fallback); every other sector takes its
+    ``sharp_weight_by_sector`` entry, else the scan's global weight. Stamping a
+    constant 0.85 hid that dashboard scans blended at 0.40 and mis-sized the
+    pick-time re-blend (``reprice.reblend_with_fresh_sharp`` shifts the fair by
+    the stamped weight).
+    """
+    from evmax.agents.cleanup.metrics import load_config
+
+    if cfg is None:
+        cfg = load_config()
+    if (gap.sector or "").lower() == "soccer":
+        from evmax.sectors.soccer_tiers import (
+            sharp_weight_for_league,
+            sharp_weight_for_ticker,
+        )
+
+        league = getattr(gap, "league", None) or league_for_market_id(gap.market_id)
+        if league:
+            return sharp_weight_for_league(league)
+        return sharp_weight_for_ticker(gap.market_id)
+    if global_weight is None:
+        global_weight = float(cfg.get("sharp_weight", 0.85))
+    by_sector = cfg.get("sharp_weight_by_sector") or {}
+    return float(by_sector.get((gap.sector or "").lower(), global_weight))
+
+
 def log_gaps(
     gaps: list[EVGap],
     scan_date: Optional[date] = None,
-    sharp_weight_used: float = 0.85,
+    sharp_weight_used: Optional[float] = None,
     bankroll_used: Optional[float] = None,
     mode_resolver: Optional[Callable[[str], str]] = None,
     model_version: Optional[str] = None,
@@ -115,9 +150,13 @@ def log_gaps(
     upgraded = 0
     counts_by_mode: dict[str, int] = {"live": 0, "shadow": 0}
 
+    from evmax.agents.cleanup.metrics import load_config
+
+    weight_cfg = load_config()
     with get_connection() as conn:
         for g in gaps:
             category = _gap_category_key(g)
+            gap_sharp_weight = stamped_sharp_weight(g, sharp_weight_used, weight_cfg)
             try:
                 # The default resolver supports per-market-type downgrades
                 # (shadow_market_types). Custom resolvers stay single-arg so
@@ -251,7 +290,7 @@ def log_gaps(
                         g.kelly_fraction,
                         g.volume_usd,
                         g.model_sources,
-                        sharp_weight_used,
+                        gap_sharp_weight,
                         bankroll_used,
                         g.line,
                         mode,
@@ -315,7 +354,7 @@ def log_gaps(
                                     g.kelly_fraction,
                                     g.volume_usd,
                                     g.model_sources,
-                                    sharp_weight_used,
+                                    gap_sharp_weight,
                                     bankroll_used,
                                     g.line,
                                     g.kalshi_yes_price,

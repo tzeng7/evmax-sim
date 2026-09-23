@@ -560,7 +560,12 @@ class AgentCoordinator:
     Args:
         sectors:        List of sector keys to scan (default: all).
         enable_models:  If False, skip model agents and use sharp probs only.
-        sharp_weight:   Weight given to Pinnacle in ensemble blend (0–1).
+        sharp_weight:   Weight given to Pinnacle in ensemble blend (0–1) for
+                        sectors WITHOUT a ``sharp_weight_by_sector`` entry.
+                        None (default) reads the persisted global
+                        ``sharp_weight`` from data/model_config.json, so every
+                        scan surface (CLI, dashboard, portfolio scans) blends
+                        identically. Pass a value only to override deliberately.
         enable_injuries: If True, fetch ESPN injury reports and adjust probs.
         bankroll:       Current bankroll in USD (default $250).
         kelly_fraction: Kelly multiplier (0.5 = half Kelly, 0.25 = quarter Kelly).
@@ -576,7 +581,7 @@ class AgentCoordinator:
         self,
         sectors: Optional[list[str]] = None,
         enable_models: bool = True,
-        sharp_weight: float = 0.40,
+        sharp_weight: Optional[float] = None,
         enable_injuries: bool = True,
         bankroll: float = 250.0,
         kelly_fraction: float = 0.5,
@@ -614,6 +619,14 @@ class AgentCoordinator:
             self._sectors = requested
 
         self._enable_models = enable_models
+        if sharp_weight is None:
+            # The old hard-coded 0.40 default silently blended every dashboard
+            # and portfolio scan at 0.40 for sectors without a per-sector entry
+            # (nfl/ncaaf/wnba/ncaab/ncaaw/nhl/worldcup) while the CLI used the
+            # config's 0.85 — same market, two different fair values, and the
+            # dashboard rows were Kelly-sized on the inflated edge.
+            from evmax.agents.cleanup.metrics import load_config as _load_cfg
+            sharp_weight = float(_load_cfg().get("sharp_weight", 0.85))
         self._sharp_weight = sharp_weight
         self._enable_injuries = enable_injuries
         self._bankroll = bankroll
@@ -798,6 +811,12 @@ class AgentCoordinator:
     # ------------------------------------------------------------------
     # Main cycle
     # ------------------------------------------------------------------
+
+    @property
+    def sharp_weight(self) -> float:
+        """Global sharp weight this coordinator blends at (sectors without a
+        ``sharp_weight_by_sector`` entry). Callers stamp it on logged rows."""
+        return self._sharp_weight
 
     async def run_cycle(self) -> CycleResult:
         t0 = time.perf_counter()

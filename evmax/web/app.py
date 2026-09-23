@@ -610,7 +610,11 @@ async def _run_unified_scan(
             if _gap_in_scan_window(g.event_date, g.sector, date_from, date_to)
         ]
         if loggable:
-            _log_gaps(loggable, bankroll_used=bankroll)
+            _log_gaps(
+                loggable,
+                sharp_weight_used=getattr(coord, "sharp_weight", None),
+                bankroll_used=bankroll,
+            )
     except Exception as _log_err:
         import structlog
         structlog.get_logger(__name__).warning("web_scan_log_failed", error=str(_log_err))
