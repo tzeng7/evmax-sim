@@ -95,21 +95,21 @@ class _Mkt:
 def test_sharp_weight_for_league():
     assert soccer_tiers.sharp_weight_for_league("epl") == 0.85
     assert soccer_tiers.sharp_weight_for_league("UCL") == 0.85
-    assert soccer_tiers.sharp_weight_for_league("mls") == 0.40
-    assert soccer_tiers.sharp_weight_for_league(None) == 0.40
-    assert soccer_tiers.sharp_weight_for_league("nowhere") == 0.40
+    assert soccer_tiers.sharp_weight_for_league("mls") == 0.85
+    assert soccer_tiers.sharp_weight_for_league(None) == 0.85
+    assert soccer_tiers.sharp_weight_for_league("nowhere") == 0.85
 
 
 def test_polymarket_market_gets_tier_weight_by_league():
     """Regression: a PolyUS market has NO Kalshi ticker, so the ticker-only
     lookup used to hand every PolyUS EPL/UCL game the 0.40 MLS default."""
     assert soccer_tiers.sharp_weight_for_market(_Mkt(ticker="", league="epl")) == 0.85
-    assert soccer_tiers.sharp_weight_for_market(_Mkt(ticker="", league="mls")) == 0.40
+    assert soccer_tiers.sharp_weight_for_market(_Mkt(ticker="", league="mls")) == 0.85
     # ticker fallback for markets that predate the league field
     assert soccer_tiers.sharp_weight_for_market(
         _Mkt(ticker="KXSERIEAGAME-26SEP05JUVINT-JUV")
     ) == 0.85
-    assert soccer_tiers.sharp_weight_for_market(_Mkt()) == 0.40
+    assert soccer_tiers.sharp_weight_for_market(_Mkt()) == 0.85
 
 
 def test_shipped_ramps_reproduce_sector_default():

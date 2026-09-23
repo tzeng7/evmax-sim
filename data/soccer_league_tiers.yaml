@@ -28,7 +28,11 @@
 # (n=4406, 2324–2526, MLS unseeded at the time). Set an MLS-specific ramp only
 # from an MLS-only per-bucket walk-forward (scripts/per_bucket_disagreement_perf.py).
 
-default_sharp_weight: 0.40
+# 0.85 (was 0.40, 2026-09-22): an unmapped league must default to the same
+# evidence-backed weight a newly wired league starts at, not to the old MLS
+# weight — the 0.40 fallback is what once handed every PolyUS soccer market
+# 0.40 silently.
+default_sharp_weight: 0.85
 
 # Per-LEAGUE shadow list — the league-level analogue of the per-sector mode
 # registry and the Polymarket US venue firewall. Mode is per SECTOR, so a
@@ -75,9 +79,15 @@ tiers:
       - championship      # EFL Championship         (KXEFLCHAMPIONSHIPGAME / eflch)
 
   secondary:
-    # Less liquid, less adversarial. Our models might actually help here, so
-    # keep the default blend.
-    sharp_weight: 0.40
+    # 0.85 since 2026-09-22 (was 0.40). The policy above: a league starts at
+    # 0.85 and earns a LOWER weight only on per-league CLV evidence. MLS never
+    # earned it: `clv-leagues soccer` MLS 59 games, +0.65pp, 47% positive —
+    # fails the %pos≥55 gate; taker EV vs the Pinnacle close −1.05pp (t −4.0);
+    # blend +1.4/1000 Brier vs sharp; and the 2026-09-22 blend-weight replay
+    # found rows blended at ~0.36 model share (0.40 tiers + 0.40 dashboard
+    # scans) significantly worse than sharp (pooled ΔBrier +2.97/1000, z 2.9).
+    # Kept as its own tier so a future evidence-backed MLS weight is one line.
+    sharp_weight: 0.85
     # NO disagreement_ramp: inherits the sector ramp — by EVIDENCE, not by
     # omission. The MLS-only walk-forward (scripts/mls_disagreement_ramp.py,
     # docs/mls-disagreement-ramp-eval.md, 2026-09-05) found the close is the
