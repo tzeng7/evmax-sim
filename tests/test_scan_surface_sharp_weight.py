@@ -95,3 +95,25 @@ def test_log_gaps_stamps_per_sector_effective_weight(patched_db, monkeypatch):  
         for r in patched_db.execute("SELECT market_id, sharp_weight_used FROM ev_predictions")
     }
     assert rows == {"g_nba": pytest.approx(0.7), "g_nfl": pytest.approx(0.85)}
+
+
+@pytest.mark.parametrize("sw", [0.85, 0.88, 0.40])
+def test_flb_double_blend_effective_model_share_is_pinned(sw):
+    """The FLB step re-blends the ALREADY sharp-blended prob, so a model's
+    effective share at a 50/50 line is (1-sw)^2 — 0.0225 at the 0.85 default.
+    Kept deliberately (2026-09-22 replay: ~30%-share rows were significantly
+    worse than sharp). Changing this multiplies live model weight several-fold;
+    it must be a deliberate, evidence-backed decision that updates this test."""
+    from evmax.agents.models.ensemble_agent import EnsembleModelAgent
+    from evmax.models.odds import SharpBook, SharpOdds
+
+    s, m = 0.5, 0.7
+    sharp = SharpOdds(
+        event_id="e", book=SharpBook.pinnacle, sector="nfl",
+        outcome_a_label="a", outcome_b_label="b",
+        outcome_a_decimal=2.0, outcome_b_decimal=2.0,
+        true_prob_a=s, true_prob_b=1 - s, margin=0.0,
+    )
+    first = sw * s + (1 - sw) * m
+    pa, pb, _ = EnsembleModelAgent._flb_correct(first, 1 - first, None, sharp, sw)
+    assert pa == pytest.approx(s + (1 - sw) ** 2 * (m - s))
