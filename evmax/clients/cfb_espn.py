@@ -25,6 +25,8 @@ from typing import Iterable, Optional
 import httpx
 import structlog
 
+from evmax.agents.models._cfb_efficiency import LEGAL_PLAY_POINTS
+
 logger = structlog.get_logger(__name__)
 
 SCOREBOARD = (
@@ -165,6 +167,73 @@ def fetch_game_summary(game_id: str, client: Optional[httpx.Client] = None,
     return data
 
 
+# A per-team score above this is a feed typo (e.g. "14" entered as 1414), not
+# a football score; the play's score is treated as missing.
+_MAX_PLAUSIBLE_SCORE = 200
+
+
+def _scoring_delta(
+    prev_home: int, prev_away: int, home_score: int, away_score: int
+) -> tuple[int, Optional[str]]:
+    """Points scored ON this play and which side ('home'/'away') scored them.
+
+    ESPN reports a running scoreboard, so a play's points are the scoreboard
+    delta. The delta is not safe to trust blindly: a missing score coerced to
+    0, a skipped play, or a typo (1414 for 14) turns it into a multi-score or
+    cumulative value (1400 observed on game 401866418; 720 illegal deltas over
+    353 cached games, 2021-2026). Only a delta where EXACTLY ONE team gains a
+    legal single-play amount counts; anything else is (0, None).
+    """
+    dh = home_score - prev_home
+    da = away_score - prev_away
+    if dh > 0 and da == 0 and dh in LEGAL_PLAY_POINTS:
+        return dh, "home"
+    if da > 0 and dh == 0 and da in LEGAL_PLAY_POINTS:
+        return da, "away"
+    return 0, None
+
+
+def _read_scores(p: dict, prev_home: int, prev_away: int) -> tuple[int, int]:
+    """Scoreboard after play ``p``, never below the running baseline.
+
+    Carries the previous value forward when the feed omits a score, reports an
+    implausible one, or LOWERS a team's score. ESPN routinely shows the
+    PRE-score scoreboard on the kickoff row after a touchdown ((10,21) →
+    kickoff (10,14) → next snap (10,21)); adopting the dip as the baseline
+    re-credited the touchdown to that ordinary snap — 609–669 phantom credits a
+    season (88–178 on scrimmage plays), all of LEGAL size, so the legal-amount
+    check could not see them. A genuine downward correction (a TD overturned
+    after the scoreboard moved) now costs at most one missed credit instead.
+    """
+    home = _safe_int(p.get("homeScore"))
+    away = _safe_int(p.get("awayScore"))
+    if home is None or not 0 <= home <= _MAX_PLAUSIBLE_SCORE:
+        home = prev_home
+    if away is None or not 0 <= away <= _MAX_PLAUSIBLE_SCORE:
+        away = prev_away
+    return max(home, prev_home), max(away, prev_away)
+
+
+def _possession_team(p: dict, drive_team: str, home_id: str, away_id: str) -> str:
+    """The offense on play ``p``: the play's own ``start.team`` when it names
+    one of the two sides, else the drive's team.
+
+    ESPN's drive-level ``team`` is the less reliable field: game 401856784
+    labels every Baylor drive after the first quarter as Prairie View A&M's,
+    which flipped the sign of ~70 plays' EPA (Baylor def_epa_adj −0.95 on a
+    neutral success rate). ~2,100 scrimmage plays over ~800 cached games
+    disagree, and a sample of them names the ``start.team`` side's players in
+    the play text. Kickoffs keep the drive team: their ``start.team`` is the
+    kicking side, not the possession the drive describes.
+    """
+    if "kickoff" in ((p.get("type") or {}).get("text") or "").lower():
+        return drive_team
+    start_team = ((p.get("start") or {}).get("team") or {}).get("id")
+    if start_team in (home_id, away_id):
+        return start_team
+    return drive_team
+
+
 def parse_game_plays(summary: dict, game_meta: dict) -> list[dict]:
     """Extract per-play EPA-input rows from an ESPN summary.
 
@@ -173,6 +242,11 @@ def parse_game_plays(summary: dict, game_meta: dict) -> list[dict]:
     end_team, yards_gained, score_points, score_off, score_team, and the
     running score margin BEFORE the play (for garbage-time filtering). OT plays
     (period ≥ 5) are dropped.
+
+    ``off_team`` is the play's own possession team (see ``_possession_team``).
+
+    ``score_points`` is always 0 or a legal single-play amount credited to one
+    team (see ``_scoring_delta``).
     """
     drives = (summary.get("drives") or {}).get("previous") or []
     if not drives:
@@ -180,31 +254,25 @@ def parse_game_plays(summary: dict, game_meta: dict) -> list[dict]:
     home_id = game_meta["home"]["id"]
     away_id = game_meta["away"]["id"]
     rows: list[dict] = []
-    prev_total = 0
     prev_home = prev_away = 0
     for drive in drives:
-        off_team = (drive.get("team") or {}).get("id")
-        if not off_team:
+        drive_team = (drive.get("team") or {}).get("id")
+        if not drive_team:
             continue
-        def_team = away_id if off_team == home_id else home_id
         for p in drive.get("plays", []):
             period = (p.get("period") or {}).get("number")
             if period and period >= 5:  # overtime — different EP regime
                 continue
+            off_team = _possession_team(p, drive_team, home_id, away_id)
+            def_team = away_id if off_team == home_id else home_id
             st = p.get("start") or {}
             en = p.get("end") or {}
-            home_score = _safe_int(p.get("homeScore")) or 0
-            away_score = _safe_int(p.get("awayScore")) or 0
-            new_total = home_score + away_score
-            score_points = 0
+            home_score, away_score = _read_scores(p, prev_home, prev_away)
+            score_points, side = _scoring_delta(prev_home, prev_away, home_score, away_score)
             score_team = None
             score_off = False
-            if new_total > prev_total:
-                score_points = new_total - prev_total
-                if home_score > prev_home:
-                    score_team = home_id
-                elif away_score > prev_away:
-                    score_team = away_id
+            if side is not None:
+                score_team = home_id if side == "home" else away_id
                 score_off = score_team == off_team
             # margin BEFORE this play, from the offense's perspective
             off_pre = prev_home if off_team == home_id else prev_away
@@ -231,7 +299,6 @@ def parse_game_plays(summary: dict, game_meta: dict) -> list[dict]:
                     "off_margin_pre": off_pre - def_pre,
                 }
             )
-            prev_total = new_total
             prev_home, prev_away = home_score, away_score
     return rows
 

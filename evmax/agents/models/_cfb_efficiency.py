@@ -49,6 +49,18 @@ CFB_SEASON_MONTHS = {8, 9, 10, 11, 12, 1}
 # treated as evidence the FBS offense is elite.
 FCS_POOL_ID = "__fcs__"
 
+# Points one play can legally add to ONE team's score: PAT 1, safety / 2-pt 2,
+# FG 3, TD 6 (7/8 when the feed folds the conversion into the TD row). The ESPN
+# parser (clients/cfb_espn.py) only emits these; the EP/EPA math re-checks so a
+# corrupt row from any source can never enter the EP table or a play's EPA.
+LEGAL_PLAY_POINTS: frozenset[int] = frozenset({1, 2, 3, 6, 7, 8})
+
+
+def _legal_score_points(play: dict) -> int:
+    """The play's scored points when they are a legal single-play amount, else 0."""
+    pts = play.get("score_points") or 0
+    return pts if pts in LEGAL_PLAY_POINTS else 0
+
 
 def cfb_season_start_year(d: date) -> int:
     """Season label = the fall calendar year the season starts in.
@@ -152,9 +164,9 @@ def build_ep_table(plays: list[dict]) -> dict:
     for (_gid, _half), half_plays in by_half.items():
         # Find scoring events in order: (index, scoring_team, points).
         scores = [
-            (i, p["off_team"] if p.get("score_off") else p.get("score_team"), p["score_points"])
+            (i, p["off_team"] if p.get("score_off") else p.get("score_team"), pts)
             for i, p in enumerate(half_plays)
-            if p.get("score_points")
+            if (pts := _legal_score_points(p))
         ]
         for i, p in enumerate(half_plays):
             key = _ep_state_key(p.get("down"), p.get("yards_to_goal"), p.get("distance"))
@@ -210,9 +222,13 @@ def play_epa(table: dict, play: dict) -> Optional[float]:
         return None
     ep_start = ep_value(table, play["down"], play["yards_to_goal"], play["distance"])
 
-    # End value from the offense's perspective.
-    if play.get("score_points"):
-        ep_end = play["score_points"] if play.get("score_off") else -play["score_points"]
+    # End value from the offense's perspective. An illegal score_points (a
+    # cumulative/typo scoreboard delta) is ignored, never trusted as the play's
+    # value — one 1400-point row once swung three teams' ratings through the
+    # ridge solve.
+    pts = _legal_score_points(play)
+    if pts:
+        ep_end = pts if play.get("score_off") else -pts
     else:
         end_down = play.get("end_down")
         end_ytg = play.get("end_yards_to_goal")
