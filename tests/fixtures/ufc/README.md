@@ -1,6 +1,19 @@
 # UFC fixtures
 
-Captured live on 2026-07-11.
+- `kxufcfight_short_title_markets.json` / `kxufcfight_short_title_events.json` —
+  captured live **2026-09-22** from the public (unauthenticated) Kalshi
+  `GET /markets?series_ticker=KXUFCFIGHT&status=open` and
+  `GET /events?series_ticker=KXUFCFIGHT&status=open`, cut to 7 fights
+  (14 markets) and trimmed to the fields the parser reads; values are real.
+  This is the SHORT title format Kalshi switched to in 2026-08
+  ("Mickey Gall wins" — no opponent). Picked for the edge cases: alias-needing
+  spellings (Norma Dumont Viana, Alateng Heili, Wang Cong), a generational
+  suffix (Raul Rosas Jr), a multi-word surname the event sub_title truncates
+  (Rafael Dos Anjos → "Anjos"), a numbered-card title prefix ("332: ..."), and
+  sibling markets listed home-first. Used by `TestUFCShortTitleFormat` in
+  `tests/test_ufc_sector.py`.
+
+The files below were captured live on 2026-07-11 (the old long title format).
 
 - `kxufcfight_markets.json` — Kalshi `GET /markets?series_ticker=KXUFCFIGHT&status=open`
   (UFC 318 card: Saint-Denis vs Pimblett, McGregor vs Holloway). The

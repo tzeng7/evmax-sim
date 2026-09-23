@@ -1,0 +1,75 @@
+{
+ "events": [
+  {
+   "event_ticker": "KXUFCFIGHT-26SEP26DUMPER",
+   "series_ticker": "KXUFCFIGHT",
+   "title": "Fight Night: Dumont Viana vs Perez",
+   "sub_title": "Dumont Viana vs Perez",
+   "product_metadata": {
+    "competition": "Fight Night",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXUFCFIGHT-26SEP26GALDUM",
+   "series_ticker": "KXUFCFIGHT",
+   "title": "Fight Night: Gall vs Dumas",
+   "sub_title": "Gall vs Dumas",
+   "product_metadata": {
+    "competition": "Fight Night",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXUFCFIGHT-26SEP26CASHEI",
+   "series_ticker": "KXUFCFIGHT",
+   "title": "Fight Night: Castaneda vs Heili",
+   "sub_title": "Castaneda vs Heili",
+   "product_metadata": {
+    "competition": "Fight Night",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXUFCFIGHT-26SEP26ROSBAR",
+   "series_ticker": "KXUFCFIGHT",
+   "title": "Fight Night: Rosas Jr vs Barcelos",
+   "sub_title": "Rosas Jr vs Barcelos",
+   "product_metadata": {
+    "competition": "Fight Night",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXUFCFIGHT-26OCT03DOSHER",
+   "series_ticker": "KXUFCFIGHT",
+   "title": "332: Anjos vs Hernandez",
+   "sub_title": "Anjos vs Hernandez",
+   "product_metadata": {
+    "competition": "332",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXUFCFIGHT-26OCT03FIGTAL",
+   "series_ticker": "KXUFCFIGHT",
+   "title": "332: Figueiredo vs Talbott",
+   "sub_title": "Figueiredo vs Talbott",
+   "product_metadata": {
+    "competition": "332",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXUFCFIGHT-26OCT03SILCON",
+   "series_ticker": "KXUFCFIGHT",
+   "title": "332: Silva vs Cong",
+   "sub_title": "Silva vs Cong",
+   "product_metadata": {
+    "competition": "332",
+    "competition_scope": "Game"
+   }
+  }
+ ],
+ "cursor": ""
+}

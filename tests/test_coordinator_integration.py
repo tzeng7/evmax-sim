@@ -451,6 +451,11 @@ class TestSectorFailureResilience:
         assert result.sector_stats["nba"]["markets_fetched"] == 1
         assert result.sector_stats["nba"]["markets_matched"] == 1
         assert result.sector_stats["nba"]["error"] is None
+        # Game-level Pinnacle records the cycle had to match against — lets
+        # the integrity zero-match streak separate a parser break from
+        # "Pinnacle posted nothing". A crashed sector reports no count.
+        assert result.sector_stats["nba"]["sharp_events"] == 1
+        assert "sharp_events" not in result.sector_stats["nhl"]
         assert result.sector_stats["nhl"]["markets_fetched"] == 0
         assert "NHL sector crashed" in result.sector_stats["nhl"]["error"]
         assert any("nhl" in e.lower() for e in result.errors)

@@ -124,7 +124,9 @@ CREATE TABLE IF NOT EXISTS scan_sector_stats (
     markets_fetched     INTEGER NOT NULL DEFAULT 0,
     markets_matched     INTEGER NOT NULL DEFAULT 0,
     ev_gaps             INTEGER NOT NULL DEFAULT 0,
-    error               TEXT                        -- sector exception text, NULL on success
+    error               TEXT,                       -- sector exception text, NULL on success
+    sharp_events        INTEGER                     -- non-prop Pinnacle records the cycle fetched
+                                                    -- (NULL on pre-2026-09-22 rows / errored cycles)
 );
 CREATE INDEX IF NOT EXISTS idx_scan_sector_stats_date ON scan_sector_stats(scan_date, sector);
 """
@@ -324,6 +326,12 @@ def get_connection() -> sqlite3.Connection:
         # default): a NULL logged_at makes the forward-only CLV anchor
         # (resolver.clv_not_before) fall back to the plain T-30 proxy.
         "ALTER TABLE ev_predictions ADD COLUMN logged_at TEXT",
+        # 2026-09-22 — Pinnacle-side count on the scan ledger, so the
+        # integrity zero-match streak can tell "both venues listed the games
+        # and nothing matched" (parser/alias break — the UFC short-title
+        # incident) from "Pinnacle posted nothing yet" (pre-season / stale
+        # league id). NULL on older rows.
+        "ALTER TABLE scan_sector_stats ADD COLUMN sharp_events INTEGER",
     ]:
         try:
             conn.execute(migration)

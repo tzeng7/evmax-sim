@@ -28,8 +28,11 @@ Cadence groups (``run_integrity(weekly=...)``):
   match_rate     — a sector that fetched venue markets but matched ZERO Pinnacle
                    events, or whose match ratio collapsed vs its 14-day median
                    (Kalshi pagination truncation, UCL code map, tennis title
-                   format — all looked like an off-season). Reads the
-                   ``scan_sector_stats`` ledger written by ``logger.log_scan_stats``
+                   format — all looked like an off-season); plus an ABSOLUTE
+                   zero-match streak (matched 0 on each of the last 3 scan days
+                   that fetched anything — no baseline needed, the UFC
+                   short-title break). Reads the ``scan_sector_stats`` ledger
+                   written by ``logger.log_scan_stats``
   resolution     — unresolved, unvoided rows older than N days (resolver broke)
   close_capture  — resolved Kalshi rows missing a Kalshi close, and archive
                    snapshot freshness (a dead watch-closes / watch-listings
@@ -320,6 +323,102 @@ def _match_rate_issues(
     return issues
 
 
+def _zero_match_streak_issues(
+    daily: dict[str, list[dict]],
+    modes: dict[str, Optional[str]],
+    today: date,
+    streak_days: int = 3,
+    max_age_days: int = 2,
+    skip: frozenset[str] | set[str] = frozenset(),
+) -> list[dict]:
+    """Absolute tripwire — no baseline needed.
+
+    ``daily``: sector → [{scan_date, fetched, matched, sharp[, fetched_max]}]
+    one entry per scan day (any order); ``sharp`` is the day's largest
+    per-cycle Pinnacle game-record count, or None when the ledger predates
+    that column; ``fetched_max`` (optional) the largest per-cycle venue fetch.
+    ``modes``: sector → YAML base mode (None for a sector not in
+    ``data/categories.yaml``).
+
+    Fires when a sector FETCHED venue markets but MATCHED 0 on each of its
+    last ``streak_days`` scan days that fetched anything, and the latest of
+    those days is within ``max_age_days`` of ``today`` (a finished season's
+    old streak does not nag). The relative check above needs a non-zero
+    14-day baseline, so a break that predates the ledger — or a sector that
+    has never matched (UFC after the 2026-08 short-title switch; NHL with no
+    alias map) — stayed silent for weeks.
+
+    Severity: ``critical`` when the sector's mode is live or shadow AND
+    Pinnacle had game records on at least one streak day (or the count is
+    unknown) — both venues listed games and nothing matched, i.e. a parser /
+    alias / code break. ``warning`` otherwise: disabled/unregistered sectors,
+    and streaks where Pinnacle posted NOTHING on every known day (venue lists
+    ahead of Pinnacle — pre-season / opening night — or a stale Pinnacle
+    league id; the detail names the check for both).
+    """
+    issues: list[dict] = []
+    for sector, days in sorted(daily.items()):
+        if sector in skip:
+            continue
+        fetch_days = sorted(
+            (d for d in days if int(d.get("fetched", 0) or 0) > 0),
+            key=lambda d: d["scan_date"],
+        )
+        if len(fetch_days) < streak_days:
+            continue
+        recent = fetch_days[-streak_days:]
+        if any(int(d.get("matched", 0) or 0) > 0 for d in recent):
+            continue
+        last = date.fromisoformat(recent[-1]["scan_date"])
+        if (today - last).days > max_age_days:
+            continue
+        # How far back does the zero run actually go (within the window)?
+        run = 0
+        for d in reversed(fetch_days):
+            if int(d.get("matched", 0) or 0) > 0:
+                break
+            run += 1
+        since = fetch_days[-run]["scan_date"]
+        fetched = int(recent[-1].get("fetched_max") or recent[-1].get("fetched", 0) or 0)
+        known = [int(d["sharp"]) for d in recent if d.get("sharp") is not None]
+        sharp_posted = (not known) or any(n > 0 for n in known)
+        mode = modes.get(sector)
+        severity = "critical" if (mode in ("live", "shadow") and sharp_posted) else "warning"
+        if known and not any(known):
+            cause = (
+                "Pinnacle posted 0 game records on those days — venue listing ahead "
+                "of Pinnacle (pre-season) or a stale league id "
+                f"(`scripts/check_pinnacle_leagues.py -s {sector}`)"
+            )
+        else:
+            pin = f"Pinnacle had up to {max(known)} game records" if known else "Pinnacle count not logged"
+            cause = (
+                f"{pin} — title-format / alias / ticker-code break? "
+                "(`scripts/check_kalshi_series.py --probe`, `evmax agents scan "
+                f"--sectors {sector}` and read match_failed)"
+            )
+        issues.append(_issue(
+            "match_rate", severity,
+            f"{sector} ({mode or 'unregistered'}): fetched venue markets but matched 0 Pinnacle "
+            f"events on each of the last {run} scan days since {since} (up to {fetched} "
+            f"fetched per scan on {recent[-1]['scan_date']}); {cause}",
+        ))
+    return issues
+
+
+def _category_base_modes(sectors) -> dict[str, Optional[str]]:
+    """YAML base mode per sector (None when the sector is not registered)."""
+    from evmax.categories import get_category
+
+    out: dict[str, Optional[str]] = {}
+    for s in sectors:
+        try:
+            out[s] = get_category(s).mode
+        except Exception:  # noqa: BLE001 — latent/unregistered sector (valorant)
+            out[s] = None
+    return out
+
+
 def check_match_rate(today: Optional[date] = None, baseline_days: int = 14) -> list[dict]:
     from evmax.agents.cleanup.db import get_connection
 
@@ -327,12 +426,15 @@ def check_match_rate(today: Optional[date] = None, baseline_days: int = 14) -> l
     since = (today - timedelta(days=baseline_days)).isoformat()
     today_stats: dict[str, dict] = {}
     baseline: dict[str, list[dict]] = {}
+    daily: dict[str, list[dict]] = {}
     try:
         with get_connection() as conn:
             rows = conn.execute(
                 """
                 SELECT scan_date, sector,
-                       SUM(markets_fetched) AS fetched, SUM(markets_matched) AS matched
+                       SUM(markets_fetched) AS fetched, SUM(markets_matched) AS matched,
+                       MAX(markets_fetched) AS fetched_max,
+                       MAX(sharp_events) AS sharp, COUNT(sharp_events) AS sharp_known
                 FROM scan_sector_stats
                 WHERE scan_date >= ? AND error IS NULL
                 GROUP BY scan_date, sector
@@ -348,7 +450,21 @@ def check_match_rate(today: Optional[date] = None, baseline_days: int = 14) -> l
             today_stats[r["sector"]] = d
         else:
             baseline.setdefault(r["sector"], []).append(d)
-    return _match_rate_issues(today_stats, baseline)
+        daily.setdefault(r["sector"], []).append({
+            **d, "scan_date": r["scan_date"],
+            "fetched_max": r["fetched_max"] or 0,
+            # Largest per-cycle Pinnacle count that day; None = never logged.
+            "sharp": (r["sharp"] or 0) if r["sharp_known"] else None,
+        })
+    issues = _match_rate_issues(today_stats, baseline)
+    # A sector the relative check already called critical needs no second alert.
+    flagged = {
+        i["detail"].split(":", 1)[0] for i in issues if i["severity"] == "critical"
+    }
+    issues += _zero_match_streak_issues(
+        daily, _category_base_modes(daily), today, skip=flagged,
+    )
+    return issues
 
 
 # ---------------------------------------------------------------------------

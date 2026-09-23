@@ -18,6 +18,11 @@ title spelling and Pinnacle's.
 from evmax.models.market import MarketType, PredictionMarket
 from evmax.sectors.base import SectorHandler
 
+# Generational suffix tokens dropped before the last-word surname rule —
+# otherwise "Raul Rosas Jr" (Kalshi) → "jr" and "Raul Rosas Jr." (Pinnacle)
+# → "jr.", which neither match each other nor any other Jr on the card.
+_NAME_SUFFIXES = frozenset({"jr", "jr.", "sr", "sr.", "ii", "iii", "iv"})
+
 
 class UFCHandler(SectorHandler):
     name = "ufc"
@@ -27,8 +32,10 @@ class UFCHandler(SectorHandler):
         """Normalize a fighter name to the canonical surname.
 
         Tries the alias map first (handles name-order variants like
-        "Zhang Weili" vs "Weili Zhang"), then falls back to the last word
-        ("Conor McGregor" → "mcgregor", "Ian Machado Garry" → "garry").
+        "Zhang Weili" vs "Weili Zhang"), strips a trailing generational
+        suffix ("Raul Rosas Jr." → "raul rosas", re-checking the alias map),
+        then falls back to the last word ("Conor McGregor" → "mcgregor",
+        "Ian Machado Garry" → "garry"). A bare suffix token is left alone.
         """
         if not name:
             return ""
@@ -36,7 +43,14 @@ class UFCHandler(SectorHandler):
         if cleaned in self._aliases:
             return self._aliases[cleaned]
         parts = cleaned.split()
-        return parts[-1] if parts else cleaned
+        stripped = list(parts)
+        while len(stripped) > 1 and stripped[-1] in _NAME_SUFFIXES:
+            stripped.pop()
+        if len(stripped) != len(parts):
+            base = " ".join(stripped)
+            if base in self._aliases:
+                return self._aliases[base]
+        return stripped[-1] if stripped else cleaned
 
     def enrich_market(self, market: PredictionMarket) -> PredictionMarket:
         updates = {}

@@ -127,6 +127,132 @@ class TestMatchRate:
         assert ig._match_rate_issues({"nfl": {"fetched": 110, "matched": 58}}, base) == []
 
 
+def _days(*triples, start: int = 1) -> list[dict]:
+    """(fetched, matched, sharp) per consecutive day from 2026-09-{start}."""
+    return [
+        {"scan_date": f"2026-09-{start + i:02d}", "fetched": f, "matched": m, "sharp": s}
+        for i, (f, m, s) in enumerate(triples)
+    ]
+
+
+class TestZeroMatchStreak:
+    """The absolute tripwire: no baseline needed (the UFC short-title break
+    predated the ledger, so its 14d median was 0 and the relative check
+    stayed silent for weeks)."""
+
+    def test_ufc_shape_is_critical_without_any_baseline(self):
+        # Every day in the ledger is a zero — exactly what UFC looked like.
+        daily = {"ufc": _days((262, 0, 18), (324, 0, 18), (180, 0, 16), (170, 0, 18))}
+        issues = ig._zero_match_streak_issues(daily, {"ufc": "shadow"}, TODAY)
+        assert len(issues) == 1
+        i = issues[0]
+        assert i["check"] == "match_rate" and i["severity"] == "critical"
+        assert "ufc (shadow)" in i["detail"] and "last 4 scan days since 2026-09-01" in i["detail"]
+        assert "Pinnacle had up to 18" in i["detail"]
+
+    def test_live_sector_is_critical_and_unknown_sharp_counts_as_posted(self):
+        daily = {"nfl": _days((200, 0, None), (210, 0, None), (190, 0, None))}
+        issues = ig._zero_match_streak_issues(daily, {"nfl": "live"}, TODAY)
+        assert len(issues) == 1 and issues[0]["severity"] == "critical"
+        assert "count not logged" in issues[0]["detail"]
+
+    def test_disabled_or_unregistered_sector_only_warns(self):
+        daily = {
+            "worldcup": _days((40, 0, 5), (40, 0, 5), (40, 0, 5)),
+            "valorant": _days((10, 0, 3), (10, 0, 3), (10, 0, 3)),
+        }
+        issues = ig._zero_match_streak_issues(
+            daily, {"worldcup": "disabled", "valorant": None}, TODAY,
+        )
+        assert [i["severity"] for i in issues] == ["warning", "warning"]
+        assert "valorant (unregistered)" in issues[0]["detail"]
+
+    def test_pinnacle_posted_nothing_downgrades_to_warning(self):
+        # NBA 2026-09: Kalshi lists opening night (Oct 20), Pinnacle has no
+        # NBA board yet — also the stale-league-id fingerprint, so still warn.
+        daily = {"nba": _days((30, 0, 0), (54, 0, 0), (48, 0, None))}
+        issues = ig._zero_match_streak_issues(daily, {"nba": "live"}, TODAY)
+        assert len(issues) == 1 and issues[0]["severity"] == "warning"
+        assert "check_pinnacle_leagues.py -s nba" in issues[0]["detail"]
+
+    def test_any_match_in_the_window_or_short_history_is_silent(self):
+        modes = {"cs2": "shadow", "ufc": "shadow"}
+        # cs2: zero, zero, then a matched day — streak broken at the end.
+        assert ig._zero_match_streak_issues(
+            {"cs2": _days((700, 0, 9), (450, 0, 9), (580, 12, 9))}, modes, TODAY,
+        ) == []
+        # Only two fetch days so far.
+        assert ig._zero_match_streak_issues(
+            {"ufc": _days((100, 0, 9), (100, 0, 9))}, modes, TODAY,
+        ) == []
+
+    def test_non_fetch_days_do_not_break_or_count_toward_the_streak(self):
+        # Off days (fetched 0) between card weeks are skipped, not "healthy".
+        daily = {"ufc": _days((100, 0, 9), (0, 0, 0), (120, 0, 9), (0, 0, 0), (90, 0, 9))}
+        issues = ig._zero_match_streak_issues(daily, {"ufc": "shadow"}, TODAY)
+        assert len(issues) == 1 and issues[0]["severity"] == "critical"
+        assert ig._zero_match_streak_issues(
+            {"ufc": _days((100, 0, 9), (0, 0, 0), (120, 0, 9))}, {"ufc": "shadow"}, TODAY,
+        ) == []
+
+    def test_stale_streak_from_a_finished_season_is_silent(self):
+        daily = {"wnba": _days((271, 0, 4), (930, 0, 4), (500, 0, 4), start=1)}
+        later = date(2026, 9, 20)
+        assert ig._zero_match_streak_issues(daily, {"wnba": "live"}, later) == []
+
+    def test_skip_suppresses_sectors_already_flagged(self):
+        daily = {"ufc": _days((100, 0, 9), (100, 0, 9), (100, 0, 9))}
+        assert ig._zero_match_streak_issues(
+            daily, {"ufc": "shadow"}, TODAY, skip={"ufc"},
+        ) == []
+
+
+class TestCheckMatchRateWiring:
+    """check_match_rate over a real (temp) scan_sector_stats ledger."""
+
+    def _ledger(self, tmp_path, monkeypatch, rows):
+        import sqlite3
+
+        from evmax.agents.cleanup import db as db_module
+
+        path = tmp_path / "predictions.db"
+        monkeypatch.setattr(db_module, "DB_PATH", path)
+        with db_module.get_connection() as conn:  # creates schema + migrations
+            conn.executemany(
+                "INSERT INTO scan_sector_stats (scan_date, source, sector, markets_fetched, "
+                "markets_matched, ev_gaps, error, sharp_events) VALUES (?, 'cli', ?, ?, ?, 0, ?, ?)",
+                rows,
+            )
+            conn.commit()
+        return sqlite3
+
+    def test_streak_fires_and_relative_check_is_not_duplicated(self, tmp_path, monkeypatch):
+        rows = []
+        for day in ("2026-09-02", "2026-09-03", "2026-09-04", "2026-09-05"):
+            # Two cycles per day; the second predates the sharp_events column.
+            rows.append((day, "ufc", 150, 0, None, 18))
+            rows.append((day, "ufc", 150, 0, None, None))
+            rows.append((day, "nba", 30, 0, None, 0))
+            rows.append((day, "soccer", 200, 120, None, 90))
+        # soccer: history matched, TODAY zero → the RELATIVE critical owns it.
+        rows[-1] = ("2026-09-05", "soccer", 200, 0, None, 90)
+        # An errored cycle never counts.
+        rows.append(("2026-09-05", "lol", 0, 0, "timed out", None))
+        self._ledger(tmp_path, monkeypatch, rows)
+
+        issues = ig.check_match_rate(today=TODAY)
+        by_sector = {i["detail"].split(" ", 1)[0].rstrip(":"): i for i in issues}
+        assert set(by_sector) == {"ufc", "nba", "soccer"}
+        assert by_sector["ufc"]["severity"] == "critical"      # shadow, Pinnacle had 18
+        # Per-cycle MAX, NULL cycles ignored — never a sum across cycles.
+        assert "Pinnacle had up to 18" in by_sector["ufc"]["detail"]
+        assert "up to 150 fetched per scan" in by_sector["ufc"]["detail"]
+        assert by_sector["nba"]["severity"] == "warning"       # live, Pinnacle posted 0
+        assert by_sector["soccer"]["severity"] == "critical"
+        assert "14d median" in by_sector["soccer"]["detail"]   # relative, not the streak
+        assert sum(1 for i in issues if i["detail"].startswith("soccer")) == 1
+
+
 class TestSimpleChecks:
     def test_resolution_backlog_threshold(self):
         assert ig._resolution_issues({"tennis": 17, "soccer": 2}) == [

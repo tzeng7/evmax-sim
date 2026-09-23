@@ -224,8 +224,132 @@ _SERIES_TEAM_CODE_MAPS: dict[str, dict[str, str]] = {
 
 _EVENT_SUBTITLE_CODES_RE = re.compile(r"^\s*([A-Z0-9]{2,5})\s+vs\.?\s+([A-Z0-9]{2,5})\b", re.IGNORECASE)
 
+# Sectors whose Kalshi series are WINNER markets only (no spread/total/prop
+# series): tennis (KXATPMATCH/KXWTAMATCH) and UFC (KXUFCFIGHT). Market type is
+# fixed to moneyline instead of inferred from a title that is a player name.
+_WINNER_ONLY_SECTORS = frozenset({"tennis", "ufc"})
+
 # Sectors whose /events rows are joined onto markets at parse time.
-_EVENT_TITLE_SECTORS: frozenset[str] = frozenset({"tennis", "soccer"})
+_EVENT_TITLE_SECTORS: frozenset[str] = frozenset({"tennis", "soccer", "ufc"})
+
+
+# --- UFC (KXUFCFIGHT) fighter recovery -------------------------------------
+# Kalshi switched the per-fighter market title from the long form "Will {X}
+# win the {A} vs {B} professional MMA fight scheduled for {date}?" to the
+# short "{Full Name} wins" (first seen 2026-08-19, every market from 08-23) —
+# the identical break the tennis parser took in 2026-08. The short title has
+# no opponent, so every UFC market parsed with empty fighters and matched
+# nothing for a month. Both fighters are now recovered per EVENT (the helpers
+# below); the long-form title regex is only the last-resort fallback.
+_UFC_MATCHUP_SPLIT_RE = re.compile(r"\s+vs\.?\s+", re.IGNORECASE)
+# The short per-fighter title itself: "Raul Rosas Jr wins" → "Raul Rosas Jr".
+# Only consulted when a row lacks yes_sub_title (which carries the same name).
+_SHORT_WINS_TITLE_RE = re.compile(r"^\s*(?!will\s)(.+?)\s+wins\s*\??\s*$", re.IGNORECASE)
+
+
+def _ufc_matchup_from_event(ev: dict[str, Any]) -> Optional[tuple[str, str]]:
+    """(first_listed, second_listed) fighter labels from a KXUFCFIGHT event.
+
+    ``sub_title`` is "Demopoulos vs Jauregui"; ``title`` carries a card prefix
+    ("Fight Night: Demopoulos vs Jauregui", "332: McGee vs Nolan"). A trailing
+    "(Sep 26)" date (the soccer sub_title shape) is tolerated. The labels are
+    the surnames AS KALSHI PRINTS THEM ("Dumont Viana", "Rosas Jr", "Anjos").
+    """
+    for text in (ev.get("sub_title"), ev.get("title")):
+        if not text:
+            continue
+        s = re.sub(r"\s*\([^)]*\)\s*$", "", str(text).strip())
+        s = s.rsplit(": ", 1)[-1]
+        parts = _UFC_MATCHUP_SPLIT_RE.split(s, maxsplit=1)
+        if len(parts) == 2 and parts[0].strip() and parts[1].strip():
+            return parts[0].strip(), parts[1].strip()
+    return None
+
+
+def _ufc_label_names(label: str, full_name: str) -> bool:
+    """Whether a matchup label ("Anjos", "Dumont Viana") names ``full_name``
+    ("Rafael Dos Anjos", "Norma Dumont Viana") — equality or a whole-word
+    suffix, accent/period-insensitive."""
+    from evmax.agents.models.tennis_common import fold_accents
+
+    a = fold_accents(label).lower().replace(".", "").strip()
+    b = fold_accents(full_name).lower().replace(".", "").strip()
+    return bool(a) and (a == b or b.endswith(" " + a))
+
+
+def _orient_ufc_siblings(
+    event_ticker: str,
+    by_code: dict[str, str],
+    matchup: Optional[tuple[str, str]],
+) -> Optional[tuple[str, str]]:
+    """Order an event's two sibling full names as (away, home).
+
+    ``by_code`` maps each sibling market's outcome code (ticker suffix) to its
+    ``yes_sub_title``. Orientation, strongest first: the event ticker's
+    {AWAY}{HOME} code pair (KXUFCFIGHT-26SEP26DEMJAU → DEM away, JAU home);
+    then the event matchup's listed order. With no matchup to fall back on,
+    the siblings are returned in listed order — the matcher's token-sort
+    fuzzy fallback is order-insensitive. Returns None when the siblings are
+    unusable (not exactly two distinct names) or when a matchup exists but
+    cannot be reconciled with them (the caller then uses the matchup itself).
+    """
+    if len(by_code) != 2:
+        return None
+    (c1, n1), (c2, n2) = by_code.items()
+    if not n1 or not n2 or n1.strip().lower() == n2.strip().lower():
+        return None
+    seg = event_ticker.rsplit("-", 1)[-1].upper()
+    date_m = _TICKER_DATE_RE.match(seg)
+    pair = seg[date_m.end():] if date_m else ""
+    fwd, rev = pair == c1 + c2, pair == c2 + c1
+    if fwd != rev:
+        return (n1, n2) if fwd else (n2, n1)
+    if matchup is None:
+        return (n1, n2)
+    first, second = matchup
+    as_listed = _ufc_label_names(first, n1) and _ufc_label_names(second, n2)
+    swapped = _ufc_label_names(first, n2) and _ufc_label_names(second, n1)
+    if as_listed != swapped:
+        return (n1, n2) if as_listed else (n2, n1)
+    return None
+
+
+def _ufc_event_fighters(
+    market_rows: Optional[list[dict[str, Any]]],
+    event_rows: Optional[list[dict[str, Any]]],
+) -> dict[str, tuple[str, str]]:
+    """event_ticker → (away, home) fighter names for the KXUFCFIGHT series.
+
+    Primary source: the two sibling markets' ``yes_sub_title`` — each
+    fighter's FULL name, the form the surname normalizer and alias map are
+    keyed on ("Norma Dumont Viana", "Wang Cong", "Raul Rosas Jr"; the event
+    sub_title would give "Dumont Viana" / "Cong" / "Rosas Jr"). Needs no
+    /events call, so it survives an events-fetch failure. Fallback: the event
+    sub_title/title "A vs B". Order convention is first-listed = away,
+    second = home — the ticker's {AWAY}{HOME} layout, which matches
+    Pinnacle's home/away (verified on 14 live fights 2026-09-22).
+    """
+    matchups: dict[str, tuple[str, str]] = {}
+    for ev in event_rows or []:
+        et = ev.get("event_ticker")
+        mu = _ufc_matchup_from_event(ev) if et else None
+        if mu:
+            matchups[et] = mu
+    siblings: dict[str, dict[str, str]] = {}
+    for m in market_rows or []:
+        et = m.get("event_ticker")
+        ticker = m.get("ticker") or ""
+        ys = (m.get("yes_sub_title") or "").strip()
+        if et and ys and "-" in ticker:
+            siblings.setdefault(et, {})[ticker.rsplit("-", 1)[1].upper()] = ys
+    out: dict[str, tuple[str, str]] = {}
+    for et in siblings.keys() | matchups.keys():
+        pair = _orient_ufc_siblings(et, siblings.get(et, {}), matchups.get(et))
+        if pair is None:
+            pair = matchups.get(et)
+        if pair:
+            out[et] = pair
+    return out
 
 
 def _series_team_code_map(ticker: str) -> Optional[dict[str, str]]:
@@ -832,7 +956,11 @@ class KalshiClient(BaseAPIClient):
         # series (LEV = Leverkusen in KXBUNDESLIGAGAME, Levante in
         # KXLALIGAGAME). The event title "Home vs Away" carries both clubs
         # by name (2026-09-04 audit: 57 of 190 open soccer games unmatched).
+        # UFC took the tennis title break in 2026-08 ("{Name} wins"); its
+        # fighters come from sibling yes_sub_titles + the event sub_title
+        # (see _ufc_event_fighters).
         fetch_events = sector.lower() in _EVENT_TITLE_SECTORS
+        is_ufc = sector.lower() == "ufc"
 
         async def _fetch_prefix(prefix: str) -> list[PredictionMarket]:
             try:
@@ -902,6 +1030,13 @@ class KalshiClient(BaseAPIClient):
                         if codes:
                             event_codes[et] = (codes.group(1).lower(), codes.group(2).lower())
 
+                # UFC: both fighters per event from the sibling markets'
+                # yes_sub_title (+ event sub_title fallback). Built from the
+                # market rows too, so it survives an /events failure.
+                event_fighters = (
+                    _ufc_event_fighters(market_rows, event_rows) if is_ufc else None
+                )
+
                 parsed = []
                 for m in market_rows:
                     if is_prop_sector:
@@ -913,6 +1048,7 @@ class KalshiClient(BaseAPIClient):
                             competitions=competitions,
                             event_titles=event_titles,
                             event_codes=event_codes,
+                            event_fighters=event_fighters,
                         )
                     if p:
                         parsed.append(p)
@@ -1372,6 +1508,7 @@ class KalshiClient(BaseAPIClient):
         competitions: Optional[dict[str, str]] = None,
         event_titles: Optional[dict[str, str]] = None,
         event_codes: Optional[dict[str, tuple[str, str]]] = None,
+        event_fighters: Optional[dict[str, tuple[str, str]]] = None,
     ) -> Optional[PredictionMarket]:
         """Parse a raw Kalshi market dict into a PredictionMarket.
 
@@ -1386,6 +1523,10 @@ class KalshiClient(BaseAPIClient):
         If ``event_titles`` is provided (tennis only), the market's
         ``event_ticker`` is looked up to recover the "A vs B" matchup — the
         short "{Name} wins" market titles no longer carry the opponent.
+
+        If ``event_fighters`` is provided (UFC only; built by
+        ``_ufc_event_fighters``), the market's ``event_ticker`` is looked up
+        to recover the (away, home) fighters for the same reason.
         """
         try:
             ticker = raw.get("ticker", "")
@@ -1477,13 +1618,31 @@ class KalshiClient(BaseAPIClient):
                     yes_team = self._extract_tennis_yes_player(title, sector)
             elif sector == "ufc":
                 # UFC ticker codes are 3-letter surname truncations (SAI/PIM)
-                # with no alias table — parse the title instead, like tennis.
-                # Title fighter order is away-first (matches the ticker's
-                # {AWAY}{HOME} convention and Pinnacle's home/away), so the
-                # second-listed fighter is team_home; fuzzy matching is
-                # order-insensitive anyway if a card deviates.
-                team_away, team_home = self._extract_ufc_fighters_from_title(title)
-                yes_team = self._extract_tennis_yes_player(title, sector)
+                # with no alias table, so fighters come from names. Kalshi
+                # moved KXUFCFIGHT to the short "{Full Name} wins" title in
+                # 2026-08 (the tennis break), so the per-event join built by
+                # _ufc_event_fighters (sibling yes_sub_titles, event
+                # sub_title) is primary and the long-form "Will X win the A
+                # vs B ... MMA fight" regex is the fallback for old-format /
+                # cached rows. Order is away-first (the ticker's {AWAY}{HOME}
+                # convention and Pinnacle's home/away), so the second-listed
+                # fighter is team_home; fuzzy matching is order-insensitive
+                # anyway if a card deviates.
+                ev_key = raw.get("event_ticker")
+                fighters = (event_fighters or {}).get(ev_key) if ev_key else None
+                if fighters:
+                    team_away, team_home = fighters
+                else:
+                    team_away, team_home = self._extract_ufc_fighters_from_title(title)
+                yes_sub = (raw.get("yes_sub_title") or "").strip()
+                if not yes_sub:
+                    short = _SHORT_WINS_TITLE_RE.match(title or "")
+                    yes_sub = short.group(1).strip() if short else ""
+                if yes_sub:
+                    from evmax.matching.normalizer import NameNormalizer
+                    yes_team = NameNormalizer(sector).normalize(yes_sub)
+                else:
+                    yes_team = self._extract_tennis_yes_player(title, sector)
             else:
                 team_home, team_away = self._extract_teams_from_ticker(ticker, sector)
                 code_map = _series_team_code_map(ticker)
@@ -1568,6 +1727,15 @@ class KalshiClient(BaseAPIClient):
                     spread_line = self._extract_total_line(ticker)
             elif is_advance:
                 market_type = MarketType.advance
+                spread_line = None
+            elif sector in _WINNER_ONLY_SECTORS:
+                # KXATPMATCH / KXWTAMATCH / KXUFCFIGHT are match / fight WINNER
+                # series only. Their short titles ("{Name} wins") carry a player
+                # name, so title-keyword inference misfires on it: a hyphenated
+                # name reads as a spread ("Felix Auger-Aliassime wins",
+                # "Benoit Saint-Denis wins") and "over" inside a name as a total
+                # ("Glover Teixeira wins"), and the market is silently dropped.
+                market_type = MarketType.moneyline
                 spread_line = None
             else:
                 market_type = self._infer_market_type(title, sector)
@@ -1771,8 +1939,10 @@ class KalshiClient(BaseAPIClient):
                 return team_a.strip(), team_b.strip()
         return None, None
 
-    # UFC fight-winner titles: "Will Benoit Saint-Denis win the Saint-Denis
-    # vs Pimblett professional MMA fight scheduled for Jul 11, 2026?"
+    # LEGACY UFC fight-winner titles (Kalshi moved to "{Name} wins" in
+    # 2026-08 — see _ufc_event_fighters; this is now only the fallback):
+    # "Will Benoit Saint-Denis win the Saint-Denis vs Pimblett professional
+    # MMA fight scheduled for Jul 11, 2026?"
     # The matchup segment may carry surnames OR full names (both observed
     # live 2026-07-11) — the ufc sector handler normalizes either to the
     # canonical surname.
