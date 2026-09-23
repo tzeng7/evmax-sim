@@ -21,7 +21,7 @@ below is only the part that doesn't.
 | **Form staleness guard** | Same 60-day rule against each team's most recent record. Form silently skips opening week and re-enters as fresh results accumulate. This is self-healing by design — no action needed. | `evmax/agents/models/form_agent.py:51` |
 | **Resolve-time model auto-update** | The daily `daily-resolve-and-model-update` scheduled task (07:32) runs `evmax update scores` + `cleanup resolve`, feeding completed ESPN scores into Elo/Form/Poisson state for the game sectors and shot stats into the xG agent for soccer/worldcup. This is the self-heal path that un-gates Elo/Form after the first few game days. | `evmax/agents/cleanup/model_updater.py` |
 | **NBA stat models self-refresh** | `efficiency` / `shot_quality` / `matchup` / `possession_sim` fetch current-season `LeagueDashTeamStats` from `nba_api` at scan time (with an ESPN-driven freshness check and a circuit breaker). No manual seed exists or is needed for NBA. | `evmax/agents/models/_nba_freshness.py` |
-| **Source-season staleness guards (NFL, WNBA)** | `nfl_state_is_stale_for_today` / `state_is_stale_for_today` blank `nfl_efficiency`, `nfl_qb_elo`, `wnba_efficiency`, `wnba_possession_sim` whenever the seeded state's season is behind the active season — a frozen prior-season seed cannot silently fire. NHL's `nhl_xg` has **no such guard** (see Gaps). | `nfl_efficiency_agent.py:84`, `wnba_efficiency_agent.py:117` |
+| **Source-season staleness guards (NFL, WNBA)** | `nfl_state_is_stale_for_today` / `state_is_stale_for_today` blank `nfl_efficiency`, `nfl_qb_elo`, `wnba_efficiency`, `wnba_possession_sim` whenever the seeded state's season is behind the active season — a frozen prior-season seed cannot silently fire. NHL's `nhl_xg` (since 2026-09-22) instead demotes a last-season block to its regressed PRIOR (gp=0, confidence 0.70) rather than blanking. | `nfl_efficiency_agent.py:84`, `wnba_efficiency_agent.py:117` |
 | **`weekly-seasonal-model-reseed` task** | Monday 07:04, season-aware: WNBA efficiency (May–Oct), NFL efficiency + QB Elo (Sep–Feb), MLB pitcher_v2 (Mar–Nov), UFC Glicko-2 ratings (weekly, no offseason). NCAAF efficiency has its **own** task since 2026-09-03 — `weekly-ncaaf-efficiency-reseed`, Monday 07:10, Aug–Jan, isolated-worktree + rolling `bot/model-state` PR. NHL, NCAAB/W, and soccer are **not** in either. | `~/.claude/scheduled-tasks/weekly-seasonal-model-reseed/SKILL.md`, [`docs/SCHEDULED_RUNS.md`](SCHEDULED_RUNS.md) |
 
 **Net effect of the guards:** for roughly the first week of any restarted
@@ -181,31 +181,45 @@ This is the biggest "produce" item of the fall (MODEL-9). Re-opened
 - [ ] Respect the nba_props lesson: gate out the cheap-longshot bucket before
       any live flip.
 
-### NHL — puck drop ~early Oct 2026 · `shadow`
+### NHL — opener Tue 2026-09-29 (84-game season, 32 teams) · `shadow`
 
-**Have:** `seed_nhl_xg.py` (MoneyPuck 5v5, no incremental path), form
-self-heal, resolver wired. **This sector has the most missing scaffolding:**
+**Have (2026-09-22 readiness PR):** alias map, `nhl_xg` prior ramp +
+staleness guard, prior-only opening-night seed, calibrated Elo in the blend.
 
-- [ ] Seed at season open and **weekly thereafter**:
-      `python scripts/seed_nhl_xg.py --season 2026` (MoneyPuck keys seasons by
-      start year). Early-season note: the agent's confidence ramps over
-      `LOW_CONF_GAMES=25` / `HIGH_CONF_GAMES=50`, so October predictions run
-      at reduced confidence regardless — decide whether to seed with prior
-      season data initially or accept the low-confidence ramp (document the
-      choice in categories.yaml notes).
-- [ ] **Produce: add an NHL block to `weekly-seasonal-model-reseed`**
-      (Oct–Jun). Today nothing reseeds `nhl_xg` on a schedule — it will
-      silently freeze exactly like the WNBA efficiency incident.
-- [ ] **Produce: a source-season staleness guard for `nhl_xg`** (mirror
-      `nfl_state_is_stale_for_today`; the state already carries
-      `season_start_year`). Without it, a 2025-26 seed fires at full 0.30
-      weight into October 2026 games.
-- [ ] Check aliases for relocations (the Utah Mammoth precedent is already
-      handled in the agent's abbreviation map — verify nothing new).
-- [ ] Elo remains excluded from the NHL ensemble (uncalibrated K — MODEL-2 /
-      SECTOR-1). Calibrating it is optional pre-season work, not a blocker.
-- [ ] Promotion: still shadow — gate on Brier vs the ~0.225 sharp baseline
-      once ≥30 clean resolved rows exist.
+- [x] **Alias map** — `evmax/sectors/aliases/nhl.yaml` (was missing: Kalshi
+      ticker codes incl. the 2-letter `LA`/`NJ`/`SJ`/`TB` never matched
+      Pinnacle full names, so NHL matched 0 markets and logged zero rows).
+      Canonical = lowercased full name, except the DOT-FREE `st louis blues`
+      (Pinnacle event keys strip dots). Archive replay (Mar–Jun 2026, current
+      parser + engine): ML 0/236 → 182/236, spread 0/480 → 368/480, total
+      0/896 → 405/896; every remaining ML/spread miss has no archived
+      Pinnacle record for that game. Utah is **Utah Mammoth** for 2026-27.
+- [x] **Opening-night seed** — `python scripts/seed_nhl_xg.py` (season
+      rolls over on 1 Sep). MoneyPuck 404s the new season before its first
+      game, so the seed writes a PRIOR-ONLY state: empty `teams` + a `prior`
+      block of regressed 2025-26 rates. Committed 2026-09-22.
+- [x] **Prior ramp + staleness guard** — each rate is
+      `(gp·in_season + 20·(lg + 0.7·(prior − lg)))/(gp + 20)`; confidence
+      0.70 until min(gp) ≥ 50. A state whose in-season block is last season
+      is used ONLY as the regressed prior; two-plus seasons stale → None.
+- [x] **Blend** — `nhl_xg 0.30 · elo 0.15 · form 0` (walk-forward: model-side
+      Brier +5.7/1000 fit 2014–21, +5.6 confirm 2022–24, +1.6 holdout 2025,
+      +16.4 first six weeks). NHL Elo is NOT regressed (keep=1.0).
+- [ ] **Reseed weekly from the first Monday after the opener** (Oct–Jun):
+      `python scripts/seed_nhl_xg.py`. Verify `mode` flips to `in_season`,
+      `teams` has 32 entries with `gp>0`, and `fetched_at` advanced. Not yet
+      scheduled — see the recommendation in
+      [`docs/SCHEDULED_RUNS.md`](SCHEDULED_RUNS.md).
+- [ ] **Opening night runs `nhl_xg` + sharp only.** Elo's `last_updated` is
+      2026-04-17 (no NHL game has been fed since), so the 60-day Elo guard gates it
+      out until the first regular-season results are fed by the resolve hook
+      (preseason games are dropped from the feed). Expected; do not
+      hand-stamp `last_updated`.
+- [ ] NHL totals do not reach EV (`total_distribution` has no `nhl` σ/floor,
+      so `is_game_total` drops every hockey total); spreads price only the
+      ±1.5 puck line. Both are deliberate until validated separately.
+- [ ] Promotion: still shadow — `evmax cleanup shadow promote nhl` once
+      n≥30 clean resolved rows with CLV ≥ 0.
 
 ### NBA — opening night ~Oct 20, 2026 · `live`
 
@@ -264,11 +278,10 @@ below generalize from — its offseason-gap incident (+24pp chalk bias, May
 
 ## 4. What we need to produce (gap list, ranked)
 
-1. **NHL reseed block + `nhl_xg` staleness guard** (before Oct). Smallest
-   work, prevents a known-class silent failure. Add the block to
-   `weekly-seasonal-model-reseed`, add a `season_start_year` guard mirroring
-   `nfl_state_is_stale_for_today`, plus tests (Testing Policy applies —
-   `evmax/agents/models/` change).
+1. **NHL reseed block** (before the 2026-09-29 opener's first Monday). The
+   `nhl_xg` staleness guard, prior ramp, alias map and prior-only seed
+   shipped 2026-09-22; the only open item is scheduling
+   `seed_nhl_xg.py` weekly (see [`docs/SCHEDULED_RUNS.md`](SCHEDULED_RUNS.md)).
 2. **NFL props MODEL-9 unblock** (Sep): real series tickers in
    `SECTOR_SERIES_MAP`, a scheduled home for `fetch_nfl_features.py`
    (weekly, Sep–Feb), then the shadow-validation clock starts. Without the
@@ -315,7 +328,8 @@ Not every sector needs it. Two code facts frame the decision:
 | Baseball | 0.25 | Include in the script, defer the run — K=6 over 162 games self-corrects fast, the sector is shadow, and the next boundary is March 2027. |
 | NBA | 0.10 | Marginal. The four NBA-specific models (0.80 combined) self-refresh from `nba_api`; regressing a 0.10-weight input barely moves the blend. Do it for consistency or skip. |
 | Soccer (club) | 0.15 | **NO.** Subtlety: the staleness guard never trips (MLS keeps the sector's `last_updated` fresh through the European summer), so August ratings do fire un-regressed — but club soccer has the highest year-over-year squad persistence of any sport (ClubElo doesn't regress between seasons at all). The real August work is promoted-club aliases. |
-| NHL, NCAAW | 0 (Elo gated out of both blends — uncalibrated K, MODEL-2) | **Moot** until the SECTOR-1/2 calibrations happen; add regression then. |
+| NHL | 0.15 (since 2026-09-22) | **NO — swept.** Point-in-time walk-forward: inside the blend, keep 0.75 was worse than keep 1.0 on rank/confirm. `SECTOR_DEFAULT_KEEP["nhl"] = 1.0`; use `offseason_regress.py --sector nhl --prune-only` to drop stale keys only. |
+| NCAAW | 0 (elo weight 0 in the blend) | **Moot** for now; add regression if Elo gets blend weight. |
 | Tennis, esports, worldcup | — | **NO** — per-player tennis Elo is reseeded weekly from Tennis Abstract; esports is sharp-only; worldcup is seeded from scratch each cycle. |
 | WNBA | 0.15 | ✅ Already has it (`wnba_offseason_regress.py` + roster-move YAML + `EARLY_K_BOOST`). The template. |
 
@@ -340,7 +354,7 @@ Not every sector needs it. Two code facts frame the decision:
 | nfl | Sep 4 window | live | `seed_nfl_efficiency.py`, `seed_nfl_qb_elo.py` | ✅ weekly task (Sep–Feb) | ✅ source-season + elo/form 60d | ✅ `offseason_regress.py --sector nfl` (keep=0.667, §5) |
 | nfl_props | Sep 4 window | shadow (blocked) | cache self-downloads nflverse parquets (`fetch_nfl_features.py` = backtest bulk fetch) | n/a (auto on refresh) | n/a (cache) | n/a |
 | ncaaf | Aug 23 window (Week 0 ~Aug 29, Week 1 Labor Day weekend) | shadow | `seed_ncaaf_efficiency.py` (weekly), `seed_ncaaf_elo.py` (one-time warm seed) | ✅ `weekly-ncaaf-efficiency-reseed` (Mon 07:10, Aug–Jan) — ship gate: `gp>0` for teams that played + `fetched_at` advanced | ✅ `state_is_stale_for_today` (source_season) + elo/form 60d | ✅ `seed_ncaaf_elo.py --regress` at warm seed |
-| nhl | ~Oct 7 | shadow | `seed_nhl_xg.py` | ❌ none | ❌ none on nhl_xg | ❌ none (elo not in blend) |
+| nhl | Sep 29 (2026-27 opener) | shadow | `seed_nhl_xg.py` (prior-only until MoneyPuck publishes the season) | ❌ none — recommended (SCHEDULED_RUNS.md) | ✅ `season_start_year` guard → prior-only + elo/form 60d | ✅ swept: keep=1.0 (no regression); `--prune-only` for stale keys |
 | nba | ~Oct 20 | live | none needed (nba_api self-fetch) | auto at scan time | freshness helper + elo/form 60d | ❌ none |
 | ncaab | Nov 1 window | live | `seed_espn.py --sectors ncaab` | ❌ none | elo/form 60d | ❌ build — #1 target (§5) |
 | ncaaw | Nov 1 window | live | `seed_espn.py --sectors ncaaw` | ❌ none | elo/form 60d (elo weight 0 anyway) | ❌ none |

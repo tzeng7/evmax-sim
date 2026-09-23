@@ -172,6 +172,18 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 | `weekly-wnba-total-anchored-backfill-check` | Mon 09:01 | Watches the WNBA total over/under anchored-entry backfill sample for a PROMOTE or KILL verdict (read-only) |
 | `weekly-clv-backfill` | Mon 10:06 | The two CLV backfills no other schedule covers, run in the MAIN checkout (DB-only, no git/PR): (1) `scripts/backfill_outcome_closes.py` — fills `ev_outcomes.pinnacle_close_prob` for resolved outcomes whose `ev_predictions` partner was pruned (the inner-join blind spot `backfill_clv` cannot reach; 467 orphaned rows pending at creation, 2026-09-20), ALL sectors; (2) `scripts/backfill_kalshi_candles.py --sector nfl` — reconstructs NFL spread/total Kalshi candle trails for the anchored-entry CLV lens. Deliberately NOT here: the core `backfill_clv` (runs after every `cleanup resolve`) and WNBA candles (owned by `weekly-wnba-total-anchored-backfill-check`). Spec: `docs/scheduled-tasks/weekly-clv-backfill.md` |
 
+**Recommended, NOT yet scheduled — NHL `nhl_xg` reseed (2026-09-22).** Nothing
+reseeds `data/models/nhl_xg_state.json` on a schedule. The committed state is
+the opening-night PRIOR-ONLY seed (regressed 2025-26 rates), so without a weekly
+reseed the model never sees 2026-27 xG — it keeps pricing every team off last
+season, silently, all year. Proposed: an NHL block in `weekly-seasonal-model-reseed`
+(or its own task, NCAAF-style, so the state file has one owner), Mondays, Sep–Jun:
+`python scripts/seed_nhl_xg.py`. Ship gate: `fetched_at` == run date; once
+MoneyPuck publishes 2026-27 (after the 2026-09-29 opener), `mode` == `in_season`,
+32 `teams` with `gp>0`, and a 32-team `prior` block with `season_start_year` 2025.
+The seed aborts WITHOUT writing on any fetch failure other than the pre-opener
+404, so a failed run never regresses the state.
+
 ### One-time (fires once, then self-expires)
 
 | Task | Fires | What it does |

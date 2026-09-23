@@ -151,11 +151,11 @@ wnba:
 nhl:
   display_name: "NHL"
   market_types: [moneyline, spread, total]
-  models: [form, nhl_xg, sharp]
+  models: [elo, nhl_xg, sharp]
   mode: shadow
   resolver: espn_scoreboard
   status: shipped
-  notes: "Shadow 2026-05-02: nhl_xg agent landed (MoneyPuck 5v5 xGF/60 + xGA/60 → projected goal margin → Φ via GOAL_STDEV=2.05, HOME_EDGE_GOALS=0.18). Ensemble override gives nhl_xg 0.30, form 0.15, sharp via sharp_weight (0.85 default). Elo K-factor still uncalibrated for NHL (see MODEL-2 / SECTOR-1) — kept out of NHL ensemble for now. Goalie GSAx + special teams + B2B fatigue layers tracked in TODO.md as v2/v3. Promote to live once shadow Brier validates against sharp baseline (~0.225)."
+  notes: "Shadow 2026-05-02: nhl_xg agent landed (MoneyPuck 5v5 xGF/60 + xGA/60 → projected goal margin → Φ via GOAL_STDEV=2.05, HOME_EDGE_GOALS=0.18). 2026-09-22 opening-night readiness (2026-27 opens 09-29, 84 games): (1) evmax/sectors/aliases/nhl.yaml added — without it Kalshi ticker codes (incl. 2-letter LA/NJ/SJ/TB) never matched Pinnacle full names and ZERO NHL rows had ever logged (archive replay: 0/236 ML → 182/236; every remaining miss has no archived Pinnacle record); (2) nhl_xg gained a preseason-prior ramp (regressed prior-season rates, K=20, rho=0.7) + a staleness guard, so it fires on opening night at confidence 0.70 instead of firing last season's final ratings at 0.85; (3) blend is nhl_xg 0.30 + elo 0.15 + form 0 (walk-forward: model-side Brier +5.7/1000 fit, +5.6 confirm, +1.6 holdout, +16.4 first six weeks). NHL Elo is NOT offseason-regressed (keep=1.0). Moneyline is on MIN_NONSHARP_MODELS. NHL totals never reach EV today (total_distribution has no nhl sigma/floor, so is_game_total drops them) and spreads price only the ±1.5 puck line. Reseed weekly with `python scripts/seed_nhl_xg.py`. Goalie GSAx + special teams + B2B fatigue layers tracked in TODO.md as v2/v3. Promote with `evmax cleanup shadow promote nhl` once n>=30 resolved with CLV >= 0."
 
 lol:
   display_name: "League of Legends"

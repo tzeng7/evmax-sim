@@ -24,27 +24,63 @@ intentionally out of scope for v1. They land in v2 (nhl_special_teams_agent
 + goalie GSAx adjustment). Across an 82-game season opponent quality washes
 out, so we use raw xG rates rather than running an explicit SoS subtraction.
 
-State file: data/models/nhl_xg_state.json
+Preseason-prior ramp (2026-09-22, the NCAAF-v2 idea applied to hockey):
+each team rate is blended with a REGRESSED prior-season rate by games played,
+
+  prior_reg = lg + PRIOR_REGRESS_RHO · (prior − lg)       (lg = prior-season league avg)
+  rate      = (gp · in_season + PRIOR_RAMP_K · prior_reg) / (gp + PRIOR_RAMP_K)
+
+with PRIOR_RAMP_K=20 and PRIOR_REGRESS_RHO=0.7. At gp=0 the rate IS the
+regressed prior (the model fires on opening night instead of going dark for
+the ~3 weeks MIN_GAMES used to blank it); at gp=20 it is 50/50; at gp=82 the
+prior keeps ~20%. Confidence is 0.70 until min(gp) reaches HIGH_CONF_GAMES,
+then 0.85. A point-in-time walk-forward over MoneyPuck game logs (weekly
+reseed cutoffs, prior-season rates only) validated the ramp together with
+the elo 0.15 / form 0 blend: model-side Brier +5.7/1000 on the 2014-21 fit
+(z 7.7), +5.6/1000 on the 2022-24 confirm (z 5.1), +1.6/1000 on the 2025
+holdout, and +16.4/1000 over the first six weeks of a season (z 6.7).
+
+Staleness guard: the in-season block carries `season_start_year`. When it is
+the PREVIOUS season relative to the game date (NHL seasons roll over on
+1 September), the block is last season's final ratings — it is used only as
+the regressed prior (gp treated as 0), never fired as current-season ratings
+at full confidence. A block two or more seasons stale returns None.
+
+State file: data/models/nhl_xg_state.json (written by scripts/seed_nhl_xg.py)
   {
     "nhl": {
-      "league_avg_xg_per_60": 2.50,
-      "teams": {
+      "schema_version": 2,
+      "season_start_year": 2026,           # season of the in-season block
+      "league_avg_xg_per_60": 2.50,        # None when prior-only
+      "teams": {                           # {} before the season's first game
         "boston bruins": {
           "abbrev": "BOS",
           "xgf_per_60": 2.71, "xga_per_60": 2.32,
           "gf_per_60": 2.85,  "ga_per_60":  2.20,
-          "gp": 78
+          "gp": 12
         },
         ...
       },
-      "fetched_at": "2026-05-02",
-      "season_start_year": 2025
+      "prior": {                           # regressed PREVIOUS-season rates
+        "season_start_year": 2025,
+        "league_avg_xg_per_60": 2.48,
+        "regress_rho": 0.7,
+        "teams": {
+          "boston bruins": {"xgf_per_60": ..., "xga_per_60": ...,   # regressed
+                            "raw_xgf_per_60": ..., "raw_xga_per_60": ..., "gp": 82},
+          ...
+        }
+      },
+      "fetched_at": "2026-09-22"
     }
   }
+A legacy state without a `prior` block (and not stale) keeps the original
+behaviour: raw in-season rates, MIN_GAMES gate, 0.55/0.70/0.85 confidence.
 """
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Optional
 
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
@@ -55,9 +91,39 @@ from evmax.models.odds import SharpOdds
 HOME_EDGE_GOALS = 0.18       # ~+0.18 goal home advantage; NHL home WP ~55%
 GOAL_STDEV = 2.05            # single-game goal-margin σ (empirical, NHL last 5 seasons)
 MIN_5V5_PER_GAME = 50.0      # 5v5 minutes per team per game; remainder is special teams
-MIN_GAMES = 10               # below this, xG rates haven't stabilized
+MIN_GAMES = 10               # legacy (no-prior) path: below this, raw rates haven't stabilized
 LOW_CONF_GAMES = 25          # ~30% of season → moderate confidence
 HIGH_CONF_GAMES = 50         # ~60% of season → full confidence
+
+# Preseason-prior ramp — the exact constants the walk-forward validated
+# (see the module docstring). Changing either needs a new walk-forward.
+PRIOR_RAMP_K = 20.0          # gp at which in-season and prior weigh 50/50
+PRIOR_REGRESS_RHO = 0.7      # share of the prior season's deviation from the league mean kept
+RAMP_CONFIDENCE = 0.70       # confidence while min(gp) < HIGH_CONF_GAMES on the ramp path
+
+# NHL seasons are labelled by their START year and roll over on this month:
+# a September game (the 2026-27 opener is 2026-09-29) belongs to the new season.
+SEASON_ROLLOVER_MONTH = 9
+
+
+def nhl_season_for(d: date) -> int:
+    """Start year of the NHL season a game on `d` belongs to."""
+    return d.year if d.month >= SEASON_ROLLOVER_MONTH else d.year - 1
+
+
+def regress_prior_rate(prior: float, league_avg: float, rho: float = PRIOR_REGRESS_RHO) -> float:
+    """Shrink a prior-season rate toward that season's league average."""
+    return league_avg + rho * (prior - league_avg)
+
+
+def ramp_rate(in_season: Optional[float], gp: int, prior_reg: float, k: float = PRIOR_RAMP_K) -> float:
+    """Blend an in-season rate with the regressed prior by games played.
+
+    gp=0 (or no in-season rate) returns the regressed prior exactly.
+    """
+    if gp <= 0 or in_season is None:
+        return prior_reg
+    return (gp * in_season + k * prior_reg) / (gp + k)
 
 
 # Shared Abramowitz & Stegun normal CDF (single source in models_ml).
@@ -65,10 +131,12 @@ from evmax.models_ml._math import normal_cdf as _normal_cdf
 
 
 # NHL abbreviation → canonical lowercased team name. 32-team alignment as of
-# the 2025-26 season (Arizona Coyotes relocated to Utah Mammoth for 2024-25;
-# rebranded "Utah Mammoth" for 2025-26). MoneyPuck uses dotted variants for
-# some teams (L.A, N.J, S.J, T.B); the seed script normalizes those to the
-# standard 3-letter codes below before keying state.
+# the 2026-27 season (Arizona Coyotes relocated to Utah as "Utah Hockey Club"
+# for 2024-25; rebranded "Utah Mammoth" for 2025-26). MoneyPuck uses dotted
+# variants for some teams (L.A, N.J, S.J, T.B); the seed script normalizes
+# those to the standard 3-letter codes below before keying state. Values are
+# the sector canonicals from evmax/sectors/aliases/nhl.yaml — St. Louis is the
+# DOT-FREE "st louis blues" there (Pinnacle event keys strip dots).
 NHL_ABBREV_TO_NAME: dict[str, str] = {
     "ANA": "anaheim ducks",
     "BOS": "boston bruins",
@@ -94,7 +162,7 @@ NHL_ABBREV_TO_NAME: dict[str, str] = {
     "PIT": "pittsburgh penguins",
     "SEA": "seattle kraken",
     "SJS": "san jose sharks",
-    "STL": "st. louis blues",
+    "STL": "st louis blues",
     "TBL": "tampa bay lightning",
     "TOR": "toronto maple leafs",
     "UTA": "utah mammoth",
@@ -134,42 +202,121 @@ class NhlXgModelAgent(ModelAgent):
     def _sector_state(self) -> dict:
         return self._state.get("nhl", {})
 
+    @staticmethod
+    def _lookup(teams: dict, full: str) -> Optional[dict]:
+        """Exact key, then dot-insensitive key ("st. louis blues" ≡ "st louis blues")."""
+        if full in teams:
+            return teams[full]
+        bare = full.replace(".", "")
+        for key, val in teams.items():
+            if key.replace(".", "") == bare:
+                return val
+        return None
+
     def _resolve_team(self, teams: dict, team: str) -> Optional[dict]:
         """Resolve a team identifier (full name, last word, abbrev) to its stats dict."""
         if not team:
             return None
         team = team.lower().strip()
-        if team in teams:
-            return teams[team]
+        hit = self._lookup(teams, team)
+        if hit is not None:
+            return hit
 
         # Abbreviation lookup (also handles MoneyPuck dotted variants)
         upper = team.upper()
         if upper in NHL_MONEYPUCK_ABBREV_ALIASES:
             upper = NHL_MONEYPUCK_ABBREV_ALIASES[upper]
         if upper in NHL_ABBREV_TO_NAME:
-            full = NHL_ABBREV_TO_NAME[upper]
-            if full in teams:
-                return teams[full]
+            hit = self._lookup(teams, NHL_ABBREV_TO_NAME[upper])
+            if hit is not None:
+                return hit
 
         # Multi-word nickname check first ("maple leafs", "blue jackets")
         if team in NHL_NICKNAME_TO_NAME:
-            full = NHL_NICKNAME_TO_NAME[team]
-            if full in teams:
-                return teams[full]
+            hit = self._lookup(teams, NHL_NICKNAME_TO_NAME[team])
+            if hit is not None:
+                return hit
 
         # Last-word lookup ("bruins" → "boston bruins")
         if " " in team:
             last = team.rsplit(" ", 1)[-1]
             if last in NHL_NICKNAME_TO_NAME:
-                full = NHL_NICKNAME_TO_NAME[last]
-                if full in teams:
-                    return teams[full]
+                hit = self._lookup(teams, NHL_NICKNAME_TO_NAME[last])
+                if hit is not None:
+                    return hit
 
         # Substring fallback (handles "ny rangers", "la kings", etc.)
         for key, val in teams.items():
             if team in key or key in team:
                 return val
         return None
+
+    def _rating_context(
+        self, market: PredictionMarket,
+    ) -> Optional[tuple[dict, dict, str]]:
+        """Return (in_season_teams, regressed_prior_teams, mode) for this game.
+
+        mode is "ramp" (in-season blended with the prior), "prior_only"
+        (the in-season block is last season's → it becomes the prior, gp=0)
+        or "legacy" (no prior available → raw in-season rates, MIN_GAMES gate).
+        None when the state is empty or two-plus seasons stale.
+        """
+        st = self._sector_state()
+        teams = st.get("teams") or {}
+        prior = st.get("prior") or {}
+        prior_teams = prior.get("teams") or {}
+        season = st.get("season_start_year")
+
+        ref = market.event_date.date() if market.event_date else date.today()
+        active = nhl_season_for(ref)
+
+        if season is not None and int(season) < active:
+            # Staleness guard: last season's FINAL ratings must never fire as
+            # current-season ratings (gp=82 → confidence 0.85 on opening night).
+            if int(season) != active - 1:
+                return None
+            lg = st.get("league_avg_xg_per_60")
+            if lg is None or not teams:
+                return None
+            regressed = {
+                name: {
+                    "xgf_per_60": regress_prior_rate(s["xgf_per_60"], lg),
+                    "xga_per_60": regress_prior_rate(s["xga_per_60"], lg),
+                }
+                for name, s in teams.items()
+                if s.get("xgf_per_60") is not None and s.get("xga_per_60") is not None
+            }
+            return {}, regressed, "prior_only"
+
+        prior_season = prior.get("season_start_year")
+        if (
+            prior_teams
+            and season is not None
+            and prior_season is not None
+            and int(prior_season) != int(season) - 1
+        ):
+            prior_teams = {}  # a prior from any other season is not the validated prior
+        if not teams and not prior_teams:
+            return None
+        if prior_teams:
+            return teams, prior_teams, ("ramp" if teams else "prior_only")
+        return teams, {}, "legacy"
+
+    def _team_rates(
+        self, in_teams: dict, prior_teams: dict, team: str,
+    ) -> Optional[tuple[float, float, int, bool]]:
+        """(xgf_per_60, xga_per_60, gp, used_prior) for one side, or None."""
+        stats = self._resolve_team(in_teams, team) if in_teams else None
+        pri = self._resolve_team(prior_teams, team) if prior_teams else None
+        gp = int(stats.get("gp", 0) or 0) if stats else 0
+        if pri is not None:
+            # Never blank a team that has a prior: gp=0 → the regressed prior.
+            xgf = ramp_rate(stats.get("xgf_per_60") if stats else None, gp, pri["xgf_per_60"])
+            xga = ramp_rate(stats.get("xga_per_60") if stats else None, gp, pri["xga_per_60"])
+            return xgf, xga, gp, True
+        if stats is None or gp < MIN_GAMES:
+            return None
+        return stats["xgf_per_60"], stats["xga_per_60"], gp, False
 
     async def predict_pair(
         self,
@@ -180,27 +327,24 @@ class NhlXgModelAgent(ModelAgent):
         if sector != "nhl":
             return None
 
-        sector_state = self._sector_state()
-        teams = sector_state.get("teams", {})
-        if not teams:
+        ctx = self._rating_context(market)
+        if ctx is None:
             return None
+        in_teams, prior_teams, mode = ctx
 
         team_a = (sharp_odds.outcome_a_label or market.team_home or "").lower().strip()
         team_b = (sharp_odds.outcome_b_label or market.team_away or "").lower().strip()
 
-        stats_a = self._resolve_team(teams, team_a)
-        stats_b = self._resolve_team(teams, team_b)
-        if not stats_a or not stats_b:
+        rates_a = self._team_rates(in_teams, prior_teams, team_a)
+        rates_b = self._team_rates(in_teams, prior_teams, team_b)
+        if rates_a is None or rates_b is None:
             return None
-
-        gp_a = stats_a.get("gp", 0)
-        gp_b = stats_b.get("gp", 0)
-        if gp_a < MIN_GAMES or gp_b < MIN_GAMES:
-            return None
+        xgf_a, xga_a, gp_a, ramped_a = rates_a
+        xgf_b, xga_b, gp_b, ramped_b = rates_b
 
         # Net xG/60 differential: high xGF + low xGA both push net up.
-        net_a = stats_a["xgf_per_60"] - stats_a["xga_per_60"]
-        net_b = stats_b["xgf_per_60"] - stats_b["xga_per_60"]
+        net_a = xgf_a - xga_a
+        net_b = xgf_b - xga_b
         diff_per_60 = net_a - net_b
 
         # Convert per-60 differential to projected goal margin over the 5v5
@@ -215,8 +359,10 @@ class NhlXgModelAgent(ModelAgent):
         min_gp = min(gp_a, gp_b)
         if min_gp >= HIGH_CONF_GAMES:
             confidence = 0.85
-        elif min_gp >= LOW_CONF_GAMES:
-            confidence = 0.70
+        elif min_gp >= LOW_CONF_GAMES or (ramped_a and ramped_b):
+            # The prior ramp keeps a regressed-prior floor under both sides, so
+            # it earns the moderate tier from gp=0 (the validated setting).
+            confidence = RAMP_CONFIDENCE
         else:
             confidence = 0.55
 
@@ -230,7 +376,7 @@ class NhlXgModelAgent(ModelAgent):
             weight=self.weight,
             sample_size=min_gp,
             notes=(
-                f"net_xg/60={net_a:+.2f}/{net_b:+.2f} "
+                f"{mode} net_xg/60={net_a:+.2f}/{net_b:+.2f} "
                 f"margin={margin:+.2f}g gp={gp_a}/{gp_b}"
             ),
         )

@@ -486,6 +486,14 @@ class TestMinNonsharpFloor:
         assert has_full_blend("worldcup", "sharp+advance_derived", "advance") is False
         assert has_full_blend("worldcup", "elo+sharp+advance_derived", "advance") is True
 
+    def test_nhl_moneyline_floor(self):
+        # 2026-09-22: a sharp-only NHL moneyline means nhl_xg/elo went missing.
+        assert has_full_blend("nhl", "sharp", "moneyline") is False
+        assert has_full_blend("nhl", "nhl_xg+sharp", "moneyline") is True
+        assert has_full_blend("nhl", "elo+sharp", "moneyline") is True
+        # Spreads are priced off the sharp puck line — out of scope.
+        assert has_full_blend("nhl", "sharp+spread_dist", "spread") is True
+
     def test_ufc_unaffected(self):
         # Sharp-dominance is by design for sectors without an entry.
         assert has_full_blend("ufc", "sharp", "moneyline") is True

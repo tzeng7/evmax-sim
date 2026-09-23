@@ -22,14 +22,30 @@ MUST come from a walk-forward sweep, never copied across sports
               (1.5/2/3 × decay 4/6/8) was WORSE on rank and confirm, so NFL
               gets no EARLY_K_BOOST entry.
 
+  nhl  1.0    NOT regressed. 2026-09-22 point-in-time walk-forward (MoneyPuck
+              game logs 2014–2025, production Elo update + K=6/HOME=48):
+              inside the NHL blend (nhl_xg ramp 0.30 + elo 0.15), keep 0.75
+              was WORSE than keep 1.0 on the rank and confirm windows. Run NHL
+              with --prune-only to drop stale keys without touching ratings.
+
 Also drops non-team keys that exhibition games leave in the state (the NFL
-Pro Bowl feeds `afc` / `nfc` into elo AND form state) so they can never be
+Pro Bowl feeds `afc` / `nfc` into elo AND form state; the NHL 4 Nations /
+All-Star formats fed `canada`, `usa`, `mcdavid`, …) so they can never be
 matched or averaged into the league mean.
+
+`--prune-only` skips the regression entirely: it only applies --drop and
+--rename, and leaves every other key (ratings, season_games, stamps) byte-for-
+byte untouched. `--rename OLD=NEW` moves a team key value-preservingly (elo
+ratings / game_counts / season_games / h2h, and the form key) — used when a
+sector canonical changes spelling (NHL "st. louis blues" → "st louis blues",
+2026-09-22, because Pinnacle event keys strip dots).
 
 Usage:
     python scripts/offseason_regress.py --sector nfl --dry-run
     python scripts/offseason_regress.py --sector nfl --drop afc,nfc
     python scripts/offseason_regress.py --sector nba --keep 0.75 --moves data/models/nba_2027_offseason.yaml
+    python scripts/offseason_regress.py --sector nhl --prune-only --drop canada,usa \
+        --rename "st. louis blues=st louis blues"
 
 The Elo (and, when keys are dropped, form) state files are backed up beside
 themselves as `*.backup.{sector}_offseason_{timestamp}.json` before any write.
@@ -57,6 +73,7 @@ DEFAULT_ELO = 1500.0
 # entry needs an explicit --keep (and a sweep behind it).
 SECTOR_DEFAULT_KEEP: dict[str, float] = {
     "nfl": 0.667,
+    "nhl": 1.0,
 }
 
 
@@ -165,6 +182,111 @@ def prune_form_state(form_state: dict, sector: str, drop: Iterable[str]) -> list
     return removed
 
 
+def parse_renames(specs: Iterable[str]) -> list[tuple[str, str]]:
+    """Parse `OLD=NEW` rename specs (lower-cased, stripped)."""
+    out = []
+    for spec in specs:
+        if "=" not in spec:
+            raise ValueError(f"--rename expects OLD=NEW, got {spec!r}")
+        old, new = (x.strip().lower() for x in spec.split("=", 1))
+        if not old or not new or old == new:
+            raise ValueError(f"--rename needs two different non-empty names, got {spec!r}")
+        out.append((old, new))
+    return out
+
+
+def prune_elo_keys(
+    state: dict, sector: str, *, drop: Iterable[str] = (),
+    renames: Iterable[tuple[str, str]] = (),
+) -> dict[str, list]:
+    """Drop and/or rename team keys in `state[sector]` WITHOUT regressing.
+
+    Every other key and value is left untouched (no rating rewrite, no
+    season_games reset, no provenance stamp), so the resulting JSON diff is
+    exactly the dropped/renamed keys. A rename moves the value unchanged
+    across ratings / game_counts / season_games and rewrites each h2h key that
+    references the team; when the rename changes the alphabetical order of an
+    h2h pair, a_wins/b_wins are swapped so the record keeps its meaning.
+    Refuses to rename onto a key that already exists (that would be a merge).
+    """
+    sec = state[sector]
+    stores = [sec.get(k) for k in ("ratings", "game_counts", "season_games")]
+    stores = [s for s in stores if isinstance(s, dict)]
+    h2h = sec.get("h2h") if isinstance(sec.get("h2h"), dict) else {}
+
+    dropped: list[str] = []
+    for key in (d.lower().strip() for d in drop):
+        hit = False
+        for store in stores:
+            if key in store:
+                store.pop(key)
+                hit = True
+        for hk in list(h2h):
+            if key in hk.split("::"):
+                h2h.pop(hk)
+                hit = True
+        if hit:
+            dropped.append(key)
+
+    renamed: list[str] = []
+    for old, new in renames:
+        for store in stores:
+            if new in store:
+                raise ValueError(f"rename target {new!r} already present — refusing to merge")
+        hit = False
+        for store in stores:
+            if old in store:
+                # Rebuild to keep the key's position, so the diff is a pure rename.
+                items = [(new if k == old else k, v) for k, v in store.items()]
+                store.clear()
+                store.update(items)
+                hit = True
+        new_h2h = {}
+        for hk, rec in h2h.items():
+            a, b = hk.split("::", 1)
+            if old not in (a, b):
+                new_h2h[hk] = rec
+                continue
+            a2 = new if a == old else a
+            b2 = new if b == old else b
+            if a2 <= b2:
+                new_h2h[f"{a2}::{b2}"] = rec
+            else:
+                swapped = dict(rec)
+                swapped["a_wins"], swapped["b_wins"] = rec.get("b_wins", 0), rec.get("a_wins", 0)
+                new_h2h[f"{b2}::{a2}"] = swapped
+            hit = True
+        if h2h:
+            h2h.clear()
+            h2h.update(new_h2h)
+        if hit:
+            renamed.append(f"{old}->{new}")
+    return {"dropped": dropped, "renamed": renamed}
+
+
+def rename_form_keys(form_state: dict, sector: str, renames: Iterable[tuple[str, str]]) -> list[str]:
+    """Rename team keys in `form_state[sector]` (value unchanged, position kept).
+
+    Only the team's own key moves; `opp` fields inside other teams' records
+    are history labels used solely for (date, opp, home) de-duplication and
+    are left as recorded.
+    """
+    sec = form_state.get(sector)
+    if not isinstance(sec, dict):
+        return []
+    done = []
+    for old, new in renames:
+        if old not in sec:
+            continue
+        if new in sec:
+            raise ValueError(f"form rename target {new!r} already present — refusing to merge")
+        items = [(new if k == old else k, v) for k, v in sec.items()]
+        sec.clear()
+        sec.update(items)
+        done.append(f"{old}->{new}")
+    return done
+
+
 def print_table(summary: dict) -> None:
     before, shrunk, after, deltas = (summary[k] for k in ("before", "shrunk", "after", "deltas"))
     rows = sorted(
@@ -186,6 +308,57 @@ def _backup(path: Path, sector: str, stamp: str) -> Path:
     return backup
 
 
+def _prune_only(args: argparse.Namespace, sector: str) -> int:
+    """--prune-only: drop/rename keys in elo (+ form) state, no regression."""
+    try:
+        renames = parse_renames(args.rename)
+    except ValueError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    drop = [d for d in (x.strip() for x in args.drop.split(",")) if d]
+    if not drop and not renames:
+        print("error: --prune-only needs --drop and/or --rename", file=sys.stderr)
+        return 1
+
+    state = json.loads(args.state.read_text())
+    if sector not in state:
+        print(f"error: sector {sector!r} not present in {args.state}", file=sys.stderr)
+        return 1
+    try:
+        elo = prune_elo_keys(state, sector, drop=drop, renames=renames)
+        form_state: Optional[dict] = None
+        form_removed: list[str] = []
+        form_renamed: list[str] = []
+        if not args.no_form and args.form_state.exists():
+            form_state = json.loads(args.form_state.read_text())
+            form_removed = prune_form_state(form_state, sector, drop)
+            form_renamed = rename_form_keys(form_state, sector, renames)
+    except ValueError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+
+    mode = "DRY RUN" if args.dry_run else "APPLYING"
+    print(f"[{mode}] {sector} prune-only (no regression)")
+    print(f"  dropped (elo)     = {elo['dropped'] or '—'}")
+    print(f"  renamed (elo)     = {elo['renamed'] or '—'}")
+    print(f"  dropped (form)    = {form_removed or '—'}")
+    print(f"  renamed (form)    = {form_renamed or '—'}")
+    if args.dry_run:
+        print("dry-run complete — no files modified")
+        return 0
+
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if elo["dropped"] or elo["renamed"]:
+        backup = _backup(args.state, sector, stamp)
+        args.state.write_text(json.dumps(state, indent=2))
+        print(f"wrote {args.state}  (backup {backup.name})")
+    if form_state is not None and (form_removed or form_renamed):
+        fbackup = _backup(args.form_state, sector, stamp)
+        args.form_state.write_text(json.dumps(form_state, indent=2))
+        print(f"wrote {args.form_state}  (backup {fbackup.name})")
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--sector", required=True, help="Sector key in elo_state.json (e.g. nfl)")
@@ -199,12 +372,22 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--state", type=Path, default=ELO_STATE_PATH)
     parser.add_argument("--form-state", type=Path, default=FORM_STATE_PATH)
     parser.add_argument("--no-form", action="store_true", help="Do not touch form_state.json even when --drop is set")
+    parser.add_argument("--prune-only", action="store_true",
+                        help="Skip the regression: only apply --drop / --rename, leave everything else untouched")
+    parser.add_argument("--rename", action="append", default=[],
+                        help="OLD=NEW team-key rename (repeatable; requires --prune-only)")
     args = parser.parse_args(argv)
 
     sector = args.sector.lower().strip()
     if not args.state.exists():
         print(f"error: {args.state} not found", file=sys.stderr)
         return 1
+
+    if args.rename and not args.prune_only:
+        print("error: --rename is only supported with --prune-only", file=sys.stderr)
+        return 1
+    if args.prune_only:
+        return _prune_only(args, sector)
 
     cfg = load_moves(args.moves) if args.moves else {}
     keep = args.keep

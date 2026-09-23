@@ -205,16 +205,22 @@ class EnsembleModelAgent(Agent):
             "form":       0.0,
             "poisson":    0.0,
         },
-        # NHL ensemble — v1 ships with team 5v5 xG (MoneyPuck) as the
-        # dominant non-sharp signal. Generic Elo is held at 0 because its
-        # K-factor / home-advantage have never been calibrated for NHL
-        # (MODEL-2 / SECTOR-1). Form contributes a small recency voice.
-        # Poisson stays out; goalie GSAx and special-teams agents land
-        # in v2/v3 and will reduce nhl_xg / form weight when they ship.
+        # NHL ensemble (2026-09-22) — team 5v5 xG (MoneyPuck, with the
+        # preseason-prior ramp) + the calibrated generic Elo (MODEL-2 NHL
+        # half: K=6 / HOME_ADVANTAGE_ELO=48). Point-in-time walk-forward
+        # (MoneyPuck game logs, weekly-reseed cutoffs) of xg-ramp 0.30 +
+        # elo 0.15 + form 0 vs the old xg 0.30 + form 0.15 + elo 0:
+        # model-side Brier +5.7/1000 fit 2014-21 (z 7.7), +5.6 confirm
+        # 2022-24 (z 5.1), +1.6 holdout 2025, +16.4/1000 over the first
+        # six weeks (z 6.7). Form ZEROED: standalone it is worse than a coin
+        # flip on NHL (Brier 0.2596). NHL Elo is NOT offseason-regressed
+        # (keep=1.0 — keep 0.75 was worse inside the blend on rank/confirm).
+        # NHL has no REQUIRED_BLEND_MODELS entry, so zeroing form cannot
+        # shadow-demote plays. Poisson stays out (soccer-gated at the agent).
         "nhl": {
             "nhl_xg":  0.30,
-            "form":    0.15,
-            "elo":     0.0,
+            "elo":     0.15,
+            "form":    0.0,
             "poisson": 0.0,
         },
         # NCAAB — opponent-adjusted efficiency stack (2026-07-11). Weights
