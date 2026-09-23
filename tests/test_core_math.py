@@ -485,11 +485,17 @@ class TestSpreadDistributionModel:
         """YES is underdog (outcome_b): prob should be 1 - prob_a at same line."""
         true_prob_a = 0.70  # strong home favorite
         sharp = _make_spread_sharp(spread_line=-7.5, true_prob_a=true_prob_a)
-        result_fav = self.model.predict(sharp, target_line=-7.5, sector="nba", yes_is_underdog=False)
-        result_dog = self.model.predict(sharp, target_line=-7.5, sector="nba", yes_is_underdog=True)
+        # −3.5: "fav wins by 4+" vs "dog wins by 4+" (11 pts from the main on
+        # the true favorite-margin axis — inside the 12.5 gate).
+        result_fav = self.model.predict(sharp, target_line=-3.5, sector="nba", yes_is_underdog=False)
+        result_dog = self.model.predict(sharp, target_line=-3.5, sector="nba", yes_is_underdog=True)
         assert result_fav is not None and result_dog is not None
         # The underdog result at the same line magnitude should be significantly lower
         assert result_dog.true_prob < result_fav.true_prob
+        # "dog wins by 8+" off a −7.5 main sits 15 pts out on the true axis:
+        # beyond the 1σ gate, so it is no longer priced (the old folded
+        # distance measured it as 0).
+        assert self.model.predict(sharp, target_line=-7.5, sector="nba", yes_is_underdog=True) is None
 
     def test_predict_underdog_positive_line_is_high_not_low(self):
         """Regression (2026-07-10): underdog YES at a POSITIVE target_line
@@ -583,8 +589,10 @@ class TestSpreadDistributionModel:
         """A heavier favorite spread means lower probability for the underdog."""
         sharp_big_fav = _make_spread_sharp(spread_line=-10.5, true_prob_a=0.65)
         sharp_small_fav = _make_spread_sharp(spread_line=-4.5, true_prob_a=0.55)
-        result_big = self.model.predict(sharp_big_fav, target_line=-10.5, sector="nba", yes_is_underdog=True)
-        result_small = self.model.predict(sharp_small_fav, target_line=-4.5, sector="nba", yes_is_underdog=True)
+        # Same rung for both ("dog wins by 2+", within the true-axis gate of
+        # each main line): the heavier favorite leaves the dog less likely.
+        result_big = self.model.predict(sharp_big_fav, target_line=-1.5, sector="nba", yes_is_underdog=True)
+        result_small = self.model.predict(sharp_small_fav, target_line=-1.5, sector="nba", yes_is_underdog=True)
         assert result_big is not None and result_small is not None
         assert result_big.true_prob < result_small.true_prob
 

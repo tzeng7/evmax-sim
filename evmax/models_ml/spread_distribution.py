@@ -39,6 +39,13 @@ _SECTOR_SIGMA: dict[str, float] = {
     "wnba": 12.5,    # matches WNBAPossessionSimAgent SCORE_STDEV; ~40-min games
     "nfl": 14.0,
     "ncaab": 12.5,
+    "ncaaf": 15.0,   # 2026-09-22: CFB residual SD around the CLOSING spread is
+                     # 15.25 (n=3795, cfbfastR closes x ESPN finals 2022-25,
+                     # 14.97-15.38 every season, flat across spread size; probit
+                     # of win on the close gives 14.5). Previously fell to the
+                     # 11.5 default. Inert today: ncaaf spread is a
+                     # disabled_market_type. Not the model's SCORE_STDEV 16.5,
+                     # which measures MODEL margin error, not market error.
     "baseball": 4.0, # MLB run-margin σ — defense-in-depth; gated below
     "nhl": 2.0,      # NHL goal-margin σ — defense-in-depth; gated below
     "soccer": 1.9,   # goals, not points — gated below
@@ -217,17 +224,32 @@ class SpreadDistributionModel:
             if handled:
                 return pmf_pred
 
-        # Reject Kalshi lines more than SPREAD_MAX_SIGMA·σ from Pinnacle's line.
+        # Reject Kalshi lines more than SPREAD_MAX_SIGMA·σ from Pinnacle's line,
+        # measured on the TRUE favorite-margin axis (the PMF path's rule too).
         # Beyond this range the normal distribution extrapolation becomes unreliable
         # (tail probabilities are very sensitive to small errors in the inferred mean).
+        # The old folded distance abs(abs(target) - abs(main)) put "underdog wins
+        # by X" rungs next to the favorite's main line — "dog wins by 16.5" off a
+        # −3 main measured 13.5 instead of 19.5 and slipped under the 12.5–14
+        # gate. Those deep dog tails are exactly where Φ overstates mass: live
+        # WNBA leak rungs were priced at 11.3% and won 0/11; shadow WNBA leak
+        # rungs 21.5% priced vs 15.0% realized, CLV −1.77pp (2026-09-22).
         # SPREAD_MAX_SIGMA defaults to 1.0 (today's gate); tighten it with the ladder.
-        if line_distance > SPREAD_MAX_SIGMA * sigma:
+        # (The low-scoring ±0.5 tolerance gate above keeps the folded distance on
+        # purpose: baseball "underdog wins by 2+" off a −1.5 run line prices fine —
+        # 107 resolved rows, 40.7% priced vs 37.4% realized, CLV +0.48pp.)
+        true_distance = abs(
+            _spread_pmf.favorite_threshold(target_line, yes_is_underdog)
+            - abs(pinnacle_line)
+        )
+        if true_distance > SPREAD_MAX_SIGMA * sigma:
             logger.debug(
                 "spread_model_line_too_far",
                 event_id=sharp_odds.event_id,
                 pinnacle_line=pinnacle_line,
                 target_line=target_line,
-                distance=line_distance,
+                yes_is_underdog=yes_is_underdog,
+                distance=true_distance,
             )
             return None
 

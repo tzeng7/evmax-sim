@@ -381,10 +381,11 @@ class TestFallback:
         pred = SpreadDistributionModel().predict(_sharp(-3.0, 0.5), target_line=-7.5, sector="nfl")
         assert pred.method == "spread_dist"
         assert pred.true_prob == _old_normal(-3.0, 0.5, -7.5, False, 14.0)[0]
-        # the normal path keeps its folded gate: this deep dog rung still prices
+        # the normal path gates on the TRUE axis too (2026-09-22): "dog wins by
+        # 16.5" off a −3 main is 19.5 pts out → not priced
         dog = SpreadDistributionModel().predict(
             _sharp(-3.0, 0.5), target_line=-16.5, sector="nfl", yes_is_underdog=True)
-        assert dog is not None and dog.method == "spread_dist"
+        assert dog is None
 
 
 # ---------------------------------------------------------------------------
@@ -393,7 +394,7 @@ class TestFallback:
 
 class TestOtherSectorsUnchanged:
     @pytest.mark.parametrize("sector,sigma", [("nba", 12.5), ("wnba", 12.5), ("ncaab", 12.5),
-                                              ("ncaaw", 11.5), ("ncaaf", 11.5)])
+                                              ("ncaaw", 11.5), ("ncaaf", 15.0)])
     def test_exact_old_formula_and_token(self, sector, sigma, monkeypatch):
         def _boom(*a, **k):  # the PMF loader must never run for these sectors
             raise AssertionError("PMF consulted for a non-PMF sector")
@@ -405,8 +406,10 @@ class TestOtherSectorsUnchanged:
             for dog in (False, True):
                 for L in (-12.5, -7.5, -3.5, -1.5, 1.5, 3.5, 7.5, 12.5):
                     pred = m.predict(s, target_line=L, sector=sector, yes_is_underdog=dog)
-                    folded = abs(abs(L) - abs(main))
-                    if folded > sigma:
+                    # Gate on the TRUE favorite-margin axis (2026-09-22): a
+                    # "dog wins by X" rung (dog, negative L) sits at t = L.
+                    t_fav = L if dog else -L
+                    if abs(t_fav - abs(main)) > sigma:
                         assert pred is None
                         continue
                     exp_p, exp_mu = _old_normal(main, p, L, dog, sigma)
