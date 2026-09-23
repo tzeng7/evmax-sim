@@ -34,6 +34,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from typing import Optional
 
+from evmax.agents.models._team_lookup import resolve_team_key, write_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -125,30 +126,13 @@ class FormModelAgent(ModelAgent):
     weight = 0.25   # blending weight in ensemble
 
     def _team_records(self, sector: str, team: str) -> list[GameRecord]:
+        """Records for a label via the shared unique-match rule
+        (``_team_lookup.resolve_team_key``): alias canonical (Pinnacle
+        "Karmine Corp" → stored "kc") → exact → canonical equality → guarded
+        word-boundary fallback. No match → no records (form abstains)."""
         sector_data = self._state.get(sector, {})
-        team_data = sector_data.get(team)
-        # Normalizer-driven resolution: apply sector aliases so Pinnacle labels
-        # ("Karmine Corp", "LGD Gaming") hit stored keys ("kc", "lgd").
-        if not team_data:
-            try:
-                from evmax.matching.normalizer import NameNormalizer
-                normed = NameNormalizer(sector).normalize(team)
-                if normed and normed != team:
-                    team_data = sector_data.get(normed)
-            except Exception:
-                pass
-        # Fallback: try last word (e.g. "new york knicks" → "knicks")
-        if not team_data and " " in team:
-            last = team.rsplit(" ", 1)[-1]
-            team_data = sector_data.get(last)
-        # Fallback: prefix/suffix/substring match
-        # Handles "duke blue devils" → "duke" and "st. johns red storm" → "st. johns red storm"
-        if not team_data:
-            for key, val in sector_data.items():
-                if (team.startswith(key + " ") or key.startswith(team + " ")
-                        or team.endswith(key) or key.endswith(team)):
-                    team_data = val
-                    break
+        key = resolve_team_key(sector, team, sector_data)
+        team_data = sector_data.get(key) if key else None
         return [GameRecord(**r) for r in (team_data or [])]
 
     def _form_rate(self, records: list[GameRecord]) -> float:
@@ -361,6 +345,10 @@ class FormModelAgent(ModelAgent):
         def _add_record(
             team: str, won: bool, opp: str, home: bool, drew: bool, margin: float
         ) -> None:
+            # Append to the team's EXISTING key (identity tiers only — an alias
+            # or accent variant of a stored club must not fork its history);
+            # a genuinely new team starts a list under its alias canonical.
+            team = write_team_key(sector, team, self._state[sector])
             if team not in self._state[sector]:
                 self._state[sector][team] = []
             existing = self._state[sector][team]

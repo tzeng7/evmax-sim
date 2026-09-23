@@ -41,6 +41,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from evmax.agents.models._team_lookup import resolve_team_key, write_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -240,41 +241,29 @@ class EloModelAgent(ModelAgent):
         return state
 
     def _resolve_team(self, sector: str, team: str, store: dict) -> str:
-        """Resolve team name via normalizer + last-word/prefix fallbacks.
+        """Resolve a label to its key in ``store`` via the shared unique-match
+        rule (``_team_lookup.resolve_team_key``: alias canonical → exact →
+        canonical equality → guarded word-boundary fallback). Returns ``team``
+        unchanged when nothing qualifies (→ default rating)."""
+        return resolve_team_key(sector, team, store) or team
 
-        Routes through NameNormalizer first so sector aliases (e.g.
-        "Karmine Corp" → "kc", "LGD Gaming" → "lgd") resolve against stored
-        state keys. Falls through to legacy last-word / prefix matching.
-        """
-        if team in store:
-            return team
-        # Normalizer-driven resolution: strip noise words + apply alias map
-        try:
-            from evmax.matching.normalizer import NameNormalizer
-            normed = NameNormalizer(sector).normalize(team)
-            if normed and normed != team and normed in store:
-                return normed
-        except Exception:
-            pass
-        if " " in team:
-            last = team.rsplit(" ", 1)[-1]
-            if last in store:
-                return last
-        for key in store:
-            if (team.startswith(key + " ") or key.startswith(team + " ")
-                    or team.endswith(key) or key.endswith(team)):
-                return key
-        return team  # not found — will use default
+    def _team_key(self, sector: str, team: str) -> str:
+        """READ key for a team: resolved against the ratings store (the store
+        every update writes), falling back to game_counts for count-only keys."""
+        state = self._sector_state(sector)
+        return (
+            resolve_team_key(sector, team, state["ratings"])
+            or resolve_team_key(sector, team, state["game_counts"])
+            or team
+        )
 
     def _get_rating(self, sector: str, team: str) -> float:
         ratings = self._sector_state(sector)["ratings"]
-        team = self._resolve_team(sector, team, ratings)
-        return ratings.get(team, DEFAULT_ELO)
+        return ratings.get(self._team_key(sector, team), DEFAULT_ELO)
 
     def _get_count(self, sector: str, team: str) -> int:
         counts = self._sector_state(sector)["game_counts"]
-        team = self._resolve_team(sector, team, counts)
-        return counts.get(team, 0)
+        return counts.get(self._team_key(sector, team), 0)
 
     def _set_rating(self, sector: str, team: str, rating: float) -> None:
         self._sector_state(sector)["ratings"][team] = round(rating, 2)
@@ -348,7 +337,7 @@ class EloModelAgent(ModelAgent):
 
     def _get_season_games(self, sector: str, team: str) -> int:
         sg = self._sector_state(sector).get("season_games", {})
-        team = self._resolve_team(sector, team, sg)
+        team = self._team_key(sector, team)
         # Missing team → 0 (full boost). Legacy state-on-disk teams get
         # initialized to `decay` in `_sector_state` back-compat, so this
         # only fires for genuinely new teams (expansion, first-ever game in
@@ -653,11 +642,15 @@ class EloModelAgent(ModelAgent):
 
         return base_k * multiplier
 
-    def _sos_multiplier(self, sector: str, opponent: str) -> float:
-        """Strength-of-schedule K multiplier.
+    def _sos_multiplier(self, sector: str, opp_elo: float) -> float:
+        """Strength-of-schedule K multiplier from the opponent's pre-game Elo.
 
         Beating a strong opponent (above-average Elo) gives a bigger K boost,
         while beating a weak opponent yields a smaller update.
+
+        Takes the opponent's RATING (already read under its resolved key by
+        ``update``) rather than a name, so SOS can never re-resolve the
+        opponent through a different lookup than the one the update used.
 
         Range: [0.70, 1.30] — wide enough to meaningfully separate teams
         with hard vs soft schedules over a full season.
@@ -665,7 +658,6 @@ class EloModelAgent(ModelAgent):
         ratings = self._sector_state(sector).get("ratings", {})
         if len(ratings) < 4:
             return 1.0  # not enough teams to compute league average
-        opp_elo = self._get_rating(sector, opponent)
         avg_elo = sum(ratings.values()) / len(ratings)
         # Scale: +200 Elo above avg → 1.30x, -200 below → 0.70x
         diff = opp_elo - avg_elo
@@ -721,8 +713,17 @@ class EloModelAgent(ModelAgent):
         if prev_stamp is None or new_stamp > prev_stamp:
             state["last_updated"] = new_stamp
 
-        elo_a = self._get_rating(sector, team_a)
-        elo_b = self._get_rating(sector, team_b)
+        # READ and WRITE the same key. Identity tiers only (exact / alias
+        # canonical / canonical equality): the old code read through the fuzzy
+        # fallback but wrote the raw name, so a new FCS team ("alabama state
+        # hornets") was born carrying the FBS namesake's rating (Alabama 1807).
+        # A team no identity tier finds is new and starts at DEFAULT_ELO under
+        # its alias canonical (or its own name when none is registered).
+        ratings = state["ratings"]
+        key_a = write_team_key(sector, team_a, ratings)
+        key_b = write_team_key(sector, team_b, ratings)
+        elo_a = ratings.get(key_a, DEFAULT_ELO)
+        elo_b = ratings.get(key_b, DEFAULT_ELO)
         home_bonus = HOME_ADVANTAGE_ELO.get(sector, 0.0)
         base_k = K_FACTORS.get(sector, 20.0)
         k = self._recency_k(base_k, event_date)
@@ -731,10 +732,8 @@ class EloModelAgent(ModelAgent):
         # post-regression games on record. Uses the less-informed team's
         # season_games count so the boost lasts as long as either side is
         # still calibrating. No-op for sectors not in EARLY_K_BOOST.
-        season_min = min(
-            self._get_season_games(sector, team_a),
-            self._get_season_games(sector, team_b),
-        )
+        season_games = state.get("season_games", {})
+        season_min = min(season_games.get(key_a, 0), season_games.get(key_b, 0))
         k *= early_season_multiplier(sector, season_min)
 
         # Actual score: 1=A wins, 0=B wins, 0.5=draw
@@ -754,15 +753,15 @@ class EloModelAgent(ModelAgent):
         k *= mov
 
         # Strength-of-schedule: games against strong opponents move ratings more
-        sos_a = self._sos_multiplier(sector, team_b)  # team_a's opponent
-        sos_b = self._sos_multiplier(sector, team_a)  # team_b's opponent
+        sos_a = self._sos_multiplier(sector, elo_b)  # team_a's opponent
+        sos_b = self._sos_multiplier(sector, elo_a)  # team_b's opponent
         k *= (sos_a + sos_b) / 2.0
 
         delta = k * (actual_a - expected_a)
-        self._set_rating(sector, team_a, elo_a + delta)
-        self._set_rating(sector, team_b, elo_b - delta)
-        self._increment_count(sector, team_a)
-        self._increment_count(sector, team_b)
+        self._set_rating(sector, key_a, elo_a + delta)
+        self._set_rating(sector, key_b, elo_b - delta)
+        self._increment_count(sector, key_a)
+        self._increment_count(sector, key_b)
 
         # Record H2H result (skip draws)
         if score_a != score_b:
@@ -775,8 +774,8 @@ class EloModelAgent(ModelAgent):
             delta=round(delta, 2),
             mov=round(mov, 3),
             sos=round((sos_a + sos_b) / 2.0, 3),
-            new_elo_a=self._get_rating(sector, team_a),
-            new_elo_b=self._get_rating(sector, team_b),
+            new_elo_a=ratings.get(key_a),
+            new_elo_b=ratings.get(key_b),
         )
 
     # ------------------------------------------------------------------

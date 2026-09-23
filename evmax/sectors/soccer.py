@@ -11,6 +11,9 @@ from evmax.sectors.base import SectorHandler
 class SoccerHandler(SectorHandler):
     name = "soccer"
     sharp_source = "pinnacle"
+    # ESPN keeps accents ("CF Montréal", "Alavés", "Málaga") and Pinnacle /
+    # Kalshi drop them; fold so the seed and live paths share one canonical.
+    fold_accents = True
 
     def enrich_market(self, market: PredictionMarket) -> PredictionMarket:
         """Normalize soccer club names."""

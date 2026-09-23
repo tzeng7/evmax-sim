@@ -27,6 +27,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 
+from evmax.agents.models._team_lookup import identity_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.matching.normalizer import NameNormalizer
 from evmax.models.market import PredictionMarket
@@ -156,14 +157,19 @@ class SoccerXgAgent(ModelAgent):
         For teams absent from the store the canonical form (or the raw
         lowercase when normalization yields nothing) is returned, so writes
         for new teams land on seed-compatible keys.
+
+        Resolution goes through the shared identity tiers
+        (``_team_lookup.identity_team_key``: exact → canonical → canonical
+        equality), so a club seeded under an older spelling ("montréal",
+        "brighton hove albion") is found from the current canonical
+        ("montreal", "brighton") instead of forking a new, empty key.
         """
         teams = self._teams_for(sector)
+        found = identity_team_key((sector or "soccer").lower(), team, teams)
+        if found:
+            return found
         key = team.lower().strip()
-        if key in teams:
-            return key
         norm = self._normalizer_for(sector).normalize(team)
-        if norm and norm in teams:
-            return norm
         return norm or key
 
     def update(

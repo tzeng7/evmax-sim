@@ -236,6 +236,7 @@ aliases:
   "fc schalke 04": "schalke 04"
   "sc paderborn": "paderborn"
   "sc paderborn 07": "paderborn"
+  "paderborn 07": "paderborn"
   "hamburger sv": "hamburg"
   "hamburg sv": "hamburg"
   "hamburger": "hamburg"
@@ -356,8 +357,9 @@ aliases:
   # --- 2026-09-05: league-shadowed additions (Liga MX / J League / Eredivisie /
   # Brasileirão / Championship). Canonical = the Pinnacle full name normalized;
   # ESPN (resolution + seeds) and Kalshi event-title spellings alias onto it.
-  # The normalizer does NOT strip accents, so accented ESPN forms are listed
-  # explicitly. Liga MX "Santos" is handled upstream by ESPN_DISPLAY_NAME_OVERRIDES
+  # Accented ESPN forms were listed explicitly because the normalizer did not
+  # strip accents then; it folds them since 2026-09-22 (the entries are now
+  # redundant but harmless). Liga MX "Santos" is handled upstream by ESPN_DISPLAY_NAME_OVERRIDES
   # (soccer_leagues.py) so it can't merge with Brazil's Santos.
   # Liga MX
   "américa": "club america"
@@ -443,3 +445,36 @@ aliases:
   "birmingham": "birmingham city"
   "norwich": "norwich city"
   "bristol": "bristol city"
+  # --- 2026-09-22: seed-vs-live key alignment. ESPN (seed + resolve-time
+  # model updates) spells these clubs differently from the canonical the live
+  # Pinnacle label normalizes to, so the seed wrote one key and every live
+  # lookup asked for another: the club priced at Elo 1500 / n=0 with no form,
+  # Poisson or xG. Accents need no entries — the soccer normalizer folds them
+  # now ("montréal"/"alavés"/"málaga" → "montreal"/"alaves"/"malaga").
+  # Existing state keyed under the ESPN spelling resolves through the
+  # canonical-equality tier in evmax/agents/models/_team_lookup.py until the
+  # next reseed rewrites it under the canonical.
+  "brighton hove albion": "brighton"
+  "brighton and hove albion": "brighton"
+  "red bull new york": "red bulls"
+  "union st.-gilloise": "union saint-gilloise"
+  "union st-gilloise": "union saint-gilloise"
+  "union st. gilloise": "union saint-gilloise"
+  "rb salzburg": "salzburg"
+  "red bull salzburg": "salzburg"
+  "tsg hoffenheim": "hoffenheim"
+  "tsg 1899 hoffenheim": "hoffenheim"
+  "vfl wolfsburg": "wolfsburg"
+  "hapoel beer": "hapoel beer sheva"
+  "hapoel be er sheva": "hapoel beer sheva"
+  "hapoel beer-sheva": "hapoel beer sheva"
+  "f.c. kobenhavn": "copenhagen"
+  "fc kobenhavn": "copenhagen"
+  "kobenhavn": "copenhagen"
+  "fc copenhagen": "copenhagen"
+  "as saint-etienne": "saint-etienne"
+  # Kalshi event-title spellings of the same clubs (German-style "oe" for ø,
+  # Hungarian adjectival "-i").
+  "lillestroem": "lillestrom"
+  "ferencvarosi": "ferencvaros"
+  "ferencvarosi tc": "ferencvaros"

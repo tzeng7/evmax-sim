@@ -22,6 +22,8 @@ from evmax.sectors.base import SectorHandler
 class WorldCupHandler(SectorHandler):
     name = "worldcup"
     sharp_source = "pinnacle"
+    # Same ESPN-keeps-accents problem as club soccer ("Curaçao", "Côte d'Ivoire").
+    fold_accents = True
 
     def enrich_market(self, market: PredictionMarket) -> PredictionMarket:
         """Normalize national-team names (FIFA codes or full names) to canonical."""
