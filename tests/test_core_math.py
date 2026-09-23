@@ -908,3 +908,24 @@ class TestSharpOddsValidation:
         import pydantic
         with pytest.raises(pydantic.ValidationError):
             SharpOdds(**self._base_kwargs(true_prob_a=0.70, true_prob_b=0.70))
+
+
+class TestLowScoringGateUnchanged:
+    """The true-axis ±1σ gate (2026-09-22) is for POINTS sectors. Low-scoring
+    sectors keep the folded distance: an NHL "underdog wins by over 1.5" rung
+    off a −1.5 puck line sits 3.0 out on the true axis — beyond NHL's σ 2.0 —
+    and must still price exactly as before (review finding on #320)."""
+
+    @pytest.mark.parametrize("sector", ["nhl", "baseball"])
+    def test_dog_wins_by_2_off_minus_1_5_still_prices(self, sector):
+        from scipy.stats import norm
+
+        from evmax.models_ml.spread_distribution import _SECTOR_SIGMA, SpreadDistributionModel
+
+        sharp = _make_spread_sharp(spread_line=-1.5, true_prob_a=0.42)
+        pred = SpreadDistributionModel().predict(
+            sharp, target_line=-1.5, sector=sector, yes_is_underdog=True)
+        assert pred is not None
+        sigma = _SECTOR_SIGMA[sector]
+        mu = 1.5 - norm.ppf(1 - 0.42) * sigma
+        assert pred.true_prob == pytest.approx(max(0.01, min(0.99, norm.cdf((-1.5 - mu) / sigma))))

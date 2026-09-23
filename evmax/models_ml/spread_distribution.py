@@ -235,21 +235,27 @@ class SpreadDistributionModel:
         # WNBA leak rungs were priced at 11.3% and won 0/11; shadow WNBA leak
         # rungs 21.5% priced vs 15.0% realized, CLV −1.77pp (2026-09-22).
         # SPREAD_MAX_SIGMA defaults to 1.0 (today's gate); tighten it with the ladder.
-        # (The low-scoring ±0.5 tolerance gate above keeps the folded distance on
-        # purpose: baseball "underdog wins by 2+" off a −1.5 run line prices fine —
-        # 107 resolved rows, 40.7% priced vs 37.4% realized, CLV +0.48pp.)
-        true_distance = abs(
-            _spread_pmf.favorite_threshold(target_line, yes_is_underdog)
-            - abs(pinnacle_line)
-        )
-        if true_distance > SPREAD_MAX_SIGMA * sigma:
+        # Low-scoring sectors (baseball / NHL / soccer) keep the FOLDED distance
+        # here as in the ±0.5 tolerance gate above: their standard line IS the
+        # "underdog wins by 2+" rung's mirror (off a −1.5 run/puck line it sits
+        # 3.0 out on the true axis, beyond NHL's σ 2.0), and baseball's such
+        # rungs price fine — 107 resolved rows, 40.7% priced vs 37.4% realized,
+        # CLV +0.48pp. Their tails are bounded by _LOW_SCORING_MAX_ABS_LINE.
+        if sector in _LOW_SCORING_SECTORS:
+            gate_distance = line_distance
+        else:
+            gate_distance = abs(
+                _spread_pmf.favorite_threshold(target_line, yes_is_underdog)
+                - abs(pinnacle_line)
+            )
+        if gate_distance > SPREAD_MAX_SIGMA * sigma:
             logger.debug(
                 "spread_model_line_too_far",
                 event_id=sharp_odds.event_id,
                 pinnacle_line=pinnacle_line,
                 target_line=target_line,
                 yes_is_underdog=yes_is_underdog,
-                distance=true_distance,
+                distance=gate_distance,
             )
             return None
 
