@@ -555,9 +555,10 @@ class EnsembleModelAgent(Agent):
         bug to "fix": a 2026-09-22 replay of resolved rows found every sector
         where models actually carried ~30% of the blend (the 0.40 dashboard
         rows) significantly worse than sharp (pooled ΔBrier +2.97/1000, z 2.9)
-        and no sector with evidence for more weight. Note the two shrinks
-        commute, so applying this to the model-only prob instead would change
-        nothing. ``cleanup adjust`` therefore moves the share quadratically
+        and no sector with evidence for more weight. Applying this to the
+        model-only prob instead would give nearly the same result (the shrinks
+        commute up to the ramp reading the pre-FLB prob, the 0.99 cap and the
+        renormalization), so that is not a fix either. ``cleanup adjust`` therefore moves the share quadratically
         (sw 0.85 → 0.80 takes it 0.0225 → 0.04).
         """
         FLB_STRENGTH = 1.5

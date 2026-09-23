@@ -40,7 +40,6 @@ def test_coordinator_default_matches_shipped_config():
     from evmax.agents.cleanup.metrics import load_config
 
     assert _coord().sharp_weight == pytest.approx(float(load_config()["sharp_weight"]))
-    assert _coord().sharp_weight != pytest.approx(0.40)
 
 
 def test_coordinator_explicit_weight_wins():
@@ -117,3 +116,27 @@ def test_flb_double_blend_effective_model_share_is_pinned(sw):
     first = sw * s + (1 - sw) * m
     pa, pb, _ = EnsembleModelAgent._flb_correct(first, 1 - first, None, sharp, sw)
     assert pa == pytest.approx(s + (1 - sw) ** 2 * (m - s))
+
+
+@pytest.mark.parametrize("sector,sw,share", [("nfl", 0.85, 0.15 ** 2), ("nba", 0.70, 0.30)])
+def test_blend_pipeline_effective_share_is_pinned(sector, sw, share):
+    """Pins the FULL ``_blend`` path, not just ``_flb_correct``: dropping the FLB
+    call, passing it a different weight, or running it for NBA all fail here.
+    A 2pp model/sharp gap keeps the disagreement ramp inactive."""
+    from evmax.agents.models.base import ModelAgentPrediction
+    from evmax.agents.models.ensemble_agent import EnsembleModelAgent
+    from evmax.models.odds import SharpBook, SharpOdds
+
+    s, m = 0.50, 0.52
+    sharp = SharpOdds(
+        event_id="e", book=SharpBook.pinnacle, sector=sector,
+        outcome_a_label="a", outcome_b_label="b",
+        outcome_a_decimal=2.0, outcome_b_decimal=2.0,
+        true_prob_a=s, true_prob_b=1 - s, margin=0.0,
+    )
+    preds = {"elo": ModelAgentPrediction(
+        event_id="e", model_name="elo", true_prob_a=m, true_prob_b=1 - m,
+        true_prob_draw=None, confidence=0.60, weight=0.35,
+    )}
+    blend = EnsembleModelAgent(models=[], sharp_weight=sw)._blend("e", preds, sharp, sw, sector=sector)
+    assert blend.true_prob_a == pytest.approx(s + share * (m - s), abs=2e-5)

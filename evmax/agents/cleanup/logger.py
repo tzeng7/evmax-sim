@@ -75,9 +75,11 @@ def get_logged_market_ids(scan_date: Optional[date] = None) -> set[str]:
 def stamped_sharp_weight(
     gap: EVGap, global_weight: Optional[float], cfg: Optional[dict] = None
 ) -> float:
-    """The sharp weight the coordinator actually blended ``gap`` at.
+    """The BASE sharp weight the coordinator blended ``gap`` at.
 
-    Mirrors ``AgentCoordinator.run_cycle``: soccer takes its league-tier weight
+    This is the weight handed to the ensemble, not the final sharp share: the
+    disagreement ramp and the FLB re-blend (non-NBA) push the true share toward
+    1 − (1 − sw)². Mirrors ``AgentCoordinator.run_cycle``: soccer takes its league-tier weight
     (``soccer_tiers.sharp_weight_for_market`` — league first, Kalshi ticker
     series as the fallback); every other sector takes its
     ``sharp_weight_by_sector`` entry, else the scan's global weight. Stamping a
