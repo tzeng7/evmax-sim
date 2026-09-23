@@ -52,8 +52,8 @@ from typing import Optional
 import structlog
 
 from evmax.agents.models import _cfb_efficiency as E
+from evmax.agents.models._team_lookup import resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
-from evmax.matching.normalizer import NameNormalizer
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
 
@@ -108,40 +108,22 @@ class NcaafEfficiencyModelAgent(ModelAgent):
     # would look for ncaaf_efficiency_v2_state.json and load nothing.
     state_filename = STATE_PATH.name
 
-    def __init__(self) -> None:
-        super().__init__()
-        self._normalizer = NameNormalizer("ncaaf")
-
     def _sector_state(self) -> dict:
         return self._state.get("ncaaf", {})
 
     def _resolve_team(self, teams: dict, name: str) -> Optional[dict]:
         """Resolve a Pinnacle/Kalshi label to a team row.
 
-        College-safe (no bare last-word/mascot fallback — 130+ FBS teams share
-        mascots). Order: exact key, normalized key (alias map → ESPN location),
-        then a longest-prefix match with ambiguity → None.
+        Identity tiers only (``_team_lookup.resolve_team_key`` — ncaaf is in
+        ``IDENTITY_ONLY_SECTORS``): exact key, alias canonical (→ ESPN
+        location), canonical equality. The old unique-prefix fallback priced
+        FCS opponents as their FBS namesake — "Alabama State" → Alabama,
+        "Houston Christian" → Houston, "North Dakota" → North Dakota State,
+        "Texas Southern" → Texas. An FCS team has no row here and must stay
+        unresolved (→ None: elo + form + sharp carry the blend).
         """
-        n = (name or "").lower().strip()
-        if not n:
-            return None
-        if n in teams:
-            return teams[n]
-        try:
-            normed = self._normalizer.normalize(n)
-        except Exception:  # noqa: BLE001
-            normed = None
-        if normed and normed in teams:
-            return teams[normed]
-        if normed:
-            n = normed
-            if n in teams:
-                return teams[n]
-        # Longest-prefix disambiguation; refuse to guess on ties.
-        cands = [k for k in teams if k.startswith(n + " ") or n.startswith(k + " ")]
-        if len(cands) == 1:
-            return teams[cands[0]]
-        return None
+        key = resolve_team_key("ncaaf", name, teams)
+        return teams[key] if key else None
 
     async def predict_pair(
         self,

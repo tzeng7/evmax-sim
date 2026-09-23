@@ -246,6 +246,15 @@ async def update_models_for_date(
             applied_keys = _load_applied_keys(conn, sector, target_date)
 
             normalizer = NameNormalizer(sector)
+
+            def _canon_pair(a: str, b: str) -> tuple[str, str]:
+                return (normalizer.normalize(a) or a, normalizer.normalize(b) or b)
+
+            # Ledger rows written before an alias / accent-folding change hold
+            # the OLD spelling ("montréal", "middle tennessee state"). Compare
+            # canonical forms too, or the trailing-window backfill would feed
+            # those already-applied games into state a second time.
+            applied_canon = {_canon_pair(a, b) for a, b in applied_keys}
             processed: set[tuple[str, str]] = set()
             # Games applied this sector, ledgered in one pass AFTER the single
             # end-of-sector state flush — preserves the save-before-ledger
@@ -294,7 +303,7 @@ async def update_models_for_date(
 
                 # Already in model state from an earlier pass over this date —
                 # re-applying would double-count the result into Elo/Form/Poisson.
-                if key in applied_keys and not force:
+                if (key in applied_keys or _canon_pair(*key) in applied_canon) and not force:
                     game.already_applied = True
                     skipped += 1
                     games.append(game)

@@ -12,6 +12,10 @@ aliases:
   "houston rockets": "rockets"
   "indiana pacers": "pacers"
   "los angeles clippers": "clippers"
+  # ESPN's displayName is "LA Clippers": the seed / resolve feed wrote the key
+  # "la clippers" while every Pinnacle label normalizes to "clippers", so the
+  # Clippers priced at Elo 1500 with no form (2026-09-22 name audit).
+  "la clippers": "clippers"
   "los angeles lakers": "lakers"
   "memphis grizzlies": "grizzlies"
   "miami heat": "heat"

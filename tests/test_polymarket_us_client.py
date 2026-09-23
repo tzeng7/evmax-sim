@@ -305,8 +305,10 @@ class TestParseDrawableOutcome:
         )
         assert len(markets) == 3
         by_team = {m.yes_team: m for m in markets}
-        # canonicalized: "FK"-style noise words stripped by the soccer handler
-        assert set(by_team) == {"qairat", "draw", "sutjeska nikšić"}
+        # canonicalized: "FK"-style noise words stripped by the soccer handler,
+        # and accents folded (2026-09-22) — the side label "Nikšić" and the
+        # event title's "Niksic" now reach the same canonical.
+        assert set(by_team) == {"qairat", "draw", "sutjeska niksic"}
         assert by_team["qairat"].yes_price == pytest.approx(0.80)
         assert by_team["qairat"].no_price == pytest.approx(0.22)
         assert by_team["draw"].yes_price == pytest.approx(0.15)

@@ -33,6 +33,7 @@ import math
 from datetime import date, datetime
 from typing import Optional
 
+from evmax.agents.models._team_lookup import resolve_team_key, write_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -219,21 +220,18 @@ class PoissonModelAgent(ModelAgent):
         )
 
     def _team_stats(self, sector: str, team: str) -> Optional[dict]:
+        """Attack/defense row for a label via the shared unique-match rule
+        (``_team_lookup.resolve_team_key``).
+
+        This used to skip the sector normalizer entirely and take the FIRST
+        prefix match, so "paris saint-germain" resolved to "paris" (Paris FC,
+        attack 1.01 / defense 0.96) instead of "psg" (1.64 / 0.75) in every
+        Ligue 1 / UCL game. Soccer and worldcup now resolve through identity
+        tiers only (exact / alias canonical / canonical equality).
+        """
         teams = self._state.get(sector, {}).get("teams", {})
-        stats = teams.get(team)
-        # Fallback: try last word (e.g. "new york knicks" → "knicks")
-        if not stats and " " in team:
-            last = team.rsplit(" ", 1)[-1]
-            stats = teams.get(last)
-        # Fallback: prefix/suffix/substring match
-        # Handles "duke blue devils" → "duke" and "st. johns red storm" → "st. johns red storm"
-        if not stats:
-            for key, val in teams.items():
-                if (team.startswith(key + " ") or key.startswith(team + " ")
-                        or team.endswith(key) or key.endswith(team)):
-                    stats = val
-                    break
-        return stats
+        key = resolve_team_key(sector, team, teams)
+        return teams.get(key) if key else None
 
     def _expected_goals(
         self,
@@ -413,13 +411,19 @@ class PoissonModelAgent(ModelAgent):
         avg = self._league_avg(sector)
         teams = self._state[sector]["teams"]
 
+        # Read and write each side under its EXISTING key (identity tiers only),
+        # so an alias / accent variant of a stored club ("montreal" vs seeded
+        # "montréal") updates that club instead of forking a fresh 1.0/1.0 row.
+        key_a = write_team_key(sector, team_a, teams)
+        key_b = write_team_key(sector, team_b, teams)
+
         def _rating(team: str, key: str) -> float:
-            t = teams.get(team.lower().strip())
+            t = teams.get(team)
             return t.get(key, POISSON_BASELINE_RATIO) if t else POISSON_BASELINE_RATIO
 
         # Snapshot both opponents' pre-game ratings before either side updates.
-        a_attack_pre, a_defense_pre = _rating(team_a, "attack"), _rating(team_a, "defense")
-        b_attack_pre, b_defense_pre = _rating(team_b, "attack"), _rating(team_b, "defense")
+        a_attack_pre, a_defense_pre = _rating(key_a, "attack"), _rating(key_a, "defense")
+        b_attack_pre, b_defense_pre = _rating(key_b, "attack"), _rating(key_b, "defense")
 
         lo, hi = IMPLIED_RATING_CLAMP
 
@@ -427,7 +431,6 @@ class PoissonModelAgent(ModelAgent):
             team: str, scored: float, conceded: float, is_home: bool,
             opp_attack: float, opp_defense: float,
         ) -> None:
-            team = team.lower().strip()
             if team not in teams:
                 teams[team] = {"attack": 1.0, "defense": 1.0, "games": 0}
             t = teams[team]
@@ -447,11 +450,11 @@ class PoissonModelAgent(ModelAgent):
             t["games"] = n + 1
 
         _update_team(
-            team_a, score_a, score_b, is_home=True,
+            key_a, score_a, score_b, is_home=True,
             opp_attack=b_attack_pre, opp_defense=b_defense_pre,
         )
         _update_team(
-            team_b, score_b, score_a, is_home=False,
+            key_b, score_b, score_a, is_home=False,
             opp_attack=a_attack_pre, opp_defense=a_defense_pre,
         )
 

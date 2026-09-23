@@ -22,7 +22,9 @@ aliases:
   ala: alabama
   alabama a m bulldogs: alabama a m
   alabama crimson tide: alabama
+  alabama state hornets: alabama state
   alb: ualbany
+  albany: ualbany
   alcn: alcorn state
   alcorn st: alcorn state
   alcorn state braves: alcorn state
@@ -56,6 +58,8 @@ aliases:
   bc: boston college
   bcu: bethune-cookman
   bethune: bethune-cookman
+  bethune cookman: bethune-cookman
+  bethune cookman wildcats: bethune-cookman
   bethune-cookman wildcats: bethune-cookman
   bgsu: bowling green
   bois: boise state
@@ -121,6 +125,7 @@ aliases:
   delaware blue hens: delaware
   delaware st: delaware state
   delaware state hornets: delaware state
+  dixie state: utah tech
   dsu: delaware state
   duke: duke
   duke blue devils: duke
@@ -166,6 +171,8 @@ aliases:
   fur: furman
   furman paladins: furman
   ga southern: georgia southern
+  gardner webb: gardner-webb
+  gardner webb runnin bulldogs: gardner-webb
   gardner-webb runnin bulldogs: gardner-webb
   gaso: georgia southern
   gast: georgia state
@@ -178,6 +185,7 @@ aliases:
   grambling tigers: grambling
   gt: georgia tech
   gweb: gardner-webb
+  hampton pirates: hampton
   haw: hawaii
   hawaii: hawaii
   hawaii rainbow warriors: hawaii
@@ -186,6 +194,7 @@ aliases:
   holy cross crusaders: holy cross
   hou: houston
   hou christian: houston christian
+  houston baptist: houston christian
   houston christian huskies: houston christian
   houston cougars: houston
   how: howard
@@ -271,6 +280,7 @@ aliases:
   memphis tigers: memphis
   mer: mercer
   mercer bears: mercer
+  mercyhurst lakers: mercyhurst
   merrimack warriors: merrimack
   mia: miami
   miami fl: miami
@@ -285,6 +295,7 @@ aliases:
   michigan state spartans: michigan state
   michigan wolverines: michigan
   middle tennessee blue raiders: middle tennessee
+  middle tennessee state: middle tennessee
   minn: minnesota
   minnesota golden gophers: minnesota
   miss: ole miss
@@ -292,6 +303,7 @@ aliases:
   mississippi: ole miss
   mississippi st: mississippi state
   mississippi state bulldogs: mississippi state
+  mississippi valley state delta devils: mississippi valley state
   missouri st: missouri state
   missouri state bears: missouri state
   missouri tigers: missouri
@@ -347,6 +359,8 @@ aliases:
   new mexico state aggies: new mexico state
   nich: nicholls
   nicholls colonels: nicholls
+  nicholls st: nicholls
+  nicholls state: nicholls
   niu: northern illinois
   nmsu: new mexico state
   norf: norfolk state
@@ -464,6 +478,7 @@ aliases:
   southern cal: usc
   southern california: usc
   southern illinois salukis: southern illinois
+  southern jaguars: southern
   southern methodist: smu
   southern miss golden eagles: southern miss
   southern mississippi: southern miss
@@ -474,6 +489,7 @@ aliases:
   stbk: stony brook
   stephen f. austin lumberjacks: stephen f. austin
   ston: stony brook
+  stonehill skyhawks: stonehill
   stony brook seawolves: stony brook
   suu: southern utah
   syr: syracuse
@@ -481,6 +497,7 @@ aliases:
   ta m: texas a m
   tar: tarleton state
   tarl: tarleton state
+  tarleton: tarleton state
   tarleton st: tarleton state
   tarleton state texans: tarleton state
   tcu: tcu
@@ -488,12 +505,15 @@ aliases:
   tem: temple
   temple owls: temple
   tenn: tennessee
+  tennessee martin: ut martin
   tennessee st: tennessee state
   tennessee state tigers: tennessee state
   tennessee tech golden eagles: tennessee tech
   tennessee volunteers: tennessee
+  tennessee-martin: ut martin
   tex: texas
   texas a m aggies: texas a m
+  texas a m-commerce: east texas a m
   texas christian: tcu
   texas el paso: utep
   texas longhorns: texas
@@ -557,6 +577,8 @@ aliases:
   usm: southern miss
   usu: utah state
   ut martin skyhawks: ut martin
+  ut rio grande valley vaqueros: ut rio grande valley
+  ut-martin: ut martin
   utah: utah
   utah state aggies: utah state
   utah tech trailblazers: utah tech
@@ -595,6 +617,8 @@ aliases:
   webb: gardner-webb
   weber st: weber state
   weber state wildcats: weber state
+  west georgia: west georgia
+  west georgia wolves: west georgia
   west virginia mountaineers: west virginia
   western carolina catamounts: western carolina
   western illinois leathernecks: western illinois

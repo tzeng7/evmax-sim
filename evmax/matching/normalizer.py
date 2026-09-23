@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from typing import Optional
 
+from evmax.sectors.base import fold_accents
 from evmax.sectors.registry import get_handler
 
 
@@ -13,7 +14,8 @@ class NameNormalizer:
     Normalizes team/player names for cross-source matching.
 
     Steps:
-      1. Lowercase and strip whitespace
+      1. Lowercase and strip whitespace (+ accent folding for sectors whose
+         handler sets ``fold_accents`` — soccer and worldcup)
       2. Remove common noise words (FC, CF, SC, AFC, etc.)
       3. Apply sector-specific alias map
       4. Normalize unicode and punctuation
@@ -47,6 +49,10 @@ class NameNormalizer:
 
         # Basic cleanup
         result = name.lower().strip()
+        # Accent folding for sectors that opt in (soccer-like): ESPN's
+        # "CF Montréal" must reach the same key as Pinnacle's "CF Montreal".
+        if self._handler is not None and getattr(self._handler, "fold_accents", False):
+            result = fold_accents(result)
         result = re.sub(r"['\u2019\u2018]", "", result)  # Remove apostrophes
         result = re.sub(r"[^\w\s\-\.]", " ", result)
         result = re.sub(r"\s+", " ", result).strip()
@@ -92,6 +98,15 @@ class NameNormalizer:
         if not self._handler or not name:
             return False
         return self._handler.is_canonical(self.normalize(name))
+    def is_known_team(self, name: str) -> bool:
+        """True when ``name`` is a canonical alias TARGET for this sector.
+
+        A registered canonical names one specific team. Model lookups use this
+        to refuse fuzzy fallbacks for it: if that team has no state entry it
+        simply has no rating — borrowing a lexically similar key would price a
+        different team (Inter Miami → Inter, Paris Saint-Germain → Paris FC).
+        """
+        return bool(self._handler is not None and name and self._handler.is_canonical(name))
 
     def normalize_event_key(
         self,

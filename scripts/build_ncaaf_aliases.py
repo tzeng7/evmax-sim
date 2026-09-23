@@ -133,6 +133,40 @@ CURATED_ALIASES: dict[str, str] = {
     "sam houston state": "sam houston",
     "jax state": "jacksonville state",
     "jacksonville st": "jacksonville state",
+    # --- 2026-09-22: model-state key splits (model-name-resolution audit) ---
+    # Pinnacle / Kalshi / ESPN spellings that normalized to a DIFFERENT key
+    # than the program's ESPN location, so the resolve-time model update wrote
+    # a second, split key ("middle tennessee state" gc=1 beside "middle
+    # tennessee" gc=64) — or, before the shared lookup rule, inherited an FBS
+    # namesake's rating ("alabama state hornets" born at Alabama's 1807).
+    "middle tennessee state": "middle tennessee",
+    "tennessee martin": "ut martin",
+    "tennessee-martin": "ut martin",
+    "ut-martin": "ut martin",
+    "west georgia": "west georgia",
+    "west georgia wolves": "west georgia",
+    "gardner webb": "gardner-webb",
+    "gardner webb runnin bulldogs": "gardner-webb",
+    "bethune cookman": "bethune-cookman",
+    "bethune cookman wildcats": "bethune-cookman",
+    "nicholls state": "nicholls",
+    "nicholls st": "nicholls",
+    "tarleton": "tarleton state",
+    # ESPN location is "UAlbany"; Pinnacle / Kalshi say "Albany".
+    "albany": "ualbany",
+    # Renamed programs (ESPN location = the current name).
+    "dixie state": "utah tech",
+    "houston baptist": "houston christian",
+    "texas a&m-commerce": "east texas a&m",
+    # FCS opponents' ESPN mascot displayNames (the resolve hook falls back to
+    # NameNormalizer(ESPN displayName) when no scanned event slug matches).
+    "alabama state hornets": "alabama state",
+    "hampton pirates": "hampton",
+    "mercyhurst lakers": "mercyhurst",
+    "mississippi valley state delta devils": "mississippi valley state",
+    "southern jaguars": "southern",
+    "stonehill skyhawks": "stonehill",
+    "ut rio grande valley vaqueros": "ut rio grande valley",
 }
 
 # Away/home game-name mascot words are NOT stripped by NameNormalizer (that only

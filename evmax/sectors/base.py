@@ -2,16 +2,43 @@
 
 from __future__ import annotations
 
+import unicodedata
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
 
+import structlog
 import yaml
 
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
 
 ALIASES_DIR = Path(__file__).parent / "aliases"
+
+logger = structlog.get_logger(__name__)
+
+# Letters that NFKD does NOT decompose into base + combining mark, so a plain
+# "drop combining marks" pass would keep them (Bodø, København, Łódź, Straße).
+_NON_DECOMPOSING = str.maketrans({
+    "ø": "o", "æ": "ae", "œ": "oe", "ß": "ss", "ł": "l", "đ": "d",
+    "ð": "d", "þ": "th", "ı": "i",
+    "Ø": "O", "Æ": "AE", "Œ": "OE", "ẞ": "SS", "Ł": "L", "Đ": "D",
+    "Ð": "D", "Þ": "TH",
+})
+
+
+def fold_accents(text: str) -> str:
+    """Strip diacritics: "Montréal" → "Montreal", "Bodø" → "Bodo".
+
+    Used only by sectors whose handler sets ``fold_accents = True`` (the
+    soccer-like sectors): ESPN keeps accents ("CF Montréal", "Alavés") while
+    Pinnacle and Kalshi drop them, so without folding the seed-side and
+    live-side canonical names disagree and the club silently gets no rating.
+    """
+    if not text or text.isascii():
+        return text
+    decomposed = unicodedata.normalize("NFKD", text.translate(_NON_DECOMPOSING))
+    return "".join(c for c in decomposed if not unicodedata.combining(c))
 
 
 class SectorHandler(ABC):
@@ -26,10 +53,19 @@ class SectorHandler(ABC):
 
     name: str  # e.g. "nfl"
     sharp_source: str  # "pinnacle" (all sectors use the Pinnacle guest API)
+    # When True, every name (and every alias key/target) is accent-folded
+    # before lookup, so "CF Montréal" (ESPN) and "CF Montreal" (Pinnacle)
+    # reach the same canonical. Off by default: person-name sectors (UFC) and
+    # NCAAF ("san josé state" is an accented canonical) key state on the
+    # accented form, so folding them would orphan existing ratings.
+    fold_accents: bool = False
 
     def __init__(self) -> None:
         self._aliases: dict[str, str] = {}
         self._load_aliases()
+
+    def _fold(self, name: str) -> str:
+        return fold_accents(name) if self.fold_accents else name
 
     def _load_aliases(self) -> None:
         """Load team name aliases from YAML file."""
@@ -37,7 +73,22 @@ class SectorHandler(ABC):
         if alias_file.exists():
             with open(alias_file) as f:
                 data = yaml.safe_load(f) or {}
-                self._aliases = data.get("aliases", {})
+                self._aliases = data.get("aliases", {}) or {}
+        if self.fold_accents and self._aliases:
+            folded: dict[str, str] = {}
+            for key, target in self._aliases.items():
+                fk, ft = fold_accents(str(key)), fold_accents(str(target))
+                prev = folded.get(fk)
+                if prev is not None and prev != ft:
+                    # Two alias keys that differ only by accents point at
+                    # different clubs — keep the first, never silently merge.
+                    logger.warning(
+                        "alias_accent_fold_collision",
+                        sector=self.name, key=fk, kept=prev, dropped=ft,
+                    )
+                    continue
+                folded[fk] = ft
+            self._aliases = folded
 
     def is_canonical(self, name: str) -> bool:
         """True when `name` is already a canonical alias TARGET.
@@ -54,16 +105,17 @@ class SectorHandler(ABC):
         if canon is None:
             canon = set(self._aliases.values())
             self._canonical_set = canon
-        return name in canon
+        return self._fold(name) in canon
 
     def normalize_team(self, name: str) -> str:
         """
         Normalize a team name using the alias map.
-        Returns canonical name (lowercase, stripped).
+        Returns canonical name (lowercase, stripped; accent-folded when the
+        handler sets ``fold_accents``).
         """
         if not name:
             return ""
-        cleaned = name.strip().lower()
+        cleaned = self._fold(name.strip().lower())
         return self._aliases.get(cleaned, cleaned)
 
     def make_event_key(
