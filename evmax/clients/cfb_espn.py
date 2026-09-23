@@ -194,18 +194,24 @@ def _scoring_delta(
 
 
 def _read_scores(p: dict, prev_home: int, prev_away: int) -> tuple[int, int]:
-    """Scoreboard after play ``p``, carrying the previous value forward when the
-    feed omits a score, reports an implausible one, or resets a scored game to
-    0-0 (a game never legitimately returns to 0-0)."""
+    """Scoreboard after play ``p``, never below the running baseline.
+
+    Carries the previous value forward when the feed omits a score, reports an
+    implausible one, or LOWERS a team's score. ESPN routinely shows the
+    PRE-score scoreboard on the kickoff row after a touchdown ((10,21) →
+    kickoff (10,14) → next snap (10,21)); adopting the dip as the baseline
+    re-credited the touchdown to that ordinary snap — 609–669 phantom credits a
+    season (88–178 on scrimmage plays), all of LEGAL size, so the legal-amount
+    check could not see them. A genuine downward correction (a TD overturned
+    after the scoreboard moved) now costs at most one missed credit instead.
+    """
     home = _safe_int(p.get("homeScore"))
     away = _safe_int(p.get("awayScore"))
     if home is None or not 0 <= home <= _MAX_PLAUSIBLE_SCORE:
         home = prev_home
     if away is None or not 0 <= away <= _MAX_PLAUSIBLE_SCORE:
         away = prev_away
-    if home == 0 and away == 0 and prev_home + prev_away > 0:
-        return prev_home, prev_away
-    return home, away
+    return max(home, prev_home), max(away, prev_away)
 
 
 def _possession_team(p: dict, drive_team: str, home_id: str, away_id: str) -> str:

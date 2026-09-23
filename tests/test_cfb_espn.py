@@ -306,3 +306,16 @@ def test_parse_possession_falls_back_to_drive_team():
     ]}
     rows = C.parse_game_plays({"drives": {"previous": [drive]}}, _meta())
     assert [r["off_team"] for r in rows] == ["1", "1", "1"]
+
+
+def test_parse_kickoff_scoreboard_dip_does_not_recredit_the_score():
+    """ESPN shows the PRE-score scoreboard on the kickoff row after a TD
+    ((10,21) → kickoff (10,14) → next snap (10,21)). The dip must not become the
+    baseline, or the next ordinary snap is re-credited with the touchdown
+    (game 401403853: a Hawaii incompletion credited +7 to Vanderbilt)."""
+    rows = C.parse_game_plays(
+        _one_drive(_play(10, 14), _play(10, 21), _play(10, 14, ptype="Kickoff"),
+                   _play(10, 21), _play(10, 21)),
+        _meta(),
+    )
+    assert [r["score_points"] for r in rows] == [0, 7, 0, 0, 0]
