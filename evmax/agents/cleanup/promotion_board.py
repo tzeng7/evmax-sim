@@ -229,10 +229,12 @@ def compute_promotion_board(
                 "required": MIN_CLEAN_RESOLVED,
                 "ok": len(clean) >= MIN_CLEAN_RESOLVED,
             },
+            # Independent GAMES, not rows — alt ladders log many correlated
+            # rungs per game (see shadow._aggregate_clv).
             "clv_n": {
-                "value": clv["n"],
+                "value": clv.get("games", clv["n"]),
                 "required": MIN_CLEAN_RESOLVED,
-                "ok": clv["n"] >= MIN_CLEAN_RESOLVED,
+                "ok": clv.get("games", clv["n"]) >= MIN_CLEAN_RESOLVED,
             },
             "clv_mean": {
                 "value": clv["mean_clv_pp"],
@@ -274,6 +276,7 @@ def compute_promotion_board(
             "sharp_passthrough": passthrough,
             "clv": {
                 "n": clv["n"],
+                "games": clv.get("games", clv["n"]),
                 "mean_clv_pp": clv["mean_clv_pp"],
                 "frac_positive": clv["frac_positive"],
                 "clears": clv["clears"],

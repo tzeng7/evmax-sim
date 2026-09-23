@@ -374,7 +374,10 @@ def _make_clv_db(tmp_path: Path, rows: list[tuple]) -> Path:
                (scan_date, market_id, event_id, sector, market_type, mode,
                 kalshi_clv_pct, line, venue)
                VALUES (?,?,?,?,?,?,?,?,?)""",
-            (sd, mid, f"wnba::{sd}::a_vs_b::spread", "wnba", mt, mode, clv, line, venue),
+            # One game per fixture row: the CLV gate counts independent GAMES
+            # (shadow.game_key), so rows standing in for independent bets must
+            # not share a matchup.
+            (sd, mid, f"wnba::{sd}::{mid}_vs_b::spread", "wnba", mt, mode, clv, line, venue),
         )
         if outcome is not None:
             conn.execute(

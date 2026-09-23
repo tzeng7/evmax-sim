@@ -2040,8 +2040,9 @@ def close_lookup_ticker(market_id: Optional[str]) -> tuple[Optional[str], bool]:
     NO-side bets carry a ``:no`` market_id suffix (see
     ``ev_gap_agent._build_no_side_{spread,total}_gap``) but the live book
     snapshot is the same YES market for both sides, so the suffix is
-    stripped and reported via ``is_no_side`` — the caller flips the YES
-    close to ``1 - close`` to stay on the entry's side of the book.
+    stripped and reported via ``is_no_side`` — the caller reads the
+    snapshot's NO ask (``get_kalshi_close_price(side="no")``) to stay on the
+    entry's side of the book.
     """
     if not market_id:
         return None, False
@@ -2070,7 +2071,33 @@ def clv_entry_price(
     return scan_price
 
 
-def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> dict:
+def clv_not_before(
+    placed: Optional[int],
+    placed_at: Optional[str],
+    logged_at: Optional[str],
+) -> Optional[str]:
+    """Earliest instant a CLV close may be taken from — the entry itself.
+
+    A placed bet's entry is its fill (``placed_at``); an unplaced row's entry is
+    the scan that first logged it (``logged_at`` — the table is freeze-on-first-
+    insert, so ``kalshi_yes_price`` is the ask at that instant). CLV must measure
+    FORWARD from entry: the plain T-30 proxy used for unplaced rows let a row
+    logged inside the last 30 minutes (or at/after tip, entered at in-play
+    prices) be scored against a close that PRECEDED it — 55 at-tip rows averaged
+    +5.56pp "CLV" that way. Shared by ``backfill_clv`` and the shadow staleness
+    filter so both read the same snapshot.
+    """
+    if placed and placed_at:
+        return placed_at
+    return logged_at
+
+
+def backfill_clv(
+    since: Optional[date] = None,
+    until: Optional[date] = None,
+    recompute_kalshi_clv: bool = False,
+    dry_run: bool = False,
+) -> dict:
     """Backfill two distinct CLV measurements for resolved bets.
 
     Both pull from data/archive.db (Pinnacle line snapshots + Kalshi market
@@ -2094,6 +2121,14 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
 
     Also populates ev_outcomes.pinnacle_close_prob (yes-aligned).
 
+    ``recompute_kalshi_clv`` re-derives ``kalshi_clv_pct`` for EVERY resolved
+    row in the window (not just NULLs) under the current method — forward-only
+    close anchored at the row's own entry (``clv_not_before``) and the bet
+    side's own ask (NO rows read the archived NO ask). Pinnacle drift is left
+    alone unless NULL. ``dry_run`` computes everything and writes nothing; the
+    result then also carries ``changed`` (rows whose value would move) and
+    ``mean_delta_pp`` so a recompute can be sized before it is run.
+
     Returns: {"updated": N, "skipped": M, "avg_pinn_drift": x, "avg_kalshi_clv": y}
     """
     from evmax.archiver import DataArchiver
@@ -2107,14 +2142,16 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
     # Pull all bets that need backfill — either missing pinn drift OR missing
     # kalshi CLV. Resolved-only since both metrics are scored post-game.
     rows = conn.execute(
-        """SELECT p.id, p.market_id, p.event_id, p.kalshi_yes_price,
+        f"""SELECT p.id, p.market_id, p.event_id, p.kalshi_yes_price,
                   p.yes_team, p.event_date, p.scan_date,
                   p.pinnacle_drift_pct, p.kalshi_clv_pct,
-                  p.market_type, p.line, p.placed, p.placed_price, p.placed_at
+                  p.market_type, p.line, p.placed, p.placed_price, p.placed_at,
+                  p.logged_at
            FROM ev_predictions p
            INNER JOIN ev_outcomes o ON p.market_id = o.market_id
            WHERE o.outcome IS NOT NULL
-             AND (p.pinnacle_drift_pct IS NULL OR p.kalshi_clv_pct IS NULL)
+             AND {"1=1" if recompute_kalshi_clv else
+                  "(p.pinnacle_drift_pct IS NULL OR p.kalshi_clv_pct IS NULL)"}
              AND p.scan_date >= ? AND p.scan_date <= ?""",
         (since_str, until_str),
     ).fetchall()
@@ -2122,6 +2159,12 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
     updated = skipped = 0
     pinn_drift_values: list[float] = []
     kalshi_clv_values: list[float] = []
+    changed = 0
+    deltas: list[float] = []
+
+    def _write(sql: str, args: tuple) -> None:
+        if not dry_run:
+            conn.execute(sql, args)
 
     for row in rows:
         # CLV is measured against the price we actually get in at: the real fill
@@ -2149,7 +2192,9 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
         # of an unrelated moneyline close. Totals align by over/under side
         # (yes_team is "over"/"under") rather than team label.
         mt = (row["market_type"] or "").lower()
-        if mt == "spread":
+        if row["pinnacle_drift_pct"] is not None:
+            pinn_close = None  # already measured; recompute mode leaves it alone
+        elif mt == "spread":
             pinn_close = archiver.get_spread_closing_line_aligned(
                 row["event_id"], row["yes_team"], row["line"]
             )
@@ -2166,11 +2211,11 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
         pinn_drift_pp: Optional[float] = None
         if pinn_close is not None:
             pinn_drift_pp = (pinn_close - entry_price) * 100
-            conn.execute(
+            _write(
                 "UPDATE ev_outcomes SET pinnacle_close_prob = ? WHERE market_id = ?",
                 (pinn_close, market_id),
             )
-            conn.execute(
+            _write(
                 "UPDATE ev_predictions SET pinnacle_drift_pct = ? WHERE id = ?",
                 (round(pinn_drift_pp, 2), row["id"]),
             )
@@ -2178,35 +2223,47 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
 
         # ---- 2. Kalshi-CLV — T-30 pre-tipoff snapshot ----
         # Use Pinnacle's archived tipoff timestamp as the anchor for "30 min
-        # pre-tipoff." If that's missing fall back to event_date midnight UTC
-        # (still better than the no-filter LIMIT 1 we had before).
-        # Anchor the close to be at/after our fill for placed bets so CLV
-        # measures forward from entry, not against a price that preceded it.
-        # Unplaced bets keep the plain T-30 proxy (not_before=None).
-        not_before = row["placed_at"] if (row["placed"] and row["placed_at"]) else None
+        # pre-tipoff." The close is anchored at/after the row's own entry
+        # (fill for placed bets, first-log scan for the rest — clv_not_before)
+        # so CLV always measures FORWARD from entry, and it is read on the
+        # bet's own side of the book: a NO row's entry is the NO ask, so its
+        # close is the archived NO ask (side="no"), not 1 − YES ask (the bid).
+        not_before = clv_not_before(row["placed"], row["placed_at"], row["logged_at"])
         kalshi_clv_pp: Optional[float] = None
-        if ticker:
+        if ticker and (recompute_kalshi_clv or row["kalshi_clv_pct"] is None):
             kalshi_close = archiver.get_kalshi_close_price(
-                ticker, row["event_id"], not_before=not_before
+                ticker, row["event_id"], not_before=not_before,
+                side="no" if is_no_side else "yes",
             )
             if kalshi_close is not None:
-                # archived snapshot is the YES-market price; align to the bet's
-                # side so entry (no_ask) and close are comparable.
-                if is_no_side:
-                    kalshi_close = 1.0 - kalshi_close
                 kalshi_clv_pp = (kalshi_close - entry_price) * 100
-                conn.execute(
+                new_val = round(kalshi_clv_pp, 2)
+                old_val = row["kalshi_clv_pct"]
+                if old_val is None or abs(old_val - new_val) > 1e-9:
+                    changed += 1
+                    if old_val is not None:
+                        deltas.append(new_val - old_val)
+                _write(
                     "UPDATE ev_predictions SET kalshi_clv_pct = ? WHERE id = ?",
-                    (round(kalshi_clv_pp, 2), row["id"]),
+                    (new_val, row["id"]),
                 )
                 kalshi_clv_values.append(kalshi_clv_pp)
+            elif recompute_kalshi_clv and row["kalshi_clv_pct"] is not None:
+                # No forward close exists under the current method (e.g. an
+                # at/after-tip entry): the stored value was backward-looking.
+                changed += 1
+                _write(
+                    "UPDATE ev_predictions SET kalshi_clv_pct = NULL WHERE id = ?",
+                    (row["id"],),
+                )
 
         if pinn_drift_pp is None and kalshi_clv_pp is None:
             skipped += 1
         else:
             updated += 1
 
-    conn.commit()
+    if not dry_run:
+        conn.commit()
     conn.close()
 
     avg_pd = sum(pinn_drift_values) / len(pinn_drift_values) if pinn_drift_values else 0.0
@@ -2227,6 +2284,9 @@ def backfill_clv(since: Optional[date] = None, until: Optional[date] = None) -> 
         "avg_kalshi_clv": round(avg_kc, 2),
         "n_pinn": len(pinn_drift_values),
         "n_kalshi": len(kalshi_clv_values),
+        "changed": changed,
+        "mean_delta_pp": round(sum(deltas) / len(deltas), 3) if deltas else 0.0,
+        "dry_run": dry_run,
     }
 
 
@@ -2257,18 +2317,37 @@ def backfill_outcome_closes(
     rows (``::prop::``) have no game moneyline to align to. Idempotent — only
     fills rows where ``pinnacle_close_prob IS NULL``. Read-only on archive.db.
 
-    Returns ``{"candidates": N, "filled": M, "no_archive_close": K}``.
+    Returns ``{"candidates": N, "filled": M, "no_archive_close": K,
+    "healed_invalid_closes": H}`` (H = stored 0/1 closes cleared first).
     """
     from evmax.archiver import DataArchiver
 
     archiver = DataArchiver()
     conn = get_connection()
 
+    # Heal closes no price can take: a devigged close of exactly 0/1 is a
+    # totals/spread record read through the moneyline aligner (alt-rung ids
+    # ``::total::<line>`` slipped past the old ``NOT LIKE '%::total'`` filter,
+    # stamping 155 totals outcomes 0.0). NULL them so the line-aware path can
+    # refill them; never a real close, so clearing is safe and idempotent.
+    healed = 0
+    heal_where = "(pinnacle_close_prob <= 0 OR pinnacle_close_prob >= 1)"
+    if dry_run:
+        healed = conn.execute(
+            f"SELECT COUNT(*) FROM ev_outcomes WHERE {heal_where}"
+        ).fetchone()[0]
+    else:
+        healed = conn.execute(
+            f"UPDATE ev_outcomes SET pinnacle_close_prob = NULL WHERE {heal_where}"
+        ).rowcount
+
     where = [
         "outcome IS NOT NULL",
         "pinnacle_close_prob IS NULL",
-        "event_id NOT LIKE '%::spread'",
-        "event_id NOT LIKE '%::total'",
+        # ``%::spread%`` / ``%::total%`` also cover alt-rung ids that carry the
+        # line after the market type (``…::total::47.0``).
+        "event_id NOT LIKE '%::spread%'",
+        "event_id NOT LIKE '%::total%'",
         "event_id NOT LIKE '%::prop::%'",
     ]
     params: list = []
@@ -2311,6 +2390,12 @@ def backfill_outcome_closes(
         candidates=len(rows),
         filled=filled,
         no_archive_close=no_close,
+        healed_invalid_closes=healed,
         dry_run=dry_run,
     )
-    return {"candidates": len(rows), "filled": filled, "no_archive_close": no_close}
+    return {
+        "candidates": len(rows),
+        "filled": filled,
+        "no_archive_close": no_close,
+        "healed_invalid_closes": healed,
+    }

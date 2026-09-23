@@ -1859,17 +1859,22 @@ class TestBackfillClvNoSide:
         return self._NoCloseConn(dbmod.get_connection())
 
     def _seed(self, conn, market_id, yes_team, market_type, entry, line, event_id,
-              event_date="2026-05-25", placed=0, placed_at=None, placed_price=None):
+              event_date="2026-05-25", placed=0, placed_at=None, placed_price=None,
+              logged_at=None):
+        # logged_at = the scan that first logged the row (the entry for an
+        # unplaced row); CLV is measured forward from it. Default: the morning
+        # of the game — a realistic pre-tip scan — not the column's "now".
+        logged_at = logged_at or f"{event_date} 12:00:00"
         conn.execute(
             """INSERT INTO ev_predictions
                (scan_date, market_id, event_id, sector, yes_team, market_type,
                 event_title, event_date, kalshi_yes_price, sharp_true_prob,
                 blended_true_prob, ev_pct, kelly_fraction, bankroll_used, line,
-                placed, placed_at, placed_price)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                placed, placed_at, placed_price, logged_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (event_date, market_id, event_id, "baseball", yes_team, market_type,
              "Yankees vs Red Sox", event_date, entry, 0.55, 0.55, 0.05, 0.01, 500.0, line,
-             placed, placed_at, placed_price),
+             placed, placed_at, placed_price, logged_at),
         )
         conn.execute(
             """INSERT INTO ev_outcomes

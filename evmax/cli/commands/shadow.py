@@ -474,6 +474,18 @@ def clv_clears(n: int, mean_clv_pp: float, frac_positive: float) -> bool:
     )
 
 
+def game_key(event_id: Optional[str]) -> str:
+    """The GAME an event_id belongs to: ``sector::date::matchup``.
+
+    Spread/total/advance/prop rows append ``::spread[::line]`` etc., so a
+    single NFL game's alt ladder carries dozens of distinct event_ids (one per
+    Pinnacle rung). Counting distinct event_ids reported ~146 "games" for ~25
+    real NFL games; a game-level count must strip the market suffix.
+    """
+    parts = (event_id or "").split("::")
+    return "::".join(parts[:3])
+
+
 def _fetch_clv_rows(
     category: str,
     market_type: Optional[str] = None,
@@ -502,7 +514,19 @@ def _fetch_clv_rows(
     from evmax.agents.cleanup.price_buckets import bucket_for_row, validate_bucket
 
     price_bucket = validate_bucket(price_bucket)
-    where = ["p.kalshi_clv_pct IS NOT NULL", "o.outcome IS NOT NULL"]
+    where = [
+        "p.kalshi_clv_pct IS NOT NULL",
+        "o.outcome IS NOT NULL",
+        # Cancelled / manually voided rows are not bets (199 carried stored CLV
+        # averaging +1.16pp vs +0.17 clean). ``stale_reverted`` voids STAY: they
+        # are real scan decisions prune-stale later dropped because the edge
+        # reverted — excluding them would bias CLV upward.
+        "(COALESCE(p.voided, 0) = 0 OR p.void_reason = 'stale_reverted')",
+        # Logged at/after tipoff (minutes_to_tipoff clamps to 0): entered at an
+        # in-play price and scored against a pre-tip close that PRECEDES the
+        # entry — 55 such rows averaged +5.56pp (e.g. 1c in-play Serie A buys).
+        "(p.minutes_to_tipoff IS NULL OR p.minutes_to_tipoff > 0)",
+    ]
     params: list = []
     if category.endswith("_props"):
         where.append("(p.sector = ? AND p.event_id LIKE '%::prop::%')")
@@ -541,7 +565,7 @@ def _fetch_clv_rows(
     sql = f"""
         SELECT p.sector, p.market_type, p.model_sources, p.line, p.kalshi_clv_pct,
                p.event_id, p.event_title, p.venue, p.placed, p.placed_at,
-               p.market_id, p.league,
+               p.logged_at, p.market_id, p.league,
                p.kalshi_yes_price, p.placed_price,
                p.blended_true_prob, p.sharp_true_prob,
                o.outcome
@@ -563,7 +587,7 @@ def _fetch_clv_rows(
 
     excluded_stale = 0
     if max_staleness_h is not None:
-        from evmax.agents.cleanup.resolver import close_lookup_ticker
+        from evmax.agents.cleanup.resolver import close_lookup_ticker, clv_not_before
         from evmax.archiver import DataArchiver
 
         archiver = DataArchiver()
@@ -578,7 +602,7 @@ def _fetch_clv_rows(
             if not ticker:
                 excluded_stale += 1  # no anchor => untrustworthy close, drop
                 continue
-            not_before = r["placed_at"] if (r["placed"] and r["placed_at"]) else None
+            not_before = clv_not_before(r["placed"], r["placed_at"], r["logged_at"])
             staleness = archiver.get_kalshi_close_staleness_h(
                 ticker, r["event_id"], not_before=not_before
             )
@@ -591,20 +615,37 @@ def _fetch_clv_rows(
     return kept, excluded_stale
 
 
+def _row_event_id(r) -> Optional[str]:
+    try:
+        return r["event_id"]
+    except (KeyError, IndexError):
+        return None
+
+
 def _aggregate_clv(kept: list, excluded_stale: int = 0) -> dict:
-    """Aggregate kept CLV rows into the clv_stats result dict."""
+    """Aggregate kept CLV rows into the clv_stats result dict.
+
+    ``n`` counts ROWS; ``games`` counts distinct games (``game_key``). The
+    sample-size half of the gate uses ``games``: an alt-spread ladder logs
+    5–16 correlated rungs per game, so a rung count of 30 can be one NFL week
+    (the 2026-09-14 "CLEARS" was 15 games). Rows without an event_id fall back
+    to counting as their own game.
+    """
     clvs = [r["kalshi_clv_pct"] for r in kept]
     n = len(clvs)
     if n == 0:
-        return {"n": 0, "mean_clv_pp": 0.0, "frac_positive": 0.0,
+        return {"n": 0, "games": 0, "mean_clv_pp": 0.0, "frac_positive": 0.0,
                 "clears": False, "excluded_stale": excluded_stale}
+    games = len({game_key(eid) if eid else f"row{i}"
+                 for i, eid in enumerate(_row_event_id(r) for r in kept)})
     mean_clv = sum(clvs) / n
     frac_pos = sum(1 for c in clvs if c > 0) / n
     return {
         "n": n,
+        "games": games,
         "mean_clv_pp": round(mean_clv, 3),
         "frac_positive": round(frac_pos, 3),
-        "clears": clv_clears(n, mean_clv, frac_pos),
+        "clears": clv_clears(games, mean_clv, frac_pos),
         "excluded_stale": excluded_stale,
     }
 
@@ -858,7 +899,7 @@ def clv_tiers(
     table.add_column("gate", justify="center")
     for tier in TIER_ORDER:
         rows = buckets[tier]
-        games = len({r["event_id"] for r in rows})
+        games = len({game_key(r["event_id"]) for r in rows})
         s = _aggregate_clv(rows)
         if s["n"] == 0:
             table.add_row(_TIER_DESC[tier], str(games), "0", "—", "—", "—")
@@ -981,7 +1022,7 @@ def clv_prices(
         if not rows and b == "unknown":
             continue  # only show the unbucketable row when it has members
         short = b if b == "unknown" else f"{b}c"
-        games = len({r["event_id"] for r in rows})
+        games = len({game_key(r["event_id"]) for r in rows})
         s = _aggregate_clv(rows)
         if s["n"] == 0:
             table.add_row(short, str(games), "0", "—", "—", "—", "—", "—", "—", "—", "—")
@@ -1095,7 +1136,7 @@ def clv_leagues(
         rows = buckets.get(lg, [])
         if not rows and lg == "unknown":
             continue
-        games = len({r["event_id"] for r in rows})
+        games = len({game_key(r["event_id"]) for r in rows})
         stats = _aggregate_clv(rows)
         name = LEAGUE_DISPLAY.get(lg, lg)
         if stats["n"] == 0:
@@ -1226,7 +1267,7 @@ def board(
     table.add_column("Mode", width=6)
     table.add_column("n c/r/l", justify="right", width=11)
     table.add_column("ΔBr/1k", justify="right", width=6)
-    table.add_column("CLV mean/%pos(n)", justify="right", width=16)
+    table.add_column("CLV mean/%pos(games)", justify="right", width=16)
     table.add_column("Div", justify="right", width=5)
     table.add_column("Gate", width=4)
     table.add_column("Verdict", min_width=15, no_wrap=False)
@@ -1234,7 +1275,7 @@ def board(
     for r in rows:
         clv = r["clv"]
         clv_str = (
-            f"{clv['mean_clv_pp']:+.2f}/{clv['frac_positive']*100:.0f}%({clv['n']})"
+            f"{clv['mean_clv_pp']:+.2f}/{clv['frac_positive']*100:.0f}%({clv.get('games', clv['n'])}g)"
             if clv["n"] else "—"
         )
         delta = r["brier_delta_per_1000"]

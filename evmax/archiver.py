@@ -474,6 +474,7 @@ class DataArchiver:
         event_id: str,
         minutes_before: int = 30,
         not_before: object = None,
+        side: str = "yes",
     ) -> float | None:
         """Latest Kalshi yes_price snapshot at least ``minutes_before`` before tipoff.
 
@@ -496,9 +497,26 @@ class DataArchiver:
         or after ``not_before`` exists — a missing forward close is better than a
         fabricated backward one. When ``not_before`` is None the behaviour is
         unchanged (latest snapshot ≤ T-minutes_before).
+
+        ``side`` picks WHICH ask to return. ``"yes"`` → the YES ask. ``"no"`` →
+        the archived NO ask (``no_price``), so a NO-side bet's close is the same
+        kind of price as its entry (the NO ask it bought at). The old caller-side
+        ``1 − yes_ask`` flip is the NO *bid*: scoring ask-entry against a
+        bid-close charged every NO-side row the full spread (e.g. Kalshi NFL
+        "take" read −0.92pp CLV vs −0.45pp ask-to-ask). Falls back to
+        ``1 − yes_price`` only when the snapshot has no NO ask.
         """
+        if side not in ("yes", "no"):
+            raise ValueError(f"side must be 'yes' or 'no', got {side!r}")
         sel = self._select_kalshi_close(ticker, event_id, minutes_before, not_before)
-        return sel[0] if sel else None
+        if not sel:
+            return None
+        yes_price, no_price = sel[0], sel[1]
+        if side == "yes":
+            return yes_price
+        if no_price is not None and 0.0 < no_price < 1.0:
+            return no_price
+        return (1.0 - yes_price) if yes_price is not None else None
 
     def _select_kalshi_close(
         self,
@@ -506,10 +524,10 @@ class DataArchiver:
         event_id: str,
         minutes_before: int = 30,
         not_before: object = None,
-    ) -> "tuple[float, datetime, datetime] | None":
+    ) -> "tuple[float, float | None, datetime, datetime] | None":
         """Snapshot :meth:`get_kalshi_close_price` selects, with its timestamps.
 
-        Returns ``(yes_price, snapshot_fetched_at, target_dt)`` where target_dt
+        Returns ``(yes_price, no_price, snapshot_fetched_at, target_dt)`` where target_dt
         is the T-minutes_before close target (tipoff - minutes_before). The gap
         ``target_dt - snapshot_fetched_at`` is the close snapshot's STALENESS —
         how far the archived price we call "close" actually sits from the
@@ -555,7 +573,7 @@ class DataArchiver:
             def _latest(upper_iso: str, inclusive: bool):
                 op = "<=" if inclusive else "<"
                 sql = (
-                    "SELECT yes_price, fetched_at FROM archived_kalshi_markets "
+                    "SELECT yes_price, no_price, fetched_at FROM archived_kalshi_markets "
                     f"WHERE ticker = ? AND fetched_at {op} ?"
                 )
                 params: list[object] = [ticker, upper_iso]
@@ -590,7 +608,7 @@ class DataArchiver:
             return None
         if snap_dt.tzinfo is None:
             snap_dt = snap_dt.replace(tzinfo=timezone.utc)
-        return row["yes_price"], snap_dt, target_dt
+        return row["yes_price"], row["no_price"], snap_dt, target_dt
 
     def get_kalshi_close_staleness_h(
         self,
@@ -615,7 +633,7 @@ class DataArchiver:
         sel = self._select_kalshi_close(ticker, event_id, minutes_before, not_before)
         if sel is None:
             return None
-        _price, snap_dt, target_dt = sel
+        _yes, _no, snap_dt, target_dt = sel
         return (target_dt - snap_dt).total_seconds() / 3600.0
 
     def get_closing_line_aligned(self, event_id: str, yes_team: str | None) -> float | None:
@@ -644,6 +662,7 @@ class DataArchiver:
                    FROM archived_sharp_odds
                    WHERE event_id = ?
                      AND spread_line IS NULL
+                     AND total_line IS NULL
                      AND event_date IS NOT NULL
                      AND fetched_at < event_date
                    ORDER BY fetched_at DESC
@@ -652,7 +671,7 @@ class DataArchiver:
             ).fetchone()
         if not row:
             return None
-        return yes_aligned_close_prob(
+        cp = yes_aligned_close_prob(
             yes_team=yes_team,
             outcome_a_label=row["outcome_a_label"],
             outcome_b_label=row["outcome_b_label"],
@@ -660,6 +679,13 @@ class DataArchiver:
             true_prob_b=row["true_prob_b"],
             true_prob_draw=row["true_prob_draw"],
         )
+        # A devigged close of exactly 0/1 is never a price — it is a totals
+        # record (probs live in true_prob_over/under, true_prob_a/b stay 0.0)
+        # reached through an alt-rung ``::total::<line>`` event id. 155 totals
+        # outcomes were stamped pinnacle_close_prob = 0.0 this way.
+        if cp is None or not 0.0 < cp < 1.0:
+            return None
+        return cp
 
     def get_spread_closing_line_aligned(
         self,
