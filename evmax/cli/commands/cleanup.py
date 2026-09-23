@@ -702,6 +702,7 @@ def watch_closes(
                             true_prob_a=so.true_prob_a,
                             true_prob_b=so.true_prob_b,
                             true_prob_draw=so.true_prob_draw,
+                            sector=sector,
                         )
                     if cp is None:
                         continue

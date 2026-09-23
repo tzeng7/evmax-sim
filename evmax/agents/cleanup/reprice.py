@@ -366,6 +366,7 @@ async def reprice_rows(
                 outcome_b_label=fresh_so.outcome_b_label,
                 true_prob_a=fresh_so.true_prob_a,
                 true_prob_b=fresh_so.true_prob_b,
+                sector=r.get("sector"),
             )
             if fresh_sharp_prob is not None:
                 blended_prob = reblend_with_fresh_sharp(

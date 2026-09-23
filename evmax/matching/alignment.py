@@ -181,6 +181,60 @@ def resolve_side(yes: str, side_a: str, side_b: str) -> Optional[tuple[YesOutcom
     return None
 
 
+def resolve_team(
+    name: Optional[str],
+    side_a: Optional[str],
+    side_b: Optional[str],
+    normalizer: Optional[NameNormalizer] = None,
+    *,
+    allow_codes: bool = False,
+) -> Optional[tuple[YesOutcome, str]]:
+    """Closed-world pick: which of two team names does ``name`` refer to?
+
+    The general form of the alignment rules for callers that hold two raw
+    labels instead of a ``PredictionMarket`` + ``SharpOdds`` pair (outcome
+    resolution, close-line alignment). Rules run strongest-first and each must
+    hit EXACTLY ONE side — an ambiguous rule yields None, never side A:
+
+      1. ``resolve_side`` on the sector-normalized names (canonical equality,
+         then token subset) — only when a ``normalizer`` is given.
+      2. ``resolve_side`` on the raw-cleaned names.
+      3. reverse token subset: the SIDE's tokens inside ``name``
+         ("fever" ⊆ "indiana fever").
+      4. venue ticker code (prefix / acronym) — only with ``allow_codes``,
+         and only when both sides are the event's OWN two teams.
+
+    Returns ``(YesOutcome.A | YesOutcome.B, method)`` or None.
+    """
+    name_clean = clean(name)
+    a_clean = clean(side_a)
+    b_clean = clean(side_b)
+    if not name_clean or not (a_clean or b_clean):
+        return None
+    if normalizer is not None:
+        r = resolve_side(
+            clean(normalizer.normalize(name or "")),
+            clean(normalizer.normalize(side_a or "")),
+            clean(normalizer.normalize(side_b or "")),
+        )
+        if r is not None:
+            return r
+    r = resolve_side(name_clean, a_clean, b_clean)
+    if r is not None:
+        return r
+    out = _exactly_one(
+        bool(a_clean) and _token_subset(a_clean, name_clean),
+        bool(b_clean) and _token_subset(b_clean, name_clean),
+    )
+    if out is not None:
+        return out, "tokens_rev"
+    if allow_codes:
+        out = _exactly_one(_code_match(name_clean, a_clean), _code_match(name_clean, b_clean))
+        if out is not None:
+            return out, "code"
+    return None
+
+
 def price_align(ask: float, prob_a: Optional[float], prob_b: Optional[float]) -> Optional[YesOutcome]:
     """Last-resort side pick from the ask price (esports only — see module doc)."""
     if prob_a is None or prob_b is None:

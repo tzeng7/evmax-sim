@@ -298,6 +298,7 @@ def _fair_yes_at(
         true_prob_a=r["true_prob_a"],
         true_prob_b=r["true_prob_b"],
         true_prob_draw=r["true_prob_draw"],
+        sector=(event_id or "").split("::", 1)[0] or None,
     )
     return (fair, age_min) if fair is not None else (None, None)
 

@@ -702,6 +702,7 @@ class DataArchiver:
             true_prob_a=row["true_prob_a"],
             true_prob_b=row["true_prob_b"],
             true_prob_draw=row["true_prob_draw"],
+            sector=(event_id or "").split("::", 1)[0] or None,
         )
         # A devigged close of exactly 0/1 is never a price — it is a totals
         # record (probs live in true_prob_over/under, true_prob_a/b stay 0.0)
@@ -794,6 +795,7 @@ class DataArchiver:
             true_prob_a=row["true_prob_a"],
             true_prob_b=row["true_prob_b"],
             true_prob_draw=row["true_prob_draw"],
+            sector=(event_id or "").split("::", 1)[0] or None,
         )
 
     def get_total_closing_line_aligned(
