@@ -11,10 +11,20 @@ when it is not final and never falls back past it.
 This script re-grades every ESPN-resolved game row (the ``ESPN_SPORT_MAP``
 sectors — series sports) against freshly fetched scoreboards with the fixed
 ``_match_espn`` and plans a rewrite only when:
+  * the venue CONTRACT is for the row's own ``event_date`` — the Kalshi ticker
+    date / Polymarket US slug date matches it. A separate matcher bug priced
+    some rows against the adjacent game of the series (ticker dated
+    event_date±1); for those the contract settles on the OTHER game, so
+    re-grading onto event_date would overwrite a correct grade. They are
+    listed separately and never written;
   * the fixed matcher selects a COMPLETED game dated on the row's own
     ``event_date`` (so a genuinely mis-dated row is never "corrected" onto a
     different game), and
   * that grade differs from the stored outcome.
+
+``portfolio_bets`` copies of an outcome are only ever filled while NULL
+(``portfolios.sync_portfolio_outcomes``), so the script reports how many
+portfolio rows carry a changed outcome; fix those deliberately if needed.
 
 ``--dry-run`` (default) is read-only on both databases (ESPN GETs only).
 ``--apply`` first writes a full SQLite backup next to predictions.db
@@ -30,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import re
 import sqlite3
 import sys
 from dataclasses import dataclass
@@ -66,6 +77,31 @@ class SeriesFix:
     placed: int
     stored: int
     correct: int
+
+
+_MONTHS = {m: i for i, m in enumerate(
+    ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"], 1)}
+_KALSHI_DATE_RE = re.compile(r"-(\d{2})([A-Z]{3})(\d{2})")
+_SLUG_DATE_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})")
+
+
+def contract_date(market_id: Optional[str]) -> Optional[str]:
+    """ISO game date the venue contract is for, from the Kalshi ticker
+    (``…-26JUL11…``) or the Polymarket US slug (``…-2026-07-10-…``)."""
+    if not market_id:
+        return None
+    if market_id.startswith("polymarket_us:"):
+        m = _SLUG_DATE_RE.search(market_id)
+        return f"{m.group(1)}-{m.group(2)}-{m.group(3)}" if m else None
+    m = _KALSHI_DATE_RE.search(market_id.upper())
+    if not m or m.group(2) not in _MONTHS:
+        return None
+    return f"20{m.group(1)}-{_MONTHS[m.group(2)]:02d}-{m.group(3)}"
+
+
+def contract_date_mismatch(row: dict) -> bool:
+    cd = contract_date(row.get("market_id"))
+    return cd is not None and cd != (row.get("event_date") or "")[:10]
 
 
 def _window(d: str) -> list[str]:
@@ -111,9 +147,11 @@ def plan_fix(row: dict, scores: list[dict]) -> Optional[SeriesFix]:
     )
 
 
-async def plan(rows: list[dict]) -> list[SeriesFix]:
+async def plan(rows: list[dict]) -> tuple[list[SeriesFix], list[SeriesFix]]:
+    """(fixes to write, contract-date-mismatch rows that would change — never written)."""
     cache: dict = {}
     fixes: list[SeriesFix] = []
+    skipped: list[SeriesFix] = []
     async with httpx.AsyncClient(timeout=httpx.Timeout(20.0),
                                  headers={"User-Agent": _ESPN_HTTP_UA},
                                  follow_redirects=True) as client:
@@ -131,12 +169,25 @@ async def plan(rows: list[dict]) -> list[SeriesFix]:
             scores = [s for daylist in per_day for s in daylist]
             for r in group:
                 fix = plan_fix(r, scores)
-                if fix is not None:
-                    fixes.append(fix)
-    return fixes
+                if fix is None:
+                    continue
+                (skipped if contract_date_mismatch(r) else fixes).append(fix)
+    return fixes, skipped
 
 
-def apply(db: Path, fixes: list[SeriesFix]) -> Path:
+def portfolio_copies(conn: sqlite3.Connection, fixes: list[SeriesFix]) -> int:
+    """portfolio_bets rows carrying an outcome this repair changes."""
+    if not fixes:
+        return 0
+    try:
+        ids = [f.market_id for f in fixes]
+        q = f"SELECT COUNT(*) FROM portfolio_bets WHERE market_id IN ({','.join('?' * len(ids))}) AND outcome IS NOT NULL"
+        return conn.execute(q, ids).fetchone()[0]
+    except sqlite3.Error:
+        return 0
+
+
+def apply(db: Path, fixes: list[SeriesFix]) -> tuple[Path, int]:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     backup = db.with_name(f"{db.name}.bak-series-{stamp}")
     src = sqlite3.connect(str(db))
@@ -144,14 +195,15 @@ def apply(db: Path, fixes: list[SeriesFix]) -> Path:
     with dst:
         src.backup(dst)
     dst.close()
+    changed = 0
     with src:
         for f in fixes:
-            src.execute(
+            changed += src.execute(
                 "UPDATE ev_outcomes SET outcome = ? WHERE market_id = ? AND outcome = ?",
                 (f.correct, f.market_id, f.stored),
-            )
+            ).rowcount
     src.close()
-    return backup
+    return backup, changed
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -165,8 +217,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     uri = f"file:{args.db}?mode=ro" if not args.apply else str(args.db)
     conn = sqlite3.connect(uri, uri=not args.apply)
     rows = load_rows(conn, args.sector, args.since)
+    fixes, skipped = asyncio.run(plan(rows))
+    n_portfolio = portfolio_copies(conn, fixes)
     conn.close()
-    fixes = asyncio.run(plan(rows))
 
     print(f"checked {len(rows)} ESPN-graded game rows; {len(fixes)} graded on the wrong game")
     by_sector: dict[str, int] = {}
@@ -181,9 +234,17 @@ def main(argv: Optional[list[str]] = None) -> int:
               f"YES={f.yes_team[:18]:18s} {f.stored}->{f.correct} {f.mode}{' PLACED' if f.placed else ''}")
     if len(fixes) > 25:
         print(f"  … {len(fixes) - 25} more")
+    if skipped:
+        print(f"skipped {len(skipped)} rows whose venue contract is dated off event_date "
+              f"(priced against a different game of the series — NOT written):")
+        for f in skipped[:25]:
+            print(f"  {f.event_date} {f.sector:8s} {f.market_id[:60]}  stored {f.stored}")
+    if n_portfolio:
+        print(f"note: {n_portfolio} portfolio_bets rows copy an outcome this repair changes; "
+              "sync only fills NULL outcomes, so fix those deliberately if needed")
     if args.apply and fixes:
-        backup = apply(args.db, fixes)
-        print(f"applied {len(fixes)} fixes; backup at {backup}")
+        backup, changed = apply(args.db, fixes)
+        print(f"applied {changed} of {len(fixes)} planned fixes; backup at {backup}")
     elif not args.apply:
         print("(dry-run — nothing written; pass --apply to back up and write)")
     return 0

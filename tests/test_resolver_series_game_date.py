@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import asyncio
 
+import pytest
+
 from evmax.agents.cleanup import resolver
 from evmax.agents.cleanup.resolver import _fetch_espn_scores, _match_espn
 
@@ -151,3 +153,30 @@ def test_repair_leaves_correct_and_misdated_rows_alone():
     assert mod.plan_fix(_stored_row(0), [YESTERDAY_REDS_WIN, today_royals_win]) is None
     # no own-date game exists: the adjacent-day grade is never "repaired"
     assert mod.plan_fix(_stored_row(0), [YESTERDAY_REDS_WIN]) is None
+
+
+@pytest.mark.parametrize("market_id,expected", [
+    ("kalshi:KXMLBGAME-26JUL11TORSD-TOR", "2026-07-11"),
+    ("kalshi:KXMLBGAME-26JUN021910KCCIN-KC", "2026-06-02"),
+    ("polymarket_us:asc-mlb-tor-sd-2026-07-10-neg-1pt5:no", "2026-07-10"),
+    ("kalshi:NODATE", None),
+    (None, None),
+])
+def test_repair_contract_date(market_id, expected):
+    assert _repair_module().contract_date(market_id) == expected
+
+
+def test_repair_skips_rows_whose_contract_is_another_game():
+    """A row priced against the adjacent game (ticker dated event_date+1)
+    settles on THAT game — re-grading it onto event_date would overwrite a
+    correct grade (review finding on #322)."""
+    mod = _repair_module()
+    row = {**_stored_row(1), "market_id": "kalshi:KXMLBGAME-26JUN03CINKC-CIN"}
+    assert mod.contract_date_mismatch(row) is True
+    assert mod.contract_date_mismatch(_stored_row(1) | {"market_id": "kalshi:KXMLBGAME-26JUN02CINKC-CIN"}) is False
+
+
+def test_postponed_own_day_game_is_pending_and_warned(caplog):
+    postponed = {**_score("Cincinnati Reds", 0, "Kansas City Royals", 0, "2026-06-02",
+                          completed=False), "status": "STATUS_POSTPONED"}
+    assert _match_espn(_pred(), [YESTERDAY_REDS_WIN, postponed]) is None
