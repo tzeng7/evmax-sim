@@ -1859,17 +1859,22 @@ class TestBackfillClvNoSide:
         return self._NoCloseConn(dbmod.get_connection())
 
     def _seed(self, conn, market_id, yes_team, market_type, entry, line, event_id,
-              event_date="2026-05-25", placed=0, placed_at=None, placed_price=None):
+              event_date="2026-05-25", placed=0, placed_at=None, placed_price=None,
+              logged_at=None):
+        # logged_at = the scan that first logged the row (the entry for an
+        # unplaced row); CLV is measured forward from it. Default: the morning
+        # of the game — a realistic pre-tip scan — not the column's "now".
+        logged_at = logged_at or f"{event_date} 12:00:00"
         conn.execute(
             """INSERT INTO ev_predictions
                (scan_date, market_id, event_id, sector, yes_team, market_type,
                 event_title, event_date, kalshi_yes_price, sharp_true_prob,
                 blended_true_prob, ev_pct, kelly_fraction, bankroll_used, line,
-                placed, placed_at, placed_price)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                placed, placed_at, placed_price, logged_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (event_date, market_id, event_id, "baseball", yes_team, market_type,
              "Yankees vs Red Sox", event_date, entry, 0.55, 0.55, 0.05, 0.01, 500.0, line,
-             placed, placed_at, placed_price),
+             placed, placed_at, placed_price, logged_at),
         )
         conn.execute(
             """INSERT INTO ev_outcomes
@@ -1879,7 +1884,7 @@ class TestBackfillClvNoSide:
         )
         conn.commit()
 
-    def _seed_archive(self, db_path, event_id, yes_close, fetched_at, tipoff):
+    def _seed_archive(self, db_path, event_id, yes_close, fetched_at, tipoff, no_close=None):
         from evmax.archiver import DataArchiver
         from evmax.models.odds import SharpBook, SharpOdds
         archiver = DataArchiver()
@@ -1892,12 +1897,11 @@ class TestBackfillClvNoSide:
             true_prob_a=0.5, true_prob_b=0.5, margin=0.04,
             event_date=tipoff, fetched_at=tipoff - timedelta(hours=4),
         )])
-        archiver.archive_kalshi_snapshot(
-            "k1", "baseball",
-            [{"ticker": "KXMLBGAME-T", "yes_price": yes_close,
-              "event_id": event_id, "market_type": "total"}],
-            fetched_at=fetched_at,
-        )
+        snap = {"ticker": "KXMLBGAME-T", "yes_price": yes_close,
+                "event_id": event_id, "market_type": "total"}
+        if no_close is not None:
+            snap["no_price"] = no_close
+        archiver.archive_kalshi_snapshot("k1", "baseball", [snap], fetched_at=fetched_at)
 
     def test_no_side_strips_suffix_and_flips_close(self, tmp_path, monkeypatch):
         from datetime import datetime, timezone
@@ -1907,8 +1911,11 @@ class TestBackfillClvNoSide:
         monkeypatch.setattr(archiver_mod, "DB_PATH", tmp_path / "archive.db")
         event_id = "baseball::2026-05-25::yankees_vs_redsox::total::8.5"
         tip = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
-        # YES close 0.30 → NO close 0.70; NO entry 0.60 → CLV = +10.0pp.
-        self._seed_archive(tmp_path / "archive.db", event_id, 0.30, tip - timedelta(hours=1), tip)
+        # A two-sided book: YES ask 0.30 / NO ask 0.72. The NO row closes at the
+        # NO ASK (0.72, ask-to-ask), not 1 − YES ask (0.70, the bid):
+        # NO entry 0.60 → CLV = +12.0pp.
+        self._seed_archive(tmp_path / "archive.db", event_id, 0.30, tip - timedelta(hours=1), tip,
+                           no_close=0.72)
 
         conn = self._make_predictions_db(tmp_path, monkeypatch)
         self._seed(conn, "kalshi:KXMLBGAME-T:no", "under", "total", 0.60, 8.5, event_id)
@@ -1920,11 +1927,11 @@ class TestBackfillClvNoSide:
             "SELECT kalshi_clv_pct FROM ev_predictions WHERE market_id = ?",
             ("kalshi:KXMLBGAME-T:no",),
         ).fetchone()
-        assert row["kalshi_clv_pct"] == pytest.approx(10.0)
+        assert row["kalshi_clv_pct"] == pytest.approx(12.0)
 
     def test_no_side_was_null_without_suffix_strip(self, tmp_path, monkeypatch):
         """The YES ticker exists in the archive; a NO-side bet must resolve to a
-        (flipped) CLV rather than NULL — the regression this fix closes."""
+        CLV (read on the NO side) rather than NULL — the regression this fix closes."""
         from datetime import datetime, timezone
         from evmax.agents.cleanup import resolver
         import evmax.archiver as archiver_mod
@@ -1932,7 +1939,8 @@ class TestBackfillClvNoSide:
         monkeypatch.setattr(archiver_mod, "DB_PATH", tmp_path / "archive.db")
         event_id = "baseball::2026-05-25::yankees_vs_redsox::total::8.5"
         tip = datetime(2026, 5, 25, 23, 0, tzinfo=timezone.utc)
-        self._seed_archive(tmp_path / "archive.db", event_id, 0.30, tip - timedelta(hours=1), tip)
+        self._seed_archive(tmp_path / "archive.db", event_id, 0.30, tip - timedelta(hours=1), tip,
+                           no_close=0.72)
 
         conn = self._make_predictions_db(tmp_path, monkeypatch)
         self._seed(conn, "kalshi:KXMLBGAME-T:no", "under", "total", 0.60, 8.5, event_id)

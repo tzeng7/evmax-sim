@@ -319,6 +319,11 @@ def get_connection() -> sqlite3.Connection:
         # 2026-09-05 — per-league dimension inside the soccer sector
         # (evmax/sectors/soccer_leagues.py). Backfilled below for Kalshi rows.
         "ALTER TABLE ev_predictions ADD COLUMN league TEXT",
+        # logged_at is in the base schema; this only reaches hand-built /
+        # pre-schema tables. Nullable (ALTER can't add a datetime('now')
+        # default): a NULL logged_at makes the forward-only CLV anchor
+        # (resolver.clv_not_before) fall back to the plain T-30 proxy.
+        "ALTER TABLE ev_predictions ADD COLUMN logged_at TEXT",
     ]:
         try:
             conn.execute(migration)

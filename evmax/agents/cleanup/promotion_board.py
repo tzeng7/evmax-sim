@@ -81,13 +81,18 @@ def _verdict(
         return "SHARP-PASSTHROUGH"
     if n_clean < min_clean:
         return f"COLLECTING {n_clean}/{min_clean}"
+    # The CLV sample is judged in independent GAMES (alt ladders log many
+    # correlated rungs per game): too few games is still collecting, not failing.
+    clv_games = clv.get("games", clv.get("n", 0))
     if mode == "shadow" and clv.get("clears"):
         return "PROMOTE-READY"
     if not clv.get("clears"):
         if mode == "live":
-            if clv.get("n", 0) >= min_clean and clv.get("mean_clv_pp", 0.0) < 0:
+            if clv_games >= min_clean and clv.get("mean_clv_pp", 0.0) < 0:
                 return "LIVE-DEGRADING"
             return "LIVE-HEALTHY"
+        if clv_games < min_clean:
+            return f"COLLECTING {clv_games}/{min_clean}g"
         return "FAILING-CLV"
     if mode == "live":
         return "LIVE-HEALTHY"
@@ -229,10 +234,12 @@ def compute_promotion_board(
                 "required": MIN_CLEAN_RESOLVED,
                 "ok": len(clean) >= MIN_CLEAN_RESOLVED,
             },
+            # Independent GAMES, not rows — alt ladders log many correlated
+            # rungs per game (see shadow._aggregate_clv).
             "clv_n": {
-                "value": clv["n"],
+                "value": clv.get("games", clv["n"]),
                 "required": MIN_CLEAN_RESOLVED,
-                "ok": clv["n"] >= MIN_CLEAN_RESOLVED,
+                "ok": clv.get("games", clv["n"]) >= MIN_CLEAN_RESOLVED,
             },
             "clv_mean": {
                 "value": clv["mean_clv_pp"],
@@ -274,6 +281,7 @@ def compute_promotion_board(
             "sharp_passthrough": passthrough,
             "clv": {
                 "n": clv["n"],
+                "games": clv.get("games", clv["n"]),
                 "mean_clv_pp": clv["mean_clv_pp"],
                 "frac_positive": clv["frac_positive"],
                 "clears": clv["clears"],

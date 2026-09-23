@@ -374,7 +374,10 @@ def _make_clv_db(tmp_path: Path, rows: list[tuple]) -> Path:
                (scan_date, market_id, event_id, sector, market_type, mode,
                 kalshi_clv_pct, line, venue)
                VALUES (?,?,?,?,?,?,?,?,?)""",
-            (sd, mid, f"wnba::{sd}::a_vs_b::spread", "wnba", mt, mode, clv, line, venue),
+            # One game per fixture row: the CLV gate counts independent GAMES
+            # (shadow.game_key), so rows standing in for independent bets must
+            # not share a matchup.
+            (sd, mid, f"wnba::{sd}::{mid}_vs_b::spread", "wnba", mt, mode, clv, line, venue),
         )
         if outcome is not None:
             conn.execute(
@@ -501,7 +504,7 @@ class TestClvStats:
         staleness = {"fresh_a": 0.5, "fresh_b": 1.0, "stale_a": 12.0, "stale_b": 18.0}
         monkeypatch.setattr(
             "evmax.archiver.DataArchiver.get_kalshi_close_staleness_h",
-            lambda self, ticker, event_id, not_before=None: staleness.get(ticker),
+            lambda self, ticker, event_id, not_before=None, **_kw: staleness.get(ticker),
         )
         s = clv_stats("wnba", market_type="spread", max_staleness_h=3.0)
         assert s["n"] == 2               # only the two fresh rows survive
@@ -531,7 +534,7 @@ class TestClvStats:
         _patch_db(_make_clv_db(tmp_path, rows))
         monkeypatch.setattr(
             "evmax.archiver.DataArchiver.get_kalshi_close_staleness_h",
-            lambda self, ticker, event_id, not_before=None: (
+            lambda self, ticker, event_id, not_before=None, **_kw: (
                 0.5 if ticker == "has_anchor" else None
             ),
         )
@@ -547,7 +550,7 @@ class TestClvStats:
         _patch_db(_make_clv_db(tmp_path, rows))
         monkeypatch.setattr(
             "evmax.archiver.DataArchiver.get_kalshi_close_staleness_h",
-            lambda self, ticker, event_id, not_before=None: 0.5,
+            lambda self, ticker, event_id, not_before=None, **_kw: 0.5,
         )
         s = clv_stats("wnba", market_type="spread", max_staleness_h=3.0)
         assert s["n"] == 2 and s["excluded_stale"] == 0

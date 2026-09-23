@@ -586,20 +586,23 @@ def watch_closes(
         tickers = list(meta_by_ticker)
         try:
             async with KalshiClient() as client:
-                asks = await client.get_market_asks_batch(tickers)
+                quotes = await client.get_market_quotes_batch(tickers)
         except Exception as kerr:  # noqa: BLE001 — never abort the sweep
             console.print(f"[yellow]  kalshi snapshot fetch failed: {kerr}[/yellow]")
             return pmus_captured
 
         snapshots: list[dict] = []
         for ticker, meta in meta_by_ticker.items():
-            yes_ask = asks.get(ticker)
+            yes_ask, no_ask = quotes.get(ticker, (None, None))
             # 99c asks = empty orderbook; not a real close.
             if yes_ask is None or yes_ask >= 0.99:
                 continue
             snapshots.append({
                 "ticker": ticker,
                 "yes_price": yes_ask,
+                # The real NO ask, so NO-side CLV is ask-to-ask. None → the
+                # archiver derives 1 − yes (the old, bid-valued behavior).
+                "no_price": no_ask if (no_ask is not None and 0 < no_ask < 0.99) else None,
                 "event_id": meta.get("event_id"),
                 "event_date": meta.get("event_date"),
                 "market_type": meta.get("market_type"),
@@ -2296,6 +2299,15 @@ def backfill_clv_cmd(
     until: str = typer.Option(
         None, "--until", help="YYYY-MM-DD end date (default: today)."
     ),
+    recompute: bool = typer.Option(
+        False, "--recompute",
+        help="Re-derive kalshi_clv_pct for EVERY resolved row in range under the "
+             "current method (forward-only close from the row's own entry; NO "
+             "rows scored ask-to-ask), not just NULLs. Pair with --dry-run first.",
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Compute and report; write nothing."
+    ),
 ) -> None:
     """Backfill CLV metrics for resolved bets.
 
@@ -2311,7 +2323,34 @@ def backfill_clv_cmd(
     since_date = _date.fromisoformat(since) if since else None
     until_date = _date.fromisoformat(until) if until else None
 
-    result = backfill_clv(since=since_date, until=until_date)
+    if recompute and not dry_run:
+        # A recompute overwrites (and can NULL) historical kalshi_clv_pct values
+        # — back the DB up first (predictions_backup_before_* convention).
+        import sqlite3 as _sqlite3
+        from datetime import datetime as _dt, timezone as _tz
+
+        from evmax.agents.cleanup.db import DB_PATH as _DB_PATH
+
+        _stamp = _dt.now(_tz.utc).strftime("%Y%m%d_%H%M%S")
+        _backup = _DB_PATH.with_name(f"predictions_backup_before_clv_recompute_{_stamp}.db")
+        _src = _sqlite3.connect(str(_DB_PATH))
+        _dst = _sqlite3.connect(str(_backup))
+        with _dst:
+            _src.backup(_dst)
+        _dst.close()
+        _src.close()
+        console.print(f"  backed up predictions.db → {_backup}")
+
+    result = backfill_clv(
+        since=since_date, until=until_date,
+        recompute_kalshi_clv=recompute, dry_run=dry_run,
+    )
+    if recompute or dry_run:
+        console.print(
+            f"  {'[dry-run] ' if dry_run else ''}kalshi_clv_pct changed on "
+            f"[bold]{result.get('changed', 0)}[/bold] row(s); mean change "
+            f"{result.get('mean_delta_pp', 0.0):+.2f}pp on rows that had a value."
+        )
     updated = result["updated"]
     skipped = result["skipped"]
     avg_pd = result.get("avg_pinn_drift", 0.0)

@@ -323,7 +323,10 @@ class KalshiWSClient:
         `fetch_quotes` directly so the no-side ladder isn't discarded.
         """
         quotes = await self.fetch_quotes(tickers)
-        return {t: q[0] for t, q in quotes.items()}
+        # fetch_quotes marks a ticker that got no WS snapshot as None (so the
+        # caller falls back to REST) — indexing it raised TypeError and took
+        # down `agents pick --live` / `prune-stale` whenever one ticker missed.
+        return {t: (q[0] if q else None) for t, q in quotes.items()}
 
     async def fetch_quotes(
         self, tickers: list[str],
@@ -1007,6 +1010,45 @@ class KalshiClient(BaseAPIClient):
             )
             for t, ask in zip(missing, rest_asks):
                 results[t] = ask if not isinstance(ask, Exception) else None
+
+        return results
+
+    async def get_market_quotes_batch(
+        self,
+        tickers: list[str],
+    ) -> dict[str, tuple[Optional[float], Optional[float]]]:
+        """(YES ask, NO ask) per ticker, both from the same book snapshot.
+
+        Same WS-first / REST-fallback shape as ``get_market_asks_batch``, but
+        keeps the NO ladder: near-tip close snapshots need the NO ask so a
+        NO-side bet's CLV compares ask to ask (``1 − YES ask`` is the NO bid).
+        The REST fallback only recovers the YES ask (NO = None → the archive
+        derives it), so a WS outage degrades to the old behavior, never worse.
+        """
+        settings = get_settings()
+        api_tickers = {t: (t.split(":", 1)[-1] if ":" in t else t) for t in tickers}
+        results: dict[str, tuple[Optional[float], Optional[float]]] = {}
+
+        if settings.kalshi_ws_enabled:
+            try:
+                async with self._ws_client() as ws:
+                    ws_quotes = await ws.fetch_quotes(list(api_tickers.values()))
+            except Exception as e:  # noqa: BLE001 — never kill the sweep
+                logger.debug("kalshi_ws_quotes_failed", error=str(e))
+                ws_quotes = {}
+            for orig, api in api_tickers.items():
+                q = ws_quotes.get(api)
+                if q is not None and q[0] is not None:
+                    results[orig] = q
+
+        missing = [t for t in tickers if t not in results]
+        if missing:
+            rest_asks = await asyncio.gather(
+                *(self.get_market_ask(t) for t in missing),
+                return_exceptions=True,
+            )
+            for t, ask in zip(missing, rest_asks):
+                results[t] = (ask if not isinstance(ask, Exception) else None, None)
 
         return results
 

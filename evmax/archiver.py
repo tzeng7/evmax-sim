@@ -474,6 +474,8 @@ class DataArchiver:
         event_id: str,
         minutes_before: int = 30,
         not_before: object = None,
+        side: str = "yes",
+        near_tip_ok: bool = True,
     ) -> float | None:
         """Latest Kalshi yes_price snapshot at least ``minutes_before`` before tipoff.
 
@@ -496,9 +498,35 @@ class DataArchiver:
         or after ``not_before`` exists — a missing forward close is better than a
         fabricated backward one. When ``not_before`` is None the behaviour is
         unchanged (latest snapshot ≤ T-minutes_before).
+
+        ``side`` picks WHICH ask to return. ``"yes"`` → the YES ask. ``"no"`` →
+        the archived NO ask (``no_price``), so a NO-side bet's close is the same
+        kind of price as its entry (the NO ask it bought at). The old caller-side
+        ``1 − yes_ask`` flip is the NO *bid*: scoring ask-entry against a
+        bid-close charged every NO-side row the full spread (e.g. Kalshi NFL
+        "take" read −0.92pp CLV vs −0.45pp ask-to-ask). For ``side="no"`` only
+        snapshots carrying a REAL NO ask are eligible: YES-only captures
+        (pre-2026-09-22 ``watch-closes`` sweeps, the REST fallback) stored a
+        synthesized ``no_price = 1 − yes`` — the bid again — which a two-sided
+        book can never show (``yes_ask + no_ask == 1`` exactly). A NO row with
+        only synthesized snapshots gets no close (None), never a bid-valued one.
+
+        ``near_tip_ok=False`` forbids a close inside (T-minutes_before, tip):
+        no late-entry relaxation and no near-tip-only fallback. Used for
+        UNPLACED Kalshi rows, where a scan logged in the last hour otherwise
+        picked up (T-30, T) prints — in tennis, whose scheduled start is only an
+        estimate, those were in-play (21 tennis rows went 0.0 → ±14–32pp).
         """
-        sel = self._select_kalshi_close(ticker, event_id, minutes_before, not_before)
-        return sel[0] if sel else None
+        if side not in ("yes", "no"):
+            raise ValueError(f"side must be 'yes' or 'no', got {side!r}")
+        sel = self._select_kalshi_close(
+            ticker, event_id, minutes_before, not_before,
+            side=side, near_tip_ok=near_tip_ok,
+        )
+        if not sel:
+            return None
+        yes_price, no_price = sel[0], sel[1]
+        return yes_price if side == "yes" else no_price
 
     def _select_kalshi_close(
         self,
@@ -506,10 +534,12 @@ class DataArchiver:
         event_id: str,
         minutes_before: int = 30,
         not_before: object = None,
-    ) -> "tuple[float, datetime, datetime] | None":
+        side: str = "yes",
+        near_tip_ok: bool = True,
+    ) -> "tuple[float, float | None, datetime, datetime] | None":
         """Snapshot :meth:`get_kalshi_close_price` selects, with its timestamps.
 
-        Returns ``(yes_price, snapshot_fetched_at, target_dt)`` where target_dt
+        Returns ``(yes_price, no_price, snapshot_fetched_at, target_dt)`` where target_dt
         is the T-minutes_before close target (tipoff - minutes_before). The gap
         ``target_dt - snapshot_fetched_at`` is the close snapshot's STALENESS —
         how far the archived price we call "close" actually sits from the
@@ -548,20 +578,27 @@ class DataArchiver:
                 if lower_dt is not None and lower_dt.tzinfo is None:
                     lower_dt = lower_dt.replace(tzinfo=timezone.utc)
                 # Late placement: entry is already past the T-N proxy close, so
-                # relax the upper bound to tipoff to find a post-entry snapshot.
+                # relax the upper bound to tipoff to find a post-entry snapshot
+                # — unless near-tip closes are not allowed for this row.
                 if lower_dt is not None and lower_dt > upper_dt:
+                    if not near_tip_ok:
+                        return None
                     upper_dt = tipoff
 
             def _latest(upper_iso: str, inclusive: bool):
                 op = "<=" if inclusive else "<"
                 sql = (
-                    "SELECT yes_price, fetched_at FROM archived_kalshi_markets "
+                    "SELECT yes_price, no_price, fetched_at FROM archived_kalshi_markets "
                     f"WHERE ticker = ? AND fetched_at {op} ?"
                 )
                 params: list[object] = [ticker, upper_iso]
                 if lower_dt is not None:
                     sql += " AND fetched_at >= ?"
                     params.append(lower_dt.isoformat())
+                if side == "no":
+                    # a REAL NO ask only — see get_kalshi_close_price
+                    sql += (" AND no_price IS NOT NULL"
+                            " AND ABS(yes_price + no_price - 1.0) > 1e-9")
                 sql += " ORDER BY fetched_at DESC LIMIT 1"
                 return conn.execute(sql, params).fetchone()
 
@@ -580,7 +617,7 @@ class DataArchiver:
             # available close. Bounded ``< tipoff`` so in-game post-tip prints
             # (info-corrupted, trending to 0/1) are never selected. Skipped when
             # the upper bound was already relaxed to tipoff for a late fill.
-            if row is None and upper_dt < tipoff:
+            if row is None and upper_dt < tipoff and near_tip_ok:
                 row = _latest(tipoff.isoformat(), inclusive=False)
         if not row:
             return None
@@ -590,7 +627,7 @@ class DataArchiver:
             return None
         if snap_dt.tzinfo is None:
             snap_dt = snap_dt.replace(tzinfo=timezone.utc)
-        return row["yes_price"], snap_dt, target_dt
+        return row["yes_price"], row["no_price"], snap_dt, target_dt
 
     def get_kalshi_close_staleness_h(
         self,
@@ -598,6 +635,8 @@ class DataArchiver:
         event_id: str,
         minutes_before: int = 30,
         not_before: object = None,
+        side: str = "yes",
+        near_tip_ok: bool = True,
     ) -> float | None:
         """Hours the "close" snapshot sits before the T-minutes_before target.
 
@@ -612,10 +651,13 @@ class DataArchiver:
         None). Returns None with no tipoff anchor / no snapshot (treat as
         unknown — exclude).
         """
-        sel = self._select_kalshi_close(ticker, event_id, minutes_before, not_before)
+        sel = self._select_kalshi_close(
+            ticker, event_id, minutes_before, not_before,
+            side=side, near_tip_ok=near_tip_ok,
+        )
         if sel is None:
             return None
-        _price, snap_dt, target_dt = sel
+        _yes, _no, snap_dt, target_dt = sel
         return (target_dt - snap_dt).total_seconds() / 3600.0
 
     def get_closing_line_aligned(self, event_id: str, yes_team: str | None) -> float | None:
@@ -644,6 +686,7 @@ class DataArchiver:
                    FROM archived_sharp_odds
                    WHERE event_id = ?
                      AND spread_line IS NULL
+                     AND total_line IS NULL
                      AND event_date IS NOT NULL
                      AND fetched_at < event_date
                    ORDER BY fetched_at DESC
@@ -652,7 +695,7 @@ class DataArchiver:
             ).fetchone()
         if not row:
             return None
-        return yes_aligned_close_prob(
+        cp = yes_aligned_close_prob(
             yes_team=yes_team,
             outcome_a_label=row["outcome_a_label"],
             outcome_b_label=row["outcome_b_label"],
@@ -660,6 +703,13 @@ class DataArchiver:
             true_prob_b=row["true_prob_b"],
             true_prob_draw=row["true_prob_draw"],
         )
+        # A devigged close of exactly 0/1 is never a price — it is a totals
+        # record (probs live in true_prob_over/under, true_prob_a/b stay 0.0)
+        # reached through an alt-rung ``::total::<line>`` event id. 155 totals
+        # outcomes were stamped pinnacle_close_prob = 0.0 this way.
+        if cp is None or not 0.0 < cp < 1.0:
+            return None
+        return cp
 
     def get_spread_closing_line_aligned(
         self,
