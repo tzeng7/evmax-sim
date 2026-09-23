@@ -28,7 +28,7 @@ from statistics import mean, median
 from typing import Optional
 
 from evmax.models.odds import SharpBook, SharpOdds
-from evmax.models_ml.spread_distribution import SpreadDistributionModel
+from evmax.models_ml.spread_distribution import SpreadDistributionModel, SpreadPrediction
 from evmax.sectors.registry import get_handler
 
 # An anchor is "concurrent" with a Kalshi snapshot when it was fetched at most
@@ -156,10 +156,14 @@ def _nearest_anchor(series: list, snap_t: datetime):
     return best[1] if best else None
 
 
-def _fair_yes_spread(
+def _spread_pred_yes(
     so: SharpOdds, sector: str, yes_nick: str, line: float, normalize
-) -> Optional[float]:
-    """P(yes_nick covers Kalshi `line`) via the live alt-line pricing model."""
+) -> Optional[SpreadPrediction]:
+    """The live alt-line pricing model's prediction for yes_nick at Kalshi `line`.
+
+    ``pred.method`` is the model_sources token for the pricing path
+    (``spread_dist`` = normal CDF, ``spread_pmf`` = key-number margin PMF).
+    """
     nick_a = normalize(so.outcome_a_label)
     nick_b = normalize(so.outcome_b_label)
     if yes_nick == nick_a:
@@ -168,9 +172,16 @@ def _fair_yes_spread(
         yes_is_underdog = True
     else:
         return None
-    pred = SpreadDistributionModel().predict(
+    return SpreadDistributionModel().predict(
         so, target_line=line, sector=sector, yes_is_underdog=yes_is_underdog
     )
+
+
+def _fair_yes_spread(
+    so: SharpOdds, sector: str, yes_nick: str, line: float, normalize
+) -> Optional[float]:
+    """P(yes_nick covers Kalshi `line`) via the live alt-line pricing model."""
+    pred = _spread_pred_yes(so, sector, yes_nick, line, normalize)
     return pred.true_prob if pred else None
 
 

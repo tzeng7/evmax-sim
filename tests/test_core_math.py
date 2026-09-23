@@ -551,12 +551,19 @@ class TestSpreadDistributionModel:
         assert result is not None
         assert result.sigma == 12.5
 
-    def test_nfl_sigma_is_14_0(self):
-        """SpreadPrediction.sigma for NFL sector should be 14.0."""
+    def test_nfl_sigma_is_14_0(self, monkeypatch):
+        """SpreadPrediction.sigma for NFL sector should be 14.0 on the normal-CDF
+        path. NFL prices with the key-number margin PMF by default
+        (_PMF_SECTORS); disable it to pin the normal path's σ table. The PMF
+        path is covered in tests/test_spread_pmf.py."""
+        import evmax.models_ml.spread_distribution as sd
+
+        monkeypatch.setattr(sd, "_PMF_SECTORS", set())
         sharp = _make_spread_sharp(spread_line=-7.5, true_prob_a=0.60, sector="nfl")
         result = self.model.predict(sharp, target_line=-7.5, sector="nfl")
         assert result is not None
         assert result.sigma == 14.0
+        assert result.method == "spread_dist"
 
     def test_line_within_one_sigma_not_rejected(self):
         """A Kalshi line 5 pts from Pinnacle should not be None for NBA."""

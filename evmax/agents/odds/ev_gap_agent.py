@@ -37,6 +37,7 @@ from evmax.modes import get_mode
 from evmax.models.market import PredictionMarket, MarketType
 from evmax.models.odds import SharpOdds
 from evmax.models_ml.spread_distribution import (
+    SPREAD_DIST_TOKEN,
     SpreadDistributionModel,
     SPREAD_LADDER_ENABLED,
     SPREAD_LADDER_LINE_TOLERANCE,
@@ -272,6 +273,9 @@ _NON_MODEL_TOKENS = frozenset({
     # sharp_ladder = priced off the book's own alt-spread rung; it is the sharp
     # price, not an independent model signal, so it counts as non-model.
     "sharp_ladder",
+    # spread_pmf = the key-number margin PMF (models_ml/spread_pmf.py) that
+    # replaces spread_dist on _PMF_SECTORS. A pricing method, not a model.
+    "spread_pmf",
 })
 
 # How much of the possession-sim cover probability to mix into the market-anchored
@@ -847,6 +851,10 @@ class EVGapAgent(Agent):
         # ------------------------------------------------------------------
         used_spread_model = False
         used_spread_ladder = False
+        # Pricing-method token for the CDF/PMF path: `spread_dist` (normal CDF)
+        # or `spread_pmf` (key-number margin PMF, _PMF_SECTORS in
+        # spread_distribution.py). Lets the CLV gate isolate PMF-priced rows.
+        spread_method = SPREAD_DIST_TOKEN
         if market.market_type == MarketType.spread and market.line is not None:
             # Ladder hit: the matched Pinnacle record is the rung for THIS line
             # (its |spread_line| ≈ the market |line|), so `sharp_true_prob` — the
@@ -878,6 +886,7 @@ class EVGapAgent(Agent):
                     return _ret(None, None)
                 sharp_true_prob = spread_result.true_prob
                 used_spread_model = True
+                spread_method = spread_result.method
 
                 # Blend with PossessionSim margin distribution for NBA/WNBA.
                 # The sim's `cover_probability` is computed from the raw
@@ -980,7 +989,10 @@ class EVGapAgent(Agent):
             elif used_spread_model:
                 sim = self._sim_for_sector(sector) if spread_sim_weight(sector) > 0 else None
                 has_sim = sim is not None and sharp.event_id in getattr(sim, "_margin_cache", {})
-                src = "sharp+spread_dist+possession_sim" if has_sim else "sharp+spread_dist"
+                src = (
+                    f"sharp+{spread_method}+possession_sim" if has_sim
+                    else f"sharp+{spread_method}"
+                )
             elif used_total_model:
                 src = "sharp+total_dist"
             elif used_advance_model and advance_model_prob is not None:

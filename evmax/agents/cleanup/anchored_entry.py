@@ -32,9 +32,9 @@ from typing import Optional
 import structlog
 
 from evmax.agents.cleanup.listings_eval import (
-    _fair_yes_spread,
     _fair_yes_total,
     _sharp_game_key,
+    _spread_pred_yes,
 )
 from evmax.agents.odds.ev_gap_agent import EVGap
 from evmax.ev.calculator import calculate_ev, effective_price
@@ -143,8 +143,11 @@ def build_anchored_entries(
         if mt == "spread":
             if g["spread"] is None:
                 continue
-            fair = _fair_yes_spread(g["spread"], sector, yes_team, m.line, normalize)
-            sources = "sharp+spread_dist"
+            pred = _spread_pred_yes(g["spread"], sector, yes_team, m.line, normalize)
+            fair = pred.true_prob if pred else None
+            # spread_dist (normal CDF) or spread_pmf (NFL key-number PMF): the
+            # token tells the CLV gate which pricing selected the entry.
+            sources = f"sharp+{pred.method}" if pred else "sharp+spread_dist"
         else:
             fair = _fair_yes_total(g["totals"], yes_team, m.line)
             sources = "sharp"
