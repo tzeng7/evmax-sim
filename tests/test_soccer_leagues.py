@@ -95,21 +95,63 @@ class _Mkt:
 def test_sharp_weight_for_league():
     assert soccer_tiers.sharp_weight_for_league("epl") == 0.85
     assert soccer_tiers.sharp_weight_for_league("UCL") == 0.85
-    assert soccer_tiers.sharp_weight_for_league("mls") == 0.40
-    assert soccer_tiers.sharp_weight_for_league(None) == 0.40
-    assert soccer_tiers.sharp_weight_for_league("nowhere") == 0.40
+    assert soccer_tiers.sharp_weight_for_league("mls") == 0.85
+    assert soccer_tiers.sharp_weight_for_league(None) == 0.85
+    assert soccer_tiers.sharp_weight_for_league("nowhere") == 0.85
 
 
-def test_polymarket_market_gets_tier_weight_by_league():
+def _distinct_tiers(tmp_path, monkeypatch):
+    """A tier file whose default / top / secondary weights all DIFFER, so a
+    lookup that ignores the league (or the ticker) returns a wrong number.
+    The shipped file has all three at 0.85 since 2026-09-22 — tests against it
+    alone can no longer tell the lookups apart."""
+    cfg = tmp_path / "tiers.yaml"
+    cfg.write_text(
+        "default_sharp_weight: 0.33\n"
+        "tiers:\n"
+        "  top:\n    sharp_weight: 0.91\n    leagues: [epl, seriea]\n"
+        "  secondary:\n    sharp_weight: 0.47\n    leagues: [mls]\n"
+    )
+    monkeypatch.setattr(soccer_tiers, "_CONFIG_PATH", cfg)
+    soccer_tiers.reset_cache()
+
+
+def test_polymarket_market_gets_tier_weight_by_league(tmp_path, monkeypatch):
     """Regression: a PolyUS market has NO Kalshi ticker, so the ticker-only
-    lookup used to hand every PolyUS EPL/UCL game the 0.40 MLS default."""
-    assert soccer_tiers.sharp_weight_for_market(_Mkt(ticker="", league="epl")) == 0.85
-    assert soccer_tiers.sharp_weight_for_market(_Mkt(ticker="", league="mls")) == 0.40
-    # ticker fallback for markets that predate the league field
-    assert soccer_tiers.sharp_weight_for_market(
-        _Mkt(ticker="KXSERIEAGAME-26SEP05JUVINT-JUV")
-    ) == 0.85
-    assert soccer_tiers.sharp_weight_for_market(_Mkt()) == 0.40
+    lookup used to hand every PolyUS EPL/UCL game the MLS/default weight."""
+    _distinct_tiers(tmp_path, monkeypatch)
+    try:
+        assert soccer_tiers.sharp_weight_for_market(_Mkt(ticker="", league="epl")) == 0.91
+        assert soccer_tiers.sharp_weight_for_market(_Mkt(ticker="", league="mls")) == 0.47
+        # ticker fallback for markets that predate the league field
+        assert soccer_tiers.sharp_weight_for_market(
+            _Mkt(ticker="KXSERIEAGAME-26SEP05JUVINT-JUV")
+        ) == 0.91
+        assert soccer_tiers.sharp_weight_for_market(_Mkt()) == 0.33
+    finally:
+        soccer_tiers.reset_cache()
+
+
+def test_league_lookup_distinguishes_tiers(tmp_path, monkeypatch):
+    _distinct_tiers(tmp_path, monkeypatch)
+    try:
+        assert soccer_tiers.sharp_weight_for_league("epl") == 0.91
+        assert soccer_tiers.sharp_weight_for_league("EPL") == 0.91
+        assert soccer_tiers.sharp_weight_for_league("mls") == 0.47
+        assert soccer_tiers.sharp_weight_for_league(None) == 0.33
+        assert soccer_tiers.sharp_weight_for_league("nowhere") == 0.33
+    finally:
+        soccer_tiers.reset_cache()
+
+
+def test_missing_tier_file_falls_back_to_085(tmp_path, monkeypatch):
+    monkeypatch.setattr(soccer_tiers, "_CONFIG_PATH", tmp_path / "absent.yaml")
+    soccer_tiers.reset_cache()
+    try:
+        assert soccer_tiers.default_sharp_weight() == 0.85
+        assert soccer_tiers.sharp_weight_for_league("mls") == 0.85
+    finally:
+        soccer_tiers.reset_cache()
 
 
 def test_shipped_ramps_reproduce_sector_default():

@@ -21,19 +21,20 @@ def test_top_tier_leagues_get_elevated_sharp_weight():
         )
 
 
-def test_secondary_league_stays_at_default():
-    """MLS is configured in the secondary tier with the default weight."""
-    assert soccer_tiers.sharp_weight_for_ticker("KXMLSGAME-26APR24LAXNYC-NYC") == 0.40
+def test_secondary_league_mls_weight():
+    """MLS sits in its own secondary tier at 0.85 (2026-09-22: it never earned a
+    lower weight on per-league CLV evidence)."""
+    assert soccer_tiers.sharp_weight_for_ticker("KXMLSGAME-26APR24LAXNYC-NYC") == 0.85
 
 
 def test_unknown_ticker_falls_back_to_default():
     """Tickers not in any tier use default_sharp_weight."""
-    assert soccer_tiers.sharp_weight_for_ticker("KXFAKELEAGUE-26APR24XXXYYY-YYY") == 0.40
+    assert soccer_tiers.sharp_weight_for_ticker("KXFAKELEAGUE-26APR24XXXYYY-YYY") == 0.85
 
 
 def test_empty_ticker_returns_default():
-    assert soccer_tiers.sharp_weight_for_ticker("") == 0.40
-    assert soccer_tiers.sharp_weight_for_ticker(None) == 0.40
+    assert soccer_tiers.sharp_weight_for_ticker("") == 0.85
+    assert soccer_tiers.sharp_weight_for_ticker(None) == 0.85
 
 
 def test_ticker_with_source_prefix_is_stripped():
@@ -47,4 +48,4 @@ def test_case_insensitive_series_match():
 
 
 def test_default_sharp_weight_helper():
-    assert soccer_tiers.default_sharp_weight() == 0.40
+    assert soccer_tiers.default_sharp_weight() == 0.85

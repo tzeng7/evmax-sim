@@ -1,10 +1,11 @@
 """Soccer league tier lookup — maps Kalshi ticker → sharp_weight override.
 
 The walk-forward backtest showed that in top-5 European leagues Pinnacle's
-closing Brier is the informational ceiling. Mixing our stat models at the
-default sharp_weight=0.40 drags the blend 0.003–0.007 Brier worse than pure
-sharp. This module reads data/soccer_league_tiers.yaml and returns the
-per-league sharp_weight the coordinator should apply.
+closing Brier is the informational ceiling (a 0.40 sharp_weight dragged the
+blend 0.003–0.007 Brier worse than pure sharp). This module reads
+data/soccer_league_tiers.yaml and returns the per-league sharp_weight the
+coordinator should apply; a league starts at 0.85 and earns a lower weight
+only on its own CLV evidence (2026-09-22: MLS and the default moved 0.40 → 0.85).
 
 Tickers are matched by their Kalshi series prefix (the portion before the
 first `-`), which identifies the league unambiguously.
@@ -23,12 +24,17 @@ from evmax.sectors.soccer_leagues import KALSHI_SERIES_LEAGUE, league_for_ticker
 _CONFIG_PATH = Path(__file__).resolve().parents[2] / "data" / "soccer_league_tiers.yaml"
 
 
+# Used only when the YAML file or its default key is missing — the same
+# evidence-backed start weight as the shipped default (not the old MLS 0.40).
+_FALLBACK_SHARP_WEIGHT = 0.85
+
+
 @lru_cache(maxsize=1)
 def _load_tiers() -> dict:
     """Read and cache the tier config. Raises if the file is missing or
     malformed — there's no sensible silent default for a pricing decision."""
     if not _CONFIG_PATH.exists():
-        return {"default_sharp_weight": 0.40, "tiers": {}}
+        return {"default_sharp_weight": _FALLBACK_SHARP_WEIGHT, "tiers": {}}
     with _CONFIG_PATH.open("r") as f:
         data = yaml.safe_load(f) or {}
     return data
@@ -51,7 +57,8 @@ def _league_to_weight() -> dict[str, float]:
     cfg = _load_tiers()
     mapping: dict[str, float] = {}
     for tier_name, tier in (cfg.get("tiers") or {}).items():
-        weight = float(tier.get("sharp_weight", cfg.get("default_sharp_weight", 0.40)))
+        weight = float(tier.get("sharp_weight",
+                                cfg.get("default_sharp_weight", _FALLBACK_SHARP_WEIGHT)))
         for lg in _tier_leagues(tier):
             mapping[lg] = weight
     return mapping
@@ -128,7 +135,7 @@ def shadow_leagues() -> frozenset[str]:
 
 def default_sharp_weight() -> float:
     """Fallback weight used when a ticker doesn't map to any tier."""
-    return float(_load_tiers().get("default_sharp_weight", 0.40))
+    return float(_load_tiers().get("default_sharp_weight", _FALLBACK_SHARP_WEIGHT))
 
 
 def sharp_weight_for_league(league: Optional[str]) -> float:
