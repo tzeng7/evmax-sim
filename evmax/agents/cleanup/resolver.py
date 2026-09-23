@@ -465,8 +465,19 @@ async def _fetch_espn_scores(
     client: httpx.AsyncClient, sport: str, league: str, espn_date: str,
     extra_params: Optional[dict] = None,
     cache: Optional[dict] = None,
+    include_incomplete: bool = False,
 ) -> list[dict]:
-    """Fetch completed game scores from ESPN (date as YYYYMMDD).
+    """Fetch game results from ESPN (date as YYYYMMDD) — completed games by
+    default; scheduled / in-progress / postponed ones too on request.
+
+    ``include_incomplete`` also returns scheduled / in-progress games (with
+    ``completed: False`` and no scores) so bet resolution can SEE that a row's
+    own-date game exists but is not final — without that, the ±1-day window
+    silently graded a row on the previous day's completed game of the same
+    series (192 rows, 191 baseball, resolved hours before their own game).
+    Every returned record carries ``completed``. The cache stores the full
+    slate once and each call filters it, so the resolve phase and the
+    model-update hook still share one fetch.
 
     ``cache`` is an optional per-run dict keyed by (sport, league, espn_date,
     extra_params) so the resolve phase and the model-update hook can share a
@@ -482,8 +493,12 @@ async def _fetch_espn_scores(
     """
     cache_key = (sport, league, espn_date,
                  tuple(sorted(extra_params.items())) if extra_params else None)
+
+    def _view(full: list[dict]) -> list[dict]:
+        return full if include_incomplete else [g for g in full if g.get("completed")]
+
     if cache is not None and cache_key in cache:
-        return cache[cache_key]
+        return _view(cache[cache_key])
 
     url = f"https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/scoreboard"
     params: dict = {"dates": espn_date, "limit": 200}
@@ -504,8 +519,7 @@ async def _fetch_espn_scores(
         if not comps:
             continue
         comp = comps[0]
-        if not comp.get("status", {}).get("type", {}).get("completed"):
-            continue
+        completed = bool(comp.get("status", {}).get("type", {}).get("completed"))
 
         competitors = comp.get("competitors", [])
         home = next((c for c in competitors if c.get("homeAway") == "home"), None)
@@ -513,11 +527,14 @@ async def _fetch_espn_scores(
         if not home or not away:
             continue
 
-        try:
-            home_score = int(home.get("score", 0))
-            away_score = int(away.get("score", 0))
-        except (ValueError, TypeError):
-            continue
+        if completed:
+            try:
+                home_score = int(home.get("score", 0))
+                away_score = int(away.get("score", 0))
+            except (ValueError, TypeError):
+                continue
+        else:
+            home_score = away_score = None
 
         # Game date for cross-day series matching. Use the queried `?dates=`
         # slate date (`espn_date`), NOT comp.date: ESPN groups the scoreboard
@@ -562,9 +579,11 @@ async def _fetch_espn_scores(
             # fallback for a YES label that is a venue ticker code.
             "home_abbr": home.get("team", {}).get("abbreviation", ""),
             "away_abbr": away.get("team", {}).get("abbreviation", ""),
+            "completed": completed,
+            "status": status_name,
             "home_score": home_score,
             "away_score": away_score,
-            "home_won": home_score > away_score,
+            "home_won": (home_score > away_score) if completed else None,
             "home_winner": home.get("winner"),
             "away_winner": away.get("winner"),
             "went_extra_time": went_extra_time,
@@ -578,7 +597,7 @@ async def _fetch_espn_scores(
 
     if cache is not None:
         cache[cache_key] = results
-    return results
+    return _view(results)
 
 
 # ---------------------------------------------------------------------------
@@ -703,6 +722,8 @@ def _select_espn_game(pred: dict, scores: list[dict]) -> Optional[tuple[dict, Op
     side_independent = market_type in ("total", "over_under") or yes_fuzz in _DRAW_LABELS
 
     candidates: list[tuple[int, int, int, dict, bool]] = []
+    own_day_game_pending = False
+    own_day_status = ""
     for idx, score in enumerate(scores):
         dist = _espn_date_distance(pred_date, score)
         if dist is not None and dist > 1:
@@ -718,8 +739,30 @@ def _select_espn_game(pred: dict, scores: list[dict]) -> Optional[tuple[dict, Op
             )
         if r is None:
             continue
+        if score.get("completed") is False:
+            # This matchup's game on the row's OWN date exists but is not final:
+            # the row is pending. It must NOT fall back to the adjacent day,
+            # where yesterday's completed game of the same series sits.
+            if dist == 0:
+                own_day_game_pending = True
+                own_day_status = score.get("status") or ""
+            continue
         flag, level = r
         candidates.append((level, dist if dist is not None else 0, idx, score, flag))
+
+    if own_day_game_pending and not any(c[1] == 0 for c in candidates):
+        # A postponed / canceled own-day game never completes: say so loudly
+        # rather than leaving the row silently in the backlog forever.
+        log = (logger.warning
+               if any(k in own_day_status for k in ("POSTPONED", "CANCELED", "CANCELLED", "SUSPENDED"))
+               else logger.debug)
+        log(
+            "espn_own_day_game_pending",
+            event_id=pred["event_id"],
+            event_date=pred_date,
+            status=own_day_status,
+        )
+        return None
 
     chosen = _select_candidate(candidates, pred, "espn")
     if chosen is None:
@@ -2065,7 +2108,7 @@ async def resolve_outcomes_for_date(
                     # to the old serial loop.
                     per_date = await asyncio.gather(*(
                         _fetch_espn_scores(client, sport, league, d, extra_params,
-                                           cache=espn_cache)
+                                           cache=espn_cache, include_incomplete=True)
                         for d in espn_dates
                     ))
                     combined_scores: list[dict] = [s for day in per_date for s in day]
