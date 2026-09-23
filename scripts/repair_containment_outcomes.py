@@ -341,7 +341,9 @@ def plan_close_fixes(pconn: sqlite3.Connection, aconn: sqlite3.Connection,
             entry = clv_entry_price(p["placed"], p["placed_price"], p["kalshi_yes_price"])
             if entry is None or not 0 < entry < 1:
                 continue
-            fix.drift_updates.append((p["id"], p["pinnacle_drift_pct"], (correct - entry) * 100))
+            # rounded like backfill_clv writes it (round(pp, 2))
+            fix.drift_updates.append(
+                (p["id"], p["pinnacle_drift_pct"], round((correct - entry) * 100, 2)))
         fixes.append(fix)
     return fixes
 
@@ -449,8 +451,9 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     portfolio = _portfolio_rows(ro, sorted({f.market_id for f in outcome_fixes}))
     if portfolio:
-        print("\nWARNING: portfolio_bets rows copied the old outcome (not touched — "
-              "re-sync portfolios after --apply):")
+        print("\nWARNING: portfolio_bets rows copied the old outcome and are NOT touched. "
+              "sync_portfolio_outcomes only fills NULL outcomes, so a re-sync will not "
+              "fix them — correct these rows deliberately if needed:")
         for r in portfolio:
             print(f"  {r['portfolio_id']} {r['market_id']} outcome={r['outcome']} pnl={r['pnl']}")
     ro.close()
