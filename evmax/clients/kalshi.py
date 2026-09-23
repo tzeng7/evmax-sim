@@ -224,6 +224,11 @@ _SERIES_TEAM_CODE_MAPS: dict[str, dict[str, str]] = {
 
 _EVENT_SUBTITLE_CODES_RE = re.compile(r"^\s*([A-Z0-9]{2,5})\s+vs\.?\s+([A-Z0-9]{2,5})\b", re.IGNORECASE)
 
+# Sectors whose Kalshi series are WINNER markets only (no spread/total/prop
+# series): tennis (KXATPMATCH/KXWTAMATCH) and UFC (KXUFCFIGHT). Market type is
+# fixed to moneyline instead of inferred from a title that is a player name.
+_WINNER_ONLY_SECTORS = frozenset({"tennis", "ufc"})
+
 # Sectors whose /events rows are joined onto markets at parse time.
 _EVENT_TITLE_SECTORS: frozenset[str] = frozenset({"tennis", "soccer", "ufc"})
 
@@ -1722,6 +1727,15 @@ class KalshiClient(BaseAPIClient):
                     spread_line = self._extract_total_line(ticker)
             elif is_advance:
                 market_type = MarketType.advance
+                spread_line = None
+            elif sector in _WINNER_ONLY_SECTORS:
+                # KXATPMATCH / KXWTAMATCH / KXUFCFIGHT are match / fight WINNER
+                # series only. Their short titles ("{Name} wins") carry a player
+                # name, so title-keyword inference misfires on it: a hyphenated
+                # name reads as a spread ("Felix Auger-Aliassime wins",
+                # "Benoit Saint-Denis wins") and "over" inside a name as a total
+                # ("Glover Teixeira wins"), and the market is silently dropped.
+                market_type = MarketType.moneyline
                 spread_line = None
             else:
                 market_type = self._infer_market_type(title, sector)

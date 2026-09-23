@@ -374,6 +374,29 @@ class TestUFCLegacyTitleFallback:
         assert m.yes_team == "pimblett"
 
 
+class TestWinnerOnlySectorsAreMoneyline:
+    """Short "{Name} wins" titles carry a player name, so title-keyword market
+    type inference misfired: a hyphen read as a spread, "over" inside a name as
+    a total, and the market was silently dropped (review finding on #325; the
+    tennis copy was live — "Anna-Lena Friedsam wins" was archived as spread)."""
+
+    @pytest.mark.parametrize("sector,ticker,title", [
+        ("ufc", "KXUFCFIGHT-26SEP26SAIPIM-SAI", "Benoit Saint-Denis wins"),
+        ("ufc", "KXUFCFIGHT-26SEP26TEIANK-TEI", "Glover Teixeira wins"),
+        ("tennis", "KXATPMATCH-26SEP26AUGSTR-AUG", "Felix Auger-Aliassime wins"),
+        ("tennis", "KXWTAMATCH-26SEP26FRIKAL-FRI", "Anna-Lena Friedsam wins"),
+    ])
+    def test_short_title_names_never_change_market_type(self, sector, ticker, title):
+        from evmax.models.market import MarketType
+
+        raw = {"ticker": ticker, "title": title, "yes_ask_dollars": "0.45",
+               "no_ask_dollars": "0.57", "yes_bid_dollars": "0.43",
+               "no_bid_dollars": "0.55", "event_ticker": ticker.rsplit("-", 1)[0]}
+        m = KalshiClient()._parse_market(raw, sector)
+        assert m is not None
+        assert m.market_type == MarketType.moneyline
+
+
 class TestUFCEventFighterHelpers:
     def test_matchup_from_event_forms(self):
         from evmax.clients.kalshi import _ufc_matchup_from_event as mu
