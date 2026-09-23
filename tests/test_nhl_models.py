@@ -319,8 +319,334 @@ class TestGenericEloNhlCalibration:
         state = json.loads(path.read_text())
         assert "nhl" in state, "nhl key missing from elo_state.json — MODEL-2 gap not closed"
         ratings = state["nhl"]["ratings"]
-        # Full NHL is 32 teams; a couple of extra keys are expected from
-        # in-window franchise history (Arizona Coyotes relocated to Utah in
-        # 2024; "Utah Hockey Club" renamed to "Utah Mammoth" in 2025).
-        assert 30 <= len(ratings) <= 40
+        # Exactly the 32 current franchises: the stale "arizona coyotes" /
+        # "utah hockey" keys and the 4-Nations/All-Star exhibition keys were
+        # pruned 2026-09-22 (scripts/offseason_regress.py --prune-only).
+        assert len(ratings) == 32
+        for stale in ("arizona coyotes", "utah hockey", "canada", "usa", "mcdavid"):
+            assert stale not in ratings
+            assert stale not in state["nhl"]["season_games"]
         assert all(1000.0 < r < 2000.0 for r in ratings.values())
+
+    def test_nhl_form_state_has_no_exhibition_keys(self):
+        import json
+        import pathlib
+
+        path = pathlib.Path(__file__).resolve().parents[1] / "data" / "models" / "form_state.json"
+        nhl = json.loads(path.read_text())["nhl"]
+        assert len(nhl) == 32
+        for stale in ("canada", "finland", "sweden", "usa", "mcdavid", "matthews",
+                      "mackinnon", "hughes", "arizona coyotes", "utah hockey"):
+            assert stale not in nhl
+
+
+# ── Preseason-prior ramp + staleness guard (2026-09-22) ────────────────────
+
+from datetime import date, datetime, timezone  # noqa: E402
+
+from evmax.agents.models.nhl_xg_agent import (  # noqa: E402
+    PRIOR_RAMP_K,
+    PRIOR_REGRESS_RHO,
+    RAMP_CONFIDENCE,
+    nhl_season_for,
+    ramp_rate,
+    regress_prior_rate,
+)
+
+
+def _dated_pair(home: str, away: str, day: date) -> tuple[PredictionMarket, SharpOdds]:
+    market, sharp = _pair(home, away)
+    market = market.model_copy(update={
+        "event_date": datetime(day.year, day.month, day.day, 12, tzinfo=timezone.utc),
+    })
+    return market, sharp
+
+
+def _v2_agent(teams: dict, prior_teams: dict, season: int = 2026, lg: float = 2.50) -> NhlXgModelAgent:
+    agent = NhlXgModelAgent()
+    agent._state = {"nhl": {
+        "schema_version": 2,
+        "season_start_year": season,
+        "league_avg_xg_per_60": None if not teams else lg,
+        "teams": teams,
+        "prior": {"season_start_year": season - 1, "league_avg_xg_per_60": lg,
+                  "regress_rho": PRIOR_REGRESS_RHO, "teams": prior_teams},
+    }}
+    return agent
+
+
+def _expected_prob(xf_a, xa_a, xf_b, xa_b) -> float:
+    margin = ((xf_a - xa_a) - (xf_b - xa_b)) * (MIN_5V5_PER_GAME / 60.0) + HOME_EDGE_GOALS
+    return _normal_cdf(margin / GOAL_STDEV)
+
+
+class TestRampMath:
+    def test_validated_constants(self):
+        # The walk-forward validated exactly K=20, rho=0.7 — pin them.
+        assert PRIOR_RAMP_K == 20.0
+        assert PRIOR_REGRESS_RHO == 0.7
+        assert RAMP_CONFIDENCE == 0.70
+
+    def test_regress_prior_rate(self):
+        assert regress_prior_rate(3.0, 2.5) == pytest.approx(2.5 + 0.7 * 0.5)
+        assert regress_prior_rate(2.5, 2.5) == pytest.approx(2.5)
+
+    def test_gp0_is_the_regressed_prior(self):
+        assert ramp_rate(None, 0, 2.85) == 2.85
+        assert ramp_rate(3.4, 0, 2.85) == 2.85  # gp=0 ignores any in-season number
+
+    def test_gp20_is_fifty_fifty(self):
+        assert ramp_rate(3.0, 20, 2.6) == pytest.approx(2.8)
+
+    def test_gp82_keeps_twenty_percent_prior(self):
+        got = ramp_rate(3.0, 82, 2.6)
+        assert got == pytest.approx((82 * 3.0 + 20 * 2.6) / 102)
+        assert (got - 2.6) / (3.0 - 2.6) == pytest.approx(82 / 102)
+
+    def test_season_rollover_is_september(self):
+        assert nhl_season_for(date(2026, 9, 29)) == 2026   # 2026-27 opener
+        assert nhl_season_for(date(2026, 8, 31)) == 2025
+        assert nhl_season_for(date(2027, 4, 10)) == 2026   # 2026-27 finale
+        assert nhl_season_for(date(2026, 6, 14)) == 2025   # 2025-26 Cup final
+
+
+class TestPriorRamp:
+    PRIOR = {
+        "boston bruins": {"xgf_per_60": 2.70, "xga_per_60": 2.40},
+        "toronto maple leafs": {"xgf_per_60": 2.45, "xga_per_60": 2.60},
+    }
+
+    def test_opening_night_prior_only_fires_at_ramp_confidence(self):
+        agent = _v2_agent({}, self.PRIOR)
+        market, sharp = _dated_pair("boston bruins", "toronto maple leafs", date(2026, 9, 29))
+        r = asyncio.run(agent.predict_pair(market, sharp))
+        assert r is not None
+        assert r.confidence == RAMP_CONFIDENCE
+        assert r.sample_size == 0
+        assert r.true_prob_a == pytest.approx(_expected_prob(2.70, 2.40, 2.45, 2.60), abs=1e-9)
+        assert r.notes.startswith("prior_only")
+
+    def test_gp20_blends_fifty_fifty(self):
+        teams = {
+            "boston bruins": _team_stats(3.10, 2.20, gp=20),
+            "toronto maple leafs": _team_stats(2.25, 2.80, gp=20),
+        }
+        agent = _v2_agent(teams, self.PRIOR)
+        market, sharp = _dated_pair("boston bruins", "toronto maple leafs", date(2026, 11, 20))
+        r = asyncio.run(agent.predict_pair(market, sharp))
+        exp = _expected_prob((3.10 + 2.70) / 2, (2.20 + 2.40) / 2, (2.25 + 2.45) / 2, (2.80 + 2.60) / 2)
+        assert r.true_prob_a == pytest.approx(exp, abs=1e-9)
+        assert r.confidence == RAMP_CONFIDENCE
+        assert r.notes.startswith("ramp")
+
+    def test_gp82_full_confidence_prior_still_weighs(self):
+        teams = {
+            "boston bruins": _team_stats(3.10, 2.20, gp=82),
+            "toronto maple leafs": _team_stats(2.25, 2.80, gp=82),
+        }
+        agent = _v2_agent(teams, self.PRIOR)
+        market, sharp = _dated_pair("boston bruins", "toronto maple leafs", date(2027, 4, 10))
+        r = asyncio.run(agent.predict_pair(market, sharp))
+        w = 82 / 102
+        exp = _expected_prob(w * 3.10 + (1 - w) * 2.70, w * 2.20 + (1 - w) * 2.40,
+                             w * 2.25 + (1 - w) * 2.45, w * 2.80 + (1 - w) * 2.60)
+        assert r.true_prob_a == pytest.approx(exp, abs=1e-9)
+        assert r.confidence == 0.85
+
+    def test_team_with_prior_is_never_blanked_below_min_games(self):
+        teams = {"boston bruins": _team_stats(3.0, 2.2, gp=MIN_GAMES - 7)}  # toronto: gp 0
+        agent = _v2_agent(teams, self.PRIOR)
+        market, sharp = _dated_pair("boston bruins", "toronto maple leafs", date(2026, 10, 5))
+        r = asyncio.run(agent.predict_pair(market, sharp))
+        assert r is not None
+        assert r.sample_size == 0
+        assert r.confidence == RAMP_CONFIDENCE
+
+    def test_team_without_prior_needs_min_games(self):
+        prior = {"boston bruins": self.PRIOR["boston bruins"]}  # expansion-style gap
+        teams = {"toronto maple leafs": _team_stats(2.5, 2.5, gp=MIN_GAMES - 1)}
+        agent = _v2_agent(teams, prior)
+        market, sharp = _dated_pair("boston bruins", "toronto maple leafs", date(2026, 10, 20))
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
+
+    def test_prior_from_the_wrong_season_is_ignored(self):
+        agent = _v2_agent({}, self.PRIOR)
+        agent._state["nhl"]["prior"]["season_start_year"] = 2023  # not season - 1
+        market, sharp = _dated_pair("boston bruins", "toronto maple leafs", date(2026, 9, 29))
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
+
+
+class TestStalenessGuard:
+    FINAL = {  # last season's FINAL ratings, gp=82
+        "boston bruins": _team_stats(2.90, 2.30, gp=82),
+        "toronto maple leafs": _team_stats(2.40, 2.70, gp=82),
+    }
+
+    def _legacy(self, season: int) -> NhlXgModelAgent:
+        agent = NhlXgModelAgent()
+        agent._state = {"nhl": {"teams": self.FINAL, "league_avg_xg_per_60": 2.50,
+                                "season_start_year": season}}
+        return agent
+
+    def test_previous_season_block_is_prior_only_not_current(self):
+        agent = self._legacy(2025)
+        market, sharp = _dated_pair("boston bruins", "toronto maple leafs", date(2026, 9, 29))
+        r = asyncio.run(agent.predict_pair(market, sharp))
+        assert r is not None
+        assert r.confidence == RAMP_CONFIDENCE          # NOT 0.85
+        assert r.sample_size == 0
+        exp = _expected_prob(regress_prior_rate(2.90, 2.5), regress_prior_rate(2.30, 2.5),
+                             regress_prior_rate(2.40, 2.5), regress_prior_rate(2.70, 2.5))
+        assert r.true_prob_a == pytest.approx(exp, abs=1e-9)
+
+    def test_same_block_is_current_inside_its_own_season(self):
+        agent = self._legacy(2025)
+        market, sharp = _dated_pair("boston bruins", "toronto maple leafs", date(2026, 4, 10))
+        r = asyncio.run(agent.predict_pair(market, sharp))
+        assert r.confidence == 0.85
+        assert r.true_prob_a == pytest.approx(_expected_prob(2.90, 2.30, 2.40, 2.70), abs=1e-9)
+
+    def test_two_seasons_stale_returns_none(self):
+        agent = self._legacy(2024)
+        market, sharp = _dated_pair("boston bruins", "toronto maple leafs", date(2026, 10, 1))
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
+
+    def test_legacy_st_louis_key_still_resolves(self):
+        # Old states keyed St. Louis with a dot; the canonical is now dot-free.
+        agent = NhlXgModelAgent()
+        agent._state = {"nhl": {"league_avg_xg_per_60": 2.5, "season_start_year": 2025, "teams": {
+            "st. louis blues": _team_stats(2.4, 2.5, gp=82),
+            "boston bruins": _team_stats(2.7, 2.3, gp=82),
+        }}}
+        for label in ("St. Louis Blues", "st louis blues", "blues", "STL"):
+            market, sharp = _dated_pair(label, "boston bruins", date(2026, 9, 29))
+            assert asyncio.run(agent.predict_pair(market, sharp)) is not None, label
+
+
+class TestShippedOpeningNightState:
+    """data/models/nhl_xg_state.json as committed for the 2026-27 opener."""
+
+    def _state(self) -> dict:
+        import json
+        import pathlib
+
+        path = pathlib.Path(__file__).resolve().parents[1] / "data" / "models" / "nhl_xg_state.json"
+        return json.loads(path.read_text())["nhl"]
+
+    def test_prior_only_shape(self):
+        st = self._state()
+        assert st["schema_version"] == 2
+        assert st["season_start_year"] >= 2026
+        prior = st["prior"]
+        assert prior["season_start_year"] == st["season_start_year"] - 1
+        assert prior["regress_rho"] == PRIOR_REGRESS_RHO
+        assert sorted(prior["teams"]) == sorted(NHL_ABBREV_TO_NAME.values())
+        for t in prior["teams"].values():
+            assert t["xgf_per_60"] == pytest.approx(
+                regress_prior_rate(t["raw_xgf_per_60"], prior["league_avg_xg_per_60"]), abs=1e-4)
+
+    def test_agent_fires_on_opening_night_from_shipped_state(self):
+        agent = NhlXgModelAgent()  # loads the real state file
+        market, sharp = _dated_pair("Tampa Bay Lightning", "St. Louis Blues", date(2026, 9, 29))
+        r = asyncio.run(agent.predict_pair(market, sharp))
+        assert r is not None
+        assert r.confidence == RAMP_CONFIDENCE
+
+
+# ── Ensemble weights + guards (2026-09-22) ─────────────────────────────────
+
+class TestNhlBlendWiring:
+    def test_nhl_weights(self):
+        from evmax.agents.models.ensemble_agent import EnsembleModelAgent
+
+        assert EnsembleModelAgent.SECTOR_WEIGHT_OVERRIDES["nhl"] == {
+            "nhl_xg": 0.30, "elo": 0.15, "form": 0.0, "poisson": 0.0,
+        }
+
+    def test_nhl_sharp_only_moneyline_guard(self):
+        from evmax.agents.odds.ev_gap_agent import MIN_NONSHARP_MODELS, REQUIRED_BLEND_MODELS
+
+        assert MIN_NONSHARP_MODELS["nhl"]["min_count"] == 1
+        assert MIN_NONSHARP_MODELS["nhl"]["market_types"] == frozenset({"moneyline"})
+        # All-of gate would shadow-demote every play whenever one model is dark.
+        assert "nhl" not in REQUIRED_BLEND_MODELS
+
+    def test_categories_models_list(self):
+        from evmax.categories import get_category
+
+        models = get_category("nhl").models
+        assert "elo" in models and "nhl_xg" in models
+        assert "form" not in models  # weight 0 → does not contribute
+
+
+# ── Seed script: prior block + prior-only fallback ─────────────────────────
+
+class TestSeedScript:
+    ROWS_2025 = None
+
+    @staticmethod
+    def _rows(gp: int) -> list[dict]:
+        rows = []
+        for i, abbr in enumerate(sorted(NHL_ABBREV_TO_NAME)):
+            rows.append({"team": abbr, "situation": "5on5", "games_played": gp,
+                         "iceTime": 3600 * 40, "xGoalsFor": 100 + i, "xGoalsAgainst": 110 - i / 2,
+                         "goalsFor": 95, "goalsAgainst": 100})
+        rows.append({"team": "ATL", "situation": "5on5", "games_played": 1, "iceTime": 3600,
+                     "xGoalsFor": 1, "xGoalsAgainst": 1, "goalsFor": 1, "goalsAgainst": 1})
+        return rows
+
+    def test_rollover_month(self):
+        from scripts.seed_nhl_xg import _current_nhl_season_start_year
+
+        assert _current_nhl_season_start_year(date(2026, 9, 22)) == 2026
+        assert _current_nhl_season_start_year(date(2026, 8, 31)) == 2025
+
+    def test_current_season_404_writes_prior_only(self, monkeypatch):
+        import httpx
+        import scripts.seed_nhl_xg as seed
+
+        def fake_fetch(season):
+            if season == 2026:
+                req = httpx.Request("GET", "https://x")
+                raise httpx.HTTPStatusError("404", request=req, response=httpx.Response(404, request=req))
+            return self._rows(82)
+
+        monkeypatch.setattr(seed, "fetch_moneypuck_teams_csv", fake_fetch)
+        st = seed.build_state(2026, today=date(2026, 9, 22))["nhl"]
+        assert st["mode"] == "prior_only"
+        assert st["teams"] == {} and st["league_avg_xg_per_60"] is None
+        assert st["season_start_year"] == 2026
+        assert st["prior"]["season_start_year"] == 2025
+        assert len(st["prior"]["teams"]) == 32
+        lg = st["prior"]["league_avg_xg_per_60"]
+        t = st["prior"]["teams"]["boston bruins"]
+        assert t["xgf_per_60"] == pytest.approx(regress_prior_rate(t["raw_xgf_per_60"], lg), abs=1e-4)
+
+    def test_in_season_state_carries_both_blocks(self, monkeypatch):
+        import scripts.seed_nhl_xg as seed
+
+        monkeypatch.setattr(seed, "fetch_moneypuck_teams_csv",
+                            lambda s: self._rows(12 if s == 2026 else 82))
+        st = seed.build_state(2026, today=date(2026, 10, 26))["nhl"]
+        assert st["mode"] == "in_season"
+        assert len(st["teams"]) == 32 and st["teams"]["boston bruins"]["gp"] == 12
+        assert len(st["prior"]["teams"]) == 32
+
+    def test_prior_failure_aborts_without_state(self, monkeypatch):
+        import httpx
+        import scripts.seed_nhl_xg as seed
+
+        def boom(season):
+            req = httpx.Request("GET", "https://x")
+            raise httpx.HTTPStatusError("403", request=req, response=httpx.Response(403, request=req))
+
+        monkeypatch.setattr(seed, "fetch_moneypuck_teams_csv", boom)
+        with pytest.raises(httpx.HTTPStatusError):
+            seed.build_state(2026)
+
+    def test_thin_prior_aborts(self, monkeypatch):
+        import scripts.seed_nhl_xg as seed
+
+        monkeypatch.setattr(seed, "fetch_moneypuck_teams_csv", lambda s: self._rows(82)[:5])
+        with pytest.raises(RuntimeError):
+            seed.build_state(2026)

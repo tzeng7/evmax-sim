@@ -434,7 +434,7 @@ where  sw = disagreement_ramp( base_sharp_weight, |model − sharp| gap )</div>
 </table>
 </div>
 <p>
-  Sectors absent from both gates (ufc, lol, cs2, nhl…) are unaffected: sharp dominance
+  Sectors absent from both gates (ufc, lol, cs2…) are unaffected: sharp dominance
   there is by design. Soccer totals are deliberately excluded from the floor — no model
   prices them, so a floor would demote 100% of them.
 </p>
@@ -846,21 +846,21 @@ where  sw = disagreement_ramp( base_sharp_weight, |model − sharp| gap )</div>
   <div class="tile"><div class="k">Sharp weight</div><div class="v">0.85 <small>(global)</small></div></div>
   <div class="tile"><div class="k">Elo calibration</div><div class="v">0.2528 <small>vs 0.2572 naive (25-26 holdout)</small></div></div>
 </div>
-<div class="bar" role="img" aria-label="NHL blend: sharp 85%, nhl xg 10%, form 5%">
+<div class="bar" role="img" aria-label="NHL blend: sharp 85%, nhl xg 10%, elo 5%">
   <span class="seg" style="width:85%;background:var(--sharp)" title="sharp 0.85"></span>
   <span class="seg" style="width:10%;background:var(--s1)" title="nhl_xg 0.30"></span>
-  <span class="seg" style="width:5%;background:var(--s4)" title="form 0.15"></span>
+  <span class="seg" style="width:5%;background:var(--s3)" title="elo 0.15"></span>
 </div>
 <div class="legend">
   <span class="item"><span class="chip" style="background:var(--sharp)"></span>sharp <b>0.85</b></span>
   <span class="item"><span class="chip" style="background:var(--s1)"></span>nhl_xg <b>0.30</b></span>
-  <span class="item"><span class="chip" style="background:var(--s4)"></span>form <b>0.15</b></span>
+  <span class="item"><span class="chip" style="background:var(--s3)"></span>elo <b>0.15</b></span>
 </div>
-<p class="barnote">Model weights sum to 0.45 and renormalize: xG carries 2/3 of the model side, form 1/3. Elo is explicitly zeroed in the ensemble.</p>
+<p class="barnote">Model weights sum to 0.45 and renormalize: xG carries 2/3 of the model side, elo 1/3. Form is explicitly zeroed (standalone Brier 0.2596, worse than a coin flip).</p>
 <ul>
-  <li><b>nhl_xg</b>: MoneyPuck team 5v5 xGF/60 + xGA/60 &rarr; projected goal margin &rarr; <code>&Phi;(margin / 2.05)</code> with HOME_EDGE_GOALS=0.18.</li>
-  <li>Generic Elo <em>state</em> was calibrated 2026-07-18 (MODEL-2: cold-start grid sweep, winner K=6 / home&nbsp;adv&nbsp;48; held-out 2025-26 Brier 0.2528 vs 0.2572 for untuned defaults), but the ensemble weight remains 0.0 — the code comment is explicit that calibrating the state and wiring the blend are separate calls. Flipping elo on requires a blend-level backtest first.</li>
-  <li>Goalie GSAx, special teams, and B2B fatigue are v2/v3 and will take weight from nhl_xg/form when they ship.</li>
+  <li><b>nhl_xg</b>: MoneyPuck team 5v5 xGF/60 + xGA/60 &rarr; projected goal margin &rarr; <code>&Phi;(margin / 2.05)</code> with HOME_EDGE_GOALS=0.18. Since 2026-09-22 each rate is ramped from a regressed prior-season rate: <code>(gp&middot;in_season + 20&middot;(lg + 0.7&middot;(prior &minus; lg))) / (gp + 20)</code>, so the model fires on opening night at confidence 0.70.</li>
+  <li>Generic Elo (MODEL-2: K=6 / home&nbsp;adv&nbsp;48) joined the blend at 0.15 on 2026-09-22, with no offseason regression (keep=1.0). Point-in-time walk-forward, xg-ramp 0.30 + elo 0.15 + form 0 vs the old xg 0.30 + form 0.15: model-side Brier +5.7/1000 fit 2014&ndash;21, +5.6 confirm 2022&ndash;24, +1.6 holdout 2025, +16.4 in the first six weeks.</li>
+  <li>Goalie GSAx, special teams, and B2B fatigue are v2/v3 and will take weight from nhl_xg/elo when they ship.</li>
 </ul>
 </div>
 
@@ -961,7 +961,7 @@ where  sw = disagreement_ramp( base_sharp_weight, |model − sharp| gap )</div>
     <tr><td>soccer</td><td class="num">30</td><td class="num">60</td><td></td></tr>
     <tr><td>worldcup</td><td class="num">40</td><td class="num">0</td><td>~10 games/yr &rarr; larger K; neutral venues</td></tr>
     <tr><td>baseball</td><td class="num">6</td><td class="num">32</td><td>162-game season &rarr; small K</td></tr>
-    <tr><td>nhl</td><td class="num">6</td><td class="num">48</td><td>MODEL-2 calibrated (2026-07-18); holdout 0.2528 vs 0.2572 naive. State only — ensemble weight still 0.</td></tr>
+    <tr><td>nhl</td><td class="num">6</td><td class="num">48</td><td>MODEL-2 calibrated (2026-07-18); holdout 0.2528 vs 0.2572 naive. In the blend at 0.15 since 2026-09-22; never offseason-regressed.</td></tr>
     <tr><td>ufc</td><td class="num">32</td><td class="num">0</td><td>Few bouts/yr &rarr; larger K (superseded by ufc_rating in the blend)</td></tr>
     <tr><td>lol / cs2</td><td class="num">20</td><td class="num">0</td><td>Not in the blend (sharp-only sectors)</td></tr>
   </tbody>

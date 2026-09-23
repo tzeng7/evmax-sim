@@ -242,7 +242,7 @@ REQUIRED_BLEND_MODELS: dict[str, frozenset] = {
 # non-sharp models in the blend for the listed market types. Complements
 # REQUIRED_BLEND_MODELS (all-of): this is an any-N-of floor, so early-season
 # or newly-promoted teams aren't all-or-nothing — any one of elo/form/
-# poisson/xg satisfies it. Sectors absent here (ufc, lol, cs2, nhl, ...)
+# poisson/xg satisfies it. Sectors absent here (ufc, lol, cs2, ...)
 # are unaffected: sharp-dominance there is by design.
 #
 # Motivation (2026-07-18): MLS was scanned (KXMLSGAME, 2026-07-09) before
@@ -261,6 +261,11 @@ MIN_NONSHARP_MODELS: dict[str, dict] = {
     # moneyline play; sharp-only rows demote to shadow. (ncaaf launches shadow,
     # so this bites at promotion, exactly when it should.)
     "ncaaf":    {"min_count": 1, "market_types": frozenset({"moneyline"})},
+    # NHL (2026-09-22): nhl_xg fires from opening night on its regressed prior
+    # and elo is seeded, so a sharp-only NHL moneyline means a model went
+    # missing (unresolved team name, blanked state) — thin Kalshi-vs-Pinnacle
+    # arb, not model edge. nhl ships shadow, so this bites at promotion.
+    "nhl":      {"min_count": 1, "market_types": frozenset({"moneyline"})},
 }
 
 # Tokens in model_sources that are NOT independent model signal: the sharp
