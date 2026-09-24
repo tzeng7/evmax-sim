@@ -39,6 +39,7 @@ from typing import Optional
 import numpy as np
 import structlog
 
+from evmax.agents.models._team_lookup import resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.agents.models.wnba_efficiency_agent import (
     shrink_team_stats,
@@ -140,19 +141,10 @@ class WNBAPossessionSimAgent(ModelAgent):
 
     @staticmethod
     def _resolve_team(teams: dict, team: str) -> Optional[dict]:
-        """Resolve a team name / alias to the stats dict."""
-        team = team.lower().strip()
-        if team in teams:
-            return teams[team]
-        if " " in team:
-            last = team.rsplit(" ", 1)[-1]
-            if last in teams:
-                return teams[last]
-        for key, val in teams.items():
-            full = val.get("full_name", "")
-            if team in full or (full and full.endswith(team)) or team.startswith(key):
-                return val
-        return None
+        """Resolve a team name / alias to the stats dict via the shared
+        unique-match rule (``_team_lookup.resolve_team_key``)."""
+        key = resolve_team_key("wnba", team, teams)
+        return teams[key] if key else None
 
     # ------------------------------------------------------------------
     # Simulation

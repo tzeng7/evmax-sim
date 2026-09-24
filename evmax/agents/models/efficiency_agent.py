@@ -39,6 +39,7 @@ from typing import Optional
 
 import structlog
 
+from evmax.agents.models._team_lookup import resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -176,22 +177,10 @@ class EfficiencyModelAgent(ModelAgent):
         return result
 
     def _resolve_team(self, teams: dict, team: str) -> Optional[dict]:
-        """Resolve team name to stats dict."""
-        team = team.lower().strip()
-        if team in teams:
-            return teams[team]
-        # Try last word
-        if " " in team:
-            last = team.rsplit(" ", 1)[-1]
-            if last in teams:
-                return teams[last]
-        # Prefix/suffix match
-        for key, val in teams.items():
-            full = val.get("full_name", "")
-            if (team.startswith(key) or key.startswith(team)
-                    or team in full or full.endswith(team)):
-                return val
-        return None
+        """Resolve a team label to its stats dict via the shared unique-match
+        rule (``_team_lookup.resolve_team_key``). None when nothing qualifies."""
+        key = resolve_team_key("nba", team, teams)
+        return teams[key] if key else None
 
     async def predict_pair(
         self,

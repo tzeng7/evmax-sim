@@ -34,6 +34,7 @@ from typing import Optional
 import numpy as np
 import structlog
 
+from evmax.agents.models._team_lookup import resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -143,18 +144,9 @@ class PossessionSimAgent(ModelAgent):
         return {}
 
     def _resolve_team(self, teams: dict, team: str) -> Optional[dict]:
-        team = team.lower().strip()
-        if team in teams:
-            return teams[team]
-        if " " in team:
-            last = team.rsplit(" ", 1)[-1]
-            if last in teams:
-                return teams[last]
-        for key, val in teams.items():
-            full = val.get("full_name", "")
-            if team in full or full.endswith(team) or team.startswith(key):
-                return val
-        return None
+        """Shared unique-match rule (``_team_lookup.resolve_team_key``)."""
+        key = resolve_team_key("nba", team, teams)
+        return teams[key] if key else None
 
     def _simulate_game(
         self,

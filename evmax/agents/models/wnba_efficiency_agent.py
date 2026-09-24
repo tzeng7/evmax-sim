@@ -40,6 +40,7 @@ from typing import Optional
 
 import structlog
 
+from evmax.agents.models._team_lookup import resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -247,23 +248,11 @@ class WNBAEfficiencyModelAgent(ModelAgent):
         """Resolve a team name (possibly aliased) to the stats dict.
 
         Handles: "aces", "las vegas aces", "Aces", "LV Aces" — all map to the
-        canonical short key used in the alias YAML (e.g. "aces").
+        canonical short key used in the alias YAML (e.g. "aces"), via the
+        shared unique-match rule (``_team_lookup.resolve_team_key``).
         """
-        team = team.lower().strip()
-        if team in teams:
-            return teams[team]
-        # Try last word
-        if " " in team:
-            last = team.rsplit(" ", 1)[-1]
-            if last in teams:
-                return teams[last]
-        # Prefix / suffix / substring match against stored full names
-        for key, val in teams.items():
-            full = val.get("full_name", "")
-            if (team.startswith(key) or key.startswith(team)
-                    or team in full or (full and full.endswith(team))):
-                return val
-        return None
+        key = resolve_team_key("wnba", team, teams)
+        return teams[key] if key else None
 
     def update(
         self,

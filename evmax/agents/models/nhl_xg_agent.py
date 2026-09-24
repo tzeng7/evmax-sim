@@ -83,6 +83,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional
 
+from evmax.agents.models._team_lookup import identity_team_key, resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -202,54 +203,30 @@ class NhlXgModelAgent(ModelAgent):
     def _sector_state(self) -> dict:
         return self._state.get("nhl", {})
 
-    @staticmethod
-    def _lookup(teams: dict, full: str) -> Optional[dict]:
-        """Exact key, then dot-insensitive key ("st. louis blues" ≡ "st louis blues")."""
-        if full in teams:
-            return teams[full]
-        bare = full.replace(".", "")
-        for key, val in teams.items():
-            if key.replace(".", "") == bare:
-                return val
-        return None
-
     def _resolve_team(self, teams: dict, team: str) -> Optional[dict]:
-        """Resolve a team identifier (full name, last word, abbrev) to its stats dict."""
+        """Resolve a team identifier (full name, nickname, abbrev) to its stats dict.
+
+        Order: the identity tiers of the shared rule (alias canonical → exact →
+        canonical equality, ``_team_lookup.identity_team_key`` — canonical
+        equality also makes "st. louis blues" ≡ "st louis blues"); then the
+        curated ``NHL_ABBREV_TO_NAME`` / ``NHL_NICKNAME_TO_NAME`` dictionaries
+        ("L.A" → LAK, "ny rangers" → "new york rangers"); then the shared guarded
+        word-boundary fallback. None when nothing qualifies.
+        """
         if not team:
             return None
-        team = team.lower().strip()
-        hit = self._lookup(teams, team)
-        if hit is not None:
-            return hit
-
-        # Abbreviation lookup (also handles MoneyPuck dotted variants)
-        upper = team.upper()
-        if upper in NHL_MONEYPUCK_ABBREV_ALIASES:
-            upper = NHL_MONEYPUCK_ABBREV_ALIASES[upper]
-        if upper in NHL_ABBREV_TO_NAME:
-            hit = self._lookup(teams, NHL_ABBREV_TO_NAME[upper])
-            if hit is not None:
-                return hit
-
-        # Multi-word nickname check first ("maple leafs", "blue jackets")
-        if team in NHL_NICKNAME_TO_NAME:
-            hit = self._lookup(teams, NHL_NICKNAME_TO_NAME[team])
-            if hit is not None:
-                return hit
-
-        # Last-word lookup ("bruins" → "boston bruins")
-        if " " in team:
-            last = team.rsplit(" ", 1)[-1]
-            if last in NHL_NICKNAME_TO_NAME:
-                hit = self._lookup(teams, NHL_NICKNAME_TO_NAME[last])
-                if hit is not None:
-                    return hit
-
-        # Substring fallback (handles "ny rangers", "la kings", etc.)
-        for key, val in teams.items():
-            if team in key or key in team:
-                return val
-        return None
+        key = identity_team_key("nhl", team, teams)
+        if key is None:
+            t = team.lower().strip()
+            upper = NHL_MONEYPUCK_ABBREV_ALIASES.get(t.upper(), t.upper())
+            full = NHL_ABBREV_TO_NAME.get(upper) or NHL_NICKNAME_TO_NAME.get(t)
+            if full is None and " " in t:
+                full = NHL_NICKNAME_TO_NAME.get(t.rsplit(" ", 1)[-1])
+            if full:
+                key = identity_team_key("nhl", full, teams)
+        if key is None:
+            key = resolve_team_key("nhl", team, teams)
+        return teams[key] if key else None
 
     def _rating_context(
         self, market: PredictionMarket,

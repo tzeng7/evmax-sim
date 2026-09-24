@@ -19,6 +19,8 @@ from typing import Optional
 
 import structlog
 
+from evmax.agents.models._team_lookup import resolve_team_key
+
 logger = structlog.get_logger(__name__)
 
 DATA_DIR = Path("data/models")
@@ -155,6 +157,8 @@ CITY_TO_TEAM: dict[str, str] = {
     "tennessee": "titans", "carolina": "panthers",
     "new england": "patriots", "arizona": "cardinals",
 }
+# Sectors CITY_TO_TEAM was written for (see _normalize_team).
+CITY_TO_TEAM_SECTORS: frozenset[str] = frozenset({"nba", "nfl"})
 
 
 @dataclass
@@ -228,22 +232,17 @@ class PointProjectionModel:
             or LEAGUE_AVG_DEFAULTS.get(sector)
         )
 
-    def _resolve_key(self, store: dict, team: str) -> Optional[str]:
-        """Resolve a team name against a dict using exact, last-word, suffix fallbacks."""
-        if team in store:
-            return team
-        if " " in team:
-            last = team.rsplit(" ", 1)[-1]
-            if last in store:
-                return last
-        for key in store:
-            if team.endswith(key) or key.endswith(team):
-                return key
-        return None
+    def _resolve_key(self, store: dict, team: str, sector: str) -> Optional[str]:
+        """Key in ``store`` for ``team`` via the shared unique-match rule
+        (``_team_lookup.resolve_team_key``), or None."""
+        return resolve_team_key(sector, team, store)
 
     def _normalize_team(self, sector: str, team: str) -> str:
         team_lower = team.lower().strip()
-        if team_lower in CITY_TO_TEAM:
+        # CITY_TO_TEAM holds NBA + NFL nicknames only. In any other sector a
+        # bare city is a different team ("tennessee" is not the titans in
+        # NCAAB; "carolina" is not the panthers in NHL).
+        if sector in CITY_TO_TEAM_SECTORS and team_lower in CITY_TO_TEAM:
             return CITY_TO_TEAM[team_lower]
         try:
             from evmax.matching.normalizer import NameNormalizer
@@ -255,12 +254,12 @@ class PointProjectionModel:
 
     def _get_poisson_stats(self, sector: str, team: str) -> Optional[dict]:
         teams = self._poisson_state.get(sector, {}).get("teams", {})
-        key = self._resolve_key(teams, team)
+        key = self._resolve_key(teams, team, sector)
         return teams.get(key) if key else None
 
     def _get_elo(self, sector: str, team: str) -> Optional[float]:
         ratings = self._elo_state.get(sector, {}).get("ratings", {})
-        key = self._resolve_key(ratings, team)
+        key = self._resolve_key(ratings, team, sector)
         if key is None:
             return None
         return ratings.get(key)
@@ -516,25 +515,25 @@ class PointProjectionModel:
         # NBA gets priority since it has the richest state (efficiency)
         nba_teams = self._efficiency_state.get("nba", {}).get("teams", {})
         if nba_teams:
-            if self._resolve_key(nba_teams, team_lower):
+            if self._resolve_key(nba_teams, team_lower, "nba"):
                 return "nba"
             normalized = self._normalize_team("nba", team_lower)
-            if normalized != team_lower and self._resolve_key(nba_teams, normalized):
+            if normalized != team_lower and self._resolve_key(nba_teams, normalized, "nba"):
                 return "nba"
 
         for sector in self._poisson_state:
             teams = self._poisson_state[sector].get("teams", {})
-            if self._resolve_key(teams, team_lower):
+            if self._resolve_key(teams, team_lower, sector):
                 return sector
             normalized = self._normalize_team(sector, team_lower)
-            if normalized != team_lower and self._resolve_key(teams, normalized):
+            if normalized != team_lower and self._resolve_key(teams, normalized, sector):
                 return sector
 
         for sector in self._elo_state:
             ratings = self._elo_state[sector].get("ratings", {})
-            if self._resolve_key(ratings, team_lower):
+            if self._resolve_key(ratings, team_lower, sector):
                 return sector
             normalized = self._normalize_team(sector, team_lower)
-            if normalized != team_lower and self._resolve_key(ratings, normalized):
+            if normalized != team_lower and self._resolve_key(ratings, normalized, sector):
                 return sector
         return None
