@@ -11,6 +11,12 @@ from evmax.sectors.base import SectorHandler
 class CS2Handler(SectorHandler):
     name = "cs2"
     sharp_source = "pinnacle"
+    # Kalshi prints team names with accents and dots ("Movistar KOI Fénix",
+    # "Gen.G", "Virtus.pro"); Pinnacle drops the accents and its event keys
+    # drop the dots. Esports is sharp-only (no model state keyed on names),
+    # so folding both costs nothing and lets the two venues' keys agree.
+    fold_accents = True
+    strip_dots = True
 
     def enrich_market(self, market: PredictionMarket) -> PredictionMarket:
         """Normalize CS2 team names."""

@@ -1,0 +1,105 @@
+{
+ "events": [
+  {
+   "event_ticker": "KXCS2GAME-26SEP240500NEMRUN",
+   "series_ticker": "KXCS2GAME",
+   "title": "Team Nemesis vs. Rune Eaters",
+   "sub_title": "Team Nemesis vs. Rune Eaters (Sep 24)",
+   "product_metadata": {
+    "competition": "CS2",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXCS2GAME-26SEP2407154MINF",
+   "series_ticker": "KXCS2GAME",
+   "title": "Four Magic vs. INFINITE Talent",
+   "sub_title": "Four Magic vs. INFINITE Talent (Sep 24)",
+   "product_metadata": {
+    "competition": "CS2",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXCS2GAME-26SEP240800JUSFNC",
+   "series_ticker": "KXCS2GAME",
+   "title": "Just_Players vs. fnatic",
+   "sub_title": "Just_Players vs. fnatic (Sep 24)",
+   "product_metadata": {
+    "competition": "CS2",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXCS2GAME-26SEP240900BHEPAIN",
+   "series_ticker": "KXCS2GAME",
+   "title": "Bounty Hunters Esports vs. paiN",
+   "sub_title": "Bounty Hunters Esports vs. paiN (Sep 24)",
+   "product_metadata": {
+    "competition": "CS2",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXCS2GAME-26SEP241000BIGAEXZ",
+   "series_ticker": "KXCS2GAME",
+   "title": "BIG Academy vs. ex-Zero Tenacity",
+   "sub_title": "BIG Academy vs. ex-Zero Tenacity (Sep 24)",
+   "product_metadata": {
+    "competition": "CS2",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXCS2GAME-26SEP241230KEYDTDP",
+   "series_ticker": "KXCS2GAME",
+   "title": "Keyd vs. Turma do Pagode",
+   "sub_title": "Keyd vs. Turma do Pagode (Sep 24)",
+   "product_metadata": {
+    "competition": "CS2",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXCS2GAME-26SEP250500GROTHU",
+   "series_ticker": "KXCS2GAME",
+   "title": "Ground Zero vs. THUNDER dOWNUNDER",
+   "sub_title": "Ground Zero vs. THUNDER dOWNUNDER (Sep 25)",
+   "product_metadata": {
+    "competition": "CS2",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXCS2GAME-26SEP2508003DMAXNIP",
+   "series_ticker": "KXCS2GAME",
+   "title": "3DMAX vs. NIP",
+   "sub_title": "3DMAX vs. NIP (Sep 25)",
+   "product_metadata": {
+    "competition": "CS2",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXCS2GAME-26SEP251400K27GL",
+   "series_ticker": "KXCS2GAME",
+   "title": "K27 vs. GamerLegion",
+   "sub_title": "K27 vs. GamerLegion (Sep 25)",
+   "product_metadata": {
+    "competition": "CS2",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXCS2GAME-26SEP252100OTLAG",
+   "series_ticker": "KXCS2GAME",
+   "title": "Overtake vs. LAG Gaming",
+   "sub_title": "Overtake vs. LAG Gaming (Sep 25)",
+   "product_metadata": {
+    "competition": "CS2",
+    "competition_scope": "Game"
+   }
+  }
+ ],
+ "cursor": ""
+}

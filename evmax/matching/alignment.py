@@ -22,10 +22,12 @@ Design rules (2026-09-05, after the NCAAF "2000% EV" incident):
 * Unresolvable ⇒ ``None`` ⇒ the market is NOT priced (fail-clear, the same
   stance the scan takes on a Pinnacle outage). A wrong side is a booked loss;
   a dropped market is a missed play.
-* The price-distance fallback survives only for the esports sectors whose
-  Kalshi YES labels are bare ticker codes without a series code map
-  (``PRICE_FALLBACK_SECTORS``); it is logged with ``method="price"`` so its
-  usage can be audited and retired once those maps exist.
+* The price-distance fallback survives only for the esports sectors
+  (``PRICE_FALLBACK_SECTORS``), for rows whose YES label is still a bare
+  ticker code. Since 2026-09-24 the Kalshi parser names esports YES sides by
+  the market's ``yes_sub_title`` full name, so only a row that carries no name
+  at all (the parser's last-resort ticker-code path) can reach it. It is logged
+  with ``method="price"`` so its usage can be audited and retired.
 """
 
 from __future__ import annotations
@@ -41,9 +43,10 @@ from evmax.models.odds import SharpOdds
 
 DRAW_TOKENS = frozenset({"tie", "draw", "x", "draw/tie"})
 
-# Sectors whose Kalshi YES label is a bare ticker code ("dsg", "7d", "keyd")
-# with no series-scoped code map yet. Only here may the ask price arbitrate a
-# side the names could not. Everything else fails clear.
+# Sectors whose Kalshi YES label can still be a bare ticker code ("dsg", "7d")
+# when a market carries no name (no yes_sub_title, event title or legacy
+# title). Only here may the ask price arbitrate a side the names could not.
+# Everything else fails clear.
 PRICE_FALLBACK_SECTORS = frozenset({"lol", "cs2"})
 
 # Price fallback thresholds (ARCH-7): the closer side must be tight AND

@@ -1,0 +1,75 @@
+{
+ "events": [
+  {
+   "event_ticker": "KXLOLGAME-26SEP240300EDGYFUE",
+   "series_ticker": "KXLOLGAME",
+   "title": "EDward Gaming Youth Team vs. Fuego",
+   "sub_title": "EDward Gaming Youth Team vs. Fuego (Sep 24)",
+   "product_metadata": {
+    "competition": "League of Legends",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXLOLGAME-26SEP240400BLGJCTBCA",
+   "series_ticker": "KXLOLGAME",
+   "title": "Bilibili Gaming Junior vs. CTBC Flying Oyster Academy",
+   "sub_title": "Bilibili Gaming Junior vs. CTBC Flying Oyster Academy (Sep 24)",
+   "product_metadata": {
+    "competition": "League of Legends",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXLOLGAME-26SEP2405009GSGW",
+   "series_ticker": "KXLOLGAME",
+   "title": "9Gaming vs. Saigon Warriors",
+   "sub_title": "9Gaming vs. Saigon Warriors (Sep 24)",
+   "product_metadata": {
+    "competition": "League of Legends",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXLOLGAME-26SEP240500KTCKOIA",
+   "series_ticker": "KXLOLGAME",
+   "title": "KT Rolster Challengers vs. Movistar KOI Fénix",
+   "sub_title": "KT Rolster Challengers vs. Movistar KOI Fénix (Sep 24)",
+   "product_metadata": {
+    "competition": "League of Legends",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXLOLGAME-26SEP251600FLYSR",
+   "series_ticker": "KXLOLGAME",
+   "title": "FlyQuest vs. Shopify Rebellion",
+   "sub_title": "FlyQuest vs. Shopify Rebellion (Sep 25)",
+   "product_metadata": {
+    "competition": "League of Legends",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXLOLGAME-26SEP261200FURRED",
+   "series_ticker": "KXLOLGAME",
+   "title": "FURIA Esports vs. RED Canids",
+   "sub_title": "FURIA Esports vs. RED Canids (Sep 26)",
+   "product_metadata": {
+    "competition": "League of Legends",
+    "competition_scope": "Game"
+   }
+  },
+  {
+   "event_ticker": "KXLOLGAME-26SEP271600TLC9",
+   "series_ticker": "KXLOLGAME",
+   "title": "Team Liquid vs. Cloud9",
+   "sub_title": "Team Liquid vs. Cloud9 (Sep 27)",
+   "product_metadata": {
+    "competition": "League of Legends",
+    "competition_scope": "Game"
+   }
+  }
+ ],
+ "cursor": ""
+}

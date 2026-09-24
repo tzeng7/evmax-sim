@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-from evmax.sectors.base import fold_accents
 from evmax.sectors.registry import get_handler
 
 
@@ -14,8 +13,8 @@ class NameNormalizer:
     Normalizes team/player names for cross-source matching.
 
     Steps:
-      1. Lowercase and strip whitespace (+ accent folding for sectors whose
-         handler sets ``fold_accents`` — soccer and worldcup)
+      1. Lowercase and strip whitespace (+ the handler's name folds: accents
+         for soccer/worldcup/esports, dots for esports — ``fold_name``)
       2. Remove common noise words (FC, CF, SC, AFC, etc.)
       3. Apply sector-specific alias map
       4. Normalize unicode and punctuation
@@ -49,10 +48,13 @@ class NameNormalizer:
 
         # Basic cleanup
         result = name.lower().strip()
-        # Accent folding for sectors that opt in (soccer-like): ESPN's
-        # "CF Montréal" must reach the same key as Pinnacle's "CF Montreal".
-        if self._handler is not None and getattr(self._handler, "fold_accents", False):
-            result = fold_accents(result)
+        # Sector name folds, applied before any alias lookup or noise-word
+        # strip: accents for the sectors that opt in (soccer-like — ESPN's
+        # "CF Montréal" must reach the same key as Pinnacle's "CF Montreal";
+        # esports — Kalshi's "Movistar KOI Fénix" vs Pinnacle's "Fenix") and
+        # dots for esports ("Gen.G" → "geng", the form Pinnacle keys use).
+        if self._handler is not None:
+            result = self._handler.fold_name(result)
         result = re.sub(r"['\u2019\u2018]", "", result)  # Remove apostrophes
         result = re.sub(r"[^\w\s\-\.]", " ", result)
         result = re.sub(r"\s+", " ", result).strip()

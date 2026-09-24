@@ -164,7 +164,7 @@ lol:
   mode: shadow
   resolver: bo3gg
   status: shipped
-  notes: "Shadow 2026-05-06: all esports demoted pending validation. sharp_weight bumped to 1.00 in model_config.json — predictions are pure sharp. Elo/form gated out (esports rosters churn too fast for team-level Elo to track real strength; Pinnacle prices in roster moves immediately)."
+  notes: "Shadow 2026-05-06: all esports demoted pending validation. sharp_weight bumped to 1.00 in model_config.json — predictions are pure sharp. Elo/form gated out (esports rosters churn too fast for team-level Elo to track real strength; Pinnacle prices in roster moves immediately). 2026-09-24: Kalshi's short '{Team} wins' titles (from 2026-08-23) left the parser keying events off ticker codes, which never match Pinnacle's names (0 matched from 09-21); teams now come from the per-event yes_sub_title / event-title join (_esports_event_teams in kalshi.py) and the series is winner-only (moneyline)."
 
 cs2:
   display_name: "CS2"
@@ -173,7 +173,7 @@ cs2:
   mode: shadow
   resolver: bo3gg
   status: shipped
-  notes: "Shadow 2026-05-06: all esports demoted pending validation. sharp_weight bumped to 1.00 in model_config.json — predictions are pure sharp. Elo/form gated out (esports rosters churn too fast for team-level Elo to track real strength; Pinnacle prices in roster moves immediately)."
+  notes: "Shadow 2026-05-06: all esports demoted pending validation. sharp_weight bumped to 1.00 in model_config.json — predictions are pure sharp. Elo/form gated out (esports rosters churn too fast for team-level Elo to track real strength; Pinnacle prices in roster moves immediately). 2026-09-24: Kalshi's short '{Team} wins' titles (from 2026-08-23) left the parser keying events off ticker codes, which never match Pinnacle's names (0 matched from 09-21); teams now come from the per-event yes_sub_title / event-title join (_esports_event_teams in kalshi.py) and the series is winner-only (moneyline)."
 
 ufc:
   display_name: "UFC / MMA"
