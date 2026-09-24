@@ -192,6 +192,25 @@ REST_ELO_ADJ: dict[str, dict[int, float]] = {
 }
 FORM_STATE_PATH = Path(__file__).resolve().parents[3] / "data" / "models" / "form_state.json"
 
+# Sectors whose rest layer reads form_state.json under the RESOLVED team key.
+# At predict time the team arrives as the lowercased Pinnacle label ("los
+# angeles lakers") while form_state is keyed by the Form agent's resolved key
+# ("lakers"), so a raw lookup finds nothing and the rest bonus is silently 0
+# wherever the label differs from the key. Listed sectors resolve the label
+# through the same rule FormModelAgent reads with (resolve_team_key). Adding a
+# sector SWITCHES REST ON for it — a model change — so a sector joins only
+# after scripts/backtest_elo_h2h_rest.py clears its gate
+# (docs/elo-h2h-rest-eval.md, 2026-09-23; standalone Elo ΔBrier/1000, eval
+# seasons / holdout season):
+#   nba    −0.64 (z −3.8) / −0.09, better in all 4 seasons; the rest shift
+#          predicts Pinnacle's open→close move (t +2.2)
+#   ncaab  −0.22 (z −4.9) / −0.18 (z −2.9), holdout blend −0.013 (z −1.7);
+#          labels already hit for 47/72
+# Rejected — these keep the raw-label lookup (WNBA stays dead, soccer keeps
+# its partial firing): wnba −0.07 (z −0.5), soccer −0.21 (z −1.0) / +0.25.
+# ncaaw is untested; its archived labels already equal their keys.
+REST_RESOLVED_SECTORS: frozenset[str] = frozenset({"nba", "ncaab"})
+
 # Skip the Elo model when the sector's state hasn't been refreshed in this many
 # days relative to the game being predicted. Mirrors FormModelAgent.STALE_DAYS.
 # Without this guard, a sector whose `evmax update scores` cron silently stopped
@@ -300,6 +319,17 @@ class EloModelAgent(ModelAgent):
 
         Positive = team_a has H2H edge, negative = team_b has edge.
         Capped at ±H2H_MAX_ADJ.
+
+        The pair is read under the labels passed in (the raw lowercased
+        Pinnacle labels at predict time), while ``update`` records it under
+        the canonical names it is fed. Where the two differ (nba, nfl, wnba,
+        baseball, much of soccer) the nudge never fires. That is DELIBERATE:
+        routing this read through resolve_team_key was walk-forward REJECTED
+        in every sector tested (docs/elo-h2h-rest-eval.md, 2026-09-23;
+        standalone Elo ΔBrier/1000, eval / holdout): nba +1.46 (z +4.8) /
+        +1.22, baseball +1.00 (z +5.8) / +0.69, ncaab +0.55 (z +5.0) / +1.29,
+        nhl +0.78 (z +2.7) / +1.25, wnba +1.28 / +0.75, nfl +0.09 / +3.02,
+        soccer −0.34 (z −1.0) / −0.32 with a worse blend. Do not resolve it.
         """
         h2h = self._sector_state(sector).get("h2h", {})
         key, _, swapped = self._h2h_key(team_a, team_b)
@@ -402,6 +432,17 @@ class EloModelAgent(ModelAgent):
             cls._form_cache_key = key
         return cls._form_cache
 
+    def _form_games(self, sector: str, team: str) -> list:
+        """The team's form_state records (most recent first) for the rest layer.
+
+        REST_RESOLVED_SECTORS read under the resolved key; every other sector
+        keeps the raw-label lookup (see REST_RESOLVED_SECTORS for why).
+        """
+        sector_form = self._load_form_state().get(sector, {})
+        if sector in REST_RESOLVED_SECTORS:
+            team = resolve_team_key(sector, team, sector_form) or team
+        return sector_form.get(team, [])
+
     def _days_of_rest(
         self, sector: str, team: str, reference: Optional[date] = None
     ) -> Optional[int]:
@@ -413,8 +454,7 @@ class EloModelAgent(ModelAgent):
         days after it AT KICKOFF, and the rest table is about kickoff.
         """
         try:
-            form = self._load_form_state()
-            games = form.get(sector, {}).get(team, [])
+            games = self._form_games(sector, team)
             if not games:
                 return None
             last_date_str = games[0].get("date")
@@ -430,8 +470,7 @@ class EloModelAgent(ModelAgent):
     ) -> int:
         """Count games played in the N days before `reference` (default today) from form_state."""
         try:
-            form = self._load_form_state()
-            games = form.get(sector, {}).get(team, [])
+            games = self._form_games(sector, team)
             if not games:
                 return 0
             cutoff = (reference or date.today()) - __import__("datetime").timedelta(days=days)
