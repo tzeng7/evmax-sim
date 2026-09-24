@@ -72,3 +72,98 @@ def test_win_probs_threads_reference_into_rest(tmp_path, monkeypatch):
     p_b2b, _, _ = a._win_probs("nba", "lakers", "celtics", date(2026, 11, 11))
     p_rested, _, _ = a._win_probs("nba", "lakers", "celtics", date(2026, 11, 20))  # both beyond horizon → 0
     assert p_b2b < p_rested
+
+
+# ---------------------------------------------------------------------------
+# Rest-layer read key (2026-09-23, docs/elo-h2h-rest-eval.md). At predict time
+# the team is the lowercased Pinnacle label; form_state is keyed by the Form
+# agent's resolved key. REST_RESOLVED_SECTORS resolve the label first (rest
+# switched ON — walk-forward validated for nba/ncaab); every other sector keeps
+# the raw-label lookup. H2H stays raw everywhere (walk-forward rejected).
+# ---------------------------------------------------------------------------
+
+from evmax.agents.models.elo_agent import REST_RESOLVED_SECTORS  # noqa: E402
+
+
+def _rec(d: str) -> dict:
+    return {"date": d, "won": True, "opp": "x", "home": True}
+
+
+@pytest.fixture
+def form_file(tmp_path, monkeypatch):
+    def _write(state: dict):
+        path = tmp_path / "form_state.json"
+        path.write_text(json.dumps(state))
+        monkeypatch.setattr(elo_agent, "FORM_STATE_PATH", path)
+        return path
+    return _write
+
+
+def test_resolved_sectors_all_carry_a_rest_table():
+    # A resolved sector with no REST_ELO_ADJ entry would change nothing — the
+    # set must only name sectors whose rest layer actually fires.
+    assert REST_RESOLVED_SECTORS == {"nba", "ncaab"}
+    assert REST_RESOLVED_SECTORS <= set(REST_ELO_ADJ)
+
+
+def test_nba_rest_reads_the_resolved_key_for_a_pinnacle_label(form_file):
+    form_file({"nba": {"lakers": [_rec("2026-11-10")], "celtics": [_rec("2026-11-07")]}})
+    a = EloModelAgent(); a._state = {}
+    # Before: form.get("los angeles lakers") → nothing → rest silently 0.
+    assert a._days_of_rest("nba", "los angeles lakers", date(2026, 11, 11)) == 1
+    assert a._days_of_rest("nba", "boston celtics", date(2026, 11, 11)) == 4
+    assert a._rest_elo_bonus("nba", "los angeles lakers", date(2026, 11, 13)) == REST_ELO_ADJ["nba"][3]
+    assert a._days_of_rest("nba", "no such team", date(2026, 11, 11)) is None
+
+
+def test_nba_rest_now_moves_the_pinnacle_label_prediction(form_file):
+    form_file({"nba": {"lakers": [_rec("2026-11-10")], "celtics": [_rec("2026-11-07")]}})
+    a = EloModelAgent(); a._state = {}
+    a._sector_state("nba")["ratings"] = {"lakers": 1500.0, "celtics": 1500.0}
+    # Lakers on 1 day (table key 1 → 0), Celtics on 4 days (→ table[3]): the
+    # Pinnacle-label prediction must match the key-label one and differ from
+    # a date where both sides are past the rest horizon.
+    p_label, _, _ = a._win_probs("nba", "los angeles lakers", "boston celtics", date(2026, 11, 11))
+    p_key, _, _ = a._win_probs("nba", "lakers", "celtics", date(2026, 11, 11))
+    p_far, _, _ = a._win_probs("nba", "los angeles lakers", "boston celtics", date(2026, 11, 30))
+    assert p_label == p_key
+    assert p_label < p_far
+
+
+def test_ncaab_rest_resolves_a_mascot_decorated_key(form_file):
+    form_file({"ncaab": {"furman paladins": [_rec("2026-01-10")]}})
+    a = EloModelAgent(); a._state = {}
+    assert a._days_of_rest("ncaab", "furman", date(2026, 1, 12)) == 2
+
+
+def test_ncaab_rest_never_borrows_another_schools_history(form_file):
+    # "george washington" must not read "washington"'s games (college head-word guard).
+    form_file({"ncaab": {"washington": [_rec("2026-01-10")]}})
+    a = EloModelAgent(); a._state = {}
+    assert a._days_of_rest("ncaab", "george washington", date(2026, 1, 12)) is None
+
+
+@pytest.mark.parametrize("sector,label,key", [
+    ("wnba", "las vegas aces", "aces"),              # rest walk-forward rejected → stays dead
+    ("soccer", "manchester city", "man city"),       # rejected → keeps its partial (raw) firing
+])
+def test_unvalidated_sectors_keep_the_raw_label_lookup(form_file, sector, label, key):
+    form_file({sector: {key: [_rec("2026-08-10"), _rec("2026-08-08")]}})
+    a = EloModelAgent(); a._state = {}
+    assert sector not in REST_RESOLVED_SECTORS
+    assert a._days_of_rest(sector, label, date(2026, 8, 11)) is None
+    assert a._games_in_last_n_days(sector, label, 7, date(2026, 8, 11)) == 0
+    # the exact key still reads (current behaviour, byte-identical)
+    assert a._days_of_rest(sector, key, date(2026, 8, 11)) == 1
+    assert a._games_in_last_n_days(sector, key, 7, date(2026, 8, 11)) == 2
+
+
+def test_h2h_stays_on_the_raw_label_read_by_design():
+    # H2H read through resolve_team_key was walk-forward REJECTED in every
+    # sector tested (nba +1.46 Brier/1000 z +4.8, baseball +1.00 z +5.8, ...).
+    # A Pinnacle label must NOT pick up the canonical-keyed record.
+    a = EloModelAgent(); a._state = {}
+    for _ in range(4):
+        a.update("lakers", "celtics", 110, 100, "nba", event_date="2026-01-01")
+    assert a._h2h_adjustment("nba", "lakers", "celtics") > 0
+    assert a._h2h_adjustment("nba", "los angeles lakers", "boston celtics") == 0.0
