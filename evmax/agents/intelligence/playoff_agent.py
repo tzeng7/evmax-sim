@@ -1,10 +1,11 @@
-"""PlayoffAgent — detects NBA/NHL playoff context and applies series-aware adjustments.
+"""PlayoffAgent — detects NBA/NHL/WNBA playoff context and applies series-aware adjustments.
 
 During playoffs, game dynamics shift significantly:
 - Elimination games: trailing team plays with desperation (historically ~48% win rate
   vs ~40% expected, a +8pp boost)
 - Closeout games: leading team slightly under-performs expectations (complacency)
-- Game 7: massive home court advantage (~78% home win rate vs ~64% regular season)
+- Game 7 (any deciding game): massive home court advantage (~78% home win rate
+  vs ~64% regular season)
 - Playoff home court: stronger than regular season across all games
 - Pace: playoff games are slower, affecting totals markets
 
@@ -35,9 +36,18 @@ SECTOR_SCOREBOARD_URL: dict[str, str] = {
     "wnba": f"{ESPN_SCOREBOARD}/basketball/wnba/scoreboard",
 }
 
-# Series length per sport (best-of-7 for NBA/NHL playoffs)
-SERIES_LENGTH: dict[str, int] = {"nba": 7, "nhl": 7, "wnba": 5}
-WINS_TO_CLINCH: dict[str, int] = {"nba": 4, "nhl": 4, "wnba": 3}
+# Wins needed to take a series. NBA/NHL play every round best-of-7.
+WINS_TO_CLINCH: dict[str, int] = {"nba": 4, "nhl": 4}
+
+# WNBA series length changes by round (2025+ format — ESPN's
+# series.totalCompetitions for the 2025 playoffs reads 3 / 5 / 7): First Round
+# best-of-3, Semifinals best-of-5, Finals best-of-7. Keyed by the round number
+# _infer_round_number assigns. An unrecognized round (0) has no entry, so the
+# series-state adjustments stay off rather than guess a length.
+WNBA_WINS_TO_CLINCH_BY_ROUND: dict[int, int] = {1: 2, 2: 3, 3: 4}
+
+# Round number of each league's championship series.
+FINALS_ROUND: dict[str, int] = {"nba": 4, "nhl": 4, "wnba": 3}
 
 
 @dataclass
@@ -50,13 +60,18 @@ class PlayoffSeries:
     team_b_abbrev: str
     series_wins_a: int  # home team's series wins (0 for play-in)
     series_wins_b: int  # away team's series wins (0 for play-in)
-    round_num: int  # 0=play-in, 1=first round, 2=semis, 3=conf finals, 4=finals
+    # NBA/NHL: 0=play-in, 1=first round, 2=semis, 3=conf finals, 4=finals.
+    # WNBA: 0=unrecognized, 1=first round, 2=semis, 3=finals.
+    round_num: int
     round_name: str  # e.g. "NBA Finals", "NBA Play-In - East - 8th Seed Game"
     sector: str
     is_play_in: bool = False  # True for single-elimination play-in games
 
     @property
-    def _clinch(self) -> int:
+    def _clinch(self) -> Optional[int]:
+        """Wins needed to take this series; None when the length is unknown."""
+        if self.sector == "wnba":
+            return WNBA_WINS_TO_CLINCH_BY_ROUND.get(self.round_num)
         return WINS_TO_CLINCH.get(self.sector, 4)
 
     @property
@@ -64,40 +79,57 @@ class PlayoffSeries:
         """Home team faces elimination (away leads clinch-1 to something)."""
         if self.is_play_in:
             return True  # play-in is single elimination for both
-        return self.series_wins_b == self._clinch - 1 and self.series_wins_a < self._clinch - 1
+        c = self._clinch
+        if c is None:
+            return False
+        return self.series_wins_b == c - 1 and self.series_wins_a < c - 1
 
     @property
     def is_elimination_for_b(self) -> bool:
         """Away team faces elimination."""
         if self.is_play_in:
             return True  # play-in is single elimination for both
-        return self.series_wins_a == self._clinch - 1 and self.series_wins_b < self._clinch - 1
+        c = self._clinch
+        if c is None:
+            return False
+        return self.series_wins_a == c - 1 and self.series_wins_b < c - 1
 
     @property
     def is_game_7(self) -> bool:
-        """Both teams one win from elimination (Game 7 / Game 5 in WNBA)."""
+        """Deciding game: both teams one win from the series (NBA/NHL Game 7;
+        WNBA Game 3 / 5 / 7 by round)."""
         if self.is_play_in:
             return False
-        c = self._clinch - 1
-        return self.series_wins_a == c and self.series_wins_b == c
+        c = self._clinch
+        if c is None:
+            return False
+        return self.series_wins_a == c - 1 and self.series_wins_b == c - 1
 
     @property
     def is_closeout_for_a(self) -> bool:
         """Home team can close out the series."""
         if self.is_play_in:
             return False
-        return self.series_wins_a == self._clinch - 1 and self.series_wins_b < self._clinch - 1
+        c = self._clinch
+        if c is None:
+            return False
+        return self.series_wins_a == c - 1 and self.series_wins_b < c - 1
 
     @property
     def is_closeout_for_b(self) -> bool:
         """Away team can close out the series."""
         if self.is_play_in:
             return False
-        return self.series_wins_b == self._clinch - 1 and self.series_wins_a < self._clinch - 1
+        c = self._clinch
+        if c is None:
+            return False
+        return self.series_wins_b == c - 1 and self.series_wins_a < c - 1
 
     @property
     def is_finals(self) -> bool:
-        return self.round_num >= 4 or "final" in self.round_name.lower()
+        """Championship series only. Keyed on the round number, not the round
+        name — "Semifinals" contains "final"."""
+        return self.round_num >= FINALS_ROUND.get(self.sector, 4)
 
     @property
     def game_number(self) -> int:
@@ -114,7 +146,7 @@ class PlayoffAgent(Agent):
     """Fetches ESPN playoff scoreboard to detect series context."""
 
     name = "playoff"
-    description = "Detects NBA/NHL playoff series context for probability adjustments."
+    description = "Detects NBA/NHL/WNBA playoff series context for probability adjustments."
 
     def __init__(self, timeout: float = 8.0) -> None:
         super().__init__()
@@ -411,13 +443,19 @@ def _infer_round_number(round_name: str, sector: str) -> int:
     """Infer playoff round number from ESPN round/note name."""
     name = round_name.lower()
 
-    # WNBA has fewer rounds (semis → finals = rounds 2, 3)
+    # WNBA has three rounds: First Round → 1, Semifinals → 2, WNBA Finals → 3.
+    # ESPN headlines: "First Round - Game 2", "WNBA Semifinals - Game 2",
+    # "WNBA Finals - Game 4". The round sets the series length (see
+    # WNBA_WINS_TO_CLINCH_BY_ROUND), so an unrecognized name returns 0 and the
+    # series-state adjustments stay off instead of assuming a length.
     if sector == "wnba":
-        if "final" in name and "semi" not in name:
-            return 3
         if "semi" in name:
             return 2
-        return 1
+        if "final" in name:
+            return 3
+        if "first round" in name or "1st round" in name or "round 1" in name:
+            return 1
+        return 0
 
     if "final" in name and "conference" not in name and "semi" not in name:
         return 4  # NBA Finals / Stanley Cup Final
