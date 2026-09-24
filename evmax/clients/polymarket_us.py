@@ -101,6 +101,24 @@ def _is_full_game(sports_market_type: Optional[str]) -> bool:
     return any(marker in smt for marker in _FULL_GAME_MARKERS)
 
 
+def _is_team_total(m: dict[str, Any]) -> bool:
+    """True for a totals market on ONE team's score (a team total).
+
+    Polymarket US lists NFL/CFB team totals as marketType "totals" with
+    sportsMarketType "football_team_points_full_game_total" (slug "-tt-gb-"),
+    which passes _is_full_game. The GAME total is the confusingly named
+    "football_team_full_game_total" (slug "-total-"), so "team" in the type
+    name does not discriminate. Team totals carry metadata.teamId and a
+    "team_points" type; either marks the market. Parsed as a game total, the
+    Packers "Over 35.5" team total (14¢) was priced off the combined-score
+    distribution (73%) and logged as a +399% EV play.
+    """
+    smt = (m.get("sportsMarketType") or "").lower()
+    if "team_points" in smt:
+        return True
+    return bool((m.get("metadata") or {}).get("teamId"))
+
+
 def _canon_team(sector: str, side: dict[str, Any]) -> Optional[str]:
     """Canonicalize a marketSide's team through the sector alias map.
 
@@ -689,6 +707,10 @@ class PolymarketUSClient(BaseAPIClient):
         team_away: Optional[str],
     ) -> Optional[PredictionMarket]:
         """Totals market → YES = Over (Kalshi convention), Under via NO side."""
+        # A team total has no game-total Pinnacle analogue; matching it to the
+        # game total prices one team's points off the combined score.
+        if _is_team_total(m):
+            return None
         sides = m.get("marketSides", []) or []
         over_side = next(
             (s for s in sides if (s.get("description") or "").lower() == "over"),
@@ -701,10 +723,10 @@ class PolymarketUSClient(BaseAPIClient):
         if over_side is None or under_side is None:
             return None
         # Both sides must be TRADABLE, mirroring _parse_moneyline. A not-yet-open
-        # / placeholder totals market carries a stale seed quote (observed: a
-        # deep "Over 35.5" NFL rung parked at ~9¢) on a non-tradable side; without
-        # this gate it surfaced as a phantom +600% EV play for a market that does
-        # not actually trade on Polymarket US.
+        # / placeholder totals market carries a stale seed quote on a
+        # non-tradable side and would surface as a phantom edge. (The "Over
+        # 35.5 @ ~9¢" NFL phantom first blamed on this was a team total —
+        # tradable on both sides — and is dropped by _is_team_total above.)
         if not over_side.get("tradable", True) or not under_side.get("tradable", True):
             return None
         yes_price = _parse_quote(over_side)

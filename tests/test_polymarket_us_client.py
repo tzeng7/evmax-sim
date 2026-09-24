@@ -284,12 +284,45 @@ class TestParseTotal:
         assert _client()._parse_event(_event([raw]), "baseball", "mlb") == []
 
     def test_untradable_side_skips_market(self):
-        # Regression for the phantom "Over 35.5 @ 9¢" NFL rows: a not-yet-open
-        # totals market carries a stale seed quote on a non-tradable side and
-        # must be dropped, not surfaced as a +600% EV play.
+        # A not-yet-open totals market carries a stale seed quote on a
+        # non-tradable side and must be dropped, not surfaced as a phantom play.
         raw = _total_market()
         raw["marketSides"][0]["tradable"] = False  # Over side not tradable
         assert _client()._parse_event(_event([raw]), "baseball", "mlb") == []
+
+    def test_team_total_skipped(self):
+        # Regression for the phantom NFL "Over 35.5 @ 9-14¢" rows: a Packers
+        # TEAM total (live payload shape, 2026-09-23) passed the full-game
+        # filter and was priced off the combined-score distribution (73%).
+        raw = _total_market(
+            line=35.5,
+            smt="football_team_points_full_game_total",
+            slug="tsc-nfl-atl-gb-2026-09-24-tt-gb-35pt5",
+        )
+        raw["metadata"] = {"teamId": 59}
+        assert _client()._parse_event(_event([raw]), "nfl", "nfl") == []
+
+    def test_team_total_skipped_on_either_marker(self):
+        # teamId alone, or the team_points type alone, marks a team total.
+        by_type = _total_market(smt="football_team_points_full_game_total")
+        by_team_id = _total_market(smt="football_team_full_game_total")
+        by_team_id["metadata"] = {"teamId": 59}
+        assert _client()._parse_event(_event([by_type]), "nfl", "nfl") == []
+        assert _client()._parse_event(_event([by_team_id]), "nfl", "nfl") == []
+
+    def test_nfl_game_total_still_parsed(self):
+        # The GAME total is "football_team_full_game_total" with no teamId —
+        # "team" in the type name must not drop it.
+        raw = _total_market(
+            line=41.5,
+            smt="football_team_full_game_total",
+            slug="tsc-nfl-atl-gb-2026-09-24-total-41pt5",
+        )
+        raw["metadata"] = None
+        markets = _client()._parse_event(_event([raw]), "nfl", "nfl")
+        assert len(markets) == 1
+        assert markets[0].market_type == MarketType.total
+        assert markets[0].line == pytest.approx(41.5)
 
 
 class TestParseDrawableOutcome:
