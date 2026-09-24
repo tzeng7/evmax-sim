@@ -7,6 +7,8 @@ from typing import Optional
 
 from rapidfuzz import fuzz, process
 
+from evmax.clients.time_util import uses_et_game_day
+
 _log = logging.getLogger(__name__)
 
 DEFAULT_THRESHOLD = 88
@@ -52,7 +54,19 @@ def fuzzy_match_event_keys(
     Fuzzy match an event key against a list of sharp event keys.
 
     The key format is "{sector}::{date}::{team_a}_vs_{team_b}".
-    We extract only the team part for matching to avoid date mismatches.
+    The date segment is a filter, never a fuzzy-scored string: only the team
+    part is scored.
+
+    Date filter by sector:
+      - ET-dated sectors (`uses_et_game_day`: nba, wnba, nfl, baseball, nhl,
+        ncaab, ncaaw, ncaaf, ufc): the candidate date must EQUAL the query
+        date. Both sides are already on the ET game day, so any other date is
+        another game — the next game of a series or a back-to-back.
+      - Every other sector: ±1 day, then any date in the sector when nothing
+        is within ±1 day. Kalshi dates these markets on a local/US day while
+        Pinnacle keys the UTC day (Americas-evening soccer, World Cup 2026),
+        and Kalshi tennis tickers carry a listing date, not the match day.
+        Among equal team matches, the candidate nearest the query date wins.
 
     Args:
         query_key: Canonical event key from prediction market.
@@ -76,11 +90,23 @@ def fuzzy_match_event_keys(
     query_date = query_parts[1] if len(query_parts) > 1 else ""
     query_teams = extract_teams(query_key)
 
-    # Only match events in same sector and within ±1 day
-    filtered = [
-        k for k in candidate_keys
-        if k.startswith(f"{query_sector}::") and _date_close(query_date, k.split("::")[1] if len(k.split("::")) > 1 else "")
-    ]
+    if uses_et_game_day(query_sector):
+        # Same ET game day only — no window, no any-date fallback. An unknown
+        # date can't be proven to be the same game day, so it never matches.
+        if query_date in ("", "unknown"):
+            return None
+        filtered = [
+            k for k in candidate_keys
+            if k.startswith(f"{query_sector}::") and _key_date(k) == query_date
+        ]
+        if not filtered:
+            return None
+    else:
+        # Only match events in same sector and within ±1 day
+        filtered = [
+            k for k in candidate_keys
+            if k.startswith(f"{query_sector}::") and _date_close(query_date, _key_date(k))
+        ]
 
     if not filtered:
         # Try same-sector candidates regardless of date before falling back to all
@@ -112,12 +138,29 @@ def fuzzy_match_event_keys(
     if not _teams_individually_match(query_teams, match_teams):
         return None
 
-    # Recover full key from the matched teams string
-    for k in filtered:
-        if extract_teams(k) == match_teams:
-            return k, score
+    # Recover the full key from the matched teams string. Several dates can
+    # carry the same teams (a rematch inside the ±1-day window); take the one
+    # nearest the query date, not the first one listed.
+    same_teams = [k for k in filtered if extract_teams(k) == match_teams]
+    if same_teams:
+        return min(same_teams, key=lambda k: _day_gap(query_date, _key_date(k))), score
 
     return None
+
+
+def _key_date(key: str) -> str:
+    """Date segment of an event key ("" when the key has none)."""
+    parts = key.split("::")
+    return parts[1] if len(parts) > 1 else ""
+
+
+def _day_gap(date_a: str, date_b: str) -> int:
+    """Absolute day gap between two YYYY-MM-DD strings (large when unparseable)."""
+    try:
+        from datetime import date
+        return abs((date.fromisoformat(date_a) - date.fromisoformat(date_b)).days)
+    except ValueError:
+        return 10**6
 
 
 def _teams_individually_match(query_teams: str, match_teams: str, min_score: int = 90) -> bool:

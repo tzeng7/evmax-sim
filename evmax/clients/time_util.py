@@ -36,6 +36,21 @@ _US_SECTORS = frozenset(
 _US_TZ = ZoneInfo("America/New_York")
 
 
+def uses_et_game_day(sector: str) -> bool:
+    """True when `sector` dates BOTH sides of a match on the US/Eastern day.
+
+    For these sectors the Kalshi noon-UTC ticker anchor and the Pinnacle UTC
+    start time both pass through `kalshi_game_day`'s ET conversion, so a
+    market and a sharp event share one calendar: two different dates always
+    mean two different games. The matcher uses this to require an EXACT date
+    match — a ±1-day tolerance here priced Kalshi's next game of a series off
+    Pinnacle's previous game (154 baseball moneyline rows, 2026-04 → 09).
+    Every other sector compares a local/US ticker date with a UTC start date,
+    so a one-day gap there can still be the same match.
+    """
+    return sector in _US_SECTORS
+
+
 def kalshi_game_day(event_date: datetime | None, sector: str) -> str:
     """Return a YYYY-MM-DD string for `event_date` using the sector's
     canonical game-day convention.

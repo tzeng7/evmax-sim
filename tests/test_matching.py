@@ -258,7 +258,10 @@ class TestMatchingEngine:
         assert len(results) == 2
 
     def test_match_all_dedup_playoff_series(self):
-        """Multiple Kalshi contracts for the same matchup → keep closest date."""
+        """Multiple Kalshi contracts for the same matchup → only the one on the
+        Pinnacle game's ET day survives. (Previously this fixture paired the
+        APR18 contract with an APR19 Pinnacle game — a cross-game match that the
+        ET-dated exact-day rule now rejects; see test_matching_same_game_day.py.)"""
         engine = MatchingEngine()
 
         # Three Kalshi markets for Lakers vs Rockets at different game dates
@@ -272,13 +275,13 @@ class TestMatchingEngine:
                          event_date=datetime(2026, 4, 26, 12, tzinfo=timezone.utc))
         m3.id = "kalshi:KXNBAGAME-26APR26LALHOU-LAL"
 
-        # Single Pinnacle event for the APR19 game
+        # Single Pinnacle event for the APR18 game, 22:30 ET tip (02:30Z APR19)
         sharp_key = engine.build_market_key(
             make_market("lakers", "rockets", sector="nba",
-                        event_date=datetime(2026, 4, 19, 12, tzinfo=timezone.utc))
+                        event_date=datetime(2026, 4, 18, 12, tzinfo=timezone.utc))
         )
         sharp = make_sharp(sharp_key, sector="nba")
-        sharp.event_date = datetime(2026, 4, 19, 12, tzinfo=timezone.utc)
+        sharp.event_date = datetime(2026, 4, 19, 2, 30, tzinfo=timezone.utc)
 
         results = engine.match_all([m1, m2, m3], [sharp])
         assert len(results) == 1

@@ -138,21 +138,34 @@ class TestFuzzyMatchEventKeys:
         assert result is not None
 
     def test_date_one_day_off_still_matches(self):
-        """Within ±1 day window should still match."""
+        """Within ±1 day window should still match — for sectors whose Kalshi
+        date and Pinnacle UTC date sit on different calendars (soccer here).
+        ET-dated sectors (nba) require the exact date: see
+        tests/test_matching_same_game_day.py."""
         result = fuzzy_match_event_keys(
-            "nba::2026-03-14::lakers_vs_celtics",
+            "soccer::2026-03-14::arsenal_vs_chelsea",
             self.SHARP_KEYS,
         )
         assert result is not None
 
     def test_date_two_days_off_uses_fallback(self):
-        """2+ days off falls back to all candidates — may still match."""
+        """2+ days off falls back to all same-sector candidates — non-ET
+        sectors only (tennis tickers carry a listing date, not the match day)."""
         result = fuzzy_match_event_keys(
-            "nba::2026-03-10::lakers_vs_celtics",
+            "soccer::2026-03-10::arsenal_vs_chelsea",
             self.SHARP_KEYS,
         )
-        # Should still find lakers vs celtics via full-candidate fallback
+        # Should still find arsenal vs chelsea via full-candidate fallback
         assert result is not None
+
+    def test_et_sector_date_one_day_off_does_not_match(self):
+        """nba is ET-dated on both sides: a one-day gap is another game."""
+        assert fuzzy_match_event_keys(
+            "nba::2026-03-14::lakers_vs_celtics", self.SHARP_KEYS,
+        ) is None
+        assert fuzzy_match_event_keys(
+            "nba::2026-03-10::lakers_vs_celtics", self.SHARP_KEYS,
+        ) is None
 
 
 # ---------------------------------------------------------------------------
