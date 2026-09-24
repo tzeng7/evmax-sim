@@ -1,8 +1,10 @@
 aliases:
   # LCK (Korea)
   "t1": "t1"
-  "gen.g": "gen.g"
-  "geng": "gen.g"
+  # Dot-free canonical: Pinnacle event keys drop dots (the handler's strip_dots
+  # folds the rest of this file the same way).
+  "gen.g": "geng"
+  "geng": "geng"
   "kt rolster": "kt rolster"
   "kt": "kt rolster"
   "drx": "drx"
@@ -64,3 +66,28 @@ aliases:
   "team we": "we"
   "tes": "top"
   "anyone's legend": "al"
+  # Kalshi full names (KXLOLGAME event titles / yes_sub_titles, "{Team} wins"
+  # since 2026-08) that differ from Pinnacle's. Each pair was confirmed on the
+  # SAME game: identical start time (Kalshi ticker HHMM ET vs Pinnacle
+  # startTime) and the opponent's name matching exactly (archive replay
+  # 2026-08-20 -> 09-24). Keys are the Kalshi form after normalization.
+  "ici japon corp esport": "ici japon corp"      # Kalshi "Ici Japon Corp. Esport"
+  "skillcamp esport": "skillcamp"
+  "intz e-sports": "intz"
+  "volda e-sport": "volda"
+  "devils.one x kmt": "devils.one"               # folds to devilsone
+  "orzel barczaca": "barczaca"                   # Kalshi "Orzel Barczaca Esports"
+  "9z globant": "9z"
+  "gamespace mediterranean college": "gamespace mce"   # "... College Esports"
+  "kabum ilha das lendas": "kabum idl"           # Kalshi "KaBuM! Ilha das Lendas"; NOT bare "kabum" (Pinnacle lists both)
+  "los heretics old": "heretics academy"         # Kalshi "Los Heretics (OLD)"
+  "the ruddy sack": "ruddy corporation"
+  "university of mississippi": "ole miss"
+  "su esports": "supremaunitas"
+  "berlin international gaming": "big"
+  "bilibili": "blg"                              # Pinnacle "Bilibili" = Kalshi "Bilibili Gaming"
+  "nongshim red force": "ns redforce"            # Kalshi spelling of Nongshim RedForce
+  "nongshim academy": "nongshim redforce challengers"   # Kalshi "Nongshim Esports Academy"
+  "drx challengers": "kiwoom drx challengers"
+  "oksavingsbank brion": "brion"                 # Kalshi; the org's 2026 sponsor name
+  "hanjin brion": "brion"                        # Pinnacle

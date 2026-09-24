@@ -59,13 +59,26 @@ class SectorHandler(ABC):
     # NCAAF ("san josé state" is an accented canonical) key state on the
     # accented form, so folding them would orphan existing ratings.
     fold_accents: bool = False
+    # When True, every "." is dropped from names (and alias keys/targets)
+    # before lookup. Pinnacle event keys are built dot-free
+    # (esports_pinnacle._normalize), but the venue-side key keeps the dot, so a
+    # dotted name ("Gen.G", "Virtus.pro", "KUUSAMO.gg") could never build the
+    # same key on both sides — and the fuzzy fallback's ≥90 per-token check
+    # rejects "gen.g" vs "geng" (89). Esports only (lol/cs2).
+    strip_dots: bool = False
 
     def __init__(self) -> None:
         self._aliases: dict[str, str] = {}
         self._load_aliases()
 
-    def _fold(self, name: str) -> str:
-        return fold_accents(name) if self.fold_accents else name
+    def fold_name(self, name: str) -> str:
+        """Apply this sector's name folds (accents, dots) — identity when the
+        handler sets neither ``fold_accents`` nor ``strip_dots``."""
+        if self.fold_accents:
+            name = fold_accents(name)
+        if self.strip_dots:
+            name = name.replace(".", "")
+        return name
 
     def _load_aliases(self) -> None:
         """Load team name aliases from YAML file."""
@@ -74,10 +87,10 @@ class SectorHandler(ABC):
             with open(alias_file) as f:
                 data = yaml.safe_load(f) or {}
                 self._aliases = data.get("aliases", {}) or {}
-        if self.fold_accents and self._aliases:
+        if (self.fold_accents or self.strip_dots) and self._aliases:
             folded: dict[str, str] = {}
             for key, target in self._aliases.items():
-                fk, ft = fold_accents(str(key)), fold_accents(str(target))
+                fk, ft = self.fold_name(str(key)), self.fold_name(str(target))
                 prev = folded.get(fk)
                 if prev is not None and prev != ft:
                     # Two alias keys that differ only by accents point at
@@ -105,17 +118,17 @@ class SectorHandler(ABC):
         if canon is None:
             canon = set(self._aliases.values())
             self._canonical_set = canon
-        return self._fold(name) in canon
+        return self.fold_name(name) in canon
 
     def normalize_team(self, name: str) -> str:
         """
         Normalize a team name using the alias map.
-        Returns canonical name (lowercase, stripped; accent-folded when the
-        handler sets ``fold_accents``).
+        Returns canonical name (lowercase, stripped; accent-folded / dot-free
+        when the handler sets ``fold_accents`` / ``strip_dots``).
         """
         if not name:
             return ""
-        cleaned = self._fold(name.strip().lower())
+        cleaned = self.fold_name(name.strip().lower())
         return self._aliases.get(cleaned, cleaned)
 
     def make_event_key(

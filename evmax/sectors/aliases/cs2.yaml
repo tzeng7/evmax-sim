@@ -43,3 +43,33 @@ aliases:
   "aurora": "aurora"
   "pera": "pera"
   "natus vincere junior": "navi junior"
+  # Kalshi full names (KXCS2GAME event titles / yes_sub_titles, "{Team} wins"
+  # since 2026-08) that differ from Pinnacle's. Each pair was confirmed on the
+  # SAME game: identical start time (Kalshi ticker HHMM ET vs Pinnacle
+  # startTime) and the opponent's name matching exactly (archive replay
+  # 2026-08-20 -> 09-24 + live 2026-09-24). Keys are the Kalshi form after
+  # normalization. Deliberately NOT aliased: "WBT Academy" -> Pinnacle "WBT"
+  # (Pinnacle lists both WBT and WBT Academy — never guess).
+  "just_players": "just players"                 # Kalshi "Just_Players"
+  "keyd": "keyd stars"                           # Kalshi "Keyd" = Pinnacle "Keyd Stars"
+  "wraith pcific": "pcific"
+  "dendele cs": "dendele"
+  "zetta games": "zetta"
+  "overtake": "overtake sector"
+  "fluxo w7m": "fluxo"
+  "esport berg": "berg"
+  "frz unit": "frz"
+  "esport academy copenhagen": "eac"
+  "largadosypelados": "lp"
+  "inner circle prospect": "inner circle prospects"
+  "semente do mal": "sementes do mal"
+  "x-city": "xcity"
+  "underw0rld": "underworld"
+  "kuusamo.gg": "kuusamo"                        # folds to kuusamogg
+  "mibr fe": "mibr female"
+  "oldboys-": "oldboys pl"                       # Kalshi "OLDBOYS-"
+  "roundsgg": "rounds"
+  "themongolz": "the mongolz"
+  "1w": "1win"                                   # Pinnacle "1W"
+  "bb team": "betboom"                           # Pinnacle "BB Team" = Kalshi "BetBoom Team"
+  "pvision": "parivision"                        # Pinnacle "PVISION"

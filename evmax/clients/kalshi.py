@@ -225,12 +225,19 @@ _SERIES_TEAM_CODE_MAPS: dict[str, dict[str, str]] = {
 _EVENT_SUBTITLE_CODES_RE = re.compile(r"^\s*([A-Z0-9]{2,5})\s+vs\.?\s+([A-Z0-9]{2,5})\b", re.IGNORECASE)
 
 # Sectors whose Kalshi series are WINNER markets only (no spread/total/prop
-# series): tennis (KXATPMATCH/KXWTAMATCH) and UFC (KXUFCFIGHT). Market type is
-# fixed to moneyline instead of inferred from a title that is a player name.
-_WINNER_ONLY_SECTORS = frozenset({"tennis", "ufc"})
+# series): tennis (KXATPMATCH/KXWTAMATCH), UFC (KXUFCFIGHT) and esports
+# (KXLOLGAME/KXCS2GAME — Kalshi lists esports spreads, totals and map winners
+# as SEPARATE series: KXLOLSPREAD, KXCS2TOTALMAPS, KXCS2MAP, ...). Market type
+# is fixed to moneyline instead of inferred from a title that is a name.
+_WINNER_ONLY_SECTORS = frozenset({"tennis", "ufc", "lol", "cs2"})
+
+# Esports sectors whose teams come from the per-event join (_esports_event_teams).
+_ESPORTS_TITLE_SECTORS = frozenset({"lol", "cs2"})
 
 # Sectors whose /events rows are joined onto markets at parse time.
-_EVENT_TITLE_SECTORS: frozenset[str] = frozenset({"tennis", "soccer", "ufc"})
+_EVENT_TITLE_SECTORS: frozenset[str] = frozenset(
+    {"tennis", "soccer", "ufc"} | _ESPORTS_TITLE_SECTORS
+)
 
 
 # --- UFC (KXUFCFIGHT) fighter recovery -------------------------------------
@@ -241,7 +248,7 @@ _EVENT_TITLE_SECTORS: frozenset[str] = frozenset({"tennis", "soccer", "ufc"})
 # no opponent, so every UFC market parsed with empty fighters and matched
 # nothing for a month. Both fighters are now recovered per EVENT (the helpers
 # below); the long-form title regex is only the last-resort fallback.
-_UFC_MATCHUP_SPLIT_RE = re.compile(r"\s+vs\.?\s+", re.IGNORECASE)
+_MATCHUP_SPLIT_RE = re.compile(r"\s+vs\.?\s+", re.IGNORECASE)
 # The short per-fighter title itself: "Raul Rosas Jr wins" → "Raul Rosas Jr".
 # Only consulted when a row lacks yes_sub_title (which carries the same name).
 _SHORT_WINS_TITLE_RE = re.compile(r"^\s*(?!will\s)(.+?)\s+wins\s*\??\s*$", re.IGNORECASE)
@@ -260,7 +267,7 @@ def _ufc_matchup_from_event(ev: dict[str, Any]) -> Optional[tuple[str, str]]:
             continue
         s = re.sub(r"\s*\([^)]*\)\s*$", "", str(text).strip())
         s = s.rsplit(": ", 1)[-1]
-        parts = _UFC_MATCHUP_SPLIT_RE.split(s, maxsplit=1)
+        parts = _MATCHUP_SPLIT_RE.split(s, maxsplit=1)
         if len(parts) == 2 and parts[0].strip() and parts[1].strip():
             return parts[0].strip(), parts[1].strip()
     return None
@@ -277,21 +284,38 @@ def _ufc_label_names(label: str, full_name: str) -> bool:
     return bool(a) and (a == b or b.endswith(" " + a))
 
 
-def _orient_ufc_siblings(
+def _ticker_pair_is(pair: str, codes: str) -> bool:
+    """Whether an event ticker's team-pair segment is exactly ``codes``.
+
+    Tolerates the 4-digit HHMM start time esports tickers put between the date
+    and the codes (KXLOLGAME-26SEP271600TLC9 → "1600TLC9" is TL + C9). The
+    codes themselves may start with digits (9G, 3DMAX, 9INE), so the time is
+    peeled off only when exactly the codes remain.
+    """
+    if not codes or not pair.endswith(codes):
+        return False
+    rest = pair[: len(pair) - len(codes)]
+    return rest == "" or (len(rest) == 4 and rest.isdigit())
+
+
+def _orient_event_siblings(
     event_ticker: str,
     by_code: dict[str, str],
     matchup: Optional[tuple[str, str]],
+    label_names: Callable[[str, str], bool],
 ) -> Optional[tuple[str, str]]:
     """Order an event's two sibling full names as (away, home).
 
     ``by_code`` maps each sibling market's outcome code (ticker suffix) to its
     ``yes_sub_title``. Orientation, strongest first: the event ticker's
-    {AWAY}{HOME} code pair (KXUFCFIGHT-26SEP26DEMJAU → DEM away, JAU home);
-    then the event matchup's listed order. With no matchup to fall back on,
-    the siblings are returned in listed order — the matcher's token-sort
-    fuzzy fallback is order-insensitive. Returns None when the siblings are
-    unusable (not exactly two distinct names) or when a matchup exists but
-    cannot be reconciled with them (the caller then uses the matchup itself).
+    {AWAY}{HOME} code pair (KXUFCFIGHT-26SEP26DEMJAU → DEM away, JAU home;
+    KXLOLGAME-26SEP271600TLC9 → TL away, C9 home); then the event matchup's
+    listed order, compared by ``label_names(label, full_name)``. With no
+    matchup to fall back on, the siblings are returned in listed order — the
+    matcher's token-sort fuzzy fallback is order-insensitive. Returns None
+    when the siblings are unusable (not exactly two distinct names) or when a
+    matchup exists but cannot be reconciled with them (the caller then uses
+    the matchup itself).
     """
     if len(by_code) != 2:
         return None
@@ -301,17 +325,65 @@ def _orient_ufc_siblings(
     seg = event_ticker.rsplit("-", 1)[-1].upper()
     date_m = _TICKER_DATE_RE.match(seg)
     pair = seg[date_m.end():] if date_m else ""
-    fwd, rev = pair == c1 + c2, pair == c2 + c1
+    fwd, rev = _ticker_pair_is(pair, c1 + c2), _ticker_pair_is(pair, c2 + c1)
     if fwd != rev:
         return (n1, n2) if fwd else (n2, n1)
     if matchup is None:
         return (n1, n2)
     first, second = matchup
-    as_listed = _ufc_label_names(first, n1) and _ufc_label_names(second, n2)
-    swapped = _ufc_label_names(first, n2) and _ufc_label_names(second, n1)
+    as_listed = label_names(first, n1) and label_names(second, n2)
+    swapped = label_names(first, n2) and label_names(second, n1)
     if as_listed != swapped:
         return (n1, n2) if as_listed else (n2, n1)
     return None
+
+
+def _event_sibling_sides(
+    market_rows: Optional[list[dict[str, Any]]],
+    event_rows: Optional[list[dict[str, Any]]],
+    matchup_from_event: Callable[[dict[str, Any]], Optional[tuple[str, str]]],
+    label_names: Callable[[str, str], bool],
+) -> dict[str, tuple[str, str]]:
+    """event_ticker → (away, home) competitor names for a per-competitor
+    winner series (one YES market per side, short "{Name} wins" titles).
+
+    Primary source: the two sibling markets' ``yes_sub_title`` (each side's
+    full name), oriented by ``_orient_event_siblings``. Needs no /events
+    call, so it survives an events-fetch failure. Fallback: the event's
+    "A vs B" matchup from ``matchup_from_event``.
+    """
+    matchups: dict[str, tuple[str, str]] = {}
+    for ev in event_rows or []:
+        et = ev.get("event_ticker")
+        mu = matchup_from_event(ev) if et else None
+        if mu:
+            matchups[et] = mu
+    siblings: dict[str, dict[str, str]] = {}
+    for m in market_rows or []:
+        et = m.get("event_ticker")
+        ticker = m.get("ticker") or ""
+        ys = (m.get("yes_sub_title") or "").strip()
+        if et and ys and "-" in ticker:
+            siblings.setdefault(et, {})[ticker.rsplit("-", 1)[1].upper()] = ys
+    out: dict[str, tuple[str, str]] = {}
+    for et in siblings.keys() | matchups.keys():
+        pair = _orient_event_siblings(
+            et, siblings.get(et, {}), matchups.get(et), label_names,
+        )
+        if pair is None:
+            pair = matchups.get(et)
+        if pair:
+            out[et] = pair
+    return out
+
+
+def _orient_ufc_siblings(
+    event_ticker: str,
+    by_code: dict[str, str],
+    matchup: Optional[tuple[str, str]],
+) -> Optional[tuple[str, str]]:
+    """``_orient_event_siblings`` with the UFC surname-label rule."""
+    return _orient_event_siblings(event_ticker, by_code, matchup, _ufc_label_names)
 
 
 def _ufc_event_fighters(
@@ -329,27 +401,65 @@ def _ufc_event_fighters(
     second = home — the ticker's {AWAY}{HOME} layout, which matches
     Pinnacle's home/away (verified on 14 live fights 2026-09-22).
     """
-    matchups: dict[str, tuple[str, str]] = {}
-    for ev in event_rows or []:
-        et = ev.get("event_ticker")
-        mu = _ufc_matchup_from_event(ev) if et else None
-        if mu:
-            matchups[et] = mu
-    siblings: dict[str, dict[str, str]] = {}
-    for m in market_rows or []:
-        et = m.get("event_ticker")
-        ticker = m.get("ticker") or ""
-        ys = (m.get("yes_sub_title") or "").strip()
-        if et and ys and "-" in ticker:
-            siblings.setdefault(et, {})[ticker.rsplit("-", 1)[1].upper()] = ys
-    out: dict[str, tuple[str, str]] = {}
-    for et in siblings.keys() | matchups.keys():
-        pair = _orient_ufc_siblings(et, siblings.get(et, {}), matchups.get(et))
-        if pair is None:
-            pair = matchups.get(et)
-        if pair:
-            out[et] = pair
-    return out
+    return _event_sibling_sides(
+        market_rows, event_rows, _ufc_matchup_from_event, _ufc_label_names,
+    )
+
+
+# --- Esports (KXLOLGAME / KXCS2GAME) team recovery -------------------------
+# Kalshi moved the esports per-team titles to the same short "{Team} wins" form
+# (first seen 2026-08-19, every market from 08-23). The parser had keyed
+# esports events off the ticker codes (KXLOLGAME-26SEP261200FURRED →
+# red_vs_fur), which are per-event abbreviations no alias map covers, so lol and
+# cs2 matched only when a code happened to equal a canonical (MOUZ, NAVI) and 0
+# from 2026-09-21. The event title ("FURIA Esports vs. RED Canids") and the
+# sibling yes_sub_titles carry both teams by FULL name (the same strings on
+# 226/226 live markets, 2026-09-24), so esports now uses the UFC sibling join.
+# The event sub_title repeats the title with the game date: "... (Sep 24)".
+_EVENT_DATE_SUFFIX_RE = re.compile(r"\s*\([A-Za-z]{3,9}\.?\s+\d{1,2}\)\s*$")
+
+
+def _esports_matchup_from_event(ev: dict[str, Any]) -> Optional[tuple[str, str]]:
+    """(first_listed, second_listed) team names from a KXLOLGAME/KXCS2GAME event:
+    ``title`` "T1 Academy vs. DN SOOPers Challengers", else ``sub_title`` with
+    its trailing "(Sep 24)" date removed."""
+    for text in (ev.get("title"), ev.get("sub_title")):
+        if not text:
+            continue
+        s = _EVENT_DATE_SUFFIX_RE.sub("", str(text).strip())
+        parts = _MATCHUP_SPLIT_RE.split(s, maxsplit=1)
+        if len(parts) == 2 and parts[0].strip() and parts[1].strip():
+            return parts[0].strip(), parts[1].strip()
+    return None
+
+
+def _esports_label_names(label: str, full_name: str) -> bool:
+    """Whether an event-title label names ``full_name`` — the event title and
+    the yes_sub_titles carry the same full team names, so this is equality
+    (case/accent/whitespace-insensitive), never a partial-name rule."""
+    from evmax.sectors.base import fold_accents
+
+    a = " ".join(fold_accents(label).lower().split())
+    b = " ".join(fold_accents(full_name).lower().split())
+    return bool(a) and a == b
+
+
+def _esports_event_teams(
+    market_rows: Optional[list[dict[str, Any]]],
+    event_rows: Optional[list[dict[str, Any]]],
+) -> dict[str, tuple[str, str]]:
+    """event_ticker → (away, home) team names for KXLOLGAME / KXCS2GAME.
+
+    Sibling yes_sub_titles oriented by the ticker's [HHMM]{AWAY}{HOME} code
+    pair, else the event title "A vs. B". First-listed = away (the ticker
+    layout). Pinnacle's esports home/away is arbitrary relative to Kalshi and
+    its keys carry the UTC date (Kalshi tickers: ET), so a minority of events
+    (14-24% in the 2026-08/09 archive replay) match through the
+    order-insensitive, ±1-day fuzzy step instead of the exact key.
+    """
+    return _event_sibling_sides(
+        market_rows, event_rows, _esports_matchup_from_event, _esports_label_names,
+    )
 
 
 def _series_team_code_map(ticker: str) -> Optional[dict[str, str]]:
@@ -958,9 +1068,11 @@ class KalshiClient(BaseAPIClient):
         # by name (2026-09-04 audit: 57 of 190 open soccer games unmatched).
         # UFC took the tennis title break in 2026-08 ("{Name} wins"); its
         # fighters come from sibling yes_sub_titles + the event sub_title
-        # (see _ufc_event_fighters).
+        # (see _ufc_event_fighters). Esports (lol/cs2) took the same break;
+        # its teams come from the same sibling join (_esports_event_teams).
         fetch_events = sector.lower() in _EVENT_TITLE_SECTORS
         is_ufc = sector.lower() == "ufc"
+        is_esports = sector.lower() in _ESPORTS_TITLE_SECTORS
 
         async def _fetch_prefix(prefix: str) -> list[PredictionMarket]:
             try:
@@ -1036,6 +1148,10 @@ class KalshiClient(BaseAPIClient):
                 event_fighters = (
                     _ufc_event_fighters(market_rows, event_rows) if is_ufc else None
                 )
+                # Esports: both teams per event, by full name, the same way.
+                event_teams = (
+                    _esports_event_teams(market_rows, event_rows) if is_esports else None
+                )
 
                 parsed = []
                 for m in market_rows:
@@ -1049,6 +1165,7 @@ class KalshiClient(BaseAPIClient):
                             event_titles=event_titles,
                             event_codes=event_codes,
                             event_fighters=event_fighters,
+                            event_teams=event_teams,
                         )
                     if p:
                         parsed.append(p)
@@ -1509,6 +1626,7 @@ class KalshiClient(BaseAPIClient):
         event_titles: Optional[dict[str, str]] = None,
         event_codes: Optional[dict[str, tuple[str, str]]] = None,
         event_fighters: Optional[dict[str, tuple[str, str]]] = None,
+        event_teams: Optional[dict[str, tuple[str, str]]] = None,
     ) -> Optional[PredictionMarket]:
         """Parse a raw Kalshi market dict into a PredictionMarket.
 
@@ -1527,6 +1645,10 @@ class KalshiClient(BaseAPIClient):
         If ``event_fighters`` is provided (UFC only; built by
         ``_ufc_event_fighters``), the market's ``event_ticker`` is looked up
         to recover the (away, home) fighters for the same reason.
+
+        If ``event_teams`` is provided (lol/cs2 only; built by
+        ``_esports_event_teams``), it recovers the (away, home) teams by full
+        name the same way.
         """
         try:
             ticker = raw.get("ticker", "")
@@ -1634,15 +1756,32 @@ class KalshiClient(BaseAPIClient):
                     team_away, team_home = fighters
                 else:
                     team_away, team_home = self._extract_ufc_fighters_from_title(title)
-                yes_sub = (raw.get("yes_sub_title") or "").strip()
-                if not yes_sub:
-                    short = _SHORT_WINS_TITLE_RE.match(title or "")
-                    yes_sub = short.group(1).strip() if short else ""
-                if yes_sub:
-                    from evmax.matching.normalizer import NameNormalizer
-                    yes_team = NameNormalizer(sector).normalize(yes_sub)
+                yes_team = self._yes_name_from_market(raw, title, sector)
+            elif sector in _ESPORTS_TITLE_SECTORS:
+                # KXLOLGAME / KXCS2GAME took the same "{Team} wins" break
+                # (2026-08). Their ticker codes (FUR/RED, SC/PIV) are per-event
+                # abbreviations no alias map covers, so keying events off them
+                # (red_vs_fur) never matched Pinnacle's full names
+                # (furia_vs_red_canids). Precedence: the per-event join built by
+                # _esports_event_teams (sibling yes_sub_titles, event title) >
+                # the legacy "Will X win the A vs. B <game> match?" title > the
+                # ticker codes (the old behaviour, for cached/partial rows).
+                # First-listed = away, the ticker's {AWAY}{HOME} layout.
+                ev_key = raw.get("event_ticker")
+                teams = (event_teams or {}).get(ev_key) if ev_key else None
+                if teams:
+                    team_away, team_home = teams
                 else:
-                    yes_team = self._extract_tennis_yes_player(title, sector)
+                    team_away, team_home = self._extract_esports_teams_from_legacy_title(title)
+                    if not (team_home and team_away):
+                        team_home, team_away = self._extract_teams_from_ticker(ticker, sector)
+                yes_team = self._yes_name_from_market(raw, title, sector)
+                if not yes_team and "-" in ticker:
+                    # Ticker code as-is: esports series carry no line digits,
+                    # so the spread-style digit strip in _extract_yes_team
+                    # would turn C9 into "c" and G2 into "g".
+                    from evmax.matching.normalizer import NameNormalizer
+                    yes_team = NameNormalizer(sector).normalize(ticker.rsplit("-", 1)[1].lower())
             else:
                 team_home, team_away = self._extract_teams_from_ticker(ticker, sector)
                 code_map = _series_team_code_map(ticker)
@@ -1729,12 +1868,15 @@ class KalshiClient(BaseAPIClient):
                 market_type = MarketType.advance
                 spread_line = None
             elif sector in _WINNER_ONLY_SECTORS:
-                # KXATPMATCH / KXWTAMATCH / KXUFCFIGHT are match / fight WINNER
-                # series only. Their short titles ("{Name} wins") carry a player
-                # name, so title-keyword inference misfires on it: a hyphenated
-                # name reads as a spread ("Felix Auger-Aliassime wins",
-                # "Benoit Saint-Denis wins") and "over" inside a name as a total
-                # ("Glover Teixeira wins"), and the market is silently dropped.
+                # KXATPMATCH / KXWTAMATCH / KXUFCFIGHT / KXLOLGAME / KXCS2GAME
+                # are match / fight WINNER series only. Their short titles
+                # ("{Name} wins") carry a name, so title-keyword inference
+                # misfires on it: a hyphenated name reads as a spread ("Felix
+                # Auger-Aliassime wins", "ex-Zero Tenacity wins"), "over" /
+                # "under" inside a name as a total ("Glover Teixeira wins",
+                # "Overtake wins", "ThunderTalk Gaming wins") and "round" as a
+                # map handicap ("RoundsGG wins"), and the market is silently
+                # dropped (~10k archived lol/cs2 snapshot rows carry such types).
                 market_type = MarketType.moneyline
                 spread_line = None
             else:
@@ -1967,6 +2109,47 @@ class KalshiClient(BaseAPIClient):
                     match_part[idx + len(sep):].strip(),
                 )
         return None, None
+
+    # LEGACY esports titles (Kalshi moved to "{Team} wins" in 2026-08 — see
+    # _esports_event_teams; this is now only the fallback). Teams are listed in
+    # ticker order ({AWAY}{HOME}); the trailing game name is not part of B:
+    # "Will T1 win the T1 vs. DN Freecs League of Legends match?"
+    # "Will Benched gods win the Phantom Academy vs. Benched gods CS2 match?"
+    _ESPORTS_LEGACY_TITLE_RE = re.compile(
+        r"^\s*will\s+.+?\s+win\s+the\s+(.+?)"
+        r"(?:\s+(?:league\s+of\s+legends|cs2))?\s+match\s*\??\s*$",
+        re.IGNORECASE,
+    )
+
+    def _extract_esports_teams_from_legacy_title(
+        self, title: str,
+    ) -> tuple[Optional[str], Optional[str]]:
+        """(first_listed, second_listed) teams from a legacy esports title."""
+        m = self._ESPORTS_LEGACY_TITLE_RE.match(title or "")
+        if not m:
+            return None, None
+        parts = _MATCHUP_SPLIT_RE.split(m.group(1).strip(), maxsplit=1)
+        if len(parts) != 2 or not parts[0].strip() or not parts[1].strip():
+            return None, None
+        return parts[0].strip(), parts[1].strip()
+
+    def _yes_name_from_market(
+        self, raw: dict[str, Any], title: str, sector: str,
+    ) -> Optional[str]:
+        """Normalized YES side of a per-competitor winner market (UFC, esports).
+
+        ``yes_sub_title`` is the side's exact full name; the short
+        "{Name} wins" title carries the same string; the legacy "Will {Name}
+        win the ..." title is the last resort.
+        """
+        yes_sub = (raw.get("yes_sub_title") or "").strip()
+        if not yes_sub:
+            short = _SHORT_WINS_TITLE_RE.match(title or "")
+            yes_sub = short.group(1).strip() if short else ""
+        if yes_sub:
+            from evmax.matching.normalizer import NameNormalizer
+            return NameNormalizer(sector).normalize(yes_sub)
+        return self._extract_tennis_yes_player(title, sector)
 
     def _extract_tennis_yes_player(self, title: str, sector: str) -> Optional[str]:
         """Extract and normalize the YES player from a tennis market title.
