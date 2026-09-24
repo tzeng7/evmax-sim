@@ -71,9 +71,14 @@ class TestPlayoffSeriesProperties:
         s = _make_series(round_num=1, round_name="First Round")
         assert s.is_finals is False
 
-    def test_wnba_best_of_5(self):
-        s = _make_series(wins_a=2, wins_b=2, sector="wnba")
-        assert s.is_game_7 is True  # Game 5 in WNBA = their "Game 7"
+    def test_wnba_semis_best_of_5(self):
+        # Only the WNBA Semifinals are best-of-5 (First Round is best-of-3,
+        # Finals best-of-7 — see TestWnbaSeriesLength).
+        s = _make_series(
+            wins_a=2, wins_b=2, round_num=2,
+            round_name="WNBA Semifinals - Game 5", sector="wnba",
+        )
+        assert s.is_game_7 is True  # Game 5 decides a best-of-5
         assert s._clinch == 3
 
 
@@ -325,3 +330,216 @@ class TestPlayInTournament:
             team_b="golden state warriors",
         )
         assert abs(a + b - 1.0) < 0.001
+
+
+# ---------------------------------------------------------------------------
+# WNBA series length by round (2025+ format): First Round best-of-3,
+# Semifinals best-of-5, Finals best-of-7. The agent used to treat every WNBA
+# round as best-of-5, which missed first-round elimination/decider games and
+# flagged false ones in the Finals.
+# ---------------------------------------------------------------------------
+
+
+def _wnba(wins_a: int, wins_b: int, round_num: int, round_name: str) -> PlayoffSeries:
+    return PlayoffSeries(
+        team_a="las vegas aces",
+        team_b="phoenix mercury",
+        team_a_abbrev="LV",
+        team_b_abbrev="PHX",
+        series_wins_a=wins_a,
+        series_wins_b=wins_b,
+        round_num=round_num,
+        round_name=round_name,
+        sector="wnba",
+    )
+
+
+def _adjust(series: PlayoffSeries) -> tuple[float, float, str, bool]:
+    return PlayoffAgent.apply_adjustments(
+        playoff_data={"las vegas aces_vs_phoenix mercury": series},
+        true_prob_a=0.55,
+        true_prob_b=0.45,
+        team_a="las vegas aces",
+        team_b="phoenix mercury",
+    )
+
+
+class TestWnbaSeriesLength:
+    def test_first_round_is_best_of_3(self):
+        assert _wnba(0, 0, 1, "First Round - Game 1")._clinch == 2
+
+    def test_first_round_game_2_trailing_team_faces_elimination(self):
+        s = _wnba(0, 1, 1, "First Round - Game 2")  # away leads 1-0
+        assert s.is_elimination_for_a is True
+        assert s.is_closeout_for_b is True
+        assert s.is_game_7 is False
+
+    def test_first_round_game_3_is_the_decider(self):
+        s = _wnba(1, 1, 1, "First Round - Game 3")
+        assert s.is_game_7 is True
+        assert s.is_elimination_for_a is False
+        assert s.is_elimination_for_b is False
+
+    def test_first_round_game_1_has_no_series_state(self):
+        s = _wnba(0, 0, 1, "First Round - Game 1")
+        assert not (s.is_elimination_for_a or s.is_elimination_for_b)
+        assert not (s.is_closeout_for_a or s.is_closeout_for_b)
+        assert s.is_game_7 is False
+
+    def test_semis_is_best_of_5(self):
+        s = _wnba(2, 1, 2, "WNBA Semifinals - Game 4")
+        assert s._clinch == 3
+        assert s.is_closeout_for_a is True
+        assert s.is_elimination_for_b is True
+
+    def test_finals_is_best_of_7(self):
+        assert _wnba(0, 0, 3, "WNBA Finals - Game 1")._clinch == 4
+
+    def test_finals_2_1_is_not_an_elimination_game(self):
+        # Regression: under best-of-5 this read as closeout/elimination.
+        s = _wnba(2, 1, 3, "WNBA Finals - Game 4")
+        assert not (s.is_elimination_for_a or s.is_elimination_for_b)
+        assert not (s.is_closeout_for_a or s.is_closeout_for_b)
+
+    def test_finals_2_2_is_not_the_decider(self):
+        assert _wnba(2, 2, 3, "WNBA Finals - Game 5").is_game_7 is False
+
+    def test_finals_3_2_closeout_and_3_3_decider(self):
+        s = _wnba(3, 2, 3, "WNBA Finals - Game 6")
+        assert s.is_closeout_for_a is True
+        assert s.is_elimination_for_b is True
+        assert _wnba(3, 3, 3, "WNBA Finals - Game 7").is_game_7 is True
+
+    def test_unrecognized_round_disables_series_state(self):
+        s = _wnba(1, 1, 0, "Playoff Series")
+        assert s._clinch is None
+        assert s.is_game_7 is False
+        assert not (s.is_elimination_for_a or s.is_elimination_for_b)
+        assert not (s.is_closeout_for_a or s.is_closeout_for_b)
+        assert s.is_finals is False
+
+    def test_unrecognized_round_still_gets_playoff_hca_only(self):
+        a, _, notes, is_playoff = _adjust(_wnba(1, 1, 0, "Playoff Series"))
+        assert is_playoff is True
+        assert "playoff_hca" in notes
+        assert "game7_home" not in notes
+        assert "elim_boost" not in notes
+        assert a > 0.55
+
+    def test_first_round_elimination_boost_applied(self):
+        # Home (Aces) down 0-1 in a best-of-3 → faces elimination.
+        _, _, notes, _ = _adjust(_wnba(0, 1, 1, "First Round - Game 2"))
+        assert "elim_boost" in notes
+
+    def test_finals_2_1_gets_no_elimination_boost(self):
+        _, _, notes, _ = _adjust(_wnba(2, 1, 3, "WNBA Finals - Game 4"))
+        assert "elim_boost" not in notes
+        assert "closeout" not in notes
+        assert "finals:" in notes
+
+
+class TestFinalsFlag:
+    def test_wnba_finals_is_finals(self):
+        assert _wnba(0, 0, 3, "WNBA Finals - Game 1").is_finals is True
+
+    def test_wnba_semifinals_is_not_finals(self):
+        # Regression: "Semifinals" contains "final".
+        assert _wnba(0, 0, 2, "WNBA Semifinals - Game 1").is_finals is False
+
+    def test_nba_semifinals_is_not_finals(self):
+        s = _make_series(round_num=2, round_name="East Semifinals - Game 1")
+        assert s.is_finals is False
+
+    def test_wnba_semifinals_gets_no_finals_bump(self):
+        _, _, notes, _ = _adjust(_wnba(1, 0, 2, "WNBA Semifinals - Game 2"))
+        assert "finals:" not in notes
+
+
+class TestInferRoundWnba:
+    @pytest.mark.parametrize(
+        ("name", "expected"),
+        [
+            ("First Round - Game 1", 1),
+            ("First Round - Game 3", 1),
+            ("Semifinals - Game 1", 2),
+            ("WNBA Semifinals - Game 2", 2),
+            ("WNBA Finals - Game 4", 3),
+            ("Playoff Series", 0),
+            ("", 0),
+        ],
+    )
+    def test_round_from_espn_headline(self, name: str, expected: int):
+        assert _infer_round_number(name, "wnba") == expected
+
+
+class _FakeResponse:
+    def __init__(self, payload: dict) -> None:
+        self._payload = payload
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict:
+        return self._payload
+
+
+class _FakeClient:
+    def __init__(self, payload: dict) -> None:
+        self._payload = payload
+
+    async def __aenter__(self) -> "_FakeClient":
+        return self
+
+    async def __aexit__(self, *exc) -> bool:
+        return False
+
+    async def get(self, *args, **kwargs) -> _FakeResponse:
+        return _FakeResponse(self._payload)
+
+
+def _espn_event(headline: str, home_wins: int, away_wins: int) -> dict:
+    """Minimal ESPN scoreboard event in the shape the 2025 WNBA playoffs used."""
+    return {
+        "season": {"type": 3},
+        "competitions": [{
+            "notes": [{"headline": headline}],
+            "series": {
+                "type": "playoff",
+                "competitors": [
+                    {"id": "17", "wins": home_wins},
+                    {"id": "5", "wins": away_wins},
+                ],
+            },
+            "competitors": [
+                {"id": "17", "homeAway": "home",
+                 "team": {"displayName": "Las Vegas Aces", "abbreviation": "LV"}},
+                {"id": "5", "homeAway": "away",
+                 "team": {"displayName": "Phoenix Mercury", "abbreviation": "PHX"}},
+            ],
+        }],
+    }
+
+
+class TestFetchWnbaRound:
+    @pytest.mark.parametrize(
+        ("headline", "round_num", "clinch"),
+        [
+            ("First Round - Game 2", 1, 2),
+            ("WNBA Semifinals - Game 3", 2, 3),
+            ("WNBA Finals - Game 4", 3, 4),
+        ],
+    )
+    async def test_espn_headline_sets_series_length(
+        self, monkeypatch, headline: str, round_num: int, clinch: int,
+    ):
+        import evmax.agents.intelligence.playoff_agent as mod
+
+        payload = {"events": [_espn_event(headline, home_wins=1, away_wins=0)]}
+        monkeypatch.setattr(mod.httpx, "AsyncClient", lambda **kw: _FakeClient(payload))
+
+        series_map = await PlayoffAgent()._fetch_playoff_data("unused", "wnba")
+
+        s = series_map["las vegas aces_vs_phoenix mercury"]
+        assert (s.series_wins_a, s.series_wins_b) == (1, 0)
+        assert s.round_num == round_num
+        assert s._clinch == clinch
