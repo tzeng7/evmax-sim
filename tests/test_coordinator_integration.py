@@ -55,7 +55,10 @@ def _make_market(
     event_id: Optional[str] = None,
     source: MarketSource = MarketSource.kalshi,
 ) -> PredictionMarket:
-    ed = event_date or datetime(2026, 4, 20, 0, 0, tzinfo=timezone.utc)
+    # Noon UTC: the Kalshi ticker-date anchor (_parse_ticker_date). A midnight
+    # UTC default lands on 04-19 on the ET game day and only ever matched the
+    # 04-20 sharp keys below through the old ±1-day fuzzy window.
+    ed = event_date or datetime(2026, 4, 20, 12, 0, tzinfo=timezone.utc)
     return PredictionMarket(
         id=market_id,
         source=source,
@@ -91,7 +94,7 @@ def _make_sharp(
     true_prob_under: Optional[float] = None,
     prop_l15_games: int = 0,
 ) -> SharpOdds:
-    ed = event_date or datetime(2026, 4, 20, 0, 0, tzinfo=timezone.utc)
+    ed = event_date or datetime(2026, 4, 20, 12, 0, tzinfo=timezone.utc)
     return SharpOdds(
         event_id=event_id,
         book=SharpBook.pinnacle,

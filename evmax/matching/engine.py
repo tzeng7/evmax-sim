@@ -2,13 +2,17 @@
 
 Matching priority:
   1. Exact canonical key match
-  2. Date-windowed fuzzy match (rapidfuzz, threshold=88)
+  2. Fuzzy match on the TEAM part only (rapidfuzz, threshold=88), with the
+     date as a hard filter: the same ET game day for ET-dated sectors
+     (``uses_et_game_day``), a ±1-day window elsewhere — see
+     ``fuzzy_match_event_keys``
   3. Manual override JSON
 """
 
 from __future__ import annotations
 
 import json
+from datetime import date
 from pathlib import Path
 from typing import Optional
 
@@ -293,8 +297,8 @@ class MatchingEngine:
         Match a list of markets to sharp odds.
 
         When multiple markets match the same sharp event (e.g. playoff
-        series games on Kalshi), keeps the one whose date is closest to
-        the sharp event date.
+        series games on Kalshi), keeps the one on the sharp event's game
+        day, then the one closest in time (``_date_rank``).
 
         Returns:
             List of (market, sharp_odds, confidence) tuples.
@@ -339,9 +343,9 @@ class MatchingEngine:
                 continue
             em = existing[0]
             if s.event_date and m.event_date and em.event_date:
-                new_delta = abs((m.event_date - s.event_date).total_seconds())
-                old_delta = abs((em.event_date - s.event_date).total_seconds())
-                if new_delta < old_delta or (new_delta == old_delta and conf > existing[2]):
+                new_rank = _date_rank(m, s)
+                old_rank = _date_rank(em, s)
+                if new_rank < old_rank or (new_rank == old_rank and conf > existing[2]):
                     best[key] = (m, s, conf)
             elif conf > existing[2]:
                 best[key] = (m, s, conf)
@@ -355,3 +359,18 @@ class MatchingEngine:
             )
 
         return list(best.values())
+
+
+def _date_rank(market: PredictionMarket, sharp: SharpOdds) -> tuple[int, float]:
+    """Dedup distance of a market from the sharp event it matched: (game-day
+    gap, seconds gap). The game day decides first.
+
+    Raw seconds alone favor the WRONG game for a late start: Kalshi dates
+    anchor at noon UTC, so for a 20:40 ET first pitch (00:40Z next day) the
+    NEXT day's anchor is 11h20m away and the correct one is 12h40m away. That
+    kept Kalshi's next-game market and dropped the right one.
+    """
+    m_day = date.fromisoformat(kalshi_game_day(market.event_date, market.sector))
+    s_day = date.fromisoformat(kalshi_game_day(sharp.event_date, sharp.sector))
+    seconds = abs((market.event_date - sharp.event_date).total_seconds())
+    return abs((m_day - s_day).days), seconds
