@@ -71,13 +71,6 @@ class NcaawPossessionSimAgent(ModelAgent):
         self._efficiency_data: Optional[dict] = None
         self._margin_cache: dict[str, np.ndarray] = {}
         self._total_cache: dict[str, np.ndarray] = {}
-        self._normalizer = None
-
-    def _normalize(self, name: str) -> str:
-        if self._normalizer is None:
-            from evmax.matching.normalizer import NameNormalizer
-            self._normalizer = NameNormalizer(SECTOR)
-        return self._normalizer.normalize(name)
 
     def _load_efficiency_state(self) -> dict:
         if self._efficiency_data is not None:
@@ -113,8 +106,8 @@ class NcaawPossessionSimAgent(ModelAgent):
         if not teams:
             return None
 
-        stats_h = resolve_team(teams, home_team, normalize=self._normalize)
-        stats_a = resolve_team(teams, away_team, normalize=self._normalize)
+        stats_h = resolve_team(teams, home_team, sector=SECTOR)
+        stats_a = resolve_team(teams, away_team, sector=SECTOR)
         if not stats_h or not stats_a:
             return None
         if stats_h.get("gp", 0) < MIN_GAMES or stats_a.get("gp", 0) < MIN_GAMES:

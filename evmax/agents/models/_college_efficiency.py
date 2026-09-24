@@ -28,6 +28,8 @@ from typing import Optional
 
 import numpy as np
 
+from evmax.agents.models._team_lookup import resolve_team_key
+
 # ---------------------------------------------------------------------------
 # Season calendar
 # ---------------------------------------------------------------------------
@@ -346,48 +348,25 @@ def smooth_confidence(min_gp: int, full_gp: int = 30) -> float:
 # ---------------------------------------------------------------------------
 
 
-def resolve_team(teams: dict, name: str, normalize=None) -> Optional[dict]:
+def resolve_team(teams: dict, name: str, sector: str) -> Optional[dict]:
     """Resolve a Pinnacle/Kalshi team label to a stats dict.
 
-    College-safe: NO bare last-word fallback (the WNBA trick) — 360+ teams
-    share mascots ("Wildcats", "Tigers", "Bulldogs"). Resolution order:
-      1. exact key (state keys are normalized ESPN `location` strings,
-         e.g. "duke", "michigan state")
-      2. `normalize(name)` exact key (caller passes NameNormalizer.normalize)
-      3. full-name / prefix match, longest key wins; ambiguity → None
-         (skipping a game beats mis-rating one — "north carolina" must not
-         swallow "north carolina central").
+    Delegates to the shared unique-match rule
+    (``_team_lookup.resolve_team_key``: alias canonical → exact → canonical
+    equality → guarded word-boundary fallback). State keys are normalized ESPN
+    `location` strings ("duke", "michigan state"). College-safe:
+      * NO bare last-word fallback — 360+ teams share mascots ("Wildcats").
+      * the fallback only drops a trailing mascot ("duke blue devils" →
+        "duke"); a differing word that names another school ("state",
+        "southern", "ohio", directional words) or sits in FRONT of the shared
+        part ("george washington" vs "washington") disqualifies the key.
+      * exactly one key must qualify; nested candidates collapse to the more
+        specific one ("north carolina central eagles" → "north carolina
+        central"), anything else ambiguous → None (skipping a game beats
+        mis-rating one).
     """
-    n = (name or "").lower().strip()
-    if not n:
-        return None
-    if n in teams:
-        return teams[n]
-    if normalize is not None:
-        try:
-            normed = normalize(n)
-        except Exception:
-            normed = None
-        if normed and normed in teams:
-            return teams[normed]
-        if normed:
-            n = normed
-            if n in teams:
-                return teams[n]
-
-    candidates: list[tuple[int, str]] = []
-    for key, val in teams.items():
-        full = val.get("full_name", "")
-        if n == full:
-            return val
-        if full.startswith(n + " ") or n.startswith(key + " "):
-            candidates.append((len(key), key))
-    if not candidates:
-        return None
-    candidates.sort(reverse=True)
-    if len(candidates) > 1 and candidates[0][0] == candidates[1][0]:
-        return None  # ambiguous — refuse to guess
-    return teams[candidates[0][1]]
+    key = resolve_team_key(sector, name, teams)
+    return teams[key] if key else None
 
 
 # ---------------------------------------------------------------------------

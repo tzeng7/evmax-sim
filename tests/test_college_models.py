@@ -260,22 +260,22 @@ class TestResolveTeam:
     }
 
     def test_exact_key(self):
-        assert resolve_team(self.TEAMS, "Duke")["full_name"] == "duke blue devils"
+        assert resolve_team(self.TEAMS, "Duke", "ncaab")["full_name"] == "duke blue devils"
 
     def test_full_display_name(self):
-        assert resolve_team(self.TEAMS, "Michigan State Spartans")["gp"] == 20
+        assert resolve_team(self.TEAMS, "Michigan State Spartans", "ncaab")["gp"] == 20
 
     def test_longest_key_wins_on_prefix(self):
-        got = resolve_team(self.TEAMS, "north carolina central eagles")
+        got = resolve_team(self.TEAMS, "north carolina central eagles", "ncaab")
         assert got is self.TEAMS["north carolina central"]
 
     def test_no_last_word_fallback(self):
         # "Kentucky Wildcats" must NOT match some other team via "wildcats".
-        assert resolve_team(self.TEAMS, "kentucky wildcats") is None
+        assert resolve_team(self.TEAMS, "kentucky wildcats", "ncaab") is None
 
     def test_empty_and_unknown(self):
-        assert resolve_team(self.TEAMS, "") is None
-        assert resolve_team(self.TEAMS, "gonzaga") is None
+        assert resolve_team(self.TEAMS, "", "ncaab") is None
+        assert resolve_team(self.TEAMS, "gonzaga", "ncaab") is None
 
 
 # ---------------------------------------------------------------------------

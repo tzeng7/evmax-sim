@@ -116,6 +116,8 @@ aliases:
   "georgia tech yellow jackets": "georgia tech"
   "louisville cardinals": "louisville"
   "miami hurricanes": "miami"
+  "miami florida": "miami"          # Pinnacle spelling of Miami (FL)
+  "miami ohio": "miami oh"          # Pinnacle spelling of Miami (OH); "miami oh" = ESPN location key
   "north carolina tar heels": "north carolina"
   "nc state wolfpack": "nc state"
   "notre dame fighting irish": "notre dame"
@@ -176,3 +178,14 @@ aliases:
   "nc st": "nc state"
   "mississippi st": "mississippi state"
   "washington st": "washington state"
+
+  # "<X> State" spellings of schools whose ESPN location (= the efficiency-state
+  # key) drops "State". The shared model lookup (_team_lookup) never treats
+  # "state" as a droppable suffix (Alabama ≠ Alabama State), so these need an
+  # explicit alias to reach their rating.
+  "mcneese state": "mcneese"
+  "nicholls state": "nicholls"
+  "grambling state": "grambling"
+  "sam houston state": "sam houston"
+  "middle tennessee state": "middle tennessee"
+  "central connecticut state": "central connecticut"

@@ -91,16 +91,6 @@ class NcaabEfficiencyModelAgent(ModelAgent):
     name = "ncaab_efficiency"
     weight = 0.30
 
-    def __init__(self) -> None:
-        super().__init__()
-        self._normalizer = None
-
-    def _normalize(self, name: str) -> str:
-        if self._normalizer is None:
-            from evmax.matching.normalizer import NameNormalizer
-            self._normalizer = NameNormalizer(SECTOR)
-        return self._normalizer.normalize(name)
-
     async def predict_pair(
         self,
         market: PredictionMarket,
@@ -125,8 +115,8 @@ class NcaabEfficiencyModelAgent(ModelAgent):
         team_a = (sharp_odds.outcome_a_label or market.team_home or "").lower().strip()
         team_b = (sharp_odds.outcome_b_label or market.team_away or "").lower().strip()
 
-        stats_a = resolve_team(teams, team_a, normalize=self._normalize)
-        stats_b = resolve_team(teams, team_b, normalize=self._normalize)
+        stats_a = resolve_team(teams, team_a, sector=SECTOR)
+        stats_b = resolve_team(teams, team_b, sector=SECTOR)
         if not stats_a or not stats_b:
             return None
         if stats_a.get("gp", 0) < MIN_GAMES or stats_b.get("gp", 0) < MIN_GAMES:

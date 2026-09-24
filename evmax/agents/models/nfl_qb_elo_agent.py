@@ -40,10 +40,9 @@ import structlog
 
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.agents.models.nfl_efficiency_agent import (
-    NFL_ABBREV_TO_NAME,
-    NFL_NICKNAME_TO_NAME,
     active_nfl_season,
     nfl_state_is_stale_for_today,
+    resolve_nfl_team_key,
 )
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -70,37 +69,11 @@ def _resolve_team(teams: dict, team: str) -> Optional[str]:
     """Resolve any team identifier (full name, nickname, abbreviation) to the
     canonical full name key used in this agent's state. Returns None on miss.
 
-    Mirrors nfl_efficiency_agent._resolve_team but returns the resolved key
-    rather than the stats dict — Elo state is keyed by team name and we
-    need to address it by string.
+    Same rule as nfl_efficiency (``resolve_nfl_team_key``) but returns the
+    resolved key rather than the stats dict — Elo state is keyed by team name
+    and we need to address it by string.
     """
-    if not team:
-        return None
-    team = team.lower().strip()
-    if team in teams:
-        return team
-
-    upper = team.upper()
-    if upper in NFL_ABBREV_TO_NAME:
-        full = NFL_ABBREV_TO_NAME[upper]
-        if full in teams:
-            return full
-
-    if " " in team:
-        last = team.rsplit(" ", 1)[-1]
-        if last in NFL_NICKNAME_TO_NAME:
-            full = NFL_NICKNAME_TO_NAME[last]
-            if full in teams:
-                return full
-    elif team in NFL_NICKNAME_TO_NAME:
-        full = NFL_NICKNAME_TO_NAME[team]
-        if full in teams:
-            return full
-
-    for key in teams:
-        if team in key or key in team:
-            return key
-    return None
+    return resolve_nfl_team_key(teams, team)
 
 
 class NflQbEloModelAgent(ModelAgent):

@@ -22,6 +22,7 @@ from typing import Optional
 
 import structlog
 
+from evmax.agents.models._team_lookup import resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -197,17 +198,9 @@ class MatchupAgent(ModelAgent):
         self.log.info("matchup_fetched", teams=n, po_teams=po_count)
 
     def _resolve(self, team: str, store: dict) -> Optional[dict]:
-        team = team.lower().strip()
-        if team in store:
-            return store[team]
-        if " " in team:
-            last = team.rsplit(" ", 1)[-1]
-            if last in store:
-                return store[last]
-        for key in store:
-            if team.endswith(key) or key.endswith(team) or team.startswith(key):
-                return store[key]
-        return None
+        """Shared unique-match rule (``_team_lookup.resolve_team_key``)."""
+        key = resolve_team_key("nba", team, store)
+        return store[key] if key else None
 
     def _matchup_margin(self, off_a: dict, def_b: dict, off_b: dict, def_a: dict) -> float:
         """Compute net matchup margin advantage for team A.

@@ -289,6 +289,8 @@ aliases:
   "southern miss golden eagles": "southern miss"
   "western kentucky hilltoppers": "western kentucky"
   "miami ohio redhawks": "miami ohio"
+  "miami oh": "miami ohio"          # ESPN location "Miami (OH)" = the efficiency-state key
+  "miami florida": "miami"          # Pinnacle spelling of Miami (FL); never Miami (OH)
   "ohio bobcats": "ohio"
   "kent state golden flashes": "kent state"
   "akron zips": "akron"
@@ -385,3 +387,14 @@ aliases:
   "north carolina st.": "nc state"
   "nc st": "nc state"
   "nc st.": "nc state"
+
+  # "<X> State" spellings of schools whose ESPN location (= the efficiency-state
+  # key) drops "State". The shared model lookup (_team_lookup) never treats
+  # "state" as a droppable suffix (Alabama ≠ Alabama State), so these need an
+  # explicit alias to reach their rating.
+  "mcneese state": "mcneese"
+  "nicholls state": "nicholls"
+  "grambling state": "grambling"
+  "sam houston state": "sam houston"
+  "middle tennessee state": "middle tennessee"
+  "central connecticut state": "central connecticut"

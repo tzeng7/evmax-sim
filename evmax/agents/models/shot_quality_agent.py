@@ -26,6 +26,7 @@ from typing import Optional
 
 import structlog
 
+from evmax.agents.models._team_lookup import resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -267,18 +268,9 @@ class ShotQualityAgent(ModelAgent):
         )
 
     def _resolve_team(self, team: str) -> Optional[dict]:
-        team = team.lower().strip()
-        if team in self._team_shooting:
-            return self._team_shooting[team]
-        if " " in team:
-            last = team.rsplit(" ", 1)[-1]
-            if last in self._team_shooting:
-                return self._team_shooting[last]
-        for key, val in self._team_shooting.items():
-            full = val.get("full_name", "")
-            if team in full or full.endswith(team) or team.startswith(key):
-                return val
-        return None
+        """Shared unique-match rule (``_team_lookup.resolve_team_key``)."""
+        key = resolve_team_key("nba", team, self._team_shooting)
+        return self._team_shooting[key] if key else None
 
     def _regression_margin(self, team_stats: dict) -> float:
         """Estimate how many points of margin a team gains/loses from

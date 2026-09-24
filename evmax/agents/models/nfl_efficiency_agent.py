@@ -46,6 +46,7 @@ from typing import Optional
 
 import structlog
 
+from evmax.agents.models._team_lookup import identity_team_key, resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -187,6 +188,29 @@ for _abbr, _full in NFL_ABBREV_TO_NAME.items():
     NFL_NICKNAME_TO_NAME[_full.rsplit(" ", 1)[-1]] = _full
 
 
+def resolve_nfl_team_key(teams: dict, team: Optional[str]) -> Optional[str]:
+    """Key in ``teams`` for an NFL team label (full name, nickname, abbrev), or None.
+
+    Shared by nfl_efficiency and nfl_qb_elo. Order: the identity tiers of the
+    shared rule (alias canonical → exact → canonical equality,
+    ``_team_lookup.identity_team_key``); then the curated
+    ``NFL_ABBREV_TO_NAME`` / ``NFL_NICKNAME_TO_NAME`` dictionaries ("ny giants"
+    → "giants" → "new york giants"); then the shared guarded word-boundary
+    fallback (``resolve_team_key``).
+    """
+    if not team:
+        return None
+    key = identity_team_key("nfl", team, teams)
+    if key is None:
+        t = team.lower().strip()
+        full = NFL_ABBREV_TO_NAME.get(t.upper()) or NFL_NICKNAME_TO_NAME.get(t)
+        if full is None and " " in t:
+            full = NFL_NICKNAME_TO_NAME.get(t.rsplit(" ", 1)[-1])
+        if full:
+            key = identity_team_key("nfl", full, teams)
+    return key or resolve_team_key("nfl", team, teams)
+
+
 class NflEfficiencyModelAgent(ModelAgent):
     """Win probability from opponent-adjusted NFL EPA (off + def per play)."""
 
@@ -197,37 +221,9 @@ class NflEfficiencyModelAgent(ModelAgent):
         return self._state.get("nfl", {})
 
     def _resolve_team(self, teams: dict, team: str) -> Optional[dict]:
-        """Resolve a team identifier (full name, last word, or abbreviation) to its stats dict."""
-        if not team:
-            return None
-        team = team.lower().strip()
-        if team in teams:
-            return teams[team]
-
-        # Abbreviation lookup
-        upper = team.upper()
-        if upper in NFL_ABBREV_TO_NAME:
-            full = NFL_ABBREV_TO_NAME[upper]
-            if full in teams:
-                return teams[full]
-
-        # Last-word / nickname lookup ("chiefs" → "kansas city chiefs")
-        if " " in team:
-            last = team.rsplit(" ", 1)[-1]
-            if last in NFL_NICKNAME_TO_NAME:
-                full = NFL_NICKNAME_TO_NAME[last]
-                if full in teams:
-                    return teams[full]
-        elif team in NFL_NICKNAME_TO_NAME:
-            full = NFL_NICKNAME_TO_NAME[team]
-            if full in teams:
-                return teams[full]
-
-        # Substring fallback (handles "ny giants", "la rams", etc.)
-        for key, val in teams.items():
-            if team in key or key in team:
-                return val
-        return None
+        """Resolve a team identifier to its stats dict (``resolve_nfl_team_key``)."""
+        key = resolve_nfl_team_key(teams, team)
+        return teams[key] if key else None
 
     async def predict_pair(
         self,
