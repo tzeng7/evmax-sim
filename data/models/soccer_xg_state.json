@@ -22519,6 +22519,16 @@
     "seattle": {
       "matches": [
         {
+          "date": "2026-09-23",
+          "goals_for": 2,
+          "goals_against": 0,
+          "sot": 4,
+          "shots": 11,
+          "xg": 1.41,
+          "xga": 0.9,
+          "is_home": true
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 3,
           "goals_against": 3,
@@ -22706,16 +22716,6 @@
           "shots": 6,
           "xg": 0.72,
           "xga": 1.2,
-          "is_home": false
-        },
-        {
-          "date": "2026-03-22",
-          "goals_for": 0,
-          "goals_against": 0,
-          "sot": 2,
-          "shots": 11,
-          "xg": 0.87,
-          "xga": 1.05,
           "is_home": false
         }
       ]
@@ -28027,6 +28027,16 @@
     "salt lake": {
       "matches": [
         {
+          "date": "2026-09-23",
+          "goals_for": 0,
+          "goals_against": 2,
+          "sot": 2,
+          "shots": 12,
+          "xg": 0.9,
+          "xga": 1.41,
+          "is_home": false
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 0,
           "goals_against": 3,
@@ -28214,16 +28224,6 @@
           "shots": 15,
           "xg": 2.88,
           "xga": 1.62,
-          "is_home": true
-        },
-        {
-          "date": "2026-04-04",
-          "goals_for": 3,
-          "goals_against": 1,
-          "sot": 7,
-          "shots": 22,
-          "xg": 2.55,
-          "xga": 0.96,
           "is_home": true
         }
       ]
