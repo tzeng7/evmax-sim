@@ -31831,6 +31831,16 @@
     "atlas": {
       "matches": [
         {
+          "date": "2026-09-25",
+          "goals_for": 3,
+          "goals_against": 2,
+          "sot": 7,
+          "shots": 21,
+          "xg": 2.52,
+          "xga": 1.65,
+          "is_home": false
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 1,
           "goals_against": 1,
@@ -32018,16 +32028,6 @@
           "shots": 7,
           "xg": 1.02,
           "xga": 1.44,
-          "is_home": true
-        },
-        {
-          "date": "2026-03-05",
-          "goals_for": 2,
-          "goals_against": 1,
-          "sot": 4,
-          "shots": 12,
-          "xg": 1.44,
-          "xga": 1.59,
           "is_home": true
         }
       ]
@@ -32443,6 +32443,16 @@
     "club tijuana": {
       "matches": [
         {
+          "date": "2026-09-25",
+          "goals_for": 2,
+          "goals_against": 3,
+          "sot": 5,
+          "shots": 10,
+          "xg": 1.65,
+          "xga": 2.52,
+          "is_home": true
+        },
+        {
           "date": "2026-09-20",
           "goals_for": 2,
           "goals_against": 2,
@@ -32631,16 +32641,6 @@
           "xg": 1.77,
           "xga": 1.17,
           "is_home": true
-        },
-        {
-          "date": "2026-02-14",
-          "goals_for": 0,
-          "goals_against": 1,
-          "sot": 3,
-          "shots": 7,
-          "xg": 1.02,
-          "xga": 1.44,
-          "is_home": false
         }
       ]
     },
@@ -34279,6 +34279,16 @@
     "monterrey": {
       "matches": [
         {
+          "date": "2026-09-25",
+          "goals_for": 2,
+          "goals_against": 4,
+          "sot": 7,
+          "shots": 17,
+          "xg": 2.4,
+          "xga": 2.31,
+          "is_home": false
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 1,
           "goals_against": 0,
@@ -34467,16 +34477,6 @@
           "xg": 3.45,
           "xga": 2.04,
           "is_home": false
-        },
-        {
-          "date": "2026-02-15",
-          "goals_for": 1,
-          "goals_against": 0,
-          "sot": 5,
-          "shots": 20,
-          "xg": 1.95,
-          "xga": 0.81,
-          "is_home": true
         }
       ]
     },
@@ -35298,6 +35298,16 @@
     },
     "atlante": {
       "matches": [
+        {
+          "date": "2026-09-25",
+          "goals_for": 4,
+          "goals_against": 2,
+          "sot": 7,
+          "shots": 14,
+          "xg": 2.31,
+          "xga": 2.4,
+          "is_home": true
+        },
         {
           "date": "2026-09-18",
           "goals_for": 1,

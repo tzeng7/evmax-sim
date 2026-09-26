@@ -175,157 +175,157 @@
     },
     "teams": {
       "red sox": {
-        "attack": 1.1341599965197244,
-        "defense": 0.929546771109445,
-        "games": 117
+        "attack": 1.1328006783785265,
+        "defense": 0.926541523401401,
+        "games": 118
       },
       "twins": {
-        "attack": 0.9050527992414652,
-        "defense": 1.016441237755748,
-        "games": 118
+        "attack": 0.916838061327794,
+        "defense": 1.0118844169954229,
+        "games": 119
       },
       "mariners": {
-        "attack": 0.9541850230075646,
-        "defense": 1.1468005063566507,
-        "games": 125
+        "attack": 0.9544561885563934,
+        "defense": 1.1513522225187538,
+        "games": 126
       },
       "rockies": {
-        "attack": 1.0440137323904295,
-        "defense": 1.3830337282978522,
-        "games": 109
+        "attack": 1.036438109335281,
+        "defense": 1.3814705001974614,
+        "games": 110
       },
       "rangers": {
-        "attack": 0.8945517354550643,
-        "defense": 0.9382325992812051,
-        "games": 119
+        "attack": 0.8905747788901796,
+        "defense": 0.9503481054490802,
+        "games": 120
       },
       "cardinals": {
-        "attack": 0.8981253926888253,
-        "defense": 1.0698475491935324,
-        "games": 114
+        "attack": 0.8994261633619163,
+        "defense": 1.0750664155019884,
+        "games": 115
       },
       "blue jays": {
-        "attack": 1.0733109590901955,
-        "defense": 0.9036124925777036,
-        "games": 132
+        "attack": 1.0737797017017308,
+        "defense": 0.9052594077009288,
+        "games": 133
       },
       "pirates": {
-        "attack": 0.8643382175123766,
-        "defense": 0.973923921094283,
-        "games": 118
+        "attack": 0.8707096603315693,
+        "defense": 0.9794618384436774,
+        "games": 119
       },
       "braves": {
-        "attack": 0.8757662362366161,
-        "defense": 0.8852756421874362,
-        "games": 114
+        "attack": 0.8698900080954282,
+        "defense": 0.8841258034357633,
+        "games": 115
       },
       "orioles": {
-        "attack": 0.8729696238330453,
-        "defense": 0.9714222263725044,
-        "games": 111
+        "attack": 0.8849909905991277,
+        "defense": 0.9665343176196659,
+        "games": 112
       },
       "diamondbacks": {
-        "attack": 1.0458537516736857,
-        "defense": 1.061730526109368,
-        "games": 117
-      },
-      "marlins": {
-        "attack": 0.8624875461003133,
-        "defense": 1.0367825833775992,
-        "games": 116
-      },
-      "athletics": {
-        "attack": 0.9837889042194882,
-        "defense": 1.2120396968495408,
-        "games": 115
-      },
-      "white sox": {
-        "attack": 1.072583087322158,
-        "defense": 1.0066156282284504,
-        "games": 119
-      },
-      "guardians": {
-        "attack": 0.9969785363090155,
-        "defense": 0.9339228311037021,
-        "games": 119
-      },
-      "astros": {
-        "attack": 0.937982218456739,
-        "defense": 0.9095838991256859,
-        "games": 113
-      },
-      "royals": {
-        "attack": 0.9651751675872858,
-        "defense": 0.9296969599040577,
-        "games": 117
-      },
-      "phillies": {
-        "attack": 0.9797725298210342,
-        "defense": 0.9449857959248682,
-        "games": 119
-      },
-      "yankees": {
-        "attack": 1.0212693620323208,
-        "defense": 0.9556305386962541,
+        "attack": 1.0592363474686843,
+        "defense": 1.059942568524597,
         "games": 118
       },
-      "angels": {
-        "attack": 0.8629942992283147,
-        "defense": 1.095242904866612,
+      "marlins": {
+        "attack": 0.8613864550379943,
+        "defense": 1.029630595485483,
+        "games": 117
+      },
+      "athletics": {
+        "attack": 0.9876192262843041,
+        "defense": 1.2113372876013535,
+        "games": 116
+      },
+      "white sox": {
+        "attack": 1.0714717856557683,
+        "defense": 0.9999200628695528,
+        "games": 120
+      },
+      "guardians": {
+        "attack": 1.011483092492759,
+        "defense": 0.942963284810484,
+        "games": 120
+      },
+      "astros": {
+        "attack": 0.9374290962176965,
+        "defense": 0.9131874385209556,
+        "games": 114
+      },
+      "royals": {
+        "attack": 0.9746765021884775,
+        "defense": 0.9434519184411202,
+        "games": 118
+      },
+      "phillies": {
+        "attack": 0.9732744254058591,
+        "defense": 0.9410665916982395,
+        "games": 120
+      },
+      "yankees": {
+        "attack": 1.0164329151929765,
+        "defense": 0.9680161029451614,
         "games": 119
       },
+      "angels": {
+        "attack": 0.8665908361427289,
+        "defense": 1.0955697196279524,
+        "games": 120
+      },
       "brewers": {
-        "attack": 1.037101081707186,
-        "defense": 0.8097212534902408,
-        "games": 127
+        "attack": 1.0416463888301382,
+        "defense": 0.8107748811688327,
+        "games": 128
       },
       "dodgers": {
-        "attack": 0.9919664948966587,
-        "defense": 0.8653322026735712,
-        "games": 132
+        "attack": 0.9879389529835056,
+        "defense": 0.8603297049091083,
+        "games": 133
       },
       "rays": {
-        "attack": 0.893606225685505,
-        "defense": 0.8577895567787749,
-        "games": 117
+        "attack": 0.8898372959695262,
+        "defense": 0.8522150690094633,
+        "games": 118
       },
       "cubs": {
-        "attack": 1.1066911675701445,
-        "defense": 0.8893237591934066,
-        "games": 123
+        "attack": 1.103286334738894,
+        "defense": 0.8883094578395583,
+        "games": 124
       },
       "reds": {
-        "attack": 0.9445894136364885,
-        "defense": 1.1438191356326255,
-        "games": 115
+        "attack": 0.9465633162261752,
+        "defense": 1.1443918787528038,
+        "games": 116
       },
       "padres": {
-        "attack": 1.0179097862235165,
-        "defense": 0.8887542103719739,
-        "games": 117
+        "attack": 1.0161956229041662,
+        "defense": 0.900126582789702,
+        "games": 118
       },
       "mets": {
-        "attack": 1.0258253273612865,
-        "defense": 0.8978146781959689,
-        "games": 114
+        "attack": 1.0275092796557694,
+        "defense": 0.9036254062733312,
+        "games": 115
       },
       "giants": {
-        "attack": 1.0402786598073588,
-        "defense": 0.929596702144363,
-        "games": 114
+        "attack": 1.0329718888525121,
+        "defense": 0.9252316298576222,
+        "games": 115
       },
       "tigers": {
-        "attack": 1.060651812102411,
-        "defense": 0.9149997050895202,
-        "games": 122
+        "attack": 1.066486748482211,
+        "defense": 0.9215252514245682,
+        "games": 123
       },
       "nationals": {
-        "attack": 0.9677092573656044,
-        "defense": 1.043505945284733,
-        "games": 116
+        "attack": 0.9738652873333106,
+        "defense": 1.0451896397058986,
+        "games": 117
       }
     },
-    "last_updated": "2026-09-24"
+    "last_updated": "2026-09-25"
   },
   "ncaab": {
     "league_avg": {
@@ -3652,9 +3652,9 @@
         "games": 54
       },
       "atlante": {
-        "attack": 0.6418931056743007,
-        "defense": 1.0813539887358936,
-        "games": 9
+        "attack": 0.818207506079131,
+        "defense": 1.111400986893035,
+        "games": 10
       },
       "arsenal": {
         "attack": 1.334493100113415,
@@ -3672,9 +3672,9 @@
         "games": 8
       },
       "atlas": {
-        "attack": 0.8864854577084371,
-        "defense": 1.1100890079355625,
-        "games": 45
+        "attack": 0.9262975555003337,
+        "defense": 1.1120449830163583,
+        "games": 46
       },
       "brentford": {
         "attack": 1.0684762818156242,
@@ -4032,9 +4032,9 @@
         "games": 48
       },
       "monterrey": {
-        "attack": 1.1625400465834919,
-        "defense": 1.0580000000000003,
-        "games": 46
+        "attack": 1.169412997906095,
+        "defense": 1.0993191489361704,
+        "games": 47
       },
       "shimizu s-pulse": {
         "attack": 0.7141508926673819,
@@ -4437,9 +4437,9 @@
         "games": 50
       },
       "club tijuana": {
-        "attack": 1.0601641060099003,
-        "defense": 0.8865999543413379,
-        "games": 45
+        "attack": 1.0620321134922606,
+        "defense": 0.9264171941816531,
+        "games": 46
       },
       "augsburg": {
         "attack": 1.0214480424803198,
@@ -4772,7 +4772,7 @@
         "games": 1
       }
     },
-    "last_updated": "2026-09-23"
+    "last_updated": "2026-09-25"
   },
   "ncaaf": {
     "league_avg": {
@@ -4883,7 +4883,7 @@
       "rutgers": {
         "attack": 3.0,
         "defense": 3.0,
-        "games": 3
+        "games": 4
       },
       "massachusetts": {
         "attack": 3.0,
@@ -4968,7 +4968,7 @@
       "uab": {
         "attack": 3.0,
         "defense": 3.0,
-        "games": 3
+        "games": 4
       },
       "miami": {
         "attack": 3.0,
@@ -5072,8 +5072,8 @@
       },
       "indiana": {
         "attack": 3.0,
-        "defense": 1.1333333333333335,
-        "games": 3
+        "defense": 1.6,
+        "games": 4
       },
       "north texas": {
         "attack": 3.0,
@@ -5097,8 +5097,8 @@
       },
       "clemson": {
         "attack": 3.0,
-        "defense": 2.6481481481481484,
-        "games": 3
+        "defense": 2.541666666666667,
+        "games": 4
       },
       "texas tech": {
         "attack": 3.0,
@@ -5222,8 +5222,8 @@
       },
       "army": {
         "attack": 3.0,
-        "defense": 2.75,
-        "games": 2
+        "defense": 2.8333333333333335,
+        "games": 3
       },
       "bryant": {
         "attack": 2.5,
@@ -5303,7 +5303,7 @@
       "temple": {
         "attack": 3.0,
         "defense": 3.0,
-        "games": 3
+        "games": 4
       },
       "rhode island": {
         "attack": 3.0,
@@ -5353,7 +5353,7 @@
       "navy": {
         "attack": 3.0,
         "defense": 3.0,
-        "games": 2
+        "games": 3
       },
       "towson": {
         "attack": 3.0,
@@ -5577,8 +5577,8 @@
       },
       "northwestern": {
         "attack": 3.0,
-        "defense": 2.4722222222222223,
-        "games": 2
+        "defense": 2.6481481481481484,
+        "games": 3
       },
       "south dakota state": {
         "attack": 3.0,
@@ -5666,9 +5666,9 @@
         "games": 2
       },
       "california": {
-        "attack": 3.0,
+        "attack": 2.879370629370629,
         "defense": 3.0,
-        "games": 3
+        "games": 4
       },
       "ucla": {
         "attack": 3.0,
@@ -5726,9 +5726,9 @@
         "games": 1
       },
       "howard": {
-        "attack": 0.2,
+        "attack": 1.0722222222222224,
         "defense": 3.0,
-        "games": 1
+        "games": 2
       },
       "uc davis": {
         "attack": 2.777777777777778,
@@ -5926,6 +5926,6 @@
         "games": 1
       }
     },
-    "last_updated": "2026-09-24"
+    "last_updated": "2026-09-25"
   }
 }
