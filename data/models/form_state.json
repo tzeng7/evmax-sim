@@ -140532,6 +140532,14 @@
     ],
     "stanford": [
       {
+        "date": "2026-09-26",
+        "won": true,
+        "opp": "georgia tech",
+        "home": true,
+        "drew": false,
+        "margin": 7.0
+      },
+      {
         "date": "2026-09-19",
         "won": false,
         "opp": "duke",
@@ -141130,6 +141138,14 @@
     ],
     "georgia tech": [
       {
+        "date": "2026-09-26",
+        "won": false,
+        "opp": "stanford",
+        "home": false,
+        "drew": false,
+        "margin": -7.0
+      },
+      {
         "date": "2026-09-19",
         "won": true,
         "opp": "mercer",
@@ -141189,6 +141205,14 @@
       }
     ],
     "minnesota": [
+      {
+        "date": "2026-09-26",
+        "won": true,
+        "opp": "washington",
+        "home": false,
+        "drew": false,
+        "margin": 3.0
+      },
       {
         "date": "2026-09-19",
         "won": true,
@@ -145247,6 +145271,14 @@
       }
     ],
     "washington": [
+      {
+        "date": "2026-09-26",
+        "won": false,
+        "opp": "minnesota",
+        "home": true,
+        "drew": false,
+        "margin": -3.0
+      },
       {
         "date": "2026-09-19",
         "won": true,

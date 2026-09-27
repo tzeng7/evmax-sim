@@ -4831,9 +4831,9 @@
         "games": 5
       },
       "stanford": {
-        "attack": 2.707070707070707,
+        "attack": 2.7803030303030303,
         "defense": 3.0,
-        "games": 3
+        "games": 4
       },
       "hawaii": {
         "attack": 2.5277777777777777,
@@ -4943,7 +4943,7 @@
       "georgia tech": {
         "attack": 3.0,
         "defense": 3.0,
-        "games": 3
+        "games": 4
       },
       "colorado": {
         "attack": 2.736111111111111,
@@ -4951,9 +4951,9 @@
         "games": 4
       },
       "minnesota": {
-        "attack": 2.9629629629629632,
-        "defense": 2.6481481481481484,
-        "games": 3
+        "attack": 2.9722222222222223,
+        "defense": 2.736111111111111,
+        "games": 4
       },
       "eastern illinois": {
         "attack": 3.0,
@@ -5698,7 +5698,7 @@
       "washington": {
         "attack": 3.0,
         "defense": 3.0,
-        "games": 3
+        "games": 4
       },
       "washington state": {
         "attack": 2.8333333333333335,
