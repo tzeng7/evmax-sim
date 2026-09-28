@@ -57,7 +57,7 @@ evmax agents scan --shadow X,Y --live Z --disabled W   # runtime overrides
 - any `mode` / `status` / `market_types` value is illegal
 - a prop category is missing `prop_stat_types` or a game category has them
 
-**Outcome resolution** is specified per-category via the `resolver` field. The shipped values are `espn_scoreboard` (NBA/NFL/NCAAB/NCAAW/soccer/worldcup/baseball/nhl/wnba — worldcup reads ESPN `fifa.world`), `espn_boxscore` (NBA/NFL props), `mlb_statsapi` (baseball_props — MLB Stats API boxscore, NOT ESPN; `_resolve_baseball_prop_observations` in `resolver.py`), `bo3gg` (LoL/CS2), `kalshi_settlement` (tennis + UFC), and `none` (no auto-resolution wired yet). Do not maintain a separate "resolution table" in docs — this field is authoritative. Settlement-based resolution is **venue-aware**: Polymarket US rows in `kalshi_settlement` sectors resolve via the gateway settlement endpoint (`GET /v1/markets/{slug}/settlement`, the LONG side's final price — per-side moneyline ids are mapped back through the market's sides) with `result_source='polymarket_us_settlement'`; fractional settlements (tie 50-50 / cancel at last-traded / walkover) void the row like Kalshi scalar refunds, and `_resolve_via_kalshi` defensively drops non-Kalshi ids. ESPN-based resolvers were already venue-agnostic (PolyUS rows share the canonical `event_id`).
+**Outcome resolution** is specified per-category via the `resolver` field. The shipped values are `espn_scoreboard` (NBA/NFL/NCAAB/NCAAW/NCAAF/soccer/worldcup/baseball/nhl/wnba — worldcup reads ESPN `fifa.world`), `espn_boxscore` (NBA/NFL props), `mlb_statsapi` (baseball_props — MLB Stats API boxscore, NOT ESPN; `_resolve_baseball_prop_observations` in `resolver.py`), `bo3gg` (LoL/CS2), `kalshi_settlement` (tennis + UFC), and `none` (no auto-resolution wired yet). Do not maintain a separate "resolution table" in docs — this field is authoritative. Settlement-based resolution is **venue-aware**: Polymarket US rows in `kalshi_settlement` sectors resolve via the gateway settlement endpoint (`GET /v1/markets/{slug}/settlement`, the LONG side's final price — per-side moneyline ids are mapped back through the market's sides) with `result_source='polymarket_us_settlement'`; fractional settlements (tie 50-50 / cancel at last-traded / walkover) void the row like Kalshi scalar refunds, and `_resolve_via_kalshi` defensively drops non-Kalshi ids. ESPN-based resolvers were already venue-agnostic (PolyUS rows share the canonical `event_id`).
 
 ### Key Pipeline
 
@@ -401,7 +401,7 @@ evmax cleanup resolve --date YYYY-MM-DD
 evmax archive resolve --date YYYY-MM-DD
 
 # Check bet log
-evmax cleanup show --days 7
+evmax cleanup show                              # default window = last 7 days (--since/--until to change)
 
 # Twice daily (launchd com.evmax.integrity, 06:45 + 20:30; Monday adds --weekly) —
 # the ONE consolidated read-only integrity sweep: cadence, seed-state age, in-play /
