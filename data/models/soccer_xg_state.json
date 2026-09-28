@@ -25579,6 +25579,16 @@
     "columbus": {
       "matches": [
         {
+          "date": "2026-09-27",
+          "goals_for": 2,
+          "goals_against": 1,
+          "sot": 6,
+          "shots": 14,
+          "xg": 2.04,
+          "xga": 0.96,
+          "is_home": true
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 2,
           "goals_against": 0,
@@ -25767,16 +25777,6 @@
           "xg": 1.41,
           "xga": 1.11,
           "is_home": false
-        },
-        {
-          "date": "2026-04-12",
-          "goals_for": 1,
-          "goals_against": 1,
-          "sot": 7,
-          "shots": 20,
-          "xg": 2.49,
-          "xga": 0.42,
-          "is_home": true
         }
       ]
     },
@@ -28435,6 +28435,16 @@
     "inter miami": {
       "matches": [
         {
+          "date": "2026-09-27",
+          "goals_for": 1,
+          "goals_against": 2,
+          "sot": 3,
+          "shots": 5,
+          "xg": 0.96,
+          "xga": 2.04,
+          "is_home": false
+        },
+        {
           "date": "2026-09-20",
           "goals_for": 2,
           "goals_against": 2,
@@ -28623,16 +28633,6 @@
           "xg": 0.96,
           "xga": 1.5,
           "is_home": false
-        },
-        {
-          "date": "2026-04-11",
-          "goals_for": 2,
-          "goals_against": 2,
-          "sot": 7,
-          "shots": 16,
-          "xg": 2.37,
-          "xga": 0.69,
-          "is_home": true
         }
       ]
     },
@@ -32035,6 +32035,16 @@
     "fc juarez": {
       "matches": [
         {
+          "date": "2026-09-27",
+          "goals_for": 1,
+          "goals_against": 2,
+          "sot": 1,
+          "shots": 9,
+          "xg": 0.54,
+          "xga": 1.02,
+          "is_home": false
+        },
+        {
           "date": "2026-09-18",
           "goals_for": 2,
           "goals_against": 0,
@@ -32223,21 +32233,21 @@
           "xg": 1.41,
           "xga": 1.77,
           "is_home": false
-        },
-        {
-          "date": "2026-02-28",
-          "goals_for": 3,
-          "goals_against": 1,
-          "sot": 4,
-          "shots": 10,
-          "xg": 1.38,
-          "xga": 0.78,
-          "is_home": true
         }
       ]
     },
     "club america": {
       "matches": [
+        {
+          "date": "2026-09-27",
+          "goals_for": 4,
+          "goals_against": 2,
+          "sot": 9,
+          "shots": 20,
+          "xg": 3.03,
+          "xga": 2.07,
+          "is_home": false
+        },
         {
           "date": "2026-09-19",
           "goals_for": 2,
@@ -32426,16 +32436,6 @@
           "shots": 14,
           "xg": 1.77,
           "xga": 1.41,
-          "is_home": true
-        },
-        {
-          "date": "2026-03-01",
-          "goals_for": 1,
-          "goals_against": 4,
-          "sot": 5,
-          "shots": 13,
-          "xg": 1.74,
-          "xga": 1.95,
           "is_home": true
         }
       ]
@@ -33055,6 +33055,16 @@
     "pumas unam": {
       "matches": [
         {
+          "date": "2026-09-27",
+          "goals_for": 2,
+          "goals_against": 3,
+          "sot": 6,
+          "shots": 15,
+          "xg": 2.07,
+          "xga": 2.22,
+          "is_home": true
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 1,
           "goals_against": 1,
@@ -33243,16 +33253,6 @@
           "xg": 2.7,
           "xga": 1.74,
           "is_home": true
-        },
-        {
-          "date": "2026-04-06",
-          "goals_for": 2,
-          "goals_against": 2,
-          "sot": 2,
-          "shots": 6,
-          "xg": 0.72,
-          "xga": 4.08,
-          "is_home": false
         }
       ]
     },
@@ -33463,6 +33463,16 @@
     "necaxa": {
       "matches": [
         {
+          "date": "2026-09-27",
+          "goals_for": 2,
+          "goals_against": 4,
+          "sot": 6,
+          "shots": 15,
+          "xg": 2.07,
+          "xga": 3.03,
+          "is_home": true
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 1,
           "goals_against": 3,
@@ -33651,16 +33661,6 @@
           "xg": 1.38,
           "xga": 2.73,
           "is_home": false
-        },
-        {
-          "date": "2026-02-22",
-          "goals_for": 0,
-          "goals_against": 3,
-          "sot": 6,
-          "shots": 12,
-          "xg": 1.98,
-          "xga": 2.49,
-          "is_home": true
         }
       ]
     },
@@ -34483,6 +34483,16 @@
     "club leon": {
       "matches": [
         {
+          "date": "2026-09-27",
+          "goals_for": 2,
+          "goals_against": 1,
+          "sot": 3,
+          "shots": 7,
+          "xg": 1.02,
+          "xga": 0.54,
+          "is_home": true
+        },
+        {
           "date": "2026-09-20",
           "goals_for": 1,
           "goals_against": 1,
@@ -34671,21 +34681,21 @@
           "xg": 2.73,
           "xga": 1.38,
           "is_home": true
-        },
-        {
-          "date": "2026-02-22",
-          "goals_for": 2,
-          "goals_against": 1,
-          "sot": 4,
-          "shots": 9,
-          "xg": 1.35,
-          "xga": 1.5,
-          "is_home": true
         }
       ]
     },
     "atletico san luis": {
       "matches": [
+        {
+          "date": "2026-09-27",
+          "goals_for": 3,
+          "goals_against": 2,
+          "sot": 7,
+          "shots": 11,
+          "xg": 2.22,
+          "xga": 2.07,
+          "is_home": false
+        },
         {
           "date": "2026-09-19",
           "goals_for": 3,
@@ -34875,16 +34885,6 @@
           "xg": 0.72,
           "xga": 1.14,
           "is_home": true
-        },
-        {
-          "date": "2026-02-21",
-          "goals_for": 2,
-          "goals_against": 3,
-          "sot": 3,
-          "shots": 9,
-          "xg": 1.08,
-          "xga": 2.52,
-          "is_home": false
         }
       ]
     },
