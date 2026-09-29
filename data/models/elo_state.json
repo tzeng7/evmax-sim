@@ -1,7 +1,7 @@
 {
   "nfl": {
     "ratings": {
-      "eagles": 1539.42,
+      "eagles": 1514.98,
       "cowboys": 1469.02,
       "chargers": 1452.27,
       "chiefs": 1526.67,
@@ -31,11 +31,11 @@
       "texans": 1488.46,
       "bills": 1594.77,
       "ravens": 1511.4,
-      "bears": 1531.94,
+      "bears": 1556.38,
       "vikings": 1574.97
     },
     "game_counts": {
-      "eagles": 20,
+      "eagles": 21,
       "cowboys": 20,
       "chargers": 21,
       "chiefs": 20,
@@ -65,12 +65,12 @@
       "texans": 22,
       "bills": 22,
       "ravens": 20,
-      "bears": 21,
+      "bears": 22,
       "vikings": 20
     },
     "season_games": {
       "49ers": 3,
-      "bears": 2,
+      "bears": 3,
       "bengals": 3,
       "bills": 3,
       "broncos": 3,
@@ -83,7 +83,7 @@
       "commanders": 3,
       "cowboys": 3,
       "dolphins": 3,
-      "eagles": 2,
+      "eagles": 3,
       "falcons": 3,
       "giants": 3,
       "jaguars": 3,
@@ -337,6 +337,11 @@
         "a_wins": 1,
         "b_wins": 0,
         "games": 1
+      },
+      "bears::eagles": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
       }
     },
     "offseason_regression": {
@@ -348,7 +353,7 @@
       ],
       "moves": 0
     },
-    "last_updated": "2026-09-27"
+    "last_updated": "2026-09-28"
   },
   "lol": {
     "ratings": {

@@ -2,6 +2,14 @@
   "nfl": {
     "eagles": [
       {
+        "date": "2026-09-28",
+        "won": false,
+        "opp": "bears",
+        "home": false,
+        "drew": false,
+        "margin": -20.0
+      },
+      {
         "date": "2026-09-20",
         "won": true,
         "opp": "titans",
@@ -118,12 +126,6 @@
         "won": true,
         "opp": "chiefs",
         "home": false
-      },
-      {
-        "date": "2025-09-05",
-        "won": true,
-        "opp": "cowboys",
-        "home": true
       }
     ],
     "cowboys": [
@@ -3840,6 +3842,14 @@
     ],
     "bears": [
       {
+        "date": "2026-09-28",
+        "won": true,
+        "opp": "eagles",
+        "home": true,
+        "drew": false,
+        "margin": 20.0
+      },
+      {
         "date": "2026-09-20",
         "won": false,
         "opp": "vikings",
@@ -3956,12 +3966,6 @@
         "won": true,
         "opp": "cowboys",
         "home": true
-      },
-      {
-        "date": "2025-09-14",
-        "won": false,
-        "opp": "lions",
-        "home": false
       }
     ],
     "vikings": [
