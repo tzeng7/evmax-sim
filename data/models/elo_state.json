@@ -8646,30 +8646,30 @@
   },
   "baseball": {
     "ratings": {
-      "yankees": 1524.69,
-      "astros": 1501.72,
-      "red sox": 1545.86,
+      "yankees": 1530.17,
+      "astros": 1498.23,
+      "red sox": 1540.38,
       "twins": 1459.8,
       "rays": 1537.11,
       "mets": 1519.32,
       "tigers": 1506.57,
-      "phillies": 1496.22,
+      "phillies": 1493.45,
       "orioles": 1505.84,
       "pirates": 1499.72,
-      "braves": 1506.52,
+      "braves": 1509.29,
       "blue jays": 1515.31,
       "cardinals": 1468.04,
       "nationals": 1489.37,
-      "cubs": 1529.72,
+      "cubs": 1525.47,
       "guardians": 1522.23,
       "reds": 1464.03,
-      "padres": 1570.75,
+      "padres": 1575.0,
       "dodgers": 1564.32,
       "giants": 1483.89,
       "angels": 1448.71,
       "athletics": 1428.1,
       "mariners": 1456.65,
-      "white sox": 1505.34,
+      "white sox": 1508.83,
       "diamondbacks": 1522.78,
       "rockies": 1411.93,
       "brewers": 1575.79,
@@ -8678,30 +8678,30 @@
       "royals": 1493.02
     },
     "game_counts": {
-      "yankees": 119,
-      "astros": 116,
-      "red sox": 119,
+      "yankees": 120,
+      "astros": 117,
+      "red sox": 120,
       "twins": 121,
       "rays": 120,
       "mets": 117,
       "tigers": 125,
-      "phillies": 122,
+      "phillies": 123,
       "orioles": 112,
       "pirates": 121,
-      "braves": 117,
+      "braves": 118,
       "blue jays": 135,
       "cardinals": 117,
       "nationals": 119,
-      "cubs": 125,
+      "cubs": 126,
       "guardians": 122,
       "reds": 118,
-      "padres": 120,
+      "padres": 121,
       "dodgers": 135,
       "giants": 117,
       "angels": 122,
       "athletics": 118,
       "mariners": 128,
-      "white sox": 122,
+      "white sox": 123,
       "diamondbacks": 120,
       "rockies": 112,
       "brewers": 130,
@@ -8917,8 +8917,8 @@
       },
       "astros::white sox": {
         "a_wins": 3,
-        "b_wins": 1,
-        "games": 4
+        "b_wins": 2,
+        "games": 5
       },
       "dodgers::mets": {
         "a_wins": 2,
@@ -9562,8 +9562,8 @@
       },
       "red sox::yankees": {
         "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
+        "b_wins": 2,
+        "games": 3
       },
       "braves::rockies": {
         "a_wins": 2,
@@ -9641,9 +9641,9 @@
         "games": 3
       },
       "braves::phillies": {
-        "a_wins": 4,
+        "a_wins": 5,
         "b_wins": 3,
-        "games": 7
+        "games": 8
       },
       "cubs::marlins": {
         "a_wins": 3,
@@ -9944,33 +9944,38 @@
         "a_wins": 1,
         "b_wins": 2,
         "games": 3
+      },
+      "cubs::padres": {
+        "a_wins": 0,
+        "b_wins": 1,
+        "games": 1
       }
     },
     "season_games": {
-      "yankees": 55,
-      "astros": 58,
-      "red sox": 58,
+      "yankees": 56,
+      "astros": 59,
+      "red sox": 59,
       "twins": 59,
       "rays": 60,
       "mets": 58,
       "tigers": 59,
-      "phillies": 59,
+      "phillies": 60,
       "orioles": 55,
       "pirates": 59,
-      "braves": 60,
+      "braves": 61,
       "blue jays": 60,
       "cardinals": 61,
       "nationals": 59,
-      "cubs": 59,
+      "cubs": 60,
       "guardians": 58,
       "reds": 59,
-      "padres": 60,
+      "padres": 61,
       "dodgers": 60,
       "giants": 60,
       "angels": 59,
       "athletics": 60,
       "mariners": 59,
-      "white sox": 61,
+      "white sox": 62,
       "diamondbacks": 60,
       "rockies": 58,
       "brewers": 60,
@@ -9978,7 +9983,7 @@
       "marlins": 59,
       "royals": 60
     },
-    "last_updated": "2026-09-27"
+    "last_updated": "2026-09-29"
   },
   "ncaab": {
     "ratings": {
@@ -20304,12 +20309,12 @@
       "mystics": 1599.28,
       "dream": 1681.8,
       "wings": 1571.06,
-      "lynx": 1695.98,
+      "lynx": 1669.55,
       "valkyries": 1736.86,
       "sparks": 1397.15,
-      "liberty": 1625.37,
-      "aces": 1668.8,
-      "fever": 1616.85,
+      "liberty": 1651.8,
+      "aces": 1647.02,
+      "fever": 1638.63,
       "sky": 1382.99,
       "mercury": 1400.05,
       "storm": 1304.06,
@@ -20321,12 +20326,12 @@
       "mystics": 89,
       "dream": 91,
       "wings": 88,
-      "lynx": 95,
+      "lynx": 96,
       "valkyries": 90,
       "sparks": 87,
-      "liberty": 93,
-      "aces": 102,
-      "fever": 98,
+      "liberty": 94,
+      "aces": 103,
+      "fever": 99,
       "sky": 88,
       "mercury": 99,
       "storm": 90,
@@ -20338,12 +20343,12 @@
       "mystics": 45,
       "dream": 44,
       "wings": 44,
-      "lynx": 44,
+      "lynx": 45,
       "valkyries": 44,
       "sparks": 43,
-      "liberty": 46,
-      "aces": 46,
-      "fever": 45,
+      "liberty": 47,
+      "aces": 47,
+      "fever": 46,
       "sky": 44,
       "mercury": 44,
       "storm": 43,
@@ -20624,8 +20629,8 @@
       },
       "aces::fever": {
         "a_wins": 6,
-        "b_wins": 6,
-        "games": 12
+        "b_wins": 7,
+        "games": 13
       },
       "liberty::storm": {
         "a_wins": 3,
@@ -20733,9 +20738,9 @@
         "games": 6
       },
       "liberty::lynx": {
-        "a_wins": 4,
+        "a_wins": 5,
         "b_wins": 4,
-        "games": 8
+        "games": 9
       },
       "aces::sky": {
         "a_wins": 5,
@@ -20878,7 +20883,7 @@
         "games": 3
       }
     },
-    "last_updated": "2026-09-27"
+    "last_updated": "2026-09-29"
   },
   "nba": {
     "ratings": {
@@ -30733,22 +30738,22 @@
       "tampa bay lightning": 1555.71,
       "nashville predators": 1475.91,
       "pittsburgh penguins": 1484.07,
-      "chicago blackhawks": 1397.51,
-      "vegas golden knights": 1514.99,
+      "chicago blackhawks": 1395.87,
+      "vegas golden knights": 1516.63,
       "seattle kraken": 1451.81,
-      "toronto maple leafs": 1496.03,
-      "montreal canadiens": 1514.6,
-      "carolina hurricanes": 1572.11,
+      "toronto maple leafs": 1492.59,
+      "montreal canadiens": 1518.04,
+      "carolina hurricanes": 1567.82,
       "ottawa senators": 1521.18,
-      "boston bruins": 1502.77,
+      "boston bruins": 1505.36,
       "calgary flames": 1469.8,
       "winnipeg jets": 1521.52,
-      "vancouver canucks": 1440.28,
-      "edmonton oilers": 1523.59,
+      "vancouver canucks": 1444.45,
+      "edmonton oilers": 1519.42,
       "los angeles kings": 1498.52,
       "colorado avalanche": 1581.3,
       "buffalo sabres": 1531.2,
-      "new york rangers": 1489.43,
+      "new york rangers": 1486.84,
       "columbus blue jackets": 1481.05,
       "philadelphia flyers": 1486.66,
       "new jersey devils": 1496.79,
@@ -30756,7 +30761,7 @@
       "dallas stars": 1568.87,
       "st louis blues": 1501.79,
       "minnesota wild": 1522.17,
-      "florida panthers": 1522.85,
+      "florida panthers": 1527.14,
       "san jose sharks": 1413.91,
       "washington capitals": 1525.93,
       "new york islanders": 1490.85,
@@ -30767,22 +30772,22 @@
       "tampa bay lightning": 246,
       "nashville predators": 246,
       "pittsburgh penguins": 246,
-      "chicago blackhawks": 246,
-      "vegas golden knights": 246,
+      "chicago blackhawks": 247,
+      "vegas golden knights": 247,
       "seattle kraken": 246,
-      "toronto maple leafs": 246,
-      "montreal canadiens": 246,
-      "carolina hurricanes": 246,
+      "toronto maple leafs": 247,
+      "montreal canadiens": 247,
+      "carolina hurricanes": 247,
       "ottawa senators": 246,
-      "boston bruins": 246,
+      "boston bruins": 247,
       "calgary flames": 246,
       "winnipeg jets": 246,
-      "vancouver canucks": 246,
-      "edmonton oilers": 246,
+      "vancouver canucks": 247,
+      "edmonton oilers": 247,
       "los angeles kings": 246,
       "colorado avalanche": 246,
       "buffalo sabres": 246,
-      "new york rangers": 246,
+      "new york rangers": 247,
       "columbus blue jackets": 246,
       "philadelphia flyers": 246,
       "new jersey devils": 246,
@@ -30790,7 +30795,7 @@
       "dallas stars": 246,
       "st louis blues": 246,
       "minnesota wild": 246,
-      "florida panthers": 246,
+      "florida panthers": 247,
       "san jose sharks": 246,
       "washington capitals": 246,
       "new york islanders": 246,
@@ -30801,22 +30806,22 @@
       "tampa bay lightning": 246,
       "nashville predators": 246,
       "pittsburgh penguins": 246,
-      "chicago blackhawks": 246,
-      "vegas golden knights": 246,
+      "chicago blackhawks": 247,
+      "vegas golden knights": 247,
       "seattle kraken": 246,
-      "toronto maple leafs": 246,
-      "montreal canadiens": 246,
-      "carolina hurricanes": 246,
+      "toronto maple leafs": 247,
+      "montreal canadiens": 247,
+      "carolina hurricanes": 247,
       "ottawa senators": 246,
-      "boston bruins": 246,
+      "boston bruins": 247,
       "calgary flames": 246,
       "winnipeg jets": 246,
-      "vancouver canucks": 246,
-      "edmonton oilers": 246,
+      "vancouver canucks": 247,
+      "edmonton oilers": 247,
       "los angeles kings": 246,
       "colorado avalanche": 246,
       "buffalo sabres": 246,
-      "new york rangers": 246,
+      "new york rangers": 247,
       "columbus blue jackets": 246,
       "philadelphia flyers": 246,
       "new jersey devils": 246,
@@ -30824,7 +30829,7 @@
       "dallas stars": 246,
       "st louis blues": 246,
       "minnesota wild": 246,
-      "florida panthers": 246,
+      "florida panthers": 247,
       "san jose sharks": 246,
       "washington capitals": 246,
       "new york islanders": 246,
@@ -30848,9 +30853,9 @@
         "games": 11
       },
       "montreal canadiens::toronto maple leafs": {
-        "a_wins": 4,
+        "a_wins": 5,
         "b_wins": 7,
-        "games": 11
+        "games": 12
       },
       "carolina hurricanes::ottawa senators": {
         "a_wins": 6,
@@ -30869,8 +30874,8 @@
       },
       "edmonton oilers::vancouver canucks": {
         "a_wins": 5,
-        "b_wins": 6,
-        "games": 11
+        "b_wins": 7,
+        "games": 12
       },
       "colorado avalanche::los angeles kings": {
         "a_wins": 7,
@@ -31149,8 +31154,8 @@
       },
       "chicago blackhawks::vegas golden knights": {
         "a_wins": 3,
-        "b_wins": 6,
-        "games": 9
+        "b_wins": 7,
+        "games": 10
       },
       "pittsburgh penguins::st louis blues": {
         "a_wins": 3,
@@ -31674,8 +31679,8 @@
       },
       "carolina hurricanes::florida panthers": {
         "a_wins": 4,
-        "b_wins": 5,
-        "games": 9
+        "b_wins": 6,
+        "games": 10
       },
       "dallas stars::winnipeg jets": {
         "a_wins": 8,
@@ -31973,9 +31978,9 @@
         "games": 12
       },
       "boston bruins::new york rangers": {
-        "a_wins": 2,
+        "a_wins": 3,
         "b_wins": 7,
-        "games": 9
+        "games": 10
       },
       "los angeles kings::montreal canadiens": {
         "a_wins": 5,
@@ -33313,7 +33318,7 @@
         "games": 2
       }
     },
-    "last_updated": "2026-04-17"
+    "last_updated": "2026-09-29"
   },
   "soccer": {
     "ratings": {
