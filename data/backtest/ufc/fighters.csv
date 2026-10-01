@@ -1958,6 +1958,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 4584163,Leon Aliu,1989-07-14,72.0,74.0,Orthodox
 4585587,Tristan Connelly,1985-12-12,70.0,68.0,Orthodox
 4588192,Gokhan Saricam,1991-02-26,75.0,76.0,Orthodox
+4588646,Norbert Növényi Jr.,1999-10-06,72.0,75.0,Orthodox
 4600143,Tafon Nchukwi,1994-10-14,72.0,77.0,Orthodox
 4601333,Rayanne dos Santos,1995-06-08,62.0,62.0,Orthodox
 4601431,David Dvorak,1992-06-05,65.0,68.5,Orthodox
@@ -2276,6 +2277,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5060489,Rodolfo Bellato,1996-02-05,75.0,75.0,Orthodox
 5060505,Mick Parkin,1995-10-02,76.0,79.0,Orthodox
 5060511,Anvar Boynazarov,1989-01-10,69.0,69.0,Orthodox
+5060520,Paris Moran,1996-02-04,68.0,68.0,Southpaw
 5061870,Bo Nickal,1996-01-14,73.0,76.0,Southpaw
 5063403,Yazmin Jauregui,1999-02-28,63.0,64.0,Orthodox
 5065494,Ivan Valenzuela,1992-11-17,74.0,77.0,Orthodox
@@ -2368,6 +2370,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5122234,Junior Tafa,1996-09-21,75.0,75.0,Orthodox
 5122238,Mauricio Ruffy,1996-06-17,71.0,75.0,Orthodox
 5122794,Nick Fiore,1997-12-10,70.0,72.0,Orthodox
+5122908,Damian Piwowarczyk,1997-09-14,78.0,78.5,Orthodox
 5123216,Francisco Prado,2002-06-16,70.0,69.0,Orthodox
 5123311,Timmy Cuamba,1999-02-08,69.0,71.0,Orthodox
 5123586,Nick Aguirre,1996-01-15,69.0,74.0,Southpaw
@@ -2400,6 +2403,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5143333,Felipe dos Santos,2000-09-11,67.0,70.0,Orthodox
 5143887,Janaina Silva,1992-02-16,61.0,60.0,Orthodox
 5143888,Eduarda Moura,1994-02-28,66.0,67.0,Orthodox
+5143890,Marcos Degli,2000-05-13,66.0,67.0,Orthodox
 5144006,Bogdan Grad,1995-09-28,68.0,70.0,Orthodox
 5144007,Tom Nolan,2000-03-08,75.0,73.0,Southpaw
 5144008,Payton Talbott,1998-09-09,70.0,70.5,Switch
@@ -2460,6 +2464,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5157806,Dom Mar Fan,2000-03-19,71.0,75.0,Orthodox
 5157817,Jose Daniel Medina,1991-05-17,72.0,74.5,Orthodox
 5159959,Ravena Oliveira,1997-02-20,65.0,65.0,Orthodox
+5169699,Melissa Amaya,1994-11-27,64.0,64.5,Orthodox
 5170144,Matheus Camilo,2001-01-02,70.0,69.0,Orthodox
 5172124,Kauê Fernandes,1995-03-17,69.0,73.0,Orthodox
 5172179,Carli Judice,1999-03-02,67.0,68.0,Southpaw
@@ -2626,6 +2631,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5310572,Luke Fernandez,1995-06-29,73.0,76.0,Orthodox
 5310573,Ananias Mulumba,1998-09-18,65.0,70.5,Switch
 5310574,Juan Diaz,1998-06-03,68.0,69.5,Orthodox
+5310774,Jaden Ortega,2002-09-18,72.0,75.0,Southpaw
 5311034,Magomed Zaynukov,1995-01-02,70.0,68.0,Orthodox
 5311046,Lucas Caldas,1996-05-22,68.0,70.0,Orthodox
 5311771,Donavon Hedrick,1997-03-21,71.0,76.0,Orthodox
@@ -2639,6 +2645,8 @@ athlete_id,name,dob,height_in,reach_in,stance
 5338118,Regina Tarin,2004-10-19,67.0,66.0,Southpaw
 5341761,Yi Sak Lee,2000-01-11,72.0,74.0,--
 5344659,Ben Johnston,1990-10-11,76.0,75.0,--
+5345639,Ilimbek Akylbek Uulu,2003-09-01,67.0,66.5,Orthodox
+5345640,Mehemmedeli Osmanli,2004-08-05,69.0,71.0,Southpaw
 5345643,Delphine Benouaich,1995-03-21,63.0,63.0,Orthodox
 5346907,Ollie Schmid,2000-12-28,71.0,,--
 5350560,Artur Minev,2003-09-27,69.0,69.5,Orthodox
@@ -2667,6 +2675,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5369426,Hugo Guillon,1997-04-12,76.0,78.0,Orthodox
 5369427,Luis Hernandez,1996-08-22,69.0,73.0,Southpaw
 5369428,Bella Mir,2003-07-01,67.0,67.0,Southpaw
+5369434,Emilio Quissua,1997-04-21,75.0,78.0,Switch
 5369435,Douglas Rodrigues,1999-01-13,72.0,74.0,Orthodox
 5369437,Silvestre Sanchez,2001-11-15,70.0,73.0,Orthodox
 5369438,Muhammad Said,1996-01-10,74.0,73.0,Orthodox
@@ -2679,6 +2688,9 @@ athlete_id,name,dob,height_in,reach_in,stance
 5369721,Arlind Berisha,2000-11-05,78.0,77.0,Orthodox
 5369722,Damien Anderson,1997-01-04,68.0,69.0,Southpaw
 5369723,Ezra Elliott,2000-05-18,70.0,72.0,--
+5369732,Alvi Dasuyev,2002-02-03,72.0,73.0,Southpaw
+5369733,Callum Connor,1999-12-13,72.0,73.0,Orthodox
+5369736,Piero Guaylupo,2004-10-29,68.0,68.0,Switch
 5387599,Jessie Rosas,2002-12-04,67.0,68.0,Southpaw
 5393007,Cam Nelson,1998-07-28,71.0,72.0,Orthodox
 5394582,Alex Apodaca,1994-06-30,67.0,71.5,Switch

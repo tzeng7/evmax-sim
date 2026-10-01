@@ -8116,3 +8116,20 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600060963,401905375,UFC 331: Van vs. Pantoja 2,2026-09-20,Lightweight,4419372,Arman Tsarukyan,5122238,Mauricio Ruffy,a,True,1,4:56,ko_tko,Elbow
 600060963,401905376,UFC 331: Van vs. Pantoja 2,2026-09-20,Featherweight,2532870,Patricio Pitbull,3093026,Dooho Choi,a,True,1,3:28,ko_tko,Punches
 600060963,401905378,UFC 331: Van vs. Pantoja 2,2026-09-20,Light Heavyweight,3948876,Alonzo Menifield,5307810,Iwo Baraniewski,a,True,3,5:00,decision,
+600060738,401891542,"Dana White's Contender Series: Season 10, Week 7",2026-09-22,Middleweight,4588646,Norbert Növényi Jr.,4977642,Theo Haig,a,True,3,5:00,decision,
+600060738,401921409,"Dana White's Contender Series: Season 10, Week 7",2026-09-22,Welterweight,5310774,Jaden Ortega,5369732,Alvi Dasuyev,b,True,3,5:00,decision,
+600060738,401921410,"Dana White's Contender Series: Season 10, Week 7",2026-09-22,Flyweight,5143890,Marcos Degli,5060520,Paris Moran,a,True,2,4:46,submission,Rear Naked Choke
+600060738,401921411,"Dana White's Contender Series: Season 10, Week 7",2026-09-22,Lightweight,5369733,Callum Connor,5369736,Piero Guaylupo,b,True,3,5:00,decision,
+600060738,401921412,"Dana White's Contender Series: Season 10, Week 7",2026-09-22,Light Heavyweight,5369434,Emilio Quissua,5122908,Damian Piwowarczyk,b,True,1,4:55,ko_tko,Punches
+600061266,401911631,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-26,Middleweight,4426250,Rodolfo Vieira,4341572,Robert Bryczek,a,True,3,5:00,decision,
+600061266,401914466,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-26,Bantamweight,4339130,Montel Jackson,3922491,Ricky Simon,a,True,2,2:39,ko_tko,Punch
+600061266,401914467,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-26,Light Heavyweight,5060489,Rodolfo Bellato,4799517,Christian Edwards,b,True,3,1:47,ko_tko,Punch
+600061266,401914468,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-26,Bantamweight,4815974,Brady Hiestand,5068624,Rinya Nakamura,a,True,2,4:07,submission,Rear Naked Choke
+600061266,401914469,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-26,Bantamweight,4063869,John Castaneda,3154389,Alatengheili,b,True,3,5:00,decision,
+600061266,401914470,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-26,Lightweight,5110006,Elves Brener,5149546,Josiah Harrell,a,True,1,4:14,ko_tko,Punch
+600061266,401914472,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-26,W Strawweight,4683395,Vanessa Demopoulos,5063403,Yazmin Jauregui,b,True,1,1:02,ko_tko,Punches
+600061266,401911630,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-27,Bantamweight,5088844,Raul Rosas Jr.,3075570,Raoni Barcelos,a,True,5,1:38,ko_tko,
+600061266,401914464,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-27,W Strawweight,5169699,Melissa Amaya,4836549,Tina Black,b,True,2,3:19,ko_tko,Punches
+600061266,401914465,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-27,Bantamweight,5345640,Mehemmedeli Osmanli,5345639,Ilimbek Akylbek Uulu,b,True,1,2:19,dq,
+600061266,401914471,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-27,W Bantamweight,4418784,Norma Dumont,5075333,Ailin Perez,b,True,3,5:00,decision,
+600061266,401924683,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-27,Light Heavyweight,5369427,Luis Hernandez,5060467,Sedriques Dumas,a,True,1,0:57,submission,Guillotine Choke
