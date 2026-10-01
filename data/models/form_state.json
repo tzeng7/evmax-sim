@@ -33337,6 +33337,14 @@
   "baseball": {
     "yankees": [
       {
+        "date": "2026-09-30",
+        "won": true,
+        "opp": "red sox",
+        "home": true,
+        "drew": false,
+        "margin": 7.0
+      },
+      {
         "date": "2026-09-29",
         "won": true,
         "opp": "red sox",
@@ -33487,17 +33495,17 @@
         "home": false,
         "drew": false,
         "margin": 4.0
-      },
-      {
-        "date": "2026-09-04",
-        "won": false,
-        "opp": "padres",
-        "home": false,
-        "drew": false,
-        "margin": -1.0
       }
     ],
     "astros": [
+      {
+        "date": "2026-09-30",
+        "won": false,
+        "opp": "white sox",
+        "home": true,
+        "drew": false,
+        "margin": -4.0
+      },
       {
         "date": "2026-09-29",
         "won": false,
@@ -33649,17 +33657,17 @@
         "home": false,
         "drew": false,
         "margin": 1.0
-      },
-      {
-        "date": "2026-09-06",
-        "won": false,
-        "opp": "diamondbacks",
-        "home": true,
-        "drew": false,
-        "margin": -1.0
       }
     ],
     "red sox": [
+      {
+        "date": "2026-09-30",
+        "won": false,
+        "opp": "yankees",
+        "home": false,
+        "drew": false,
+        "margin": -7.0
+      },
       {
         "date": "2026-09-29",
         "won": false,
@@ -33811,14 +33819,6 @@
         "home": false,
         "drew": false,
         "margin": 2.0
-      },
-      {
-        "date": "2026-09-05",
-        "won": true,
-        "opp": "orioles",
-        "home": false,
-        "drew": false,
-        "margin": 5.0
       }
     ],
     "twins": [
@@ -34471,6 +34471,14 @@
     ],
     "phillies": [
       {
+        "date": "2026-09-30",
+        "won": true,
+        "opp": "braves",
+        "home": false,
+        "drew": false,
+        "margin": 1.0
+      },
+      {
         "date": "2026-09-29",
         "won": false,
         "opp": "braves",
@@ -34621,14 +34629,6 @@
         "home": true,
         "drew": false,
         "margin": -1.0
-      },
-      {
-        "date": "2026-09-07",
-        "won": true,
-        "opp": "braves",
-        "home": true,
-        "drew": false,
-        "margin": 1.0
       }
     ],
     "orioles": [
@@ -34956,6 +34956,14 @@
     ],
     "braves": [
       {
+        "date": "2026-09-30",
+        "won": false,
+        "opp": "phillies",
+        "home": true,
+        "drew": false,
+        "margin": -1.0
+      },
+      {
         "date": "2026-09-29",
         "won": true,
         "opp": "phillies",
@@ -35106,14 +35114,6 @@
         "home": true,
         "drew": false,
         "margin": -6.0
-      },
-      {
-        "date": "2026-09-07",
-        "won": false,
-        "opp": "phillies",
-        "home": false,
-        "drew": false,
-        "margin": -1.0
       }
     ],
     "blue jays": [
@@ -35604,6 +35604,14 @@
     ],
     "cubs": [
       {
+        "date": "2026-09-30",
+        "won": false,
+        "opp": "padres",
+        "home": false,
+        "drew": false,
+        "margin": -3.0
+      },
+      {
         "date": "2026-09-29",
         "won": false,
         "opp": "padres",
@@ -35754,14 +35762,6 @@
         "home": false,
         "drew": false,
         "margin": -7.0
-      },
-      {
-        "date": "2026-09-05",
-        "won": true,
-        "opp": "marlins",
-        "home": false,
-        "drew": false,
-        "margin": 1.0
       }
     ],
     "guardians": [
@@ -36090,6 +36090,14 @@
     ],
     "padres": [
       {
+        "date": "2026-09-30",
+        "won": true,
+        "opp": "cubs",
+        "home": true,
+        "drew": false,
+        "margin": 3.0
+      },
+      {
         "date": "2026-09-29",
         "won": true,
         "opp": "cubs",
@@ -36235,14 +36243,6 @@
       },
       {
         "date": "2026-09-08",
-        "won": true,
-        "opp": "nationals",
-        "home": true,
-        "drew": false,
-        "margin": 1.0
-      },
-      {
-        "date": "2026-09-07",
         "won": true,
         "opp": "nationals",
         "home": true,
@@ -37062,6 +37062,14 @@
     ],
     "white sox": [
       {
+        "date": "2026-09-30",
+        "won": true,
+        "opp": "astros",
+        "home": false,
+        "drew": false,
+        "margin": 4.0
+      },
+      {
         "date": "2026-09-29",
         "won": true,
         "opp": "astros",
@@ -37212,14 +37220,6 @@
         "home": true,
         "drew": false,
         "margin": -2.0
-      },
-      {
-        "date": "2026-09-08",
-        "won": false,
-        "opp": "pirates",
-        "home": true,
-        "drew": false,
-        "margin": -6.0
       }
     ],
     "diamondbacks": [
@@ -62128,6 +62128,14 @@
   "wnba": {
     "mystics": [
       {
+        "date": "2026-09-30",
+        "won": false,
+        "opp": "dream",
+        "home": true,
+        "drew": false,
+        "margin": -18.0
+      },
+      {
         "date": "2026-09-27",
         "won": false,
         "opp": "dream",
@@ -62264,16 +62272,17 @@
         "opp": "sun",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2026-07-22",
-        "won": true,
-        "opp": "aces",
-        "home": true,
-        "drew": false
       }
     ],
     "dream": [
+      {
+        "date": "2026-09-30",
+        "won": true,
+        "opp": "mystics",
+        "home": false,
+        "drew": false,
+        "margin": 18.0
+      },
       {
         "date": "2026-09-27",
         "won": true,
@@ -62411,16 +62420,17 @@
         "opp": "sky",
         "home": true,
         "drew": false
-      },
-      {
-        "date": "2026-07-17",
-        "won": true,
-        "opp": "tempo",
-        "home": false,
-        "drew": false
       }
     ],
     "wings": [
+      {
+        "date": "2026-09-30",
+        "won": true,
+        "opp": "valkyries",
+        "home": true,
+        "drew": false,
+        "margin": 8.0
+      },
       {
         "date": "2026-09-27",
         "won": false,
@@ -62556,13 +62566,6 @@
         "date": "2026-07-20",
         "won": false,
         "opp": "liberty",
-        "home": true,
-        "drew": false
-      },
-      {
-        "date": "2026-07-19",
-        "won": true,
-        "opp": "sparks",
         "home": true,
         "drew": false
       }
@@ -62717,6 +62720,14 @@
     ],
     "valkyries": [
       {
+        "date": "2026-09-30",
+        "won": false,
+        "opp": "wings",
+        "home": false,
+        "drew": false,
+        "margin": -8.0
+      },
+      {
         "date": "2026-09-27",
         "won": true,
         "opp": "wings",
@@ -62852,13 +62863,6 @@
         "won": true,
         "opp": "mystics",
         "home": true,
-        "drew": false
-      },
-      {
-        "date": "2026-07-15",
-        "won": true,
-        "opp": "fever",
-        "home": false,
         "drew": false
       }
     ],
@@ -94326,6 +94330,14 @@
     ],
     "pittsburgh penguins": [
       {
+        "date": "2026-09-30",
+        "won": true,
+        "opp": "philadelphia flyers",
+        "home": false,
+        "drew": false,
+        "margin": 7.0
+      },
+      {
         "date": "2026-04-15",
         "won": false,
         "opp": "st. louis blues",
@@ -94456,13 +94468,6 @@
         "won": false,
         "opp": "carolina hurricanes",
         "home": false,
-        "drew": false
-      },
-      {
-        "date": "2026-03-08",
-        "won": true,
-        "opp": "boston bruins",
-        "home": true,
         "drew": false
       }
     ],
@@ -94896,6 +94901,14 @@
     ],
     "toronto maple leafs": [
       {
+        "date": "2026-09-30",
+        "won": true,
+        "opp": "new york islanders",
+        "home": true,
+        "drew": false,
+        "margin": 1.0
+      },
+      {
         "date": "2026-09-29",
         "won": false,
         "opp": "montreal canadiens",
@@ -95027,13 +95040,6 @@
         "won": false,
         "opp": "montreal canadiens",
         "home": false,
-        "drew": false
-      },
-      {
-        "date": "2026-03-08",
-        "won": false,
-        "opp": "tampa bay lightning",
-        "home": true,
         "drew": false
       }
     ],
@@ -96180,6 +96186,14 @@
     ],
     "los angeles kings": [
       {
+        "date": "2026-09-30",
+        "won": false,
+        "opp": "colorado avalanche",
+        "home": false,
+        "drew": false,
+        "margin": -4.0
+      },
+      {
         "date": "2026-04-17",
         "won": false,
         "opp": "calgary flames",
@@ -96311,16 +96325,17 @@
         "opp": "boston bruins",
         "home": false,
         "drew": false
-      },
-      {
-        "date": "2026-03-09",
-        "won": true,
-        "opp": "columbus blue jackets",
-        "home": false,
-        "drew": false
       }
     ],
     "colorado avalanche": [
+      {
+        "date": "2026-09-30",
+        "won": true,
+        "opp": "los angeles kings",
+        "home": true,
+        "drew": false,
+        "margin": 4.0
+      },
       {
         "date": "2026-04-17",
         "won": true,
@@ -96452,13 +96467,6 @@
         "won": true,
         "opp": "seattle kraken",
         "home": false,
-        "drew": false
-      },
-      {
-        "date": "2026-03-11",
-        "won": false,
-        "opp": "edmonton oilers",
-        "home": true,
         "drew": false
       }
     ],
@@ -96891,6 +96899,14 @@
     ],
     "philadelphia flyers": [
       {
+        "date": "2026-09-30",
+        "won": false,
+        "opp": "pittsburgh penguins",
+        "home": true,
+        "drew": false,
+        "margin": -7.0
+      },
+      {
         "date": "2026-04-14",
         "won": true,
         "opp": "montreal canadiens",
@@ -97020,13 +97036,6 @@
         "date": "2026-03-11",
         "won": true,
         "opp": "washington capitals",
-        "home": true,
-        "drew": false
-      },
-      {
-        "date": "2026-03-09",
-        "won": false,
-        "opp": "new york rangers",
         "home": true,
         "drew": false
       }
@@ -98170,6 +98179,14 @@
     ],
     "new york islanders": [
       {
+        "date": "2026-09-30",
+        "won": false,
+        "opp": "toronto maple leafs",
+        "home": false,
+        "drew": false,
+        "margin": -1.0
+      },
+      {
         "date": "2026-04-14",
         "won": false,
         "opp": "carolina hurricanes",
@@ -98299,13 +98316,6 @@
         "date": "2026-03-08",
         "won": true,
         "opp": "san jose sharks",
-        "home": false,
-        "drew": false
-      },
-      {
-        "date": "2026-03-06",
-        "won": false,
-        "opp": "los angeles kings",
         "home": false,
         "drew": false
       }
@@ -103296,6 +103306,14 @@
     ],
     "red bull new york": [
       {
+        "date": "2026-09-30",
+        "won": false,
+        "opp": "st louis",
+        "home": true,
+        "drew": false,
+        "margin": -3.0
+      },
+      {
         "date": "2026-09-18",
         "won": true,
         "opp": "nycfc",
@@ -103446,14 +103464,6 @@
         "home": false,
         "drew": false,
         "margin": -3.0
-      },
-      {
-        "date": "2026-04-11",
-        "won": false,
-        "opp": "inter miami",
-        "home": false,
-        "drew": true,
-        "margin": 0.0
       }
     ],
     "inter miami": [
@@ -105078,6 +105088,14 @@
     ],
     "st louis": [
       {
+        "date": "2026-09-30",
+        "won": true,
+        "opp": "red bulls",
+        "home": false,
+        "drew": false,
+        "margin": 3.0
+      },
+      {
         "date": "2026-09-19",
         "won": true,
         "opp": "toronto",
@@ -105228,14 +105246,6 @@
         "home": false,
         "drew": false,
         "margin": -3.0
-      },
-      {
-        "date": "2026-04-12",
-        "won": false,
-        "opp": "dallas",
-        "home": false,
-        "drew": true,
-        "margin": 0.0
       }
     ],
     "colorado": [
