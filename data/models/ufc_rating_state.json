@@ -26816,22 +26816,22 @@
       "espn_id": "3960440"
     },
     "john castaneda": {
-      "rating": 1670.24,
-      "rd": 137.36,
+      "rating": 1625.33,
+      "rd": 129.96,
       "sigma": 0.06,
-      "n_fights": 10,
+      "n_fights": 11,
       "wins": 5,
-      "losses": 4,
+      "losses": 5,
       "draws": 1,
       "last3": [
         "l",
-        "l",
-        "d"
+        "d",
+        "l"
       ],
       "ko_losses": 1,
       "last_ko_loss": "2022-10-01",
       "finish_wins": 2,
-      "last_fight": "2026-04-18",
+      "last_fight": "2026-09-26",
       "dob": "1991-12-18",
       "height_in": 66.0,
       "reach_in": 71.0,
@@ -26966,22 +26966,22 @@
       "espn_id": "3152189"
     },
     "ricky simon": {
-      "rating": 1827.34,
-      "rd": 102.62,
+      "rating": 1802.21,
+      "rd": 100.11,
       "sigma": 0.05999,
-      "n_fights": 18,
+      "n_fights": 19,
       "wins": 11,
-      "losses": 6,
+      "losses": 7,
       "draws": 1,
       "last3": [
-        "w",
         "l",
-        "d"
+        "d",
+        "l"
       ],
-      "ko_losses": 2,
-      "last_ko_loss": "2023-04-29",
+      "ko_losses": 3,
+      "last_ko_loss": "2026-09-26",
       "finish_wins": 5,
-      "last_fight": "2026-03-28",
+      "last_fight": "2026-09-26",
       "dob": "1992-08-31",
       "height_in": 66.0,
       "reach_in": 69.0,
@@ -29519,22 +29519,22 @@
       "espn_id": "2223033"
     },
     "montel jackson": {
-      "rating": 1853.23,
-      "rd": 117.53,
+      "rating": 1885.58,
+      "rd": 112.82,
       "sigma": 0.05999,
-      "n_fights": 14,
-      "wins": 10,
+      "n_fights": 15,
+      "wins": 11,
       "losses": 4,
       "draws": 0,
       "last3": [
-        "w",
         "l",
-        "l"
+        "l",
+        "w"
       ],
       "ko_losses": 0,
       "last_ko_loss": null,
-      "finish_wins": 5,
-      "last_fight": "2026-04-26",
+      "finish_wins": 6,
+      "last_fight": "2026-09-26",
       "dob": "1992-04-24",
       "height_in": 70.0,
       "reach_in": 75.5,
@@ -30384,22 +30384,22 @@
       "espn_id": "2556638"
     },
     "raoni barcelos": {
-      "rating": 1909.38,
-      "rd": 116.72,
+      "rating": 1870.25,
+      "rd": 112.8,
       "sigma": 0.06,
-      "n_fights": 15,
+      "n_fights": 16,
       "wins": 11,
-      "losses": 4,
+      "losses": 5,
       "draws": 0,
       "last3": [
         "w",
         "w",
-        "w"
+        "l"
       ],
-      "ko_losses": 1,
-      "last_ko_loss": "2023-01-15",
+      "ko_losses": 2,
+      "last_ko_loss": "2026-09-27",
       "finish_wins": 4,
-      "last_fight": "2026-04-26",
+      "last_fight": "2026-09-27",
       "dob": "1987-05-01",
       "height_in": 67.0,
       "reach_in": 67.0,
@@ -35194,22 +35194,22 @@
       "espn_id": "3088809"
     },
     "rodolfo vieira": {
-      "rating": 1646.83,
-      "rd": 130.49,
+      "rating": 1677.86,
+      "rd": 125.61,
       "sigma": 0.06,
-      "n_fights": 11,
-      "wins": 6,
+      "n_fights": 12,
+      "wins": 7,
       "losses": 5,
       "draws": 0,
       "last3": [
-        "w",
         "l",
-        "l"
+        "l",
+        "w"
       ],
       "ko_losses": 1,
       "last_ko_loss": "2025-11-16",
       "finish_wins": 5,
-      "last_fight": "2026-04-25",
+      "last_fight": "2026-09-26",
       "dob": "1989-09-25",
       "height_in": 72.0,
       "reach_in": 73.0,
@@ -35961,22 +35961,22 @@
       "espn_id": "3027998"
     },
     "alatengheili": {
-      "rating": 1665.92,
-      "rd": 138.62,
+      "rating": 1712.32,
+      "rd": 131.9,
       "sigma": 0.05999,
-      "n_fights": 9,
-      "wins": 5,
+      "n_fights": 10,
+      "wins": 6,
       "losses": 3,
       "draws": 1,
       "last3": [
-        "l",
         "w",
-        "l"
+        "l",
+        "w"
       ],
       "ko_losses": 0,
       "last_ko_loss": null,
       "finish_wins": 1,
-      "last_fight": "2025-04-26",
+      "last_fight": "2026-09-26",
       "dob": "1991-12-14",
       "height_in": 65.0,
       "reach_in": 66.0,
@@ -36682,22 +36682,22 @@
       "espn_id": "4618110"
     },
     "norma dumont": {
-      "rating": 1869.67,
-      "rd": 119.98,
+      "rating": 1829.06,
+      "rd": 115.49,
       "sigma": 0.06001,
-      "n_fights": 12,
+      "n_fights": 13,
       "wins": 9,
-      "losses": 3,
+      "losses": 4,
       "draws": 0,
       "last3": [
         "w",
-        "w",
+        "l",
         "l"
       ],
       "ko_losses": 1,
       "last_ko_loss": "2020-03-01",
       "finish_wins": 0,
-      "last_fight": "2026-04-26",
+      "last_fight": "2026-09-27",
       "dob": "1990-10-01",
       "height_in": 67.0,
       "reach_in": 67.0,
@@ -37747,22 +37747,22 @@
       "espn_id": "4403536"
     },
     "vanessa demopoulos": {
-      "rating": 1478.0,
-      "rd": 126.41,
+      "rating": 1446.06,
+      "rd": 122.55,
       "sigma": 0.06,
-      "n_fights": 11,
+      "n_fights": 12,
       "wins": 5,
-      "losses": 6,
+      "losses": 7,
       "draws": 0,
       "last3": [
         "l",
         "l",
         "l"
       ],
-      "ko_losses": 0,
-      "last_ko_loss": null,
+      "ko_losses": 1,
+      "last_ko_loss": "2026-09-26",
       "finish_wins": 1,
-      "last_fight": "2025-06-14",
+      "last_fight": "2026-09-26",
       "dob": "1988-09-22",
       "height_in": 62.0,
       "reach_in": 59.0,
@@ -40794,11 +40794,11 @@
       "espn_id": "4420893"
     },
     "brady hiestand": {
-      "rating": 1710.08,
-      "rd": 173.58,
+      "rating": 1767.56,
+      "rd": 161.93,
       "sigma": 0.06,
-      "n_fights": 5,
-      "wins": 4,
+      "n_fights": 6,
+      "wins": 5,
       "losses": 1,
       "draws": 0,
       "last3": [
@@ -40808,8 +40808,8 @@
       ],
       "ko_losses": 0,
       "last_ko_loss": null,
-      "finish_wins": 3,
-      "last_fight": "2024-06-16",
+      "finish_wins": 4,
+      "last_fight": "2026-09-26",
       "dob": "1999-04-30",
       "height_in": 68.0,
       "reach_in": 71.0,
@@ -42464,20 +42464,21 @@
       "espn_id": "4816066"
     },
     "valesca machado": {
-      "rating": 1337.69,
-      "rd": 290.32,
+      "rating": 1505.02,
+      "rd": 258.26,
       "sigma": 0.06,
-      "n_fights": 1,
-      "wins": 0,
+      "n_fights": 2,
+      "wins": 1,
       "losses": 1,
       "draws": 0,
       "last3": [
-        "l"
+        "l",
+        "w"
       ],
       "ko_losses": 0,
       "last_ko_loss": null,
-      "finish_wins": 0,
-      "last_fight": "2021-10-20",
+      "finish_wins": 1,
+      "last_fight": "2026-09-27",
       "dob": "1996-05-06",
       "height_in": 64.0,
       "reach_in": 63.0,
@@ -44274,22 +44275,22 @@
       "espn_id": "4683551"
     },
     "yazmin jauregui": {
-      "rating": 1535.9,
-      "rd": 183.52,
+      "rating": 1598.69,
+      "rd": 166.75,
       "sigma": 0.06,
-      "n_fights": 5,
-      "wins": 3,
+      "n_fights": 6,
+      "wins": 4,
       "losses": 2,
       "draws": 0,
       "last3": [
-        "l",
         "w",
-        "l"
+        "l",
+        "w"
       ],
       "ko_losses": 1,
       "last_ko_loss": "2023-07-09",
-      "finish_wins": 1,
-      "last_fight": "2024-09-15",
+      "finish_wins": 2,
+      "last_fight": "2026-09-26",
       "dob": "1999-02-28",
       "height_in": 63.0,
       "reach_in": 64.0,
@@ -44809,12 +44810,12 @@
       "espn_id": "5080485"
     },
     "sedriques dumas": {
-      "rating": 1447.75,
-      "rd": 144.64,
+      "rating": 1423.85,
+      "rd": 140.16,
       "sigma": 0.06,
-      "n_fights": 9,
+      "n_fights": 10,
       "wins": 4,
-      "losses": 5,
+      "losses": 6,
       "draws": 0,
       "last3": [
         "l",
@@ -44824,7 +44825,7 @@
       "ko_losses": 2,
       "last_ko_loss": "2025-04-12",
       "finish_wins": 1,
-      "last_fight": "2026-04-25",
+      "last_fight": "2026-09-27",
       "dob": "1995-08-06",
       "height_in": 74.0,
       "reach_in": 79.0,
@@ -44957,11 +44958,11 @@
       "espn_id": "4213329"
     },
     "ailin perez": {
-      "rating": 1807.42,
-      "rd": 142.32,
+      "rating": 1863.71,
+      "rd": 134.02,
       "sigma": 0.06,
-      "n_fights": 7,
-      "wins": 6,
+      "n_fights": 8,
+      "wins": 7,
       "losses": 1,
       "draws": 0,
       "last3": [
@@ -44972,7 +44973,7 @@
       "ko_losses": 0,
       "last_ko_loss": null,
       "finish_wins": 1,
-      "last_fight": "2026-02-28",
+      "last_fight": "2026-09-27",
       "dob": "1994-10-05",
       "height_in": 65.0,
       "reach_in": 66.0,
@@ -45110,22 +45111,22 @@
       "espn_id": "5060483"
     },
     "rodolfo bellato": {
-      "rating": 1675.64,
-      "rd": 165.33,
+      "rating": 1589.87,
+      "rd": 159.0,
       "sigma": 0.06,
-      "n_fights": 6,
+      "n_fights": 7,
       "wins": 3,
-      "losses": 2,
+      "losses": 3,
       "draws": 1,
       "last3": [
-        "d",
         "l",
-        "w"
+        "w",
+        "l"
       ],
-      "ko_losses": 1,
-      "last_ko_loss": "2022-09-07",
+      "ko_losses": 2,
+      "last_ko_loss": "2026-09-26",
       "finish_wins": 3,
-      "last_fight": "2026-03-07",
+      "last_fight": "2026-09-26",
       "dob": "1996-02-05",
       "height_in": 75.0,
       "reach_in": 75.0,
@@ -45517,11 +45518,11 @@
       "espn_id": "5076594"
     },
     "raul rosas jr.": {
-      "rating": 1836.97,
-      "rd": 151.03,
+      "rating": 1900.95,
+      "rd": 141.01,
       "sigma": 0.06,
-      "n_fights": 8,
-      "wins": 7,
+      "n_fights": 9,
+      "wins": 8,
       "losses": 1,
       "draws": 0,
       "last3": [
@@ -45531,8 +45532,8 @@
       ],
       "ko_losses": 0,
       "last_ko_loss": null,
-      "finish_wins": 3,
-      "last_fight": "2026-03-08",
+      "finish_wins": 4,
+      "last_fight": "2026-09-27",
       "dob": "2004-10-08",
       "height_in": 69.0,
       "reach_in": 67.0,
@@ -46196,22 +46197,22 @@
       "espn_id": "5068617"
     },
     "rinya nakamura": {
-      "rating": 1668.9,
-      "rd": 197.47,
+      "rating": 1597.51,
+      "rd": 177.95,
       "sigma": 0.06,
-      "n_fights": 5,
+      "n_fights": 6,
       "wins": 4,
-      "losses": 1,
+      "losses": 2,
       "draws": 0,
       "last3": [
-        "w",
         "l",
-        "w"
+        "w",
+        "l"
       ],
       "ko_losses": 0,
       "last_ko_loss": null,
       "finish_wins": 2,
-      "last_fight": "2025-08-02",
+      "last_fight": "2026-09-26",
       "dob": "1995-03-23",
       "height_in": 67.0,
       "reach_in": 68.5,
@@ -46260,22 +46261,22 @@
       "espn_id": "5068545"
     },
     "elves brener": {
-      "rating": 1685.53,
-      "rd": 166.06,
+      "rating": 1713.47,
+      "rd": 160.16,
       "sigma": 0.06,
-      "n_fights": 6,
-      "wins": 3,
+      "n_fights": 7,
+      "wins": 4,
       "losses": 3,
       "draws": 0,
       "last3": [
         "l",
         "l",
-        "l"
+        "w"
       ],
       "ko_losses": 1,
       "last_ko_loss": "2024-08-03",
-      "finish_wins": 2,
-      "last_fight": "2025-08-03",
+      "finish_wins": 3,
+      "last_fight": "2026-09-26",
       "dob": "1997-09-27",
       "height_in": 70.0,
       "reach_in": 72.5,
@@ -49396,22 +49397,22 @@
       "espn_id": "4916248"
     },
     "robert bryczek": {
-      "rating": 1573.01,
-      "rd": 213.7,
-      "sigma": 0.06001,
-      "n_fights": 3,
+      "rating": 1498.03,
+      "rd": 187.06,
+      "sigma": 0.06,
+      "n_fights": 4,
       "wins": 1,
-      "losses": 2,
+      "losses": 3,
       "draws": 0,
       "last3": [
-        "l",
         "w",
+        "l",
         "l"
       ],
       "ko_losses": 0,
       "last_ko_loss": null,
       "finish_wins": 1,
-      "last_fight": "2026-05-02",
+      "last_fight": "2026-09-26",
       "dob": "1990-07-04",
       "height_in": 72.0,
       "reach_in": 75.0,
@@ -53311,20 +53312,21 @@
       "espn_id": "4629138"
     },
     "theo haig": {
-      "rating": 1337.69,
-      "rd": 290.32,
+      "rating": 1249.18,
+      "rd": 256.76,
       "sigma": 0.06,
-      "n_fights": 1,
+      "n_fights": 2,
       "wins": 0,
-      "losses": 1,
+      "losses": 2,
       "draws": 0,
       "last3": [
+        "l",
         "l"
       ],
       "ko_losses": 1,
       "last_ko_loss": "2025-09-03",
       "finish_wins": 0,
-      "last_fight": "2025-09-03",
+      "last_fight": "2026-09-22",
       "dob": "1996-08-23",
       "height_in": 74.0,
       "reach_in": 77.5,
@@ -55398,20 +55400,21 @@
       "espn_id": "4887310"
     },
     "josiah harrell": {
-      "rating": 1436.32,
-      "rd": 300.34,
+      "rating": 1364.14,
+      "rd": 254.15,
       "sigma": 0.06,
-      "n_fights": 1,
+      "n_fights": 2,
       "wins": 0,
-      "losses": 1,
+      "losses": 2,
       "draws": 0,
       "last3": [
+        "l",
         "l"
       ],
-      "ko_losses": 1,
-      "last_ko_loss": "2026-02-22",
+      "ko_losses": 2,
+      "last_ko_loss": "2026-09-26",
       "finish_wins": 0,
-      "last_fight": "2026-02-22",
+      "last_fight": "2026-09-26",
       "dob": "1998-11-13",
       "height_in": 67.0,
       "reach_in": 68.0,
@@ -55641,20 +55644,21 @@
       "espn_id": "5350560"
     },
     "christian edwards": {
-      "rating": 1394.55,
-      "rd": 268.09,
+      "rating": 1624.15,
+      "rd": 236.31,
       "sigma": 0.06,
-      "n_fights": 1,
-      "wins": 0,
+      "n_fights": 2,
+      "wins": 1,
       "losses": 1,
       "draws": 0,
       "last3": [
-        "l"
+        "l",
+        "w"
       ],
       "ko_losses": 0,
       "last_ko_loss": null,
-      "finish_wins": 0,
-      "last_fight": "2026-05-17",
+      "finish_wins": 1,
+      "last_fight": "2026-09-26",
       "dob": "1998-11-05",
       "height_in": 77.0,
       "reach_in": 78.5,
@@ -57486,20 +57490,21 @@
       "espn_id": "5210077"
     },
     "luis hernandez": {
-      "rating": 1662.31,
-      "rd": 290.32,
+      "rating": 1738.25,
+      "rd": 243.15,
       "sigma": 0.06,
-      "n_fights": 1,
-      "wins": 1,
+      "n_fights": 2,
+      "wins": 2,
       "losses": 0,
       "draws": 0,
       "last3": [
+        "w",
         "w"
       ],
       "ko_losses": 0,
       "last_ko_loss": null,
-      "finish_wins": 1,
-      "last_fight": "2026-09-15",
+      "finish_wins": 2,
+      "last_fight": "2026-09-27",
       "dob": "1996-08-22",
       "height_in": 69.0,
       "reach_in": 73.0,
@@ -57544,6 +57549,246 @@
       "height_in": 66.0,
       "reach_in": 72.0,
       "espn_id": "5369685"
+    },
+    "norbert n\u00f6v\u00e9nyi jr.": {
+      "rating": 1616.65,
+      "rd": 287.01,
+      "sigma": 0.06,
+      "n_fights": 1,
+      "wins": 1,
+      "losses": 0,
+      "draws": 0,
+      "last3": [
+        "w"
+      ],
+      "ko_losses": 0,
+      "last_ko_loss": null,
+      "finish_wins": 0,
+      "last_fight": "2026-09-22",
+      "dob": "1999-10-06",
+      "height_in": 72.0,
+      "reach_in": 75.0,
+      "espn_id": "4588646"
+    },
+    "jaden ortega": {
+      "rating": 1337.69,
+      "rd": 290.32,
+      "sigma": 0.06,
+      "n_fights": 1,
+      "wins": 0,
+      "losses": 1,
+      "draws": 0,
+      "last3": [
+        "l"
+      ],
+      "ko_losses": 0,
+      "last_ko_loss": null,
+      "finish_wins": 0,
+      "last_fight": "2026-09-22",
+      "dob": "2002-09-18",
+      "height_in": 72.0,
+      "reach_in": 75.0,
+      "espn_id": "5310774"
+    },
+    "alvi dasuyev": {
+      "rating": 1662.31,
+      "rd": 290.32,
+      "sigma": 0.06,
+      "n_fights": 1,
+      "wins": 1,
+      "losses": 0,
+      "draws": 0,
+      "last3": [
+        "w"
+      ],
+      "ko_losses": 0,
+      "last_ko_loss": null,
+      "finish_wins": 0,
+      "last_fight": "2026-09-22",
+      "dob": "2002-02-03",
+      "height_in": 72.0,
+      "reach_in": 73.0,
+      "espn_id": "5369732"
+    },
+    "marcos degli": {
+      "rating": 1662.31,
+      "rd": 290.32,
+      "sigma": 0.06,
+      "n_fights": 1,
+      "wins": 1,
+      "losses": 0,
+      "draws": 0,
+      "last3": [
+        "w"
+      ],
+      "ko_losses": 0,
+      "last_ko_loss": null,
+      "finish_wins": 1,
+      "last_fight": "2026-09-22",
+      "dob": "2000-05-13",
+      "height_in": 66.0,
+      "reach_in": 67.0,
+      "espn_id": "5143890"
+    },
+    "paris moran": {
+      "rating": 1337.69,
+      "rd": 290.32,
+      "sigma": 0.06,
+      "n_fights": 1,
+      "wins": 0,
+      "losses": 1,
+      "draws": 0,
+      "last3": [
+        "l"
+      ],
+      "ko_losses": 0,
+      "last_ko_loss": null,
+      "finish_wins": 0,
+      "last_fight": "2026-09-22",
+      "dob": "1996-02-04",
+      "height_in": 68.0,
+      "reach_in": 68.0,
+      "espn_id": "5060520"
+    },
+    "callum connor": {
+      "rating": 1337.69,
+      "rd": 290.32,
+      "sigma": 0.06,
+      "n_fights": 1,
+      "wins": 0,
+      "losses": 1,
+      "draws": 0,
+      "last3": [
+        "l"
+      ],
+      "ko_losses": 0,
+      "last_ko_loss": null,
+      "finish_wins": 0,
+      "last_fight": "2026-09-22",
+      "dob": "1999-12-13",
+      "height_in": 72.0,
+      "reach_in": 73.0,
+      "espn_id": "5369733"
+    },
+    "piero guaylupo": {
+      "rating": 1662.31,
+      "rd": 290.32,
+      "sigma": 0.06,
+      "n_fights": 1,
+      "wins": 1,
+      "losses": 0,
+      "draws": 0,
+      "last3": [
+        "w"
+      ],
+      "ko_losses": 0,
+      "last_ko_loss": null,
+      "finish_wins": 0,
+      "last_fight": "2026-09-22",
+      "dob": "2004-10-29",
+      "height_in": 68.0,
+      "reach_in": 68.0,
+      "espn_id": "5369736"
+    },
+    "emilio quissua": {
+      "rating": 1337.69,
+      "rd": 290.32,
+      "sigma": 0.06,
+      "n_fights": 1,
+      "wins": 0,
+      "losses": 1,
+      "draws": 0,
+      "last3": [
+        "l"
+      ],
+      "ko_losses": 1,
+      "last_ko_loss": "2026-09-22",
+      "finish_wins": 0,
+      "last_fight": "2026-09-22",
+      "dob": "1997-04-21",
+      "height_in": 75.0,
+      "reach_in": 78.0,
+      "espn_id": "5369434"
+    },
+    "damian piwowarczyk": {
+      "rating": 1662.31,
+      "rd": 290.32,
+      "sigma": 0.06,
+      "n_fights": 1,
+      "wins": 1,
+      "losses": 0,
+      "draws": 0,
+      "last3": [
+        "w"
+      ],
+      "ko_losses": 0,
+      "last_ko_loss": null,
+      "finish_wins": 1,
+      "last_fight": "2026-09-22",
+      "dob": "1997-09-14",
+      "height_in": 78.0,
+      "reach_in": 78.5,
+      "espn_id": "5122908"
+    },
+    "melissa amaya": {
+      "rating": 1268.78,
+      "rd": 287.3,
+      "sigma": 0.06,
+      "n_fights": 1,
+      "wins": 0,
+      "losses": 1,
+      "draws": 0,
+      "last3": [
+        "l"
+      ],
+      "ko_losses": 1,
+      "last_ko_loss": "2026-09-27",
+      "finish_wins": 0,
+      "last_fight": "2026-09-27",
+      "dob": "1994-11-27",
+      "height_in": 64.0,
+      "reach_in": 64.5,
+      "espn_id": "5169699"
+    },
+    "mehemmedeli osmanli": {
+      "rating": 1337.69,
+      "rd": 290.32,
+      "sigma": 0.06,
+      "n_fights": 1,
+      "wins": 0,
+      "losses": 1,
+      "draws": 0,
+      "last3": [
+        "l"
+      ],
+      "ko_losses": 0,
+      "last_ko_loss": null,
+      "finish_wins": 0,
+      "last_fight": "2026-09-27",
+      "dob": "2004-08-05",
+      "height_in": 69.0,
+      "reach_in": 71.0,
+      "espn_id": "5345640"
+    },
+    "ilimbek akylbek uulu": {
+      "rating": 1662.31,
+      "rd": 290.32,
+      "sigma": 0.06,
+      "n_fights": 1,
+      "wins": 1,
+      "losses": 0,
+      "draws": 0,
+      "last3": [
+        "w"
+      ],
+      "ko_losses": 0,
+      "last_ko_loss": null,
+      "finish_wins": 0,
+      "last_fight": "2026-09-27",
+      "dob": "2003-09-01",
+      "height_in": 67.0,
+      "reach_in": 66.5,
+      "espn_id": "5345639"
     }
   },
   "feature_model": {
@@ -57564,5 +57809,5 @@
     "fitted_through": "2024-12-31",
     "verdict": "VALIDATED_BLEND"
   },
-  "last_updated": "2026-09-20"
+  "last_updated": "2026-09-27"
 }
