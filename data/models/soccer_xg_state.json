@@ -23947,6 +23947,16 @@
     "st louis": {
       "matches": [
         {
+          "date": "2026-09-30",
+          "goals_for": 3,
+          "goals_against": 0,
+          "sot": 8,
+          "shots": 15,
+          "xg": 2.61,
+          "xga": 1.65,
+          "is_home": false
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 3,
           "goals_against": 1,
@@ -24134,16 +24144,6 @@
           "shots": 12,
           "xg": 0.9,
           "xga": 2.82,
-          "is_home": false
-        },
-        {
-          "date": "2026-04-12",
-          "goals_for": 1,
-          "goals_against": 1,
-          "sot": 5,
-          "shots": 10,
-          "xg": 1.65,
-          "xga": 1.14,
           "is_home": false
         }
       ]
@@ -26599,6 +26599,16 @@
     "red bull new york": {
       "matches": [
         {
+          "date": "2026-09-30",
+          "goals_for": 0,
+          "goals_against": 3,
+          "sot": 5,
+          "shots": 10,
+          "xg": 1.65,
+          "xga": 2.61,
+          "is_home": true
+        },
+        {
           "date": "2026-09-18",
           "goals_for": 1,
           "goals_against": 0,
@@ -26786,16 +26796,6 @@
           "shots": 8,
           "xg": 0.51,
           "xga": 1.89,
-          "is_home": false
-        },
-        {
-          "date": "2026-04-11",
-          "goals_for": 2,
-          "goals_against": 2,
-          "sot": 2,
-          "shots": 5,
-          "xg": 0.69,
-          "xga": 2.37,
           "is_home": false
         }
       ]
