@@ -7,7 +7,7 @@
       "chiefs": 1526.67,
       "falcons": 1484.75,
       "buccaneers": 1434.79,
-      "browns": 1470.94,
+      "browns": 1484.32,
       "bengals": 1502.05,
       "colts": 1459.88,
       "dolphins": 1416.6,
@@ -16,7 +16,7 @@
       "saints": 1466.7,
       "cardinals": 1431.35,
       "jets": 1431.13,
-      "steelers": 1517.81,
+      "steelers": 1504.43,
       "commanders": 1446.33,
       "giants": 1457.76,
       "jaguars": 1574.32,
@@ -41,7 +41,7 @@
       "chiefs": 20,
       "falcons": 20,
       "buccaneers": 20,
-      "browns": 20,
+      "browns": 21,
       "bengals": 20,
       "colts": 20,
       "dolphins": 20,
@@ -50,7 +50,7 @@
       "saints": 20,
       "cardinals": 20,
       "jets": 20,
-      "steelers": 21,
+      "steelers": 22,
       "commanders": 20,
       "giants": 20,
       "jaguars": 21,
@@ -74,7 +74,7 @@
       "bengals": 3,
       "bills": 3,
       "broncos": 3,
-      "browns": 3,
+      "browns": 4,
       "buccaneers": 3,
       "cardinals": 3,
       "chargers": 3,
@@ -97,7 +97,7 @@
       "ravens": 3,
       "saints": 3,
       "seahawks": 3,
-      "steelers": 3,
+      "steelers": 4,
       "texans": 3,
       "titans": 3,
       "vikings": 3
@@ -342,6 +342,11 @@
         "a_wins": 1,
         "b_wins": 0,
         "games": 1
+      },
+      "browns::steelers": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
       }
     },
     "offseason_regression": {
@@ -353,7 +358,7 @@
       ],
       "moves": 0
     },
-    "last_updated": "2026-09-28"
+    "last_updated": "2026-10-01"
   },
   "lol": {
     "ratings": {
@@ -8653,10 +8658,10 @@
       "rays": 1537.11,
       "mets": 1519.32,
       "tigers": 1506.57,
-      "phillies": 1497.04,
+      "phillies": 1493.76,
       "orioles": 1505.84,
       "pirates": 1499.72,
-      "braves": 1505.7,
+      "braves": 1508.98,
       "blue jays": 1515.31,
       "cardinals": 1468.04,
       "nationals": 1489.37,
@@ -8685,10 +8690,10 @@
       "rays": 120,
       "mets": 117,
       "tigers": 125,
-      "phillies": 124,
+      "phillies": 125,
       "orioles": 112,
       "pirates": 121,
-      "braves": 119,
+      "braves": 120,
       "blue jays": 135,
       "cardinals": 117,
       "nationals": 119,
@@ -9641,9 +9646,9 @@
         "games": 3
       },
       "braves::phillies": {
-        "a_wins": 5,
+        "a_wins": 6,
         "b_wins": 4,
-        "games": 9
+        "games": 10
       },
       "cubs::marlins": {
         "a_wins": 3,
@@ -9959,10 +9964,10 @@
       "rays": 60,
       "mets": 58,
       "tigers": 59,
-      "phillies": 61,
+      "phillies": 62,
       "orioles": 55,
       "pirates": 59,
-      "braves": 62,
+      "braves": 63,
       "blue jays": 60,
       "cardinals": 61,
       "nationals": 59,
@@ -9983,7 +9988,7 @@
       "marlins": 59,
       "royals": 60
     },
-    "last_updated": "2026-09-30"
+    "last_updated": "2026-10-01"
   },
   "ncaab": {
     "ratings": {
@@ -20313,8 +20318,8 @@
       "valkyries": 1711.54,
       "sparks": 1397.15,
       "liberty": 1651.8,
-      "aces": 1647.02,
-      "fever": 1638.63,
+      "aces": 1665.14,
+      "fever": 1620.51,
       "sky": 1382.99,
       "mercury": 1400.05,
       "storm": 1304.06,
@@ -20330,8 +20335,8 @@
       "valkyries": 91,
       "sparks": 87,
       "liberty": 94,
-      "aces": 103,
-      "fever": 99,
+      "aces": 104,
+      "fever": 100,
       "sky": 88,
       "mercury": 99,
       "storm": 90,
@@ -20347,8 +20352,8 @@
       "valkyries": 45,
       "sparks": 43,
       "liberty": 47,
-      "aces": 47,
-      "fever": 46,
+      "aces": 48,
+      "fever": 47,
       "sky": 44,
       "mercury": 44,
       "storm": 43,
@@ -20628,9 +20633,9 @@
         "games": 6
       },
       "aces::fever": {
-        "a_wins": 6,
+        "a_wins": 7,
         "b_wins": 7,
-        "games": 13
+        "games": 14
       },
       "liberty::storm": {
         "a_wins": 3,
@@ -20883,7 +20888,7 @@
         "games": 3
       }
     },
-    "last_updated": "2026-09-30"
+    "last_updated": "2026-10-01"
   },
   "nba": {
     "ratings": {
@@ -30735,106 +30740,106 @@
   },
   "nhl": {
     "ratings": {
-      "tampa bay lightning": 1555.71,
-      "nashville predators": 1475.91,
+      "tampa bay lightning": 1551.63,
+      "nashville predators": 1472.75,
       "pittsburgh penguins": 1489.4,
-      "chicago blackhawks": 1395.87,
+      "chicago blackhawks": 1393.65,
       "vegas golden knights": 1516.63,
-      "seattle kraken": 1451.81,
+      "seattle kraken": 1456.36,
       "toronto maple leafs": 1495.26,
       "montreal canadiens": 1518.04,
       "carolina hurricanes": 1567.82,
       "ottawa senators": 1521.18,
       "boston bruins": 1505.36,
-      "calgary flames": 1469.8,
+      "calgary flames": 1465.25,
       "winnipeg jets": 1521.52,
-      "vancouver canucks": 1444.45,
-      "edmonton oilers": 1519.42,
+      "vancouver canucks": 1441.63,
+      "edmonton oilers": 1522.24,
       "los angeles kings": 1496.11,
       "colorado avalanche": 1583.71,
-      "buffalo sabres": 1531.2,
-      "new york rangers": 1486.84,
-      "columbus blue jackets": 1481.05,
-      "philadelphia flyers": 1481.33,
-      "new jersey devils": 1496.79,
+      "buffalo sabres": 1527.91,
+      "new york rangers": 1490.92,
+      "columbus blue jackets": 1484.34,
+      "philadelphia flyers": 1478.79,
+      "new jersey devils": 1499.33,
       "detroit red wings": 1493.07,
       "dallas stars": 1568.87,
       "st louis blues": 1501.79,
-      "minnesota wild": 1522.17,
-      "florida panthers": 1527.14,
-      "san jose sharks": 1413.91,
+      "minnesota wild": 1525.33,
+      "florida panthers": 1523.58,
+      "san jose sharks": 1417.47,
       "washington capitals": 1525.93,
       "new york islanders": 1488.18,
       "anaheim ducks": 1468.86,
-      "utah mammoth": 1510.46
+      "utah mammoth": 1512.68
     },
     "game_counts": {
-      "tampa bay lightning": 246,
-      "nashville predators": 246,
+      "tampa bay lightning": 247,
+      "nashville predators": 247,
       "pittsburgh penguins": 247,
-      "chicago blackhawks": 247,
+      "chicago blackhawks": 248,
       "vegas golden knights": 247,
-      "seattle kraken": 246,
+      "seattle kraken": 247,
       "toronto maple leafs": 248,
       "montreal canadiens": 247,
       "carolina hurricanes": 247,
       "ottawa senators": 246,
       "boston bruins": 247,
-      "calgary flames": 246,
+      "calgary flames": 247,
       "winnipeg jets": 246,
-      "vancouver canucks": 247,
-      "edmonton oilers": 247,
+      "vancouver canucks": 248,
+      "edmonton oilers": 248,
       "los angeles kings": 247,
       "colorado avalanche": 247,
-      "buffalo sabres": 246,
-      "new york rangers": 247,
-      "columbus blue jackets": 246,
-      "philadelphia flyers": 247,
-      "new jersey devils": 246,
+      "buffalo sabres": 247,
+      "new york rangers": 248,
+      "columbus blue jackets": 247,
+      "philadelphia flyers": 248,
+      "new jersey devils": 247,
       "detroit red wings": 246,
       "dallas stars": 246,
       "st louis blues": 246,
-      "minnesota wild": 246,
-      "florida panthers": 247,
-      "san jose sharks": 246,
+      "minnesota wild": 247,
+      "florida panthers": 248,
+      "san jose sharks": 247,
       "washington capitals": 246,
       "new york islanders": 247,
       "anaheim ducks": 246,
-      "utah mammoth": 82
+      "utah mammoth": 83
     },
     "season_games": {
-      "tampa bay lightning": 246,
-      "nashville predators": 246,
+      "tampa bay lightning": 247,
+      "nashville predators": 247,
       "pittsburgh penguins": 247,
-      "chicago blackhawks": 247,
+      "chicago blackhawks": 248,
       "vegas golden knights": 247,
-      "seattle kraken": 246,
+      "seattle kraken": 247,
       "toronto maple leafs": 248,
       "montreal canadiens": 247,
       "carolina hurricanes": 247,
       "ottawa senators": 246,
       "boston bruins": 247,
-      "calgary flames": 246,
+      "calgary flames": 247,
       "winnipeg jets": 246,
-      "vancouver canucks": 247,
-      "edmonton oilers": 247,
+      "vancouver canucks": 248,
+      "edmonton oilers": 248,
       "los angeles kings": 247,
       "colorado avalanche": 247,
-      "buffalo sabres": 246,
-      "new york rangers": 247,
-      "columbus blue jackets": 246,
-      "philadelphia flyers": 247,
-      "new jersey devils": 246,
+      "buffalo sabres": 247,
+      "new york rangers": 248,
+      "columbus blue jackets": 247,
+      "philadelphia flyers": 248,
+      "new jersey devils": 247,
       "detroit red wings": 246,
       "dallas stars": 246,
       "st louis blues": 246,
-      "minnesota wild": 246,
-      "florida panthers": 247,
-      "san jose sharks": 246,
+      "minnesota wild": 247,
+      "florida panthers": 248,
+      "san jose sharks": 247,
       "washington capitals": 246,
       "new york islanders": 247,
       "anaheim ducks": 246,
-      "utah mammoth": 82
+      "utah mammoth": 83
     },
     "h2h": {
       "nashville predators::tampa bay lightning": {
@@ -30873,9 +30878,9 @@
         "games": 9
       },
       "edmonton oilers::vancouver canucks": {
-        "a_wins": 5,
+        "a_wins": 6,
         "b_wins": 7,
-        "games": 12
+        "games": 13
       },
       "colorado avalanche::los angeles kings": {
         "a_wins": 8,
@@ -31239,8 +31244,8 @@
       },
       "florida panthers::san jose sharks": {
         "a_wins": 4,
-        "b_wins": 2,
-        "games": 6
+        "b_wins": 3,
+        "games": 7
       },
       "colorado avalanche::new york islanders": {
         "a_wins": 3,
@@ -31569,8 +31574,8 @@
       },
       "calgary flames::seattle kraken": {
         "a_wins": 5,
-        "b_wins": 6,
-        "games": 11
+        "b_wins": 7,
+        "games": 12
       },
       "chicago blackhawks::new jersey devils": {
         "a_wins": 0,
@@ -32088,9 +32093,9 @@
         "games": 9
       },
       "new jersey devils::philadelphia flyers": {
-        "a_wins": 4,
+        "a_wins": 5,
         "b_wins": 7,
-        "games": 11
+        "games": 12
       },
       "buffalo sabres::st louis blues": {
         "a_wins": 3,
@@ -32098,9 +32103,9 @@
         "games": 6
       },
       "minnesota wild::nashville predators": {
-        "a_wins": 6,
+        "a_wins": 7,
         "b_wins": 5,
-        "games": 11
+        "games": 12
       },
       "vancouver canucks::vegas golden knights": {
         "a_wins": 2,
@@ -32474,8 +32479,8 @@
       },
       "buffalo sabres::columbus blue jackets": {
         "a_wins": 4,
-        "b_wins": 5,
-        "games": 9
+        "b_wins": 6,
+        "games": 10
       },
       "carolina hurricanes::vegas golden knights": {
         "a_wins": 4,
@@ -32588,9 +32593,9 @@
         "games": 9
       },
       "new york rangers::tampa bay lightning": {
-        "a_wins": 5,
+        "a_wins": 6,
         "b_wins": 4,
-        "games": 9
+        "games": 10
       },
       "edmonton oilers::los angeles kings": {
         "a_wins": 5,
@@ -33174,8 +33179,8 @@
       },
       "chicago blackhawks::utah mammoth": {
         "a_wins": 4,
-        "b_wins": 0,
-        "games": 4
+        "b_wins": 1,
+        "games": 5
       },
       "calgary flames::utah mammoth": {
         "a_wins": 2,
@@ -33318,7 +33323,7 @@
         "games": 2
       }
     },
-    "last_updated": "2026-09-30"
+    "last_updated": "2026-10-01"
   },
   "soccer": {
     "ratings": {
@@ -33357,7 +33362,7 @@
       "orlando": 1510.89,
       "philadelphia": 1602.89,
       "austin": 1489.68,
-      "sporting kc": 1383.97,
+      "sporting kc": 1376.37,
       "houston": 1504.06,
       "dallas": 1570.37,
       "nashville": 1634.97,
@@ -33366,7 +33371,7 @@
       "colorado": 1467.64,
       "san jose": 1513.85,
       "salt lake": 1421.68,
-      "seattle": 1502.22,
+      "seattle": 1509.82,
       "charlotte": 1547.45,
       "portland": 1459.26,
       "vancouver": 1573.32,
@@ -33665,7 +33670,7 @@
       "orlando": 62,
       "philadelphia": 64,
       "austin": 63,
-      "sporting kc": 60,
+      "sporting kc": 61,
       "houston": 61,
       "dallas": 63,
       "nashville": 64,
@@ -33674,7 +33679,7 @@
       "colorado": 61,
       "san jose": 61,
       "salt lake": 62,
-      "seattle": 63,
+      "seattle": 64,
       "charlotte": 64,
       "portland": 65,
       "vancouver": 65,
@@ -33973,7 +33978,7 @@
       "orlando": 62,
       "philadelphia": 64,
       "austin": 63,
-      "sporting kc": 60,
+      "sporting kc": 61,
       "houston": 61,
       "dallas": 63,
       "nashville": 64,
@@ -33982,7 +33987,7 @@
       "colorado": 61,
       "san jose": 61,
       "salt lake": 62,
-      "seattle": 63,
+      "seattle": 64,
       "charlotte": 64,
       "portland": 65,
       "vancouver": 65,
@@ -36407,9 +36412,9 @@
         "games": 1
       },
       "seattle::sporting kc": {
-        "a_wins": 2,
+        "a_wins": 3,
         "b_wins": 0,
-        "games": 2
+        "games": 3
       },
       "charlotte::nycfc": {
         "a_wins": 2,
@@ -47087,7 +47092,7 @@
         "games": 1
       }
     },
-    "last_updated": "2026-09-30"
+    "last_updated": "2026-10-01"
   },
   "ncaaf": {
     "ratings": {
@@ -47227,7 +47232,7 @@
       "nevada": 1341.6,
       "new hampshire": 1395.96,
       "new mexico": 1591.86,
-      "new mexico state": 1363.16,
+      "new mexico state": 1415.53,
       "nicholls": 1342.87,
       "norfolk state": 1397.02,
       "north alabama": 1403.04,
@@ -47236,7 +47241,7 @@
       "north carolina central": 1436.03,
       "north dakota": 1421.79,
       "north dakota state": 1796.23,
-      "north texas": 1605.08,
+      "north texas": 1619.89,
       "northern arizona": 1457.36,
       "northern colorado": 1382.63,
       "northern illinois": 1359.87,
@@ -47307,7 +47312,7 @@
       "towson": 1381.93,
       "troy": 1559.23,
       "tulane": 1614.03,
-      "tulsa": 1432.3,
+      "tulsa": 1417.49,
       "tusculum": 1489.3,
       "uab": 1426.56,
       "ualbany": 1431.65,
@@ -47339,7 +47344,7 @@
       "west virginia": 1548.92,
       "western carolina": 1422.24,
       "western illinois": 1367.97,
-      "western kentucky": 1545.79,
+      "western kentucky": 1493.42,
       "western michigan": 1564.13,
       "william mary": 1448.44,
       "wisconsin": 1585.07,
@@ -47495,7 +47500,7 @@
       "nevada": 66,
       "new hampshire": 8,
       "new mexico": 65,
-      "new mexico state": 68,
+      "new mexico state": 69,
       "nicholls": 15,
       "norfolk state": 9,
       "north alabama": 9,
@@ -47504,7 +47509,7 @@
       "north carolina central": 5,
       "north dakota": 14,
       "north dakota state": 78,
-      "north texas": 70,
+      "north texas": 71,
       "northern arizona": 11,
       "northern colorado": 10,
       "northern illinois": 67,
@@ -47575,7 +47580,7 @@
       "towson": 12,
       "troy": 70,
       "tulane": 72,
-      "tulsa": 65,
+      "tulsa": 66,
       "tusculum": 1,
       "uab": 66,
       "ualbany": 6,
@@ -47607,7 +47612,7 @@
       "west virginia": 67,
       "western carolina": 6,
       "western illinois": 12,
-      "western kentucky": 72,
+      "western kentucky": 73,
       "western michigan": 68,
       "william mary": 9,
       "wisconsin": 67,
@@ -47640,7 +47645,7 @@
       "stanford": 4,
       "hawaii": 4,
       "florida state": 4,
-      "new mexico state": 4,
+      "new mexico state": 5,
       "unlv": 4,
       "memphis": 4,
       "utah": 4,
@@ -47686,7 +47691,7 @@
       "texas": 4,
       "texas state": 4,
       "indiana": 4,
-      "north texas": 4,
+      "north texas": 5,
       "texas a m": 4,
       "missouri state": 4,
       "lsu": 4,
@@ -47748,7 +47753,7 @@
       "fordham": 2,
       "app state": 4,
       "maine": 2,
-      "tulsa": 4,
+      "tulsa": 5,
       "oklahoma state": 4,
       "arkansas": 4,
       "north alabama": 1,
@@ -47801,7 +47806,7 @@
       "central michigan": 4,
       "mississippi valley state delta devils": 1,
       "nevada": 4,
-      "western kentucky": 4,
+      "western kentucky": 5,
       "middle tennessee": 3,
       "murray state": 2,
       "california": 4,
@@ -49513,8 +49518,18 @@
         "a_wins": 1,
         "b_wins": 0,
         "games": 1
+      },
+      "new mexico state::western kentucky": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
+      },
+      "north texas::tulsa": {
+        "a_wins": 1,
+        "b_wins": 0,
+        "games": 1
       }
     },
-    "last_updated": "2026-09-26"
+    "last_updated": "2026-10-01"
   }
 }

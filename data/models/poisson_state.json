@@ -91,9 +91,9 @@
         "games": 24
       },
       "steelers": {
-        "attack": 0.9282448364298828,
-        "defense": 0.9799408282122961,
-        "games": 21
+        "attack": 0.9371284681088409,
+        "defense": 1.0060372573775893,
+        "games": 22
       },
       "bills": {
         "attack": 1.2769030605671323,
@@ -111,9 +111,9 @@
         "games": 20
       },
       "browns": {
-        "attack": 0.7211747620917971,
-        "defense": 0.9656089280480222,
-        "games": 20
+        "attack": 0.7412946306624674,
+        "defense": 0.9752902053705964,
+        "games": 21
       },
       "packers": {
         "attack": 0.9783441210688864,
@@ -166,7 +166,7 @@
         "games": 23
       }
     },
-    "last_updated": "2026-09-28"
+    "last_updated": "2026-10-01"
   },
   "baseball": {
     "league_avg": {
@@ -215,9 +215,9 @@
         "games": 121
       },
       "braves": {
-        "attack": 0.87488058505824,
-        "defense": 0.8841406219363536,
-        "games": 119
+        "attack": 0.8789200406653026,
+        "defense": 0.8804098573570952,
+        "games": 120
       },
       "orioles": {
         "attack": 0.8849909905991277,
@@ -260,9 +260,9 @@
         "games": 120
       },
       "phillies": {
-        "attack": 0.9718850972574754,
-        "defense": 0.9554044470915923,
-        "games": 124
+        "attack": 0.9679481222675743,
+        "defense": 0.9596392436570429,
+        "games": 125
       },
       "yankees": {
         "attack": 1.0341680266794935,
@@ -325,7 +325,7 @@
         "games": 119
       }
     },
-    "last_updated": "2026-09-30"
+    "last_updated": "2026-10-01"
   },
   "ncaab": {
     "league_avg": {
@@ -1670,9 +1670,9 @@
         "games": 84
       },
       "fever": {
-        "attack": 1.0786391424494315,
-        "defense": 1.0255271130926904,
-        "games": 92
+        "attack": 1.0780109914906784,
+        "defense": 1.0258075637862087,
+        "games": 93
       },
       "sky": {
         "attack": 0.9737257705529034,
@@ -1680,9 +1680,9 @@
         "games": 82
       },
       "aces": {
-        "attack": 1.0724789731428512,
-        "defense": 1.0144130710306412,
-        "games": 96
+        "attack": 1.072760169293988,
+        "defense": 1.0138466832155777,
+        "games": 97
       },
       "fire": {
         "attack": 1.0601622656500431,
@@ -1779,7 +1779,7 @@
         "games": 1
       }
     },
-    "last_updated": "2026-09-30"
+    "last_updated": "2026-10-01"
   },
   "nba": {
     "league_avg": {
@@ -3074,24 +3074,24 @@
     },
     "teams": {
       "minnesota wild": {
-        "attack": 0.9866,
-        "defense": 0.9747,
-        "games": 246
-      },
-      "edmonton oilers": {
-        "attack": 1.0985261058567355,
-        "defense": 0.9792366559480511,
+        "attack": 0.9865254265790733,
+        "defense": 0.9720702388974148,
         "games": 247
       },
+      "edmonton oilers": {
+        "attack": 1.1057764752147528,
+        "defense": 0.9844108290483379,
+        "games": 248
+      },
       "san jose sharks": {
-        "attack": 0.8434,
-        "defense": 1.2322,
-        "games": 246
+        "attack": 0.8455018411288158,
+        "defense": 1.2312432333293852,
+        "games": 247
       },
       "utah mammoth": {
-        "attack": 1.0562,
-        "defense": 0.9458,
-        "games": 82
+        "attack": 1.0633789393966255,
+        "defense": 0.9368144578313253,
+        "games": 83
       },
       "vegas golden knights": {
         "attack": 1.0613885968613437,
@@ -3109,14 +3109,14 @@
         "games": 246
       },
       "seattle kraken": {
-        "attack": 0.9064,
-        "defense": 1.0036,
-        "games": 246
+        "attack": 0.910804546397819,
+        "defense": 1.0009296274550894,
+        "games": 247
       },
       "new jersey devils": {
-        "attack": 0.9669,
-        "defense": 0.9971,
-        "games": 246
+        "attack": 0.966617438486847,
+        "defense": 0.9959311866187603,
+        "games": 247
       },
       "dallas stars": {
         "attack": 1.1219,
@@ -3124,9 +3124,9 @@
         "games": 246
       },
       "chicago blackhawks": {
-        "attack": 0.8115077821341637,
-        "defense": 1.1324749003960624,
-        "games": 247
+        "attack": 0.8090420249481388,
+        "defense": 1.135051038378108,
+        "games": 248
       },
       "st. louis blues": {
         "attack": 0.9511,
@@ -3134,9 +3134,9 @@
         "games": 246
       },
       "tampa bay lightning": {
-        "attack": 1.1495,
-        "defense": 0.9432,
-        "games": 246
+        "attack": 1.1462544052482408,
+        "defense": 0.9455935715314426,
+        "games": 247
       },
       "arizona coyotes": {
         "attack": 1.0089,
@@ -3144,9 +3144,9 @@
         "games": 82
       },
       "buffalo sabres": {
-        "attack": 1.0549,
-        "defense": 1.0168,
-        "games": 246
+        "attack": 1.0544057108756306,
+        "defense": 1.0202405432286477,
+        "games": 247
       },
       "toronto maple leafs": {
         "attack": 1.078638982050708,
@@ -3154,19 +3154,19 @@
         "games": 248
       },
       "florida panthers": {
-        "attack": 1.0101996213350077,
-        "defense": 0.9153919028340081,
-        "games": 247
+        "attack": 1.0094183942218675,
+        "defense": 0.917663956725607,
+        "games": 248
       },
       "columbus blue jackets": {
-        "attack": 1.0023,
-        "defense": 1.0785,
-        "games": 246
+        "attack": 1.0056914796204501,
+        "defense": 1.0779946527437365,
+        "games": 247
       },
       "new york rangers": {
-        "attack": 1.0160825910931175,
-        "defense": 0.9640847547180839,
-        "games": 247
+        "attack": 1.0186507204871238,
+        "defense": 0.9613736530477204,
+        "games": 248
       },
       "montreal canadiens": {
         "attack": 1.0034468172638382,
@@ -3174,9 +3174,9 @@
         "games": 247
       },
       "calgary flames": {
-        "attack": 0.9064,
-        "defense": 1.0089,
-        "games": 246
+        "attack": 0.9039882566015275,
+        "defense": 1.0138026333415264,
+        "games": 247
       },
       "anaheim ducks": {
         "attack": 0.9169,
@@ -3189,9 +3189,9 @@
         "games": 82
       },
       "vancouver canucks": {
-        "attack": 0.9647696324068058,
-        "defense": 1.0419423470994142,
-        "games": 247
+        "attack": 0.9698673634298953,
+        "defense": 1.0488192586502223,
+        "games": 248
       },
       "los angeles kings": {
         "attack": 0.9623944048702151,
@@ -3204,9 +3204,9 @@
         "games": 246
       },
       "nashville predators": {
-        "attack": 0.959,
-        "defense": 1.0391,
-        "games": 246
+        "attack": 0.9564125978276607,
+        "defense": 1.0390214582995287,
+        "games": 247
       },
       "colorado avalanche": {
         "attack": 1.1668128917345646,
@@ -3224,9 +3224,9 @@
         "games": 247
       },
       "philadelphia flyers": {
-        "attack": 0.9467643724696356,
-        "defense": 1.0427444838801858,
-        "games": 247
+        "attack": 0.9456590381927585,
+        "defense": 1.0424409867275728,
+        "games": 248
       },
       "new york islanders": {
         "attack": 0.9210646576172122,
@@ -3244,7 +3244,7 @@
         "games": 246
       }
     },
-    "last_updated": "2026-09-30"
+    "last_updated": "2026-10-01"
   },
   "soccer": {
     "league_avg": {
@@ -3333,9 +3333,9 @@
         "games": 43
       },
       "seattle": {
-        "attack": 1.0964591673680881,
-        "defense": 0.9824630093187651,
-        "games": 63
+        "attack": 1.0919716245249365,
+        "defense": 0.9807663952061428,
+        "games": 64
       },
       "mazatlan fc": {
         "attack": 0.8768,
@@ -4103,9 +4103,9 @@
         "games": 65
       },
       "sporting kc": {
-        "attack": 0.9191343451379458,
-        "defense": 1.5721402896546277,
-        "games": 60
+        "attack": 0.9174690316443863,
+        "defense": 1.5653894532847072,
+        "games": 61
       },
       "dallas": {
         "attack": 1.1631530093255642,
@@ -4773,7 +4773,7 @@
         "games": 1
       }
     },
-    "last_updated": "2026-09-30"
+    "last_updated": "2026-10-01"
   },
   "ncaaf": {
     "league_avg": {
@@ -4849,7 +4849,7 @@
       "new mexico state": {
         "attack": 3.0,
         "defense": 3.0,
-        "games": 4
+        "games": 5
       },
       "unlv": {
         "attack": 2.666666666666667,
@@ -5078,8 +5078,8 @@
       },
       "north texas": {
         "attack": 3.0,
-        "defense": 2.666666666666667,
-        "games": 4
+        "defense": 2.7333333333333334,
+        "games": 5
       },
       "texas a m": {
         "attack": 2.6666666666666665,
@@ -5387,9 +5387,9 @@
         "games": 2
       },
       "tulsa": {
-        "attack": 2.6666666666666665,
-        "defense": 2.3000000000000003,
-        "games": 4
+        "attack": 2.7333333333333334,
+        "defense": 2.4400000000000004,
+        "games": 5
       },
       "oklahoma state": {
         "attack": 3.0,
@@ -5652,9 +5652,9 @@
         "games": 4
       },
       "western kentucky": {
-        "attack": 2.3000000000000003,
-        "defense": 2.8398876404494384,
-        "games": 4
+        "attack": 2.4400000000000004,
+        "defense": 2.8719101123595507,
+        "games": 5
       },
       "middle tennessee": {
         "attack": 3.0,
@@ -5952,6 +5952,6 @@
         "games": 1
       }
     },
-    "last_updated": "2026-09-26"
+    "last_updated": "2026-10-01"
   }
 }
