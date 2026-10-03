@@ -372,3 +372,68 @@ class TestNflLadderOnly:
         shown = build("sharp+sharp_ladder")
         assert hidden is not None and hidden.full_blend is False
         assert shown is not None and shown.full_blend is True
+
+
+# --- Orientation: a rung prices the YES contract only for the team that LAYS it --
+
+class TestLadderOrientation:
+    """Pinnacle's outcome_a is always the team laying points at a rung, so the
+    ``-16.5`` rung offers "Patriots -16.5 / Seahawks +16.5". A venue YES contract
+    "Seahawks win by over 16.5" (the underdog LAYING 16.5) is NOT on that rung.
+    Matching by |line| alone priced it at the +16.5 side's ~55% against a 3c ask
+    (the 2026-10-03 dashboard screenshot: +1000-2000% EV)."""
+
+    HOME, AWAY = "New England Patriots", "Seattle Seahawks"
+
+    def _recs(self):
+        return TestMatcherNearestSpread()._sharps("nfl", self.HOME, self.AWAY, -3.0, [-16.5])
+
+    def _market(self, yes_team, line):
+        _, ed = self._recs()
+        return PredictionMarket(
+            id="k1", source=MarketSource.kalshi, sector="nfl",
+            market_type=MarketType.spread, yes_price=0.05, no_price=0.97,
+            team_home=self.HOME, team_away=self.AWAY,
+            yes_team=yes_team, line=line, event_date=ed)
+
+    def test_matcher_picks_rung_for_the_laying_team(self, nfl_ladder):
+        recs, _ = self._recs()
+        res = MatchingEngine().match(self._market(self.HOME, -16.5), recs)
+        assert res and res[0].spread_line == pytest.approx(-16.5)
+
+    def test_matcher_skips_rung_when_yes_team_is_the_other_side(self, nfl_ladder):
+        recs, _ = self._recs()
+        res = MatchingEngine().match(self._market(self.AWAY, -16.5), recs)
+        # underdog "wins by over 16.5": no Pinnacle rung → main-line record (PMF path)
+        assert res and res[0].spread_line == pytest.approx(-3.0)
+        assert res[0].is_alternate is False
+
+    def test_matcher_hits_rung_for_points_getting_side_with_positive_line(self, nfl_ladder):
+        # Polymarket US convention: YES = long side at its own signed handicap.
+        recs, _ = self._recs()
+        res = MatchingEngine().match(self._market(self.AWAY, +16.5), recs)
+        assert res and res[0].spread_line == pytest.approx(-16.5)
+
+    def _eval(self, market, rung):
+        return EVGapAgent()._evaluate_pair(
+            market=market, sharp=rung, confidence=95.0, sector="nfl",
+            blended_preds={}, injuries={}, model_sources={}, kelly_base=0.25, steam_events=set())
+
+    def _rung(self):
+        r = TestEvGapLadderPricing()._rung("nfl", -16.5, 0.45, is_alt=True)
+        return r.model_copy(update={"outcome_a_label": "patriots", "outcome_b_label": "seahawks"})
+
+    def test_underdog_laying_the_line_is_never_priced_off_the_rung(self, nfl_ladder):
+        gap = self._eval(self._market("seahawks", -16.5), self._rung())
+        assert gap is None or "sharp_ladder" not in gap.model_sources
+        assert gap is None or gap.blended_true_prob < 0.2   # not the +16.5 side's 55%
+
+    def test_favorite_laying_the_line_is_priced_off_the_rung(self, nfl_ladder):
+        gap = self._eval(self._market("patriots", -16.5), self._rung())
+        assert gap is not None and "sharp_ladder" in gap.model_sources
+        assert gap.blended_true_prob == pytest.approx(0.45, abs=0.002)
+
+    def test_underdog_getting_points_uses_the_other_side_of_the_rung(self, nfl_ladder):
+        gap = self._eval(self._market("seahawks", +16.5), self._rung())
+        assert gap is not None and "sharp_ladder" in gap.model_sources
+        assert gap.blended_true_prob == pytest.approx(0.55, abs=0.002)

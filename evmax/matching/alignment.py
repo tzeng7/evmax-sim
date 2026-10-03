@@ -333,6 +333,30 @@ def align_yes_side(
     return None
 
 
+def spread_rung_prices_yes(
+    market: PredictionMarket,
+    sharp: SharpOdds,
+    alignment: Optional[Alignment],
+    tolerance: float,
+) -> bool:
+    """True when Pinnacle's spread rung ``sharp`` is the SAME bet as the YES contract.
+
+    Pinnacle's ``outcome_a`` is always the team LAYING points at a rung
+    (``spread_line`` < 0) and ``outcome_b`` the team getting them, so the
+    ``-16.5`` rung offers "A -16.5 / B +16.5". A venue YES contract is "T at
+    handicap L" (Kalshi: T wins by over |L|, L < 0; Polymarket US: the long
+    side's own signed handicap). It sits on the rung only when T's handicap at
+    that rung equals L — comparing |line| alone priced "underdog wins by over
+    16.5" off the underdog's +16.5 cover (~55% against a 3c ask).
+    """
+    if alignment is None or sharp.spread_line is None or market.line is None:
+        return False
+    if alignment.outcome not in (YesOutcome.A, YesOutcome.B):
+        return False
+    yes_line = -sharp.spread_line if alignment.is_outcome_b else sharp.spread_line
+    return abs(yes_line - market.line) <= tolerance
+
+
 def alignment_looks_suspect(alignment: Alignment, ask: float, sharp: SharpOdds) -> bool:
     """True when the OTHER two-way side sits on the ask while the assigned side is far.
 
