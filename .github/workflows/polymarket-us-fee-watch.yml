@@ -1,0 +1,93 @@
+# Scheduled canary: watch Polymarket US's published fee schedule for drift.
+#
+# docs.polymarket.us/fees (markdown twin: /fees.md) is the authoritative source for
+# the taker/maker theta that evmax/fees.py hard-codes. This job fetches it weekly,
+# extracts the thetas + effective date + rounding rule + fee-by-price table, and
+# also sweeps every market's public `feeCoefficient` (per-league override canary),
+# and diffs them against data/polymarket_us_fee_schedule.snapshot.json, the live
+# fees.py constants and polymarket_us_order_fee itself. (The theta moved
+# 0.06 -> 0.0695 on 2026-10-01 with no alert — this is the canary for that.)
+#
+# Same posture as kalshi-fee-watch.yml: separate from ci.yml (network), fails + opens
+# a GitHub issue on drift, fetch/parse failure is INCONCLUSIVE (warning only).
+
+name: Polymarket US fee watch
+
+on:
+  schedule:
+    - cron: "23 13 * * 1" # Mondays 13:17 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: polymarket-us-fee-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Watch Polymarket US fee schedule
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          version: "0.7.17"
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Check Polymarket US fee schedule
+        id: check
+        continue-on-error: true # the explicit "Fail on drift" step gates the job
+        run: uv run python scripts/check_polymarket_us_fees.py
+
+      - name: Open or update drift issue
+        if: steps.check.outputs.verdict == 'hard_drift' || steps.check.outputs.verdict == 'soft_drift'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERDICT: ${{ steps.check.outputs.verdict }}
+          SUMMARY: ${{ steps.check.outputs.summary }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="Polymarket US fee schedule drift detected"
+          {
+            echo "The scheduled fee watch flagged **${VERDICT}**."
+            echo ""
+            echo "> ${SUMMARY}"
+            echo ""
+            echo "**Action:** if a rate changed, reconcile \`evmax/fees.py\`, then regenerate the snapshot:"
+            echo '```'
+            echo "uv run scripts/check_polymarket_us_fees.py --update"
+            echo '```'
+            echo ""
+            echo "Source: https://docs.polymarket.us/fees"
+            echo "Run log: ${RUN_URL}"
+          } > fee-issue.md
+          existing="$(gh issue list --state open --search "in:title ${title}" --json number --jq '.[0].number' || true)"
+          if [ -n "${existing}" ]; then
+            gh issue comment "${existing}" --body-file fee-issue.md
+          else
+            gh issue create --title "${title}" --body-file fee-issue.md --label polymarket-us-fee-drift \
+              || gh issue create --title "${title}" --body-file fee-issue.md
+          fi
+
+      - name: Note inconclusive check
+        if: steps.check.outputs.verdict == 'inconclusive'
+        env:
+          SUMMARY: ${{ steps.check.outputs.summary }}
+        run: echo "::warning title=Polymarket US fee watch inconclusive::${SUMMARY} — will retry next run."
+
+      - name: Fail on drift
+        if: steps.check.outputs.verdict == 'hard_drift' || steps.check.outputs.verdict == 'soft_drift'
+        env:
+          SUMMARY: ${{ steps.check.outputs.summary }}
+        run: |
+          echo "::error title=Polymarket US fee schedule drift::${SUMMARY}"
+          exit 1

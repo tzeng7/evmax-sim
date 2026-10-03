@@ -108,7 +108,7 @@ class TestEffectivePrice:
         assert effective_price(-0.1, "kalshi") == -0.1
 
     def test_polymarket_taker_cheaper_than_kalshi(self):
-        """PolyUS taker theta (0.06) < Kalshi taker (0.07) at the same price."""
+        """PolyUS taker theta (0.0695) < Kalshi taker (0.07) at the same price."""
         assert effective_price(0.50, "polymarket_us") < effective_price(0.50, "kalshi")
         assert math.isclose(
             effective_price(0.50, "polymarket_us") - 0.50,

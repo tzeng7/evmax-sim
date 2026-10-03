@@ -52,22 +52,22 @@ class TestKalshiFees:
 
 class TestPolymarketUSFees:
     def test_taker_prob_at_midpoint(self):
-        # 0.06 * 0.5 * 0.5 = 0.015 → $1.50 per 100 contracts (documented max)
-        assert polymarket_us_fee_prob(0.5) == pytest.approx(0.015)
+        # 0.0695 * 0.5 * 0.5 = 0.017375 → $1.74 per 100 contracts (documented max)
+        assert polymarket_us_fee_prob(0.5) == pytest.approx(0.017375)
 
     def test_maker_is_rebate(self):
         assert polymarket_us_fee_prob(0.5, maker=True) == pytest.approx(-0.0125 * 0.25)
         assert polymarket_us_fee_prob(0.5, maker=True) < 0
 
     def test_order_fee_100_contracts(self):
-        assert polymarket_us_order_fee(0.5, 100) == pytest.approx(1.50)
+        assert polymarket_us_order_fee(0.5, 100) == pytest.approx(1.74)
 
     def test_bankers_rounding_half_to_even(self):
         # From the fee docs: $0.025 rounds to $0.02 (even), $0.035 to $0.04.
-        # 0.025 raw: theta*C*p*(1-p) = 0.06*C*0.5*0.5 → C = 0.025/0.015
-        contracts_a = 0.025 / 0.015
+        # 0.025 raw: theta*C*p*(1-p) = 0.0695*C*0.5*0.5 → C = 0.025/0.017375
+        contracts_a = 0.025 / 0.017375
         assert polymarket_us_order_fee(0.5, contracts_a) == pytest.approx(0.02)
-        contracts_b = 0.035 / 0.015
+        contracts_b = 0.035 / 0.017375
         assert polymarket_us_order_fee(0.5, contracts_b) == pytest.approx(0.04)
 
     def test_maker_order_fee_negative(self):
@@ -144,7 +144,7 @@ class TestProphetXFees:
 class TestVenueDispatch:
     def test_dispatch(self):
         assert venue_fee_prob("kalshi", 0.5) == pytest.approx(0.0175)
-        assert venue_fee_prob("polymarket_us", 0.5) == pytest.approx(0.015)
+        assert venue_fee_prob("polymarket_us", 0.5) == pytest.approx(0.017375)
         assert venue_fee_prob("novig", 0.5) == pytest.approx(0.0075)
         assert venue_fee_prob("prophetx", 0.5) == pytest.approx(prophetx_fee_prob(0.5))
 
