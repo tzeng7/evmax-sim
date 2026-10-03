@@ -19,6 +19,7 @@ from typing import Optional
 import structlog
 
 from evmax.clients.time_util import kalshi_game_day
+from evmax.matching.alignment import align_yes_side, spread_rung_prices_yes
 from evmax.matching.fuzzy import fuzzy_match_event_keys
 from evmax.matching.normalizer import NameNormalizer
 from evmax.models.market import MarketType, PredictionMarket
@@ -281,9 +282,16 @@ class MatchingEngine:
             if so.spread_line is None:
                 continue
             dist = abs(target - abs(so.spread_line))
-            if dist <= tolerance and dist < best_dist:
-                best_dist = dist
-                best_so = so
+            if not (dist <= tolerance and dist < best_dist):
+                continue
+            # Same |line| is not the same bet: the YES team must be the one
+            # that holds this handicap on the rung (see spread_rung_prices_yes).
+            if not spread_rung_prices_yes(
+                market, so, align_yes_side(market, so, normalizer), tolerance,
+            ):
+                continue
+            best_dist = dist
+            best_so = so
         if best_so is None:
             return None
         # Exact line → 98; a half-point off → 93.

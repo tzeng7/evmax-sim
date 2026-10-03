@@ -30,7 +30,12 @@ from evmax.ev.calculator import (
 from evmax.ev.kelly import KellyResult, compute_kelly
 from evmax.ev.sizing import SizingConfig, edge_is_quarantined, size_position
 from evmax.formatting import format_outcome_label
-from evmax.matching.alignment import YesOutcome, align_yes_side, alignment_looks_suspect
+from evmax.matching.alignment import (
+    YesOutcome,
+    align_yes_side,
+    alignment_looks_suspect,
+    spread_rung_prices_yes,
+)
 from evmax.matching.engine import MatchingEngine
 from evmax.matching.prop_matcher import PropMatcher
 from evmax.modes import get_mode
@@ -878,10 +883,14 @@ class EVGapAgent(Agent):
             # and a main-line rung still takes the CDF path below).
             ladder_hit = (
                 spread_ladder_enabled(sector)
-                and sharp.spread_line is not None
-                and abs(abs(sharp.spread_line) - abs(market.line))
-                <= spread_ladder_tolerance(sector)
+                and spread_rung_prices_yes(
+                    market, sharp, alignment, spread_ladder_tolerance(sector),
+                )
             )
+            if not ladder_hit and sharp.is_alternate:
+                # An alternate rung that is not this YES contract's bet cannot
+                # anchor the CDF/PMF either (both anchor on the MAIN line).
+                return _ret(None, None)
             if ladder_hit:
                 used_spread_model = True   # skip the ensemble blend (step 3)
                 used_spread_ladder = True
