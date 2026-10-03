@@ -150,9 +150,9 @@ class MatchingEngine:
         # exact match → the CDF gap-filler (today's behaviour). Inert when the
         # ladder flag is off (no alt rungs are emitted, so this only ever finds
         # the main line, which the exact match would return anyway).
-        from evmax.models_ml.spread_distribution import SPREAD_LADDER_ENABLED
+        from evmax.models_ml.spread_distribution import spread_ladder_enabled
         if (
-            SPREAD_LADDER_ENABLED
+            spread_ladder_enabled(market.sector)
             and market.market_type == MarketType.spread
             and market.line is not None
         ):
@@ -258,7 +258,9 @@ class MatchingEngine:
         match the Pinnacle 16.5 rung; align_yes_side orients the side downstream.
         Considers the main line (event_id ::spread) and every alternate rung
         (::spread::<line>) for this game."""
-        from evmax.models_ml.spread_distribution import SPREAD_LADDER_LINE_TOLERANCE
+        from evmax.models_ml.spread_distribution import spread_ladder_tolerance
+
+        tolerance = spread_ladder_tolerance(market.sector)
 
         if not market.team_home or not market.team_away or not market.event_date:
             return None
@@ -279,7 +281,7 @@ class MatchingEngine:
             if so.spread_line is None:
                 continue
             dist = abs(target - abs(so.spread_line))
-            if dist <= SPREAD_LADDER_LINE_TOLERANCE and dist < best_dist:
+            if dist <= tolerance and dist < best_dist:
                 best_dist = dist
                 best_so = so
         if best_so is None:
