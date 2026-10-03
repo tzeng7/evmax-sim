@@ -510,3 +510,40 @@ def test_baseball_spec_has_totals_disabled():
     spec = get_category("baseball")
     assert "total" in spec.disabled_market_types
     assert "total" not in spec.shadow_market_types
+
+
+def test_nfl_kalshi_totals_shadow_but_polyus_totals_live():
+    """Shipped YAML (2026-10-03): NFL totals clear the CLV gate on PolyUS only."""
+    from datetime import date
+
+    from evmax.modes import get_mode
+
+    spec = get_category("nfl")
+    assert spec.shadow_venue_market_types == {"kalshi": ("total",)}
+    assert "total" not in spec.shadow_market_types
+    d = date(2026, 10, 3)  # inside the NFL season window
+    assert get_mode("nfl", "total", today=d, venue="kalshi") == "shadow"
+    assert get_mode("nfl", "total", today=d, venue="polymarket_us") == "live"
+    assert get_mode("nfl", "moneyline", today=d, venue="kalshi") == "live"
+
+
+def test_shadow_venue_market_types_parses_and_validates(tmp_path):
+    ok = tmp_path / "ok.yaml"
+    _write_yaml(ok, _full_yaml("nba", _base_entry(
+        extra="  shadow_venue_market_types:\n    kalshi: [total]\n")))
+    reload_registry(ok)
+    assert get_category("nba").shadow_venue_market_types == {"kalshi": ("total",)}
+    reload_registry()
+
+    for extra, match in [
+        ("  shadow_venue_market_types:\n    nowhere: [total]\n", "venue"),
+        ("  shadow_venue_market_types:\n    kalshi: [prop_bogus]\n", "market_types"),
+        ("  shadow_venue_market_types: [total]\n", "mapping"),
+        ("  disabled_market_types: [total]\n  shadow_venue_market_types:\n    kalshi: [total]\n",
+         "disabled_market_types"),
+    ]:
+        bad = tmp_path / "bad.yaml"
+        _write_yaml(bad, _full_yaml("nba", _base_entry(extra=extra)))
+        with pytest.raises(ValueError, match=match):
+            reload_registry(bad)
+        reload_registry()

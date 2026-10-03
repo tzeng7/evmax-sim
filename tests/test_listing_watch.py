@@ -16,7 +16,11 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from evmax.archiver import DataArchiver
-from evmax.cli.commands.cleanup import listing_window_markets, resolve_watch_sectors
+from evmax.cli.commands.cleanup import (
+    capture_types_for_sector,
+    listing_window_markets,
+    resolve_watch_sectors,
+)
 from evmax.clients.kalshi import SECTOR_SERIES_MAP, KalshiWSClient, book_depth_metrics
 from evmax.models.market import MarketSource, MarketType, PredictionMarket
 
@@ -417,3 +421,45 @@ class TestCapturePolymarketUsCloses:
         from evmax.cli.commands.cleanup import capture_polymarket_us_closes
 
         assert asyncio.run(capture_polymarket_us_closes({})) == 0
+
+
+# ---------------------------------------------------------------------------
+# capture_types_for_sector (moneyline depth capture for the maker-fill replay)
+# ---------------------------------------------------------------------------
+class TestCaptureTypesForSector:
+    def test_moneyline_sector_adds_moneyline(self):
+        assert capture_types_for_sector({"spread", "total"}, "nfl", {"nfl", "ncaaf"}) == {
+            "spread", "total", "moneyline",
+        }
+
+    def test_other_sector_unchanged(self):
+        assert capture_types_for_sector({"spread", "total"}, "nba", {"nfl", "ncaaf"}) == {
+            "spread", "total",
+        }
+
+    def test_empty_type_set_means_all_and_stays_empty(self):
+        assert capture_types_for_sector(set(), "nfl", {"nfl"}) == set()
+
+    def test_empty_moneyline_sectors_disables(self):
+        assert capture_types_for_sector({"spread"}, "nfl", set()) == {"spread"}
+
+    def test_does_not_mutate_input(self):
+        base = {"spread", "total"}
+        capture_types_for_sector(base, "nfl", {"nfl"})
+        assert base == {"spread", "total"}
+
+    def test_moneyline_market_survives_window_filter_for_nfl_only(self):
+        now = datetime(2026, 10, 1, 18, 0, tzinfo=timezone.utc)
+        ml = _mkt("KXNFLGAME-X-A", MarketType.moneyline, now + timedelta(hours=20))
+        types_nfl = capture_types_for_sector({"spread", "total"}, "nfl", {"nfl"})
+        types_nba = capture_types_for_sector({"spread", "total"}, "nba", {"nfl"})
+        assert listing_window_markets([ml], types_nfl, 72, now=now) == [ml]
+        assert listing_window_markets([ml], types_nba, 72, now=now) == []
+
+    def test_anchored_entry_ignores_moneyline(self):
+        """Widening the capture must not leak moneyline into the anchored-entry feed."""
+        from evmax.agents.cleanup.anchored_entry import build_anchored_entries
+
+        now = datetime(2026, 10, 1, 18, 0, tzinfo=timezone.utc)
+        ml = _mkt("KXNFLGAME-X-A", MarketType.moneyline, now + timedelta(hours=20))
+        assert build_anchored_entries([ml], {}, [], "nfl", now=now) == []

@@ -254,3 +254,35 @@ class TestAppUsesPlaylist:
 
         payload = asyncio.run(web_app.run_dashboard_scan(fan_out_portfolios=False))
         assert seen["fan_out_portfolio_ids"] is None
+
+
+class TestVenueShadowMarketTypes:
+    """NFL totals: shadow on Kalshi (fails its own CLV gate), live on PolyUS."""
+
+    @staticmethod
+    def _spec():
+        from evmax.categories import CategorySpec, MarketType
+
+        # No season_window: the test must not depend on today's date.
+        return CategorySpec(
+            key="nfl", display_name="NFL",
+            market_types=(MarketType.moneyline, MarketType.total),
+            models=("sharp",), mode="live", resolver="none", status="wip",
+            shadow_venue_market_types={"kalshi": ("total",)},
+        )
+
+    def _row(self, monkeypatch, venue):
+        monkeypatch.setattr("evmax.modes.get_category", lambda k: self._spec())
+        return playlist.gap_to_dict(
+            _gap("TOT", sector="nfl", market_type="total", kelly=0.02, venue=venue,
+                 yes_team="over", event_id="nfl::2026-10-04::a_vs_b"),
+            500.0,
+        )
+
+    def test_kalshi_total_is_shadow_with_zero_stake(self, monkeypatch):
+        row = self._row(monkeypatch, "kalshi")
+        assert row["mode"] == "shadow" and row["stake"] == 0.0
+
+    def test_polyus_total_stays_live(self, monkeypatch):
+        row = self._row(monkeypatch, "polymarket_us")
+        assert row["mode"] == "live" and row["stake"] > 0

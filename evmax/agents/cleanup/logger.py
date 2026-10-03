@@ -163,7 +163,9 @@ def log_gaps(
                 # legacy callers / tests work unchanged.
                 if mode_resolver is None:
                     from evmax.modes import get_mode as _get_mode
-                    mode = _get_mode(category, g.market_type)
+                    mode = _get_mode(
+                        category, g.market_type, venue=getattr(g, "venue", None)
+                    )
                 else:
                     mode = resolver(category)
             except Exception as e:

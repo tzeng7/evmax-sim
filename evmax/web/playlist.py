@@ -43,7 +43,9 @@ def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         "prop_threshold": g.prop_threshold,
     }
     try:
-        gap_mode = get_mode(_gap_category_key(g), g.market_type)
+        gap_mode = get_mode(
+            _gap_category_key(g), g.market_type, venue=getattr(g, "venue", None)
+        )
     except Exception:
         gap_mode = "live"
     gap_venue = getattr(g, "venue", "kalshi") or "kalshi"

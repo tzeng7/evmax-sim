@@ -113,6 +113,9 @@ _LEGAL_STATUSES: set[str] = {"shipped", "wip", "unresolved", "blocked"}
 # ---------------------------------------------------------------------------
 
 
+_KNOWN_VENUES = frozenset({"kalshi", "polymarket_us", "novig", "prophetx"})
+
+
 @dataclass(frozen=True)
 class SeasonWindow:
     """Inclusive MM-DD bounds of a regular season.
@@ -170,6 +173,14 @@ class CategorySpec:
     # totals). Validated against market_types and must be disjoint from
     # shadow_market_types at parse time.
     disabled_market_types: tuple[str, ...] = field(default_factory=tuple)
+    # Per-VENUE refinement of shadow_market_types: {venue: (market_type, ...)}.
+    # When the sector mode is 'live', a gap on that venue AND market type is
+    # forced to 'shadow' while the same market type stays live on the other
+    # venues. Lets a market type that clears its CLV gate on one venue (NFL
+    # totals on Polymarket US) go live without also taking a venue that fails
+    # it (Kalshi) live — shadow_market_types is venue-blind. Validated against
+    # market_types and known venue names at parse time.
+    shadow_venue_market_types: dict[str, tuple[str, ...]] = field(default_factory=dict)
     # Optional SeasonWindow bounding the regular season. When set,
     # is_in_season() returns False outside the window so the coordinator can
     # skip dead sectors (saves Kalshi rate-limit + Pinnacle API tokens).
@@ -286,6 +297,35 @@ def _parse_entry(key: str, raw: dict) -> CategorySpec:
                 f"shadow_market_types and disabled_market_types — pick one"
             )
 
+    raw_svm = raw.get("shadow_venue_market_types") or {}
+    if not isinstance(raw_svm, dict):
+        raise ValueError(
+            f"category {key!r}: shadow_venue_market_types must be a mapping of "
+            f"venue -> [market types]"
+        )
+    shadow_venue_market_types: dict[str, tuple[str, ...]] = {}
+    legal_mts = {mt.value for mt in market_types}
+    for venue, mts in raw_svm.items():
+        if venue not in _KNOWN_VENUES:
+            raise ValueError(
+                f"category {key!r}: shadow_venue_market_types venue {venue!r} is "
+                f"not one of {sorted(_KNOWN_VENUES)}"
+            )
+        mts = tuple(mts or ())
+        for mt in mts:
+            if mt not in legal_mts:
+                raise ValueError(
+                    f"category {key!r}: shadow_venue_market_types[{venue!r}] entry "
+                    f"{mt!r} is not in this category's market_types {sorted(legal_mts)}"
+                )
+        overlap = set(mts) & set(disabled_market_types)
+        if overlap:
+            raise ValueError(
+                f"category {key!r}: {sorted(overlap)} appear in both "
+                f"shadow_venue_market_types[{venue!r}] and disabled_market_types"
+            )
+        shadow_venue_market_types[venue] = mts
+
     season_window: Optional[SeasonWindow] = None
     raw_window = raw.get("season_window")
     if raw_window is not None:
@@ -348,6 +388,7 @@ def _parse_entry(key: str, raw: dict) -> CategorySpec:
         notes=notes,
         shadow_market_types=shadow_market_types,
         disabled_market_types=disabled_market_types,
+        shadow_venue_market_types=shadow_venue_market_types,
         season_window=season_window,
         scan_horizon_days=scan_horizon_days,
     )

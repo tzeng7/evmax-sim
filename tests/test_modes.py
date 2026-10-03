@@ -360,3 +360,65 @@ def test_baseball_shipped_yaml_disables_totals():
     assert get_mode("baseball", "total") == "disabled"
     assert get_mode("baseball", "moneyline") != "disabled"
     assert get_mode("baseball", "spread") != "disabled"
+
+
+# -------------------------------------------------------------------------
+# Per-VENUE shadow downgrade (shadow_venue_market_types)
+# -------------------------------------------------------------------------
+
+
+def _venue_spec(mode="live", **kw):
+    from evmax.categories import CategorySpec, MarketType
+
+    return CategorySpec(
+        key="venuecat",
+        display_name="Test",
+        market_types=(MarketType.moneyline, MarketType.spread, MarketType.total),
+        models=("sharp",),
+        mode=mode,
+        resolver="none",
+        status="wip",
+        **kw,
+    )
+
+
+def test_shadow_venue_market_types_downgrades_only_that_venue(monkeypatch):
+    fake = _venue_spec(shadow_venue_market_types={"kalshi": ("total",)})
+    monkeypatch.setattr("evmax.modes.get_category", lambda k: fake)
+
+    assert get_mode("venuecat", "total", venue="kalshi") == "shadow"
+    assert get_mode("venuecat", "total", venue="polymarket_us") == "live"
+    # other market types on the listed venue are untouched
+    assert get_mode("venuecat", "moneyline", venue="kalshi") == "live"
+    assert get_mode("venuecat", "spread", venue="kalshi") == "live"
+
+
+def test_shadow_venue_market_types_is_venue_blind_without_venue(monkeypatch):
+    """Callers that pass no venue keep the pre-existing behaviour."""
+    fake = _venue_spec(shadow_venue_market_types={"kalshi": ("total",)})
+    monkeypatch.setattr("evmax.modes.get_category", lambda k: fake)
+    assert get_mode("venuecat", "total") == "live"
+    assert get_mode("venuecat") == "live"
+
+
+def test_shadow_venue_market_types_inert_when_sector_shadow(monkeypatch):
+    fake = _venue_spec(mode="shadow", shadow_venue_market_types={"kalshi": ("total",)})
+    monkeypatch.setattr("evmax.modes.get_category", lambda k: fake)
+    assert get_mode("venuecat", "total", venue="kalshi") == "shadow"
+    assert get_mode("venuecat", "total", venue="polymarket_us") == "shadow"
+
+
+def test_runtime_override_beats_shadow_venue_market_types(monkeypatch):
+    fake = _venue_spec(shadow_venue_market_types={"kalshi": ("total",)})
+    monkeypatch.setattr("evmax.modes.get_category", lambda k: fake)
+    set_runtime_overrides({"venuecat": "live"})
+    assert get_mode("venuecat", "total", venue="kalshi") == "live"
+
+
+def test_disabled_market_type_still_beats_venue_rule(monkeypatch):
+    fake = _venue_spec(
+        disabled_market_types=("spread",),
+        shadow_venue_market_types={"kalshi": ("total",)},
+    )
+    monkeypatch.setattr("evmax.modes.get_category", lambda k: fake)
+    assert get_mode("venuecat", "spread", venue="kalshi") == "disabled"

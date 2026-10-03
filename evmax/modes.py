@@ -102,6 +102,7 @@ def get_mode(
     category: str,
     market_type: Optional[str] = None,
     today: Optional[date] = None,
+    venue: Optional[str] = None,
 ) -> Mode:
     """Return the effective mode for `category` — runtime > env > YAML.
 
@@ -127,6 +128,11 @@ def get_mode(
     still win (see below), so a deliberate ``--live nfl`` out of season is
     honored.
 
+    If ``venue`` is also provided and the spec lists that (venue, market_type)
+    pair in ``shadow_venue_market_types``, the result is downgraded to
+    ``shadow`` the same way — the venue-specific form of the rule above, for a
+    market type that is validated on one venue but not another.
+
     Runtime + env overrides take precedence — they apply uniformly to all
     market types within a category (no per-market-type override there).
     """
@@ -146,6 +152,13 @@ def get_mode(
         base == "live"
         and market_type
         and market_type in spec.shadow_market_types
+    ):
+        return "shadow"
+    if (
+        base == "live"
+        and market_type
+        and venue
+        and market_type in spec.shadow_venue_market_types.get(venue, ())
     ):
         return "shadow"
     return base

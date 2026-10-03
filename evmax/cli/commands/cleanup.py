@@ -777,6 +777,23 @@ def listing_window_markets(
     return out
 
 
+def capture_types_for_sector(
+    type_set: set[str], sector: str, moneyline_sectors: set[str]
+) -> set[str]:
+    """Market types ``watch-listings`` captures for ``sector``.
+
+    ``type_set`` is the global ``--market-types`` set (empty = all types, left
+    untouched). A sector in ``moneyline_sectors`` additionally captures its
+    moneyline books, so the maker-fill replay (scripts/eval_maker_fill_replay.py)
+    can test resting-order fills on moneyline series. Moneyline markets never
+    reach the anchored-entry feed (``build_anchored_entries`` keeps only
+    spread/total), so this widens the ARCHIVE only.
+    """
+    if type_set and sector in moneyline_sectors:
+        return type_set | {"moneyline"}
+    return type_set
+
+
 def resolve_watch_sectors(sectors: str) -> list[str]:
     """Expand the --sectors option: 'all' → every game sector in SECTOR_SERIES_MAP.
 
@@ -832,6 +849,14 @@ def watch_listings(
              "shadow (Kelly-zeroed) until its own `shadow clv --sources-token "
              "anchored_entry` bucket clears the gate.",
     ),
+    moneyline_sectors: str = typer.Option(
+        "nfl,ncaaf", "--moneyline-sectors",
+        help="Comma-separated sectors that ALSO capture moneyline price + order-book "
+             "depth (default nfl,ncaaf). Archive-only: it feeds the maker-fill replay "
+             "for the moneyline series, which carry a 0.0175 maker fee (spread/total "
+             "series are fee-free) and had zero depth coverage before 2026-10-03. "
+             "Empty string = spread/total only. Inert when --market-types is empty.",
+    ),
     capture_alt_spreads: bool = typer.Option(
         True, "--capture-alt-spreads/--no-capture-alt-spreads",
         help="When capturing spreads, also archive Pinnacle's OWN alternate-spread "
@@ -878,6 +903,7 @@ def watch_listings(
 
     sector_list = resolve_watch_sectors(sectors)
     type_set = {t.strip().lower() for t in market_types.split(",") if t.strip()}
+    ml_set = {x.strip().lower() for x in moneyline_sectors.split(",") if x.strip()}
     entry_set = (
         {s.strip().lower() for s in entry_sectors.split(",") if s.strip()}
         if log_entries else set()
@@ -893,7 +919,9 @@ def watch_listings(
             try:
                 async with KalshiClient() as client:
                     markets = await client.get_markets(sector)
-                    wanted = listing_window_markets(markets, type_set, window)
+                    wanted = listing_window_markets(
+                        markets, capture_types_for_sector(type_set, sector, ml_set), window
+                    )
                     if not wanted:
                         stats[sector] = (0, 0, 0)
                         continue
@@ -1265,6 +1293,103 @@ def _render_prune_actions(actions: list[dict], counts: dict[str, int], *, dry_ru
     console.print(table)
     if dry_run:
         console.print("[dim]Dry run — no changes written. Remove --dry-run to apply.[/dim]")
+
+
+@app.command("maker-orders")
+def maker_orders(
+    days: int = typer.Option(30, "--days", "-d", help="Order history window to sync."),
+    sync: bool = typer.Option(
+        True, "--sync/--no-sync",
+        help="Fetch order history from Kalshi first (READ-ONLY signed GET; needs "
+             "KALSHI_API_KEY_ID + private key). --no-sync reports from the stored table.",
+    ),
+    all_tickers: bool = typer.Option(
+        False, "--all-tickers",
+        help="Keep orders on tickers the scanner never logged (default: only tickers "
+             "that appear in ev_predictions, so the report is about OUR plays).",
+    ),
+) -> None:
+    """Real maker-order fill rate + the fee Kalshi actually charged, per series.
+
+    `agents fill` records only orders that filled, so there is no fill-rate
+    denominator. This reads the account's own order history, stores one row per
+    order (maker_order_attempts), and reports per series: fill rate by order and
+    contract (resting orders excluded), median hours to fill, and the IMPLIED fee
+    multiplier vs the published formulas — the empirical check on which multiplier
+    a series really bills (see agents/cleanup/maker_orders.py).
+    """
+    from evmax.agents.cleanup.db import get_connection
+    from evmax.agents.cleanup import maker_orders as mo
+
+    conn = get_connection()
+    try:
+        if sync:
+            from evmax.clients.kalshi import KalshiClient
+
+            since = int((datetime.now(timezone.utc) - timedelta(days=days)).timestamp())
+
+            async def _fetch():
+                async with KalshiClient() as client:
+                    return await client.get_orders(min_ts=since)
+
+            raw = asyncio.run(_fetch())
+            if raw is None:
+                console.print(
+                    "[red]Could not fetch Kalshi orders[/red] — no API credentials "
+                    "configured, or the request failed. Nothing was stored."
+                )
+                raise typer.Exit(1)
+            attempts, skipped = mo.parse_orders(raw)
+            if not all_tickers:
+                scanned = {
+                    r[0].removeprefix("kalshi:").removesuffix(":no")
+                    for r in conn.execute(
+                        "SELECT DISTINCT market_id FROM ev_predictions WHERE venue='kalshi'"
+                    )
+                }
+                attempts = [a for a in attempts if a.ticker in scanned]
+            n = mo.upsert_attempts(conn, attempts)
+            console.print(
+                f"[green]Synced {n} order(s)[/green] ({len(raw)} fetched"
+                + (f", {skipped} unreadable skipped" if skipped else "") + ")."
+            )
+        attempts = mo.load_attempts(conn)
+    finally:
+        conn.close()
+
+    if not attempts:
+        console.print("[yellow]No stored maker orders yet.[/yellow]")
+        return
+
+    fills = Table(title="Maker-order fill behaviour (resting orders excluded)",
+                  box=box.ROUNDED, header_style="bold cyan")
+    for col in ("Series", "Orders", "Resting", "Crossed", "Resolved", "Filled",
+                "Fill % (orders)", "Fill % (contracts)", "Median h to fill"):
+        fills.add_column(col, justify="right" if col != "Series" else "left")
+    fmt = lambda v, f: "—" if v is None else f.format(v)  # noqa: E731
+    for series, s in mo.fill_summary(attempts).items():
+        fills.add_row(
+            series, str(s["orders"]), str(s["resting"]), str(s["crossed_as_taker"]),
+            str(s["resolved_maker_orders"]), str(s["filled_orders"]),
+            fmt(None if s["fill_rate_orders"] is None else s["fill_rate_orders"] * 100, "{:.0f}%"),
+            fmt(None if s["fill_rate_contracts"] is None else s["fill_rate_contracts"] * 100, "{:.0f}%"),
+            fmt(s["median_hours_to_fill"], "{:.1f}"),
+        )
+    console.print(fills)
+
+    fees = Table(title="Fee Kalshi charged vs published formula (implied multiplier)",
+                 box=box.ROUNDED, header_style="bold cyan")
+    for col in ("Series:kind", "Contracts", "Observed $", "Formula $", "Implied ×"):
+        fees.add_column(col, justify="right" if col != "Series:kind" else "left")
+    for key, f in mo.implied_fee_multipliers(attempts).items():
+        fees.add_row(key, f"{f['contracts']:.0f}", f"{f['observed_fee']:.4f}",
+                     f"{f['expected_fee']:.4f}", fmt(f["implied_multiplier"], "{:.2f}"))
+    console.print(fees)
+    console.print(
+        "[dim]Implied × ≈ 1.0 confirms evmax.fees for that series; ≈ 0.5 means Kalshi bills "
+        "half the published rate. Small orders round fees UP, inflating the ratio — "
+        "trust it only with a few hundred contracts.[/dim]"
+    )
 
 
 @app.command("prune-stale")

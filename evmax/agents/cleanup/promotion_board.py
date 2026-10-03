@@ -51,7 +51,9 @@ logger = structlog.get_logger(__name__)
 SHARP_PASSTHROUGH_PP = 0.5
 
 
-def _effective_mode(sector: str, market_type: str) -> Optional[str]:
+def _effective_mode(
+    sector: str, market_type: str, venue: Optional[str] = None
+) -> Optional[str]:
     """Effective mode for a (sector, market_type), or None if unknown.
 
     Delegates to evmax.modes.get_mode, which already layers runtime/env/YAML
@@ -60,7 +62,7 @@ def _effective_mode(sector: str, market_type: str) -> Optional[str]:
     try:
         from evmax.modes import get_mode
 
-        return get_mode(sector, market_type)
+        return get_mode(sector, market_type, venue=venue)
     except Exception:
         return None
 
@@ -227,7 +229,7 @@ def compute_promotion_board(
             price_bucket=price_bucket,
         )
 
-        mode = _effective_mode(sec, mt)
+        mode = _effective_mode(sec, mt, ven)
         gates = {
             "clean_n": {
                 "value": len(clean),
