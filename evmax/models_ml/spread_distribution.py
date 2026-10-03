@@ -89,9 +89,42 @@ _LOW_SCORING_MAX_ABS_LINE: dict[str, float] = {
 # including for the live NBA/NCAAB/NCAAW spreads. Flip per sector only on the
 # phase-4 replay + CLV evidence (scripts/backtest_spread_ladder_replay.py).
 SPREAD_LADDER_ENABLED: bool = False
+# Per-sector form of the flag: sectors listed here read Pinnacle's alt ladder
+# even while the global flag is off, so one sector can move without touching the
+# live NBA/NCAAB/NCAAW spreads. NFL (2026-10-03): price every rung off the
+# book's own price where Pinnacle posts one.
+SPREAD_LADDER_SECTORS: set[str] = {"nfl"}
 # A venue rung "hits" a Pinnacle rung when their lines agree within this many
 # points (half a point = same line up to Kalshi/Pinnacle half-point convention).
 SPREAD_LADDER_LINE_TOLERANCE: float = 0.5
+# Sectors that require the SAME line instead of the half-point tolerance. NFL has
+# key numbers (3, 7): pricing Kalshi -3.5 off Pinnacle's -3.0 rung (a push line)
+# or -4.0 ignores the mass on 3 and is wrong by several points of probability.
+SPREAD_LADDER_EXACT_SECTORS: set[str] = {"nfl"}
+SPREAD_LADDER_EXACT_TOLERANCE: float = 0.01
+# Sectors where a spread rung is shown / sized only when it was priced off a
+# Pinnacle rung (`sharp_ladder`). A rung with no Pinnacle price at that line
+# still prices through the model (`spread_pmf`) but is flagged full_blend=False:
+# logged shadow for backend evaluation, hidden from the dashboard, the Discord
+# feed and the CLI play table, never sized.
+SPREAD_LADDER_ONLY_SECTORS: set[str] = {"nfl"}
+
+
+def spread_ladder_enabled(sector: Optional[str]) -> bool:
+    """True when `sector` reads Pinnacle's alt-spread ladder."""
+    return SPREAD_LADDER_ENABLED or (sector or "").lower() in SPREAD_LADDER_SECTORS
+
+
+def spread_ladder_tolerance(sector: Optional[str]) -> float:
+    """Max |line| gap for a venue rung to count as a hit on a Pinnacle rung."""
+    if (sector or "").lower() in SPREAD_LADDER_EXACT_SECTORS:
+        return SPREAD_LADDER_EXACT_TOLERANCE
+    return SPREAD_LADDER_LINE_TOLERANCE
+
+
+def spread_ladder_required(sector: Optional[str]) -> bool:
+    """True when only Pinnacle-rung-priced spread rows are shown / sized."""
+    return (sector or "").lower() in SPREAD_LADDER_ONLY_SECTORS and spread_ladder_enabled(sector)
 
 # --- Tail gate for the CDF gap-filler (phase 3, INERT by default) ------------
 # The normal CDF only prices a target line within SPREAD_MAX_SIGMA·σ of the main

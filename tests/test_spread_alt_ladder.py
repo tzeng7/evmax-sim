@@ -24,6 +24,15 @@ from evmax.models.market import MarketSource, MarketType, PredictionMarket
 from evmax.models.odds import SharpBook, SharpOdds
 
 
+@pytest.fixture(autouse=True)
+def _global_flag_semantics(monkeypatch):
+    """The suites below pin the GLOBAL-flag behaviour, so clear the per-sector
+    sets (NFL ships in them). TestNflLadderOnly sets them back explicitly."""
+    monkeypatch.setattr(sd, "SPREAD_LADDER_SECTORS", set())
+    monkeypatch.setattr(sd, "SPREAD_LADDER_EXACT_SECTORS", set())
+    monkeypatch.setattr(sd, "SPREAD_LADDER_ONLY_SECTORS", set())
+
+
 # --- Pinnacle payload builders (real shape) ---------------------------------
 
 def _spread_market(matchup_id, home_points, home_price, away_price, is_alt):
@@ -219,7 +228,7 @@ class TestEvGapLadderPricing:
         )
 
     def test_ladder_uses_book_devig_not_cdf(self, monkeypatch):
-        monkeypatch.setattr(ev_mod, "SPREAD_LADDER_ENABLED", True)
+        monkeypatch.setattr(sd, "SPREAD_LADDER_ENABLED", True)
         agent = EVGapAgent()
         # matched record IS the -16.5 rung; its devigged cover prob is 0.077.
         rung = self._rung("nfl", -16.5, 0.077, is_alt=True)
@@ -236,7 +245,7 @@ class TestEvGapLadderPricing:
         # Flag off: the matched record is the MAIN line (-3); the CDF extrapolates
         # to -16.5. NFL prices with the key-number PMF by default (_PMF_SECTORS),
         # so disable it here to pin the normal-CDF path this test is about.
-        monkeypatch.setattr(ev_mod, "SPREAD_LADDER_ENABLED", False)
+        monkeypatch.setattr(sd, "SPREAD_LADDER_ENABLED", False)
         monkeypatch.setattr(sd, "_PMF_SECTORS", set())
         agent = EVGapAgent()
         main = self._rung("nfl", -3.0, 0.50, is_alt=False)  # pick'em-ish favorite at -3
@@ -251,3 +260,115 @@ class TestEvGapLadderPricing:
         # -3 main is ~0.15-0.16, 2003-25 empirical 0.159; 0.077 is closer to the
         # UNDERDOG winning by 17+.)
         assert gap.blended_true_prob > 0.077
+
+
+# --- NFL: ladder per sector, exact line, model-only rungs are backend-only ------
+
+@pytest.fixture
+def nfl_ladder(monkeypatch):
+    monkeypatch.setattr(sd, "SPREAD_LADDER_ENABLED", False)
+    monkeypatch.setattr(sd, "SPREAD_LADDER_SECTORS", {"nfl"})
+    monkeypatch.setattr(sd, "SPREAD_LADDER_EXACT_SECTORS", {"nfl"})
+    monkeypatch.setattr(sd, "SPREAD_LADDER_ONLY_SECTORS", {"nfl"})
+
+
+class TestNflLadderOnly:
+    def test_helpers_are_per_sector(self, nfl_ladder):
+        assert sd.spread_ladder_enabled("nfl") and not sd.spread_ladder_enabled("nba")
+        assert sd.spread_ladder_tolerance("nfl") < 0.1
+        assert sd.spread_ladder_tolerance("nba") == sd.SPREAD_LADDER_LINE_TOLERANCE
+        assert sd.spread_ladder_required("nfl") and not sd.spread_ladder_required("nba")
+
+    def test_required_needs_ladder_enabled(self, monkeypatch):
+        monkeypatch.setattr(sd, "SPREAD_LADDER_ENABLED", False)
+        monkeypatch.setattr(sd, "SPREAD_LADDER_SECTORS", set())
+        monkeypatch.setattr(sd, "SPREAD_LADDER_ONLY_SECTORS", {"nfl"})
+        assert not sd.spread_ladder_required("nfl")  # no ladder → nothing to require
+
+    def test_client_emits_nfl_ladder_without_global_flag_but_not_nba(self, nfl_ladder):
+        client = PinnacleGuestClient()
+        out = asyncio.run(client._fetch_matchup_odds(
+            _matchup("m1", "New England Patriots", "Seattle Seahawks"), "nfl",
+            markets_override=_payload("m1", -3.0, [-7.0, -16.5])))
+        assert len([o for o in out if o.spread_line is not None]) == 3
+        out = asyncio.run(client._fetch_matchup_odds(
+            _matchup("m2", "Boston Celtics", "Brooklyn Nets"), "nba",
+            markets_override=_payload("m2", -6.5, [-10.5])))
+        assert len([o for o in out if o.spread_line is not None]) == 1
+
+    def test_nfl_matcher_needs_the_same_line(self, nfl_ladder):
+        helper = TestMatcherNearestSpread()
+        recs, ed = helper._sharps("nfl", "New England Patriots", "Seattle Seahawks", -3.0, [-7.0])
+
+        def match(line):
+            m = PredictionMarket(
+                id="k1", source=MarketSource.kalshi, sector="nfl",
+                market_type=MarketType.spread, yes_price=0.2, no_price=0.82,
+                team_home="New England Patriots", team_away="Seattle Seahawks",
+                yes_team="New England Patriots", line=line, event_date=ed)
+            return MatchingEngine().match(m, recs)
+
+        res = match(-7.0)
+        assert res and res[0].spread_line == pytest.approx(-7.0)   # same line → rung
+        res = match(-7.5)   # Pinnacle has -7.0 (half a point away, NOT the same line)
+        assert res and res[0].spread_line == pytest.approx(-3.0)   # falls back to main
+
+    @pytest.mark.parametrize("src,market_type,expected", [
+        ("sharp+sharp_ladder", "spread", True),
+        ("sharp+sharp_ladder+no_side", "spread", True),
+        ("sharp+spread_pmf", "spread", False),
+        ("sharp+spread_pmf+no_side", "spread", False),
+        ("sharp+spread_dist", "spread", False),
+        ("elo+form+sharp", "moneyline", True),     # moneyline untouched
+        ("sharp", "total", True),                  # totals untouched
+        ("sharp+spread_pmf", None, False),         # fail-closed without a market type
+    ])
+    def test_has_full_blend_requires_ladder_for_nfl_spread(self, nfl_ladder, src, market_type, expected):
+        assert ev_mod.has_full_blend("nfl", src, market_type) is expected
+
+    def test_other_sectors_spreads_stay_visible(self, nfl_ladder):
+        assert ev_mod.has_full_blend("nba", "sharp+spread_dist", "spread") is True
+
+    def _market(self, line):
+        return PredictionMarket(
+            id="k1", source=MarketSource.kalshi, sector="nfl",
+            market_type=MarketType.spread, yes_price=0.05, no_price=0.97,
+            team_home="patriots", team_away="seahawks", yes_team="patriots", line=line,
+        )
+
+    def _eval(self, market, sharp):
+        return EVGapAgent()._evaluate_pair(
+            market=market, sharp=sharp, confidence=95.0, sector="nfl",
+            blended_preds={}, injuries={}, model_sources={}, kelly_base=0.25, steam_events=set())
+
+    def test_rung_priced_off_pinnacle_is_a_visible_play(self, nfl_ladder):
+        rung = TestEvGapLadderPricing()._rung("nfl", -10.5, 0.20, is_alt=True)
+        gap = self._eval(self._market(-10.5), rung)
+        assert gap is not None
+        assert "sharp_ladder" in gap.model_sources and gap.full_blend is True
+        assert gap.blended_true_prob == pytest.approx(0.20, abs=0.002)
+
+    def test_rung_without_a_pinnacle_price_is_model_only_and_hidden(self, nfl_ladder):
+        main = TestEvGapLadderPricing()._rung("nfl", -3.0, 0.50, is_alt=False)
+        gap = self._eval(self._market(-10.5), main)   # no -10.5 rung → PMF path
+        assert gap is not None
+        assert "spread_pmf" in gap.model_sources and "sharp_ladder" not in gap.model_sources
+        assert gap.full_blend is False                # backend-only: shadow-logged, never displayed
+
+    def test_no_side_gap_inherits_the_hidden_flag(self, nfl_ladder):
+        agent = EVGapAgent()
+        market = self._market(-10.5)
+        market.no_price = 0.80
+        sharp = TestEvGapLadderPricing()._rung("nfl", -3.0, 0.50, is_alt=False)
+
+        def build(src):
+            return agent._build_no_side_spread_gap(
+                market, sharp,
+                {"blended_prob_yes": 0.05, "sharp_true_prob_yes": 0.05,
+                 "src": src, "yes_is_outcome_b": False},
+                95.0, "nfl")
+
+        hidden = build("sharp+spread_pmf")
+        shown = build("sharp+sharp_ladder")
+        assert hidden is not None and hidden.full_blend is False
+        assert shown is not None and shown.full_blend is True

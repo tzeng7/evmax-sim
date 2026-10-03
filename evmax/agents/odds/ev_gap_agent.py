@@ -39,8 +39,9 @@ from evmax.models.odds import SharpOdds
 from evmax.models_ml.spread_distribution import (
     SPREAD_DIST_TOKEN,
     SpreadDistributionModel,
-    SPREAD_LADDER_ENABLED,
-    SPREAD_LADDER_LINE_TOLERANCE,
+    spread_ladder_enabled,
+    spread_ladder_required,
+    spread_ladder_tolerance,
 )
 from evmax.models_ml.total_distribution import TotalDistributionModel, is_game_total
 from evmax.ev.devig import derive_advance_prob
@@ -359,6 +360,13 @@ def has_full_blend(
     required = REQUIRED_BLEND_MODELS.get(sec)
     if required and not (required <= contributing):
         return False
+
+    # Ladder-only spreads: a rung with no Pinnacle price at its line still prices
+    # through the model (spread_pmf) but is backend-only — logged shadow for
+    # evaluation, never displayed or sized. Fail-closed when market_type is None.
+    if spread_ladder_required(sec) and market_type in (None, "spread"):
+        if "sharp_ladder" not in contributing:
+            return False
 
     floor = MIN_NONSHARP_MODELS.get(sec)
     if floor and (market_type is None or market_type in floor["market_types"]):
@@ -869,10 +877,10 @@ class EVGapAgent(Agent):
             # while the flag is off (the matcher emits no exact-line alt rungs,
             # and a main-line rung still takes the CDF path below).
             ladder_hit = (
-                SPREAD_LADDER_ENABLED
+                spread_ladder_enabled(sector)
                 and sharp.spread_line is not None
                 and abs(abs(sharp.spread_line) - abs(market.line))
-                <= SPREAD_LADDER_LINE_TOLERANCE
+                <= spread_ladder_tolerance(sector)
             )
             if ladder_hit:
                 used_spread_model = True   # skip the ensemble blend (step 3)
@@ -1500,6 +1508,7 @@ class EVGapAgent(Agent):
             line_velocity=velocity,
             velocity_flag=vel_flag,
             book_count=getattr(sharp, "book_count", 1),
+            full_blend=has_full_blend(sector, src_yes, MarketType.spread.value),
             venue=market.source.value,
             league=getattr(market, "league", None),
         )
