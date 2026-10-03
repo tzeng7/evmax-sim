@@ -447,7 +447,15 @@ class TestEnsemblePerEventRamp:
 
 
 def _seed_clv_db(db_module, rows):
-    """rows: (market_id, league, clv, outcome, venue)."""
+    """rows: (market_id, league, clv, outcome, venue).
+
+    Dates are relative to today (scan = 2 days ago, game = yesterday) so the
+    board's rolling ``days=30`` window never ages the fixture out.
+    """
+    from datetime import date, timedelta
+
+    scan = (date.today() - timedelta(days=2)).isoformat()
+    game = (date.today() - timedelta(days=1)).isoformat()
     with db_module.get_connection() as conn:
         for mid, league, clv, outcome, venue in rows:
             conn.execute(
@@ -455,15 +463,15 @@ def _seed_clv_db(db_module, rows):
                    (scan_date, market_id, event_id, event_title, sector, yes_team, market_type,
                     kalshi_yes_price, sharp_true_prob, blended_true_prob, ev_pct, kelly_fraction,
                     model_sources, mode, kalshi_clv_pct, venue, league, event_date)
-                   VALUES ('2026-09-01', ?, ?, 'A vs B', 'soccer', 'a', 'moneyline',
+                   VALUES (?, ?, ?, 'A vs B', 'soccer', 'a', 'moneyline',
                            0.5, 0.55, 0.56, 0.03, 0.01, 'elo+form+poisson+xg+sharp', 'live',
-                           ?, ?, ?, '2026-09-02')""",
-                (mid, f"evt:{mid}", clv, venue, league),
+                           ?, ?, ?, ?)""",
+                (scan, mid, f"evt:{mid}", clv, venue, league, game),
             )
             conn.execute(
                 "INSERT INTO ev_outcomes (market_id, event_id, event_date, sector, yes_team, "
-                "outcome) VALUES (?, ?, '2026-09-02', 'soccer', 'a', ?)",
-                (mid, f"evt:{mid}", outcome),
+                "outcome) VALUES (?, ?, ?, 'soccer', 'a', ?)",
+                (mid, f"evt:{mid}", game, outcome),
             )
         conn.commit()
 

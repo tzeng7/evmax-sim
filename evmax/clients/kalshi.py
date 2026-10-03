@@ -982,6 +982,61 @@ class KalshiClient(BaseAPIClient):
             logger.warning("kalshi_balance_fetch_failed", error=str(e))
             return None
 
+    async def get_orders(
+        self,
+        *,
+        status: Optional[str] = None,
+        ticker: Optional[str] = None,
+        min_ts: Optional[int] = None,
+        max_pages: int = 50,
+    ) -> Optional[list[dict]]:
+        """The account's own orders via signed ``GET /portfolio/orders``, or None.
+
+        READ-ONLY. Pages through ``cursor`` (limit 200 per page, at most
+        ``max_pages`` pages) and returns the raw order dicts. ``status`` is
+        ``resting`` / ``canceled`` / ``executed``; ``min_ts`` is a unix-seconds
+        lower bound on order creation. Fail-soft like :meth:`get_balance`: None
+        when no key material is configured or a request fails, never a partial
+        list presented as complete.
+        """
+        from urllib.parse import urlsplit
+
+        if self._client is None:
+            raise RuntimeError("Client not initialised — use async context manager")
+        # The signature covers the path only — never the query string.
+        signed_path = urlsplit(self.base_url).path + "/portfolio/orders"
+        out: list[dict] = []
+        cursor: Optional[str] = None
+        for _ in range(max_pages):
+            headers = self._sign_request("GET", signed_path)
+            if not headers:
+                return None
+            params: dict[str, Any] = {"limit": 200}
+            if status:
+                params["status"] = status
+            if ticker:
+                params["ticker"] = ticker
+            if min_ts is not None:
+                params["min_ts"] = int(min_ts)
+            if cursor:
+                params["cursor"] = cursor
+            try:
+                await _KALSHI_RATE_LIMITER.acquire()
+                resp = await self._client.get(
+                    "/portfolio/orders", headers=headers, params=params
+                )
+                resp.raise_for_status()
+                data = resp.json()
+            except Exception as e:
+                logger.warning("kalshi_orders_fetch_failed", error=str(e))
+                return None
+            out.extend(data.get("orders") or [])
+            cursor = data.get("cursor") or None
+            if not cursor:
+                return out
+        logger.warning("kalshi_orders_max_pages_reached", pages=max_pages)
+        return None
+
     async def get_cash_balance(self) -> Optional[float]:
         """DEPLOYABLE CASH in DOLLARS (per-venue fundability cap base), or None.
 

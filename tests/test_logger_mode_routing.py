@@ -852,3 +852,35 @@ def test_log_gaps_not_quarantined_stays_live(patched_db):
     log_gaps([g], mode_resolver=lambda c: "live")
     row = patched_db.execute("SELECT mode FROM ev_predictions").fetchone()
     assert row["mode"] == "live"
+
+
+class TestVenueShadowMarketTypePersistence:
+    """The default resolver is venue-aware: a (venue, market_type) listed in
+    shadow_venue_market_types persists as shadow on that venue only."""
+
+    @staticmethod
+    def _spec():
+        from evmax.categories import CategorySpec, MarketType
+
+        return CategorySpec(
+            key="nfl", display_name="NFL",
+            market_types=(MarketType.moneyline, MarketType.total),
+            models=("sharp",), mode="live", resolver="none", status="wip",
+            shadow_venue_market_types={"kalshi": ("total",)},
+        )
+
+    def _log(self, patched_db, monkeypatch, venue, mid):
+        monkeypatch.setattr("evmax.modes.get_category", lambda k: self._spec())
+        gap = replace(_gap(mid, sector="nfl"), market_type="total", venue=venue)
+        log_gaps([gap])
+        return patched_db.execute(
+            "SELECT mode, venue FROM ev_predictions WHERE market_id = ?", (mid,)
+        ).fetchone()
+
+    def test_kalshi_total_persists_as_shadow(self, patched_db, monkeypatch):
+        row = self._log(patched_db, monkeypatch, "kalshi", "k-tot")
+        assert (row["mode"], row["venue"]) == ("shadow", "kalshi")
+
+    def test_polyus_total_persists_as_live(self, patched_db, monkeypatch):
+        row = self._log(patched_db, monkeypatch, "polymarket_us", "p-tot")
+        assert (row["mode"], row["venue"]) == ("live", "polymarket_us")
