@@ -21,6 +21,15 @@ Same verdicts and exit codes as the Kalshi watcher (reuses its pure helpers):
   soft_drift    numbers agree, document body / effective date changed. Human review.
   inconclusive  fetch or parse failed — never a false alarm.
 
+Per-market canary (online only): every Polymarket US market object also carries
+its own ``feeCoefficient`` (public gateway, same ``/v2/leagues/{slug}/events``
+payload the scanner reads). The watcher sweeps every league we scan and flags any
+market whose coefficient differs from ``POLYMARKET_US_TAKER_THETA`` as hard drift
+— catching a per-league / per-market-type override the docs page would not show
+(the Polymarket US analogue of ``check_kalshi_series_fees.py``). A market with a
+null coefficient is counted but not flagged; a league that fails to fetch is
+reported but never changes the verdict.
+
 CLI:
   check_polymarket_us_fees.py                # fetch, classify, write $GITHUB_OUTPUT
   check_polymarket_us_fees.py --offline F    # classify a markdown file instead
@@ -128,6 +137,32 @@ def check_fee_table(table: dict[str, list[float]], order_fee) -> list[str]:
     return bad
 
 
+def classify_market_coefficients(
+    by_league: dict[str, Optional[dict[str, int]]], theta: float
+) -> tuple[list[str], dict]:
+    """PURE. ``{league: {coefficient_str|'null': n_markets} | None}`` → (hard reasons, stats).
+
+    ``None`` for a league means its fetch failed (reported, never a mismatch).
+    """
+    reasons: list[str] = []
+    checked = null = 0
+    unavailable: list[str] = []
+    for league, counts in sorted(by_league.items()):
+        if counts is None:
+            unavailable.append(league)
+            continue
+        for coef, n in sorted(counts.items()):
+            if coef == "null":
+                null += n
+                continue
+            checked += n
+            if not _approx(float(coef), theta):
+                reasons.append(
+                    f"{league}: {n} market(s) feeCoefficient {coef} != POLYMARKET_US_TAKER_THETA {theta}"
+                )
+    return reasons, {"checked": checked, "null": null, "unavailable": unavailable}
+
+
 def classify(current: dict, snapshot: Optional[dict], constants: dict) -> tuple[str, list[str]]:
     """HARD (a traded number is wrong) beats SOFT (body changed); no theta ⇒ inconclusive."""
     cur = current["extracted"]
@@ -203,6 +238,41 @@ def fetch_page_text(url: str = DEFAULT_URL, *, timeout: float = 20.0, retries: i
     raise FetchError(last)
 
 
+def fetch_market_coefficients(leagues: list[str], *, timeout: float = 20.0) -> dict[str, Optional[dict[str, int]]]:
+    """``{league: {feeCoefficient: n_markets}}`` from the public gateway; ``None`` on failure."""
+    import httpx
+
+    from evmax.settings import get_settings
+
+    base = get_settings().polymarket_us_base_url.rstrip("/")
+    out: dict[str, Optional[dict[str, int]]] = {}
+    with httpx.Client(timeout=timeout, headers={"User-Agent": _UA}) as client:
+        for league in leagues:
+            try:
+                r = client.get(f"{base}/v2/leagues/{league}/events", params={"limit": 100})
+                r.raise_for_status()
+                counts: dict[str, int] = {}
+                for ev in r.json().get("events", []) or []:
+                    for m in ev.get("markets", []) or []:
+                        k = "null" if m.get("feeCoefficient") is None else str(m["feeCoefficient"])
+                        counts[k] = counts.get(k, 0) + 1
+                out[league] = counts
+            except Exception:  # noqa: BLE001 — reported as unavailable, never fatal
+                out[league] = None
+    return out
+
+
+def scanned_leagues() -> list[str]:
+    from evmax.arb import ARB_LEAGUE_MAP
+
+    seen: list[str] = []
+    for leagues in ARB_LEAGUE_MAP.values():
+        for lg in leagues:
+            if lg not in seen:
+                seen.append(lg)
+    return seen
+
+
 def _summary(verdict: str, reasons: list[str], current: dict) -> str:
     ex = current["extracted"]
     head = {
@@ -242,7 +312,17 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"snapshot written: {SNAPSHOT_PATH}")
         return 0
 
-    verdict, reasons = classify(current, load_snapshot(), get_constants())
+    constants = get_constants()
+    verdict, reasons = classify(current, load_snapshot(), constants)
+    if not args.offline and verdict != "inconclusive":
+        coef_reasons, stats = classify_market_coefficients(
+            fetch_market_coefficients(scanned_leagues()), constants["taker_theta"]
+        )
+        if coef_reasons:
+            verdict, reasons = "hard_drift", reasons + coef_reasons
+        if stats["unavailable"]:
+            reasons = reasons + [f"note: feeCoefficient sweep skipped leagues {','.join(stats['unavailable'])}"]
+        print(f"feeCoefficient sweep: {stats['checked']} markets checked, {stats['null']} null", file=sys.stderr)
     summary = _summary(verdict, reasons, current)
     RESULT_PATH.write_text(json.dumps(
         {"verdict": verdict, "reasons": reasons, "summary": summary, "source_url": args.url, "current": current},

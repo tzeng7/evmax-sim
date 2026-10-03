@@ -3,7 +3,8 @@
 # docs.polymarket.us/fees (markdown twin: /fees.md) is the authoritative source for
 # the taker/maker theta that evmax/fees.py hard-codes. This job fetches it weekly,
 # extracts the thetas + effective date + rounding rule + fee-by-price table, and
-# diffs them against data/polymarket_us_fee_schedule.snapshot.json, the live
+# also sweeps every market's public `feeCoefficient` (per-league override canary),
+# and diffs them against data/polymarket_us_fee_schedule.snapshot.json, the live
 # fees.py constants and polymarket_us_order_fee itself. (The theta moved
 # 0.06 -> 0.0695 on 2026-10-01 with no alert — this is the canary for that.)
 #

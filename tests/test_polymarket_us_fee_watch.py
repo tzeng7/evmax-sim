@@ -111,6 +111,39 @@ class TestClassify:
         assert cpf.classify(cpf.build_current(text), None, _constants()) == ("match", [])
 
 
+class TestMarketCoefficients:
+    def test_all_match(self):
+        reasons, stats = cpf.classify_market_coefficients(
+            {"nba": {"0.0695": 90}, "mlb": {"0.0695": 12, "null": 3}}, 0.0695
+        )
+        assert reasons == []
+        assert stats == {"checked": 102, "null": 3, "unavailable": []}
+
+    def test_override_on_one_league_is_flagged(self):
+        reasons, _ = cpf.classify_market_coefficients(
+            {"nba": {"0.0695": 90}, "nfl": {"0.0695": 5, "0.05": 7}}, 0.0695
+        )
+        assert len(reasons) == 1
+        assert "nfl" in reasons[0] and "0.05" in reasons[0] and "7 market" in reasons[0]
+
+    def test_failed_league_reported_not_flagged(self):
+        reasons, stats = cpf.classify_market_coefficients({"nba": None, "mlb": {"0.0695": 4}}, 0.0695)
+        assert reasons == []
+        assert stats["unavailable"] == ["nba"]
+
+    def test_stale_code_theta_flags_every_league(self):
+        """Docs/API at 0.0695 but fees.py at 0.06 → every league is a mismatch."""
+        reasons, _ = cpf.classify_market_coefficients({"nba": {"0.0695": 1}, "mlb": {"0.0695": 1}}, 0.06)
+        assert len(reasons) == 2
+
+    def test_scanned_leagues_cover_betting_map(self):
+        from evmax.clients.polymarket_us import POLYMARKET_US_LEAGUE_MAP
+
+        leagues = cpf.scanned_leagues()
+        for slugs in POLYMARKET_US_LEAGUE_MAP.values():
+            assert set(slugs) <= set(leagues)
+
+
 class TestAgainstFees:
     def test_fixture_table_reproduced_by_order_fee(self, text):
         """Every published 100-lot row must be reproduced by polymarket_us_order_fee."""
