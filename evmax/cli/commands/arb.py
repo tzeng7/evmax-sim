@@ -128,7 +128,7 @@ def scan(
     console.print(table)
     console.print(
         "[dim]Asks are REST snapshots; verify depth/price live before acting. "
-        "Fees: Kalshi taker 0.07·p·(1−p), PolyUS taker 0.06·p·(1−p).[/dim]"
+        "Fees: Kalshi taker 0.07·p·(1−p), PolyUS taker 0.0695·p·(1−p).[/dim]"
     )
 
     positives = [a for a in all_arbs if a.net_edge > 0]

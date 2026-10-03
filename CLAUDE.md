@@ -116,7 +116,7 @@ evmax/
 │   └── cleanup/             # db.py, logger.py, resolver.py, metrics.py, maintenance.py, integrity.py (ONE consolidated read-only ops sweep — folds heartbeat.py + clv_monitor.py + the calibration/gate tripwires, adds in-play / model-missing / match-rate / backlog / close-capture / passthrough / drawdown / launchd checks)
 ├── simulation/
 │   └── montecarlo.py        # Monte Carlo bankroll simulation
-├── fees.py                  # Venue fee models — Kalshi taker 0.07·p·(1−p) ceil-to-cent/order (maker 25% of taker on designated series, Polymarket US taker 0.06·p·(1−p) / maker −0.0125 REBATE, banker's rounding (docs.polymarket.us/fees, eff. 2026-07-01)
+├── fees.py                  # Venue fee models — Kalshi taker 0.07·p·(1−p) ceil-to-cent/order (maker 25% of taker on designated series, Polymarket US taker 0.0695·p·(1−p) (was 0.06 until 2026-10-01) / maker −0.0125 REBATE, banker's rounding (docs.polymarket.us/fees)
 ├── arb.py                   # Cross-venue arb detection: cheapest complete-outcome basket per (sector, teams, exact ET date); soccer/worldcup baskets always REQUIRE the draw leg; ARB_LEAGUE_MAP extends the betting league map (worldcup/lol/cs2 + extra soccer slugs) WITHOUT flipping them on for scans; see `evmax arb scan` or the dashboard's Arb tab (`POST /api/arb/scan`)
 ├── categories.py            # Category registry loader + validate_registry() (reads data/categories.yaml)
 ├── modes.py                 # Effective mode resolution: CLI flag > EVMAX_CATEGORY_MODES env > YAML

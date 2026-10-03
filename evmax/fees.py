@@ -14,8 +14,9 @@ Kalshi (fee schedule, July 2026):
       re-verify against https://kalshi.com/fee-schedule when relying on the
       maker path, the PDF is the authority and rates change per series).
 
-Polymarket US (docs.polymarket.us/fees, effective 2026-07-01):
-    - Taker theta 0.06, maker theta −0.0125 (a REBATE — makers are paid).
+Polymarket US (docs.polymarket.us/fees, taker theta raised 0.06 → 0.0695
+    exchange-wide 2026-10-01; maker rebate unchanged):
+    - Taker theta 0.0695, maker theta −0.0125 (a REBATE — makers are paid).
     - Rounded to the nearest cent, banker's rounding (half to even).
 
 Novig (P2P exchange, CFTC-designated contract market since 2026-08-04):
@@ -53,7 +54,7 @@ from typing import Optional
 
 KALSHI_TAKER_RATE = 0.07
 KALSHI_MAKER_RATE_MULT = 0.25  # × taker rate, designated series only
-POLYMARKET_US_TAKER_THETA = 0.06
+POLYMARKET_US_TAKER_THETA = 0.0695  # was 0.06 until 2026-10-01
 POLYMARKET_US_MAKER_THETA = -0.0125
 NOVIG_TAKER_RATE = 0.03
 NOVIG_MAKER_RATE_MULT = -0.5   # makers earn a rebate up to half the taker fee
