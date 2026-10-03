@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import re
 import sqlite3
 import unicodedata
 import weakref
@@ -1717,6 +1718,171 @@ def _resolve_baseball_prop_observations(
     return resolved
 
 
+# ---------------------------------------------------------------------------
+# NFL player-prop resolution (ESPN football boxscore)
+# ---------------------------------------------------------------------------
+
+_NFL_NAME_SUFFIXES = frozenset({"jr", "sr", "ii", "iii", "iv", "v"})
+
+# ESPN groups NFL athletes by stat category block (`passing`, `rushing`,
+# `receiving`, ...), each with its own `keys` list — a different shape from the
+# NBA flat block. Map our prop stat_type → (block name, ESPN key).
+_NFL_PROP_STAT_KEYS: dict[str, tuple[str, str]] = {
+    "passing_yards": ("passing", "passingYards"),
+    "passing_tds": ("passing", "passingTouchdowns"),
+    "rushing_yards": ("rushing", "rushingYards"),
+    "receiving_yards": ("receiving", "receivingYards"),
+    "receptions": ("receiving", "receptions"),
+}
+# anytime_td = rushing + receiving touchdowns (box-score TDs; return/defensive
+# TDs live in other blocks and are deliberately not counted).
+_NFL_ANYTIME_TD_KEYS: tuple[tuple[str, str], ...] = (
+    ("rushing", "rushingTouchdowns"),
+    ("receiving", "receivingTouchdowns"),
+)
+
+
+def _nfl_player_key(name: str) -> str:
+    """Join key for an NFL player name across Kalshi slugs and ESPN displayNames.
+
+    Kalshi-derived names keep punctuation (``c.j._stroud``, ``amon-ra_st._brown``,
+    ``de'von_achane``) while ESPN's displayName spells ``C.J. Stroud``; reducing
+    both to lowercase alphanumerics (accents folded, Jr/Sr/II/III/IV dropped)
+    makes them equal. NO last-name fallback: NFL rosters carry many same-surname
+    players and a wrong player is a wrong outcome.
+    """
+    nfkd = unicodedata.normalize("NFKD", name)
+    folded = "".join(c for c in nfkd if not unicodedata.combining(c)).lower()
+    tokens = [t for t in re.split(r"[\s_]+", folded) if t]
+    tokens = [t for t in tokens if re.sub(r"[^a-z0-9]", "", t) not in _NFL_NAME_SUFFIXES]
+    return re.sub(r"[^a-z0-9]", "", "".join(tokens))
+
+
+def _parse_nfl_box_player_stats(box: dict) -> dict[str, dict[str, float]]:
+    """ESPN NFL ``summary`` payload → {player key: {stat_type: value}}.
+
+    A player appearing in ANY stat block played, so every supported stat
+    defaults to 0.0 for the blocks they are absent from (a WR with no carries
+    rushed for 0 yards). Players absent from every block (inactive / DNP / no
+    recorded stat) are not returned — their rows stay unresolved rather than
+    being scored as a miss. Two distinct athletes sharing one key are
+    dropped (ambiguous).
+    """
+    # key → athlete id → {(block, espn_key): value}
+    raw: dict[str, dict[str, dict[tuple[str, str], float]]] = {}
+    for team_box in box.get("boxscore", {}).get("players", []):
+        for block in team_box.get("statistics", []):
+            bname = block.get("name")
+            keys = block.get("keys") or []
+            for athlete in block.get("athletes", []):
+                info = athlete.get("athlete", {}) or {}
+                name = info.get("displayName", "")
+                vals = athlete.get("stats", []) or []
+                if not name:
+                    continue
+                pkey = _nfl_player_key(name)
+                if not pkey:
+                    continue
+                aid = str(info.get("id") or name)
+                slot = raw.setdefault(pkey, {}).setdefault(aid, {})
+                for k, v in zip(keys, vals):
+                    try:
+                        slot[(bname, k)] = float(v)
+                    except (ValueError, TypeError):
+                        pass  # composite fields like "30/46" — not used
+
+    out: dict[str, dict[str, float]] = {}
+    for pkey, by_athlete in raw.items():
+        if len(by_athlete) != 1:
+            continue
+        (cells,) = by_athlete.values()
+        stats = {
+            stat: cells.get(bk, 0.0) for stat, bk in _NFL_PROP_STAT_KEYS.items()
+        }
+        stats["anytime_td"] = sum(cells.get(bk, 0.0) for bk in _NFL_ANYTIME_TD_KEYS)
+        out[pkey] = stats
+    return out
+
+
+def _resolve_nfl_prop_observations(
+    conn: sqlite3.Connection, nfl_by_date: dict[str, list[dict]]
+) -> int:
+    """Resolve pending nfl_props rows via the ESPN football boxscore.
+
+    One scoreboard call per game date + one ``summary`` call per completed
+    game. Kalshi thresholds are "X+" contracts, so a row is an over (1) when
+    ``actual >= line`` — the same convention as the NBA/MLB paths.
+    """
+    resolved = 0
+    with httpx.Client(
+        timeout=15.0,
+        follow_redirects=True,
+        headers={"User-Agent": _ESPN_HTTP_UA},
+    ) as client:
+        for game_date, prop_rows in nfl_by_date.items():
+            try:
+                r = client.get(
+                    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+                    params={"dates": game_date.replace("-", "")},
+                )
+                r.raise_for_status()
+                events = r.json().get("events", [])
+            except Exception as e:
+                logger.warning("nfl_prop_scoreboard_fail", date=game_date, error=str(e))
+                continue
+
+            completed = [
+                ev["id"]
+                for ev in events
+                if ev.get("id")
+                and ev.get("competitions", [{}])[0]
+                .get("status", {}).get("type", {}).get("completed", False)
+            ]
+
+            def _fetch_nfl_box(eid: str) -> "Optional[dict]":
+                try:
+                    resp = client.get(
+                        "https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary",
+                        params={"event": eid},
+                    )
+                    resp.raise_for_status()
+                    return resp.json()
+                except Exception as e:
+                    logger.debug("nfl_prop_box_fail", event=eid, error=str(e))
+                    return None
+
+            player_stats: dict[str, dict[str, float]] = {}
+            ambiguous: set[str] = set()
+            for box in _fetch_json_concurrent(_fetch_nfl_box, completed):
+                if box is None:
+                    continue
+                for pkey, stats in _parse_nfl_box_player_stats(box).items():
+                    if pkey in player_stats:
+                        ambiguous.add(pkey)  # same name in two games on the slate
+                    player_stats[pkey] = stats
+            for pkey in ambiguous:
+                del player_stats[pkey]
+
+            for prop in prop_rows:
+                player = prop["player_name"]
+                stat_type = prop["stat_type"]
+                threshold = prop["line"]
+                if not player or not stat_type or threshold is None:
+                    continue
+                stats = player_stats.get(_nfl_player_key(player))
+                if stats is None:
+                    continue
+                actual = stats.get(stat_type)
+                if actual is None:
+                    continue
+                conn.execute(
+                    "UPDATE prop_observations SET outcome = ?, actual_value = ? WHERE id = ?",
+                    (1 if actual >= threshold else 0, actual, prop["id"]),
+                )
+                resolved += 1
+    return resolved
+
+
 def _resolve_prop_observations(
     conn: sqlite3.Connection,
     target_date: date,
@@ -1756,6 +1922,7 @@ def _resolve_prop_observations(
     # lookback window are skipped (permanently-unresolvable backlog).
     by_date: dict[str, list[dict]] = {}
     baseball_by_date: dict[str, list[dict]] = {}
+    nfl_by_date: dict[str, list[dict]] = {}
     skipped_stale = 0
     for row in rows:
         r = dict(row)
@@ -1772,12 +1939,16 @@ def _resolve_prop_observations(
             continue
         if r.get("sector") == "baseball":
             baseball_by_date.setdefault(game_date, []).append(r)
+        elif r.get("sector") == "nfl":
+            nfl_by_date.setdefault(game_date, []).append(r)
         else:
             by_date.setdefault(game_date, []).append(r)
 
     resolved = 0
     if baseball_by_date:
         resolved += _resolve_baseball_prop_observations(conn, baseball_by_date)
+    if nfl_by_date:
+        resolved += _resolve_nfl_prop_observations(conn, nfl_by_date)
 
     if not by_date:
         return resolved
