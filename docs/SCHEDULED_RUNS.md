@@ -188,7 +188,8 @@ The seed aborts WITHOUT writing on any fetch failure other than the pre-opener
 
 | Task | Fires | What it does |
 |---|---|---|
-| `nfl-week1-seed-verify-2026-09-14` | Mon 2026-09-14 08:00 | Verifies the NFL model states actually ingested 2026 Week-1 PBP (`seasons_used` contains 2026, `gp>0`) after the first in-season `weekly-seasonal-model-reseed`, then reports NFL spread CLV per side (`cleanup shadow clv nfl -m spread --side lay|take`) toward lifting `spread`/`total` off `shadow_market_types`. Read-only |
+| `nfl-week1-seed-verify-2026-09-14` | Mon 2026-09-14 08:00 (**fired**; now `enabled: false`) | Verifies the NFL model states actually ingested 2026 Week-1 PBP (`seasons_used` contains 2026, `gp>0`) after the first in-season `weekly-seasonal-model-reseed`, then reports NFL spread CLV per side (`cleanup shadow clv nfl -m spread --side lay|take`) toward lifting `spread`/`total` off `shadow_market_types`. Read-only |
+| `ncaaf-nfl-2week-checkup-2026-10-09` | Fri 2026-10-09 09:00 | Read-only NCAAF + NFL capability checkup against the 2026-09-25 baseline: coverage/match rate, model firing, resolution, CLV/promotion lanes (spreads judged per side, gate counts games), the NFL moneyline live lane, and the favorite–longshot lens (`cleanup shadow clv-prices`). Also reports whether the orphaned FLB PRs #303/#304 have landed on main. Recommends actions; never promotes, reseeds, or commits |
 
 ### Disabled (kept for reference)
 

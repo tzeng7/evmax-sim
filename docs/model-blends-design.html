@@ -420,8 +420,8 @@ where  sw = disagreement_ramp( base_sharp_weight, |model − sharp| gap )</div>
   tokens for the listed market types. Tokens in <code>_NON_MODEL_TOKENS</code> count
   zero: <code>sharp</code>, <code>sharp(capped)</code>, <code>injury</code>,
   <code>late_news</code>, <code>rest</code>, <code>playoff</code>,
-  <code>advance_derived</code>, <code>spread_dist</code>, <code>total_dist</code>,
-  <code>no_side</code>.
+  <code>advance_derived</code>, <code>spread_dist</code>, <code>spread_pmf</code>,
+  <code>total_dist</code>, <code>no_side</code>, <code>sharp_ladder</code>.
 </p>
 <div class="table-wrap">
 <table>
@@ -430,6 +430,7 @@ where  sw = disagreement_ramp( base_sharp_weight, |model − sharp| gap )</div>
     <tr><td>soccer</td><td class="num">1</td><td>moneyline</td><td>MLS scanned 2026-07-09 before it was seeded &rarr; 11 sharp-passthrough rows logged as LIVE plays.</td></tr>
     <tr><td>worldcup</td><td class="num">1</td><td>moneyline, advance</td><td>Same failure class; advance markets additionally price off a derived anchor.</td></tr>
     <tr><td>ncaaf</td><td class="num">1</td><td>moneyline</td><td>Early-season / FCS opponents blend to sharp-only. Launches in shadow, so the gate bites exactly at promotion.</td></tr>
+    <tr><td>nhl</td><td class="num">1</td><td>moneyline</td><td>Added 2026-09-22: nhl_xg fires from opening night on its regressed prior, so a sharp-only NHL row means a model went missing (unresolved name, blanked state).</td></tr>
   </tbody>
 </table>
 </div>
