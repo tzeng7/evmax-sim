@@ -72,6 +72,51 @@ def _format_why(diagnostics_json: Optional[str]) -> str:
 # show
 # ---------------------------------------------------------------------------
 
+def _fetch_prop_shadow_rows(
+    conn, since: str, category: Optional[str], *, resolved_only: bool, limit: Optional[int] = None
+) -> list[dict]:
+    """Shadow rows from ``prop_observations`` shaped like the ``ev_predictions``
+    columns ``show`` / ``metrics`` read.
+
+    Player props are logged to ``prop_observations``, never ``ev_predictions``
+    (`log_prop_observations`), so a ``*_props`` category must be read from here —
+    the ev_predictions query is structurally empty for them. ``blended_true_prob``
+    carries ``sharp_prob`` (the anchor-derived P(over)): prop rows have no blend.
+    Returns [] for a non-prop ``category``.
+    """
+    where = ["mode = 'shadow'", "scan_date >= ?"]
+    params: list = [since]
+    if category:
+        if not category.endswith("_props"):
+            return []
+        where.append("sector = ?")
+        params.append(category[: -len("_props")])
+    if resolved_only:
+        where.append("outcome IS NOT NULL")
+    sql = f"""
+        SELECT scan_date, event_date, sector, event_id, event_title, player_name,
+               stat_type, line, captured_yes_price, sharp_prob, ev_pct, outcome
+        FROM prop_observations
+        WHERE {' AND '.join(where)}
+        ORDER BY scan_date DESC, ev_pct DESC
+        {f'LIMIT {int(limit)}' if limit else ''}
+    """
+    out = []
+    for r in conn.execute(sql, params).fetchall():
+        out.append({
+            "scan_date": r["scan_date"], "event_date": r["event_date"],
+            "sector": r["sector"], "event_id": r["event_id"],
+            "event_title": r["event_title"] or r["player_name"],
+            "yes_team": f"{r['player_name']} {r['stat_type']}",
+            "market_type": "player_prop", "model_sources": None,
+            "line": r["line"], "captured_yes_price": r["captured_yes_price"],
+            "blended_true_prob": r["sharp_prob"], "ev_pct": r["ev_pct"],
+            "model_diagnostics": None, "kelly_fraction": None, "volume_usd": None,
+            "outcome": r["outcome"],
+        })
+    return out
+
+
 
 @app.command("show")
 def show(
@@ -130,7 +175,12 @@ def show(
         LIMIT 200
     """
     with get_connection() as conn:
-        rows = conn.execute(sql, params).fetchall()
+        if category and category.endswith("_props"):
+            rows = _fetch_prop_shadow_rows(
+                conn, since, category, resolved_only=resolved_only, limit=200
+            )
+        else:
+            rows = conn.execute(sql, params).fetchall()
 
     if not rows:
         console.print(
@@ -268,7 +318,12 @@ def metrics(
         WHERE {' AND '.join(where)}
     """
     with get_connection() as conn:
-        rows = conn.execute(sql, params).fetchall()
+        if category and category.endswith("_props"):
+            rows = []
+        else:
+            rows = list(conn.execute(sql, params).fetchall())
+        if not league:  # prop rows carry no league
+            rows += _fetch_prop_shadow_rows(conn, since, category, resolved_only=True)
 
     # Drop rows from superseded code states unless explicitly included, and
     # tally how many were excluded per category for transparency.

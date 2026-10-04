@@ -655,3 +655,65 @@ class TestClvStatsSourcesToken:
             sources_token="anchored_entry",
         )
         assert s["n"] == 2
+
+
+# -------------------------------------------------------------------------
+# prop categories read prop_observations, not ev_predictions
+# -------------------------------------------------------------------------
+
+
+def _insert_prop_rows(db_path, rows):
+    """rows: (market_id, sector, player, stat, line, price, sharp, ev, outcome, mode)."""
+    from evmax.agents.cleanup.db import get_connection
+
+    sd = date.today().isoformat()
+    with get_connection() as conn:  # runs schema init, so prop_observations exists
+        for mid, sector, player, stat, line, price, sharp, ev, outcome, mode in rows:
+            conn.execute(
+                """INSERT INTO prop_observations
+                   (scan_date, event_date, sector, player_name, stat_type, line,
+                    kalshi_price, sharp_prob, ev_pct, market_id, event_id, outcome,
+                    mode, captured_yes_price)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (sd, sd, sector, player, stat, line, price, sharp, ev, mid,
+                 f"{sector}::{sd}::prop::{player}::{stat}::{line}", outcome, mode, price),
+            )
+        conn.commit()
+
+
+def test_show_nfl_props_reads_prop_observations(shadow_db):
+    _insert_prop_rows(shadow_db, [
+        ("kalshi:P1", "nfl", "bo_nix", "passing_yards", 250.0, 0.40, 0.50, 0.25, 1, "shadow"),
+        ("kalshi:P2", "nfl", "bo_nix", "passing_yards", 275.0, 0.20, 0.30, 0.50, 0, "shadow"),
+        ("kalshi:P3", "nfl", "x_y", "receptions", 5.0, 0.50, 0.60, 0.20, None, "shadow"),
+        ("kalshi:P4", "nfl", "live_guy", "receptions", 5.0, 0.50, 0.60, 0.20, 1, "live"),
+        ("kalshi:P5", "nba", "a_b", "points", 20.0, 0.50, 0.60, 0.20, 1, "shadow"),
+    ])
+    result = runner.invoke(app, ["show", "--days", "30", "--category", "nfl_props"])
+    assert result.exit_code == 0
+    assert "3 rows" in result.stdout        # nfl shadow only: no live, no nba
+    assert "2 resolved" in result.stdout
+    assert "No shadow predictions" not in result.stdout
+
+
+def test_metrics_nfl_props_scores_resolved_prop_rows(shadow_db):
+    _insert_prop_rows(shadow_db, [
+        ("kalshi:P1", "nfl", "bo_nix", "passing_yards", 250.0, 0.40, 0.50, 0.25, 1, "shadow"),
+        ("kalshi:P2", "nfl", "bo_nix", "passing_yards", 275.0, 0.20, 0.30, 0.50, 0, "shadow"),
+        ("kalshi:P3", "nfl", "x_y", "receptions", 5.0, 0.50, 0.60, 0.20, None, "shadow"),
+    ])
+    result = runner.invoke(app, ["metrics", "--days", "30", "--category", "nfl_props"])
+    assert result.exit_code == 0
+    assert "nfl_props" in result.stdout
+    # Brier of (0.5,1) and (0.3,0) = (0.25 + 0.09) / 2 = 0.17
+    assert "0.1700" in result.stdout
+    assert "No resolved shadow predictions" not in result.stdout
+
+
+def test_metrics_without_category_includes_prop_rows_alongside_games(shadow_db):
+    _insert_prop_rows(shadow_db, [
+        ("kalshi:P1", "nfl", "bo_nix", "passing_yards", 250.0, 0.40, 0.50, 0.25, 1, "shadow"),
+    ])
+    result = runner.invoke(app, ["metrics", "--days", "30"])
+    assert result.exit_code == 0
+    assert "nfl_props" in result.stdout
