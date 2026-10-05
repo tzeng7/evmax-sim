@@ -2,9 +2,11 @@
 
 Inventory of everything that runs on a schedule for evmax. Since the
 2026-06-28 crontab teardown (`crontab -r`; backups in `/tmp/evmax-cron*`),
-scheduling lives in exactly **two places** — there is no user crontab, and
+local scheduling lives in exactly **two places** — there is no user crontab, and
 the claude.ai cloud routines this doc used to describe have been superseded
-by local scheduled tasks (see History below):
+by local scheduled tasks (see History below). A third, remote kind — GitHub
+Actions `schedule:` workflows — is listed under *GitHub Actions scheduled
+workflows* below:
 
 1. **Claude Code scheduled tasks** (`~/.claude/scheduled-tasks/<task-id>/SKILL.md`)
    — run only while the Claude desktop app is open; missed runs fire on next
@@ -213,6 +215,20 @@ The seed aborts WITHOUT writing on any fetch failure other than the pre-opener
 | `com.evmax.integrity` | `StartCalendarInterval` 06:45 + 20:30 daily (Monday 06:45 adds `--weekly`) | `evmax cleanup integrity --check-pinnacle --notify` — the ONE consolidated read-only integrity sweep + ONE alert (worst severity). Daily checks: resolve/scan cadence, seed-state stamp age, in-play/absurd-EV live rows, a model newly missing from a sector's blend (diagnostics AND model_sources fire-rate), fetched-but-matched-zero sectors (reads the `scan_sector_stats` ledger every persisted scan writes), resolution backlog, Kalshi close-capture coverage + archive snapshot age, LIVE-DEGRADING CLV, live sharp-passthrough, live drawdown, non-zero `com.evmax.*` launchd exits. `--weekly` adds calibration-bias verdicts, promotion-gate clearances and the per-sector devig-method recommendation (info severity) — `WEEKLY_CHECKS = ("calibration", "gates", "devig")` in `evmax/agents/cleanup/integrity.py`; `devig` landed with PR #280 and surfaces the one-tap `evmax cleanup devig promote <sector>` when a non-power method clears the gate. Template: `docs/launchd/com.evmax.integrity.plist` (install steps in its comment). Replaces `com.evmax.heartbeat` (09:00/21:00) and `com.evmax.clv-monitor` (09:20), both retired 2026-09-05 — `evmax cleanup heartbeat` / `clv-monitor` remain as standalone aliases |
 | `com.evmax.nba-resolve` | — | STOPPED (plist renamed `.plist.disabled`) — was a no-op in the NBA offseason |
 | `com.evmax.discord-bot` | `KeepAlive` (always-up; template only, NOT installed by default) | `evmax discord run` — the Discord slash-command gateway bot (`/scan /plays /settled /status`). Long-lived, so the template (`docs/launchd/com.evmax.discord-bot.plist`) uses `KeepAlive` + `ThrottleInterval` 30 and no `caffeinate`; restart with `launchctl kickstart -k` after code changes. The scan FEED (every cycle's play table posted to `DISCORD_CHANNEL_ID`) needs no service — it posts over REST from whichever process ran the scan (CLI, the `ev-scan-light-*` tasks, the dashboard). Setup + install steps: docs/DISCORD_BOT.md |
+
+---
+
+## GitHub Actions scheduled workflows
+
+These run on GitHub's runners (cron in UTC), independent of this machine. Both are
+network canaries kept OUT of `ci.yml` so they never gate a PR; on drift they fail and
+open/update a GitHub issue (the only alert channel). A fetch/parse failure is
+INCONCLUSIVE (a warning, not a fee alarm).
+
+| Workflow | Cadence | What it does |
+|---|---|---|
+| `kalshi-fee-watch` (`.github/workflows/kalshi-fee-watch.yml`) | Mon 13:17 UTC (`17 13 * * 1`) + manual dispatch | Fetches Kalshi's fee-schedule PDF and diffs coefficients + effective date + text hash vs `data/kalshi_fee_schedule.snapshot.json` and the `evmax/fees.py` constants. Added in PR #176 |
+| `polymarket-us-fee-watch` (`.github/workflows/polymarket-us-fee-watch.yml`) | Mon 13:23 UTC (`23 13 * * 1`) + manual dispatch | `scripts/check_polymarket_us_fees.py` — diffs docs.polymarket.us/fees (thetas, effective date, rounding, fee-by-price table) and every scanned league's per-market `feeCoefficient` vs `data/polymarket_us_fee_schedule.snapshot.json` and `evmax/fees.py`. Added in PR #355 after the 2026-10-01 taker change (0.06 → 0.0695) went unflagged |
 
 ---
 

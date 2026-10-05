@@ -7,7 +7,7 @@ Subcommands:
                      persisted and no orders are placed.
 
 Steady-state arbs between the venues essentially don't exist (combined vig
-runs ~1pp against ~1.75pp+1.5pp of round-trip taker fees), so treat any hit
+runs ~1pp against ~1.75pp+1.74pp of round-trip taker fees at p=0.5), so treat any hit
 as a transient dislocation to verify by hand — the asks shown are REST
 snapshots without depth confirmation.
 """

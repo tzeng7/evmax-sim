@@ -4,7 +4,7 @@ evmax uses a multi-agent pipeline to find positive expected value (+EV) opportun
 
 Sharp odds come from the **Pinnacle guest API** (`guest.api.arcadia.pinnacle.com`), which is keyless — the only API credential you need is a Kalshi key for live price refresh and trading (Polymarket US market data is fetched from the public gateway, no key). Every bettable category, its models, mode, and resolver are declared in one registry: [`data/categories.yaml`](data/categories.yaml).
 
-**Venues:** markets from both exchanges merge into one pool; `PredictionMarket.source` / `EVGap.venue` / the `venue` DB column carry the venue through matching → EV → persistence, and dedup keys are venue-aware (the same game on both venues = two independent books). Polymarket US is behind a **per-sector venue shadow firewall**: a gap logs as `mode='shadow'` with Kelly zeroed unless its sector is cleared by `settings.venue_sector_live('polymarket_us', sector)` — true when the master switch `polymarket_us_live=true` (all sectors) OR the sector is in the `polymarket_us_live_sectors` allowlist. The shipped default is `polymarket_us_live=false` with `polymarket_us_live_sectors="wnba"`, so WNBA is the one cleared sector today (and only its moneyline, since wnba spread/total are `disabled_market_types`); every other sector stays shadow. A sector still only goes live if its category mode also resolves to `live`. `polymarket_us_enabled=false` kills the fetch entirely.
+**Venues:** markets from both exchanges merge into one pool; `PredictionMarket.source` / `EVGap.venue` / the `venue` DB column carry the venue through matching → EV → persistence, and dedup keys are venue-aware (the same game on both venues = two independent books). Polymarket US is behind a **per-sector venue shadow firewall**: a gap logs as `mode='shadow'` with Kelly zeroed unless its sector is cleared by `settings.venue_sector_live('polymarket_us', sector)` — true when the master switch `polymarket_us_live=true` (all sectors) OR the sector is in the `polymarket_us_live_sectors` allowlist. The shipped default is `polymarket_us_live=true` (flipped 2026-09-18 by owner decision), which clears the firewall for EVERY PolyUS sector and makes the `polymarket_us_live_sectors="wnba"` allowlist moot. This deliberately overrides the per-sector promotion gate: only WNBA had cleared it; the other PolyUS sectors are sharp-passthrough or underpowered. Set `polymarket_us_live=false` to restore the allowlist discipline. A sector still only goes live if its category mode also resolves to `live`. `polymarket_us_enabled=false` kills the fetch entirely.
 
 ---
 
@@ -1583,7 +1583,7 @@ All settings live in `.env` (or environment variables):
 | `KALSHI_WS_ENABLED` | `true` | WebSocket real-time prices; set `false` for REST-only |
 | `KALSHI_WS_SNAPSHOT_TIMEOUT` | `5.0` | Seconds to wait per ticker snapshot before REST fallback |
 | `POLYMARKET_US_ENABLED` | `true` | Kill-switch for the Polymarket US market fetch |
-| `POLYMARKET_US_LIVE` | `false` | Venue shadow firewall MASTER switch — `true` clears every sector at once |
+| `POLYMARKET_US_LIVE` | `true` | Venue shadow firewall MASTER switch — `true` clears every sector at once (shipped ON since 2026-09-18; set `false` to restore the per-sector allowlist below) |
 | `POLYMARKET_US_LIVE_SECTORS` | `wnba` | Per-sector allowlist that refines the firewall without flipping the master switch (comma-separated). A listed sector still needs its category mode to resolve to `live` |
 | `EVMAX_CATEGORY_MODES` | — | Per-category mode override, e.g. `'{"nba":"disabled"}'` (CLI flags rank higher) |
 | `EVMAX_JOINT_KELLY_ENABLED` | `false` | Correlation-aware joint Kelly sizing (see [Joint Kelly](#joint-kelly-optional-correlation-aware)) |
@@ -1622,7 +1622,7 @@ All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api
 | Category | Models | Market Types | Resolver | Mode |
 |----------|--------|--------------|----------|------|
 | `nba` | Efficiency + PossessionSim + ShotQuality + Matchup + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
-| `nfl` | NFL Efficiency + NFL QB Elo + Elo + Form | moneyline (`spread` + `total` **shadow** — models price ML only) | espn_scoreboard | `live` |
+| `nfl` | NFL Efficiency + NFL QB Elo + Elo + Form | moneyline + `total` live (`spread` **shadow**; Kalshi `total` **shadow** via `shadow_venue_market_types` — models price ML only) | espn_scoreboard | `live` |
 | `ncaab` | NCAAB Efficiency + PossessionSim + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
 | `ncaaw` | NCAAW Efficiency + PossessionSim + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
 | `ncaaf` | NCAAF Efficiency (opponent-adjusted EPA + preseason-prior ramp) + Elo + Form | moneyline (`spread` + `total` disabled) | espn_scoreboard | `shadow` (wip) |
@@ -1651,7 +1651,7 @@ Every category runs in one of three modes (`evmax.modes.get_mode`):
 | `shadow` | EVGaps + pre-game YES ask persisted with `mode='shadow'`; **bankroll untouched** (Kelly skipped). Used for live-wiring validation before promotion. |
 | `disabled` | Scanner skips persistence entirely (gap still shows in the session's in-memory CLI output). |
 
-**Override precedence (highest wins):** runtime CLI flag (`--shadow`/`--live`/`--disabled`) > env var `EVMAX_CATEGORY_MODES` > YAML base. Per-market-type refinements `shadow_market_types` and `disabled_market_types` narrow a category to specific market types (e.g. baseball `total`, WNBA `spread`+`total`, and NCAAF `spread`+`total` are all in `disabled_market_types`; NFL `spread`+`total` are in `shadow_market_types` for the 2026 season — sharp-only pricing with no NFL betting history, promote per side via the CLV lens). Promote a category with `evmax cleanup shadow promote <category>` once validation passes.
+**Override precedence (highest wins):** runtime CLI flag (`--shadow`/`--live`/`--disabled`) > env var `EVMAX_CATEGORY_MODES` > YAML base. Per-market-type refinements `shadow_market_types` and `disabled_market_types` narrow a category to specific market types (e.g. baseball `total`, WNBA `spread`+`total`, and NCAAF `spread`+`total` are all in `disabled_market_types`; NFL `spread` is in `shadow_market_types` for the 2026 season — sharp-only pricing, promote per side via the CLV lens; NFL `total` was promoted 2026-09-30). The per-venue form `shadow_venue_market_types: {venue: [types]}` forces a type to shadow on one venue only — NFL `kalshi: [total]` keeps Kalshi totals shadow while PolyUS totals stay live (`get_mode(cat, market_type, venue=...)`). Promote a category with `evmax cleanup shadow promote <category>` once validation passes.
 
 **Kalshi series tickers per sector** (from `SECTOR_SERIES_MAP` in `kalshi.py`):
 
@@ -1684,7 +1684,7 @@ Every category runs in one of three modes (`evmax.modes.get_mode`):
 - **Advance (World Cup knockouts)** — "Team X advances" including extra time / penalties. Distinct from `KXWCGAME`, which settles on the 90' regulation result. Pinnacle has no live per-match advance market, so both the sharp anchor and model prob are derived from the same game's regulation 3-way via `derive_advance_prob` in `evmax/ev/devig.py`. Advance records carry a `::advance` event-key suffix so they can never cross-match regulation records.
 - **Player props** — over/under a player stat line (NBA / NFL / MLB props)
 
-**Polymarket US coverage:** 8 sectors fetch from the Polymarket US gateway alongside Kalshi (`POLYMARKET_US_LEAGUE_MAP` in `evmax/clients/polymarket_us.py`): NBA, WNBA, NFL, NCAAB (`cbb`), MLB, NHL, soccer (`epl`/`ucl`/`mls`), tennis (`atp`/`wta`). Polymarket US gaps log as shadow unless their sector is on the `polymarket_us_live_sectors` allowlist (shipped default: `wnba`) or the `polymarket_us_live` master switch is on.
+**Polymarket US coverage:** 8 sectors fetch from the Polymarket US gateway alongside Kalshi (`POLYMARKET_US_LEAGUE_MAP` in `evmax/clients/polymarket_us.py`): NBA, WNBA, NFL, NCAAB (`cbb`), MLB, NHL, soccer (`epl`/`ucl`/`mls`), tennis (`atp`/`wta`). Polymarket US gaps log as shadow unless the `polymarket_us_live` master switch is on (shipped default since 2026-09-18: ON, so every sector is cleared) or their sector is on the `polymarket_us_live_sectors` allowlist (`wnba`). A sector still needs its category mode to resolve to `live`.
 
 ---
 

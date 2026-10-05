@@ -15,7 +15,7 @@ name: Polymarket US fee watch
 
 on:
   schedule:
-    - cron: "23 13 * * 1" # Mondays 13:17 UTC
+    - cron: "23 13 * * 1" # Mondays 13:23 UTC
   workflow_dispatch: {}
 
 permissions:
