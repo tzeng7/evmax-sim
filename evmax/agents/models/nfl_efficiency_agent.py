@@ -234,13 +234,17 @@ class NflEfficiencyModelAgent(ModelAgent):
         if sector != "nfl":
             return None
 
+        # Judge staleness at the game's date (the Elo/Form convention), so a
+        # walk-forward replay of a past season is not blanked by today's date.
+        # No event_date → the guard falls back to today.
+        as_of = market.event_date.date() if market.event_date else None
         preseason_mode = False
-        if nfl_state_is_stale_for_today(self._state):
+        if nfl_state_is_stale_for_today(self._state, today=as_of):
             if not PRESEASON_PRIOR_ENABLED:
                 logger.warning(
                     "nfl_efficiency_stale_seasons_used",
                     seasons_used=self._sector_state().get("seasons_used"),
-                    active_season=active_nfl_season(),
+                    active_season=active_nfl_season(as_of),
                     hint="re-run scripts/seed_nfl_efficiency.py",
                 )
                 return None

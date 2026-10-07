@@ -35,7 +35,7 @@ import subprocess
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -164,12 +164,22 @@ def _ensemble(probs: dict[str, Optional[float]], weights: dict[str, float]) -> O
     return total_p / total_w
 
 
-def _agent_predict(agent, home: str, away: str) -> Optional[float]:
-    """Run any sector-gated NFL ModelAgent on a synthetic pair, return P(home)."""
+def _agent_predict(agent, home: str, away: str, game_date: Optional[date] = None) -> Optional[float]:
+    """Run any sector-gated NFL ModelAgent on a synthetic pair, return P(home).
+
+    `game_date` becomes the market's event_date (noon UTC, the Kalshi ticker
+    anchor). The NFL agents judge their staleness guard at that date; without
+    it the guard reads the wall clock, and an in-season run blanks every
+    replayed game because the replay state's newest season is in the past.
+    """
+    event_date = (
+        datetime.combine(game_date, time(12), tzinfo=timezone.utc) if game_date else None
+    )
     market = PredictionMarket(
         id="bt", market_id="bt", event_id=f"bt_{home}_{away}",
         sector="nfl", team_home=home, team_away=away,
         source=MarketSource.kalshi, yes_price=0.55, no_price=0.45,
+        event_date=event_date,
     )
     sharp = SharpOdds(
         event_id=f"bt_{home}_{away}", book=SharpBook.pinnacle, sector="nfl",
@@ -563,9 +573,9 @@ def main() -> int:
                 form_mod.MARGIN_FORM_SECTORS.add("nfl")
                 form_margin_p = _form_predict(form, "nfl", home, away, game_date)
                 pois_p = _poisson_predict(poisson, "nfl", home, away)
-                nfl_eff_p = _agent_predict(nfl_eff, home, away)
+                nfl_eff_p = _agent_predict(nfl_eff, home, away, game_date)
                 qb_elo.clear_pregame_starters()
-                qb_elo_p = _agent_predict(qb_elo, home, away)
+                qb_elo_p = _agent_predict(qb_elo, home, away, game_date)
 
                 # Depth-chart variant: production falls back to the last-game
                 # passer whenever no chart covers a team, so a game with no
@@ -587,7 +597,7 @@ def main() -> int:
                             if overrides.get(t) and cur.get(t) and overrides[t] != cur[t]:
                                 starter_changed = True
                         qb_elo.set_pregame_starters(overrides)
-                        qb_elo_depth_p = _agent_predict(qb_elo, home, away)
+                        qb_elo_depth_p = _agent_predict(qb_elo, home, away, game_date)
                         qb_elo.clear_pregame_starters()
 
                 all_preds.append(GamePrediction(

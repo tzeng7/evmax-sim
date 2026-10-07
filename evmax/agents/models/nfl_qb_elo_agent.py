@@ -194,11 +194,13 @@ class NflQbEloModelAgent(ModelAgent):
         if sector != "nfl":
             return None
 
-        if nfl_state_is_stale_for_today(self._state):
+        # Staleness is judged at the game's date (see nfl_efficiency_agent).
+        as_of = market.event_date.date() if market.event_date else None
+        if nfl_state_is_stale_for_today(self._state, today=as_of):
             logger.warning(
                 "nfl_qb_elo_stale_seasons_used",
                 seasons_used=self._sector_state().get("seasons_used"),
-                active_season=active_nfl_season(),
+                active_season=active_nfl_season(as_of),
                 hint="re-run scripts/seed_nfl_qb_elo.py",
             )
             return None
