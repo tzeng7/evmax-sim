@@ -43785,6 +43785,16 @@
     "santos": {
       "matches": [
         {
+          "date": "2026-10-02",
+          "goals_for": 2,
+          "goals_against": 1,
+          "sot": 4,
+          "shots": 9,
+          "xg": 1.35,
+          "xga": 2.76,
+          "is_home": false
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 2,
           "goals_against": 1,
@@ -43973,16 +43983,6 @@
           "xg": 1.02,
           "xga": 1.41,
           "is_home": true
-        },
-        {
-          "date": "2026-03-22",
-          "goals_for": 0,
-          "goals_against": 0,
-          "sot": 1,
-          "shots": 5,
-          "xg": 0.42,
-          "xga": 1.05,
-          "is_home": false
         }
       ]
     },
@@ -46029,6 +46029,16 @@
     "red bull bragantino": {
       "matches": [
         {
+          "date": "2026-10-03",
+          "goals_for": 0,
+          "goals_against": 1,
+          "sot": 7,
+          "shots": 23,
+          "xg": 2.58,
+          "xga": 1.05,
+          "is_home": false
+        },
+        {
           "date": "2026-09-20",
           "goals_for": 1,
           "goals_against": 2,
@@ -46216,16 +46226,6 @@
           "shots": 18,
           "xg": 2.16,
           "xga": 0.48,
-          "is_home": true
-        },
-        {
-          "date": "2026-03-21",
-          "goals_for": 1,
-          "goals_against": 2,
-          "sot": 6,
-          "shots": 18,
-          "xg": 2.16,
-          "xga": 1.05,
           "is_home": true
         }
       ]
@@ -46437,6 +46437,16 @@
     "sao paulo": {
       "matches": [
         {
+          "date": "2026-10-02",
+          "goals_for": 1,
+          "goals_against": 2,
+          "sot": 8,
+          "shots": 20,
+          "xg": 2.76,
+          "xga": 1.35,
+          "is_home": true
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 1,
           "goals_against": 0,
@@ -46625,16 +46635,6 @@
           "xg": 1.26,
           "xga": 1.26,
           "is_home": false
-        },
-        {
-          "date": "2026-03-22",
-          "goals_for": 0,
-          "goals_against": 1,
-          "sot": 0,
-          "shots": 3,
-          "xg": 0.09,
-          "xga": 0.72,
-          "is_home": true
         }
       ]
     },
@@ -46845,6 +46845,16 @@
     "atletico mineiro": {
       "matches": [
         {
+          "date": "2026-10-03",
+          "goals_for": 1,
+          "goals_against": 0,
+          "sot": 3,
+          "shots": 8,
+          "xg": 1.05,
+          "xga": 2.58,
+          "is_home": true
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 1,
           "goals_against": 1,
@@ -47032,16 +47042,6 @@
           "shots": 20,
           "xg": 2.76,
           "xga": 1.65,
-          "is_home": false
-        },
-        {
-          "date": "2026-03-21",
-          "goals_for": 0,
-          "goals_against": 1,
-          "sot": 5,
-          "shots": 14,
-          "xg": 1.77,
-          "xga": 1.5,
           "is_home": false
         }
       ]
