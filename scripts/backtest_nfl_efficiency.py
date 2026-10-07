@@ -46,6 +46,7 @@ import polars as pl
 import nflreadpy as nfl
 
 from scripts.seed_nfl_efficiency import filter_valid_pbp, compute_team_stats
+import evmax.agents.models.nfl_efficiency_agent as nfl_eff_mod
 from evmax.agents.models.nfl_efficiency_agent import (
     NflEfficiencyModelAgent,
     NFL_ABBREV_TO_NAME,
@@ -426,6 +427,31 @@ def _reseed_qb_elo(
     return len(slice_df)
 
 
+def _state_cutoff(espn_game_date: date) -> date:
+    """Exclusive PBP cutoff for the state that prices an ESPN-dated game.
+
+    ESPN dates are UTC calendar days; nflverse PBP `game_date` is the US
+    Eastern day. A primetime kickoff (8:20 pm ET Thursday) is dated Friday by
+    ESPN, so `pbp.game_date < espn_date` would include that game's own plays
+    in the state that predicts it. Cutting one day earlier is never leaky; it
+    can only drop a same-week game the live Monday reseed would not have yet.
+    """
+    return espn_game_date - timedelta(days=1)
+
+
+def _parse_epa_margin_pts(spec: Optional[str], seasons: list[str]) -> dict[str, float]:
+    """'38' → that value for every season; '2324=38.8,2526=37.5' → per season."""
+    if not spec:
+        return {}
+    if "=" not in spec:
+        return {s: float(spec) for s in seasons}
+    out: dict[str, float] = {}
+    for part in spec.split(","):
+        key, _, val = part.partition("=")
+        out[key.strip()] = float(val)
+    return out
+
+
 def _season_of(game_date: date) -> int:
     """NFL season starts in September. A game on Jan/Feb belongs to the
     season that started in the prior calendar year."""
@@ -447,7 +473,12 @@ def main() -> int:
                     help="Shrink for the NFL margin-form variant (default: form_agent MARGIN_FORM_PARAMS)")
     ap.add_argument("--no-depth", action="store_true",
                     help="Skip the depth-chart starter variant (no nflverse depth-chart fetch)")
+    ap.add_argument("--epa-margin-pts", type=str, default=None,
+                    help="Override nfl_efficiency's EPA_MARGIN_PTS: one value for every "
+                         "season, or per season ('2324=38.8,2425=37.1,2526=37.5') so each "
+                         "season is priced with a scale fitted only on earlier seasons.")
     args = ap.parse_args()
+    epa_pts_by_season = _parse_epa_margin_pts(args.epa_margin_pts, args.seasons.split(","))
     if args.form_shrink is not None:
         form_mod.MARGIN_FORM_PARAMS.setdefault("nfl", {})["shrink"] = args.form_shrink
 
@@ -557,12 +588,16 @@ def main() -> int:
                 elif not args.no_reseed and (game_date - last_seed_date).days >= args.reseed_days:
                     need_reseed = True
 
+                if s in epa_pts_by_season:
+                    nfl_eff_mod.EPA_MARGIN_PTS = epa_pts_by_season[s]
+
                 if need_reseed:
+                    cutoff = _state_cutoff(game_date)
                     _reseed_from_pbp(
-                        nfl_eff, pbp, cutoff=game_date,
+                        nfl_eff, pbp, cutoff=cutoff,
                         current_season=_season_of(game_date),
                     )
-                    _reseed_qb_elo(qb_elo, games_with_starters, cutoff=game_date)
+                    _reseed_qb_elo(qb_elo, games_with_starters, cutoff=cutoff)
                     last_seed_date = game_date
                     last_seed_season = s
                     n_reseeds += 1

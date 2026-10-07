@@ -58,3 +58,30 @@ def test_week_one_game_still_blanks_on_prior_season_state(monkeypatch):
     monkeypatch.setattr(eff_mod, "date", _Oct2026)
     agent = _replay_agent()
     assert _agent_predict(agent, "kansas city chiefs", "buffalo bills", date(2026, 9, 10)) is None
+
+
+def test_parse_epa_margin_pts_single_value_applies_to_every_season():
+    from scripts.backtest_nfl_efficiency import _parse_epa_margin_pts
+    assert _parse_epa_margin_pts("38", ["2324", "2425"]) == {"2324": 38.0, "2425": 38.0}
+
+
+def test_parse_epa_margin_pts_per_season_and_unset():
+    from scripts.backtest_nfl_efficiency import _parse_epa_margin_pts
+    assert _parse_epa_margin_pts("2324=38.8,2526=37.5", ["2324", "2425", "2526"]) == {
+        "2324": 38.8, "2526": 37.5,
+    }
+    assert _parse_epa_margin_pts(None, ["2324"]) == {}
+
+
+def test_state_cutoff_excludes_a_primetime_games_own_plays():
+    """ESPN dates the Thu 8:20 pm ET opener 2023-09-08 (UTC); its PBP rows are
+    dated 2023-09-07 (ET). The state that prices it must not contain them."""
+    import polars as pl
+    from scripts.backtest_nfl_efficiency import _state_cutoff
+
+    pbp = pl.DataFrame({
+        "game_date": [date(2023, 2, 12), date(2023, 9, 7)],  # prior Super Bowl, the opener itself
+        "season": [2022, 2023],
+    })
+    kept = pbp.filter(pl.col("game_date") < pl.lit(_state_cutoff(date(2023, 9, 8))))
+    assert kept["season"].to_list() == [2022]

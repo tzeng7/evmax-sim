@@ -70,6 +70,16 @@ PLAYS_PER_TEAM_GAME = 64.0   # offensive plays per team per game (league avg)
 # promoted on CLV not Brier — the NCAAF v2 protocol). Set both constants to the
 # harness's fitted pair to activate. Requires the seed's opponent-adjusted SR
 # fields (off_success_adj/def_success_adj); on older state the term reads 0.0.
+#
+# Scale refit REJECTED for the blend (2026-10-06). Standalone, 64 is ~1.7x too
+# wide: OLS of the final margin on Δnet_epa (HOME held at 2.0) gives 37-43 in
+# every 4-season window 2014-2025, and the walk-forward refit beats 64 out of
+# sample (pooled Brier +3.35/1000, z 2.43, n 2211; `backtest_nfl_sr_margin.py
+# --walk-forward`). But in the live P2 blend + depth-chart starters at fixed
+# weights (`backtest_nfl_efficiency.py --epa-margin-pts 2324=38.8,2425=37.1,
+# 2526=37.5`, leak-free) the blend went 0.2222 -> 0.2226, worse in 2 of 3
+# seasons: the 0.25 weight was tuned on the over-wide component and absorbs it.
+# Change this only together with re-validated blend weights.
 EPA_MARGIN_PTS = PLAYS_PER_TEAM_GAME
 SR_MARGIN_PTS = 0.0
 
