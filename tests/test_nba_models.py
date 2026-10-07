@@ -312,6 +312,18 @@ MOCK_EFF_STATE = {
 
 
 class TestPossessionSim:
+    @pytest.fixture(autouse=True)
+    def _fresh_state(self, monkeypatch):
+        """Keep the freshness guard off the network. Unpatched, state_is_fresh
+        asks live ESPN for the last completed NBA game: off-season that is None
+        (→ fresh), but once preseason games complete MOCK_EFF_STATE's fetched_at
+        is behind it and every prediction abstains (CI broke 2026-10-04). The
+        guard's own behavior is pinned by the two explicit-patch tests below,
+        whose inner patch() overrides this default."""
+        monkeypatch.setattr(
+            "evmax.agents.models._nba_freshness.state_is_fresh", _async_true,
+        )
+
     def _make_agent(self, state=None) -> PossessionSimAgent:
         agent = PossessionSimAgent()
         agent._load_efficiency_state = lambda: state if state is not None else MOCK_EFF_STATE

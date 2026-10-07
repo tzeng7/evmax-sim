@@ -31,6 +31,19 @@ from evmax.models.odds import SharpBook, SharpOdds
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(autouse=True)
+def _no_live_playoff_context(monkeypatch):
+    """PlayoffAgent reads TODAY's live ESPN scoreboard. During the NBA/NHL/
+    WNBA playoffs that returns real series data, so a cycle test's result
+    would depend on the calendar. Every fixture here is regular-season."""
+    from evmax.agents.intelligence.playoff_agent import PlayoffAgent
+
+    async def _no_series(self, url, sector):  # noqa: ARG001
+        return {}
+
+    monkeypatch.setattr(PlayoffAgent, "_fetch_playoff_data", _no_series)
+
+
 def _run(coro):
     loop = asyncio.new_event_loop()
     try:
@@ -355,10 +368,16 @@ class TestMultiSectorCycle:
         async def _standings_stub(req):
             return _resp("standings", req.sector, {})
 
+        # nba is in _PROP_SECTORS: unstubbed, the cycle fetches live Kalshi +
+        # Pinnacle NBA props.
+        async def _no_props(self, sector):  # noqa: ARG001
+            return [], []
+
         coord.kalshi_agent = _kalshi_stub
         coord.polymarket_us_agent = _empty_polymarket
         coord.sharp_agent = _sharp_stub
         coord.standings_agent = _standings_stub
+        coord._fetch_props = _no_props.__get__(coord, AgentCoordinator)
         coord._archiver = _noop_archiver()
         coord._notifier = MagicMock()
         return coord
@@ -418,10 +437,17 @@ class TestSectorFailureResilience:
         async def _standings_stub(req):
             return _resp("standings", req.sector, {})
 
+        # Stub the prop branch: nba is in _PROP_SECTORS, so unstubbed it
+        # fetches live Kalshi NBA props and adds them to markets_fetched
+        # (1 game + 4 live props = 5 once the 2026-27 props listed).
+        async def _no_props(self, sector):  # noqa: ARG001
+            return [], []
+
         coord.kalshi_agent = _kalshi_stub
         coord.polymarket_us_agent = _empty_polymarket
         coord.sharp_agent = _sharp_stub
         coord.standings_agent = _standings_stub
+        coord._fetch_props = _no_props.__get__(coord, AgentCoordinator)
         coord._archiver = _noop_archiver()
         coord._notifier = MagicMock()
 
