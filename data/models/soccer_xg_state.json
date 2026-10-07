@@ -23131,6 +23131,16 @@
     "chicago": {
       "matches": [
         {
+          "date": "2026-10-06",
+          "goals_for": 3,
+          "goals_against": 1,
+          "sot": 7,
+          "shots": 22,
+          "xg": 2.55,
+          "xga": 0.99,
+          "is_home": true
+        },
+        {
           "date": "2026-09-26",
           "goals_for": 1,
           "goals_against": 0,
@@ -23319,16 +23329,6 @@
           "xg": 2.16,
           "xga": 3.12,
           "is_home": false
-        },
-        {
-          "date": "2026-04-12",
-          "goals_for": 1,
-          "goals_against": 0,
-          "sot": 3,
-          "shots": 18,
-          "xg": 1.35,
-          "xga": 2.22,
-          "is_home": true
         }
       ]
     },
@@ -24559,6 +24559,16 @@
     "vancouver": {
       "matches": [
         {
+          "date": "2026-10-06",
+          "goals_for": 1,
+          "goals_against": 3,
+          "sot": 2,
+          "shots": 15,
+          "xg": 0.99,
+          "xga": 2.55,
+          "is_home": false
+        },
+        {
           "date": "2026-09-26",
           "goals_for": 3,
           "goals_against": 3,
@@ -24746,16 +24756,6 @@
           "shots": 25,
           "xg": 2.37,
           "xga": 0.09,
-          "is_home": true
-        },
-        {
-          "date": "2026-04-11",
-          "goals_for": 2,
-          "goals_against": 0,
-          "sot": 10,
-          "shots": 23,
-          "xg": 3.39,
-          "xga": 0.84,
           "is_home": true
         }
       ]
