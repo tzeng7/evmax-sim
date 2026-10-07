@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import date, datetime, timezone
 
 import pytest
 
@@ -231,43 +232,46 @@ class TestNflEfficiencyStalenessGuard:
     new NFL season has started — mirrors the WNBA efficiency staleness guard.
     """
 
-    def test_stale_seed_returns_none_during_season(self):
-        from datetime import date
-        import evmax.agents.models.nfl_efficiency_agent as mod
-        agent = mod.NflEfficiencyModelAgent()
+    def _agent(self, seasons_used):
+        agent = NflEfficiencyModelAgent()
         agent._state = {"nfl": {
             "teams": {
                 "kansas city chiefs": _team_stats(0.10, -0.05),
                 "buffalo bills": _team_stats(0.05, -0.02),
             },
-            "seasons_used": [2023, 2024],  # behind active 2025
+            "seasons_used": seasons_used,
         }}
-        orig = mod.nfl_state_is_stale_for_today
-        mod.nfl_state_is_stale_for_today = lambda s, today=date(2025, 11, 1): orig(s, today)
-        try:
-            market, sharp = _pair("kansas city chiefs", "buffalo bills")
-            assert asyncio.run(agent.predict_pair(market, sharp)) is None
-        finally:
-            mod.nfl_state_is_stale_for_today = orig
+        return agent
+
+    def test_stale_seed_returns_none_during_season(self):
+        agent = self._agent([2023, 2024])  # behind the game's 2025 season
+        market, sharp = _pair("kansas city chiefs", "buffalo bills")
+        market.event_date = datetime(2025, 11, 1, 12, tzinfo=timezone.utc)
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
 
     def test_fresh_seed_still_predicts(self):
-        from datetime import date
+        agent = self._agent([2024, 2025])
+        market, sharp = _pair("kansas city chiefs", "buffalo bills")
+        market.event_date = datetime(2025, 11, 1, 12, tzinfo=timezone.utc)
+        assert asyncio.run(agent.predict_pair(market, sharp)) is not None
+
+    def test_guard_judged_at_game_date_not_wall_clock(self, monkeypatch):
+        """Regression: a replayed 2025 game on a 2025 seed must predict even
+        when the wall clock sits in a later season (the walk-forward backtest
+        blanked every game when run Sep-Feb)."""
         import evmax.agents.models.nfl_efficiency_agent as mod
-        agent = mod.NflEfficiencyModelAgent()
-        agent._state = {"nfl": {
-            "teams": {
-                "kansas city chiefs": _team_stats(0.10, -0.05),
-                "buffalo bills": _team_stats(0.05, -0.02),
-            },
-            "seasons_used": [2024, 2025],
-        }}
-        orig = mod.nfl_state_is_stale_for_today
-        mod.nfl_state_is_stale_for_today = lambda s, today=date(2025, 11, 1): orig(s, today)
-        try:
-            market, sharp = _pair("kansas city chiefs", "buffalo bills")
-            assert asyncio.run(agent.predict_pair(market, sharp)) is not None
-        finally:
-            mod.nfl_state_is_stale_for_today = orig
+
+        class _Oct2026(date):
+            @classmethod
+            def today(cls):
+                return cls(2026, 10, 6)
+
+        monkeypatch.setattr(mod, "date", _Oct2026)
+        agent = self._agent([2024, 2025])
+        market, sharp = _pair("kansas city chiefs", "buffalo bills")
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None  # no date → today
+        market.event_date = datetime(2025, 11, 1, 12, tzinfo=timezone.utc)
+        assert asyncio.run(agent.predict_pair(market, sharp)) is not None
 
 
 # ── SR-in-margin term (NCAAF v2 mirror; default-inert) ──────────────────────

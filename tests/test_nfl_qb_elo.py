@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 
 import pytest
 
@@ -320,37 +321,25 @@ class TestNflQbEloStalenessGuard:
     """
 
     def test_stale_state_returns_none_during_season(self):
-        from datetime import date
         agent = _agent_with({
             "team_base": {"kansas city chiefs": 1550.0, "buffalo bills": 1540.0},
             "seasons_used": [2023, 2024],
         })
-        import evmax.agents.models.nfl_qb_elo_agent as mod
-        orig = mod.nfl_state_is_stale_for_today
-        # Pin "today" to Nov 2025 (active season 2025 > max(seasons_used)=2024)
-        mod.nfl_state_is_stale_for_today = lambda s, today=date(2025, 11, 1): orig(s, today)
-        try:
-            market, sharp = _pair("kansas city chiefs", "buffalo bills")
-            assert asyncio.run(agent.predict_pair(market, sharp)) is None
-        finally:
-            mod.nfl_state_is_stale_for_today = orig
+        # Game in Nov 2025 (active season 2025 > max(seasons_used)=2024)
+        market, sharp = _pair("kansas city chiefs", "buffalo bills")
+        market.event_date = datetime(2025, 11, 1, 12, tzinfo=timezone.utc)
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
 
     def test_fresh_state_still_predicts(self):
-        from datetime import date
         agent = _agent_with({
             "team_base": {"kansas city chiefs": 1600.0, "buffalo bills": 1500.0},
             "seasons_used": [2024, 2025],
         })
-        import evmax.agents.models.nfl_qb_elo_agent as mod
-        orig = mod.nfl_state_is_stale_for_today
-        mod.nfl_state_is_stale_for_today = lambda s, today=date(2025, 11, 1): orig(s, today)
-        try:
-            market, sharp = _pair("kansas city chiefs", "buffalo bills")
-            pred = asyncio.run(agent.predict_pair(market, sharp))
-            assert pred is not None
-            assert pred.true_prob_a > 0.5  # higher-rated home favored
-        finally:
-            mod.nfl_state_is_stale_for_today = orig
+        market, sharp = _pair("kansas city chiefs", "buffalo bills")
+        market.event_date = datetime(2025, 11, 1, 12, tzinfo=timezone.utc)
+        pred = asyncio.run(agent.predict_pair(market, sharp))
+        assert pred is not None
+        assert pred.true_prob_a > 0.5  # higher-rated home favored
 
 
 # ── nfl_state_is_stale_for_today — the freshness helper ────────────────────
