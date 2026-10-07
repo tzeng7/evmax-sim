@@ -8133,3 +8133,21 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600061266,401914465,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-27,Bantamweight,5345640,Mehemmedeli Osmanli,5345639,Ilimbek Akylbek Uulu,b,True,1,2:19,dq,
 600061266,401914471,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-27,W Bantamweight,4418784,Norma Dumont,5075333,Ailin Perez,b,True,3,5:00,decision,
 600061266,401924683,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-27,Light Heavyweight,5369427,Luis Hernandez,5060467,Sedriques Dumas,a,True,1,0:57,submission,Guillotine Choke
+600060739,401891663,"Dana White's Contender Series: Season 10, Week 8",2026-09-29,Lightweight,5401059,Loai Abushaar,5401045,George Staines,b,True,1,1:01,,
+600060739,401923730,"Dana White's Contender Series: Season 10, Week 8",2026-09-29,Heavyweight,5369444,Adama Diop,5369436,Zaurbek Sabanov,a,True,2,2:13,,
+600060739,401923731,"Dana White's Contender Series: Season 10, Week 8",2026-09-29,Featherweight,5401057,Ian Escuza,5311705,Luca Borando,a,True,1,0:32,,
+600060739,401923732,"Dana White's Contender Series: Season 10, Week 8",2026-09-29,W Strawweight,5401056,Aieza Bertolso,5345644,Camila Reynoso,a,True,1,3:02,,
+600061182,401907089,UFC 332: Silva vs. Wang,2026-10-03,Welterweight,2504639,Court McGee,5290958,Eric Nolan,b,True,3,3:26,,
+600061182,401912274,UFC 332: Silva vs. Wang,2026-10-03,Heavyweight,3146944,Johnny Walker,5060505,Mick Parkin,a,True,1,3:35,,
+600061182,401912275,UFC 332: Silva vs. Wang,2026-10-03,Middleweight,4001851,Marvin Vettori,4412813,Ismail Naurdiev,b,True,3,5:00,,
+600061182,401912276,UFC 332: Silva vs. Wang,2026-10-03,Flyweight,5289578,Imanol Rodriguez,5099732,Alden Coria,a,True,1,3:11,,
+600061182,401912277,UFC 332: Silva vs. Wang,2026-10-03,Middleweight,5292022,Damian Pinas,5211225,Andrey Pulyaev,a,True,1,1:15,ko_tko,Punch
+600061182,401917346,UFC 332: Silva vs. Wang,2026-10-03,Lightweight,2335687,Rafael Dos Anjos,4018757,Alexander Hernandez,b,True,2,3:12,ko_tko,Punch
+600061182,401922306,UFC 332: Silva vs. Wang,2026-10-03,Heavyweight,3128853,Anthony Wint,5450121,Lucas Armand,a,True,1,0:23,ko_tko,Punches
+600061182,401926808,UFC 332: Silva vs. Wang,2026-10-03,Welterweight,5149961,Jacobe Smith,5311402,Bruce Whitehead,a,True,1,1:32,ko_tko,Punches
+600061182,401927906,UFC 332: Silva vs. Wang,2026-10-03,Featherweight,4895760,Marcus McGhee,4684470,Anthony Romero,a,True,1,4:58,ko_tko,Punches
+600061182,401907087,UFC 332: Silva vs. Wang,2026-10-04,Bantamweight,4189320,Deiveson Figueiredo,5144008,Payton Talbott,b,True,1,2:09,ko_tko,Punches
+600061182,401907088,UFC 332: Silva vs. Wang,2026-10-04,Middleweight,5218421,Ateba Gautier,4300149,Roman Kopylov,b,True,1,3:12,ko_tko,Punches
+600061182,401912278,UFC 332: Silva vs. Wang,2026-10-04,W Flyweight,4054605,Natalia Silva,4215200,Wang Cong,a,True,5,5:00,decision,
+600061182,401917345,UFC 332: Silva vs. Wang,2026-10-04,Welterweight,4274796,Roberto Soldić,4612580,Khaos Williams,a,True,3,5:00,decision,
+600061182,401917347,UFC 332: Silva vs. Wang,2026-10-04,Lightweight,2502364,King Green,5074131,Esteban Ribovics,b,True,1,4:08,ko_tko,Punch
