@@ -188,6 +188,136 @@ class TestGatesAndVerdicts:
         assert row["verdict"] == "LIVE-DEGRADING"
 
 
+class TestLiveEligibleGatePopulation:
+    """Gates score only rows that could log live once the lane is promoted.
+
+    NFL spread is ladder-only (SPREAD_LADDER_ONLY_SECTORS): has_full_blend
+    rejects any rung without a ``sharp_ladder`` price, so the scanner logs
+    ``spread_pmf`` rungs shadow whatever the YAML says. The 2026-10-07 gate
+    check read nfl spread PROMOTE-READY on 285 such rows.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _shadow_lane(self, monkeypatch):
+        # Pin the lane's effective mode so the verdict path doesn't track YAML.
+        from evmax.agents.cleanup import promotion_board as pb
+
+        monkeypatch.setattr(pb, "_effective_mode", lambda *a, **k: "shadow")
+
+    @staticmethod
+    def _rungs(conn, prefix, n, n_pos, sources):
+        for i in range(n):
+            _insert(
+                conn, f"{prefix}{i}", sector="nfl", market_type="spread",
+                mode="shadow", blended=0.55, sharp=0.55, sources=sources,
+                line=-3.5, clv=1.5 if i < n_pos else -1.0,
+                outcome=1 if i % 2 == 0 else 0,
+            )
+
+    def test_all_spread_pmf_lane_is_not_promote_ready(self, patched):
+        # 32 games, 66% +CLV: PROMOTE-READY before the fix. None can go live.
+        self._rungs(patched, "pmf", 32, 21, "sharp+spread_pmf")
+        patched.commit()
+        row = _board(sector="nfl")[0]
+        assert row["verdict"] != "PROMOTE-READY"
+        assert row["verdict"] == "COLLECTING 0/30"
+        assert row["n_clean_resolved"] == 0
+        assert row["n_not_live_eligible"] == 32
+        assert row["clv"]["n"] == 0
+        # The full population still shows in the logged/resolved counts.
+        assert row["n_logged"] == 32 and row["n_resolved"] == 32
+        assert row["promote_hint"] is None
+
+    def test_sharp_ladder_rows_are_counted(self, patched):
+        # 30 sharp_ladder games clear (17/30 = 57% +CLV). 20 negative spread_pmf
+        # rows would sink %pos to 34% if they were scored.
+        self._rungs(patched, "lad", 30, 17, "sharp+sharp_ladder")
+        self._rungs(patched, "pmf", 20, 0, "sharp+spread_pmf")
+        patched.commit()
+        row = _board(sector="nfl")[0]
+        assert row["n_logged"] == 50 and row["n_resolved"] == 50
+        assert row["n_clean_resolved"] == 30
+        assert row["n_not_live_eligible"] == 20
+        assert row["clv"]["n"] == 30 and row["clv"]["games"] == 30
+        assert row["clv"]["frac_positive"] == pytest.approx(17 / 30, abs=1e-3)
+        assert row["verdict"] == "PROMOTE-READY"
+        assert row["promote_hint"]
+
+    def test_other_sectors_unaffected(self, patched):
+        # wnba spread has no ladder rule: spread_dist rows stay in the gate.
+        for i in range(3):
+            _insert(patched, f"w{i}", sector="wnba", market_type="spread",
+                    sources="sharp+spread_dist", line=-5.5)
+        patched.commit()
+        row = _board(sector="wnba")[0]
+        assert row["n_clean_resolved"] == 3
+        assert row["n_not_live_eligible"] == 0
+
+
+class TestPromoteHint:
+    """A live sector's held-back market type is promoted by a YAML edit;
+    `cleanup shadow promote <sector>` refuses an already-live sector."""
+
+    @staticmethod
+    def _spec(monkeypatch, **fields):
+        import dataclasses
+
+        from evmax import categories
+
+        base = categories.get_category("nfl")
+        defaults = dict(
+            mode="live", shadow_market_types=(), disabled_market_types=(),
+            shadow_venue_market_types={}, season_window=None,
+        )
+        defaults.update(fields)
+        spec = dataclasses.replace(base, **defaults)
+        monkeypatch.setattr(categories, "get_category", lambda key: spec)
+
+    def test_live_sector_shadow_market_type_names_yaml_edit(self, monkeypatch):
+        from evmax.agents.cleanup.promotion_board import promote_hint
+
+        self._spec(monkeypatch, shadow_market_types=("spread",))
+        hint = promote_hint("nfl", "spread", "kalshi")
+        assert "shadow promote" not in hint
+        assert "remove `spread` from `nfl.shadow_market_types`" in hint
+        assert "data/categories.yaml" in hint
+
+    def test_live_sector_venue_market_type_names_venue_entry(self, monkeypatch):
+        from evmax.agents.cleanup.promotion_board import promote_hint
+
+        self._spec(monkeypatch, shadow_venue_market_types={"kalshi": ("total",)})
+        hint = promote_hint("nfl", "total", "kalshi")
+        assert "remove `total` from `nfl.shadow_venue_market_types.kalshi`" in hint
+        assert "shadow promote" not in hint
+
+    def test_disabled_market_type_names_disabled_list(self, monkeypatch):
+        from evmax.agents.cleanup.promotion_board import promote_hint
+
+        self._spec(monkeypatch, disabled_market_types=("spread",))
+        assert "`nfl.disabled_market_types`" in promote_hint("nfl", "spread", "kalshi")
+
+    def test_shadow_sector_uses_promote_command(self, monkeypatch):
+        from evmax.agents.cleanup.promotion_board import promote_hint
+
+        self._spec(monkeypatch, mode="shadow")
+        assert promote_hint("nfl", "moneyline", "kalshi") == (
+            "`evmax cleanup shadow promote nfl`"
+        )
+
+    def test_board_issue_for_live_sector_lane_names_yaml_edit(self, monkeypatch):
+        from evmax.agents.cleanup import integrity as ig
+
+        self._spec(monkeypatch, shadow_market_types=("spread",))
+        row = {
+            "sector": "nfl", "market_type": "spread", "venue": "kalshi",
+            "mode": "shadow", "verdict": "PROMOTE-READY", "n_clean_resolved": 40,
+            "clv": {"n": 40, "mean_clv_pp": 0.8, "frac_positive": 0.6},
+        }
+        (issue,) = ig._board_issues([row], include_gates=True)
+        assert "shadow promote nfl" not in issue["detail"]
+        assert "`nfl.shadow_market_types`" in issue["detail"]
+
+
 class TestGroupingAndFilters:
     def test_venue_split(self, patched):
         _insert(patched, "k1", venue="kalshi")

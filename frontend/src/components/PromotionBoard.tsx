@@ -76,7 +76,7 @@ export function PromotionBoard({ toast }: Props) {
               <th>Market</th>
               <th>Venue</th>
               <th>Mode</th>
-              <th style={{ textAlign: 'right' }} title="clean resolved / resolved / logged">n (c/r/l)</th>
+              <th style={{ textAlign: 'right' }} title="clean live-eligible resolved / resolved / logged">n (c/r/l)</th>
               <th style={{ textAlign: 'right' }} title="Paired Brier delta ×1000 — positive = blend beats sharp">ΔBrier/1k</th>
               <th style={{ textAlign: 'right' }} title="Kalshi entry→close CLV: mean pp / % positive (n)">CLV</th>
               <th style={{ textAlign: 'right' }} title="Mean |blended − sharp| in pp. Under 0.5pp on moneyline = sharp passthrough">Div pp</th>
@@ -96,6 +96,15 @@ export function PromotionBoard({ toast }: Props) {
                   <td className="muted">{r.mode ?? '?'}</td>
                   <td style={{ textAlign: 'right' }}>
                     {r.n_clean_resolved}/{r.n_resolved}/{r.n_logged}
+                    {r.n_not_live_eligible > 0 && (
+                      <div
+                        className="muted"
+                        style={{ fontSize: 11 }}
+                        title="Clean resolved rows the scanner would still log as shadow after a promotion (has_full_blend). Not counted by any gate."
+                      >
+                        −{r.n_not_live_eligible} not live-eligible
+                      </div>
+                    )}
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     {r.brier_delta_per_1000 == null ? '—' : (
@@ -128,6 +137,9 @@ export function PromotionBoard({ toast }: Props) {
                     <span style={{ color: VERDICT_COLOR[r.verdict] ?? 'var(--muted)', fontWeight: 600 }}>
                       {r.verdict}
                     </span>
+                    {r.promote_hint && (
+                      <div className="muted" style={{ fontSize: 11 }}>{r.promote_hint}</div>
+                    )}
                     {r.top_blockers.length > 0 && (
                       <div className="muted" style={{ fontSize: 11 }}>{r.top_blockers.join(' · ')}</div>
                     )}
