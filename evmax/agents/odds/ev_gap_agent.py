@@ -28,6 +28,7 @@ from evmax.ev.calculator import (
     suggested_maker_bid,
 )
 from evmax.ev.kelly import KellyResult, compute_kelly
+from evmax.ev.maker_pilot import MAKER_PILOT_TOKEN, apply_maker_pilot
 from evmax.ev.sizing import SizingConfig, edge_is_quarantined, size_position
 from evmax.formatting import format_outcome_label
 from evmax.matching.alignment import (
@@ -287,6 +288,9 @@ _NON_MODEL_TOKENS = frozenset({
     # spread_pmf = the key-number margin PMF (models_ml/spread_pmf.py) that
     # replaces spread_dist on _PMF_SECTORS. A pricing method, not a model.
     "spread_pmf",
+    # maker_pilot = sized by the maker-only pilot lane (evmax/ev/maker_pilot.py).
+    # An execution/sizing tag, not a model.
+    "maker_pilot",
 })
 
 # How much of the possession-sim cover probability to mix into the market-anchored
@@ -369,8 +373,10 @@ def has_full_blend(
     # Ladder-only spreads: a rung with no Pinnacle price at its line still prices
     # through the model (spread_pmf) but is backend-only — logged shadow for
     # evaluation, never displayed or sized. Fail-closed when market_type is None.
+    # Exception: a shallow rung the maker-only pilot sized (evmax/ev/maker_pilot.py)
+    # is a displayed MAKER play; it still persists shadow until its order fills.
     if spread_ladder_required(sec) and market_type in (None, "spread"):
-        if "sharp_ladder" not in contributing:
+        if "sharp_ladder" not in contributing and MAKER_PILOT_TOKEN not in contributing:
             return False
 
     floor = MIN_NONSHARP_MODELS.get(sec)
@@ -1380,6 +1386,10 @@ class EVGapAgent(Agent):
                 else None
             ),
         )
+        # Shallow model-priced NFL underdog rungs become ¼-Kelly maker-only
+        # plays (no-op for every other gap). See evmax/ev/maker_pilot.py.
+        # outcome_b is Pinnacle's underdog — the same flag the PMF receives.
+        gap = apply_maker_pilot(gap, yes_is_underdog=yes_is_outcome_b)
         return _ret(gap, blend_payload)
 
     # ------------------------------------------------------------------
@@ -1487,7 +1497,7 @@ class EVGapAgent(Agent):
         # Flip sign so the line stored is positive (e.g. -9.5 → +9.5)
         no_line = -market.line if market.line is not None else None
 
-        return EVGap(
+        gap = EVGap(
             market_id=f"{market.id}:no",
             event_id=sharp.event_id,
             sector=sector,
@@ -1520,6 +1530,12 @@ class EVGapAgent(Agent):
             full_blend=has_full_blend(sector, src_yes, MarketType.spread.value),
             venue=market.source.value,
             league=getattr(market, "league", None),
+        )
+        # Same maker-only pilot as the YES side (evmax/ev/maker_pilot.py). The
+        # NO side bets the opponent, so it is the underdog when YES is not.
+        yes_b = blend_payload.get("yes_is_outcome_b")
+        return apply_maker_pilot(
+            gap, yes_is_underdog=None if yes_b is None else not yes_b,
         )
 
     # ------------------------------------------------------------------

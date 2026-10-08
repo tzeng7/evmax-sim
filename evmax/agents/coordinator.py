@@ -45,6 +45,7 @@ from evmax.agents.odds.kalshi_agent import KalshiOddsAgent
 from evmax.agents.odds.polymarket_us_agent import PolymarketUSOddsAgent
 from evmax.agents.odds.sharp_agent import SharpOddsAgent
 from evmax.agents.odds.ev_gap_agent import EVGapAgent, EVGap
+from evmax.ev.maker_pilot import cap_maker_pilot_game_exposure
 from evmax.agents.models.elo_agent import EloModelAgent
 from evmax.agents.models.form_agent import FormModelAgent
 from evmax.agents.models.poisson_agent import PoissonModelAgent
@@ -881,6 +882,12 @@ class AgentCoordinator:
             if sr.get("injuries"):
                 result.injury_reports[sector] = sr["injuries"]
             result.prop_sharp_pairs.extend(sr.get("prop_sharp_pairs", []))
+
+        # Maker-only pilot (evmax/ev/maker_pilot.py): every rung of one game bets
+        # on the same underdog margin, so cap the pilot's summed maker Kelly per
+        # game. Pilot rows are maker-only (taker Kelly already zero), so the
+        # taker exposure guard below never sees them.
+        result.ev_gaps = cap_maker_pilot_game_exposure(result.ev_gaps)
 
         # Partial-blend gaps (full_blend=False, see REQUIRED_BLEND_MODELS in
         # ev_gap_agent.py) are shadow-bound: log_gaps demotes them to
