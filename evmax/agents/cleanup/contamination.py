@@ -77,6 +77,15 @@ NFL (see ``_PMF_SECTORS`` in ``models_ml/spread_distribution.py``):
     flagged. The superseded sample stays readable via
     ``cleanup shadow metrics --include-contaminated``.
 
+NHL (see ``_POSTED_RUNG_ONLY_SECTORS`` in ``models_ml/spread_distribution.py``):
+  - ``spread`` with the ``spread_dist`` token: from 2026-10-07 NHL prices only
+    Pinnacle's own posted puck-line rung, and those rows carry ``puck_line``.
+    Before that the normal CDF also priced the "mirror" rung (the other team's
+    −1.5 and its +1.5 complement), ~10pp too high against Pinnacle's own quote
+    for the same contract. Every one of the 118 NHL spread rows logged before
+    the change was that mirror rung, so a ``spread_dist`` NHL spread row was
+    selected by a phantom edge. The NFL ``spread_dist`` precedent.
+
 To add a sector rule later, append to ``CONTAMINATION_RULES`` — the metrics
 command and any SQL caller pick it up automatically.
 """
@@ -111,7 +120,7 @@ def _has(model_sources: Optional[str], token: str) -> bool:
 _NON_MODEL_TOKENS = frozenset({
     "", "sharp", "sharp(capped)", "injury", "late_news", "rest", "playoff",
     "advance_derived", "spread_dist", "total_dist", "no_side",
-    "sharp_ladder", "spread_pmf", "maker_pilot",
+    "sharp_ladder", "spread_pmf", "maker_pilot", "puck_line",
 })
 
 
@@ -167,6 +176,13 @@ CONTAMINATION_RULES: dict[str, list[RowRule]] = {
         # normal-CDF `spread_dist` token were priced and EV-selected by the
         # superseded normal (or its missing-artifact fallback); PMF rows carry
         # `spread_pmf`. Moneyline/total rows are untouched.
+        lambda mt, src, line: mt == "spread" and _has(src, "spread_dist"),
+    ],
+    "nhl": [
+        # Posted-rung-only NHL spreads shipped 2026-10-07
+        # (_POSTED_RUNG_ONLY_SECTORS in models_ml/spread_distribution.py).
+        # Current rows carry `puck_line`; a `spread_dist` NHL spread row was
+        # the normal-extrapolated mirror rung, priced ~10pp too high.
         lambda mt, src, line: mt == "spread" and _has(src, "spread_dist"),
     ],
 }

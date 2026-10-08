@@ -154,6 +154,23 @@ _PMF_SECTORS: set[str] = {"nfl"}
 
 SPREAD_DIST_TOKEN = "spread_dist"   # normal-CDF pricing (this module)
 SPREAD_PMF_TOKEN = "spread_pmf"     # key-number margin PMF (spread_pmf.py)
+PUCK_LINE_TOKEN = "puck_line"       # NHL: Pinnacle's own posted puck-line rung
+
+# Sectors that price ONLY the rung Pinnacle actually posts — the true distance
+# on the favorite-margin axis must be zero, so the normal never extrapolates and
+# the price equals the book's devigged rung exactly. Rows carry PUCK_LINE_TOKEN.
+#
+# NHL (2026-10-07): off a −1.5 puck line, the other team's −1.5 (and its
+# complement, "this team +1.5") sits 3.0 goals out on the true axis. The normal
+# (σ 2.0) priced that "mirror" rung ~10pp too high: on 20 rows where the
+# favourite flipped, so Pinnacle quoted the same contract directly, Pinnacle
+# said 0.71–0.72 (venue ask ~0.72) and the normal said ~0.82. Hockey margins
+# are lumpy — every OT/shootout game ends ±1 and empty-net goals turn ±1 into
+# ±2 — so in a pick'em game Pinnacle prices BOTH teams' −1.5 at ~0.28–0.29,
+# while a normal fitted to one side puts the other at ~0.17. Every one of the
+# 118 NHL spread rows logged before this change was that mirror rung.
+_POSTED_RUNG_ONLY_SECTORS: dict[str, str] = {"nhl": PUCK_LINE_TOKEN}
+_POSTED_RUNG_EPS: float = 1e-6
 
 
 @dataclass
@@ -246,6 +263,28 @@ class SpreadDistributionModel:
             )
             return None
 
+        # Posted-rung-only sectors (NHL): reject every rung Pinnacle does not
+        # post — see _POSTED_RUNG_ONLY_SECTORS. Measured on the TRUE
+        # favorite-margin axis: the folded distance above is 0 for the mirror
+        # rung, which is how it slipped through.
+        posted_rung_token = _POSTED_RUNG_ONLY_SECTORS.get(sector)
+        if posted_rung_token is not None:
+            true_distance = abs(
+                _spread_pmf.favorite_threshold(target_line, yes_is_underdog)
+                - abs(pinnacle_line)
+            )
+            if true_distance > _POSTED_RUNG_EPS:
+                logger.debug(
+                    "spread_model_unposted_rung_skipped",
+                    event_id=sharp_odds.event_id,
+                    sector=sector,
+                    pinnacle_line=pinnacle_line,
+                    target_line=target_line,
+                    yes_is_underdog=yes_is_underdog,
+                    distance=true_distance,
+                )
+                return None
+
         # Key-number margin PMF sectors (NFL). The PMF path applies its own gate
         # on the TRUE distance along the favorite-margin axis, then prices. It
         # returns (False, None) only when the PMF is unavailable for this row
@@ -274,6 +313,8 @@ class SpreadDistributionModel:
         # 3.0 out on the true axis, beyond NHL's σ 2.0), and baseball's such
         # rungs price fine — 107 resolved rows, 40.7% priced vs 37.4% realized,
         # CLV +0.48pp. Their tails are bounded by _LOW_SCORING_MAX_ABS_LINE.
+        # NHL never reaches this gate with a mirror rung: the posted-rung check
+        # above already rejected it.
         if sector in _LOW_SCORING_SECTORS:
             gate_distance = line_distance
         else:
@@ -323,6 +364,7 @@ class SpreadDistributionModel:
             true_prob=max(0.01, min(0.99, true_prob)),
             implied_mean=implied_mean,
             sigma=sigma,
+            method=posted_rung_token or SPREAD_DIST_TOKEN,
         )
 
     def _predict_pmf(

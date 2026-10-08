@@ -288,6 +288,9 @@ _NON_MODEL_TOKENS = frozenset({
     # spread_pmf = the key-number margin PMF (models_ml/spread_pmf.py) that
     # replaces spread_dist on _PMF_SECTORS. A pricing method, not a model.
     "spread_pmf",
+    # puck_line = NHL spread priced at Pinnacle's own posted puck-line rung
+    # (models_ml/spread_distribution.py). The sharp price, not a model.
+    "puck_line",
     # maker_pilot = sized by the maker-only pilot lane (evmax/ev/maker_pilot.py).
     # An execution/sizing tag, not a model.
     "maker_pilot",
