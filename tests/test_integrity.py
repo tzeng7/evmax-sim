@@ -331,6 +331,57 @@ class TestBoardDerived:
         # regular scan rows, NOT the WNBA anchored-entry laddered stream
         assert all("sources_token" not in w for w in nfl)
 
+    def test_gate_watches_score_only_live_eligible_rows(self, monkeypatch):
+        """Every watch is a promotion gate, so clv_stats must drop rows the
+        scanner would still demote after a promotion (NFL spread_pmf rungs)."""
+        from evmax.cli.commands import shadow
+
+        calls: list[dict] = []
+
+        def _fake(**kw):
+            calls.append(kw)
+            return {"n": 0, "clears": False}
+
+        monkeypatch.setattr(shadow, "clv_stats", _fake)
+        assert ig.check_gate_watches() == []
+        assert len(calls) == len(ig.GATE_WATCHES)
+        assert all(c["live_eligible_only"] is True for c in calls)
+        assert not any(k in c for c in calls for k in ig._WATCH_META_KEYS)
+
+    def test_nfl_watch_hint_is_computed_not_shadow_promote(self, monkeypatch):
+        """nfl is a live sector: `shadow promote nfl` refuses it. The hint comes
+        from promotion_board.promote_hint and flags that the YAML lane is
+        side-blind (promoting LAY also takes TAKE live)."""
+        from evmax.agents.cleanup import promotion_board as pb
+
+        seen: list[tuple] = []
+
+        def _hint(sector, market_type=None, venue=None):
+            seen.append((sector, market_type, venue))
+            return "remove `spread` from `nfl.shadow_market_types`"
+
+        monkeypatch.setattr(pb, "promote_hint", _hint)
+        lay = next(w for w in ig.GATE_WATCHES
+                   if w["category"] == "nfl" and w["side"] == "lay")
+        (issue,) = ig._gate_watch_issues([(lay, {
+            "n": 60, "games": 31, "clears": True,
+            "mean_clv_pp": 0.5, "frac_positive": 0.6,
+        })])
+        assert seen == [("nfl", "spread", "kalshi")]
+        assert "shadow promote" not in issue["detail"]
+        assert "`nfl.shadow_market_types`" in issue["detail"]
+        assert "side-blind" in issue["detail"]
+        assert "31 games" in issue["detail"]
+        assert "--live-eligible" in issue["detail"]
+
+    def test_wnba_anchored_watch_keeps_its_code_change_hint(self):
+        wnba = next(w for w in ig.GATE_WATCHES if w["category"] == "wnba")
+        (issue,) = ig._gate_watch_issues([(wnba, {
+            "n": 40, "clears": True, "mean_clv_pp": 0.8, "frac_positive": 0.6,
+        })])
+        assert "code change" in issue["detail"]
+        assert "shadow promote wnba" not in issue["detail"]
+
 
 class _FakeNotifier:
     def __init__(self, ok=True):

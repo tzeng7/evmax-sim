@@ -51,7 +51,11 @@ Cadence groups (``run_integrity(weekly=...)``):
                    (PROMOTE-READY on the board) plus the explicitly watched
                    strategy sub-streams in ``GATE_WATCHES`` (WNBA spread lay
                    anchored-entry). Severity ``info`` — it is good news, but it
-                   still needs a human to run ``cleanup shadow promote``
+                   still needs a human to act on the promote hint
+                   (``promotion_board.promote_hint``: ``cleanup shadow
+                   promote`` for a shadow sector, a data/categories.yaml edit
+                   for a market type held back under a live sector). Both
+                   score only live-eligible rows (``has_full_blend``)
 
 Design rules: pure ``_*_issues`` functions take already-fetched rows so they
 are unit-testable without a DB; thin ``check_*`` wrappers do the SQL. A check
@@ -78,14 +82,22 @@ _SEVERITY_RANK = {"info": 0, "warning": 1, "critical": 2}
 
 # Strategy sub-streams whose promotion gate is judged on a filtered CLV slice
 # the promotion board cannot express (sources_token / side). Each entry is the
-# kwargs for shadow.clv_stats plus a human label. Replaces the
-# ``weekly-wnba-listings-robustness-check`` scheduled task.
+# kwargs for shadow.clv_stats plus a human label (``_WATCH_META_KEYS`` are not
+# kwargs). ``promote_hint`` overrides the hint computed by
+# ``promotion_board.promote_hint`` — only for a stream a YAML edit cannot
+# promote. Replaces the ``weekly-wnba-listings-robustness-check`` scheduled task.
 GATE_WATCHES: list[dict] = [
     {
         "label": "wnba spread LAY anchored-entry (kalshi)",
         "category": "wnba", "market_type": "spread", "side": "lay",
         "venue": "kalshi", "sources_token": "anchored_entry", "max_staleness_h": 3.0,
-        "promote_hint": "evmax cleanup shadow promote wnba (spread is a shadow_market_type — edit data/categories.yaml)",
+        # wnba spread is a disabled_market_type and watch-listings logs every
+        # anchored entry through log_gaps(mode_resolver=lambda cat: "shadow"),
+        # so no YAML edit takes this stream live.
+        "promote_hint": "needs a code change: watch-listings logs anchored entries "
+                        "shadow-only (cleanup.py log_gaps mode_resolver); removing "
+                        "`spread` from `wnba.disabled_market_types` would re-enable "
+                        "SCAN-time rows, not this stream",
     },
     # NFL spread is a shadow_market_type (no NFL betting history in this system);
     # judge promotion PER SIDE via Kalshi entry→close CLV, never pooled (the WNBA
@@ -96,15 +108,16 @@ GATE_WATCHES: list[dict] = [
         "label": "nfl spread LAY (kalshi)",
         "category": "nfl", "market_type": "spread", "side": "lay",
         "venue": "kalshi", "max_staleness_h": 3.0,
-        "promote_hint": "evmax cleanup shadow clv nfl -m spread --side lay --venue kalshi; promote via data/categories.yaml shadow_market_types",
+        "inspect": "evmax cleanup shadow clv nfl -m spread --side lay --venue kalshi --live-eligible --max-staleness-h 3",
     },
     {
         "label": "nfl spread TAKE (kalshi)",
         "category": "nfl", "market_type": "spread", "side": "take",
         "venue": "kalshi", "max_staleness_h": 3.0,
-        "promote_hint": "evmax cleanup shadow clv nfl -m spread --side take --venue kalshi; promote via data/categories.yaml shadow_market_types",
+        "inspect": "evmax cleanup shadow clv nfl -m spread --side take --venue kalshi --live-eligible --max-staleness-h 3",
     },
 ]
+_WATCH_META_KEYS = frozenset({"label", "inspect", "promote_hint"})
 
 
 def _issue(check: str, severity: str, detail: str) -> dict:
@@ -591,13 +604,23 @@ def _board_issues(board: list[dict], include_gates: bool) -> list[dict]:
                 "divergence. Fix seeding/models or demote.",
             ))
         elif include_gates and verdict == "PROMOTE-READY":
+            hint = r.get("promote_hint") or _promote_hint(
+                r.get("sector"), r.get("market_type"), r.get("venue"),
+            )
             issues.append(_issue(
                 "gate", "info",
-                f"{tag} — shadow gates cleared (clean n={r.get('n_clean_resolved', '?')}, CLV "
+                f"{tag} — shadow gates cleared on live-eligible rows (clean n="
+                f"{r.get('n_clean_resolved', '?')}, CLV "
                 f"{clv.get('mean_clv_pp', 0.0):+.2f}pp, {(clv.get('frac_positive') or 0) * 100:.0f}% pos). "
-                f"Review then `evmax cleanup shadow promote {r.get('sector')}`.",
+                f"Review then {hint}.",
             ))
     return issues
+
+
+def _promote_hint(sector, market_type=None, venue=None) -> str:
+    from evmax.agents.cleanup.promotion_board import promote_hint
+
+    return promote_hint(sector, market_type, venue)
 
 
 def check_board(days: int = 30, staleness_h: Optional[float] = 3.0, include_gates: bool = False) -> list[dict]:
@@ -611,12 +634,22 @@ def _gate_watch_issues(results: list[tuple[dict, dict]]) -> list[dict]:
     issues: list[dict] = []
     for spec, st in results:
         if st.get("clears"):
-            issues.append(_issue(
-                "gate", "info",
-                f"{spec['label']} — gate cleared: n={st.get('n')}, mean CLV "
-                f"{st.get('mean_clv_pp', 0.0):+.2f}pp, {(st.get('frac_positive') or 0) * 100:.0f}% pos. "
-                f"{spec.get('promote_hint', '')}".strip(),
-            ))
+            hint = spec.get("promote_hint") or _promote_hint(
+                spec.get("category"), spec.get("market_type"), spec.get("venue"),
+            )
+            if spec.get("side"):
+                # data/categories.yaml has no per-side lane: promoting one side
+                # takes lay AND take live together.
+                hint += " — the YAML lane is side-blind, so check the other side first"
+            parts = [
+                f"{spec['label']} — gate cleared: n={st.get('n')} / "
+                f"{st.get('games', st.get('n'))} games, mean CLV "
+                f"{st.get('mean_clv_pp', 0.0):+.2f}pp, {(st.get('frac_positive') or 0) * 100:.0f}% pos.",
+            ]
+            if spec.get("inspect"):
+                parts.append(f"Inspect: `{spec['inspect']}`.")
+            parts.append(f"Promote: {hint}.")
+            issues.append(_issue("gate", "info", " ".join(parts)))
     return issues
 
 
@@ -625,7 +658,11 @@ def check_gate_watches() -> list[dict]:
 
     results: list[tuple[dict, dict]] = []
     for spec in GATE_WATCHES:
-        kwargs = {k: v for k, v in spec.items() if k not in ("label", "promote_hint")}
+        kwargs = {k: v for k, v in spec.items() if k not in _WATCH_META_KEYS}
+        # A promotion gate scores only rows that could log live once promoted
+        # (has_full_blend) — e.g. NFL spread rungs without a sharp_ladder price
+        # stay shadow after any YAML flip.
+        kwargs.setdefault("live_eligible_only", True)
         try:
             results.append((spec, clv_stats(**kwargs)))
         except Exception as e:  # noqa: BLE001 — one broken watch must not mask the rest

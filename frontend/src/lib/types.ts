@@ -265,6 +265,7 @@ export interface BoardRow {
   n_logged: number
   n_resolved: number
   n_clean_resolved: number
+  n_not_live_eligible: number
   brier_blend: number | null
   brier_sharp: number | null
   brier_delta_per_1000: number | null
@@ -275,6 +276,7 @@ export interface BoardRow {
   clv: BoardClv
   gates: Record<string, BoardGate>
   verdict: string
+  promote_hint: string | null
   top_blockers: string[]
 }
 

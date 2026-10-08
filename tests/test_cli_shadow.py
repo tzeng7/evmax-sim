@@ -657,6 +657,39 @@ class TestClvStatsSourcesToken:
         assert s["n"] == 2
 
 
+class TestClvStatsLiveEligible:
+    """live_eligible_only keeps rows that could log live once promoted
+    (has_full_blend). Opt-in: the default keeps every lens's row set."""
+
+    def _nfl_spread_db(self, tmp_path, _patch_db):
+        rows = [
+            ("lad1", "2026-10-04", "spread", "shadow", 2.0, 1, -3.5),
+            ("lad2", "2026-10-04", "spread", "shadow", 1.0, 1, -6.5),
+            ("pmf1", "2026-09-27", "spread", "shadow", -3.0, 0, -13.5),
+        ]
+        db_path = _make_clv_db(tmp_path, rows)
+        conn = sqlite3.connect(str(db_path))
+        conn.execute(
+            "UPDATE ev_predictions SET sector = 'nfl', model_sources = "
+            "CASE WHEN market_id LIKE 'lad%' THEN 'sharp+sharp_ladder' "
+            "ELSE 'sharp+spread_pmf' END"
+        )
+        conn.commit()
+        conn.close()
+        _patch_db(db_path)
+
+    def test_default_keeps_all_rows(self, tmp_path, _patch_db):
+        self._nfl_spread_db(tmp_path, _patch_db)
+        assert clv_stats("nfl", market_type="spread")["n"] == 3
+
+    def test_drops_rungs_without_a_sharp_ladder_price(self, tmp_path, _patch_db):
+        self._nfl_spread_db(tmp_path, _patch_db)
+        s = clv_stats("nfl", market_type="spread", live_eligible_only=True)
+        assert s["n"] == 2
+        assert s["mean_clv_pp"] == pytest.approx(1.5)
+        assert s["frac_positive"] == 1.0
+
+
 # -------------------------------------------------------------------------
 # prop categories read prop_observations, not ev_predictions
 # -------------------------------------------------------------------------
