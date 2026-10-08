@@ -17,6 +17,7 @@ import pytest
 
 import evmax.models_ml.spread_distribution as sd
 import evmax.agents.odds.ev_gap_agent as ev_mod
+import evmax.ev.maker_pilot as maker_pilot
 from evmax.agents.odds.ev_gap_agent import EVGapAgent
 from evmax.clients.esports_pinnacle import PinnacleGuestClient
 from evmax.matching.engine import MatchingEngine
@@ -266,6 +267,10 @@ class TestEvGapLadderPricing:
 
 @pytest.fixture
 def nfl_ladder(monkeypatch):
+    # Pin the 2026-10-03 ladder-only behaviour on its own: the maker-only pilot
+    # (evmax/ev/maker_pilot.py) re-opens shallow model-priced rungs and has its
+    # own suite in tests/test_maker_pilot.py.
+    monkeypatch.setattr(maker_pilot, "MAKER_PILOT_SECTORS", set())
     monkeypatch.setattr(sd, "SPREAD_LADDER_ENABLED", False)
     monkeypatch.setattr(sd, "SPREAD_LADDER_SECTORS", {"nfl"})
     monkeypatch.setattr(sd, "SPREAD_LADDER_EXACT_SECTORS", {"nfl"})

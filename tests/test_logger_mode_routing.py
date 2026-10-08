@@ -600,6 +600,22 @@ class TestMakerOnlyDemotion:
         assert row["mode"] == "shadow"
         assert row["maker_ev_pct"] == pytest.approx(0.041)
 
+    def test_maker_pilot_gap_persists_shadow_with_its_token(self, patched_db):
+        """evmax/ev/maker_pilot.py rows are maker_only: shadow until `agents fill`."""
+        gap = replace(
+            _gap("kalshi:KXNFLSPREAD-26OCT11CHIGB-CHI4", sector="nfl"),
+            market_type="spread", line=-3.5, ev_pct=0.03, kelly_fraction=0.0,
+            model_sources="sharp+spread_pmf+maker_pilot", maker_only=True,
+            maker_ev_pct=0.09, full_blend=True,
+        )
+        log_gaps([gap], mode_resolver=lambda c: "live")
+        row = patched_db.execute(
+            "SELECT mode, model_sources FROM ev_predictions "
+            "WHERE market_id = 'kalshi:KXNFLSPREAD-26OCT11CHIGB-CHI4'"
+        ).fetchone()
+        assert row["mode"] == "shadow"
+        assert "maker_pilot" in row["model_sources"]
+
     def test_taker_clearing_gap_stays_live_with_maker_ev(self, patched_db):
         gap = replace(
             _gap("m-taker", sector="nba"),

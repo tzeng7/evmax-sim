@@ -111,7 +111,7 @@ def _has(model_sources: Optional[str], token: str) -> bool:
 _NON_MODEL_TOKENS = frozenset({
     "", "sharp", "sharp(capped)", "injury", "late_news", "rest", "playoff",
     "advance_derived", "spread_dist", "total_dist", "no_side",
-    "sharp_ladder", "spread_pmf",
+    "sharp_ladder", "spread_pmf", "maker_pilot",
 })
 
 
