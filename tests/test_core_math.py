@@ -911,12 +911,13 @@ class TestSharpOddsValidation:
 
 
 class TestLowScoringGateUnchanged:
-    """The true-axis ±1σ gate (2026-09-22) is for POINTS sectors. Low-scoring
-    sectors keep the folded distance: an NHL "underdog wins by over 1.5" rung
-    off a −1.5 puck line sits 3.0 out on the true axis — beyond NHL's σ 2.0 —
-    and must still price exactly as before (review finding on #320)."""
+    """The true-axis ±1σ gate (2026-09-22) is for POINTS sectors. Baseball keeps
+    the folded distance: an "underdog wins by over 1.5" rung off a −1.5 run line
+    sits 3.0 out on the true axis and must still price exactly as before (review
+    finding on #320). NHL no longer prices that rung at all — see
+    tests/test_nhl_puck_line.py (_POSTED_RUNG_ONLY_SECTORS, 2026-10-07)."""
 
-    @pytest.mark.parametrize("sector", ["nhl", "baseball"])
+    @pytest.mark.parametrize("sector", ["baseball"])
     def test_dog_wins_by_2_off_minus_1_5_still_prices(self, sector):
         from scipy.stats import norm
 

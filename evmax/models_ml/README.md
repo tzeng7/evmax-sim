@@ -10,6 +10,8 @@ They are called from within agent `predict()` methods.
 ### `spread_distribution.py`
 Converts a point spread + standard deviation into a win probability using the Normal CDF.
 Used by `EloModelAgent` and `PoissonModelAgent` for spread market cover probabilities.
+Sectors in `_POSTED_RUNG_ONLY_SECTORS` (NHL) price only Pinnacle's own posted rung, so the normal
+never extrapolates there; those rows carry the `puck_line` token.
 
 ### `spread_pmf.py`
 Key-number-aware discrete margin PMF for NFL alt-spread pricing (`MarginPMF`). Loaded from
