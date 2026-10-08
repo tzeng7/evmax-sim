@@ -552,6 +552,7 @@ def _fetch_clv_rows(
     sources_token: Optional[str] = None,
     league: Optional[str] = None,
     price_bucket: Optional[str] = None,
+    live_eligible_only: bool = False,
 ) -> tuple[list, int]:
     """Fetch a category's current-code resolved CLV rows.
 
@@ -635,6 +636,16 @@ def _fetch_clv_rows(
         r for r in rows
         if not is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"])
     ]
+    if live_eligible_only:
+        # Same rule the scanner applies before a row may log live (ev_gap_agent
+        # sets full_blend from it; logger/coordinator demote the rest). Runs
+        # before the staleness pass so dropped rows cost no archive reads.
+        from evmax.agents.odds.ev_gap_agent import has_full_blend
+
+        kept = [
+            r for r in kept
+            if has_full_blend(r["sector"], r["model_sources"], r["market_type"])
+        ]
     if price_bucket is not None:
         # Python-side: the entry price is COALESCE(placed fill, scan ask), the
         # same anchor backfill_clv measured against (resolver.clv_entry_price).
@@ -723,6 +734,7 @@ def clv_stats(
     sources_token: Optional[str] = None,
     league: Optional[str] = None,
     price_bucket: Optional[str] = None,
+    live_eligible_only: bool = False,
 ) -> dict:
     """Aggregate kalshi_clv_pct for a category's current-code resolved bets.
 
@@ -770,11 +782,21 @@ def clv_stats(
     ``price_buckets.BUCKET_ORDER`` (0-10 / 10-20 / ... / 90+). The favorite–
     longshot lens: the EV% gate mechanically favors cheap contracts, so CLV and
     calibration are judged per price bucket before any gate change.
+    `live_eligible_only` keeps only rows that could log LIVE if their lane were
+    promoted: ``ev_gap_agent.has_full_blend(sector, model_sources,
+    market_type)`` is True. The scanner demotes every other row to shadow
+    whatever the YAML mode says (tennis partial blends, sharp-only
+    soccer/ncaaf/nhl moneylines, NFL spread rungs without a ``sharp_ladder``
+    price). A promotion gate scored on those rows measures a population that
+    can never go live (2026-10-07: 285 of 294 resolved Kalshi NFL spread CLV
+    rows were ``spread_pmf``). Off by default; the promotion board and the
+    integrity gate watches opt in.
     """
     kept, excluded_stale = _fetch_clv_rows(
         category, market_type=market_type, mode=mode, since=since,
         side=side, venue=venue, max_staleness_h=max_staleness_h,
         sources_token=sources_token, league=league, price_bucket=price_bucket,
+        live_eligible_only=live_eligible_only,
     )
     return _aggregate_clv(kept, excluded_stale)
 
@@ -827,6 +849,12 @@ def clv(
         help="Restrict to one entry-price bucket of OUR side (0-10, 10-20, 20-35, "
              "35-50, 50-65, 65-80, 80-90, 90+). See `clv-prices` for all at once.",
     ),
+    live_eligible: bool = typer.Option(
+        False, "--live-eligible",
+        help="Keep only rows that could log live if the lane were promoted "
+             "(has_full_blend) — the row set `shadow board` and the integrity "
+             "gate watches score. E.g. NFL spread keeps only sharp_ladder rungs.",
+    ),
 ) -> None:
     """Report Kalshi CLV (entry→close) — the +EV signal for laddered markets.
 
@@ -838,6 +866,7 @@ def clv(
         category, market_type=market_type, mode=mode, since=since,
         side=side, venue=venue, max_staleness_h=max_staleness_h,
         sources_token=sources_token, league=league, price_bucket=price_bucket,
+        live_eligible_only=live_eligible,
     )
     label = f"{category}" + (f" / {market_type}" if market_type else "")
     label += f" [{mode}]" if mode else " [all modes]"
@@ -848,6 +877,7 @@ def clv(
     label += f" price={price_bucket}" if price_bucket else ""
     label += f" fresh≤{max_staleness_h:g}h" if max_staleness_h is not None else ""
     label += f" sources~{sources_token}" if sources_token else ""
+    label += " live-eligible" if live_eligible else ""
     if s["n"] == 0:
         stale_note = ""
         if max_staleness_h is not None and s.get("excluded_stale"):
@@ -1329,7 +1359,7 @@ def board(
     table.add_column("Mkt", width=4)
     table.add_column("Ven", width=4)
     table.add_column("Mode", width=6)
-    table.add_column("n c/r/l", justify="right", width=11)
+    table.add_column("n c/r/l", justify="right", width=14)
     table.add_column("ΔBr/1k", justify="right", width=6)
     table.add_column("CLV mean/%pos(games)", justify="right", width=16)
     table.add_column("Div", justify="right", width=5)
@@ -1365,6 +1395,10 @@ def board(
             "LIVE-HEALTHY": "green",
         }.get(verdict, "dim")
         verdict_cell = f"[{style}]{verdict}[/{style}]"
+        if r.get("n_not_live_eligible"):
+            verdict_cell += (
+                f"\n[dim]{r['n_not_live_eligible']} clean row(s) not live-eligible[/dim]"
+            )
         if r["top_blockers"]:
             verdict_cell += f"\n[dim]{' '.join(r['top_blockers'])}[/dim]"
 
@@ -1385,8 +1419,18 @@ def board(
     console.print(
         "[dim]Div pp = mean |blended − sharp|; moneyline groups under "
         f"{0.5:.1f}pp are sharp-passthrough (no independent model signal). "
-        "Gates: clean-n≥30 · CLV n≥30 · mean≥0 · %pos≥55.[/dim]"
+        "Gates: clean-n≥30 · CLV n≥30 · mean≥0 · %pos≥55, scored on "
+        "live-eligible rows only (has_full_blend: rows the scanner would still "
+        "demote to shadow after a promotion are not counted).[/dim]"
     )
+    ready = [r for r in rows if r.get("promote_hint")]
+    if ready:
+        console.print("\n[bold green]PROMOTE-READY actions:[/bold green]")
+        for r in ready:
+            console.print(
+                f"  {r['sector']} {r['market_type']} [{r['venue']}]: {r['promote_hint']}",
+                markup=False,
+            )
 
 
 @app.command("promote")

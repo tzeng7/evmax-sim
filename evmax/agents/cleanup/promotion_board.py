@@ -4,8 +4,17 @@ The single surface that answers "which sectors can I actually rely on, and
 what is blocking the rest?" (2026-07-19, WS4 of the diversification plan).
 Combines, per group over a trailing window of GAME dates:
 
-  - sample:      n_logged / n_resolved / n_clean (contamination-filtered),
-                 live/shadow mode split
+  - sample:      n_logged / n_resolved / n_clean (contamination-filtered AND
+                 live-eligible), live/shadow mode split
+  - eligibility: every gate (clean-n, paired Brier, CLV) scores only rows
+                 that could log LIVE if the lane were promoted —
+                 ``ev_gap_agent.has_full_blend`` is True. The scanner demotes
+                 the rest to shadow whatever the YAML mode says, so gating on
+                 them judges a population that can never go live (2026-10-07:
+                 NFL spread [kalshi] read PROMOTE-READY on 294 CLV rows, 285 of
+                 them ``spread_pmf``; only ``sharp_ladder`` rungs can go live).
+                 ``n_not_live_eligible``
+                 counts the clean resolved rows this drops.
   - accuracy:    Brier of the blend vs the sharp anchor on clean resolved
                  rows, paired Δ/1000 with z (reuses value_audit internals)
   - CLV:         evmax.cli.commands.shadow.clv_stats — the promotion lens
@@ -65,6 +74,65 @@ def _effective_mode(
         return get_mode(sector, market_type, venue=venue)
     except Exception:
         return None
+
+
+_CATEGORIES_YAML = "data/categories.yaml"
+
+
+def promote_hint(
+    sector: str, market_type: Optional[str] = None, venue: Optional[str] = None
+) -> str:
+    """The action that takes a cleared (sector, market_type, venue) lane live.
+
+    ``cleanup shadow promote <sector>`` only flips a sector-level ``mode:``
+    line, and it refuses a sector that is already live. A market type under a
+    live sector is held back by a YAML list instead (``shadow_market_types``,
+    ``shadow_venue_market_types`` or ``disabled_market_types``), so the action
+    is a YAML edit. Reads the YAML base spec, not the effective mode: the
+    promote command edits the YAML too.
+    """
+    try:
+        from evmax.categories import get_category
+
+        spec = get_category(sector)
+    except Exception:
+        return f"`evmax cleanup shadow promote {sector}`"
+
+    steps: list[str] = []
+    if spec.mode == "shadow":
+        steps.append(f"`evmax cleanup shadow promote {sector}`")
+    elif spec.mode != "live":
+        steps.append(f"set `{sector}.mode: live` in {_CATEGORIES_YAML}")
+    if market_type:
+        if market_type in spec.disabled_market_types:
+            steps.append(
+                f"remove `{market_type}` from `{sector}.disabled_market_types` "
+                f"in {_CATEGORIES_YAML}"
+            )
+        if market_type in spec.shadow_market_types:
+            steps.append(
+                f"remove `{market_type}` from `{sector}.shadow_market_types` "
+                f"in {_CATEGORIES_YAML} (venue-blind: every venue goes live; "
+                f"keep another venue shadow under `shadow_venue_market_types`)"
+            )
+        if venue and market_type in spec.shadow_venue_market_types.get(venue, ()):
+            steps.append(
+                f"remove `{market_type}` from "
+                f"`{sector}.shadow_venue_market_types.{venue}` in {_CATEGORIES_YAML}"
+            )
+    if steps:
+        return " and ".join(steps)
+    # YAML already live with no market-type hold: shadow comes from outside the
+    # YAML lists — the off-season window, or a runtime / env override.
+    if not spec.is_in_season():
+        return (
+            f"no action: {sector} is live in {_CATEGORIES_YAML}; shadow only "
+            f"because today is outside its season_window"
+        )
+    return (
+        f"no YAML action: {sector} is live in {_CATEGORIES_YAML}; check for an "
+        f"EVMAX_CATEGORY_MODES or --shadow override"
+    )
 
 
 def _verdict(
@@ -146,6 +214,7 @@ def compute_promotion_board(
     from evmax.agents.cleanup.db import get_connection
     from evmax.agents.cleanup.price_buckets import bucket_for_row, validate_bucket
     from evmax.agents.cleanup.value_audit import _brier, _calibration, _paired_diff_stats
+    from evmax.agents.odds.ev_gap_agent import has_full_blend
     from evmax.cli.commands.shadow import (
         MIN_CLEAN_RESOLVED,
         clv_stats,
@@ -193,9 +262,14 @@ def compute_promotion_board(
     board: list[dict] = []
     for (sec, mt, ven), grp in sorted(groups.items()):
         resolved = [r for r in grp if r["outcome"] is not None]
-        clean = [
+        clean_all = [
             r for r in resolved
             if not is_contaminated(sec, mt, r["model_sources"], r["line"])
+        ]
+        # Gate population: rows that could log live if this lane were promoted.
+        clean = [
+            r for r in clean_all
+            if has_full_blend(sec, r["model_sources"], mt)
         ]
         mode_split = Counter(r["mode"] or "live" for r in grp)
 
@@ -227,6 +301,7 @@ def compute_promotion_board(
             max_staleness_h=staleness_h if ven == "kalshi" else None,
             league=league,
             price_bucket=price_bucket,
+            live_eligible_only=True,
         )
 
         mode = _effective_mode(sec, mt, ven)
@@ -261,6 +336,7 @@ def compute_promotion_board(
             and divergence_pp < SHARP_PASSTHROUGH_PP
         )
 
+        verdict = _verdict(mt, divergence_pp, len(clean), clv, mode, MIN_CLEAN_RESOLVED)
         board.append({
             "sector": sec,
             "market_type": mt,
@@ -270,6 +346,7 @@ def compute_promotion_board(
             "n_logged": len(grp),
             "n_resolved": len(resolved),
             "n_clean_resolved": len(clean),
+            "n_not_live_eligible": len(clean_all) - len(clean),
             "brier_blend": round(brier_blend, 4) if brier_blend is not None else None,
             "brier_sharp": round(brier_sharp, 4) if brier_sharp is not None else None,
             "brier_delta_per_1000": (
@@ -290,8 +367,9 @@ def compute_promotion_board(
                 "excluded_stale": clv.get("excluded_stale", 0),
             },
             "gates": gates,
-            "verdict": _verdict(
-                mt, divergence_pp, len(clean), clv, mode, MIN_CLEAN_RESOLVED
+            "verdict": verdict,
+            "promote_hint": (
+                promote_hint(sec, mt, ven) if verdict == "PROMOTE-READY" else None
             ),
             "top_blockers": _top_blockers(
                 [r.get("model_diagnostics") for r in grp]
