@@ -21,7 +21,8 @@ WNBA-specific calibration (vs NBA):
   - Possessions clipped to [65, 100] (NBA: [80, 120]) — WNBA pace 78-84
   - Margin σ = 12.5 (NBA: 11.5) — matches WNBA efficiency's SCORE_STDEV
   - Total σ = 18.0 (NBA: 20.0) — 40-min game → lower total variance
-  - MIN_GAMES = 12 (NBA: 20) — 40-game WNBA season vs 82-game NBA
+  - MIN_GAMES = 4 (NBA: 20) — lowered from 12: shrink_team_stats (SHRINK_K=8)
+    absorbs small-sample noise, so partial-season data is usable early
   - Playoff tightening disabled — WNBA playoffs not calibrated yet
 
 Returns None for any sector other than "wnba". WNBA is shadow-mode today

@@ -982,6 +982,7 @@ Bounds: `sharp_weight` stays in `[0.40, 0.95]`. Adjustments happen at most once 
 | Tennis | 0.85 | |
 | Soccer | 0.88 | |
 | Baseball | 0.88 | |
+| UFC | 0.88 | Set with the UFC shadow MVP — `ufc_rating` is the only non-sharp model |
 | LoL / CS2 | 1.00 | No competitive statistical model yet — pure sharp |
 | Global default | 0.85 | Applied to every sector not listed above (incl. WNBA, NFL, NHL, NCAAB) |
 
@@ -1151,11 +1152,11 @@ evmax agents scan --bankroll 500
 evmax agents scan --max-props 5
 
 # Next morning — fetch ESPN boxscores and fill actual_value/outcome
-evmax cleanup resolve-props --sector nba --date YYYY-MM-DD
+evmax cleanup resolve-props --sectors nba --date YYYY-MM-DD
 
 # Browse the observation log
 evmax cleanup props --days 7
-evmax cleanup props --stat points --resolved-only
+evmax cleanup props --stat points --resolved
 
 # Calibration: predicted vs actual hit rate, bucketed by probability
 evmax cleanup prop-calibration --weeks 4
@@ -1463,7 +1464,7 @@ evmax agents update --sector nba --home celtics --away knicks \
 
 ```bash
 # Show logged bets + outcomes
-evmax cleanup show --days 7
+evmax cleanup show                     # default window = last 7 days (--since/--until to change)
 evmax cleanup show --sector nba --resolved
 
 # Resolve outcomes for a date (defaults to yesterday)
