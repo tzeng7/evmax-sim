@@ -856,7 +856,10 @@ model_config.json). `evmax cleanup devig show` prints the A/B on demand;
 vs OUTCOMES, not CLV (it extracts the book's own probability, not a forecast) —
 the tennis lesson lives on as the significance guard. Nothing further to do;
 the recommendation appears in the Monday sweep if soccer/worldcup 3-way or a
-longshot-heavy sector ever earns it.
+longshot-heavy sector ever earns it. **2026-10-07 sample fix:** n now counts
+GAMES (one closing pre-tip game-winner line each, `collect_devig_observations`);
+the earlier NHL "multiplicative, z=32" flag was spread-snapshot rows scored
+against other rungs' outcomes — an artifact, never promote it.
 
 ---
 
