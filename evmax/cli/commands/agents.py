@@ -462,12 +462,13 @@ def scan(
     if result.prop_sharp_pairs:
         try:
             from evmax.agents.cleanup.logger import log_prop_from_sharp as _log_props
-            # Anchor pricing landed 2026-05-10: every prop_sharp now carries a
-            # probability priced from a Pinnacle anchor through prop_pricing
-            # (Poisson for count stats, Normal for yardage/PRA). Tag rows so
-            # the validation gate can filter on this version when computing
-            # Brier vs Kalshi over the next 14 days.
-            n_props = _log_props(result.prop_sharp_pairs, model_version="pinnacle-anchor-v1")
+            from evmax.portfolios import ANCHOR_MODEL_VERSION
+            # Every prop_sharp carries a probability priced from a Pinnacle
+            # anchor through prop_pricing. The tag names the pricing version
+            # (v2 since 2026-10-09: NFL receiving/rushing yards on the
+            # fixed-scale Gamma — see evmax/portfolios.py) so validation can
+            # partition rows by the pricing that produced them.
+            n_props = _log_props(result.prop_sharp_pairs, model_version=ANCHOR_MODEL_VERSION)
             if n_props:
                 console.print(f"[dim]  Logged {n_props} prop line(s) to prop_observations[/dim]")
         except Exception as _log_err:

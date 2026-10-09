@@ -68,7 +68,7 @@ _STAT_DISTRIBUTION: dict[str, str] = {
     "passing_yards":           "normal",
     # NFL receiving/rushing yards → fixed-scale Gamma (2026-10-09). The fixed-σ
     # Normal priced every player with the same SD (24 / 30 yd): too thin in the
-    # upper tail for a high-median WR (P(≥ line+60) 0.6% vs 4.7% realized) and
+    # upper tail for a high-median WR (P(≥ line+60) 0.6% vs 4.5% realized) and
     # mass below zero for a 12-yard receiver, which made deep Kalshi rungs look
     # like free NO edges. See _GAMMA_STAT_SCALE for the fit and the evidence.
     "rushing_yards":           "gamma",
@@ -120,30 +120,37 @@ _NORMAL_STAT_SIGMA: dict[str, float] = {
 }
 
 # Per-stat Gamma scale θ (stat units) for Gamma-priced stats. The shape is
-# μ/θ, so Var = θ·μ and SD = √(θ·μ): at θ=25.4 a 12.5-yard 50/50 line gives
+# μ/θ, so Var = θ·μ and SD = √(θ·μ): at θ=25.3 a 12.5-yard 50/50 line gives
 # μ ≈ 20, SD ≈ 23 yd; an 80.5-yard line gives μ ≈ 89, SD ≈ 47 yd. Skew falls
 # as the median rises.
 #
 # Fitted 2026-10-09 by scripts/fit_nfl_prop_dispersion.py: one closing Pinnacle
 # anchor per player-game (2026 Weeks 1-5, recovered from the archive), scored
-# as rung Brier on every Kalshi threshold actually listed against the settled
-# stat. Variance power was free in the search (Var = φ·μ^p): p fitted between
-# 0.9 and 1.4 across folds at no Brier gain over p=1, so the one-parameter
-# form ships.
-# Out of sample (θ fit on Weeks 1-2 only, scored on Weeks 3-5, Brier/1000 with
-# player-game-clustered SE):
-#   receiving  Normal σ=24 174.2 → Gamma 168.8  (Δ −5.4 ± 1.7, 366 player-games)
-#              Gamma − Kalshi mid on the same rungs: −0.6 ± 0.8
-#   rushing    Normal σ=30 163.3 → Gamma 160.4  (Δ −2.9 ± 2.3, 183 player-games)
+# as rung Brier on every Kalshi threshold actually listed against Kalshi's
+# official settlement (the stored stat value drops zero-catch/zero-carry
+# games). Variance power was free in the search (Var = φ·μ^p): p fitted
+# between 0.9 and 1.4 across folds at no Brier gain over p=1, so the
+# one-parameter form ships.
+# The shipped θ is the ALL-weeks fit (it has seen Weeks 3-5). The out-of-sample
+# test froze θ on Weeks 1-2 (21.2 / 14.2) and scored Weeks 3-5 once
+# (Brier/1000, player-game-clustered SE):
+#   receiving  Normal σ=24 173.7 → Gamma 169.0  (Δ −4.7 ± 1.6, 381 player-games)
+#              Gamma − Kalshi mid on the same rungs: −0.3 ± 0.7
+#   rushing    Normal σ=30 163.1 → Gamma 160.1  (Δ −3.0 ± 2.3, 184 player-games)
 #              Gamma − Kalshi mid on the same rungs: +1.2 ± 1.0
-# The holdout Brier is flat for θ within ±5 of these values. A zero-inflated
-# Gamma (extra "dud" mass at 0) gained only −1.0 ± 0.5 / −0.8 ± 1.0, thinned the
-# upper tail and its mass parameter swung 0.03-0.18 between folds — not shipped.
+# Holdout Brier varies by ≤1.3/1000 for θ from 20 to 35 (receiving) and
+# ≤0.3/1000 from 15 to 20 (rushing), so the all-weeks values lose nothing.
+# A zero-inflated Gamma (extra "dud" mass at 0) beats this family on the
+# receiving holdout by −1.6 ± 0.7 (rushing −0.8 ± 1.0) — it fixes the lower tail
+# below — but its mass parameter drifted 0.05 → 0.22 as weeks were added and it
+# prices the upper tail thinner than realized (rungs 50+ yd over the line:
+# 5.6% vs 7.3%), the side the Normal got wrong. Not shipped; revisit as weeks
+# accrue.
 # Known residual: high-median receivers have a fatter LOWER tail than this
-# family (early exits; rungs ≥30 yd below the line realize 68% vs 90% priced).
-# Refit with the script as the season accrues.
+# family (early exits; rungs ≥30 yd below the line realize 65% vs 90% priced,
+# Kalshi 83%). Refit with the script as the season accrues.
 _GAMMA_STAT_SCALE: dict[str, float] = {
-    "receiving_yards": 25.4,
+    "receiving_yards": 25.3,
     "rushing_yards":   15.3,
 }
 
@@ -163,12 +170,13 @@ _NEGBIN_STAT_K: dict[str, float] = {
     "steals":   8.0,
     "blocks":   8.0,
     # NFL receptions: k=5 re-checked 2026-10-09 by
-    # scripts/fit_nfl_prop_dispersion.py (same anchor/outcome sample as the
-    # yardage Gamma) and KEPT. A refit k is not better out of sample (Weeks 3-5
-    # holdout Brier +0.5 ± 1.1 /1000 vs k=5; NB1, Var = μ(1+δ), ties too)
-    # because the upper tail is unstable: Weeks 1-2 fit k≈50, Weeks 3-5
-    # match k=5. One stable miss: k=5 prices P(≥ line−1) ~3.5pp too low in both
-    # halves (fewer duds than NegBin implies).
+    # scripts/fit_nfl_prop_dispersion.py (same anchor / Kalshi-settlement
+    # sample as the yardage Gamma) and KEPT. A refit k is not better out of
+    # sample (Weeks 3-5 holdout Brier +0.5 ± 1.1 /1000 vs k=5, log loss worse; NB1,
+    # Var = μ(1+δ), ties) because the fitted k is unstable: ≈60 on Weeks 1-2,
+    # ≈16 on all weeks. Known residual: k=5 prices the deep upper rungs
+    # (≥ line+3.5) about twice the realized rate (holdout 9.0% vs 4.4%; Kalshi
+    # 4.4%) — a phantom-YES risk on cheap deep receptions rungs.
     "receptions":       5.0,
     # MLB (PROVISIONAL — calibrate via scripts/backtest_mlb_props.py --report-k
     # against historical box scores before trusting tail thresholds). Hitter

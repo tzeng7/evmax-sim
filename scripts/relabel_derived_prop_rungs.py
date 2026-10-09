@@ -9,9 +9,12 @@ player). New code files those rungs under ``'<book>_derived'`` with
 ``derived = 1`` and archives the real anchors as ``'pinnacle'`` / ``derived = 0``
 (see evmax/archiver.py).
 
-Before the change only the scanner wrote prop rows, and it wrote ONLY re-lined
-rungs, so every prop row with ``derived IS NULL`` is a derived rung. This script
-gives those rows the new label:
+Before the change only the scanner wrote prop rows, and it never archived a
+raw Pinnacle quote, so every prop row (``event_id`` contains ``::prop::``)
+with ``derived IS NULL`` is model output. That includes ~130k NBA rows from
+2026-03-24 → 2026-05-10, written before the prop columns existed
+(``prop_player_name`` NULL, decimals 1.0/1.0 — the L15 era). This script gives
+those rows the new label:
 
     book    → book || '_derived'
     derived → 1
@@ -46,12 +49,13 @@ from evmax.archiver import _MIGRATIONS, DERIVED_BOOK_SUFFIX  # noqa: E402
 
 DEFAULT_DB = REPO_ROOT / "data" / "archive.db"
 
+_PROP_ROW = "event_id LIKE '%::prop::%'"
 _LEGACY = (
-    "prop_player_name IS NOT NULL AND derived IS NULL "
+    f"{_PROP_ROW} AND derived IS NULL "
     f"AND book NOT LIKE '%{DERIVED_BOOK_SUFFIX}'"
 )
 _RELABELLED = (
-    "prop_player_name IS NOT NULL AND derived = 1 AND anchor_line IS NULL "
+    f"{_PROP_ROW} AND derived = 1 AND anchor_line IS NULL "
     f"AND book LIKE '%{DERIVED_BOOK_SUFFIX}'"
 )
 
@@ -78,7 +82,7 @@ def plan(conn: sqlite3.Connection, revert: bool = False) -> list[tuple[str, str,
     if not has_derived_columns(conn):
         if revert:
             return []
-        where = "prop_player_name IS NOT NULL"  # pre-migration: every prop row is legacy
+        where = _PROP_ROW  # pre-migration: every prop row is legacy
     else:
         where = _RELABELLED if revert else _LEGACY
     return [
