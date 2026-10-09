@@ -13,7 +13,8 @@ At a cutoff (a week's first kickoff), using only games before it:
 
 Projections are means: targets = team targets x share, receptions = targets x
 catch rate, receiving yards = targets x yards/target, rushing yards = carries x
-yards/carry, passing yards = team attempts x QB yards/attempt.
+yards/carry, passing yards = team attempts x the starter's share of team
+attempts x his yards/attempt (both over his starts).
 """
 from __future__ import annotations
 
@@ -37,6 +38,8 @@ class PlayerModelConfig:
     k_targets: float = 60.0            # pseudo-targets for catch rate / yards per target
     k_carries: float = 80.0            # pseudo-carries for yards per carry
     k_attempts: float = 150.0          # pseudo-attempts for QB yards per attempt
+    k_team_attempts: float = 100.0     # pseudo team-attempts for a starter's attempt share
+    min_start_attempts: float = 10.0   # a game counts as a start at >= this many attempts
 
 
 @dataclass
@@ -74,11 +77,17 @@ def fit_player_state(player_games: pd.DataFrame, volume_rows: pd.DataFrame, cuto
         "w_rush": w * pg["rushing_yards"].to_numpy(), "w_att": w * pg["attempts"].to_numpy(),
         "w_py": w * pg["passing_yards"].to_numpy(), "one": 1.0,
     })
+    # QB starts only: a starter's share of team attempts and yards per attempt.
+    start = (pg["attempts"] >= cfg.min_start_attempts).to_numpy()
+    a["ws_att"] = np.where(start, w * pg["attempts"].to_numpy(), 0.0)
+    a["ws_tatt"] = np.where(start, w * pg["team_attempts"].to_numpy(), 0.0)
+    a["ws_py"] = np.where(start, w * pg["passing_yards"].to_numpy(), 0.0)
     agg = a.groupby("player_id").agg(
         position=("position", "last"), games=("one", "sum"), w=("w", "sum"),
         wt_share=("wt_share", "sum"), wc_share=("wc_share", "sum"), w_tgt=("w_tgt", "sum"),
         w_rec=("w_rec", "sum"), w_ry=("w_ry", "sum"), w_car=("w_car", "sum"),
-        w_rush=("w_rush", "sum"), w_att=("w_att", "sum"), w_py=("w_py", "sum"))
+        w_rush=("w_rush", "sum"), w_att=("w_att", "sum"), w_py=("w_py", "sum"),
+        ws_att=("ws_att", "sum"), ws_tatt=("ws_tatt", "sum"), ws_py=("ws_py", "sum"))
     # Position priors (unweighted league means over the window).
     pos = a.groupby("position").agg(t=("wt_share", "sum"), c=("wc_share", "sum"), w=("w", "sum"),
                                      tgt=("w_tgt", "sum"), rec=("w_rec", "sum"), ry=("w_ry", "sum"),
@@ -90,6 +99,8 @@ def fit_player_state(player_games: pd.DataFrame, volume_rows: pd.DataFrame, cuto
     pos_ypt = (pos["ry"] / pos["tgt"].clip(lower=1e-9)).to_dict()
     pos_ypc = (pos["rush"] / pos["car"].clip(lower=1e-9)).to_dict()
     pos_ypa = float(pos.loc["QB", "py"] / pos.loc["QB", "att"]) if "QB" in pos.index else 6.5
+    starts_share = float(a["ws_att"].sum() / max(a["ws_tatt"].sum(), 1e-9))
+    starts_ypa = float(a["ws_py"].sum() / max(a["ws_att"].sum(), 1e-9))
 
     k = cfg.share_prior_games
     p = agg["position"]
@@ -98,7 +109,9 @@ def fit_player_state(player_games: pd.DataFrame, volume_rows: pd.DataFrame, cuto
     agg["catch_rate"] = (agg["w_rec"] + cfg.k_targets * p.map(pos_cr)) / (agg["w_tgt"] + cfg.k_targets)
     agg["ypt"] = (agg["w_ry"] + cfg.k_targets * p.map(pos_ypt)) / (agg["w_tgt"] + cfg.k_targets)
     agg["ypc"] = (agg["w_rush"] + cfg.k_carries * p.map(pos_ypc).fillna(4.2)) / (agg["w_car"] + cfg.k_carries)
-    agg["ypa"] = (agg["w_py"] + cfg.k_attempts * pos_ypa) / (agg["w_att"] + cfg.k_attempts)
+    agg["att_share"] = ((agg["ws_att"] + cfg.k_team_attempts * starts_share)
+                        / (agg["ws_tatt"] + cfg.k_team_attempts))
+    agg["ypa"] = (agg["ws_py"] + cfg.k_attempts * starts_ypa) / (agg["ws_att"] + cfg.k_attempts)
     return PlayerState(usage=agg, fits=fits)
 
 
@@ -121,5 +134,6 @@ def project_players(state: PlayerState, roster: pd.DataFrame) -> pd.DataFrame:
     r["proj_receiving_yards"] = r["proj_targets"] * uu["ypt"].to_numpy()
     r["proj_carries"] = exp["team_carries"] * uu["car_share"].to_numpy()
     r["proj_rushing_yards"] = r["proj_carries"] * uu["ypc"].to_numpy()
-    r["proj_passing_yards"] = np.where(r["is_starting_qb"], exp["team_attempts"] * uu["ypa"].to_numpy(), 0.0)
+    r["proj_passing_yards"] = np.where(
+        r["is_starting_qb"], exp["team_attempts"] * uu["att_share"].to_numpy() * uu["ypa"].to_numpy(), 0.0)
     return r
