@@ -11,10 +11,13 @@ At a cutoff (a week's first kickoff), using only games before it:
   starting QB's yards per attempt, recency-weighted and shrunk hard toward
   position means (per-target/per-carry efficiency is mostly noise).
 
-Projections are means: targets = team targets x share, receptions = targets x
+Means: targets = team targets x share, receptions = targets x
 catch rate, receiving yards = targets x yards/target, rushing yards = carries x
 yards/carry, passing yards = team attempts x the starter's share of team
-attempts x his yards/attempt (both over his starts).
+attempts x his yards/attempt (both over his starts). The reported ``proj_*``
+point projections are MEDIANS (MAE-optimal for right-skewed stats) from a Gamma
+(yardage) / negative binomial (receptions) whose dispersion is fitted at each
+cutoff from past games only; the means are kept as ``mean_*``.
 """
 from __future__ import annotations
 
@@ -22,6 +25,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
+
+from scipy import stats
 
 from evmax.nfl_projections.ratings import RatingFit, fit_rating, recency_weights
 
@@ -47,6 +52,10 @@ class PlayerState:
     """Point-in-time usage and efficiency for every player seen before the cutoff."""
     usage: pd.DataFrame                 # index player_id: tgt_share, car_share, games, position, team
     fits: dict[str, RatingFit] = field(default_factory=dict)
+    # Distribution shape fitted from past games (leak-free): Gamma Var = theta * mean
+    # for yardage, NegBin Var = mu + mu^2 / k for receptions.
+    theta: dict[str, float] = field(default_factory=dict)
+    negbin_k: float = 5.0
 
 
 def team_volume_rows(player_games: pd.DataFrame, team_games: pd.DataFrame) -> pd.DataFrame:
@@ -112,7 +121,52 @@ def fit_player_state(player_games: pd.DataFrame, volume_rows: pd.DataFrame, cuto
     agg["att_share"] = ((agg["ws_att"] + cfg.k_team_attempts * starts_share)
                         / (agg["ws_tatt"] + cfg.k_team_attempts))
     agg["ypa"] = (agg["ws_py"] + cfg.k_attempts * starts_ypa) / (agg["ws_att"] + cfg.k_attempts)
-    return PlayerState(usage=agg, fits=fits)
+    return PlayerState(usage=agg, fits=fits, theta=fit_dispersion(pg), negbin_k=fit_negbin_k(pg))
+
+
+MIN_GAMES_FOR_DISPERSION = 6
+DEFAULT_THETA = {"receiving_yards": 25.0, "rushing_yards": 15.0}   # only if a window has no data
+
+
+def _player_moments(pg: pd.DataFrame, stat: str, min_mean: float) -> pd.DataFrame:
+    m = pg.groupby("player_id")[stat].agg(["mean", "var", "size"])
+    return m[(m["size"] >= MIN_GAMES_FOR_DISPERSION) & (m["mean"] >= min_mean)]
+
+
+def fit_dispersion(pg: pd.DataFrame) -> dict[str, float]:
+    """Gamma scale theta (Var = theta * mean) per yardage stat, pooled over players
+    with enough games in the window (game-weighted method of moments)."""
+    out = {}
+    for stat, floor in (("receiving_yards", 5.0), ("rushing_yards", 5.0)):
+        m = _player_moments(pg, stat, floor)
+        out[stat] = (float((m["var"] * m["size"]).sum() / (m["mean"] * m["size"]).sum())
+                     if len(m) else DEFAULT_THETA[stat])
+    return out
+
+
+def fit_negbin_k(pg: pd.DataFrame) -> float:
+    """NegBin size k for receptions (Var = mu + mu^2 / k), pooled method of moments."""
+    m = _player_moments(pg, "receptions", 0.5)
+    excess = ((m["var"] - m["mean"]) * m["size"]).sum()
+    if not len(m) or excess <= 0:
+        return 50.0
+    return float(max((m["mean"] ** 2 * m["size"]).sum() / excess, 1.0))
+
+
+def gamma_median(mean: np.ndarray, theta: float) -> np.ndarray:
+    mean = np.asarray(mean, dtype=float)
+    out = np.zeros_like(mean)
+    pos = mean > 0
+    out[pos] = stats.gamma.ppf(0.5, a=mean[pos] / theta, scale=theta)
+    return out
+
+
+def negbin_median(mean: np.ndarray, k: float) -> np.ndarray:
+    mean = np.asarray(mean, dtype=float)
+    out = np.zeros_like(mean)
+    pos = mean > 0
+    out[pos] = stats.nbinom.ppf(0.5, n=k, p=k / (k + mean[pos]))
+    return out
 
 
 def project_players(state: PlayerState, roster: pd.DataFrame) -> pd.DataFrame:
@@ -124,7 +178,8 @@ def project_players(state: PlayerState, roster: pd.DataFrame) -> pd.DataFrame:
     r = roster[roster["player_id"].isin(u.index)].copy()
     if r.empty:
         return r.assign(proj_targets=[], proj_receptions=[], proj_receiving_yards=[],
-                        proj_carries=[], proj_rushing_yards=[], proj_passing_yards=[])
+                        proj_carries=[], proj_rushing_yards=[], proj_passing_yards=[],
+                        mean_receptions=[], mean_receiving_yards=[], mean_rushing_yards=[])
     f = state.fits
     exp = {m: np.array([f[m].expect(t, o, h) for t, o, h in zip(r["team"], r["opp"], r["home"])])
            for m in ("team_targets", "team_carries", "team_attempts")}
@@ -136,4 +191,12 @@ def project_players(state: PlayerState, roster: pd.DataFrame) -> pd.DataFrame:
     r["proj_rushing_yards"] = r["proj_carries"] * uu["ypc"].to_numpy()
     r["proj_passing_yards"] = np.where(
         r["is_starting_qb"], exp["team_attempts"] * uu["att_share"].to_numpy() * uu["ypa"].to_numpy(), 0.0)
+    # Means above; the reported point projection is the MEDIAN (MAE-optimal for
+    # skewed stats). Passing yards are near-symmetric for starters: median = mean.
+    for stat in ("receptions", "receiving_yards", "rushing_yards"):
+        r[f"mean_{stat}"] = r[f"proj_{stat}"]
+    theta = {**DEFAULT_THETA, **state.theta}
+    r["proj_receiving_yards"] = gamma_median(r["mean_receiving_yards"], theta["receiving_yards"])
+    r["proj_rushing_yards"] = gamma_median(r["mean_rushing_yards"], theta["rushing_yards"])
+    r["proj_receptions"] = negbin_median(r["mean_receptions"], state.negbin_k)
     return r
