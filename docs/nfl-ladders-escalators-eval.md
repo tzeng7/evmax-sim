@@ -107,10 +107,12 @@ out and usually one tick wide by T-24h.
   Every NFL prop calibration and shadow ROI before the fix is biased toward
   YES. Kalshi-venue rows ESPN cannot grade now fall back to Kalshi's
   settlement.
-- **Archived "pinnacle" NFL prop rungs are model output.** Before the prop
-  dispersion fix, the coordinator re-lined one Pinnacle main line through a
-  fixed-σ Normal and archived every rung as `book='pinnacle'` (identical
-  decimals on every rung of a player). That model's tail was too thin for
+- **Archived "pinnacle" NFL prop rungs are model output.** Before #373
+  (fixed-scale Gamma; re-lined rungs archived as `book='pinnacle_derived'`),
+  the coordinator re-lined one Pinnacle main line through a fixed-σ Normal and
+  archived every rung as `book='pinnacle'` (identical decimals on every rung of
+  a player). Legacy rows stay mislabeled until `scripts/relabel_derived_prop_rungs.py`
+  is applied. That model's tail was too thin for
   high-median receivers (P(≥ median+40 yd) 5.0% vs 12.2% realized) and too wide
   for low-median ones: shadow YES rows flagged at EV > 15% returned −17% ROI
   (n=3,806), and rows priced ≤ 10c returned −32% (n=2,174) — on the YES-biased
