@@ -167,3 +167,120 @@ class TestArchiverPropPersistence:
         with _get_connection() as conn:
             cols2 = {r[1] for r in conn.execute("PRAGMA table_info(archived_sharp_odds)")}
         assert cols == cols2
+
+
+class TestDerivedPropRungs:
+    """2026-10-09: the scanner re-lines ONE Pinnacle prop anchor to every
+    Kalshi threshold. Those rungs are evmax's model output, and were archived
+    as book='pinnacle' — indistinguishable from real Pinnacle alt lines (the
+    tell was identical decimals on every rung). They now go under
+    book='pinnacle_derived' with the real anchor alongside."""
+
+    def _derived(self, threshold: float = 30.0) -> SharpOdds:
+        return _prop_sharp("luka_doncic", "points", threshold, 0.21).model_copy(
+            update={"derived": True, "anchor_line": 27.5, "anchor_prob_over": 0.55}
+        )
+
+    def test_book_label(self):
+        from evmax.archiver import archive_book_label
+
+        assert archive_book_label(_prop_sharp()) == "pinnacle"
+        assert archive_book_label(self._derived()) == "pinnacle_derived"
+        assert archive_book_label(_moneyline_sharp()) == "pinnacle"
+
+    def test_derived_rung_archived_under_distinct_book(self, temp_archive_db):
+        archiver = DataArchiver()
+        archiver.open_session("d-1", ["nba"], "test")
+        anchor = _prop_sharp("luka_doncic", "points", 27.5, 0.55)
+        archiver.archive_sharp_odds("d-1", "nba", [self._derived(), anchor, _moneyline_sharp()])
+
+        conn = sqlite3.connect(str(temp_archive_db))
+        conn.row_factory = sqlite3.Row
+        rows = {
+            (r["book"], r["total_line"]): r
+            for r in conn.execute("SELECT * FROM archived_sharp_odds")
+        }
+        conn.close()
+
+        derived = rows[("pinnacle_derived", 30.0)]
+        assert derived["derived"] == 1
+        assert derived["anchor_line"] == pytest.approx(27.5)
+        assert derived["anchor_prob_over"] == pytest.approx(0.55)
+        assert derived["true_prob_over"] == pytest.approx(0.21)
+
+        quote = rows[("pinnacle", 27.5)]
+        assert quote["derived"] == 0
+        assert quote["anchor_line"] is None
+        assert quote["anchor_prob_over"] is None
+
+        ml = rows[("pinnacle", None)]
+        assert ml["derived"] == 0
+
+    def test_book_filter_returns_only_posted_lines(self, temp_archive_db):
+        """The query a backtest would write must not see model output."""
+        archiver = DataArchiver()
+        archiver.open_session("d-2", ["nba"], "test")
+        archiver.archive_sharp_odds("d-2", "nba", [
+            self._derived(25.0), self._derived(30.0), self._derived(35.0),
+            _prop_sharp("luka_doncic", "points", 27.5, 0.55),
+        ])
+        conn = sqlite3.connect(str(temp_archive_db))
+        lines = [r[0] for r in conn.execute(
+            "SELECT total_line FROM archived_sharp_odds "
+            "WHERE book='pinnacle' AND prop_player_name IS NOT NULL"
+        )]
+        conn.close()
+        assert lines == [27.5]
+
+    def test_derived_and_quote_at_same_event_id_coexist(self, temp_archive_db):
+        """UNIQUE(session_id, event_id, book): a rung whose threshold equals
+        the anchor line shares its event_id; the distinct book keeps both."""
+        archiver = DataArchiver()
+        archiver.open_session("d-3", ["nba"], "test")
+        anchor = _prop_sharp("luka_doncic", "points", 27.5, 0.55)
+        rung = self._derived(27.5)
+        assert rung.event_id == anchor.event_id
+        archiver.archive_sharp_odds("d-3", "nba", [anchor, rung])
+        conn = sqlite3.connect(str(temp_archive_db))
+        n = conn.execute("SELECT COUNT(*) FROM archived_sharp_odds").fetchone()[0]
+        conn.close()
+        assert n == 2
+
+    def test_legacy_db_gains_columns_and_keeps_rows_null(self, tmp_path, monkeypatch):
+        """An archive created before the change (no derived/anchor columns)
+        is migrated in place; its existing rows read derived IS NULL, which is
+        how scripts/relabel_derived_prop_rungs.py finds them."""
+        db_path = tmp_path / "legacy_props.db"
+        monkeypatch.setattr("evmax.archiver.DB_PATH", db_path)
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                """CREATE TABLE archived_sharp_odds (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT NOT NULL,
+                    fetched_at TEXT NOT NULL, sector TEXT NOT NULL,
+                    event_id TEXT NOT NULL, book TEXT NOT NULL,
+                    outcome_a_label TEXT, outcome_b_label TEXT,
+                    outcome_a_decimal REAL NOT NULL, outcome_b_decimal REAL NOT NULL,
+                    outcome_draw_decimal REAL, true_prob_a REAL NOT NULL,
+                    true_prob_b REAL NOT NULL, true_prob_draw REAL,
+                    margin REAL NOT NULL, spread_line REAL, event_date TEXT,
+                    true_prob_over REAL, true_prob_under REAL, total_line REAL,
+                    prop_player_name TEXT, prop_stat_type TEXT,
+                    UNIQUE(session_id, event_id, book))"""
+            )
+            conn.execute(
+                "INSERT INTO archived_sharp_odds (session_id, fetched_at, sector, "
+                "event_id, book, outcome_a_decimal, outcome_b_decimal, true_prob_a, "
+                "true_prob_b, margin, total_line, prop_player_name, prop_stat_type) "
+                "VALUES ('old', '2026-10-01', 'nfl', 'nfl::x::prop::p::receiving_yards::90.0', "
+                "'pinnacle', 1.91, 1.91, 0, 0, 0.04, 90.0, 'p', 'receiving_yards')"
+            )
+
+        archiver = DataArchiver()
+        archiver.open_session("new", ["nba"], "test")
+        archiver.archive_sharp_odds("new", "nba", [self._derived()])
+
+        with sqlite3.connect(db_path) as conn:
+            cols = {r[1] for r in conn.execute("PRAGMA table_info(archived_sharp_odds)")}
+            rows = dict(conn.execute("SELECT session_id, derived FROM archived_sharp_odds"))
+        assert {"derived", "anchor_line", "anchor_prob_over"} <= cols
+        assert rows == {"old": None, "new": 1}

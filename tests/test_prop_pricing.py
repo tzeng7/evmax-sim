@@ -2,13 +2,16 @@
 
 Pinnacle posts ONE half-point line per (player, stat) with a devigged prob_over;
 Kalshi posts MANY integer 'X+' thresholds per (player, stat). The pricing module
-fits a parametric distribution (Poisson for count stats, Normal for high-mean /
-yardage stats) to the Pinnacle anchor and reads off P(stat >= threshold) for
-arbitrary Kalshi thresholds.
+fits a parametric distribution (Poisson/NegBin for count stats, Normal for
+high-mean symmetric stats, fixed-scale Gamma for NFL receiving/rushing yards)
+to the Pinnacle anchor and reads off P(stat >= threshold) for arbitrary Kalshi
+thresholds.
 
 Coverage:
   - PoissonProp.from_anchor / prob_at_or_above — round-trip + monotonicity
   - NormalProp.from_anchor / prob_at_or_above — round-trip + σ sensitivity
+  - GammaProp.from_anchor / prob_at_or_above — round-trip, zero floor, skew,
+    spread that grows with the median, and the NFL deep-rung regression
   - fit_distribution dispatch by stat_type (NBA + NFL stats)
   - price_kalshi_threshold end-to-end convenience
   - Edge cases: degenerate probs, unknown stat, malformed inputs
@@ -20,10 +23,15 @@ import math
 import pytest
 
 from evmax.ev.prop_pricing import (
+    _GAMMA_STAT_SCALE,
+    _NORMAL_STAT_SIGMA,
+    GammaProp,
     NegBinomialProp,
     NormalProp,
     PoissonProp,
+    distribution_from_mean,
     fit_distribution,
+    model_prob_at_or_above,
     price_kalshi_threshold,
     supported_stats,
 )
@@ -204,6 +212,133 @@ class TestNormalProp:
 
 
 # ===========================================================================
+# GammaProp (NFL receiving / rushing yards)
+# ===========================================================================
+
+
+class TestGammaProp:
+    @pytest.mark.parametrize("line,prob", [
+        (12.5, 0.50), (27.5, 0.45), (55.5, 0.55), (83.5, 0.50), (110.5, 0.62),
+    ])
+    def test_from_anchor_round_trip_at_anchor(self, line, prob):
+        """P(X > line) must equal prob_over exactly: for an x.5 line the
+        integer threshold line + 0.5 sits right on the anchor."""
+        d = GammaProp.from_anchor(line=line, prob_over=prob, scale=25.0)
+        assert d is not None
+        assert d.prob_at_or_above(line + 0.5) == pytest.approx(prob, abs=1e-7)
+
+    def test_mean_rises_with_anchor_prob(self):
+        lo = GammaProp.from_anchor(line=60.5, prob_over=0.40, scale=25.0)
+        hi = GammaProp.from_anchor(line=60.5, prob_over=0.60, scale=25.0)
+        assert hi.mu > lo.mu
+
+    def test_prob_at_or_above_is_monotone_decreasing(self):
+        d = GammaProp.from_anchor(line=55.5, prob_over=0.50, scale=25.0)
+        probs = [d.prob_at_or_above(t) for t in range(1, 200, 10)]
+        for a, b in zip(probs, probs[1:]):
+            assert a > b
+
+    def test_no_mass_below_zero(self):
+        """Yardage is floored at zero here: any threshold at or below 0 is
+        certain. The old fixed-σ Normal put ~20% of a 12-yard receiver's mass
+        below −8 yards."""
+        d = GammaProp.from_anchor(line=12.5, prob_over=0.50, scale=25.0)
+        assert d.prob_at_or_above(0) == 1.0
+        assert d.prob_at_or_above(-20) == 1.0
+        assert 0.0 < d.prob_at_or_above(1) < 1.0
+
+    def test_spread_grows_with_median(self):
+        """Var = θ·μ: the same +30-yard offset is likelier for a high-median
+        player than for a low-median one (fixed σ treated them the same)."""
+        low = GammaProp.from_anchor(line=20.5, prob_over=0.50, scale=25.0)
+        high = GammaProp.from_anchor(line=80.5, prob_over=0.50, scale=25.0)
+        assert math.sqrt(high.scale * high.mu) > math.sqrt(low.scale * low.mu)
+        assert high.prob_at_or_above(80.5 + 30.5) > low.prob_at_or_above(20.5 + 30.5)
+
+    def test_right_skew(self):
+        """At a 50/50 line the upper tail is heavier than the lower tail at
+        the same distance — yardage overs run long, unders stop at zero."""
+        d = GammaProp.from_anchor(line=60.5, prob_over=0.50, scale=25.0)
+        upper = d.prob_at_or_above(61 + 40)          # X >= line + 40.5
+        lower = 1.0 - d.prob_at_or_above(61 - 40)    # X <= line − 40.5
+        assert upper > lower
+
+    def test_larger_scale_widens_tail(self):
+        tight = GammaProp.from_anchor(line=60.5, prob_over=0.50, scale=10.0)
+        wide = GammaProp.from_anchor(line=60.5, prob_over=0.50, scale=40.0)
+        assert wide.prob_at_or_above(130) > tight.prob_at_or_above(130)
+
+    def test_extreme_anchor_prob_still_fits(self):
+        for prob in (0.002, 0.998):
+            d = GammaProp.from_anchor(line=40.5, prob_over=prob, scale=25.0)
+            assert d is not None
+            assert d.prob_at_or_above(41) == pytest.approx(prob, abs=1e-6)
+
+    @pytest.mark.parametrize("bad_line", [0.0, -5.5, float("nan"), float("inf")])
+    def test_non_positive_or_non_finite_line_returns_none(self, bad_line):
+        assert GammaProp.from_anchor(line=bad_line, prob_over=0.50, scale=25.0) is None
+
+    @pytest.mark.parametrize("bad_scale", [0.0, -1.0, float("nan")])
+    def test_invalid_scale_returns_none(self, bad_scale):
+        assert GammaProp.from_anchor(line=50.5, prob_over=0.50, scale=bad_scale) is None
+
+    @pytest.mark.parametrize("bad_prob", [0.0, 1.0, -0.5, 2.0, float("nan")])
+    def test_degenerate_probability_returns_none(self, bad_prob):
+        assert GammaProp.from_anchor(line=50.5, prob_over=bad_prob, scale=25.0) is None
+
+
+class TestNflYardageDeepRungRegression:
+    """2026-10-09: the fixed-σ Normal (receiving σ=24, rushing σ=30) priced
+    every player with one SD. Deep Kalshi rungs came out near zero — phantom
+    NO edges — while settled outcomes hit far more often (Weeks 1-5:
+    P(≥ line+60) 0.6% priced vs 4.7% realized, n=709 receiver-games)."""
+
+    def test_wr1_deep_rungs_are_not_near_zero(self):
+        """Ja'Marr Chase 2026-10-04: Pinnacle 83.5 @ 50/50. Old model 150+ =
+        0.3%, 160+ = 0.08%; Kalshi asked 9% / 8%."""
+        old = NormalProp.from_anchor(line=83.5, prob_over=0.50, sigma=24.0)
+        assert old.prob_at_or_above(150) < 0.005  # the bug, for reference
+        p150 = price_kalshi_threshold("receiving_yards", 83.5, 0.50, kalshi_threshold=150)
+        p160 = price_kalshi_threshold("receiving_yards", 83.5, 0.50, kalshi_threshold=160)
+        assert 0.05 < p150 < 0.20
+        assert 0.03 < p160 < p150
+
+    def test_low_median_rusher_has_no_negative_mass(self):
+        """A 12.5-yard rusher: Kalshi 'X+' at or below zero is certain; the old
+        Normal(σ=30) said P(≥ −7) ≈ 0.74."""
+        assert price_kalshi_threshold("rushing_yards", 12.5, 0.50, kalshi_threshold=-7) == 1.0
+        p25 = price_kalshi_threshold("rushing_yards", 12.5, 0.50, kalshi_threshold=25)
+        old25 = NormalProp.from_anchor(line=12.5, prob_over=0.50, sigma=30.0).prob_at_or_above(25)
+        assert 0.0 < p25 < 0.50
+        # Low-median players are TIGHTER than σ=30 just above the line.
+        assert price_kalshi_threshold("rushing_yards", 12.5, 0.50, kalshi_threshold=40) < (
+            NormalProp.from_anchor(line=12.5, prob_over=0.50, sigma=30.0).prob_at_or_above(40)
+        )
+        assert p25 != pytest.approx(old25, abs=1e-3)
+
+    def test_anchor_threshold_still_recovers_pinnacle_prob(self):
+        for stat in ("receiving_yards", "rushing_yards"):
+            assert price_kalshi_threshold(stat, 64.5, 0.47, kalshi_threshold=65) == (
+                pytest.approx(0.47, abs=1e-7)
+            )
+
+    def test_yardage_stats_left_the_sigma_table(self):
+        """A stale σ entry would be dead config that looks tunable."""
+        for stat in ("receiving_yards", "rushing_yards"):
+            assert stat in _GAMMA_STAT_SCALE
+            assert stat not in _NORMAL_STAT_SIGMA
+
+    def test_distribution_from_mean_uses_gamma(self):
+        d = distribution_from_mean("receiving_yards", 60.0)
+        assert isinstance(d, GammaProp)
+        assert d.shape * d.scale == pytest.approx(60.0)
+        assert model_prob_at_or_above("receiving_yards", 60.0, 0) == 1.0
+        assert 0.0 < model_prob_at_or_above("receiving_yards", 60.0, 100) < 0.2
+        # A zero mean stays well-defined (tiny floor), all mass near zero.
+        assert model_prob_at_or_above("rushing_yards", 0.0, 1) < 1e-6
+
+
+# ===========================================================================
 # fit_distribution dispatch
 # ===========================================================================
 
@@ -219,11 +354,12 @@ class TestFitDistribution:
         ("threes",                   2.5,  0.45, NegBinomialProp),
         ("steals",                   1.5,  0.50, NegBinomialProp),
         ("blocks",                   1.5,  0.50, NegBinomialProp),
-        # NBA composite + NFL yardage: Normal with per-stat σ
+        # NBA composite + NFL passing yards: Normal with per-stat σ
         ("points_rebounds_assists", 36.5,  0.50, NormalProp),
         ("passing_yards",          250.5,  0.55, NormalProp),
-        ("rushing_yards",           75.5,  0.50, NormalProp),
-        ("receiving_yards",         65.5,  0.50, NormalProp),
+        # NFL receiving/rushing yards: fixed-scale Gamma (2026-10-09)
+        ("rushing_yards",           75.5,  0.50, GammaProp),
+        ("receiving_yards",         65.5,  0.50, GammaProp),
         # NFL count props (added 2026-09-06) — were previously unpriced (~31%
         # of the NFL prop book dropped one dict entry short of tradeable).
         ("receptions",               4.5,  0.50, NegBinomialProp),

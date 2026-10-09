@@ -1037,8 +1037,13 @@ class AgentCoordinator:
                     if m.source == MarketSource.kalshi
                 ],
             )
+            # sharp_odds carries the DERIVED prop rungs (filed as
+            # book='pinnacle_derived'); prop_anchor_odds the real Pinnacle prop
+            # quotes they were priced from (book='pinnacle').
             s_total += self._archiver.archive_sharp_odds(
-                correlation_id, sector, sr.get("sharp_odds", [])
+                correlation_id,
+                sector,
+                list(sr.get("sharp_odds", [])) + list(sr.get("prop_anchor_odds", [])),
             )
         self._archiver.close_session(
             correlation_id,
@@ -1160,13 +1165,18 @@ class AgentCoordinator:
         # Kalshi fetch (exception) keeps the old await-the-props behavior:
         # an empty pool from a fetch error is not evidence the sector is dead.
         prop_sharp_pairs: list[tuple[SharpOdds, PredictionMarket]] = []
+        # Raw Pinnacle prop lines (book quotes, not re-lined rungs) — archived
+        # under book='pinnacle'; never matched or priced.
+        prop_anchor_odds: list[SharpOdds] = []
         if prop_task is not None and not markets and not isinstance(kalshi_resp, Exception):
             prop_task.cancel()
             self.log.info("prop_fetch_cancelled_no_markets", sector=sector)
             prop_task = None
         if prop_task is not None:
             try:
-                prop_markets, prop_sharp = await asyncio.wait_for(prop_task, timeout=20.0)
+                prop_markets, prop_sharp, prop_anchor_odds = await asyncio.wait_for(
+                    prop_task, timeout=20.0
+                )
                 # Build (SharpOdds, PredictionMarket) pairs for calibration logging.
                 # Match by player+stat+threshold since _fetch_props deduplicates markets.
                 _pm_by_key = {
@@ -1217,6 +1227,7 @@ class AgentCoordinator:
                 "markets": markets,
                 "sharp_odds": sharp_odds,
                 "prop_sharp_pairs": prop_sharp_pairs,
+                "prop_anchor_odds": prop_anchor_odds,
             }
 
         # Step 4: Match non-prop markets → sharp events (for model ensemble)
@@ -1327,18 +1338,25 @@ class AgentCoordinator:
             "markets": markets,
             "sharp_odds": sharp_odds,
             "prop_sharp_pairs": prop_sharp_pairs,
+            "prop_anchor_odds": prop_anchor_odds,
         }
 
     async def _fetch_props(
         self,
         sector: str,
-    ) -> tuple[list[PredictionMarket], list[SharpOdds]]:
+    ) -> tuple[list[PredictionMarket], list[SharpOdds], list[SharpOdds]]:
         """Fetch Kalshi player prop markets paired with Pinnacle devigged lines.
 
         For each Kalshi prop, we look up the matching Pinnacle player+stat+line
         and use Pinnacle's devigged over-probability as the sharp anchor.
         Kalshi props with no matching Pinnacle line are dropped — we don't
         bet props without a sharp reference.
+
+        Returns ``(prop_markets, prop_sharp, pinnacle_anchors)``. ``prop_sharp``
+        holds one DERIVED record per Kalshi threshold (``derived=True``,
+        priced off the anchor by evmax/ev/prop_pricing.py). ``pinnacle_anchors``
+        is every raw Pinnacle prop line fetched, exactly as posted — it feeds
+        only the archive, never the EV pipeline.
 
         The local L15 game-log cache is still consulted, but only to attach
         diagnostic metadata (sample size, minutes volatility) for display
@@ -1390,7 +1408,7 @@ class AgentCoordinator:
 
         if not prop_markets:
             self.log.debug("props_fetched", sector=sector, prop_markets=0, prop_sharp=0)
-            return [], []
+            return [], [], pinn_lines
 
         # Index Pinnacle props by (player_norm, stat_type) — Pinnacle posts ONE
         # half-point line per (player, stat); Kalshi posts MANY integer 'X+'
@@ -1534,6 +1552,9 @@ class AgentCoordinator:
             # outcome_a/b decimal odds carry over from the anchor (they were the
             # raw Pinnacle quote at the anchor line, no longer meaningful at a
             # different threshold) — downstream EV uses true_prob_over only.
+            # derived=True + anchor_line/anchor_prob_over mark the rung as
+            # evmax's price, not a Pinnacle quote: the archiver files it under
+            # book "pinnacle_derived" (the real anchor is archived separately).
             #
             # Rewrite event_id to encode the Kalshi threshold, not the anchor
             # line. The cleanup resolver parses event_id parts[5] to extract the
@@ -1553,6 +1574,9 @@ class AgentCoordinator:
                 "prop_l15_games": l15.n_games if l15 else 0,
                 "prop_minutes_volatile": l15.minutes_volatile if l15 else False,
                 "prop_minutes_cv": l15.minutes_cv if l15 else 0.0,
+                "derived": True,
+                "anchor_line": anchor.total_line,
+                "anchor_prob_over": anchor.true_prob_over,
             }))
 
         self.log.info(
@@ -1568,7 +1592,7 @@ class AgentCoordinator:
             unmatched_dropped=unmatched,
             unpriced=unpriced,
         )
-        return prop_markets, prop_sharp
+        return prop_markets, prop_sharp, pinn_lines
 
     def _baseball_prop_model_prob(self, market: PredictionMarket) -> Optional[float]:
         """Model P(stat >= threshold) for one MLB prop, or None if not projectable.
@@ -1663,6 +1687,9 @@ class AgentCoordinator:
             "prop_l15_games": 0,
             "prop_minutes_volatile": False,
             "prop_minutes_cv": 0.0,
+            "derived": True,
+            "anchor_line": tb_anchor.total_line,
+            "anchor_prob_over": tb_anchor.true_prob_over,
         })
 
     # ------------------------------------------------------------------
