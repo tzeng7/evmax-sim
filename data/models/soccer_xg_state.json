@@ -43785,6 +43785,16 @@
     "santos": {
       "matches": [
         {
+          "date": "2026-10-08",
+          "goals_for": 2,
+          "goals_against": 2,
+          "sot": 4,
+          "shots": 16,
+          "xg": 1.56,
+          "xga": 1.98,
+          "is_home": true
+        },
+        {
           "date": "2026-10-02",
           "goals_for": 2,
           "goals_against": 1,
@@ -43973,16 +43983,6 @@
           "xg": 1.05,
           "xga": 1.65,
           "is_home": false
-        },
-        {
-          "date": "2026-04-02",
-          "goals_for": 2,
-          "goals_against": 0,
-          "sot": 3,
-          "shots": 7,
-          "xg": 1.02,
-          "xga": 1.41,
-          "is_home": true
         }
       ]
     },
@@ -44601,6 +44601,16 @@
     "flamengo": {
       "matches": [
         {
+          "date": "2026-10-08",
+          "goals_for": 2,
+          "goals_against": 2,
+          "sot": 6,
+          "shots": 12,
+          "xg": 1.98,
+          "xga": 1.56,
+          "is_home": false
+        },
+        {
           "date": "2026-09-20",
           "goals_for": 2,
           "goals_against": 1,
@@ -44789,16 +44799,6 @@
           "xg": 2.94,
           "xga": 2.19,
           "is_home": false
-        },
-        {
-          "date": "2026-04-05",
-          "goals_for": 3,
-          "goals_against": 1,
-          "sot": 4,
-          "shots": 19,
-          "xg": 1.65,
-          "xga": 1.05,
-          "is_home": true
         }
       ]
     },
@@ -45213,6 +45213,16 @@
     "palmeiras": {
       "matches": [
         {
+          "date": "2026-10-08",
+          "goals_for": 1,
+          "goals_against": 0,
+          "sot": 11,
+          "shots": 26,
+          "xg": 3.75,
+          "xga": 0.57,
+          "is_home": true
+        },
+        {
           "date": "2026-09-20",
           "goals_for": 0,
           "goals_against": 0,
@@ -45401,16 +45411,6 @@
           "xg": 1.59,
           "xga": 2.19,
           "is_home": false
-        },
-        {
-          "date": "2026-04-03",
-          "goals_for": 2,
-          "goals_against": 1,
-          "sot": 4,
-          "shots": 16,
-          "xg": 1.56,
-          "xga": 1.65,
-          "is_home": true
         }
       ]
     },
@@ -45621,6 +45621,16 @@
     "fluminense": {
       "matches": [
         {
+          "date": "2026-10-08",
+          "goals_for": 4,
+          "goals_against": 0,
+          "sot": 10,
+          "shots": 22,
+          "xg": 3.36,
+          "xga": 0.24,
+          "is_home": true
+        },
+        {
           "date": "2026-09-20",
           "goals_for": 3,
           "goals_against": 1,
@@ -45809,16 +45819,6 @@
           "xg": 1.53,
           "xga": 1.38,
           "is_home": false
-        },
-        {
-          "date": "2026-04-02",
-          "goals_for": 3,
-          "goals_against": 1,
-          "sot": 10,
-          "shots": 20,
-          "xg": 3.3,
-          "xga": 1.44,
-          "is_home": true
         }
       ]
     },
@@ -46233,6 +46233,16 @@
     "bahia": {
       "matches": [
         {
+          "date": "2026-10-08",
+          "goals_for": 0,
+          "goals_against": 1,
+          "sot": 1,
+          "shots": 10,
+          "xg": 0.57,
+          "xga": 3.75,
+          "is_home": false
+        },
+        {
           "date": "2026-09-20",
           "goals_for": 1,
           "goals_against": 2,
@@ -46421,16 +46431,6 @@
           "xg": 2.58,
           "xga": 2.1,
           "is_home": false
-        },
-        {
-          "date": "2026-04-05",
-          "goals_for": 1,
-          "goals_against": 2,
-          "sot": 6,
-          "shots": 19,
-          "xg": 2.19,
-          "xga": 1.59,
-          "is_home": true
         }
       ]
     },
@@ -46845,6 +46845,16 @@
     "atletico mineiro": {
       "matches": [
         {
+          "date": "2026-10-08",
+          "goals_for": 2,
+          "goals_against": 2,
+          "sot": 9,
+          "shots": 15,
+          "xg": 2.88,
+          "xga": 3.63,
+          "is_home": false
+        },
+        {
           "date": "2026-10-03",
           "goals_for": 1,
           "goals_against": 0,
@@ -47033,21 +47043,21 @@
           "xg": 1.8,
           "xga": 1.14,
           "is_home": true
-        },
-        {
-          "date": "2026-04-02",
-          "goals_for": 4,
-          "goals_against": 0,
-          "sot": 8,
-          "shots": 20,
-          "xg": 2.76,
-          "xga": 1.65,
-          "is_home": false
         }
       ]
     },
     "coritiba": {
       "matches": [
+        {
+          "date": "2026-10-08",
+          "goals_for": 0,
+          "goals_against": 4,
+          "sot": 0,
+          "shots": 8,
+          "xg": 0.24,
+          "xga": 3.36,
+          "is_home": false
+        },
         {
           "date": "2026-09-19",
           "goals_for": 0,
@@ -47237,21 +47247,21 @@
           "xg": 1.38,
           "xga": 1.53,
           "is_home": true
-        },
-        {
-          "date": "2026-04-01",
-          "goals_for": 1,
-          "goals_against": 1,
-          "sot": 4,
-          "shots": 18,
-          "xg": 1.62,
-          "xga": 0.87,
-          "is_home": true
         }
       ]
     },
     "athletico paranaense": {
       "matches": [
+        {
+          "date": "2026-10-08",
+          "goals_for": 2,
+          "goals_against": 2,
+          "sot": 10,
+          "shots": 31,
+          "xg": 3.63,
+          "xga": 2.88,
+          "is_home": true
+        },
         {
           "date": "2026-09-20",
           "goals_for": 2,
@@ -47440,16 +47450,6 @@
           "shots": 11,
           "xg": 1.14,
           "xga": 1.8,
-          "is_home": false
-        },
-        {
-          "date": "2026-04-01",
-          "goals_for": 0,
-          "goals_against": 3,
-          "sot": 4,
-          "shots": 12,
-          "xg": 1.44,
-          "xga": 1.56,
           "is_home": false
         }
       ]
