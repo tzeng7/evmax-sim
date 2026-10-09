@@ -81,6 +81,20 @@ def metrics(r: pd.DataFrame) -> dict[str, dict[str, float]]:
     return m
 
 
+def coverage(r: pd.DataFrame) -> str:
+    """Calibration of the reported 10th/90th percentiles (ideal: 10% below p10, 90% at/below p90).
+    Reporting only — not part of the loop signal."""
+    parts = []
+    for stat, (_, popcol) in STATS.items():
+        d = r[r[popcol]]
+        if f"p10_{stat}" not in d:
+            continue
+        below = (d[stat] < d[f"p10_{stat}"]).mean() * 100
+        upto = (d[stat] <= d[f"p90_{stat}"]).mean() * 100
+        parts.append(f"{stat}: <p10 {below:.1f}% / <=p90 {upto:.1f}%")
+    return "coverage " + " | ".join(parts)
+
+
 def fmt(name: str, m: dict) -> str:
     parts = [f"{s}: {v['mae']:.3f} vs naive {v['naive']:.3f} ({v['ratio']:.4f}, bias {v['bias']:+.2f}, n={int(v['n'])})"
              for s, v in m.items()]
@@ -100,8 +114,10 @@ def main() -> int:
         r.to_parquet(args.save, index=False)
     dev = metrics(reg[reg["season"].isin(DEV)])
     print(fmt("dev", dev))
+    print("  dev " + coverage(reg[reg["season"].isin(DEV)]))
     if args.holdout:
         print(fmt("holdout", metrics(reg[reg["season"].isin(HOLDOUT)])))
+        print("  holdout " + coverage(reg[reg["season"].isin(HOLDOUT)]))
     score = float(np.mean([v["ratio"] for v in dev.values()]))
     print(f"dev_score={score:.5f}")
     return 0

@@ -57,6 +57,10 @@ class PlayerState:
     # for yardage, NegBin Var = mu + mu^2 / k for receptions.
     theta: dict[str, float] = field(default_factory=dict)
     negbin_k: float = 5.0
+    pass_sd: float = 75.0
+    # Empirical (game value / player window mean) quantile curves by usage level,
+    # for the REPORTED yardage ranges: (stat, q) -> (bin centers, ratios).
+    quantile_curves: dict[tuple[str, float], tuple[np.ndarray, np.ndarray]] = field(default_factory=dict)
 
 
 def team_volume_rows(player_games: pd.DataFrame, team_games: pd.DataFrame) -> pd.DataFrame:
@@ -122,7 +126,10 @@ def fit_player_state(player_games: pd.DataFrame, volume_rows: pd.DataFrame, cuto
     agg["att_share"] = ((agg["ws_att"] + cfg.k_team_attempts * starts_share)
                         / (agg["ws_tatt"] + cfg.k_team_attempts))
     agg["ypa"] = (agg["ws_py"] + cfg.k_attempts * starts_ypa) / (agg["ws_att"] + cfg.k_attempts)
-    return PlayerState(usage=agg, fits=fits, theta=fit_dispersion(pg), negbin_k=fit_negbin_k(pg))
+    return PlayerState(usage=agg, fits=fits, theta=fit_dispersion(pg), negbin_k=fit_negbin_k(pg),
+                       pass_sd=fit_pass_sd(pg),
+                       quantile_curves={(st, q): fit_quantile_curve(pg, st, q)
+                                        for st in ("receiving_yards", "rushing_yards") for q in QUANTILES})
 
 
 MIN_GAMES_FOR_DISPERSION = 6
@@ -145,6 +152,14 @@ def fit_dispersion(pg: pd.DataFrame) -> dict[str, float]:
     return out
 
 
+def fit_pass_sd(pg: pd.DataFrame, min_attempts: float = 10.0) -> float:
+    """Pooled within-QB SD of passing yards over starts (games with >= min_attempts)."""
+    st = pg[pg["attempts"] >= min_attempts]
+    m = st.groupby("player_id")["passing_yards"].agg(["var", "size"])
+    m = m[m["size"] >= MIN_GAMES_FOR_DISPERSION]
+    return float(np.sqrt((m["var"] * m["size"]).sum() / m["size"].sum())) if len(m) else 75.0
+
+
 def fit_negbin_k(pg: pd.DataFrame) -> float:
     """NegBin size k for receptions (Var = mu + mu^2 / k), pooled method of moments."""
     m = _player_moments(pg, "receptions", 0.5)
@@ -163,11 +178,56 @@ def gamma_median(mean: np.ndarray, theta: float) -> np.ndarray:
 
 
 def negbin_median(mean: np.ndarray, k: float) -> np.ndarray:
+    return negbin_quantile(mean, k, 0.5)
+
+
+QUANTILE_CURVE_MIN_GAMES = 4
+QUANTILE_CURVE_BINS = 8
+
+
+def fit_quantile_curve(pg: pd.DataFrame, stat: str, q: float) -> tuple[np.ndarray, np.ndarray]:
+    """Quantile ``q`` of (game value / player's window mean), by usage level.
+
+    The Gamma's lower tail is too thin for yardage (players have more near-zero
+    games than it allows: 23% of receiving results fell below its 10th
+    percentile), so the reported range uses this empirical, usage-dependent
+    shape fitted on past games only.
+    """
+    m = pg.groupby("player_id")[stat].agg(["mean", "size"])
+    m = m[(m["size"] >= QUANTILE_CURVE_MIN_GAMES) & (m["mean"] > 1.0)]
+    if len(m) < QUANTILE_CURVE_BINS * 5:
+        return np.array([1.0]), np.array([np.nan])
+    d = pg[pg["player_id"].isin(m.index)][["player_id", stat]].join(m["mean"], on="player_id")
+    d["z"] = d[stat] / d["mean"]
+    edges = np.unique(np.quantile(m["mean"], np.linspace(0, 1, QUANTILE_CURVE_BINS + 1)))
+    d["bin"] = pd.cut(d["mean"], edges, include_lowest=True)
+    g = d.groupby("bin", observed=True).agg(center=("mean", "median"), ratio=("z", lambda z: z.quantile(q)))
+    return g["center"].to_numpy(dtype=float), g["ratio"].to_numpy(dtype=float)
+
+
+def curve_quantile(mean: np.ndarray, curve: tuple[np.ndarray, np.ndarray]) -> np.ndarray:
+    centers, ratios = curve
+    mean = np.asarray(mean, dtype=float)
+    return np.where(mean > 0, mean * np.interp(mean, centers, ratios), 0.0)
+
+
+def gamma_quantile(mean: np.ndarray, theta: float, q: float) -> np.ndarray:
     mean = np.asarray(mean, dtype=float)
     out = np.zeros_like(mean)
     pos = mean > 0
-    out[pos] = stats.nbinom.ppf(0.5, n=k, p=k / (k + mean[pos]))
+    out[pos] = stats.gamma.ppf(q, a=mean[pos] / theta, scale=theta)
     return out
+
+
+def negbin_quantile(mean: np.ndarray, k: float, q: float) -> np.ndarray:
+    mean = np.asarray(mean, dtype=float)
+    out = np.zeros_like(mean)
+    pos = mean > 0
+    out[pos] = stats.nbinom.ppf(q, n=k, p=k / (k + mean[pos]))
+    return out
+
+
+QUANTILES = (0.1, 0.9)  # reported range around the median
 
 
 def project_players(state: PlayerState, roster: pd.DataFrame,
@@ -206,6 +266,17 @@ def project_players(state: PlayerState, roster: pd.DataFrame,
     r["proj_receiving_yards"] = gamma_median(r["mean_receiving_yards"], theta["receiving_yards"])
     r["proj_rushing_yards"] = gamma_median(r["mean_rushing_yards"], theta["rushing_yards"])
     r["proj_receptions"] = negbin_median(r["mean_receptions"], state.negbin_k)
+    # 10th / 90th percentiles from the same fitted distributions (passing: Normal).
+    for q in QUANTILES:
+        tag = f"p{int(q * 100)}"
+        for st in ("receiving_yards", "rushing_yards"):
+            curve = state.quantile_curves.get((st, q))
+            r[f"{tag}_{st}"] = (curve_quantile(r[f"mean_{st}"], curve)
+                                if curve is not None and not np.isnan(curve[1]).any()
+                                else gamma_quantile(r[f"mean_{st}"], theta[st], q))
+        r[f"{tag}_receptions"] = negbin_quantile(r["mean_receptions"], state.negbin_k, q)
+        r[f"{tag}_passing_yards"] = np.where(
+            r["is_starting_qb"], np.maximum(stats.norm.ppf(q, r["proj_passing_yards"], state.pass_sd), 0.0), 0.0)
     return r
 
 
