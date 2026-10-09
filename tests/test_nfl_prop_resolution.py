@@ -186,3 +186,134 @@ def test_nfl_rows_never_hit_the_nba_endpoint(monkeypatch):
     _add(conn, "c.j._stroud", "passing_yards", 300.0, date.today().isoformat())
     resolver._resolve_prop_observations(conn, date.today())
     assert seen and all("basketball" not in u for u in seen)
+
+
+# ── Kalshi-settlement fallback (zero-catch games) ─────────────────────────────
+# ESPN lists a player only in blocks where he recorded a stat, so a player who
+# played and caught nothing is absent from the boxscore. Kalshi settles those
+# markets NO (it voids only players who did not play). Before the fallback the
+# rows stayed pending forever and dropped zero outcomes from every NFL prop
+# calibration / shadow ROI.
+
+_PAST = "2026-10-04"
+
+
+class _KResp(_Resp):
+    def __init__(self, payload, status_code=200):
+        super().__init__(payload)
+        self.status_code = status_code
+
+
+def _make_client(kalshi: dict, scoreboard_fails: bool = False, seen: list | None = None):
+    """Fake httpx.Client: ESPN scoreboard/summary + Kalshi GET /markets/{ticker}.
+
+    ``kalshi`` maps ticker -> result string, or a list of status codes/results
+    consumed in order (to simulate a 429 followed by success).
+    """
+
+    class Client(_FakeClient):
+        def get(self, url, params=None):
+            if url.startswith("/markets/"):
+                ticker = url.removeprefix("/markets/")
+                if seen is not None:
+                    seen.append(ticker)
+                spec = kalshi[ticker]
+                if isinstance(spec, list):
+                    spec = spec.pop(0)
+                if spec == 429:
+                    return _KResp({}, status_code=429)
+                return _KResp({"market": {"ticker": ticker, "result": spec}})
+            if url.endswith("/scoreboard") and scoreboard_fails:
+                raise RuntimeError("espn down")
+            return super().get(url, params)
+
+    return Client
+
+
+def _db_full():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.execute(
+        """CREATE TABLE prop_observations (id INTEGER PRIMARY KEY, scan_date TEXT,
+           sector TEXT, player_name TEXT, stat_type TEXT, line REAL, event_id TEXT,
+           outcome INTEGER, actual_value REAL, market_id TEXT, venue TEXT)"""
+    )
+    return conn
+
+
+def _add_k(conn, player, stat, line, day, ticker, venue="kalshi"):
+    prefix = "kalshi:" if venue == "kalshi" else "polymarket_us:"
+    conn.execute(
+        "INSERT INTO prop_observations (scan_date, sector, player_name, stat_type, line,"
+        " event_id, market_id, venue) VALUES (?, 'nfl', ?, ?, ?, ?, ?, ?)",
+        (day, player, stat, line, f"nfl::{day}::prop::{player}::{stat}::{line}",
+         prefix + ticker, venue),
+    )
+
+
+def _rows(conn):
+    return {r["market_id"]: (r["outcome"], r["actual_value"])
+            for r in conn.execute("SELECT * FROM prop_observations")}
+
+
+def test_zero_catch_player_resolves_no_from_kalshi_settlement(monkeypatch):
+    monkeypatch.setattr(resolver.httpx, "Client", _make_client(
+        {"KXNFLREC-26OCT04X-TE-2": "no", "KXNFLRECYDS-26OCT04X-TE-15": "no"}))
+    conn = _db_full()
+    _add_k(conn, "c.j._stroud", "passing_yards", 300.0, _PAST, "KXNFLPASSYDS-26OCT04X-QB-300")
+    _add_k(conn, "zero_catch_te", "receptions", 2.0, _PAST, "KXNFLREC-26OCT04X-TE-2")
+    _add_k(conn, "zero_catch_te", "receiving_yards", 15.0, _PAST, "KXNFLRECYDS-26OCT04X-TE-15")
+    n = resolver._resolve_prop_observations(conn, date(2026, 10, 4))
+    got = _rows(conn)
+    assert n == 3
+    assert got["kalshi:KXNFLPASSYDS-26OCT04X-QB-300"] == (1, 350.0)  # ESPN graded it
+    # Kalshi NO -> outcome 0; the stat itself is unknown, so actual stays NULL
+    assert got["kalshi:KXNFLREC-26OCT04X-TE-2"] == (0, None)
+    assert got["kalshi:KXNFLRECYDS-26OCT04X-TE-15"] == (0, None)
+
+
+def test_kalshi_void_and_open_markets_stay_pending(monkeypatch):
+    monkeypatch.setattr(resolver.httpx, "Client", _make_client(
+        {"KXNFLREC-26OCT04X-DNP-3": "scalar", "KXNFLREC-26OCT04X-OPEN-3": ""}))
+    conn = _db_full()
+    _add_k(conn, "scratched_wr", "receptions", 3.0, _PAST, "KXNFLREC-26OCT04X-DNP-3")
+    _add_k(conn, "late_game_wr", "receptions", 3.0, _PAST, "KXNFLREC-26OCT04X-OPEN-3")
+    assert resolver._resolve_prop_observations(conn, date(2026, 10, 4)) == 0
+    assert set(_rows(conn).values()) == {(None, None)}
+
+
+def test_espn_outage_falls_back_to_kalshi(monkeypatch):
+    monkeypatch.setattr(resolver.httpx, "Client", _make_client(
+        {"KXNFLRECYDS-26OCT04X-WR-60": "yes"}, scoreboard_fails=True))
+    conn = _db_full()
+    _add_k(conn, "some_wr", "receiving_yards", 60.0, _PAST, "KXNFLRECYDS-26OCT04X-WR-60")
+    assert resolver._resolve_prop_observations(conn, date(2026, 10, 4)) == 1
+    assert _rows(conn)["kalshi:KXNFLRECYDS-26OCT04X-WR-60"] == (1, None)
+
+
+def test_todays_and_non_kalshi_rows_never_query_kalshi(monkeypatch):
+    seen: list = []
+    monkeypatch.setattr(resolver.httpx, "Client", _make_client({}, seen=seen))
+    conn = _db_full()
+    today = date.today().isoformat()
+    _add_k(conn, "absent_today", "receptions", 3.0, today, "KXNFLREC-TODAY-X-3")
+    _add_k(conn, "absent_poly", "receptions", 3.0, _PAST, "nfl-poly-slug", venue="polymarket_us")
+    conn.execute(
+        "INSERT INTO prop_observations (scan_date, sector, player_name, stat_type, line, event_id,"
+        " market_id, venue) VALUES (?, 'nfl', 'no_side', 'receptions', 3.0, ?, ?, 'kalshi')",
+        (_PAST, f"nfl::{_PAST}::prop::no_side::receptions::3.0", "kalshi:KXNFLREC-26OCT04X-NS-3:no"),
+    )
+    resolver._resolve_prop_observations(conn, date.today())
+    resolver._resolve_prop_observations(conn, date(2026, 10, 4))
+    assert seen == []
+    assert set(_rows(conn).values()) == {(None, None)}
+
+
+def test_kalshi_429_is_retried(monkeypatch):
+    monkeypatch.setattr(resolver.time, "sleep", lambda s: None)
+    monkeypatch.setattr(resolver.httpx, "Client", _make_client(
+        {"KXNFLREC-26OCT04X-TE-2": [429, "no"]}))
+    conn = _db_full()
+    _add_k(conn, "zero_catch_te", "receptions", 2.0, _PAST, "KXNFLREC-26OCT04X-TE-2")
+    assert resolver._resolve_prop_observations(conn, date(2026, 10, 4)) == 1
+    assert _rows(conn)["kalshi:KXNFLREC-26OCT04X-TE-2"] == (0, None)

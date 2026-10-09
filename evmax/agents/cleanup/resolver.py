@@ -26,6 +26,7 @@ import asyncio
 import functools
 import re
 import sqlite3
+import time
 import unicodedata
 import weakref
 from datetime import date, timedelta
@@ -1804,6 +1805,94 @@ def _parse_nfl_box_player_stats(box: dict) -> dict[str, dict[str, float]]:
     return out
 
 
+def _kalshi_prop_ticker(row: dict) -> Optional[str]:
+    """Kalshi ticker of a prop row, or None for a non-Kalshi / NO-side row."""
+    if (row.get("venue") or "kalshi") != "kalshi":
+        return None
+    mid = row.get("market_id") or ""
+    if not mid.startswith("kalshi:") or mid.endswith(":no"):
+        return None
+    return mid.removeprefix("kalshi:")
+
+
+def _fetch_kalshi_settlement_sync(client: "httpx.Client", ticker: str) -> Optional[str]:
+    """Kalshi's own verdict for one market: "yes" / "no" / "void" / None.
+
+    Public, unauthenticated ``GET /markets/{ticker}``. ``"void"`` is a scalar
+    refund (Kalshi cancels a player prop when the player does not play). None
+    means still open, or the fetch failed after retries — the row stays pending
+    and the next run retries it.
+    """
+    for attempt in range(3):
+        try:
+            resp = client.get(f"/markets/{ticker}")
+            if resp.status_code == 429:
+                time.sleep(1.0 + attempt)
+                continue
+            resp.raise_for_status()
+            market = resp.json().get("market", {}) or {}
+        except Exception as e:
+            logger.debug("nfl_prop_kalshi_settlement_fail", ticker=ticker, error=str(e))
+            return None
+        result = market.get("result") or ""
+        if result in ("yes", "no"):
+            return result
+        if result == "scalar":
+            return "void"
+        return None
+    return None
+
+
+def _resolve_nfl_props_via_kalshi_settlement(
+    conn: sqlite3.Connection, rows: list[dict]
+) -> int:
+    """Grade Kalshi NFL prop rows the ESPN boxscore could not, from Kalshi itself.
+
+    ESPN lists a player only in the stat blocks where he recorded something, so
+    a player who played but caught nothing is absent from every block and
+    :func:`_parse_nfl_box_player_stats` cannot tell him from a scratch. Kalshi
+    can: it VOIDS (scalar refund) a prop when the player does not play, and
+    settles NO when he played and missed the threshold. Leaving those NO rows
+    pending dropped zero-catch games from the sample (340 markets over 61
+    player-games in Weeks 1-6 2026), which biased every NFL prop calibration and
+    shadow ROI toward YES.
+
+    Writes ``outcome`` only. ``actual_value`` stays NULL: a NO settlement bounds
+    the stat but does not reveal it. Voided and still-open rows stay pending.
+    """
+    tickers = {}
+    for row in rows:
+        t = _kalshi_prop_ticker(row)
+        if t:
+            tickers.setdefault(t, []).append(row["id"])
+    if not tickers:
+        return 0
+    from evmax.settings import get_settings
+
+    with httpx.Client(base_url=get_settings().kalshi_base_url, timeout=15.0) as client:
+        order = list(tickers)
+        verdicts = _fetch_json_concurrent(
+            lambda t: _fetch_kalshi_settlement_sync(client, t), order
+        )
+    resolved = 0
+    counts = {"yes": 0, "no": 0, "void": 0, "pending": 0}
+    for ticker, verdict in zip(order, verdicts):
+        if verdict in ("yes", "no"):
+            for row_id in tickers[ticker]:
+                conn.execute(
+                    "UPDATE prop_observations SET outcome = ? WHERE id = ?",
+                    (1 if verdict == "yes" else 0, row_id),
+                )
+                resolved += 1
+            counts[verdict] += 1
+        elif verdict == "void":
+            counts["void"] += 1
+        else:
+            counts["pending"] += 1
+    logger.info("nfl_prop_kalshi_settlement_fallback", tickers=len(order), **counts)
+    return resolved
+
+
 def _resolve_nfl_prop_observations(
     conn: sqlite3.Connection, nfl_by_date: dict[str, list[dict]]
 ) -> int:
@@ -1812,8 +1901,14 @@ def _resolve_nfl_prop_observations(
     One scoreboard call per game date + one ``summary`` call per completed
     game. Kalshi thresholds are "X+" contracts, so a row is an over (1) when
     ``actual >= line`` — the same convention as the NBA/MLB paths.
+
+    Rows ESPN cannot grade (player absent from every stat block, or the ESPN
+    fetch failed) whose game date is already past fall back to Kalshi's own
+    settlement — see :func:`_resolve_nfl_props_via_kalshi_settlement`.
     """
     resolved = 0
+    ungraded: list[dict] = []
+    today_str = date.today().isoformat()
     with httpx.Client(
         timeout=15.0,
         follow_redirects=True,
@@ -1829,6 +1924,8 @@ def _resolve_nfl_prop_observations(
                 events = r.json().get("events", [])
             except Exception as e:
                 logger.warning("nfl_prop_scoreboard_fail", date=game_date, error=str(e))
+                if game_date < today_str:
+                    ungraded.extend(prop_rows)
                 continue
 
             completed = [
@@ -1870,16 +1967,18 @@ def _resolve_nfl_prop_observations(
                 if not player or not stat_type or threshold is None:
                     continue
                 stats = player_stats.get(_nfl_player_key(player))
-                if stats is None:
-                    continue
-                actual = stats.get(stat_type)
+                actual = stats.get(stat_type) if stats is not None else None
                 if actual is None:
+                    if game_date < today_str:
+                        ungraded.append(prop)
                     continue
                 conn.execute(
                     "UPDATE prop_observations SET outcome = ?, actual_value = ? WHERE id = ?",
                     (1 if actual >= threshold else 0, actual, prop["id"]),
                 )
                 resolved += 1
+    if ungraded:
+        resolved += _resolve_nfl_props_via_kalshi_settlement(conn, ungraded)
     return resolved
 
 
@@ -1908,7 +2007,7 @@ def _resolve_prop_observations(
     # cut below still enforces the real window.
     scan_floor = (window_lo - timedelta(days=7)).isoformat()
     rows = conn.execute(
-        """SELECT id, scan_date, player_name, stat_type, line, event_id, sector
+        """SELECT *
            FROM prop_observations
            WHERE outcome IS NULL AND scan_date <= ? AND scan_date >= ?""",
         (today_str, scan_floor),
