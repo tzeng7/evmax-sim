@@ -6,11 +6,13 @@ For a metric ``m`` measured on team-game rows (the team on offense):
 
 ``off`` is how much the team adds on offense and ``def`` how much it ALLOWS on
 defense (higher = worse defense), both shrunk toward 0 by a ridge penalty
-``lam``. Rows are weighted by age: ``0.5 ** (days_before_cutoff / half_life)``
-— a calendar half-life, so last season's games fade naturally across the
-offseason and early-season ratings regress toward the league mean (the
-penalty dominates while recent weight is small). Only rows strictly before
-``cutoff`` enter a fit, which makes every walk-forward projection leak-free.
+``lam``. Rows are weighted by age: ``0.5 ** (age_days / half_life)``, where
+``offseason_days`` per season boundary crossed are NOT counted as age — nothing
+happens on the field between seasons, so Week 1 still leans on last season's
+late games (counting the offseason starved Weeks 1-4: margin MAE 10.44 vs 10.03
+with it excluded). The ridge penalty still regresses early-season ratings
+toward the league mean. Only rows strictly before ``cutoff`` enter a fit, which
+makes every walk-forward projection leak-free.
 """
 from __future__ import annotations
 
@@ -33,14 +35,26 @@ class RatingFit:
         return self.mu + self.hfa * home + self.off.get(team, 0.0) + self.deff.get(opp, 0.0)
 
 
-def recency_weights(gameday: pd.Series, cutoff: pd.Timestamp, half_life_days: float) -> np.ndarray:
+def nfl_season_of(ts: pd.Timestamp) -> int:
+    """NFL season label of a date: Jan-Feb belong to the previous year's season."""
+    return ts.year if ts.month >= 3 else ts.year - 1
+
+
+def recency_weights(gameday: pd.Series, cutoff: pd.Timestamp, half_life_days: float,
+                    offseason_days: float = 0.0) -> np.ndarray:
+    """``0.5 ** (age / half_life)``; ``offseason_days`` per season boundary crossed
+    are not counted as age (nothing happens on the field between seasons)."""
     age = (cutoff - gameday).dt.days.to_numpy(dtype=float)
+    if offseason_days:
+        row_season = np.where(gameday.dt.month >= 3, gameday.dt.year, gameday.dt.year - 1)
+        crossed = nfl_season_of(cutoff) - row_season
+        age = np.maximum(age - offseason_days * crossed, 0.0)
     return 0.5 ** (age / half_life_days)
 
 
 def fit_rating(rows: pd.DataFrame, metric: str, cutoff: pd.Timestamp,
                half_life_days: float = 70.0, lam: float = 4.0,
-               weight_col: str | None = None) -> RatingFit:
+               weight_col: str | None = None, offseason_days: float = 0.0) -> RatingFit:
     """Fit one metric's ratings on ``rows`` with gameday < cutoff.
 
     ``weight_col`` (e.g. plays) multiplies the recency weight so per-play
@@ -58,7 +72,7 @@ def fit_rating(rows: pd.DataFrame, metric: str, cutoff: pd.Timestamp,
     rows_i = np.arange(n)
     X[rows_i, 2 + r["team"].map(ix).to_numpy()] = 1.0
     X[rows_i, 2 + k + r["opp"].map(ix).to_numpy()] = 1.0
-    w = recency_weights(r["gameday"], cutoff, half_life_days)
+    w = recency_weights(r["gameday"], cutoff, half_life_days, offseason_days)
     if weight_col is not None:
         w = w * r[weight_col].to_numpy(dtype=float)
         w = w / np.mean(r[weight_col].to_numpy(dtype=float))
@@ -103,8 +117,8 @@ def fit_qb_ratings(team_games: pd.DataFrame, cutoff: pd.Timestamp,
     with his dropbacks and QB EPA. A QB with little history is shrunk toward
     ``league mean - unknown_offset`` (unfamiliar starters are usually backups or
     rookies). The team level weights the CURRENT ratings of the QBs who started
-    for the team by their recency-weighted dropbacks (team half-life, matching
-    the team ratings).
+    for the team by their recency-weighted dropbacks (same 70-day half-life as
+    the team ratings, but calendar age — no offseason exclusion here).
     """
     r = team_games[(team_games["gameday"] < cutoff)
                    & (team_games["gameday"] >= cutoff - pd.Timedelta(days=lookback_days))

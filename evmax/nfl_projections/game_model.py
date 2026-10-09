@@ -49,6 +49,7 @@ class GameModelConfig:
     half_life_days: float = 70.0
     lam: float = 4.0
     lookback_days: int = 730
+    offseason_days: float = 180.0  # offseason not counted as rating decay
     features: tuple[str, ...] = ("pts", "epa", "sr", "dome", "wind", "qb")
     first_feature_season: int = 2015  # combiner training starts here
 
@@ -89,7 +90,8 @@ def fit_ratings(team_games: pd.DataFrame, cutoff: pd.Timestamp,
     window = team_games[(team_games["gameday"] < cutoff)
                         & (team_games["gameday"] >= cutoff - pd.Timedelta(days=cfg.lookback_days))]
     return {
-        name: fit_rating(window, metric, cutoff, cfg.half_life_days, cfg.lam, weight_col=wcol)
+        name: fit_rating(window, metric, cutoff, cfg.half_life_days, cfg.lam, weight_col=wcol,
+                         offseason_days=cfg.offseason_days)
         for name, (metric, wcol) in RATED_METRICS.items() if name in cfg.features
     }
 
