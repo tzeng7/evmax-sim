@@ -31,6 +31,7 @@ from scipy import stats
 from evmax.nfl_projections.ratings import RatingFit, fit_rating, recency_weights
 
 SKILL = ("WR", "TE", "RB", "QB")
+VOLUME_STATS = ("team_targets", "team_carries", "team_attempts")
 
 
 @dataclass(frozen=True)
@@ -71,7 +72,7 @@ def fit_player_state(player_games: pd.DataFrame, volume_rows: pd.DataFrame, cuto
     lo = cutoff - pd.Timedelta(days=cfg.lookback_days)
     vr = volume_rows[(volume_rows["gameday"] < cutoff) & (volume_rows["gameday"] >= lo)]
     fits = {m: fit_rating(vr, m, cutoff, cfg.half_life_days, cfg.lam, offseason_days=cfg.offseason_days)
-            for m in ("team_targets", "team_carries", "team_attempts")}
+            for m in VOLUME_STATS}
 
     pg = player_games[(player_games["gameday"] < cutoff) & (player_games["gameday"] >= lo)]
     pg = pg[pg["position"].isin(SKILL)]
@@ -169,7 +170,8 @@ def negbin_median(mean: np.ndarray, k: float) -> np.ndarray:
     return out
 
 
-def project_players(state: PlayerState, roster: pd.DataFrame) -> pd.DataFrame:
+def project_players(state: PlayerState, roster: pd.DataFrame,
+                    team_volume: pd.DataFrame | None = None) -> pd.DataFrame:
     """Project each (player, team, opp, home, is_starting_qb) row of ``roster``.
 
     Players never seen before the cutoff are skipped (no basis for a projection).
@@ -182,7 +184,12 @@ def project_players(state: PlayerState, roster: pd.DataFrame) -> pd.DataFrame:
                         mean_receptions=[], mean_receiving_yards=[], mean_rushing_yards=[])
     f = state.fits
     exp = {m: np.array([f[m].expect(t, o, h) for t, o, h in zip(r["team"], r["opp"], r["home"])])
-           for m in ("team_targets", "team_carries", "team_attempts")}
+           for m in VOLUME_STATS}
+    if team_volume is not None:  # script-conditioned team volume (``volume_combiners``)
+        idx = pd.MultiIndex.from_arrays([r["game_id"], r["team"]])
+        for m in VOLUME_STATS:
+            v = team_volume[m].reindex(idx).to_numpy()
+            exp[m] = np.where(np.isnan(v), exp[m], v)
     uu = u.loc[r["player_id"]]
     r["proj_targets"] = exp["team_targets"] * uu["tgt_share"].to_numpy()
     r["proj_receptions"] = r["proj_targets"] * uu["catch_rate"].to_numpy()
@@ -202,6 +209,63 @@ def project_players(state: PlayerState, roster: pd.DataFrame) -> pd.DataFrame:
     return r
 
 
+# ── game script -> team volume ───────────────────────────────────────────────
+# Team volume depends on the expected game flow: favorites run more, trailing
+# teams throw more, high-total games have more plays. The script comes from OUR
+# game model (no market input); a per-stat OLS on top of the opponent-adjusted
+# volume rating is trained on earlier seasons only.
+SCRIPT_FIRST_SEASON = 2016  # first season the game model can project (combiner trains on 2015)
+
+
+def game_script(team_games: pd.DataFrame, games: pd.DataFrame, seasons: list[int]) -> pd.DataFrame:
+    """(game_id, team) -> the game model's projected margin (team - opp) and total."""
+    from evmax.nfl_projections.game_model import GameModelConfig
+    from evmax.nfl_projections.game_model import walk_forward as game_walk_forward
+
+    gp = game_walk_forward(team_games, games, seasons, GameModelConfig())
+    sides = []
+    for team, sign in (("home_team", 1.0), ("away_team", -1.0)):
+        sides.append(pd.DataFrame({"game_id": gp["game_id"], "team": gp[team],
+                                   "proj_margin": sign * gp["proj_margin"], "proj_total": gp["proj_total"]}))
+    return pd.concat(sides).set_index(["game_id", "team"])
+
+
+def volume_feature_table(volume_rows: pd.DataFrame, script: pd.DataFrame, games: pd.DataFrame,
+                         seasons: list[int], cfg: PlayerModelConfig = PlayerModelConfig()) -> pd.DataFrame:
+    """Team-game rows: point-in-time volume rating expectations + game script + actual volume."""
+    sched = games[games["season"].isin(seasons) & games["home_score"].notna()]
+    out = []
+    for (season, week), wk in sched.groupby(["season", "week"], sort=True):
+        cutoff = wk["gameday"].min()
+        lo = cutoff - pd.Timedelta(days=cfg.lookback_days)
+        vr = volume_rows[(volume_rows["gameday"] < cutoff) & (volume_rows["gameday"] >= lo)]
+        fits = {m: fit_rating(vr, m, cutoff, cfg.half_life_days, cfg.lam, offseason_days=cfg.offseason_days)
+                for m in VOLUME_STATS}
+        cur = volume_rows[volume_rows["game_id"].isin(wk["game_id"])].copy()
+        for m in VOLUME_STATS:
+            cur["exp_" + m] = [fits[m].expect(t, o, h) for t, o, h in zip(cur["team"], cur["opp"], cur["home"])]
+        cur["season"] = season
+        out.append(cur)
+    vft = pd.concat(out, ignore_index=True)
+    return vft.join(script, on=["game_id", "team"]).dropna(subset=["proj_margin", "proj_total"])
+
+
+def volume_combiners(vft: pd.DataFrame) -> dict[str, np.ndarray]:
+    """Per volume stat: OLS coef for [1, rating expectation, proj margin, proj total]."""
+    out = {}
+    for m in VOLUME_STATS:
+        X = np.column_stack([np.ones(len(vft)), vft["exp_" + m], vft["proj_margin"], vft["proj_total"]])
+        out[m] = np.linalg.lstsq(X, vft[m].to_numpy(dtype=float), rcond=None)[0]
+    return out
+
+
+def predict_volume(vft: pd.DataFrame, coefs: dict[str, np.ndarray]) -> pd.DataFrame:
+    res = pd.DataFrame(index=pd.MultiIndex.from_arrays([vft["game_id"], vft["team"]]))
+    for m, c in coefs.items():
+        res[m] = (c[0] + c[1] * vft["exp_" + m] + c[2] * vft["proj_margin"] + c[3] * vft["proj_total"]).to_numpy()
+    return res
+
+
 def walk_forward(team_games: pd.DataFrame, player_games: pd.DataFrame, games: pd.DataFrame,
                  seasons: list[int], cfg: PlayerModelConfig = PlayerModelConfig()) -> pd.DataFrame:
     """Project every player who played in ``seasons``' completed games, week by week, leak-free.
@@ -212,15 +276,21 @@ def walk_forward(team_games: pd.DataFrame, player_games: pd.DataFrame, games: pd
     fit on games strictly before its first kickoff.
     """
     vol = team_volume_rows(player_games, team_games)
+    script_seasons = list(range(SCRIPT_FIRST_SEASON, max(seasons) + 1))
+    vft = volume_feature_table(vol, game_script(team_games, games, script_seasons), games, script_seasons, cfg)
     home = team_games.set_index(["game_id", "team"])["home"]
     starters = team_games.set_index(["game_id", "team"])["first_qb_id"]
     sched = games[games["season"].isin(seasons) & games["home_score"].notna()]
     out = []
-    for (season, week), wk in sched.groupby(["season", "week"], sort=True):
-        cutoff = wk["gameday"].min()
-        roster = player_games[player_games["game_id"].isin(wk["game_id"])].copy()
-        idx = pd.MultiIndex.from_arrays([roster["game_id"], roster["team"]])
-        roster["home"] = home.reindex(idx).fillna(0).to_numpy()
-        roster["is_starting_qb"] = starters.reindex(idx).to_numpy() == roster["player_id"].to_numpy()
-        out.append(project_players(fit_player_state(player_games, vol, cutoff, cfg), roster))
+    for season in sorted(sched["season"].unique()):
+        train = vft[vft["season"] < season]
+        team_volume = (predict_volume(vft[vft["season"] == season], volume_combiners(train))
+                       if len(train) else None)
+        for week, wk in sched[sched["season"] == season].groupby("week", sort=True):
+            cutoff = wk["gameday"].min()
+            roster = player_games[player_games["game_id"].isin(wk["game_id"])].copy()
+            idx = pd.MultiIndex.from_arrays([roster["game_id"], roster["team"]])
+            roster["home"] = home.reindex(idx).fillna(0).to_numpy()
+            roster["is_starting_qb"] = starters.reindex(idx).to_numpy() == roster["player_id"].to_numpy()
+            out.append(project_players(fit_player_state(player_games, vol, cutoff, cfg), roster, team_volume))
     return pd.concat(out, ignore_index=True)
