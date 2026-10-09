@@ -29,9 +29,8 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from evmax.nfl_projections import data, player_games, team_games  # noqa: E402
-from evmax.nfl_projections.player_model import (  # noqa: E402
-    PlayerModelConfig, fit_player_state, project_players, team_volume_rows,
-)
+from evmax.nfl_projections.player_model import PlayerModelConfig  # noqa: E402
+from evmax.nfl_projections.player_model import walk_forward as model_walk_forward  # noqa: E402
 
 DEV = list(range(2019, 2025))
 HOLDOUT = [2025]
@@ -53,24 +52,16 @@ def naive_means(pg: pd.DataFrame, cutoff: pd.Timestamp) -> pd.DataFrame:
 
 
 def walk_forward(seasons: list[int], cfg: PlayerModelConfig) -> pd.DataFrame:
+    """Model projections (from the package) + the harness's own naive baseline."""
     tg = team_games.load_team_games(SEASONS_LOADED)
     pg = player_games.load_player_games(SEASONS_LOADED)
     games = data.load_games()
-    vol = team_volume_rows(pg, tg)
-    home = tg.set_index(["game_id", "team"])["home"]
-    starters = tg.set_index(["game_id", "team"])["first_qb_id"]
-    sched = games[games["season"].isin(seasons) & games["home_score"].notna()]
+    proj = model_walk_forward(tg, pg, games, seasons, cfg)
+    cut = games.groupby(["season", "week"])["gameday"].min().rename("cutoff")
+    proj = proj.join(cut, on=["season", "week"])
     out = []
-    for (season, week), wk in sched.groupby(["season", "week"], sort=True):
-        cutoff = wk["gameday"].min()
-        roster = pg[pg["game_id"].isin(wk["game_id"])].copy()
-        idx = pd.MultiIndex.from_arrays([roster["game_id"], roster["team"]])
-        roster["home"] = home.reindex(idx).fillna(0).to_numpy()
-        roster["is_starting_qb"] = (starters.reindex(idx).to_numpy() == roster["player_id"].to_numpy())
-        state = fit_player_state(pg, vol, cutoff, cfg)
-        proj = project_players(state, roster)
-        proj = proj.join(naive_means(pg, cutoff), on="player_id")
-        out.append(proj)
+    for cutoff, wk in proj.groupby("cutoff", sort=True):
+        out.append(wk.join(naive_means(pg, cutoff), on="player_id"))
     r = pd.concat(out, ignore_index=True)
     r["pop_rec"] = r["naive_targets"] >= 1.5
     r["pop_rush"] = r["naive_carries"] >= 2.0

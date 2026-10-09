@@ -200,3 +200,27 @@ def project_players(state: PlayerState, roster: pd.DataFrame) -> pd.DataFrame:
     r["proj_rushing_yards"] = gamma_median(r["mean_rushing_yards"], theta["rushing_yards"])
     r["proj_receptions"] = negbin_median(r["mean_receptions"], state.negbin_k)
     return r
+
+
+def walk_forward(team_games: pd.DataFrame, player_games: pd.DataFrame, games: pd.DataFrame,
+                 seasons: list[int], cfg: PlayerModelConfig = PlayerModelConfig()) -> pd.DataFrame:
+    """Project every player who played in ``seasons``' completed games, week by week, leak-free.
+
+    The roster for a week is everyone who played those games (the backtest
+    stand-in for the pre-game active list); the starting QB is the team's
+    first-dropback passer (pre-game starter identity). Each week uses one state
+    fit on games strictly before its first kickoff.
+    """
+    vol = team_volume_rows(player_games, team_games)
+    home = team_games.set_index(["game_id", "team"])["home"]
+    starters = team_games.set_index(["game_id", "team"])["first_qb_id"]
+    sched = games[games["season"].isin(seasons) & games["home_score"].notna()]
+    out = []
+    for (season, week), wk in sched.groupby(["season", "week"], sort=True):
+        cutoff = wk["gameday"].min()
+        roster = player_games[player_games["game_id"].isin(wk["game_id"])].copy()
+        idx = pd.MultiIndex.from_arrays([roster["game_id"], roster["team"]])
+        roster["home"] = home.reindex(idx).fillna(0).to_numpy()
+        roster["is_starting_qb"] = starters.reindex(idx).to_numpy() == roster["player_id"].to_numpy()
+        out.append(project_players(fit_player_state(player_games, vol, cutoff, cfg), roster))
+    return pd.concat(out, ignore_index=True)
