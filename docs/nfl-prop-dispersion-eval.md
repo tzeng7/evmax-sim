@@ -38,9 +38,10 @@ same spread regardless of median, so:
   snapshot implying one μ.
 - **Outcome**: Kalshi's official settlement per rung (`result` yes/no; scalar =
   inactive player → void, dropped). `prop_observations.actual_value` is NOT
-  enough on its own: the resolver drops a player who played but has no row in
-  any ESPN box-score block, so zero-catch / zero-carry games are NULL there
-  while Kalshi settles them NO. 60 such player-games are recovered (y = 0).
+  enough on its own: a player who played but has no row in any ESPN box-score
+  block (zero catches / carries) keeps a NULL stat value while Kalshi settles
+  NO (since #374 the resolver writes `outcome` from that settlement; the stat
+  value stays NULL). 60 such player-games are recovered here (y = 0).
   Where both sources exist they agree on all 13,364 rungs.
 - **Rungs**: the Kalshi thresholds actually listed (`prop_observations`);
   97.8% carry a last-pre-kickoff Kalshi bid/ask mid as a benchmark.
@@ -147,7 +148,8 @@ default, batched, `--revert` undoes it) — run it after the change is deployed.
   `anchor_line` columns directly).
 - Judge the new pricing on `model_version = 'pinnacle-anchor-v2'` rows; v1 rows
   priced NFL receiving/rushing yards with the fixed-σ Normal.
-- Grade Kalshi NFL prop rows from Kalshi settlement in the resolver, so
-  zero-stat games stop resolving NULL (flagged separately).
+- Done in #374: the resolver now writes a zero-stat game's `outcome` from
+  Kalshi settlement (`actual_value` stays NULL). Re-resolve rows from before
+  that fix before reading MODEL-9 metrics.
 - A cheap-longshot gate for NFL props: pre-fix shadow rows with EV > 15%
   returned −17% ROI, ≤ 10¢ −32%.
