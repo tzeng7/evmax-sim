@@ -282,7 +282,7 @@ class TestCoordinatorFetchPropsNfl:
         self._patch_clients(monkeypatch, kalshi_markets=markets, pinn_props=pinn_props)
 
         coord = AgentCoordinator(sectors=["nfl"], enable_models=False)
-        prop_markets, prop_sharp = _run(coord._fetch_props("nfl"))
+        prop_markets, prop_sharp, _anchors = _run(coord._fetch_props("nfl"))
 
         # Both markets make it through dedupe and find Pinnacle anchors
         assert len(prop_markets) == 2
@@ -291,7 +291,7 @@ class TestCoordinatorFetchPropsNfl:
         assert names == {"Big Passer", "Solid Rusher"}
 
         # SharpOdds carry probs derived from Pinnacle's devigged anchor via
-        # the prop_pricing module (Normal for yardage stats). At Kalshi
+        # the prop_pricing module (Normal passing / Gamma rushing). At Kalshi
         # threshold == Pinnacle line, the priced prob round-trips back to the
         # anchor prob_over within the continuity-correction tolerance.
         by_player = {s.prop_player_name: s for s in prop_sharp}
@@ -345,7 +345,7 @@ class TestCoordinatorFetchPropsNfl:
         self._patch_clients(monkeypatch, kalshi_markets=markets, pinn_props=pinn_props)
 
         coord = AgentCoordinator(sectors=["nfl"], enable_models=False)
-        prop_markets, prop_sharp = _run(coord._fetch_props("nfl"))
+        prop_markets, prop_sharp, _anchors = _run(coord._fetch_props("nfl"))
 
         # Anchor exists for (player, stat) → Kalshi market gets a priced prob.
         # The Pinnacle anchor implies μ > 274.5 (since prob_over > 0.5), so
@@ -354,6 +354,68 @@ class TestCoordinatorFetchPropsNfl:
         assert len(prop_sharp) == 1
         assert prop_sharp[0].true_prob_over < 0.60
         assert prop_sharp[0].total_line == pytest.approx(299.5)
+
+    def test_fetch_props_marks_rungs_derived_and_returns_raw_anchors(
+        self, nfl_parquets, monkeypatch,
+    ):
+        """Every re-lined rung is evmax's price, not a Pinnacle quote: it
+        must carry derived=True plus the real anchor (line + devigged prob) so
+        the archiver can file it as 'pinnacle_derived'. The raw Pinnacle lines
+        come back separately, untouched, for the archive only."""
+        from datetime import datetime
+
+        from evmax.agents.coordinator import AgentCoordinator
+        from evmax.models.market import MarketSource, MarketType, PredictionMarket
+
+        def _mkt(threshold):
+            return PredictionMarket(
+                id=f"KXNFLRSHYDS-25NOV17SF-R{threshold}",
+                source=MarketSource.kalshi,
+                sector="nfl",
+                market_type=MarketType.player_prop,
+                title=f"Solid Rusher {threshold}+ Rushing Yards",
+                event_id=f"nfl::2025-11-17::prop::solidrusher::rushing_yards::{threshold}",
+                team_home="SF",
+                team_away="SEA",
+                yes_team="Solid Rusher",
+                yes_price=0.30,
+                no_price=0.70,
+                event_date=datetime(2025, 11, 17, 20, 0),
+                player_name="Solid Rusher",
+                stat_type="rushing_yards",
+                threshold=threshold,
+            )
+
+        anchor = self._pinn_prop("Solid Rusher", "rushing_yards", 64.5, 0.52)
+        unmatched_anchor = self._pinn_prop("Nobody Listed", "receiving_yards", 40.5, 0.50)
+        self._patch_clients(
+            monkeypatch,
+            kalshi_markets=[_mkt(50.0), _mkt(75.0), _mkt(100.0)],
+            pinn_props=[anchor, unmatched_anchor],
+        )
+
+        coord = AgentCoordinator(sectors=["nfl"], enable_models=False)
+        prop_markets, prop_sharp, anchors = _run(coord._fetch_props("nfl"))
+
+        assert len(prop_sharp) == 3
+        for rung in prop_sharp:
+            assert rung.derived is True
+            assert rung.anchor_line == pytest.approx(64.5)
+            assert rung.anchor_prob_over == pytest.approx(0.52)
+            assert rung.total_line != rung.anchor_line
+        # Raw anchors: exactly what Pinnacle posted, matched or not.
+        assert anchors == [anchor, unmatched_anchor]
+        assert all(a.derived is False and a.anchor_line is None for a in anchors)
+
+    def test_fetch_props_returns_anchors_when_kalshi_lists_no_props(
+        self, nfl_parquets, monkeypatch,
+    ):
+        from evmax.agents.coordinator import AgentCoordinator
+
+        anchor = self._pinn_prop("Solid Rusher", "rushing_yards", 64.5, 0.52)
+        self._patch_clients(monkeypatch, kalshi_markets=[], pinn_props=[anchor])
+        coord = AgentCoordinator(sectors=["nfl"], enable_models=False)
+        assert _run(coord._fetch_props("nfl")) == ([], [], [anchor])
 
     def test_fetch_props_nfl_skips_unknown_player(self, nfl_parquets, monkeypatch):
         from datetime import datetime
@@ -385,7 +447,7 @@ class TestCoordinatorFetchPropsNfl:
         self._patch_clients(monkeypatch, kalshi_markets=markets, pinn_props=[])
 
         coord = AgentCoordinator(sectors=["nfl"], enable_models=False)
-        prop_markets, prop_sharp = _run(coord._fetch_props("nfl"))
+        prop_markets, prop_sharp, _anchors = _run(coord._fetch_props("nfl"))
 
         assert len(prop_markets) == 1
         assert len(prop_sharp) == 0

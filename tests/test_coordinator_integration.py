@@ -201,7 +201,7 @@ class TestNbaGameCycle:
         # cycle.ev_gaps stream after 2026-05-10, but this fixture only
         # asserts game-market behavior.
         async def _no_props(self, sector):  # noqa: ARG001
-            return [], []
+            return [], [], []
 
         coord.kalshi_agent = _kalshi_stub
         coord.polymarket_us_agent = _empty_polymarket
@@ -281,7 +281,7 @@ class TestNoEdgeCycle:
             return _resp("standings", req.sector, {})
 
         async def _no_props(self, sector):  # noqa: ARG001
-            return [], []
+            return [], [], []
 
         coord.kalshi_agent = _kalshi_stub
         coord.polymarket_us_agent = _empty_polymarket
@@ -371,7 +371,7 @@ class TestMultiSectorCycle:
         # nba is in _PROP_SECTORS: unstubbed, the cycle fetches live Kalshi +
         # Pinnacle NBA props.
         async def _no_props(self, sector):  # noqa: ARG001
-            return [], []
+            return [], [], []
 
         coord.kalshi_agent = _kalshi_stub
         coord.polymarket_us_agent = _empty_polymarket
@@ -441,7 +441,7 @@ class TestSectorFailureResilience:
         # fetches live Kalshi NBA props and adds them to markets_fetched
         # (1 game + 4 live props = 5 once the 2026-27 props listed).
         async def _no_props(self, sector):  # noqa: ARG001
-            return [], []
+            return [], [], []
 
         coord.kalshi_agent = _kalshi_stub
         coord.polymarket_us_agent = _empty_polymarket
@@ -562,7 +562,7 @@ class TestNbaPropFlow:
         )
 
         async def _mock_fetch_props(sector):
-            return [prop_market], [prop_sharp]
+            return [prop_market], [prop_sharp], []
 
         coord._fetch_props = _mock_fetch_props
         return coord
@@ -578,6 +578,101 @@ class TestNbaPropFlow:
         assert sharp.prop_player_name == "LeBron James"
         assert market.player_name == "LeBron James"
         assert sharp.true_prob_over == 0.60
+
+
+class TestPropArchiveLabelling:
+    """run_cycle must hand the archiver BOTH the derived prop rungs (in the
+    sector's sharp odds) and the raw Pinnacle prop anchors, so archive.db
+    files the rungs as 'pinnacle_derived' and keeps the real quotes as
+    'pinnacle'. The raw anchors must never reach matching or EV."""
+
+    def _build_coord(self, archiver) -> AgentCoordinator:
+        coord = TestNbaPropFlow()._build_coord()
+        coord._archiver = archiver
+        derived_rung = _make_sharp(
+            event_id="nba::2026-04-20::prop::lebron_james::points::30",
+            sector="nba",
+            outcome_a="over",
+            outcome_b="under",
+            true_prob_a=0.0,
+            prop_player_name="LeBron James",
+            prop_stat_type="points",
+            total_line=30.0,
+            true_prob_over=0.22,
+            true_prob_under=0.78,
+        ).model_copy(update={"derived": True, "anchor_line": 25.5,
+                             "anchor_prob_over": 0.60})
+        raw_anchor = _make_sharp(
+            event_id="nba::2026-04-20::prop::lebron_james::points::25.5",
+            sector="nba",
+            outcome_a="over",
+            outcome_b="under",
+            true_prob_a=0.0,
+            prop_player_name="LeBron James",
+            prop_stat_type="points",
+            total_line=25.5,
+            true_prob_over=0.60,
+            true_prob_under=0.40,
+        )
+        prop_market = _make_market(
+            market_id="kalshi-nba-pts-lebron-30",
+            sector="nba",
+            team_home="LAL",
+            team_away="GSW",
+            yes_team="LeBron James",
+            yes_price=0.20,
+            market_type=MarketType.player_prop,
+            player_name="LeBron James",
+            stat_type="points",
+            threshold=30.0,
+            event_id="nba::2026-04-20::prop::lebron_james::points::30",
+        )
+
+        async def _fetch(sector):  # noqa: ARG001
+            return [prop_market], [derived_rung], [raw_anchor]
+
+        coord._fetch_props = _fetch
+        return coord, derived_rung, raw_anchor
+
+    @patch("evmax.agents.coordinator._load_steam_cache", return_value={})
+    @patch("evmax.agents.coordinator._save_steam_cache")
+    def test_archiver_receives_derived_rungs_and_raw_anchors(self, _save, _load):
+        archiver = _noop_archiver()
+        coord, derived_rung, raw_anchor = self._build_coord(archiver)
+        result = _run(coord.run_cycle())
+
+        archived = [o for call in archiver.archive_sharp_odds.call_args_list
+                    for o in call.args[2]]
+        assert derived_rung in archived
+        assert raw_anchor in archived
+        # The raw anchor is archive-only: never paired with a Kalshi market.
+        paired = [s for s, _m in result.prop_sharp_pairs]
+        assert paired == [derived_rung]
+
+    @patch("evmax.agents.coordinator._load_steam_cache", return_value={})
+    @patch("evmax.agents.coordinator._save_steam_cache")
+    def test_archive_db_books_split_quotes_from_model_output(
+        self, _save, _load, tmp_path, monkeypatch,
+    ):
+        import sqlite3
+
+        from evmax.archiver import DataArchiver
+
+        db = tmp_path / "archive.db"
+        monkeypatch.setattr("evmax.archiver.DB_PATH", db)
+        coord, _rung, _anchor = self._build_coord(DataArchiver())
+        _run(coord.run_cycle())
+
+        with sqlite3.connect(db) as conn:
+            rows = conn.execute(
+                "SELECT book, total_line, derived, anchor_line, anchor_prob_over "
+                "FROM archived_sharp_odds WHERE prop_player_name IS NOT NULL "
+                "ORDER BY total_line"
+            ).fetchall()
+        assert rows == [
+            ("pinnacle", 25.5, 0, None, None),
+            ("pinnacle_derived", 30.0, 1, 25.5, 0.60),
+        ]
 
 
 class TestBaseballPropFlow:
@@ -649,7 +744,7 @@ class TestBaseballPropFlow:
         )
 
         async def _mock_fetch_props(sector):
-            return [prop_market], [prop_sharp]
+            return [prop_market], [prop_sharp], []
 
         coord._fetch_props = _mock_fetch_props
         return coord
@@ -744,7 +839,7 @@ class TestDeadSectorPropCancel:
             try:
                 await release_props.wait()
                 state["completed"] = True
-                return [prop_market], [prop_sharp]
+                return [prop_market], [prop_sharp], []
             except asyncio.CancelledError:
                 state["cancelled"] = True
                 raise
@@ -847,7 +942,7 @@ class TestPolymarketUsVenueCycle:
             return _resp("standings", req.sector, {})
 
         async def _no_props(self, sector):  # noqa: ARG001
-            return [], []
+            return [], [], []
 
         coord.kalshi_agent = _kalshi_stub
         coord.polymarket_us_agent = _polymarket_stub
