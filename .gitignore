@@ -34,6 +34,8 @@ data/*_cache.json
 data/backtest/nfl_props/
 # Kalshi NFL ladder/escalator public-API cache (scripts/eval_nfl_scalar_props.py --fetch)
 data/backtest/nfl_scalar_props/
+# NFL projection engine nflverse cache (evmax/nfl_projections/data.py)
+data/backtest/nfl_projections/
 # College box-score day cache + walk-forward pickles (reproducible via
 # scripts/seed_ncaab_efficiency.py --fetch-only)
 data/backtest/college_efficiency/
