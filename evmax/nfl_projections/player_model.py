@@ -39,7 +39,7 @@ class PlayerModelConfig:
     offseason_days: float = 180.0
     lookback_days: int = 730
     lam: float = 4.0
-    share_prior_games: float = 3.0     # pseudo-games at the position-mean share
+    share_prior_games: float = 0.5     # pseudo-games at the position-mean share (share is very stable; 3.0 over-shrank stars)
     k_targets: float = 60.0            # pseudo-targets for catch rate / yards per target
     k_carries: float = 80.0            # pseudo-carries for yards per carry
     k_attempts: float = 150.0          # pseudo-attempts for QB yards per attempt
