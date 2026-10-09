@@ -14,7 +14,13 @@ Data (read-only):
     devig (power) to the anchor prob, and inverting the pricing family in force
     then (:data:`LEGACY_SIGMA` / :data:`LEGACY_NEGBIN_K`) turns any rung back
     into the anchor line (it lands on a half point to ~1e-14).
-  * Outcome — ``prop_observations.actual_value`` (nflverse-resolved).
+  * Outcome — Kalshi's official settlement per rung (``--kalshi-results``;
+    ``result`` yes/no, scalar = void → dropped), falling back to
+    ``prop_observations.actual_value`` where no settlement is cached. The stat
+    value alone is biased: the resolver drops a player who played but has no
+    row in any ESPN box-score block, so zero-catch / zero-carry games are NULL
+    there while Kalshi settles them NO. A player-game with no stat value whose
+    every settled rung is NO is recovered as y = 0.
   * Rungs — the Kalshi thresholds listed for that player-game
     (``prop_observations``), with the last pre-kickoff Kalshi bid/ask mid from
     ``archived_kalshi_markets`` as a calibration benchmark (rows with
@@ -27,14 +33,17 @@ by minimizing train rung Brier. Validation:
 Standard errors are clustered by player-game (all rungs of one player-game
 share one outcome). NFL weeks are Tue-Mon blocks from the first game date.
 
-Run:
+Run (the first command caches Kalshi settlements with read-only public GETs):
     python scripts/fit_nfl_prop_dispersion.py \
         --archive-db ~/Projects/evmax/data/archive.db \
-        --pred-db ~/Projects/evmax/data/predictions.db
+        --pred-db ~/Projects/evmax/data/predictions.db \
+        --kalshi-results /tmp/nfl_prop_settlements.json --fetch-kalshi-results
 """
 from __future__ import annotations
 
 import argparse
+import asyncio
+import json
 import sqlite3
 import sys
 from pathlib import Path
@@ -59,6 +68,54 @@ LEGACY_SIGMA = {"receiving_yards": 24.0, "rushing_yards": 30.0, "passing_yards":
 LEGACY_NEGBIN_K = {"receptions": 5.0}
 YARD_STATS = ("receiving_yards", "rushing_yards")
 DEFAULT_STATS = ("receiving_yards", "rushing_yards", "receptions")
+# Kalshi series per stat (settlements are fetched per series).
+KALSHI_SERIES = {
+    "receiving_yards": "KXNFLRECYDS",
+    "rushing_yards": "KXNFLRSHYDS",
+    "receptions": "KXNFLREC",
+    "passing_yards": "KXNFLPASSYDS",
+}
+
+
+async def fetch_kalshi_results(client, series: str, page_limit: int = 1000) -> dict[str, str]:
+    """{ticker: 'yes' | 'no' | 'void'} for every settled market of a series.
+
+    ``client`` is an open :class:`evmax.clients.kalshi.KalshiClient` (only its
+    ``_get`` is used — the public, unauthenticated /markets listing). A scalar
+    settlement (player inactive → cancelled) maps to 'void'.
+    """
+    out: dict[str, str] = {}
+    cursor = None
+    while True:
+        params = {"series_ticker": series, "status": "settled", "limit": page_limit}
+        if cursor:
+            params["cursor"] = cursor
+        page = await client._get("/markets", params=params)
+        for m in page.get("markets", []):
+            res = m.get("result")
+            if res in ("yes", "no"):
+                out[m["ticker"]] = res
+            elif res == "scalar":
+                out[m["ticker"]] = "void"
+        cursor = page.get("cursor")
+        if not cursor or not page.get("markets"):
+            return out
+
+
+def fetch_and_cache_results(path: Path, stats_: tuple[str, ...]) -> dict[str, str]:
+    from evmax.clients.kalshi import KalshiClient
+
+    async def _run() -> dict[str, str]:
+        merged: dict[str, str] = {}
+        async with KalshiClient() as client:
+            for stat in stats_:
+                if stat in KALSHI_SERIES:
+                    merged.update(await fetch_kalshi_results(client, KALSHI_SERIES[stat]))
+        return merged
+
+    results = asyncio.run(_run())
+    path.write_text(json.dumps(results, sort_keys=True))
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -148,7 +205,12 @@ def nfl_week(dates: pd.Series) -> pd.Series:
     return ((d - start).dt.days // 7 + 1).astype(int)
 
 
-def load_rungs(archive_db: Path, pred_db: Path, stats_: tuple[str, ...]) -> pd.DataFrame:
+def load_rungs(
+    archive_db: Path,
+    pred_db: Path,
+    stats_: tuple[str, ...],
+    kalshi_results: dict[str, str] | None = None,
+) -> pd.DataFrame:
     anchors = load_anchors(archive_db, stats_)
     pcon = _ro(pred_db)
     marks = ",".join("?" * len(stats_))
@@ -169,9 +231,9 @@ def load_rungs(archive_db: Path, pred_db: Path, stats_: tuple[str, ...]) -> pd.D
         pcon, params=list(stats_),
     )
     pcon.close()
-    pg = anchors.merge(obs, on=["player", "stat", "gd"])
-    pg["week"] = nfl_week(pg.gd)
-    rungs = rungs.merge(pg, on=["player", "stat", "gd"])
+    rungs = rungs.merge(anchors, on=["player", "stat", "gd"])
+    rungs = rungs.merge(obs, on=["player", "stat", "gd"], how="left")
+    rungs["week"] = nfl_week(rungs.gd)
 
     acon = _ro(archive_db)
     km = pd.read_sql_query(
@@ -185,8 +247,30 @@ def load_rungs(archive_db: Path, pred_db: Path, stats_: tuple[str, ...]) -> pd.D
     km = km[km.fetched < km.kickoff].sort_values("fetched").groupby("ticker").tail(1)
     km["mid"] = (km.yes_price + 1.0 - km.no_price) / 2.0
     rungs = rungs.merge(km[["ticker", "mid"]], on="ticker", how="left")
-    rungs["hit"] = (rungs.y >= rungs.K).astype(float)
+    return assemble_outcomes(rungs, kalshi_results or {})
+
+
+def assemble_outcomes(rungs: pd.DataFrame, kalshi_results: dict[str, str]) -> pd.DataFrame:
+    """Grade each rung: Kalshi settlement first, the stat value as fallback.
+
+    Adds ``hit``, ``outcome_source`` ('kalshi' | 'stat') and ``pg``; drops
+    voided rungs and rungs with no outcome. A player-game with no stat value
+    whose every settled rung is NO gets y = 0 (``y_source`` 'kalshi_zero').
+    """
+    rungs = rungs.copy()
+    rungs["kres"] = rungs.ticker.map(kalshi_results)
+    rungs = rungs[rungs.kres != "void"]
+    hit_k = rungs.kres.map({"yes": 1.0, "no": 0.0})
+    hit_s = (rungs.y >= rungs.K).astype(float).where(rungs.y.notna())
+    rungs["hit"] = hit_k.fillna(hit_s)
+    rungs["outcome_source"] = np.where(hit_k.notna(), "kalshi", "stat")
+    rungs = rungs[rungs.hit.notna()].copy()
     rungs["pg"] = rungs.player + "|" + rungs.stat + "|" + rungs.gd
+    all_no = rungs.groupby("pg").kres.transform(lambda r: bool(r.notna().all() and (r == "no").all()))
+    rungs["y_source"] = np.where(rungs.y.notna(), "stat", None)
+    zero = rungs.y.isna() & all_no.astype(bool)
+    rungs.loc[zero, "y"] = 0.0
+    rungs.loc[zero, "y_source"] = "kalshi_zero"
     return rungs.reset_index(drop=True)
 
 
@@ -371,9 +455,12 @@ def report_stat(rungs: pd.DataFrame, stat: str, split_week: int) -> None:
             "params_train": np.round(pr_frozen, 3).tolist(),
             "params_all": np.round(pr_all, 3).tolist(),
         })
+    shipped, legacy = SHIPPED[stat], LEGACY[stat]
+    for row in rows:
+        m, se = clustered_delta(preds_hold[row["family"]], preds_hold[shipped], hold)
+        row["hold_vs_shipped"] = f"{m:+.2f} ± {se:.2f}"
     print(pd.DataFrame(rows).set_index("family").round(4).to_string())
 
-    shipped, legacy = SHIPPED[stat], LEGACY[stat]
     if shipped != legacy:
         m, se = clustered_delta(preds_hold[shipped], preds_hold[legacy], hold)
         print(f"holdout ΔBrier {shipped} − {legacy}: {m:+.2f} ± {se:.2f} /1000")
@@ -396,7 +483,7 @@ def report_stat(rungs: pd.DataFrame, stat: str, split_week: int) -> None:
     print(cal.round(3).to_string())
 
     # Grid: P(Y >= line + 0.5 + off) per player-game (shipped constants, all weeks).
-    pgs = d.drop_duplicates("pg")
+    pgs = d[d.y.notna()].drop_duplicates("pg")
     offs = [-2, -1, 1, 2, 3, 4] if stat == "receptions" else [-40, -20, 20, 40, 60, 80]
     fn_l, x_l, _ = fams[legacy]
     fn_s, _x, _f = fams[shipped]
@@ -429,6 +516,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--split-week", type=int, default=2,
                     help="frozen split: train weeks <= N, holdout the rest")
     ap.add_argument("--stats", default=",".join(DEFAULT_STATS))
+    ap.add_argument("--kalshi-results", type=Path, default=None,
+                    help="JSON cache {ticker: yes|no|void} of Kalshi settlements")
+    ap.add_argument("--fetch-kalshi-results", action="store_true",
+                    help="refresh --kalshi-results from Kalshi's public API first")
     args = ap.parse_args(argv)
     for path in (args.archive_db, args.pred_db):
         if not path.exists() or path.stat().st_size == 0:
@@ -436,7 +527,18 @@ def main(argv: list[str] | None = None) -> int:
             return 1
 
     stats_ = tuple(s.strip() for s in args.stats.split(",") if s.strip())
-    rungs = load_rungs(args.archive_db, args.pred_db, stats_)
+    results: dict[str, str] = {}
+    if args.fetch_kalshi_results:
+        if args.kalshi_results is None:
+            print("--fetch-kalshi-results needs --kalshi-results PATH")
+            return 1
+        results = fetch_and_cache_results(args.kalshi_results, stats_)
+    elif args.kalshi_results is not None:
+        results = json.loads(args.kalshi_results.read_text())
+    if not results:
+        print("WARNING: no Kalshi settlements — grading on the stat value alone drops "
+              "zero-stat games (biases the lower tail).")
+    rungs = load_rungs(args.archive_db, args.pred_db, stats_, results)
     if rungs.empty:
         print("no resolved NFL prop rungs found")
         return 1
@@ -447,6 +549,12 @@ def main(argv: list[str] | None = None) -> int:
     print(pgs.groupby(["stat", "week"]).size().unstack(fill_value=0).to_string())
     print("anchor source:", pgs.anchor_source.value_counts().to_dict(),
           "| rungs with a Kalshi mid:", f"{rungs.mid.notna().mean():.1%}")
+    print("rung outcome source:", rungs.outcome_source.value_counts().to_dict(),
+          "| player-game y source:", pgs.y_source.value_counts(dropna=False).to_dict())
+    both = rungs[rungs.kres.notna() & rungs.y_source.eq("stat")]
+    if not both.empty:
+        disagree = int(((both.y >= both.K).astype(float) != both.hit).sum())
+        print(f"Kalshi settlement vs stat value: {disagree} of {len(both)} rungs disagree")
     for stat in stats_:
         report_stat(rungs, stat, args.split_week)
     return 0

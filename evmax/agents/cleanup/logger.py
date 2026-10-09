@@ -520,7 +520,9 @@ def log_prop_from_sharp(
 
     `model_version` is written to the eponymous column so calibration queries
     can partition rows by which probability source produced them (e.g.
-    `pinnacle-anchor-v1` for the current model, NULL for the legacy L15).
+    `pinnacle-anchor-v2` for the current pricing, `pinnacle-anchor-v1` for the
+    fixed-σ NFL yardage era, NULL for the legacy L15 — see
+    evmax/portfolios.py::ANCHOR_MODEL_VERSION).
 
     Honors `data/categories.yaml` mode per (sector + "_props") just like
     log_prop_observations — without this resolver, the `mode` column
