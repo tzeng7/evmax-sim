@@ -32,12 +32,24 @@ RATED_METRICS: dict[str, tuple[str, str | None]] = {
 }
 
 
+# Game-context features (same value for both sides of a game). Outdoor games
+# with no recorded wind get the league median.
+MEDIAN_OUTDOOR_WIND_MPH = 7.0
+
+
+def context_features(g) -> dict[str, float]:
+    """Roof / weather features for one schedule row (namedtuple from itertuples)."""
+    dome = 1.0 if g.roof in ("dome", "closed") else 0.0
+    wind = 0.0 if dome else (float(g.wind) if pd.notna(g.wind) else MEDIAN_OUTDOOR_WIND_MPH)
+    return {"dome": dome, "wind": wind}
+
+
 @dataclass(frozen=True)
 class GameModelConfig:
     half_life_days: float = 70.0
     lam: float = 4.0
     lookback_days: int = 730
-    features: tuple[str, ...] = ("pts", "epa", "sr")
+    features: tuple[str, ...] = ("pts", "epa", "sr", "dome", "wind")
     first_feature_season: int = 2015  # combiner training starts here
 
 
@@ -103,8 +115,9 @@ def feature_table(team_games: pd.DataFrame, games: pd.DataFrame, seasons: list[i
     for (season, week), wk in sched.groupby(["season", "week"], sort=True):
         fits = fit_ratings(team_games, wk["gameday"].min(), cfg)
         for g in wk.itertuples():
+            ctx = context_features(g)
             for team, opp, home, side in _sides(g):
-                feats = side_features(fits, team, opp, home)
+                feats = {**side_features(fits, team, opp, home), **ctx}
                 points = g.home_score if side == "home" else g.away_score
                 rows.append({"game_id": g.game_id, "season": season, "week": week, "side": side,
                              "team": team, "opp": opp, "home": home, "points": points, **feats})
