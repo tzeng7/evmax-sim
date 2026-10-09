@@ -6,6 +6,7 @@ Commands:
   evmax project teams   — list available teams for a sector
   evmax project resolve — resolve logged projections against ESPN actual scores
   evmax project track   — show model accuracy metrics (MAE, ATS record, O/U record)
+  evmax project nfl     — project an NFL week with the nfl_projections game model
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Optional
 
+import pandas as pd
 import typer
 from rich import box
 from rich.console import Console
@@ -832,3 +834,71 @@ def track(
         )
 
     console.print(detail)
+
+
+# ---------------------------------------------------------------------------
+# NFL — evmax.nfl_projections (walk-forward validated, no market inputs)
+# ---------------------------------------------------------------------------
+
+def _nfl_line(home: str, away: str, home_margin: float) -> str:
+    """Favorite-perspective line from a home margin: 'DAL -3.1', 'TB -2.0' or 'PK'."""
+    if abs(home_margin) < 0.05:
+        return "PK"
+    fav = home if home_margin > 0 else away
+    return f"{fav} -{abs(home_margin):.1f}"
+
+
+@app.command()
+def nfl(
+    season: Optional[int] = typer.Option(None, "--season", help="NFL season (default: the next unplayed week's season)."),
+    week: Optional[int] = typer.Option(None, "--week", "-w", help="Week (default: the next week with an unplayed game)."),
+    refresh: bool = typer.Option(True, "--refresh/--no-refresh", help="Re-download the current season's nflverse data if stale."),
+) -> None:
+    """Project every game of an NFL week: score, spread, total, win probability.
+
+    The model (evmax.nfl_projections) reads no market price; the Market column
+    shows the nflverse consensus line for comparison only. Walk-forward
+    2020-25: margin MAE 10.13 (Vegas close 9.76), total MAE 10.49 (10.28).
+    Data cache: EVMAX_NFL_PROJ_DATA (default data/backtest/nfl_projections).
+    """
+    from evmax.agents.models.nfl_efficiency_agent import NFL_ABBREV_TO_NAME
+    from evmax.nfl_projections import data as nfl_data
+    from evmax.nfl_projections import live
+
+    if refresh:
+        nfl_data.ensure_games()
+    games = nfl_data.load_games()
+    if season is None or week is None:
+        s, w = live.next_week(games, date.today())
+        season, week = season or s, week or w
+    with console.status(f"Projecting NFL {season} week {week}..."):
+        df = live.project_week(season, week, refresh=refresh)
+
+    def full(abbr: str) -> str:
+        return NFL_ABBREV_TO_NAME.get(abbr, abbr).title().replace("49Ers", "49ers")
+
+    t = Table(box=box.ROUNDED, title=f"NFL {season} Week {week} — projections (model, no market inputs)")
+    t.add_column("Kickoff", width=10)
+    t.add_column("Event", no_wrap=False, min_width=28)
+    t.add_column("Outcome", no_wrap=False, min_width=20)
+    t.add_column("Score", justify="right", width=15)
+    t.add_column("Home win", justify="right", width=8)
+    t.add_column("QBs (away / home)", no_wrap=False, width=24)
+    t.add_column("Market", no_wrap=False, width=16)
+    for r in df.sort_values(["gameday", "gametime"]).itertuples():
+        site = " (neutral)" if r.neutral else ""
+        market = "—"
+        if pd.notna(r.market_spread_line):
+            market = f"{_nfl_line(r.home_team, r.away_team, r.market_spread_line)} · {r.market_total_line:.1f}"
+        t.add_row(
+            str(r.gameday),
+            f"{full(r.away_team)} @ {full(r.home_team)}{site}",
+            f"{_nfl_line(r.home_team, r.away_team, r.proj_margin)} · total {r.proj_total:.1f}",
+            f"{r.away_team} {r.proj_away:.1f} – {r.home_team} {r.proj_home:.1f}",
+            f"{r.p_home_win * 100:.0f}%",
+            f"{r.away_qb_name or '?'} / {r.home_qb_name or '?'}",
+            market,
+        )
+    console.print(t)
+    console.print("[dim]Outdoor wind uses the league median until a forecast feed is wired; "
+                  "starters come from the nflverse schedule (fallback: last game's starter).[/dim]")
