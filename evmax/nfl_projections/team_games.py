@@ -21,7 +21,7 @@ import pandas as pd
 from evmax.nfl_projections import data
 
 # Bump when the row definition changes so cached tables are rebuilt.
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 WP_LO, WP_HI = 0.10, 0.90
 
 
@@ -59,12 +59,16 @@ def build_team_games(pbp: pd.DataFrame, games: pd.DataFrame) -> pd.DataFrame:
     pass_eff = comp[comp["pass"] == 1].groupby(key)["epa"].mean().rename("pass_epa")
     rush_eff = comp[comp["rush"] == 1].groupby(key)["epa"].mean().rename("rush_epa")
 
-    # Drives: every distinct fixed_drive the team had the ball on.
-    dr = pbp[pbp["posteam"].notna() & pbp["fixed_drive"].notna()].drop_duplicates(
-        ["game_id", "posteam", "fixed_drive"])
-    dr = dr.assign(top_s=_mmss_to_seconds(dr["drive_time_of_possession"]),
-                   rz=(dr["drive_inside20"] == 1).astype(int),
-                   rz_td=((dr["drive_inside20"] == 1) & (dr["fixed_drive_result"] == "Touchdown")).astype(int))
+    # Drives: every distinct fixed_drive the team had the ball on. The drive-level
+    # fields are not always constant across a drive's plays in nflverse (~0.1% of
+    # drives), so aggregate per drive: inside-20 if any play was, the result of
+    # the last play, the longest recorded time of possession.
+    dp = pbp[pbp["posteam"].notna() & pbp["fixed_drive"].notna()].sort_values(["game_id", "play_id"])
+    dp = dp.assign(top_s=_mmss_to_seconds(dp["drive_time_of_possession"]),
+                   in20=(dp["drive_inside20"] == 1).astype(int))
+    dr = dp.groupby(key + ["fixed_drive"]).agg(
+        top_s=("top_s", "max"), rz=("in20", "max"), result=("fixed_drive_result", "last")).reset_index()
+    dr["rz_td"] = ((dr["rz"] == 1) & (dr["result"] == "Touchdown")).astype(int)
     drives = dr.groupby(key).agg(drives=("fixed_drive", "size"), top_s=("top_s", "sum"),
                                  rz_drives=("rz", "sum"), rz_td=("rz_td", "sum"))
 

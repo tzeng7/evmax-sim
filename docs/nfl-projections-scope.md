@@ -194,6 +194,34 @@ The sum identities then hold by construction. Correlation emerges from the share
 | 3. Product | `projections.db` player table; `evmax project nfl --week`; dashboard tab; Discord weekly post; scheduled weekly run plus Sunday-inactives refresh; resolve/track | Clean live weeks with tracked accuracy | 3–5 days |
 | 4. Optional | Drive simulator; market-blend display mode (≈ the close); EV hooks: feed player means into `prop_pricing` as a model input (the `baseball_props` pattern), shadow-only, judged by the incremental-information test | Per-feature | open |
 
+## Phase 1 results (2026-10-09) — game model shipped
+
+Package `evmax/nfl_projections/` (data, team_games, ratings, game_model, live),
+harness `scripts/backtest_nfl_game_projections.py`, CLI `evmax project nfl`,
+tests `tests/test_nfl_projections.py`. Built with the self-improve loop: one
+change per iteration, signal `dev_score = margin MAE + total MAE` (walk-forward
+2019-24), 2025 held out, each kept change reviewed for leakage/gaming.
+
+| Iteration | Dev score | Holdout 2025 margin / total | Verdict |
+|---|---|---|---|
+| B0 points-only ridge ratings | 21.134 | 10.327 / 10.785 | baseline |
+| H1 EPA + SR ratings, walk-forward OLS combiner | 21.041 | 10.280 / 10.638 | kept (~2/3 of the gain is recalibrating the points rating) |
+| H3 dome + wind | 20.983 | 10.280 / 10.536 | kept (the gain is wind; dome alone hurts) |
+| H4 starting-QB layer | 20.899 | 10.122 / 10.582 | kept (gain in starter-changed games, t −2.05) |
+| H6 separate home-field feature | 20.891 | 10.169 / 10.575 | reverted (below noise) |
+| H7 offseason not counted as rating decay | **20.741** | **10.002 / 10.464** | kept (Weeks 1-4 margin 10.44 → 10.03, t −3.1) |
+
+**Gate (2020-25): margin MAE 10.132 (≤ 10.15 ✓; Vegas 9.764), total MAE
+10.488 (≤ 10.55 ✓; Vegas 10.283)**, Brier 0.222, straight-up 64.0%. On par with
+ESPN FPI (10.04-10.07) without any market input.
+
+Known residuals / next levers:
+- Total bias +0.4-0.5 pts (2025 holdout).
+- Week 14-18 margin gap to Vegas (0.52), probably rested starters and motivation.
+- Live wind uses the league median until a forecast feed exists; the backtest used recorded wind (sd-3-mph noise keeps 94% of the gain).
+- Live starters come from the nflverse schedule's projected QB.
+- Untested levers: pace/drives totals, travel, surface.
+
 ## 8. Risks and limits
 
 - **The market stays more accurate.** Display the model's tracked accuracy honestly.

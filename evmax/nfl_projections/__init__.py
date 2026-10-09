@@ -14,6 +14,8 @@ Pipeline:
       -> point-in-time opponent-adjusted ratings              evmax.nfl_projections.ratings
          (recency-weighted ridge: metric = mu + off + def + home)
       -> projected team points -> margin / total / P(win)     evmax.nfl_projections.game_model
+      -> an upcoming week (starters, roof, wind fallbacks)     evmax.nfl_projections.live
 
 Walk-forward evaluation: scripts/backtest_nfl_game_projections.py.
+CLI: ``evmax project nfl [--season S --week W]``.
 """

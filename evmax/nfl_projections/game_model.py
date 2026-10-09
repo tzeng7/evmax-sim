@@ -22,7 +22,8 @@ from scipy import stats
 
 from evmax.nfl_projections.ratings import QBRatings, RatingFit, fit_qb_ratings, fit_rating
 
-MARGIN_SD = 13.5  # Stern-style margin noise (1978-2012 re-estimate 13.45)
+MARGIN_SD = 13.5  # Stern-style margin noise; walk-forward residual SD 11.8-14.1 (2016-25), Brier flat 13.0-13.5
+TOTAL_SD = 13.4   # walk-forward total residual SD (2016-25 seasons: 12.7-14.6)
 
 # feature name -> (team-game metric, per-play sample-size weight column or None)
 RATED_METRICS: dict[str, tuple[str, str | None]] = {
