@@ -291,7 +291,7 @@ class TestNflYardageDeepRungRegression:
     """2026-10-09: the fixed-σ Normal (receiving σ=24, rushing σ=30) priced
     every player with one SD. Deep Kalshi rungs came out near zero — phantom
     NO edges — while settled outcomes hit far more often (Weeks 1-5:
-    P(≥ line+60) 0.6% priced vs 4.7% realized, n=709 receiver-games)."""
+    P(≥ line+60) 0.6% priced vs 4.5% realized, n=739 receiver-games)."""
 
     def test_wr1_deep_rungs_are_not_near_zero(self):
         """Ja'Marr Chase 2026-10-04: Pinnacle 83.5 @ 50/50. Old model 150+ =

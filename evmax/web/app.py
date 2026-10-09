@@ -194,15 +194,16 @@ def _settled_prop_bets() -> list[dict[str, Any]]:
       - ev_pct >= 0.02 (matches the live scanner's actionable threshold; props
         are logged for ALL lines for calibration, but only +EV ones would
         have been bet on)
-      - model_version = ANCHOR_MODEL_VERSION (only the new anchor-pricing
-        model — legacy L15-era rows preserved as historical record but
-        excluded from the forward-looking simulation view)
+      - model_version in ANCHOR_MODEL_VERSIONS (anchor-pricing rows only —
+        legacy L15-era rows preserved as historical record but excluded from
+        the forward-looking simulation view)
     """
-    from evmax.portfolios import ANCHOR_MODEL_VERSION
+    from evmax.portfolios import anchor_version_clause
 
+    version_sql, version_params = anchor_version_clause()
     with _conn() as conn:
         rows = conn.execute(
-            """
+            f"""
             SELECT id, scan_date, event_date, sector, player_name, stat_type,
                    line, kalshi_price, sharp_prob, ev_pct, outcome, mode,
                    model_version, event_title
@@ -210,10 +211,10 @@ def _settled_prop_bets() -> list[dict[str, Any]]:
             WHERE outcome IS NOT NULL
               AND sharp_prob IS NOT NULL
               AND ev_pct >= 0.02
-              AND model_version = ?
+              AND {version_sql}
             ORDER BY event_date ASC, id ASC
             """,
-            (ANCHOR_MODEL_VERSION,),
+            version_params,
         ).fetchall()
     out: list[dict[str, Any]] = []
     for r in rows:

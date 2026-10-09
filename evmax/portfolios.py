@@ -95,12 +95,27 @@ PROP_SECTOR_GROUPS = {
 }
 
 # Single source of truth for which prop probability source the simulation
-# trusts. Changes here also need to match validate_prop_pricing.py and the
-# log_prop_from_sharp model_version tag in cli/commands/agents.py. Legacy
-# rows (NULL or "pinnacle-v1") are preserved as historical record but
-# excluded from forward-looking simulations because their sharp_prob came
-# from the L15 model that bled −223u in shadow.
-ANCHOR_MODEL_VERSION = "pinnacle-anchor-v1"
+# trusts. ANCHOR_MODEL_VERSION is the tag new prop rows are written with
+# (cli/commands/agents.py log_prop_from_sharp; validate_prop_pricing.py
+# defaults to it). ANCHOR_MODEL_VERSIONS is every Pinnacle-anchor-priced tag,
+# which the simulation and dashboard read:
+#   pinnacle-anchor-v1  2026-05-10 → 2026-10-09: NFL receiving/rushing yards
+#                       re-lined with a fixed-σ Normal (deep rungs mispriced).
+#   pinnacle-anchor-v2  2026-10-09 →: those two stats use the fixed-scale Gamma
+#                       (evmax/ev/prop_pricing.py); every other stat's pricing
+#                       is unchanged from v1.
+# Partition on the tag to judge one pricing version. Legacy rows (NULL or
+# "pinnacle-v1") are preserved as historical record but excluded from
+# forward-looking simulations because their sharp_prob came from the L15
+# model that bled −223u in shadow.
+ANCHOR_MODEL_VERSION = "pinnacle-anchor-v2"
+ANCHOR_MODEL_VERSIONS: tuple[str, ...] = ("pinnacle-anchor-v1", ANCHOR_MODEL_VERSION)
+
+
+def anchor_version_clause() -> tuple[str, tuple[str, ...]]:
+    """SQL fragment + params selecting every anchor-priced prop row."""
+    marks = ",".join("?" * len(ANCHOR_MODEL_VERSIONS))
+    return f"model_version IN ({marks})", ANCHOR_MODEL_VERSIONS
 
 
 @dataclass
@@ -321,6 +336,7 @@ def backfill_portfolio_from_prop_observations(portfolio_id: str) -> int:
         for s in portfolio.sectors
     ]
     placeholders = ",".join("?" * len(base_sectors))
+    version_sql, version_params = anchor_version_clause()
     sql = f"""
         SELECT id, scan_date, event_date, sector, player_name, stat_type,
                line, kalshi_price, sharp_prob, ev_pct, outcome, market_id,
@@ -329,12 +345,12 @@ def backfill_portfolio_from_prop_observations(portfolio_id: str) -> int:
         WHERE outcome IS NOT NULL
           AND sharp_prob IS NOT NULL
           AND ev_pct >= 0.02
-          AND model_version = ?
+          AND {version_sql}
           AND sector IN ({placeholders})
     """
     src = sqlite3.connect(str(pred_db))
     src.row_factory = sqlite3.Row
-    rows = src.execute(sql, (ANCHOR_MODEL_VERSION, *base_sectors)).fetchall()
+    rows = src.execute(sql, (*version_params, *base_sectors)).fetchall()
     src.close()
 
     bankroll = portfolio.initial_bankroll

@@ -15,8 +15,10 @@ archived under book ``'<book>_derived'`` (e.g. ``'pinnacle_derived'``) with
 ``derived = 1`` and the real quote in ``anchor_line`` / ``anchor_prob_over``.
 ``book = 'pinnacle'`` rows are exactly what Pinnacle posted (the raw prop
 anchors are archived too). Rows written before the change have ``derived IS
-NULL``; every prop row among them is a derived rung still labelled
-``'pinnacle'`` until ``scripts/relabel_derived_prop_rungs.py --apply`` runs.
+NULL``; every prop row among them (``event_id`` contains ``::prop::``,
+including pre-2026-05-10 NBA rows with no prop columns) is model output still
+labelled ``'pinnacle'`` until ``scripts/relabel_derived_prop_rungs.py --apply``
+runs.
 """
 
 from __future__ import annotations

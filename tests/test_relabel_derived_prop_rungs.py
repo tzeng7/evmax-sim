@@ -75,6 +75,13 @@ def legacy_db(tmp_path, monkeypatch):
             _insert_legacy(conn, "old", f"nfl::2026-10-04::prop::p::receiving_yards::{k}",
                            player="p", line=k)
         _insert_legacy(conn, "old", "nfl::2026-10-04::a_vs_b")
+        # Pre-2026-05-10 NBA L15-era row: prop event_id, no prop columns.
+        conn.execute(
+            "INSERT INTO archived_sharp_odds (session_id, fetched_at, sector, event_id, "
+            "book, outcome_a_decimal, outcome_b_decimal, true_prob_a, true_prob_b, margin) "
+            "VALUES ('l15', '2026-04-01', 'nba', 'nba::2026-04-01::prop::x::points::25', "
+            "'pinnacle', 1.0, 1.0, 0, 0, 0)"
+        )
     monkeypatch.setattr("evmax.archiver.DB_PATH", db)
     archiver = DataArchiver()
     archiver.open_session("new", ["nfl"], "test")
@@ -94,12 +101,13 @@ def test_dry_run_counts_only_legacy_prop_rows(legacy_db):
     assert relabel.main(["--db", str(legacy_db)]) == 0
     assert _rows(legacy_db) == before
     with sqlite3.connect(legacy_db) as conn:
-        assert relabel.plan(conn) == [("nfl", "pinnacle", 3)]
+        assert relabel.plan(conn) == [("nba", "pinnacle", 1), ("nfl", "pinnacle", 3)]
 
 
 def test_apply_relabels_legacy_rungs_and_nothing_else(legacy_db):
     assert relabel.main(["--db", str(legacy_db), "--apply", "--batch", "2"]) == 0
     assert _rows(legacy_db) == [
+        ("l15", -1, "pinnacle_derived", 1),      # no-player-column NBA row
         ("new", 83.5, "pinnacle", 0),            # real anchor untouched
         ("new", 90.0, "pinnacle_derived", 1),    # new-code rung untouched
         ("old", -1, "pinnacle", None),           # game row untouched

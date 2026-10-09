@@ -141,3 +141,64 @@ def test_load_anchors_inverts_legacy_rows(tmp_path):
     assert got.line.tolist() == [83.5]
     assert got.p_anchor.iloc[0] == pytest.approx(0.5, abs=1e-9)
     assert got.anchor_source.tolist() == ["legacy_inverted"]
+
+
+def _rung_frame():
+    return pd.DataFrame({
+        "player": ["a", "a", "b", "b", "c", "d"],
+        "stat": ["receiving_yards"] * 6,
+        "gd": ["2026-10-04"] * 6,
+        "K": [20.0, 40.0, 10.0, 20.0, 30.0, 25.0],
+        "ticker": ["A20", "A40", "B10", "B20", "C30", "D25"],
+        "y": [35.0, 35.0, np.nan, np.nan, np.nan, 31.0],
+    })
+
+
+def test_assemble_outcomes_grades_on_kalshi_settlement():
+    """Kalshi settlement wins; scalar = void (dropped); a player-game with no
+    stat value whose every settled rung is NO is a zero-stat game (y = 0); a
+    rung with neither outcome is dropped; the stat value is the fallback."""
+    results = {"A20": "yes", "A40": "no", "B10": "no", "B20": "no", "C30": "void"}
+    out = fitmod.assemble_outcomes(_rung_frame(), results)
+
+    by_ticker = out.set_index("ticker")
+    assert set(by_ticker.index) == {"A20", "A40", "B10", "B20", "D25"}
+    assert by_ticker.loc["A20", "hit"] == 1.0 and by_ticker.loc["A40", "hit"] == 0.0
+    assert by_ticker.loc["A20", "outcome_source"] == "kalshi"
+    # Zero-catch game: no box-score row, Kalshi settled every rung NO.
+    assert by_ticker.loc["B10", "y"] == 0.0
+    assert by_ticker.loc["B10", "y_source"] == "kalshi_zero"
+    assert by_ticker.loc["B20", "hit"] == 0.0
+    # No settlement cached → graded on the stat value.
+    assert by_ticker.loc["D25", "hit"] == 1.0
+    assert by_ticker.loc["D25", "outcome_source"] == "stat"
+    assert by_ticker.loc["D25", "y_source"] == "stat"
+
+
+def test_assemble_outcomes_without_settlements_drops_null_stat_rows():
+    out = fitmod.assemble_outcomes(_rung_frame(), {})
+    assert set(out.ticker) == {"A20", "A40", "D25"}
+    assert (out.outcome_source == "stat").all()
+
+
+def test_fetch_kalshi_results_paginates_and_maps_scalar_to_void():
+    import asyncio
+
+    pages = [
+        {"markets": [{"ticker": "T1", "result": "yes"}, {"ticker": "T2", "result": "scalar"}],
+         "cursor": "c1"},
+        {"markets": [{"ticker": "T3", "result": "no"}, {"ticker": "T4", "result": ""}],
+         "cursor": ""},
+    ]
+    seen = []
+
+    class _Client:
+        async def _get(self, path, params=None):
+            seen.append((path, dict(params)))
+            return pages[len(seen) - 1]
+
+    got = asyncio.run(fitmod.fetch_kalshi_results(_Client(), "KXNFLRECYDS"))
+    assert got == {"T1": "yes", "T2": "void", "T3": "no"}
+    assert seen[0] == ("/markets", {"series_ticker": "KXNFLRECYDS", "status": "settled",
+                                    "limit": 1000})
+    assert seen[1][1]["cursor"] == "c1"

@@ -18,7 +18,10 @@ and stat, computes per-row Brier:
 Reports averages per (model_version, stat) and an overall verdict — anchor
 pricing must win on a stat-by-stat basis to clear the gate.
 
-Run when ≥14 days of resolved 'pinnacle-anchor-v1' rows have accumulated:
+Run when ≥14 days of resolved rows of the current anchor version have
+accumulated (evmax/portfolios.py::ANCHOR_MODEL_VERSION — 'pinnacle-anchor-v2'
+since 2026-10-09; v1 rows priced NFL receiving/rushing yards with a fixed-σ
+Normal):
   .venv/bin/python scripts/validate_prop_pricing.py
   .venv/bin/python scripts/validate_prop_pricing.py --version pinnacle-anchor-v1
   .venv/bin/python scripts/validate_prop_pricing.py --since 2026-05-10
@@ -34,6 +37,9 @@ from typing import Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = REPO_ROOT / "data" / "predictions.db"
+
+sys.path.insert(0, str(REPO_ROOT))
+from evmax.portfolios import ANCHOR_MODEL_VERSION  # noqa: E402
 
 NAIVE_PROB = 0.37  # the predict-37% baseline that beat L15 in April
 PROMOTION_BAR_BRIER = 0.000  # anchor must at least tie Kalshi; positive = strictly better
@@ -177,8 +183,8 @@ def report_eligibility_count(version: str, sector: str) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--version", default="pinnacle-anchor-v1",
-                        help="model_version to validate (default: pinnacle-anchor-v1)")
+    parser.add_argument("--version", default=ANCHOR_MODEL_VERSION,
+                        help=f"model_version to validate (default: {ANCHOR_MODEL_VERSION})")
     parser.add_argument("--since", default=None,
                         help="Only include scan_date >= this (YYYY-MM-DD)")
     parser.add_argument("--sector", default="nba",
