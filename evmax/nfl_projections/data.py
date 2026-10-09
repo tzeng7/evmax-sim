@@ -30,7 +30,7 @@ TEAM_ALIASES = {"OAK": "LV", "SD": "LAC", "STL": "LA"}
 
 # The play-by-play columns the engine reads (the full file has ~370).
 PBP_COLUMNS = [
-    "game_id", "season", "week", "season_type", "posteam", "defteam", "home_team", "away_team",
+    "game_id", "play_id", "season", "week", "season_type", "posteam", "defteam", "home_team", "away_team",
     "play_type", "pass", "rush", "qb_dropback", "epa", "success", "wp", "pass_oe", "down",
     "yards_gained", "fixed_drive", "fixed_drive_result", "drive_time_of_possession",
     "drive_inside20", "interception", "fumble_lost", "passer_player_id", "passer_player_name",

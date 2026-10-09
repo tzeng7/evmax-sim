@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from evmax.nfl_projections.ratings import RatingFit, fit_rating
+from evmax.nfl_projections.ratings import QBRatings, RatingFit, fit_qb_ratings, fit_rating
 
 MARGIN_SD = 13.5  # Stern-style margin noise (1978-2012 re-estimate 13.45)
 
@@ -49,7 +49,7 @@ class GameModelConfig:
     half_life_days: float = 70.0
     lam: float = 4.0
     lookback_days: int = 730
-    features: tuple[str, ...] = ("pts", "epa", "sr", "dome", "wind")
+    features: tuple[str, ...] = ("pts", "epa", "sr", "dome", "wind", "qb")
     first_feature_season: int = 2015  # combiner training starts here
 
 
@@ -111,13 +111,20 @@ def feature_table(team_games: pd.DataFrame, games: pd.DataFrame, seasons: list[i
     Each (season, week) uses one rating snapshot cut at that week's first gameday.
     """
     sched = games[games["season"].isin(seasons) & games["home_score"].notna()]
+    # Pre-game starter of each (game, team): the first-dropback passer. Only the
+    # starter's IDENTITY is read from the projected game, never its stats.
+    starters = team_games.set_index(["game_id", "team"])["first_qb_id"].to_dict()
     rows = []
     for (season, week), wk in sched.groupby(["season", "week"], sort=True):
-        fits = fit_ratings(team_games, wk["gameday"].min(), cfg)
+        cutoff = wk["gameday"].min()
+        fits = fit_ratings(team_games, cutoff, cfg)
+        qbr = fit_qb_ratings(team_games, cutoff) if "qb" in cfg.features else None
         for g in wk.itertuples():
             ctx = context_features(g)
             for team, opp, home, side in _sides(g):
                 feats = {**side_features(fits, team, opp, home), **ctx}
+                if qbr is not None:
+                    feats["qb"] = qbr.delta(team, starters.get((g.game_id, team)))
                 points = g.home_score if side == "home" else g.away_score
                 rows.append({"game_id": g.game_id, "season": season, "week": week, "side": side,
                              "team": team, "opp": opp, "home": home, "points": points, **feats})

@@ -21,7 +21,7 @@ import pandas as pd
 from evmax.nfl_projections import data
 
 # Bump when the row definition changes so cached tables are rebuilt.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 WP_LO, WP_HI = 0.10, 0.90
 
 
@@ -37,7 +37,9 @@ def build_team_games(pbp: pd.DataFrame, games: pd.DataFrame) -> pd.DataFrame:
     home (1 home / 0 away / 0 both sides at a neutral site), neutral,
     points_for, points_against, plays, dropbacks, pass_rate, epa_pp, sr,
     pass_epa, rush_epa, proe, drives, top_s, sec_per_play, turnovers,
-    rz_drives, rz_td, starter_id, starter_name, starter_dropbacks, starter_epa.
+    rz_drives, rz_td, starter_id, starter_name, starter_dropbacks, starter_epa
+    (the most-dropback passer — a POST-game fact) and first_qb_id/name (the
+    passer on the first dropback — the pre-game starter).
     """
     scrim = pbp[((pbp["pass"] == 1) | (pbp["rush"] == 1)) & pbp["posteam"].notna()
                 & pbp["epa"].notna() & (pbp["play_type"] != "no_play")].copy()
@@ -75,7 +77,13 @@ def build_team_games(pbp: pd.DataFrame, games: pd.DataFrame) -> pd.DataFrame:
         "passer_player_id": "starter_id", "passer_player_name": "starter_name",
         "n": "starter_dropbacks", "qb_epa": "starter_epa"})
 
-    tg = counts.join([eff, pass_eff, rush_eff, drives, qb_agg], how="left").reset_index()
+    # The STARTER known before kickoff is the passer on the team's first
+    # dropback. (``starter_id`` — most dropbacks — would leak an in-game injury.)
+    first = (qb.sort_values(["game_id", "play_id"]).drop_duplicates(key)
+             .set_index(key)[["passer_player_id", "passer_player_name"]]
+             .rename(columns={"passer_player_id": "first_qb_id", "passer_player_name": "first_qb_name"}))
+
+    tg = counts.join([eff, pass_eff, rush_eff, drives, qb_agg, first], how="left").reset_index()
     tg = tg.rename(columns={"posteam": "team"})
     tg["sec_per_play"] = tg["top_s"] / tg["plays"]
 
@@ -93,7 +101,7 @@ def build_team_games(pbp: pd.DataFrame, games: pd.DataFrame) -> pd.DataFrame:
             "points_for", "points_against", "plays", "dropbacks", "pass_rate", "epa_pp", "sr",
             "pass_epa", "rush_epa", "proe", "comp_plays", "drives", "top_s", "sec_per_play",
             "turnovers", "rz_drives", "rz_td", "starter_id", "starter_name", "starter_dropbacks",
-            "starter_epa"]
+            "starter_epa", "first_qb_id", "first_qb_name"]
     return tg[cols].sort_values(["gameday", "game_id", "team"]).reset_index(drop=True)
 
 

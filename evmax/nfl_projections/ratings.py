@@ -70,3 +70,56 @@ def fit_rating(rows: pd.DataFrame, metric: str, cutoff: pd.Timestamp,
         off={t: float(beta[2 + i]) for t, i in ix.items()},
         deff={t: float(beta[2 + k + i]) for t, i in ix.items()},
     )
+
+
+@dataclass(frozen=True)
+class QBRatings:
+    """Point-in-time QB quality (EPA per dropback) and each team's assumed QB level.
+
+    ``delta(team, qb)`` is how much better (+) or worse (-) the game's starter
+    is than the QB mix the team's ratings were fit on — ~0 for the usual
+    starter, negative when a backup starts.
+    """
+    ratings: dict[str, float]
+    team_level: dict[str, float]
+    prior: float
+
+    def rating(self, qb_id) -> float:
+        return self.ratings.get(qb_id, self.prior)
+
+    def delta(self, team: str, qb_id) -> float:
+        if qb_id is None or (isinstance(qb_id, float) and np.isnan(qb_id)) or team not in self.team_level:
+            return 0.0
+        return self.rating(qb_id) - self.team_level[team]
+
+
+def fit_qb_ratings(team_games: pd.DataFrame, cutoff: pd.Timestamp,
+                   qb_half_life_days: float = 365.0, team_half_life_days: float = 70.0,
+                   k_dropbacks: float = 200.0, unknown_offset: float = 0.05,
+                   lookback_days: int = 1095) -> QBRatings:
+    """Shrunk, recency-weighted EPA/dropback per starting QB, from games before ``cutoff``.
+
+    Each game credits the team's main passer (``starter_id``, most dropbacks)
+    with his dropbacks and QB EPA. A QB with little history is shrunk toward
+    ``league mean - unknown_offset`` (unfamiliar starters are usually backups or
+    rookies). The team level weights the CURRENT ratings of the QBs who started
+    for the team by their recency-weighted dropbacks (team half-life, matching
+    the team ratings).
+    """
+    r = team_games[(team_games["gameday"] < cutoff)
+                   & (team_games["gameday"] >= cutoff - pd.Timedelta(days=lookback_days))
+                   & team_games["starter_id"].notna() & team_games["starter_epa"].notna()]
+    if r.empty:
+        return QBRatings({}, {}, 0.0)
+    db = r["starter_dropbacks"].to_numpy(dtype=float)
+    epa = r["starter_epa"].to_numpy(dtype=float)
+    league = float(np.sum(db * epa) / np.sum(db))
+    prior = league - unknown_offset
+    wq = recency_weights(r["gameday"], cutoff, qb_half_life_days) * db
+    agg = pd.DataFrame({"qb": r["starter_id"].to_numpy(), "w": wq, "we": wq * epa}).groupby("qb").sum()
+    ratings = ((agg["we"] + k_dropbacks * prior) / (agg["w"] + k_dropbacks)).to_dict()
+    wt = recency_weights(r["gameday"], cutoff, team_half_life_days) * db
+    qb_r = np.array([ratings[q] for q in r["starter_id"]])
+    tl = pd.DataFrame({"team": r["team"].to_numpy(), "w": wt, "wr": wt * qb_r}).groupby("team").sum()
+    team_level = (tl["wr"] / tl["w"]).to_dict()
+    return QBRatings(ratings=ratings, team_level=team_level, prior=prior)
