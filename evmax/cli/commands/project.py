@@ -853,8 +853,14 @@ def nfl(
     season: Optional[int] = typer.Option(None, "--season", help="NFL season (default: the next unplayed week's season)."),
     week: Optional[int] = typer.Option(None, "--week", "-w", help="Week (default: the next week with an unplayed game)."),
     refresh: bool = typer.Option(True, "--refresh/--no-refresh", help="Re-download the current season's nflverse data if stale."),
+    players: bool = typer.Option(False, "--players", help="Project player stat lines instead of game scores."),
+    team: Optional[str] = typer.Option(None, "--team", "-t", help="With --players: only this team (abbreviation, e.g. KC)."),
 ) -> None:
     """Project every game of an NFL week: score, spread, total, win probability.
+
+    With --players: each likely-active skill player's median receptions,
+    receiving / rushing / passing yards with a 10th-90th percentile range
+    (walk-forward 2019-24: 6-13% lower MAE than a last-8-games average).
 
     The model (evmax.nfl_projections) reads no market price; the Market column
     shows the nflverse consensus line for comparison only. Walk-forward
@@ -871,11 +877,14 @@ def nfl(
     if season is None or week is None:
         s, w = live.next_week(games, date.today())
         season, week = season or s, week or w
-    with console.status(f"Projecting NFL {season} week {week}..."):
-        df = live.project_week(season, week, refresh=refresh)
-
     def full(abbr: str) -> str:
         return NFL_ABBREV_TO_NAME.get(abbr, abbr).title().replace("49Ers", "49ers")
+
+    if players:
+        _nfl_players_table(season, week, refresh, team, full)
+        return
+    with console.status(f"Projecting NFL {season} week {week}..."):
+        df = live.project_week(season, week, refresh=refresh)
 
     t = Table(box=box.ROUNDED, title=f"NFL {season} Week {week} — projections (model, no market inputs)")
     t.add_column("Kickoff", width=10)
@@ -902,3 +911,41 @@ def nfl(
     console.print(t)
     console.print("[dim]Outdoor wind uses the league median until a forecast feed is wired; "
                   "starters come from the nflverse schedule (fallback: last game's starter).[/dim]")
+
+
+def _nfl_players_table(season: int, week: int, refresh: bool, team: Optional[str], full) -> None:
+    from evmax.nfl_projections import live
+
+    with console.status(f"Projecting NFL {season} week {week} players..."):
+        df = live.project_week_players(season, week, refresh=refresh)
+    if team:
+        df = df[df["team"] == team.upper()]
+    df = df[(df["proj_targets"] >= 3) | (df["proj_carries"] >= 5) | df["is_starting_qb"]]
+    if df.empty:
+        console.print("[yellow]No players to show.[/yellow]")
+        return
+
+    def rng(r, stat: str) -> str:
+        return f"{getattr(r, 'proj_' + stat):.0f} [dim]({getattr(r, 'p10_' + stat):.0f}–{getattr(r, 'p90_' + stat):.0f})[/dim]"
+
+    t = Table(box=box.ROUNDED, title=f"NFL {season} Week {week} — player projections (median, 10th–90th pct)")
+    t.add_column("Event", no_wrap=False, min_width=28)
+    t.add_column("Outcome", no_wrap=False, min_width=24)
+    t.add_column("Rec", justify="right", width=12)
+    t.add_column("Rec yds", justify="right", width=15)
+    t.add_column("Rush yds", justify="right", width=15)
+    t.add_column("Pass yds", justify="right", width=16)
+    df = df.sort_values(["gameday", "game_id", "team", "proj_receiving_yards"], ascending=[True, True, True, False])
+    for r in df.itertuples():
+        event = f"{full(r.away_team)} @ {full(r.home_team)}"
+        t.add_row(
+            event,
+            f"{r.player_display_name} ({r.position}, {r.team})",
+            f"{r.proj_receptions:.0f} [dim]({r.p10_receptions:.0f}–{r.p90_receptions:.0f})[/dim]" if r.proj_targets >= 1 else "—",
+            rng(r, "receiving_yards") if r.proj_targets >= 1 else "—",
+            rng(r, "rushing_yards") if r.proj_carries >= 1 else "—",
+            rng(r, "passing_yards") if r.is_starting_qb else "—",
+        )
+    console.print(t)
+    console.print("[dim]Active roster = played in the team's last 3 games minus Out/Doubtful on the injury report; "
+                  "medians are MAE-optimal (yardage is right-skewed, so they sit below the mean).[/dim]")
