@@ -193,3 +193,24 @@ def load_snaps(seasons: Iterable[int], d: Optional[Path] = None) -> pd.DataFrame
     ids = ids.drop_duplicates("pfr_id")
     return s.merge(ids, left_on="pfr_player_id", right_on="pfr_id", how="left").rename(
         columns={"gsis_id": "player_id"})
+
+
+def injuries_file(season: int, d: Optional[Path] = None) -> Path:
+    return data_dir(d) / "injuries" / f"injuries_{season}.parquet"
+
+
+def ensure_injuries(season: int, d: Optional[Path] = None, max_age_hours: float = 6.0) -> bool:
+    f = injuries_file(season, d)
+    if _stale(f, max_age_hours):
+        return _download(f"{NFLVERSE}/injuries/injuries_{season}.parquet", f) or f.exists()
+    return True
+
+
+def load_injuries(season: int, d: Optional[Path] = None) -> pd.DataFrame:
+    """Weekly official injury reports (gsis_id, week, team, report_status)."""
+    f = injuries_file(season, d)
+    if not f.exists():
+        return pd.DataFrame(columns=["season", "week", "team", "gsis_id", "report_status"])
+    i = pd.read_parquet(f)
+    i["team"] = i["team"].replace(TEAM_ALIASES)
+    return i

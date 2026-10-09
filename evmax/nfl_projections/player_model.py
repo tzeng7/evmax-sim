@@ -157,7 +157,9 @@ def fit_pass_sd(pg: pd.DataFrame, min_attempts: float = 10.0) -> float:
     st = pg[pg["attempts"] >= min_attempts]
     m = st.groupby("player_id")["passing_yards"].agg(["var", "size"])
     m = m[m["size"] >= MIN_GAMES_FOR_DISPERSION]
-    return float(np.sqrt((m["var"] * m["size"]).sum() / m["size"].sum())) if len(m) else 75.0
+    if not len(m):
+        return 75.0
+    return max(float(np.sqrt((m["var"] * m["size"]).sum() / m["size"].sum())), 1.0)  # floor: degenerate windows
 
 
 def fit_negbin_k(pg: pd.DataFrame) -> float:
@@ -285,7 +287,13 @@ def project_players(state: PlayerState, roster: pd.DataFrame,
 # teams throw more, high-total games have more plays. The script comes from OUR
 # game model (no market input); a per-stat OLS on top of the opponent-adjusted
 # volume rating is trained on earlier seasons only.
-SCRIPT_FIRST_SEASON = 2016  # first season the game model can project (combiner trains on 2015)
+SCRIPT_FIRST_SEASON = 2016  # earliest script season (game combiner trains from 2015)
+
+
+def first_script_season(team_games: pd.DataFrame) -> int:
+    """First season the game model can project: one season after the data starts (its
+    combiner needs a prior season), and never before SCRIPT_FIRST_SEASON."""
+    return max(SCRIPT_FIRST_SEASON, int(team_games["season"].min()) + 1)
 
 
 def game_script(team_games: pd.DataFrame, games: pd.DataFrame, seasons: list[int]) -> pd.DataFrame:
@@ -347,7 +355,7 @@ def walk_forward(team_games: pd.DataFrame, player_games: pd.DataFrame, games: pd
     fit on games strictly before its first kickoff.
     """
     vol = team_volume_rows(player_games, team_games)
-    script_seasons = list(range(SCRIPT_FIRST_SEASON, max(seasons) + 1))
+    script_seasons = list(range(first_script_season(team_games), max(seasons) + 1))
     vft = volume_feature_table(vol, game_script(team_games, games, script_seasons), games, script_seasons, cfg)
     home = team_games.set_index(["game_id", "team"])["home"]
     starters = team_games.set_index(["game_id", "team"])["first_qb_id"]
