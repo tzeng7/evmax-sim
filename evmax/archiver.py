@@ -7,6 +7,16 @@ Schema: data/archive.db
   scan_sessions           — one row per scan cycle
   archived_sharp_odds     — ALL Pinnacle odds fetched (not just matched)
   archived_kalshi_markets — ALL Kalshi market prices fetched (not just matched)
+
+Derived player-prop rungs (2026-10-09): Pinnacle posts ONE line per (player,
+stat); the scanner re-lines it to every Kalshi threshold with
+evmax/ev/prop_pricing.py. Those rungs are evmax's model output, so they are
+archived under book ``'<book>_derived'`` (e.g. ``'pinnacle_derived'``) with
+``derived = 1`` and the real quote in ``anchor_line`` / ``anchor_prob_over``.
+``book = 'pinnacle'`` rows are exactly what Pinnacle posted (the raw prop
+anchors are archived too). Rows written before the change have ``derived IS
+NULL``; every prop row among them is a derived rung still labelled
+``'pinnacle'`` until ``scripts/relabel_derived_prop_rungs.py --apply`` runs.
 """
 
 from __future__ import annotations
@@ -72,6 +82,12 @@ CREATE TABLE IF NOT EXISTS archived_sharp_odds (
     total_line           REAL,
     prop_player_name     TEXT,
     prop_stat_type       TEXT,
+    -- Derived-rung marker (2026-10-09). 1 = evmax's re-lined price, not a
+    -- book quote (book is then '<book>_derived'); 0 = posted by the book;
+    -- NULL = written before the column existed.
+    derived              INTEGER,
+    anchor_line          REAL,
+    anchor_prob_over     REAL,
     UNIQUE(session_id, event_id, book)
 );
 
@@ -163,7 +179,25 @@ _MIGRATIONS = [
     "ALTER TABLE archived_sharp_odds ADD COLUMN total_line REAL",
     "ALTER TABLE archived_sharp_odds ADD COLUMN prop_player_name TEXT",
     "ALTER TABLE archived_sharp_odds ADD COLUMN prop_stat_type TEXT",
+    # Derived-rung marker added 2026-10-09 (see the module docstring).
+    "ALTER TABLE archived_sharp_odds ADD COLUMN derived INTEGER",
+    "ALTER TABLE archived_sharp_odds ADD COLUMN anchor_line REAL",
+    "ALTER TABLE archived_sharp_odds ADD COLUMN anchor_prob_over REAL",
 ]
+
+# Suffix appended to the book label of a derived record (SharpOdds.derived).
+DERIVED_BOOK_SUFFIX = "_derived"
+
+
+def archive_book_label(odds: "SharpOdds") -> str:
+    """The ``book`` value a SharpOdds is archived under.
+
+    A derived record (a rung evmax priced off the book's anchor) gets
+    ``'<book>_derived'`` so ``WHERE book = 'pinnacle'`` only ever returns
+    lines Pinnacle actually posted.
+    """
+    book = odds.book.value if hasattr(odds.book, "value") else str(odds.book)
+    return f"{book}{DERIVED_BOOK_SUFFIX}" if odds.derived else book
 
 
 def _get_connection() -> sqlite3.Connection:
@@ -212,7 +246,7 @@ class DataArchiver:
                 _fmt(o.fetched_at),
                 sector,
                 o.event_id,
-                o.book.value if hasattr(o.book, "value") else str(o.book),
+                archive_book_label(o),
                 o.outcome_a_label,
                 o.outcome_b_label,
                 o.outcome_a_decimal,
@@ -230,6 +264,9 @@ class DataArchiver:
                 o.total_line,
                 o.prop_player_name,
                 o.prop_stat_type,
+                int(o.derived),
+                o.anchor_line,
+                o.anchor_prob_over,
             )
             for o in odds
         ]
@@ -241,8 +278,9 @@ class DataArchiver:
                 " outcome_draw_decimal, true_prob_a, true_prob_b, true_prob_draw, "
                 " margin, spread_line, event_date, "
                 " true_prob_over, true_prob_under, total_line, "
-                " prop_player_name, prop_stat_type) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                " prop_player_name, prop_stat_type, "
+                " derived, anchor_line, anchor_prob_over) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 rows,
             )
         return len(rows)

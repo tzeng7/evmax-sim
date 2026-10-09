@@ -16,16 +16,21 @@ Distribution choice is per stat-type via :data:`_STAT_DISTRIBUTION`:
     (:data:`_NEGBIN_STAT_K`). NegBin handles tail events that Poisson under-
     weights — the textbook fix when var/μ > 1, well-established in basketball
     analytics literature for player scoring. Used for all NBA count props.
-  - **Normal** — high-mean continuous-style stats: NBA PRA, NFL yardage. Needs
-    a per-stat σ (one constraint, two parameters → fix σ from
-    :data:`_NORMAL_STAT_SIGMA`, solve for μ).
+  - **Normal** — high-mean roughly symmetric stats: NBA points/PRA, NFL passing
+    yards, MLB pitching outs. Needs a per-stat σ (one constraint, two
+    parameters → fix σ from :data:`_NORMAL_STAT_SIGMA`, solve for μ).
+  - **Gamma (fixed scale)** — right-skewed, zero-floored yardage: NFL receiving
+    and rushing yards. Shape = μ/θ with a per-stat scale θ
+    (:data:`_GAMMA_STAT_SCALE`), so the variance θ·μ grows with the player's
+    median instead of sitting at one σ for every player. Fit offline against
+    settled outcomes by ``scripts/fit_nfl_prop_dispersion.py``.
   - **Poisson** — single-event count stats with var/μ ≈ 1: NFL anytime-TD style
     props. One-parameter, self-fitting from a single anchor. Kept as a
     defensive fallback for any low-mean stat where NegBin's k is essentially
     infinite (NegBin → Poisson as k → ∞).
 
 Designed to be sport-agnostic — adding a new NFL stat is just an entry in
-:data:`_STAT_DISTRIBUTION` and (for Normal/NegBin stats) the corresponding
+:data:`_STAT_DISTRIBUTION` and (for Normal/Gamma/NegBin stats) the corresponding
 parameter table.
 """
 from __future__ import annotations
@@ -35,7 +40,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
 
-from scipy import optimize, stats
+from scipy import optimize, special, stats
 
 
 # Per-stat distribution choice. Keys are the canonical evmax stat_type strings
@@ -43,9 +48,11 @@ from scipy import optimize, stats
 #
 # Distribution choice driven by walk-forward backtest in
 # scripts/backtest_prop_pricing.py against 2024-25 NBA player game logs:
-#   - High-mean roughly-bell-shaped stats (points, PRA, NFL yards) → Normal
-#     beat NegBin at extreme thresholds (Δ+5 from rolling mean) by ~4% relative
-#     Brier — Normal handles the symmetric tail well when σ ≪ μ.
+#   - High-mean roughly-bell-shaped stats (points, PRA) → Normal beat NegBin
+#     at extreme thresholds (Δ+5 from rolling mean) by ~4% relative Brier —
+#     Normal handles the symmetric tail well when σ ≪ μ. (NFL receiving and
+#     rushing yards were Normal too until 2026-10-09; their tails are skewed and
+#     their spread scales with the median, so they moved to Gamma.)
 #   - Low-mean count stats (rebounds, assists, threes, steals, blocks) → NegBin
 #     beat both Normal variants because Normal puts probability mass below
 #     zero at low μ, biasing the upper tail. NegBin also beats Poisson
@@ -59,8 +66,13 @@ _STAT_DISTRIBUTION: dict[str, str] = {
     "blocks":                  "negbin",
     "points_rebounds_assists": "normal",
     "passing_yards":           "normal",
-    "rushing_yards":           "normal",
-    "receiving_yards":         "normal",
+    # NFL receiving/rushing yards → fixed-scale Gamma (2026-10-09). The fixed-σ
+    # Normal priced every player with the same SD (24 / 30 yd): too thin in the
+    # upper tail for a high-median WR (P(≥ line+60) 0.6% vs 4.7% realized) and
+    # mass below zero for a 12-yard receiver, which made deep Kalshi rungs look
+    # like free NO edges. See _GAMMA_STAT_SCALE for the fit and the evidence.
+    "rushing_yards":           "gamma",
+    "receiving_yards":         "gamma",
     # --- NFL count props (added 2026-09-06) ---
     # These have live Pinnacle anchors (Total Receptions / Total Touchdown
     # Passes on sport 15) but were previously absent from this table, so
@@ -92,19 +104,47 @@ _STAT_DISTRIBUTION: dict[str, str] = {
     "rbis":                    "poisson",
 }
 
-# Per-stat σ for Normal-priced stats. Yardage σ values mirror YARDAGE_STAT_SIGMA
-# in evmax/clients/nfl_props_cache.py so anchor pricing and the L15 cache share
-# the same dispersion assumptions. PRA σ updated 2026-05-10 from the empirical
-# 2024-25 shufinskiy parquet (327 high-volume players, ≥30 GP).
+# Per-stat σ for Normal-priced stats. PRA σ updated 2026-05-10 from the
+# empirical 2024-25 shufinskiy parquet (327 high-volume players, ≥30 GP).
+# NFL receiving/rushing yards left this table on 2026-10-09 (now Gamma, see
+# _GAMMA_STAT_SCALE). passing_yards keeps σ=70: on the same 2026 Weeks 1-5
+# check (n=130 QB-games) the Normal sat within 1 SE of realized at every
+# offset from line−40 to line+80.
 _NORMAL_STAT_SIGMA: dict[str, float] = {
     "points":                  5.9,   # 2024-25 high-vol cohort empirical
     "points_rebounds_assists": 7.5,
     "passing_yards":           70.0,
-    "rushing_yards":           30.0,
-    "receiving_yards":         24.0,
     # MLB: a starter's outs recorded ≈ 18 ± ~5 (a clean 6 IP is 18 outs; a
     # short hook or a complete-game both happen). Provisional pending calibration.
     "pitching_outs":           5.0,
+}
+
+# Per-stat Gamma scale θ (stat units) for Gamma-priced stats. The shape is
+# μ/θ, so Var = θ·μ and SD = √(θ·μ): at θ=25.4 a 12.5-yard 50/50 line gives
+# μ ≈ 20, SD ≈ 23 yd; an 80.5-yard line gives μ ≈ 89, SD ≈ 47 yd. Skew falls
+# as the median rises.
+#
+# Fitted 2026-10-09 by scripts/fit_nfl_prop_dispersion.py: one closing Pinnacle
+# anchor per player-game (2026 Weeks 1-5, recovered from the archive), scored
+# as rung Brier on every Kalshi threshold actually listed against the settled
+# stat. Variance power was free in the search (Var = φ·μ^p): p fitted between
+# 0.9 and 1.4 across folds at no Brier gain over p=1, so the one-parameter
+# form ships.
+# Out of sample (θ fit on Weeks 1-2 only, scored on Weeks 3-5, Brier/1000 with
+# player-game-clustered SE):
+#   receiving  Normal σ=24 174.2 → Gamma 168.8  (Δ −5.4 ± 1.7, 366 player-games)
+#              Gamma − Kalshi mid on the same rungs: −0.6 ± 0.8
+#   rushing    Normal σ=30 163.3 → Gamma 160.4  (Δ −2.9 ± 2.3, 183 player-games)
+#              Gamma − Kalshi mid on the same rungs: +1.2 ± 1.0
+# The holdout Brier is flat for θ within ±5 of these values. A zero-inflated
+# Gamma (extra "dud" mass at 0) gained only −1.0 ± 0.5 / −0.8 ± 1.0, thinned the
+# upper tail and its mass parameter swung 0.03-0.18 between folds — not shipped.
+# Known residual: high-median receivers have a fatter LOWER tail than this
+# family (early exits; rungs ≥30 yd below the line realize 68% vs 90% priced).
+# Refit with the script as the season accrues.
+_GAMMA_STAT_SCALE: dict[str, float] = {
+    "receiving_yards": 25.4,
+    "rushing_yards":   15.3,
 }
 
 # Per-stat NegBin dispersion k. Var = μ + μ²/k; smaller k = more overdispersion.
@@ -122,10 +162,13 @@ _NEGBIN_STAT_K: dict[str, float] = {
     "threes":   16.0,
     "steals":   8.0,
     "blocks":   8.0,
-    # NFL receptions (PROVISIONAL — calibrate via scripts/backtest_prop_pricing.py
-    # --report-k against nflverse weekly logs before trusting tail thresholds).
-    # WR/TE per-game receptions are overdispersed around a low mean; k≈5 is the
-    # starting bracket, similar to MLB hitter counts.
+    # NFL receptions: k=5 re-checked 2026-10-09 by
+    # scripts/fit_nfl_prop_dispersion.py (same anchor/outcome sample as the
+    # yardage Gamma) and KEPT. A refit k is not better out of sample (Weeks 3-5
+    # holdout Brier +0.5 ± 1.1 /1000 vs k=5; NB1, Var = μ(1+δ), ties too)
+    # because the upper tail is unstable: Weeks 1-2 fit k≈50, Weeks 3-5
+    # match k=5. One stable miss: k=5 prices P(≥ line−1) ~3.5pp too low in both
+    # halves (fewer duds than NegBin implies).
     "receptions":       5.0,
     # MLB (PROVISIONAL — calibrate via scripts/backtest_mlb_props.py --report-k
     # against historical box scores before trusting tail thresholds). Hitter
@@ -275,6 +318,68 @@ class NormalProp(PropDistribution):
         return float(stats.norm.sf(threshold - 0.5, loc=self.mu, scale=self.sigma))
 
 
+@dataclass(frozen=True)
+class GammaProp(PropDistribution):
+    """Gamma with a fixed scale θ and shape μ/θ — variance θ·μ grows with μ.
+
+    Built for NFL yardage, which is right-skewed and floored at zero. With θ
+    fixed per stat the SD is √(θ·μ), so a high-median player gets a wider
+    distribution than a low-median one, and no player gets mass below zero.
+    μ (the mean) is fitted from the Pinnacle anchor; θ comes from
+    :data:`_GAMMA_STAT_SCALE`. Continuity convention matches
+    :class:`NormalProp`: an integer stat ``X >= K`` is ``X > K - 0.5``.
+    """
+    mu: float
+    scale: float
+
+    @property
+    def shape(self) -> float:
+        return self.mu / self.scale
+
+    def _sf(self, x: float) -> float:
+        if x <= 0:
+            return 1.0
+        return float(special.gammaincc(self.mu / self.scale, x / self.scale))
+
+    @classmethod
+    def from_anchor(
+        cls,
+        line: float,
+        prob_over: float,
+        scale: float,
+    ) -> Optional["GammaProp"]:
+        """Fit μ such that ``P(X > line) = prob_over``, given the scale θ.
+
+        ``P(X > line)`` rises monotonically with μ (shape and mean grow
+        together at fixed θ), so a bracketed root find is exact. ``line`` must
+        be positive: a zero-floored family cannot place a line at or below 0.
+        """
+        if not math.isfinite(line) or not math.isfinite(prob_over) or not math.isfinite(scale):
+            return None
+        if scale <= 0 or line <= 0:
+            return None
+        if not (0.001 < prob_over < 0.999):
+            return None
+
+        def _residual(mu: float) -> float:
+            return float(special.gammaincc(mu / scale, line / scale)) - prob_over
+
+        lo = 1e-6
+        hi = max(line, scale) * 4.0
+        while _residual(hi) <= 0:
+            hi *= 2.0
+            if hi > 1e7:
+                return None
+        try:
+            mu = optimize.brentq(_residual, a=lo, b=hi, xtol=1e-9)
+        except (ValueError, RuntimeError):
+            return None
+        return cls(mu=float(mu), scale=float(scale))
+
+    def prob_at_or_above(self, threshold: float) -> float:
+        return self._sf(threshold - 0.5)
+
+
 def fit_distribution(
     stat_type: str,
     line: float,
@@ -285,7 +390,8 @@ def fit_distribution(
     Returns ``None`` when:
       - ``stat_type`` is not in :data:`_STAT_DISTRIBUTION`,
       - the anchor probability is degenerate (≤ 0.001 or ≥ 0.999),
-      - a Normal stat is missing a σ entry in :data:`_NORMAL_STAT_SIGMA`, or
+      - a Normal stat is missing a σ entry in :data:`_NORMAL_STAT_SIGMA`,
+      - a Gamma stat is missing a θ entry in :data:`_GAMMA_STAT_SCALE`, or
       - a NegBin stat is missing a k entry in :data:`_NEGBIN_STAT_K`.
     """
     dist_name = _STAT_DISTRIBUTION.get(stat_type)
@@ -299,6 +405,11 @@ def fit_distribution(
         if sigma is None:
             return None
         return NormalProp.from_anchor(line, prob_over, sigma=sigma)
+    if dist_name == "gamma":
+        scale = _GAMMA_STAT_SCALE.get(stat_type)
+        if scale is None:
+            return None
+        return GammaProp.from_anchor(line, prob_over, scale=scale)
     if dist_name == "poisson":
         return PoissonProp.from_anchor(line, prob_over)
     return None
@@ -334,7 +445,7 @@ def distribution_from_mean(
     and sharp probabilities are read off comparable surfaces.
 
     Returns ``None`` for an unknown stat, a non-finite/negative mean, or a
-    Normal/NegBin stat missing its dispersion-table entry.
+    Normal/Gamma/NegBin stat missing its dispersion-table entry.
     """
     if not math.isfinite(mean) or mean < 0:
         return None
@@ -349,6 +460,12 @@ def distribution_from_mean(
         if sigma is None:
             return None
         return NormalProp(mu=float(mean), sigma=float(sigma))
+    if dist_name == "gamma":
+        scale = _GAMMA_STAT_SCALE.get(stat_type)
+        if scale is None:
+            return None
+        # Shape μ/θ must stay positive; same tiny floor as the Poisson branch.
+        return GammaProp(mu=max(float(mean), 1e-6), scale=float(scale))
     if dist_name == "poisson":
         # Poisson is degenerate at λ=0 (all mass on 0); clamp to a tiny floor so
         # prob_at_or_above stays well-defined for rare-event stats (HR/RBI).

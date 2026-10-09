@@ -89,6 +89,17 @@ class SharpOdds(BaseModel):
     prop_minutes_volatile: bool = False      # True if player had abnormal minutes recently
     prop_minutes_cv: float = 0.0             # minutes coefficient of variation
 
+    # Derived records: True when this record is NOT a line the book posted but
+    # evmax's own price for one — a player-prop rung re-lined from Pinnacle's
+    # single anchor by evmax/ev/prop_pricing.py (or model-blended / bridged in
+    # baseball). The book's real quote it came from is kept in anchor_line /
+    # anchor_prob_over (for a bridged baseball rung: the player's total-bases
+    # line). The archiver files derived rows under book "<book>_derived" so a
+    # backtest never reads model output as a Pinnacle alternate line.
+    derived: bool = False
+    anchor_line: Optional[float] = None
+    anchor_prob_over: Optional[float] = None
+
     # Multi-book consensus: how many books contributed to this estimate
     book_count: int = 1
 
