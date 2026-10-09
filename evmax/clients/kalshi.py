@@ -1532,9 +1532,15 @@ class KalshiClient(BaseAPIClient):
                 return 1.0
             if result == "no":
                 return 0.0
-            # Still open — use mid-price
-            yes_bid = market.get("yes_bid", 0) / 100.0
-            yes_ask = market.get("yes_ask", 0) / 100.0
+            # Still open — use mid-price. Kalshi now returns only the
+            # *_dollars decimals; the legacy integer-cent fields are gone (and
+            # cannot carry sub-cent ticks), so prefer the decimals.
+            if market.get("yes_bid_dollars") is not None or market.get("yes_ask_dollars") is not None:
+                yes_bid = float(market.get("yes_bid_dollars") or 0)
+                yes_ask = float(market.get("yes_ask_dollars") or 0)
+            else:
+                yes_bid = (market.get("yes_bid") or 0) / 100.0
+                yes_ask = (market.get("yes_ask") or 0) / 100.0
             if yes_ask > 0:
                 return (yes_bid + yes_ask) / 2.0
             return yes_bid if yes_bid > 0 else None
