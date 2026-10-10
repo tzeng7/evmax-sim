@@ -6,10 +6,11 @@ Commands:
   evmax project teams   — list available teams for a sector
   evmax project resolve — resolve logged projections against ESPN actual scores
   evmax project track   — show model accuracy metrics (MAE, ATS record, O/U record)
-  evmax project nfl     — project an NFL week with the nfl_projections game model
-  evmax project nfl-run     — project + store an NFL week (games and players), optionally post to Discord
-  evmax project nfl-resolve — grade stored NFL projections against final results
+  evmax project nfl     — project an NFL week with the nfl_projections game model + model picks vs the Vegas line
+  evmax project nfl-run     — project + store an NFL week (games, players, model picks), optionally post to Discord
+  evmax project nfl-resolve — grade stored NFL projections and model picks against final results
   evmax project nfl-track   — tracked accuracy of stored NFL projections
+  evmax project nfl-record  — record of stored NFL model picks (at the published line and the close)
   evmax project nfl-sim     — joint simulation of one NFL game (consistent box scores, stack probabilities)
 """
 
@@ -836,23 +837,29 @@ def nfl(
     refresh: bool = typer.Option(True, "--refresh/--no-refresh", help="Re-download the current season's nflverse data if stale."),
     players: bool = typer.Option(False, "--players", help="Project player stat lines instead of game scores."),
     team: Optional[str] = typer.Option(None, "--team", "-t", help="With --players: only this team (abbreviation, e.g. KC)."),
-    log: bool = typer.Option(False, "--log", help="Store the projections in projections.db (updated until kickoff)."),
+    log: bool = typer.Option(False, "--log", help="Store the projections (updated until kickoff) and each game's first pre-kickoff model pick in projections.db."),
     espn: bool = typer.Option(True, "--espn/--no-espn", help="With --players: also drop players the live ESPN injury feed lists as out."),
 ) -> None:
-    """Project every game of an NFL week: score, spread, total, win probability.
+    """Project every game of an NFL week: score, spread, total, win probability, model pick.
+
+    The model pick compares the projection with the nflverse consensus line:
+    the spread side the model prefers (Edge = points of disagreement) and
+    over/under on the model's MEDIAN total. No cover probability is shown:
+    the model's own is overconfident at the line (rated 62-73%, covered
+    ~50%). With --log (and in `nfl-run`) each game's first pre-kickoff pick
+    is recorded and never re-priced; see the record with `nfl-record`.
 
     With --players: each likely-active skill player's median receptions,
     receiving / rushing / passing yards with a 10th-90th percentile range
     (walk-forward 2019-24: 6-13% lower MAE than a last-8-games average).
 
-    The model (evmax.nfl_projections) reads no market price; the Market column
-    shows the nflverse consensus line for comparison only. Walk-forward
+    The model (evmax.nfl_projections) reads no market price. Walk-forward
     2020-25: margin MAE 10.13 (Vegas close 9.76), total MAE 10.49 (10.28).
     Data cache: EVMAX_NFL_PROJ_DATA (default data/backtest/nfl_projections).
     """
     from evmax.agents.models.nfl_efficiency_agent import NFL_ABBREV_TO_NAME
     from evmax.nfl_projections import data as nfl_data
-    from evmax.nfl_projections import live
+    from evmax.nfl_projections import live, picks
 
     if refresh:
         nfl_data.ensure_games()
@@ -867,40 +874,129 @@ def nfl(
         _nfl_players_table(season, week, refresh, team, full, log=log, espn=espn)
         return
     with console.status(f"Projecting NFL {season} week {week}..."):
-        df = live.project_week(season, week, refresh=refresh)
+        df = picks.add_picks(live.project_week(season, week, refresh=refresh))
     if log:
         from evmax.nfl_projections import store
         from evmax.provenance import code_version
 
         with store.connect() as conn:
             n = store.log_games(conn, df, code_version())
-        console.print(f"[green]Stored {n} game projections (games already kicked off are frozen).[/green]")
+            k = picks.record_picks(conn, df)
+        console.print(f"[green]Stored {n} game projections (games already kicked off are frozen) "
+                      f"and {k} new model pick(s) (a pick is never re-priced).[/green]")
 
-    t = Table(box=box.ROUNDED, title=f"NFL {season} Week {week} — projections (model, no market inputs)")
-    t.add_column("Kickoff", width=10)
-    t.add_column("Event", no_wrap=False, min_width=28)
-    t.add_column("Outcome", no_wrap=False, min_width=20)
-    t.add_column("Score", justify="right", width=15)
-    t.add_column("Home win", justify="right", width=8)
-    t.add_column("QBs (away / home)", no_wrap=False, width=24)
-    t.add_column("Market", no_wrap=False, width=16)
+    t = Table(box=box.ROUNDED, title=f"NFL {season} Week {week} — model projections and picks vs the Vegas line")
+    t.add_column("Kickoff")
+    t.add_column("Event", no_wrap=False, min_width=24)
+    t.add_column("Outcome", no_wrap=True, min_width=10)
+    t.add_column("Edge", justify="right")
+    t.add_column("Vegas", no_wrap=False)
+    t.add_column("Model", no_wrap=False)
+    t.add_column("O/U pick", no_wrap=False)
+    t.add_column("Score (win %)", justify="right", no_wrap=False)
+    t.add_column("QBs (away / home)", no_wrap=False)
+    t.add_column("Check", no_wrap=False)
     for r in df.sort_values(["gameday", "gametime"]).itertuples():
         site = " (neutral)" if r.neutral else ""
-        market = "—"
+        vegas = "—"
         if pd.notna(r.market_spread_line):
-            market = f"{_nfl_line(r.home_team, r.away_team, r.market_spread_line)} · {r.market_total_line:.1f}"
+            total = f" · {r.market_total_line:.1f}" if pd.notna(r.market_total_line) else ""
+            vegas = f"{_nfl_line(r.home_team, r.away_team, r.market_spread_line)}{total}"
         t.add_row(
             str(r.gameday),
             f"{full(r.away_team)} @ {full(r.home_team)}{site}",
-            f"{_nfl_line(r.home_team, r.away_team, r.proj_margin)} · total {r.proj_total:.1f}",
-            f"{r.away_team} {r.proj_away:.1f} – {r.home_team} {r.proj_home:.1f}",
-            f"{r.p_home_win * 100:.0f}%",
+            f"[bold]{r.spread_pick}[/bold]" if r.spread_pick else "—",
+            f"{r.spread_edge:.1f}" if r.spread_edge is not None else "—",
+            vegas,
+            f"{_nfl_line(r.home_team, r.away_team, r.proj_margin)} · {r.total_median:.1f}",
+            f"{r.total_pick} ({r.total_edge:.1f})" if r.total_pick else "—",
+            f"{r.away_team} {r.proj_away:.1f} – {r.home_team} {r.proj_home:.1f} "
+            f"({r.home_team if r.p_home_win >= 0.5 else r.away_team} {max(r.p_home_win, 1 - r.p_home_win):.0%})",
             f"{r.away_qb_name or '?'} / {r.home_qb_name or '?'}",
-            market,
+            ", ".join(r.flags) if r.flags else "",
         )
     console.print(t)
-    console.print("[dim]Outdoor wind uses the league median until a forecast feed is wired; "
-                  "starters come from the nflverse schedule (fallback: last game's starter).[/dim]")
+    console.print("[dim]Vegas = nflverse consensus line; Model total = median (the line is set near the median); "
+                  "Check = big edge / QB change / late season — where the model most often misses news.\n"
+                  "Backtest 2011-25: spread picks 50.2% vs the close, 50.1% vs ESPN opening lines; the opening line "
+                  "moved toward the pick 59% of the time. Outdoor wind uses the league median.[/dim]")
+
+
+@app.command("nfl-record")
+def nfl_record(
+    season: Optional[int] = typer.Option(None, "--season", help="Only this season (default: all recorded)."),
+    refresh: bool = typer.Option(True, "--refresh/--no-refresh", help="Re-download the nflverse schedule (scores + closing lines) if stale."),
+) -> None:
+    """Grade recorded NFL model picks and show the record.
+
+    Each pick is graded twice: at the line it was published against (how
+    public model pages grade) and at the closing line (the stricter test).
+    "Line moved" counts games where the line moved toward the pick by the close.
+    """
+    from evmax.agents.models.nfl_efficiency_agent import NFL_ABBREV_TO_NAME
+    from evmax.nfl_projections import data as nfl_data
+    from evmax.nfl_projections import picks
+
+    if refresh:
+        nfl_data.ensure_games(max_age_hours=6.0)
+    conn = picks.connect()
+    graded = picks.grade_picks(conn, nfl_data.load_games())
+    rows = pd.read_sql_query("SELECT * FROM nfl_picks ORDER BY gameday, game_id", conn)
+    conn.close()
+    if season is not None:
+        rows = rows[rows["season"] == season]
+    done = rows[rows["graded_at"].notna()]
+    if graded:
+        console.print(f"[dim]Graded {graded} new game(s).[/dim]")
+    if done.empty:
+        console.print("[yellow]No graded NFL picks yet — `evmax project nfl-run` (or `nfl --log`) records them before kickoff.[/yellow]")
+        return
+
+    def full(abbr: str) -> str:
+        return NFL_ABBREV_TO_NAME.get(abbr, abbr).title().replace("49Ers", "49ers")
+
+    summary = Table(box=box.ROUNDED, title="NFL model picks — record")
+    summary.add_column("Picks", no_wrap=False, min_width=10)
+    summary.add_column("ATS @ published", justify="right")
+    summary.add_column("ATS @ close", justify="right")
+    summary.add_column("O/U @ published", justify="right")
+    summary.add_column("O/U @ close", justify="right")
+    summary.add_column("Line moved toward pick", justify="right")
+    groups = [("All", done), ("Edge 3+", done[done["spread_edge"] >= 3]),
+              ("No check flag", done[done["flags"].fillna("") == ""])]
+    groups += [(f"Week {w}", d) for w, d in done.groupby("week")]
+    for label, d in groups:
+        if d.empty:
+            continue
+        s = picks.record_summary(d)
+        mv = d["spread_move"].dropna()
+        summary.add_row(label, s["spread_result"], s["spread_result_close"], s["total_result"],
+                        s["total_result_close"],
+                        f"{(mv > 0).sum()} of {len(mv)} ({mv.mean():+.2f} pts)" if len(mv) else "—")
+    console.print(summary)
+
+    detail = Table(box=box.SIMPLE, title="Graded picks")
+    detail.add_column("Week", justify="right")
+    detail.add_column("Event", no_wrap=False, min_width=24)
+    detail.add_column("Outcome", no_wrap=True, min_width=10)
+    detail.add_column("Edge", justify="right")
+    detail.add_column("Close", no_wrap=False)
+    detail.add_column("Final", no_wrap=False)
+    detail.add_column("ATS", no_wrap=False)
+    detail.add_column("O/U", no_wrap=False)
+    for r in done.itertuples():
+        detail.add_row(
+            str(r.week),
+            f"{full(r.away_team)} @ {full(r.home_team)}",
+            r.spread_pick or "—",
+            f"{r.spread_edge:.1f}" if pd.notna(r.spread_edge) else "—",
+            _nfl_line(r.home_team, r.away_team, r.close_margin) if pd.notna(r.close_margin) else "—",
+            f"{r.away_team} {r.away_score:.0f}–{r.home_team} {r.home_score:.0f}",
+            f"{r.spread_result or '—'} / {r.spread_result_close or '—'}",
+            f"{r.total_pick} {r.total_result or '—'}" if r.total_pick else "—",
+        )
+    console.print(detail)
+    console.print("[dim]ATS column: result at the published line / at the close.[/dim]")
 
 
 def _nfl_players_table(season: int, week: int, refresh: bool, team: Optional[str], full,
@@ -991,11 +1087,12 @@ def nfl_run(
         if resolve:
             with console.status("Grading finished games..."):
                 graded = pipeline.resolve_pending(conn, refresh=refresh)
-            console.print(f"Graded {graded['games']} games and {graded['players']} player rows.")
+            console.print(f"Graded {graded['games']} games, {graded['players']} player rows "
+                          f"and {graded.get('picks', 0)} model picks.")
         with console.status(f"Projecting NFL {season} week {week}..."):
             run = pipeline.run_week(conn, season, week, refresh=refresh, espn=espn)
-        console.print(f"[green]NFL {season} week {week}: stored {run.games_logged} games and "
-                      f"{run.players_logged} player rows.[/green]")
+        console.print(f"[green]NFL {season} week {week}: stored {run.games_logged} games, "
+                      f"{run.players_logged} player rows and {run.picks_logged} new model pick(s).[/green]")
         for note in run.notes:
             console.print(f"[yellow]{note}[/yellow]")
         if post:
@@ -1008,12 +1105,12 @@ def nfl_run(
 def nfl_resolve(
     refresh: bool = typer.Option(True, "--refresh/--no-refresh", help="Re-download nflverse results first."),
 ) -> None:
-    """Grade stored NFL projections whose games are final (scores, closing lines, player stats)."""
+    """Grade stored NFL projections and model picks whose games are final (scores, closing lines, player stats)."""
     from evmax.nfl_projections import pipeline, store
 
     with store.connect() as conn, console.status("Grading finished games..."):
         n = pipeline.resolve_pending(conn, refresh=refresh)
-    console.print(f"Graded {n['games']} games and {n['players']} player rows.")
+    console.print(f"Graded {n['games']} games, {n['players']} player rows and {n.get('picks', 0)} model picks.")
 
 
 @app.command("nfl-track")

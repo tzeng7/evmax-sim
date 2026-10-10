@@ -178,14 +178,17 @@ def walk_forward(team_games: pd.DataFrame, games: pd.DataFrame, seasons: list[in
     """
     feat_seasons = list(range(cfg.first_feature_season, max(seasons) + 1))
     ft = feature_table(team_games, games, feat_seasons, cfg)
+    values = ["proj"] + (["qb"] if "qb" in cfg.features else [])
     out = []
     for s in seasons:
         comb = fit_combiner(ft[ft["season"] < s], cfg.features)
         cur = ft[ft["season"] == s].copy()
         cur["proj"] = [comb.predict(r) for r in cur[list(cfg.features)].to_dict("records")]
-        wide = cur.pivot_table(index=["game_id", "season", "week"], columns="side", values="proj").reset_index()
-        out.append(wide)
-    proj = pd.concat(out, ignore_index=True).rename(columns={"home": "proj_home", "away": "proj_away"})
+        wide = cur.pivot_table(index=["game_id", "season", "week"], columns="side", values=values)
+        wide.columns = [f"{v}_{side}" for v, side in wide.columns]
+        out.append(wide.reset_index())
+    # qb_home / qb_away: each starter's delta vs his team's QB level (picks' QB-change flag)
+    proj = pd.concat(out, ignore_index=True).rename(columns={"qb_home": "home_qb_delta", "qb_away": "away_qb_delta"})
     proj["proj_margin"] = proj["proj_home"] - proj["proj_away"]
     proj["proj_total"] = proj["proj_home"] + proj["proj_away"]
     proj["p_home"] = stats.norm.cdf(proj["proj_margin"] / MARGIN_SD)
