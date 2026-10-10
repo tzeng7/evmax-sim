@@ -14,7 +14,12 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-DB_PATH = Path(__file__).resolve().parents[3] / "data" / "predictions.db"
+from evmax.db_location import connect_readonly, readonly_enabled, resolve_db_path
+
+# EVMAX_DB_DIR / EVMAX_DB_READONLY overrides: see evmax/db_location.py.
+DB_PATH = resolve_db_path(
+    "predictions.db", Path(__file__).resolve().parents[3] / "data" / "predictions.db"
+)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS ev_predictions (
@@ -248,7 +253,12 @@ def get_connection() -> sqlite3.Connection:
     delete-mode + 0ms-timeout combination produced spurious
     prediction_log_error warnings whenever the dashboard scan ran
     concurrently with a CLI scan.
+
+    With ``EVMAX_DB_READONLY`` set, the connection is read-only and the
+    schema/migration/backfill steps below are skipped.
     """
+    if readonly_enabled():
+        return connect_readonly(DB_PATH)
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(DB_PATH), timeout=5.0)
     conn.row_factory = sqlite3.Row

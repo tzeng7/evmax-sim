@@ -79,6 +79,7 @@ evmax agents scan --shadow X,Y --live Z --disabled W   # runtime overrides
 ```
 evmax/
 ├── settings.py              # Pydantic settings from .env; warn_missing_keys()
+├── db_location.py           # EVMAX_DB_DIR / EVMAX_DB_READONLY: point a worktree at the main checkout's predictions.db + archive.db read-only
 ├── db.py                    # SQLAlchemy async SQLite engine
 ├── models/                  # Pydantic + ORM: market, odds, ev_bet, simulated_bet, bankroll
 ├── clients/
@@ -213,6 +214,7 @@ evmax/
 ### Key Implementation Details
 
 - **Kalshi rate limiting**: `AsyncLimiter(10, 1.0)` from `aiolimiter` in `kalshi.py` — token bucket, 10 req/s
+- **Read-only DB access from a worktree (`evmax/db_location.py`, 2026-10-10)**: a worktree has no `data/*.db`, and the CLI used to create an EMPTY `archive.db` there (read lenses then silently saw zero rows). `EVMAX_DB_DIR=<main>/data EVMAX_DB_READONLY=1 uv run evmax …` makes `cleanup.db.get_connection`, `archiver._get_connection` and the portfolio store open those files with a `mode=ro` URI and skip schema/migrations: writes raise, a missing file raises instead of being created. `web/app.py` and the calibration/meta-model trainers open their own literal paths and ignore it.
 - **Model state files are declared, not derived**: `ModelAgent` loads `data/models/{name}_state.json` unless the subclass sets `state_filename`. A model whose NAME carries a version but whose seed keeps the old FILE (ncaaf_efficiency → `ncaaf_efficiency_v2`, 2026-09-03) MUST declare it — the rename silently loaded an empty state for two days (every NCAAF row was elo+sharp, diagnostics `missing: ncaaf_efficiency_v2`) because tests inject `agent._state` and never touch the path. `tests/test_ncaaf_v2.py::test_agent_loads_shipped_state_file_from_disk` guards it; add the same test for any renamed model. NCAAF ML rows without the v2 token are contaminated (v1-priced OR v2-silent) — see `contamination.py`.
 - **Kalshi ticker dates**: `_parse_ticker_date` anchors at **noon UTC** (not midnight) so downstream `.astimezone()` can't roll the game date back a day in negative-offset US time zones
 - **Sector-aware persistence window (`scan_horizon_days`)**: a daily-slate scan (`--date TODAY`, or the dashboard's today/tomorrow default) collapses the persist window to one/two days — correct for daily sectors (NBA, MLB) but it drops EVERY row for a WEEKLY sector whose games are days out. NFL (Thu/Sun/Mon) and NCAAF (Sat) declare `scan_horizon_days: 7` in `data/categories.yaml`; `evmax.categories.persist_window(sector, start, end)` widens only the END of the range to `start + horizon` for those sectors (never moves the start, never touches daily sectors), applied in `_matches_date` (CLI, `cli/commands/agents.py`) and `_gap_in_scan_window` (web, `web/app.py`). Before this (fixed 2026-09-06), **zero NFL rows had ever been persisted** despite the scan ledger counting 164–241 gaps — every scheduled `--date TODAY` scan dropped the whole slate after the `scan_sector_stats` ledger counted it. New weekly sector ⇒ add the field.
@@ -247,6 +249,16 @@ evmax/
 - **Draw market**: Soccer TIE markets use `true_prob_draw`, not `true_prob_a`
 - **NO-side deduplication**: only YES side evaluated to prevent double-counting
 - **Enum values are lowercase**: `MarketType.spread`, `MarketSource.kalshi`, `SharpBook.pinnacle`
+
+### Opportunity scout (agentic workflow)
+
+`/opportunities [focus]` runs a versioned multi-agent graph that looks for NEW +EV opportunities; `/opportunities build <id>` builds one as a shadow-only PR; `/opportunities status` lists the ledger. Design, gates and rationale: [docs/opportunity-workflow-scope.md](docs/opportunity-workflow-scope.md).
+
+- **Discovery** (`.claude/workflows/opportunity-scout.js`): `scripts/opportunity_context.py` writes one shared snapshot (board, value audit, integrity, Kalshi unwired series, graveyard, ledger …, read-only against the main DBs) → Research Journal ║ Competitive Analysis ║ Modeling agents propose → a synthesizer writes **pre-registered** briefs (metric, threshold, windows, min games fixed before any test) → the Scope Validator gates them (hard fails enforced in JS, one revise round) → `evmax-backtester` runs each top brief's test → `iteration-reviewer` checks integrity BEFORE the JS signal gate grades it `SUPPORTED / UNDERPOWERED / REFUTED`. The graph writes nothing; `scripts/opportunity_ledger.py ingest <workflow output file>` writes the report (`docs/opportunities/<date>.md`), ledger, graveyard, research journal and competitive landscape.
+- **Build** (`.claude/workflows/opportunity-build.js`): ledger gate (SUPPORTED/UNDERPOWERED, evidence ≤ 14 days) → isolated worktree via `sched_worktree.py open` → `implementer` → `change-validator` → `test-runner` (≤ 2 fix loops) → post-build backtest must reproduce the pre-build number (G4) → `sched_worktree.py ship` opens the PR. Never merges, never flips a mode, never edits live state.
+- **Graveyard** (`docs/opportunities/graveyard.yaml`): every rejected / refuted / unsupportable idea with a `revisit_if`. A re-proposal without matching new evidence is rejected at G0/G1 — append new verdicts there (`opportunity_ledger.py graveyard-add`) when a lever is rejected outside the workflow too.
+- **Metric rules** live once, in the `METRIC_RULES` block of `opportunity-scout.js` (copied into `opportunity-build.js`; a test pins both equal and the Python validator parses the same block). CLV/ROI are net of fees; a brief may tighten a default, never loosen it.
+- Project subagents are in `.claude/agents/` (tracked): `opportunity-researcher`, `opportunity-competitor` (web-facing, no shell/write tools), `opportunity-modeler`, `opportunity-validator`, `evmax-backtester`. Graph logic is tested without agents by `tests/test_opportunity_workflows.py` (Node harness `tests/workflow_harness.mjs`).
 
 ### Key Goals
 

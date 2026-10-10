@@ -1,0 +1,438 @@
+# Opportunity graveyard — ideas evmax already tested and did not ship.
+#
+# The opportunity-scout workflow (docs/opportunity-workflow-scope.md) reads this
+# file at gate G0. A candidate that matches an entry is rejected UNLESS it cites
+# new evidence that meets the entry's `revisit_if` condition.
+#
+# Append with:  python scripts/opportunity_ledger.py graveyard-add ...
+# (append-only; the workflow never rewrites existing entries).
+#
+# Fields
+#   id          stable kebab-case key
+#   idea        what was proposed, one or two sentences
+#   lever       model | pricing | execution | coverage | venue | data | reliability | sizing
+#   sectors     list of sector keys, or [all]
+#   verdict     REJECTED        walk-forward / CLV test failed
+#               REFUTED         the premise itself was disproved
+#               DONT_BUILD      evaluated, not worth building
+#               UNDERPOWERED    tested, inconclusive; revisit when the sample grows
+#               NOT_SUPPORTABLE data access or agent policy blocks it
+#               PARKED          already built inert / default-off; needs CLV to promote — do not rebuild
+#               POLICY          owner decision
+#   date        verdict date (YYYY-MM-DD), null when not recorded
+#   evidence    where the numbers live (doc, PR, script, CLAUDE.md section)
+#   revisit_if  the specific new evidence that would justify a re-proposal
+
+- id: elo-h2h-layer
+  idea: Elo head-to-head adjustment read through resolved team keys.
+  lever: model
+  sectors: [nba, baseball, nhl, ncaab]
+  verdict: REJECTED
+  date: 2026-09-23
+  evidence: "docs/elo-h2h-rest-eval.md; PR #330. Worse in every sector: NBA +1.46/1000 (z +4.8), baseball +1.00 (z +5.8), NHL +0.78 (z +2.7), NCAAB +0.55 (z +5.0)."
+  revisit_if: A different H2H formulation with a walk-forward blend win in at least two sectors. Removing the raw-label H2H that still fires is a separate open decision, not a new opportunity.
+
+- id: elo-rest-wnba-soccer
+  idea: Route the Elo rest layer through resolved team keys for WNBA and soccer.
+  lever: model
+  sectors: [wnba, soccer]
+  verdict: REJECTED
+  date: 2026-09-23
+  evidence: docs/elo-h2h-rest-eval.md. Shipped for NBA and NCAAB only (REST_RESOLVED_SECTORS).
+  revisit_if: A rest formulation that wins walk-forward on the blend-eligible WNBA or soccer sample.
+
+- id: nfl-elo-rest-table
+  idea: Kickoff-keyed NFL rest table in REST_ELO_ADJ.
+  lever: model
+  sectors: [nfl]
+  verdict: REJECTED
+  date: 2026-09-03
+  evidence: scripts/backtest_nfl_elo_regression.py --rest. Off/legacy/proposed within noise; proposed slightly worse on the 2025 holdout.
+  revisit_if: New rest information (travel distance, short week after overtime) with a holdout win.
+
+- id: nfl-elo-early-k-boost
+  idea: Raise NFL Elo K early in the season (EARLY_K_BOOST).
+  lever: model
+  sectors: [nfl]
+  verdict: REJECTED
+  date: 2026-09-03
+  evidence: scripts/backtest_nfl_elo_regression.py. Every early-K variant was worse than offseason regression alone (keep=0.667).
+  revisit_if: Never on the same harness; only with a different early-season signal.
+
+- id: nfl-margin-form
+  idea: Margin-based form (MARGIN_FORM_SECTORS) instead of win/loss form for NFL.
+  lever: model
+  sectors: [nfl]
+  verdict: REJECTED
+  date: 2026-09-03
+  evidence: "CLAUDE.md Form row. Beat W/L form on 2023-24, lost on 2024-25 and the 2025-26 holdout at every shrink (0.3/0.5/0.7/1.0)."
+  revisit_if: A full additional season of holdout data where margin form wins.
+
+- id: nfl-form-weight-redistribution
+  idea: Move NFL form weight (0.30) toward nfl_efficiency / nfl_qb_elo.
+  lever: model
+  sectors: [nfl]
+  verdict: REJECTED
+  date: 2026-06-11
+  evidence: scripts/backtest_nfl_efficiency.py --seasons 2324,2425,2526. Every variant lost on combined Brier and on the 2526 holdout.
+  revisit_if: New evidence, per CLAUDE.md ("Do not re-attempt without new evidence").
+
+- id: nfl-qb-elo-mov
+  idea: FiveThirtyEight-style margin-of-victory multiplier in the NFL QB Elo update.
+  lever: model
+  sectors: [nfl]
+  verdict: REJECTED
+  date: 2026-06-11
+  evidence: CLAUDE.md NFL QB Elo row. Combined blend Brier 0.2210 to 0.2208 but the 2526 holdout degraded (ΔAcc −0.35pp to −1.05pp).
+  revisit_if: A holdout that clears both gates.
+
+- id: nfl-efficiency-margin-scale-refit
+  idea: Refit EPA_MARGIN_PTS from 64 to the OLS value (~37–43).
+  lever: model
+  sectors: [nfl]
+  verdict: REJECTED
+  date: 2026-10-06
+  evidence: "CLAUDE.md NFL Efficiency row. Standalone refit wins (pooled +3.35/1000, z 2.43) but the live blend went 0.2222 to 0.2226, worse in 2 of 3 seasons."
+  revisit_if: Proposed together with re-validated blend weights, measured jointly.
+
+- id: nfl-ladders-escalators
+  idea: Wire Kalshi NFL ladder / escalator scalar series (KXNFLLADDER*, KXNFLESCALATOR*, KXNFLFFPTSLADDER).
+  lever: coverage
+  sectors: [nfl_props]
+  verdict: DONT_BUILD
+  date: 2026-10-09
+  evidence: docs/nfl-ladders-escalators-eval.md; PR #374. Ladders price at fair value; the escalator gap vanishes after correcting binary-prop calibration.
+  revisit_if: The revisit gate written in docs/nfl-ladders-escalators-eval.md (scripts/eval_nfl_scalar_props.py).
+
+- id: nfl-sr-in-margin
+  idea: Add an opponent-adjusted success-rate term to the NFL efficiency margin.
+  lever: model
+  sectors: [nfl]
+  verdict: PARKED
+  date: 2026-09-09
+  evidence: Built inert (SR_MARGIN_PTS = 0.0). scripts/backtest_nfl_sr_margin.py fits it.
+  revisit_if: Promotion only, on `evmax cleanup shadow clv nfl` CLV evidence. Do not rebuild.
+
+- id: nfl-preseason-prior-ramp
+  idea: Fire a decay-weighted prior-season NFL efficiency rating in weeks 1–N instead of blanking the model.
+  lever: model
+  sectors: [nfl]
+  verdict: PARKED
+  date: 2026-09-09
+  evidence: Built inert (PRESEASON_PRIOR_ENABLED = False). scripts/backtest_nfl_preseason_prior.py screens it.
+  revisit_if: Promotion only, on CLV. A true preseason projection (win totals / FPI analog) is the open Level-B follow-on.
+
+- id: nfl-receptions-negbin-refit
+  idea: Refit the NFL receptions NegBin dispersion k.
+  lever: pricing
+  sectors: [nfl_props]
+  verdict: REJECTED
+  date: 2026-10-09
+  evidence: docs/nfl-prop-dispersion-eval.md. A refit k was not better out of sample; k=5 stays.
+  revisit_if: A larger Kalshi-settled sample showing a holdout Brier win.
+
+- id: nfl-props-general-projection-first
+  idea: Build a general NFL player projection model as the first prop lever.
+  lever: model
+  sectors: [nfl_props]
+  verdict: DONT_BUILD
+  date: 2026-10-09
+  evidence: "Owner research notes 2026-10-09: no sharp prop anchor beyond Pinnacle; naive projections already priced in; NFL projections player model +3.7–6.4% vs Kalshi did not meet its gate."
+  revisit_if: A news-lag measurement (Kalshi 1-minute candles around injury reports / inactives) that shows exploitable lag.
+
+- id: ncaaf-espn-wp-garbage-filter
+  idea: Use ESPN per-play win probability to define the NCAAF garbage-time band.
+  lever: model
+  sectors: [ncaaf]
+  verdict: REJECTED
+  date: 2026-09-03
+  evidence: CLAUDE.md NCAAF Efficiency row. +15–19/1000 WORSE; ESPN WP embeds the pregame FPI prior, so a heavy favorite's whole game is dropped. Keep the 4Q/28-point rule.
+  revisit_if: A win-probability source that does not embed a pregame prior.
+
+- id: ncaaf-v2-extra-features
+  idea: Extra NCAAF v2 features — explosiveness, pass/rush split, turnover-EPA split, special teams, rest/bye, tempo, heteroscedastic sigma, two-season prior, market-implied prior.
+  lever: model
+  sectors: [ncaaf]
+  verdict: REJECTED
+  date: 2026-09-03
+  evidence: CLAUDE.md NCAAF Efficiency row (scripts/backtest_ncaaf_v2.py ablation). Explosiveness is collinear with EPA+SR; turnover split ≈ −0.6/1000 only.
+  revisit_if: A feature outside this list, or CLV (not Brier) evidence for one inside it.
+
+- id: ncaaf-blend-reweight
+  idea: Retune NCAAF blend weights (ncaaf_efficiency_v2 / elo / form).
+  lever: model
+  sectors: [ncaaf]
+  verdict: REJECTED
+  date: 2026-10-01
+  evidence: scripts/backtest_ncaaf_blend.py. Best alternative 0.6/1000 on holdout — below the noise floor.
+  revisit_if: CLV evidence by tier (`evmax cleanup shadow clv-tiers ncaaf`), never Brier.
+
+- id: ncaaf-injuries-depth-charts
+  idea: Pregame NCAAF QB / injury layer.
+  lever: data
+  sectors: [ncaaf]
+  verdict: NOT_SUPPORTABLE
+  date: 2026-09-03
+  evidence: ESPN's CFB injury feed is empty and its core API does not support depth charts.
+  revisit_if: A public, unauthenticated CFB injury or depth-chart source.
+
+- id: soccer-per-league-poisson-avg
+  idea: Per-league Poisson league_avg instead of one soccer-wide value.
+  lever: model
+  sectors: [soccer]
+  verdict: REJECTED
+  date: 2026-09-05
+  evidence: "docs/soccer-league-params-eval.md. −3.9/1000 in-sample (z −3.0) but −0.16/1000 (z −0.08) on holdout; nil in the blend."
+  revisit_if: A holdout win in the blend, not standalone.
+
+- id: soccer-per-league-elo-hfa
+  idea: Per-league Elo home advantage.
+  lever: model
+  sectors: [soccer]
+  verdict: REJECTED
+  date: 2026-09-05
+  evidence: docs/soccer-league-params-eval.md. Train-swept values flip sign on holdout (Bundesliga +7.8/1000 worse out of sample).
+  revisit_if: Never on the same harness.
+
+- id: mls-disagreement-ramp
+  idea: An MLS-specific sharp-disagreement ramp (or flat 0.40 sharp weight) so models keep more share in MLS.
+  lever: model
+  sectors: [soccer]
+  verdict: REFUTED
+  date: 2026-09-05
+  evidence: "docs/mls-disagreement-ramp-eval.md. Flat 0.40 with no ramp is +13.8/1000 worse than sharp-only on the 2026 holdout (z 2.9)."
+  revisit_if: MLS's own `clv-leagues` bucket clearing the CLV gate.
+
+- id: lower-sharp-weight
+  idea: Lower sharp_weight (globally or per sector) to give the models more share.
+  lever: model
+  sectors: [all]
+  verdict: REJECTED
+  date: 2026-09-22
+  evidence: "CLAUDE.md Sharp weight bullet. Rows at ~30% model share were significantly worse than sharp (ΔBrier +2.97/1000, z 2.9; NCAAF +5.6, worldcup ROI −47%)."
+  revisit_if: That sector's (or soccer league's) own CLV bucket clearing the gate.
+
+- id: worldcup-match-importance-weighting
+  idea: FIFA-style match-importance weighting for national-team ratings.
+  lever: model
+  sectors: [worldcup]
+  verdict: REJECTED
+  date: 2026-06-18
+  evidence: Owner notes (World Cup Poisson SOS investigation). Backtest-rejected and reverted; sharp-lean shipped instead.
+  revisit_if: A new national-team results sample with a holdout win.
+
+- id: tennis-close-brier-weight-tuning
+  idea: Fine-tune tennis blend weights against Pinnacle close Brier.
+  lever: model
+  sectors: [tennis]
+  verdict: REJECTED
+  date: 2026-06-27
+  evidence: "scripts/tennis_weight_optimize.py. Blend does not beat the close out of sample (0.21151 vs 0.21011); train/holdout sign flips; the optimizer goes degenerate."
+  revisit_if: Never on close-Brier. Use CLV as the guardrail.
+
+- id: tennis-surface-speed
+  idea: Tennis Abstract tournament surface-speed index as a model feature.
+  lever: model
+  sectors: [tennis]
+  verdict: DONT_BUILD
+  date: 2026-07-01
+  evidence: Owner notes. Real but tiny interaction; below noise out of sample.
+  revisit_if: A much larger sample or a CLV-shaped test.
+
+- id: tennis-near-close-rescan
+  idea: Re-scan tennis moneylines near the start (T-75 to T-10) for better entries.
+  lever: execution
+  sectors: [tennis]
+  verdict: REJECTED
+  date: 2026-07-19
+  evidence: Owner notes (n=121 paired tennis ML rows). Near-tip entry was WORSE for tennis, the opposite of WNBA.
+  revisit_if: A new entry rule with a paired CLV win.
+
+- id: near-close-rescan
+  idea: An `agents rescan` workflow that enters near tip with a fresh Pinnacle anchor.
+  lever: execution
+  sectors: [all]
+  verdict: UNDERPOWERED
+  date: 2026-07-11
+  evidence: docs/near-close-rescan-eval.md. Gated near-tip entries n=20 vs the n≥50 gate (+1.70pp CLV).
+  revisit_if: scripts/eval_near_close_rescan.py re-run with ≥50 gated entries after more watch-closes capture.
+
+- id: baseball-totals-model
+  idea: A baseball totals model (run simulation or regression).
+  lever: model
+  sectors: [baseball]
+  verdict: DONT_BUILD
+  date: 2026-06-14
+  evidence: Owner notes. Two model families failed (r≈0.07). Totals are disabled_market_types (n=102 NO-side unders −15.2% ROI).
+  revisit_if: A new information source (weather/umpire/lineup) with walk-forward correlation well above 0.07.
+
+- id: baseball-bullpen-aggregate
+  idea: Static team-bullpen quality aggregate as a standalone baseball ML layer.
+  lever: model
+  sectors: [baseball]
+  verdict: REJECTED
+  date: 2026-05-01
+  evidence: "Commit d8ee2c6; owner notes. Δ +0.0012 Brier WORSE (2025). pitcher_v2 carries a fatigue-aware pen component — see docs/baseball-pitcher-v2-ab.md for which components cleared."
+  revisit_if: A component-level A/B in scripts/backtest_baseball_ab.py that clears the ship gate.
+
+- id: baseball-fangraphs-scrape
+  idea: Source xFIP / SIERA / Stuff+ from FanGraphs via pybaseball.
+  lever: data
+  sectors: [baseball]
+  verdict: NOT_SUPPORTABLE
+  date: 2026-06-05
+  evidence: FanGraphs pitching_stats is 403-blocked. Savant xERA is the supported source.
+  revisit_if: An official or unblocked public source for those metrics.
+
+- id: baseball-spread-lay-early-entry
+  idea: Baseball spread LAY entries at the anchored listing sweep.
+  lever: execution
+  sectors: [baseball]
+  verdict: REJECTED
+  date: 2026-08-30
+  evidence: Owner notes (gate check). Fails the %positive gate (47%); the baseball edge is near-tip, not early.
+  revisit_if: Near-tip baseball entry evidence that clears the CLV gate.
+
+- id: wnba-totals-model
+  idea: A WNBA totals model.
+  lever: model
+  sectors: [wnba]
+  verdict: REJECTED
+  date: 2026-06-19
+  evidence: Owner notes. No edge on a true walk-forward; the point-in-time replay's apparent edge was lookahead.
+  revisit_if: A walk-forward (never PIT replay) win.
+
+- id: wnba-spread-model-blend
+  idea: A WNBA spread model blend (possession sim, schedule / fatigue features).
+  lever: model
+  sectors: [wnba]
+  verdict: DONT_BUILD
+  date: 2026-07-06
+  evidence: Owner notes. Sim has zero incremental signal; schedule/fatigue features fail out of sample. The spread edge is microstructure/CLV (anchored-entry pipeline).
+  revisit_if: New information beyond the current sim and schedule features.
+
+- id: wnba-spread-take-side
+  idea: Take-points (NO-side) WNBA spread entries.
+  lever: execution
+  sectors: [wnba]
+  verdict: REJECTED
+  date: 2026-07-19
+  evidence: "CLAUDE.md Daily Workflow (candle backfill verdict). n=106, −0.10pp CLV. LAY side shipped (+1.32pp over 116 games)."
+  revisit_if: A different entry trigger for the take side with positive declustered CLV.
+
+- id: wnba-form-weight
+  idea: Give form a non-zero weight in the WNBA blend.
+  lever: model
+  sectors: [wnba]
+  verdict: REJECTED
+  date: 2026-07-01
+  evidence: "Improvement ledger 2026-07-01. 2025-selected combos fail the 2026 holdout (z −2.6 to −3.2)."
+  revisit_if: Full-2026-season evidence.
+
+- id: wnba-injury-amplification
+  idea: Amplify WNBA injury magnitude beyond the generic injury layer.
+  lever: model
+  sectors: [wnba]
+  verdict: REJECTED
+  date: 2026-08-28
+  evidence: docs/wnba-injury-model-eval.md. The generic layer is validated; amplification is not.
+  revisit_if: A larger sample with a holdout win for amplification.
+
+- id: sharp-odds-averaging
+  idea: Average Pinnacle with other sharp books for the anchor.
+  lever: data
+  sectors: [all]
+  verdict: DONT_BUILD
+  date: 2026-08-09
+  evidence: Owner notes. No independent sharp book is cheaply and legitimately sourceable; Pinnacle stays the sole anchor.
+  revisit_if: A public, unauthenticated, ToS-compliant feed from an independent sharp book.
+
+- id: pinnacle-stale-price-fallback
+  idea: Fall back to the last known Pinnacle price when the guest API is down.
+  lever: reliability
+  sectors: [all]
+  verdict: POLICY
+  date: null
+  evidence: CLAUDE.md Pinnacle resilience bullet. Scans fail clear by design (correctness over availability).
+  revisit_if: Owner decision only.
+
+- id: kelly-edge-shrinkage
+  idea: Shrink the estimated edge before Kelly sizing (two-input logistic).
+  lever: sizing
+  sectors: [all]
+  verdict: REJECTED
+  date: 2026-09-19
+  evidence: docs/sizing-legitimacy-eval.md (scripts/backtest_sizing.py). Walk-forward rejected; the 5% cap is validated.
+  revisit_if: A sizing replay win on scripts/backtest_sizing.py with the same simultaneous-settlement harness.
+
+- id: global-volume-floor
+  idea: A global minimum-volume filter on Kalshi markets.
+  lever: execution
+  sectors: [all]
+  verdict: POLICY
+  date: null
+  evidence: Owner feedback. Thin-volume sectors (WNBA especially) are where edge lives; the spread_pct < 0.005 filter already drops empty books.
+  revisit_if: A per-sector setting backed by that sector's CLV evidence — never global.
+
+- id: steady-state-cross-venue-arb
+  idea: Systematic Kalshi-vs-Polymarket-US arbitrage.
+  lever: venue
+  sectors: [all]
+  verdict: DONT_BUILD
+  date: 2026-07-09
+  evidence: "evmax/arb.py; owner notes. No net arbs after fees (~1pp combined vig vs ~3.5pp round-trip taker fees). `evmax arb scan` covers transient dislocations."
+  revisit_if: A fee change that removes the round-trip drag, or maker execution on both legs.
+
+- id: novig-prophetx-market-data
+  idea: Live market-data client for Novig / ProphetX.
+  lever: venue
+  sectors: [all]
+  verdict: NOT_SUPPORTABLE
+  date: null
+  evidence: Both APIs require an authenticated account. Agents may not create accounts or handle credentials.
+  revisit_if: The owner provisions credentials themselves; then a client can land behind novig_enabled / prophetx_enabled.
+
+- id: ufc-volume-stats
+  idea: UFC per-minute volume features (SLpM / SApM / takedowns).
+  lever: data
+  sectors: [ufc]
+  verdict: NOT_SUPPORTABLE
+  date: null
+  evidence: docs/ufc-model-eval.md. ESPN has no per-fight strike counts; ufcstats.com is behind a JS anti-bot interstitial that agents may not bypass.
+  revisit_if: A public, unblocked per-fight stats source.
+
+- id: valorant-sector
+  idea: Bet Valorant esports.
+  lever: coverage
+  sectors: [valorant]
+  verdict: NOT_SUPPORTABLE
+  date: null
+  evidence: CLAUDE.md Betting Categories. No Kalshi product; the handler stays latent.
+  revisit_if: Kalshi lists a Valorant series (check scripts/check_kalshi_series.py).
+
+- id: golf-outrights
+  idea: Bet golf tournament outrights with the standalone PGA strokes-gained field simulator.
+  lever: model
+  sectors: [golf]
+  verdict: DONT_BUILD
+  date: 2026-07-12
+  evidence: Owner notes (evmax/golf module). Mostly fold on outrights — the model is under-confident against efficient majors.
+  revisit_if: Non-outright golf markets, or a holdout win on outrights.
+
+- id: nhl-form-and-elo-regression
+  idea: Use form in the NHL blend, or regress NHL Elo each offseason.
+  lever: model
+  sectors: [nhl]
+  verdict: REJECTED
+  date: 2026-09-22
+  evidence: "CLAUDE.md NHL override. Form standalone Brier 0.2596 (worse than a coin flip); Elo keep 0.75 was worse inside the blend."
+  revisit_if: A walk-forward blend win on MoneyPuck game logs.
+
+- id: nhl-devig-multiplicative
+  idea: Promote multiplicative devig for NHL on the 2026-10-07 recommendation (z=32, n=1783).
+  lever: pricing
+  sectors: [nhl]
+  verdict: REFUTED
+  date: 2026-10-07
+  evidence: CLAUDE.md devig bullet; PR #369. The recommendation was an artifact of the old join (one row per hourly snapshot, alt rungs scored against other rungs' outcomes).
+  revisit_if: The fixed one-close-per-game sample clearing the devig gate on its own.

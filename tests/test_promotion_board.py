@@ -396,3 +396,30 @@ class TestEndpointShape:
         for key in ("verdict", "gates", "clv", "blend_divergence_pp",
                     "sharp_passthrough", "top_blockers", "mode"):
             assert key in row
+
+
+class TestCliJson:
+    """`evmax cleanup shadow board --json` — the machine-readable board the
+    opportunity-scout context snapshot and agents consume."""
+
+    def test_board_json_emits_rows(self, patched):
+        from typer.testing import CliRunner
+
+        from evmax.cli.commands.shadow import app
+
+        _insert(patched, "j1", sector="wnba", blended=0.62, sharp=0.55)
+        patched.commit()
+        result = CliRunner().invoke(app, ["board", "--json", "--staleness-h", "0"])
+        assert result.exit_code == 0, result.output
+        rows = json.loads(result.output)
+        wnba = [r for r in rows if r["sector"] == "wnba"]
+        assert wnba and "verdict" in wnba[0] and "gates" in wnba[0]
+
+    def test_board_json_empty_window_is_empty_list(self, patched):
+        from typer.testing import CliRunner
+
+        from evmax.cli.commands.shadow import app
+
+        result = CliRunner().invoke(app, ["board", "--json", "--days", "1"])
+        assert result.exit_code == 0, result.output
+        assert json.loads(result.output) == []
