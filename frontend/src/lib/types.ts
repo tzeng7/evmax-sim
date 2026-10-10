@@ -284,3 +284,91 @@ export interface PromotionBoardResult {
   days: number
   rows: BoardRow[]
 }
+
+// ── NFL projections (GET /api/nfl-projections, evmax.nfl_projections.store) ──
+
+export interface NflGameProjection {
+  game_id: string
+  season: number
+  week: number
+  gameday: string
+  gametime: string | null
+  kickoff_utc: string | null
+  home_team: string
+  away_team: string
+  neutral: number
+  proj_home: number
+  proj_away: number
+  /** home − away */
+  proj_margin: number
+  proj_total: number
+  p_home_win: number
+  home_qb_name: string | null
+  away_qb_name: string | null
+  /** nflverse spread_line: expected HOME margin (+ = home favored) */
+  market_home_margin: number | null
+  market_total: number | null
+  model_line: string
+  market_line: string
+  actual_home: number | null
+  actual_away: number | null
+  resolved_at: string | null
+}
+
+export interface NflPlayerProjection {
+  game_id: string
+  player_id: string
+  team: string
+  opp: string
+  player_name: string | null
+  position: string | null
+  is_starting_qb: number
+  proj_targets: number | null
+  proj_carries: number | null
+  proj_receptions: number | null
+  p10_receptions: number | null
+  p90_receptions: number | null
+  proj_receiving_yards: number | null
+  p10_receiving_yards: number | null
+  p90_receiving_yards: number | null
+  proj_rushing_yards: number | null
+  p10_rushing_yards: number | null
+  p90_rushing_yards: number | null
+  proj_passing_yards: number | null
+  p10_passing_yards: number | null
+  p90_passing_yards: number | null
+  played: number | null
+  actual_receptions: number | null
+  actual_receiving_yards: number | null
+  actual_rushing_yards: number | null
+  actual_passing_yards: number | null
+}
+
+export interface NflStatAccuracy {
+  n: number
+  mae: number
+  bias: number
+  below_p10: number
+  at_or_below_p90: number
+}
+
+export interface NflAccuracy {
+  games: {
+    n: number
+    margin_mae?: number
+    total_mae?: number
+    close_margin_mae?: number | null
+    close_total_mae?: number | null
+    winner_pct?: number | null
+  }
+  players: Record<string, NflStatAccuracy>
+}
+
+export interface NflProjectionsResult {
+  season: number | null
+  week: number | null
+  weeks: { season: number; week: number }[]
+  games: NflGameProjection[]
+  players: NflPlayerProjection[]
+  accuracy: NflAccuracy | null
+}

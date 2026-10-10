@@ -21,7 +21,7 @@ from evmax.discord_bot.handlers import CommandHandlers, Reply
 
 logger = structlog.get_logger(__name__)
 
-COMMAND_NAMES = ("scan", "plays", "settled", "status", "help")
+COMMAND_NAMES = ("scan", "plays", "settled", "status", "nfl", "help")
 
 
 class DiscordNotInstalled(RuntimeError):
@@ -148,6 +148,20 @@ def register_commands(
     @app_commands.describe(probe_pinnacle="Also probe Pinnacle reachability (one live request)")
     async def status_cmd(interaction: Any, probe_pinnacle: bool = True) -> None:
         await _run(interaction, lambda: handlers.status(probe_pinnacle=probe_pinnacle))
+
+    @tree.command(name="nfl", description="NFL model projections for a week (games + top players)")
+    @app_commands.describe(
+        week="Week (default: the latest stored week)",
+        season="Season (default: the latest stored week's season)",
+        team="Only this team's players, e.g. KC",
+    )
+    async def nfl_cmd(
+        interaction: Any,
+        week: Optional[int] = None,
+        season: Optional[int] = None,
+        team: str = "",
+    ) -> None:
+        await _run(interaction, lambda: handlers.nfl(week=week, season=season, team=team))
 
     @tree.command(name="help", description="List evmax commands")
     async def help_cmd(interaction: Any) -> None:

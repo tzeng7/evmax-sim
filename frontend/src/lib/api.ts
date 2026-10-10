@@ -1,4 +1,4 @@
-import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult, PromotionBoardResult, VenueBalances } from './types'
+import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult, PromotionBoardResult, VenueBalances, NflProjectionsResult } from './types'
 
 const json = (r: Response) => r.json()
 
@@ -192,4 +192,15 @@ export async function fetchPromotionBoard(
   if (f.league) params.set('league', f.league)
   if (f.priceBucket) params.set('price_bucket', f.priceBucket)
   return fetch(`/api/promotion-board?${params}`).then(json)
+}
+
+export async function fetchNflProjections(
+  season?: number,
+  week?: number,
+): Promise<NflProjectionsResult> {
+  const params = new URLSearchParams()
+  if (season != null) params.set('season', String(season))
+  if (week != null) params.set('week', String(week))
+  const q = params.toString()
+  return fetch(`/api/nfl-projections${q ? `?${q}` : ''}`).then(json)
 }

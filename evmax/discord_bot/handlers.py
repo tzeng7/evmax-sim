@@ -42,6 +42,7 @@ HELP_TEXT = (
     "• `/plays [sector] [bankroll] [kelly]` — Open Positions: scanned, unplaced live rows awaiting a pick.\n"
     "• `/settled [placed_only]` — Recent Settled Bets with the KPI summary.\n"
     "• `/status [probe_pinnacle]` — pipeline health (cadence, seed states, Pinnacle).\n"
+    "• `/nfl [week] [season] [team]` — NFL model projections (games + top players) from the stored weekly run.\n"
     "• `/help` — this message.\n"
     "Bankroll: with `DISCORD_BANKROLL_VENUE` set (kalshi / polymarket_us / both) `/scan` and "
     "`/plays` size against that venue's LIVE balance unless you pass `bankroll`.\n"
@@ -235,6 +236,36 @@ class CommandHandlers:
         return Reply(embeds=recent_settled_embeds(
             recent, summary=summary, placed_only=placed_only,
         ))
+
+    # ------------------------------------------------------------------
+    # /nfl  (stored NFL projections — evmax.nfl_projections.store)
+    # ------------------------------------------------------------------
+
+    async def nfl(self, *, week: Optional[int] = None, season: Optional[int] = None, team: str = "") -> Reply:
+        from evmax.discord_bot.embeds import nfl_projection_embeds
+        from evmax.nfl_projections import store
+
+        def _load():
+            with store.connect() as conn:
+                latest = store.latest_week(conn)
+                if latest is None:
+                    return None
+                s = season or latest[0]
+                w = week or (latest[1] if s == latest[0] else None)
+                if w is None:
+                    return None
+                games, players = store.week_rows(conn, s, w, team=(team or "").strip() or None)
+                if team:
+                    t = team.strip().upper()
+                    games = [g for g in games if t in (g["home_team"], g["away_team"])]
+                return s, w, games, players, store.accuracy(conn, season=s)
+
+        loaded = await asyncio.to_thread(_load)
+        if loaded is None:
+            return Reply(content="No NFL projections stored for that week. They are written by "
+                                 "`evmax project nfl-run` (scheduled weekly).", ephemeral=True)
+        s, w, games, players, acc = loaded
+        return Reply(embeds=nfl_projection_embeds(s, w, games, players, acc))
 
     # ------------------------------------------------------------------
     # /status  (heartbeat)

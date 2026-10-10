@@ -7,6 +7,9 @@ Commands:
   evmax project resolve — resolve logged projections against ESPN actual scores
   evmax project track   — show model accuracy metrics (MAE, ATS record, O/U record)
   evmax project nfl     — project an NFL week with the nfl_projections game model
+  evmax project nfl-run     — project + store an NFL week (games and players), optionally post to Discord
+  evmax project nfl-resolve — grade stored NFL projections against final results
+  evmax project nfl-track   — tracked accuracy of stored NFL projections
 """
 
 from __future__ import annotations
@@ -842,10 +845,9 @@ def track(
 
 def _nfl_line(home: str, away: str, home_margin: float) -> str:
     """Favorite-perspective line from a home margin: 'DAL -3.1', 'TB -2.0' or 'PK'."""
-    if abs(home_margin) < 0.05:
-        return "PK"
-    fav = home if home_margin > 0 else away
-    return f"{fav} -{abs(home_margin):.1f}"
+    from evmax.nfl_projections.store import favorite_line
+
+    return favorite_line(home, away, home_margin)
 
 
 @app.command()
@@ -855,6 +857,8 @@ def nfl(
     refresh: bool = typer.Option(True, "--refresh/--no-refresh", help="Re-download the current season's nflverse data if stale."),
     players: bool = typer.Option(False, "--players", help="Project player stat lines instead of game scores."),
     team: Optional[str] = typer.Option(None, "--team", "-t", help="With --players: only this team (abbreviation, e.g. KC)."),
+    log: bool = typer.Option(False, "--log", help="Store the projections in projections.db (updated until kickoff)."),
+    espn: bool = typer.Option(True, "--espn/--no-espn", help="With --players: also drop players the live ESPN injury feed lists as out."),
 ) -> None:
     """Project every game of an NFL week: score, spread, total, win probability.
 
@@ -881,10 +885,17 @@ def nfl(
         return NFL_ABBREV_TO_NAME.get(abbr, abbr).title().replace("49Ers", "49ers")
 
     if players:
-        _nfl_players_table(season, week, refresh, team, full)
+        _nfl_players_table(season, week, refresh, team, full, log=log, espn=espn)
         return
     with console.status(f"Projecting NFL {season} week {week}..."):
         df = live.project_week(season, week, refresh=refresh)
+    if log:
+        from evmax.nfl_projections import store
+        from evmax.provenance import code_version
+
+        with store.connect() as conn:
+            n = store.log_games(conn, df, code_version())
+        console.print(f"[green]Stored {n} game projections (games already kicked off are frozen).[/green]")
 
     t = Table(box=box.ROUNDED, title=f"NFL {season} Week {week} — projections (model, no market inputs)")
     t.add_column("Kickoff", width=10)
@@ -913,11 +924,22 @@ def nfl(
                   "starters come from the nflverse schedule (fallback: last game's starter).[/dim]")
 
 
-def _nfl_players_table(season: int, week: int, refresh: bool, team: Optional[str], full) -> None:
+def _nfl_players_table(season: int, week: int, refresh: bool, team: Optional[str], full,
+                       log: bool = False, espn: bool = True) -> None:
     from evmax.nfl_projections import live
 
     with console.status(f"Projecting NFL {season} week {week} players..."):
-        df = live.project_week_players(season, week, refresh=refresh)
+        reports = live.fetch_espn_injury_reports() if espn else None
+        df = live.project_week_players(season, week, refresh=refresh, espn_reports=reports)
+    if espn and not reports:
+        console.print("[yellow]ESPN injury feed unavailable; using the nflverse injury report only.[/yellow]")
+    if log:
+        from evmax.nfl_projections import store
+        from evmax.provenance import code_version
+
+        with store.connect() as conn:
+            n = store.log_players(conn, df, code_version())
+        console.print(f"[green]Stored {n} player projections (games already kicked off are frozen).[/green]")
     if team:
         df = df[df["team"] == team.upper()]
     df = df[(df["proj_targets"] >= 3) | (df["proj_carries"] >= 5) | df["is_starting_qb"]]
@@ -947,5 +969,107 @@ def _nfl_players_table(season: int, week: int, refresh: bool, team: Optional[str
             rng(r, "passing_yards") if r.is_starting_qb else "—",
         )
     console.print(t)
-    console.print("[dim]Active roster = played in the team's last 3 games minus Out/Doubtful on the injury report; "
-                  "medians are MAE-optimal (yardage is right-skewed, so they sit below the mean).[/dim]")
+    console.print("[dim]Active roster = played in the team's last 3 games minus Out/Doubtful (nflverse injury report "
+                  "+ live ESPN feed); teammates absorb 60% of a ruled-out player's targets/carries. "
+                  "Medians are MAE-optimal (yardage is right-skewed, so they sit below the mean).[/dim]")
+
+
+def _resolve_week(season: Optional[int], week: Optional[int]) -> tuple[int, int]:
+    from evmax.nfl_projections import data as nfl_data
+    from evmax.nfl_projections import live
+
+    if season is not None and week is not None:
+        return season, week
+    s, w = live.next_week(nfl_data.load_games(), date.today())
+    return season or s, week or w
+
+
+@app.command("nfl-run")
+def nfl_run(
+    season: Optional[int] = typer.Option(None, "--season", help="NFL season (default: the next unplayed week's season)."),
+    week: Optional[int] = typer.Option(None, "--week", "-w", help="Week (default: the next week with an unplayed game)."),
+    refresh: bool = typer.Option(True, "--refresh/--no-refresh", help="Re-download stale nflverse data first."),
+    espn: bool = typer.Option(True, "--espn/--no-espn", help="Also apply the live ESPN injury feed."),
+    resolve: bool = typer.Option(True, "--resolve/--no-resolve", help="Grade finished games before projecting."),
+    post: bool = typer.Option(False, "--post", help="Post the stored week to the Discord channel/DM."),
+) -> None:
+    """Project and store an NFL week (games + players); the scheduled-task entry point.
+
+    Re-running before kickoff refreshes the stored rows (the Sunday-morning run
+    picks up late inactives); games that already kicked off stay frozen.
+    """
+    from evmax.nfl_projections import data as nfl_data
+    from evmax.nfl_projections import pipeline, store
+
+    if refresh:
+        nfl_data.ensure_games()
+    season, week = _resolve_week(season, week)
+    with store.connect() as conn:
+        if resolve:
+            with console.status("Grading finished games..."):
+                graded = pipeline.resolve_pending(conn, refresh=refresh)
+            console.print(f"Graded {graded['games']} games and {graded['players']} player rows.")
+        with console.status(f"Projecting NFL {season} week {week}..."):
+            run = pipeline.run_week(conn, season, week, refresh=refresh, espn=espn)
+        console.print(f"[green]NFL {season} week {week}: stored {run.games_logged} games and "
+                      f"{run.players_logged} player rows.[/green]")
+        for note in run.notes:
+            console.print(f"[yellow]{note}[/yellow]")
+        if post:
+            ok = pipeline.post_week(conn, season, week)
+            console.print("[green]Posted to Discord.[/green]" if ok
+                          else "[yellow]Discord post skipped (bot not configured) or failed.[/yellow]")
+
+
+@app.command("nfl-resolve")
+def nfl_resolve(
+    refresh: bool = typer.Option(True, "--refresh/--no-refresh", help="Re-download nflverse results first."),
+) -> None:
+    """Grade stored NFL projections whose games are final (scores, closing lines, player stats)."""
+    from evmax.nfl_projections import pipeline, store
+
+    with store.connect() as conn, console.status("Grading finished games..."):
+        n = pipeline.resolve_pending(conn, refresh=refresh)
+    console.print(f"Graded {n['games']} games and {n['players']} player rows.")
+
+
+@app.command("nfl-track")
+def nfl_track(
+    season: Optional[int] = typer.Option(None, "--season", help="Only this season."),
+) -> None:
+    """Tracked accuracy of stored, graded NFL projections vs results and the closing line."""
+    from evmax.nfl_projections import store
+
+    with store.connect() as conn:
+        acc = store.accuracy(conn, season=season)
+    g = acc["games"]
+    scope = f"season {season}" if season else "all seasons"
+    if not g["n"] and not acc["players"]:
+        console.print(f"[yellow]No graded NFL projections ({scope}). Run `evmax project nfl-run` before games "
+                      f"and `evmax project nfl-resolve` after.[/yellow]")
+        return
+    t = Table(box=box.ROUNDED, title=f"NFL projections — tracked accuracy ({scope})")
+    t.add_column("Event", no_wrap=False, min_width=24)
+    t.add_column("Outcome", no_wrap=False, min_width=24)
+    t.add_column("n", justify="right")
+    t.add_column("Model MAE", justify="right")
+    t.add_column("Closing line MAE", justify="right")
+    t.add_column("Bias", justify="right")
+    t.add_column("< p10 / <= p90", justify="right")
+    if g["n"]:
+        def close(v):
+            return f"{v:.2f}" if v is not None else "—"
+        t.add_row("All graded games", "Margin (home - away)", str(g["n"]), f"{g['margin_mae']:.2f}",
+                  close(g["close_margin_mae"]), "", "")
+        t.add_row("All graded games", "Total points", str(g["n"]), f"{g['total_mae']:.2f}",
+                  close(g["close_total_mae"]), "", "")
+        if g.get("winner_pct") is not None:
+            t.add_row("All graded games", "Winner picked", str(g["n"]), f"{g['winner_pct'] * 100:.1f}% right", "", "", "")
+    labels = {"receptions": "Receptions (proj targets >= 3)", "receiving_yards": "Receiving yards (proj targets >= 3)",
+              "rushing_yards": "Rushing yards (proj carries >= 5)", "passing_yards": "Passing yards (starting QB)"}
+    for st, m in acc["players"].items():
+        t.add_row("Players who played", labels[st], str(m["n"]), f"{m['mae']:.2f}", "—", f"{m['bias']:+.2f}",
+                  f"{m['below_p10'] * 100:.0f}% / {m['at_or_below_p90'] * 100:.0f}%")
+    console.print(t)
+    console.print("[dim]Ideal range coverage: 10% below p10, 90% at or below p90. "
+                  "The closing line is the nflverse consensus after the game.[/dim]")

@@ -241,7 +241,9 @@ Signal: `dev_score` = mean over receiving yards, receptions, rushing yards and p
 | P3 report medians (Gamma yardage / NegBin receptions, dispersion fit per cutoff) | 0.94872 | kept (beats a dev-fitted constant shrink in all 7 seasons) |
 | P4 usage-dependent empirical median ratio | 0.94754 | reverted (below noise) |
 | P5 usage-share prior 3 → 0.5 pseudo-games | 0.92988 | kept (fixed tier bias: stars −8.4 → +1.2 yds; monotone in the prior) |
-| P6 team volume conditioned on the game model's margin/total | **0.92669** | kept (teams projected to score more throw more; better in 6/6 seasons) |
+| P6 team volume conditioned on the game model's margin/total | 0.92669 | kept (teams projected to score more throw more; better in 6/6 seasons) |
+| P7 pre-game injury report: teammates absorb 60% of a ruled-out WR/TE/RB's modeled share | 0.92459 | kept (see below) |
+| P7b key ruled-out players and multipliers by team (reviewer fix) | **0.92456** | kept (correctness, neutral) |
 
 **Final, holdout 2025 (MAE ratio vs naive):**
 
@@ -279,6 +281,64 @@ Early-season, high-usage players are where the market's information (depth chart
 4. TD projections.
 5. Opponent-adjusted efficiency.
 6. The joint Monte Carlo, so receivers' yards sum to the QB's passing yards. Not built yet: v1 projects each player independently.
+
+## Phase 2 follow-up (2026-10-10) — injury-report redistribution
+
+**Mechanism.** The basketball prop rule already existed: `InjuryReportAgent.get_out_players` and `compute_prop_injury_boost` (`evmax/agents/intelligence/injury_agent.py`). It treats Out and Doubtful players as not playing and gives 60% of their usage to teammates. That rule uses a fixed share per tier, was never backtested, and only finds NBA players' teams. P7 reuses the rule with two changes:
+- The freed usage is the out player's own modeled target and carry share. QBs free nothing, because their usage moves with the starter.
+- The 60% default was tested rather than assumed: 0.3 / 0.6 / 1.0 give 0.92487 / 0.92459 / 0.92636, so 0.6 sits near the optimum without being tuned.
+
+Code: `player_model.out_players`, `recent_team_players`, `injury_share_multipliers` and `project_players(share_mult=...)`. Only the pre-game nflverse report is read, plus the players from the team's last 3 games. Who actually played is never used, which avoids P1's leak.
+
+**Evidence** (dev 2019-24, rows whose projection changed):
+
+| Stat | Mean \|error\| change | Game-clustered t | Seasons better |
+|---|---|---|---|
+| Receiving yards | −0.139 | −3.6 | 6/6 |
+| Rushing yards | −0.263 | −3.8 | 6/6 |
+| Receptions | −0.030 | −1.2 | not established |
+
+**Placebos (reviewer).** Both are worse than baseline, so the gain comes from the report itself:
+- The same boosts given to the wrong teams: 0.9307–0.9311.
+- Random unlisted teammates marked out: 0.9275–0.9279.
+
+**Holdout 2025:** 0.91616 → 0.91574 (regression check only).
+
+**Kalshi gap.** It barely moved: receiving yards +3.6%, receptions +3.9%, rushing yards +6.2% (was +3.7 / +3.8 / +6.4). Injuries were not the main source of the gap.
+
+**Live.** The live path also drops players that the ESPN injury feed (`InjuryReportAgent`, the scanner's source) lists as out. Names are matched within the team via `nfl_depth_charts.normalize_person`; an ambiguous name matches nobody. This gives the Sunday-morning run game-day downgrades that the nflverse report does not have yet.
+
+## Phase 3 results (2026-10-10) — product
+
+| Piece | Where |
+|---|---|
+| Storage | `evmax/nfl_projections/store.py`: `nfl_game_projections` + `nfl_player_projections` in `data/projections.db` (`$EVMAX_PROJ_DB` overrides). A row is upserted until its kickoff, then frozen. Players ruled out before kickoff are deleted. Explicit line convention: `market_home_margin` = nflverse `spread_line` = expected HOME margin. |
+| Grading | `store.resolve`: scores + the closing consensus line for games. For players, official stats are graded only once both stat lines and snap counts are out; `played = 0` marks a player who did not play. |
+| Tracking | `store.accuracy` / `evmax project nfl-track`: margin/total MAE next to the closing line's, winner %, player MAE, bias, and p10/p90 coverage. |
+| Run | `evmax/nfl_projections/pipeline.py` / `evmax project nfl-run [--post]` (grade → project → store → post). `evmax project nfl [--players] --log` stores ad hoc. |
+| Dashboard | **NFL** tab (`frontend/src/components/NflProjections.tsx`), `GET /api/nfl-projections?season&week&team` |
+| Discord | `discord_bot.embeds.nfl_projection_embeds`: posted by `nfl-run --post` and by the `/nfl [week] [season] [team]` slash command |
+| Schedule | `nfl-projections-weekly` (Tue 09:00 PT, posts), `nfl-projections-friday-refresh` (Fri 14:30), `nfl-projections-sunday-refresh` (Sun 08:45, posts). See `docs/scheduled-tasks/nfl-projections.md`. |
+
+## Phase 4 (2026-10-10) — EV hook rejected; the rest deferred
+
+**Incremental-information test.** On the 2026 Weeks 1-5 Kalshi-covered player-games (536 receiving / 242 rushing, clustered by game), regress (actual − Kalshi) on (model − Kalshi):
+
+| Stat | Slope on medians (z) | Slope on means (z) |
+|---|---|---|
+| Receiving yards | +0.15 (+0.8) | +0.09 (+0.5) |
+| Receptions | +0.19 (+1.7) | +0.08 (+0.5) |
+| Rushing yards | −0.11 (−0.6) | −0.15 (−0.8) |
+
+Mixing 10–50% of the model into the Kalshi number never lowers MAE by more than 0.002 (receptions), and usually raises it. The model carries no information the market lacks, so feeding player means into `prop_pricing` is **not** wired; it would add noise to the shadow lane.
+
+Revisit only with a new information source the market may price slowly, such as minute-level reaction to injury news (`project_nfl_props_edge_research`).
+
+**Not built, deliberately deferred:**
+- the drive simulator (research);
+- a market-blend display (it equals the market, which the dashboard already shows next to the model);
+- TD projections;
+- the joint Monte Carlo that makes receivers sum to the QB.
 
 ## 8. Risks and limits
 
