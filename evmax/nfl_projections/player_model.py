@@ -389,6 +389,12 @@ def project_players(state: PlayerState, roster: pd.DataFrame,
         m = share_mult.reindex(pd.MultiIndex.from_arrays([r["player_id"], r["team"]]))
         tgt_share = tgt_share * m["tgt_mult"].fillna(1.0).to_numpy(dtype=float)
         car_share = car_share * m["car_mult"].fillna(1.0).to_numpy(dtype=float)
+    # Inputs kept for the joint simulation (simulate.simulate_team).
+    r["tgt_share"], r["car_share"] = tgt_share, car_share
+    r["catch_rate"], r["ypt"], r["ypc"] = (uu["catch_rate"].to_numpy(), uu["ypt"].to_numpy(),
+                                           uu["ypc"].to_numpy())
+    for m, v in exp.items():
+        r[f"exp_{m}"] = v
     r["proj_targets"] = exp["team_targets"] * tgt_share
     r["proj_receptions"] = r["proj_targets"] * uu["catch_rate"].to_numpy()
     r["proj_receiving_yards"] = r["proj_targets"] * uu["ypt"].to_numpy()
@@ -402,8 +408,10 @@ def project_players(state: PlayerState, roster: pd.DataFrame,
 
         tmult = tgt_share / np.where(uu["tgt_share"].to_numpy() > 0, uu["tgt_share"].to_numpy(), 1.0)
         cmult = car_share / np.where(uu["car_share"].to_numpy() > 0, uu["car_share"].to_numpy(), 1.0)
-        lam_rush = exp["team_rush_tds"] * uu["rush_xtd_share"].to_numpy() * cmult
-        lam_rec = exp["team_rec_tds"] * uu["rec_xtd_share"].to_numpy() * tmult
+        r["rush_xtd_share"] = uu["rush_xtd_share"].to_numpy() * cmult
+        r["rec_xtd_share"] = uu["rec_xtd_share"].to_numpy() * tmult
+        lam_rush = exp["team_rush_tds"] * r["rush_xtd_share"].to_numpy()
+        lam_rec = exp["team_rec_tds"] * r["rec_xtd_share"].to_numpy()
         r["proj_rush_tds"] = np.clip(lam_rush, 0.0, None)
         r["proj_rec_tds"] = np.clip(lam_rec, 0.0, None)
         r["proj_tds"] = r["proj_rush_tds"] + r["proj_rec_tds"]

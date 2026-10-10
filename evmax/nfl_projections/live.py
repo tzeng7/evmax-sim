@@ -281,3 +281,29 @@ def project_week_players(season: int, week: int, cfg: PlayerModelConfig = Player
     proj = project_players(state, roster, team_volume, mult)
     return proj.merge(wk[["game_id", "gameday", "gametime", "home_team", "away_team"]], on="game_id").assign(
         season=season, week=week)
+
+
+def simulate_game(season: int, week: int, team: str, n: int = 10000, d: Optional[Path] = None,
+                  refresh: bool = True, espn_reports: Optional[dict] = None, seed: int = 0):
+    """Joint simulation of ``team``'s game in ``season`` ``week``.
+
+    Returns {team: (players DataFrame, sims dict)} for both teams; the shape
+    parameters are fitted on the six completed seasons before ``season``.
+    """
+    from evmax.nfl_projections import simulate
+
+    proj = project_week_players(season, week, d=d, refresh=refresh, espn_reports=espn_reports)
+    game = proj[proj["team"] == team.upper()]
+    if game.empty:
+        raise ValueError(f"{team.upper()} has no projected game in {season} week {week}")
+    gid = game["game_id"].iloc[0]
+    pg = player_games.load_player_games(range(season - 6, season), d)
+    params = simulate.fit_sim_params(pg[pg["season_type"] == "REG"])
+    rng = np.random.default_rng(seed)
+    out = {}
+    for t, grp in proj[proj["game_id"] == gid].groupby("team"):
+        grp = grp.reset_index(drop=True)
+        f = grp.iloc[0]
+        out[t] = (grp, simulate.simulate_team(grp, f["exp_team_targets"], f["exp_team_carries"],
+                                              f["exp_team_rush_tds"], f["exp_team_rec_tds"], params, n=n, rng=rng))
+    return out

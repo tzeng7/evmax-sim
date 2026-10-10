@@ -10,6 +10,7 @@ Commands:
   evmax project nfl-run     — project + store an NFL week (games and players), optionally post to Discord
   evmax project nfl-resolve — grade stored NFL projections against final results
   evmax project nfl-track   — tracked accuracy of stored NFL projections
+  evmax project nfl-sim     — joint simulation of one NFL game (consistent box scores, stack probabilities)
 """
 
 from __future__ import annotations
@@ -1085,3 +1086,78 @@ def nfl_track(
     console.print(t)
     console.print("[dim]Ideal range coverage: 10% below p10, 90% at or below p90. "
                   "The closing line is the nflverse consensus after the game.[/dim]")
+
+
+@app.command("nfl-sim")
+def nfl_sim(
+    team: str = typer.Option(..., "--team", "-t", help="Either team of the game, e.g. KC."),
+    season: Optional[int] = typer.Option(None, "--season"),
+    week: Optional[int] = typer.Option(None, "--week", "-w"),
+    sims: int = typer.Option(10000, "--sims", help="Simulated games."),
+    refresh: bool = typer.Option(True, "--refresh/--no-refresh"),
+    espn: bool = typer.Option(True, "--espn/--no-espn"),
+) -> None:
+    """Simulate one NFL game's box score jointly (evmax.nfl_projections.simulate).
+
+    Receivers' yards add up to the QB's passing yards in every simulation, so
+    teammates' lines are correlated the way real games are. The Stacks table
+    shows P(QB and receiver both clear their medians) next to the product of
+    the separate probabilities (what independent projections would imply).
+    Validation (2025 holdout): scripts/eval_nfl_joint_sim.py.
+    """
+    import numpy as np
+
+    from evmax.nfl_projections import live, simulate
+
+    season, week = _resolve_week(season, week)
+    with console.status(f"Simulating {team.upper()} in NFL {season} week {week} ({sims:,} games)..."):
+        reports = live.fetch_espn_injury_reports() if espn else None
+        res = live.simulate_game(season, week, team, n=sims, refresh=refresh, espn_reports=reports)
+    teams = list(res)
+    event = " @ ".join(sorted(teams, key=lambda t: int(res[t][0]["home"].iloc[0])))
+    t = Table(box=box.ROUNDED, title=f"NFL {season} Week {week} — simulated box score ({sims:,} games)")
+    t.add_column("Event", no_wrap=False, min_width=24)
+    t.add_column("Outcome", no_wrap=False, min_width=24)
+    for col in ("Rec", "Rec yds", "Rush yds", "Pass yds"):
+        t.add_column(col, justify="right")
+    t.add_column("TD", justify="right")
+    stacks = []
+    for tm in teams:
+        players, s = res[tm]
+        summ = simulate.summarize(players, s)
+        show = (players["proj_targets"] >= 2.5) | (players["proj_carries"] >= 5) | players["is_starting_qb"]
+        order = players[show].sort_values(["is_starting_qb", "proj_targets"], ascending=[False, False]).index
+        for i in order:
+            p, m = players.loc[i], summ.loc[i]
+
+            def cell(stat: str, ok: bool) -> str:
+                if not ok:
+                    return "—"
+                med, lo, hi = (int(round(m[f"{k}{stat}"])) + 0 for k in ("sim_", "sim_p10_", "sim_p90_"))
+                return f"{med} [dim]({lo}–{hi})[/dim]"
+            t.add_row(event, f"{p['player_display_name']} ({p['position']}, {tm})",
+                      cell("receptions", p["proj_targets"] >= 1), cell("receiving_yards", p["proj_targets"] >= 1),
+                      cell("rushing_yards", p["proj_carries"] >= 1), cell("passing_yards", bool(p["is_starting_qb"])),
+                      f"{m['sim_p_anytime_td'] * 100:.0f}%")
+        qb = players.index[players["is_starting_qb"]].tolist()
+        if qb:
+            q = qb[0]
+            qthr = float(np.median(s["passing_yards"][:, q]))
+            for w in players.drop(index=q).sort_values("proj_targets", ascending=False).index[:3]:
+                wthr = float(np.median(s["receiving_yards"][:, w]))
+                joint = simulate.joint_probability(s, [("passing_yards", q, qthr), ("receiving_yards", w, wthr)])
+                indep = float((s["passing_yards"][:, q] >= qthr).mean() * (s["receiving_yards"][:, w] >= wthr).mean())
+                stacks.append((event, f"{players.at[q, 'player_display_name']} {qthr:.0f}+ pass & "
+                                      f"{players.at[w, 'player_display_name']} {wthr:.0f}+ rec yds", joint, indep))
+    console.print(t)
+    if stacks:
+        st = Table(box=box.ROUNDED, title="Stacks — both legs clear their simulated medians")
+        st.add_column("Event", no_wrap=False, min_width=24)
+        st.add_column("Outcome", no_wrap=False, min_width=24)
+        st.add_column("Joint", justify="right")
+        st.add_column("If independent", justify="right")
+        for e, o, j, i in stacks:
+            st.add_row(e, o, f"{j * 100:.1f}%", f"{i * 100:.1f}%")
+        console.print(st)
+    console.print("[dim]Medians with 10th–90th percentile ranges from the simulation. Model only, no market "
+                  "inputs; correlations validated on the 2025 holdout (QB–WR1 simulated +0.55 vs realized +0.46).[/dim]")
