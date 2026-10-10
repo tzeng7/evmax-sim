@@ -1431,6 +1431,16 @@
     "west ham": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 5,
+          "shots": 12,
+          "xg": 1.71,
+          "xga": 1.02,
+          "is_home": true
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 2,
           "goals_against": 2,
@@ -1619,16 +1629,6 @@
           "xg": 1.41,
           "xga": 2.43,
           "is_home": false
-        },
-        {
-          "date": "2026-02-21",
-          "goals_for": 0,
-          "goals_against": 0,
-          "sot": 3,
-          "shots": 20,
-          "xg": 1.41,
-          "xga": 1.65,
-          "is_home": true
         }
       ]
     },
@@ -7551,6 +7551,16 @@
     "espanyol": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 4,
+          "shots": 9,
+          "xg": 1.35,
+          "xga": 2.34,
+          "is_home": false
+        },
+        {
           "date": "2026-09-18",
           "goals_for": 1,
           "goals_against": 3,
@@ -7739,16 +7749,6 @@
           "xg": 3.27,
           "xga": 0.99,
           "is_home": true
-        },
-        {
-          "date": "2026-03-01",
-          "goals_for": 2,
-          "goals_against": 2,
-          "sot": 4,
-          "shots": 9,
-          "xg": 1.35,
-          "xga": 2.94,
-          "is_home": false
         }
       ]
     },
@@ -8922,6 +8922,16 @@
     },
     "m\u00e1laga": {
       "matches": [
+        {
+          "date": "2026-10-09",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 7,
+          "shots": 15,
+          "xg": 2.34,
+          "xga": 1.35,
+          "is_home": true
+        },
         {
           "date": "2026-09-20",
           "goals_for": 0,
@@ -10833,6 +10843,16 @@
     "werder bremen": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 2,
+          "goals_against": 2,
+          "sot": 4,
+          "shots": 11,
+          "xg": 1.41,
+          "xga": 3.06,
+          "is_home": false
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 3,
           "goals_against": 2,
@@ -11020,16 +11040,6 @@
           "shots": 18,
           "xg": 2.16,
           "xga": 0.75,
-          "is_home": true
-        },
-        {
-          "date": "2026-01-27",
-          "goals_for": 0,
-          "goals_against": 2,
-          "sot": 3,
-          "shots": 26,
-          "xg": 1.59,
-          "xga": 1.17,
           "is_home": true
         }
       ]
@@ -11649,6 +11659,16 @@
     "dortmund": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 2,
+          "goals_against": 2,
+          "sot": 9,
+          "shots": 21,
+          "xg": 3.06,
+          "xga": 1.41,
+          "is_home": true
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 1,
           "goals_against": 0,
@@ -11837,16 +11857,6 @@
           "xg": 1.86,
           "xga": 1.29,
           "is_home": true
-        },
-        {
-          "date": "2026-04-18",
-          "goals_for": 1,
-          "goals_against": 2,
-          "sot": 3,
-          "shots": 8,
-          "xg": 1.05,
-          "xga": 1.47,
-          "is_home": false
         }
       ]
     },
@@ -17451,6 +17461,16 @@
     "lens": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 2,
+          "goals_against": 1,
+          "sot": 7,
+          "shots": 15,
+          "xg": 2.34,
+          "xga": 1.74,
+          "is_home": true
+        },
+        {
           "date": "2026-09-18",
           "goals_for": 1,
           "goals_against": 2,
@@ -17639,21 +17659,21 @@
           "xg": 2.13,
           "xga": 1.95,
           "is_home": false
-        },
-        {
-          "date": "2026-02-07",
-          "goals_for": 3,
-          "goals_against": 1,
-          "sot": 3,
-          "shots": 9,
-          "xg": 1.08,
-          "xga": 0.69,
-          "is_home": true
         }
       ]
     },
     "lyon": {
       "matches": [
+        {
+          "date": "2026-10-09",
+          "goals_for": 1,
+          "goals_against": 2,
+          "sot": 5,
+          "shots": 13,
+          "xg": 1.74,
+          "xga": 2.34,
+          "is_home": false
+        },
         {
           "date": "2026-09-19",
           "goals_for": 4,
@@ -17842,16 +17862,6 @@
           "shots": 16,
           "xg": 2.91,
           "xga": 1.59,
-          "is_home": true
-        },
-        {
-          "date": "2026-04-25",
-          "goals_for": 3,
-          "goals_against": 2,
-          "sot": 6,
-          "shots": 12,
-          "xg": 1.98,
-          "xga": 0.81,
           "is_home": true
         }
       ]
@@ -20823,6 +20833,16 @@
     "psv": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 2,
+          "goals_against": 0,
+          "sot": 2,
+          "shots": 15,
+          "xg": 0.99,
+          "xga": 1.71,
+          "is_home": true
+        },
+        {
           "date": "2026-09-20",
           "goals_for": 2,
           "goals_against": 3,
@@ -21011,16 +21031,6 @@
           "xg": 2.73,
           "xga": 1.5,
           "is_home": true
-        },
-        {
-          "date": "2026-02-13",
-          "goals_for": 1,
-          "goals_against": 2,
-          "sot": 5,
-          "shots": 19,
-          "xg": 1.92,
-          "xga": 1.44,
-          "is_home": false
         }
       ]
     },
@@ -31627,6 +31637,16 @@
     "puebla": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 6,
+          "shots": 18,
+          "xg": 2.16,
+          "xga": 1.14,
+          "is_home": true
+        },
+        {
           "date": "2026-09-26",
           "goals_for": 0,
           "goals_against": 1,
@@ -31815,16 +31835,6 @@
           "xg": 3.81,
           "xga": 1.62,
           "is_home": true
-        },
-        {
-          "date": "2026-02-28",
-          "goals_for": 1,
-          "goals_against": 0,
-          "sot": 3,
-          "shots": 11,
-          "xg": 1.14,
-          "xga": 0.72,
-          "is_home": false
         }
       ]
     },
@@ -33259,6 +33269,16 @@
     "deportivo toluca": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 2,
+          "goals_against": 3,
+          "sot": 8,
+          "shots": 17,
+          "xg": 2.67,
+          "xga": 4.11,
+          "is_home": false
+        },
+        {
           "date": "2026-09-26",
           "goals_for": 3,
           "goals_against": 3,
@@ -33446,16 +33466,6 @@
           "shots": 25,
           "xg": 3.18,
           "xga": 1.71,
-          "is_home": true
-        },
-        {
-          "date": "2026-03-08",
-          "goals_for": 3,
-          "goals_against": 1,
-          "sot": 5,
-          "shots": 19,
-          "xg": 1.92,
-          "xga": 0.75,
           "is_home": true
         }
       ]
@@ -34483,6 +34493,16 @@
     "club leon": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 3,
+          "shots": 11,
+          "xg": 1.14,
+          "xga": 2.16,
+          "is_home": false
+        },
+        {
           "date": "2026-09-27",
           "goals_for": 2,
           "goals_against": 1,
@@ -34671,16 +34691,6 @@
           "xg": 2.43,
           "xga": 3.27,
           "is_home": false
-        },
-        {
-          "date": "2026-03-01",
-          "goals_for": 2,
-          "goals_against": 1,
-          "sot": 7,
-          "shots": 28,
-          "xg": 2.73,
-          "xga": 1.38,
-          "is_home": true
         }
       ]
     },
@@ -35095,6 +35105,16 @@
     "tigres uanl": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 3,
+          "goals_against": 2,
+          "sot": 13,
+          "shots": 20,
+          "xg": 4.11,
+          "xga": 2.67,
+          "is_home": true
+        },
+        {
           "date": "2026-09-26",
           "goals_for": 1,
           "goals_against": 0,
@@ -35282,16 +35302,6 @@
           "shots": 12,
           "xg": 0.9,
           "xga": 1.59,
-          "is_home": true
-        },
-        {
-          "date": "2026-03-08",
-          "goals_for": 1,
-          "goals_against": 0,
-          "sot": 2,
-          "shots": 13,
-          "xg": 0.93,
-          "xga": 0.12,
           "is_home": true
         }
       ]
@@ -36831,6 +36841,16 @@
     "kashima antlers": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 2,
+          "goals_against": 0,
+          "sot": 3,
+          "shots": 14,
+          "xg": 1.23,
+          "xga": 1.71,
+          "is_home": true
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 3,
           "goals_against": 3,
@@ -37018,16 +37038,6 @@
           "shots": 10,
           "xg": 1.38,
           "xga": 1.23,
-          "is_home": false
-        },
-        {
-          "date": "2026-04-04",
-          "goals_for": 1,
-          "goals_against": 1,
-          "sot": 4,
-          "shots": 19,
-          "xg": 1.65,
-          "xga": 0.78,
           "is_home": false
         }
       ]
@@ -38463,6 +38473,16 @@
     "kashiwa reysol": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 4,
+          "goals_against": 2,
+          "sot": 6,
+          "shots": 17,
+          "xg": 2.13,
+          "xga": 2.07,
+          "is_home": true
+        },
+        {
           "date": "2026-09-20",
           "goals_for": 4,
           "goals_against": 2,
@@ -38651,21 +38671,21 @@
           "xg": 0.39,
           "xga": 1.56,
           "is_home": false
-        },
-        {
-          "date": "2026-04-05",
-          "goals_for": 3,
-          "goals_against": 0,
-          "sot": 4,
-          "shots": 17,
-          "xg": 1.59,
-          "xga": 0.69,
-          "is_home": true
         }
       ]
     },
     "vissel kobe": {
       "matches": [
+        {
+          "date": "2026-10-09",
+          "goals_for": 2,
+          "goals_against": 4,
+          "sot": 6,
+          "shots": 15,
+          "xg": 2.07,
+          "xga": 2.13,
+          "is_home": false
+        },
         {
           "date": "2026-09-20",
           "goals_for": 1,
@@ -38855,16 +38875,6 @@
           "xg": 2.28,
           "xga": 1.08,
           "is_home": false
-        },
-        {
-          "date": "2026-04-01",
-          "goals_for": 2,
-          "goals_against": 0,
-          "sot": 3,
-          "shots": 9,
-          "xg": 1.08,
-          "xga": 0.69,
-          "is_home": true
         }
       ]
     },
@@ -39075,6 +39085,16 @@
     "gamba osaka": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 0,
+          "goals_against": 2,
+          "sot": 5,
+          "shots": 12,
+          "xg": 1.71,
+          "xga": 1.23,
+          "is_home": false
+        },
+        {
           "date": "2026-09-20",
           "goals_for": 0,
           "goals_against": 1,
@@ -39262,16 +39282,6 @@
           "shots": 18,
           "xg": 2.43,
           "xga": 1.62,
-          "is_home": true
-        },
-        {
-          "date": "2026-04-04",
-          "goals_for": 2,
-          "goals_against": 0,
-          "sot": 8,
-          "shots": 21,
-          "xg": 2.79,
-          "xga": 0.18,
           "is_home": true
         }
       ]
@@ -40911,6 +40921,16 @@
     "heerenveen": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 0,
+          "goals_against": 2,
+          "sot": 5,
+          "shots": 12,
+          "xg": 1.71,
+          "xga": 0.99,
+          "is_home": false
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 4,
           "goals_against": 0,
@@ -41099,16 +41119,6 @@
           "xg": 1.5,
           "xga": 2.73,
           "is_home": false
-        },
-        {
-          "date": "2026-02-15",
-          "goals_for": 4,
-          "goals_against": 2,
-          "sot": 5,
-          "shots": 11,
-          "xg": 1.68,
-          "xga": 1.98,
-          "is_home": true
         }
       ]
     },
@@ -50109,6 +50119,16 @@
     "queens park rangers": {
       "matches": [
         {
+          "date": "2026-10-09",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 3,
+          "shots": 7,
+          "xg": 1.02,
+          "xga": 1.71,
+          "is_home": false
+        },
+        {
           "date": "2026-09-19",
           "goals_for": 2,
           "goals_against": 2,
@@ -50296,16 +50316,6 @@
           "shots": 9,
           "xg": 1.08,
           "xga": 2.37,
-          "is_home": true
-        },
-        {
-          "date": "2026-02-28",
-          "goals_for": 0,
-          "goals_against": 2,
-          "sot": 2,
-          "shots": 12,
-          "xg": 0.9,
-          "xga": 1.17,
           "is_home": true
         }
       ]
