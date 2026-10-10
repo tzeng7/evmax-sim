@@ -957,6 +957,7 @@ def _nfl_players_table(season: int, week: int, refresh: bool, team: Optional[str
     t.add_column("Rec yds", justify="right", width=15)
     t.add_column("Rush yds", justify="right", width=15)
     t.add_column("Pass yds", justify="right", width=16)
+    t.add_column("TD", justify="right", width=12)
     df = df.sort_values(["gameday", "game_id", "team", "proj_receiving_yards"], ascending=[True, True, True, False])
     for r in df.itertuples():
         event = f"{full(r.away_team)} @ {full(r.home_team)}"
@@ -967,10 +968,13 @@ def _nfl_players_table(season: int, week: int, refresh: bool, team: Optional[str
             rng(r, "receiving_yards") if r.proj_targets >= 1 else "—",
             rng(r, "rushing_yards") if r.proj_carries >= 1 else "—",
             rng(r, "passing_yards") if r.is_starting_qb else "—",
+            (f"{r.p_anytime_td * 100:.0f}%" + (f" [dim]· {r.proj_passing_tds:.1f} pass[/dim]" if r.is_starting_qb else ""))
+            if "p_anytime_td" in df else "—",
         )
     console.print(t)
     console.print("[dim]Active roster = played in the team's last 3 games minus Out/Doubtful (nflverse injury report "
                   "+ live ESPN feed); teammates absorb 60% of a ruled-out player's targets/carries. "
+                  "TD = P(anytime rushing/receiving TD); QBs also show projected passing TDs. "
                   "Medians are MAE-optimal (yardage is right-skewed, so they sit below the mean).[/dim]")
 
 
@@ -1068,6 +1072,14 @@ def nfl_track(
     labels = {"receptions": "Receptions (proj targets >= 3)", "receiving_yards": "Receiving yards (proj targets >= 3)",
               "rushing_yards": "Rushing yards (proj carries >= 5)", "passing_yards": "Passing yards (starting QB)"}
     for st, m in acc["players"].items():
+        if st == "anytime_td":
+            t.add_row("Players who played", "Anytime TD (receiving + rushing populations)", str(m["n"]),
+                      f"Brier {m['brier']:.4f}", "—", f"{(m['mean_p'] - m['rate']) * 100:+.1f}pp", "")
+            continue
+        if st == "passing_tds":
+            t.add_row("Players who played", "Passing TDs (starting QB)", str(m["n"]), f"{m['mae']:.2f}", "—",
+                      f"{m['bias']:+.2f}", "")
+            continue
         t.add_row("Players who played", labels[st], str(m["n"]), f"{m['mae']:.2f}", "—", f"{m['bias']:+.2f}",
                   f"{m['below_p10'] * 100:.0f}% / {m['at_or_below_p90'] * 100:.0f}%")
     console.print(t)

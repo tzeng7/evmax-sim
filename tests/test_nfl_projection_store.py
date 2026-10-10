@@ -217,3 +217,36 @@ def test_cli_nfl_track(stored_db):
     store.resolve(conn, games, pd.DataFrame())
     out = runner.invoke(app, ["nfl-track", "--season", "2026"], env={"COLUMNS": "200"})
     assert out.exit_code == 0 and "Margin (home - away)" in out.output and "6.00" in out.output
+
+
+def test_connect_migrates_td_columns_onto_an_old_table(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "old.db"
+    old = sqlite3.connect(path)
+    old.execute("CREATE TABLE nfl_player_projections (game_id TEXT, player_id TEXT, season INTEGER, week INTEGER, "
+                "gameday TEXT, team TEXT, opp TEXT, logged_at TEXT, updated_at TEXT, PRIMARY KEY (game_id, player_id))")
+    old.commit(); old.close()
+    conn = store.connect(path)
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(nfl_player_projections)")}
+    assert {"p_anytime_td", "proj_passing_tds", "actual_tds", "actual_passing_tds"} <= cols
+
+
+def test_resolve_grades_touchdowns_and_tracks_anytime(tmp_path):
+    conn = store.connect(tmp_path / "p.db")
+    early = datetime(2026, 10, 14, tzinfo=UTC)
+    pp = _players_proj(("p1", "p2")).assign(proj_tds=[0.5, 0.2], p_anytime_td=[0.39, 0.18],
+                                            p_two_plus_td=[0.09, 0.02], proj_passing_tds=[0.0, 0.0])
+    store.log_players(conn, pp, "v1", now=early)
+    games = pd.DataFrame([{"game_id": "2026_06_DAL_PHI", "home_score": 27.0, "away_score": 17.0,
+                           "spread_line": 2.5, "total_line": 44.0}])
+    pg = pd.DataFrame([
+        {"game_id": "2026_06_DAL_PHI", "player_id": pid, "receptions": 5, "receiving_yards": 80.0, "rushing_yards": 0.0,
+         "passing_yards": 0.0, "rushing_tds": rtd, "receiving_tds": ctd, "passing_tds": 0}
+        for pid, rtd, ctd in (("p1", 0, 2), ("p2", 0, 0))])
+    store.resolve(conn, games, pg)
+    rows = {r["player_id"]: r for r in conn.execute("SELECT * FROM nfl_player_projections")}
+    assert rows["p1"]["actual_tds"] == 2 and rows["p2"]["actual_tds"] == 0
+    a = store.accuracy(conn)["players"]["anytime_td"]
+    assert a["n"] == 2 and a["rate"] == 0.5
+    assert a["brier"] == pytest.approx(((0.39 - 1) ** 2 + 0.18 ** 2) / 2)

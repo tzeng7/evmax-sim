@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from evmax.nfl_projections import data, player_games, team_games
+from evmax.nfl_projections import data, player_games, td_model, team_games
 from evmax.nfl_projections.game_model import (
     MARGIN_SD, TOTAL_SD, GameModelConfig, context_features, feature_table, fit_combiner,
     fit_ratings, side_features,
@@ -252,7 +252,8 @@ def project_week_players(season: int, week: int, cfg: PlayerModelConfig = Player
     hist_seasons = list(range(first_script_season(tg), season))
     vft = volume_feature_table(vol, game_script(tg, games, hist_seasons), games, hist_seasons, cfg)
     coefs = volume_combiners(vft)
-    state = fit_player_state(pg, vol, cutoff, cfg)
+    rz = td_model.load_rz_usage(range(first_season, season + 1), d)
+    state = fit_player_state(pg, vol, cutoff, cfg, rz=rz)
 
     injuries = data.load_injuries(season, d)
     recent = recent_team_players(pg, set(wk["home_team"]) | set(wk["away_team"]), cutoff)
@@ -271,6 +272,8 @@ def project_week_players(season: int, week: int, cfg: PlayerModelConfig = Player
         margin, total = script[(gid, team)]
         row = {"game_id": gid, "team": team}
         for m in VOLUME_STATS:
+            if m not in coefs:
+                continue
             c = coefs[m]
             row[m] = c[0] + c[1] * state.fits[m].expect(team, opp, home) + c[2] * margin + c[3] * total
         tv.append(row)

@@ -337,6 +337,12 @@ export interface NflPlayerProjection {
   proj_passing_yards: number | null
   p10_passing_yards: number | null
   p90_passing_yards: number | null
+  proj_tds: number | null
+  p_anytime_td: number | null
+  p_two_plus_td: number | null
+  proj_passing_tds: number | null
+  actual_tds: number | null
+  actual_passing_tds: number | null
   played: number | null
   actual_receptions: number | null
   actual_receiving_yards: number | null
@@ -346,10 +352,15 @@ export interface NflPlayerProjection {
 
 export interface NflStatAccuracy {
   n: number
-  mae: number
-  bias: number
-  below_p10: number
-  at_or_below_p90: number
+  mae?: number
+  bias?: number
+  below_p10?: number
+  at_or_below_p90?: number
+  /** anytime_td only */
+  brier?: number
+  log_loss?: number
+  mean_p?: number
+  rate?: number
 }
 
 export interface NflAccuracy {

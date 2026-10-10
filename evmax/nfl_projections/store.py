@@ -110,6 +110,12 @@ CREATE TABLE IF NOT EXISTS nfl_player_projections (
 CREATE INDEX IF NOT EXISTS idx_nfl_pp_week ON nfl_player_projections(season, week);
 """
 
+# Columns added after the first release of the tables (additive migration in ``connect``).
+_PLAYER_MIGRATIONS: list[tuple[str, str]] = [
+    ("proj_tds", "REAL"), ("p_anytime_td", "REAL"), ("p_two_plus_td", "REAL"), ("proj_passing_tds", "REAL"),
+    ("actual_tds", "REAL"), ("actual_passing_tds", "REAL"),
+]
+
 _GAME_COLS = ["game_id", "season", "week", "gameday", "gametime", "kickoff_utc", "home_team", "away_team",
               "neutral", "roof", "proj_home", "proj_away", "proj_margin", "proj_total", "p_home_win",
               "home_qb_id", "away_qb_id", "home_qb_name", "away_qb_name", "market_home_margin", "market_total"]
@@ -117,7 +123,8 @@ _PLAYER_COLS = (["game_id", "player_id", "season", "week", "gameday", "kickoff_u
                  "player_name", "position", "is_starting_qb", "proj_targets", "proj_carries"]
                 + [f"{p}_{s}" for s in ("receptions", "receiving_yards", "rushing_yards")
                    for p in ("proj", "mean", "p10", "p90")]
-                + ["proj_passing_yards", "p10_passing_yards", "p90_passing_yards"])
+                + ["proj_passing_yards", "p10_passing_yards", "p90_passing_yards"]
+                + ["proj_tds", "p_anytime_td", "p_two_plus_td", "proj_passing_tds"])
 
 
 def db_path() -> Path:
@@ -133,6 +140,11 @@ def connect(path: Optional[Path] = None) -> sqlite3.Connection:
     conn = sqlite3.connect(str(p))
     conn.row_factory = sqlite3.Row
     conn.executescript(_SCHEMA)
+    have = {r[1] for r in conn.execute("PRAGMA table_info(nfl_player_projections)")}
+    for col, typ in _PLAYER_MIGRATIONS:
+        if col not in have:
+            conn.execute(f"ALTER TABLE nfl_player_projections ADD COLUMN {col} {typ}")
+    conn.commit()
     return conn
 
 
@@ -275,11 +287,13 @@ def resolve(conn: sqlite3.Connection, games: pd.DataFrame, player_games: pd.Data
             key = (r.game_id, r.player_id)
             if key in stats.index:
                 s = stats.loc[key]
-                vals = (1, *(_clean(s[st]) for st in PLAYER_STATS))
+                tds = _clean(s.get("rushing_tds", 0) + s.get("receiving_tds", 0)) if "rushing_tds" in s else None
+                vals = (1, *(_clean(s[st]) for st in PLAYER_STATS), tds, _clean(s.get("passing_tds")))
             else:
-                vals = (0, None, None, None, None)
+                vals = (0, None, None, None, None, None, None)
             conn.execute("UPDATE nfl_player_projections SET played=?, actual_receptions=?, "
                          "actual_receiving_yards=?, actual_rushing_yards=?, actual_passing_yards=?, "
+                         "actual_tds=?, actual_passing_tds=?, "
                          "resolved_at=? WHERE game_id=? AND player_id=?", (*vals, now_iso, *key))
             n_players += 1
     conn.commit()
@@ -333,6 +347,21 @@ def accuracy(conn: sqlite3.Connection, season: Optional[int] = None,
             "below_p10": float((d[f"actual_{st}"] < d[f"p10_{st}"]).mean()),
             "at_or_below_p90": float((d[f"actual_{st}"] <= d[f"p90_{st}"]).mean()),
         }
+    if len(p) and "p_anytime_td" in p:
+        d = p[(pops.get("receiving_yards", False) | pops.get("rushing_yards", False))
+              & p["p_anytime_td"].notna() & p["actual_tds"].notna()]
+        if len(d):
+            y = (d["actual_tds"] >= 1).astype(float)
+            pr = d["p_anytime_td"].clip(1e-4, 1 - 1e-4)
+            out["players"]["anytime_td"] = {
+                "n": int(len(d)), "brier": float(((pr - y) ** 2).mean()),
+                "log_loss": float(-(y * np.log(pr) + (1 - y) * np.log(1 - pr)).mean()),
+                "mean_p": float(pr.mean()), "rate": float(y.mean()),
+            }
+        q = p[(p["is_starting_qb"] == 1) & p["proj_passing_tds"].notna() & p["actual_passing_tds"].notna()]
+        if len(q):
+            err = q["proj_passing_tds"] - q["actual_passing_tds"]
+            out["players"]["passing_tds"] = {"n": int(len(q)), "mae": float(err.abs().mean()), "bias": float(err.mean())}
     return out
 
 

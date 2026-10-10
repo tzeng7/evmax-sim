@@ -7,12 +7,32 @@ interface Props {
 }
 
 type StatKey = 'receiving_yards' | 'receptions' | 'rushing_yards' | 'passing_yards'
+type SortKey = StatKey | 'anytime_td'
 
 const STAT_LABEL: Record<StatKey, string> = {
   receiving_yards: 'Rec yds',
   receptions: 'Rec',
   rushing_yards: 'Rush yds',
   passing_yards: 'Pass yds',
+}
+const SORT_LABEL: Record<SortKey, string> = { ...STAT_LABEL, anytime_td: 'Anytime TD' }
+
+/** P(anytime TD) with the result once graded; starting QBs also show projected passing TDs. */
+function TdCell({ p }: { p: NflPlayerProjection }) {
+  if (p.p_anytime_td == null) return <td style={{ textAlign: 'right' }} className="muted">—</td>
+  return (
+    <td style={{ textAlign: 'right' }}>
+      {(p.p_anytime_td * 100).toFixed(0)}%
+      {!!p.is_starting_qb && p.proj_passing_tds != null && (
+        <span className="muted" style={{ fontSize: 11 }}> · {p.proj_passing_tds.toFixed(1)} pass</span>
+      )}
+      {p.actual_tds != null && (
+        <div style={{ fontSize: 11, color: p.actual_tds > 0 ? 'var(--green)' : 'var(--muted)' }}>
+          {p.actual_tds > 0 ? `scored ${p.actual_tds}` : 'no TD'}
+        </div>
+      )}
+    </td>
+  )
 }
 
 const fmt = (v: number | null | undefined, d = 0) => (v == null ? '—' : v.toFixed(d))
@@ -55,7 +75,7 @@ export function NflProjections({ toast }: Props) {
   const [res, setRes] = useState<NflProjectionsResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [team, setTeam] = useState('')
-  const [sortStat, setSortStat] = useState<StatKey>('receiving_yards')
+  const [sortStat, setSortStat] = useState<SortKey>('receiving_yards')
 
   const load = useCallback(async (season?: number, week?: number) => {
     setLoading(true)
@@ -80,9 +100,11 @@ export function NflProjections({ toast }: Props) {
       if (team && p.team !== team) return false
       if (sortStat === 'passing_yards') return !!p.is_starting_qb
       if (sortStat === 'rushing_yards') return (p.proj_carries ?? 0) >= 3
+      if (sortStat === 'anytime_td') return p.p_anytime_td != null
       return (p.proj_targets ?? 0) >= 2
     })
-    return ps.sort((a, b) => (b[`proj_${sortStat}`] ?? 0) - (a[`proj_${sortStat}`] ?? 0))
+    const key = (p: NflPlayerProjection) => (sortStat === 'anytime_td' ? p.p_anytime_td : p[`proj_${sortStat}`]) ?? 0
+    return ps.sort((a, b) => key(b) - key(a))
   }, [res, team, sortStat])
 
   const acc = res?.accuracy
@@ -124,9 +146,13 @@ export function NflProjections({ toast }: Props) {
             <p className="muted" style={{ marginTop: 0 }}>
               {res.season} tracked: margin MAE {fmt(acc.games.margin_mae, 2)} (closing line {fmt(acc.games.close_margin_mae, 2)}),
               total MAE {fmt(acc.games.total_mae, 2)} (closing line {fmt(acc.games.close_total_mae, 2)}) over {acc.games.n} games
-              {Object.entries(acc.players).map(([k, m]) => (
-                <span key={k}> · {STAT_LABEL[k as StatKey] ?? k} MAE {m.mae.toFixed(1)} (n {m.n})</span>
+              {Object.entries(acc.players).filter(([k]) => k in STAT_LABEL).map(([k, m]) => (
+                <span key={k}> · {STAT_LABEL[k as StatKey]} MAE {fmt(m.mae, 1)} (n {m.n})</span>
               ))}
+              {acc.players.anytime_td && (
+                <span> · anytime TD: predicted {fmt((acc.players.anytime_td.mean_p ?? 0) * 100, 0)}% vs actual{' '}
+                  {fmt((acc.players.anytime_td.rate ?? 0) * 100, 0)}% (Brier {fmt(acc.players.anytime_td.brier, 3)})</span>
+              )}
             </p>
           )}
 
@@ -168,8 +194,8 @@ export function NflProjections({ toast }: Props) {
               <option value="">All teams</option>
               {teams.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
-            <select value={sortStat} onChange={e => setSortStat(e.target.value as StatKey)}>
-              {(Object.keys(STAT_LABEL) as StatKey[]).map(k => <option key={k} value={k}>Sort: {STAT_LABEL[k]}</option>)}
+            <select value={sortStat} onChange={e => setSortStat(e.target.value as SortKey)}>
+              {(Object.keys(SORT_LABEL) as SortKey[]).map(k => <option key={k} value={k}>Sort: {SORT_LABEL[k]}</option>)}
             </select>
             <span className="muted">{players.length} players</span>
           </div>
@@ -182,6 +208,7 @@ export function NflProjections({ toast }: Props) {
                 <th style={{ textAlign: 'right' }}>Rec yds</th>
                 <th style={{ textAlign: 'right' }}>Rush yds</th>
                 <th style={{ textAlign: 'right' }}>Pass yds</th>
+                <th style={{ textAlign: 'right' }} title="Probability of a rushing or receiving touchdown (Poisson on expected TDs)">Anytime TD</th>
               </tr>
             </thead>
             <tbody>
@@ -196,6 +223,7 @@ export function NflProjections({ toast }: Props) {
                   <StatCell p={p} stat="receiving_yards" />
                   <StatCell p={p} stat="rushing_yards" />
                   <StatCell p={p} stat="passing_yards" />
+                  <TdCell p={p} />
                 </tr>
               ))}
             </tbody>
