@@ -24,9 +24,9 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from evmax.nfl_projections import data, player_games, team_games
+from evmax.nfl_projections import data, player_games, td_model, team_games
 from evmax.nfl_projections.game_model import (
-    MARGIN_SD, TOTAL_SD, GameModelConfig, context_features, feature_table, fit_combiner,
+    MARGIN_SD, TOTAL_SD, GameModelConfig, context_features, drive_points, feature_table, fit_combiner,
     fit_ratings, side_features,
 )
 from evmax.nfl_projections.player_model import (
@@ -86,6 +86,7 @@ def project_week(season: int, week: int, cfg: GameModelConfig = GameModelConfig(
                         cfg.features)
     fits = fit_ratings(tg, cutoff, cfg)
     qbr = fit_qb_ratings(tg, cutoff)
+    dpts = drive_points(tg, games, cutoff, wk) if "drive" in cfg.features else {}
     recent = latest_starters(tg, cutoff)
     overrides = starters or {}
 
@@ -101,6 +102,8 @@ def project_week(season: int, week: int, cfg: GameModelConfig = GameModelConfig(
             qb = overrides.get(team) or (sched_qb if isinstance(sched_qb, str) and sched_qb else None) \
                 or recent.get(team)
             feats = {**side_features(fits, team, opp, home), **ctx, "qb": qbr.delta(team, qb)}
+            if dpts:
+                feats["drive"] = dpts.get((g.game_id, team))
             sides[team] = (comb.predict(feats), qb)
         (ph, hq), (pa, aq) = sides[g.home_team], sides[g.away_team]
         rows.append({
@@ -252,7 +255,8 @@ def project_week_players(season: int, week: int, cfg: PlayerModelConfig = Player
     hist_seasons = list(range(first_script_season(tg), season))
     vft = volume_feature_table(vol, game_script(tg, games, hist_seasons), games, hist_seasons, cfg)
     coefs = volume_combiners(vft)
-    state = fit_player_state(pg, vol, cutoff, cfg)
+    rz = td_model.load_rz_usage(range(first_season, season + 1), d)
+    state = fit_player_state(pg, vol, cutoff, cfg, rz=rz)
 
     injuries = data.load_injuries(season, d)
     recent = recent_team_players(pg, set(wk["home_team"]) | set(wk["away_team"]), cutoff)
@@ -271,6 +275,8 @@ def project_week_players(season: int, week: int, cfg: PlayerModelConfig = Player
         margin, total = script[(gid, team)]
         row = {"game_id": gid, "team": team}
         for m in VOLUME_STATS:
+            if m not in coefs:
+                continue
             c = coefs[m]
             row[m] = c[0] + c[1] * state.fits[m].expect(team, opp, home) + c[2] * margin + c[3] * total
         tv.append(row)
@@ -278,3 +284,29 @@ def project_week_players(season: int, week: int, cfg: PlayerModelConfig = Player
     proj = project_players(state, roster, team_volume, mult)
     return proj.merge(wk[["game_id", "gameday", "gametime", "home_team", "away_team"]], on="game_id").assign(
         season=season, week=week)
+
+
+def simulate_game(season: int, week: int, team: str, n: int = 10000, d: Optional[Path] = None,
+                  refresh: bool = True, espn_reports: Optional[dict] = None, seed: int = 0):
+    """Joint simulation of ``team``'s game in ``season`` ``week``.
+
+    Returns {team: (players DataFrame, sims dict)} for both teams; the shape
+    parameters are fitted on the six completed seasons before ``season``.
+    """
+    from evmax.nfl_projections import simulate
+
+    proj = project_week_players(season, week, d=d, refresh=refresh, espn_reports=espn_reports)
+    game = proj[proj["team"] == team.upper()]
+    if game.empty:
+        raise ValueError(f"{team.upper()} has no projected game in {season} week {week}")
+    gid = game["game_id"].iloc[0]
+    pg = player_games.load_player_games(range(season - 6, season), d)
+    params = simulate.fit_sim_params(pg[pg["season_type"] == "REG"])
+    rng = np.random.default_rng(seed)
+    out = {}
+    for t, grp in proj[proj["game_id"] == gid].groupby("team"):
+        grp = grp.reset_index(drop=True)
+        f = grp.iloc[0]
+        out[t] = (grp, simulate.simulate_team(grp, f["exp_team_targets"], f["exp_team_carries"],
+                                              f["exp_team_rush_tds"], f["exp_team_rec_tds"], params, n=n, rng=rng))
+    return out

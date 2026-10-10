@@ -117,7 +117,8 @@ def load_pbp(seasons: Iterable[int], d: Optional[Path] = None,
         return pd.DataFrame(columns=columns)
     p = pd.concat(frames, ignore_index=True)
     for c in ("posteam", "defteam", "home_team", "away_team"):
-        p[c] = p[c].replace(TEAM_ALIASES)
+        if c in p:
+            p[c] = p[c].replace(TEAM_ALIASES)
     return p
 
 

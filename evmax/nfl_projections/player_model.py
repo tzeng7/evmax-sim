@@ -31,7 +31,7 @@ from scipy import stats
 from evmax.nfl_projections.ratings import RatingFit, fit_rating, recency_weights
 
 SKILL = ("WR", "TE", "RB", "QB")
-VOLUME_STATS = ("team_targets", "team_carries", "team_attempts")
+VOLUME_STATS = ("team_targets", "team_carries", "team_attempts", "team_rush_tds", "team_rec_tds")
 
 
 @dataclass(frozen=True)
@@ -45,6 +45,8 @@ class PlayerModelConfig:
     k_carries: float = 80.0            # pseudo-carries for yards per carry
     k_attempts: float = 150.0          # pseudo-attempts for QB yards per attempt
     k_team_attempts: float = 100.0     # pseudo team-attempts for a starter's attempt share
+    td_share_prior_games: float = 2.0  # pseudo-games at the position-mean expected-TD share
+    td_actual_weight: float = 0.25     # weight on the actual TD share (TD2: z -5.5, 6/6 seasons vs xTD-only)
     min_start_attempts: float = 10.0   # a game counts as a start at >= this many attempts
     # Fraction of a ruled-out player's expected target/carry share that goes to the
     # teammates expected to play (the rest goes to call-ups and players with no
@@ -68,21 +70,26 @@ class PlayerState:
 
 
 def team_volume_rows(player_games: pd.DataFrame, team_games: pd.DataFrame) -> pd.DataFrame:
-    """Team-game rows with team targets / carries / attempts and the home flag."""
+    """Team-game rows with team targets / carries / attempts / rushing and receiving TDs, and the home flag."""
     tv = player_games.groupby(["game_id", "team"]).agg(
         team_targets=("team_targets", "first"), team_carries=("team_carries", "first"),
-        team_attempts=("team_attempts", "first")).reset_index()
+        team_attempts=("team_attempts", "first"), team_rush_tds=("rushing_tds", "sum"),
+        team_rec_tds=("receiving_tds", "sum")).reset_index()
     return tv.merge(team_games[["game_id", "team", "opp", "home", "gameday"]], on=["game_id", "team"])
 
 
 def fit_player_state(player_games: pd.DataFrame, volume_rows: pd.DataFrame, cutoff: pd.Timestamp,
-                     cfg: PlayerModelConfig = PlayerModelConfig()) -> PlayerState:
+                     cfg: PlayerModelConfig = PlayerModelConfig(),
+                     rz: pd.DataFrame | None = None) -> PlayerState:
+    """Usage/efficiency state from games before ``cutoff``. With ``rz`` (``td_model.load_rz_usage``)
+    each player also gets his expected-TD shares (``rush_xtd_share``, ``rec_xtd_share``)."""
     lo = cutoff - pd.Timedelta(days=cfg.lookback_days)
     vr = volume_rows[(volume_rows["gameday"] < cutoff) & (volume_rows["gameday"] >= lo)]
     fits = {m: fit_rating(vr, m, cutoff, cfg.half_life_days, cfg.lam, offseason_days=cfg.offseason_days)
-            for m in VOLUME_STATS}
+            for m in VOLUME_STATS if m in vr}
 
     pg = player_games[(player_games["gameday"] < cutoff) & (player_games["gameday"] >= lo)]
+    xtd = _xtd_shares(pg, rz) if rz is not None else None
     pg = pg[pg["position"].isin(SKILL)]
     w = recency_weights(pg["gameday"], cutoff, cfg.half_life_days, cfg.offseason_days)
     t_share = np.where(pg["team_targets"] > 0, pg["targets"] / pg["team_targets"].clip(lower=1), 0.0)
@@ -130,10 +137,49 @@ def fit_player_state(player_games: pd.DataFrame, volume_rows: pd.DataFrame, cuto
     agg["att_share"] = ((agg["ws_att"] + cfg.k_team_attempts * starts_share)
                         / (agg["ws_tatt"] + cfg.k_team_attempts))
     agg["ypa"] = (agg["ws_py"] + cfg.k_attempts * starts_ypa) / (agg["ws_att"] + cfg.k_attempts)
+    if xtd is not None:
+        x = xtd.reindex(pd.MultiIndex.from_arrays([pg["game_id"], pg["player_id"]]))
+        beta = cfg.td_actual_weight
+        rush = ((1 - beta) * x["rush_share"] + beta * x["rush_td_share"]).to_numpy()
+        rec = ((1 - beta) * x["rec_share"] + beta * x["rec_td_share"]).to_numpy()
+        w_r = np.where(np.isnan(rush), 0.0, w)
+        w_c = np.where(np.isnan(rec), 0.0, w)
+        xa = pd.DataFrame({"player_id": pg["player_id"].to_numpy(), "position": pg["position"].to_numpy(),
+                           "w_r": w_r, "w_c": w_c, "wr": w_r * np.nan_to_num(rush), "wc": w_c * np.nan_to_num(rec)})
+        xs = xa.groupby("player_id")[["w_r", "w_c", "wr", "wc"]].sum().reindex(agg.index).fillna(0.0)
+        xp = xa.groupby("position")[["w_r", "w_c", "wr", "wc"]].sum()
+        kt = cfg.td_share_prior_games
+        pos_r = (xp["wr"] / xp["w_r"].clip(lower=1e-9)).reindex(agg["position"]).fillna(0.0).to_numpy()
+        pos_c = (xp["wc"] / xp["w_c"].clip(lower=1e-9)).reindex(agg["position"]).fillna(0.0).to_numpy()
+        agg["rush_xtd_share"] = (xs["wr"].to_numpy() + kt * pos_r) / np.maximum(xs["w_r"].to_numpy() + kt, 1e-9)
+        agg["rec_xtd_share"] = (xs["wc"].to_numpy() + kt * pos_c) / np.maximum(xs["w_c"].to_numpy() + kt, 1e-9)
     return PlayerState(usage=agg, fits=fits, theta=fit_dispersion(pg), negbin_k=fit_negbin_k(pg),
                        pass_sd=fit_pass_sd(pg),
                        quantile_curves={(st, q): fit_quantile_curve(pg, st, q)
                                         for st in ("receiving_yards", "rushing_yards") for q in QUANTILES})
+
+
+def _xtd_shares(window: pd.DataFrame, rz: pd.DataFrame) -> pd.DataFrame:
+    """Per (game_id, player_id): the player's share of his team's rushing / receiving
+    expected TDs in that game. Bucket TD rates come from the same window (leak-free)."""
+    from evmax.nfl_projections.td_model import REC_TD, RUSH_TD, RZ_COLS, bucket_td_rates, expected_tds
+
+    w = window[["game_id", "team", "player_id"]].merge(rz, on=["game_id", "player_id"], how="left")
+    w[RZ_COLS] = w[RZ_COLS].fillna(0.0)
+    r_rush, r_tgt = bucket_td_rates(w)
+    w["x_rush"], w["x_rec"] = expected_tds(w, r_rush, r_tgt)
+    w["a_rush"] = w[RUSH_TD].sum(axis=1)
+    w["a_rec"] = w[REC_TD].sum(axis=1)
+    tot = w.groupby(["game_id", "team"])[["x_rush", "x_rec", "a_rush", "a_rec"]].transform("sum")
+    # A game where the team had no expected TDs of a kind says nothing about how its
+    # TDs split, so its share is NaN (left out of the player's average), not 0.
+    for share, num, base in (("rush_share", "x_rush", "x_rush"), ("rec_share", "x_rec", "x_rec"),
+                             ("rush_td_share", "a_rush", "x_rush"), ("rec_td_share", "a_rec", "x_rec")):
+        with np.errstate(invalid="ignore", divide="ignore"):
+            frac = np.where(tot[num] > 0, w[num] / tot[num].clip(lower=1e-9), 0.0)
+        w[share] = np.where(tot[base] > 0, frac, np.nan)
+    return w.drop_duplicates(["game_id", "player_id"]).set_index(["game_id", "player_id"])[
+        ["rush_share", "rec_share", "rush_td_share", "rec_td_share"]]
 
 
 MIN_GAMES_FOR_DISPERSION = 6
@@ -302,7 +348,15 @@ def injury_share_multipliers(usage: pd.DataFrame, recent: pd.DataFrame, out: set
     active = r[~r["out"]]
     res = pd.DataFrame(index=pd.MultiIndex.from_arrays([active["player_id"], active["team"]],
                                                        names=["player_id", "team"]))
-    for col, mult in (("tgt", "tgt_mult"), ("car", "car_mult")):
+    pairs = [("tgt", "tgt_mult"), ("car", "car_mult")]
+    if "rush_xtd_share" in usage and "rec_xtd_share" in usage:
+        # Expected-TD shares move by their own freed amount (a goal-line back's TD
+        # share is far larger than his carry share).
+        r["rxtd"] = u["rush_xtd_share"].to_numpy()
+        r["cxtd"] = u["rec_xtd_share"].to_numpy()
+        active = r[~r["out"]]
+        pairs += [("rxtd", "rush_xtd_mult"), ("cxtd", "rec_xtd_mult")]
+    for col, mult in pairs:
         freed = r[freeing].groupby("team")[col].sum()
         kept = active.groupby("team")[col].sum()
         m = 1.0 + alpha * freed.reindex(kept.index).fillna(0.0) / kept.clip(lower=1e-9)
@@ -328,10 +382,12 @@ def project_players(state: PlayerState, roster: pd.DataFrame,
                         mean_receptions=[], mean_receiving_yards=[], mean_rushing_yards=[])
     f = state.fits
     exp = {m: np.array([f[m].expect(t, o, h) for t, o, h in zip(r["team"], r["opp"], r["home"])])
-           for m in VOLUME_STATS}
+           for m in VOLUME_STATS if m in f}
     if team_volume is not None:  # script-conditioned team volume (``volume_combiners``)
         idx = pd.MultiIndex.from_arrays([r["game_id"], r["team"]])
-        for m in VOLUME_STATS:
+        for m in exp:
+            if m not in team_volume:
+                continue
             v = team_volume[m].reindex(idx).to_numpy()
             exp[m] = np.where(np.isnan(v), exp[m], v)
     uu = u.loc[r["player_id"]]
@@ -341,6 +397,12 @@ def project_players(state: PlayerState, roster: pd.DataFrame,
         m = share_mult.reindex(pd.MultiIndex.from_arrays([r["player_id"], r["team"]]))
         tgt_share = tgt_share * m["tgt_mult"].fillna(1.0).to_numpy(dtype=float)
         car_share = car_share * m["car_mult"].fillna(1.0).to_numpy(dtype=float)
+    # Inputs kept for the joint simulation (simulate.simulate_team).
+    r["tgt_share"], r["car_share"] = tgt_share, car_share
+    r["catch_rate"], r["ypt"], r["ypc"] = (uu["catch_rate"].to_numpy(), uu["ypt"].to_numpy(),
+                                           uu["ypc"].to_numpy())
+    for m, v in exp.items():
+        r[f"exp_{m}"] = v
     r["proj_targets"] = exp["team_targets"] * tgt_share
     r["proj_receptions"] = r["proj_targets"] * uu["catch_rate"].to_numpy()
     r["proj_receiving_yards"] = r["proj_targets"] * uu["ypt"].to_numpy()
@@ -348,6 +410,29 @@ def project_players(state: PlayerState, roster: pd.DataFrame,
     r["proj_rushing_yards"] = r["proj_carries"] * uu["ypc"].to_numpy()
     r["proj_passing_yards"] = np.where(
         r["is_starting_qb"], exp["team_attempts"] * uu["att_share"].to_numpy() * uu["ypa"].to_numpy(), 0.0)
+    if "rush_xtd_share" in uu and "team_rush_tds" in exp:
+        # Touchdowns: team TD volume x expected-TD share; Poisson counts (td_model).
+        from evmax.nfl_projections.td_model import poisson_at_least
+
+        base_t, base_c = uu["tgt_share"].to_numpy(), uu["car_share"].to_numpy()
+        tmult = np.where(base_t > 0, tgt_share / np.where(base_t > 0, base_t, 1.0), 1.0)
+        cmult = np.where(base_c > 0, car_share / np.where(base_c > 0, base_c, 1.0), 1.0)
+        rmult, xmult = cmult, tmult
+        if share_mult is not None and len(share_mult) and "rush_xtd_mult" in share_mult:
+            m2 = share_mult.reindex(pd.MultiIndex.from_arrays([r["player_id"], r["team"]]))
+            rmult = m2["rush_xtd_mult"].fillna(1.0).to_numpy(dtype=float)
+            xmult = m2["rec_xtd_mult"].fillna(1.0).to_numpy(dtype=float)
+        r["rush_xtd_share"] = uu["rush_xtd_share"].to_numpy() * rmult
+        r["rec_xtd_share"] = uu["rec_xtd_share"].to_numpy() * xmult
+        lam_rush = exp["team_rush_tds"] * r["rush_xtd_share"].to_numpy()
+        lam_rec = exp["team_rec_tds"] * r["rec_xtd_share"].to_numpy()
+        r["proj_rush_tds"] = np.clip(lam_rush, 0.0, None)
+        r["proj_rec_tds"] = np.clip(lam_rec, 0.0, None)
+        r["proj_tds"] = r["proj_rush_tds"] + r["proj_rec_tds"]
+        r["p_anytime_td"] = poisson_at_least(r["proj_tds"].to_numpy(), 1)
+        r["p_two_plus_td"] = poisson_at_least(r["proj_tds"].to_numpy(), 2)
+        r["proj_passing_tds"] = np.where(
+            r["is_starting_qb"], np.clip(exp["team_rec_tds"] * uu["att_share"].to_numpy(), 0.0, None), 0.0)
     # Means above; the reported point projection is the MEDIAN (MAE-optimal for
     # skewed stats). Passing yards are near-symmetric for starters: median = mean.
     for stat in ("receptions", "receiving_yards", "rushing_yards"):
@@ -407,9 +492,9 @@ def volume_feature_table(volume_rows: pd.DataFrame, script: pd.DataFrame, games:
         lo = cutoff - pd.Timedelta(days=cfg.lookback_days)
         vr = volume_rows[(volume_rows["gameday"] < cutoff) & (volume_rows["gameday"] >= lo)]
         fits = {m: fit_rating(vr, m, cutoff, cfg.half_life_days, cfg.lam, offseason_days=cfg.offseason_days)
-                for m in VOLUME_STATS}
+                for m in VOLUME_STATS if m in vr}
         cur = volume_rows[volume_rows["game_id"].isin(wk["game_id"])].copy()
-        for m in VOLUME_STATS:
+        for m in fits:
             cur["exp_" + m] = [fits[m].expect(t, o, h) for t, o, h in zip(cur["team"], cur["opp"], cur["home"])]
         cur["season"] = season
         out.append(cur)
@@ -421,6 +506,8 @@ def volume_combiners(vft: pd.DataFrame) -> dict[str, np.ndarray]:
     """Per volume stat: OLS coef for [1, rating expectation, proj margin, proj total]."""
     out = {}
     for m in VOLUME_STATS:
+        if m not in vft:
+            continue
         X = np.column_stack([np.ones(len(vft)), vft["exp_" + m], vft["proj_margin"], vft["proj_total"]])
         out[m] = np.linalg.lstsq(X, vft[m].to_numpy(dtype=float), rcond=None)[0]
     return out
@@ -435,7 +522,7 @@ def predict_volume(vft: pd.DataFrame, coefs: dict[str, np.ndarray]) -> pd.DataFr
 
 def walk_forward(team_games: pd.DataFrame, player_games: pd.DataFrame, games: pd.DataFrame,
                  seasons: list[int], cfg: PlayerModelConfig = PlayerModelConfig(),
-                 injuries: pd.DataFrame | None = None) -> pd.DataFrame:
+                 injuries: pd.DataFrame | None = None, rz: pd.DataFrame | None = None) -> pd.DataFrame:
     """Project every player who played in ``seasons``' completed games, week by week, leak-free.
 
     The roster for a week is everyone who played those games (the backtest
@@ -462,7 +549,7 @@ def walk_forward(team_games: pd.DataFrame, player_games: pd.DataFrame, games: pd
             idx = pd.MultiIndex.from_arrays([roster["game_id"], roster["team"]])
             roster["home"] = home.reindex(idx).fillna(0).to_numpy()
             roster["is_starting_qb"] = starters.reindex(idx).to_numpy() == roster["player_id"].to_numpy()
-            state = fit_player_state(player_games, vol, cutoff, cfg)
+            state = fit_player_state(player_games, vol, cutoff, cfg, rz=rz)
             mult = None
             if injuries is not None:
                 recent = recent_team_players(player_games, set(wk["home_team"]) | set(wk["away_team"]), cutoff)

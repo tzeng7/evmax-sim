@@ -686,6 +686,7 @@ TableBuilder = Callable[..., list[dict[str, Any]]]
 
 NFL_TOP_RECEIVING = 15
 NFL_TOP_RUSHING = 10
+NFL_TOP_TD = 15
 
 
 def nfl_projection_embeds(
@@ -730,6 +731,12 @@ def nfl_projection_embeds(
         return [[f"{p['player_name']} ({p['team']})", f"{p[f'proj_{stat}']:.0f}",
                  f"{p[f'p10_{stat}']:.0f}-{p[f'p90_{stat}']:.0f}"] for p in cand]
 
+    td = sorted((p for p in players if p.get("p_anytime_td") is not None), key=lambda p: -p["p_anytime_td"])[:NFL_TOP_TD]
+    if td:
+        rows = [[f"{p['player_name']} ({p['team']})", f"{p['p_anytime_td'] * 100:.0f}%",
+                 f"{(p.get('p_two_plus_td') or 0) * 100:.0f}%"] for p in td]
+        chunks = table_chunks(["Player", "Anytime", "2+"], rows, ["<", ">", ">"], TABLE_CHUNK_MAX)
+        out += _table_embeds(f"NFL {season} Week {week} — rushing/receiving TD probability", chunks, COLOR_INFO, None)
     for title, stat, keep, n in (
         ("receiving yards", "receiving_yards", lambda p: (p.get("proj_targets") or 0) >= 1, NFL_TOP_RECEIVING),
         ("rushing yards", "rushing_yards", lambda p: (p.get("proj_carries") or 0) >= 1, NFL_TOP_RUSHING),
