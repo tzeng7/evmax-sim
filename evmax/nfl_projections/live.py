@@ -26,7 +26,7 @@ from scipy import stats
 
 from evmax.nfl_projections import data, player_games, td_model, team_games
 from evmax.nfl_projections.game_model import (
-    MARGIN_SD, TOTAL_SD, GameModelConfig, context_features, feature_table, fit_combiner,
+    MARGIN_SD, TOTAL_SD, GameModelConfig, context_features, drive_points, feature_table, fit_combiner,
     fit_ratings, side_features,
 )
 from evmax.nfl_projections.player_model import (
@@ -86,6 +86,7 @@ def project_week(season: int, week: int, cfg: GameModelConfig = GameModelConfig(
                         cfg.features)
     fits = fit_ratings(tg, cutoff, cfg)
     qbr = fit_qb_ratings(tg, cutoff)
+    dpts = drive_points(tg, games, cutoff, wk) if "drive" in cfg.features else {}
     recent = latest_starters(tg, cutoff)
     overrides = starters or {}
 
@@ -101,6 +102,8 @@ def project_week(season: int, week: int, cfg: GameModelConfig = GameModelConfig(
             qb = overrides.get(team) or (sched_qb if isinstance(sched_qb, str) and sched_qb else None) \
                 or recent.get(team)
             feats = {**side_features(fits, team, opp, home), **ctx, "qb": qbr.delta(team, qb)}
+            if dpts:
+                feats["drive"] = dpts.get((g.game_id, team))
             sides[team] = (comb.predict(feats), qb)
         (ph, hq), (pa, aq) = sides[g.home_team], sides[g.away_team]
         rows.append({

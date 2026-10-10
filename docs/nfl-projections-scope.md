@@ -334,11 +334,95 @@ Mixing 10–50% of the model into the Kalshi number never lowers MAE by more tha
 
 Revisit only with a new information source the market may price slowly, such as minute-level reaction to injury news (`project_nfl_props_edge_research`).
 
-**Not built, deliberately deferred:**
-- the drive simulator (research);
-- a market-blend display (it equals the market, which the dashboard already shows next to the model);
-- TD projections;
-- the joint Monte Carlo that makes receivers sum to the QB.
+**Not built:** a market-blend display (it equals the market, which the dashboard already shows next to the model).
+
+## Phase 4 builds (2026-10-10) — touchdowns, joint simulation, drive simulator
+
+### Touchdown projections (`td_model.py` + `player_model`)
+
+**Mechanism.**
+1. Each carry and target is bucketed by field position (1–2, 3–5, 6–10, 11–20, 21+ yards from the goal line).
+2. The league TD rate per bucket, computed point-in-time over the fit window, turns a player's touches into expected TDs (xTD).
+3. A player's share of his team's rushing and receiving xTD is recency-weighted and shrunk toward his position's mean. It is blended 75/25 with his actual TD share.
+4. Team rushing and receiving TDs are two new team volume stats. Each uses an opponent-adjusted rating plus the game script.
+5. Counts are Poisson. The outputs are P(anytime TD) and P(2+). The starting QB's passing TDs = team receiving TDs × his share of team pass attempts.
+
+Play-by-play TD totals equal the official totals: 6,299 rushing and 11,163 receiving for 2013–2026.
+
+**Harness:** `scripts/backtest_nfl_td_projections.py`. The signal `td_dev_score` is the mean of two log-loss ratios (anytime TD, passing TDs) against a usage baseline:
+- anytime TD: last-8 touches per game × the position's TD rate per touch;
+- passing TDs: attempts per start × the league TD rate per attempt.
+
+The first version compared against last-8 TD counts. The reviewer showed that comparator lost even to a position constant, so it overstated skill. The keep rule, declared before further iterations, is a paired game-clustered bootstrap z ≤ −2 and a win in at least 5 of 6 dev seasons.
+
+| Step | td_dev_score | Verdict |
+|---|---|---|
+| TD0 xTD share, against the strawman baseline | 0.95107 | superseded |
+| TD0 against the usage baseline | 0.99000 | baseline (anytime 1.0006, passing 0.979) |
+| TD1 weaker xTD-share prior | — | rejected (below noise) |
+| TD4 move an out player's xTD by xTD share (reviewer) | 0.98999 | kept, neutral |
+| TD2 blend 25% actual TD share | **0.98830** | kept (z −5.5, 6/6 seasons) |
+
+**Holdout 2025:** anytime 0.9939, passing 0.9787. Calibration is within 1–3pp per bucket, except the sparse buckets above 50% (n=158 and 15).
+
+**Field position helps.** The reviewer ablated the buckets. With bucketing, holdout log loss improves by 3.4/1000 (z −2.5), and the bucketed model is better in 6 of 7 seasons.
+
+**Against Kalshi `KXNFLTD` 1+** (1,231 player-games in 2026 Weeks 1-5, mid price one hour before kickoff, Kalshi's official results):
+
+| Source | Log loss | Brier |
+|---|---|---|
+| Market | 0.4346 | 0.1373 |
+| Model | 0.4485 | 0.1420 |
+
+The model is worse (game-clustered z +3.05). A 10% logit blend gains 0.0003. Touchdowns are a product, not an EV input.
+
+**Product.** The CLI TD column; the dashboard "Anytime TD" column and sort; the Discord TD table. The values are stored with an additive migration, then graded and tracked (Brier).
+
+### Joint game simulation (`simulate.py`, `evmax project nfl-sim --team KC`)
+
+**Per simulated game:**
+1. Team targets and carries: Poisson × a Gamma game factor.
+2. Shares: a Dirichlet-multinomial draw around the projected shares, with an "other" slot.
+3. Catches are binomial; yards are per-catch Gamma and per-carry Normal, scaled by a shared team efficiency factor.
+4. TDs are split by xTD share.
+5. The QB's passing yards = the sum of his receivers' yards, and his passing TDs = the team's receiving TDs, in every simulation.
+
+Parameters are fitted by method of moments on past seasons (`fit_sim_params`).
+
+**Validation on the 2025 holdout** (`scripts/eval_nfl_joint_sim.py`, parameters fitted on 2019-24):
+
+| Check | Result |
+|---|---|
+| Median MAE, simulation vs per-player model | receiving yards 18.94 vs 19.00, rushing yards 19.12 vs 19.22, passing yards 58.05 vs 57.99 |
+| Sum identity | exact in every simulation |
+| Correlation QB ~ WR1 | simulated +0.55 vs realized +0.46 ± 0.07 (slightly too strong) |
+| Correlation WR1 ~ WR2 | +0.03 vs +0.05 |
+| Correlation QB ~ RB1 | 0.00 vs −0.05 |
+| Passing range | 13% of results below p10: the range inherits the model's +7-yard holdout passing bias |
+
+The CLI shows stacks: P(QB and receiver both clear their medians) next to the product of the separate probabilities (about 32–35% vs 25%).
+
+### Drive simulator (`drive_model.py`) — H8 rejected as a game-model feature
+
+**Mechanism:**
+- Drives start in four field-position zones.
+- League outcome rates come per zone (TD, FG, defensive TD, safety, punt, turnover, downs, missed FG, end of half).
+- Team TD-over-expected and FG-over-expected per drive are opponent-adjusted ridge ratings. Pace is a rating on drives per team-game.
+- Next-drive start zones depend on the previous outcome; after a defensive TD the offense receives again.
+
+`game_model.drive_points` gives the deterministic per-game mean of 2,000 simulations. It is available as the `drive` combiner feature, which is off by default.
+
+**Evaluation, dev 2019-24** (`scripts/backtest_nfl_drive_sim.py`, 1,599 games):
+
+| Model | Margin MAE | Total MAE | Sum |
+|---|---|---|---|
+| Drive simulator alone | 10.262 | 10.948 | 21.210 |
+| Game model | 10.192 | 10.549 | 20.741 |
+| Game model + drive feature | 10.191 | 10.556 | 20.746 |
+| Closing line | 9.843 | 10.352 | 20.195 |
+
+Adding the feature changes the dev score by +0.005, which is noise. It is not better in a majority of seasons. The ridge ratings already carry what the drive structure knows. The simulator stays as a tool (score distributions, standalone evaluation), not as a default input.
+
 
 ## 8. Risks and limits
 
