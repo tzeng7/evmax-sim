@@ -28,11 +28,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from evmax.db_location import connect_readonly, readonly_enabled, resolve_db_path
+
 if TYPE_CHECKING:
     from evmax.models.market import PredictionMarket
     from evmax.models.odds import SharpOdds
 
-DB_PATH = Path(__file__).resolve().parents[1] / "data" / "archive.db"
+# EVMAX_DB_DIR / EVMAX_DB_READONLY overrides: see evmax/db_location.py.
+DB_PATH = resolve_db_path("archive.db", Path(__file__).resolve().parents[1] / "data" / "archive.db")
 
 # When a spread/total bet's line has no exact archived snapshot, we fall back to
 # the nearest pre-tipoff snapshot — but only within this tolerance (points).
@@ -203,6 +206,8 @@ def archive_book_label(odds: "SharpOdds") -> str:
 
 
 def _get_connection() -> sqlite3.Connection:
+    if readonly_enabled():
+        return connect_readonly(DB_PATH)
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(DB_PATH), timeout=5.0)
     conn.row_factory = sqlite3.Row

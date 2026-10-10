@@ -1325,6 +1325,9 @@ def board(
         help="Restrict every column to rows in one OUR-side entry-price bucket "
              "(0-10 … 90+). Favorite–longshot lens; see `clv-prices`.",
     ),
+    as_json: bool = typer.Option(
+        False, "--json", help="Emit the board rows as raw JSON (for agents/scripts)."
+    ),
 ) -> None:
     """Promotion scoreboard — per (sector, market type, venue) health.
 
@@ -1342,6 +1345,22 @@ def board(
         league=league,
         price_bucket=price_bucket,
     )
+    if as_json:
+        import json as _json
+        import math as _math
+
+        def _finite(v):
+            # Strict JSON for agents/jq: NaN / ±inf become null.
+            if isinstance(v, float) and not _math.isfinite(v):
+                return None
+            if isinstance(v, dict):
+                return {k: _finite(x) for k, x in v.items()}
+            if isinstance(v, (list, tuple)):
+                return [_finite(x) for x in v]
+            return v
+
+        console.print_json(_json.dumps(_finite(rows), default=str, allow_nan=False))
+        return
     if not rows:
         console.print("[yellow]No prediction rows in the window.[/yellow]")
         return

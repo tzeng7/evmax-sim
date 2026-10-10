@@ -40,9 +40,11 @@ from typing import Callable, Iterable, Optional
 import numpy as np
 
 from evmax.agents.cleanup.contamination import is_contaminated
+from evmax.db_location import connect_readonly, readonly_enabled, resolve_db_path
 from evmax.ev.calculator import effective_price
 
-DEFAULT_DB = Path(__file__).resolve().parents[2] / "data" / "predictions.db"
+# Honors EVMAX_DB_DIR / EVMAX_DB_READONLY (evmax/db_location.py).
+DEFAULT_DB = resolve_db_path("predictions.db", Path(__file__).resolve().parents[2] / "data" / "predictions.db")
 
 
 @dataclass
@@ -101,7 +103,7 @@ def load_resolved_rows(
     mode_list = list(modes)
     placeholders = ",".join("?" for _ in mode_list)
     sized_clause = "AND p.kelly_fraction > 0" if require_sized else ""
-    con = sqlite3.connect(str(db_path))
+    con = connect_readonly(Path(db_path)) if readonly_enabled() else sqlite3.connect(str(db_path))
     con.row_factory = sqlite3.Row
     try:
         rows = con.execute(

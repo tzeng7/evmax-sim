@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from evmax.agents.cleanup.db import DB_PATH
+from evmax.db_location import connect_readonly, readonly_enabled
 
 PORTFOLIO_SCHEMA = """
 CREATE TABLE IF NOT EXISTS portfolios (
@@ -147,6 +148,8 @@ class Portfolio:
 
 
 def _get_conn() -> sqlite3.Connection:
+    if readonly_enabled():
+        return connect_readonly(DB_PATH)
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(DB_PATH), timeout=5.0)
     conn.row_factory = sqlite3.Row
@@ -348,7 +351,7 @@ def backfill_portfolio_from_prop_observations(portfolio_id: str) -> int:
           AND {version_sql}
           AND sector IN ({placeholders})
     """
-    src = sqlite3.connect(str(pred_db))
+    src = connect_readonly(pred_db) if readonly_enabled() else sqlite3.connect(str(pred_db))
     src.row_factory = sqlite3.Row
     rows = src.execute(sql, (*version_params, *base_sectors)).fetchall()
     src.close()

@@ -28,7 +28,8 @@ from rich.table import Table
 app = typer.Typer(no_args_is_help=True)
 console = Console()
 
-DB_PATH = Path(__file__).resolve().parents[3] / "data" / "archive.db"
+# archiver.DB_PATH honors EVMAX_DB_DIR (evmax/db_location.py).
+from evmax.archiver import DB_PATH  # noqa: E402
 
 
 def _conn() -> sqlite3.Connection:
