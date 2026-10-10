@@ -56,7 +56,8 @@ def walk_forward(seasons: list[int], cfg: PlayerModelConfig) -> pd.DataFrame:
     tg = team_games.load_team_games(SEASONS_LOADED)
     pg = player_games.load_player_games(SEASONS_LOADED)
     games = data.load_games()
-    proj = model_walk_forward(tg, pg, games, seasons, cfg)
+    injuries = pd.concat([data.load_injuries(s) for s in SEASONS_LOADED], ignore_index=True)
+    proj = model_walk_forward(tg, pg, games, seasons, cfg, injuries=injuries)
     cut = games.groupby(["season", "week"])["gameday"].min().rename("cutoff")
     proj = proj.join(cut, on=["season", "week"])
     out = []

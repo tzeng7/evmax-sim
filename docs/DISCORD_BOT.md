@@ -6,7 +6,7 @@ evmax can run as a Discord bot application. It does three things:
 |---|---|---|
 | **Scan feed** — every scan cycle (CLI `evmax agents scan`, the scheduled `ev-scan-light-*` tasks, the dashboard's Scan button) posts its play list to a channel | `Notifier.notify_cycle` → `evmax.discord_bot.feed.post_scan_feed` over the Discord REST API (stdlib `urllib`, bot token) | No |
 | **Alerts** — heartbeat, CLV monitor, arb `--notify`, and any `Notifier.send_text` reach the same channel as colored embeds / text | `Notifier.notify_alert` / `send_text` → `DiscordBotClient` | No |
-| **Slash commands** — `/scan`, `/plays`, `/settled`, `/status`, `/help` | `evmax discord run` (discord.py gateway client, optional extra `evmax[discord]`) | Yes |
+| **Slash commands** — `/scan`, `/plays`, `/settled`, `/status`, `/nfl`, `/help` | `evmax discord run` (discord.py gateway client, optional extra `evmax[discord]`) | Yes |
 
 The feed and alerts work as soon as `DISCORD_BOT_TOKEN` plus a target are in `.env`: either
 `DISCORD_DM_USER_ID` (the bot **direct-messages you**; no channel needed) or
@@ -140,6 +140,7 @@ registration, up to an hour to appear) — the bot still enforces `DISCORD_ALLOW
 | `/plays [sector] [bankroll] [kelly]` | Open Positions panel | Unresolved, unplaced live rows from `predictions.db`; `LIVE` tag = started, awaiting resolution. 40-row cap like the panel. |
 | `/settled [placed_only]` | Recent Settled Bets panel + KPI cards | Newest first, 50-row cap; footer = bets / W-L / win rate / P&L / ROI / avg EV from `_summary_stats`. |
 | `/status [probe_pinnacle]` | `evmax cleanup heartbeat` | Scan/resolve cadence, seed-state staleness, and (default on) a live Pinnacle probe. Never sends the heartbeat alert itself. |
+| `/nfl [week] [season] [team]` | Dashboard NFL tab / `evmax project nfl-run --post` | Stored NFL model projections (`evmax.nfl_projections.store`): games (model score, line, total next to the market's) + top receiving/rushing projections + starting QBs; `team` narrows games and players. Read-only; rows come from the scheduled `nfl-projections-*` tasks. |
 | `/help` | — | Command list. |
 
 Every command acknowledges within Discord's 3-second window and replies via follow-ups, so a

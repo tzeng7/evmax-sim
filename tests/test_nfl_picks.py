@@ -198,8 +198,8 @@ def test_nfl_record_cli_grades_and_renders(tmp_path, monkeypatch):
     from typer.testing import CliRunner
     import evmax.cli.commands.project as project_cli
 
-    monkeypatch.setattr(project_cli, "_PROJ_DB_PATH", tmp_path / "p.db")
-    conn = picks.connect(tmp_path / "p.db")
+    monkeypatch.setenv("EVMAX_PROJ_DB", str(tmp_path / "p.db"))      # nfl-record reads store.db_path()
+    conn = picks.connect()
     picks.record_picks(conn, _week(), now=pd.Timestamp("2026-10-06 12:00", tz="America/New_York"))
     conn.close()
     games = pd.DataFrame({"game_id": ["2026_05_TB_DAL"], "home_score": [16.0], "away_score": [24.0],
@@ -208,3 +208,37 @@ def test_nfl_record_cli_grades_and_renders(tmp_path, monkeypatch):
     res = CliRunner().invoke(project_cli.app, ["nfl-record", "--no-refresh"])
     assert res.exit_code == 0, res.output
     assert "TB +8.5" in res.output and "1-0" in res.output and "Graded 1 new game" in res.output
+
+
+# ── pipeline integration (nfl-run records picks, resolve_pending grades them) ──
+
+def test_run_week_records_the_first_pick_and_never_reprices(tmp_path, monkeypatch):
+    from evmax.nfl_projections import live, pipeline, store
+
+    raw = (_week(gameday="2099-10-08").drop(columns=list(picks.GamePick.__dataclass_fields__))
+           .assign(neutral=False, p_home_win=0.58))     # the rest of a live.project_week row
+    monkeypatch.setattr(live, "project_week", lambda *a, **k: raw)
+    monkeypatch.setattr(live, "project_week_players", lambda *a, **k: pd.DataFrame())
+    conn = store.connect(tmp_path / "p.db")
+    run = pipeline.run_week(conn, 2099, 5, refresh=False, espn=False)
+    assert (run.games_logged, run.picks_logged) == (1, 1)
+    moved = raw.assign(market_spread_line=9.5, proj_margin=4.0)
+    monkeypatch.setattr(live, "project_week", lambda *a, **k: moved)
+    run = pipeline.run_week(conn, 2099, 5, refresh=False, espn=False)
+    assert (run.games_logged, run.picks_logged) == (1, 0)          # projection refreshed, pick frozen
+    row = conn.execute("SELECT spread_pick, line_margin FROM nfl_picks").fetchone()
+    assert (row["spread_pick"], row["line_margin"]) == ("TB +8.5", 8.5)
+    proj = conn.execute("SELECT market_home_margin, proj_margin FROM nfl_game_projections").fetchone()
+    assert (proj["market_home_margin"], proj["proj_margin"]) == (9.5, 4.0)
+
+
+def test_resolve_pending_grades_picks_even_with_no_open_projections(tmp_path, monkeypatch):
+    from evmax.nfl_projections import pipeline
+
+    conn = picks.connect(tmp_path / "p.db")
+    assert pipeline.resolve_pending(conn, refresh=False) == {"games": 0, "players": 0, "picks": 0}
+    picks.record_picks(conn, _week(), now=pd.Timestamp("2026-10-06 12:00", tz="America/New_York"))
+    games = pd.DataFrame({"game_id": ["2026_05_TB_DAL"], "home_score": [16.0], "away_score": [24.0],
+                          "spread_line": [9.5], "total_line": [49.0]})
+    monkeypatch.setattr(pipeline.data, "load_games", lambda d=None: games)
+    assert pipeline.resolve_pending(conn, refresh=False) == {"games": 0, "players": 0, "picks": 1}

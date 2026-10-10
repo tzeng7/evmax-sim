@@ -132,7 +132,7 @@ def add_picks(proj: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-# ── record (stored in data/projections.db) ───────────────────────────────────
+# ── record (``nfl_picks`` in projections.db, beside evmax.nfl_projections.store) ──
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS nfl_picks (
@@ -173,10 +173,16 @@ CREATE TABLE IF NOT EXISTS nfl_picks (
 """
 
 
-def connect(path) -> sqlite3.Connection:
-    conn = sqlite3.connect(str(path))
-    conn.row_factory = sqlite3.Row
+def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
+
+
+def connect(path=None) -> sqlite3.Connection:
+    """Open projections.db (``store.db_path()`` by default, which honors $EVMAX_PROJ_DB) with ``nfl_picks``."""
+    from evmax.nfl_projections import store
+
+    conn = store.connect(path)
+    ensure_schema(conn)
     return conn
 
 
@@ -192,6 +198,7 @@ def record_picks(conn: sqlite3.Connection, picks: pd.DataFrame, now: Optional[pd
     the total was posted gets its total pick once a total line exists.
     """
     now = now if now is not None else pd.Timestamp.now(tz="America/New_York")
+    ensure_schema(conn)
     inserted = 0
     for r in picks.itertuples():
         if r.spread_pick is None or kickoff(r.gameday, r.gametime) <= now:
@@ -224,6 +231,7 @@ def grade_picks(conn: sqlite3.Connection, games: pd.DataFrame) -> int:
     nflverse's ``spread_line`` / ``total_line`` on a finished game are the
     closing consensus lines.
     """
+    ensure_schema(conn)
     final = games[games["home_score"].notna()].set_index("game_id")
     n = 0
     for row in conn.execute("SELECT * FROM nfl_picks WHERE graded_at IS NULL").fetchall():
