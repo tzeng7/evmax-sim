@@ -280,3 +280,55 @@ def test_espn_injuries_apply_to_the_next_unplayed_week(stubs, monkeypatch):
     out = engine().run_slate("nfl", {**OPTS, "season": 2026, "week": 5})
     (_, _, kw), = stubs["players"]
     assert kw["espn_reports"] and not any("ESPN injuries skipped" in n for n in out["notes"])
+
+
+# ── model picks (evmax.nfl_projections.picks) on the game rows ───────────────
+
+def test_run_slate_rows_carry_the_model_pick(stubs):
+    phi, lv = engine().run_slate("nfl", OPTS)["games"]
+    # LV home, market KC -7.5 (home margin -7.5); model KC by 10 -> lay it; median total 43.1 vs 46 -> under
+    assert lv["pick"] == {
+        "spread": "KC -7.5", "spread_edge": 2.5, "total": "Under 46", "total_edge": pytest.approx(2.9),
+        "model_total": pytest.approx(43.1), "line": "KC -7.5 · 46.0", "recorded": False,
+        "spread_result": None, "spread_result_close": None, "total_result": None, "total_result_close": None,
+    }
+    assert lv["flags"] == []
+    assert phi["pick"] is None                                          # no market line -> no pick
+
+
+def test_stored_view_shows_the_recorded_pick_its_grade_and_the_season_record(stubs):
+    from evmax.nfl_projections import picks
+
+    conn = store.connect()
+    early = datetime(2026, 10, 1, tzinfo=UTC)
+    store.log_games(conn, _games(), "v1", now=early)
+    rec = _games().assign(home_qb_delta=0.0, away_qb_delta=0.0)
+    picks.record_picks(conn, picks.add_picks(rec), now=pd.Timestamp("2026-10-06 12:00", tz="America/New_York"))
+    # the line moved to KC -9 by the close; KC won by 10: KC -7.5 covers at the published line and the close
+    final = pd.DataFrame([{"game_id": "2026_05_KC_LV", "home_score": 17.0, "away_score": 27.0,
+                           "spread_line": -9.0, "total_line": 45.0}])
+    store.resolve(conn, final, pd.DataFrame(), ready_games=set())
+    picks.grade_picks(conn, final)
+    conn.close()
+
+    out = engine().stored("nfl", {"season": "2026", "week": "5"})
+    json.dumps(out)
+    lv = next(g for g in out["games"] if g["game_id"] == "2026_05_KC_LV")
+    assert lv["pick"]["recorded"] is True and lv["pick"]["spread"] == "KC -7.5"
+    assert (lv["pick"]["spread_result"], lv["pick"]["spread_result_close"]) == ("W", "W")
+    assert (lv["pick"]["total_result"], lv["pick"]["total_result_close"]) == ("W", "W")   # 44 points: under 46 and 45
+    assert any(line.startswith("Model picks 2026: ATS 1-0") and "line moved toward the pick in 1 of 1" in line
+               for line in out["summary"])
+
+
+def test_stored_row_without_a_recorded_pick_is_graded_but_marked_not_recorded(stubs):
+    conn = store.connect()
+    store.log_games(conn, _games(), "v1", now=datetime(2026, 10, 1, tzinfo=UTC))
+    store.resolve(conn, pd.DataFrame([{"game_id": "2026_05_KC_LV", "home_score": 20.0, "away_score": 24.0,
+                                       "spread_line": -7.0, "total_line": 46.5}]), pd.DataFrame(), ready_games=set())
+    conn.close()
+    lv = next(g for g in engine().stored("nfl", {"season": "2026", "week": "5"})["games"]
+              if g["game_id"] == "2026_05_KC_LV")
+    assert lv["pick"]["recorded"] is False and lv["pick"]["spread"] == "KC -7.5"
+    assert (lv["pick"]["spread_result"], lv["pick"]["spread_result_close"]) == ("L", "L")  # KC by 4
+    assert lv["pick"]["total_result"] == "W"                                                # 44 < 46

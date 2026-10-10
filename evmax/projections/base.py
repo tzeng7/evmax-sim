@@ -155,8 +155,12 @@ def game_row(*, game_id: str, home: str, away: str, home_name: str, away_name: s
              market_home_margin: Optional[float] = None, market_total: Optional[float] = None,
              actual_home: Optional[float] = None, actual_away: Optional[float] = None,
              subtitle: Optional[str] = None, flags: Optional[list[str]] = None,
-             context: Optional[dict] = None) -> dict:
-    """One game in the shared row shape (``home`` / ``away`` are short labels for score cells)."""
+             context: Optional[dict] = None, pick: Optional[dict] = None) -> dict:
+    """One game in the shared row shape (``home`` / ``away`` are short labels for score cells).
+
+    ``pick`` is the engine's model pick against the market line, for engines that make
+    one (shape: ``pick_payload``); the UI shows it as the row's Outcome.
+    """
     proj_home, proj_away = float(proj_home), float(proj_away)
     margin = proj_home - proj_away
     market_home_margin = jsonable(market_home_margin)
@@ -170,7 +174,24 @@ def game_row(*, game_id: str, home: str, away: str, home_name: str, away_name: s
         "market_line": favorite_line(home, away, market_home_margin),
         "market_total": jsonable(market_total),
         "actual_home": jsonable(actual_home), "actual_away": jsonable(actual_away),
-        "subtitle": subtitle, "flags": flags or [], "context": context or {},
+        "subtitle": subtitle, "flags": flags or [], "context": context or {}, "pick": pick,
+    }
+
+
+def pick_payload(*, spread: Optional[str], spread_edge: Any, total: Optional[str], total_edge: Any,
+                 model_total: Any, line: Optional[str], recorded: bool,
+                 spread_result: Optional[str] = None, spread_result_close: Optional[str] = None,
+                 total_result: Optional[str] = None, total_result_close: Optional[str] = None) -> Optional[dict]:
+    """A game row's model pick: the spread side and O/U the model prefers vs ``line`` (the market line
+    the pick was made against), edges in points, and W/L/P once graded — at that line and at the close.
+    ``recorded`` marks the frozen pick a tracked record grades. None when there is no pick at all."""
+    if spread is None and total is None:
+        return None
+    return {
+        "spread": spread, "spread_edge": jsonable(spread_edge), "total": total, "total_edge": jsonable(total_edge),
+        "model_total": jsonable(model_total), "line": line, "recorded": bool(recorded),
+        "spread_result": spread_result, "spread_result_close": spread_result_close,
+        "total_result": total_result, "total_result_close": total_result_close,
     }
 
 

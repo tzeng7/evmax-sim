@@ -435,6 +435,8 @@ Module `evmax/nfl_projections/picks.py`. CLI: `evmax project nfl` (picks shown),
 
 **Record.** `nfl_picks` in projections.db (beside the `store.py` tables) keeps each game's FIRST pre-kickoff pick and the line it was made against, and never re-prices it — unlike the projections, which are rewritten until kickoff. `evmax project nfl-run` (the scheduled Tuesday run sets the pick, the Friday/Sunday refreshes cannot move it) and `evmax project nfl --log` record picks; `nfl-resolve` / `nfl-run` grade them through `pipeline.resolve_pending`. `nfl-record` shows the record, graded twice: at the published line (how public pages grade) and at the close. It also reports how far the line moved toward the pick.
 
+**Dashboard (2026-10-10).** The Projections tab's NFL games show the pick as the row's Outcome: the spread side and over/under with edges in points, check flags as badges, and W/L once graded (tooltip: the result at the close). The stored view shows the recorded (frozen) pick; a stored game without one gets a pick made against its last stored line, graded but marked not recorded. A Run shows the pick against the current line. The season summary adds the pick record (`NflProjectionEngine._pick_record_lines`). The shared row carries it as `game_row(pick=...)` / `base.pick_payload`, so another engine can add picks without UI changes.
+
 **Backtest (walk-forward, 2011–25, combiner from 2010; 2020–25 margin MAE 10.128 ≈ shipped 10.132).**
 
 | Spread picks | Record | Win % |

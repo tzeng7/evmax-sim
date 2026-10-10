@@ -29,7 +29,8 @@ from typing import Callable, Iterator, Optional
 import pandas as pd
 
 from evmax.projections.base import (
-    Column, OptionSpec, ProjectionEngine, ProjectionError, game_row, jsonable, range_cell, slate_result,
+    Column, OptionSpec, ProjectionEngine, ProjectionError, favorite_line, game_row, jsonable, pick_payload,
+    range_cell, slate_result,
 )
 
 PLAYER_COLUMNS = [
@@ -47,7 +48,11 @@ FOOTNOTE = (
     "Walk-forward 2020–25: margin MAE 10.13 (Vegas close 9.76), total MAE 10.49 (10.28). Player medians "
     "beat a last-8-games average by 6–11% on the 2025 holdout but trail the Kalshi market by 3–6%. "
     "Teammates of players ruled out absorb 60% of their targets and carries. Ranges are the 10th–90th "
-    "percentiles: about 10% of results fall below the low end and 10% above the high end."
+    "percentiles: about 10% of results fall below the low end and 10% above the high end. "
+    "Outcome is the model pick: the spread side and over/under (on the median total) the model prefers vs "
+    "the market line, edge in points. A game's first pre-kickoff pick is recorded and graded at that line "
+    "and at the close; W/L shows the first. Backtest 2011–25: 50.2% vs the close, 50.1% vs opening lines, "
+    "though the line moved toward the pick 59% of the time — a display, not a betting edge."
 )
 RUN_NOTE = ("Outdoor wind uses the league median until a forecast feed is wired; starters come from the "
             "nflverse schedule (fallback: last game's starter).")
@@ -222,11 +227,12 @@ class NflProjectionEngine(ProjectionEngine):
             if season is None or week is None:
                 season, week = weeks[0]
             games, players = store.week_rows(conn, season, week)
+            recorded = self._recorded_picks(conn, season, week)
         periods = [{"key": f"{s}-{w}", "label": f"{s} · Week {w}", "params": {"season": s, "week": w}}
                    for s, w in weeks]
         return slate_result(
             title=f"NFL {season} · Week {week}", source="stored",
-            games=[self._game_row(g, store_row=True) for g in games],
+            games=[self._game_row(g, store_row=True, recorded=recorded.get(g["game_id"])) for g in games],
             players=[r for r in (self._player_row(p) for p in players) if r],
             player_columns=PLAYER_COLUMNS, player_sort="receiving_yards",
             periods=periods, period=f"{season}-{week}", summary=self._accuracy_lines(season),
@@ -235,9 +241,67 @@ class NflProjectionEngine(ProjectionEngine):
         )
 
     @staticmethod
-    def _game_row(g: dict, *, store_row: bool) -> dict:
+    def _recorded_picks(conn: sqlite3.Connection, season: int, week: int) -> dict[str, dict]:
+        """game_id -> the week's recorded (frozen) model pick rows."""
+        from evmax.nfl_projections import picks
+
+        picks.ensure_schema(conn)
+        return {r["game_id"]: dict(r) for r in conn.execute(
+            "SELECT * FROM nfl_picks WHERE season = ? AND week = ?", (season, week))}
+
+    @staticmethod
+    def _pick(g: dict, *, store_row: bool, recorded: Optional[dict]) -> tuple[Optional[dict], list[str]]:
+        """(pick payload, check flags) for one game row.
+
+        A recorded pick (stored view) is the frozen one the record grades. Otherwise the pick is made
+        now against the row's market line: the current line on a run, the last pre-kickoff line on a
+        stored row (graded against it and the close once final, but marked as not recorded).
+        """
+        from evmax.nfl_projections import picks
+
+        home, away = g["home_team"], g["away_team"]
+
+        def line_text(margin, total) -> Optional[str]:
+            fav, tot = favorite_line(home, away, margin), jsonable(total)
+            if fav is None and tot is None:
+                return None
+            return f"{fav or '—'} · {tot:.1f}" if tot is not None else fav
+
+        if recorded is not None:
+            flags = [f for f in (recorded.get("flags") or "").split(", ") if f]
+            return pick_payload(
+                spread=recorded["spread_pick"], spread_edge=recorded["spread_edge"], total=recorded["total_pick"],
+                total_edge=recorded["total_edge"], model_total=recorded["total_median"],
+                line=line_text(recorded["line_margin"], recorded["line_total"]), recorded=True,
+                spread_result=recorded["spread_result"], spread_result_close=recorded["spread_result_close"],
+                total_result=recorded["total_result"], total_result_close=recorded["total_result_close"],
+            ), flags
+        if store_row:
+            lm, lt = jsonable(g.get("market_home_margin")), jsonable(g.get("market_total"))
+        else:
+            lm, lt = jsonable(g.get("market_spread_line")), jsonable(g.get("market_total_line"))
+        pk = picks.make_pick(home, away, float(g["proj_margin"]), float(g["proj_total"]), lm, lt, int(g["week"]),
+                             jsonable(g.get("home_qb_delta")) or 0.0, jsonable(g.get("away_qb_delta")) or 0.0)
+        results: dict = {}
+        ah, aa = jsonable(g.get("actual_home")), jsonable(g.get("actual_away"))
+        if store_row and ah is not None and aa is not None:
+            margin, total = ah - aa, ah + aa
+            results = {
+                "spread_result": picks.grade_spread(pk.spread_pick_home, lm, margin),
+                "spread_result_close": picks.grade_spread(pk.spread_pick_home, jsonable(g.get("close_home_margin")), margin),
+                "total_result": picks.grade_total(pk.total_pick_over, lt, total),
+                "total_result_close": picks.grade_total(pk.total_pick_over, jsonable(g.get("close_total")), total),
+            }
+        return pick_payload(
+            spread=pk.spread_pick, spread_edge=pk.spread_edge, total=pk.total_pick, total_edge=pk.total_edge,
+            model_total=pk.total_median, line=line_text(lm, lt), recorded=False, **results,
+        ), list(pk.flags)
+
+    @classmethod
+    def _game_row(cls, g: dict, *, store_row: bool, recorded: Optional[dict] = None) -> dict:
         from evmax.nfl_projections import store
 
+        pick, flags = cls._pick(g, store_row=store_row, recorded=recorded)
         if store_row:
             kickoff, market_margin, market_total = g.get("kickoff_utc"), g.get("market_home_margin"), g.get("market_total")
         else:
@@ -254,6 +318,7 @@ class NflProjectionEngine(ProjectionEngine):
             # A missing starter name is None from SQLite but NaN from pandas.
             subtitle=f"{jsonable(g.get('away_qb_name')) or '?'} / {jsonable(g.get('home_qb_name')) or '?'}",
             context={"season": int(g["season"]), "week": int(g["week"])},
+            pick=pick, flags=flags,
         )
 
     @staticmethod
@@ -320,7 +385,29 @@ class NflProjectionEngine(ProjectionEngine):
         if td:
             lines.append(f"Anytime TD: predicted {td['mean_p'] * 100:.0f}% vs actual {td['rate'] * 100:.0f}% "
                          f"(Brier {td['brier']:.3f}, n {td['n']})")
+        lines += NflProjectionEngine._pick_record_lines(season)
         return lines
+
+    @staticmethod
+    def _pick_record_lines(season: int) -> list[str]:
+        """The season's recorded model-pick record (graded at the published line and at the close)."""
+        from evmax.nfl_projections import picks
+
+        try:
+            with _db() as conn:
+                picks.ensure_schema(conn)
+                rows = pd.read_sql_query("SELECT * FROM nfl_picks WHERE season = ? AND graded_at IS NOT NULL",
+                                         conn, params=(season,))
+        except sqlite3.Error:
+            return []
+        if rows.empty:
+            return []
+        s = picks.record_summary(rows)
+        mv = rows["spread_move"].dropna()
+        moved = f" · line moved toward the pick in {(mv > 0).sum()} of {len(mv)}" if len(mv) else ""
+        return [f"Model picks {season}: ATS {s['spread_result']} at the published line, "
+                f"{s['spread_result_close']} at the close · O/U {s['total_result']}{moved} "
+                "(backtest 2011–25: 50.2% vs the close)"]
 
     # ── one game ─────────────────────────────────────────────────────────────
 

@@ -92,6 +92,24 @@ def test_add_picks_appends_pick_columns_without_a_cover_probability():
     assert "cover_prob" not in out.columns and len(out) == 2
 
 
+def test_mixed_slate_keeps_missing_picks_as_none_and_records_only_lined_games(tmp_path):
+    """Regression: pandas turned the None picks of a mixed slate into NaN (truthy, `is not None`),
+    so record_picks crashed on int(None) and the CLI printed 'nan'."""
+    proj = pd.DataFrame({
+        "game_id": ["g_lined", "g_open"], "season": [2026, 2026], "week": [6, 6],
+        "gameday": [pd.Timestamp("2099-10-18").date()] * 2, "gametime": ["13:00", "13:00"],
+        "home_team": ["DAL", "NYG"], "away_team": ["TB", "WAS"], "proj_home": [25.9, 21.0],
+        "proj_away": [23.3, 20.0], "proj_margin": [2.6, 1.0], "proj_total": [49.2, 41.0],
+        "market_spread_line": [8.5, float("nan")], "market_total_line": [47.5, float("nan")],
+        "home_qb_delta": [0.0, 0.0], "away_qb_delta": [0.0, 0.0]})
+    out = picks.add_picks(proj)
+    assert out.loc[1, "spread_pick"] is None and out.loc[1, "spread_pick_home"] is None
+    assert out.loc[1, "total_pick"] is None and out.loc[1, "spread_edge"] is None
+    conn = picks.connect(tmp_path / "p.db")
+    assert picks.record_picks(conn, out, now=pd.Timestamp("2099-10-13 12:00", tz="America/New_York")) == 1
+    assert [r[0] for r in conn.execute("SELECT game_id FROM nfl_picks")] == ["g_lined"]
+
+
 # ── the stored record ────────────────────────────────────────────────────────
 
 def _week(spread=8.5, total=47.5, gameday="2026-10-08", proj_margin=2.6):

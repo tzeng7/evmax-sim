@@ -343,6 +343,29 @@ export interface ProjectionGame {
   flags: string[]
   /** Engine-private; echoed back on a per-game run. */
   context: Record<string, unknown>
+  /** The model pick vs the market line, for engines that make one. */
+  pick?: ProjectionPick | null
+}
+
+export type PickResult = 'W' | 'L' | 'P'
+
+/** The spread side and over/under the model prefers vs `line` (edges in points), graded once final. */
+export interface ProjectionPick {
+  spread: string | null
+  spread_edge: number | null
+  total: string | null
+  total_edge: number | null
+  /** The total the O/U pick compares (NFL: the median, not the mean). */
+  model_total: number | null
+  /** The market line the pick was made against. */
+  line: string | null
+  /** True for the frozen pick a tracked record grades. */
+  recorded: boolean
+  /** Graded at `line`. */
+  spread_result: PickResult | null
+  spread_result_close: PickResult | null
+  total_result: PickResult | null
+  total_result_close: PickResult | null
 }
 
 export interface ProjectionColumn {

@@ -128,7 +128,9 @@ def add_picks(proj: pd.DataFrame) -> pd.DataFrame:
                        r.home_qb_delta, r.away_qb_delta) for r in proj.itertuples()]
     out = proj.copy()
     for field in GamePick.__dataclass_fields__:
-        out[field] = [getattr(p, field) for p in picks]
+        # object dtype keeps None as None: a plain list of strings and Nones would turn the
+        # missing picks of a mixed slate into NaN, which is truthy and `is not None`.
+        out[field] = pd.Series([getattr(p, field) for p in picks], index=out.index, dtype=object)
     return out
 
 
@@ -201,7 +203,7 @@ def record_picks(conn: sqlite3.Connection, picks: pd.DataFrame, now: Optional[pd
     ensure_schema(conn)
     inserted = 0
     for r in picks.itertuples():
-        if r.spread_pick is None or kickoff(r.gameday, r.gametime) <= now:
+        if _missing(r.spread_pick) or kickoff(r.gameday, r.gametime) <= now:
             continue
         cur = conn.execute(
             """INSERT OR IGNORE INTO nfl_picks
@@ -214,10 +216,11 @@ def record_picks(conn: sqlite3.Connection, picks: pd.DataFrame, now: Optional[pd
              float(r.proj_home), float(r.proj_away), float(r.proj_margin), float(r.proj_total), float(r.total_median),
              _f(r.market_spread_line), _f(r.market_total_line), line_source, r.spread_pick,
              int(r.spread_pick_home), _f(r.spread_edge),
-             r.total_pick, None if r.total_pick_over is None else int(r.total_pick_over), _f(r.total_edge),
+             None if _missing(r.total_pick) else r.total_pick,
+             None if _missing(r.total_pick_over) else int(r.total_pick_over), _f(r.total_edge),
              ", ".join(r.flags)))
         inserted += cur.rowcount
-        if not cur.rowcount and r.total_pick is not None:
+        if not cur.rowcount and not _missing(r.total_pick):
             conn.execute("""UPDATE nfl_picks SET line_total = ?, total_pick = ?, total_pick_over = ?, total_edge = ?
                             WHERE game_id = ? AND total_pick IS NULL""",
                          (_f(r.market_total_line), r.total_pick, int(r.total_pick_over), _f(r.total_edge), r.game_id))
@@ -274,3 +277,8 @@ def kickoff(gameday, gametime) -> pd.Timestamp:
 
 def _f(x) -> Optional[float]:
     return None if x is None or pd.isna(x) else float(x)
+
+
+def _missing(x) -> bool:
+    """None or NaN (a pick column read back through pandas may carry either)."""
+    return x is None or (isinstance(x, float) and x != x)
