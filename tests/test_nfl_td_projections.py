@@ -87,7 +87,7 @@ def _td_league(n_games=24, seed=1):
 def test_xtd_shares_and_anytime_probabilities():
     pg, tg, rz = _td_league()
     st = fit_player_state(pg, team_volume_rows(pg, tg), pd.Timestamp("2026-06-01"),
-                          PlayerModelConfig(td_share_prior_games=0.0), rz=rz)
+                          PlayerModelConfig(td_share_prior_games=0.0, td_actual_weight=0.0), rz=rz)
     u = st.usage
     assert u.loc["AAA-RB", "rush_xtd_share"] == pytest.approx(1.0)      # every goal-line carry
     assert u.loc["AAA-RB2", "rush_xtd_share"] == pytest.approx(0.0)
@@ -102,3 +102,25 @@ def test_xtd_shares_and_anytime_probabilities():
     assert (out["p_two_plus_td"] < out["p_anytime_td"]).all() or (lam == 0).any()
     # the team's projected rushing TDs all land on the goal-line back
     assert lam["AAA-RB"] == pytest.approx(st.fits["team_rush_tds"].expect("AAA", "BBB", 1), rel=1e-6)
+
+
+def test_actual_td_share_blend_moves_share_toward_realized_tds():
+    pg, tg, rz = _td_league()
+    # RB2 never touches the red zone but is credited with every rushing TD in this variant
+    pg = pg.copy()
+    rz = rz.copy()
+    moved = pg["player_id"].str.endswith("-RB") & (pg["rushing_tds"] > 0)
+    pg.loc[pg.index[moved].map(lambda i: i + 2), "rushing_tds"] = pg.loc[moved, "rushing_tds"].to_numpy()
+    pg.loc[moved, "rushing_tds"] = 0
+    for pid_from, pid_to in (("-RB", "-RB2"),):
+        src = rz["player_id"].str.endswith(pid_from)
+        dst = rz["player_id"].str.endswith(pid_to)
+        rz.loc[dst, "rush_td_b1"] = rz.loc[src, "rush_td_b1"].to_numpy()
+        rz.loc[src, "rush_td_b1"] = 0.0
+    vol = team_volume_rows(pg, tg)
+    cut = pd.Timestamp("2026-06-01")
+    x_only = fit_player_state(pg, vol, cut, PlayerModelConfig(td_share_prior_games=0.0, td_actual_weight=0.0), rz=rz)
+    blend = fit_player_state(pg, vol, cut, PlayerModelConfig(td_share_prior_games=0.0, td_actual_weight=0.25), rz=rz)
+    assert x_only.usage.loc["AAA-RB2", "rush_xtd_share"] == pytest.approx(0.0)
+    assert blend.usage.loc["AAA-RB2", "rush_xtd_share"] > 0.1
+    assert blend.usage.loc["AAA-RB", "rush_xtd_share"] < x_only.usage.loc["AAA-RB", "rush_xtd_share"]
