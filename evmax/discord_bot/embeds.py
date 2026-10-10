@@ -678,3 +678,67 @@ def _table_embeds(
 
 
 TableBuilder = Callable[..., list[dict[str, Any]]]
+
+
+# ---------------------------------------------------------------------------
+# NFL projections (evmax.nfl_projections.store rows)
+# ---------------------------------------------------------------------------
+
+NFL_TOP_RECEIVING = 15
+NFL_TOP_RUSHING = 10
+
+
+def nfl_projection_embeds(
+    season: int,
+    week: int,
+    games: Sequence[dict],
+    players: Sequence[dict],
+    accuracy: Optional[dict] = None,
+) -> list[dict[str, Any]]:
+    """A week of NFL model projections as code-block tables: games (model score,
+    line and total next to the market's), the top receiving and rushing
+    projections, and every starting QB. ``accuracy`` (``store.accuracy``)
+    becomes the footer. The model reads no market price."""
+    from evmax.nfl_projections.store import favorite_line
+
+    if not games and not players:
+        return [_embed(f"NFL {season} Week {week} projections", "No projections logged for this week.",
+                       COLOR_EMPTY, None)]
+    footer = "Model projections (no market inputs); medians with 10th-90th percentile ranges."
+    if accuracy and accuracy.get("games", {}).get("n"):
+        g = accuracy["games"]
+        footer = (f"Season to date: margin MAE {g['margin_mae']:.1f} (close {g['close_margin_mae'] or 0:.1f}), "
+                  f"total MAE {g['total_mae']:.1f} (close {g['close_total_mae'] or 0:.1f}) over {g['n']} games. "
+                  + footer)
+    out: list[dict[str, Any]] = []
+    rows = []
+    for g in games:
+        market = "—"
+        if g.get("market_home_margin") is not None:
+            market = f"{favorite_line(g['home_team'], g['away_team'], g['market_home_margin'])} / {g['market_total']:.1f}"
+        rows.append([f"{g['away_team']}@{g['home_team']}", f"{g['proj_away']:.0f}-{g['proj_home']:.0f}",
+                     f"{favorite_line(g['home_team'], g['away_team'], g['proj_margin'])} / {g['proj_total']:.1f}",
+                     market, f"{g['p_home_win'] * 100:.0f}%"])
+    if rows:
+        chunks = table_chunks(["Game", "Score", "Model", "Market", "Home"], rows,
+                              ["<", ">", "<", "<", ">"], TABLE_CHUNK_MAX)
+        out += _table_embeds(f"NFL {season} Week {week} — games", chunks, COLOR_INFO, None)
+
+    def top(stat: str, keep, n: int) -> list[list[str]]:
+        cand = sorted((p for p in players if keep(p) and p.get(f"proj_{stat}") is not None),
+                      key=lambda p: -p[f"proj_{stat}"])[:n]
+        return [[f"{p['player_name']} ({p['team']})", f"{p[f'proj_{stat}']:.0f}",
+                 f"{p[f'p10_{stat}']:.0f}-{p[f'p90_{stat}']:.0f}"] for p in cand]
+
+    for title, stat, keep, n in (
+        ("receiving yards", "receiving_yards", lambda p: (p.get("proj_targets") or 0) >= 1, NFL_TOP_RECEIVING),
+        ("rushing yards", "rushing_yards", lambda p: (p.get("proj_carries") or 0) >= 1, NFL_TOP_RUSHING),
+        ("passing yards (starting QBs)", "passing_yards", lambda p: bool(p.get("is_starting_qb")), 40),
+    ):
+        rows = top(stat, keep, n)
+        if rows:
+            chunks = table_chunks(["Player", "Median", "Range"], rows, ["<", ">", ">"], TABLE_CHUNK_MAX)
+            out += _table_embeds(f"NFL {season} Week {week} — {title}", chunks, COLOR_INFO, None)
+    if out:
+        out[-1].setdefault("footer", {"text": footer[:EMBED_FOOTER_MAX]})
+    return out

@@ -419,6 +419,41 @@ def api_promotion_board(
     return JSONResponse({"days": days, "rows": rows})
 
 
+@app.get("/api/nfl-projections")
+def api_nfl_projections(
+    season: int | None = Query(None, description="NFL season (default: latest stored week)"),
+    week: int | None = Query(None, description="Week (default: latest stored week)"),
+    team: str | None = Query(None, description="Only this team's players (abbreviation)"),
+) -> JSONResponse:
+    """Stored NFL model projections for one week (evmax.nfl_projections.store).
+
+    Read-only: rows are written by ``evmax project nfl-run`` (scheduled) and
+    graded by ``nfl-resolve``. ``weeks`` lists every stored (season, week) for
+    the week picker; ``accuracy`` is the season's tracked accuracy.
+    """
+    from evmax.nfl_projections import store
+
+    try:
+        with store.connect() as conn:
+            weeks = [{"season": r[0], "week": r[1]} for r in conn.execute(
+                "SELECT DISTINCT season, week FROM nfl_game_projections ORDER BY season DESC, week DESC")]
+            if season is None or week is None:
+                latest = store.latest_week(conn)
+                if latest is None:
+                    return JSONResponse({"season": None, "week": None, "weeks": [], "games": [],
+                                         "players": [], "accuracy": None})
+                season, week = latest
+            games, players = store.week_rows(conn, season, week, team=team)
+            accuracy = store.accuracy(conn, season=season)
+    except sqlite3.Error as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    for g in games:
+        g["model_line"] = store.favorite_line(g["home_team"], g["away_team"], g["proj_margin"])
+        g["market_line"] = store.favorite_line(g["home_team"], g["away_team"], g["market_home_margin"])
+    return JSONResponse({"season": season, "week": week, "weeks": weeks, "games": games,
+                         "players": players, "accuracy": accuracy})
+
+
 _MLB_PROPS_CALIBRATION = (
     Path(__file__).resolve().parents[2] / "data" / "backtest" / "mlb_props" / "calibration_2025.json"
 )

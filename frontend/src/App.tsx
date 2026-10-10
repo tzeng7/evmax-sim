@@ -11,6 +11,7 @@ import { OpenPositions } from './components/OpenPositions'
 import { RecentSettled } from './components/RecentSettled'
 import { MetricsPage } from './components/MetricsPage'
 import { PromotionBoard } from './components/PromotionBoard'
+import { NflProjections } from './components/NflProjections'
 import { ArbPage } from './components/ArbPage'
 import { PortfolioGrid } from './components/PortfolioGrid'
 import { PortfolioDetail } from './components/PortfolioDetail'
@@ -18,7 +19,7 @@ import { Toast } from './components/Toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './App.css'
 
-type Page = { kind: 'dashboard' } | { kind: 'metrics' } | { kind: 'board' } | { kind: 'arb' } | { kind: 'portfolios' } | { kind: 'portfolio'; id: string }
+type Page = { kind: 'dashboard' } | { kind: 'metrics' } | { kind: 'board' } | { kind: 'arb' } | { kind: 'nfl' } | { kind: 'portfolios' } | { kind: 'portfolio'; id: string }
 
 export default function App() {
   const dash = useDashboard()
@@ -76,6 +77,12 @@ export default function App() {
                 onClick={() => setPage({ kind: 'arb' })}
               >
                 Arb
+              </button>
+              <button
+                className={`seg ${page.kind === 'nfl' ? 'active' : ''}`}
+                onClick={() => setPage({ kind: 'nfl' })}
+              >
+                NFL
               </button>
               <button
                 className={`seg ${page.kind === 'portfolios' || page.kind === 'portfolio' ? 'active' : ''}`}
@@ -147,6 +154,8 @@ export default function App() {
         {page.kind === 'board' && <PromotionBoard toast={toast} />}
 
         {page.kind === 'arb' && <ArbPage toast={toast} />}
+
+        {page.kind === 'nfl' && <NflProjections toast={toast} />}
 
         {page.kind === 'portfolios' && (
           <PortfolioGrid
