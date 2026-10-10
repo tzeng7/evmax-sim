@@ -736,7 +736,7 @@ def nfl_projection_embeds(
         rows = [[f"{p['player_name']} ({p['team']})", f"{p['p_anytime_td'] * 100:.0f}%",
                  f"{(p.get('p_two_plus_td') or 0) * 100:.0f}%"] for p in td]
         chunks = table_chunks(["Player", "Anytime", "2+"], rows, ["<", ">", ">"], TABLE_CHUNK_MAX)
-        out += _table_embeds(f"NFL {season} Week {week} — touchdown probability", chunks, COLOR_INFO, None)
+        out += _table_embeds(f"NFL {season} Week {week} — rushing/receiving TD probability", chunks, COLOR_INFO, None)
     for title, stat, keep, n in (
         ("receiving yards", "receiving_yards", lambda p: (p.get("proj_targets") or 0) >= 1, NFL_TOP_RECEIVING),
         ("rushing yards", "rushing_yards", lambda p: (p.get("proj_carries") or 0) >= 1, NFL_TOP_RUSHING),

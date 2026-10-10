@@ -46,7 +46,7 @@ class PlayerModelConfig:
     k_attempts: float = 150.0          # pseudo-attempts for QB yards per attempt
     k_team_attempts: float = 100.0     # pseudo team-attempts for a starter's attempt share
     td_share_prior_games: float = 2.0  # pseudo-games at the position-mean expected-TD share
-    td_actual_weight: float = 0.0      # weight on the actual TD share; 0.25 tested: -0.0016, below noise
+    td_actual_weight: float = 0.25     # weight on the actual TD share (TD2: z -5.5, 6/6 seasons vs xTD-only)
     min_start_attempts: float = 10.0   # a game counts as a start at >= this many attempts
     # Fraction of a ruled-out player's expected target/carry share that goes to the
     # teammates expected to play (the rest goes to call-ups and players with no
@@ -348,7 +348,15 @@ def injury_share_multipliers(usage: pd.DataFrame, recent: pd.DataFrame, out: set
     active = r[~r["out"]]
     res = pd.DataFrame(index=pd.MultiIndex.from_arrays([active["player_id"], active["team"]],
                                                        names=["player_id", "team"]))
-    for col, mult in (("tgt", "tgt_mult"), ("car", "car_mult")):
+    pairs = [("tgt", "tgt_mult"), ("car", "car_mult")]
+    if "rush_xtd_share" in usage and "rec_xtd_share" in usage:
+        # Expected-TD shares move by their own freed amount (a goal-line back's TD
+        # share is far larger than his carry share).
+        r["rxtd"] = u["rush_xtd_share"].to_numpy()
+        r["cxtd"] = u["rec_xtd_share"].to_numpy()
+        active = r[~r["out"]]
+        pairs += [("rxtd", "rush_xtd_mult"), ("cxtd", "rec_xtd_mult")]
+    for col, mult in pairs:
         freed = r[freeing].groupby("team")[col].sum()
         kept = active.groupby("team")[col].sum()
         m = 1.0 + alpha * freed.reindex(kept.index).fillna(0.0) / kept.clip(lower=1e-9)
@@ -406,10 +414,16 @@ def project_players(state: PlayerState, roster: pd.DataFrame,
         # Touchdowns: team TD volume x expected-TD share; Poisson counts (td_model).
         from evmax.nfl_projections.td_model import poisson_at_least
 
-        tmult = tgt_share / np.where(uu["tgt_share"].to_numpy() > 0, uu["tgt_share"].to_numpy(), 1.0)
-        cmult = car_share / np.where(uu["car_share"].to_numpy() > 0, uu["car_share"].to_numpy(), 1.0)
-        r["rush_xtd_share"] = uu["rush_xtd_share"].to_numpy() * cmult
-        r["rec_xtd_share"] = uu["rec_xtd_share"].to_numpy() * tmult
+        base_t, base_c = uu["tgt_share"].to_numpy(), uu["car_share"].to_numpy()
+        tmult = np.where(base_t > 0, tgt_share / np.where(base_t > 0, base_t, 1.0), 1.0)
+        cmult = np.where(base_c > 0, car_share / np.where(base_c > 0, base_c, 1.0), 1.0)
+        rmult, xmult = cmult, tmult
+        if share_mult is not None and len(share_mult) and "rush_xtd_mult" in share_mult:
+            m2 = share_mult.reindex(pd.MultiIndex.from_arrays([r["player_id"], r["team"]]))
+            rmult = m2["rush_xtd_mult"].fillna(1.0).to_numpy(dtype=float)
+            xmult = m2["rec_xtd_mult"].fillna(1.0).to_numpy(dtype=float)
+        r["rush_xtd_share"] = uu["rush_xtd_share"].to_numpy() * rmult
+        r["rec_xtd_share"] = uu["rec_xtd_share"].to_numpy() * xmult
         lam_rush = exp["team_rush_tds"] * r["rush_xtd_share"].to_numpy()
         lam_rec = exp["team_rec_tds"] * r["rec_xtd_share"].to_numpy()
         r["proj_rush_tds"] = np.clip(lam_rush, 0.0, None)

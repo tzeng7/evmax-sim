@@ -11,10 +11,13 @@ Populations (fixed here, from PRE-game information only, same as the yardage
 harness): anytime = naive targets/game >= 1.5 OR naive carries/game >= 2;
 passing = the team's pre-game starting QB (first-dropback passer).
 
-Naive baseline (fixed here): a Poisson rate = the player's TDs over his last 8
-played games plus ONE pseudo-game at his position's average rate over the
-prior 730 days (the pseudo-game only keeps a zero history from scoring
-infinite loss).
+Baseline (fixed here; a USAGE baseline, 2026-10-10): a Poisson rate =
+  anytime: the player's targets + carries per game over his last 8 played
+           games x his position's TDs per touch over the prior 730 days
+  passing: the QB's attempts per start over his last 8 starts (>= 10
+           attempts) x the league's passing TDs per attempt over the prior 730 days
+(The first version compared against last-8 TD counts with a pseudo-game; the
+reviewer showed that lost even to a position constant, so it overstated skill.)
 
   dev     = 2019-2024 (optimized by the improvement loop)
   holdout = 2025      (reported only with --holdout; never tuned on)
@@ -42,23 +45,23 @@ DEV = list(range(2019, 2025))
 HOLDOUT = [2025]
 SEASONS_LOADED = range(2013, 2027)
 NAIVE_GAMES = 8
-PSEUDO_GAMES = 1.0
 EPS = 1e-4
 
 
 def naive_rates(pg: pd.DataFrame, cutoff: pd.Timestamp) -> pd.DataFrame:
     hist = pg[(pg["gameday"] < cutoff) & (pg["gameday"] >= cutoff - pd.Timedelta(days=730))].sort_values("gameday")
-    hist = hist.assign(tds=hist["rushing_tds"] + hist["receiving_tds"])
-    pos_td = hist.groupby("position")["tds"].mean()
+    hist = hist.assign(tds=hist["rushing_tds"] + hist["receiving_tds"], touches=hist["targets"] + hist["carries"])
+    pos = hist.groupby("position")[["tds", "touches"]].sum()
+    td_per_touch = pos["tds"] / pos["touches"].clip(lower=1)
     starts = hist[hist["attempts"] >= 10]
-    qb_pass = float(starts["passing_tds"].mean()) if len(starts) else 1.4
+    td_per_att = float(starts["passing_tds"].sum() / max(starts["attempts"].sum(), 1))
     last = hist.groupby("player_id").tail(NAIVE_GAMES)
-    agg = last.groupby("player_id").agg(n=("tds", "size"), tds=("tds", "sum"), pass_tds=("passing_tds", "sum"),
-                                        targets=("targets", "mean"), carries=("carries", "mean"),
-                                        position=("position", "last"))
-    prior = agg["position"].map(pos_td).fillna(float(hist["tds"].mean()))
-    agg["naive_lam"] = (agg["tds"] + PSEUDO_GAMES * prior) / (agg["n"] + PSEUDO_GAMES)
-    agg["naive_pass_lam"] = (agg["pass_tds"] + PSEUDO_GAMES * qb_pass) / (agg["n"] + PSEUDO_GAMES)
+    agg = last.groupby("player_id").agg(touches=("touches", "mean"), targets=("targets", "mean"),
+                                        carries=("carries", "mean"), position=("position", "last"))
+    rate = agg["position"].map(td_per_touch).fillna(float(hist["tds"].sum() / max(hist["touches"].sum(), 1)))
+    agg["naive_lam"] = agg["touches"] * rate
+    qb = starts.groupby("player_id").tail(NAIVE_GAMES).groupby("player_id")["attempts"].mean()
+    agg["naive_pass_lam"] = qb.reindex(agg.index) * td_per_att
     return agg[["naive_lam", "naive_pass_lam", "targets", "carries"]].add_prefix("nv_")
 
 
@@ -74,7 +77,7 @@ def walk_forward(seasons: list[int], cfg: PlayerModelConfig) -> pd.DataFrame:
     out = [wk.join(naive_rates(pg, cutoff), on="player_id") for cutoff, wk in proj.groupby("cutoff", sort=True)]
     r = pd.concat(out, ignore_index=True)
     r["pop_any"] = (r["nv_targets"] >= 1.5) | (r["nv_carries"] >= 2.0)
-    r["pop_pass"] = r["is_starting_qb"] & r["nv_naive_pass_lam"].notna()
+    r["pop_pass"] = r["is_starting_qb"] & r["nv_naive_pass_lam"].notna()  # QBs with a prior start
     r["scored"] = ((r["rushing_tds"] + r["receiving_tds"]) >= 1).astype(float)
     return r
 

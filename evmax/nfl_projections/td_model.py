@@ -21,6 +21,7 @@ pass attempts.
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -97,7 +98,9 @@ def load_rz_usage(seasons: Iterable[int], d: Optional[Path] = None, rebuild: boo
             return rz[rz["game_id"].str[:4].astype(int).isin(seasons)].reset_index(drop=True)
     rz = build_rz_usage(data.load_pbp(seasons, d, columns=_PBP_COLS))
     out.parent.mkdir(parents=True, exist_ok=True)
-    rz.to_parquet(out, index=False)
+    tmp = out.with_suffix(f".{os.getpid()}.part")
+    rz.to_parquet(tmp, index=False)
+    tmp.replace(out)  # atomic: a concurrent reader never sees a half-written file
     return rz
 
 

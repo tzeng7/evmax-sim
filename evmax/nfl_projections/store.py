@@ -143,7 +143,11 @@ def connect(path: Optional[Path] = None) -> sqlite3.Connection:
     have = {r[1] for r in conn.execute("PRAGMA table_info(nfl_player_projections)")}
     for col, typ in _PLAYER_MIGRATIONS:
         if col not in have:
-            conn.execute(f"ALTER TABLE nfl_player_projections ADD COLUMN {col} {typ}")
+            try:
+                conn.execute(f"ALTER TABLE nfl_player_projections ADD COLUMN {col} {typ}")
+            except sqlite3.OperationalError as e:  # another process migrated first
+                if "duplicate column" not in str(e):
+                    raise
     conn.commit()
     return conn
 
