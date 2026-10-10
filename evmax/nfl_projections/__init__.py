@@ -15,7 +15,9 @@ Pipeline:
          (recency-weighted ridge: metric = mu + off + def + home)
       -> projected team points -> margin / total / P(win)     evmax.nfl_projections.game_model
       -> an upcoming week (starters, roof, wind fallbacks)     evmax.nfl_projections.live
+      -> model pick vs the Vegas line + graded record          evmax.nfl_projections.picks
 
-Walk-forward evaluation: scripts/backtest_nfl_game_projections.py.
-CLI: ``evmax project nfl [--season S --week W]``.
+Walk-forward evaluation: scripts/backtest_nfl_game_projections.py (accuracy),
+scripts/backtest_nfl_model_picks.py (picks vs the close / ESPN openers).
+CLI: ``evmax project nfl [--season S --week W]``, ``evmax project nfl-record``.
 """

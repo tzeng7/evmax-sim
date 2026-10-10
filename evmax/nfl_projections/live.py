@@ -67,8 +67,10 @@ def project_week(season: int, week: int, cfg: GameModelConfig = GameModelConfig(
     ``starters`` maps team abbreviation -> gsis QB id and overrides the
     schedule's projected starter. Returns one row per game, home perspective:
     proj_home / proj_away points, proj_margin (home - away), proj_total,
-    p_home_win, the QB ids used, and the schedule's consensus lines (for
-    comparison only — never a model input).
+    p_home_win, the QB ids used with each starter's delta vs the team's QB
+    level (EPA/dropback; ``picks`` flags |delta| > 0.05 as a QB change), and
+    the schedule's consensus lines (for comparison and model picks only —
+    never a model input).
     """
     first_season = cfg.first_feature_season - 2  # ratings need two prior seasons
     if refresh:
@@ -100,14 +102,15 @@ def project_week(season: int, week: int, cfg: GameModelConfig = GameModelConfig(
             qb = overrides.get(team) or (sched_qb if isinstance(sched_qb, str) and sched_qb else None) \
                 or recent.get(team)
             feats = {**side_features(fits, team, opp, home), **ctx, "qb": qbr.delta(team, qb)}
-            sides[team] = (comb.predict(feats), qb)
-        (ph, hq), (pa, aq) = sides[g.home_team], sides[g.away_team]
+            sides[team] = (comb.predict(feats), qb, feats["qb"])
+        (ph, hq, hd), (pa, aq, ad) = sides[g.home_team], sides[g.away_team]
         rows.append({
-            "game_id": g.game_id, "gameday": g.gameday.date(), "gametime": g.gametime,
+            "game_id": g.game_id, "season": season, "week": week,
+            "gameday": g.gameday.date(), "gametime": g.gametime,
             "home_team": g.home_team, "away_team": g.away_team, "neutral": bool(neutral),
             "roof": g.roof, "proj_home": ph, "proj_away": pa, "proj_margin": ph - pa,
             "proj_total": ph + pa, "p_home_win": float(stats.norm.cdf((ph - pa) / MARGIN_SD)),
-            "home_qb_id": hq, "away_qb_id": aq,
+            "home_qb_id": hq, "away_qb_id": aq, "home_qb_delta": hd, "away_qb_delta": ad,
             "home_qb_name": g.home_qb_name, "away_qb_name": g.away_qb_name,
             "market_spread_line": g.spread_line, "market_total_line": g.total_line,
         })

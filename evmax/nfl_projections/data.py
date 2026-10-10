@@ -214,3 +214,87 @@ def load_injuries(season: int, d: Optional[Path] = None) -> pd.DataFrame:
     i = pd.read_parquet(f)
     i["team"] = i["team"].replace(TEAM_ALIASES)
     return i
+
+
+# ── historical opening lines (ESPN) — model-pick backtests only ──────────────
+
+ESPN_ODDS = "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/{eid}/competitions/{eid}/odds"
+
+
+def espn_open_file(d: Optional[Path] = None) -> Path:
+    return data_dir(d) / "espn_open_lines.parquet"
+
+
+def _espn_num(x) -> Optional[float]:
+    if isinstance(x, dict):
+        x = x.get("american", x.get("value"))
+    if x is None:
+        return None
+    s = str(x).strip().upper()
+    if s in ("EVEN", "PK", "PICK"):
+        return 0.0
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def parse_espn_open(doc: Optional[dict]) -> tuple[Optional[float], Optional[float], Optional[str]]:
+    """(opening HOME HANDICAP, opening total, provider) from an ESPN competition-odds document.
+
+    ESPN carries openers in two shapes: 2024+ books expose ``homeTeamOdds.open``
+    / ``open.total`` (ESPN BET from late 2023, DraftKings in 2026); 2014-16
+    list a provider literally named "Opening". Live in-game providers are
+    skipped. Pre-2014 and 2017 to mid-2023 games have neither.
+    """
+    if not doc:
+        return None, None, None
+    items = [i for i in doc.get("items", []) if "live" not in str(i.get("provider", {}).get("name", "")).lower()]
+    for i in items:
+        hs = _espn_num(((i.get("homeTeamOdds") or {}).get("open") or {}).get("pointSpread"))
+        if hs is not None:
+            return hs, _espn_num((i.get("open") or {}).get("total")), i.get("provider", {}).get("name")
+    for i in items:
+        if i.get("provider", {}).get("name") == "Opening" and i.get("spread") is not None:
+            return float(i["spread"]), _espn_num(i.get("overUnder")), "Opening"
+    return None, None, None
+
+
+def load_espn_open_lines(games: pd.DataFrame, d: Optional[Path] = None, fetch: bool = True,
+                         workers: int = 8) -> pd.DataFrame:
+    """Opening lines per finished game: game_id, open_line_margin (expected HOME margin,
+    nflverse ``spread_line`` sign), open_total, open_source.
+
+    Cached in ``espn_open_lines.parquet``; with ``fetch`` the missing finished
+    games are requested from ESPN's public odds API (one call per game).
+    """
+    import json
+    import urllib.request
+    from concurrent.futures import ThreadPoolExecutor
+
+    f = espn_open_file(d)
+    have = pd.read_parquet(f) if f.exists() else pd.DataFrame(
+        columns=["game_id", "open_line_margin", "open_total", "open_source"])
+    todo = games[games["home_score"].notna() & games["espn"].notna() & ~games["game_id"].isin(have["game_id"])]
+    if fetch and not todo.empty:
+        def one(eid: str) -> Optional[dict]:
+            req = urllib.request.Request(ESPN_ODDS.format(eid=eid), headers={"User-Agent": "evmax-nfl-projections"})
+            try:
+                with urllib.request.urlopen(req, timeout=20) as r:
+                    return json.load(r)
+            except Exception:  # noqa: BLE001 — a missing game stays uncached and is retried next run
+                return None
+        with ThreadPoolExecutor(workers) as ex:
+            docs = list(ex.map(one, todo["espn"].astype(str)))
+        new = []
+        for gid, doc in zip(todo["game_id"], docs):
+            if doc is None:
+                continue
+            hs, tot, src = parse_espn_open(doc)
+            new.append({"game_id": gid, "open_line_margin": None if hs is None else -hs,
+                        "open_total": tot, "open_source": src})
+        if new:
+            have = pd.concat([have, pd.DataFrame(new)], ignore_index=True)
+            f.parent.mkdir(parents=True, exist_ok=True)
+            have.to_parquet(f, index=False)
+    return have
