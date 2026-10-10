@@ -1,4 +1,4 @@
-"""One NFL projection run: project a week, store it, grade the past, post it.
+"""One NFL projection run: project a week, store it (with model picks), grade the past, post it.
 
 ``evmax project nfl-run`` (and the scheduled weekly / Sunday-morning tasks) call
 ``run_week``; ``evmax project nfl-resolve`` calls ``resolve_pending``. The
@@ -13,7 +13,7 @@ from typing import Optional
 
 import pandas as pd
 
-from evmax.nfl_projections import data, live, player_games, store
+from evmax.nfl_projections import data, live, picks, player_games, store
 
 
 @dataclass
@@ -24,6 +24,7 @@ class WeekRun:
     players: pd.DataFrame
     games_logged: int = 0
     players_logged: int = 0
+    picks_logged: int = 0
     espn_out: int = 0
     notes: list[str] = field(default_factory=list)
 
@@ -45,30 +46,39 @@ def run_week(conn: sqlite3.Connection, season: int, week: int, *, refresh: bool 
         run.notes.append("ESPN injury feed unavailable; nflverse injury report only")
     run.games_logged = store.log_games(conn, games, version)
     run.players_logged = store.log_players(conn, players, version)
+    # Model picks vs the line: only each game's FIRST pre-kickoff pick is kept (never re-priced).
+    run.picks_logged = picks.record_picks(conn, picks.add_picks(games))
     return run
 
 
 def resolve_pending(conn: sqlite3.Connection, *, refresh: bool = True, d: Optional[Path] = None) -> dict[str, int]:
-    """Grade every stored row whose game is final (refreshing nflverse data first)."""
+    """Grade every stored row — projections and model picks — whose game is final
+    (refreshing nflverse data first). Returns counts per kind: games / players / picks."""
+    picks.ensure_schema(conn)
     seasons = [int(r[0]) for r in conn.execute(
         "SELECT DISTINCT season FROM nfl_game_projections WHERE resolved_at IS NULL "
         "UNION SELECT DISTINCT season FROM nfl_player_projections WHERE resolved_at IS NULL")]
-    if not seasons:
-        return {"games": 0, "players": 0}
+    open_picks = conn.execute("SELECT COUNT(*) FROM nfl_picks WHERE graded_at IS NULL").fetchone()[0]
+    if not seasons and not open_picks:
+        return {"games": 0, "players": 0, "picks": 0}
     if refresh:
         data.ensure_games(d, max_age_hours=1.0)
-        data.ensure_player_sources(seasons, d, refresh_seasons=seasons, max_age_hours=1.0)
+        if seasons:
+            data.ensure_player_sources(seasons, d, refresh_seasons=seasons, max_age_hours=1.0)
     games = data.load_games(d)
+    graded_picks = picks.grade_picks(conn, games)
+    if not seasons:
+        return {"games": 0, "players": 0, "picks": graded_picks}
     # Built directly (not via load_player_games, whose cache holds the full history the
     # projection runs need and would be overwritten with just these seasons).
     weekly, snaps = data.load_player_week(seasons, d), data.load_snaps(seasons, d)
     if weekly.empty or snaps.empty:
-        return store.resolve(conn, games, pd.DataFrame(), ready_games=set())
+        return {**store.resolve(conn, games, pd.DataFrame(), ready_games=set()), "picks": graded_picks}
     pg = player_games.build_player_games(weekly, snaps, games)
     # A game's player rows are graded only once BOTH stat lines and snap counts are
     # published (snaps identify players who played and recorded nothing).
     ready = set(weekly["game_id"]) & set(snaps["game_id"])
-    return store.resolve(conn, games, pg, ready_games=ready)
+    return {**store.resolve(conn, games, pg, ready_games=ready), "picks": graded_picks}
 
 
 def post_week(conn: sqlite3.Connection, season: int, week: int) -> bool:

@@ -423,6 +423,36 @@ The CLI shows stacks: P(QB and receiver both clear their medians) next to the pr
 
 Adding the feature changes the dev score by +0.005, which is noise. It is not better in a majority of seasons. The ridge ratings already carry what the drive structure knows. The simulator stays as a tool (score distributions, standalone evaluation), not as a default input.
 
+## Model picks (2026-10-10) — pick layer + graded record
+
+Module `evmax/nfl_projections/picks.py`. CLI: `evmax project nfl` (picks shown), `nfl-run` / `nfl --log` (recorded), `nfl-record` (record). Backtest: `scripts/backtest_nfl_model_picks.py`. Tests: `tests/test_nfl_picks.py`.
+
+**What it does.** Each game gets a pick against the nflverse consensus line, the way public model pages show one:
+- **Spread:** the side the model prefers. Edge = points of disagreement.
+- **Total:** over/under on the model's MEDIAN total (`TOTAL_MEDIAN_SHIFT` = −0.9). The game model projects the mean; totals are right-skewed and lines sit near the median, so mean-based picks took the over 64% of the time.
+- **Check flags:** big edge (5+), starting-QB change (|delta| > 0.05 EPA/dropback), Week 14+. These are where the model most often misses news.
+- **No cover probability.** The model's own P(cover) at the line is overconfident: picks rated 62–73% covered 49–51% (2011–25).
+
+**Record.** `nfl_picks` in projections.db (beside the `store.py` tables) keeps each game's FIRST pre-kickoff pick and the line it was made against, and never re-prices it — unlike the projections, which are rewritten until kickoff. `evmax project nfl-run` (the scheduled Tuesday run sets the pick, the Friday/Sunday refreshes cannot move it) and `evmax project nfl --log` record picks; `nfl-resolve` / `nfl-run` grade them through `pipeline.resolve_pending`. `nfl-record` shows the record, graded twice: at the published line (how public pages grade) and at the close. It also reports how far the line moved toward the pick.
+
+**Backtest (walk-forward, 2011–25, combiner from 2010; 2020–25 margin MAE 10.128 ≈ shipped 10.132).**
+
+| Spread picks | Record | Win % |
+|---|---|---|
+| vs the close, all seasons | 1917-1901 | 50.2% |
+| vs ESPN opening line (2014–16, late 2023–25) | 732-730 | 50.1% |
+| Weeks 1–4 vs the close | 480-448 | 51.7% |
+| Weeks 1–4 vs the opener | 166-142 | 53.9% (z +0.5 vs 52.4%) |
+| No check flag vs the close | 1155-1105 | 51.1% |
+
+- No season, week window or edge size beats 52.4% at the close.
+- **The opener moved toward the pick 699 times vs 492 (+0.40 pts).** The model anticipates line moves; it does not beat the closing number.
+- O/U vs the close: 49.8% with the median total (48% overs) vs 49.7% with the mean (64% overs).
+- ESPN carries opening lines only for 2014–16 ("Opening" provider) and from late 2023 (ESPN BET, then DraftKings). Pre-2014 and 2017 to mid-2023 have none.
+
+**2026 Weeks 1–4 (64 games), spread picks:** 36-28 vs Pinnacle's Tuesday-noon line, 34-30 vs DraftKings' opener, 30-31 vs the close (Week 1 5-11, Week 2 8-8, Week 3 11-5, Week 4 12-4 vs Tuesday). On the 32 Weeks 3–4 games two public model pages graded, ours went 23-9 vs Tuesday (Sasser 21-11, Sam 26-6); our model correlates 0.95 with Sasser's.
+
+**Feature tests run for this (all rejected or below the keep rule):** snap-weighted injury report (margin −0.028 dev, t −1.5; the market already moves 0.5–0.7 pts per starter out), pass/rush split ratings and style/strength interactions (null), a draft-round QB prior (QB-change games −0.13, t −1.9, but driven by 2024–25; all games −0.007).
 
 ## 8. Risks and limits
 
