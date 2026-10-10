@@ -18,6 +18,10 @@ uv run python scripts/opportunity_ledger.py get --id <id>     # full row: brief,
 ```
 
 Statuses: `PROPOSED`, `DROPPED`, `REJECTED_NOVELTY`, `REJECTED_SCOPE`, `ALLOWED_UNTESTED`,
-`SUPPORTED`, `UNDERPOWERED`, `REFUTED`, `INVALID`, `NOT_RUN`, `BUILDING`, `BLOCKED`, `PR_OPEN`,
-`MERGED`, `ABANDONED`. Only `SUPPORTED` (shadow feature) and `UNDERPOWERED` (shadow-collect only)
-can enter a build, and only while the evidence is at most 14 days old.
+`SUPPORTED`, `UNDERPOWERED`, `INCONCLUSIVE`, `REFUTED`, `INVALID`, `NOT_RUN`, `BUILDING`, `BLOCKED`,
+`PR_OPEN`, `MERGED`, `ABANDONED`. Only `SUPPORTED` (shadow feature) and `UNDERPOWERED` (shadow-collect
+only) can enter a build, only without schema errors, and only while the evidence is at most 14
+days old. A `BLOCKED` or interrupted `BUILDING` build may be retried under the same conditions.
+
+`context/<date>.web.json` is the compact digest passed inline to the web-facing agents, which
+have no file access.

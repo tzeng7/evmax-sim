@@ -28,8 +28,28 @@ Changes from the scope below, decided during the build:
    build graph receives a compact `gate` object printed by `opportunity_ledger.py get --gate`.
 4. **A `BLOCKED` build may be retried** while its discovery evidence is ≤ 14 days old.
 5. The metric rules exist once per graph between `METRIC_RULES:BEGIN/END` markers; a test pins the
-   two copies equal and the Python validator parses the same block.
-6. Phase 5 (scheduling) is not set up. The golden replay (§9.1) has not been run; it needs a live
+   two copies equal and the Python validator parses the same block. Each rule carries its
+   **units** and a plausible `value_range`. Brier is `brier_delta_per_1000` (threshold −2.0), so a
+   raw-unit Brier delta can never pass as a per-1000 one. The build deny list lives once, in
+   `DENY_PATHS` in `opportunity-build.js`, and `verify-build` reads the same block.
+6. **Hardening after an independent review (2026-10-10).** The `change-validator` review REJECTed
+   the first version. Its findings shaped these changes:
+   - The web-facing agents have **no Read/Grep/Glob** (Read + WebFetch is an exfiltration
+     path). They get a compact, script-built digest inline.
+   - The build reviewer runs **last**, on the final diff (test-stage edits included).
+   - `opportunity_ledger.py verify-build` re-checks before every ship, outside any LLM:
+     - G4, recomputed from the ledger (not from Workflow args);
+     - the build mode;
+     - the files that actually changed, against the deny list and the build's declared allowlist;
+     - live-mode widening (`categories.yaml` modes and shadow/disabled lists, soccer
+       `shadow_leagues`, `*_live` settings);
+     - that the session checkout is unchanged.
+   - G2b enforces the leakage flags and plausible units.
+   - A wrong-direction, too-small sample is `INCONCLUSIVE` (not buildable), not `UNDERPOWERED`.
+   - The scope gate fails closed on malformed validator output. It derives the auth hard fail
+     from `data[].auth_required` and enforces the score floor.
+   - `EVMAX_DB_DIR` alone implies read-only.
+7. Phase 5 (scheduling) is not set up. The golden replay (§9.1) has not been run; it needs a live
    discovery run.
 
 ## 1. Goal
@@ -88,8 +108,8 @@ Each principle comes from a lesson already recorded in this repository.
 | # | Role | Agent type | Tools | Writes to repo? | Count per run |
 |---|---|---|---|---|---|
 | 0 | **Orchestrator** | Workflow script `.claude/workflows/opportunity-scout.js` and `opportunity-build.js` | (control flow only) | No | — |
-| 1 | **Research Journal** | new project agent `opportunity-researcher` | Read, Grep, Glob, WebSearch, WebFetch | No | 1 (option: 2) |
-| 2 | **EV Competitive Analysis** | new project agent `opportunity-competitor` | Read, Grep, Glob, WebSearch, WebFetch | No | 1 |
+| 1 | **Research Journal** | new project agent `opportunity-researcher` | WebSearch, WebFetch, ToolSearch | No | 1 (option: 2) |
+| 2 | **EV Competitive Analysis** | new project agent `opportunity-competitor` | WebSearch, WebFetch, ToolSearch | No | 1 |
 | 3 | **Modeling** | new project agent `opportunity-modeler` | Read, Grep, Glob, Bash (read-only) | No | 1 |
 | 4 | **Synthesizer** (orchestrator's judgment node) | `general-purpose` | Read, Grep, Glob | No | 1 (+1 on revise) |
 | 5 | **Scope Validator** | new project agent `opportunity-validator` | Read, Grep, Glob, Bash (read-only) | No | 1 (+1 on revise) |
@@ -103,11 +123,16 @@ Each principle comes from a lesson already recorded in this repository.
 
 Agents 1–7 run in discovery. Agents 8–11 run in build; step 12 is the command, not an agent.
 
-**Security boundary.** The two web-facing agents (1, 2) get no Bash, Edit, or Write tools.
-Fetched web content can carry prompt-injection text. An agent without shell or write access
-cannot act on it. Any network probe of our own venues (for example
-`scripts/check_kalshi_series.py --probe`) runs in the context script instead, before the agents
-start.
+**Security boundary.** The two web-facing agents (1, 2) get no file, shell, or write tools —
+only WebSearch, WebFetch and ToolSearch. Fetched web content can carry prompt-injection text,
+and an agent that can both Read local files and WebFetch arbitrary URLs could be steered into
+reading `.env` and leaking it in a URL. Their repo context is a compact, non-secret digest that
+`opportunity_context.py` writes (`<date>.web.json`) and the command passes inline. Any network
+probe of our own venues (for example `scripts/check_kalshi_series.py --probe`) runs in the
+context script instead, before the agents start. Not verified at runtime: whether ToolSearch in
+a subagent can surface tools outside its allowlist. For defense in depth, add `permissions.deny`
+rules such as `Read(**/.env*)` to the user's Claude settings (a settings change for the owner,
+not something the workflow makes).
 
 ### 3.1 Research Journal agent
 
@@ -229,14 +254,21 @@ agents, because an agent that reviews its own code is the weakest form of review
 
 1. `implementer` writes the smallest vertical slice in an isolated worktree, behind shadow or a
    default-off flag, with tests (Testing Policy) and the CLAUDE.md updates the change requires.
-2. `change-validator` reviews the diff read-only for correctness, regressions, conventions, and
-   reward hacking, plus an evmax checklist: YES-side alignment, ET/UTC game day, `:no`-side
-   conventions, `ev_pct` stored as a fraction, venue firewall, shadow mode, contamination rules,
-   declared `state_filename`, `MIN_NONSHARP_MODELS` and `REQUIRED_BLEND_MODELS`.
-3. `test-runner` runs targeted tests and adds the missing test for the new behavior.
+2. `test-runner` runs targeted tests and the full suite, and adds the missing test for the new
+   behavior.
+3. `evmax-backtester` re-runs the pre-registered test through the built code (G4).
+4. `change-validator` reviews the FINAL diff read-only — including anything the test or
+   verification stage touched — for correctness, regressions, conventions, and reward hacking,
+   plus an evmax checklist: YES-side alignment, ET/UTC game day, `:no`-side conventions, `ev_pct`
+   stored as a fraction, venue firewall, shadow mode, contamination rules, declared
+   `state_filename`, `MIN_NONSHARP_MODELS` and `REQUIRED_BLEND_MODELS`. It runs last so the diff
+   it accepts is the diff that ships.
 
-A REJECT from either reviewer routes back to the implementer, at most twice. A third failure ends
-the run as `blocked` with the reasons.
+A test failure or a REJECT routes back to the implementer, at most twice. A third failure ends
+the run as `blocked`. A G4 failure blocks immediately and is never iterated on, because tuning
+code until the number matches would be fitting the implementation to the metric. After the graph,
+`opportunity_ledger.py verify-build` repeats every safety check deterministically before the
+command ships.
 
 ## 4. Flow
 
@@ -273,13 +305,15 @@ flowchart TD
     G0 -->|no| STOP["stop: re-run discovery"]
     G0 -->|yes| WT["sched_worktree.py open → isolated worktree off origin/main<br/>branch opp/&lt;id&gt;"]
     WT --> IMP["Implementer (shadow / default-off, tests, docs)"]
-    IMP --> CV{"change-validator"}
-    CV -->|REJECT ≤2| IMP
-    CV -->|ACCEPT| TR{"test-runner"}
+    IMP --> TR{"test-runner"}
     TR -->|fail ≤2| IMP
     TR -->|pass| PV{"G4 post-build verification<br/>reproduces pre-build number?"}
     PV -->|no| BLK["blocked + report"]
-    PV -->|yes| PR["command: sched_worktree.py ship → PR (never auto-merge) · ledger row"]
+    PV -->|yes| CV{"change-validator<br/>FINAL diff, runs last"}
+    CV -->|REJECT ≤2| IMP
+    CV -->|ACCEPT| VB{"verify-build (Python)<br/>G4 from ledger · files vs deny list + allowlist<br/>live widening · session untouched"}
+    VB -->|fail| BLK
+    VB -->|pass| PR["command: sched_worktree.py ship → PR (never auto-merge) · ledger row"]
 ```
 
 `UNDERPOWERED` is a valid build input only for a **shadow-collect** build: a change whose sole
@@ -311,7 +345,7 @@ Every agent boundary passes this object, validated by JSON schema at the tool-ca
 | `clv_pp_net_fee` | pricing, execution, coverage | mean > 0, game-declustered z ≥ 1.64, n ≥ 30 games |
 | `roi_net_fee` | execution with fill data | as above |
 | `open_close_slope` | model levers | slope of (close − open) on (model − open) > 0 with t ≥ 2 (the NCAAF v2 lens) |
-| `brier_paired_vs_sharp` | screening only | Δ ≤ −2/1000 and z ≤ −1.64; **must** be paired with a CLV promotion plan |
+| `brier_delta_per_1000` | screening only | (candidate − baseline Brier) × 1000 < −2.0 and z ≥ 1.64; **must** carry a `promotion_plan` (the CLV lens) |
 | `match_rate` / `coverage` | reliability, matching | pre-registered absolute target on an archive replay |
 
 A brief may tighten a default threshold. It may not loosen one.
@@ -323,10 +357,12 @@ A brief may tighten a default threshold. It may not loosen one.
 | G0 Novelty | synthesizer, then validator | graveyard lookup | not in graveyard, or new evidence meets `revisit_if` | reject → noted in report |
 | G1 Scope | validator | hard fails in JS; scores by LLM | `allow` | `revise` once, then `reject` → graveyard |
 | G2a Integrity | after backtest | `iteration-reviewer` | pre-registration honored, no leakage | `INVALID` → report (no re-run in the same run) |
-| G2b Signal | after G2a | JS arithmetic | `SUPPORTED`; `UNDERPOWERED` when n < `min_n_games` | `REFUTED` → graveyard |
+| G2b Signal | after G2a | JS arithmetic | `SUPPORTED`; `UNDERPOWERED` when right direction but n or z short; `INCONCLUSIVE` when n short and wrong direction; `INVALID` on a leakage flag or an implausible value | `REFUTED` → graveyard |
 | Pick | between runs | owner | `/opportunities build <id>` | — |
-| G3 Review | build | `change-validator` + `test-runner` | ACCEPT and targeted tests pass | ≤2 fix loops, then `blocked` |
-| G4 Verify | build | `evmax-backtester` post-build | reproduces pre-build result; shadow or default-off confirmed | `blocked` |
+| G3 Test | build | `test-runner` | full suite passes, no failures listed | ≤2 fix loops, then `blocked` |
+| G4 Verify | build | `evmax-backtester` post-build + JS | reproduces pre-build result | `blocked` (no iteration) |
+| G3b Review | build | `change-validator`, LAST, on the final diff | consistent ACCEPT, live behavior unchanged | ≤2 fix loops, then `blocked` |
+| Ship gate | after the graph | `opportunity_ledger.py verify-build` (Python) | G4 from the ledger, build mode, actual files ⊆ allowlist and ∉ deny list, no live widening, session checkout unchanged | `blocked` |
 | G5 Merge | PR | owner | — | — |
 
 G2a runs **before** G2b, the same order as `model-improve`. An integrity check that runs after

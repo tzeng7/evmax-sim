@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import subprocess
 from datetime import date
 from pathlib import Path
 
@@ -21,6 +22,7 @@ def root(tmp_path: Path) -> Path:
     """A throwaway repo root with the scout workflow (for the metric rules) and a seed graveyard."""
     (tmp_path / L.SCOUT_WORKFLOW).parent.mkdir(parents=True)
     shutil.copy(REPO / L.SCOUT_WORKFLOW, tmp_path / L.SCOUT_WORKFLOW)
+    shutil.copy(REPO / L.BUILD_WORKFLOW, tmp_path / L.BUILD_WORKFLOW)
     (tmp_path / L.GRAVEYARD).parent.mkdir(parents=True)
     (tmp_path / L.GRAVEYARD).write_text(
         "# header comment\n\n- id: existing\n  idea: x\n  lever: model\n  sectors: [nba]\n"
@@ -55,7 +57,7 @@ def _brief(oid="kalshi-total-lag-20261010", status="SUPPORTED", **over):
 
 def test_metric_rules_load_from_workflow(root):
     rules = L.load_metric_rules(root)
-    assert set(rules) == {"clv_pp_net_fee", "roi_net_fee", "open_close_slope", "brier_paired_vs_sharp",
+    assert set(rules) == {"clv_pp_net_fee", "roi_net_fee", "open_close_slope", "brier_delta_per_1000",
                           "match_rate", "coverage"}
 
 
@@ -74,8 +76,12 @@ def test_parse_metric_rules_requires_markers():
     ({"threshold": True}, 1),
     ({"command": "", "comparator": None}, 2),
     ({"metric": "match_rate", "threshold": None}, 1),
-    ({"metric": "brier_paired_vs_sharp", "threshold": -0.001, "min_n_games": 200}, 1),
-    ({"metric": "brier_paired_vs_sharp", "threshold": -0.003, "min_n_games": 200}, 0),
+    ({"metric": "brier_delta_per_1000", "threshold": -1.0, "min_n_games": 200, "promotion_plan": "clv"}, 1),
+    ({"metric": "brier_delta_per_1000", "threshold": -2.5, "min_n_games": 200, "promotion_plan": "clv"}, 0),
+    ({"metric": "brier_delta_per_1000", "threshold": -2.5, "min_n_games": 200}, 1),    # no promotion plan
+    ({"metric": "match_rate", "threshold": 1.0}, 1),                                     # cannot beat 1.0
+    ({"threshold": 60}, 1),                                                              # implausible pp
+    ({"train_window": "", "declustering": None}, 2),
 ])
 def test_preregistration_errors(root, over, n_errors):
     errs = L.preregistration_errors(_prereg(**over), L.load_metric_rules(root))
@@ -130,7 +136,10 @@ def test_latest_by_id_carries_only_sticky_fields(root):
     ({"status": "BLOCKED", "evidence_status": "SUPPORTED", "brief": {"a": 1}, "evidence_date": "2026-10-08"},
      "2026-10-10", True, "shadow_feature"),
     ({"status": "BUILDING", "evidence_status": "SUPPORTED", "brief": {"a": 1}, "evidence_date": "2026-10-08"},
-     "2026-10-10", False, "status"),
+     "2026-10-10", True, "shadow_feature"),                     # a build whose session died may be retried
+    ({"status": "SUPPORTED", "brief": {"a": 1}, "evidence_date": "2026-10-09", "schema_errors": ["min_n_games 5"]},
+     "2026-10-10", False, "schema errors"),
+    ({"status": "INCONCLUSIVE", "brief": {"a": 1}, "evidence_date": "2026-10-09"}, "2026-10-10", False, "status"),
 ])
 def test_buildable(row, today, ok, why):
     got_ok, got_why = L.buildable(row, date.fromisoformat(today))
@@ -176,7 +185,7 @@ def test_graveyard_entry_mapping():
     assert blocked["verdict"] == "NOT_SUPPORTABLE" and "requires_auth_or_account" in blocked["evidence"]
     soft = _brief(status="REJECTED_SCOPE", scope={"hard_fails": {"changes_bankroll_or_mode": True}})
     assert L.graveyard_entry_for(soft, RUN_DATE) is None
-    for status in ("SUPPORTED", "UNDERPOWERED", "INVALID", "NOT_RUN", "ALLOWED_UNTESTED"):
+    for status in ("SUPPORTED", "UNDERPOWERED", "INCONCLUSIVE", "INVALID", "NOT_RUN", "ALLOWED_UNTESTED"):
         assert L.graveyard_entry_for(_brief(status=status), RUN_DATE) is None
 
 
@@ -298,3 +307,149 @@ def test_cli_validate_brief(root, tmp_path, capsys):
     bad = tmp_path / "bad.json"
     bad.write_text(json.dumps(_brief(preregistration=_prereg(threshold=-1))))
     assert L.main(["--root", str(root), "validate-brief", str(bad)]) == 1
+
+
+def test_cli_ingest_refuses_unexpected_payload(root, tmp_path, capsys):
+    bad = tmp_path / "out.json"
+    bad.write_text(json.dumps({"summary": "s", "agentCount": 0, "logs": [], "result": {"probe": True}}))
+    assert L.main(["--root", str(root), "ingest", str(bad), "--date", RUN_DATE]) == 1
+    assert "no 'briefs' list" in capsys.readouterr().err
+    assert not (root / L.LEDGER).exists()
+
+
+# ---------------------------------------------------------------------------
+# verify-build: the deterministic ship gate
+# ---------------------------------------------------------------------------
+
+def test_live_widening():
+    base_c = {"nfl": {"mode": "shadow", "shadow_market_types": ["spread"], "disabled_market_types": ["total"],
+                      "shadow_venue_market_types": {"kalshi": ["total"]}},
+              "nba": {"mode": "live"}}
+    assert L.live_widening(base_c, base_c, {"shadow_leagues": ["ligamx"]}, {"shadow_leagues": ["ligamx"]}, "") == []
+    tightened = {**base_c, "nba": {"mode": "shadow"}, "golf": {"mode": "shadow"}}
+    assert L.live_widening(base_c, tightened, {}, {}, "") == []
+    widened = {"nfl": {"mode": "live", "shadow_market_types": [], "disabled_market_types": [],
+                       "shadow_venue_market_types": {}},
+               "nba": {"mode": "live"}, "golf": {"mode": "live"}, "odd": {"mode": "weird"}}
+    reasons = L.live_widening(base_c, widened, {"shadow_leagues": ["ligamx", "jleague"]},
+                              {"shadow_leagues": ["ligamx"]},
+                              "--- a/evmax/settings.py\n+++ b/evmax/settings.py\n-    novig_live: bool = False\n"
+                              "+    novig_live: bool = True\n+    some_other: int = 1\n")
+    text = "\n".join(reasons)
+    for needle in ("nfl mode shadow -> live", "shadow_market_types lost", "disabled_market_types lost",
+                   "shadow_venue_market_types.kalshi lost", "new category golf", "new category odd",
+                   "shadow_leagues lost ['jleague']", "novig_live: bool = True"):
+        assert needle in text, needle
+    assert "some_other" not in text
+
+
+def _git(repo: Path, *args: str) -> str:
+    cp = subprocess.run(["git", "-C", str(repo), "-c", "user.email=t@t", "-c", "user.name=t", *args],
+                        capture_output=True, text=True, check=True)
+    return cp.stdout
+
+
+@pytest.fixture
+def worktree(tmp_path: Path) -> Path:
+    wt = tmp_path / "wt"
+    (wt / "data").mkdir(parents=True)
+    (wt / "evmax").mkdir()
+    (wt / "data" / "categories.yaml").write_text(
+        "nfl:\n  mode: shadow\n  shadow_market_types: [spread]\nnba:\n  mode: live\n")
+    (wt / "data" / "soccer_league_tiers.yaml").write_text("shadow_leagues: [ligamx]\n")
+    (wt / "evmax" / "settings.py").write_text("novig_live: bool = False\n")
+    (wt / "evmax" / "old.py").write_text("x = 1\n")
+    _git(wt, "init", "-q")
+    _git(wt, "add", "-A")
+    _git(wt, "commit", "-qm", "base")
+    (wt / "evmax" / "x.py").write_text("FLAG = False\n")
+    (wt / "tests").mkdir()
+    (wt / "tests" / "test_x.py").write_text("def test_x():\n    assert True\n")
+    return wt
+
+
+def _ready_result(**over) -> dict:
+    r = {"ready_to_ship": True, "build_mode": "shadow_feature",
+         "allowed_files": ["evmax/x.py", "tests/test_x.py"],
+         "verification": {"ran": True, "metric": "clv_pp_net_fee", "value": 0.7, "z_improvement": 2.0,
+                          "n_games": 40, "leakage_checks": {"utc_et_day": True}}}
+    r.update(over)
+    return r
+
+
+def _build_row(**over) -> dict:
+    row = {"id": "kalshi-total-lag-20261010", "status": "BUILDING", "evidence_status": "SUPPORTED",
+           "evidence_date": RUN_DATE, "brief": _brief(), "evidence": _brief()["evidence"], "schema_errors": []}
+    row.update(over)
+    return row
+
+
+def test_verify_build_ok(root, worktree):
+    rep = L.verify_build(_ready_result(), _build_row(), worktree, date(2026, 10, 11), root)
+    assert rep == {"ok": True, "reasons": [], "files": ["evmax/x.py", "tests/test_x.py"], "build_mode": "shadow_feature"}
+
+
+def test_verify_build_catches_undeclared_and_denied_files(root, worktree):
+    (worktree / "evmax" / "old.py").write_text("x = 2\n")                 # edited, never declared
+    (worktree / "data" / "models").mkdir()
+    (worktree / "data" / "models" / "elo_state.json").write_text("{}")    # live state
+    rep = L.verify_build(_ready_result(), _build_row(), worktree, date(2026, 10, 11), root)
+    text = "\n".join(rep["reasons"])
+    assert not rep["ok"]
+    assert "deny-listed paths changed: ['data/models/elo_state.json']" in text
+    assert "evmax/old.py" in text and "nobody declared" in text
+
+
+def test_verify_build_catches_renames_and_deletions(root, worktree):
+    _git(worktree, "mv", "evmax/old.py", "evmax/renamed.py")
+    rep = L.verify_build(_ready_result(), _build_row(), worktree, date(2026, 10, 11), root)
+    assert {"evmax/old.py", "evmax/renamed.py"} <= set(rep["files"]) and not rep["ok"]
+
+
+def test_verify_build_catches_live_widening(root, worktree):
+    (worktree / "data" / "categories.yaml").write_text("nfl:\n  mode: live\nnba:\n  mode: live\n")
+    (worktree / "evmax" / "settings.py").write_text("novig_live: bool = True\n")
+    allowed = ["evmax/x.py", "tests/test_x.py", "data/categories.yaml", "evmax/settings.py"]
+    rep = L.verify_build(_ready_result(allowed_files=allowed), _build_row(), worktree, date(2026, 10, 11), root)
+    text = "\n".join(rep["reasons"])
+    assert "category nfl mode shadow -> live" in text and "shadow_market_types lost" in text
+    assert "novig_live" in text
+
+
+def test_verify_build_recomputes_g4_and_mode_from_the_ledger(root, worktree):
+    # The workflow claims ready, but the verification value is outside the LEDGER's pre-build CI.
+    bad = _ready_result(verification={**_ready_result()["verification"], "value": 2.4})
+    rep = L.verify_build(bad, _build_row(), worktree, date(2026, 10, 11), root)
+    assert any("G4 (recomputed from the ledger)" in r for r in rep["reasons"])
+    # A mistyped build_mode (shadow_collect would reduce G4 to a boolean) is caught.
+    rep = L.verify_build(_ready_result(build_mode="shadow_collect"), _build_row(), worktree, date(2026, 10, 11), root)
+    assert any("build_mode 'shadow_collect' != ledger mode 'shadow_feature'" in r for r in rep["reasons"])
+    # Stale evidence fails the ledger gate.
+    rep = L.verify_build(_ready_result(), _build_row(), worktree, date(2026, 12, 1), root)
+    assert any(r.startswith("ledger gate:") for r in rep["reasons"])
+
+
+def test_verify_build_session_checkout_must_be_unchanged(root, worktree, tmp_path):
+    session = tmp_path / "session"
+    session.mkdir()
+    _git(session, "init", "-q")
+    baseline = _git(session, "status", "--porcelain=v1", "--untracked-files=all")
+    rep = L.verify_build(_ready_result(), _build_row(), worktree, date(2026, 10, 11), root, session, baseline)
+    assert rep["ok"], rep["reasons"]
+    (session / "stray.py").write_text("oops")
+    rep = L.verify_build(_ready_result(), _build_row(), worktree, date(2026, 10, 11), root, session, baseline)
+    assert any("session checkout" in r for r in rep["reasons"])
+
+
+def test_cli_verify_build_exit_codes(root, worktree, tmp_path, capsys):
+    L.append_ledger([_build_row()], root)
+    out = tmp_path / "output.json"
+    out.write_text(json.dumps({"summary": "s", "agentCount": 4, "logs": [], "result": _ready_result()}))
+    files = tmp_path / "files.txt"
+    rc = L.main(["--root", str(root), "verify-build", str(out), "--id", "kalshi-total-lag-20261010",
+                 "--worktree", str(worktree), "--today", "2026-10-11", "--files-out", str(files)])
+    assert rc == 0, capsys.readouterr().out
+    assert files.read_text().split() == ["evmax/x.py", "tests/test_x.py"]
+    out.write_text(json.dumps({"summary": "s", "agentCount": 4, "logs": [], "result": _ready_result(ready_to_ship=False)}))
+    assert L.main(["--root", str(root), "verify-build", str(out), "--id", "kalshi-total-lag-20261010",
+                   "--worktree", str(worktree), "--today", "2026-10-11"]) == 3

@@ -50,14 +50,20 @@ Estimate `time_to_evidence` from the board's `n_logged` / `n_resolved` per 30 da
 - `reject` — any hard fail, or not worth a backtest even if fixed.
 
 ## Pre-registration checks
-- A model lever must not use Brier alone as the decision metric: `brier_paired_vs_sharp` is
-  screening only and needs a CLV promotion plan; prefer `open_close_slope` or
-  `clv_pp_net_fee`.
+- A model lever must not use Brier alone as the decision metric: `brier_delta_per_1000`
+  (candidate − baseline Brier × 1000, threshold −2.0) is screening only and needs a
+  `promotion_plan` naming the CLV lens; prefer `open_close_slope` or `clv_pp_net_fee`.
+- Thresholds are in the metric's units (CLV in percentage points, ROI in percent, Brier per
+  1000, match rate / coverage as a 0–1 fraction). A threshold in the wrong units is a revise.
 - CLV/ROI must be **net of fees** and declustered by game (`game_key` in `evmax/cli/commands/shadow.py`), never rows or
   rungs.
 - Windows must be walk-forward with an untouched holdout.
 - The `command` must be runnable with existing tools or a clearly-scoped throwaway script.
-The workflow also enforces "tighten, never loosen" on thresholds in code; you judge whether the
+The workflow also enforces in code: "tighten, never loosen" thresholds, plausible-range
+thresholds, required windows / declustering, a hard reject when any `data[]` entry has
+`auth_required: true`, a reject when `net_of_fee` < 1, and a revise when `edge_mechanism` < 2 or
+when graveyard matches lack a `why_different`. Malformed output (a missing or non-boolean
+hard-fail key, a missing or out-of-range score) is treated as a reject. You judge whether the
 chosen metric and windows actually test the hypothesis.
 
 You may run read-only commands to check a claim (prefix DB-reading commands with the env in the

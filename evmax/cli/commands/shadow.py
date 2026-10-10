@@ -1347,7 +1347,19 @@ def board(
     )
     if as_json:
         import json as _json
-        console.print_json(_json.dumps(rows, default=str))
+        import math as _math
+
+        def _finite(v):
+            # Strict JSON for agents/jq: NaN / ±inf become null.
+            if isinstance(v, float) and not _math.isfinite(v):
+                return None
+            if isinstance(v, dict):
+                return {k: _finite(x) for k, x in v.items()}
+            if isinstance(v, (list, tuple)):
+                return [_finite(x) for x in v]
+            return v
+
+        console.print_json(_json.dumps(_finite(rows), default=str, allow_nan=False))
         return
     if not rows:
         console.print("[yellow]No prediction rows in the window.[/yellow]")

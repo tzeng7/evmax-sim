@@ -2450,6 +2450,12 @@ def backfill_clv_cmd(
     until_date = _date.fromisoformat(until) if until else None
 
     if recompute and not dry_run:
+        from evmax.db_location import readonly_enabled as _ro
+
+        if _ro():
+            console.print("[red]--recompute writes to predictions.db; refusing under "
+                          "EVMAX_DB_READONLY / EVMAX_DB_DIR (use --dry-run).[/red]")
+            raise typer.Exit(1)
         # A recompute overwrites (and can NULL) historical kalshi_clv_pct values
         # — back the DB up first (predictions_backup_before_* convention).
         import sqlite3 as _sqlite3

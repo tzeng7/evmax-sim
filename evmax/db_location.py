@@ -11,18 +11,22 @@ Two environment variables point a checkout at another checkout's data instead:
 
 ``EVMAX_DB_READONLY``
     ``1`` / ``true`` / ``yes`` / ``on`` → every connection from
-    ``cleanup.db.get_connection``, ``archiver._get_connection`` and the
-    portfolio store opens with a ``mode=ro`` URI and SKIPS schema creation and
-    migrations. Any write raises ``sqlite3.OperationalError``; a missing file
-    raises ``FileNotFoundError`` instead of creating an empty database.
+    ``cleanup.db.get_connection``, ``archiver._get_connection``, the portfolio
+    store and the sizing replay opens with a ``mode=ro`` URI and SKIPS schema
+    creation and migrations. Any write raises ``sqlite3.OperationalError``; a
+    missing file raises ``FileNotFoundError`` instead of creating an empty
+    database. **Setting ``EVMAX_DB_DIR`` implies read-only** — pointing at
+    another checkout's live databases must never write by accident — unless
+    ``EVMAX_DB_READONLY`` is explicitly ``0`` / ``false`` / ``no`` / ``off``.
 
 Typical use from a worktree (the opportunity-scout backtester does this)::
 
     EVMAX_DB_DIR=/path/to/main/checkout/data EVMAX_DB_READONLY=1 \\
         uv run evmax cleanup shadow clv nfl -m spread
 
-Modules that open their own literal paths (``web/app.py``, the calibration and
-meta-model trainers) are not affected.
+Not affected: modules that open their own literal paths (``web/app.py``, the
+calibration and meta-model trainers) and scripts that take ``--archive-db`` /
+``--pred-db`` flags and open them with a plain read-write ``sqlite3.connect``.
 """
 
 from __future__ import annotations
@@ -34,6 +38,7 @@ from pathlib import Path
 ENV_DB_DIR = "EVMAX_DB_DIR"
 ENV_DB_READONLY = "EVMAX_DB_READONLY"
 _TRUTHY = {"1", "true", "yes", "on"}
+_FALSY = {"0", "false", "no", "off"}
 
 
 def resolve_db_path(filename: str, default: Path) -> Path:
@@ -45,8 +50,18 @@ def resolve_db_path(filename: str, default: Path) -> Path:
 
 
 def readonly_enabled() -> bool:
-    """True when ``EVMAX_DB_READONLY`` holds a truthy value. Read on every call."""
-    return os.environ.get(ENV_DB_READONLY, "").strip().lower() in _TRUTHY
+    """Whether connections must be read-only. Read on every call.
+
+    ``EVMAX_DB_READONLY`` truthy → True; explicitly falsy → False. Unset or
+    empty → True exactly when ``EVMAX_DB_DIR`` is set (redirected databases are
+    read-only by default).
+    """
+    flag = os.environ.get(ENV_DB_READONLY, "").strip().lower()
+    if flag in _TRUTHY:
+        return True
+    if flag in _FALSY:
+        return False
+    return bool(os.environ.get(ENV_DB_DIR, "").strip())
 
 
 def connect_readonly(path: Path, timeout: float = 5.0) -> sqlite3.Connection:

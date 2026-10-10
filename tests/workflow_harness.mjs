@@ -12,9 +12,10 @@
 //     "calls": [ { "fn": "signalVerdict", "args": [...] } ] }     // call mode
 // Responses are matched by exact label, else by the longest key that the label
 // starts with; each list is consumed in order and its last entry repeats. An
-// unmatched label returns null (a dead agent).
-// Output (stdout, JSON): run → {result, calls:[{label, agentType, phase}], logs, phases,
-// unmatched}; call → {results:[...]}.
+// unmatched label returns null (a dead agent); a response {"__throw__": "msg"} makes
+// agent() reject (an agent that errors out).
+// Output (stdout, JSON): run → {result, calls:[{label, agentType, phase}], prompts:{label: text},
+// logs, phases, unmatched}; call → {results:[...]}.
 
 import { readFileSync } from 'node:fs'
 
@@ -38,6 +39,7 @@ if (scenario.mode === 'call') {
   const logs = []
   const phases = []
   const unmatched = []
+  const prompts = {}
   const pick = label => {
     if (label in queues) return label
     let best = null
@@ -47,10 +49,12 @@ if (scenario.mode === 'call') {
   const agent = async (prompt, opts = {}) => {
     const label = opts.label || '(unlabeled)'
     calls.push({ label, agentType: opts.agentType || null, phase: opts.phase || null, prompt_chars: String(prompt).length })
+    prompts[label] = String(prompt)
     const key = pick(label)
     if (!key) { unmatched.push(label); return null }
     const q = queues[key]
     const r = q.length > 1 ? q.shift() : q[0]
+    if (r && typeof r === 'object' && '__throw__' in r) throw new Error(String(r.__throw__))
     return clone(r)
   }
   const parallel = thunks => Promise.all(thunks.map(t => Promise.resolve().then(t).catch(() => null)))
@@ -66,5 +70,5 @@ if (scenario.mode === 'call') {
   const run = new AsyncFunction('args', 'agent', 'parallel', 'pipeline', 'phase', 'log', 'budget', source)
   const budget = { total: null, spent: () => 0, remaining: () => Infinity }
   const result = await run(clone(scenario.args), agent, parallel, pipeline, phase, log, budget)
-  process.stdout.write(JSON.stringify({ result, calls, logs, phases, unmatched }))
+  process.stdout.write(JSON.stringify({ result, calls, prompts, logs, phases, unmatched }))
 }

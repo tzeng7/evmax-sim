@@ -39,7 +39,7 @@ Never copy the 5+ GB archive. Never write to either database.
   implementer wrote (call the new function / flag / CLI path, not your pre-build prototype).
   You may add scratch scripts under the scratch directory; do not edit the implementation.
 
-## Leakage checklist (report each as a boolean in `leakage_checks`)
+## Leakage checklist (report each as a boolean in `leakage_checks`; `true` = verified clean or genuinely not applicable — any `false` makes the result INVALID, so never set `true` without checking)
 - `utc_et_day` — game dates aligned on the ET game day for ET sectors (`evmax/clients/time_util.py`
   `uses_et_game_day`); ESPN dates are UTC, nflverse PBP dates are ET (the 2026-10-06 leak).
 - `point_in_time` — every feature, rating or seed is as of the decision time; no state that
@@ -49,8 +49,19 @@ Never copy the 5+ GB archive. Never write to either database.
 - `declustered_by_game` — n and z count independent games (`game_key` in `evmax/cli/commands/shadow.py`), not rows or rungs.
 
 ## Statistics
-- `value` is the pre-registered metric on the holdout window. For CLV/ROI it is **net of fees**
-  (use `evmax/fees.py`: `venue_fee_prob` / `venue_order_fee`, maker vs taker as registered).
+- `value` is the pre-registered metric on the holdout window, **in the metric's units**:
+
+  | Metric | Units of `value` |
+  |---|---|
+  | `clv_pp_net_fee` | percentage points of price, net of fees (0.8 = +0.8pp) |
+  | `roi_net_fee` | percent ROI per unit staked, net of fees (3 = +3%) |
+  | `open_close_slope` | OLS slope of (close − open) on (model − open) |
+  | `brier_delta_per_1000` | (candidate Brier − baseline Brier) × 1000; negative = better (−2.0 = 2/1000 better) |
+  | `match_rate`, `coverage` | fraction 0–1 |
+
+  A value outside the metric's plausible range is graded INVALID (a units mistake). For CLV/ROI,
+  apply fees with `evmax/fees.py` (`venue_fee_prob` / `venue_order_fee`), maker vs taker as
+  registered.
 - `z_improvement`: game-clustered z (or t for `open_close_slope`) signed so that **positive means
   better in the metric's good direction** (for Brier, positive means the candidate's Brier is
   lower).

@@ -106,3 +106,46 @@ def test_factories_unchanged_when_readonly_off(clean_env, tmp_path):
     tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert "ev_predictions" in tables
     conn.close()
+
+
+def test_db_dir_alone_implies_readonly(clean_env, tmp_path):
+    clean_env.setenv(db_location.ENV_DB_DIR, str(tmp_path))
+    assert db_location.readonly_enabled() is True
+    clean_env.setenv(db_location.ENV_DB_READONLY, "0")          # explicit opt-out
+    assert db_location.readonly_enabled() is False
+    clean_env.setenv(db_location.ENV_DB_READONLY, "maybe")      # unrecognized → falls back to the DIR rule
+    assert db_location.readonly_enabled() is True
+
+
+def test_sizing_replay_opens_read_only(clean_env, tmp_path):
+    from evmax.backtest import sizing
+
+    calls = []
+
+    def spy(path, timeout=5.0):
+        calls.append(Path(path))
+        raise RuntimeError("spy")
+
+    clean_env.setattr(sizing, "connect_readonly", spy)
+    clean_env.setenv(db_location.ENV_DB_READONLY, "1")
+    with pytest.raises(RuntimeError, match="spy"):
+        sizing.load_resolved_rows(db_path=tmp_path / "p.db")
+    assert calls == [tmp_path / "p.db"]
+
+
+def test_archive_cli_uses_overridable_archive_path():
+    from evmax.cli.commands import archive as archive_cli
+
+    assert archive_cli.DB_PATH is archiver.DB_PATH
+
+
+def test_backfill_clv_recompute_refused_when_readonly(clean_env, tmp_path):
+    from typer.testing import CliRunner
+
+    from evmax.cli.commands.cleanup import app
+
+    clean_env.setenv(db_location.ENV_DB_DIR, str(tmp_path))
+    result = CliRunner().invoke(app, ["backfill-clv", "--recompute"])
+    assert result.exit_code == 1
+    assert "refusing" in result.output
+    assert not list(tmp_path.iterdir())                         # no backup file written

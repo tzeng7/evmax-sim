@@ -31,7 +31,11 @@ Usage
     uv run python scripts/opportunity_context.py --date 2026-10-09 [--focus "nfl props"]
         [--out PATH] [--db-dir DIR] [--offline] [--skip integrity,kalshi_series]
 
-The last stdout line is the snapshot path. A per-section summary goes to stderr.
+The last stdout line is the snapshot path. Next to it the script writes
+``<date>.web.json`` — a compact digest (categories, graveyard ids + ideas, research
+URLs already read, unwired Kalshi series, previous competitor names) that the
+command passes INLINE to the two web-facing agents, which get no file access.
+A per-section summary goes to stderr.
 """
 
 from __future__ import annotations
@@ -60,6 +64,10 @@ from scripts.opportunity_ledger import (  # noqa: E402  (sys.path set above)
 
 CONTEXT_DIR = Path("docs/opportunities/context")
 MAX_UNWIRED_SERIES = 300
+WEB_MAX_SOURCES = 150
+WEB_MAX_SERIES = 20
+WEB_IDEA_CHARS = 70
+WEB_TITLE_CHARS = 60
 NETWORK_SECTIONS = {"kalshi_series", "open_prs"}
 
 
@@ -279,6 +287,44 @@ def section_memory_index(main_root: Path) -> dict[str, Any] | None:
     return {"path": str(path), "entries": bullets}
 
 
+def web_digest(snapshot: dict[str, Any]) -> dict[str, Any]:
+    """The compact, non-secret context the web-facing agents receive inline.
+
+    Those agents have no Read tool (an injected page cannot make them read
+    .env and leak it through a URL), so this digest is all they see of the repo.
+    Kept small because the command passes it as Workflow args.
+    """
+    def ok(section: str) -> Any:
+        v = snapshot.get(section)
+        return None if isinstance(v, dict) and "error" in v and len(v) == 1 else v
+
+    cats = ok("categories") or []
+    graveyard = ok("graveyard") or []
+    seen = ok("research_sources_seen") or []
+    ks = ok("kalshi_series") or {}
+    landscape = ok("landscape_previous") or ""
+    competitors = re.findall(r"^\| \[?([^\]|]+?)\]?(?:\([^)]*\))? \|", landscape, flags=re.M)
+    return {
+        "date": (snapshot.get("meta") or {}).get("date"),
+        "focus": (snapshot.get("meta") or {}).get("focus"),
+        "categories": [{"key": c.get("key"), "mode": c.get("effective_mode"),
+                        "markets": c.get("market_types")} for c in cats],
+        "graveyard": [{"id": g.get("id"), "verdict": g.get("verdict"),
+                       "idea": str(g.get("idea") or "")[:WEB_IDEA_CHARS]} for g in graveyard],
+        "research_urls_already_read": [s.get("url") for s in seen][-WEB_MAX_SOURCES:],
+        "kalshi_series": {
+            "unwired_by_sport": ks.get("unwired_other_by_sport"),
+            "unwired_matching_our_sectors": [
+                {"ticker": s.get("ticker"), "title": str(s.get("title") or "")[:WEB_TITLE_CHARS]}
+                for s in (ks.get("unwired_matching_our_sectors") or [])[:WEB_MAX_SERIES]],
+            "unwired_other_recent": [
+                {"ticker": s.get("ticker"), "title": str(s.get("title") or "")[:WEB_TITLE_CHARS]}
+                for s in (ks.get("unwired_other") or [])[:WEB_MAX_SERIES]],
+        },
+        "previous_competitors": [c.strip() for c in competitors if c.strip() not in ("Name", "Market")],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Assembly
 # ---------------------------------------------------------------------------
@@ -344,8 +390,11 @@ def build_snapshot(
         "branch": branch,
         "sections": status,
         "how_to_query_dbs": (
-            f"Prefix evmax commands with EVMAX_DB_DIR={db_dir} EVMAX_DB_READONLY=1 "
-            f"(scripts with --archive-db/--pred-db: pass {db_dir}/archive.db and {db_dir}/predictions.db)."
+            f"Prefix evmax commands with EVMAX_DB_DIR={db_dir} EVMAX_DB_READONLY=1 (DB writes then raise). "
+            f"Scripts that take --archive-db/--pred-db open them READ-WRITE with plain sqlite3: pass "
+            f"{db_dir}/archive.db or {db_dir}/predictions.db ONLY to eval_*/backtest_*/check_* scripts you "
+            "have read and confirmed never write — never to restore_/backfill_/repair_/relabel_/seed_ "
+            "scripts. In your own Python use sqlite3.connect('file:<path>?mode=ro', uri=True)."
         ),
     }
     return {"meta": meta, **snapshot}
@@ -374,11 +423,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     out = Path(args.out) if args.out else REPO / CONTEXT_DIR / f"{run_date.isoformat()}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
+    web_out = out.with_name(out.stem + ".web.json")
+    snapshot["meta"]["web_digest_path"] = str(web_out)
     out.write_text(json.dumps(snapshot, indent=1, default=str, ensure_ascii=False))
+    web_out.write_text(json.dumps(web_digest(snapshot), default=str, ensure_ascii=False, separators=(",", ":")))
 
     for name, st in snapshot["meta"]["sections"].items():
         print(f"  {name:<22} {st}", file=sys.stderr)
-    print(f"  db_dir {db_dir} (read-only) · {out.stat().st_size / 1024:.0f} KB", file=sys.stderr)
+    print(f"  db_dir {db_dir} (read-only) · {out.stat().st_size / 1024:.0f} KB · "
+          f"web digest {web_out.stat().st_size / 1024:.1f} KB → {web_out}", file=sys.stderr)
     print(out)
     return 0
 

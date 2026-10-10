@@ -351,7 +351,7 @@ def backfill_portfolio_from_prop_observations(portfolio_id: str) -> int:
           AND {version_sql}
           AND sector IN ({placeholders})
     """
-    src = sqlite3.connect(str(pred_db))
+    src = connect_readonly(pred_db) if readonly_enabled() else sqlite3.connect(str(pred_db))
     src.row_factory = sqlite3.Row
     rows = src.execute(sql, (*version_params, *base_sectors)).fetchall()
     src.close()

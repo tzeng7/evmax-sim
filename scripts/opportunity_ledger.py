@@ -15,6 +15,12 @@ Subcommands
                             ``--check-buildable --today D`` exits 2 when the
                             opportunity may not enter a build run
     record --id ID --status S   append one status transition (build runs)
+    verify-build OUTPUT --id ID --worktree WT
+                            deterministic ship gate for a build run: re-checks G4
+                            against the ledger, the actual changed files against the
+                            deny list and the build's allowlist, live-mode widening,
+                            and (optionally) that the session checkout is untouched;
+                            exits 3 when the build may not ship
     graveyard-add ...       append one graveyard entry by hand
     validate-brief FILE     check a brief's structure and pre-registration
 
@@ -31,7 +37,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
+import subprocess
 import sys
 from datetime import date as Date
 from pathlib import Path
@@ -41,6 +49,7 @@ import yaml
 
 REPO = Path(__file__).resolve().parents[1]
 SCOUT_WORKFLOW = Path(".claude/workflows/opportunity-scout.js")
+BUILD_WORKFLOW = Path(".claude/workflows/opportunity-build.js")
 LEDGER = Path("docs/opportunities/ledger.jsonl")
 GRAVEYARD = Path("docs/opportunities/graveyard.yaml")
 REPORTS_DIR = Path("docs/opportunities")
@@ -56,6 +65,7 @@ STATUSES = (
     "ALLOWED_UNTESTED",  # G1 allow, beyond the top-N backtest cap
     "SUPPORTED",         # G2b: pre-registered threshold met
     "UNDERPOWERED",      # G2b: right direction, sample or significance short
+    "INCONCLUSIVE",      # G2b: too few games AND the wrong direction (not buildable, not graveyard)
     "REFUTED",           # G2b: wrong side of the threshold
     "INVALID",           # G2a: integrity reviewer rejected the test
     "NOT_RUN",           # backtest could not run
@@ -85,6 +95,8 @@ PERMANENT_HARD_FAILS = (
 
 _RULES_BEGIN = "// METRIC_RULES:BEGIN"
 _RULES_END = "// METRIC_RULES:END"
+_DENY_BEGIN = "// DENY_PATHS:BEGIN"
+_DENY_END = "// DENY_PATHS:END"
 
 
 # ---------------------------------------------------------------------------
@@ -100,14 +112,38 @@ def load_metric_rules(root: Path = REPO) -> dict[str, dict[str, Any]]:
     return parse_metric_rules((root / SCOUT_WORKFLOW).read_text())
 
 
+def _marked_json(text: str, begin: str, end: str, open_ch: str, close_ch: str) -> Any:
+    try:
+        block = text.split(begin, 1)[1].split(end, 1)[0]
+    except IndexError as exc:
+        raise ValueError(f"{begin} / {end} markers not found") from exc
+    body = "\n".join(line for line in block.splitlines() if not line.lstrip().startswith("//"))
+    return json.loads(body[body.index(open_ch): body.rindex(close_ch) + 1])
+
+
 def parse_metric_rules(text: str) -> dict[str, dict[str, Any]]:
     """Extract the JSON object between the METRIC_RULES:BEGIN / END markers."""
-    try:
-        block = text.split(_RULES_BEGIN, 1)[1].split(_RULES_END, 1)[0]
-    except IndexError as exc:
-        raise ValueError("METRIC_RULES markers not found") from exc
-    literal = block[block.index("{"): block.rindex("}") + 1]
-    return json.loads(literal)
+    return _marked_json(text, _RULES_BEGIN, _RULES_END, "{", "}")
+
+
+def load_deny_paths(root: Path = REPO) -> list[str]:
+    """The build deny list (regexes) from opportunity-build.js — one list for JS and Python."""
+    return _marked_json((root / BUILD_WORKFLOW).read_text(), _DENY_BEGIN, _DENY_END, "[", "]")
+
+
+def _num(x: Any) -> str:
+    """Render a number the way a JS template literal does (30.0 → "30")."""
+    if isinstance(x, float) and x.is_integer():
+        return str(int(x))
+    return str(x)
+
+
+def _is_number(x: Any) -> bool:
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+def _is_int(x: Any) -> bool:
+    return (isinstance(x, int) and not isinstance(x, bool)) or (isinstance(x, float) and x.is_integer())
 
 
 def preregistration_errors(prereg: Any, rules: dict[str, dict[str, Any]]) -> list[str]:
@@ -115,42 +151,117 @@ def preregistration_errors(prereg: Any, rules: dict[str, dict[str, Any]]) -> lis
 
     A brief may TIGHTEN a default (higher threshold for a higher-is-better
     metric, larger z_min, larger min_n_games) but never loosen one. A metric
-    whose default threshold is null needs an explicit numeric threshold.
-    Mirrors ``preregErrors`` in opportunity-scout.js (pinned by tests).
+    whose default threshold is null needs an explicit numeric threshold, every
+    threshold must lie inside the metric's plausible ``value_range`` (catches
+    unit mistakes), and a screening-only metric needs a ``promotion_plan``.
+    Mirrors ``preregErrors`` in opportunity-scout.js message-for-message
+    (tests/test_opportunity_workflows.py compares them).
     """
     if not isinstance(prereg, dict):
         return ["preregistration missing"]
-    errors: list[str] = []
     metric = prereg.get("metric")
-    rule = rules.get(metric) if isinstance(metric, str) else None
-    if rule is None:
-        return [f"metric {metric!r} is not one of {sorted(rules)}"]
-    for key in ("holdout_window", "command", "comparator"):
-        if not prereg.get(key):
-            errors.append(f"{key} missing")
+    if not isinstance(metric, str) or metric not in rules:
+        return [f"metric {json.dumps(metric, ensure_ascii=False)} is not one of {', '.join(sorted(rules))}"]
+    rule = rules[metric]
+    errors = [f"{key} missing" for key in
+              ("train_window", "holdout_window", "comparator", "command", "declustering")
+              if not prereg.get(key)]
 
     threshold = prereg.get("threshold")
     default_t = rule["threshold"]
     if threshold is None:
         if default_t is None:
             errors.append(f"{metric} needs an explicit numeric threshold")
-    elif not isinstance(threshold, (int, float)) or isinstance(threshold, bool):
+    elif not _is_number(threshold) or not math.isfinite(threshold):
         errors.append("threshold must be a number")
-    elif default_t is not None:
-        looser = threshold < default_t if rule["direction"] == "higher" else threshold > default_t
-        if looser:
-            errors.append(f"threshold {threshold} is looser than the default {default_t}")
+    else:
+        if default_t is not None:
+            looser = threshold < default_t if rule["direction"] == "higher" else threshold > default_t
+            if looser:
+                errors.append(f"threshold {_num(threshold)} is looser than the default {_num(default_t)}")
+        lo, hi = rule["value_range"]
+        if not (lo < threshold < hi):
+            errors.append(f"threshold {_num(threshold)} is outside the plausible range ({_num(lo)}, {_num(hi)})")
 
     z_min = prereg.get("z_min")
-    if rule["z_min"] is not None and z_min is not None and z_min < rule["z_min"]:
-        errors.append(f"z_min {z_min} is looser than the default {rule['z_min']}")
+    if rule["z_min"] is not None and _is_number(z_min) and z_min < rule["z_min"]:
+        errors.append(f"z_min {_num(z_min)} is looser than the default {_num(rule['z_min'])}")
 
     n_min = prereg.get("min_n_games")
-    if not isinstance(n_min, int) or isinstance(n_min, bool):
+    if not _is_int(n_min):
         errors.append("min_n_games must be an integer")
     elif n_min < rule["min_n_games"]:
-        errors.append(f"min_n_games {n_min} is looser than the default {rule['min_n_games']}")
+        errors.append(f"min_n_games {_num(n_min)} is looser than the default {_num(rule['min_n_games'])}")
+    if rule.get("needs_promotion_plan") and not prereg.get("promotion_plan"):
+        errors.append(f"{metric} is screening only: promotion_plan is required")
     return errors
+
+
+def effective_rule(prereg: dict[str, Any], rules: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Mirror of ``effectiveRule`` (both graphs): defaults tightened, never loosened."""
+    base = rules[prereg["metric"]]
+    t = prereg.get("threshold") if _is_number(prereg.get("threshold")) else base["threshold"]
+    if base["threshold"] is None:
+        threshold = t
+    elif base["direction"] == "higher":
+        threshold = max(base["threshold"], t)
+    else:
+        threshold = min(base["threshold"], t)
+    n = prereg.get("min_n_games")
+    min_n = max(base["min_n_games"], int(n) if _is_int(n) else base["min_n_games"])
+    return {"direction": base["direction"], "threshold": threshold, "min_n_games": min_n,
+            "value_range": base["value_range"]}
+
+
+def reproduces(mode: str, prereg: Any, pre: Any, post: Any,
+               rules: dict[str, dict[str, Any]]) -> tuple[bool, str]:
+    """Python mirror of ``reproduces`` in opportunity-build.js (gate G4).
+
+    verify-build recomputes G4 here from the LEDGER's pre-build evidence, so a
+    mistyped Workflow arg can never make a non-reproducing build shippable.
+    """
+    if not isinstance(post, dict):
+        return False, "verification agent returned nothing"
+    if mode == "shadow_collect":
+        ok = post.get("shadow_collect_ok") is True
+        return ok, ("shadow-collect lane logs mode=shadow rows" if ok
+                    else f"shadow-collect lane not confirmed: {post.get('note') or 'shadow_collect_ok is not true'}")
+    if mode != "shadow_feature":
+        return False, f"unknown build mode {mode}"
+    if not isinstance(prereg, dict) or prereg.get("metric") not in rules:
+        return False, "pre-registration missing or unknown metric"
+    if post.get("ran") is not True:
+        return False, f"post-build test did not run: {post.get('note') or ''}"
+    if post.get("metric") != prereg["metric"]:
+        return False, f"post-build metric {post.get('metric')!r} != pre-registered {prereg['metric']}"
+    leaky = [k for k, v in (post.get("leakage_checks") or {}).items() if v is False]
+    if leaky:
+        return False, f"post-build leakage checks failed: {', '.join(leaky)}"
+    if not isinstance(pre, dict) or not _is_number(pre.get("value")):
+        return False, "no pre-build value to reproduce"
+    value = post.get("value")
+    if not _is_number(value) or not math.isfinite(value):
+        return False, "post-build test returned no numeric value"
+    rule = effective_rule(prereg, rules)
+    lo, hi = rule["value_range"]
+    if not (lo < value < hi):
+        return False, f"post-build value {value} outside the plausible range ({lo}, {hi})"
+    if rule["threshold"] is None:
+        return False, "no threshold to compare against"
+    beats = value > rule["threshold"] if rule["direction"] == "higher" else value < rule["threshold"]
+    if not beats:
+        return False, f"post-build {value} does not beat {rule['threshold']} (pre-build {pre['value']})"
+    n = post.get("n_games")
+    if not _is_int(n) or n < rule["min_n_games"]:
+        return False, f"post-build n {n} < {rule['min_n_games']} games"
+    if _is_number(pre.get("ci_low")) and _is_number(pre.get("ci_high")):
+        if value < pre["ci_low"] or value > pre["ci_high"]:
+            return False, f"post-build {value} outside pre-build CI [{pre['ci_low']}, {pre['ci_high']}]"
+        return True, f"post-build {value} inside pre-build CI [{pre['ci_low']}, {pre['ci_high']}]"
+    tol = 0.25 * abs(pre["value"] - rule["threshold"])
+    if abs(value - pre["value"]) > tol:
+        return False, f"post-build {value} differs from pre-build {pre['value']} by more than 25% of the margin ({tol})"
+    return True, f"post-build {value} within {tol} of pre-build {pre['value']}"
 
 
 def validate_brief(brief: Any, rules: dict[str, dict[str, Any]]) -> list[str]:
@@ -206,7 +317,7 @@ def append_ledger(rows: Iterable[dict[str, Any]], root: Path = REPO) -> int:
 # rows when it does not carry them itself. Everything else — status,
 # status_reason, ts, kind — always comes from the latest row alone.
 _STICKY = ("title", "lever", "brief", "scope", "evidence", "integrity",
-           "evidence_date", "evidence_status", "branch", "pr_url")
+           "evidence_date", "evidence_status", "schema_errors", "branch", "pr_url")
 
 
 def latest_by_id(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -229,13 +340,16 @@ def buildable(row: Optional[dict[str, Any]], today: Date) -> tuple[bool, str]:
         return False, "unknown opportunity id"
     status = row.get("status")
     evidence_status = row.get("evidence_status")
-    # A BLOCKED build may be retried while its discovery evidence is fresh.
-    if status == "BLOCKED" and evidence_status in BUILDABLE:
+    # A BLOCKED build — or a BUILDING one whose session died — may be retried
+    # while its discovery evidence is fresh.
+    if status in ("BLOCKED", "BUILDING") and evidence_status in BUILDABLE:
         status = evidence_status
     if status not in BUILDABLE:
         return False, f"status {status} is not one of {sorted(BUILDABLE)}"
     if not row.get("brief"):
         return False, "no brief recorded"
+    if row.get("schema_errors"):
+        return False, f"brief has schema errors: {'; '.join(row['schema_errors'])}"
     ts = row.get("evidence_date") or row.get("ts")
     try:
         age = (today - Date.fromisoformat(str(ts)[:10])).days
@@ -547,6 +661,150 @@ def _report_path(run_date: str, root: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# verify-build (deterministic ship gate for a build run)
+# ---------------------------------------------------------------------------
+
+_MODE_RANK = {"disabled": 0, "shadow": 1, "live": 2}
+
+
+def _git_out(repo: Path, *args: str) -> str:
+    cp = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, timeout=60)
+    if cp.returncode != 0:
+        raise RuntimeError(cp.stderr.strip() or f"git {' '.join(args)} failed")
+    return cp.stdout
+
+
+def changed_paths(worktree: Path) -> list[str]:
+    """Every path git sees as changed in ``worktree`` (tracked, untracked, both sides of renames)."""
+    raw = _git_out(worktree, "status", "--porcelain=v1", "-z", "--untracked-files=all")
+    parts = raw.split("\0")
+    out: list[str] = []
+    i = 0
+    while i < len(parts):
+        entry = parts[i]
+        i += 1
+        if len(entry) < 4:
+            continue
+        code, path = entry[:2], entry[3:]
+        out.append(path)
+        if "R" in code or "C" in code:          # -z: the original path follows as its own field
+            if i < len(parts) and parts[i]:
+                out.append(parts[i])
+            i += 1
+    return sorted(set(out))
+
+
+def deny_matches(paths: Iterable[str], deny: list[str]) -> list[str]:
+    res = [re.compile(r) for r in deny]
+    return [p for p in paths if any(r.search(p.removeprefix("./")) for r in res)]
+
+
+def live_widening(base_categories: Any, head_categories: Any,
+                  base_tiers: Any, head_tiers: Any, settings_diff: str) -> list[str]:
+    """Reasons a change makes any lane MORE live. Empty list = nothing widened.
+
+    categories.yaml: a mode may not rise (disabled < shadow < live), a new
+    category may not be live, and no entry may leave shadow_market_types /
+    disabled_market_types / shadow_venue_market_types. soccer_league_tiers.yaml:
+    no league may leave shadow_leagues. settings.py: no line naming a *_live
+    switch may change.
+    """
+    out: list[str] = []
+    base_c = base_categories if isinstance(base_categories, dict) else {}
+    head_c = head_categories if isinstance(head_categories, dict) else {}
+    for key, head in head_c.items():
+        if not isinstance(head, dict):
+            continue
+        base = base_c.get(key) if isinstance(base_c.get(key), dict) else None
+        h_rank = _MODE_RANK.get(str(head.get("mode")), 2)
+        if base is None:
+            if h_rank >= _MODE_RANK["live"]:
+                out.append(f"new category {key} is not shadow/disabled (mode {head.get('mode')})")
+            continue
+        if h_rank > _MODE_RANK.get(str(base.get("mode")), 2):
+            out.append(f"category {key} mode {base.get('mode')} -> {head.get('mode')}")
+        for field in ("shadow_market_types", "disabled_market_types"):
+            lost = set(base.get(field) or []) - set(head.get(field) or [])
+            if lost:
+                out.append(f"category {key} {field} lost {sorted(lost)}")
+        bv, hv = base.get("shadow_venue_market_types") or {}, head.get("shadow_venue_market_types") or {}
+        for venue, types in bv.items():
+            lost = set(types or []) - set(hv.get(venue) or [])
+            if lost:
+                out.append(f"category {key} shadow_venue_market_types.{venue} lost {sorted(lost)}")
+    lost_leagues = set((base_tiers or {}).get("shadow_leagues") or []) - set((head_tiers or {}).get("shadow_leagues") or [])
+    if lost_leagues:
+        out.append(f"soccer shadow_leagues lost {sorted(lost_leagues)}")
+    for line in (settings_diff or "").splitlines():
+        if line[:1] in "+-" and not line.startswith(("+++", "---")) and re.search(r"\w_live\b", line):
+            out.append(f"settings.py live switch line changed: {line.strip()[:120]}")
+    return out
+
+
+def _yaml_at_head(worktree: Path, rel: str) -> Any:
+    try:
+        return yaml.safe_load(_git_out(worktree, "show", f"HEAD:{rel}")) or {}
+    except RuntimeError:
+        return {}
+
+
+def _yaml_now(worktree: Path, rel: str) -> Any:
+    path = worktree / rel
+    return (yaml.safe_load(path.read_text()) or {}) if path.exists() else {}
+
+
+def verify_build(result: dict[str, Any], row: Optional[dict[str, Any]], worktree: Path, today: Date,
+                 root: Path = REPO, session_root: Optional[Path] = None,
+                 session_baseline: Optional[str] = None) -> dict[str, Any]:
+    """Every check that must pass before a build run's worktree may be shipped.
+
+    Recomputed here, outside every LLM: the ledger's build gate, the build mode,
+    G4 against the ledger's own pre-build evidence, the ACTUAL changed files
+    (deny list + the build's declared allowlist), live-mode widening, and that
+    the session checkout did not change during the build.
+    """
+    reasons: list[str] = []
+    if not result.get("ready_to_ship"):
+        reasons.append(f"workflow did not mark the build ready: {result.get('reason')}")
+    ok, mode = buildable(row, today)
+    if not ok:
+        reasons.append(f"ledger gate: {mode}")
+        mode = None
+    if mode and result.get("build_mode") != mode:
+        reasons.append(f"build_mode {result.get('build_mode')!r} != ledger mode {mode!r}")
+    if mode:
+        rules = load_metric_rules(root)
+        g4_ok, g4_why = reproduces(mode, (row.get("brief") or {}).get("preregistration"),
+                                   row.get("evidence"), result.get("verification"), rules)
+        if not g4_ok:
+            reasons.append(f"G4 (recomputed from the ledger): {g4_why}")
+
+    files = changed_paths(worktree)
+    if not files:
+        reasons.append("no changed files in the worktree")
+    denied = deny_matches(files, load_deny_paths(root))
+    if denied:
+        reasons.append(f"deny-listed paths changed: {denied}")
+    allowed = {f.removeprefix("./") for f in (result.get("allowed_files") or [])}
+    unexpected = [f for f in files if f not in allowed]
+    if unexpected:
+        reasons.append(f"changed files nobody declared (implementer files_changed / test tests_added): {unexpected}")
+
+    widened = live_widening(
+        _yaml_at_head(worktree, "data/categories.yaml"), _yaml_now(worktree, "data/categories.yaml"),
+        _yaml_at_head(worktree, "data/soccer_league_tiers.yaml"), _yaml_now(worktree, "data/soccer_league_tiers.yaml"),
+        _git_out(worktree, "diff", "HEAD", "--", "evmax/settings.py"),
+    )
+    reasons += [f"live widening: {w}" for w in widened]
+
+    if session_root is not None and session_baseline is not None:
+        now = _git_out(session_root, "status", "--porcelain=v1", "--untracked-files=all")
+        if now.strip() != session_baseline.strip():
+            reasons.append(f"session checkout {session_root} changed during the build")
+    return {"ok": not reasons, "reasons": reasons, "files": files, "build_mode": mode}
+
+
+# ---------------------------------------------------------------------------
 # Ingest (discovery result → every file)
 # ---------------------------------------------------------------------------
 
@@ -575,7 +833,7 @@ def ingest(result: dict[str, Any], run_date: str, root: Path = REPO) -> dict[str
             "scope": b.get("scope"),
             "evidence": b.get("evidence"),
             "integrity": b.get("integrity"),
-            "schema_errors": errors or None,
+            "schema_errors": errors,   # [] (not None) so a clean re-ingest clears old errors
         })
     for d in result.get("dropped") or []:
         if d.get("id"):
@@ -643,6 +901,9 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     result = unwrap_workflow_output(json.loads(Path(args.result).read_text()))
     if result.get("error"):
         print(f"ingest: workflow returned an error: {result['error']}", file=sys.stderr)
+        return 1
+    if not isinstance(result.get("briefs"), list):
+        print("ingest: unexpected payload (no 'briefs' list) — refusing to write an empty report", file=sys.stderr)
         return 1
     run_date = args.date or (result.get("run") or {}).get("date")
     if not run_date:
@@ -733,6 +994,20 @@ def _cmd_record(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_verify_build(args: argparse.Namespace) -> int:
+    result = unwrap_workflow_output(json.loads(Path(args.output).read_text()))
+    root = Path(args.root)
+    row = latest_by_id(read_ledger(root)).get(args.id)
+    today = Date.fromisoformat(args.today) if args.today else Date.today()
+    baseline = Path(args.session_baseline).read_text() if args.session_baseline else None
+    report = verify_build(result, row, Path(args.worktree), today, root,
+                          Path(args.session_root) if args.session_root else None, baseline)
+    if args.files_out:
+        Path(args.files_out).write_text("\n".join(report["files"]) + ("\n" if report["files"] else ""))
+    print(json.dumps(report, indent=2))
+    return 0 if report["ok"] else 3
+
+
 def _cmd_graveyard_add(args: argparse.Namespace) -> int:
     added = graveyard_add({
         "id": args.id, "idea": args.idea, "lever": args.lever,
@@ -787,6 +1062,16 @@ def build_parser() -> argparse.ArgumentParser:
     pr.add_argument("--date")
     pr.add_argument("--force", action="store_true")
     pr.set_defaults(func=_cmd_record)
+
+    pb = sub.add_parser("verify-build", help="Deterministic ship gate for a build run (exit 3 = do not ship)")
+    pb.add_argument("output", help="Workflow task output file of the opportunity-build run")
+    pb.add_argument("--id", required=True)
+    pb.add_argument("--worktree", required=True)
+    pb.add_argument("--today")
+    pb.add_argument("--session-root", help="Checkout the command ran from (must be unchanged)")
+    pb.add_argument("--session-baseline", help="`git status --porcelain=v1 --untracked-files=all` captured before the build")
+    pb.add_argument("--files-out", help="Write the changed files to ship, one per line")
+    pb.set_defaults(func=_cmd_verify_build)
 
     pa = sub.add_parser("graveyard-add", help="Append one graveyard entry")
     pa.add_argument("--id", required=True)

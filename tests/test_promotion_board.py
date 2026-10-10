@@ -423,3 +423,19 @@ class TestCliJson:
         result = CliRunner().invoke(app, ["board", "--json", "--days", "1"])
         assert result.exit_code == 0, result.output
         assert json.loads(result.output) == []
+
+
+def test_board_json_replaces_nan_with_null(monkeypatch):
+    from typer.testing import CliRunner
+
+    from evmax.agents.cleanup import promotion_board as pb
+    from evmax.cli.commands.shadow import app
+
+    monkeypatch.setattr(pb, "compute_promotion_board",
+                        lambda **kw: [{"sector": "nhl", "brier_delta_z": float("nan"),
+                                       "clv": {"mean_clv_pp": float("inf"), "n": 0}}])
+    result = CliRunner().invoke(app, ["board", "--json"])
+    assert result.exit_code == 0, result.output
+    assert "NaN" not in result.output and "Infinity" not in result.output
+    rows = json.loads(result.output)
+    assert rows[0]["brier_delta_z"] is None and rows[0]["clv"]["mean_clv_pp"] is None

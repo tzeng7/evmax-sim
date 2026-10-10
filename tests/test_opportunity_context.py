@@ -110,4 +110,28 @@ def test_cli_writes_snapshot(monkeypatch, tmp_path, capsys):
     assert capsys.readouterr().out.strip().endswith(str(out))
     data = json.loads(out.read_text())
     assert data["meta"]["date"] == "2026-10-10" and data["meta"]["focus"] is None
+    web = tmp_path / "ctx.web.json"
+    assert data["meta"]["web_digest_path"] == str(web)
+    digest = json.loads(web.read_text())
+    assert len(digest["graveyard"]) >= 40 and web.stat().st_size < 10_000   # small: passed inline as args
+
+
+def test_web_digest_is_compact_and_skips_errored_sections():
+    snap = {
+        "meta": {"date": "2026-10-10", "focus": "nfl"},
+        "categories": [{"key": "nfl", "effective_mode": "live", "market_types": ["moneyline"], "models": ["elo"],
+                        "notes": "long internal notes " * 50}],
+        "graveyard": [{"id": "elo-h2h-layer", "verdict": "REJECTED", "idea": "x" * 500, "evidence": "secret-ish detail"}],
+        "research_sources_seen": [{"url": f"https://a.example/{i}"} for i in range(200)],
+        "kalshi_series": {"error": "HTTPError: 503"},
+        "landscape_previous": "| Name | Type |\n|---|---|\n| [Tool A](https://a.example) | tool |\n| Plain B | repo |\n",
+    }
+    d = C.web_digest(snap)
+    assert d["categories"] == [{"key": "nfl", "mode": "live", "markets": ["moneyline"]}]
+    assert d["graveyard"] == [{"id": "elo-h2h-layer", "verdict": "REJECTED", "idea": "x" * C.WEB_IDEA_CHARS}]
+    assert len(d["research_urls_already_read"]) == C.WEB_MAX_SOURCES
+    assert d["research_urls_already_read"][-1] == "https://a.example/199"      # most recent kept
+    assert d["kalshi_series"]["unwired_matching_our_sectors"] == []            # errored section → empty
+    assert d["previous_competitors"] == ["Tool A", "Plain B"]
+    assert "notes" not in json.dumps(d) and "evidence" not in json.dumps(d)
 
