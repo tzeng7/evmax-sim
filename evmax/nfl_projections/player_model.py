@@ -46,6 +46,10 @@ class PlayerModelConfig:
     k_attempts: float = 150.0          # pseudo-attempts for QB yards per attempt
     k_team_attempts: float = 100.0     # pseudo team-attempts for a starter's attempt share
     min_start_attempts: float = 10.0   # a game counts as a start at >= this many attempts
+    # Fraction of a ruled-out player's expected target/carry share that goes to the
+    # teammates expected to play (the rest goes to call-ups and players with no
+    # recent games). 0.6 = InjuryReportAgent.compute_prop_injury_boost's default.
+    injury_redistribution: float = 0.6
 
 
 @dataclass
@@ -232,10 +236,79 @@ def negbin_quantile(mean: np.ndarray, k: float, q: float) -> np.ndarray:
 QUANTILES = (0.1, 0.9)  # reported range around the median
 
 
+# ── pre-game injury report -> usage redistribution ───────────────────────────
+# Same rule as the basketball prop boost (InjuryReportAgent.get_out_players /
+# compute_prop_injury_boost): Out and Doubtful players do not play, and part of
+# their usage goes to the teammates who do. Here the freed usage is the out
+# player's own modeled share (not a fixed tier share). It is split across the
+# team's expected players in proportion to their shares. Only the PRE-GAME
+# report is used, never who actually played (that leaks garbage-time
+# participation — the rejected P1 iteration).
+OUT_STATUSES = ("Out", "Doubtful")
+RECENT_GAMES = 3
+REDISTRIBUTED_POSITIONS = ("WR", "TE", "RB")  # a QB's usage moves with the starter, not to teammates
+
+
+def out_player_ids(injuries: pd.DataFrame, week: int, season: int | None = None) -> set[str]:
+    """gsis ids listed Out/Doubtful on the ``week`` injury report (of ``season``, when given)."""
+    if injuries is None or injuries.empty:
+        return set()
+    i = injuries[(injuries["week"] == week) & injuries["report_status"].isin(OUT_STATUSES)]
+    if season is not None:
+        i = i[i["season"] == season]
+    return set(i["gsis_id"].dropna())
+
+
+def recent_team_players(player_games: pd.DataFrame, teams, cutoff: pd.Timestamp,
+                        n_games: int = RECENT_GAMES) -> pd.DataFrame:
+    """(team, player_id, player_display_name, position) for everyone who played for
+    each of ``teams`` in any of its last ``n_games`` games before ``cutoff``."""
+    window = player_games[(player_games["gameday"] < cutoff)
+                          & (player_games["gameday"] >= cutoff - pd.Timedelta(days=400))]
+    past = window[window["team"].isin(set(teams))]
+    gids = past[["team", "game_id", "gameday"]].drop_duplicates(["team", "game_id"]).sort_values("gameday")
+    last = gids.groupby("team").tail(n_games)[["team", "game_id"]]
+    rows = past.merge(last, on=["team", "game_id"]).sort_values("gameday")
+    # A traded player belongs to the team he played for most recently (over all teams).
+    latest = window.sort_values("gameday").drop_duplicates("player_id", keep="last").set_index("player_id")["team"]
+    rows = rows[rows["team"].to_numpy() == latest.reindex(rows["player_id"]).to_numpy()]
+    return rows.drop_duplicates("player_id", keep="last")[
+        ["team", "player_id", "player_display_name", "position"]].reset_index(drop=True)
+
+
+def injury_share_multipliers(usage: pd.DataFrame, recent: pd.DataFrame, out_ids: set[str],
+                             alpha: float) -> pd.DataFrame:
+    """Target/carry share multipliers for the teammates of ruled-out players.
+
+    For each team: freed = sum of the out WR/TE/RB shares; every expected player
+    (recent and not out) gets ``share * (1 + alpha * freed / sum of expected shares)``.
+    Returns one row per expected player (index ``player_id``): ``tgt_mult``, ``car_mult``.
+    """
+    r = recent[recent["player_id"].isin(usage.index)].copy()
+    if r.empty or not out_ids:
+        return pd.DataFrame(columns=["tgt_mult", "car_mult"])
+    u = usage.loc[r["player_id"]]
+    r["tgt"] = u["tgt_share"].to_numpy()
+    r["car"] = u["car_share"].to_numpy()
+    r["out"] = r["player_id"].isin(out_ids)
+    freeing = r["out"] & u["position"].isin(REDISTRIBUTED_POSITIONS).to_numpy()
+    active = r[~r["out"]]
+    out = pd.DataFrame(index=pd.Index(active["player_id"], name="player_id"))
+    for col, mult in (("tgt", "tgt_mult"), ("car", "car_mult")):
+        freed = r[freeing].groupby("team")[col].sum()
+        kept = active.groupby("team")[col].sum()
+        m = 1.0 + alpha * freed.reindex(kept.index).fillna(0.0) / kept.clip(lower=1e-9)
+        out[mult] = active["team"].map(m).fillna(1.0).to_numpy()
+    return out
+
+
 def project_players(state: PlayerState, roster: pd.DataFrame,
-                    team_volume: pd.DataFrame | None = None) -> pd.DataFrame:
+                    team_volume: pd.DataFrame | None = None,
+                    share_mult: pd.DataFrame | None = None) -> pd.DataFrame:
     """Project each (player, team, opp, home, is_starting_qb) row of ``roster``.
 
+    ``share_mult`` (from ``injury_share_multipliers``, index player_id) scales
+    target/carry shares for teammates of ruled-out players.
     Players never seen before the cutoff are skipped (no basis for a projection).
     """
     u = state.usage
@@ -253,10 +326,16 @@ def project_players(state: PlayerState, roster: pd.DataFrame,
             v = team_volume[m].reindex(idx).to_numpy()
             exp[m] = np.where(np.isnan(v), exp[m], v)
     uu = u.loc[r["player_id"]]
-    r["proj_targets"] = exp["team_targets"] * uu["tgt_share"].to_numpy()
+    tgt_share = uu["tgt_share"].to_numpy()
+    car_share = uu["car_share"].to_numpy()
+    if share_mult is not None and len(share_mult):
+        m = share_mult.reindex(r["player_id"])
+        tgt_share = tgt_share * m["tgt_mult"].fillna(1.0).to_numpy(dtype=float)
+        car_share = car_share * m["car_mult"].fillna(1.0).to_numpy(dtype=float)
+    r["proj_targets"] = exp["team_targets"] * tgt_share
     r["proj_receptions"] = r["proj_targets"] * uu["catch_rate"].to_numpy()
     r["proj_receiving_yards"] = r["proj_targets"] * uu["ypt"].to_numpy()
-    r["proj_carries"] = exp["team_carries"] * uu["car_share"].to_numpy()
+    r["proj_carries"] = exp["team_carries"] * car_share
     r["proj_rushing_yards"] = r["proj_carries"] * uu["ypc"].to_numpy()
     r["proj_passing_yards"] = np.where(
         r["is_starting_qb"], exp["team_attempts"] * uu["att_share"].to_numpy() * uu["ypa"].to_numpy(), 0.0)
@@ -346,13 +425,16 @@ def predict_volume(vft: pd.DataFrame, coefs: dict[str, np.ndarray]) -> pd.DataFr
 
 
 def walk_forward(team_games: pd.DataFrame, player_games: pd.DataFrame, games: pd.DataFrame,
-                 seasons: list[int], cfg: PlayerModelConfig = PlayerModelConfig()) -> pd.DataFrame:
+                 seasons: list[int], cfg: PlayerModelConfig = PlayerModelConfig(),
+                 injuries: pd.DataFrame | None = None) -> pd.DataFrame:
     """Project every player who played in ``seasons``' completed games, week by week, leak-free.
 
     The roster for a week is everyone who played those games (the backtest
     stand-in for the pre-game active list); the starting QB is the team's
     first-dropback passer (pre-game starter identity). Each week uses one state
-    fit on games strictly before its first kickoff.
+    fit on games strictly before its first kickoff. With ``injuries`` (nflverse
+    weekly reports), teammates of players ruled Out/Doubtful on that week's
+    PRE-GAME report get their usage (``injury_share_multipliers``).
     """
     vol = team_volume_rows(player_games, team_games)
     script_seasons = list(range(first_script_season(team_games), max(seasons) + 1))
@@ -371,5 +453,11 @@ def walk_forward(team_games: pd.DataFrame, player_games: pd.DataFrame, games: pd
             idx = pd.MultiIndex.from_arrays([roster["game_id"], roster["team"]])
             roster["home"] = home.reindex(idx).fillna(0).to_numpy()
             roster["is_starting_qb"] = starters.reindex(idx).to_numpy() == roster["player_id"].to_numpy()
-            out.append(project_players(fit_player_state(player_games, vol, cutoff, cfg), roster, team_volume))
+            state = fit_player_state(player_games, vol, cutoff, cfg)
+            mult = None
+            if injuries is not None:
+                recent = recent_team_players(player_games, set(wk["home_team"]) | set(wk["away_team"]), cutoff)
+                mult = injury_share_multipliers(state.usage, recent, out_player_ids(injuries, week, season),
+                                                cfg.injury_redistribution)
+            out.append(project_players(state, roster, team_volume, mult))
     return pd.concat(out, ignore_index=True)

@@ -31,7 +31,8 @@ from evmax.nfl_projections.game_model import (
 )
 from evmax.nfl_projections.player_model import (
     VOLUME_STATS, PlayerModelConfig, first_script_season, fit_player_state, game_script,
-    project_players, team_volume_rows, volume_combiners, volume_feature_table,
+    injury_share_multipliers, out_player_ids, project_players, recent_team_players,
+    team_volume_rows, volume_combiners, volume_feature_table,
 )
 from evmax.nfl_projections.ratings import fit_qb_ratings
 
@@ -140,30 +141,25 @@ def home_cover_probability(proj_margin: float, home_handicap: float) -> Optional
 
 
 # ── players ──────────────────────────────────────────────────────────────────
-OUT_STATUSES = ("Out", "Doubtful")
-RECENT_GAMES = 3
-
 
 def active_roster(pg: pd.DataFrame, injuries: pd.DataFrame, week_games: pd.DataFrame,
                   cutoff: pd.Timestamp, week: int) -> pd.DataFrame:
     """Expected active skill players for each team of ``week_games``.
 
     A player is expected active if he played for the team in any of its last
-    ``RECENT_GAMES`` games and is not listed Out/Doubtful on that week's injury
-    report. (A player returning after missing those games is not included — a
-    known limitation; the starting QB is always added from the schedule.)
+    ``player_model.RECENT_GAMES`` games and is not listed Out/Doubtful on that
+    week's injury report. (A player returning after missing those games is not
+    included — a known limitation; the starting QB is always added from the schedule.)
     """
-    past = pg[pg["gameday"] < cutoff]
+    teams = set(week_games["home_team"]) | set(week_games["away_team"])
+    recent = recent_team_players(pg, teams, cutoff)
+    recent = recent[~recent["player_id"].isin(out_player_ids(injuries, week))]
+    names = pg.drop_duplicates("player_id", keep="last").set_index("player_id")["player_display_name"]
     rows = []
     for g in week_games.itertuples():
         for team, opp, home, qb_col in ((g.home_team, g.away_team, 0 if g.location == "Neutral" else 1, "home_qb_id"),
                                         (g.away_team, g.home_team, 0, "away_qb_id")):
-            tp = past[past["team"] == team]
-            recent_ids = tp.sort_values("gameday")["game_id"].drop_duplicates().tail(RECENT_GAMES)
-            players = tp[tp["game_id"].isin(recent_ids)].drop_duplicates("player_id", keep="last")
-            out = set(injuries[(injuries["week"] == week) & (injuries["team"] == team)
-                               & injuries["report_status"].isin(OUT_STATUSES)]["gsis_id"])
-            players = players[~players["player_id"].isin(out)]
+            players = recent[recent["team"] == team]
             qb = getattr(g, qb_col)
             qb = qb if isinstance(qb, str) and qb else None
             for p in players.itertuples():
@@ -171,10 +167,8 @@ def active_roster(pg: pd.DataFrame, injuries: pd.DataFrame, week_games: pd.DataF
                              "player_id": p.player_id, "player_display_name": p.player_display_name,
                              "position": p.position, "is_starting_qb": p.player_id == qb})
             if qb and qb not in set(players["player_id"]):
-                hist = past[past["player_id"] == qb].tail(1)
                 rows.append({"game_id": g.game_id, "team": team, "opp": opp, "home": home, "player_id": qb,
-                             "player_display_name": hist["player_display_name"].iloc[0] if len(hist) else qb,
-                             "position": "QB", "is_starting_qb": True})
+                             "player_display_name": names.get(qb, qb), "position": "QB", "is_starting_qb": True})
     return pd.DataFrame(rows)
 
 
@@ -204,7 +198,12 @@ def project_week_players(season: int, week: int, cfg: PlayerModelConfig = Player
     coefs = volume_combiners(vft)
     state = fit_player_state(pg, vol, cutoff, cfg)
 
-    roster = active_roster(pg, data.load_injuries(season, d), wk, cutoff, week)
+    injuries = data.load_injuries(season, d)
+    roster = active_roster(pg, injuries, wk, cutoff, week)
+    # Teammates of players ruled Out/Doubtful take part of their usage (same rule as the backtest).
+    mult = injury_share_multipliers(
+        state.usage, recent_team_players(pg, set(wk["home_team"]) | set(wk["away_team"]), cutoff),
+        out_player_ids(injuries, week), cfg.injury_redistribution)
     script = {}
     for r in game_proj.itertuples():
         script[(r.game_id, r.home_team)] = (r.proj_margin, r.proj_total)
@@ -219,5 +218,5 @@ def project_week_players(season: int, week: int, cfg: PlayerModelConfig = Player
             row[m] = c[0] + c[1] * state.fits[m].expect(team, opp, home) + c[2] * margin + c[3] * total
         tv.append(row)
     team_volume = pd.DataFrame(tv).set_index(["game_id", "team"])
-    proj = project_players(state, roster, team_volume)
+    proj = project_players(state, roster, team_volume, mult)
     return proj.merge(wk[["game_id", "gameday", "home_team", "away_team"]], on="game_id")

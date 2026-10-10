@@ -11,8 +11,9 @@ from scipy import stats
 from evmax.nfl_projections import live, player_games
 from evmax.nfl_projections.player_model import (
     PlayerModelConfig, curve_quantile, fit_dispersion, fit_negbin_k, fit_pass_sd, fit_player_state,
-    fit_quantile_curve, gamma_median, negbin_median, predict_volume, project_players,
-    team_volume_rows, volume_combiners, walk_forward,
+    fit_quantile_curve, gamma_median, injury_share_multipliers, negbin_median, out_player_ids,
+    predict_volume, project_players, recent_team_players, team_volume_rows, volume_combiners,
+    walk_forward,
 )
 
 TEAMS = ["AAA", "BBB", "CCC", "DDD"]
@@ -197,6 +198,79 @@ def test_player_walk_forward_is_leak_free():
     early = m["week"] <= target_week
     assert np.allclose(m.loc[early, "proj_receiving_yards"], m.loc[early, "proj_receiving_yards_p"])
     assert not np.allclose(m.loc[~early, "proj_receiving_yards"], m.loc[~early, "proj_receiving_yards_p"])
+
+
+# ── injury-report usage redistribution ───────────────────────────────────────
+
+def _usage(rows):
+    return pd.DataFrame(rows, columns=["player_id", "position", "tgt_share", "car_share"]).set_index("player_id")
+
+
+def test_injury_share_multipliers_redistribute_out_share_to_teammates():
+    usage = _usage([("wr1", "WR", 0.30, 0.0), ("wr2", "WR", 0.20, 0.0), ("rb", "RB", 0.10, 0.60),
+                    ("qb", "QB", 0.0, 0.10), ("b_wr", "WR", 0.25, 0.0)])
+    recent = pd.DataFrame({"team": ["A", "A", "A", "A", "B"], "player_id": ["wr1", "wr2", "rb", "qb", "b_wr"]})
+    m = injury_share_multipliers(usage, recent, {"wr1"}, alpha=0.6)
+    assert "wr1" not in m.index                                       # the out player is not projected
+    # freed target share 0.30 over the kept 0.30 (wr2 + rb + qb) -> 1 + 0.6 * 0.30 / 0.30
+    assert m.loc["wr2", "tgt_mult"] == pytest.approx(1.6) and m.loc["rb", "tgt_mult"] == pytest.approx(1.6)
+    assert m.loc["rb", "car_mult"] == pytest.approx(1.0)               # wr1 had no carries
+    assert m.loc["b_wr", "tgt_mult"] == pytest.approx(1.0)             # other team untouched
+    # an out QB frees nothing (his usage moves with the starter, not to teammates)
+    q = injury_share_multipliers(usage, recent, {"qb"}, alpha=0.6)
+    assert q["car_mult"].eq(1.0).all() and q["tgt_mult"].eq(1.0).all()
+    assert injury_share_multipliers(usage, recent, set(), alpha=0.6).empty
+
+
+def test_recent_team_players_uses_last_games_and_latest_team():
+    day = pd.Timestamp("2026-09-01")
+    rows = []
+    for i in range(4):                                                # AAA plays 4 weekly games
+        rows.append({"game_id": f"a{i}", "team": "AAA", "player_id": "regular", "gameday": day + pd.Timedelta(weeks=i)})
+    rows.append({"game_id": "a0", "team": "AAA", "player_id": "early", "gameday": day})       # only the oldest game
+    rows.append({"game_id": "a2", "team": "AAA", "player_id": "traded", "gameday": day + pd.Timedelta(weeks=2)})
+    rows.append({"game_id": "c3", "team": "CCC", "player_id": "traded", "gameday": day + pd.Timedelta(weeks=3)})
+    pg = pd.DataFrame(rows).assign(player_display_name="x", position="WR")
+    r = recent_team_players(pg, {"AAA"}, day + pd.Timedelta(weeks=5))
+    assert set(r["player_id"]) == {"regular"}   # 'early' aged out of the last 3; 'traded' now plays for CCC
+    assert set(recent_team_players(pg, {"CCC"}, day + pd.Timedelta(weeks=5))["player_id"]) == {"traded"}
+
+
+def test_out_player_ids_filters_status_week_and_season():
+    inj = pd.DataFrame([
+        {"season": 2025, "week": 5, "gsis_id": "a", "report_status": "Out"},
+        {"season": 2025, "week": 5, "gsis_id": "b", "report_status": "Doubtful"},
+        {"season": 2025, "week": 5, "gsis_id": "c", "report_status": "Questionable"},
+        {"season": 2025, "week": 6, "gsis_id": "d", "report_status": "Out"},
+        {"season": 2024, "week": 5, "gsis_id": "e", "report_status": "Out"},
+    ])
+    assert out_player_ids(inj, 5, 2025) == {"a", "b"}
+    assert out_player_ids(inj, 5) == {"a", "b", "e"}
+    assert out_player_ids(pd.DataFrame(), 5) == set()
+
+
+def test_project_players_applies_share_multipliers():
+    tg, games, pg = _synthetic(seasons=(2021,))
+    st = fit_player_state(pg, team_volume_rows(pg, tg), pd.Timestamp("2022-01-01"), PlayerModelConfig())
+    roster = pd.DataFrame([{"game_id": "X", "team": "AAA", "opp": "BBB", "home": 1, "player_id": pid,
+                            "position": "WR", "is_starting_qb": False} for pid in ("AAA-WR2", "AAA-RB1")])
+    base = project_players(st, roster).set_index("player_id")
+    mult = pd.DataFrame({"tgt_mult": [1.5], "car_mult": [2.0]}, index=pd.Index(["AAA-RB1"], name="player_id"))
+    up = project_players(st, roster, share_mult=mult).set_index("player_id")
+    assert up.loc["AAA-RB1", "proj_targets"] == pytest.approx(1.5 * base.loc["AAA-RB1", "proj_targets"])
+    assert up.loc["AAA-RB1", "proj_carries"] == pytest.approx(2.0 * base.loc["AAA-RB1", "proj_carries"])
+    assert up.loc["AAA-WR2", "proj_targets"] == pytest.approx(base.loc["AAA-WR2", "proj_targets"])
+
+
+def test_walk_forward_injury_report_only_moves_its_own_week():
+    tg, games, pg = _synthetic()
+    base = walk_forward(tg, pg, games, [2022])
+    inj = pd.DataFrame([{"season": 2022, "week": 4, "team": "AAA", "gsis_id": "AAA-WR1", "report_status": "Out"}])  # week 4: BBB v AAA
+    after = walk_forward(tg, pg, games, [2022], injuries=inj)
+    m = base.merge(after, on=["game_id", "player_id"], suffixes=("", "_i"))
+    changed = m[~np.isclose(m["proj_targets"], m["proj_targets_i"])]
+    assert len(changed) and (changed["week"] == 4).all() and (changed["team"] == "AAA").all()
+    assert (changed["proj_targets_i"] > changed["proj_targets"]).all()   # teammates gain usage
 
 
 # ── live roster ──────────────────────────────────────────────────────────────
