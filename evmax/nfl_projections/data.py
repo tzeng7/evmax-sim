@@ -135,3 +135,82 @@ def load_games(d: Optional[Path] = None) -> pd.DataFrame:
         g[c] = g[c].replace(TEAM_ALIASES)
     g["gameday"] = pd.to_datetime(g["gameday"])
     return g
+
+
+# ── player-level sources (Phase 2) ───────────────────────────────────────────
+
+def player_week_file(season: int, d: Optional[Path] = None) -> Path:
+    return data_dir(d) / "player_week" / f"stats_player_week_{season}.parquet"
+
+
+def snaps_file(season: int, d: Optional[Path] = None) -> Path:
+    return data_dir(d) / "snaps" / f"snap_counts_{season}.parquet"
+
+
+def players_file(d: Optional[Path] = None) -> Path:
+    return data_dir(d) / "players.parquet"
+
+
+def ensure_player_sources(seasons: Iterable[int], d: Optional[Path] = None,
+                          refresh_seasons: Iterable[int] = (), max_age_hours: float = 12.0) -> list[int]:
+    """Cache official weekly player stats + PFR snap counts per season and the
+    players id map; return the seasons with both files available."""
+    refresh = set(refresh_seasons)
+    have = []
+    for s in seasons:
+        ok = True
+        for f, url in ((player_week_file(s, d), f"{NFLVERSE}/stats_player/stats_player_week_{s}.parquet"),
+                       (snaps_file(s, d), f"{NFLVERSE}/snap_counts/snap_counts_{s}.parquet")):
+            if _stale(f, max_age_hours if s in refresh else None):
+                ok = (_download(url, f) or f.exists()) and ok
+        if ok:
+            have.append(s)
+    pf = players_file(d)
+    if _stale(pf, 24.0 * 7):
+        _download(f"{NFLVERSE}/players/players.parquet", pf)
+    return have
+
+
+def load_player_week(seasons: Iterable[int], d: Optional[Path] = None) -> pd.DataFrame:
+    """Official per-player game stats (gsis ``player_id``), teams normalized."""
+    frames = [pd.read_parquet(player_week_file(s, d)) for s in seasons if player_week_file(s, d).exists()]
+    if not frames:
+        return pd.DataFrame()
+    w = pd.concat(frames, ignore_index=True)
+    for c in ("team", "opponent_team"):
+        w[c] = w[c].replace(TEAM_ALIASES)
+    return w
+
+
+def load_snaps(seasons: Iterable[int], d: Optional[Path] = None) -> pd.DataFrame:
+    """PFR snap counts with the gsis ``player_id`` attached (via the nflverse players table)."""
+    frames = [pd.read_parquet(snaps_file(s, d)) for s in seasons if snaps_file(s, d).exists()]
+    if not frames:
+        return pd.DataFrame()
+    s = pd.concat(frames, ignore_index=True)
+    s["team"] = s["team"].replace(TEAM_ALIASES)
+    ids = pd.read_parquet(players_file(d), columns=["gsis_id", "pfr_id"]).dropna()
+    ids = ids.drop_duplicates("pfr_id")
+    return s.merge(ids, left_on="pfr_player_id", right_on="pfr_id", how="left").rename(
+        columns={"gsis_id": "player_id"})
+
+
+def injuries_file(season: int, d: Optional[Path] = None) -> Path:
+    return data_dir(d) / "injuries" / f"injuries_{season}.parquet"
+
+
+def ensure_injuries(season: int, d: Optional[Path] = None, max_age_hours: float = 6.0) -> bool:
+    f = injuries_file(season, d)
+    if _stale(f, max_age_hours):
+        return _download(f"{NFLVERSE}/injuries/injuries_{season}.parquet", f) or f.exists()
+    return True
+
+
+def load_injuries(season: int, d: Optional[Path] = None) -> pd.DataFrame:
+    """Weekly official injury reports (gsis_id, week, team, report_status)."""
+    f = injuries_file(season, d)
+    if not f.exists():
+        return pd.DataFrame(columns=["season", "week", "team", "gsis_id", "report_status"])
+    i = pd.read_parquet(f)
+    i["team"] = i["team"].replace(TEAM_ALIASES)
+    return i
