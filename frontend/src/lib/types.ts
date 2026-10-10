@@ -285,101 +285,132 @@ export interface PromotionBoardResult {
   rows: BoardRow[]
 }
 
-// ── NFL projections (GET /api/nfl-projections, evmax.nfl_projections.store) ──
+// ── Projections tab (/api/projections/*, evmax.projections) ──
+// Sector-agnostic: every sector's engine returns these shapes, so a new
+// sector needs only a backend engine + a data/projections.yaml entry.
 
-export interface NflGameProjection {
+/** One configurable input of a run. A null default on a nullable int means "auto". */
+export interface ProjectionOption {
+  key: string
+  label: string
+  type: 'int' | 'bool'
+  default: number | boolean | null
+  help?: string
+  min?: number
+  max?: number
+  step?: number
+  nullable?: boolean
+  placeholder?: string
+}
+
+export type ProjectionOptionValues = Record<string, number | boolean | null>
+
+export interface ProjectionSector {
+  key: string
+  label: string
+  status: 'available' | 'planned'
+  engine: string | null
+  description: string
+  note: string
+  slate_options?: ProjectionOption[]
+  game_options?: ProjectionOption[]
+  capabilities?: { stored: boolean; game_run: boolean }
+  game_run_label?: string
+}
+
+/** One game. Every *_margin is the expected HOME margin (home − away). */
+export interface ProjectionGame {
   game_id: string
-  season: number
-  week: number
-  gameday: string
-  gametime: string | null
-  kickoff_utc: string | null
-  home_team: string
-  away_team: string
-  neutral: number
+  kickoff: string | null
+  date: string | null
+  neutral: boolean
+  home: string
+  away: string
+  home_name: string
+  away_name: string
   proj_home: number
   proj_away: number
-  /** home − away */
   proj_margin: number
   proj_total: number
   p_home_win: number
-  home_qb_name: string | null
-  away_qb_name: string | null
-  /** nflverse spread_line: expected HOME margin (+ = home favored) */
+  model_line: string | null
   market_home_margin: number | null
+  market_line: string | null
   market_total: number | null
-  model_line: string
-  market_line: string
   actual_home: number | null
   actual_away: number | null
-  resolved_at: string | null
+  subtitle: string | null
+  flags: string[]
+  /** Engine-private; echoed back on a per-game run. */
+  context: Record<string, unknown>
 }
 
-export interface NflPlayerProjection {
+export interface ProjectionColumn {
+  key: string
+  label: string
+  /** range: value (lo–hi) · prob: a percentage */
+  kind: 'range' | 'prob'
+  title: string
+}
+
+export interface ProjectionCell {
+  value: number
+  lo?: number | null
+  hi?: number | null
+  /** Small muted line under the value (e.g. "1.6 pass TD"). */
+  sub?: string
+  /** Graded result line (e.g. "actual 54", "scored 1"). */
+  result?: string
+  /** true = result inside the range / event happened; false = outside; absent = neutral. */
+  hit?: boolean
+}
+
+export interface ProjectionPlayer {
   game_id: string
   player_id: string
+  name: string
+  detail: string
   team: string
-  opp: string
-  player_name: string | null
-  position: string | null
-  is_starting_qb: number
-  proj_targets: number | null
-  proj_carries: number | null
-  proj_receptions: number | null
-  p10_receptions: number | null
-  p90_receptions: number | null
-  proj_receiving_yards: number | null
-  p10_receiving_yards: number | null
-  p90_receiving_yards: number | null
-  proj_rushing_yards: number | null
-  p10_rushing_yards: number | null
-  p90_rushing_yards: number | null
-  proj_passing_yards: number | null
-  p10_passing_yards: number | null
-  p90_passing_yards: number | null
-  proj_tds: number | null
-  p_anytime_td: number | null
-  p_two_plus_td: number | null
-  proj_passing_tds: number | null
-  actual_tds: number | null
-  actual_passing_tds: number | null
-  played: number | null
-  actual_receptions: number | null
-  actual_receiving_yards: number | null
-  actual_rushing_yards: number | null
-  actual_passing_yards: number | null
+  event: string
+  note: string | null
+  dimmed: boolean
+  cells: Record<string, ProjectionCell | null>
 }
 
-export interface NflStatAccuracy {
-  n: number
-  mae?: number
-  bias?: number
-  below_p10?: number
-  at_or_below_p90?: number
-  /** anytime_td only */
-  brier?: number
-  log_loss?: number
-  mean_p?: number
-  rate?: number
+export interface ProjectionPeriod {
+  key: string
+  label: string
+  params: Record<string, string | number>
 }
 
-export interface NflAccuracy {
-  games: {
-    n: number
-    margin_mae?: number
-    total_mae?: number
-    close_margin_mae?: number | null
-    close_total_mae?: number | null
-    winner_pct?: number | null
-  }
-  players: Record<string, NflStatAccuracy>
+export interface ProjectionSlate {
+  sector: string
+  title: string
+  source: 'run' | 'stored'
+  games: ProjectionGame[]
+  players: ProjectionPlayer[] | null
+  player_columns: ProjectionColumn[]
+  player_sort: string | null
+  periods: ProjectionPeriod[]
+  period: string | null
+  summary: string[]
+  notes: string[]
+  footnote: string | null
+  options?: ProjectionOptionValues
+  elapsed_s?: number
 }
 
-export interface NflProjectionsResult {
-  season: number | null
-  week: number | null
-  weeks: { season: number; week: number }[]
-  games: NflGameProjection[]
-  players: NflPlayerProjection[]
-  accuracy: NflAccuracy | null
+export type ProjectionSection =
+  | { kind: 'kv'; title: string; items: { label: string; value: string }[] }
+  | { kind: 'players'; title: string; columns: ProjectionColumn[]; rows: ProjectionPlayer[] }
+  | { kind: 'table'; title: string; columns: { key: string; label: string; align?: 'right' }[]; rows: Record<string, string>[] }
+
+export interface ProjectionGameDetail {
+  sector: string
+  game_id: string
+  title: string
+  sections: ProjectionSection[]
+  notes: string[]
+  options?: ProjectionOptionValues
+  elapsed_s?: number
 }

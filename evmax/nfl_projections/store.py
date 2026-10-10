@@ -369,6 +369,12 @@ def accuracy(conn: sqlite3.Connection, season: Optional[int] = None,
     return out
 
 
+def stored_weeks(conn: sqlite3.Connection) -> list[tuple[int, int]]:
+    """Every logged (season, week), newest first."""
+    return [(int(r[0]), int(r[1])) for r in conn.execute(
+        "SELECT DISTINCT season, week FROM nfl_game_projections ORDER BY season DESC, week DESC")]
+
+
 def latest_week(conn: sqlite3.Connection) -> Optional[tuple[int, int]]:
     """(season, week) of the most recent logged game week, or None."""
     r = conn.execute("SELECT season, week FROM nfl_game_projections ORDER BY season DESC, week DESC LIMIT 1").fetchone()

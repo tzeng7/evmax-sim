@@ -1,4 +1,4 @@
-import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult, PromotionBoardResult, VenueBalances, NflProjectionsResult } from './types'
+import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult, PromotionBoardResult, VenueBalances, ProjectionSector, ProjectionSlate, ProjectionGame, ProjectionGameDetail, ProjectionOptionValues } from './types'
 
 const json = (r: Response) => r.json()
 
@@ -194,13 +194,47 @@ export async function fetchPromotionBoard(
   return fetch(`/api/promotion-board?${params}`).then(json)
 }
 
-export async function fetchNflProjections(
-  season?: number,
-  week?: number,
-): Promise<NflProjectionsResult> {
-  const params = new URLSearchParams()
-  if (season != null) params.set('season', String(season))
-  if (week != null) params.set('week', String(week))
-  const q = params.toString()
-  return fetch(`/api/nfl-projections${q ? `?${q}` : ''}`).then(json)
+// ── Projections tab ──
+// Runs can fail for user-fixable reasons (bad option, no games that week,
+// sector not runnable). Those come back as {error} with a 4xx — surface the
+// server's message instead of a generic parse failure.
+async function projectionJson<T>(r: Response): Promise<T> {
+  const data = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error((data as { error?: string }).error || `HTTP ${r.status}`)
+  return data as T
+}
+
+export async function fetchProjectionSectors(): Promise<ProjectionSector[]> {
+  return fetch('/api/projections/sectors')
+    .then(r => projectionJson<{ sectors: ProjectionSector[] }>(r))
+    .then(d => d.sectors)
+}
+
+export async function fetchStoredProjections(
+  sector: string,
+  params: Record<string, string | number> = {},
+): Promise<ProjectionSlate> {
+  const q = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString()
+  return fetch(`/api/projections/${encodeURIComponent(sector)}/stored${q ? `?${q}` : ''}`)
+    .then(r => projectionJson<ProjectionSlate>(r))
+}
+
+export async function runProjectionSlate(sector: string, options: ProjectionOptionValues): Promise<ProjectionSlate> {
+  return fetch(`/api/projections/${encodeURIComponent(sector)}/run`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ options }),
+  }).then(r => projectionJson<ProjectionSlate>(r))
+}
+
+export async function runProjectionGame(
+  sector: string,
+  game: ProjectionGame,
+  options: ProjectionOptionValues,
+): Promise<ProjectionGameDetail> {
+  return fetch(`/api/projections/${encodeURIComponent(sector)}/game`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ game, options }),
+  }).then(r => projectionJson<ProjectionGameDetail>(r))
 }

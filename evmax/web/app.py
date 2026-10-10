@@ -435,8 +435,7 @@ def api_nfl_projections(
 
     try:
         with store.connect() as conn:
-            weeks = [{"season": r[0], "week": r[1]} for r in conn.execute(
-                "SELECT DISTINCT season, week FROM nfl_game_projections ORDER BY season DESC, week DESC")]
+            weeks = [{"season": s, "week": w} for s, w in store.stored_weeks(conn)]
             if season is None or week is None:
                 latest = store.latest_week(conn)
                 if latest is None:
@@ -452,6 +451,126 @@ def api_nfl_projections(
         g["market_line"] = store.favorite_line(g["home_team"], g["away_team"], g["market_home_margin"])
     return JSONResponse({"season": season, "week": week, "weeks": weeks, "games": games,
                          "players": players, "accuracy": accuracy})
+
+
+# ---------------------------------------------------------------------------
+# Projections tab — sector-agnostic entrypoint (evmax.projections)
+# ---------------------------------------------------------------------------
+
+async def _projection_call(fn, *args) -> JSONResponse:
+    """Run a projection-engine call in a worker thread and map its errors to HTTP codes.
+
+    Engines are synchronous and CPU-bound (the NFL player model takes ~10 s),
+    and some call ``asyncio.run`` themselves, so they never run on the event loop.
+    404 unknown sector · 409 not runnable (planned / capability missing) ·
+    400 bad option or input · 500 anything else.
+    """
+    import time
+
+    import structlog
+
+    from evmax.projections.base import ProjectionError
+    from evmax.projections.catalog import SectorUnavailable, UnknownSector
+
+    started = time.monotonic()
+    try:
+        out = await asyncio.to_thread(fn, *args)
+        out["elapsed_s"] = round(time.monotonic() - started, 2)
+        return JSONResponse(out)  # inside the try: a NaN that slipped through must still map to {error}
+    except UnknownSector as e:
+        return JSONResponse({"error": f"unknown projection sector {e.args[0]!r}"}, status_code=404)
+    except SectorUnavailable as e:
+        return JSONResponse({"error": str(e)}, status_code=409)
+    except ProjectionError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+    except Exception as e:  # noqa: BLE001 — surface the failure to the page instead of a bare 500
+        structlog.get_logger(__name__).exception("projection_run_failed", fn=getattr(fn, "__name__", str(fn)))
+        return JSONResponse({"error": f"{type(e).__name__}: {e}"}, status_code=500)
+
+
+async def _json_object(request: Request) -> dict | None:
+    """The request's JSON object body ({} without a JSON content type); None if it is not an object."""
+    if request.headers.get("content-type") != "application/json":
+        return {}
+    try:
+        body = await request.json()
+    except ValueError:
+        return None
+    return body if isinstance(body, dict) else None
+
+
+_NOT_AN_OBJECT = {"error": "request body must be a JSON object"}
+
+
+def _projection_sector(key: str, capability: str | None = None):
+    from evmax.projections.catalog import SectorUnavailable, get_catalog
+
+    sector = get_catalog().get(key.lower())
+    engine = sector.engine_obj()
+    if capability == "stored" and not engine.supports_stored:
+        raise SectorUnavailable(f"{sector.label} projections are not stored")
+    if capability == "game_run" and not engine.supports_game_run:
+        raise SectorUnavailable(f"{sector.label} has no per-game run")
+    return sector, engine
+
+
+@app.get("/api/projections/sectors")
+def api_projection_sectors() -> JSONResponse:
+    """The Projections-tab catalog (data/projections.yaml): every sector with its
+    status, engine options (slate + per-game, sector defaults applied) and capabilities."""
+    from evmax.projections.catalog import get_catalog
+
+    return JSONResponse({"sectors": get_catalog().to_dicts()})
+
+
+@app.get("/api/projections/{sector}/stored")
+async def api_projection_stored(sector: str, request: Request) -> JSONResponse:
+    """Stored projections for one period (query params come from the period picker)."""
+    params = dict(request.query_params)
+
+    def call() -> dict:
+        s, engine = _projection_sector(sector, "stored")
+        return {"sector": s.key, **engine.stored(s.key, params)}
+
+    return await _projection_call(call)
+
+
+@app.post("/api/projections/{sector}/run")
+async def api_projection_run(sector: str, request: Request) -> JSONResponse:
+    """Run the sector's model over its next slate. Body: {"options": {...}} (see /sectors)."""
+    from evmax.projections.catalog import resolve_run_options
+
+    body = await _json_object(request)
+    if body is None:
+        return JSONResponse(_NOT_AN_OBJECT, status_code=400)
+
+    def call() -> dict:
+        s, engine = _projection_sector(sector)
+        opts = resolve_run_options(s, "slate", body.get("options"))
+        return {"sector": s.key, "options": opts, **engine.run_slate(s.key, opts)}
+
+    return await _projection_call(call)
+
+
+@app.post("/api/projections/{sector}/game")
+async def api_projection_game(sector: str, request: Request) -> JSONResponse:
+    """Run the deeper model for one game. Body: {"game": <row from a slate>, "options": {...}}."""
+    from evmax.projections.base import ProjectionError
+    from evmax.projections.catalog import resolve_run_options
+
+    body = await _json_object(request)
+    if body is None:
+        return JSONResponse(_NOT_AN_OBJECT, status_code=400)
+
+    def call() -> dict:
+        s, engine = _projection_sector(sector, "game_run")
+        game = body.get("game")
+        if not isinstance(game, dict) or not game.get("game_id"):
+            raise ProjectionError("body needs the game row ('game' with a game_id)")
+        opts = resolve_run_options(s, "game", body.get("options"))
+        return {"sector": s.key, "game_id": game["game_id"], "options": opts, **engine.run_game(s.key, game, opts)}
+
+    return await _projection_call(call)
 
 
 _MLB_PROPS_CALIBRATION = (

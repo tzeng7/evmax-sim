@@ -28,7 +28,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from evmax.models_ml.point_projection import PointProjectionModel
+from evmax.models_ml.point_projection import INJURY_SECTORS, PointProjectionModel
 
 app = typer.Typer(no_args_is_help=True)
 console = Console()
@@ -36,7 +36,7 @@ console = Console()
 SUPPORTED_SECTORS = ["nba", "nfl", "ncaab", "ncaaw", "soccer"]
 
 # Only NBA uses injury-driven ORTG adjustments for projections today.
-INJURY_ENABLED_SECTORS = {"nba"}
+INJURY_ENABLED_SECTORS = INJURY_SECTORS
 
 
 async def _fetch_injury_reports(sector: str) -> dict:
@@ -340,6 +340,7 @@ def slate(
 
     async def _run() -> list[dict]:
         from evmax.clients.esports_pinnacle import PinnacleGuestClient
+        from evmax.projections.point import build_slate
 
         injury_reports: dict = {}
         if injuries:
@@ -353,53 +354,21 @@ def slate(
 
         model = PointProjectionModel()
         results = []
-
-        # Group by base event (strip ::spread, ::total suffixes)
-        events: dict[str, dict] = {}
-        for odds in odds_list:
-            eid = odds.event_id
-            # Extract base event key
-            base_key = eid
-            for suffix in ("::spread", "::total"):
-                if suffix in base_key:
-                    base_key = base_key[:base_key.index(suffix)]
-                    break
-
-            if base_key not in events:
-                events[base_key] = {
-                    "home": odds.outcome_a_label,
-                    "away": odds.outcome_b_label,
-                    "book_spread": None,
-                    "book_total": None,
-                    "event_date": None,
-                }
-
-            if odds.event_date is not None:
-                # Convert UTC → US/Eastern so the "game day" matches ESPN and
-                # the NBA schedule (late-PT tipoffs don't roll into the next
-                # UTC day).
-                from zoneinfo import ZoneInfo
-                et = odds.event_date.astimezone(ZoneInfo("US/Eastern"))
-                events[base_key]["event_date"] = et.date().isoformat()
-
-            if "::spread" in eid and odds.spread_line is not None:
-                events[base_key]["book_spread"] = odds.spread_line
-            elif "::total" in eid and odds.total_line is not None:
-                events[base_key]["book_total"] = odds.total_line
-
-        for key, ev in events.items():
+        # One entry per game: home/away from the moneyline, the spread as the HOME
+        # handicap, Pinnacle's main total (build_slate documents the conventions).
+        for ev in build_slate(odds_list):
             result = model.project_from_sharp(
-                home_team=ev["home"],
-                away_team=ev["away"],
+                home_team=ev.home,
+                away_team=ev.away,
                 sector=sector,
-                book_spread=ev.get("book_spread"),
-                book_total=ev.get("book_total"),
-                game_date=ev.get("event_date"),
+                book_spread=ev.book_spread,
+                book_total=ev.book_total,
+                game_date=ev.game_date,
                 injury_reports=injury_reports,
             )
             if result:
                 # Attach per-event date so logging + display use the real game day
-                result["game_date"] = ev.get("event_date") or date.today().isoformat()
+                result["game_date"] = ev.game_date or date.today().isoformat()
                 results.append(result)
 
         return results
@@ -578,6 +547,18 @@ def _parse_espn_events(data: dict) -> list[dict]:
     return results
 
 
+def _spread_hit(play_is_home: bool, home_margin: float, home_handicap: float) -> int:
+    """1 if the play covered ``home_handicap`` (the HOME line, negative = home favored), else 0.
+
+    Home covers when home_margin + home_handicap > 0; away covers when it is < 0.
+    A push grades 0, as before. (Until 2026-10-10 this assumed the home team was
+    always the favorite: away plays had to win outright by the spread and home
+    underdogs had to win by it.)
+    """
+    net = home_margin + home_handicap
+    return 1 if (net > 0 if play_is_home else net < 0) else 0
+
+
 def _fuzzy_match_team(name: str, candidates: list[str], threshold: int = 72) -> Optional[str]:
     """Find best fuzzy match for a team name."""
     from rapidfuzz import fuzz
@@ -653,14 +634,11 @@ def resolve(
         # Grade spread play
         spread_hit = None
         if row["book_spread"] is not None and row["spread_play"]:
-            # Did the actual result cover the book spread?
-            actual_margin = actual_home - actual_away  # positive = home won
-            book_spread = row["book_spread"]  # negative = home favored
-            # Home covers if margin > |spread|; away covers if margin < spread
-            if row["spread_play"].lower() == row["home_team"].lower():
-                spread_hit = 1 if actual_margin > abs(book_spread) else 0
-            else:
-                spread_hit = 1 if actual_margin < -abs(book_spread) else 0
+            spread_hit = _spread_hit(
+                play_is_home=row["spread_play"].lower() == row["home_team"].lower(),
+                home_margin=actual_home - actual_away,
+                home_handicap=row["book_spread"],
+            )
 
         # Grade total play
         total_hit = None
@@ -1105,8 +1083,6 @@ def nfl_sim(
     the separate probabilities (what independent projections would imply).
     Validation (2025 holdout): scripts/eval_nfl_joint_sim.py.
     """
-    import numpy as np
-
     from evmax.nfl_projections import live, simulate
 
     season, week = _resolve_week(season, week)
@@ -1139,16 +1115,10 @@ def nfl_sim(
                       cell("receptions", p["proj_targets"] >= 1), cell("receiving_yards", p["proj_targets"] >= 1),
                       cell("rushing_yards", p["proj_carries"] >= 1), cell("passing_yards", bool(p["is_starting_qb"])),
                       f"{m['sim_p_anytime_td'] * 100:.0f}%")
-        qb = players.index[players["is_starting_qb"]].tolist()
-        if qb:
-            q = qb[0]
-            qthr = float(np.median(s["passing_yards"][:, q]))
-            for w in players.drop(index=q).sort_values("proj_targets", ascending=False).index[:3]:
-                wthr = float(np.median(s["receiving_yards"][:, w]))
-                joint = simulate.joint_probability(s, [("passing_yards", q, qthr), ("receiving_yards", w, wthr)])
-                indep = float((s["passing_yards"][:, q] >= qthr).mean() * (s["receiving_yards"][:, w] >= wthr).mean())
-                stacks.append((event, f"{players.at[q, 'player_display_name']} {qthr:.0f}+ pass & "
-                                      f"{players.at[w, 'player_display_name']} {wthr:.0f}+ rec yds", joint, indep))
+        for k in simulate.qb_stacks(players, s):
+            stacks.append((event, f"{k['qb']} {k['qb_passing_yards']:.0f}+ pass & "
+                                  f"{k['receiver']} {k['receiver_receiving_yards']:.0f}+ rec yds",
+                           k["joint"], k["independent"]))
     console.print(t)
     if stacks:
         st = Table(box=box.ROUNDED, title="Stacks — both legs clear their simulated medians")

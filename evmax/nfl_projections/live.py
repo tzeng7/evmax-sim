@@ -230,21 +230,24 @@ def espn_out_players(reports: dict, recent: pd.DataFrame) -> set[tuple[str, str]
 
 def project_week_players(season: int, week: int, cfg: PlayerModelConfig = PlayerModelConfig(),
                          d: Optional[Path] = None, refresh: bool = True,
-                         espn_reports: Optional[dict] = None) -> pd.DataFrame:
+                         espn_reports: Optional[dict] = None,
+                         game_proj: Optional[pd.DataFrame] = None) -> pd.DataFrame:
     """Player stat-line projections (median, mean, 10th/90th percentile) for a week.
 
     Team volume is conditioned on this week's GAME projections (``project_week``)
     through the script model trained on completed seasons; usage and efficiency
     use every game before the week's first kickoff. Ruled-out players come from
     the nflverse injury report plus ``espn_reports`` (``fetch_espn_injury_reports()``),
-    when given.
+    when given. ``game_proj`` is this week's ``project_week`` output when the
+    caller already has it (it is recomputed otherwise).
     """
     gcfg = GameModelConfig()
     first_season = gcfg.first_feature_season - 2
     if refresh:
         data.ensure_player_sources(range(first_season, season + 1), d, refresh_seasons=[season])
         data.ensure_injuries(season, d)
-    game_proj = project_week(season, week, gcfg, d, refresh=refresh)
+    if game_proj is None:
+        game_proj = project_week(season, week, gcfg, d, refresh=refresh)
     tg = team_games.load_team_games(range(first_season, season + 1), d)
     pg = player_games.load_player_games(range(first_season, season + 1), d)
     games = data.load_games(d)
@@ -287,15 +290,19 @@ def project_week_players(season: int, week: int, cfg: PlayerModelConfig = Player
 
 
 def simulate_game(season: int, week: int, team: str, n: int = 10000, d: Optional[Path] = None,
-                  refresh: bool = True, espn_reports: Optional[dict] = None, seed: int = 0):
+                  refresh: bool = True, espn_reports: Optional[dict] = None, seed: int = 0,
+                  proj: Optional[pd.DataFrame] = None):
     """Joint simulation of ``team``'s game in ``season`` ``week``.
 
     Returns {team: (players DataFrame, sims dict)} for both teams; the shape
     parameters are fitted on the six completed seasons before ``season``.
+    ``proj`` is the week's ``project_week_players`` output when the caller
+    already has it (the dashboard reuses its last run); it is recomputed otherwise.
     """
     from evmax.nfl_projections import simulate
 
-    proj = project_week_players(season, week, d=d, refresh=refresh, espn_reports=espn_reports)
+    if proj is None:
+        proj = project_week_players(season, week, d=d, refresh=refresh, espn_reports=espn_reports)
     game = proj[proj["team"] == team.upper()]
     if game.empty:
         raise ValueError(f"{team.upper()} has no projected game in {season} week {week}")

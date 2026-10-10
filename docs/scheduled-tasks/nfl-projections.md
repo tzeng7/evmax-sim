@@ -45,5 +45,5 @@ All three:
 4. With `--post`, posts the stored week to the Discord channel/DM
    (`discord_bot.embeds.nfl_projection_embeds`).
 
-Readers: the dashboard **NFL** tab (`GET /api/nfl-projections`), the `/nfl`
+Readers: the dashboard **Projections** tab, NFL sector (`GET /api/projections/nfl/stored`), the `/nfl`
 slash command, and `evmax project nfl-track` (tracked accuracy).

@@ -272,3 +272,60 @@ def test_cli_line_format():
     assert _nfl_line("DAL", "TB", -2.0) == "TB -2.0"
     assert _nfl_line("DAL", "TB", 0.01) == "PK"
     assert math.isfinite(len(_nfl_line("A", "B", 10.0)))
+
+
+class _Stop(Exception):
+    """Raised by a stub to end a heavy pipeline call once the step under test has run."""
+
+
+def test_project_week_players_reuses_a_given_game_projection(monkeypatch):
+    from evmax.nfl_projections import team_games
+
+    def no_game_model(*a, **k):
+        raise AssertionError("project_week must not run when game_proj is given")
+
+    def stop(*a, **k):
+        raise _Stop
+
+    monkeypatch.setattr(live, "project_week", no_game_model)
+    monkeypatch.setattr(team_games, "load_team_games", stop)
+    with pytest.raises(_Stop):
+        live.project_week_players(2026, 5, refresh=False, game_proj=pd.DataFrame())
+
+
+def test_project_week_players_runs_the_game_model_without_one(monkeypatch):
+    calls = []
+
+    def game_model(season, week, *a, **k):
+        calls.append((season, week))
+        raise _Stop
+
+    monkeypatch.setattr(live, "project_week", game_model)
+    with pytest.raises(_Stop):
+        live.project_week_players(2026, 5, refresh=False)
+    assert calls == [(2026, 5)]
+
+
+def test_simulate_game_reuses_given_player_projections(monkeypatch):
+    from evmax.nfl_projections import player_games, simulate
+
+    def no_player_model(*a, **k):
+        raise AssertionError("project_week_players must not run when proj is given")
+
+    monkeypatch.setattr(live, "project_week_players", no_player_model)
+    monkeypatch.setattr(player_games, "load_player_games", lambda *a, **k: pd.DataFrame({"season_type": []}))
+    monkeypatch.setattr(simulate, "fit_sim_params", lambda pg: simulate.SimParams())
+    base = {"tgt_share": 0.3, "car_share": 0.3, "catch_rate": 0.6, "ypt": 8.0, "ypc": 4.0, "rush_xtd_share": 0.3,
+            "rec_xtd_share": 0.3, "is_starting_qb": False, "exp_team_targets": 33.0, "exp_team_carries": 26.0,
+            "exp_team_rush_tds": 0.9, "exp_team_rec_tds": 1.4}
+    proj = pd.DataFrame([
+        {**base, "game_id": "g1", "team": "AAA", "player_id": "a1"},
+        {**base, "game_id": "g1", "team": "BBB", "player_id": "b1"},
+        {**base, "game_id": "g2", "team": "CCC", "player_id": "c1"},
+    ])
+    out = live.simulate_game(2026, 5, "aaa", n=200, proj=proj)
+    assert set(out) == {"AAA", "BBB"}                                    # both teams of AAA's game, not g2
+    players, sims = out["AAA"]
+    assert list(players["player_id"]) == ["a1"] and sims["receptions"].shape == (200, 1)
+    with pytest.raises(ValueError, match="no projected game"):
+        live.simulate_game(2026, 5, "ZZZ", n=10, proj=proj)
