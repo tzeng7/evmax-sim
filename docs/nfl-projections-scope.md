@@ -222,6 +222,64 @@ Known residuals / next levers:
 - Live starters come from the nflverse schedule's projected QB.
 - Untested levers: pace/drives totals, travel, surface.
 
+## Phase 2 results (2026-10-09) — player model v1
+
+Modules:
+- `evmax/nfl_projections/player_games.py`: official nflverse weekly stats joined with PFR snap counts, so players who played and recorded nothing are explicit zeros.
+- `player_model.py`: team volume × usage share × shrunk efficiency, with team volume conditioned on the game model's script. It reports the median plus 10th/90th percentiles.
+- `live.py::project_week_players`: active roster = played in the team's last 3 games, minus Out/Doubtful on the injury report, plus the schedule's starting QB.
+
+CLI: `evmax project nfl --players [--team KC]`. Harness: `scripts/backtest_nfl_player_projections.py`. Tests: `tests/test_nfl_player_projections.py`.
+
+Signal: `dev_score` = mean over receiving yards, receptions, rushing yards and passing yards of MAE_model / MAE_naive (last-8-games mean). Walk-forward 2019-24, 2025 held out, every kept change reviewed.
+
+| Iteration | Dev score | Verdict |
+|---|---|---|
+| Baseline: volume × share × efficiency (means) | 0.96937 | — |
+| P2 starter's share of team attempts × starts-only yards/attempt | 0.96488 | kept (passing better in all 7 seasons, t −5.8) |
+| P1 renormalize shares over the realized "played" roster | 0.95801 | **rejected** — half the gain was a constant shrink; the rest leaked realized participation (garbage-time backups); absent-starter games got worse |
+| P3 report medians (Gamma yardage / NegBin receptions, dispersion fit per cutoff) | 0.94872 | kept (beats a dev-fitted constant shrink in all 7 seasons) |
+| P4 usage-dependent empirical median ratio | 0.94754 | reverted (below noise) |
+| P5 usage-share prior 3 → 0.5 pseudo-games | 0.92988 | kept (fixed tier bias: stars −8.4 → +1.2 yds; monotone in the prior) |
+| P6 team volume conditioned on the game model's margin/total | **0.92669** | kept (teams projected to score more throw more; better in 6/6 seasons) |
+
+**Final, holdout 2025 (MAE ratio vs naive):**
+
+| Stat | Ratio | MAE |
+|---|---|---|
+| Receiving yards | 0.917 | 19.0 |
+| Receptions | 0.930 | 1.44 |
+| Rushing yards | 0.930 | 19.3 |
+| Passing yards | 0.888 | 58.0 |
+
+**Ranges.** Empirical usage-dependent quantile curves are used for yardage, because the Gamma lower tail was too thin (23% below p10). Coverage, dev/holdout:
+
+| Stat | Below p10 | At or below p90 |
+|---|---|---|
+| Receiving yards | 5.7 / 8.2% | 90.3 / 90.7% |
+| Rushing yards | 8.1 / 8.7% | 90.3 / 89.5% |
+| Passing yards | 11.7 / 10.5% | 89.8 / 92.2% |
+
+The low receiving-yards share below p10 comes from exact-zero ties.
+
+**Kalshi gate (2026 Weeks 1-5, the same 536 / 242 market-covered player-games, best of median/mean on each side): NOT met.**
+
+| Stat | Kalshi MAE | Model MAE | Gap (gate ≤ 3%) |
+|---|---|---|---|
+| Receiving yards | 21.66 | 22.46 | +3.7% |
+| Receptions | 1.586 | 1.646 | +3.8% |
+| Rushing yards | 16.90 | 17.98 | +6.4% |
+
+Early-season, high-usage players are where the market's information (depth charts, injuries, role changes) shows.
+
+**Next levers**, ranked:
+1. Retry the P1 idea on the real pre-game injury report rather than the realized played roster. nflverse injuries go back to 2009, so it can be backtested.
+2. Depth-chart role changes (daily snapshots from 2025).
+3. Rushing: split QB scrambles from designed runs, and the goal-line role.
+4. TD projections.
+5. Opponent-adjusted efficiency.
+6. The joint Monte Carlo, so receivers' yards sum to the QB's passing yards. Not built yet: v1 projects each player independently.
+
 ## 8. Risks and limits
 
 - **The market stays more accurate.** Display the model's tracked accuracy honestly.
