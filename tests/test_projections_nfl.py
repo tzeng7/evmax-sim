@@ -91,7 +91,7 @@ def stubs(monkeypatch, tmp_path):
 
     def run_week(conn, season, week, refresh=True, espn=True, d=None):
         calls["run_week"].append((season, week, refresh, espn))
-        return pipeline.WeekRun(season, week, _games(), _players(), games_logged=2, players_logged=4)
+        return pipeline.WeekRun(season, week, _games(), _players(), games_logged=2, players_logged=4, picks_logged=1)
 
     monkeypatch.setattr(live, "project_week", project_week)
     monkeypatch.setattr(live, "project_week_players", project_week_players)
@@ -145,7 +145,7 @@ def test_run_slate_store_goes_through_the_pipeline(stubs):
     out = engine().run_slate("nfl", {**OPTS, "season": 2026, "week": 5, "store": True,
                                                        "players": False})
     assert stubs["run_week"] == [(2026, 5, False, True)] and stubs["project_week"] == []
-    assert any("Stored 2 games and 4 player rows" in n for n in out["notes"])
+    assert any("Stored 2 games, 4 player rows and 1 new model picks" in n for n in out["notes"])
     assert out["players"]                                               # a stored run always has players
 
 

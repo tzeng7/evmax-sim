@@ -265,7 +265,7 @@ def test_stored_weeks_newest_first(tmp_path):
 def test_run_week_feeds_its_game_projection_to_the_player_model(monkeypatch, tmp_path):
     from evmax.nfl_projections import live, pipeline
 
-    games = _games_proj()
+    games = _games_proj().assign(home_qb_delta=0.0, away_qb_delta=0.0)   # project_week's QB columns (picks)
     seen = {}
     monkeypatch.setattr(live, "project_week", lambda *a, **k: games)
     monkeypatch.setattr(live, "fetch_espn_injury_reports", lambda: {})

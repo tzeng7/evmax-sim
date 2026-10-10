@@ -183,8 +183,9 @@ class NflProjectionEngine(ProjectionEngine):
                     run = pipeline.run_week(conn, season, week, refresh=refresh, espn=espn)
                 games, players = run.games, run.players
                 notes += run.notes
-                notes.append(f"Stored {run.games_logged} games and {run.players_logged} player rows "
-                             "(games that already kicked off stay frozen).")
+                notes.append(f"Stored {run.games_logged} games, {run.players_logged} player rows and "
+                             f"{run.picks_logged} new model picks (games that already kicked off stay frozen; "
+                             "a game's first pick is never re-priced).")
             else:
                 games = live.project_week(season, week, refresh=refresh)
                 players = None
