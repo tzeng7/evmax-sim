@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
-import type { ProjectionCell, ProjectionColumn, ProjectionGame, ProjectionPlayer } from '../lib/types'
+import type { ProjectionCell, ProjectionColumn, ProjectionGame, ProjectionPick, ProjectionPlayer, PickResult } from '../lib/types'
 
 const pct = (p: number) => `${(p * 100).toFixed(0)}%`
 function fmt(v: number | null | undefined, d = 0): string {
@@ -37,6 +37,35 @@ export function ProjectionCellView({ cell, kind }: { cell: ProjectionCell | null
   )
 }
 
+/** W / L / P after a pick, graded at the line it was made against; the close goes in the tooltip. */
+function ResultMark({ at, close }: { at: PickResult | null; close: PickResult | null }) {
+  if (!at) return null
+  const cls = at === 'W' ? 'green' : at === 'L' ? 'red' : 'muted'
+  const title = `${at} at the line the pick was made against${close ? ` · ${close} at the closing line` : ''}`
+  return <strong className={cls} title={title} style={{ marginLeft: 6 }}>{at}</strong>
+}
+
+/** The row's Outcome when the engine makes picks: the spread side and the over/under, with edges. */
+function PickCell({ pick }: { pick: ProjectionPick | null | undefined }) {
+  if (!pick) return <td className="muted">—</td>
+  const vs = pick.line ? `Model pick vs ${pick.line}` : 'Model pick'
+  return (
+    <td style={{ whiteSpace: 'nowrap' }} title={pick.recorded ? `${vs} (recorded)` : vs}>
+      {pick.spread
+        ? <><strong style={{ color: 'var(--text)' }}>{pick.spread}</strong>
+            <span className="muted proj-sub"> ({fmt(pick.spread_edge, 1)})</span>
+            <ResultMark at={pick.spread_result} close={pick.spread_result_close} /></>
+        : <span className="muted">—</span>}
+      {pick.total && (
+        <div className="proj-sub">
+          {pick.total}<span className="muted"> ({fmt(pick.total_edge, 1)})</span>
+          <ResultMark at={pick.total_result} close={pick.total_result_close} />
+        </div>
+      )}
+    </td>
+  )
+}
+
 interface GamesProps {
   games: ProjectionGame[]
   runLabel?: string
@@ -48,11 +77,14 @@ interface GamesProps {
 
 /**
  * One row per game: model line and total next to the market's, home win
- * probability, and the final score once graded. Each row's action runs the
- * engine's per-game model and expands the result in place.
+ * probability, and the final score once graded. When the engine makes picks,
+ * Outcome is the pick (spread side + over/under vs the market, edge in points,
+ * W/L once graded) and the model's own line moves to a Model column. Each
+ * row's action runs the engine's per-game model and expands the result in place.
  */
 export function ProjectionGamesTable({ games, runLabel, expanded, onToggle, renderDetail }: GamesProps) {
-  const cols = onToggle ? 8 : 7
+  const hasPicks = games.some(g => g.pick)
+  const cols = (onToggle ? 8 : 7) + (hasPicks ? 1 : 0)
   return (
     <div className="table-scroll">
       <table>
@@ -60,7 +92,12 @@ export function ProjectionGamesTable({ games, runLabel, expanded, onToggle, rend
           <tr>
             <th>Kickoff</th>
             <th>Event</th>
-            <th title="Model line (favorite) and projected total">Outcome</th>
+            {hasPicks && (
+              <th title="Model pick vs the market line: the spread side and over/under the model prefers, edge in points; W/L once graded">
+                Outcome
+              </th>
+            )}
+            <th title="Model line (favorite) and projected total">{hasPicks ? 'Model' : 'Outcome'}</th>
             <th className="num" title="Projected score, away – home">Score</th>
             <th className="num" title="Model home win probability">Home win</th>
             <th title="The market's line and total — comparison only, never a model input">Market</th>
@@ -81,7 +118,8 @@ export function ProjectionGamesTable({ games, runLabel, expanded, onToggle, rend
                     {g.flags.map(f => <span key={f} className="badge warn proj-flag">{f}</span>)}
                     {g.subtitle && <div className="muted proj-sub">{g.subtitle}</div>}
                   </td>
-                  <td>{g.model_line ?? '—'} · total {g.proj_total.toFixed(1)}</td>
+                  {hasPicks && <PickCell pick={g.pick} />}
+                  <td>{g.model_line ?? '—'} · total {(g.pick?.model_total ?? g.proj_total).toFixed(1)}</td>
                   <td className="num" style={{ whiteSpace: 'nowrap' }}>{g.proj_away.toFixed(1)} – {g.proj_home.toFixed(1)}</td>
                   <td className="num">{pct(g.p_home_win)}</td>
                   <td className="muted">
