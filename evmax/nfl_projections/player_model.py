@@ -249,14 +249,18 @@ RECENT_GAMES = 3
 REDISTRIBUTED_POSITIONS = ("WR", "TE", "RB")  # a QB's usage moves with the starter, not to teammates
 
 
-def out_player_ids(injuries: pd.DataFrame, week: int, season: int | None = None) -> set[str]:
-    """gsis ids listed Out/Doubtful on the ``week`` injury report (of ``season``, when given)."""
+def out_players(injuries: pd.DataFrame, week: int, season: int | None = None) -> set[tuple[str, str]]:
+    """(team, gsis id) pairs listed Out/Doubtful on the ``week`` injury report (of ``season``, when given).
+
+    Keyed by team so a player who changed teams never frees usage on his old team.
+    """
     if injuries is None or injuries.empty:
         return set()
     i = injuries[(injuries["week"] == week) & injuries["report_status"].isin(OUT_STATUSES)]
     if season is not None:
         i = i[i["season"] == season]
-    return set(i["gsis_id"].dropna())
+    i = i.dropna(subset=["gsis_id"])
+    return set(zip(i["team"], i["gsis_id"]))
 
 
 def recent_team_players(player_games: pd.DataFrame, teams, cutoff: pd.Timestamp,
@@ -276,30 +280,34 @@ def recent_team_players(player_games: pd.DataFrame, teams, cutoff: pd.Timestamp,
         ["team", "player_id", "player_display_name", "position"]].reset_index(drop=True)
 
 
-def injury_share_multipliers(usage: pd.DataFrame, recent: pd.DataFrame, out_ids: set[str],
+def injury_share_multipliers(usage: pd.DataFrame, recent: pd.DataFrame, out: set[tuple[str, str]],
                              alpha: float) -> pd.DataFrame:
     """Target/carry share multipliers for the teammates of ruled-out players.
 
-    For each team: freed = sum of the out WR/TE/RB shares; every expected player
-    (recent and not out) gets ``share * (1 + alpha * freed / sum of expected shares)``.
-    Returns one row per expected player (index ``player_id``): ``tgt_mult``, ``car_mult``.
+    ``out`` holds (team, player_id) pairs. For each team: freed = sum of the out
+    WR/TE/RB shares; every expected player (recent and not out) gets
+    ``share * (1 + alpha * freed / sum of expected shares)``.
+    Returns one row per expected player, index (player_id, team): ``tgt_mult``, ``car_mult``.
     """
+    empty = pd.DataFrame(columns=["tgt_mult", "car_mult"],
+                         index=pd.MultiIndex.from_arrays([[], []], names=["player_id", "team"]))
     r = recent[recent["player_id"].isin(usage.index)].copy()
-    if r.empty or not out_ids:
-        return pd.DataFrame(columns=["tgt_mult", "car_mult"])
+    if r.empty or not out:
+        return empty
     u = usage.loc[r["player_id"]]
     r["tgt"] = u["tgt_share"].to_numpy()
     r["car"] = u["car_share"].to_numpy()
-    r["out"] = r["player_id"].isin(out_ids)
+    r["out"] = [(t, pid) in out for t, pid in zip(r["team"], r["player_id"])]
     freeing = r["out"] & u["position"].isin(REDISTRIBUTED_POSITIONS).to_numpy()
     active = r[~r["out"]]
-    out = pd.DataFrame(index=pd.Index(active["player_id"], name="player_id"))
+    res = pd.DataFrame(index=pd.MultiIndex.from_arrays([active["player_id"], active["team"]],
+                                                       names=["player_id", "team"]))
     for col, mult in (("tgt", "tgt_mult"), ("car", "car_mult")):
         freed = r[freeing].groupby("team")[col].sum()
         kept = active.groupby("team")[col].sum()
         m = 1.0 + alpha * freed.reindex(kept.index).fillna(0.0) / kept.clip(lower=1e-9)
-        out[mult] = active["team"].map(m).fillna(1.0).to_numpy()
-    return out
+        res[mult] = active["team"].map(m).fillna(1.0).to_numpy()
+    return res
 
 
 def project_players(state: PlayerState, roster: pd.DataFrame,
@@ -307,8 +315,9 @@ def project_players(state: PlayerState, roster: pd.DataFrame,
                     share_mult: pd.DataFrame | None = None) -> pd.DataFrame:
     """Project each (player, team, opp, home, is_starting_qb) row of ``roster``.
 
-    ``share_mult`` (from ``injury_share_multipliers``, index player_id) scales
-    target/carry shares for teammates of ruled-out players.
+    ``share_mult`` (from ``injury_share_multipliers``, index (player_id, team))
+    scales target/carry shares for teammates of ruled-out players; a player only
+    takes the multiplier of the team he plays for in this game.
     Players never seen before the cutoff are skipped (no basis for a projection).
     """
     u = state.usage
@@ -329,7 +338,7 @@ def project_players(state: PlayerState, roster: pd.DataFrame,
     tgt_share = uu["tgt_share"].to_numpy()
     car_share = uu["car_share"].to_numpy()
     if share_mult is not None and len(share_mult):
-        m = share_mult.reindex(r["player_id"])
+        m = share_mult.reindex(pd.MultiIndex.from_arrays([r["player_id"], r["team"]]))
         tgt_share = tgt_share * m["tgt_mult"].fillna(1.0).to_numpy(dtype=float)
         car_share = car_share * m["car_mult"].fillna(1.0).to_numpy(dtype=float)
     r["proj_targets"] = exp["team_targets"] * tgt_share
@@ -457,7 +466,7 @@ def walk_forward(team_games: pd.DataFrame, player_games: pd.DataFrame, games: pd
             mult = None
             if injuries is not None:
                 recent = recent_team_players(player_games, set(wk["home_team"]) | set(wk["away_team"]), cutoff)
-                mult = injury_share_multipliers(state.usage, recent, out_player_ids(injuries, week, season),
+                mult = injury_share_multipliers(state.usage, recent, out_players(injuries, week, season),
                                                 cfg.injury_redistribution)
             out.append(project_players(state, roster, team_volume, mult))
     return pd.concat(out, ignore_index=True)

@@ -31,7 +31,7 @@ from evmax.nfl_projections.game_model import (
 )
 from evmax.nfl_projections.player_model import (
     VOLUME_STATS, PlayerModelConfig, first_script_season, fit_player_state, game_script,
-    injury_share_multipliers, out_player_ids, project_players, recent_team_players,
+    injury_share_multipliers, out_players, project_players, recent_team_players,
     team_volume_rows, volume_combiners, volume_feature_table,
 )
 from evmax.nfl_projections.ratings import fit_qb_ratings
@@ -104,7 +104,7 @@ def project_week(season: int, week: int, cfg: GameModelConfig = GameModelConfig(
             sides[team] = (comb.predict(feats), qb)
         (ph, hq), (pa, aq) = sides[g.home_team], sides[g.away_team]
         rows.append({
-            "game_id": g.game_id, "gameday": g.gameday.date(), "gametime": g.gametime,
+            "game_id": g.game_id, "season": season, "week": week, "gameday": g.gameday.date(), "gametime": g.gametime,
             "home_team": g.home_team, "away_team": g.away_team, "neutral": bool(neutral),
             "roof": g.roof, "proj_home": ph, "proj_away": pa, "proj_margin": ph - pa,
             "proj_total": ph + pa, "p_home_win": float(stats.norm.cdf((ph - pa) / MARGIN_SD)),
@@ -143,17 +143,20 @@ def home_cover_probability(proj_margin: float, home_handicap: float) -> Optional
 # ── players ──────────────────────────────────────────────────────────────────
 
 def active_roster(pg: pd.DataFrame, injuries: pd.DataFrame, week_games: pd.DataFrame,
-                  cutoff: pd.Timestamp, week: int) -> pd.DataFrame:
+                  cutoff: pd.Timestamp, week: int,
+                  extra_out: Optional[set[tuple[str, str]]] = None) -> pd.DataFrame:
     """Expected active skill players for each team of ``week_games``.
 
     A player is expected active if he played for the team in any of its last
     ``player_model.RECENT_GAMES`` games and is not listed Out/Doubtful on that
-    week's injury report. (A player returning after missing those games is not
-    included — a known limitation; the starting QB is always added from the schedule.)
+    week's injury report or in ``extra_out`` (e.g. the live ESPN feed). (A player
+    returning after missing those games is not included — a known limitation; the
+    starting QB is always added from the schedule.)
     """
     teams = set(week_games["home_team"]) | set(week_games["away_team"])
     recent = recent_team_players(pg, teams, cutoff)
-    recent = recent[~recent["player_id"].isin(out_player_ids(injuries, week))]
+    out = out_players(injuries, week) | (extra_out or set())
+    recent = recent[[(t, pid) not in out for t, pid in zip(recent["team"], recent["player_id"])]]
     names = pg.drop_duplicates("player_id", keep="last").set_index("player_id")["player_display_name"]
     rows = []
     for g in week_games.itertuples():
@@ -172,13 +175,66 @@ def active_roster(pg: pd.DataFrame, injuries: pd.DataFrame, week_games: pd.DataF
     return pd.DataFrame(rows)
 
 
+# Live ESPN injury feed (the same InjuryReportAgent the scanner uses). nflverse
+# injury reports are the backtested source but publish with a lag; on game day
+# the ESPN feed carries late downgrades. Same out rule as the coordinator's
+# depth-chart QB starters (AgentCoordinator._QB_OUT_STATUSES).
+ESPN_OUT_STATUSES = frozenset({
+    "OUT", "INJURED RESERVE", "IR", "SUSPENSION", "SUSPENDED", "DOUBTFUL",
+    "PHYSICALLY UNABLE TO PERFORM", "PUP", "NON-FOOTBALL INJURY",
+})
+
+
+def fetch_espn_injury_reports() -> dict:
+    """ESPN NFL injury reports (team full name -> InjuryReport); {} on any failure."""
+    import asyncio
+
+    try:
+        from evmax.agents.base import AgentRequest
+        from evmax.agents.intelligence.injury_agent import InjuryReportAgent
+
+        resp = asyncio.run(InjuryReportAgent().run(AgentRequest(sector="nfl", correlation_id="nfl-projections")))
+        return resp.data or {}
+    except Exception:  # noqa: BLE001 — the live feed is optional; nflverse reports remain
+        return {}
+
+
+def espn_out_players(reports: dict, recent: pd.DataFrame) -> set[tuple[str, str]]:
+    """(team, gsis id) of ``recent`` players the ESPN feed lists with an out status.
+
+    Players are matched by normalized name within their team (ESPN carries no
+    gsis id); an ambiguous name (two teammates) matches nobody.
+    """
+    from evmax.agents.models.nfl_efficiency_agent import NFL_ABBREV_TO_NAME
+    from evmax.clients.nfl_depth_charts import normalize_person
+
+    abbr_of = {v: k for k, v in NFL_ABBREV_TO_NAME.items()}
+    by_team: dict[str, dict[str, list[str]]] = {}
+    for r in recent.itertuples(index=False):
+        by_team.setdefault(r.team, {}).setdefault(normalize_person(r.player_display_name), []).append(r.player_id)
+    out: set[tuple[str, str]] = set()
+    for team, report in (reports or {}).items():
+        abbr = abbr_of.get(str(team).lower().strip())
+        names = by_team.get(abbr or "", {})
+        for p in getattr(report, "players", None) or []:
+            if (getattr(p, "status", "") or "").upper().strip() not in ESPN_OUT_STATUSES:
+                continue
+            ids = names.get(normalize_person(p.name), [])
+            if len(ids) == 1:
+                out.add((abbr, ids[0]))
+    return out
+
+
 def project_week_players(season: int, week: int, cfg: PlayerModelConfig = PlayerModelConfig(),
-                         d: Optional[Path] = None, refresh: bool = True) -> pd.DataFrame:
+                         d: Optional[Path] = None, refresh: bool = True,
+                         espn_reports: Optional[dict] = None) -> pd.DataFrame:
     """Player stat-line projections (median, mean, 10th/90th percentile) for a week.
 
     Team volume is conditioned on this week's GAME projections (``project_week``)
     through the script model trained on completed seasons; usage and efficiency
-    use every game before the week's first kickoff.
+    use every game before the week's first kickoff. Ruled-out players come from
+    the nflverse injury report plus ``espn_reports`` (``fetch_espn_injury_reports()``),
+    when given.
     """
     gcfg = GameModelConfig()
     first_season = gcfg.first_feature_season - 2
@@ -199,11 +255,12 @@ def project_week_players(season: int, week: int, cfg: PlayerModelConfig = Player
     state = fit_player_state(pg, vol, cutoff, cfg)
 
     injuries = data.load_injuries(season, d)
-    roster = active_roster(pg, injuries, wk, cutoff, week)
+    recent = recent_team_players(pg, set(wk["home_team"]) | set(wk["away_team"]), cutoff)
+    espn_out = espn_out_players(espn_reports, recent) if espn_reports else set()
+    roster = active_roster(pg, injuries, wk, cutoff, week, extra_out=espn_out)
     # Teammates of players ruled Out/Doubtful take part of their usage (same rule as the backtest).
-    mult = injury_share_multipliers(
-        state.usage, recent_team_players(pg, set(wk["home_team"]) | set(wk["away_team"]), cutoff),
-        out_player_ids(injuries, week), cfg.injury_redistribution)
+    mult = injury_share_multipliers(state.usage, recent, out_players(injuries, week) | espn_out,
+                                    cfg.injury_redistribution)
     script = {}
     for r in game_proj.itertuples():
         script[(r.game_id, r.home_team)] = (r.proj_margin, r.proj_total)
@@ -219,4 +276,5 @@ def project_week_players(season: int, week: int, cfg: PlayerModelConfig = Player
         tv.append(row)
     team_volume = pd.DataFrame(tv).set_index(["game_id", "team"])
     proj = project_players(state, roster, team_volume, mult)
-    return proj.merge(wk[["game_id", "gameday", "home_team", "away_team"]], on="game_id")
+    return proj.merge(wk[["game_id", "gameday", "gametime", "home_team", "away_team"]], on="game_id").assign(
+        season=season, week=week)
