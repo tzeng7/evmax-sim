@@ -1567,6 +1567,11 @@ evmax portfolio list
 # Standalone point projections (not the EV pipeline) — backs the /nba-proj skill
 evmax project slate --sector nba --log
 evmax project resolve --date 2026-03-20 --sector nba
+
+# NFL week projections + model picks vs the Vegas line (spread side, O/U on the median total);
+# each game's first pre-kickoff pick is recorded, then graded at the published line and the close
+evmax project nfl
+evmax project nfl-record
 ```
 
 ---
