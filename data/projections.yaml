@@ -1,0 +1,70 @@
+# Dashboard Projections tab — the sector catalog (evmax/projections/catalog.py).
+#
+# One entry per sector, in tab order. This file decides WHICH sectors the tab
+# shows and which engine runs each one; the engine declares WHAT a run can be
+# configured with (its options). Validated at load: an unknown engine, an
+# available sector without one, or a default for an option the engine does
+# not declare fails loudly.
+#
+# Fields per sector:
+#   label       : tab label
+#   status      : available | planned
+#                   available -> needs an engine; the tab can run it
+#                   planned   -> shown disabled with `note`
+#   engine      : nfl_projections | point_projection (catalog.ENGINES)
+#   description : one line under the run controls
+#   note        : why a planned sector is not runnable yet
+#   defaults    : per-sector option defaults, keyed by option name (slate or
+#                 per-game option of the engine)
+#
+# Adding a sector: if an existing engine fits, an entry here is the whole
+# change. Otherwise write an engine in evmax/projections/ (see base.py) and
+# register it in catalog.ENGINES.
+
+sectors:
+  nfl:
+    label: NFL
+    status: available
+    engine: nfl_projections
+    description: >-
+      Game scores, line, total and win probability, player medians with 10th–90th
+      percentile ranges, and a joint box-score simulation per game.
+    defaults:
+      store: false
+      sims: 10000
+
+  nba:
+    label: NBA
+    status: available
+    engine: point_projection
+    description: >-
+      Possession simulation (10,000 games per matchup) on efficiency ratings, with ESPN
+      injury adjustments, for every game on Pinnacle's board.
+    defaults:
+      injuries: true
+
+  ncaab:
+    label: NCAAB
+    status: available
+    engine: point_projection
+    description: Poisson attack/defense blended with Elo for every game on Pinnacle's board.
+
+  ncaaw:
+    label: NCAAW
+    status: available
+    engine: point_projection
+    description: Poisson attack/defense blended with Elo for every game on Pinnacle's board.
+
+  wnba:
+    label: WNBA
+    status: planned
+    note: >-
+      No projection engine yet. The WNBA possession simulation (wnba_possession_sim) runs
+      only inside the scanner; it needs a projection engine like the NBA one.
+
+  ncaaf:
+    label: NCAAF
+    status: planned
+    note: >-
+      No projection engine yet. ncaaf_efficiency_v2 prices moneylines in the scanner but does
+      not project scores.

@@ -40,7 +40,7 @@ def run_week(conn: sqlite3.Connection, season: int, week: int, *, refresh: bool 
     version = code_version()
     games = live.project_week(season, week, d=d, refresh=refresh)
     reports = live.fetch_espn_injury_reports() if espn else {}
-    players = live.project_week_players(season, week, d=d, refresh=refresh, espn_reports=reports)
+    players = live.project_week_players(season, week, d=d, refresh=refresh, espn_reports=reports, game_proj=games)
     run = WeekRun(season, week, games, players)
     if espn and not reports:
         run.notes.append("ESPN injury feed unavailable; nflverse injury report only")

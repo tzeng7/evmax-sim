@@ -195,3 +195,30 @@ def joint_probability(sims: dict[str, np.ndarray], legs: list[tuple[str, int, fl
     for stat, j, thr in legs:
         ok &= sims[stat][:, j] >= thr
     return float(ok.mean())
+
+
+def qb_stacks(players: pd.DataFrame, sims: dict[str, np.ndarray], receivers: int = 3) -> list[dict]:
+    """QB + receiver stacks: P(both legs clear their simulated medians) vs independence.
+
+    ``players`` is indexed 0..n-1 in the column order of ``sims`` (as
+    ``live.simulate_game`` returns it). One dict per receiver among the
+    ``receivers`` with the most projected targets: the two names, the two
+    thresholds (simulated medians), ``joint`` and ``independent`` (the product
+    of the separate probabilities). Empty when the team has no starting QB.
+    """
+    qbs = players.index[players["is_starting_qb"].astype(bool)].tolist()
+    if not qbs:
+        return []
+    q = qbs[0]
+    qthr = float(np.median(sims["passing_yards"][:, q]))
+    p_qb = float((sims["passing_yards"][:, q] >= qthr).mean())
+    out = []
+    for w in players.drop(index=q).sort_values("proj_targets", ascending=False).index[:receivers]:
+        wthr = float(np.median(sims["receiving_yards"][:, w]))
+        out.append({
+            "qb": players.at[q, "player_display_name"], "qb_passing_yards": qthr,
+            "receiver": players.at[w, "player_display_name"], "receiver_receiving_yards": wthr,
+            "joint": joint_probability(sims, [("passing_yards", q, qthr), ("receiving_yards", w, wthr)]),
+            "independent": p_qb * float((sims["receiving_yards"][:, w] >= wthr).mean()),
+        })
+    return out

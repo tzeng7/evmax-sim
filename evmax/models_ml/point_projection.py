@@ -55,6 +55,10 @@ ELO_BLEND_WEIGHT = 0.35
 # NBA playoff window (months). Play-in starts mid-April, Finals end mid-June.
 NBA_PLAYOFF_MONTHS = {4, 5, 6}
 
+# Sectors whose projection applies ESPN injury ORTG deltas (``_project_nba``);
+# every other sector ignores ``injury_reports``.
+INJURY_SECTORS: frozenset[str] = frozenset({"nba"})
+
 # Injury-based ORTG deltas. Derived from the intuition that a star scorer
 # contributes ~4 ORTG above a replacement-level starter. Stars out = big
 # offensive hit; starters out = moderate; day-to-day = half impact; rotation

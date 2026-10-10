@@ -74,3 +74,28 @@ def test_fit_sim_params_recovers_dirichlet_concentration():
                              "rushing_yards": 0.0})
     params = simulate.fit_sim_params(pd.DataFrame(rows))
     assert params.target_kappa == pytest.approx(kappa, rel=0.5)
+
+
+def test_qb_stacks_pairs_the_qb_with_his_top_targets():
+    players = _team().assign(
+        player_display_name=["QB One", "WR One", "WR Two", "RB One"],
+        proj_targets=[0.0, 10.0, 7.0, 3.0],
+    )
+    s = simulate.simulate_team(players, 34.0, 26.0, 0.9, 1.5, simulate.SimParams(), n=20000,
+                               rng=np.random.default_rng(4))
+    stacks = simulate.qb_stacks(players, s, receivers=2)
+    assert [k["receiver"] for k in stacks] == ["WR One", "WR Two"]          # by projected targets, QB excluded
+    top = stacks[0]
+    assert top["qb"] == "QB One"
+    assert top["qb_passing_yards"] == pytest.approx(float(np.median(s["passing_yards"][:, 0])))
+    assert top["receiver_receiving_yards"] == pytest.approx(float(np.median(s["receiving_yards"][:, 1])))
+    assert top["joint"] == pytest.approx(simulate.joint_probability(
+        s, [("passing_yards", 0, top["qb_passing_yards"]), ("receiving_yards", 1, top["receiver_receiving_yards"])]))
+    assert top["joint"] > top["independent"] + 0.03                         # the stack is positively correlated
+
+
+def test_qb_stacks_empty_without_a_starting_qb():
+    players = _team().assign(is_starting_qb=False, player_display_name="x", proj_targets=1.0)
+    s = simulate.simulate_team(players, 30.0, 25.0, 0.8, 1.2, simulate.SimParams(), n=500,
+                               rng=np.random.default_rng(5))
+    assert simulate.qb_stacks(players, s) == []

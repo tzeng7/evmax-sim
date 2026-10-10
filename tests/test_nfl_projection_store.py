@@ -250,3 +250,31 @@ def test_resolve_grades_touchdowns_and_tracks_anytime(tmp_path):
     a = store.accuracy(conn)["players"]["anytime_td"]
     assert a["n"] == 2 and a["rate"] == 0.5
     assert a["brier"] == pytest.approx(((0.39 - 1) ** 2 + 0.18 ** 2) / 2)
+
+
+def test_stored_weeks_newest_first(tmp_path):
+    conn = store.connect(tmp_path / "p.db")
+    assert store.stored_weeks(conn) == []
+    early = datetime(2026, 10, 1, tzinfo=UTC)
+    store.log_games(conn, _games_proj(), "v1", now=early)
+    store.log_games(conn, _games_proj().assign(game_id=["2025_17_A_B", "2025_17_C_D"], season=2025, week=17),
+                    "v1", now=early)
+    assert store.stored_weeks(conn) == [(2026, 6), (2025, 17)]
+
+
+def test_run_week_feeds_its_game_projection_to_the_player_model(monkeypatch, tmp_path):
+    from evmax.nfl_projections import live, pipeline
+
+    games = _games_proj().assign(home_qb_delta=0.0, away_qb_delta=0.0)   # project_week's QB columns (picks)
+    seen = {}
+    monkeypatch.setattr(live, "project_week", lambda *a, **k: games)
+    monkeypatch.setattr(live, "fetch_espn_injury_reports", lambda: {})
+
+    def players(season, week, **kw):
+        seen.update(kw)
+        return _players_proj()
+
+    monkeypatch.setattr(live, "project_week_players", players)
+    run = pipeline.run_week(store.connect(tmp_path / "p.db"), 2026, 6, refresh=False, espn=True)
+    assert seen["game_proj"] is games                                   # the game model is not fitted twice
+    assert run.games_logged == 2 and run.notes == ["ESPN injury feed unavailable; nflverse injury report only"]

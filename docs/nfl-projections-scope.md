@@ -316,7 +316,7 @@ Code: `player_model.out_players`, `recent_team_players`, `injury_share_multiplie
 | Grading | `store.resolve`: scores + the closing consensus line for games. For players, official stats are graded only once both stat lines and snap counts are out; `played = 0` marks a player who did not play. |
 | Tracking | `store.accuracy` / `evmax project nfl-track`: margin/total MAE next to the closing line's, winner %, player MAE, bias, and p10/p90 coverage. |
 | Run | `evmax/nfl_projections/pipeline.py` / `evmax project nfl-run [--post]` (grade → project → store → post). `evmax project nfl [--players] --log` stores ad hoc. |
-| Dashboard | **NFL** tab (`frontend/src/components/NflProjections.tsx`), `GET /api/nfl-projections?season&week&team` |
+| Dashboard | **Projections** tab, NFL sector (`frontend/src/components/ProjectionsPage.tsx`, engine `evmax/projections/nfl.py`): stored weeks via `GET /api/projections/nfl/stored?season&week`, live runs via `POST /api/projections/nfl/run` (options: season, week, players, ESPN injuries, refresh, store), and a per-game joint simulation via `POST /api/projections/nfl/game`. The older read-only `GET /api/nfl-projections?season&week&team` remains. |
 | Discord | `discord_bot.embeds.nfl_projection_embeds`: posted by `nfl-run --post` and by the `/nfl [week] [season] [team]` slash command |
 | Schedule | `nfl-projections-weekly` (Tue 09:00 PT, posts), `nfl-projections-friday-refresh` (Fri 14:30), `nfl-projections-sunday-refresh` (Sun 08:45, posts). See `docs/scheduled-tasks/nfl-projections.md`. |
 
