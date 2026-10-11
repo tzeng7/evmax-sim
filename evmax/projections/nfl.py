@@ -54,10 +54,15 @@ FOOTNOTE = (
     "and at the close; W/L shows the first. Backtest 2011–25: 50.2% vs the close, 50.1% vs opening lines, "
     "though the line moved toward the pick 59% of the time — a display, not a betting edge."
 )
-RUN_NOTE = ("Outdoor wind uses the league median until a forecast feed is wired; starters come from the "
-            "nflverse schedule (fallback: last game's starter).")
+RUN_NOTE = ("Outdoor wind uses the league median until a forecast feed is wired; the starting QB is the "
+            "nflverse depth chart's highest QB not ruled out (fallback: last game's starter, then the schedule). "
+            "Players on injured reserve, the practice squad or released are dropped (nflverse weekly roster).")
 SIM_NOTE = ("Receivers' yards sum to the QB's passing yards in every simulation, so teammates' lines are "
-            "correlated the way games are (2025 holdout: QB–WR1 simulated +0.55 vs realized +0.46).")
+            "correlated the way games are (2025 holdout: QB–WR1 simulated +0.51 vs realized +0.46). Each "
+            "simulation first draws who plays from recent participation and the injury report; a player's line "
+            "is over the simulations he plays in (a prop on a player who sits is void). Values are medians and "
+            "'avg' the mean: yardage is right-skewed, so a player's median sits below his average and the "
+            "players' medians add up to less than the team total row.")
 
 CACHE_TTL_S = 3600.0
 CACHE_WEEKS = 4
@@ -69,6 +74,21 @@ class _WeekRun:
     games: Optional[pd.DataFrame]
     players: Optional[pd.DataFrame]
     espn: bool
+
+
+def participation_note(p_active: Optional[float]) -> Optional[str]:
+    """'62% chance to play …' for a player who may sit (P(plays) below 0.9); None otherwise."""
+    if p_active is None or p_active >= 0.9:
+        return None
+    return f"{p_active * 100:.0f}% chance to play; line assumes he plays"
+
+
+def mean_cell(cell: Optional[dict], mean) -> Optional[dict]:
+    """A range cell with the mean as its sub-line ('avg 85')."""
+    mean = jsonable(mean)
+    if cell is not None and mean is not None:
+        cell["sub"] = f"avg {mean:.0f}"
+    return cell
 
 
 def full_name(abbr: str) -> str:
@@ -192,14 +212,15 @@ class NflProjectionEngine(ProjectionEngine):
                              f"{run.picks_logged} new model picks (games that already kicked off stay frozen; "
                              "a game's first pick is never re-priced).")
             else:
-                games = live.project_week(season, week, refresh=refresh)
+                reports = live.fetch_espn_injury_reports() if espn else None
+                if espn and not reports:
+                    notes.append("ESPN injury feed unavailable; nflverse injury report only")
+                games = live.project_week(season, week, refresh=refresh, espn_reports=reports)
                 players = None
                 if options["players"]:
-                    reports = live.fetch_espn_injury_reports() if espn else None
-                    if espn and not reports:
-                        notes.append("ESPN injury feed unavailable; nflverse injury report only")
                     players = live.project_week_players(season, week, refresh=refresh, espn_reports=reports,
                                                         game_proj=games)
+                    notes += list(players.attrs.get("notes") or [])
             self._remember(season, week, _WeekRun(self._clock(), games, players, espn))
 
         games = games.sort_values(["gameday", "gametime"])
@@ -351,11 +372,12 @@ class NflProjectionEngine(ProjectionEngine):
             cells["anytime_td"] = None
         did_not_play = p.get("played") == 0
         team, position = p["team"], p.get("position") or "?"
+        note = "did not play" if did_not_play else participation_note(jsonable(p.get("p_active")))
         return {
             "game_id": p["game_id"], "player_id": p["player_id"],
             "name": jsonable(p.get("player_name")) or jsonable(p.get("player_display_name")) or p["player_id"],
             "detail": f"{position}, {team}", "team": team, "event": f"{team} vs {p['opp']}",
-            "note": "did not play" if did_not_play else None, "dimmed": did_not_play, "cells": cells,
+            "note": note, "dimmed": did_not_play, "cells": cells,
         }
 
     @staticmethod
@@ -457,9 +479,10 @@ class NflProjectionEngine(ProjectionEngine):
             if team not in res:
                 continue
             players, sims = res[team]
+            rows = self._sim_rows(team, players, simulate.summarize(players, sims))
+            rows.append(self._team_row(team, players, simulate.summarize_team(sims)))
             sections.append({"kind": "players", "title": f"{full_name(team)} — simulated box score",
-                             "columns": [c.to_dict() for c in PLAYER_COLUMNS],
-                             "rows": self._sim_rows(team, players, simulate.summarize(players, sims))})
+                             "columns": [c.to_dict() for c in PLAYER_COLUMNS], "rows": rows})
             stacks += simulate.qb_stacks(players, sims)
         if stacks:
             sections.append({
@@ -489,11 +512,29 @@ class NflProjectionEngine(ProjectionEngine):
             qb = bool(p["is_starting_qb"])
             shown = {"receptions": p["proj_targets"] >= 1, "receiving_yards": p["proj_targets"] >= 1,
                      "rushing_yards": p["proj_carries"] >= 1, "passing_yards": qb}
-            cells: dict = {st: range_cell(m[f"sim_{st}"], m[f"sim_p10_{st}"], m[f"sim_p90_{st}"]) if shown[st] else None
+            cells: dict = {st: mean_cell(range_cell(m[f"sim_{st}"], m[f"sim_p10_{st}"], m[f"sim_p90_{st}"]),
+                                         m.get(f"sim_mean_{st}")) if shown[st] else None
                            for st in RANGE_STATS}
             cells["anytime_td"] = {"value": jsonable(m["sim_p_anytime_td"])}
             rows.append({"game_id": p["game_id"], "player_id": p["player_id"],
                          "name": jsonable(p["player_display_name"]) or p["player_id"],
                          "detail": f"{p['position']}, {team}", "team": team, "event": f"{team} vs {p['opp']}",
-                         "note": None, "dimmed": False, "cells": cells})
+                         "note": participation_note(jsonable(m.get("sim_p_active"))), "dimmed": False,
+                         "cells": cells})
         return rows
+
+    @staticmethod
+    def _team_row(team: str, players: pd.DataFrame, totals: dict) -> dict:
+        """The team's simulated totals (players not listed included) under the player rows."""
+        def cell(stat):
+            t = totals.get(stat)
+            return range_cell(*t) if t else None
+
+        tds = totals.get("tds")
+        note = "includes players not listed" + (f" · {tds[0]:.0f} TDs (median)" if tds else "")
+        return {"game_id": players["game_id"].iloc[0], "player_id": f"{team}-team", "name": "Team total",
+                "detail": team, "team": team, "event": f"{team} vs {players['opp'].iloc[0]}",
+                "note": note, "dimmed": False,
+                "cells": {"receptions": cell("receptions"), "receiving_yards": cell("passing_yards"),
+                          "rushing_yards": cell("rushing_yards"), "passing_yards": cell("passing_yards"),
+                          "anytime_td": None}}

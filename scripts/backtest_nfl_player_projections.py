@@ -14,6 +14,12 @@ Naive baseline (fixed here): the player's plain mean over his last 8 played game
   dev      = 2019-2024 (optimized by the improvement loop)
   holdout  = 2025      (reported only with --holdout; never tuned on)
 
+Teammates of players ruled Out/Doubtful on the week's pre-game injury report
+take part of their usage. --redistribute-roster-out also frees the usage of
+recent players the weekly roster rules out (reserve lists, released;
+``PlayerModelConfig.roster_out_redistribution``) — rejected 2026-10-10
+(dev_score 0.92456 -> 0.93185).
+
 Loop signal: ``dev_score=<mean over the 4 stats of MAE_model / MAE_naive>`` (lower is better).
 Data: EVMAX_NFL_PROJ_DATA=<cache dir> (see evmax/nfl_projections/data.py).
 """
@@ -27,6 +33,8 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from dataclasses import replace  # noqa: E402
 
 from evmax.nfl_projections import data, player_games, team_games  # noqa: E402
 from evmax.nfl_projections.player_model import PlayerModelConfig  # noqa: E402
@@ -57,7 +65,12 @@ def walk_forward(seasons: list[int], cfg: PlayerModelConfig) -> pd.DataFrame:
     pg = player_games.load_player_games(SEASONS_LOADED)
     games = data.load_games()
     injuries = pd.concat([data.load_injuries(s) for s in SEASONS_LOADED], ignore_index=True)
-    proj = model_walk_forward(tg, pg, games, seasons, cfg, injuries=injuries)
+    ros = None
+    if cfg.roster_out_redistribution:
+        for s in seasons:
+            data.ensure_rosters(s, max_age_hours=None)
+        ros = data.load_rosters(seasons)
+    proj = model_walk_forward(tg, pg, games, seasons, cfg, injuries=injuries, rosters=ros)
     cut = games.groupby(["season", "week"])["gameday"].min().rename("cutoff")
     proj = proj.join(cut, on=["season", "week"])
     out = []
@@ -106,8 +119,10 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--holdout", action="store_true")
     ap.add_argument("--save", type=Path)
+    ap.add_argument("--redistribute-roster-out", action="store_true",
+                    help="also free the usage of roster-ruled-out players (rejected arm)")
     args = ap.parse_args()
-    cfg = PlayerModelConfig()
+    cfg = replace(PlayerModelConfig(), roster_out_redistribution=args.redistribute_roster_out)
     seasons = DEV + (HOLDOUT if args.holdout else [])
     r = walk_forward(seasons, cfg)
     reg = r[r["season_type"] == "REG"]

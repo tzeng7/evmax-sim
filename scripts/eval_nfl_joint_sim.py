@@ -8,6 +8,16 @@ simulated --sims times and compared with the official box scores:
   marginals   : share of results below the simulated p10 / at or below p90
                 (ideal 10% / 90%) and median MAE next to the per-player model's
                 medians, per stat, on the yardage harness's populations
+  level       : share of results above the simulated median (ideal 50%) and the
+                simulated / per-player median ratio, by per-player median tier
+
+--roster played (default) simulates everyone who played each game; --roster
+live simulates the roster a pre-game run builds (player_model.walk_forward
+roster="live": recent players minus the injury report and the weekly roster's
+ruled-out players). Live is what the dashboard simulates: its extra players
+who end up not playing dilute everyone else's share unless the simulation
+accounts for them. Stats are scored only for players who played (a prop on a
+player who does not play is void).
   identity    : the starting QB's passing yards equal his receivers' yards
                 (plus unprojected receivers) in every simulation
   correlation : across team-games, the realized correlation of residuals for
@@ -45,6 +55,9 @@ def main() -> int:
     ap.add_argument("--fit", default="2019-2024")
     ap.add_argument("--sims", type=int, default=2000)
     ap.add_argument("--save", type=Path, help="write the per-player sim summary parquet here")
+    ap.add_argument("--roster", choices=("played", "live"), default="played")
+    ap.add_argument("--no-participation", action="store_true",
+                    help="ignore p_active: every expected player plays (the pre-2026-10-10 simulation)")
     args = ap.parse_args()
     lo, hi = (int(x) for x in args.fit.split("-"))
 
@@ -53,13 +66,25 @@ def main() -> int:
     games = data.load_games()
     injuries = pd.concat([data.load_injuries(s) for s in SEASONS_LOADED], ignore_index=True)
     rz = td_model.load_rz_usage(SEASONS_LOADED)
+    data.ensure_rosters(args.season, max_age_hours=None)
+    rosters = data.load_rosters([args.season])
 
     fit_pg = pg[pg["season"].between(lo, hi) & (pg["season_type"] == "REG")]
     params = simulate.fit_sim_params(fit_pg)
     print(f"params (fit {lo}-{hi}): {params}")
 
-    proj = model_walk_forward(tg, pg, games, [args.season], PlayerModelConfig(), injuries=injuries, rz=rz)
+    proj = model_walk_forward(tg, pg, games, [args.season], PlayerModelConfig(), injuries=injuries, rz=rz,
+                              rosters=rosters, roster=args.roster)
     proj = proj[proj["season_type"] == "REG"].copy()
+    if "played" not in proj:
+        proj["played"] = True
+    if args.no_participation:
+        proj = proj.drop(columns="p_active", errors="ignore")
+    g = proj.groupby(["game_id", "team"])
+    print(f"roster {args.season} ({args.roster}): {g.size().mean():.1f} players per team-game, "
+          f"{(~proj['played'].astype(bool)).mean() * 100:.1f}% did not play; share sums targets "
+          f"{g['tgt_share'].sum().mean():.3f} (p90 {g['tgt_share'].sum().quantile(0.9):.3f}), carries "
+          f"{g['car_share'].sum().mean():.3f} (p90 {g['car_share'].sum().quantile(0.9):.3f})")
     rng = np.random.default_rng(7)
     rows, pairs, identity_ok = [], [], True
     for (gid, team), grp in proj.groupby(["game_id", "team"]):
@@ -90,6 +115,7 @@ def main() -> int:
             }
             pairs.append({**{f"sim_{k}": v for k, v in sc.items()}, **{f"res_{k}": v for k, v in res.items()}})
     r = pd.concat(rows, ignore_index=True)
+    r = r[r["played"].astype(bool)].copy()
     pr = pd.DataFrame(pairs)
 
     # populations: same as the yardage harness (naive = last 8 played games before the week)
@@ -119,6 +145,18 @@ def main() -> int:
         y = ((a["rushing_tds"] + a["receiving_tds"]) >= 1).astype(float)
         print(f"  anytime TD brier sim {((a['sim_p_anytime_td'] - y) ** 2).mean():.4f} vs model "
               f"{((a['p_anytime_td'] - y) ** 2).mean():.4f}")
+    print("\nlevel: P(actual > median) and simulated / per-player median, by per-player median tier")
+    for st, pop, bins in (("receiving_yards", pops["receiving_yards"], [0, 20, 40, 60, 400]),
+                          ("rushing_yards", pops["rushing_yards"], [0, 20, 40, 60, 400])):
+        d = r[pop & (r[f"proj_{st}"] > 0)].copy()
+        d["tier"] = pd.cut(d[f"proj_{st}"], bins)
+        for tier, x in d.groupby("tier", observed=True):
+            print(f"  {st:16s} {str(tier):10s} n={len(x):5d}  actual>sim {(x[st] > x[f'sim_{st}']).mean() * 100:5.1f}%  "
+                  f"actual>model {(x[st] > x[f'proj_{st}']).mean() * 100:5.1f}%  "
+                  f"sim/model {x[f'sim_{st}'].sum() / x[f'proj_{st}'].sum():.3f}")
+        print(f"  {st:16s} {'all':10s} n={len(d):5d}  actual>sim {(d[st] > d[f'sim_{st}']).mean() * 100:5.1f}%  "
+              f"actual>model {(d[st] > d[f'proj_{st}']).mean() * 100:5.1f}%  "
+              f"sim/model {d[f'sim_{st}'].sum() / d[f'proj_{st}'].sum():.3f}")
     print(f"\nidentity (QB passing yards >= sum of projected receivers in every sim): {identity_ok}")
     print(f"\ncorrelations across {len(pr)} team-games (realized residual corr vs mean simulated corr):")
     for name, a, b in (("QB pass yds ~ WR1 rec yds", "qb", "wr1"), ("WR1 ~ WR2 rec yds", "wr1", "wr2"),

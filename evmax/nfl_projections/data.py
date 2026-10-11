@@ -217,6 +217,50 @@ def load_injuries(season: int, d: Optional[Path] = None) -> pd.DataFrame:
     return i
 
 
+# ── weekly rosters (roster status: active / reserve / practice squad / gone) ──
+# The weekly injury report lists only players on the active roster: a player
+# moved to injured reserve drops off it. The weekly roster keeps him, with his
+# status for the week (see player_model.roster_unavailable).
+
+ROSTER_COLUMNS = ["season", "week", "team", "gsis_id", "full_name", "position", "status"]
+
+
+def rosters_file(season: int, d: Optional[Path] = None) -> Path:
+    return data_dir(d) / "rosters" / f"roster_weekly_{season}.parquet"
+
+
+def ensure_rosters(season: int, d: Optional[Path] = None, max_age_hours: Optional[float] = 6.0) -> bool:
+    """Cache the season's weekly rosters (re-downloaded when older than ``max_age_hours``; None = once)."""
+    f = rosters_file(season, d)
+    if _stale(f, max_age_hours):
+        return _download(f"{NFLVERSE}/weekly_rosters/roster_weekly_{season}.parquet", f) or f.exists()
+    return True
+
+
+def load_rosters(seasons: Iterable[int], d: Optional[Path] = None) -> pd.DataFrame:
+    """Cached weekly rosters for ``seasons`` (ROSTER_COLUMNS), teams normalized; empty when none are cached.
+
+    A file missing any of ROSTER_COLUMNS is skipped (logged): with no ``status`` the
+    roster filter would rule out every player.
+    """
+    frames = []
+    for s in seasons:
+        f = rosters_file(s, d)
+        if not f.exists():
+            continue
+        r = pd.read_parquet(f)
+        missing = [c for c in ROSTER_COLUMNS if c not in r]
+        if missing:
+            logger.warning("nfl_proj_roster_columns_missing", season=s, missing=missing)
+            continue
+        frames.append(r[ROSTER_COLUMNS])
+    if not frames:
+        return pd.DataFrame(columns=ROSTER_COLUMNS)
+    r = pd.concat(frames, ignore_index=True)
+    r["team"] = r["team"].replace(TEAM_ALIASES)
+    return r
+
+
 # ── historical opening lines (ESPN) — model-pick backtests only ──────────────
 
 ESPN_ODDS = "https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/{eid}/competitions/{eid}/odds"

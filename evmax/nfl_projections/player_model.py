@@ -52,6 +52,13 @@ class PlayerModelConfig:
     # teammates expected to play (the rest goes to call-ups and players with no
     # recent games). 0.6 = InjuryReportAgent.compute_prop_injury_boost's default.
     injury_redistribution: float = 0.6
+    # Also redistribute the usage of recent players the weekly roster rules out
+    # (reserve lists, practice squad, released). REJECTED 2026-10-10: dev_score
+    # 0.9246 -> 0.9319 (reserve only 0.9285, practice squad / released only
+    # 0.9299), holdout receiving MAE 19.00 -> 19.18 — departing players are mostly
+    # replaced by signings with no recent games. Such players are still dropped
+    # from the expected roster; only their usage stays unassigned.
+    roster_out_redistribution: bool = False
 
 
 @dataclass
@@ -309,21 +316,87 @@ def out_players(injuries: pd.DataFrame, week: int, season: int | None = None) ->
     return set(zip(i["team"], i["gsis_id"]))
 
 
+# Weekly roster status (data.load_rosters). The injury report misses every player
+# who is not on the active roster — injured reserve, PUP, NFI, suspension, the
+# practice squad, released — so a player placed on IR after his last game would
+# otherwise stay in the expected roster with his full usage. ACT = active roster;
+# INA = declared inactive for that week's game (published ~90 minutes before
+# kickoff); everything else (RES, DEV, CUT, RET, …) does not play. Validation:
+# 99.97% of 2016-26 skill players who played a week are ACT on that week's roster,
+# so the status is a pre-game state (no leak in the walk-forward).
+ROSTER_ACTIVE = "ACT"
+ROSTER_INACTIVE = "INA"
+
+
+def roster_unavailable(rosters: pd.DataFrame | None, players: pd.DataFrame, season: int, week: int,
+                       inactive: bool = True) -> set[tuple[str, str]]:
+    """(team, player_id) pairs of ``players`` (columns team, player_id) the weekly roster rules out.
+
+    Each team's roster for ``season`` ``week`` is used, or its latest earlier week when
+    this week's is not published yet. A player missing from his team's roster has left
+    the team; a team with no roster rows at all is left alone (no information). An INA
+    row counts as out only on the week's own roster and only with ``inactive`` (an
+    earlier week's INA was another game's inactive list).
+    """
+    if rosters is None or rosters.empty or players.empty:
+        return set()
+    r = rosters[(rosters["season"] == season) & (rosters["week"] <= week)].dropna(subset=["gsis_id"])
+    if r.empty:
+        return set()
+    latest = r.groupby("team")["week"].max()
+    r = r[r["week"].to_numpy() == latest.reindex(r["team"]).to_numpy()]
+    status = r.drop_duplicates(["team", "gsis_id"], keep="last").set_index(["team", "gsis_id"])["status"]
+    st = status.reindex(pd.MultiIndex.from_arrays([players["team"], players["player_id"]])).to_numpy()
+    roster_week = players["team"].map(latest).to_numpy(dtype=float)
+    ok = (st == ROSTER_ACTIVE) | ((st == ROSTER_INACTIVE) & ((roster_week < week) | (not inactive)))
+    ruled_out = players["team"].isin(latest.index).to_numpy() & ~ok
+    return set(zip(players["team"].to_numpy()[ruled_out], players["player_id"].to_numpy()[ruled_out]))
+
+
 def recent_team_players(player_games: pd.DataFrame, teams, cutoff: pd.Timestamp,
                         n_games: int = RECENT_GAMES) -> pd.DataFrame:
-    """(team, player_id, player_display_name, position) for everyone who played for
-    each of ``teams`` in any of its last ``n_games`` games before ``cutoff``."""
+    """(team, player_id, player_display_name, position, recent_games, played_last) for
+    everyone who played for each of ``teams`` in any of its last ``n_games`` games
+    before ``cutoff``: ``recent_games`` = how many of those games he played,
+    ``played_last`` = whether he played the most recent one."""
     window = player_games[(player_games["gameday"] < cutoff)
                           & (player_games["gameday"] >= cutoff - pd.Timedelta(days=400))]
     past = window[window["team"].isin(set(teams))]
     gids = past[["team", "game_id", "gameday"]].drop_duplicates(["team", "game_id"]).sort_values("gameday")
     last = gids.groupby("team").tail(n_games)[["team", "game_id"]]
+    # Each team's own last game: keyed by (team, game id) — a game id is shared by both
+    # teams, and the opponent's last game may be an earlier one (a bye in between).
+    final = set(gids.groupby("team")["game_id"].last().items())
     rows = past.merge(last, on=["team", "game_id"]).sort_values("gameday")
     # A traded player belongs to the team he played for most recently (over all teams).
     latest = window.sort_values("gameday").drop_duplicates("player_id", keep="last").set_index("player_id")["team"]
     rows = rows[rows["team"].to_numpy() == latest.reindex(rows["player_id"]).to_numpy()]
-    return rows.drop_duplicates("player_id", keep="last")[
-        ["team", "player_id", "player_display_name", "position"]].reset_index(drop=True)
+    rows = rows.assign(last_game=[(t, g) in final for t, g in zip(rows["team"], rows["game_id"])])
+    feats = rows.groupby("player_id").agg(recent_games=("game_id", "nunique"), played_last=("last_game", "any"))
+    out = rows.drop_duplicates("player_id", keep="last")[["team", "player_id", "player_display_name", "position"]]
+    return out.join(feats, on="player_id").reset_index(drop=True)
+
+
+# Probability that an expected player plays, by pre-game evidence: (games played of
+# the team's last 3, played the team's last game, Questionable on the report).
+# ``scripts/fit_nfl_participation.py``: fitted on 2019-24 pre-game rosters
+# (``pregame_rosters``, skill positions, starting QB excluded; n 36,168); 2025
+# holdout mean 0.905 predicted vs 0.902 played, every probability bin within
+# 3.5 pp, Brier 0.070 vs 0.089 for a constant. The starting QB always plays.
+PARTICIPATION = {
+    (1, False, False): 0.503, (1, False, True): 0.538, (1, True, False): 0.830, (1, True, True): 0.620,
+    (2, False, False): 0.682, (2, False, True): 0.609, (2, True, False): 0.885, (2, True, True): 0.635,
+    (3, True, False): 0.971, (3, True, True): 0.739,
+}
+
+
+def participation_probability(recent_games, played_last, questionable, starting_qb) -> np.ndarray:
+    """P(plays) per player from ``PARTICIPATION`` (1.0 for the starting QB and for players
+    without recent games, i.e. the added starter)."""
+    keys = zip(np.asarray(recent_games, dtype=int).clip(0, RECENT_GAMES), np.asarray(played_last, dtype=bool),
+               np.asarray(questionable, dtype=bool))
+    p = np.array([PARTICIPATION.get((int(k), bool(lp), bool(q)), 1.0) for k, lp, q in keys], dtype=float)
+    return np.where(np.asarray(starting_qb, dtype=bool), 1.0, p)
 
 
 def injury_share_multipliers(usage: pd.DataFrame, recent: pd.DataFrame, out: set[tuple[str, str]],
@@ -399,6 +472,10 @@ def project_players(state: PlayerState, roster: pd.DataFrame,
         car_share = car_share * m["car_mult"].fillna(1.0).to_numpy(dtype=float)
     # Inputs kept for the joint simulation (simulate.simulate_team).
     r["tgt_share"], r["car_share"] = tgt_share, car_share
+    if "recent_games" in r:  # a pre-game roster (live.active_roster): who might not play
+        r["p_active"] = participation_probability(r["recent_games"].fillna(0), r["played_last"].fillna(False),
+                                                  r.get("questionable", pd.Series(False, index=r.index)).fillna(False),
+                                                  r["is_starting_qb"])
     r["catch_rate"], r["ypt"], r["ypc"] = (uu["catch_rate"].to_numpy(), uu["ypt"].to_numpy(),
                                            uu["ypc"].to_numpy())
     for m, v in exp.items():
@@ -522,38 +599,110 @@ def predict_volume(vft: pd.DataFrame, coefs: dict[str, np.ndarray]) -> pd.DataFr
 
 def walk_forward(team_games: pd.DataFrame, player_games: pd.DataFrame, games: pd.DataFrame,
                  seasons: list[int], cfg: PlayerModelConfig = PlayerModelConfig(),
-                 injuries: pd.DataFrame | None = None, rz: pd.DataFrame | None = None) -> pd.DataFrame:
-    """Project every player who played in ``seasons``' completed games, week by week, leak-free.
+                 injuries: pd.DataFrame | None = None, rz: pd.DataFrame | None = None,
+                 rosters: pd.DataFrame | None = None, roster: str = "played") -> pd.DataFrame:
+    """Project ``seasons``' completed games week by week, leak-free.
 
-    The roster for a week is everyone who played those games (the backtest
-    stand-in for the pre-game active list); the starting QB is the team's
-    first-dropback passer (pre-game starter identity). Each week uses one state
-    fit on games strictly before its first kickoff. With ``injuries`` (nflverse
-    weekly reports), teammates of players ruled Out/Doubtful on that week's
-    PRE-GAME report get their usage (``injury_share_multipliers``).
+    ``roster="played"``: everyone who played those games (the backtest stand-in
+    for the pre-game active list). ``roster="live"``: the roster a pre-game run
+    builds (``live.active_roster``: recent players minus the injury report's
+    Out/Doubtful and the weekly roster's ruled-out players, backup QBs dropped);
+    its rows carry the game's actual stats when the player played and
+    ``played`` = False when he did not. Either way the starting QB is the
+    team's first-dropback passer (pre-game starter identity). Each week uses one
+    state fit on games strictly before its first kickoff. With ``injuries``
+    (nflverse weekly reports), teammates of players ruled Out/Doubtful on that
+    week's PRE-GAME report get their usage (``injury_share_multipliers``).
+    ``rosters`` (weekly rosters) drop the players they rule out (reserve lists,
+    released) from the live roster; their usage is redistributed only with
+    ``cfg.roster_out_redistribution`` (rejected, see PlayerModelConfig).
+    Game-day inactives are not used: a pre-game run usually happens before they
+    are published.
     """
+    if roster not in ("played", "live"):
+        raise ValueError(f"roster must be 'played' or 'live', not {roster!r}")
     vol = team_volume_rows(player_games, team_games)
     script_seasons = list(range(first_script_season(team_games), max(seasons) + 1))
     vft = volume_feature_table(vol, game_script(team_games, games, script_seasons), games, script_seasons, cfg)
     home = team_games.set_index(["game_id", "team"])["home"]
     starters = team_games.set_index(["game_id", "team"])["first_qb_id"]
     sched = games[games["season"].isin(seasons) & games["home_score"].notna()]
-    out = []
+    results = []
     for season in sorted(sched["season"].unique()):
         train = vft[vft["season"] < season]
         team_volume = (predict_volume(vft[vft["season"] == season], volume_combiners(train))
                        if len(train) else None)
+        season_inj = injuries[injuries["season"] == season] if injuries is not None else None
         for week, wk in sched[sched["season"] == season].groupby("week", sort=True):
             cutoff = wk["gameday"].min()
-            roster = player_games[player_games["game_id"].isin(wk["game_id"])].copy()
-            idx = pd.MultiIndex.from_arrays([roster["game_id"], roster["team"]])
-            roster["home"] = home.reindex(idx).fillna(0).to_numpy()
-            roster["is_starting_qb"] = starters.reindex(idx).to_numpy() == roster["player_id"].to_numpy()
             state = fit_player_state(player_games, vol, cutoff, cfg, rz=rz)
-            mult = None
-            if injuries is not None:
-                recent = recent_team_players(player_games, set(wk["home_team"]) | set(wk["away_team"]), cutoff)
-                mult = injury_share_multipliers(state.usage, recent, out_players(injuries, week, season),
-                                                cfg.injury_redistribution)
-            out.append(project_players(state, roster, team_volume, mult))
-    return pd.concat(out, ignore_index=True)
+            recent = recent_team_players(player_games, set(wk["home_team"]) | set(wk["away_team"]), cutoff)
+            report_out, roster_out = _week_out_sets(season_inj, rosters, recent, season, week)
+            freed = report_out | (roster_out if cfg.roster_out_redistribution else set())
+            mult = (injury_share_multipliers(state.usage, recent, freed, cfg.injury_redistribution)
+                    if injuries is not None or (rosters is not None and cfg.roster_out_redistribution) else None)
+            if roster == "played":
+                r = player_games[player_games["game_id"].isin(wk["game_id"])].copy()
+                idx = pd.MultiIndex.from_arrays([r["game_id"], r["team"]])
+                r["home"] = home.reindex(idx).fillna(0).to_numpy()
+                r["is_starting_qb"] = starters.reindex(idx).to_numpy() == r["player_id"].to_numpy()
+            else:
+                r = _live_week_roster(player_games, wk, cutoff, week, season_inj, report_out | roster_out, starters)
+            results.append(project_players(state, r, team_volume, mult))
+    return pd.concat(results, ignore_index=True)
+
+
+def _week_out_sets(injuries: pd.DataFrame | None, rosters: pd.DataFrame | None, recent: pd.DataFrame,
+                   season: int, week: int) -> tuple[set[tuple[str, str]], set[tuple[str, str]]]:
+    """(injury report Out/Doubtful, weekly-roster ruled out) for a completed week, pre-game
+    information only (no game-day inactive list)."""
+    report_out = out_players(injuries, week, season) if injuries is not None else set()
+    return report_out, roster_unavailable(rosters, recent, season, week, inactive=False)
+
+
+def pregame_rosters(team_games: pd.DataFrame, player_games: pd.DataFrame, games: pd.DataFrame,
+                    seasons: list[int], injuries: pd.DataFrame | None,
+                    rosters: pd.DataFrame | None) -> pd.DataFrame:
+    """Every completed week's pre-game roster (``walk_forward(roster="live")``'s, without
+    the projection): one row per expected player with the participation evidence and
+    ``played``. The population ``PARTICIPATION`` is fitted on
+    (``scripts/fit_nfl_participation.py``)."""
+    starters = team_games.set_index(["game_id", "team"])["first_qb_id"]
+    sched = games[games["season"].isin(seasons) & games["home_score"].notna()]
+    out = []
+    for season in sorted(sched["season"].unique()):
+        season_inj = injuries[injuries["season"] == season] if injuries is not None else None
+        for week, wk in sched[sched["season"] == season].groupby("week", sort=True):
+            cutoff = wk["gameday"].min()
+            recent = recent_team_players(player_games, set(wk["home_team"]) | set(wk["away_team"]), cutoff)
+            report_out, roster_out = _week_out_sets(season_inj, rosters, recent, season, week)
+            r = _live_week_roster(player_games, wk, cutoff, week, season_inj, report_out | roster_out, starters)
+            if not r.empty:
+                out.append(r.assign(season=season, week=week))
+    return pd.concat(out, ignore_index=True) if out else pd.DataFrame()
+
+
+def _live_week_roster(player_games: pd.DataFrame, wk: pd.DataFrame, cutoff: pd.Timestamp, week: int,
+                      injuries: pd.DataFrame | None, ruled_out: set[tuple[str, str]],
+                      starters: pd.Series) -> pd.DataFrame:
+    """A completed week's pre-game roster (``live.active_roster``) with each player's actual
+    stats attached (zeros are real games; ``played`` = False rows have no stats)."""
+    from evmax.nfl_projections.live import active_roster
+
+    qbs = {}
+    for g in wk.itertuples():
+        for t in (g.home_team, g.away_team):
+            qb = starters.get((g.game_id, t))
+            qbs[t] = qb if isinstance(qb, str) else None
+    inj = injuries if injuries is not None else pd.DataFrame(columns=["week", "team", "gsis_id", "report_status"])
+    r = active_roster(player_games, inj, wk, cutoff, week, extra_out=ruled_out, starters=qbs)
+    if r.empty:
+        return r
+    meta = ["game_id", "season", "week", "season_type", "gameday"]
+    stats_cols = [c for c in player_games.columns
+                  if c not in meta + ["team", "opp", "player_id", "player_display_name", "position"]]
+    actual = player_games[player_games["game_id"].isin(wk["game_id"])][["game_id", "player_id"] + stats_cols]
+    r = r.merge(actual, on=["game_id", "player_id"], how="left")
+    r["played"] = r["offense_snaps"].notna()
+    gm = player_games[player_games["game_id"].isin(wk["game_id"])].drop_duplicates("game_id")[meta]
+    return r.merge(gm, on="game_id", how="left")

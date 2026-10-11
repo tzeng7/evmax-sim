@@ -456,6 +456,46 @@ Module `evmax/nfl_projections/picks.py`. CLI: `evmax project nfl` (picks shown),
 
 **Feature tests run for this (all rejected or below the keep rule):** snap-weighted injury report (margin −0.028 dev, t −1.5; the market already moves 0.5–0.7 pts per starter out), pass/rush split ratings and style/strength interactions (null), a draft-round QB prior (QB-change games −0.13, t −1.9, but driven by 2024–25; all games −0.007).
 
+## Live roster and simulation fixes (2026-10-10)
+
+Trigger: the 2026 Week 5 SF @ SEA simulated box score listed Jadarian Price (on injured reserve) and its numbers looked low. Three defects, fixed and measured below.
+
+**1. Reserve-list players leaked into the expected roster.** The live roster is the team's last-3-games players minus the week's injury report (Out/Doubtful) and the ESPN feed. A player moved to injured reserve drops off the injury report (Price: Out in Week 4, absent in Week 5), and the ESPN path could not catch him: the league feed keeps only recently updated entries, and the scanner's `InjuryReportAgent` drops "Injured Reserve" (no win-probability weight) and decays any Out older than 14 days. Demarcus Robinson (SF, IR since Week 3) and KhaDarel Hodge (cut) leaked the same way.
+
+- Fix: nflverse weekly rosters (`data.ensure_rosters` / `load_rosters`, `player_model.roster_unavailable`). A recent player plays only if his week's status is ACT (INA = game-day inactive counts on the week's own roster). Validation that the status is pre-game: 99.97% of 2016–26 skill players who played a week are ACT on that week's roster.
+- The ESPN feed is now read raw (`live.parse_espn_injuries`), not through the scanner agent.
+- **Redistribution of their usage was rejected** (`PlayerModelConfig.roster_out_redistribution`, default off). `scripts/backtest_nfl_player_projections.py --holdout`: dev_score 0.92456 → 0.93185 (reserve-only 0.92846, practice squad / released only 0.92989); holdout receiving MAE 19.00 → 19.18, rushing 19.22 → 19.52. Departing players are mostly replaced by signings with no recent games. They are dropped from the roster; their usage stays unassigned. Known cost: SEA Week 5, Emanuel Wilson's rushing median is 33 vs Kalshi's ~63 with Price and Charbonnet out. A position-aware rule (a back's carries to the backs) is the untested next step. ESPN Out/Doubtful still redistribute (the injury report's rule); its reserve statuses only drop.
+
+**2. Stale starting QB.** The order was override > nflverse schedule > last start. The schedule kept Drew Lock as SEA's starter for Weeks 3–5 while Sam Darnold started. New order (`live.pick_starter`): override > the nflverse depth chart's highest QB not ruled out (injury report, weekly roster, ESPN) > last start > schedule, with one exception: a depth-chart QB1 listed Questionable who did not start the team's last game yields to that game's starter (a QB returning from injury stays first on the chart before he is cleared — CHI Week 5, Caleb Williams vs Tyson Bagent). `scripts/eval_nfl_starter_sources.py`, team-games of Weeks 2+, pre-game information only (the chart before game day, no game-day inactive list — a first version of this eval read the inactive list and overstated the plain depth rule's 2025 accuracy at 99.2%):
+
+| Rule | 2025 all | 2025 changed starter | 2026 all | 2026 changed |
+|---|---|---|---|---|
+| Shipped (depth chart + Questionable exception) | 98.4% | 86.4% (n 59) | 99.0% | 90.0% (n 10) |
+| Depth chart, no exception | 97.1% | 86.4% | 99.0% | 90.0% |
+| Depth, unless schedule and last start agree | 98.2% | 84.7% | 96.9% | 70.0% |
+| Schedule first (old) | 98.4%* | 94.9%* | 94.9% | 70.0% |
+| Last start | 93.4% | 42.4% | 94.9% | 50.0% |
+
+\* Completed seasons' schedule QB columns appear to be backfilled with the actual starter (2020–23 agree 99.8–100%), so only 2026 is a fair comparison for the schedule. Seasons ≤ 2024 have one weekly depth chart, which named the starter less often than the last start (92% vs 95–96% in a first run), so only the 2025+ dated snapshots are used. Backup QBs are dropped from the roster once the starter is known.
+
+**3. The simulation diluted every player on a live roster.** `simulate_team` splits team volume by shares that are each player's share *in games he played*. The validated evaluation fed it only players who played; live it got everyone from the last 3 games. Before fixes 1–2, 2025 live rosters held 13.8 players per team (19% did not play), share sums 1.12 targets / 1.15 carries, and simulated medians ran 9–13% below the per-player model. Fixes 1–2 alone bring the live roster to 11.9 skill players (8.7% do not play), share sums 1.04 / 1.02 — the who-played roster's 1.03 / 1.02.
+
+- Fix: a participation draw. `player_model.PARTICIPATION` gives P(plays) by (games played of the team's last 3, played the team's last game, Questionable). `scripts/fit_nfl_participation.py` fits it on 2019–24 pre-game rosters (`player_model.pregame_rosters`, skill positions, starting QB excluded; n 36,168); 2025 holdout mean 0.905 predicted vs 0.902 played, every probability bin within 3.5 pp, Brier 0.070 vs 0.089 for a constant. Each simulation draws who plays and splits shares among them; a player's line is over the simulations he plays in.
+- `scripts/eval_nfl_joint_sim.py --roster live [--no-participation]` (results above or below the simulated median; ideal 50%):
+
+| 2025 holdout (2024 confirmation) | Who played | Live, no participation | Live, participation |
+|---|---|---|---|
+| Receiving: actual > sim median | 48.4% (50.8%) | 50.1% (51.7%) | 47.4% (49.7%) |
+| Rushing: actual > sim median | 49.3% (50.3%) | 51.3% (51.9%) | 49.4% (49.8%) |
+| Receiving median MAE | 18.95 (19.36) | 19.05 (19.57) | 19.04 (19.52) |
+| Rushing median MAE | 19.12 (19.74) | 19.67 (20.42) | 19.60 (20.28) |
+| Anytime TD Brier | 0.1583 (0.1594) | 0.1626 (0.1628) | 0.1621 (0.1623) |
+| QB ~ WR1, simulated (realized 0.46 / 0.45) | 0.545 (0.542) | 0.546 (0.542) | 0.511 (0.502) |
+
+Participation improves every median MAE, the TD Brier and the QB–WR1 correlation in both seasons; receiving medians overshoot slightly in 2025 (47.4%). 2024 is a confirmation, not a clean holdout: the participation table was fitted on 2019–24. (The first table shipped in this change was fitted on a population that included offensive linemen and under-predicted skill players by 2–7 pp; an independent review caught it, and `played_last` was also mislabelled across teams after a bye — both fixed before these numbers.)
+
+**Display.** Simulated cells show the mean as a sub-line ("avg 95"); a player below a 90% chance to play is labelled; each team ends with a Team total row (players not listed included; receiving yards = the QB's passing yards). Medians are right for props but add up to less than the team total.
+
 ## 8. Risks and limits
 
 - **The market stays more accurate.** Display the model's tracked accuracy honestly.

@@ -838,7 +838,7 @@ def nfl(
     players: bool = typer.Option(False, "--players", help="Project player stat lines instead of game scores."),
     team: Optional[str] = typer.Option(None, "--team", "-t", help="With --players: only this team (abbreviation, e.g. KC)."),
     log: bool = typer.Option(False, "--log", help="Store the projections (updated until kickoff) and each game's first pre-kickoff model pick in projections.db."),
-    espn: bool = typer.Option(True, "--espn/--no-espn", help="With --players: also drop players the live ESPN injury feed lists as out."),
+    espn: bool = typer.Option(True, "--espn/--no-espn", help="Also use the live ESPN injury feed: a QB it lists as out is not picked as the starter, and with --players its out players are dropped."),
 ) -> None:
     """Project every game of an NFL week: score, spread, total, win probability, model pick.
 
@@ -874,7 +874,8 @@ def nfl(
         _nfl_players_table(season, week, refresh, team, full, log=log, espn=espn)
         return
     with console.status(f"Projecting NFL {season} week {week}..."):
-        df = picks.add_picks(live.project_week(season, week, refresh=refresh))
+        reports = live.fetch_espn_injury_reports() if espn else None
+        df = picks.add_picks(live.project_week(season, week, refresh=refresh, espn_reports=reports))
     if log:
         from evmax.nfl_projections import store
         from evmax.provenance import code_version
@@ -1168,7 +1169,7 @@ def nfl_sim(
     team: str = typer.Option(..., "--team", "-t", help="Either team of the game, e.g. KC."),
     season: Optional[int] = typer.Option(None, "--season"),
     week: Optional[int] = typer.Option(None, "--week", "-w"),
-    sims: int = typer.Option(10000, "--sims", help="Simulated games."),
+    sims: int = typer.Option(10000, "--sims", min=1000, help="Simulated games (at least 1,000)."),
     refresh: bool = typer.Option(True, "--refresh/--no-refresh"),
     espn: bool = typer.Option(True, "--espn/--no-espn"),
 ) -> None:
@@ -1204,7 +1205,7 @@ def nfl_sim(
             p, m = players.loc[i], summ.loc[i]
 
             def cell(stat: str, ok: bool) -> str:
-                if not ok:
+                if not ok or pd.isna(m[f"sim_{stat}"]):        # NaN: never plays in these simulations
                     return "—"
                 med, lo, hi = (int(round(m[f"{k}{stat}"])) + 0 for k in ("sim_", "sim_p10_", "sim_p90_"))
                 return f"{med} [dim]({lo}–{hi})[/dim]"
@@ -1212,6 +1213,14 @@ def nfl_sim(
                       cell("receptions", p["proj_targets"] >= 1), cell("receiving_yards", p["proj_targets"] >= 1),
                       cell("rushing_yards", p["proj_carries"] >= 1), cell("passing_yards", bool(p["is_starting_qb"])),
                       f"{m['sim_p_anytime_td'] * 100:.0f}%")
+        tot = simulate.summarize_team(s)
+
+        def team_cell(stat: str) -> str:
+            med, lo, hi = (int(round(v)) for v in tot[stat])
+            return f"{med} [dim]({lo}–{hi})[/dim]"
+        t.add_row(event, f"{tm} team total (incl. players not listed)", team_cell("receptions"),
+                  team_cell("passing_yards"), team_cell("rushing_yards"), team_cell("passing_yards"),
+                  f"{tot['tds'][0]:.0f} TDs")
         for k in simulate.qb_stacks(players, s):
             stacks.append((event, f"{k['qb']} {k['qb_passing_yards']:.0f}+ pass & "
                                   f"{k['receiver']} {k['receiver_receiving_yards']:.0f}+ rec yds",
@@ -1226,5 +1235,7 @@ def nfl_sim(
         for e, o, j, i in stacks:
             st.add_row(e, o, f"{j * 100:.1f}%", f"{i * 100:.1f}%")
         console.print(st)
-    console.print("[dim]Medians with 10th–90th percentile ranges from the simulation. Model only, no market "
-                  "inputs; correlations validated on the 2025 holdout (QB–WR1 simulated +0.55 vs realized +0.46).[/dim]")
+    console.print("[dim]Medians with 10th–90th percentile ranges from the simulation, over the simulations a "
+                  "player plays in (who plays is drawn from recent participation and the injury report). Medians "
+                  "add up to less than the team total (yardage is right-skewed). Model only, no market inputs; "
+                  "correlations validated on the 2025 holdout (QB–WR1 simulated +0.51 vs realized +0.46).[/dim]")

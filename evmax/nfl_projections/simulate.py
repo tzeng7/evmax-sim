@@ -19,6 +19,15 @@ construction and teammates' lines are correlated the way games are:
    scaled by the same efficiency factor, and split by expected-TD share. The
    QB's passing TDs = the team's receiving TDs.
 
+Participation: a pre-game roster holds players who will not all play (about
+9% of a live roster's skill players do not). Each simulation first draws who plays from
+each player's ``p_active`` (``player_model.participation_probability``; 1 when
+absent), and shares are split among the players who play. Without it, every
+expected player's share was spread over the whole roster: on the 2025 holdout
+the simulated medians ran 9-13% below the per-player model's on live rosters.
+Player summaries are conditional on playing (a prop on a player who does not
+play is void).
+
 Parameters come from ``fit_sim_params`` (method of moments on past
 player-games). Validation: ``scripts/eval_nfl_joint_sim.py``.
 """
@@ -125,26 +134,35 @@ def simulate_team(players: pd.DataFrame, team_targets: float, team_carries: floa
 
     ``players``: one row per projected player with ``player_id``, ``tgt_share``,
     ``car_share``, ``catch_rate``, ``ypt``, ``ypc``, ``rush_xtd_share``,
-    ``rec_xtd_share``, ``is_starting_qb``. Returns arrays of shape (n, players)
-    for ``receptions``, ``receiving_yards``, ``rushing_yards``, ``passing_yards``,
-    ``tds``, ``passing_tds`` (column order = ``players`` rows).
+    ``rec_xtd_share``, ``is_starting_qb`` and optionally ``p_active`` (P(plays);
+    1 when absent). Returns arrays of shape (n, players) for ``receptions``,
+    ``receiving_yards``, ``rushing_yards``, ``passing_yards``, ``tds``,
+    ``passing_tds`` and ``active`` (whether the player plays in that simulation;
+    column order = ``players`` rows), and arrays of shape (n,) for the team
+    totals ``team_receptions``, ``team_passing_yards``, ``team_rushing_yards``
+    and ``team_tds`` (unprojected players included).
     """
     rng = rng or np.random.default_rng(0)
     k = len(players)
     ts = players["tgt_share"].to_numpy(float).clip(0, None)
     cs = players["car_share"].to_numpy(float).clip(0, None)
-    # "other" slot keeps unprojected players' usage out of the projected players.
-    t_other = max(1.0 - ts.sum(), 0.02)
-    c_other = max(1.0 - cs.sum(), 0.02)
-    tvec = np.append(ts, t_other); tvec = tvec / tvec.sum()
-    cvec = np.append(cs, c_other); cvec = cvec / cvec.sum()
+    p_active = (np.nan_to_num(players["p_active"].to_numpy(float), nan=1.0).clip(0, 1)
+                if "p_active" in players else np.ones(k))
+    active = rng.random((n, k)) < p_active
+    # "other" slot keeps unprojected players' usage out of the projected players;
+    # its size is set by the players EXPECTED to play (sum of p_active x share).
+    t_other = max(1.0 - (p_active * ts).sum(), 0.02)
+    c_other = max(1.0 - (p_active * cs).sum(), 0.02)
+    tvec = np.append(ts, t_other)
+    cvec = np.append(cs, c_other)
 
     cv2 = params.team_vol_cv ** 2
     gfac = rng.gamma(1 / cv2, cv2, size=(n, 2)) if cv2 > 0 else np.ones((n, 2))
     T = rng.poisson(team_targets * gfac[:, 0])
     C = rng.poisson(team_carries * gfac[:, 1])
-    pt = rng.dirichlet(np.maximum(params.target_kappa * tvec, 1e-6), size=n)
-    pc = rng.dirichlet(np.maximum(params.carry_kappa * cvec, 1e-6), size=n)
+    mask = np.hstack([active, np.ones((n, 1), dtype=bool)])
+    pt = _masked_dirichlet(rng, params.target_kappa, tvec, mask)
+    pc = _masked_dirichlet(rng, params.carry_kappa, cvec, mask)
     tgt = rng.multinomial(T, pt)[:, :k]
     car = rng.multinomial(C, pc)[:, :k]
 
@@ -165,36 +183,85 @@ def simulate_team(players: pd.DataFrame, team_targets: float, team_carries: floa
     qb = players["is_starting_qb"].to_numpy(bool)
     pass_yds = np.where(qb[None, :], team_pass[:, None], 0.0)
 
+    # Team totals, including the unprojected players: their carries at the team's
+    # share-weighted yards per carry (the receiving side is already in team_pass).
+    other_c = C - car.sum(axis=1)
+    other_ypc = float(np.average(ypc, weights=np.maximum(cs, 1e-9)))
+    team_rush = rush_yds.sum(axis=1) + other_c * other_ypc * e_rush[:, 0]
+    other_cr = float(np.average(cr, weights=np.maximum(ts, 1e-9)))
+    team_rec = rec.sum(axis=1) + rng.binomial(np.maximum(other_t, 0), other_cr)
+
     rs = players["rush_xtd_share"].to_numpy(float).clip(0, None)
     xs = players["rec_xtd_share"].to_numpy(float).clip(0, None)
-    rvec = np.append(rs, max(1 - rs.sum(), 0.02)); rvec /= rvec.sum()
-    xvec = np.append(xs, max(1 - xs.sum(), 0.02)); xvec /= xvec.sum()
+    rvec = _masked_rows(np.append(rs, max(1 - (p_active * rs).sum(), 0.02)), mask)
+    xvec = _masked_rows(np.append(xs, max(1 - (p_active * xs).sum(), 0.02)), mask)
     n_rush_td = rng.poisson(team_rush_tds * e_rush[:, 0])
     n_rec_td = rng.poisson(team_rec_tds * e_pass[:, 0])
     tds = rng.multinomial(n_rush_td, rvec)[:, :k] + rng.multinomial(n_rec_td, xvec)[:, :k]
     pass_tds = np.where(qb[None, :], n_rec_td[:, None], 0)
     return {"receptions": rec, "receiving_yards": rec_yds, "rushing_yards": rush_yds,
-            "passing_yards": pass_yds, "tds": tds, "passing_tds": pass_tds}
+            "passing_yards": pass_yds, "tds": tds, "passing_tds": pass_tds, "active": active,
+            "team_receptions": team_rec, "team_passing_yards": team_pass, "team_rushing_yards": team_rush,
+            "team_tds": n_rush_td + n_rec_td}
+
+
+def _masked_rows(vec: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """``vec`` repeated per simulation with masked-out slots zeroed, rows renormalized."""
+    rows = np.where(mask, vec[None, :], 0.0)
+    return rows / rows.sum(axis=1, keepdims=True)
+
+
+def _masked_dirichlet(rng: np.random.Generator, kappa: float, vec: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """Per-simulation share draws: Dirichlet(kappa x shares) over every slot, then the
+    players who do not play are dropped and the rest renormalized (by Dirichlet
+    aggregation, a Dirichlet over the players who play)."""
+    alpha = np.maximum(kappa * vec / vec.sum(), 1e-6)
+    draws = np.where(mask, rng.dirichlet(alpha, size=mask.shape[0]), 0.0)
+    return draws / draws.sum(axis=1, keepdims=True)
+
+
+def _active(sims: dict[str, np.ndarray]) -> np.ndarray:
+    a = sims.get("active")
+    return a if a is not None else np.ones(sims["receptions"].shape, dtype=bool)
 
 
 def summarize(players: pd.DataFrame, sims: dict[str, np.ndarray]) -> pd.DataFrame:
-    """Per player: simulated median / p10 / p90 for each stat and P(anytime TD)."""
+    """Per player, over the simulations he plays in: median / p10 / p90 for each stat,
+    the mean (``sim_mean_*``) and P(anytime TD); ``sim_p_active`` = share of
+    simulations he plays in."""
     out = players[["player_id"]].copy()
+    act = _active(sims)
     for stat in ("receptions", "receiving_yards", "rushing_yards", "passing_yards"):
-        a = sims[stat]
-        out[f"sim_{stat}"] = np.median(a, axis=0)
-        out[f"sim_p10_{stat}"] = np.quantile(a, 0.1, axis=0)
-        out[f"sim_p90_{stat}"] = np.quantile(a, 0.9, axis=0)
-    out["sim_p_anytime_td"] = (sims["tds"] >= 1).mean(axis=0)
+        a = np.where(act, sims[stat].astype(float), np.nan)
+        out[f"sim_{stat}"] = np.nanmedian(a, axis=0)
+        out[f"sim_p10_{stat}"] = np.nanquantile(a, 0.1, axis=0)
+        out[f"sim_p90_{stat}"] = np.nanquantile(a, 0.9, axis=0)
+        out[f"sim_mean_{stat}"] = np.nanmean(a, axis=0)
+    out["sim_p_anytime_td"] = ((sims["tds"] >= 1) & act).sum(axis=0) / np.maximum(act.sum(axis=0), 1)
+    out["sim_p_active"] = act.mean(axis=0)
+    return out
+
+
+def summarize_team(sims: dict[str, np.ndarray]) -> dict[str, tuple[float, float, float]]:
+    """Team totals: stat -> (median, p10, p90) over the simulations."""
+    out = {}
+    for stat in ("receptions", "passing_yards", "rushing_yards", "tds"):
+        a = sims.get(f"team_{stat}")
+        if a is not None:
+            out[stat] = (float(np.median(a)), float(np.quantile(a, 0.1)), float(np.quantile(a, 0.9)))
     return out
 
 
 def joint_probability(sims: dict[str, np.ndarray], legs: list[tuple[str, int, float]]) -> float:
-    """P(every leg) for legs (stat, player column index, threshold): stat >= threshold."""
-    ok = np.ones(sims["receptions"].shape[0], dtype=bool)
+    """P(every leg | every leg's player plays) for legs (stat, player column index,
+    threshold): stat >= threshold."""
+    act = _active(sims)
+    played = np.ones(act.shape[0], dtype=bool)
+    ok = np.ones(act.shape[0], dtype=bool)
     for stat, j, thr in legs:
+        played &= act[:, j]
         ok &= sims[stat][:, j] >= thr
-    return float(ok.mean())
+    return float((ok & played).sum() / max(played.sum(), 1))
 
 
 def qb_stacks(players: pd.DataFrame, sims: dict[str, np.ndarray], receivers: int = 3) -> list[dict]:
@@ -210,15 +277,19 @@ def qb_stacks(players: pd.DataFrame, sims: dict[str, np.ndarray], receivers: int
     if not qbs:
         return []
     q = qbs[0]
+    act = _active(sims)
     qthr = float(np.median(sims["passing_yards"][:, q]))
-    p_qb = float((sims["passing_yards"][:, q] >= qthr).mean())
     out = []
     for w in players.drop(index=q).sort_values("proj_targets", ascending=False).index[:receivers]:
-        wthr = float(np.median(sims["receiving_yards"][:, w]))
+        on = act[:, w]          # both legs need the receiver to play (a void leg otherwise)
+        if not on.any():
+            continue
+        wthr = float(np.median(sims["receiving_yards"][on, w]))
         out.append({
             "qb": players.at[q, "player_display_name"], "qb_passing_yards": qthr,
             "receiver": players.at[w, "player_display_name"], "receiver_receiving_yards": wthr,
             "joint": joint_probability(sims, [("passing_yards", q, qthr), ("receiving_yards", w, wthr)]),
-            "independent": p_qb * float((sims["receiving_yards"][:, w] >= wthr).mean()),
+            "independent": (float((sims["passing_yards"][on, q] >= qthr).mean())
+                            * float((sims["receiving_yards"][on, w] >= wthr).mean())),
         })
     return out

@@ -332,3 +332,52 @@ def test_stored_row_without_a_recorded_pick_is_graded_but_marked_not_recorded(st
     assert lv["pick"]["recorded"] is False and lv["pick"]["spread"] == "KC -7.5"
     assert (lv["pick"]["spread_result"], lv["pick"]["spread_result_close"]) == ("L", "L")  # KC by 4
     assert lv["pick"]["total_result"] == "W"                                                # 44 < 46
+
+
+def test_run_slate_gives_the_espn_feed_to_the_starter_resolution_and_surfaces_run_notes(stubs, monkeypatch):
+    def players_with_notes(season, week, **kw):
+        stubs["players"].append((season, week, kw))
+        p = _players()
+        p.attrs["notes"] = ["nflverse weekly roster not cached: injured-reserve players are not filtered"]
+        return p
+
+    monkeypatch.setattr(live, "project_week_players", players_with_notes)
+    out = engine().run_slate("nfl", OPTS)
+    (_, _, kw), = stubs["project_week"]
+    assert list(kw["espn_reports"]) == ["Philadelphia Eagles"]          # the game model sees the ESPN feed
+    assert any("weekly roster not cached" in n for n in out["notes"])
+    assert any("depth chart" in n for n in out["notes"])
+
+
+def test_game_run_rows_show_the_mean_participation_and_team_totals(stubs, monkeypatch):
+    def players(season, week, **kw):
+        stubs["players"].append((season, week, kw))
+        return _players().assign(p_active=[1.0, 0.5, 1.0, 1.0])       # wr1 plays half the time
+
+    monkeypatch.setattr(live, "project_week_players", players)
+    eng = engine(clock=lambda: 1000.0)
+    slate = eng.run_slate("nfl", {**OPTS, "season": 2026, "week": 5})
+    wr1_slate = next(p for p in slate["players"] if p["player_id"] == "wr1")
+    assert wr1_slate["note"] == "50% chance to play; line assumes he plays"
+    out = eng.run_game("nfl", slate["games"][0], {"sims": 4000})
+    json.dumps(out)
+    home = out["sections"][1]["rows"]
+    wr1 = next(r for r in home if r["player_id"] == "wr1")
+    assert wr1["cells"]["receiving_yards"]["sub"].startswith("avg ")
+    assert wr1["note"].endswith("chance to play; line assumes he plays")
+    qb = next(r for r in home if r["player_id"] == "qb1")
+    assert qb["note"] is None                                             # the starter always plays
+    team = home[-1]
+    assert team["name"] == "Team total" and team["player_id"] == "PHI-team"
+    assert team["note"].startswith("includes players not listed") and "TDs" in team["note"]
+    assert team["cells"]["receiving_yards"] == team["cells"]["passing_yards"]   # the QB throws to everyone
+    assert team["cells"]["rushing_yards"]["lo"] <= team["cells"]["rushing_yards"]["value"]
+    assert team["cells"]["anytime_td"] is None
+    assert out["sections"][0]["rows"][-1]["name"] == "Team total"          # the away team too
+
+
+def test_participation_note_and_mean_cell():
+    assert nfl.participation_note(None) is None and nfl.participation_note(0.95) is None
+    assert nfl.participation_note(0.379) == "38% chance to play; line assumes he plays"
+    assert nfl.mean_cell({"value": 1.0}, 84.6) == {"value": 1.0, "sub": "avg 85"}
+    assert nfl.mean_cell(None, 3.0) is None and nfl.mean_cell({"value": 1.0}, float("nan")) == {"value": 1.0}

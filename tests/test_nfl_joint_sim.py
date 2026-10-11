@@ -99,3 +99,70 @@ def test_qb_stacks_empty_without_a_starting_qb():
     s = simulate.simulate_team(players, 30.0, 25.0, 0.8, 1.2, simulate.SimParams(), n=500,
                                rng=np.random.default_rng(5))
     assert simulate.qb_stacks(players, s) == []
+
+
+# ── participation: who plays is drawn per simulation ─────────────────────────
+
+def test_participation_draw_splits_usage_among_the_players_who_play():
+    players = _team().assign(p_active=[1.0, 1.0, 0.4, 1.0])            # WR2 plays 40% of the time
+    s = simulate.simulate_team(players, 34.0, 26.0, 0.9, 1.5, simulate.SimParams(), n=20000,
+                               rng=np.random.default_rng(6))
+    act = s["active"]
+    assert act[:, [0, 1, 3]].all() and act[:, 2].mean() == pytest.approx(0.4, abs=0.02)
+    sits = ~act[:, 2]
+    assert (s["receptions"][sits, 2] == 0).all() and (s["receiving_yards"][sits, 2] == 0).all()
+    assert (s["tds"][sits, 2] == 0).all()
+    # WR1 gets more targets when WR2 sits (shares renormalized over the players who play)
+    assert s["receptions"][sits, 1].mean() > s["receptions"][~sits, 1].mean()
+    summ = simulate.summarize(players, s).set_index("player_id")
+    assert summ.loc["wr2", "sim_p_active"] == pytest.approx(act[:, 2].mean())
+    # WR2's line is over the games he plays in, not diluted by the games he sits
+    assert summ.loc["wr2", "sim_receiving_yards"] == pytest.approx(np.median(s["receiving_yards"][~sits, 2]))
+    assert summ.loc["wr2", "sim_mean_receiving_yards"] == pytest.approx(s["receiving_yards"][~sits, 2].mean())
+    assert summ.loc["wr2", "sim_p_anytime_td"] == pytest.approx((s["tds"][~sits, 2] >= 1).mean())
+    assert np.all(s["passing_yards"][:, 0] + 1e-9 >= s["receiving_yards"].sum(axis=1))   # identity still holds
+
+
+def test_without_p_active_everyone_plays_and_nan_counts_as_playing():
+    s = simulate.simulate_team(_team(), 34.0, 26.0, 0.9, 1.5, simulate.SimParams(), n=2000,
+                               rng=np.random.default_rng(7))
+    assert s["active"].all()
+    s = simulate.simulate_team(_team().assign(p_active=[np.nan, 1.0, 1.0, 1.0]), 34.0, 26.0, 0.9, 1.5,
+                               simulate.SimParams(), n=2000, rng=np.random.default_rng(7))
+    assert s["active"][:, 0].all()
+
+
+def test_full_participation_keeps_the_expected_shares():
+    # every slot plays: expected targets match the pre-participation simulation (share / (sum + other))
+    s = simulate.simulate_team(_team().assign(p_active=1.0), 34.0, 26.0, 0.9, 1.5, simulate.SimParams(),
+                               n=20000, rng=np.random.default_rng(8))
+    assert s["receptions"][:, 1].mean() == pytest.approx(34 * 0.30 * 0.65, rel=0.05)
+
+
+def test_team_totals_include_unprojected_players():
+    players = _team()
+    s = simulate.simulate_team(players, 34.0, 26.0, 0.9, 1.5, simulate.SimParams(), n=20000,
+                               rng=np.random.default_rng(9))
+    assert np.allclose(s["team_passing_yards"], s["passing_yards"][:, 0])     # the QB throws to everyone
+    assert np.all(s["team_receptions"] >= s["receptions"].sum(axis=1))
+    # 30% of carries go to unprojected players at the share-weighted yards per carry
+    assert s["team_rushing_yards"].mean() > s["rushing_yards"].sum(axis=1).mean() * 1.2
+    assert s["team_tds"].mean() == pytest.approx(0.9 + 1.5, rel=0.05)
+    tot = simulate.summarize_team(s)
+    med, lo, hi = tot["passing_yards"]
+    assert lo < med < hi and med == pytest.approx(float(np.median(s["team_passing_yards"])))
+    assert set(tot) == {"receptions", "passing_yards", "rushing_yards", "tds"}
+
+
+def test_joint_probability_and_stacks_condition_on_the_receiver_playing():
+    players = _team().assign(p_active=[1.0, 0.5, 1.0, 1.0], player_display_name=["Q", "W1", "W2", "R"],
+                             proj_targets=[0.0, 10.0, 7.0, 3.0])
+    s = simulate.simulate_team(players, 34.0, 26.0, 0.9, 1.5, simulate.SimParams(), n=20000,
+                               rng=np.random.default_rng(10))
+    on = s["active"][:, 1]
+    w = float(np.median(s["receiving_yards"][on, 1]))
+    j = simulate.joint_probability(s, [("receiving_yards", 1, w)])
+    assert j == pytest.approx((s["receiving_yards"][on, 1] >= w).mean())      # sits do not count as misses
+    top = simulate.qb_stacks(players, s, receivers=1)[0]
+    assert top["receiver"] == "W1" and top["receiver_receiving_yards"] == pytest.approx(w)
+    assert 0.25 < top["joint"] < 0.5 and top["joint"] > top["independent"]   # both above median, correlated
