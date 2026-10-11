@@ -361,6 +361,9 @@ export interface ProjectionPick {
   line: string | null
   /** True for the frozen pick a tracked record grades. */
   recorded: boolean
+  /** Calibrated P(win) of each pick (the backtest's win rate at that edge) — what stakes are sized on. */
+  spread_p?: number | null
+  total_p?: number | null
   /** Graded at `line`. */
   spread_result: PickResult | null
   spread_result_close: PickResult | null
@@ -421,6 +424,23 @@ export interface ProjectionSlate {
   footnote: string | null
   options?: ProjectionOptionValues
   elapsed_s?: number
+  /** Present when the engine's picks carry calibrated probabilities: turns on stake sizing. */
+  sizing?: ProjectionSizing | null
+}
+
+/** A place a pick could be bet, as American odds (fees included for exchanges). */
+export interface ProjectionPricePreset {
+  key: string
+  label: string
+  odds: number
+}
+
+export interface ProjectionSizing {
+  presets: ProjectionPricePreset[]
+  default_kelly: number
+  /** Hard cap on one stake, as a bankroll fraction. */
+  cap: number
+  note: string
 }
 
 export type ProjectionSection =
@@ -436,4 +456,21 @@ export interface ProjectionGameDetail {
   notes: string[]
   options?: ProjectionOptionValues
   elapsed_s?: number
+  /** Present when the engine's picks carry calibrated probabilities: turns on stake sizing. */
+  sizing?: ProjectionSizing | null
+}
+
+/** A place a pick could be bet, as American odds (fees included for exchanges). */
+export interface ProjectionPricePreset {
+  key: string
+  label: string
+  odds: number
+}
+
+export interface ProjectionSizing {
+  presets: ProjectionPricePreset[]
+  default_kelly: number
+  /** Hard cap on one stake, as a bankroll fraction. */
+  cap: number
+  note: string
 }

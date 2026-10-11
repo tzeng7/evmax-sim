@@ -5,6 +5,8 @@ import { optionDefaults } from '../lib/projections'
 import { ProjectionOptionFields } from './ProjectionOptionFields'
 import { ProjectionGamesTable, ProjectionPlayerTable } from './ProjectionTables'
 import { ProjectionGameDetail, RunProgress, type GameRunState } from './ProjectionGameDetail'
+import { ProjectionSizingBar } from './ProjectionSizing'
+import { useStakeContext } from '../lib/stakeSizing'
 
 type Toast = (msg: string, type?: 'info' | 'ok' | 'err') => void
 
@@ -196,6 +198,7 @@ function SectorPanel({ sector, toast }: { sector: ProjectionSector; toast: Toast
 
   const periodValue = slate?.source === 'stored' ? (slate.period ?? '') : 'run'
   const hasGames = !!slate && slate.games.length > 0
+  const sizingState = useStakeContext(slate?.sizing)
 
   return (
     <>
@@ -270,8 +273,13 @@ function SectorPanel({ sector, toast }: { sector: ProjectionSector; toast: Toast
                 </div>
               )
               : (
+                <>
+                {slate.sizing && (
+                  <ProjectionSizingBar sizing={slate.sizing} games={slate.games} state={sizingState} />
+                )}
                 <ProjectionGamesTable
                   games={slate.games}
+                  stake={sizingState.ctx}
                   runLabel={runLabel}
                   expanded={expanded}
                   onToggle={canRunGame ? toggleGame : undefined}
@@ -286,6 +294,7 @@ function SectorPanel({ sector, toast }: { sector: ProjectionSector; toast: Toast
                     />
                   )}
                 />
+                </>
               )}
           </div>
 

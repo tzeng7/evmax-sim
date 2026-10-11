@@ -110,6 +110,71 @@ def test_mixed_slate_keeps_missing_picks_as_none_and_records_only_lined_games(tm
     assert [r[0] for r in conn.execute("SELECT game_id FROM nfl_picks")] == ["g_lined"]
 
 
+# ── calibrated probability and stake sizing ─────────────────────────────────
+
+def test_calibrated_prob_is_flat_for_spreads_and_clamped_for_totals():
+    assert picks.calibrated_prob(None, "spread") is None
+    assert picks.calibrated_prob(0.5, "spread") == picks.calibrated_prob(7.0, "spread") == 0.5   # shrunk to noise
+    t3, t8, t20 = (picks.calibrated_prob(e, "total") for e in (3.0, 8.0, 20.0))
+    assert 0.5 < t3 < t8 < 0.51 and t20 == t8                                                  # clamped at the cap
+
+
+@pytest.mark.parametrize("odds,be", [(-110, 110 / 210), (+120, 100 / 220), (-100, 0.5), (+100, 0.5)])
+def test_breakeven_and_back(odds, be):
+    assert picks.breakeven(odds) == pytest.approx(be)
+    assert picks.american_from_breakeven(be) == pytest.approx(odds if abs(odds) != 100 else -100)
+
+
+def test_breakeven_rejects_impossible_odds():
+    with pytest.raises(ValueError):
+        picks.breakeven(-50)
+
+
+def test_stake_fraction_is_zero_unless_plus_ev_and_capped():
+    assert picks.stake_fraction(0.5, -110) == 0.0                          # below the 52.4% break-even
+    assert picks.stake_fraction(None, +150) == 0.0
+    be = picks.breakeven(-105)
+    assert picks.stake_fraction(0.53, -105, kelly=1.0) == pytest.approx((0.53 - be) / (1 - be))   # 3.6%, under the cap
+    assert picks.stake_fraction(0.53, -105, kelly=0.5) == pytest.approx(0.5 * (0.53 - be) / (1 - be))
+    assert picks.stake_fraction(0.9, +100, kelly=1.0) == picks.KELLY_CAP   # capped at 5%
+
+
+def test_price_presets_follow_the_fee_schedule():
+    by = {p["key"]: picks.breakeven(p["odds"]) for p in picks.price_presets()}
+    assert by["book"] == pytest.approx(110 / 210)
+    assert by["kalshi_maker"] < by["kalshi_taker"] < by["book"]
+    assert by["polymarket_us_maker"] < 0.5                                  # the maker rebate
+    spec = picks.sizing_spec()
+    assert spec["cap"] == picks.KELLY_CAP and spec["presets"] == picks.price_presets()
+
+
+def test_make_pick_carries_calibrated_probabilities_only_for_picks():
+    p = picks.make_pick("DAL", "TB", 2.6, 49.2, 8.5, 47.5, week=5)
+    assert p.spread_p == 0.5 and p.total_p == picks.calibrated_prob(p.total_edge, "total")
+    none = picks.make_pick("DAL", "TB", 2.6, 49.2, None, None, week=5)
+    assert none.spread_p is None and none.total_p is None
+
+
+def test_nfl_cli_stake_column_and_validation(monkeypatch):
+    from typer.testing import CliRunner
+    import evmax.cli.commands.project as project_cli
+    from evmax.nfl_projections import live
+
+    proj = _week(gameday="2099-10-08").drop(columns=list(picks.GamePick.__dataclass_fields__)).assign(
+        neutral=False, p_home_win=0.58, roof="outdoors", home_qb_name="Dak", away_qb_name="Baker")
+    monkeypatch.setattr(data, "ensure_games", lambda *a, **k: True)
+    monkeypatch.setattr(data, "load_games", lambda *a, **k: pd.DataFrame())
+    monkeypatch.setattr(live, "project_week", lambda *a, **k: proj)
+    args = ["nfl", "--season", "2099", "--week", "5", "--no-refresh", "--no-espn"]
+    res = CliRunner().invoke(project_cli.app, args + ["--bankroll", "1000"], env={"COLUMNS": "240"})
+    assert res.exit_code == 0, res.output
+    assert "Stake (ATS / O/U)" in res.output and "$0.00 / $0.00" in res.output and "no bets" in res.output
+    res = CliRunner().invoke(project_cli.app, args + ["--bankroll", "1000", "--odds", "+101"], env={"COLUMNS": "240"})
+    assert res.exit_code == 0 and "2 bet(s)" in res.output                  # a 50% coin flip at +101 is +EV
+    res = CliRunner().invoke(project_cli.app, args + ["--bankroll", "1000", "--odds", "-50"])
+    assert res.exit_code != 0 and "odds" in res.output.lower()
+
+
 # ── the stored record ────────────────────────────────────────────────────────
 
 def _week(spread=8.5, total=47.5, gameday="2026-10-08", proj_margin=2.6):

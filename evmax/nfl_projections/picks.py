@@ -30,6 +30,7 @@ negative.
 """
 from __future__ import annotations
 
+import math
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -41,6 +42,18 @@ import pandas as pd
 # (2025 holdout -0.86); the shipped game model's mean projection runs high
 # against a median-set line.
 TOTAL_MEDIAN_SHIFT = -0.9
+# Calibrated P(win) of a pick vs its edge: logistic sigmoid(a + b * min(edge, CALIBRATION_MAX_EDGE)),
+# fit on the 2011-25 walk-forward picks graded at the close, then shrunk per coefficient by the
+# positive-part James-Stein factor max(0, 1 - 1/z^2) so that noise sizes nothing
+# (scripts/backtest_nfl_model_picks.py --first-feature-season 2010 --seasons 2011-2025 --calibration).
+# Raw fits: spread a -0.010 (z -0.2), b +0.0097 (z +0.5), n 3,818 -> shrunk to a flat 50%;
+# total a -0.051 (z -1.0), b +0.024 (z +1.1), n 3,883 -> 50.8% at an 8-pt edge. So at -110
+# (52.4% break-even) every stake is $0; only near-50c maker prices size anything, and only a little.
+SPREAD_COVER_LOGIT = (0.0, 0.0)
+TOTAL_WIN_LOGIT = (0.0, 0.0039)
+CALIBRATION_MAX_EDGE = 8.0
+KELLY_CAP = 0.05            # evmax's per-bet hard cap (evmax/ev/kelly.py, validated by scripts/backtest_sizing.py)
+DEFAULT_KELLY = 0.5         # half Kelly, the evmax CLI default
 BIG_EDGE_PTS = 5.0          # 5+ pt edges: 44.9% vs the close 2016-25 (51.1% over 2011-25), a third QB changes
 LATE_SEASON_WEEK = 14       # weeks 14-18 carry 35% of the model's gap to the close
 QB_CHANGE_DELTA = 0.05      # |starter - team QB level| in EPA/dropback (the backtest's QB-change cut)
@@ -56,6 +69,8 @@ class GamePick:
     total_pick_over: Optional[bool]
     total_edge: Optional[float]
     flags: tuple[str, ...]
+    spread_p: Optional[float] = None   # calibrated P(the spread pick covers | no push)
+    total_p: Optional[float] = None    # calibrated P(the O/U pick wins | no push)
 
 
 def handicap_str(team: str, handicap: float) -> str:
@@ -89,7 +104,71 @@ def make_pick(home: str, away: str, proj_margin: float, proj_total: float,
         flags.append("QB change")
     if week >= LATE_SEASON_WEEK:
         flags.append("late season")
-    return GamePick(pick_home, pick, edge, total_median, tpick, over, tedge, tuple(flags))
+    return GamePick(pick_home, pick, edge, total_median, tpick, over, tedge, tuple(flags),
+                    spread_p=calibrated_prob(edge, "spread") if pick is not None else None,
+                    total_p=calibrated_prob(tedge, "total") if tpick is not None else None)
+
+
+# ── calibrated probability and stake sizing ──────────────────────────────────
+
+def calibrated_prob(edge: Optional[float], kind: str) -> Optional[float]:
+    """P(a pick with this edge wins | no push), from the backtest fit (``kind``: spread / total)."""
+    if edge is None or pd.isna(edge):
+        return None
+    a, b = SPREAD_COVER_LOGIT if kind == "spread" else TOTAL_WIN_LOGIT
+    x = min(float(edge), CALIBRATION_MAX_EDGE)
+    return 1.0 / (1.0 + math.exp(-(a + b * x)))
+
+
+def breakeven(american_odds: float) -> float:
+    """The win probability a bet at ``american_odds`` needs to break even (-110 -> 0.524)."""
+    o = float(american_odds)
+    if -100 < o < 100:
+        raise ValueError(f"American odds must be <= -100 or >= +100, got {american_odds}")
+    return -o / (-o + 100.0) if o < 0 else 100.0 / (o + 100.0)
+
+
+def american_from_breakeven(price: float) -> float:
+    """American odds of a bet that costs ``price`` (fee included) to win 1."""
+    return -100.0 * price / (1.0 - price) if price >= 0.5 else 100.0 * (1.0 - price) / price
+
+
+def stake_fraction(p: Optional[float], american_odds: float, kelly: float = DEFAULT_KELLY,
+                   cap: float = KELLY_CAP) -> float:
+    """Fraction of bankroll to stake: ``kelly`` x full Kelly at these odds, 0 when the bet is
+    not +EV, capped at ``cap``."""
+    from evmax.ev.kelly import kelly_full
+
+    if p is None:
+        return 0.0
+    decimal = 1.0 / breakeven(american_odds)
+    return min(cap, max(0.0, kelly_full(p, decimal)) * kelly)
+
+
+def price_presets() -> list[dict]:
+    """Where a pick could be bet, as American odds: a -110 sportsbook and a ~50c exchange
+    contract on Kalshi / Polymarket US with that venue's fee (evmax/fees.py) as taker or maker."""
+    from evmax import fees
+
+    out = [{"key": "book", "label": "Sportsbook -110", "odds": -110.0}]
+    for key, label, fee in (("kalshi_taker", "Kalshi taker", fees.kalshi_fee_prob(0.5)),
+                            ("kalshi_maker", "Kalshi maker", fees.kalshi_fee_prob(0.5, maker=True)),
+                            ("polymarket_us_taker", "Polymarket US taker", fees.polymarket_us_fee_prob(0.5)),
+                            ("polymarket_us_maker", "Polymarket US maker", fees.polymarket_us_fee_prob(0.5, maker=True))):
+        odds = round(american_from_breakeven(0.5 + fee), 1)
+        out.append({"key": key, "label": f"{label} at 50c ({odds:+.0f})", "odds": odds})
+    return out
+
+
+def sizing_spec() -> dict:
+    """What the dashboard needs to size picks client-side."""
+    return {
+        "presets": price_presets(), "default_kelly": DEFAULT_KELLY, "cap": KELLY_CAP,
+        "note": ("Stake = Kelly on the calibrated win probability (the 2011-25 backtest's win rate at that "
+                 "edge, shrunk toward 50% where the evidence is weak), capped at 5% of bankroll. Spread picks "
+                 "calibrate to 50% and totals to at most 50.8%, so at -110 (52.4% break-even) every stake is "
+                 "$0; maker prices assume a fill at 50c."),
+    }
 
 
 def grade_spread(pick_home: Optional[bool], line_margin: Optional[float], margin: float) -> Optional[str]:
