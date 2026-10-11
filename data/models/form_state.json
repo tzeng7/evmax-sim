@@ -141219,6 +141219,14 @@
     ],
     "hawaii": [
       {
+        "date": "2026-10-10",
+        "won": false,
+        "opp": "arizona state",
+        "home": false,
+        "drew": false,
+        "margin": -18.0
+      },
+      {
         "date": "2026-10-03",
         "won": false,
         "opp": "san jos\u00e9 state",
@@ -142370,6 +142378,14 @@
     ],
     "fresno state": [
       {
+        "date": "2026-10-10",
+        "won": false,
+        "opp": "boise state",
+        "home": true,
+        "drew": false,
+        "margin": -7.0
+      },
+      {
         "date": "2026-10-03",
         "won": true,
         "opp": "washington state",
@@ -142817,6 +142833,14 @@
       }
     ],
     "boise state": [
+      {
+        "date": "2026-10-10",
+        "won": true,
+        "opp": "fresno state",
+        "home": false,
+        "drew": false,
+        "margin": 7.0
+      },
       {
         "date": "2026-10-03",
         "won": true,
@@ -146983,6 +147007,14 @@
       }
     ],
     "arizona state": [
+      {
+        "date": "2026-10-10",
+        "won": true,
+        "opp": "hawaii",
+        "home": true,
+        "drew": false,
+        "margin": 18.0
+      },
       {
         "date": "2026-10-03",
         "won": false,

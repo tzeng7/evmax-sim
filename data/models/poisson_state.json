@@ -4837,9 +4837,9 @@
         "games": 6
       },
       "hawaii": {
-        "attack": 2.6222222222222222,
+        "attack": 2.685185185185185,
         "defense": 3.0,
-        "games": 5
+        "games": 6
       },
       "florida state": {
         "attack": 3.0,
@@ -4987,9 +4987,9 @@
         "games": 6
       },
       "fresno state": {
-        "attack": 2.4400000000000004,
-        "defense": 2.093464052287582,
-        "games": 5
+        "attack": 2.5333333333333337,
+        "defense": 2.244553376906318,
+        "games": 6
       },
       "purdue": {
         "attack": 3.0,
@@ -5048,8 +5048,8 @@
       },
       "boise state": {
         "attack": 3.0,
-        "defense": 2.7111111111111112,
-        "games": 5
+        "defense": 2.7592592592592595,
+        "games": 6
       },
       "georgia": {
         "attack": 3.0,
@@ -5624,7 +5624,7 @@
       "arizona state": {
         "attack": 3.0,
         "defense": 3.0,
-        "games": 4
+        "games": 5
       },
       "morgan state": {
         "attack": 3.0,
