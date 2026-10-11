@@ -1571,6 +1571,7 @@ evmax project resolve --date 2026-03-20 --sector nba
 # NFL week projections + model picks vs the Vegas line (spread side, O/U on the median total);
 # each game's first pre-kickoff pick is recorded, then graded at the published line and the close
 evmax project nfl
+evmax project nfl --bankroll 1000 --odds -110   # stake per pick: Kelly on its calibrated win rate ($0 at -110)
 evmax project nfl-record
 ```
 
