@@ -2616,6 +2616,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5307813,Mackson Lee,1999-01-06,73.0,75.0,Orthodox
 5307814,Tommy Gantt,1993-01-09,71.0,76.5,Orthodox
 5307815,Adam Livingston,2001-08-15,74.0,71.5,Orthodox
+5308528,Mateus Soares,2004-05-24,65.0,,Orthodox
 5308768,Murtazali Magomedov,1999-08-26,69.0,70.5,Orthodox
 5308769,Jeisla Chaves,1997-02-02,66.0,68.0,Orthodox
 5308770,Sofia Montenegro,1999-06-18,66.0,67.5,Orthodox
@@ -2653,12 +2654,14 @@ athlete_id,name,dob,height_in,reach_in,stance
 5345643,Delphine Benouaich,1995-03-21,63.0,63.0,Orthodox
 5345644,Camila Reynoso,2003-08-28,64.0,,Orthodox
 5346907,Ollie Schmid,2000-12-28,71.0,,--
+5350158,Preston LaGrange,1998-12-16,75.0,,Orthodox
 5350560,Artur Minev,2003-09-27,69.0,69.5,Orthodox
 5350562,Farman Hasanov,1995-08-01,72.0,74.5,Orthodox
 5351430,Vlasto Čepo,1995-01-25,72.0,73.0,Orthodox
 5351808,José Montanha,1996-08-25,76.0,76.0,Orthodox
 5360467,Magomed Tuchalov,1999-12-30,77.0,78.0,Orthodox
 5361791,Nina Milošević,1996-08-08,65.0,67.0,Orthodox
+5361793,Ryuho Miyaguchi,1998-01-27,70.0,68.5,Orthodox
 5361909,Ronald Humphrey,2000-09-20,71.0,77.0,Orthodox
 5362337,Shane Collins,2000-03-08,69.0,71.0,Orthodox
 5362725,Jefferson Nascimento,1998-11-19,68.0,70.0,--
@@ -2686,6 +2689,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5369438,Muhammad Said,1996-01-10,74.0,73.0,Orthodox
 5369439,Taner Trembley,1994-12-28,69.0,69.0,Orthodox
 5369444,Adama Diop,1994-12-10,73.0,,Southpaw
+5369445,Alivia Bierley,1996-09-20,67.0,66.0,Orthodox
 5369446,Adam Darby,1998-11-13,75.0,78.0,Orthodox
 5369555,RJ Harris,1998-10-01,78.0,80.0,Orthodox
 5369672,Zevan Hunt,1998-12-08,72.0,73.0,Orthodox
@@ -2698,10 +2702,14 @@ athlete_id,name,dob,height_in,reach_in,stance
 5369733,Callum Connor,1999-12-13,72.0,73.0,Orthodox
 5369736,Piero Guaylupo,2004-10-29,68.0,68.0,Switch
 5387599,Jessie Rosas,2002-12-04,67.0,68.0,Southpaw
+5392114,Salhahuddin Everett,1997-06-07,75.0,,Switch
+5392117,Ozzy Martin,2002-09-18,72.0,,Switch
 5393007,Cam Nelson,1998-07-28,71.0,72.0,Orthodox
 5394582,Alex Apodaca,1994-06-30,67.0,71.5,Switch
 5397038,Stan Dorsainvil,2000-05-12,70.0,76.0,Orthodox
+5397620,Nell Ariano,1995-01-20,76.0,,Orthodox
 5397621,Terrance Chatman,1997-05-05,74.0,76.0,Orthodox
+5397622,Summer Onley,1994-06-09,67.0,,Orthodox
 5399264,Nilson Rojas,1999-04-21,65.0,63.0,Orthodox
 5401045,George Staines,2000-09-20,73.0,,Orthodox
 5401055,Fabia Sintes,1994-07-27,67.0,65.0,Orthodox
@@ -2713,3 +2721,4 @@ athlete_id,name,dob,height_in,reach_in,stance
 5445620,Pavel Andrusca,2002-05-08,68.0,66.0,Orthodox
 5445622,Christian Natividad,1996-12-07,64.0,67.0,Orthodox
 5450121,Lucas Armand,1995-10-26,76.0,78.0,Orthodox
+5455115,Alexander Chavez,2000-10-01,,,Orthodox
