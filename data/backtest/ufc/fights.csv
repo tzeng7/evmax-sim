@@ -8133,14 +8133,14 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600061266,401914465,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-27,Bantamweight,5345640,Mehemmedeli Osmanli,5345639,Ilimbek Akylbek Uulu,b,True,1,2:19,dq,
 600061266,401914471,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-27,W Bantamweight,4418784,Norma Dumont,5075333,Ailin Perez,b,True,3,5:00,decision,
 600061266,401924683,UFC Fight Night: Rosas Jr. vs. Barcelos,2026-09-27,Light Heavyweight,5369427,Luis Hernandez,5060467,Sedriques Dumas,a,True,1,0:57,submission,Guillotine Choke
-600060739,401891663,"Dana White's Contender Series: Season 10, Week 8",2026-09-29,Lightweight,5401059,Loai Abushaar,5401045,George Staines,b,True,1,1:01,,
-600060739,401923730,"Dana White's Contender Series: Season 10, Week 8",2026-09-29,Heavyweight,5369444,Adama Diop,5369436,Zaurbek Sabanov,a,True,2,2:13,,
-600060739,401923731,"Dana White's Contender Series: Season 10, Week 8",2026-09-29,Featherweight,5401057,Ian Escuza,5311705,Luca Borando,a,True,1,0:32,,
-600060739,401923732,"Dana White's Contender Series: Season 10, Week 8",2026-09-29,W Strawweight,5401056,Aieza Bertolso,5345644,Camila Reynoso,a,True,1,3:02,,
-600061182,401907089,UFC 332: Silva vs. Wang,2026-10-03,Welterweight,2504639,Court McGee,5290958,Eric Nolan,b,True,3,3:26,,
-600061182,401912274,UFC 332: Silva vs. Wang,2026-10-03,Heavyweight,3146944,Johnny Walker,5060505,Mick Parkin,a,True,1,3:35,,
-600061182,401912275,UFC 332: Silva vs. Wang,2026-10-03,Middleweight,4001851,Marvin Vettori,4412813,Ismail Naurdiev,b,True,3,5:00,,
-600061182,401912276,UFC 332: Silva vs. Wang,2026-10-03,Flyweight,5289578,Imanol Rodriguez,5099732,Alden Coria,a,True,1,3:11,,
+600060739,401891663,"Dana White's Contender Series: Season 10, Week 8",2026-09-29,Lightweight,5401059,Loai Abushaar,5401045,George Staines,b,True,1,1:01,ko_tko,Slam
+600060739,401923730,"Dana White's Contender Series: Season 10, Week 8",2026-09-29,Heavyweight,5369444,Adama Diop,5369436,Zaurbek Sabanov,a,True,2,2:13,ko_tko,Punches
+600060739,401923731,"Dana White's Contender Series: Season 10, Week 8",2026-09-29,Featherweight,5401057,Ian Escuza,5311705,Luca Borando,a,True,1,0:32,ko_tko,Knees
+600060739,401923732,"Dana White's Contender Series: Season 10, Week 8",2026-09-29,W Strawweight,5401056,Aieza Bertolso,5345644,Camila Reynoso,a,True,1,3:02,submission,D'Arce Choke
+600061182,401907089,UFC 332: Silva vs. Wang,2026-10-03,Welterweight,2504639,Court McGee,5290958,Eric Nolan,b,True,3,3:26,ko_tko,Punch
+600061182,401912274,UFC 332: Silva vs. Wang,2026-10-03,Heavyweight,3146944,Johnny Walker,5060505,Mick Parkin,a,True,1,3:35,ko_tko,Knee
+600061182,401912275,UFC 332: Silva vs. Wang,2026-10-03,Middleweight,4001851,Marvin Vettori,4412813,Ismail Naurdiev,b,True,3,5:00,decision,
+600061182,401912276,UFC 332: Silva vs. Wang,2026-10-03,Flyweight,5289578,Imanol Rodriguez,5099732,Alden Coria,a,True,1,3:11,ko_tko,Kick
 600061182,401912277,UFC 332: Silva vs. Wang,2026-10-03,Middleweight,5292022,Damian Pinas,5211225,Andrey Pulyaev,a,True,1,1:15,ko_tko,Punch
 600061182,401917346,UFC 332: Silva vs. Wang,2026-10-03,Lightweight,2335687,Rafael Dos Anjos,4018757,Alexander Hernandez,b,True,2,3:12,ko_tko,Punch
 600061182,401922306,UFC 332: Silva vs. Wang,2026-10-03,Heavyweight,3128853,Anthony Wint,5450121,Lucas Armand,a,True,1,0:23,ko_tko,Punches
@@ -8151,3 +8151,20 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600061182,401912278,UFC 332: Silva vs. Wang,2026-10-04,W Flyweight,4054605,Natalia Silva,4215200,Wang Cong,a,True,5,5:00,decision,
 600061182,401917345,UFC 332: Silva vs. Wang,2026-10-04,Welterweight,4274796,Roberto Soldić,4612580,Khaos Williams,a,True,3,5:00,decision,
 600061182,401917347,UFC 332: Silva vs. Wang,2026-10-04,Lightweight,2502364,King Green,5074131,Esteban Ribovics,b,True,1,4:08,ko_tko,Punch
+600060740,401891664,"Dana White's Contender Series: Season 10, Week 9",2026-10-06,W Bantamweight,5397622,Summer Onley,5369445,Alivia Bierley,b,True,3,5:00,decision,
+600060740,401928603,"Dana White's Contender Series: Season 10, Week 9",2026-10-06,Welterweight,5392114,Salhahuddin Everett,5392117,Ozzy Martin,a,True,1,1:57,ko_tko,Punches
+600060740,401928604,"Dana White's Contender Series: Season 10, Week 9",2026-10-06,Flyweight,5310567,Roque Conceição,5455115,Alexander Chavez,a,True,1,3:37,submission,Triangle Choke
+600060740,401928605,"Dana White's Contender Series: Season 10, Week 9",2026-10-06,Bantamweight,5361793,Ryuho Miyaguchi,5308528,Mateus Soares,b,True,1,1:03,ko_tko,Punch
+600060740,401928606,"Dana White's Contender Series: Season 10, Week 9",2026-10-06,Light Heavyweight,5350158,Preston LaGrange,5397620,Nell Ariano,a,True,1,2:24,ko_tko,Punch
+600061541,401916277,UFC Fight Night: Allen vs. Duncan,2026-10-10,Lightweight,5123216,Francisco Prado,3093513,Ismael Bonfim,a,True,1,4:23,ko_tko,Punches
+600061541,401924511,UFC Fight Night: Allen vs. Duncan,2026-10-10,W Flyweight,5149147,Ernesta Kareckaite,4420893,Melissa Gatto,none,True,3,5:00,draw,
+600061541,401924512,UFC Fight Night: Allen vs. Duncan,2026-10-10,W Bantamweight,5261515,Alice Pereira,4894780,Daria Zhelezniakova,a,True,1,5:00,ko_tko,Retirement
+600061541,401927417,UFC Fight Night: Allen vs. Duncan,2026-10-10,Light Heavyweight,5264398,Julius Walker,2553261,Gerald Meerschaert,a,True,2,3:35,ko_tko,Punches
+600061541,401927418,UFC Fight Night: Allen vs. Duncan,2026-10-10,Heavyweight,5327626,Allen Frye Jr.,5369555,RJ Harris,a,True,1,2:59,ko_tko,Punches
+600061541,401927419,UFC Fight Night: Allen vs. Duncan,2026-10-10,Welterweight,4077451,Niko Price,4423215,Leon Shahbazyan,a,True,1,1:58,ko_tko,Punches
+600061541,401927420,UFC Fight Night: Allen vs. Duncan,2026-10-10,Light Heavyweight,5292014,Felipe Franco,4379328,Brendson Ribeiro,b,True,1,1:49,submission,Guillotine Choke
+600061541,401916276,UFC Fight Night: Allen vs. Duncan,2026-10-11,Middleweight,4025699,Brendan Allen,4848674,Christian Leroy Duncan,a,True,5,2:46,submission,Rear Naked Choke
+600061541,401924510,UFC Fight Night: Allen vs. Duncan,2026-10-11,W Strawweight,4700617,Loopy Godínez,4566308,Ketlen Souza,a,True,3,5:00,decision,
+600061541,401927415,UFC Fight Night: Allen vs. Duncan,2026-10-11,Lightweight,5170144,Matheus Camilo,4078246,Jai Herbert,b,True,3,5:00,decision,
+600061541,401927416,UFC Fight Night: Allen vs. Duncan,2026-10-11,Featherweight,3074464,Andre Fili,4688447,Kai Kamaka III,a,True,2,0:22,ko_tko,Kick
+600061541,401927421,UFC Fight Night: Allen vs. Duncan,2026-10-11,Bantamweight,5212854,Malcolm Wellmaker,5212853,Otari Tanzilovi,b,True,2,2:39,ko_tko,Kick
