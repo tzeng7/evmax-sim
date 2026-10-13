@@ -478,3 +478,51 @@ aliases:
   "lillestroem": "lillestrom"
   "ferencvarosi": "ferencvaros"
   "ferencvarosi tc": "ferencvaros"
+  # --- 2026-10-13: Polymarket US formal club names. PolyUS lists clubs under
+  # their registered names ("FC Bayern München", "Lille OSC"), which missed
+  # every alias and left 8 of 18 UCL games for 10-13/14 unmatched against
+  # Pinnacle (Kalshi matched all 18). Keys are the PRE-strip full names that
+  # NameNormalizer looks up first; targets are the canonical Pinnacle's label
+  # normalizes to. Not here on purpose:
+  #   - "Manchester United FC" / "D.C. United SC" / "Sheffield United FC":
+  #     NameNormalizer now retries the alias map with only the club-form
+  #     affixes removed before it drops "united", so they reach the existing
+  #     "manchester united" / "d.c. united" / "sheffield united" aliases.
+  #     Never alias a bare "manchester" — it names two clubs.
+  #   - "AEK": AEK Athens AND AEK Larnaca exist, so the name is scoped to the
+  #     PolyUS ucl league in polymarket_us._LEAGUE_TEAM_NAME_MAPS (the twin
+  #     of Kalshi's KXUCLGAME-scoped "aek" code), never a flat alias.
+  # UEFA Champions League (PolyUS ucl)
+  "lille osc": "lille"
+  "club atletico de madrid": "atletico"
+  "atletico de madrid": "atletico"
+  "fc internazionale milano": "inter"
+  "internazionale milano": "inter"
+  "club brugge kv": "brugge"
+  "fc bayern munchen": "bayern"
+  "bayern munchen": "bayern"
+  "racing club de lens": "lens"
+  "bv borussia 09 dortmund": "dortmund"
+  "real betis seville": "betis"
+  # Registered as a canonical so no fuzzy rule can equate it with another
+  # known club; PolyUS's bare "AEK" reaches it only via the ucl-scoped map.
+  "aek athens": "aek athens"
+  # Liga MX (PolyUS lmx)
+  "pumas de la unam": "pumas unam"
+  # La Liga / Bundesliga / Serie A (PolyUS lal / bun / sea — arb scanner only)
+  "rc celta de vigo": "celta vigo"
+  "rc deportivo a coruna": "deportivo la coruna"
+  "rcd espanyol de barcelona": "espanyol"
+  "real racing club": "racing santander"
+  "real sociedad de futbol": "sociedad"
+  "1. fsv mainz 05": "mainz"
+  "bayer 04 leverkusen": "leverkusen"
+  "sv 07 elversberg": "elversberg"
+  "acf fiorentina": "fiorentina"
+  "bologna fc 1909": "bologna"
+  "cagliari calcio": "cagliari"
+  "frosinone calcio": "frosinone"
+  "genoa cfc": "genoa"
+  "us lecce": "lecce"
+  "us sassuolo calcio": "sassuolo"
+  "udinese calcio": "udinese"

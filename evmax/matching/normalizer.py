@@ -15,17 +15,22 @@ class NameNormalizer:
     Steps:
       1. Lowercase and strip whitespace (+ the handler's name folds: accents
          for soccer/worldcup/esports, dots for esports — ``fold_name``)
-      2. Remove common noise words (FC, CF, SC, AFC, etc.)
+      2. Remove common noise words (FC, CF, SC, AFC, etc.) — club-form
+         affixes first (alias retry), then "united"/"utd"
       3. Apply sector-specific alias map
       4. Normalize unicode and punctuation
     """
 
-    # Noise prefixes/suffixes to remove from club names
-    _NOISE_WORDS = {
+    # Club-form affixes ("FC", "SC", "Club", ...), stripped before "united"/"utd".
+    _AFFIX_WORDS = {
         "fc", "cf", "sc", "ac", "af", "bk", "sk", "fk",
-        "afc", "fcu", "rfc", "utd", "united",
+        "afc", "fcu", "rfc",
         "esports", "gaming", "team", "club",
     }
+    # Noise prefixes/suffixes to remove from club names. "united"/"utd" are
+    # part of a club's NAME, so they are stripped only after the alias map
+    # has seen the name without its affixes (see normalize()).
+    _NOISE_WORDS = _AFFIX_WORDS | {"utd", "united"}
 
     # Game-name suffixes Kalshi appends to away team names (longest first)
     _GAME_SUFFIXES = [
@@ -78,8 +83,22 @@ class NameNormalizer:
             if self._handler.is_canonical(result):
                 return result
 
-        # Strip noise words from start/end
         parts = result.split()
+
+        # Retry the alias map with only the club-form affixes removed, BEFORE
+        # "united"/"utd" go too. Otherwise "Manchester United FC" (Polymarket
+        # US) misses the "manchester united" alias and collapses to a bare
+        # "manchester", and "D.C. United SC" to "d.c." — a bare city that names
+        # no club, and for Manchester could name either of two.
+        if self._handler:
+            affix_free = [p for p in parts if p not in self._AFFIX_WORDS or len(parts) == 1]
+            if len(affix_free) < len(parts):
+                candidate = " ".join(affix_free)
+                aliased = self._handler.normalize_team(candidate)
+                if aliased != candidate or self._handler.is_canonical(candidate):
+                    return aliased
+
+        # Strip noise words from start/end
         parts = [p for p in parts if p not in self._NOISE_WORDS or len(parts) == 1]
         result = " ".join(parts)
 
