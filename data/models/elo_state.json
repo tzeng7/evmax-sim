@@ -21037,42 +21037,36 @@
   },
   "nba": {
     "ratings": {
-      "thunder": 1740.49,
-      "rockets": 1630.03,
-      "lakers": 1613.85,
-      "warriors": 1379.77,
-      "knicks": 1700.17,
-      "cavaliers": 1573.66,
-      "hornets": 1636.07,
-      "nets": 1262.92,
-      "magic": 1602.15,
-      "heat": 1511.83,
-      "hawks": 1552.67,
-      "raptors": 1548.53,
-      "celtics": 1657.66,
-      "76ers": 1591.39,
-      "bulls": 1324.08,
-      "pistons": 1666.71,
-      "grizzlies": 1261.3,
-      "pelicans": 1379.84,
-      "bucks": 1344.3,
-      "wizards": 1203.06,
-      "jazz": 1256.13,
-      "la clippers": 1522.53,
-      "mavericks": 1336.06,
-      "spurs": 1814.49,
-      "suns": 1499.79,
-      "kings": 1319.63,
-      "trail blazers": 1524.35,
-      "timberwolves": 1622.89,
-      "pacers": 1293.62,
-      "nuggets": 1630.03,
-      "boston celtics": 1725.0,
-      "philadelphia 76ers": 1524.05,
-      "san antonio spurs": 1774.46,
-      "portland trail blazers": 1536.73,
-      "oklahoma city thunder": 1747.4,
-      "phoenix suns": 1520.53
+      "thunder": 1620.24,
+      "rockets": 1565.01,
+      "lakers": 1556.92,
+      "warriors": 1439.88,
+      "knicks": 1600.09,
+      "cavaliers": 1536.83,
+      "hornets": 1568.03,
+      "nets": 1381.46,
+      "magic": 1551.08,
+      "heat": 1505.91,
+      "hawks": 1526.34,
+      "raptors": 1524.26,
+      "celtics": 1578.83,
+      "76ers": 1545.7,
+      "bulls": 1412.04,
+      "pistons": 1583.36,
+      "grizzlies": 1380.65,
+      "pelicans": 1439.92,
+      "bucks": 1422.15,
+      "wizards": 1351.53,
+      "jazz": 1378.07,
+      "la clippers": 1511.26,
+      "mavericks": 1418.03,
+      "spurs": 1657.24,
+      "suns": 1499.89,
+      "kings": 1409.82,
+      "trail blazers": 1512.17,
+      "timberwolves": 1561.45,
+      "pacers": 1396.81,
+      "nuggets": 1565.01
     },
     "game_counts": {
       "thunder": 88,
@@ -21104,13 +21098,7 @@
       "trail blazers": 86,
       "timberwolves": 87,
       "pacers": 82,
-      "nuggets": 87,
-      "boston celtics": 1,
-      "philadelphia 76ers": 1,
-      "san antonio spurs": 1,
-      "portland trail blazers": 1,
-      "oklahoma city thunder": 1,
-      "phoenix suns": 1
+      "nuggets": 87
     },
     "h2h": {
       "rockets::thunder": {
@@ -23083,21 +23071,6 @@
         "b_wins": 1,
         "games": 3
       },
-      "stars::world": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      },
-      "stars::stripes": {
-        "a_wins": 1,
-        "b_wins": 1,
-        "games": 2
-      },
-      "stripes::world": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      },
       "celtics::warriors": {
         "a_wins": 2,
         "b_wins": 0,
@@ -23302,30 +23275,15 @@
         "a_wins": 2,
         "b_wins": 0,
         "games": 2
-      },
-      "boston celtics::philadelphia 76ers": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
-      },
-      "portland trail blazers::san antonio spurs": {
-        "a_wins": 0,
-        "b_wins": 1,
-        "games": 1
-      },
-      "oklahoma city thunder::phoenix suns": {
-        "a_wins": 1,
-        "b_wins": 0,
-        "games": 1
       }
     },
     "season_games": {
-      "thunder": 3,
+      "thunder": 0,
       "rockets": 0,
       "lakers": 0,
       "warriors": 0,
-      "knicks": 1,
-      "cavaliers": 1,
+      "knicks": 0,
+      "cavaliers": 0,
       "hornets": 0,
       "nets": 0,
       "magic": 0,
@@ -23343,19 +23301,28 @@
       "jazz": 0,
       "la clippers": 0,
       "mavericks": 0,
-      "spurs": 3,
+      "spurs": 0,
       "suns": 0,
       "kings": 0,
       "trail blazers": 0,
       "timberwolves": 0,
       "pacers": 0,
-      "nuggets": 0,
-      "boston celtics": 0,
-      "philadelphia 76ers": 0,
-      "san antonio spurs": 0,
-      "portland trail blazers": 0,
-      "oklahoma city thunder": 0,
-      "phoenix suns": 0
+      "nuggets": 0
+    },
+    "offseason_regression": {
+      "applied_on": "2026-10-13",
+      "keep": 0.5,
+      "dropped": [
+        "boston celtics",
+        "oklahoma city thunder",
+        "philadelphia 76ers",
+        "phoenix suns",
+        "portland trail blazers",
+        "san antonio spurs",
+        "stars",
+        "stripes"
+      ],
+      "moves": 0
     }
   },
   "worldcup": {
