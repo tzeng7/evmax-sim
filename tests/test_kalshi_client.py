@@ -645,3 +645,204 @@ class TestTickerCodesWithDigits:
     def test_spread_digits_still_stripped(self) -> None:
         c = _client()
         assert c._extract_teams_from_ticker("KXNBASPREAD-26MAR09DENOKC-OKC7", "nba") == ("okc", "den")
+
+
+class TestSeriesSuffixMarketType:
+    """Market type comes from the series suffix, not title keywords (2026-10-13).
+
+    On the short "{Team} wins" titles the keyword fallback read "under" inside
+    "Sunderland" as a total and the hyphen in "Louisiana-Monroe" as a spread,
+    so those YES sides never reached the matcher; and every KXNCAAFSPREAD rung
+    ("wins by over 7.5 points") read as a total with no line.
+    """
+
+    @staticmethod
+    def _raw(ticker: str, title: str, yes_sub: str = "", floor_strike=None) -> dict:
+        raw = {
+            "ticker": ticker, "event_ticker": ticker.rsplit("-", 1)[0],
+            "title": title, "yes_sub_title": yes_sub,
+            "yes_bid_dollars": "0.40", "yes_ask_dollars": "0.45",
+            "no_bid_dollars": "0.50", "no_ask_dollars": "0.60",
+            "volume_fp": 10, "open_interest_fp": 5,
+        }
+        if floor_strike is not None:
+            raw["floor_strike"] = floor_strike
+        return raw
+
+    def test_sunderland_epl_is_moneyline(self) -> None:
+        from evmax.models.market import MarketType
+
+        ev = {"KXEPLGAME-26OCT18SUNFUL": "Sunderland vs Fulham"}
+        m = _client()._parse_market(
+            self._raw("KXEPLGAME-26OCT18SUNFUL-SUN", "Sunderland wins", "Sunderland"),
+            "soccer", event_titles=ev,
+        )
+        assert m.market_type == MarketType.moneyline
+        assert (m.yes_team, m.line) == ("sunderland", None)
+
+    def test_sunderland_epl_legacy_long_title_is_moneyline(self) -> None:
+        from evmax.models.market import MarketType
+
+        m = _client()._parse_market(
+            self._raw("KXEPLGAME-26AUG23IPSSUN-SUN", "Ipswich Town vs Sunderland Winner?"),
+            "soccer",
+        )
+        assert m.market_type == MarketType.moneyline
+
+    def test_uel_torreense_sunderland_all_three_legs_moneyline(self) -> None:
+        # The 2026-10-15 UEL game logged Torreense + TIE but no Sunderland leg.
+        from evmax.models.market import MarketType
+
+        ev = {"KXUELGAME-26OCT15TORSUN": "Torreense vs Sunderland"}
+        legs = {
+            "TOR": ("Torreense wins", "Torreense"),
+            "TIE": ("Tie is the result", "Tie"),
+            "SUN": ("Sunderland wins", "Sunderland"),
+        }
+        parsed = {
+            code: _client()._parse_market(
+                self._raw(f"KXUELGAME-26OCT15TORSUN-{code}", title, sub),
+                "soccer", event_titles=ev,
+            )
+            for code, (title, sub) in legs.items()
+        }
+        assert {c: m.market_type for c, m in parsed.items()} == {
+            c: MarketType.moneyline for c in legs
+        }
+        assert parsed["SUN"].yes_team == "sunderland"
+        assert parsed["TIE"].yes_team == "tie"
+
+    def test_ararat_armenia_uel_is_moneyline(self) -> None:
+        from evmax.models.market import MarketType
+
+        ev = {"KXUELGAME-26OCT15JAGARA": "Jagiellonia vs Ararat-Armenia"}
+        for title in ("Ararat-Armenia wins", "Reg Time: Ararat-Armenia wins"):
+            m = _client()._parse_market(
+                self._raw("KXUELGAME-26OCT15JAGARA-ARA", title, "Ararat-Armenia"),
+                "soccer", event_titles=ev,
+            )
+            assert m.market_type == MarketType.moneyline, title
+            assert m.line is None
+
+    def test_louisiana_monroe_ncaaf_is_moneyline(self) -> None:
+        from evmax.models.market import MarketType
+
+        m = _client()._parse_market(
+            self._raw("KXNCAAFGAME-26OCT16LTULM-ULM", "Louisiana-Monroe wins", "Louisiana-Monroe"),
+            "ncaaf",
+        )
+        assert m.market_type == MarketType.moneyline
+        assert (m.yes_team, m.line) == ("ul monroe", None)
+
+    def test_hyphenated_names_in_game_series_are_moneyline(self) -> None:
+        import pytest
+
+        from evmax.models.market import MarketType
+
+        cases = [
+            ("KXNCAAFGAME-26OCT18GWCHSO-GW", "Gardner-Webb wins", "ncaaf"),
+            ("KXNCAAFGAME-26OCT18BCUJKST-BCU", "Bethune-Cookman wins", "ncaaf"),
+            ("KXNCAAFGAME-26OCT18UTMEIU-UTM", "Tennessee-Martin wins", "ncaaf"),
+            ("KXJLEAGUEGAME-26OCT18NAGVVN-VVN", "V-Varen wins", "soccer"),
+            ("KXWCGAME-26JUN20GNBPOR-GNB", "Guinea-Bissau wins", "worldcup"),
+            ("KXMLSGAME-26OCT18TORORL-TOR", "Over the top? Toronto wins", "soccer"),
+        ]
+        for ticker, title, sector in cases:
+            m = _client()._parse_market(self._raw(ticker, title), sector)
+            if m is None:
+                pytest.fail(f"{ticker} did not parse")
+            assert m.market_type == MarketType.moneyline, ticker
+
+    def test_ncaaf_spread_rung_is_spread_with_line(self) -> None:
+        # Live payload 2026-10-13: ticker ORE8 carries floor_strike 7.5
+        # (ceil convention), so the line must come from floor_strike.
+        from evmax.models.market import MarketType
+
+        m = _client()._parse_market(
+            self._raw(
+                "KXNCAAFSPREAD-26OCT17NEBORE-ORE8", "Oregon wins by over 7.5 points",
+                "Oregon wins by over 7.5 points", floor_strike=7.5,
+            ),
+            "ncaaf",
+        )
+        assert m.market_type == MarketType.spread
+        assert m.line == -7.5
+        assert m.yes_team == "oregon"
+
+    def test_ncaaf_total_rung_is_total_with_line(self) -> None:
+        from evmax.models.market import MarketType
+
+        m = _client()._parse_market(
+            self._raw(
+                "KXNCAAFTOTAL-26OCT17NEBORE-74", "Full Game: Over 73.5 points scored",
+                "Over 73.5 points", floor_strike=73.5,
+            ),
+            "ncaaf",
+        )
+        assert m.market_type == MarketType.total
+        assert m.line == 73.5
+        assert m.yes_team == "over"
+        assert {m.team_home, m.team_away} == {"ore", "neb"}
+
+    def test_existing_spread_and_total_series_keep_their_lines(self) -> None:
+        from evmax.models.market import MarketType
+
+        c = _client()
+        spread = c._parse_market(
+            self._raw("KXNFLSPREAD-26OCT18KCBUF-BUF3", "Buffalo wins by over 3.5 points",
+                      floor_strike=3.5),
+            "nfl",
+        )
+        total = c._parse_market(
+            self._raw("KXNHLTOTAL-26OCT18TORMTL-6", "Over 5.5 goals scored", floor_strike=5.5),
+            "nhl",
+        )
+        assert (spread.market_type, spread.line) == (MarketType.spread, -3.5)
+        assert (total.market_type, total.line) == (MarketType.total, 5.5)
+
+    def test_winner_only_sectors_stay_moneyline(self) -> None:
+        from evmax.models.market import MarketType
+
+        cases = [
+            ("KXATPMATCH-26OCT18AUGSIN-AUG", "Felix Auger-Aliassime wins", "tennis"),
+            ("KXUFCFIGHT-26OCT18GLOTEI-TEI", "Glover Teixeira wins", "ufc"),
+            ("KXLOLGAME-26OCT181200OVETT-OVE", "Overtake wins", "lol"),
+            ("KXCS2GAMES-26OCT181200RGGFUR-RGG", "RoundsGG wins", "cs2"),
+        ]
+        for ticker, title, sector in cases:
+            m = _client()._parse_market(self._raw(ticker, title, title[:-5]), sector)
+            assert m.market_type == MarketType.moneyline, ticker
+            assert m.line is None
+
+    def test_series_market_type_suffixes(self) -> None:
+        from evmax.clients.kalshi import _series_market_type
+        from evmax.models.market import MarketType
+
+        assert _series_market_type("KXEPLGAME-26OCT18SUNFUL-SUN") == MarketType.moneyline
+        assert _series_market_type("KXNCAAFSPREAD-26OCT17NEBORE-ORE8") == MarketType.spread
+        assert _series_market_type("KXNCAAFTOTAL-26OCT17NEBORE-74") == MarketType.total
+        assert _series_market_type("kxnbagame-26mar09denokc-okc") == MarketType.moneyline
+        assert _series_market_type("KXNBASPREAD") == MarketType.spread
+        for ticker in ("KXWCADVANCE-26JUL09FRAMAR-MAR", "KXATPMATCH-26OCT18A-B",
+                       "KXUFCFIGHT-26OCT18A-B", "KXCS2GAMES-26OCT18A-B", ""):
+            assert _series_market_type(ticker) is None, ticker
+
+    def test_unknown_series_falls_back_to_title_keywords(self) -> None:
+        from evmax.models.market import MarketType
+
+        m = _client()._parse_market(
+            self._raw("KXFOOSERIES-26OCT18ABCDEF-ABC", "Over 9.5 points scored"), "nba",
+        )
+        assert m.market_type == MarketType.total
+        assert m.line is None
+
+    def test_every_wired_game_series_is_classified_without_keywords(self) -> None:
+        """A newly wired series must carry a known suffix (or be winner-only /
+        advance), so no live market falls back to title keywords."""
+        from evmax.clients.kalshi import _WINNER_ONLY_SECTORS, _series_market_type
+
+        for sector, series in SECTOR_SERIES_MAP.items():
+            if sector.endswith("_props") or sector in _WINNER_ONLY_SECTORS:
+                continue
+            for s in series:
+                assert s == "KXWCADVANCE" or _series_market_type(s) is not None, (sector, s)
