@@ -231,6 +231,34 @@ _EVENT_SUBTITLE_CODES_RE = re.compile(r"^\s*([A-Z0-9]{2,5})\s+vs\.?\s+([A-Z0-9]{
 # is fixed to moneyline instead of inferred from a title that is a name.
 _WINNER_ONLY_SECTORS = frozenset({"tennis", "ufc", "lol", "cs2"})
 
+# Game-series market type by the SERIES ticker's suffix (the part before the
+# first "-"): KXEPLGAME → moneyline, KXNCAAFSPREAD → spread, KXNCAAFTOTAL →
+# total. Kalshi names the product in the series, so the suffix is ground truth.
+# Title keywords are not: on the short "{Team} wins" titles, "under" inside
+# "Sunderland" read as a total and the hyphen in "Louisiana-Monroe" /
+# "Ararat-Armenia" as a spread, so those YES sides were dropped; and every
+# KXNCAAFSPREAD rung ("wins by over 7.5 points") read as a lineless total
+# because the old hand-kept prefix lists omitted the NCAAF series (2026-10-13).
+_SERIES_SUFFIX_MARKET_TYPES: tuple[tuple[str, MarketType], ...] = (
+    ("SPREAD", MarketType.spread),
+    ("TOTAL", MarketType.total),
+    ("GAME", MarketType.moneyline),
+)
+
+
+def _series_market_type(ticker: str) -> Optional[MarketType]:
+    """Market type named by a Kalshi ticker's series suffix, else None.
+
+    None means the series carries no known suffix (KXWCADVANCE, KXATPMATCH,
+    KXUFCFIGHT, KXCS2GAMES); the caller decides those by sector or title.
+    """
+    series = ticker.split("-", 1)[0].upper()
+    for suffix, market_type in _SERIES_SUFFIX_MARKET_TYPES:
+        if series.endswith(suffix):
+            return market_type
+    return None
+
+
 # Esports sectors whose teams come from the per-event join (_esports_event_teams).
 _ESPORTS_TITLE_SECTORS = frozenset({"lol", "cs2"})
 
@@ -1750,25 +1778,16 @@ class KalshiClient(BaseAPIClient):
             # close_time is the market resolution deadline (~2wks after game)
             event_date = self._parse_ticker_date(ticker)
 
-            # Detect spread series by ticker prefix and extract line
-            is_spread = any(
-                ticker.upper().startswith(s)
-                for s in [
-                    "KXNBASPREAD", "KXNFLSPREAD", "KXNCAAWBSPREAD",
-                    "KXNCAAMBSPREAD", "KXMLBSPREAD", "KXNHLSPREAD",
-                    "KXWNBASPREAD",
-                ]
+            # Market type comes from the series suffix (GAME / SPREAD /
+            # TOTAL), never the title — see _series_market_type. Winner-only
+            # sectors stay moneyline whatever their series is named. A total's
+            # outcome is the line itself (KXWNBATOTAL-26MAY08CONNNY-165 →
+            # line=165), not a team code.
+            series_type = (
+                None if sector in _WINNER_ONLY_SECTORS else _series_market_type(ticker)
             )
-            # Detect total series similarly. Outcome is the line itself
-            # (KXWNBATOTAL-26MAY08CONNNY-165 → line=165), not a team code.
-            is_total = any(
-                ticker.upper().startswith(s)
-                for s in [
-                    "KXNBATOTAL", "KXNFLTOTAL", "KXNCAAWBTOTAL",
-                    "KXNCAAMBTOTAL", "KXMLBTOTAL", "KXNHLTOTAL",
-                    "KXWNBATOTAL",
-                ]
-            )
+            is_spread = series_type == MarketType.spread
+            is_total = series_type == MarketType.total
             # World Cup knockout "to advance" series — 2-way winner incl.
             # extra time / penalties. Detected by ticker prefix (the title
             # keyword "advance" would otherwise fall into series_winner via
@@ -1940,7 +1959,12 @@ class KalshiClient(BaseAPIClient):
                 # dropped (~10k archived lol/cs2 snapshot rows carry such types).
                 market_type = MarketType.moneyline
                 spread_line = None
+            elif series_type == MarketType.moneyline:
+                # A *GAME series is a winner market (incl. soccer's TIE leg).
+                market_type = MarketType.moneyline
+                spread_line = None
             else:
+                # Last resort: a series with no known suffix.
                 market_type = self._infer_market_type(title, sector)
                 spread_line = None
 
@@ -2291,7 +2315,12 @@ class KalshiClient(BaseAPIClient):
         return line_int + 0.5
 
     def _infer_market_type(self, title: str, sector: str = "") -> MarketType:
-        """Infer market type from title."""
+        """Infer market type from title keywords.
+
+        Last resort only: _parse_market classifies by series suffix first
+        (_series_market_type), because substring keywords misfire on names
+        ("Sunderland" → total, "Louisiana-Monroe" → spread).
+        """
         title_lower = title.lower()
         if any(kw in title_lower for kw in ["over", "under", "total"]):
             return MarketType.total
