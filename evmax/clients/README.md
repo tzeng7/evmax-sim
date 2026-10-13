@@ -30,6 +30,15 @@ The file was originally written for esports but was extended to cover every spor
   on error so the agent falls back cleanly
 - Structured to add lineups / bullpen (the same schedule endpoint hydrates both)
 
+### `nba_season.py` — NBA season labels (stdlib leaf module)
+
+- `nba_season_label(d)` — the nba_api season for a date ("2026-27"; rolls over
+  Jul 1). `nba_espn_season_year(d)` — ESPN's end-year form (2027).
+- `season_matches(state_season, game_date)` — the guard every NBA stat agent
+  applies: a state stamped for another season, or unstamped, never prices.
+- Used by the four NBA stat agents, `nba_stats.py` and `nba_props_cache.py`,
+  which all hard-coded "2025-26" until 2026-10-13.
+
 ### `nfl_depth_charts.py` — nflverse depth charts → pre-game QB starters
 
 - Feeds `nfl_qb_elo` the QB who will actually start (nflverse depth charts:
