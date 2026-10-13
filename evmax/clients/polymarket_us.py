@@ -87,6 +87,25 @@ _HOME_FIRST_LEAGUES = {
     "lol", "cs2",                         # esports
 }
 
+# League-scoped team-name maps — the Polymarket US twin of kalshi.py's
+# _SERIES_TEAM_CODE_MAPS. Soccer's alias namespace is shared across leagues,
+# so a name that could mean two clubs resolves here ONLY inside the named
+# PolyUS league. Keys are the lowercased PolyUS team name; values must be
+# soccer.yaml canonicals (what Pinnacle's full names normalize to).
+_LEAGUE_TEAM_NAME_MAPS: dict[str, dict[str, str]] = {
+    # PolyUS lists AEK Athens as a bare "AEK" in the 2026-27 league phase.
+    # AEK Larnaca also exists, so a flat soccer.yaml "aek" alias could name
+    # the wrong club in another league (Kalshi scopes its AEK code the same
+    # way, to KXUCLGAME).
+    "ucl": {"aek": "aek athens"},
+}
+
+
+def _league_team_name(league: Optional[str], name: str) -> Optional[str]:
+    """Canonical for ``name`` from the league-scoped map, else None."""
+    return _LEAGUE_TEAM_NAME_MAPS.get(league or "", {}).get(name.strip().lower())
+
+
 # sportsMarketType values we accept. Anything with a period qualifier
 # (first_five, first_half, sets, quarters…) would otherwise fuzzy-match the
 # same game's FULL-GAME Pinnacle line and produce phantom edges.
@@ -119,7 +138,9 @@ def _is_team_total(m: dict[str, Any]) -> bool:
     return bool((m.get("metadata") or {}).get("teamId"))
 
 
-def _canon_team(sector: str, side: dict[str, Any]) -> Optional[str]:
+def _canon_team(
+    sector: str, side: dict[str, Any], league: Optional[str] = None
+) -> Optional[str]:
     """Canonicalize a marketSide's team through the sector alias map.
 
     Produces the SAME canonical names Kalshi rows carry (Kalshi ticker codes
@@ -127,12 +148,16 @@ def _canon_team(sector: str, side: dict[str, Any]) -> Optional[str]:
     resolution are venue-agnostic — 'Sparks ML' on both venues, never
     'Los angeles ML' on one. The team's nickname (`alias`) is appended when
     it adds information: 'Los Angeles' alone is ambiguous in the NBA, but
-    'Los Angeles Lakers' resolves.
+    'Los Angeles Lakers' resolves. A ``league``-scoped name map
+    (_LEAGUE_TEAM_NAME_MAPS) wins over both.
     """
     team = side.get("team") or {}
     name = (team.get("name") or side.get("description") or "").strip()
     if not name:
         return None
+    scoped = _league_team_name(league, name)
+    if scoped:
+        return scoped
     from evmax.matching.normalizer import NameNormalizer
     normalizer = NameNormalizer(sector)
     plain = normalizer.normalize(name)
@@ -143,10 +168,19 @@ def _canon_team(sector: str, side: dict[str, Any]) -> Optional[str]:
         # SHORTER result: canonical names are short nicknames, so a long
         # output means the combination missed the alias map — some teams'
         # `alias` field is marketing text, not a nickname (e.g. Qairat's
-        # "Халық командасы"), and appending it just produces garbage.
+        # "Халық командасы"), and appending it just produces garbage. Length
+        # is only a proxy, so a plain name that already reached a known
+        # canonical is never displaced by a combination that did not:
+        # "D.C. United SC" → "dc united", but with its alias "DCU" appended
+        # the name loses "united" to the noise strip and comes out
+        # "d.c. dcu", which is shorter.
         combined = normalizer.normalize(f"{name} {alias}")
         if combined and (not plain or len(combined) < len(plain)):
-            return combined
+            if not (
+                normalizer.is_known_team(plain)
+                and not normalizer.is_known_team(combined)
+            ):
+                return combined
     return plain or None
 
 
@@ -459,18 +493,21 @@ class PolymarketUSClient(BaseAPIClient):
                 if market_type_raw == "moneyline":
                     markets_out.extend(
                         self._parse_moneyline(
-                            m, sector, event_date, event_title, team_home, team_away
+                            m, sector, event_date, event_title, team_home, team_away,
+                            league=league,
                         )
                     )
                 elif market_type_raw == "drawable_outcome":
                     parsed = self._parse_drawable_outcome(
-                        m, sector, event_date, event_title, team_home, team_away
+                        m, sector, event_date, event_title, team_home, team_away,
+                        league=league,
                     )
                     if parsed:
                         markets_out.append(parsed)
                 elif market_type_raw == "spreads":
                     parsed = self._parse_spread(
-                        m, sector, event_date, event_title, team_home, team_away
+                        m, sector, event_date, event_title, team_home, team_away,
+                        league=league,
                     )
                     if parsed:
                         markets_out.append(parsed)
@@ -523,7 +560,7 @@ class PolymarketUSClient(BaseAPIClient):
                 name = team.get("name")
                 ordering = (team.get("ordering") or "").lower()
                 if name and ordering in ("home", "away"):
-                    canon = _canon_team(sector, side)
+                    canon = _canon_team(sector, side, league)
                     if canon:
                         by_ordering.setdefault(ordering, canon)
             h, a = by_ordering.get("home"), by_ordering.get("away")
@@ -536,8 +573,8 @@ class PolymarketUSClient(BaseAPIClient):
         title = event_title.replace(" vs. ", " vs ")
         if " vs " in title:
             a, _, b = title.partition(" vs ")
-            a = normalizer.normalize(a.strip()) or None
-            b = normalizer.normalize(b.strip()) or None
+            a = _league_team_name(league, a) or normalizer.normalize(a.strip()) or None
+            b = _league_team_name(league, b) or normalizer.normalize(b.strip()) or None
             if a and b:
                 if league in _HOME_FIRST_LEAGUES:
                     return home or a, away or b
@@ -573,6 +610,7 @@ class PolymarketUSClient(BaseAPIClient):
         event_title: str,
         team_home: Optional[str],
         team_away: Optional[str],
+        league: Optional[str] = None,
     ) -> list[PredictionMarket]:
         """2-way moneyline → one PredictionMarket per tradable side.
 
@@ -593,7 +631,7 @@ class PolymarketUSClient(BaseAPIClient):
             if yes_price is None or no_price is None:
                 continue  # need both sides quoted to trust the book
             team = side.get("team") or {}
-            yes_team = _canon_team(sector, side)
+            yes_team = _canon_team(sector, side, league)
             if not yes_team:
                 continue
             side_key = team.get("abbreviation") or ("a" if side.get("long") else "b")
@@ -620,6 +658,7 @@ class PolymarketUSClient(BaseAPIClient):
         event_title: str,
         team_home: Optional[str],
         team_away: Optional[str],
+        league: Optional[str] = None,
     ) -> Optional[PredictionMarket]:
         """Soccer 3-way: one market per outcome with Yes/No sides.
 
@@ -638,7 +677,7 @@ class PolymarketUSClient(BaseAPIClient):
         # Draw markets have team=None on their sides (descriptions are just
         # Yes/No) — only canonicalize when a real team is attached.
         has_team = bool((yes_side.get("team") or {}).get("name"))
-        yes_team = (_canon_team(sector, yes_side) if has_team else None) or "draw"
+        yes_team = (_canon_team(sector, yes_side, league) if has_team else None) or "draw"
         return PredictionMarket(
             id=f"polymarket_us:{m.get('slug', '')}",
             market_type=MarketType.moneyline,
@@ -659,6 +698,7 @@ class PolymarketUSClient(BaseAPIClient):
         event_title: str,
         team_home: Optional[str],
         team_away: Optional[str],
+        league: Optional[str] = None,
     ) -> Optional[PredictionMarket]:
         """Spread market → YES = the long side at market.line.
 
@@ -682,7 +722,7 @@ class PolymarketUSClient(BaseAPIClient):
         line = m.get("line")
         if yes_price is None or no_price is None or line is None:
             return None
-        yes_team = _canon_team(sector, long_side)
+        yes_team = _canon_team(sector, long_side, league)
         if not yes_team:
             return None
         return PredictionMarket(
