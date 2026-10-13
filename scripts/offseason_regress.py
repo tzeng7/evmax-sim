@@ -28,8 +28,8 @@ MUST come from a walk-forward sweep, never copied across sports
               (when the NBA stat stack abstains and Elo is most of the model
               side). keep swept {1.0, .9, .8, .75, .7, .6, .5, .45, .4, .35, .3,
               .2}: interior plateau 0.45–0.50 (flat 0.40–0.60). keep 0.50 vs
-              1.0: RANK 2018–23 opening −6.96/1000 (z −3.82, n 1859, better in
-              all 6 seasons), full season −2.27 (z −4.33); CONFIRM 2024 opening
+              1.0: RANK 2018–23 opening −7.06/1000 (z −3.85, n 1851, better in
+              all 6 seasons), full season −2.29 (z −4.36); CONFIRM 2024 opening
               −9.76 (z −2.05); HOLDOUT 2025 opening −9.25 (z −1.91), full −3.64
               (z −2.55). Early-K boost 1.5/2.0 × decay 10/20/30 was WORSE on
               rank — no EARLY_K_BOOST entry.

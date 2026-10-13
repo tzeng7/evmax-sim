@@ -34,9 +34,10 @@ Protocol (leak-free; mirrors scripts/backtest_nfl_elo_regression.py):
   - Optional stage 2: EARLY_K_BOOST swept ONLY on top of a winning keep < 1.0
     (§5 rule 2), same gates. Off by default (--boost-grid 1.0).
 
-Season labels: start year (Oct–Jun). The 2020 bubble restart (Jul 30 –
-Oct 11 2020) belongs to 2019-20, so dates in Jul–Nov 2020 map to 2019; the
-2020-21 season opened Dec 22 2020.
+Season labels: start year (Oct–Jun). Two COVID-shifted seasons need
+explicit ranges: the 2020 bubble restart (Jul 30 – Oct 11 2020) belongs to
+2019-20, so Jul–Nov 2020 map to 2019; the 2020-21 season opened Dec 22 2020
+and its Finals ran to Jul 20 2021, so July 2021 maps to 2020.
 
 Usage:
     uv run python scripts/backtest_nba_elo_regression.py
@@ -63,13 +64,16 @@ import backtest_elo_h2h_rest as h2h  # noqa: E402
 
 SECTOR = "nba"
 OPEN_GAMES = 20
-DEFAULT_KEEP_GRID = [1.0, 0.9, 0.8, 0.75, 0.7, 0.6, 0.5]
+DEFAULT_KEEP_GRID = [1.0, 0.9, 0.8, 0.75, 0.7, 0.6, 0.5, 0.45, 0.4, 0.35, 0.3, 0.2]
 
 
 def nba_season_of(d: date) -> int:
-    """Start-year season label, with the 2020 bubble restart kept in 2019-20."""
+    """Start-year season label; the COVID-shifted 2020 bubble and July 2021
+    Finals stay in the seasons they finished."""
     if date(2020, 7, 1) <= d <= date(2020, 11, 30):
         return 2019
+    if date(2021, 7, 1) <= d <= date(2021, 7, 31):
+        return 2020
     return d.year if d.month >= 7 else d.year - 1
 
 

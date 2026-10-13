@@ -670,9 +670,20 @@ def fake_team_dash(monkeypatch):
     return _FakeTeamDash
 
 
+@pytest.fixture(autouse=True)
+def _reset_nba_breaker():
+    """A failing fetch calls mark_nba_api_failure(), which sets the module-level
+    _last_failure_time; conftest only diverts the breaker FILE. Reset both so
+    no later test inherits a tripped breaker."""
+    from evmax.agents.models import _nba_freshness
+    _nba_freshness._reset_cache_for_tests()
+    yield
+    _nba_freshness._reset_cache_for_tests()
+
+
 @pytest.fixture
 def nba_api_reachable(monkeypatch):
-    """Fresh-state check passes and the circuit breaker is open."""
+    """Fresh-state check passes and the circuit breaker is not tripped."""
     monkeypatch.setattr("evmax.agents.models._nba_freshness.state_is_fresh", _async_true)
     monkeypatch.setattr("evmax.agents.models._nba_freshness.nba_api_in_backoff", lambda: False)
 
@@ -832,6 +843,9 @@ class TestSeasonRollover:
         market, sharp = _make_pair("thunder", "suns", 0.75)
         assert asyncio.run(agent.predict_pair(market, sharp)) is None
         assert agent.simulate_matchup("thunder", "suns") is None
+        # Nothing for ev_gap_agent's spread/total blend to read either.
+        assert agent._margin_cache == {} and agent._total_cache == {}
+        assert agent.cover_probability(sharp.event_id, -3.5) is None
 
     def test_possession_sim_prices_only_the_state_season(self, nba_api_reachable):
         agent = PossessionSimAgent()
