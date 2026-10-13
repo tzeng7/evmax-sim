@@ -22,6 +22,18 @@ MUST come from a walk-forward sweep, never copied across sports
               (1.5/2/3 × decay 4/6/8) was WORSE on rank and confirm, so NFL
               gets no EARLY_K_BOOST entry.
 
+  nba  0.50   scripts/backtest_nba_elo_regression.py, 2026-10-13 — ESPN replay of
+              2017-18 → 2025-26 with the production Elo update (rest layer on,
+              H2H off as live). Opening window = either team < 20 season games
+              (when the NBA stat stack abstains and Elo is most of the model
+              side). keep swept {1.0, .9, .8, .75, .7, .6, .5, .45, .4, .35, .3,
+              .2}: interior plateau 0.45–0.50 (flat 0.40–0.60). keep 0.50 vs
+              1.0: RANK 2018–23 opening −6.96/1000 (z −3.82, n 1859, better in
+              all 6 seasons), full season −2.27 (z −4.33); CONFIRM 2024 opening
+              −9.76 (z −2.05); HOLDOUT 2025 opening −9.25 (z −1.91), full −3.64
+              (z −2.55). Early-K boost 1.5/2.0 × decay 10/20/30 was WORSE on
+              rank — no EARLY_K_BOOST entry.
+
   nhl  1.0    NOT regressed. 2026-09-22 point-in-time walk-forward (MoneyPuck
               game logs 2014–2025, production Elo update + K=6/HOME=48):
               inside the NHL blend (nhl_xg ramp 0.30 + elo 0.15), keep 0.75
@@ -43,7 +55,7 @@ sector canonical changes spelling (NHL "st. louis blues" → "st louis blues",
 Usage:
     python scripts/offseason_regress.py --sector nfl --dry-run
     python scripts/offseason_regress.py --sector nfl --drop afc,nfc
-    python scripts/offseason_regress.py --sector nba --keep 0.75 --moves data/models/nba_2027_offseason.yaml
+    python scripts/offseason_regress.py --sector nba --dry-run
     python scripts/offseason_regress.py --sector nhl --prune-only --drop canada,usa \
         --rename "st. louis blues=st louis blues"
 
@@ -73,6 +85,7 @@ DEFAULT_ELO = 1500.0
 # entry needs an explicit --keep (and a sweep behind it).
 SECTOR_DEFAULT_KEEP: dict[str, float] = {
     "nfl": 0.667,
+    "nba": 0.50,
     "nhl": 1.0,
 }
 
