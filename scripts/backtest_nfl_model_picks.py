@@ -20,6 +20,7 @@ Usage:
     python scripts/backtest_nfl_model_picks.py                       # 2016-2025, shipped config
     python scripts/backtest_nfl_model_picks.py --espn-open           # + opening-line grading
     python scripts/backtest_nfl_model_picks.py --first-feature-season 2010 --seasons 2011-2025 --download
+    python scripts/backtest_nfl_model_picks.py --first-feature-season 2010 --seasons 2011-2025 --calibration
 Data: EVMAX_NFL_PROJ_DATA (see evmax/nfl_projections/data.py). Ratings need
 play-by-play from two seasons before --first-feature-season (--download fetches it).
 """
@@ -61,6 +62,28 @@ def make_all(proj: pd.DataFrame, line_m: str, line_t: str, mean_total: bool = Fa
     return pd.DataFrame(rows).set_index("game_id")
 
 
+def make_all_total_edges(proj: pd.DataFrame) -> pd.Series:
+    """|median total - closing total| per game (the O/U pick's edge vs the close)."""
+    return ((proj["proj_total"] + picks.TOTAL_MEDIAN_SHIFT) - proj["total_line"]).abs()
+
+
+def fit_calibration(edge: pd.Series, result: pd.Series) -> dict:
+    """Logistic P(W) = sigmoid(a + b * min(edge, cap)) on decided picks, with Wald z and the shrunk fit."""
+    from scipy.optimize import minimize
+
+    ok = result.isin(["W", "L"]) & edge.notna()
+    x = np.minimum(edge[ok].to_numpy(dtype=float), picks.CALIBRATION_MAX_EDGE)
+    y = (result[ok] == "W").to_numpy(dtype=float)
+    X = np.column_stack([np.ones_like(x), x])
+    w = minimize(lambda v: -np.sum(y * (X @ v) - np.log1p(np.exp(X @ v))), np.zeros(2), method="BFGS").x
+    pr = 1.0 / (1.0 + np.exp(-(X @ w)))
+    se = np.sqrt(np.diag(np.linalg.inv(X.T @ (X * (pr * (1 - pr))[:, None]))))
+    z = w / se
+    shrunk = w * np.maximum(0.0, 1.0 - 1.0 / z ** 2)
+    return {"n": int(ok.sum()), "a": w[0], "b": w[1], "za": z[0], "zb": z[1],
+            "a_shrunk": shrunk[0], "b_shrunk": shrunk[1]}
+
+
 def record(results: pd.Series) -> str:
     r = results.dropna()
     w, l = int((r == "W").sum()), int((r == "L").sum())
@@ -86,6 +109,8 @@ def main() -> int:
     ap.add_argument("--first-feature-season", type=int, default=GameModelConfig().first_feature_season)
     ap.add_argument("--espn-open", action="store_true", help="also grade vs ESPN opening lines (fetches + caches)")
     ap.add_argument("--download", action="store_true", help="download missing nflverse play-by-play first")
+    ap.add_argument("--calibration", action="store_true",
+                    help="fit the calibrated P(win) vs edge used to size stakes (picks.SPREAD_COVER_LOGIT / TOTAL_WIN_LOGIT)")
     args = ap.parse_args()
 
     cfg = GameModelConfig(first_feature_season=args.first_feature_season)
@@ -136,6 +161,15 @@ def main() -> int:
 
     mean_pc = make_all(proj, "spread_line", "total_line", mean_total=True)
     mean_g = grade(proj, mean_pc, "spread_line", "total_line")
+    if args.calibration:
+        print("\nCalibrated P(win) = sigmoid(a + b * min(edge, picks.CALIBRATION_MAX_EDGE)), graded at the close.")
+        print("Shrunk = positive-part James-Stein per coefficient, max(0, 1 - 1/z^2): noise sizes nothing.")
+        for kind, edge_col, res_col in (("spread", "edge", "ats"), ("total", "tedge", "ou")):
+            x = pc[edge_col] if kind == "spread" else make_all_total_edges(proj)
+            fit = fit_calibration(x, gc[res_col])
+            print(f"  {kind:6s} n={fit['n']}  raw a={fit['a']:+.4f} (z {fit['za']:+.2f}) b={fit['b']:+.4f} (z {fit['zb']:+.2f})"
+                  f"  ->  shrunk ({fit['a_shrunk']:+.4f}, {fit['b_shrunk']:+.4f})")
+
     def over_share(pk: pd.DataFrame) -> float:
         return pk["over"].dropna().astype(float).mean()
     print(f"\nO/U vs close: median total {record(gc['ou'])} (over share {over_share(pc):.0%}) | "

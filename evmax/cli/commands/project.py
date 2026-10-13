@@ -839,8 +839,16 @@ def nfl(
     team: Optional[str] = typer.Option(None, "--team", "-t", help="With --players: only this team (abbreviation, e.g. KC)."),
     log: bool = typer.Option(False, "--log", help="Store the projections (updated until kickoff) and each game's first pre-kickoff model pick in projections.db."),
     espn: bool = typer.Option(True, "--espn/--no-espn", help="Also use the live ESPN injury feed: a QB it lists as out is not picked as the starter, and with --players its out players are dropped."),
+    bankroll: Optional[float] = typer.Option(None, "--bankroll", help="Size each pick: Kelly on its calibrated win probability (adds a Stake column)."),
+    odds: float = typer.Option(-110.0, "--odds", help="With --bankroll: the American odds you would bet at (-110 book; ~-107 Kalshi/Polymarket taker, ~-102 Kalshi maker at 50c)."),
+    kelly: float = typer.Option(0.5, "--kelly", help="With --bankroll: fraction of full Kelly (stakes are capped at 5% of bankroll)."),
 ) -> None:
     """Project every game of an NFL week: score, spread, total, win probability, model pick.
+
+    With --bankroll each pick gets a stake: Kelly on its calibrated win
+    probability (the 2011-25 backtest's win rate at that edge, shrunk toward
+    50% where the evidence is weak) at --odds, capped at 5%. At -110 the
+    stake is $0: the picks calibrate to ~50%, below the 52.4% break-even.
 
     The model pick compares the projection with the nflverse consensus line:
     the spread side the model prefers (Edge = points of disagreement) and
@@ -873,6 +881,13 @@ def nfl(
     if players:
         _nfl_players_table(season, week, refresh, team, full, log=log, espn=espn)
         return
+    if bankroll is not None:
+        try:
+            breakeven = picks.breakeven(odds)
+        except ValueError as e:
+            raise typer.BadParameter(str(e), param_hint="--odds") from None
+        if bankroll <= 0 or not 0 < kelly <= 1:
+            raise typer.BadParameter("--bankroll must be > 0 and --kelly in (0, 1]")
     with console.status(f"Projecting NFL {season} week {week}..."):
         reports = live.fetch_espn_injury_reports() if espn else None
         df = picks.add_picks(live.project_week(season, week, refresh=refresh, espn_reports=reports))
@@ -897,12 +912,25 @@ def nfl(
     t.add_column("Score (win %)", justify="right", no_wrap=False)
     t.add_column("QBs (away / home)", no_wrap=False)
     t.add_column("Check", no_wrap=False)
+    if bankroll is not None:
+        t.add_column("Stake (ATS / O/U)", justify="right", no_wrap=True)
+    stakes: list[float] = []
+    now = pd.Timestamp.now(tz="America/New_York")
     for r in df.sort_values(["gameday", "gametime"]).itertuples():
         site = " (neutral)" if r.neutral else ""
         vegas = "—"
         if pd.notna(r.market_spread_line):
             total = f" · {r.market_total_line:.1f}" if pd.notna(r.market_total_line) else ""
             vegas = f"{_nfl_line(r.home_team, r.away_team, r.market_spread_line)}{total}"
+        stake_cells = []
+        if bankroll is not None:
+            if picks.kickoff(r.gameday, r.gametime) <= now:
+                stake_cells = ["[dim]kicked off[/dim]"]                 # only open games are sized
+            else:
+                pair = [bankroll * picks.stake_fraction(prob, odds, kelly) if pick else None
+                        for prob, pick in ((r.spread_p, r.spread_pick), (r.total_p, r.total_pick))]
+                stakes += [v for v in pair if v]
+                stake_cells = [" / ".join("—" if v is None else f"${v:,.2f}" for v in pair)]
         t.add_row(
             str(r.gameday),
             f"{full(r.away_team)} @ {full(r.home_team)}{site}",
@@ -915,8 +943,14 @@ def nfl(
             f"({r.home_team if r.p_home_win >= 0.5 else r.away_team} {max(r.p_home_win, 1 - r.p_home_win):.0%})",
             f"{r.away_qb_name or '?'} / {r.home_qb_name or '?'}",
             ", ".join(r.flags) if r.flags else "",
+            *stake_cells,
         )
     console.print(t)
+    if bankroll is not None:
+        console.print(f"Stakes at {odds:+g} (break-even {breakeven:.1%}), {kelly:g} Kelly on ${bankroll:,.0f}: "
+                      + (f"{len(stakes)} bet(s), ${sum(stakes):,.2f} total." if stakes else
+                         "no bets — no open pick's calibrated win rate beats break-even.")
+                      + " [dim]Calibrated win rate: spread picks 50%, totals at most 50.8% (2011-25 backtest).[/dim]")
     console.print("[dim]Vegas = nflverse consensus line; Model total = median (the line is set near the median); "
                   "Check = big edge / QB change / late season — where the model most often misses news.\n"
                   "Backtest 2011-25: spread picks 50.2% vs the close, 50.1% vs ESPN opening lines; the opening line "

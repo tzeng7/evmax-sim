@@ -555,6 +555,8 @@ tbody tr:last-child td { border-bottom: none; }
 .proj-hit { color: var(--green); }
 .proj-miss { color: var(--yellow); }
 .proj-flag { margin-left: 6px; vertical-align: 1px; }
+.proj-sizing { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; padding: 10px 18px; border-bottom: 1px solid var(--border); }
+.proj-sizing-summary { font-size: 12px; }
 .proj-row-open td { background: rgba(255, 255, 255, 0.03); color: var(--text); }
 .proj-detail-row > td { background: var(--panel-2); padding: 16px 18px 18px; border-bottom: 1px solid var(--border); }
 tbody tr.proj-detail-row:hover > td { background: var(--panel-2); }

@@ -1,5 +1,7 @@
 import { Fragment, useMemo, useState, type ReactNode } from 'react'
 import type { ProjectionCell, ProjectionColumn, ProjectionGame, ProjectionPick, ProjectionPlayer, PickResult } from '../lib/types'
+import { betable, type StakeContext } from '../lib/projections'
+import { StakeTag } from './ProjectionSizing'
 
 const pct = (p: number) => `${(p * 100).toFixed(0)}%`
 function fmt(v: number | null | undefined, d = 0): string {
@@ -45,8 +47,9 @@ function ResultMark({ at, close }: { at: PickResult | null; close: PickResult | 
   return <strong className={cls} title={title} style={{ marginLeft: 6 }}>{at}</strong>
 }
 
-/** The row's Outcome when the engine makes picks: the spread side and the over/under, with edges. */
-function PickCell({ pick }: { pick: ProjectionPick | null | undefined }) {
+/** The row's Outcome when the engine makes picks: the spread side and the over/under, with edges
+ *  (and each pick's stake when a bankroll is set). */
+function PickCell({ pick, stake }: { pick: ProjectionPick | null | undefined; stake?: StakeContext | null }) {
   if (!pick) return <td className="muted">—</td>
   const vs = pick.line ? `Model pick vs ${pick.line}` : 'Model pick'
   return (
@@ -54,12 +57,14 @@ function PickCell({ pick }: { pick: ProjectionPick | null | undefined }) {
       {pick.spread
         ? <><strong style={{ color: 'var(--text)' }}>{pick.spread}</strong>
             <span className="muted proj-sub"> ({fmt(pick.spread_edge, 1)})</span>
-            <ResultMark at={pick.spread_result} close={pick.spread_result_close} /></>
+            <ResultMark at={pick.spread_result} close={pick.spread_result_close} />
+            {stake && <span className="proj-sub"><StakeTag p={pick.spread_p} ctx={stake} /></span>}</>
         : <span className="muted">—</span>}
       {pick.total && (
         <div className="proj-sub">
           {pick.total}<span className="muted"> ({fmt(pick.total_edge, 1)})</span>
           <ResultMark at={pick.total_result} close={pick.total_result_close} />
+          {stake && <StakeTag p={pick.total_p} ctx={stake} />}
         </div>
       )}
     </td>
@@ -68,6 +73,8 @@ function PickCell({ pick }: { pick: ProjectionPick | null | undefined }) {
 
 interface GamesProps {
   games: ProjectionGame[]
+  /** Bankroll / price / Kelly to size each pick with; null hides stakes. */
+  stake?: StakeContext | null
   runLabel?: string
   /** game_id of the expanded row (its detail renders under it). */
   expanded: string | null
@@ -82,7 +89,7 @@ interface GamesProps {
  * W/L once graded) and the model's own line moves to a Model column. Each
  * row's action runs the engine's per-game model and expands the result in place.
  */
-export function ProjectionGamesTable({ games, runLabel, expanded, onToggle, renderDetail }: GamesProps) {
+export function ProjectionGamesTable({ games, stake, runLabel, expanded, onToggle, renderDetail }: GamesProps) {
   const hasPicks = games.some(g => g.pick)
   const cols = (onToggle ? 8 : 7) + (hasPicks ? 1 : 0)
   return (
@@ -118,7 +125,7 @@ export function ProjectionGamesTable({ games, runLabel, expanded, onToggle, rend
                     {g.flags.map(f => <span key={f} className="badge warn proj-flag">{f}</span>)}
                     {g.subtitle && <div className="muted proj-sub">{g.subtitle}</div>}
                   </td>
-                  {hasPicks && <PickCell pick={g.pick} />}
+                  {hasPicks && <PickCell pick={g.pick} stake={stake && betable(g) ? stake : null} />}
                   <td>{g.model_line ?? '—'} · total {(g.pick?.model_total ?? g.proj_total).toFixed(1)}</td>
                   <td className="num" style={{ whiteSpace: 'nowrap' }}>{g.proj_away.toFixed(1)} – {g.proj_home.toFixed(1)}</td>
                   <td className="num">{pct(g.p_home_win)}</td>

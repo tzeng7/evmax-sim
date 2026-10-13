@@ -181,14 +181,18 @@ def game_row(*, game_id: str, home: str, away: str, home_name: str, away_name: s
 def pick_payload(*, spread: Optional[str], spread_edge: Any, total: Optional[str], total_edge: Any,
                  model_total: Any, line: Optional[str], recorded: bool,
                  spread_result: Optional[str] = None, spread_result_close: Optional[str] = None,
-                 total_result: Optional[str] = None, total_result_close: Optional[str] = None) -> Optional[dict]:
+                 total_result: Optional[str] = None, total_result_close: Optional[str] = None,
+                 spread_p: Any = None, total_p: Any = None) -> Optional[dict]:
     """A game row's model pick: the spread side and O/U the model prefers vs ``line`` (the market line
     the pick was made against), edges in points, and W/L/P once graded — at that line and at the close.
-    ``recorded`` marks the frozen pick a tracked record grades. None when there is no pick at all."""
+    ``recorded`` marks the frozen pick a tracked record grades. ``spread_p`` / ``total_p`` are the
+    calibrated win probabilities the UI sizes stakes from (``slate_result(sizing=...)``). None when
+    there is no pick at all."""
     if spread is None and total is None:
         return None
     return {
         "spread": spread, "spread_edge": jsonable(spread_edge), "total": total, "total_edge": jsonable(total_edge),
+        "spread_p": jsonable(spread_p), "total_p": jsonable(total_p),
         "model_total": jsonable(model_total), "line": line, "recorded": bool(recorded),
         "spread_result": spread_result, "spread_result_close": spread_result_close,
         "total_result": total_result, "total_result_close": total_result_close,
@@ -199,13 +203,16 @@ def slate_result(*, title: str, source: Literal["run", "stored"], games: list[di
                  players: Optional[list[dict]] = None, player_columns: Optional[list[Column]] = None,
                  player_sort: Optional[str] = None, periods: Optional[list[dict]] = None,
                  period: Optional[str] = None, summary: Optional[list[str]] = None,
-                 notes: Optional[list[str]] = None, footnote: Optional[str] = None) -> dict:
-    """The shared slate payload. ``periods`` / ``period`` drive the stored-view picker."""
+                 notes: Optional[list[str]] = None, footnote: Optional[str] = None,
+                 sizing: Optional[dict] = None) -> dict:
+    """The shared slate payload. ``periods`` / ``period`` drive the stored-view picker. ``sizing``
+    (engines whose picks carry calibrated probabilities) turns on the bankroll / price / Kelly bar:
+    {presets: [{key, label, odds}], default_kelly, cap, note}."""
     return {
         "title": title, "source": source, "games": games,
         "players": players, "player_columns": [c.to_dict() for c in (player_columns or [])],
         "player_sort": player_sort, "periods": periods or [], "period": period,
-        "summary": summary or [], "notes": notes or [], "footnote": footnote,
+        "summary": summary or [], "notes": notes or [], "footnote": footnote, "sizing": sizing,
     }
 
 

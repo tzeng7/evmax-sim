@@ -232,6 +232,7 @@ class NflProjectionEngine(ProjectionEngine):
             title=f"NFL {season} · Week {week}", source="run", games=game_rows, players=player_rows,
             player_columns=PLAYER_COLUMNS, player_sort="receiving_yards", period=f"{season}-{week}",
             summary=self._accuracy_lines(season), notes=notes + [RUN_NOTE], footnote=FOOTNOTE,
+            sizing=self._sizing(),
         )
 
     def stored(self, sector: str, params: dict) -> dict:
@@ -258,8 +259,14 @@ class NflProjectionEngine(ProjectionEngine):
             player_columns=PLAYER_COLUMNS, player_sort="receiving_yards",
             periods=periods, period=f"{season}-{week}", summary=self._accuracy_lines(season),
             notes=[] if games else [f"No stored projections for {season} week {week}."],
-            footnote=FOOTNOTE,
+            footnote=FOOTNOTE, sizing=self._sizing(),
         )
+
+    @staticmethod
+    def _sizing() -> dict:
+        from evmax.nfl_projections import picks
+
+        return picks.sizing_spec()
 
     @staticmethod
     def _recorded_picks(conn: sqlite3.Connection, season: int, week: int) -> dict[str, dict]:
@@ -296,6 +303,8 @@ class NflProjectionEngine(ProjectionEngine):
                 line=line_text(recorded["line_margin"], recorded["line_total"]), recorded=True,
                 spread_result=recorded["spread_result"], spread_result_close=recorded["spread_result_close"],
                 total_result=recorded["total_result"], total_result_close=recorded["total_result_close"],
+                spread_p=picks.calibrated_prob(recorded["spread_edge"], "spread") if recorded["spread_pick"] else None,
+                total_p=picks.calibrated_prob(recorded["total_edge"], "total") if recorded["total_pick"] else None,
             ), flags
         if store_row:
             lm, lt = jsonable(g.get("market_home_margin")), jsonable(g.get("market_total"))
@@ -315,7 +324,8 @@ class NflProjectionEngine(ProjectionEngine):
             }
         return pick_payload(
             spread=pk.spread_pick, spread_edge=pk.spread_edge, total=pk.total_pick, total_edge=pk.total_edge,
-            model_total=pk.total_median, line=line_text(lm, lt), recorded=False, **results,
+            model_total=pk.total_median, line=line_text(lm, lt), recorded=False,
+            spread_p=pk.spread_p, total_p=pk.total_p, **results,
         ), list(pk.flags)
 
     @classmethod

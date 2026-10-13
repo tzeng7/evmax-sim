@@ -287,13 +287,29 @@ def test_espn_injuries_apply_to_the_next_unplayed_week(stubs, monkeypatch):
 def test_run_slate_rows_carry_the_model_pick(stubs):
     phi, lv = engine().run_slate("nfl", OPTS)["games"]
     # LV home, market KC -7.5 (home margin -7.5); model KC by 10 -> lay it; median total 43.1 vs 46 -> under
+    from evmax.nfl_projections import picks
+
     assert lv["pick"] == {
         "spread": "KC -7.5", "spread_edge": 2.5, "total": "Under 46", "total_edge": pytest.approx(2.9),
+        "spread_p": picks.calibrated_prob(2.5, "spread"), "total_p": pytest.approx(picks.calibrated_prob(2.9, "total")),
         "model_total": pytest.approx(43.1), "line": "KC -7.5 · 46.0", "recorded": False,
         "spread_result": None, "spread_result_close": None, "total_result": None, "total_result_close": None,
     }
     assert lv["flags"] == []
     assert phi["pick"] is None                                          # no market line -> no pick
+
+
+def test_slates_carry_the_sizing_spec(stubs):
+    run = engine().run_slate("nfl", OPTS)
+    assert run["sizing"]["cap"] == 0.05 and run["sizing"]["default_kelly"] == 0.5
+    assert [p["key"] for p in run["sizing"]["presets"]][0] == "book" and "$0" in run["sizing"]["note"]
+    conn = store.connect()
+    store.log_games(conn, _games(), "v1", now=datetime(2026, 10, 1, tzinfo=UTC))
+    conn.close()
+    stored = engine().stored("nfl", {"season": "2026", "week": "5"})
+    assert stored["sizing"] == run["sizing"]
+    lv = next(g for g in stored["games"] if g["game_id"] == "2026_05_KC_LV")
+    assert lv["pick"]["spread_p"] == 0.5 and 0.5 <= lv["pick"]["total_p"] < 0.51
 
 
 def test_stored_view_shows_the_recorded_pick_its_grade_and_the_season_record(stubs):
@@ -315,6 +331,7 @@ def test_stored_view_shows_the_recorded_pick_its_grade_and_the_season_record(stu
     json.dumps(out)
     lv = next(g for g in out["games"] if g["game_id"] == "2026_05_KC_LV")
     assert lv["pick"]["recorded"] is True and lv["pick"]["spread"] == "KC -7.5"
+    assert lv["pick"]["spread_p"] == picks.calibrated_prob(2.5, "spread")      # sized from the recorded edge
     assert (lv["pick"]["spread_result"], lv["pick"]["spread_result_close"]) == ("W", "W")
     assert (lv["pick"]["total_result"], lv["pick"]["total_result_close"]) == ("W", "W")   # 44 points: under 46 and 45
     assert any(line.startswith("Model picks 2026: ATS 1-0") and "line moved toward the pick in 1 of 1" in line
