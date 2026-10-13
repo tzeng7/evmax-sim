@@ -42,6 +42,12 @@ def test_nfl_default_keep_is_the_swept_value():
     assert SECTOR_DEFAULT_KEEP["nfl"] == pytest.approx(0.667)
 
 
+def test_nba_default_keep_is_the_swept_value():
+    # scripts/backtest_nba_elo_regression.py, 2026-10-13: interior plateau
+    # 0.45-0.50; keep 0.50 beat no regression on rank, confirm and holdout.
+    assert SECTOR_DEFAULT_KEEP["nba"] == pytest.approx(0.50)
+
+
 @pytest.mark.parametrize("elo, keep, expected", [
     (1650.0, 0.667, 1500 + 0.667 * 150),
     (1390.0, 0.667, 1500 - 0.667 * 110),
@@ -126,12 +132,13 @@ def test_cli_dry_run_writes_nothing_and_apply_writes_with_backup(tmp_path):
 
 
 def test_cli_requires_swept_keep_for_unknown_sector(tmp_path, capsys):
-    # (nhl was the example here until it got its own swept value, 2026-09-22.)
+    # (nhl, then nba, were the example here until each got its own swept value,
+    # 2026-09-22 / 2026-10-13.)
     elo = tmp_path / "elo_state.json"
-    elo.write_text(json.dumps({"nba": {"ratings": {"celtics": 1550.0}, "game_counts": {}}}))
-    assert main(["--sector", "nba", "--dry-run", "--state", str(elo)]) == 1
+    elo.write_text(json.dumps({"ncaab": {"ratings": {"duke": 1650.0}, "game_counts": {}}}))
+    assert main(["--sector", "ncaab", "--dry-run", "--state", str(elo)]) == 1
     assert "sweep" in capsys.readouterr().err
-    assert main(["--sector", "nba", "--keep", "0.8", "--dry-run", "--state", str(elo)]) == 0
+    assert main(["--sector", "ncaab", "--keep", "0.8", "--dry-run", "--state", str(elo)]) == 0
 
 
 # ── NHL: keep=1.0 + --prune-only / --rename (2026-09-22) ───────────────────

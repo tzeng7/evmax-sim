@@ -8,6 +8,12 @@
 
 ## Recently Shipped
 
+### NBA 2026-27 season-start prep (2026-10-13; opener Tue 2026-10-20)
+- ✅ **Season rollover bug** — every NBA fetch hard-coded `season="2025-26"` (4 stat agents + `nba_stats` + `nba_props_cache`; ESPN year 2026). The live scan had already refetched full 2025-26 stats (gp 82–105), so from the opener the stat stack — and the possession-sim blend on live NBA spreads/totals and the projections tab — would have priced new-season games off last season at confidence 0.85. New `evmax/clients/nba_season.py`; states are season-stamped and another season's (or an unstamped) state never prices, even as the fetch-failure/breaker fallback. shot_quality/matchup got the 20-game floor.
+- ✅ **NBA Elo offseason regression** — keep=0.50 swept by `scripts/backtest_nba_elo_regression.py` (RANK 2018–23 −7.06/1000 z −3.85, CONFIRM 2024 −9.76, HOLDOUT 2025 −9.25); applied to `elo_state['nba']` with six orphan full-name keys + the All-Star sides dropped from elo/form. Early-K boost rejected.
+- OPEN (decision): weeks 1–5 the NBA blend is Elo + Form + sharp at a 30% model share (sharp_weight 0.70, no FLB) because the stat stack needs 20 games/team. Option: an NBA any-of gate (`efficiency`/`possession_sim` must fire for a live ML play, else shadow) until ~Nov 20–25. Not built — the regression above is the validated part; the gate is a policy call.
+- OPEN: full-season gains from regressing at the boundary (holdout −3.64/1000) suggest NBA Elo is over-dispersed in-season (K / MOV multiplier); untested.
+
 ### NFL 2026 season-start prep (PR #241, 2026-09-03)
 - ✅ **Pinnacle league-id drift** — NFL 258 → 889 (stale id = zero matchups = no sharp anchor, no NFL EV) and UCL 2186 → 2627, both caught by the new `scripts/check_pinnacle_leagues.py` (season-start checklist item 4; exit 1 on STALE).
 - ✅ **Props geo-block root cause** — Pinnacle 403s `BAD_LOCATION` from the US only for per-matchup market fetches of SPECIAL matchups; `get_prop_odds` now prices every special off the bulk `/sports/{id}/markets/straight` index (44/44 Week-1 NFL specials priced in 2 HTTP calls, was 0). `Total Receptions` / `Total Touchdown Passes` labels added.

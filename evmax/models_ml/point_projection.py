@@ -323,6 +323,7 @@ class PointProjectionModel:
             is_playoff=is_playoff,
             ortg_adj_a=home_ortg_adj,
             ortg_adj_b=away_ortg_adj,
+            game_date=game_date,
         )
         if sim is None:
             logger.debug(

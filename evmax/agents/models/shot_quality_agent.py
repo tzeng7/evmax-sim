@@ -28,6 +28,7 @@ import structlog
 
 from evmax.agents.models._team_lookup import resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
+from evmax.clients.nba_season import nba_season_label, season_matches
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
 
@@ -47,6 +48,12 @@ PTS_PER_RIM_PCT = 0.40  # rim attempts are fewer than 3s for most teams
 
 # Standard deviation for NBA scoring
 SCORE_STDEV = 12.0
+
+# Games-played floor per team — the same floor as efficiency / possession_sim.
+# Inert on every game this agent was evaluated on (built 2026-04-19, gp >= 60);
+# it keeps the first weeks of a season from pricing off 1-19-game shooting
+# samples once the fetch follows the current season.
+MIN_GAMES = 20
 
 # Team abbreviation mapping (ESPN tricode → canonical slug)
 TEAM_ABBREV: dict[str, str] = {
@@ -76,6 +83,13 @@ class ShotQualityAgent(ModelAgent):
         self._team_shooting: dict[str, dict] = {}
         self._league_avgs: dict[str, float] = {}
         self._fetched_date: str = ""
+        self._season: str = ""
+
+    def _load_sector_state(self, sector_state: dict) -> None:
+        self._team_shooting = sector_state.get("teams", {})
+        self._league_avgs = sector_state.get("league_avgs", {})
+        self._fetched_date = sector_state.get("fetched_date", "")
+        self._season = sector_state.get("season", "")
 
     async def _ensure_data(self) -> None:
         from evmax.agents.models._nba_freshness import (
@@ -84,31 +98,34 @@ class ShotQualityAgent(ModelAgent):
             mark_nba_api_failure,
         )
 
-        if self._team_shooting and await state_is_fresh(self._fetched_date):
+        season = nba_season_label()
+        if (self._team_shooting and self._season == season
+                and await state_is_fresh(self._fetched_date)):
             return
 
         sector_state = self._state.get("nba", {})
         sector_fetched = sector_state.get("fetched_date", "")
-        if sector_fetched and await state_is_fresh(sector_fetched):
-            self._team_shooting = sector_state.get("teams", {})
-            self._league_avgs = sector_state.get("league_avgs", {})
-            self._fetched_date = sector_fetched
+        # Only a state stamped for the CURRENT season may be loaded (see
+        # EfficiencyModelAgent._ensure_stats). predict_pair re-checks the
+        # season, so stale data already in memory never prices a game either.
+        reusable = bool(sector_state.get("teams")) and sector_state.get("season") == season
+        if reusable and sector_fetched and await state_is_fresh(sector_fetched):
+            self._load_sector_state(sector_state)
             return
 
-        if nba_api_in_backoff() and sector_state.get("teams"):
-            self._team_shooting = sector_state.get("teams", {})
-            self._league_avgs = sector_state.get("league_avgs", {})
-            self._fetched_date = sector_fetched
-            self.log.info("shot_quality_fetch_skipped_backoff", fetched_date=sector_fetched)
+        if nba_api_in_backoff():
+            if reusable:
+                self._load_sector_state(sector_state)
+            self.log.info("shot_quality_fetch_skipped_backoff", fetched_date=sector_fetched, reusable=reusable)
             return
 
         try:
-            await self._fetch_shooting_data()
+            await self._fetch_shooting_data(season)
         except Exception as e:
             mark_nba_api_failure()
-            self.log.warning("shot_quality_fetch_failed", error=str(e))
+            self.log.warning("shot_quality_fetch_failed", season=season, error=str(e))
 
-    async def _fetch_shooting_data(self) -> None:
+    async def _fetch_shooting_data(self, season: str) -> None:
         from nba_api.stats.endpoints import LeagueDashTeamStats, LeagueDashTeamShotLocations
         from evmax.agents.models._nba_playoff_blend import (
             fetch_rs_and_po,
@@ -118,7 +135,7 @@ class ShotQualityAgent(ModelAgent):
 
         def base_factory(season_type: str):
             return LeagueDashTeamStats(
-                season="2025-26",
+                season=season,
                 season_type_all_star=season_type,
                 per_mode_detailed="PerGame",
                 timeout=15,
@@ -126,7 +143,7 @@ class ShotQualityAgent(ModelAgent):
 
         def loc_factory(season_type: str):
             return LeagueDashTeamShotLocations(
-                season="2025-26",
+                season=season,
                 season_type_all_star=season_type,
                 per_mode_detailed="PerGame",
                 timeout=15,
@@ -241,6 +258,8 @@ class ShotQualityAgent(ModelAgent):
             totals["rim_fga"].append(teams[key]["rim_fga"])
 
         n = len(teams)
+        if n == 0:
+            raise RuntimeError(f"nba_api returned no team with a game played in {season}")
         po_count = sum(1 for v in teams.values() if v["po_gp"] > 0)
         self._league_avgs = {
             "fg3_pct": sum(totals["fg3_pct"]) / n,
@@ -251,9 +270,11 @@ class ShotQualityAgent(ModelAgent):
         }
         self._team_shooting = teams
         self._fetched_date = date.today().isoformat()
+        self._season = season
 
         # Persist
         self._state["nba"] = {
+            "season": season,
             "fetched_date": self._fetched_date,
             "teams": teams,
             "league_avgs": self._league_avgs,
@@ -262,6 +283,7 @@ class ShotQualityAgent(ModelAgent):
 
         self.log.info(
             "shot_quality_fetched",
+            season=season,
             teams=n,
             po_teams=po_count,
             league_3pt=f"{self._league_avgs['fg3_pct']:.3f}",
@@ -330,7 +352,7 @@ class ShotQualityAgent(ModelAgent):
             return None
 
         await self._ensure_data()
-        if not self._team_shooting:
+        if not self._team_shooting or not season_matches(self._season, market.event_date):
             return None
 
         team_a = (sharp_odds.outcome_a_label or market.team_home or "").lower().strip()
@@ -340,6 +362,9 @@ class ShotQualityAgent(ModelAgent):
         stats_b = self._resolve_team(team_b)
 
         if not stats_a or not stats_b:
+            return None
+        min_gp = min(stats_a.get("gp", 0), stats_b.get("gp", 0))
+        if min_gp < MIN_GAMES:
             return None
 
         # Expected points per shot for each team (regressed toward mean)
@@ -364,7 +389,7 @@ class ShotQualityAgent(ModelAgent):
             true_prob_draw=None,
             confidence=confidence,
             weight=self.weight,
-            sample_size=82,
+            sample_size=min_gp,
             notes=(
                 f"pps={pps_a:.3f}/{pps_b:.3f} "
                 f"3PT={stats_a['fg3_pct']:.3f}/{stats_b['fg3_pct']:.3f} "
