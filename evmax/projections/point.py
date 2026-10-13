@@ -124,8 +124,14 @@ def _state_hint(sector: str, model) -> str:
         nba = model._efficiency_state.get("nba", {})
         teams = nba.get("teams", {})
         thin = sum(1 for t in teams.values() if t.get("gp", 0) < 20)
-        return (f"The NBA efficiency ratings (fetched {nba.get('fetched_at', 'never')}) cover {len(teams)} teams, "
+        hint = (f"The NBA efficiency ratings (fetched {nba.get('fetched_at', 'never')}) cover {len(teams)} teams, "
                 f"{thin} with fewer than the 20 games the possession sim needs.")
+        from evmax.clients.nba_season import nba_season_label
+        current = nba_season_label()
+        if nba.get("season") != current:
+            hint += (f" They are for season {nba.get('season') or '2025-26 or earlier (unstamped)'}, not {current}, "
+                     "so the sim abstains until an NBA scan refreshes them after the season's first games.")
+        return hint
     n = len(model._poisson_state.get(sector, {}).get("teams", {}))
     return f"A team is missing from the {sector.upper()} Poisson/Elo ratings ({n} teams rated)."
 

@@ -33,6 +33,8 @@ from typing import Optional
 import numpy as np
 import structlog
 
+from evmax.clients.nba_season import nba_espn_season_year, nba_season_label
+
 logger = structlog.get_logger(__name__)
 
 _CACHE_PATH = Path(__file__).resolve().parents[2] / "data" / "nba_props_cache.json"
@@ -172,7 +174,6 @@ async def refresh_props_cache(
 
 # Semaphore for stats.nba.com (3 concurrent to avoid rate-limiting)
 _SEM = asyncio.Semaphore(3)
-_SEASON = "2025-26"
 _TIMEOUT = 10
 
 
@@ -265,7 +266,7 @@ def _fetch_single_player_sync(player_id: int) -> dict | None:
 
         logs = playergamelog.PlayerGameLog(
             player_id=player_id,
-            season=_SEASON,
+            season=nba_season_label(),
             season_type_all_star="Regular Season",
             timeout=_TIMEOUT,
         )
@@ -316,7 +317,6 @@ _ESPN_STAT_IDX = {"MIN": 0, "REB": 7, "AST": 8, "BLK": 9, "STL": 10, "TOV": 12, 
 _ESPN_3PT_IDX = 3  # "made-attempted" string, e.g. "4-9"
 _ESPN_SEARCH_URL = "https://site.web.api.espn.com/apis/common/v3/search"
 _ESPN_GAMELOG_URL = "https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/{id}/gamelog"
-_ESPN_SEASON_YEAR = 2026  # 2025-26 season; bump in offseason
 
 # In-memory cache of name → ESPN athlete ID so repeated scans don't re-search
 # (lookup costs ~300ms per player; cache survives the process lifetime).
@@ -394,7 +394,7 @@ def _fetch_player_via_espn_sync(player_name: str) -> dict | None:
         import httpx
         r = httpx.get(
             _ESPN_GAMELOG_URL.format(id=aid),
-            params={"season": _ESPN_SEASON_YEAR},
+            params={"season": nba_espn_season_year()},
             timeout=10.0,
         )
         r.raise_for_status()

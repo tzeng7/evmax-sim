@@ -11,6 +11,7 @@ import pytest
 
 from evmax.agents.intelligence.injury_agent import InjuredPlayer, InjuryReport
 from evmax.agents.models.possession_sim_agent import PossessionSimAgent
+from evmax.clients.nba_season import nba_season_label, nba_season_start_year
 from evmax.models_ml.point_projection import (
     GameProjection,
     PointProjectionModel,
@@ -21,10 +22,17 @@ from evmax.models_ml.point_projection import (
 
 # ── Synthetic state fixtures ──────────────────────────────────────────────
 
+# Game dates inside the season the stub state is stamped for (the current one):
+# a state stamped for one season never projects another season's game.
+_SEASON_END_YEAR = nba_season_start_year() + 1
+_REG_DATE = f"{_SEASON_END_YEAR}-02-15"
+_PO_DATE = f"{_SEASON_END_YEAR}-04-20"
+
 
 def _stub_efficiency_state() -> dict:
     return {
         "nba": {
+            "season": nba_season_label(),
             "league_avg_ortg": 114.5,
             "league_avg_drtg": 114.5,
             "league_avg_pace": 100.0,
@@ -223,10 +231,18 @@ def test_is_nba_playoff_date_detects_window():
     assert is_nba_playoff_date("not-a-date") is False
 
 
+def test_projection_refuses_a_game_outside_the_state_season(stub_model):
+    """The efficiency state is stamped with its nba_api season; a game from
+    another season is never projected from it (2026-10-13 rollover fix)."""
+    assert stub_model.project("celtics", "hawks", "nba", game_date=_REG_DATE) is not None
+    prior_season_game = f"{_SEASON_END_YEAR - 1}-02-15"
+    assert stub_model.project("celtics", "hawks", "nba", game_date=prior_season_game) is None
+
+
 def test_playoff_projection_lowers_total(stub_model):
     """Playoff games must project a lower total than the same teams in regular season."""
-    proj_reg = stub_model.project("celtics", "hawks", "nba", game_date="2026-02-15")
-    proj_po = stub_model.project("celtics", "hawks", "nba", game_date="2026-04-20")
+    proj_reg = stub_model.project("celtics", "hawks", "nba", game_date=_REG_DATE)
+    proj_po = stub_model.project("celtics", "hawks", "nba", game_date=_PO_DATE)
 
     assert proj_reg is not None and proj_po is not None
     assert proj_reg.is_playoff is False
@@ -239,8 +255,8 @@ def test_playoff_projection_lowers_total(stub_model):
 
 def test_playoff_projection_preserves_margin_direction(stub_model):
     """Both teams shrink proportionally → spread sign should stay the same."""
-    proj_reg = stub_model.project("celtics", "hawks", "nba", game_date="2026-02-15")
-    proj_po = stub_model.project("celtics", "hawks", "nba", game_date="2026-04-20")
+    proj_reg = stub_model.project("celtics", "hawks", "nba", game_date=_REG_DATE)
+    proj_po = stub_model.project("celtics", "hawks", "nba", game_date=_PO_DATE)
     assert proj_reg.projected_spread < 0  # Celtics favored
     assert proj_po.projected_spread < 0   # Celtics still favored in playoffs
 
@@ -318,7 +334,7 @@ def test_compute_injury_ortg_delta_no_report():
 
 def test_project_applies_injury_ortg_delta(stub_model):
     """When home team loses stars, projected home score should drop materially."""
-    proj_healthy = stub_model.project("celtics", "hawks", "nba", game_date="2026-02-15")
+    proj_healthy = stub_model.project("celtics", "hawks", "nba", game_date=_REG_DATE)
     assert proj_healthy is not None
 
     reports = {
@@ -329,7 +345,7 @@ def test_project_applies_injury_ortg_delta(stub_model):
     }
     proj_injured = stub_model.project(
         "celtics", "hawks", "nba",
-        game_date="2026-02-15",
+        game_date=_REG_DATE,
         injury_reports=reports,
     )
     assert proj_injured is not None
@@ -350,8 +366,8 @@ def test_project_applies_injury_ortg_delta(stub_model):
 
 def test_project_injury_reports_none_is_noop(stub_model):
     """Passing injury_reports=None (or empty) should behave like before."""
-    proj_a = stub_model.project("celtics", "hawks", "nba", game_date="2026-02-15")
-    proj_b = stub_model.project("celtics", "hawks", "nba", game_date="2026-02-15", injury_reports={})
+    proj_a = stub_model.project("celtics", "hawks", "nba", game_date=_REG_DATE)
+    proj_b = stub_model.project("celtics", "hawks", "nba", game_date=_REG_DATE, injury_reports={})
     assert proj_a.home_points == proj_b.home_points
     assert proj_b.home_ortg_adj == 0.0
     assert proj_b.home_injury_notes is None

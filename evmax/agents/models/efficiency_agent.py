@@ -16,6 +16,7 @@ Win probability:
 State file: data/models/efficiency_state.json
   {
     "nba": {
+      "season": "2026-27",   # nba_api label; another season's state never prices
       "league_avg_ortg": 114.5,
       "league_avg_drtg": 114.5,
       "league_avg_pace": 100.2,
@@ -41,6 +42,7 @@ import structlog
 
 from evmax.agents.models._team_lookup import resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
+from evmax.clients.nba_season import nba_season_label, season_matches
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
 
@@ -85,28 +87,37 @@ class EfficiencyModelAgent(ModelAgent):
             mark_nba_api_failure,
         )
 
+        season = nba_season_label()
         sector_state = self._state.get("nba", {})
         fetched_at = sector_state.get("fetched_at", "")
+        # Only a state stamped for the CURRENT season may be reused. Another
+        # season's state (or an unstamped one) is never returned, even when the
+        # fetch below fails: last season's ratings must not price this season.
+        reusable = bool(sector_state.get("teams")) and sector_state.get("season") == season
 
-        if sector_state.get("teams") and await state_is_fresh(fetched_at):
+        if reusable and await state_is_fresh(fetched_at):
             return sector_state
 
-        if nba_api_in_backoff() and sector_state.get("teams"):
-            self.log.info("efficiency_fetch_skipped_backoff", fetched_at=fetched_at)
-            return sector_state
+        if nba_api_in_backoff():
+            self.log.info("efficiency_fetch_skipped_backoff", fetched_at=fetched_at, reusable=reusable)
+            return sector_state if reusable else {}
 
         try:
-            stats = await self._fetch_from_nba_api()
+            stats = await self._fetch_from_nba_api(season)
             self._state["nba"] = stats
             self.save_state()
             return stats
         except Exception as e:
             mark_nba_api_failure()
-            self.log.warning("efficiency_fetch_failed", error=str(e))
-            return sector_state
+            self.log.warning("efficiency_fetch_failed", season=season, error=str(e))
+            return sector_state if reusable else {}
 
-    async def _fetch_from_nba_api(self) -> dict:
-        """Fetch team advanced stats from stats.nba.com — Regular Season + Playoffs blended."""
+    async def _fetch_from_nba_api(self, season: str) -> dict:
+        """Fetch team advanced stats from stats.nba.com — Regular Season + Playoffs blended.
+
+        Before opening night the regular-season query returns no rows, so this
+        raises and the agent abstains until the season's first games are played.
+        """
         from nba_api.stats.endpoints import LeagueDashTeamStats
         from evmax.agents.models._nba_playoff_blend import (
             fetch_rs_and_po,
@@ -116,7 +127,7 @@ class EfficiencyModelAgent(ModelAgent):
 
         def factory(season_type: str):
             return LeagueDashTeamStats(
-                season="2025-26",
+                season=season,
                 season_type_all_star=season_type,
                 measure_type_detailed_defense="Advanced",
                 per_mode_detailed="PerGame",
@@ -133,6 +144,8 @@ class EfficiencyModelAgent(ModelAgent):
         fields = ["OFF_RATING", "DEF_RATING", "PACE", "NET_RATING",
                   "EFG_PCT", "TS_PCT", "TM_TOV_PCT", "OREB_PCT"]
         blended = gp_weighted_blend(rs_rows, po_rows, fields)
+        if not blended:
+            raise RuntimeError(f"nba_api returned no team with a game played in {season}")
 
         teams = {}
         total_ortg = 0.0
@@ -161,6 +174,7 @@ class EfficiencyModelAgent(ModelAgent):
         n = len(teams)
         po_team_count = sum(1 for v in teams.values() if v["po_gp"] > 0)
         result = {
+            "season": season,
             "league_avg_ortg": round(total_ortg / n, 2),
             "league_avg_drtg": round(total_drtg / n, 2),
             "league_avg_pace": round(total_pace / n, 2),
@@ -170,6 +184,7 @@ class EfficiencyModelAgent(ModelAgent):
 
         self.log.info(
             "efficiency_fetched",
+            season=season,
             teams=n,
             po_teams=po_team_count,
             avg_ortg=result["league_avg_ortg"],
@@ -194,6 +209,8 @@ class EfficiencyModelAgent(ModelAgent):
         stats = await self._ensure_stats(sector)
         teams = stats.get("teams", {})
         if not teams:
+            return None
+        if not season_matches(stats.get("season"), market.event_date):
             return None
 
         team_a = (sharp_odds.outcome_a_label or market.team_home or "").lower().strip()

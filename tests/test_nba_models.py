@@ -20,8 +20,13 @@ from evmax.agents.models._nba_playoff_blend import (
     parse_team_dash_rows,
     gp_weighted_blend,
 )
+from evmax.clients.nba_season import nba_season_label
 from evmax.models.market import PredictionMarket, MarketSource
 from evmax.models.odds import SharpOdds, SharpBook
+
+
+# NBA states must be stamped with the current season to price a game.
+_SEASON = nba_season_label()
 
 
 async def _async_true(*_args, **_kwargs) -> bool:
@@ -76,6 +81,7 @@ class TestEfficiencyModel:
                     "suns": {"ortg": 114.0, "drtg": 113.0, "pace": 98.0, "net": 1.0, "gp": 82, "full_name": "phoenix suns"},
                 },
                 "fetched_at": "2026-04-18",
+                "season": _SEASON,
             }
         }
         market, sharp = _make_pair("thunder", "suns", 0.90)
@@ -96,6 +102,7 @@ class TestEfficiencyModel:
                     "bad": {"ortg": 108.0, "drtg": 120.0, "pace": 100.0, "net": -12.0, "gp": 82, "full_name": "bad team"},
                 },
                 "fetched_at": "2026-04-18",
+                "season": _SEASON,
             }
         }
         market, sharp = _make_pair("good", "bad", 0.85)
@@ -308,6 +315,7 @@ MOCK_EFF_STATE = {
         },
     },
     "fetched_at": "2026-04-18",
+    "season": _SEASON,
 }
 
 
@@ -612,3 +620,224 @@ class TestNBAPropsESPNFallback:
         on_disk = json.loads(cache_path.read_text())
         assert "some_player" in on_disk["players"]
         assert on_disk["fetched_at"] == 1.0  # untouched
+
+
+# ── Season rollover (2026-10-13) ─────────────────────────────────────────
+# The NBA stack shipped with season="2025-26" hard-coded at every fetch. At
+# the 2026-27 rollover that kept fetching last season's complete stats
+# (gp 82-105) and fired them at full confidence into new-season games. These
+# pin the fix: fetches follow the current season, states carry the season,
+# and another season's (or an unstamped) state never prices a game — not even
+# when the refetch fails, which it does until opening night (nba_api returns
+# no regular-season rows for a season that has not started).
+
+from datetime import date as _date, datetime as _datetime, timezone as _tz
+
+from evmax.clients.nba_season import nba_season_start_year
+
+_START = nba_season_start_year()
+_PRIOR_SEASON = f"{_START - 1}-{_START % 100:02d}"
+_PRIOR_SEASON_GAME = _datetime(_START, 2, 15, 12, tzinfo=_tz.utc)
+_CURRENT_SEASON_GAME = _datetime(_START + 1, 2, 15, 12, tzinfo=_tz.utc)
+
+
+class _FakeTeamDash:
+    """Stands in for nba_api's LeagueDashTeamStats (no network): records the
+    season each call requests and serves ``rows`` for the regular season."""
+
+    calls: list = []
+    rows: list = []
+    headers = ["TEAM_ID", "TEAM_NAME", "GP", "OFF_RATING", "DEF_RATING", "PACE",
+               "NET_RATING", "EFG_PCT", "TS_PCT", "TM_TOV_PCT", "OREB_PCT"]
+
+    def __init__(self, **kwargs):
+        _FakeTeamDash.calls.append(kwargs)
+        self._season_type = kwargs.get("season_type_all_star")
+
+    def get_dict(self):
+        rows = _FakeTeamDash.rows if self._season_type == "Regular Season" else []
+        return {"resultSets": [{"headers": _FakeTeamDash.headers, "rowSet": rows}]}
+
+
+@pytest.fixture
+def fake_team_dash(monkeypatch):
+    _FakeTeamDash.calls = []
+    _FakeTeamDash.rows = [
+        [1, "Oklahoma City Thunder", 25, 118.0, 107.0, 100.0, 11.0, 0.55, 0.59, 0.12, 0.28],
+        [2, "Phoenix Suns", 25, 114.0, 113.0, 98.0, 1.0, 0.53, 0.57, 0.13, 0.26],
+    ]
+    monkeypatch.setattr("nba_api.stats.endpoints.LeagueDashTeamStats", _FakeTeamDash)
+    return _FakeTeamDash
+
+
+@pytest.fixture
+def nba_api_reachable(monkeypatch):
+    """Fresh-state check passes and the circuit breaker is open."""
+    monkeypatch.setattr("evmax.agents.models._nba_freshness.state_is_fresh", _async_true)
+    monkeypatch.setattr("evmax.agents.models._nba_freshness.nba_api_in_backoff", lambda: False)
+
+
+def _eff_state(season, gp=82):
+    return {
+        "league_avg_ortg": 114.0, "league_avg_drtg": 114.0, "league_avg_pace": 100.0,
+        "teams": {
+            "thunder": {"ortg": 118.0, "drtg": 107.0, "pace": 100.0, "net": 11.0, "gp": gp, "full_name": "oklahoma city thunder"},
+            "suns": {"ortg": 114.0, "drtg": 113.0, "pace": 98.0, "net": 1.0, "gp": gp, "full_name": "phoenix suns"},
+        },
+        "fetched_at": "2026-10-12",
+        **({"season": season} if season else {}),
+    }
+
+
+def _shot_state(season, gp=82):
+    team = {"fg3_pct": 0.37, "fg3a": 38.0, "rim_pct": 0.66, "rim_fga": 27.0,
+            "mid_pct": 0.43, "mid_fga": 12.0, "gp": gp}
+    return {
+        "fetched_date": "2026-10-12",
+        "teams": {"thunder": dict(team), "suns": {**team, "fg3_pct": 0.34}},
+        "league_avgs": {"fg3_pct": 0.36, "rim_pct": 0.64, "mid_pct": 0.42, "fg3a": 36.0, "rim_fga": 26.0},
+        **({"season": season} if season else {}),
+    }
+
+
+def _matchup_state(season, gp=82):
+    off = {"pts": 115.0, "fg3a": 38.0, "fg3_pct": 0.37, "tov": 12.0, "oreb": 11.0, "gp": gp}
+    dfn = {"drtg": 110.0, "blk": 5.0, "stl": 8.0, "opp_pts_paint": 46.0, "opp_pts_fb": 13.0, "gp": gp}
+    return {
+        "fetched_date": "2026-10-12",
+        "offense": {"thunder": dict(off), "suns": {**off, "tov": 15.0}},
+        "defense": {"thunder": dict(dfn), "suns": {**dfn, "blk": 4.0}},
+        "league_avgs": {"fg3a": 36.0, "tov": 13.0, "blk": 5.0, "stl": 8.0,
+                        "opp_pts_paint": 48.0, "pts_paint": 48.0, "opp_pts_fb": 14.0},
+        **({"season": season} if season else {}),
+    }
+
+
+async def _fetch_fails(self, season):
+    raise RuntimeError(f"nba_api returned no team rows for either season type ({season})")
+
+
+class TestSeasonRollover:
+    # ── efficiency ──
+    def test_efficiency_fetch_requests_and_stamps_current_season(self, fake_team_dash, nba_api_reachable):
+        agent = EfficiencyModelAgent()
+        agent._state = {"nba": _eff_state(_PRIOR_SEASON)}
+        stats = asyncio.run(agent._ensure_stats("nba"))
+        assert {c["season"] for c in fake_team_dash.calls} == {_SEASON}
+        assert stats["season"] == _SEASON
+        assert stats["teams"]["thunder"]["gp"] == 25
+
+    def test_efficiency_fetch_before_opening_night_prices_nothing(self, fake_team_dash, nba_api_reachable):
+        # nba_api's regular-season query has no rows until opening night.
+        fake_team_dash.rows = []
+        agent = EfficiencyModelAgent()
+        agent._state = {"nba": _eff_state(_PRIOR_SEASON)}
+        market, sharp = _make_pair("thunder", "suns", 0.70)
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
+        assert {c["season"] for c in fake_team_dash.calls} == {_SEASON}
+
+    @pytest.mark.parametrize("season", [_PRIOR_SEASON, None], ids=["prior-season", "unstamped"])
+    def test_efficiency_other_season_state_never_prices(self, season, nba_api_reachable, monkeypatch):
+        monkeypatch.setattr(EfficiencyModelAgent, "_fetch_from_nba_api", _fetch_fails)
+        agent = EfficiencyModelAgent()
+        agent._state = {"nba": _eff_state(season)}
+        market, sharp = _make_pair("thunder", "suns", 0.70)
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
+
+    def test_efficiency_backoff_does_not_fall_back_to_other_season(self, monkeypatch):
+        monkeypatch.setattr("evmax.agents.models._nba_freshness.state_is_fresh", _async_true)
+        monkeypatch.setattr("evmax.agents.models._nba_freshness.nba_api_in_backoff", lambda: True)
+        monkeypatch.setattr(EfficiencyModelAgent, "_fetch_from_nba_api", _fetch_fails)
+        agent = EfficiencyModelAgent()
+        agent._state = {"nba": _eff_state(_PRIOR_SEASON)}
+        assert asyncio.run(agent._ensure_stats("nba")) == {}
+
+    def test_efficiency_current_season_state_prices_only_its_season(self, nba_api_reachable):
+        agent = EfficiencyModelAgent()
+        agent._state = {"nba": _eff_state(_SEASON)}
+        market, sharp = _make_pair("thunder", "suns", 0.70)
+        market.event_date = _CURRENT_SEASON_GAME
+        assert asyncio.run(agent.predict_pair(market, sharp)) is not None
+        market.event_date = _PRIOR_SEASON_GAME
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
+
+    # ── shot_quality ──
+    @pytest.mark.parametrize("season", [_PRIOR_SEASON, None], ids=["prior-season", "unstamped"])
+    def test_shot_quality_other_season_state_never_prices(self, season, nba_api_reachable, monkeypatch):
+        monkeypatch.setattr(ShotQualityAgent, "_fetch_shooting_data", _fetch_fails)
+        agent = ShotQualityAgent()
+        agent._state = {"nba": _shot_state(season)}
+        market, sharp = _make_pair("thunder", "suns", 0.70)
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
+        assert agent._team_shooting == {}
+
+    def test_shot_quality_current_season_state_prices(self, nba_api_reachable):
+        agent = ShotQualityAgent()
+        agent._state = {"nba": _shot_state(_SEASON)}
+        market, sharp = _make_pair("thunder", "suns", 0.70)
+        result = asyncio.run(agent.predict_pair(market, sharp))
+        assert result is not None
+        assert result.sample_size == 82
+
+    def test_shot_quality_needs_min_games(self, nba_api_reachable):
+        from evmax.agents.models.shot_quality_agent import MIN_GAMES
+        agent = ShotQualityAgent()
+        agent._state = {"nba": _shot_state(_SEASON, gp=MIN_GAMES - 1)}
+        market, sharp = _make_pair("thunder", "suns", 0.70)
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
+
+    def test_shot_quality_stale_memory_never_prices_another_season(self, nba_api_reachable):
+        # A long-running process (dashboard, Discord bot) that loaded a state
+        # before the rollover keeps it in memory — predict_pair re-checks.
+        agent = ShotQualityAgent()
+        agent._state = {"nba": _shot_state(_SEASON)}
+        market, sharp = _make_pair("thunder", "suns", 0.70)
+        market.event_date = _PRIOR_SEASON_GAME
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
+
+    # ── matchup ──
+    @pytest.mark.parametrize("season", [_PRIOR_SEASON, None], ids=["prior-season", "unstamped"])
+    def test_matchup_other_season_state_never_prices(self, season, nba_api_reachable, monkeypatch):
+        monkeypatch.setattr(MatchupAgent, "_fetch_data", _fetch_fails)
+        agent = MatchupAgent()
+        agent._state = {"nba": _matchup_state(season)}
+        market, sharp = _make_pair("thunder", "suns", 0.70)
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
+        assert agent._off_stats == {}
+
+    def test_matchup_current_season_state_prices(self, nba_api_reachable):
+        agent = MatchupAgent()
+        agent._state = {"nba": _matchup_state(_SEASON)}
+        market, sharp = _make_pair("thunder", "suns", 0.70)
+        result = asyncio.run(agent.predict_pair(market, sharp))
+        assert result is not None
+        assert result.sample_size == 82
+
+    def test_matchup_needs_min_games(self, nba_api_reachable):
+        from evmax.agents.models.matchup_agent import MIN_GAMES
+        agent = MatchupAgent()
+        agent._state = {"nba": _matchup_state(_SEASON, gp=MIN_GAMES - 1)}
+        market, sharp = _make_pair("thunder", "suns", 0.70)
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
+
+    # ── possession_sim (also feeds NBA spread/total pricing + projections) ──
+    @pytest.mark.parametrize("season", [_PRIOR_SEASON, None], ids=["prior-season", "unstamped"])
+    def test_possession_sim_other_season_state_never_prices(self, season, nba_api_reachable):
+        state = {**MOCK_EFF_STATE}
+        state.pop("season")
+        if season:
+            state["season"] = season
+        agent = PossessionSimAgent()
+        agent._load_efficiency_state = lambda: state
+        market, sharp = _make_pair("thunder", "suns", 0.75)
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None
+        assert agent.simulate_matchup("thunder", "suns") is None
+
+    def test_possession_sim_prices_only_the_state_season(self, nba_api_reachable):
+        agent = PossessionSimAgent()
+        agent._load_efficiency_state = lambda: MOCK_EFF_STATE
+        market, sharp = _make_pair("thunder", "suns", 0.75)
+        market.event_date = _CURRENT_SEASON_GAME
+        assert asyncio.run(agent.predict_pair(market, sharp)) is not None
+        market.event_date = _PRIOR_SEASON_GAME
+        assert asyncio.run(agent.predict_pair(market, sharp)) is None

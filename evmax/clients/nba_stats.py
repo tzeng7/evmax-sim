@@ -30,13 +30,14 @@ import structlog
 import numpy as np
 from scipy.stats import norm
 
+from evmax.clients.nba_season import nba_season_label
+
 logger = structlog.get_logger(__name__)
 
 # Cap concurrent nba_api calls — stats.nba.com throttles at ~3–5 req/s
 _NBA_API_SEM = asyncio.Semaphore(3)
 _NBA_API_TIMEOUT = 10  # seconds per request (nba_api timeout param)
 
-_SEASON = "2025-26"
 _LAST_N_GAMES = 15
 _MIN_GAMES = 5           # need at least this many data points
 _DECAY = 0.85            # exponential recency decay per game (most-recent = weight 1)
@@ -112,7 +113,7 @@ def _fetch_gamelog_sync(player_id: int) -> Optional[object]:
         from nba_api.stats.endpoints import playergamelogs
         logs = playergamelogs.PlayerGameLogs(
             player_id_nullable=player_id,
-            season_nullable=_SEASON,
+            season_nullable=nba_season_label(),
             last_n_games_nullable=_LAST_N_GAMES,
             timeout=_NBA_API_TIMEOUT,
         )
@@ -143,7 +144,7 @@ def _fetch_team_stats() -> dict[str, dict]:
 
         # General stats: pace, defensive rating
         df_gen = leaguedashteamstats.LeagueDashTeamStats(
-            season=_SEASON,
+            season=nba_season_label(),
             per_mode_simple="PerGame",
             measure_type_simple_defense="Base",
             timeout=_NBA_API_TIMEOUT,
@@ -151,7 +152,7 @@ def _fetch_team_stats() -> dict[str, dict]:
 
         # Opponent shooting stats: opp 3PT makes/attempts per game
         df_opp = leaguedashteamstats.LeagueDashTeamStats(
-            season=_SEASON,
+            season=nba_season_label(),
             per_mode_simple="PerGame",
             measure_type_simple_defense="Opponent",
             timeout=_NBA_API_TIMEOUT,

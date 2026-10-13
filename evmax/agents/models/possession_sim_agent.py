@@ -36,6 +36,7 @@ import structlog
 
 from evmax.agents.models._team_lookup import resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
+from evmax.clients.nba_season import DateLike, season_matches
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
 
@@ -243,13 +244,17 @@ class PossessionSimAgent(ModelAgent):
         is_playoff: bool = False,
         ortg_adj_a: float = 0.0,
         ortg_adj_b: float = 0.0,
+        game_date: DateLike = None,
     ) -> Optional[dict]:
         """Synchronously run the possession-level sim for an NBA matchup.
 
         Caches margin/total distributions under ``event_id`` (auto-generated if
         None). Returns a dict with keys: scores_a/b, margin, total, prob_a,
         stats_a/b, confidence, event_id. Returns None when efficiency state is
-        missing or either team has <20 games played.
+        missing, is stamped for a season other than ``game_date``'s (today when
+        None), or either team has <20 games played. Every consumer — the ML
+        blend, the spread/total sim blend in ev_gap_agent (reads the cache this
+        fills) and the point projections — goes through this check.
 
         ``home_team`` plays the team_a slot (HOME_EDGE_ORTG applied to them).
         When ``is_playoff`` is True, applies playoff tightening factors.
@@ -259,6 +264,8 @@ class PossessionSimAgent(ModelAgent):
         eff_data = self._load_efficiency_state()
         teams = eff_data.get("teams", {})
         if not teams:
+            return None
+        if not season_matches(eff_data.get("season"), game_date):
             return None
 
         team_a = home_team.lower().strip()
@@ -346,7 +353,9 @@ class PossessionSimAgent(ModelAgent):
         team_a = (sharp_odds.outcome_a_label or market.team_home or "").lower().strip()
         team_b = (sharp_odds.outcome_b_label or market.team_away or "").lower().strip()
 
-        sim = self.simulate_matchup(team_a, team_b, event_id=sharp_odds.event_id)
+        sim = self.simulate_matchup(
+            team_a, team_b, event_id=sharp_odds.event_id, game_date=market.event_date,
+        )
         if sim is None:
             return None
 
