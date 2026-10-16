@@ -207,6 +207,16 @@
     "bournemouth": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 3,
+          "goals_against": 0,
+          "sot": 7,
+          "shots": 23,
+          "xg": 2.58,
+          "xga": 0.45,
+          "is_home": true
+        },
+        {
           "date": "2026-10-10",
           "goals_for": 1,
           "goals_against": 5,
@@ -394,16 +404,6 @@
           "shots": 10,
           "xg": 1.65,
           "xga": 1.41,
-          "is_home": false
-        },
-        {
-          "date": "2026-02-10",
-          "goals_for": 2,
-          "goals_against": 1,
-          "sot": 4,
-          "shots": 11,
-          "xg": 1.41,
-          "xga": 2.1,
           "is_home": false
         }
       ]
@@ -1227,6 +1227,16 @@
     "sunderland": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 2,
+          "goals_against": 1,
+          "sot": 5,
+          "shots": 22,
+          "xg": 2.01,
+          "xga": 0.36,
+          "is_home": false
+        },
+        {
           "date": "2026-10-10",
           "goals_for": 0,
           "goals_against": 2,
@@ -1414,16 +1424,6 @@
           "shots": 12,
           "xg": 0.9,
           "xga": 1.44,
-          "is_home": true
-        },
-        {
-          "date": "2026-02-11",
-          "goals_for": 0,
-          "goals_against": 1,
-          "sot": 2,
-          "shots": 11,
-          "xg": 0.87,
-          "xga": 1.5,
           "is_home": true
         }
       ]
@@ -2655,6 +2655,16 @@
     "crystal palace": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 2,
+          "goals_against": 3,
+          "sot": 4,
+          "shots": 12,
+          "xg": 1.44,
+          "xga": 1.41,
+          "is_home": false
+        },
+        {
           "date": "2026-10-11",
           "goals_for": 3,
           "goals_against": 1,
@@ -2842,16 +2852,6 @@
           "shots": 14,
           "xg": 1.23,
           "xga": 2.25,
-          "is_home": true
-        },
-        {
-          "date": "2026-02-11",
-          "goals_for": 2,
-          "goals_against": 3,
-          "sot": 3,
-          "shots": 21,
-          "xg": 1.44,
-          "xga": 1.05,
           "is_home": true
         }
       ]
@@ -6531,6 +6531,16 @@
     "sociedad": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 1,
+          "shots": 5,
+          "xg": 0.42,
+          "xga": 1.83,
+          "is_home": false
+        },
+        {
           "date": "2026-10-11",
           "goals_for": 3,
           "goals_against": 2,
@@ -6719,21 +6729,21 @@
           "xg": 1.41,
           "xga": 3.33,
           "is_home": false
-        },
-        {
-          "date": "2026-03-15",
-          "goals_for": 3,
-          "goals_against": 1,
-          "sot": 6,
-          "shots": 14,
-          "xg": 2.04,
-          "xga": 1.74,
-          "is_home": true
         }
       ]
     },
     "celta vigo": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 2,
+          "sot": 2,
+          "shots": 9,
+          "xg": 0.81,
+          "xga": 2.28,
+          "is_home": true
+        },
         {
           "date": "2026-10-11",
           "goals_for": 0,
@@ -6922,16 +6932,6 @@
           "shots": 8,
           "xg": 0.51,
           "xga": 2.19,
-          "is_home": false
-        },
-        {
-          "date": "2026-09-03",
-          "goals_for": 0,
-          "goals_against": 0,
-          "sot": 2,
-          "shots": 7,
-          "xg": 0.75,
-          "xga": 1.83,
           "is_home": false
         }
       ]
@@ -10251,6 +10251,16 @@
     "leverkusen": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 4,
+          "goals_against": 0,
+          "sot": 10,
+          "shots": 22,
+          "xg": 3.36,
+          "xga": 1.11,
+          "is_home": false
+        },
+        {
           "date": "2026-10-10",
           "goals_for": 4,
           "goals_against": 3,
@@ -10439,21 +10449,21 @@
           "xg": 3.21,
           "xga": 2.19,
           "is_home": true
-        },
-        {
-          "date": "2026-05-09",
-          "goals_for": 1,
-          "goals_against": 3,
-          "sot": 5,
-          "shots": 6,
-          "xg": 1.53,
-          "xga": 3.03,
-          "is_home": false
         }
       ]
     },
     "tsg hoffenheim": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 2,
+          "goals_against": 3,
+          "sot": 3,
+          "shots": 13,
+          "xg": 1.2,
+          "xga": 1.92,
+          "is_home": true
+        },
         {
           "date": "2026-10-10",
           "goals_for": 2,
@@ -10643,16 +10653,6 @@
           "xg": 2.64,
           "xga": 1.2,
           "is_home": true
-        },
-        {
-          "date": "2026-02-08",
-          "goals_for": 1,
-          "goals_against": 5,
-          "sot": 4,
-          "shots": 9,
-          "xg": 1.35,
-          "xga": 4.59,
-          "is_home": false
         }
       ]
     },
@@ -13677,6 +13677,16 @@
     "milan": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 4,
+          "goals_against": 0,
+          "sot": 10,
+          "shots": 15,
+          "xg": 3.15,
+          "xga": 0.96,
+          "is_home": false
+        },
+        {
           "date": "2026-10-11",
           "goals_for": 1,
           "goals_against": 1,
@@ -13865,16 +13875,6 @@
           "xg": 2.22,
           "xga": 1.26,
           "is_home": false
-        },
-        {
-          "date": "2026-02-22",
-          "goals_for": 0,
-          "goals_against": 1,
-          "sot": 6,
-          "shots": 25,
-          "xg": 2.37,
-          "xga": 1.08,
-          "is_home": true
         }
       ]
     },
@@ -15717,6 +15717,16 @@
     "juventus": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 2,
+          "goals_against": 1,
+          "sot": 6,
+          "shots": 22,
+          "xg": 2.28,
+          "xga": 0.81,
+          "is_home": false
+        },
+        {
           "date": "2026-10-11",
           "goals_for": 1,
           "goals_against": 1,
@@ -15905,16 +15915,6 @@
           "xg": 3.21,
           "xga": 1.38,
           "is_home": true
-        },
-        {
-          "date": "2026-05-09",
-          "goals_for": 1,
-          "goals_against": 0,
-          "sot": 6,
-          "shots": 15,
-          "xg": 2.07,
-          "xga": 1.05,
-          "is_home": false
         }
       ]
     },
@@ -17133,6 +17133,16 @@
     "rennes": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 2,
+          "goals_against": 1,
+          "sot": 9,
+          "shots": 25,
+          "xg": 3.18,
+          "xga": 0.33,
+          "is_home": true
+        },
+        {
           "date": "2026-10-11",
           "goals_for": 4,
           "goals_against": 1,
@@ -17321,21 +17331,21 @@
           "xg": 2.25,
           "xga": 0.87,
           "is_home": false
-        },
-        {
-          "date": "2026-02-13",
-          "goals_for": 3,
-          "goals_against": 1,
-          "sot": 4,
-          "shots": 13,
-          "xg": 1.47,
-          "xga": 2.55,
-          "is_home": true
         }
       ]
     },
     "marseille": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 0,
+          "goals_against": 1,
+          "sot": 5,
+          "shots": 11,
+          "xg": 1.68,
+          "xga": 1.35,
+          "is_home": true
+        },
         {
           "date": "2026-10-11",
           "goals_for": 2,
@@ -17525,16 +17535,6 @@
           "xg": 2.34,
           "xga": 0.69,
           "is_home": true
-        },
-        {
-          "date": "2026-04-18",
-          "goals_for": 0,
-          "goals_against": 2,
-          "sot": 2,
-          "shots": 16,
-          "xg": 1.02,
-          "xga": 1.41,
-          "is_home": false
         }
       ]
     },
@@ -17745,6 +17745,16 @@
     "lyon": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 3,
+          "goals_against": 2,
+          "sot": 4,
+          "shots": 11,
+          "xg": 1.41,
+          "xga": 1.44,
+          "is_home": true
+        },
+        {
           "date": "2026-10-09",
           "goals_for": 1,
           "goals_against": 2,
@@ -17933,16 +17943,6 @@
           "xg": 1.35,
           "xga": 2.04,
           "is_home": false
-        },
-        {
-          "date": "2026-05-03",
-          "goals_for": 4,
-          "goals_against": 2,
-          "sot": 9,
-          "shots": 16,
-          "xg": 2.91,
-          "xga": 1.59,
-          "is_home": true
         }
       ]
     },
@@ -21137,6 +21137,16 @@
     "union st.-gilloise": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 5,
+          "shots": 16,
+          "xg": 1.83,
+          "xga": 0.42,
+          "is_home": true
+        },
+        {
           "date": "2026-09-17",
           "goals_for": 3,
           "goals_against": 0,
@@ -21230,6 +21240,16 @@
     },
     "benfica": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 4,
+          "goals_against": 1,
+          "sot": 7,
+          "shots": 26,
+          "xg": 2.67,
+          "xga": 2.31,
+          "is_home": true
+        },
         {
           "date": "2026-09-16",
           "goals_for": 2,
@@ -21448,6 +21468,16 @@
     },
     "olympiacos": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 0,
+          "sot": 4,
+          "shots": 9,
+          "xg": 1.35,
+          "xga": 1.68,
+          "is_home": false
+        },
         {
           "date": "2026-09-16",
           "goals_for": 2,
@@ -28951,6 +28981,16 @@
     "sturm graz": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 0,
+          "goals_against": 3,
+          "sot": 1,
+          "shots": 6,
+          "xg": 0.45,
+          "xga": 2.58,
+          "is_home": false
+        },
+        {
           "date": "2026-09-16",
           "goals_for": 0,
           "goals_against": 0,
@@ -29581,6 +29621,16 @@
     "dinamo zagreb": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 0,
+          "sot": 3,
+          "shots": 13,
+          "xg": 1.2,
+          "xga": 1.92,
+          "is_home": true
+        },
+        {
           "date": "2026-09-16",
           "goals_for": 0,
           "goals_against": 0,
@@ -30110,6 +30160,16 @@
     },
     "celtic": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 4,
+          "sot": 7,
+          "shots": 14,
+          "xg": 2.31,
+          "xga": 2.67,
+          "is_home": false
+        },
         {
           "date": "2026-09-17",
           "goals_for": 1,
@@ -30905,6 +30965,16 @@
     "ferencvaros": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 2,
+          "goals_against": 1,
+          "sot": 6,
+          "shots": 12,
+          "xg": 1.98,
+          "xga": 2.43,
+          "is_home": true
+        },
+        {
           "date": "2026-09-17",
           "goals_for": 3,
           "goals_against": 1,
@@ -31038,6 +31108,16 @@
     },
     "viktoria plzen": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 2,
+          "sot": 7,
+          "shots": 18,
+          "xg": 2.43,
+          "xga": 1.98,
+          "is_home": false
+        },
         {
           "date": "2026-09-17",
           "goals_for": 0,
@@ -31360,6 +31440,16 @@
     },
     "rb salzburg": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 0,
+          "goals_against": 4,
+          "sot": 2,
+          "shots": 14,
+          "xg": 0.96,
+          "xga": 3.15,
+          "is_home": true
+        },
         {
           "date": "2026-09-17",
           "goals_for": 1,
@@ -40489,6 +40579,16 @@
     "nec nijmegen": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 9,
+          "shots": 18,
+          "xg": 2.97,
+          "xga": 0.78,
+          "is_home": true
+        },
+        {
           "date": "2026-10-10",
           "goals_for": 1,
           "goals_against": 1,
@@ -40677,16 +40777,6 @@
           "xg": 1.53,
           "xga": 2.82,
           "is_home": true
-        },
-        {
-          "date": "2026-02-21",
-          "goals_for": 1,
-          "goals_against": 1,
-          "sot": 9,
-          "shots": 17,
-          "xg": 2.94,
-          "xga": 1.35,
-          "is_home": false
         }
       ]
     },
@@ -42325,6 +42415,16 @@
     "az alkmaar": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 2,
+          "goals_against": 1,
+          "sot": 7,
+          "shots": 15,
+          "xg": 2.34,
+          "xga": 1.26,
+          "is_home": true
+        },
+        {
           "date": "2026-10-10",
           "goals_for": 0,
           "goals_against": 2,
@@ -42513,16 +42613,6 @@
           "xg": 1.92,
           "xga": 1.14,
           "is_home": false
-        },
-        {
-          "date": "2026-02-22",
-          "goals_for": 3,
-          "goals_against": 1,
-          "sot": 5,
-          "shots": 11,
-          "xg": 1.68,
-          "xga": 1.44,
-          "is_home": true
         }
       ]
     },
@@ -52825,6 +52915,16 @@
     "ararat-armenia": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 3,
+          "sot": 4,
+          "shots": 15,
+          "xg": 1.53,
+          "xga": 1.74,
+          "is_home": false
+        },
+        {
           "date": "2026-09-16",
           "goals_for": 1,
           "goals_against": 4,
@@ -52838,6 +52938,16 @@
     },
     "sparta prague": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 8,
+          "shots": 15,
+          "xg": 2.61,
+          "xga": 0.72,
+          "is_home": true
+        },
         {
           "date": "2026-09-16",
           "goals_for": 4,
@@ -52853,6 +52963,16 @@
     "omonia nicosia": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 3,
+          "goals_against": 0,
+          "sot": 6,
+          "shots": 14,
+          "xg": 2.04,
+          "xga": 0.93,
+          "is_home": false
+        },
+        {
           "date": "2026-09-16",
           "goals_for": 1,
           "goals_against": 0,
@@ -52866,6 +52986,16 @@
     },
     "anderlecht": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 0,
+          "goals_against": 1,
+          "sot": 6,
+          "shots": 10,
+          "xg": 1.92,
+          "xga": 1.2,
+          "is_home": false
+        },
         {
           "date": "2026-09-16",
           "goals_for": 1,
@@ -52881,6 +53011,16 @@
     "celje": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 0,
+          "goals_against": 3,
+          "sot": 2,
+          "shots": 13,
+          "xg": 0.93,
+          "xga": 2.04,
+          "is_home": true
+        },
+        {
           "date": "2026-09-16",
           "goals_for": 0,
           "goals_against": 2,
@@ -52894,6 +53034,16 @@
     },
     "hapoel beer": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 2,
+          "sot": 4,
+          "shots": 6,
+          "xg": 1.26,
+          "xga": 2.34,
+          "is_home": false
+        },
         {
           "date": "2026-09-16",
           "goals_for": 0,
@@ -52909,6 +53059,16 @@
     "jagiellonia bialystok": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 3,
+          "goals_against": 1,
+          "sot": 5,
+          "shots": 13,
+          "xg": 1.74,
+          "xga": 1.53,
+          "is_home": true
+        },
+        {
           "date": "2026-09-16",
           "goals_for": 1,
           "goals_against": 2,
@@ -52922,6 +53082,16 @@
     },
     "levski sofia": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 2,
+          "shots": 8,
+          "xg": 0.78,
+          "xga": 2.97,
+          "is_home": false
+        },
         {
           "date": "2026-09-17",
           "goals_for": 0,
@@ -52937,6 +53107,16 @@
     "ofi crete": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 2,
+          "sot": 1,
+          "shots": 2,
+          "xg": 0.33,
+          "xga": 3.18,
+          "is_home": false
+        },
+        {
           "date": "2026-09-17",
           "goals_for": 2,
           "goals_against": 0,
@@ -52950,6 +53130,16 @@
     },
     "besiktas": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 3,
+          "goals_against": 2,
+          "sot": 5,
+          "shots": 19,
+          "xg": 1.92,
+          "xga": 1.2,
+          "is_home": false
+        },
         {
           "date": "2026-09-17",
           "goals_for": 4,
@@ -52965,6 +53155,16 @@
     "lech poznan": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 0,
+          "goals_against": 4,
+          "sot": 3,
+          "shots": 10,
+          "xg": 1.11,
+          "xga": 3.36,
+          "is_home": true
+        },
+        {
           "date": "2026-09-17",
           "goals_for": 0,
           "goals_against": 4,
@@ -52979,6 +53179,16 @@
     "lillestrom": {
       "matches": [
         {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 1,
+          "sot": 2,
+          "shots": 6,
+          "xg": 0.72,
+          "xga": 2.61,
+          "is_home": false
+        },
+        {
           "date": "2026-09-17",
           "goals_for": 1,
           "goals_against": 2,
@@ -52992,6 +53202,16 @@
     },
     "torreense": {
       "matches": [
+        {
+          "date": "2026-10-15",
+          "goals_for": 1,
+          "goals_against": 2,
+          "sot": 1,
+          "shots": 3,
+          "xg": 0.36,
+          "xga": 2.01,
+          "is_home": true
+        },
         {
           "date": "2026-09-17",
           "goals_for": 2,
