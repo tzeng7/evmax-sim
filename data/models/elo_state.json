@@ -21051,16 +21051,16 @@
       "hornets": 1568.03,
       "nets": 1381.46,
       "magic": 1551.08,
-      "heat": 1505.91,
+      "heat": 1585.91,
       "hawks": 1526.34,
       "raptors": 1524.26,
-      "celtics": 1578.83,
-      "76ers": 1545.7,
+      "celtics": 1568.83,
+      "76ers": 1590.7,
       "bulls": 1412.04,
       "pistons": 1583.36,
       "grizzlies": 1380.65,
       "pelicans": 1439.92,
-      "bucks": 1422.15,
+      "bucks": 1342.15,
       "wizards": 1351.53,
       "jazz": 1378.07,
       "la clippers": 1511.26,
@@ -23328,6 +23328,16 @@
         "stripes"
       ],
       "moves": 0
+    },
+    "offseason_moves": {
+      "digest": "874338d610a3ae09",
+      "applied_on": "2026-10-18",
+      "deltas": {
+        "heat": 80.0,
+        "bucks": -80.0,
+        "76ers": 45.0,
+        "celtics": -10.0
+      }
     }
   },
   "worldcup": {

@@ -1,0 +1,36 @@
+# NBA 2026-27 roster-move Elo deltas. PROVISIONAL — not walk-forward validated.
+#
+# Applied ONCE, ADDITIVELY, to the already-regressed data/models/elo_state.json['nba']
+# via `python scripts/nba_offseason_moves.py`. The keep=0.50 regression already ran
+# on 2026-10-13 (scripts/offseason_regress.py), so this file never shrinks anything
+# and never resets season_games (the NBA sweep rejected any early-K boost).
+#
+# Scale: NBA Elo here is ~33 points per point of expected margin (HOME_ADVANTAGE_ELO
+# ~100 ~ 3 pts). Tiers are TEAM-LEVEL net change in expected margin, not player grades:
+#   +/-1.0 pt  ~ +/-35 Elo   rotation swap
+#   +/-2.0 pt  ~ +/-70 Elo   star swap
+#   +/-3.5 pt  ~ +/-115 Elo  MVP-level swap
+# Magnitudes are judgment, so they are deliberately modest; the model is shadowed
+# (categories.yaml shadow_market_types) until the CLV lens says whether they help.
+#
+# Only moves confirmed by >=2 independent sources at 2026-10-18 are listed
+# (ESPN, Spotrac, Pristine Auction, Remix; search snippets, not primary transactions).
+# NOT listed because unconfirmed: Kawhi Leonard (Clippers/Raptors deal reported on
+# hold), LaMelo Ball, and every bench-level signing.
+
+moves:
+  - team: heat
+    delta: 80
+    reason: "Acquired Giannis Antetokounmpo + Bobby Portis; lost Herro, Ware, Jaquez, Jakucionis (net ~+2.4 pt)"
+  - team: bucks
+    delta: -80
+    reason: "Traded Giannis + Portis; received Herro, Ware, Jaquez, Jakucionis (net ~-2.4 pt)"
+  - team: 76ers
+    delta: 35
+    reason: "Signed LeBron James (age 41, 2yr/$8M) — one-point rotation-star equivalent given age/minutes"
+  - team: 76ers
+    delta: 10
+    reason: "Jaylen Brown in for Paul George (Brown modestly better, net ~+0.3 pt)"
+  - team: celtics
+    delta: -10
+    reason: "Paul George in for Jaylen Brown (mirror of the 76ers leg; sold low on value, not on-court)"

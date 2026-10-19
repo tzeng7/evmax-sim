@@ -200,9 +200,10 @@ def test_gap_category_key_prop():
 
 def test_log_gaps_default_resolver_uses_live(patched_db):
     """With the resolver not overridden, every gap should route to the
-    shipped YAML default. nba is live in data/categories.yaml so we
-    expect both rows to land with mode='live'."""
-    gaps = [_gap("g1"), _gap("g2")]
+    shipped YAML default. wnba moneyline is live in data/categories.yaml
+    (nba moneyline is in shadow_market_types for 2026-27) so we expect
+    both rows to land with mode='live'."""
+    gaps = [_gap("g1", sector="wnba"), _gap("g2", sector="wnba")]
     inserted = log_gaps(gaps, sharp_weight_used=0.85, bankroll_used=500.0)
     assert inserted == 2
     rows = patched_db.execute(
@@ -281,7 +282,7 @@ def test_log_gaps_unsticks_voided_on_rescan(patched_db):
     find the row. Snapshot columns stay frozen (freeze-on-first-insert).
     Regression for: silent 'Placed 0 bet(s)' toast when a stale voided
     row blocks a live scan result."""
-    gap = _gap("stuck-mid", sector="nba")
+    gap = _gap("stuck-mid", sector="wnba")
     assert log_gaps([gap], sharp_weight_used=0.85, bankroll_used=500.0) == 1
 
     # Simulate cleanup voiding the row + the user not yet picking it.
