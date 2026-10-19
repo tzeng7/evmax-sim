@@ -265,7 +265,10 @@ def test_stored_weeks_newest_first(tmp_path):
 def test_run_week_feeds_its_game_projection_to_the_player_model(monkeypatch, tmp_path):
     from evmax.nfl_projections import live, pipeline
 
-    games = _games_proj().assign(home_qb_delta=0.0, away_qb_delta=0.0)   # project_week's QB columns (picks)
+    # run_week stamps "now" itself and log_games drops games already kicked off, so the fixture
+    # gamedays must be in the future or this test goes red the day after the hard-coded date.
+    games = _games_proj().assign(home_qb_delta=0.0, away_qb_delta=0.0,   # project_week's QB columns (picks)
+                                 gameday=[date(2099, 1, 3), date(2099, 1, 2)])
     seen = {}
     monkeypatch.setattr(live, "project_week", lambda *a, **k: games)
     monkeypatch.setattr(live, "fetch_espn_injury_reports", lambda: {})
