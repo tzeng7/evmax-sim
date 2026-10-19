@@ -95,18 +95,15 @@ def test_categories_in_mode_live_contains_nba():
     assert "nfl" in live
 
 
-def test_player_props_and_worldcup_are_disabled():
-    """NBA/MLB player props and worldcup were disabled 2026-08-08.
-
-    nfl_props was re-opened as ``shadow`` on 2026-09-02 so the MODEL-9 shadow
-    validation clock runs from Week 1 of the 2026 season.
-    """
+def test_player_props_worldcup_and_cs2_are_disabled():
+    """NBA/MLB player props and worldcup were disabled 2026-08-08. nfl_props
+    was re-opened as ``shadow`` on 2026-09-02 for the MODEL-9 shadow clock and
+    disabled again on 2026-10-18 with cs2 (fee-net audit scope cut: no path to
+    an edge). Disabled sectors are also skipped on the default scan path."""
     disabled = categories_in_mode("disabled")
-    for key in ("nba_props", "baseball_props", "worldcup"):
+    for key in ("nba_props", "baseball_props", "nfl_props", "worldcup", "cs2"):
         assert key in disabled
         assert get_category(key).mode == "disabled"
-    assert "nfl_props" not in disabled
-    assert get_category("nfl_props").mode == "shadow"
     # The shadow bucket is still populated by other categories.
     assert "nhl" in categories_in_mode("shadow")
 
@@ -127,12 +124,13 @@ def test_nba_is_not_a_prop_category():
     assert not get_category("nba").is_prop
 
 
-def test_soccer_total_ships_shadow_moneyline_stays_live():
-    """Soccer moneyline is live; total was demoted to shadow on 2026-09-17
-    after a systematic entry->close CLV loss (mean -0.95pp, 21% positive over
-    19 resolved games — no model prices soccer totals, so it is stale-line
-    selection that reverts). Guards against an accidental re-promotion: total
-    must not silently return to a live product without clearing the CLV gate.
+def test_soccer_ships_shadow_for_moneyline_and_total():
+    """Soccer total was demoted to shadow on 2026-09-17 (entry->close CLV
+    loss, mean -0.95pp, 21% positive over 19 games) and moneyline on
+    2026-10-18 (fee-net review: sharp-passthrough, no net-of-fee CLV or ROI
+    evidence of edge). Guards against an accidental
+    re-promotion: neither market may return to live without clearing a
+    fee-net CLV/ROI check.
     """
     from evmax.modes import get_mode
 
@@ -140,9 +138,32 @@ def test_soccer_total_ships_shadow_moneyline_stays_live():
     assert spec.mode == "live"
     assert MarketType.total in spec.market_types
     assert "total" in spec.shadow_market_types
+    assert "moneyline" in spec.shadow_market_types
     # In-season live base, but the per-market-type downgrade applies.
-    assert get_mode("soccer", "moneyline") == "live"
+    assert get_mode("soccer", "moneyline") == "shadow"
     assert get_mode("soccer", "total") == "shadow"
+
+
+def test_nfl_totals_are_shadow_on_both_venues_moneyline_stays_live():
+    """Kalshi NFL totals were shadowed 2026-10-03. PolyUS totals are CONTESTED
+    (2026-10-18): on the would-bet rows CLV is strong (median +2.0pp, 87% of 66
+    games positive) while realized ROI is -17.4% (CI -31..-3), so they stay
+    shadow until CLV gate v2 (docs/clv-gate-v2-scope.md) decides. Moneyline
+    stays live on both venues."""
+    from datetime import date
+
+    from evmax.modes import get_mode
+
+    spec = get_category("nfl")
+    assert spec.shadow_venue_market_types == {
+        "kalshi": ("total",),
+        "polymarket_us": ("total",),
+    }
+    assert "total" not in spec.shadow_market_types
+    d = date(2026, 10, 18)  # fixed in-season date: the window must not rot this
+    for venue in ("kalshi", "polymarket_us"):
+        assert get_mode("nfl", "total", today=d, venue=venue) == "shadow"
+        assert get_mode("nfl", "moneyline", today=d, venue=venue) == "live"
 
 
 # -------------------------------------------------------------------------
@@ -510,21 +531,6 @@ def test_baseball_spec_has_totals_disabled():
     spec = get_category("baseball")
     assert "total" in spec.disabled_market_types
     assert "total" not in spec.shadow_market_types
-
-
-def test_nfl_kalshi_totals_shadow_but_polyus_totals_live():
-    """Shipped YAML (2026-10-03): NFL totals clear the CLV gate on PolyUS only."""
-    from datetime import date
-
-    from evmax.modes import get_mode
-
-    spec = get_category("nfl")
-    assert spec.shadow_venue_market_types == {"kalshi": ("total",)}
-    assert "total" not in spec.shadow_market_types
-    d = date(2026, 10, 3)  # inside the NFL season window
-    assert get_mode("nfl", "total", today=d, venue="kalshi") == "shadow"
-    assert get_mode("nfl", "total", today=d, venue="polymarket_us") == "live"
-    assert get_mode("nfl", "moneyline", today=d, venue="kalshi") == "live"
 
 
 def test_shadow_venue_market_types_parses_and_validates(tmp_path):

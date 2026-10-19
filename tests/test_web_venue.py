@@ -44,7 +44,12 @@ def test_gap_to_dict_polymarket_gap_shows_shadow_before_promotion(monkeypatch):
 
 
 def test_gap_to_dict_polymarket_gap_live_after_promotion(monkeypatch):
+    import evmax.modes
+
     monkeypatch.setattr(get_settings(), "polymarket_us_live", True)
+    # soccer ML ships shadow since 2026-10-18; pin the sector live so this test
+    # isolates the PolyUS venue firewall (playlist imports get_mode lazily).
+    monkeypatch.setattr(evmax.modes, "get_mode", lambda *a, **k: "live")
     d = _gap_to_dict(_gap("polymarket_us"), bankroll=500.0)
     assert d["mode"] == "live"
 

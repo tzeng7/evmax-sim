@@ -264,6 +264,19 @@ def scan(
             f"[yellow]Mode overrides for this run:[/yellow] {override_summary}"
         )
 
+    # Default path only: do not fetch sectors whose effective mode is disabled
+    # (persistence is already dropped for them, so the fetch was pure cost).
+    # Runs AFTER the overrides above so `--shadow worldcup` still scans it.
+    if not sectors_explicit:
+        from evmax.modes import split_disabled_sectors
+        sector_list, _skipped_disabled = split_disabled_sectors(sector_list)
+        if _skipped_disabled:
+            console.print(
+                f"[dim]Skipping disabled sectors: {', '.join(_skipped_disabled)} "
+                f"(pass --sectors {','.join(_skipped_disabled)} or "
+                f"--shadow to force).[/dim]"
+            )
+
     # Warn on missing API keys before spinning up the pipeline
     _missing_keys = _get_settings().warn_missing_keys()
     for _key_warn in _missing_keys:
