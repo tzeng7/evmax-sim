@@ -13,7 +13,7 @@ def _gap(venue: str = "kalshi") -> EVGap:
     return EVGap(
         market_id=f"{venue}:VEN-TEST",
         event_id="nba::2026-07-08::lakers_vs_warriors",
-        sector="nba",
+        sector="soccer",
         yes_team="lakers",
         market_type="moneyline",
         kalshi_yes_price=0.45,

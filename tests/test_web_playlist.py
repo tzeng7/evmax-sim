@@ -22,7 +22,7 @@ def _noon(days: int = 0) -> datetime:
 def _gap(market_id: str, *, ev: float = 0.05, venue: str = "kalshi", kelly: float = 0.02,
          market_type: str = "moneyline", full_blend: bool = True, days: int = 0,
          yes_team: str = "lakers", event_id: str | None = None,
-         sector: str = "nba", league: str | None = None) -> EVGap:
+         sector: str = "wnba", league: str | None = None) -> EVGap:
     return EVGap(
         market_id=market_id,
         # Distinct event per market id unless a test wants the SAME bet on two
