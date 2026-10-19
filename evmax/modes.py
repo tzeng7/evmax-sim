@@ -191,3 +191,27 @@ def effective_modes(today: Optional[date] = None) -> dict[str, Mode]:
     for spec in all_categories():
         out[spec.key] = get_mode(spec.key, today=today)
     return out
+
+
+def split_disabled_sectors(
+    sectors: list[str], today: Optional[date] = None
+) -> tuple[list[str], list[str]]:
+    """Split ``sectors`` into (kept, disabled) by EFFECTIVE mode.
+
+    Used on the default scan path so a sector whose mode resolves to
+    ``disabled`` (YAML base, env, or a ``--disabled`` flag) is not fetched at
+    all: ``disabled`` already drops persistence, so fetching only burned
+    Kalshi/Pinnacle calls. An unknown sector is kept (the registry, not this
+    helper, owns unknown-sector errors). Explicit ``--sectors`` selection never
+    calls this, so a disabled sector can still be forced for debugging.
+    """
+    kept: list[str] = []
+    dropped: list[str] = []
+    for s in sectors:
+        try:
+            mode = get_mode(s, today=today)
+        except KeyError:
+            kept.append(s)
+            continue
+        (dropped if mode == "disabled" else kept).append(s)
+    return kept, dropped

@@ -116,7 +116,7 @@ def test_no_flags_produces_no_override_message(_reset_overrides):
     # And the YAML defaults apply
     assert get_mode("nba") == "live"
     assert get_mode("nba_props") == "disabled"
-    assert get_mode("nfl_props") == "shadow"   # re-opened for the 2026 season
+    assert get_mode("nfl_props") == "disabled"  # scope cut 2026-10-18
 
 
 def test_clv_backfill_summary_prints_without_error(_reset_overrides):
