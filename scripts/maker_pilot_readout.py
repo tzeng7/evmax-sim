@@ -22,6 +22,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
 from evmax.agents.cleanup.db import get_connection  # noqa: E402
+from evmax.agents.cleanup.resting_orders import fill_rate as _fill_rate  # noqa: E402
 from evmax.cli.commands.shadow import _fetch_clv_rows  # noqa: E402
 from evmax.ev.maker_pilot import (  # noqa: E402
     MAKER_PILOT_KELLY_MULT,
@@ -35,18 +36,7 @@ from evmax.formatting import format_outcome_label_for_row  # noqa: E402
 def fill_rate(sector: str) -> tuple[int, int, int]:
     """(candidates on resolved games, of which filled, candidates still open)."""
     with get_connection() as conn:
-        rows = conn.execute(
-            """SELECT p.market_id, MAX(p.placed) AS placed,
-                      MAX(o.outcome IS NOT NULL) AS resolved
-               FROM ev_predictions p
-               LEFT JOIN ev_outcomes o ON o.market_id = p.market_id
-               WHERE p.sector = ? AND p.model_sources LIKE ?
-                 AND COALESCE(p.voided, 0) = 0
-               GROUP BY p.market_id""",
-            (sector, f"%{MAKER_PILOT_TOKEN}%"),
-        ).fetchall()
-    resolved = [r for r in rows if r["resolved"]]
-    return len(resolved), sum(1 for r in resolved if r["placed"]), len(rows) - len(resolved)
+        return _fill_rate(conn, sector)
 
 
 def main() -> int:

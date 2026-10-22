@@ -1153,6 +1153,29 @@ async def api_fill(request: Request) -> JSONResponse:
     return JSONResponse({"filled": len(recorded), "fills": recorded, "skipped": skipped})
 
 
+@app.get("/api/resting-orders")
+def api_resting_orders(sector: str = Query("nfl")) -> JSONResponse:
+    """Maker rows that should be resting on the exchange, plus the pilot readout.
+
+    RECORD-ONLY: nothing here places or cancels an order. Each row carries a
+    kickoff time and a status (``resting`` / ``filled`` / ``past_kickoff``);
+    ``past_kickoff`` means the user should cancel the order on the exchange.
+    Fills are recorded through ``POST /api/fill``.
+    """
+    from datetime import datetime, timezone
+
+    from evmax.agents.cleanup.resting_orders import list_resting_orders, pilot_readout
+
+    now = datetime.now(timezone.utc)
+    conn = _conn()
+    try:
+        orders = list_resting_orders(conn, now=now)
+        readout = pilot_readout(conn, sector)
+    finally:
+        conn.close()
+    return JSONResponse({"now": now.isoformat(), "orders": orders, "readout": readout})
+
+
 @app.post("/api/update-placed")
 async def api_update_placed(request: Request) -> JSONResponse:
     """Update fill price and stake on already-placed bets."""
