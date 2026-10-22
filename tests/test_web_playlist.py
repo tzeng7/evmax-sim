@@ -125,6 +125,29 @@ class TestDashboardPlayDicts:
         assert row["league"] == "epl"
         assert row["league_display"] == "Premier League"
 
+    def test_diagnostics_and_sharp_only_appended_last(self):
+        import json
+        g = _gap("D")
+        g.model_sources = "sharp"
+        g.model_diagnostics = json.dumps(
+            {"fired": {}, "gated": {"elo": {"conf": 0.3, "note": "thin"}}, "missing": ["form"]}
+        )
+        row = playlist.gap_to_dict(g, 500.0)
+        assert row["sharp_only"] is True
+        assert row["model_diagnostics"]["missing"] == ["form"]
+        assert row["model_diagnostics"]["gated"]["elo"]["note"] == "thin"
+        keys = list(row)
+        assert keys[-3:] == ["venue_options", "model_diagnostics", "sharp_only"]
+        assert keys.index("model_sources") < keys.index("venue_options")
+
+    def test_model_row_not_sharp_only_and_bad_json_is_none(self):
+        g = _gap("E")
+        g.model_sources = "elo+form+sharp"
+        g.model_diagnostics = "{not json"
+        row = playlist.gap_to_dict(g, 500.0)
+        assert row["sharp_only"] is False
+        assert row["model_diagnostics"] is None
+
     def test_non_soccer_gap_has_null_league(self):
         row = playlist.gap_to_dict(_gap("N"), 500.0)
         assert row["league"] is None

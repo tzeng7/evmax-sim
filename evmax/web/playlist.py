@@ -40,6 +40,28 @@ def tip_time_iso(dt: Optional[datetime]) -> Optional[str]:
     return utc.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _parse_diagnostics(raw: Any) -> Optional[dict[str, Any]]:
+    """Decode EVGap.model_diagnostics (JSON string) into a compact dict."""
+    if not raw:
+        return None
+    if isinstance(raw, dict):
+        return raw
+    try:
+        import json
+        val = json.loads(raw)
+    except (TypeError, ValueError):
+        return None
+    return val if isinstance(val, dict) else None
+
+
+def _is_sharp_only(model_sources: Optional[str]) -> bool:
+    """True when no genuine model token contributed (sharp passthrough)."""
+    from evmax.agents.odds.ev_gap_agent import _NON_MODEL_TOKENS
+
+    toks = {t.strip() for t in (model_sources or "").split("+")}
+    return not (toks - _NON_MODEL_TOKENS)
+
+
 def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
     """Shape a single EVGap into the canonical dict used by the dashboard scan
     view, the portfolio fan-out and the Discord feed. Carries both
@@ -186,6 +208,11 @@ def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
             [gap_to_dict(leg, bankroll) for leg in g.venue_options]
             if getattr(g, "venue_options", None) else None
         ),
+        # Appended last so the existing key order stays stable. Why-not
+        # diagnostics (fired / gated+note / missing per configured model) and a
+        # sharp-only flag for the "Sharp only" badge.
+        "model_diagnostics": _parse_diagnostics(getattr(g, "model_diagnostics", None)),
+        "sharp_only": _is_sharp_only(g.model_sources),
     }
 
 

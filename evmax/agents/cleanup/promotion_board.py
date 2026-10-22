@@ -135,6 +135,24 @@ def promote_hint(
     )
 
 
+# Every verdict KIND `_verdict` can emit. COLLECTING carries a ``n/30[g]``
+# suffix, so the kind is the prefix (see `verdict_kind`). The dashboard's
+# VERDICT_STYLE must define each one (tests/test_promotion_board.py pins it).
+VERDICT_KINDS: tuple[str, ...] = (
+    "SHARP-PASSTHROUGH",
+    "COLLECTING",
+    "FAILING-CLV",
+    "PROMOTE-READY",
+    "LIVE-DEGRADING",
+    "LIVE-HEALTHY",
+)
+
+
+def verdict_kind(verdict: str) -> str:
+    """Strip the ``COLLECTING 12/30g`` progress suffix."""
+    return "COLLECTING" if verdict.startswith("COLLECTING") else verdict
+
+
 def _verdict(
     market_type: str,
     divergence_pp: Optional[float],

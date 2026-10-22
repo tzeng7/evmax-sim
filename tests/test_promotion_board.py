@@ -439,3 +439,36 @@ def test_board_json_replaces_nan_with_null(monkeypatch):
     assert "NaN" not in result.output and "Infinity" not in result.output
     rows = json.loads(result.output)
     assert rows[0]["brier_delta_z"] is None and rows[0]["clv"]["mean_clv_pp"] is None
+
+
+class TestVerdictKinds:
+    def test_every_emitted_verdict_is_a_declared_kind(self):
+        from evmax.agents.cleanup.promotion_board import (
+            VERDICT_KINDS,
+            _verdict,
+            verdict_kind,
+        )
+
+        emitted = set()
+        for mt, div, n, clv, mode in [
+            ("moneyline", 0.1, 50, {}, "shadow"),
+            ("spread", 3.0, 5, {}, "shadow"),
+            ("spread", 3.0, 50, {"games": 5}, "shadow"),
+            ("spread", 3.0, 50, {"games": 40}, "shadow"),
+            ("spread", 3.0, 50, {"clears": True}, "shadow"),
+            ("spread", 3.0, 50, {"clears": True}, "live"),
+            ("spread", 3.0, 50, {"games": 40, "mean_clv_pp": -1.0}, "live"),
+            ("spread", 3.0, 50, {"games": 5}, "live"),
+        ]:
+            emitted.add(verdict_kind(_verdict(mt, div, n, clv, mode, 30)))
+        assert emitted == set(VERDICT_KINDS)
+
+    def test_frontend_styles_every_verdict_kind(self):
+        from evmax.agents.cleanup.promotion_board import VERDICT_KINDS
+
+        src = (
+            Path(__file__).resolve().parents[1]
+            / "frontend/src/components/PromotionBoard.tsx"
+        ).read_text()
+        for kind in VERDICT_KINDS:
+            assert f"'{kind}'" in src, f"PromotionBoard.tsx lacks a style for {kind}"

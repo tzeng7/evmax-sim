@@ -1,4 +1,4 @@
-import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult, PromotionBoardResult, VenueBalances, ProjectionSector, ProjectionSlate, ProjectionGame, ProjectionGameDetail, ProjectionOptionValues } from './types'
+import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult, PromotionBoardResult, VenueBalances, ProjectionSector, ProjectionSlate, ProjectionGame, ProjectionGameDetail, ProjectionOptionValues, ModesReport } from './types'
 
 const json = (r: Response) => r.json()
 
@@ -237,4 +237,8 @@ export async function runProjectionGame(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ game, options }),
   }).then(r => projectionJson<ProjectionGameDetail>(r))
+}
+
+export async function fetchModes(): Promise<ModesReport> {
+  return fetch('/api/modes').then(json)
 }
