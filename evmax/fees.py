@@ -15,8 +15,13 @@ Kalshi (fee schedule, July 2026):
       maker path, the PDF is the authority and rates change per series).
 
 Polymarket US (docs.polymarket.us/fees, taker theta raised 0.06 → 0.0695
-    exchange-wide 2026-10-01; maker rebate unchanged):
-    - Taker theta 0.0695, maker theta −0.0125 (a REBATE — makers are paid).
+    exchange-wide 2026-10-01; maker rebate became TIERED by prior-month maker
+    volume effective 2026-10-19 1:00 PM ET — it was a flat −0.0125 before):
+    - Taker theta 0.0695.
+    - Maker rebate theta by tier (a REBATE — makers are paid): Tier 1 (< $10M/mo)
+      none, Tier 2 ($10M+) −0.0035, Tier 3 ($50M+) −0.0070, Tier 4 ($200M+)
+      −0.0104. evmax trades far below $10M/mo, so it is Tier 1: NO rebate
+      (``POLYMARKET_US_MAKER_TIER``). Raise the tier only on real volume.
     - Rounded to the nearest cent, banker's rounding (half to even).
 
 Novig (P2P exchange, CFTC-designated contract market since 2026-08-04):
@@ -55,7 +60,10 @@ from typing import Optional
 KALSHI_TAKER_RATE = 0.07
 KALSHI_MAKER_RATE_MULT = 0.25  # × taker rate, designated series only
 POLYMARKET_US_TAKER_THETA = 0.0695  # was 0.06 until 2026-10-01
-POLYMARKET_US_MAKER_THETA = -0.0125
+# Maker rebate theta by tier (docs.polymarket.us/fees, effective 2026-10-19).
+POLYMARKET_US_MAKER_TIER_THETAS = {1: 0.0, 2: -0.0035, 3: -0.0070, 4: -0.0104}
+POLYMARKET_US_MAKER_TIER = 1  # evmax's maker volume is far below Tier 2's $10M/mo
+POLYMARKET_US_MAKER_THETA = POLYMARKET_US_MAKER_TIER_THETAS[POLYMARKET_US_MAKER_TIER]
 NOVIG_TAKER_RATE = 0.03
 NOVIG_MAKER_RATE_MULT = -0.5   # makers earn a rebate up to half the taker fee
 PROPHETX_COMMISSION_RATE = 0.02  # on net winnings, winners only (VIP 1.5%)
@@ -176,10 +184,17 @@ def _bankers_round_cents(amount: float) -> float:
 
 
 def polymarket_us_order_fee(
-    price: float, contracts: float, maker: bool = False
+    price: float, contracts: float, maker: bool = False, maker_tier: Optional[int] = None
 ) -> float:
-    """Dollar fee (or negative rebate) Polymarket US applies on one order."""
-    theta = POLYMARKET_US_MAKER_THETA if maker else POLYMARKET_US_TAKER_THETA
+    """Dollar fee (or negative rebate) Polymarket US applies on one order.
+
+    ``maker_tier`` overrides ``POLYMARKET_US_MAKER_TIER`` (used to check the
+    published per-tier table).
+    """
+    if maker and maker_tier is not None:
+        theta = POLYMARKET_US_MAKER_TIER_THETAS[maker_tier]
+    else:
+        theta = POLYMARKET_US_MAKER_THETA if maker else POLYMARKET_US_TAKER_THETA
     raw = _quad(theta, price, contracts)
     sign = -1.0 if raw < 0 else 1.0
     return sign * _bankers_round_cents(abs(raw))

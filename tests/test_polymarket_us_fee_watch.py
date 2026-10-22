@@ -18,7 +18,7 @@ sys.path.insert(0, str(_REPO / "scripts"))
 
 import check_polymarket_us_fees as cpf  # noqa: E402
 from evmax.fees import (  # noqa: E402
-    POLYMARKET_US_MAKER_THETA,
+    POLYMARKET_US_MAKER_TIER_THETAS,
     POLYMARKET_US_TAKER_THETA,
     polymarket_us_order_fee,
 )
@@ -44,18 +44,18 @@ class TestParse:
     def test_extracts_thetas_date_and_rounding(self, text):
         ex = cpf.parse_schedule(text)
         assert ex["taker_theta"] == pytest.approx(0.0695)
-        assert ex["maker_theta"] == pytest.approx(-0.0125)
-        assert "October 1, 2026" in ex["effective"]
+        assert ex["maker_tier_thetas"] == {"1": 0.0, "2": -0.0035, "3": -0.007, "4": -0.0104}
+        assert "October 19, 2026" in ex["effective"]
         assert ex["bankers_rounding"] is True
 
     def test_extracts_fee_by_price_table(self, text):
         table = cpf.parse_schedule(text)["fee_table"]
         assert len(table) >= 90
-        assert table["0.50"] == [1.74, 0.31]
+        assert table["0.50"][0] == 1.74 and table["0.50"][1:] == sorted(table["0.50"][1:])
 
     def test_missing_page_yields_none(self):
         ex = cpf.parse_schedule("nothing about fees here")
-        assert ex["taker_theta"] is None and ex["maker_theta"] is None
+        assert ex["taker_theta"] is None and ex["maker_tier_thetas"] == {}
         assert ex["fee_table"] == {}
 
 
@@ -80,7 +80,7 @@ class TestClassify:
 
     def test_hard_drift_when_fee_table_disagrees_with_order_fee(self, text):
         cur = cpf.build_current(text)
-        consts = {**_constants(), "order_fee": lambda p, c, maker=False: 0.0}
+        consts = {**_constants(), "order_fee": lambda p, c, maker=False, maker_tier=None: 0.0}
         verdict, reasons = cpf.classify(cur, None, consts)
         assert verdict == "hard_drift"
         assert any("@ $0.50" in r for r in reasons)
@@ -98,7 +98,7 @@ class TestClassify:
         assert any("content hash" in r for r in reasons)
 
     def test_soft_drift_on_effective_date(self, text):
-        cur = cpf.build_current(text.replace("October 1, 2026", "November 1, 2026"))
+        cur = cpf.build_current(text.replace("October 19, 2026", "November 1, 2026"))
         verdict, reasons = cpf.classify(cur, _snapshot(text), _constants())
         assert verdict == "soft_drift"
         assert any("effective" in r for r in reasons)
@@ -154,8 +154,8 @@ class TestAgainstFees:
         """With the pre-2026-10-01 theta the table check would have failed."""
         table = cpf.parse_schedule(text)["fee_table"]
 
-        def old(price, contracts, maker=False):
-            theta = POLYMARKET_US_MAKER_THETA if maker else 0.06
+        def old(price, contracts, maker=False, maker_tier=None):
+            theta = -0.0125 if maker else 0.06
             return round(theta * contracts * price * (1 - price), 2)
 
         assert cpf.check_fee_table(table, old)
@@ -164,7 +164,7 @@ class TestAgainstFees:
         snap = json.loads((_REPO / "data" / "polymarket_us_fee_schedule.snapshot.json").read_text())
         ex = snap["extracted"]
         assert ex["taker_theta"] == pytest.approx(POLYMARKET_US_TAKER_THETA)
-        assert ex["maker_theta"] == pytest.approx(POLYMARKET_US_MAKER_THETA)
+        assert ex["maker_tier_thetas"] == {str(k): v for k, v in POLYMARKET_US_MAKER_TIER_THETAS.items()}
         assert len(snap["content_sha256"]) == 64
 
 

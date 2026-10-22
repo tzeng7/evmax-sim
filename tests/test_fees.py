@@ -12,6 +12,8 @@ from evmax.fees import (
     kalshi_order_fee,
     novig_fee_prob,
     novig_order_fee,
+    POLYMARKET_US_MAKER_TIER,
+    POLYMARKET_US_MAKER_TIER_THETAS,
     polymarket_us_fee_prob,
     polymarket_us_order_fee,
     prophetx_fee_prob,
@@ -55,9 +57,18 @@ class TestPolymarketUSFees:
         # 0.0695 * 0.5 * 0.5 = 0.017375 → $1.74 per 100 contracts (documented max)
         assert polymarket_us_fee_prob(0.5) == pytest.approx(0.017375)
 
-    def test_maker_is_rebate(self):
-        assert polymarket_us_fee_prob(0.5, maker=True) == pytest.approx(-0.0125 * 0.25)
-        assert polymarket_us_fee_prob(0.5, maker=True) < 0
+    def test_maker_default_tier_one_has_no_rebate(self):
+        # Effective 2026-10-19 the rebate is tiered by maker volume; evmax is Tier 1 (< $10M/mo).
+        assert POLYMARKET_US_MAKER_TIER == 1
+        assert polymarket_us_fee_prob(0.5, maker=True) == 0.0
+        assert polymarket_us_order_fee(0.5, 100, maker=True) == 0.0
+
+    def test_maker_tier_rebates(self):
+        assert POLYMARKET_US_MAKER_TIER_THETAS == {1: 0.0, 2: -0.0035, 3: -0.0070, 4: -0.0104}
+        # Published 100-lot rebates at p=0.50: T2 $0.09, T3 $0.17 (0.175 → even), T4 $0.26
+        got = [-polymarket_us_order_fee(0.5, 100, maker=True, maker_tier=t) for t in (2, 3, 4)]
+        assert got == pytest.approx([0.09, 0.18, 0.26], abs=0.011)
+        assert all(polymarket_us_order_fee(0.5, 100, maker=True, maker_tier=t) < 0 for t in (2, 3, 4))
 
     def test_order_fee_100_contracts(self):
         assert polymarket_us_order_fee(0.5, 100) == pytest.approx(1.74)
@@ -70,8 +81,8 @@ class TestPolymarketUSFees:
         contracts_b = 0.035 / 0.017375
         assert polymarket_us_order_fee(0.5, contracts_b) == pytest.approx(0.04)
 
-    def test_maker_order_fee_negative(self):
-        assert polymarket_us_order_fee(0.5, 100, maker=True) == pytest.approx(-0.31, abs=0.005)
+    def test_maker_order_fee_tier_four(self):
+        assert polymarket_us_order_fee(0.5, 1000, maker=True, maker_tier=4) == pytest.approx(-2.60)
 
 
 class TestNovigFees:
@@ -164,9 +175,12 @@ class TestVenueOrderFee:
             polymarket_us_order_fee(0.5, 200)
         )
 
-    def test_maker_flag_forwarded(self):
-        # PolyUS maker path is a rebate (negative) — the flag must reach it.
+    def test_maker_flag_forwarded(self, monkeypatch):
+        # PolyUS maker path is a rebate (negative) once a maker tier pays one — the flag must reach it.
+        monkeypatch.setattr("evmax.fees.POLYMARKET_US_MAKER_THETA", -0.0035)
         assert venue_order_fee("polymarket_us", 0.5, 200, maker=True) < 0
+        monkeypatch.setattr("evmax.fees.POLYMARKET_US_MAKER_THETA", 0.0)
+        assert venue_order_fee("polymarket_us", 0.5, 200, maker=True) == 0.0
 
     def test_none_venue_is_zero(self):
         # Unlike venue_fee_prob, the P&L path degrades to gross instead of raising.
@@ -221,9 +235,13 @@ class TestBetPnl:
         assert win_drop == pytest.approx(fee)
         assert loss_drop == pytest.approx(fee)
 
-    def test_polymarket_maker_rebate_increases_pnl(self):
-        # Maker rebate (negative fee) lifts the win above the gross figure.
+    def test_polymarket_maker_rebate_increases_pnl(self, monkeypatch):
+        # Maker rebate (negative fee) lifts the win above the gross figure (a paying tier only).
+        monkeypatch.setattr("evmax.fees.POLYMARKET_US_MAKER_THETA", -0.0035)
         assert bet_pnl(100.0, 0.5, True, venue="polymarket_us", maker=True) > 100.0
+
+    def test_polymarket_maker_tier_one_equals_gross(self):
+        assert bet_pnl(100.0, 0.5, True, venue="polymarket_us", maker=True) == 100.0
 
     def test_degenerate_price_is_zero(self):
         assert bet_pnl(100.0, 0.0, True, venue="kalshi") == 0.0

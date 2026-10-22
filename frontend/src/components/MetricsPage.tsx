@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { fetchMetrics } from '../lib/api'
 import type { MetricsResult } from '../lib/types'
 import { MetricsPanel } from './MetricsPanel'
+import { NotEvalLens } from './NotEvalLens'
 
 // Lookback windows for the metrics view. The /api/metrics endpoint takes a
 // week count; "1y" is just a wide window so all-but-ancient rows are included.
@@ -13,10 +14,11 @@ const RANGES: { label: string; weeks: number }[] = [
 ]
 
 interface Props {
+  onOpenEval?: () => void
   toast: (msg: string, type?: 'info' | 'ok' | 'err') => void
 }
 
-export function MetricsPage({ toast }: Props) {
+export function MetricsPage({ toast, onOpenEval }: Props) {
   const [weeks, setWeeks] = useState(4)
   const [loading, setLoading] = useState(true)
   const [metrics, setMetrics] = useState<MetricsResult | null>(null)
@@ -52,6 +54,8 @@ export function MetricsPage({ toast }: Props) {
           ))}
         </div>
       </div>
+
+      <NotEvalLens onOpenEval={onOpenEval} />
 
       {loading && <div className="skeleton" style={{ height: 320 }} />}
       {!loading && <MetricsPanel data={metrics} />}

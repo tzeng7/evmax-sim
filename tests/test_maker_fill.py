@@ -121,11 +121,12 @@ def test_maker_fee_is_cheaper_than_taker():
     conn.close()
 
 
-def test_fee_is_venue_aware():
+def test_fee_is_venue_aware(monkeypatch):
+    monkeypatch.setattr("evmax.fees.POLYMARKET_US_MAKER_THETA", -0.0035)
     conn = _conn(venue="polymarket_us")
     result = record_maker_fill(conn, "kalshi:TEST-BOS", 47, 25.0)
     assert result.venue == "polymarket_us"
-    # Polymarket US pays the maker a rebate, so the fee is negative there.
+    # Polymarket US pays the maker a rebate on a paying tier, so the fee is negative there.
     assert result.maker_fee < 0
     conn.close()
 
