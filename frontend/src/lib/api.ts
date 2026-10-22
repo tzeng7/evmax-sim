@@ -64,6 +64,43 @@ export async function pickBets(bets: { market_id: string; fill_price: number | n
   }).then(json)
 }
 
+export interface VerifyRow {
+  market_id: string
+  keep: boolean
+  reason: string
+  scan_ask: number | null
+  live_ask: number | null
+  delta: number | null
+  scan_ev: number | null
+  live_ev: number | null
+  delta_ev: number | null
+  live_fair: number | null
+  threshold: number | null
+  stake: number
+  in_play: boolean
+  price_is_live: boolean
+  pin_is_live: boolean
+  start_unknown: boolean
+}
+export interface VerifyResult { verified_at: string; live: boolean; kept: number; results: VerifyRow[]; warnings: string[] }
+
+// Re-price open candidates at the LIVE ask (read-only — same engine as
+// `evmax agents verify`). Rows below the EV floor come back keep=false.
+export async function verifyBets(
+  market_ids: string[],
+  opts: { bankroll?: number; kelly?: number } = {},
+): Promise<VerifyResult> {
+  return fetch('/api/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ market_ids, ...opts }),
+  }).then(json)
+}
+
+export function verifySummary(rows: VerifyRow[]): string {
+  return `${rows.filter(r => r.keep).length} of ${rows.length} still +EV at live asks`
+}
+
 export interface MakerFillRow {
   market_id: string
   fill_price: number

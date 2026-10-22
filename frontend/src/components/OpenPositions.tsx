@@ -3,7 +3,9 @@ import type { Bet, ScanGap } from '../lib/types'
 import { probToCents, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
-import { pickBets } from '../lib/api'
+import { pickBets, verifyBets, verifySummary } from '../lib/api'
+import type { VerifyRow } from '../lib/api'
+import { VerifyHeaderCells, VerifyCells } from './VerifyCells'
 
 interface Props {
   bets: Bet[]
@@ -28,6 +30,8 @@ function previewStake(b: Bet, bankroll: number, kelly: number): number {
 export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked }: Props) {
   const [sector, setSector] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [verified, setVerified] = useState<Record<string, VerifyRow>>({})
+  const [verifying, setVerifying] = useState(false)
 
   const scanMids = useMemo(() => new Set(scanGaps.map(g => g.market_id)), [scanGaps])
 
@@ -47,6 +51,23 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
     })
   }
 
+  const handleVerify = useCallback(async () => {
+    const ids = bets.filter(b => b.status !== 'in_progress').map(b => b.market_id).slice(0, 200)
+    if (!ids.length) return
+    setVerifying(true)
+    try {
+      const res = await verifyBets(ids, { bankroll, kelly })
+      setVerified(Object.fromEntries(res.results.map(r => [r.market_id, r])))
+      // Rows below the EV floor (or in-play / no quote) drop out of the pick set.
+      setSelected(prev => new Set([...prev].filter(m => res.results.find(r => r.market_id === m)?.keep !== false)))
+      toast(`Verified live: ${verifySummary(res.results)}${res.warnings.length ? ' · ' + res.warnings[0] : ''}`, res.live ? 'ok' : 'err')
+    } catch (e) {
+      toast('Verify failed: ' + (e as Error).message, 'err')
+    } finally {
+      setVerifying(false)
+    }
+  }, [bets, bankroll, kelly, toast])
+
   const handlePick = useCallback(async () => {
     const ids = [...selected]
     if (!ids.length) { toast('Select positions to pick first', 'info'); return }
@@ -58,10 +79,15 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
     const byId = new Map(bets.map(b => [b.market_id, b]))
     const payload = ids.map(mid => {
       const b = byId.get(mid)
+      // A verified row is placed at its LIVE ask and live-sized stake; an
+      // unverified one falls back to the scan-time ask (the old behaviour).
+      const v = verified[mid]
       return {
         market_id: mid,
-        fill_price: b ? b.kalshi_yes_price : null,
-        fill_stake: b ? Number(previewStake(b, bankroll, kelly).toFixed(2)) : null,
+        fill_price: v?.live_ask ?? (b ? b.kalshi_yes_price : null),
+        fill_stake: v?.keep && v.stake > 0
+          ? v.stake
+          : b ? Number(previewStake(b, bankroll, kelly).toFixed(2)) : null,
       }
     })
     try {
@@ -81,7 +107,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
     } catch (e) {
       toast('Pick failed: ' + (e as Error).message, 'err')
     }
-  }, [selected, bets, bankroll, kelly, toast, onPicked])
+  }, [selected, bets, bankroll, kelly, verified, toast, onPicked])
 
   return (
     <div className="panel">
@@ -89,6 +115,12 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
         <h2>Open Positions ({filtered.length})</h2>
         <div className="actions" style={{ gap: 4 }}>
           <SectorFilter value={sector} onChange={setSector} />
+          {bets.length > 0 && (
+            <button className="btn btn-sm" disabled={verifying} onClick={handleVerify}
+              title="Re-fetch live asks + the Pinnacle line and re-gate each row at the current price (read-only)">
+              {verifying ? 'Verifying...' : 'Verify live'}
+            </button>
+          )}
           {bets.length > 0 && <button className="btn btn-sm success" onClick={handlePick}>Pick All</button>}
         </div>
       </div>
@@ -98,14 +130,16 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
             <tr>
               <th style={{ width: 28 }}></th><th></th>
               <th>Date</th><th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
-              <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">EV</th><th className="num">Stake</th>
+              <th className="num">Scan Ask</th><VerifyHeaderCells /><th className="num">Fair Value</th><th className="num">EV</th><th className="num">Stake</th>
             </tr>
           </thead>
           <tbody>
             {filtered.slice(0, 40).map(b => {
               const stake = previewStake(b, bankroll, kelly)
+              const v = verified[b.market_id]
               return (
-                <tr key={b.market_id}>
+                <tr key={b.market_id} style={v && !v.keep ? { opacity: 0.55 } : undefined}
+                  title={v && !v.keep ? `Excluded from Pick: ${v.reason}` : undefined}>
                   <td><input type="checkbox" checked={selected.has(b.market_id)} onChange={() => toggle(b.market_id)} /></td>
                   <td>
                     {scanMids.has(b.market_id) && <span className="badge new">NEW</span>}
@@ -117,9 +151,10 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
                   <td>{b.event_title}</td>
                   <td>{outcomeLabel(b)}</td>
                   <td className="num">{probToCents(b.kalshi_yes_price)}</td>
+                  <VerifyCells v={v} />
                   <td className="num">{probToCents(b.blended_true_prob)}</td>
                   <td className="num green">{((b.ev_pct || 0) * 100).toFixed(1)}%</td>
-                  <td className="num">${stake.toFixed(2)}</td>
+                  <td className="num">${(v?.keep && v.stake > 0 ? v.stake : stake).toFixed(2)}</td>
                 </tr>
               )
             })}

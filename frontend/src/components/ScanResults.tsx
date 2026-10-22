@@ -3,7 +3,9 @@ import type { ScanGap } from '../lib/types'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
-import { pickBets, recordMakerFills } from '../lib/api'
+import { pickBets, recordMakerFills, verifyBets, verifySummary } from '../lib/api'
+import type { VerifyRow } from '../lib/api'
+import { VerifyHeaderCells, VerifyCells } from './VerifyCells'
 
 interface Props {
   gaps: ScanGap[]
@@ -79,6 +81,8 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
   const [venueSel, setVenueSel] = useState<Record<string, string>>({})
   const [picking, setPicking] = useState(false)
   const [filling, setFilling] = useState(false)
+  const [verified, setVerified] = useState<Record<string, VerifyRow>>({})
+  const [verifying, setVerifying] = useState(false)
 
   // The venue leg a row is currently acting on: the winner (g itself, which
   // carries the cash-cap-adjusted stake) when its own venue is selected or no
@@ -93,6 +97,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
   useMemo(() => {
     setSelected(new Set(gaps.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
     setVenueSel({})
+    setVerified({})
     const f: Record<string, { odds: string; stake: string }> = {}
     for (const g of gaps) {
       // Seed a fill default for every venue leg so switching the dropdown shows
@@ -156,6 +161,42 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
   const updateFill = (mid: string, field: 'odds' | 'stake', value: string) => {
     setFills(prev => ({ ...prev, [mid]: { ...prev[mid], [field]: value } }))
   }
+
+  // Re-price the taker rows at the LIVE ask (read-only). Rows that survive get
+  // Fill ¢ / Stake seeded to the live ask and live-sized stake; rows below the
+  // EV floor (or in-play / no quote) are flagged and unchecked.
+  const handleVerify = useCallback(async () => {
+    const legs = gaps.map(g => activeLeg(g)).filter(l => !l.maker_only && (l.mode || 'live') === 'live')
+    const ids = legs.map(l => l.market_id).slice(0, 200)
+    if (!ids.length) return
+    setVerifying(true)
+    try {
+      const res = await verifyBets(ids, { bankroll, kelly })
+      const byId = Object.fromEntries(res.results.map(r => [r.market_id, r]))
+      setVerified(byId)
+      setFills(prev => {
+        const next = { ...prev }
+        for (const r of res.results) {
+          if (r.live_ask == null) continue
+          next[r.market_id] = {
+            odds: probToCents(r.live_ask),
+            stake: r.keep && r.stake > 0 ? r.stake.toFixed(2) : prev[r.market_id]?.stake ?? '',
+          }
+        }
+        return next
+      })
+      setSelected(prev => {
+        const s = new Set(prev)
+        for (const g of gaps) if (byId[activeLeg(g).market_id]?.keep === false) s.delete(g.market_id)
+        return s
+      })
+      toast(`Verified live: ${verifySummary(res.results)}${res.warnings.length ? ' · ' + res.warnings[0] : ''}`, res.live ? 'ok' : 'err')
+    } catch (e) {
+      toast('Verify failed: ' + (e as Error).message, 'err')
+    } finally {
+      setVerifying(false)
+    }
+  }, [gaps, activeLeg, bankroll, kelly, toast])
 
   const handlePick = useCallback(async () => {
     // Maker-only rows are excluded: they are not crossable at the ask, so
@@ -237,8 +278,10 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     // taker pick, which the ask price would make -EV.
     const isMaker = !!leg.maker_only
     const selectable = isLive || isMaker
+    const v = verified[leg.market_id]
     return (
-      <tr key={g.market_id} style={isLive ? undefined : { opacity: 0.55 }}>
+      <tr key={g.market_id} style={isLive && !(v && !v.keep) ? undefined : { opacity: 0.55 }}
+        title={v && !v.keep ? `Excluded from Pick: ${v.reason}` : undefined}>
         <td>
           <input type="checkbox" checked={selected.has(g.market_id)}
             disabled={!selectable}
@@ -310,6 +353,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
           )}
         </td>
         <td className="num">{askOdds}</td>
+        <VerifyCells v={v} />
         <td className="num">{probToCents(leg.true_prob)}</td>
         <td className="num">{(leg.true_prob * 100).toFixed(1)}%</td>
         <td className="num green">{leg.ev_pct.toFixed(1)}%</td>
@@ -342,7 +386,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <td className="muted" style={{ fontSize: 10 }}>{leg.model_sources}</td>
       </tr>
     )
-  }, [activeLeg, selected, fills])
+  }, [activeLeg, selected, fills, verified])
 
   if (!gaps.length) return null
 
@@ -365,7 +409,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     <tr>
       <th style={{ width: 30 }}></th>
       <th>Date</th><th>Sector</th><th style={{ minWidth: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
-      <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">Model</th><th className="num">EV</th>
+      <th className="num">Ask</th><VerifyHeaderCells /><th className="num">Fair Value</th><th className="num">Model</th><th className="num">EV</th>
       <th className="num" title="EV if opened as a resting limit order (maker fee)">Maker EV</th>
       <th className="num" title="Ceiling — rest at or below this and you stay ≥ the EV floor as a maker. Can sit ABOVE the ask; it is not a place-order price. Use Bid ¢.">Limit ¢</th>
       <th className="num" title="The bid to SET: rest your maker buy here (one tick above the current best bid, still below the ask). Fills as a maker, not a taker. Record the fill with `evmax agents fill`.">Bid ¢</th>
@@ -392,6 +436,10 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
             </select>
           )}
           <button className="btn btn-sm" onClick={() => { setSector(''); setDateFilter(''); setVenueFilter('') }}>Clear</button>
+          <button className="btn btn-sm" disabled={verifying} onClick={handleVerify}
+            title="Re-fetch live asks + the Pinnacle line and re-gate each taker row at the current price (read-only). Rows below the EV floor are unchecked.">
+            {verifying ? 'Verifying...' : 'Verify live'}
+          </button>
           <button className="btn btn-sm" onClick={selectAll}>Select All</button>
           <button className="btn btn-sm" onClick={deselectAll}>Deselect All</button>
         </div>

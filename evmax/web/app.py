@@ -971,6 +971,39 @@ async def api_scan(request: Request) -> JSONResponse:
     return JSONResponse(payload)
 
 
+@app.post("/api/verify")
+async def api_verify(request: Request) -> JSONResponse:
+    """Re-price open candidates at the LIVE ask (read-only; places nothing).
+
+    Body: ``{"market_ids": [...], "bankroll"?, "kelly"?, "min_ev"?, "min_prob"?}``.
+    Runs the same engine as ``agents verify`` / ``pick --live``; each result
+    carries scan/live ask, delta, scan/live EV, live stake and keep/drop.
+    """
+    from evmax.web.verify import DEFAULT_MIN_EV, DEFAULT_MIN_PROB, verify_market_ids
+
+    body = await request.json()
+    market_ids = [m for m in (body.get("market_ids") or []) if isinstance(m, str) and m]
+    if not market_ids:
+        return JSONResponse({"error": "No market_ids provided"}, status_code=400)
+    if len(market_ids) > 200:
+        return JSONResponse({"error": "Too many market_ids (max 200)"}, status_code=400)
+
+    bankroll = body.get("bankroll")
+    conn = _conn()
+    try:
+        payload = await verify_market_ids(
+            conn,
+            market_ids,
+            bankroll=float(bankroll) if bankroll else None,
+            kelly=float(body.get("kelly", 0.5)),
+            min_ev=float(body.get("min_ev", DEFAULT_MIN_EV)),
+            min_prob=float(body.get("min_prob", DEFAULT_MIN_PROB)),
+        )
+    finally:
+        conn.close()
+    return JSONResponse(payload)
+
+
 @app.post("/api/pick")
 async def api_pick(request: Request) -> JSONResponse:
     """Mark selected bets as placed in the database.
