@@ -868,6 +868,14 @@ async def api_categories() -> JSONResponse:
     return JSONResponse({"categories": cats})
 
 
+@app.get("/api/modes")
+def api_modes() -> JSONResponse:
+    """Read-only effective mode + reason per (category, market type, venue)."""
+    from evmax.mode_report import mode_report
+
+    return JSONResponse(mode_report())
+
+
 @app.get("/api/balance")
 async def api_balance(venue: str = Query("", alias="venue")) -> JSONResponse:
     """Live TOTAL account wealth per venue (cash + open positions), for the
