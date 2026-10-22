@@ -66,6 +66,26 @@ function venueOptionLabel(l: ScanGap): string {
   return `${venueShort(l.venue)} · ${ev}${l.maker_only ? ' mkr' : ''}`
 }
 
+function DiagBadge({ g }: { g: ScanGap }) {
+  const d = g.model_diagnostics
+  const lines: string[] = []
+  for (const [m, v] of Object.entries(d?.fired ?? {})) lines.push(`✓ ${m} fired${v.conf != null ? ` (conf ${v.conf})` : ''}`)
+  for (const [m, v] of Object.entries(d?.gated ?? {})) lines.push(`⚠ ${m} gated${v.note ? `: ${v.note}` : ''}`)
+  for (const m of d?.missing ?? []) lines.push(`✗ ${m} missing`)
+  if (!g.sharp_only && lines.length === 0) return null
+  return (
+    <details style={{ display: 'inline-block', marginLeft: 4, position: 'relative' }}>
+      <summary className="badge" style={{ cursor: 'pointer', listStyle: 'none' }}>
+        {g.sharp_only ? 'sharp only' : 'models'}
+      </summary>
+      <div style={{ position: 'absolute', zIndex: 5, background: 'var(--panel, #1e2127)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 4, padding: 6, fontSize: 11, whiteSpace: 'nowrap' }}>
+        <div className="muted">{g.model_sources || 'no sources'}</div>
+        {lines.length ? lines.map((l, i) => <div key={i}>{l}</div>) : <div className="muted">no diagnostics</div>}
+      </div>
+    </details>
+  )
+}
+
 export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
   const [sector, setSector] = usePersistedState('scan.sector', '')
   const [dateFilter, setDateFilter] = usePersistedState('scan.date', '')
@@ -286,6 +306,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
               title={`mode=${mode} — logged for tracking, not pickable`}
             >{mode}</span>
           )}
+          {(g.sharp_only || g.model_diagnostics) && <DiagBadge g={g} />}
           {isMaker && (
             <span
               className="badge"

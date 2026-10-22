@@ -76,6 +76,13 @@ export interface ScanGap {
   kelly_fraction: number
   stake: number
   model_sources: string
+  // Why-not diagnostics: fired/gated(note)/missing per sector-configured model.
+  model_diagnostics?: {
+    fired?: Record<string, { conf?: number; n?: number }>
+    gated?: Record<string, { conf?: number; note?: string }>
+    missing?: string[]
+  } | null
+  sharp_only?: boolean
   market_id: string
   event_date: string
   volume: number
