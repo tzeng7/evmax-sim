@@ -34,6 +34,7 @@ export interface Bet {
   id: number
   scan_date: string
   event_date: string
+  tip_time?: string | null  // UTC ISO start time; null/absent = unknown
   sector: string
   event_title: string
   yes_team: string
@@ -85,6 +86,7 @@ export interface ScanGap {
   sharp_only?: boolean
   market_id: string
   event_date: string
+  tip_time?: string | null  // UTC ISO start time; null = unknown
   volume: number
   mode?: string
   venue?: string

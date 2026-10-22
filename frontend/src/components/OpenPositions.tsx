@@ -6,6 +6,9 @@ import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
 import { useRowKeyboard } from '../hooks/useRowKeyboard'
 import { pickBets } from '../lib/api'
+import {
+  BUCKET_LABEL, BUCKET_ORDER, bucketStyle, formatTimeToTip, minutesToTip, tipBucket, useNow,
+} from '../lib/tipTime'
 import { resizeStake } from '../lib/resizeStake'
 
 interface Props {
@@ -25,6 +28,8 @@ type SortKey = 'event_date' | 'kalshi_yes_price' | 'ev_pct' | 'stake'
 export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
   const [sector, setSector] = usePersistedState('open.sector', '')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [showLate, setShowLate] = useState(false)
+  const now = useNow()
 
   const scanMids = useMemo(() => new Set(scanGaps.map(g => g.market_id)), [scanGaps])
 
@@ -50,7 +55,14 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
     })
   }, [bets, sector, sortKey, sortDir, stakeOf])
 
-  const visible = useMemo(() => filtered.slice(0, limit), [filtered, limit])
+  const bucketOf = useCallback((b: Bet) => tipBucket(minutesToTip(b.tip_time, now)), [now])
+  // Late / in-play rows are hidden unless toggled on; hidden rows are never picked.
+  const active = useMemo(
+    () => filtered.filter(b => showLate || bucketOf(b) !== 'late'),
+    [filtered, showLate, bucketOf],
+  )
+  const hiddenCount = filtered.length - active.length
+  const visible = useMemo(() => active.slice(0, limit), [active, limit])
   const allVisibleSelected = visible.length > 0 && visible.every(b => selected.has(b.market_id))
 
   const toggleAllVisible = () => {
@@ -86,7 +98,8 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
   }
 
   const handlePick = useCallback(async () => {
-    const ids = [...selected]
+    const ok = new Set(active.map(b => b.market_id))
+    const ids = [...selected].filter(id => ok.has(id))
     if (!ids.length) { toast('Select positions to pick first', 'info'); return }
     // Place at the CURRENT dashboard bankroll/kelly — i.e. the stake the preview
     // shows — not the scan-time bankroll_used × kelly_fraction the backend falls
@@ -119,7 +132,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
     } catch (e) {
       toast('Pick failed: ' + (e as Error).message, 'err')
     }
-  }, [selected, bets, stakeOf, toast, onPicked])
+  }, [selected, bets, active, stakeOf, toast, onPicked])
 
   const kbIds = useMemo(() => visible.map(b => b.market_id), [visible])
   const kb = useRowKeyboard({ ids: kbIds, onToggle: toggle, onPick: handlePick })
@@ -127,9 +140,14 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
   return (
     <div className="panel">
       <div className="panel-header">
-        <h2>Open Positions ({filtered.length})</h2>
+        <h2>Open Positions ({active.length})</h2>
         <div className="actions" style={{ gap: 4 }}>
           <SectorFilter value={sector} onChange={setSector} />
+          <label className="muted" style={{ fontSize: 11 }}
+            title="Games within 15 min of tip or already started. Hidden rows are excluded from Pick All.">
+            <input type="checkbox" checked={showLate} onChange={e => setShowLate(e.target.checked)} />
+            {' '}Late/in-play{hiddenCount > 0 && !showLate ? ` (${hiddenCount} hidden)` : ''}
+          </label>
           {bets.length > 0 && <button className="btn btn-sm success" onClick={handlePick}>Pick All</button>}
         </div>
       </div>
@@ -140,12 +158,19 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
               <th style={{ width: 28 }}>
                 <input type="checkbox" aria-label="Select all visible" checked={allVisibleSelected} onChange={toggleAllVisible} />
               </th><th></th>
-              {sortTh('event_date', 'Date')}<th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
+              {sortTh('event_date', 'Date')}<th className="num" title="Time until the game starts (from scan-time minutes to tip)">To tip</th><th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
               {sortTh('kalshi_yes_price', 'Ask', 'num')}<th className="num">Fair Value</th>{sortTh('ev_pct', 'EV', 'num')}{sortTh('stake', 'Stake', 'num')}
             </tr>
           </thead>
-          <tbody>
-            {visible.map(b => {
+          {BUCKET_ORDER.map(bk => {
+            const rows = visible.filter(b => bucketOf(b) === bk)
+            if (!rows.length) return null
+            return (
+          <tbody key={bk}>
+            <tr><td colSpan={99} style={{ fontSize: 11, fontWeight: 600, paddingTop: 8 }}>
+              {BUCKET_LABEL[bk]} <span className="muted">({rows.length})</span>
+            </td></tr>
+            {rows.map(b => {
               const stake = stakeOf(b)
               return (
                 <tr key={b.market_id} {...kb.rowProps(b.market_id)}>
@@ -155,6 +180,10 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
                     {b.status === 'in_progress' && <span className="badge warn" title="Game has started — awaiting resolution">LIVE</span>}
                   </td>
                   <td className="muted">{b.event_date}</td>
+                  <td className="num" style={bucketStyle(bucketOf(b))}
+                    title={b.tip_time ? new Date(b.tip_time).toLocaleString() : 'Tip time unknown'}>
+                    {formatTimeToTip(minutesToTip(b.tip_time, now))}
+                  </td>
                   <td><span className="badge">{b.sector}</span></td>
                   <td><VenueLogo venue={b.venue} /></td>
                   <td>{b.event_title}</td>
@@ -167,13 +196,15 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
               )
             })}
           </tbody>
+            )
+          })}
         </table>
         <div className="muted" style={{ padding: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span>Showing {visible.length} of {filtered.length}</span>
-          {visible.length < filtered.length && (
+          <span>Showing {visible.length} of {active.length}</span>
+          {visible.length < active.length && (
             <>
-              <button className="btn btn-sm" onClick={() => setLimit(l => l + PAGE)}>Show {Math.min(PAGE, filtered.length - visible.length)} more</button>
-              <button className="btn btn-sm" onClick={() => setLimit(filtered.length)}>Show all</button>
+              <button className="btn btn-sm" onClick={() => setLimit(l => l + PAGE)}>Show {Math.min(PAGE, active.length - visible.length)} more</button>
+              <button className="btn btn-sm" onClick={() => setLimit(active.length)}>Show all</button>
             </>
           )}
         </div>
