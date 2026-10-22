@@ -501,6 +501,7 @@ export interface EvalResult {
   db: Record<string, unknown>
   definitions: Record<string, string>
   groups: EvalGroup[]
+}
 
 // ── Modes panel (/api/modes, evmax.mode_report) ──
 export interface ModeRow {
