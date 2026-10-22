@@ -15,6 +15,7 @@ import { ProjectionsPage } from './components/ProjectionsPage'
 import { ArbPage } from './components/ArbPage'
 import { PortfolioGrid } from './components/PortfolioGrid'
 import { PortfolioDetail } from './components/PortfolioDetail'
+import { ShortcutHelp } from './components/ShortcutHelp'
 import { HealthChip } from './components/HealthChip'
 import { Toast } from './components/Toast'
 import { ActivityLog } from './components/ActivityLog'
@@ -60,6 +61,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <ShortcutHelp />
       <header className="topbar">
         <div className="topbar-bar">
           <div className="brand">
@@ -74,39 +76,45 @@ export default function App() {
           </div>
           <div className="topbar-right">
             <HealthChip />
-            <nav className="segmented">
+            <nav className="segmented" aria-label="Main">
               <button
                 className={`seg ${page.kind === 'dashboard' ? 'active' : ''}`}
+                aria-current={page.kind === 'dashboard' ? 'page' : undefined}
                 onClick={() => setPage({ kind: 'dashboard' })}
               >
                 Dashboard
               </button>
               <button
                 className={`seg ${page.kind === 'metrics' ? 'active' : ''}`}
+                aria-current={page.kind === 'metrics' ? 'page' : undefined}
                 onClick={() => setPage({ kind: 'metrics' })}
               >
                 Metrics
               </button>
               <button
                 className={`seg ${page.kind === 'board' ? 'active' : ''}`}
+                aria-current={page.kind === 'board' ? 'page' : undefined}
                 onClick={() => setPage({ kind: 'board' })}
               >
                 Board
               </button>
               <button
                 className={`seg ${page.kind === 'arb' ? 'active' : ''}`}
+                aria-current={page.kind === 'arb' ? 'page' : undefined}
                 onClick={() => setPage({ kind: 'arb' })}
               >
                 Arb
               </button>
               <button
                 className={`seg ${page.kind === 'projections' ? 'active' : ''}`}
+                aria-current={page.kind === 'projections' ? 'page' : undefined}
                 onClick={() => setPage({ kind: 'projections' })}
               >
                 Projections
               </button>
               <button
                 className={`seg ${page.kind === 'portfolios' || page.kind === 'portfolio' ? 'active' : ''}`}
+                aria-current={page.kind === 'portfolios' || page.kind === 'portfolio' ? 'page' : undefined}
                 onClick={() => setPage({ kind: 'portfolios' })}
               >
                 Portfolios
@@ -144,8 +152,8 @@ export default function App() {
         {!loadingDash && page.kind === 'dashboard' && (
           <>
             <div className="segmented" style={{ marginBottom: 16 }}>
-              <button className={`seg ${view === 'all' ? 'active' : ''}`} onClick={() => setView('all')}>All Scanned</button>
-              <button className={`seg ${view === 'placed' ? 'active' : ''}`} onClick={() => setView('placed')}>Placed Only</button>
+              <button aria-pressed={view === 'all'} className={`seg ${view === 'all' ? 'active' : ''}`} onClick={() => setView('all')}>All Scanned</button>
+              <button aria-pressed={view === 'placed'} className={`seg ${view === 'placed' ? 'active' : ''}`} onClick={() => setView('placed')}>Placed Only</button>
             </div>
 
             <KpiCards summary={summary} />
