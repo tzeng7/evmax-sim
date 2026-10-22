@@ -444,7 +444,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <div className="muted" style={{ fontSize: 12, padding: '4px 0 8px' }}>No taker-EV plays.</div>
       ) : (
         <div {...kbTaker.containerProps}>
-          <table>
+          <table className="card-tbl st-scan">
             <thead>{headerRow}</thead>
             <tbody>{takerRows.map(renderRow)}</tbody>
           </table>
@@ -467,7 +467,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <div className="muted" style={{ fontSize: 12, padding: '4px 0 8px' }}>No maker-only plays.</div>
       ) : (
         <div {...kbMaker.containerProps}>
-          <table>
+          <table className="card-tbl st-scan">
             <thead>{headerRow}</thead>
             <tbody>{makerRows.map(renderRow)}</tbody>
           </table>

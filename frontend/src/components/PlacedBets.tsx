@@ -111,7 +111,7 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
           {dirty && <button className="btn btn-sm" onClick={handleSave}>Save Changes</button>}
         </div>
       </div>
-      <table>
+      <table className="card-tbl st-placed">
         <thead>
           <tr>
             <th style={{ width: 30 }}></th>

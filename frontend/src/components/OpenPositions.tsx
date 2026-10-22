@@ -134,7 +134,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
         </div>
       </div>
       <div {...kb.containerProps} className="scroll-area kb-table">
-        <table>
+        <table className="card-tbl st-open">
           <thead>
             <tr>
               <th style={{ width: 28 }}>
