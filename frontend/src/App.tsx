@@ -10,6 +10,7 @@ import { ScanResults } from './components/ScanResults'
 import { PlacedBets } from './components/PlacedBets'
 import { SectorPerformance } from './components/SectorPerformance'
 import { OpenPositions } from './components/OpenPositions'
+import { RestingOrders } from './components/RestingOrders'
 import { RecentSettled } from './components/RecentSettled'
 import { MetricsPage } from './components/MetricsPage'
 import { PromotionBoard } from './components/PromotionBoard'
@@ -177,6 +178,8 @@ export default function App() {
               toast={toast}
               onPicked={dash.refresh}
             />
+
+            <RestingOrders toast={toast} onChanged={dash.refresh} />
 
             <PlacedBets bets={dash.placedBets} toast={toast} onChanged={dash.refresh} />
 

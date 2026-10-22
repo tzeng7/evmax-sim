@@ -164,6 +164,16 @@ def get_mode(
     return base
 
 
+def override_source(category: str) -> Optional[str]:
+    """Which override layer (if any) pins ``category``: ``"runtime"``, ``"env"``
+    or ``None``. Mirrors the precedence ``get_mode`` applies (runtime > env)."""
+    if category in _runtime_overrides:
+        return "runtime"
+    if category in _load_env_overrides():
+        return "env"
+    return None
+
+
 def is_live(category: str) -> bool:
     return get_mode(category) == "live"
 

@@ -967,6 +967,14 @@ async def api_categories() -> JSONResponse:
     return JSONResponse({"categories": cats})
 
 
+@app.get("/api/modes")
+def api_modes() -> JSONResponse:
+    """Read-only effective mode + reason per (category, market type, venue)."""
+    from evmax.mode_report import mode_report
+
+    return JSONResponse(mode_report())
+
+
 @app.get("/api/balance")
 async def api_balance(venue: str = Query("", alias="venue")) -> JSONResponse:
     """Live TOTAL account wealth per venue (cash + open positions), for the
@@ -1179,6 +1187,29 @@ async def api_fill(request: Request) -> JSONResponse:
     conn.commit()
     conn.close()
     return JSONResponse({"filled": len(recorded), "fills": recorded, "skipped": skipped})
+
+
+@app.get("/api/resting-orders")
+def api_resting_orders(sector: str = Query("nfl")) -> JSONResponse:
+    """Maker rows that should be resting on the exchange, plus the pilot readout.
+
+    RECORD-ONLY: nothing here places or cancels an order. Each row carries a
+    kickoff time and a status (``resting`` / ``filled`` / ``past_kickoff``);
+    ``past_kickoff`` means the user should cancel the order on the exchange.
+    Fills are recorded through ``POST /api/fill``.
+    """
+    from datetime import datetime, timezone
+
+    from evmax.agents.cleanup.resting_orders import list_resting_orders, pilot_readout
+
+    now = datetime.now(timezone.utc)
+    conn = _conn()
+    try:
+        orders = list_resting_orders(conn, now=now)
+        readout = pilot_readout(conn, sector)
+    finally:
+        conn.close()
+    return JSONResponse({"now": now.isoformat(), "orders": orders, "readout": readout})
 
 
 @app.post("/api/update-placed")
