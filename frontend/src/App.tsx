@@ -15,6 +15,7 @@ import { ProjectionsPage } from './components/ProjectionsPage'
 import { ArbPage } from './components/ArbPage'
 import { PortfolioGrid } from './components/PortfolioGrid'
 import { PortfolioDetail } from './components/PortfolioDetail'
+import { HealthChip } from './components/HealthChip'
 import { Toast } from './components/Toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './App.css'
@@ -53,6 +54,7 @@ export default function App() {
             <span className="subtitle">+EV prediction market dashboard</span>
           </div>
           <div className="topbar-right">
+            <HealthChip />
             <nav className="segmented">
               <button
                 className={`seg ${page.kind === 'dashboard' ? 'active' : ''}`}
