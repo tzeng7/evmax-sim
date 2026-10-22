@@ -19,10 +19,25 @@ scheduled scan process without loading the web app.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable, Optional
 
 from evmax.formatting import format_outcome_label_for_row
+
+
+def tip_time_iso(dt: Optional[datetime]) -> Optional[str]:
+    """UTC ISO-8601 start time for the dashboard's time-to-tip column, or None.
+
+    ``None`` when unknown. A Kalshi-ticker-derived ``event_date`` is anchored at
+    exactly 12:00:00 UTC (a date, not a start time), so that value is treated as
+    unknown rather than shown as a fake tip time.
+    """
+    if dt is None:
+        return None
+    utc = (dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)).astimezone(timezone.utc)
+    if (utc.hour, utc.minute, utc.second, utc.microsecond) == (12, 0, 0, 0):
+        return None
+    return utc.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
@@ -144,6 +159,7 @@ def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         "model_sources": g.model_sources or "",
         "market_id": g.market_id or "",
         "event_date": str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else ""),
+        "tip_time": tip_time_iso(g.event_date),
         "volume": g.volume_usd or 0,
         "volume_usd": g.volume_usd or 0,
         "mode": gap_mode,

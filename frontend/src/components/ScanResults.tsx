@@ -4,6 +4,10 @@ import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
 import { pickBets, recordMakerFills } from '../lib/api'
+import {
+  BUCKET_LABEL, BUCKET_ORDER, bucketStyle, formatTimeToTip, minutesToTip, tipBucket, useNow,
+  type TipBucket,
+} from '../lib/tipTime'
 
 interface Props {
   gaps: ScanGap[]
@@ -78,6 +82,8 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
   // other venue without a rescan.
   const [venueSel, setVenueSel] = useState<Record<string, string>>({})
   const [picking, setPicking] = useState(false)
+  const [showLate, setShowLate] = useState(false)
+  const now = useNow()
   const [filling, setFilling] = useState(false)
 
   // The venue leg a row is currently acting on: the winner (g itself, which
@@ -150,7 +156,17 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     })
   }
 
-  const selectAll = () => setSelected(new Set(filtered.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
+  // Time-to-tip bucket per row, recomputed on every clock tick (no rescan needed).
+  const bucketOf = useCallback(
+    (g: ScanGap): TipBucket => tipBucket(minutesToTip(g.tip_time, now)),
+    [now],
+  )
+  // Late / in-play rows are hidden unless toggled on; hidden rows are never picked.
+  const isHidden = useCallback((g: ScanGap) => !showLate && bucketOf(g) === 'late', [showLate, bucketOf])
+  const visible = useMemo(() => filtered.filter(g => !isHidden(g)), [filtered, isHidden])
+  const lateCount = filtered.length - visible.length
+
+  const selectAll = () => setSelected(new Set(visible.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
   const deselectAll = () => setSelected(new Set())
 
   const updateFill = (mid: string, field: 'odds' | 'stake', value: string) => {
@@ -161,7 +177,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     // Maker-only rows are excluded: they are not crossable at the ask, so
     // /api/pick rejects them. They go through handleFill instead.
     const bets = gaps
-      .filter(g => selected.has(g.market_id))
+      .filter(g => selected.has(g.market_id) && !isHidden(g))
       .map(g => activeLeg(g))
       .filter(leg => !leg.maker_only)
       .map(leg => ({
@@ -189,11 +205,11 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     } finally {
       setPicking(false)
     }
-  }, [gaps, selected, fills, activeLeg, toast, onPicked])
+  }, [gaps, selected, fills, activeLeg, isHidden, toast, onPicked])
 
   const handleFill = useCallback(async () => {
     const rows = gaps
-      .filter(g => selected.has(g.market_id))
+      .filter(g => selected.has(g.market_id) && !isHidden(g))
       .map(g => activeLeg(g))
       .filter(leg => leg.maker_only)
       .map(leg => ({
@@ -220,7 +236,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     } finally {
       setFilling(false)
     }
-  }, [gaps, selected, fills, activeLeg, toast, onPicked])
+  }, [gaps, selected, fills, activeLeg, isHidden, toast, onPicked])
 
   // One rendered table row. Shared by the taker and maker tables so the two
   // never drift on columns or behaviour — only the partition differs.
@@ -250,6 +266,10 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
             onChange={() => toggle(g.market_id)} />
         </td>
         <td className="muted">{g.event_date}</td>
+        <td className="num" style={bucketStyle(bucketOf(g))}
+          title={g.tip_time ? new Date(g.tip_time).toLocaleString() : 'Tip time unknown'}>
+          {formatTimeToTip(minutesToTip(g.tip_time, now))}
+        </td>
         <td>
           <span className="badge">{g.sector}</span>
           {g.league_display && (
@@ -342,7 +362,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <td className="muted" style={{ fontSize: 10 }}>{leg.model_sources}</td>
       </tr>
     )
-  }, [activeLeg, selected, fills])
+  }, [activeLeg, selected, fills, bucketOf, now])
 
   if (!gaps.length) return null
 
@@ -354,17 +374,33 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
   // the action handlers still gate on activeLeg(g).maker_only, so switching a
   // row to a maker-only venue routes it to the right button regardless of
   // which table it visually sits in.
-  const takerRows = filtered.filter(g => !g.maker_only)
-  const makerRows = filtered.filter(g => g.maker_only)
+  const takerRows = visible.filter(g => !g.maker_only)
+  const makerRows = visible.filter(g => g.maker_only)
 
-  const checkedRows = filtered.filter(g => selected.has(g.market_id)).map(activeLeg)
+  // One <tbody> per time bucket, with a header row; rows move buckets as `now` ticks.
+  const renderBucketed = (rows: ScanGap[]) => BUCKET_ORDER.map(b => {
+    const inBucket = rows.filter(g => bucketOf(g) === b)
+    if (!inBucket.length) return null
+    return (
+      <tbody key={b}>
+        <tr>
+          <td colSpan={99} style={{ fontSize: 11, fontWeight: 600, paddingTop: 8 }}>
+            {BUCKET_LABEL[b]} <span className="muted">({inBucket.length})</span>
+          </td>
+        </tr>
+        {inBucket.map(renderRow)}
+      </tbody>
+    )
+  })
+
+  const checkedRows = visible.filter(g => selected.has(g.market_id)).map(activeLeg)
   const pickCount = checkedRows.filter(leg => !leg.maker_only).length
   const fillCount = checkedRows.filter(leg => leg.maker_only).length
 
   const headerRow = (
     <tr>
       <th style={{ width: 30 }}></th>
-      <th>Date</th><th>Sector</th><th style={{ minWidth: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
+      <th>Date</th><th className="num" title="Time until the game starts. Only the under-1h-before-tip entry window has carried positive CLV.">To tip</th><th>Sector</th><th style={{ minWidth: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
       <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">Model</th><th className="num">EV</th>
       <th className="num" title="EV if opened as a resting limit order (maker fee)">Maker EV</th>
       <th className="num" title="Ceiling — rest at or below this and you stay ≥ the EV floor as a maker. Can sit ABOVE the ask; it is not a place-order price. Use Bid ¢.">Limit ¢</th>
@@ -391,6 +427,11 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
               ))}
             </select>
           )}
+          <label className="muted" style={{ fontSize: 11 }}
+            title="Games within 15 min of tip or already started. Hidden rows are excluded from Pick / Record Fill.">
+            <input type="checkbox" checked={showLate} onChange={e => setShowLate(e.target.checked)} />
+            {' '}Late/in-play{lateCount > 0 && !showLate ? ` (${lateCount} hidden)` : ''}
+          </label>
           <button className="btn btn-sm" onClick={() => { setSector(''); setDateFilter(''); setVenueFilter('') }}>Clear</button>
           <button className="btn btn-sm" onClick={selectAll}>Select All</button>
           <button className="btn btn-sm" onClick={deselectAll}>Deselect All</button>
@@ -410,7 +451,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <div className="table-scroll">
           <table>
             <thead>{headerRow}</thead>
-            <tbody>{takerRows.map(renderRow)}</tbody>
+            {renderBucketed(takerRows)}
           </table>
         </div>
       )}
@@ -433,7 +474,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <div className="table-scroll">
           <table>
             <thead>{headerRow}</thead>
-            <tbody>{makerRows.map(renderRow)}</tbody>
+            {renderBucketed(makerRows)}
           </table>
         </div>
       )}

@@ -286,3 +286,37 @@ class TestVenueShadowMarketTypes:
     def test_polyus_total_stays_live(self, monkeypatch):
         row = self._row(monkeypatch, "polymarket_us")
         assert row["mode"] == "live" and row["stake"] > 0
+
+
+# ── tip_time (time-to-tip column) ──────────────────────────────────────────
+
+def test_tip_time_iso_real_start_is_utc_iso():
+    from datetime import timezone
+    dt = datetime(2026, 10, 21, 23, 30, tzinfo=timezone.utc)
+    assert playlist.tip_time_iso(dt) == "2026-10-21T23:30:00Z"
+
+
+def test_tip_time_iso_none_and_noon_utc_anchor_are_unknown():
+    from datetime import timezone
+    assert playlist.tip_time_iso(None) is None
+    # Kalshi-ticker date anchor (noon UTC) is a date, not a start time.
+    assert playlist.tip_time_iso(datetime(2026, 10, 21, 12, 0, tzinfo=timezone.utc)) is None
+
+
+def test_tip_time_iso_naive_treated_as_utc():
+    assert playlist.tip_time_iso(datetime(2026, 10, 21, 19, 5)) == "2026-10-21T19:05:00Z"
+
+
+def test_gap_to_dict_exposes_tip_time():
+    from datetime import timezone
+    g = _gap("m1")
+    g.event_date = datetime(2026, 10, 21, 23, 30, tzinfo=timezone.utc)
+    assert playlist.gap_to_dict(g, 500.0)["tip_time"] == "2026-10-21T23:30:00Z"
+
+
+def test_open_bets_tip_time_from_row():
+    from evmax.web.app import _tip_time_from_row
+    assert _tip_time_from_row("2026-10-21 20:00:00", 90) == "2026-10-21T21:30:00Z"
+    assert _tip_time_from_row("2026-10-21 20:00:00", 0) is None   # clamped = unknown
+    assert _tip_time_from_row(None, 90) is None
+    assert _tip_time_from_row("garbage", 90) is None

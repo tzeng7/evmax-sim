@@ -108,6 +108,21 @@ def _placed_bets() -> list[dict[str, Any]]:
 OPEN_STARTED_LOOKBACK_DAYS = 7
 
 
+def _tip_time_from_row(logged_at: str | None, minutes_to_tipoff: int | None) -> str | None:
+    """Reconstruct a row's start time as logged_at (UTC) + minutes_to_tipoff.
+
+    Rows store only a game DAY plus the scan-time minutes to tip. A stored 0 is
+    clamped (start unknown or already past), so it yields None, not a tip time.
+    """
+    if not logged_at or not minutes_to_tipoff or minutes_to_tipoff <= 0:
+        return None
+    try:
+        t = datetime.fromisoformat(str(logged_at).replace("Z", "")).replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+    return (t + timedelta(minutes=minutes_to_tipoff)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def _open_bets() -> list[dict[str, Any]]:
     """Return open (unresolved, unplaced) bets, deduplicated by market_id.
 
@@ -134,7 +149,7 @@ def _open_bets() -> list[dict[str, Any]]:
                    p.blended_true_prob, p.ev_pct, p.kelly_fraction,
                    p.bankroll_used, p.volume_usd, p.model_sources,
                    p.placed, p.placed_stake, p.market_id, p.line, p.venue,
-                   p.maker_fill
+                   p.maker_fill, p.logged_at, p.minutes_to_tipoff
             FROM ev_predictions p
             INNER JOIN (
                 SELECT market_id, MAX(id) AS max_id
@@ -157,6 +172,7 @@ def _open_bets() -> list[dict[str, Any]]:
         b["display_label"] = _display_label_for_row(b)
         ev_date = b.get("event_date")
         b["status"] = "in_progress" if (ev_date and ev_date < today_str) else "upcoming"
+        b["tip_time"] = _tip_time_from_row(b.pop("logged_at", None), b.pop("minutes_to_tipoff", None))
     return out
 
 

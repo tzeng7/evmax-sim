@@ -4,6 +4,9 @@ import { probToCents, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
 import { pickBets } from '../lib/api'
+import {
+  BUCKET_LABEL, BUCKET_ORDER, bucketStyle, formatTimeToTip, minutesToTip, tipBucket, useNow,
+} from '../lib/tipTime'
 
 interface Props {
   bets: Bet[]
@@ -28,12 +31,21 @@ function previewStake(b: Bet, bankroll: number, kelly: number): number {
 export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked }: Props) {
   const [sector, setSector] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [showLate, setShowLate] = useState(false)
+  const now = useNow()
 
   const scanMids = useMemo(() => new Set(scanGaps.map(g => g.market_id)), [scanGaps])
 
   const filtered = useMemo(() => {
     return sector ? bets.filter(b => b.sector === sector) : bets
   }, [bets, sector])
+
+  const bucketOf = useCallback((b: Bet) => tipBucket(minutesToTip(b.tip_time, now)), [now])
+  // Late / in-play rows are hidden unless toggled on; hidden rows are not picked.
+  const visible = useMemo(
+    () => filtered.filter(b => showLate || bucketOf(b) !== 'late'),
+    [filtered, showLate, bucketOf],
+  )
 
   const toggle = (mid: string) => {
     setSelected(prev => {
@@ -48,7 +60,8 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
   }
 
   const handlePick = useCallback(async () => {
-    const ids = [...selected]
+    const hidden = new Set(filtered.filter(b => !visible.includes(b)).map(b => b.market_id))
+    const ids = [...selected].filter(id => !hidden.has(id))
     if (!ids.length) { toast('Select positions to pick first', 'info'); return }
     // Place at the CURRENT dashboard bankroll/kelly — i.e. the stake the preview
     // shows — not the scan-time bankroll_used × kelly_fraction the backend falls
@@ -81,14 +94,19 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
     } catch (e) {
       toast('Pick failed: ' + (e as Error).message, 'err')
     }
-  }, [selected, bets, bankroll, kelly, toast, onPicked])
+  }, [selected, bets, filtered, visible, bankroll, kelly, toast, onPicked])
 
   return (
     <div className="panel">
       <div className="panel-header">
-        <h2>Open Positions ({filtered.length})</h2>
+        <h2>Open Positions ({visible.length})</h2>
         <div className="actions" style={{ gap: 4 }}>
           <SectorFilter value={sector} onChange={setSector} />
+          <label className="muted" style={{ fontSize: 11 }}
+            title="Games within 15 min of tip or already started. Hidden rows are excluded from Pick All.">
+            <input type="checkbox" checked={showLate} onChange={e => setShowLate(e.target.checked)} />
+            {' '}Late/in-play{filtered.length > visible.length && !showLate ? ` (${filtered.length - visible.length} hidden)` : ''}
+          </label>
           {bets.length > 0 && <button className="btn btn-sm success" onClick={handlePick}>Pick All</button>}
         </div>
       </div>
@@ -97,12 +115,19 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
           <thead>
             <tr>
               <th style={{ width: 28 }}></th><th></th>
-              <th>Date</th><th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
+              <th>Date</th><th className="num" title="Time until the game starts (from scan-time minutes to tip)">To tip</th><th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
               <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">EV</th><th className="num">Stake</th>
             </tr>
           </thead>
-          <tbody>
-            {filtered.slice(0, 40).map(b => {
+          {BUCKET_ORDER.map(bk => {
+            const rows = visible.filter(b => bucketOf(b) === bk).slice(0, 40)
+            if (!rows.length) return null
+            return (
+          <tbody key={bk}>
+            <tr><td colSpan={99} style={{ fontSize: 11, fontWeight: 600, paddingTop: 8 }}>
+              {BUCKET_LABEL[bk]} <span className="muted">({rows.length})</span>
+            </td></tr>
+            {rows.map(b => {
               const stake = previewStake(b, bankroll, kelly)
               return (
                 <tr key={b.market_id}>
@@ -112,6 +137,10 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
                     {b.status === 'in_progress' && <span className="badge warn" title="Game has started — awaiting resolution">LIVE</span>}
                   </td>
                   <td className="muted">{b.event_date}</td>
+                  <td className="num" style={bucketStyle(bucketOf(b))}
+                    title={b.tip_time ? new Date(b.tip_time).toLocaleString() : 'Tip time unknown'}>
+                    {formatTimeToTip(minutesToTip(b.tip_time, now))}
+                  </td>
                   <td><span className="badge">{b.sector}</span></td>
                   <td><VenueLogo venue={b.venue} /></td>
                   <td>{b.event_title}</td>
@@ -124,6 +153,8 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
               )
             })}
           </tbody>
+            )
+          })}
         </table>
       </div>
     </div>
