@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Summary, ProfitPoint, SectorRow, Bet, ScanGap } from '../lib/types'
 import { fetchDashboard } from '../lib/api'
 
@@ -18,7 +18,10 @@ export interface DashboardState {
   loading: boolean
 }
 
-export function useDashboard() {
+export const POLL_INTERVAL_MS = 30_000
+
+/** `active` = dashboard page is showing; polling only runs while it is true. */
+export function useDashboard(active = true) {
   const [state, setState] = useState<DashboardState>({
     summaryAll: null,
     summaryPlaced: null,
@@ -35,9 +38,16 @@ export function useDashboard() {
     loading: true,
   })
 
+  const inFlight = useRef(false)
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null)
+  const [paused, setPaused] = useState(false)
+
   const refresh = useCallback(() => {
+    if (inFlight.current) return Promise.resolve()
+    inFlight.current = true
     return fetchDashboard()
       .then(data => {
+        setUpdatedAt(Date.now())
         setState(prev => {
           const excluded = new Set<string>([
             ...data.placed_bets.map(b => b.market_id),
@@ -62,9 +72,33 @@ export function useDashboard() {
         console.error('Failed to load dashboard', e)
         setState(prev => ({ ...prev, loading: false }))
       })
+      .finally(() => { inFlight.current = false })
   }, [])
 
   useEffect(() => { void refresh() }, [refresh])
+
+  // Visibility-aware poll: no timer while the tab is hidden, paused by the
+  // user, or off the dashboard page; refreshes immediately on becoming visible.
+  useEffect(() => {
+    if (!active || paused) return
+    let timer: ReturnType<typeof setInterval> | null = null
+    const stop = () => { if (timer !== null) { clearInterval(timer); timer = null } }
+    const start = () => {
+      stop()
+      timer = setInterval(() => { void refresh() }, POLL_INTERVAL_MS)
+    }
+    const onVisibility = () => {
+      if (document.hidden) { stop() } else { void refresh(); start() }
+    }
+    if (!document.hidden) start()
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('focus', onVisibility)
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('focus', onVisibility)
+    }
+  }, [active, paused, refresh])
 
   const setScanResults = useCallback((
     gaps: ScanGap[],
@@ -86,5 +120,5 @@ export function useDashboard() {
     })
   }, [])
 
-  return { ...state, refresh, setScanResults }
+  return { ...state, refresh, setScanResults, updatedAt, paused, setPaused }
 }
