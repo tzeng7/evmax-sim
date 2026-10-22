@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useHashRoute, type Page } from './hooks/useHashRoute'
+import { usePersistedState } from './hooks/usePersistedState'
 import { useDashboard } from './hooks/useDashboard'
 import { useToast } from './hooks/useToast'
 import { KpiCards } from './components/KpiCards'
@@ -19,20 +21,20 @@ import { Toast } from './components/Toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './App.css'
 
-type Page = { kind: 'dashboard' } | { kind: 'metrics' } | { kind: 'board' } | { kind: 'arb' } | { kind: 'projections' } | { kind: 'portfolios' } | { kind: 'portfolio'; id: string }
-
 export default function App() {
   const dash = useDashboard()
   const { toast, ...toastProps } = useToast()
-  const [view, setView] = useState<'all' | 'placed'>('all')
-  const [page, setPage] = useState<Page>({ kind: 'dashboard' })
+  const [route, updateRoute] = useHashRoute()
+  const { page, view } = route
+  const setPage = (p: Page) => updateRoute({ page: p })
+  const setView = (v: 'all' | 'placed') => updateRoute({ view: v })
   // Top-bar slot that ActionBar portals its Scan/Resolve verbs into, so the
   // primary actions sit with navigation rather than trailing the toolbar.
   const [actionsSlot, setActionsSlot] = useState<HTMLDivElement | null>(null)
   // Lifted to App so ScanResults can re-size stakes live when these change
   // without forcing a re-scan. ActionBar still owns the inputs.
-  const [bankrollStr, setBankrollStr] = useState('250')
-  const [kelly, setKelly] = useState(0.5)
+  const [bankrollStr, setBankrollStr] = usePersistedState('bankroll', '250')
+  const [kelly, setKelly] = usePersistedState('kelly', 0.5)
   const bankroll = Number(bankrollStr) || 0
 
   const summary = view === 'placed' ? dash.summaryPlaced : dash.summaryAll

@@ -1,3 +1,4 @@
+import { usePersistedState } from '../hooks/usePersistedState'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import type { ScanGap } from '../lib/types'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
@@ -64,13 +65,13 @@ function venueOptionLabel(l: ScanGap): string {
 }
 
 export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
-  const [sector, setSector] = useState('')
-  const [dateFilter, setDateFilter] = useState('')
+  const [sector, setSector] = usePersistedState('scan.sector', '')
+  const [dateFilter, setDateFilter] = usePersistedState('scan.date', '')
   // DISPLAY-only venue filter (decoupled from bankroll sizing): narrows which
   // rows are shown, never how they are sized. '' = all venues. A row matches
   // when the filtered venue is its actionable venue OR one of its line-shop
   // options, so a cross-venue play stays visible under either venue.
-  const [venueFilter, setVenueFilter] = useState('')
+  const [venueFilter, setVenueFilter] = usePersistedState('scan.venue', '')
   const [selected, setSelected] = useState<Set<string>>(() => new Set(gaps.map(g => g.market_id)))
   const [fills, setFills] = useState<Record<string, { odds: string; stake: string }>>({})
   // Per-row chosen venue, keyed by the row's (winner) market_id. Absent = use

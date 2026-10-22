@@ -1,3 +1,4 @@
+import { usePersistedState } from '../hooks/usePersistedState'
 import { useState, useMemo, useCallback } from 'react'
 import type { Bet, ScanGap } from '../lib/types'
 import { probToCents, outcomeLabel } from '../lib/odds'
@@ -26,7 +27,7 @@ function previewStake(b: Bet, bankroll: number, kelly: number): number {
 }
 
 export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked }: Props) {
-  const [sector, setSector] = useState('')
+  const [sector, setSector] = usePersistedState('open.sector', '')
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const scanMids = useMemo(() => new Set(scanGaps.map(g => g.market_id)), [scanGaps])
