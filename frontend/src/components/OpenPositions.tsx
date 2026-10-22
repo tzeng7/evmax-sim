@@ -9,28 +9,23 @@ import { pickBets } from '../lib/api'
 import {
   BUCKET_LABEL, BUCKET_ORDER, bucketStyle, formatTimeToTip, minutesToTip, tipBucket, useNow,
 } from '../lib/tipTime'
+import { resizeStake } from '../lib/resizeStake'
 
 interface Props {
   bets: Bet[]
   scanGaps: ScanGap[]
   bankroll: number
   kelly: number
+  scanKelly: number
   toast: (msg: string, type?: 'info' | 'ok' | 'err') => void
   onPicked: () => void
 }
 
-// Stored kelly_fraction = K_full × scan_kelly × discounts, capped at 5%.
-// Dashboard scans default to kelly=0.5, so scale by (current_kelly / 0.5) to
-// preview a different kelly multiplier. Bankroll scales linearly.
-const SCAN_KELLY_BASELINE = 0.5
+const PAGE = 40
 
-function previewStake(b: Bet, bankroll: number, kelly: number): number {
-  const stored = b.kelly_fraction || 0
-  const scaled = stored * (kelly / SCAN_KELLY_BASELINE)
-  return bankroll * Math.min(scaled, 0.05)
-}
+type SortKey = 'event_date' | 'kalshi_yes_price' | 'ev_pct' | 'stake'
 
-export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked }: Props) {
+export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
   const [sector, setSector] = usePersistedState('open.sector', '')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [showLate, setShowLate] = useState(false)
@@ -38,15 +33,56 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
 
   const scanMids = useMemo(() => new Set(scanGaps.map(g => g.market_id)), [scanGaps])
 
+  const [sortKey, setSortKey] = useState<SortKey | null>(null)
+  const [sortDir, setSortDir] = useState<1 | -1>(1)
+  const [limit, setLimit] = useState(PAGE)
+
+  const stakeOf = useCallback(
+    (b: Bet) => resizeStake(b.kelly_fraction, bankroll, kelly, scanKelly),
+    [bankroll, kelly, scanKelly],
+  )
+
   const filtered = useMemo(() => {
-    return sector ? bets.filter(b => b.sector === sector) : bets
-  }, [bets, sector])
+    const rows = sector ? bets.filter(b => b.sector === sector) : bets
+    if (!sortKey) return rows
+    const val = (b: Bet): number | string =>
+      sortKey === 'stake' ? stakeOf(b)
+        : sortKey === 'event_date' ? (b.event_date || '')
+          : (b[sortKey] as number) || 0
+    return [...rows].sort((x, y) => {
+      const a = val(x), c = val(y)
+      return (a < c ? -1 : a > c ? 1 : 0) * sortDir
+    })
+  }, [bets, sector, sortKey, sortDir, stakeOf])
 
   const bucketOf = useCallback((b: Bet) => tipBucket(minutesToTip(b.tip_time, now)), [now])
-  // Late / in-play rows are hidden unless toggled on; hidden rows are not picked.
-  const visible = useMemo(
+  // Late / in-play rows are hidden unless toggled on; hidden rows are never picked.
+  const active = useMemo(
     () => filtered.filter(b => showLate || bucketOf(b) !== 'late'),
     [filtered, showLate, bucketOf],
+  )
+  const hiddenCount = filtered.length - active.length
+  const visible = useMemo(() => active.slice(0, limit), [active, limit])
+  const allVisibleSelected = visible.length > 0 && visible.every(b => selected.has(b.market_id))
+
+  const toggleAllVisible = () => {
+    setSelected(prev => {
+      const s = new Set(prev)
+      if (allVisibleSelected) visible.forEach(b => s.delete(b.market_id))
+      else visible.forEach(b => s.add(b.market_id))
+      return s
+    })
+  }
+
+  const sortBy = (k: SortKey) => {
+    if (sortKey === k) setSortDir(d => (d === 1 ? -1 : 1))
+    else { setSortKey(k); setSortDir(k === 'event_date' ? 1 : -1) }
+  }
+  const sortTh = (k: SortKey, label: string, cls?: string) => (
+    <th className={cls} style={{ cursor: 'pointer' }} onClick={() => sortBy(k)}
+      aria-sort={sortKey === k ? (sortDir === 1 ? 'ascending' : 'descending') : 'none'}>
+      {label}{sortKey === k ? (sortDir === 1 ? ' ▲' : ' ▼') : ''}
+    </th>
   )
 
   const toggle = (mid: string) => {
@@ -62,8 +98,8 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
   }
 
   const handlePick = useCallback(async () => {
-    const hidden = new Set(filtered.filter(b => !visible.includes(b)).map(b => b.market_id))
-    const ids = [...selected].filter(id => !hidden.has(id))
+    const ok = new Set(active.map(b => b.market_id))
+    const ids = [...selected].filter(id => ok.has(id))
     if (!ids.length) { toast('Select positions to pick first', 'info'); return }
     // Place at the CURRENT dashboard bankroll/kelly — i.e. the stake the preview
     // shows — not the scan-time bankroll_used × kelly_fraction the backend falls
@@ -76,7 +112,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
       return {
         market_id: mid,
         fill_price: b ? b.kalshi_yes_price : null,
-        fill_stake: b ? Number(previewStake(b, bankroll, kelly).toFixed(2)) : null,
+        fill_stake: b ? Number(stakeOf(b).toFixed(2)) : null,
       }
     })
     try {
@@ -96,36 +132,38 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
     } catch (e) {
       toast('Pick failed: ' + (e as Error).message, 'err')
     }
-  }, [selected, bets, filtered, visible, bankroll, kelly, toast, onPicked])
+  }, [selected, bets, active, stakeOf, toast, onPicked])
 
-  const kbIds = useMemo(() => filtered.slice(0, 40).map(b => b.market_id), [filtered])
+  const kbIds = useMemo(() => visible.map(b => b.market_id), [visible])
   const kb = useRowKeyboard({ ids: kbIds, onToggle: toggle, onPick: handlePick })
 
   return (
     <div className="panel">
       <div className="panel-header">
-        <h2>Open Positions ({visible.length})</h2>
+        <h2>Open Positions ({active.length})</h2>
         <div className="actions" style={{ gap: 4 }}>
           <SectorFilter value={sector} onChange={setSector} />
           <label className="muted" style={{ fontSize: 11 }}
             title="Games within 15 min of tip or already started. Hidden rows are excluded from Pick All.">
             <input type="checkbox" checked={showLate} onChange={e => setShowLate(e.target.checked)} />
-            {' '}Late/in-play{filtered.length > visible.length && !showLate ? ` (${filtered.length - visible.length} hidden)` : ''}
+            {' '}Late/in-play{hiddenCount > 0 && !showLate ? ` (${hiddenCount} hidden)` : ''}
           </label>
           {bets.length > 0 && <button className="btn btn-sm success" onClick={handlePick}>Pick All</button>}
         </div>
       </div>
       <div {...kb.containerProps} className="scroll-area kb-table">
-        <table>
+        <table className="card-tbl st-open">
           <thead>
             <tr>
-              <th style={{ width: 28 }}></th><th></th>
-              <th>Date</th><th className="num" title="Time until the game starts (from scan-time minutes to tip)">To tip</th><th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
-              <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">EV</th><th className="num">Stake</th>
+              <th style={{ width: 28 }}>
+                <input type="checkbox" aria-label="Select all visible" checked={allVisibleSelected} onChange={toggleAllVisible} />
+              </th><th></th>
+              {sortTh('event_date', 'Date')}<th className="num" title="Time until the game starts (from scan-time minutes to tip)">To tip</th><th>Sector</th><th style={{ width: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
+              {sortTh('kalshi_yes_price', 'Ask', 'num')}<th className="num">Fair Value</th>{sortTh('ev_pct', 'EV', 'num')}{sortTh('stake', 'Stake', 'num')}
             </tr>
           </thead>
           {BUCKET_ORDER.map(bk => {
-            const rows = visible.filter(b => bucketOf(b) === bk).slice(0, 40)
+            const rows = visible.filter(b => bucketOf(b) === bk)
             if (!rows.length) return null
             return (
           <tbody key={bk}>
@@ -133,7 +171,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
               {BUCKET_LABEL[bk]} <span className="muted">({rows.length})</span>
             </td></tr>
             {rows.map(b => {
-              const stake = previewStake(b, bankroll, kelly)
+              const stake = stakeOf(b)
               return (
                 <tr key={b.market_id} {...kb.rowProps(b.market_id)}>
                   <td><input type="checkbox" aria-label={`Select ${b.event_title} ${outcomeLabel(b)}`} checked={selected.has(b.market_id)} onChange={() => toggle(b.market_id)} /></td>
@@ -161,6 +199,15 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
             )
           })}
         </table>
+        <div className="muted" style={{ padding: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span>Showing {visible.length} of {active.length}</span>
+          {visible.length < active.length && (
+            <>
+              <button className="btn btn-sm" onClick={() => setLimit(l => l + PAGE)}>Show {Math.min(PAGE, active.length - visible.length)} more</button>
+              <button className="btn btn-sm" onClick={() => setLimit(active.length)}>Show all</button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )
