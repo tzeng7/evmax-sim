@@ -1,8 +1,11 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { usePersistedState } from '../hooks/usePersistedState'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { reconcileRowState } from '../lib/reconcileSelection'
 import type { ScanGap } from '../lib/types'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
+import { useRowKeyboard } from '../hooks/useRowKeyboard'
 import { pickBets, recordMakerFills } from '../lib/api'
 import {
   BUCKET_LABEL, BUCKET_ORDER, bucketStyle, formatTimeToTip, minutesToTip, tipBucket, useNow,
@@ -68,14 +71,14 @@ function venueOptionLabel(l: ScanGap): string {
 }
 
 export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
-  const [sector, setSector] = useState('')
-  const [dateFilter, setDateFilter] = useState('')
+  const [sector, setSector] = usePersistedState('scan.sector', '')
+  const [dateFilter, setDateFilter] = usePersistedState('scan.date', '')
   // DISPLAY-only venue filter (decoupled from bankroll sizing): narrows which
   // rows are shown, never how they are sized. '' = all venues. A row matches
   // when the filtered venue is its actionable venue OR one of its line-shop
   // options, so a cross-venue play stays visible under either venue.
-  const [venueFilter, setVenueFilter] = useState('')
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(gaps.map(g => g.market_id)))
+  const [venueFilter, setVenueFilter] = usePersistedState('scan.venue', '')
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const [fills, setFills] = useState<Record<string, { odds: string; stake: string }>>({})
   // Per-row chosen venue, keyed by the row's (winner) market_id. Absent = use
   // the best-execution winner. Lets the user line-shop / route pick+fill to the
@@ -95,18 +98,23 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     return legsOf(g).find(l => l.venue === sel) ?? g
   }, [venueSel])
 
-  // Reset selection when gaps change
-  useMemo(() => {
-    setSelected(new Set(gaps.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
-    setVenueSel({})
-    const f: Record<string, { odds: string; stake: string }> = {}
-    for (const g of gaps) {
-      // Seed a fill default for every venue leg so switching the dropdown shows
-      // that venue's own ask / maker bid / stake, not the winner's.
-      for (const leg of legsOf(g)) f[leg.market_id] = defaultFill(leg, bankroll, kelly, scanKelly)
-    }
-    setFills(f)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Reconcile per-row state by market_id when gaps change (rescan / poll):
+  // keep selection, venue choice and edited fills for rows still present, seed
+  // defaults only for new rows (live-only selection), drop vanished rows.
+  const seenIds = useRef<Set<string>>(new Set())
+  const latest = useRef({ selected, venueSel, fills })
+  latest.current = { selected, venueSel, fills }
+  const sizing = useRef({ bankroll, kelly, scanKelly })
+  sizing.current = { bankroll, kelly, scanKelly }
+  useEffect(() => {
+    const { bankroll: b, kelly: k, scanKelly: sk } = sizing.current
+    const { state, ids } = reconcileRowState(
+      latest.current, seenIds.current, gaps, legsOf, leg => defaultFill(leg, b, k, sk),
+    )
+    seenIds.current = ids
+    setSelected(state.selected)
+    setVenueSel(state.venueSel)
+    setFills(state.fills)
   }, [gaps])
 
   // When the user changes bankroll or Kelly after a scan, refresh the stake
@@ -238,6 +246,22 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     }
   }, [gaps, selected, fills, activeLeg, isHidden, toast, onPicked])
 
+  // Keyboard navigation per table (j/k, space, p). Only pickable rows toggle.
+  const toggleIfSelectable = (mid: string) => {
+    const g = filtered.find(x => x.market_id === mid)
+    if (!g) return
+    const l = activeLeg(g)
+    if ((l.mode || 'live') === 'live' || l.maker_only) toggle(mid)
+  }
+  // Visible rows only, in on-screen (bucket) order so j/k follows what is drawn.
+  const orderedIds = useCallback((maker: boolean) => BUCKET_ORDER.flatMap(b =>
+    visible.filter(g => !!g.maker_only === maker && bucketOf(g) === b).map(g => g.market_id)),
+  [visible, bucketOf])
+  const takerIds = useMemo(() => orderedIds(false), [orderedIds])
+  const makerIds = useMemo(() => orderedIds(true), [orderedIds])
+  const kbTaker = useRowKeyboard({ ids: takerIds, onToggle: toggleIfSelectable, onPick: handlePick })
+  const kbMaker = useRowKeyboard({ ids: makerIds, onToggle: toggleIfSelectable, onPick: handleFill })
+
   // One rendered table row. Shared by the taker and maker tables so the two
   // never drift on columns or behaviour — only the partition differs.
   const renderRow = useCallback((g: ScanGap) => {
@@ -254,9 +278,9 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     const isMaker = !!leg.maker_only
     const selectable = isLive || isMaker
     return (
-      <tr key={g.market_id} style={isLive ? undefined : { opacity: 0.55 }}>
+      <tr key={g.market_id} {...(isMaker ? kbMaker : kbTaker).rowProps(g.market_id)} style={isLive ? undefined : { opacity: 0.55 }}>
         <td>
-          <input type="checkbox" checked={selected.has(g.market_id)}
+          <input type="checkbox" aria-label={`Select ${g.event_title} ${outcome}`} checked={selected.has(g.market_id)}
             disabled={!selectable}
             title={
               isMaker
@@ -297,6 +321,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <td>
           {hasDropdown ? (
             <select
+              aria-label={`Venue for ${g.event_title}`}
               value={leg.venue ?? ''}
               onChange={e => setVenueSel(prev => ({ ...prev, [g.market_id]: e.target.value }))}
               title="Same bet on multiple venues — pick which book to bet. Ask, EV, maker fields and stake below follow your choice. 'mkr' = that venue clears only as a maker."
@@ -344,12 +369,12 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
           {leg.maker_bid_price != null ? probToCents(leg.maker_bid_price) : '—'}
         </td>
         <td className="num">
-          <input type="text" value={fills[leg.market_id]?.odds || askOdds}
+          <input type="text" aria-label={`Fill cents for ${g.event_title}`} value={fills[leg.market_id]?.odds || askOdds}
             onChange={e => updateFill(leg.market_id, 'odds', e.target.value)}
             style={{ width: 64 }} />
         </td>
         <td className="num">
-          <input type="number" value={fills[leg.market_id]?.stake || ''}
+          <input type="number" aria-label={`Stake for ${g.event_title}`} value={fills[leg.market_id]?.stake || ''}
             onChange={e => updateFill(leg.market_id, 'stake', e.target.value)}
             style={{ width: 70 }} min="0.01" step="0.01" />
           {g.cash_capped && leg.venue === g.venue && (
@@ -362,7 +387,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <td className="muted" style={{ fontSize: 10 }}>{leg.model_sources}</td>
       </tr>
     )
-  }, [activeLeg, selected, fills, bucketOf, now])
+  }, [activeLeg, selected, fills, kbTaker, kbMaker, bucketOf, now])
 
   if (!gaps.length) return null
 
@@ -414,11 +439,11 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
       <div className="panel-header">
         <h2>Scan Results — {gaps.length} plays ({meta?.markets_fetched} markets, {meta?.markets_matched} matched)</h2>
         <div className="actions" style={{ gap: 4 }}>
-          <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
+          <input type="date" aria-label="Filter by date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
             style={{ fontSize: 11 }} />
           <SectorFilter value={sector} onChange={setSector} />
           {venuesPresent.length > 1 && (
-            <select value={venueFilter} onChange={e => setVenueFilter(e.target.value)}
+            <select aria-label="Filter by venue" value={venueFilter} onChange={e => setVenueFilter(e.target.value)}
               style={{ fontSize: 11 }}
               title="Display filter — narrows which venues' plays are shown. Does NOT change sizing (that's the bankroll dropdown).">
               <option value="">All venues</option>
@@ -448,7 +473,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
       {takerRows.length === 0 ? (
         <div className="muted" style={{ fontSize: 12, padding: '4px 0 8px' }}>No taker-EV plays.</div>
       ) : (
-        <div className="table-scroll">
+        <div {...kbTaker.containerProps}>
           <table>
             <thead>{headerRow}</thead>
             {renderBucketed(takerRows)}
@@ -471,7 +496,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
       {makerRows.length === 0 ? (
         <div className="muted" style={{ fontSize: 12, padding: '4px 0 8px' }}>No maker-only plays.</div>
       ) : (
-        <div className="table-scroll">
+        <div {...kbMaker.containerProps}>
           <table>
             <thead>{headerRow}</thead>
             {renderBucketed(makerRows)}
