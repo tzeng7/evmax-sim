@@ -15,6 +15,7 @@ import { RecentSettled } from './components/RecentSettled'
 import { MetricsPage } from './components/MetricsPage'
 import { PromotionBoard } from './components/PromotionBoard'
 import { ProjectionsPage } from './components/ProjectionsPage'
+import { EvalPage } from './components/EvalPage'
 import { ArbPage } from './components/ArbPage'
 import { PortfolioGrid } from './components/PortfolioGrid'
 import { PortfolioDetail } from './components/PortfolioDetail'
@@ -102,6 +103,12 @@ export default function App() {
                 Board
               </button>
               <button
+                className={`seg ${page.kind === 'eval' ? 'active' : ''}`}
+                onClick={() => setPage({ kind: 'eval' })}
+              >
+                Eval
+              </button>
+              <button
                 className={`seg ${page.kind === 'arb' ? 'active' : ''}`}
                 aria-current={page.kind === 'arb' ? 'page' : undefined}
                 onClick={() => setPage({ kind: 'arb' })}
@@ -159,7 +166,7 @@ export default function App() {
               <button aria-pressed={view === 'placed'} className={`seg ${view === 'placed' ? 'active' : ''}`} onClick={() => setView('placed')}>Placed Only</button>
             </div>
 
-            <KpiCards summary={summary} />
+            <KpiCards summary={summary} onOpenEval={() => setPage({ kind: 'eval' })} />
             <ProfitChart seriesAll={dash.seriesAll} seriesPlaced={dash.seriesPlaced} view={view} />
 
             <ScanResults
@@ -185,9 +192,11 @@ export default function App() {
           </>
         )}
 
-        {page.kind === 'metrics' && <MetricsPage toast={toast} />}
+        {page.kind === 'metrics' && <MetricsPage toast={toast} onOpenEval={() => setPage({ kind: 'eval' })} />}
 
         {page.kind === 'board' && <PromotionBoard toast={toast} />}
+
+        {page.kind === 'eval' && <EvalPage toast={toast} />}
 
         {page.kind === 'arb' && <ArbPage toast={toast} />}
 

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 
 export type Page =
-  | { kind: 'dashboard' } | { kind: 'metrics' } | { kind: 'board' } | { kind: 'arb' }
+  | { kind: 'dashboard' } | { kind: 'metrics' } | { kind: 'board' } | { kind: 'eval' } | { kind: 'arb' }
   | { kind: 'projections' } | { kind: 'portfolios' } | { kind: 'portfolio'; id: string }
 export type DashView = 'all' | 'placed'
 export interface Route { page: Page; view: DashView }
 
-const SIMPLE = ['dashboard', 'metrics', 'board', 'arb', 'projections', 'portfolios'] as const
+const SIMPLE = ['dashboard', 'metrics', 'board', 'eval', 'arb', 'projections', 'portfolios'] as const
 
 export function parseHash(hash: string): Route {
   const [path, query = ''] = hash.replace(/^#\/?/, '').split('?')

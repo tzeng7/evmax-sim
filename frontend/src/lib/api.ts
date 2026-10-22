@@ -1,4 +1,4 @@
-import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult, PromotionBoardResult, VenueBalances, ProjectionSector, ProjectionSlate, ProjectionGame, ProjectionGameDetail, ProjectionOptionValues, ModesReport } from './types'
+import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult, PromotionBoardResult, EvalResult, VenueBalances, ProjectionSector, ProjectionSlate, ProjectionGame, ProjectionGameDetail, ProjectionOptionValues, ModesReport } from './types'
 
 const json = (r: Response) => r.json()
 
@@ -192,6 +192,25 @@ export async function fetchPromotionBoard(
   if (f.league) params.set('league', f.league)
   if (f.priceBucket) params.set('price_bucket', f.priceBucket)
   return fetch(`/api/promotion-board?${params}`).then(json)
+}
+
+// ── Eval tab ──
+export interface EvalParams {
+  sector?: string
+  market?: string
+  venue?: string
+  mode?: string
+  since?: string
+  population?: string
+}
+
+export async function fetchEval(p: EvalParams): Promise<EvalResult> {
+  const params = new URLSearchParams()
+  for (const [k, v] of Object.entries(p)) if (v) params.set(k, v)
+  const r = await fetch(`/api/eval?${params}`)
+  const body = await r.json()
+  if (!r.ok) throw new Error(body.error ?? `HTTP ${r.status}`)
+  return body
 }
 
 // ── Projections tab ──
