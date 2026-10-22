@@ -16,6 +16,7 @@ import { ArbPage } from './components/ArbPage'
 import { PortfolioGrid } from './components/PortfolioGrid'
 import { PortfolioDetail } from './components/PortfolioDetail'
 import { Toast } from './components/Toast'
+import { ActivityLog } from './components/ActivityLog'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './App.css'
 
@@ -42,7 +43,7 @@ function RefreshChip({ updatedAt, paused, onTogglePause, onRefresh }: {
 export default function App() {
   const [page, setPage] = useState<Page>({ kind: 'dashboard' })
   const dash = useDashboard(page.kind === 'dashboard')
-  const { toast, ...toastProps } = useToast()
+  const { toast, activity, ...toastProps } = useToast()
   const [view, setView] = useState<'all' | 'placed'>('all')
   // Top-bar slot that ActionBar portals its Scan/Resolve verbs into, so the
   // primary actions sit with navigation rather than trailing the toolbar.
@@ -109,6 +110,7 @@ export default function App() {
                 Portfolios
               </button>
             </nav>
+            <ActivityLog entries={activity} />
             {page.kind === 'dashboard' && (
               <>
                 <span className="topbar-div" aria-hidden="true" />
