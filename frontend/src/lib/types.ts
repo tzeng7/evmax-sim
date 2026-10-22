@@ -257,6 +257,7 @@ export interface BoardGate {
 
 export interface BoardClv {
   n: number
+  games?: number
   mean_clv_pp: number
   frac_positive: number
   clears: boolean
