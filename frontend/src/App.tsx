@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useHashRoute, type Page } from './hooks/useHashRoute'
 import { usePersistedState } from './hooks/usePersistedState'
 import { useDashboard } from './hooks/useDashboard'
@@ -17,17 +17,37 @@ import { ProjectionsPage } from './components/ProjectionsPage'
 import { ArbPage } from './components/ArbPage'
 import { PortfolioGrid } from './components/PortfolioGrid'
 import { PortfolioDetail } from './components/PortfolioDetail'
+import { HealthChip } from './components/HealthChip'
 import { Toast } from './components/Toast'
+import { ActivityLog } from './components/ActivityLog'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './App.css'
 
+function RefreshChip({ updatedAt, paused, onTogglePause, onRefresh }: {
+  updatedAt: number | null; paused: boolean; onTogglePause: () => void; onRefresh: () => void
+}) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  const age = updatedAt === null ? null : Math.max(0, Math.round((Math.max(now, updatedAt) - updatedAt) / 1000))
+  return (
+    <span className="refresh-chip" data-testid="refresh-chip" style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: 12, opacity: 0.8 }}>
+      <span>{age === null ? 'Loading…' : `Updated ${age}s ago`}{paused ? ' (paused)' : ''}</span>
+      <button className="seg" onClick={onRefresh} aria-label="Refresh now" title="Refresh now">↻</button>
+      <button className="seg" onClick={onTogglePause} aria-pressed={paused} aria-label={paused ? 'Resume auto-refresh' : 'Pause auto-refresh'} title={paused ? 'Resume auto-refresh' : 'Pause auto-refresh'}>{paused ? '▶' : '⏸'}</button>
+    </span>
+  )
+}
+
 export default function App() {
-  const dash = useDashboard()
-  const { toast, ...toastProps } = useToast()
   const [route, updateRoute] = useHashRoute()
   const { page, view } = route
   const setPage = (p: Page) => updateRoute({ page: p })
   const setView = (v: 'all' | 'placed') => updateRoute({ view: v })
+  const dash = useDashboard(page.kind === 'dashboard')
+  const { toast, activity, ...toastProps } = useToast()
   // Top-bar slot that ActionBar portals its Scan/Resolve verbs into, so the
   // primary actions sit with navigation rather than trailing the toolbar.
   const [actionsSlot, setActionsSlot] = useState<HTMLDivElement | null>(null)
@@ -55,6 +75,7 @@ export default function App() {
             <span className="subtitle">+EV prediction market dashboard</span>
           </div>
           <div className="topbar-right">
+            <HealthChip />
             <nav className="segmented">
               <button
                 className={`seg ${page.kind === 'dashboard' ? 'active' : ''}`}
@@ -93,10 +114,12 @@ export default function App() {
                 Portfolios
               </button>
             </nav>
+            <ActivityLog entries={activity} />
             {page.kind === 'dashboard' && (
               <>
                 <span className="topbar-div" aria-hidden="true" />
                 <div className="topbar-actions" ref={setActionsSlot} />
+                <RefreshChip updatedAt={dash.updatedAt} paused={dash.paused} onTogglePause={() => dash.setPaused(!dash.paused)} onRefresh={() => { void dash.refresh() }} />
               </>
             )}
           </div>
