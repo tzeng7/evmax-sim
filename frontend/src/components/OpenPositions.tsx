@@ -93,7 +93,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
         </div>
       </div>
       <div className="scroll-area">
-        <table>
+        <table className="card-tbl st-open">
           <thead>
             <tr>
               <th style={{ width: 28 }}></th><th></th>
