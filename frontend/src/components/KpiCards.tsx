@@ -1,11 +1,13 @@
 import type { Summary } from '../lib/types'
 import { AnimatedNumber } from './AnimatedNumber'
+import { NotEvalLens } from './NotEvalLens'
 
 interface Props {
   summary: Summary | null
+  onOpenEval?: () => void
 }
 
-export function KpiCards({ summary }: Props) {
+export function KpiCards({ summary, onOpenEval }: Props) {
   if (!summary) return null
   const s = summary
   const pnlCls = s.total_pnl >= 0 ? 'green' : 'red'
@@ -15,6 +17,7 @@ export function KpiCards({ summary }: Props) {
   const roiCaret = s.roi_pct >= 0 ? '▲' : '▼'
 
   return (
+    <>
     <div className="grid-kpi">
       <div className="kpi">
         <div className="label">Total P&L</div>
@@ -51,5 +54,7 @@ export function KpiCards({ summary }: Props) {
         <div className="value"><AnimatedNumber value={s.avg_ev} format={(n) => `${n.toFixed(1)}%`} /></div>
       </div>
     </div>
+    <NotEvalLens onOpenEval={onOpenEval} />
+    </>
   )
 }

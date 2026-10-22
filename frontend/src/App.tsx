@@ -12,6 +12,7 @@ import { RecentSettled } from './components/RecentSettled'
 import { MetricsPage } from './components/MetricsPage'
 import { PromotionBoard } from './components/PromotionBoard'
 import { ProjectionsPage } from './components/ProjectionsPage'
+import { EvalPage } from './components/EvalPage'
 import { ArbPage } from './components/ArbPage'
 import { PortfolioGrid } from './components/PortfolioGrid'
 import { PortfolioDetail } from './components/PortfolioDetail'
@@ -19,7 +20,7 @@ import { Toast } from './components/Toast'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './App.css'
 
-type Page = { kind: 'dashboard' } | { kind: 'metrics' } | { kind: 'board' } | { kind: 'arb' } | { kind: 'projections' } | { kind: 'portfolios' } | { kind: 'portfolio'; id: string }
+type Page = { kind: 'dashboard' } | { kind: 'metrics' } | { kind: 'board' } | { kind: 'eval' } | { kind: 'arb' } | { kind: 'projections' } | { kind: 'portfolios' } | { kind: 'portfolio'; id: string }
 
 export default function App() {
   const dash = useDashboard()
@@ -71,6 +72,12 @@ export default function App() {
                 onClick={() => setPage({ kind: 'board' })}
               >
                 Board
+              </button>
+              <button
+                className={`seg ${page.kind === 'eval' ? 'active' : ''}`}
+                onClick={() => setPage({ kind: 'eval' })}
+              >
+                Eval
               </button>
               <button
                 className={`seg ${page.kind === 'arb' ? 'active' : ''}`}
@@ -125,7 +132,7 @@ export default function App() {
               <button className={`seg ${view === 'placed' ? 'active' : ''}`} onClick={() => setView('placed')}>Placed Only</button>
             </div>
 
-            <KpiCards summary={summary} />
+            <KpiCards summary={summary} onOpenEval={() => setPage({ kind: 'eval' })} />
             <ProfitChart seriesAll={dash.seriesAll} seriesPlaced={dash.seriesPlaced} view={view} />
 
             <ScanResults
@@ -149,9 +156,11 @@ export default function App() {
           </>
         )}
 
-        {page.kind === 'metrics' && <MetricsPage toast={toast} />}
+        {page.kind === 'metrics' && <MetricsPage toast={toast} onOpenEval={() => setPage({ kind: 'eval' })} />}
 
         {page.kind === 'board' && <PromotionBoard toast={toast} />}
+
+        {page.kind === 'eval' && <EvalPage toast={toast} />}
 
         {page.kind === 'arb' && <ArbPage toast={toast} />}
 

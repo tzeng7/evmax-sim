@@ -474,3 +474,23 @@ export interface ProjectionSizing {
   cap: number
   note: string
 }
+
+// ── Eval tab (/api/eval = `evmax cleanup eval`, passed through unchanged) ──
+export type EvalBlock = Record<string, unknown>
+
+export interface EvalGroup {
+  group: Record<string, string>
+  funnel: { stage: string; n_rows: number; dropped: number | null }[]
+  roi_population: EvalBlock
+  clv_population: EvalBlock & { uncapped?: EvalBlock | null; empty_reason?: string | null }
+  realized: EvalBlock
+  roi_empty_reason: string | null
+  sector_rules: EvalBlock[]
+}
+
+export interface EvalResult {
+  spec: Record<string, unknown>
+  db: Record<string, unknown>
+  definitions: Record<string, string>
+  groups: EvalGroup[]
+}
