@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchPromotionBoard } from '../lib/api'
+import { ModesPanel } from './ModesPanel'
 import type { BoardRow } from '../lib/types'
 
 interface Props {
@@ -291,6 +292,7 @@ export function PromotionBoard({ toast }: Props) {
         sharp-passthrough: any apparent EV there is venue divergence, not model edge. Gates:
         clean-n ≥ 30 · CLV n ≥ 30 · mean ≥ 0 · %pos ≥ 55 (staleness-filtered on Kalshi).
       </p>
+      <ModesPanel />
     </>
   )
 }

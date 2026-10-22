@@ -482,3 +482,21 @@ export interface ProjectionSizing {
   cap: number
   note: string
 }
+
+// ── Modes panel (/api/modes, evmax.mode_report) ──
+export interface ModeRow {
+  category: string
+  display_name: string
+  market_type: string
+  venue: string
+  yaml_mode: string
+  mode: string
+  reason: string
+}
+
+export interface ModesReport {
+  today: string
+  rows: ModeRow[]
+  shadow_leagues: string[]
+  polymarket_us: { enabled: boolean; master_live: boolean; live_sectors: string[] }
+}
