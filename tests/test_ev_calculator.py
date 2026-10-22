@@ -116,8 +116,9 @@ class TestEffectivePrice:
             abs_tol=1e-12,
         )
 
-    def test_polymarket_maker_rebate_lowers_cost(self):
-        """PolyUS maker fee is a rebate (negative) → effective cost below the ask."""
+    def test_polymarket_maker_rebate_lowers_cost(self, monkeypatch):
+        """PolyUS maker fee is a rebate (negative) on a paying tier → effective cost below the ask."""
+        monkeypatch.setattr("evmax.fees.POLYMARKET_US_MAKER_THETA", -0.0035)
         eff = effective_price(0.50, "polymarket_us", maker=True)
         assert eff < 0.50
         assert math.isclose(eff, 0.50 + polymarket_us_fee_prob(0.50, maker=True), abs_tol=1e-12)
