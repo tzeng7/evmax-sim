@@ -123,7 +123,7 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
         <tbody>
           {filtered.map(b => (
             <tr key={b.market_id}>
-              <td><button className="btn-del" onClick={() => handleRemove(b)}>&times;</button></td>
+              <td><button className="btn-del" aria-label={`Remove ${b.event_title}`} title="Remove" onClick={() => handleRemove(b)}>&times;</button></td>
               <td className="muted">{b.event_date}</td>
               <td>
                 <span className="badge">{b.sector}</span>
@@ -141,12 +141,12 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
               <td className="num">{Math.round((b.blended_true_prob || 0) * 100)}%</td>
               <td className="num green">{((b.ev_pct || 0) * 100).toFixed(1)}%</td>
               <td className="num">
-                <input type="text" value={getOdds(b)}
+                <input type="text" aria-label={`Fill cents for ${b.event_title}`} value={getOdds(b)}
                   onChange={e => updateField(b.market_id, 'odds', e.target.value)}
                   style={{ width: 64 }} />
               </td>
               <td className="num">
-                <input type="number" value={getStakeVal(b)}
+                <input type="number" aria-label={`Stake for ${b.event_title}`} value={getStakeVal(b)}
                   onChange={e => updateField(b.market_id, 'stake', e.target.value)}
                   style={{ width: 70 }} min="0.01" step="0.01" />
               </td>
