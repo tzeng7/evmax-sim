@@ -1,8 +1,10 @@
+import { usePersistedState } from '../hooks/usePersistedState'
 import { useState, useMemo, useCallback } from 'react'
 import type { Bet, ScanGap } from '../lib/types'
 import { probToCents, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
+import { useRowKeyboard } from '../hooks/useRowKeyboard'
 import { pickBets, verifyBets, verifySummary } from '../lib/api'
 import type { VerifyRow } from '../lib/api'
 import { VerifyHeaderCells, VerifyCells } from './VerifyCells'
@@ -28,7 +30,7 @@ function previewStake(b: Bet, bankroll: number, kelly: number): number {
 }
 
 export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked }: Props) {
-  const [sector, setSector] = useState('')
+  const [sector, setSector] = usePersistedState('open.sector', '')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [verified, setVerified] = useState<Record<string, VerifyRow>>({})
   const [verifying, setVerifying] = useState(false)
@@ -109,6 +111,9 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
     }
   }, [selected, bets, bankroll, kelly, verified, toast, onPicked])
 
+  const kbIds = useMemo(() => filtered.slice(0, 40).map(b => b.market_id), [filtered])
+  const kb = useRowKeyboard({ ids: kbIds, onToggle: toggle, onPick: handlePick })
+
   return (
     <div className="panel">
       <div className="panel-header">
@@ -124,7 +129,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
           {bets.length > 0 && <button className="btn btn-sm success" onClick={handlePick}>Pick All</button>}
         </div>
       </div>
-      <div className="scroll-area">
+      <div {...kb.containerProps} className="scroll-area kb-table">
         <table>
           <thead>
             <tr>
@@ -138,9 +143,9 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
               const stake = previewStake(b, bankroll, kelly)
               const v = verified[b.market_id]
               return (
-                <tr key={b.market_id} style={v && !v.keep ? { opacity: 0.55 } : undefined}
+                <tr key={b.market_id} {...kb.rowProps(b.market_id)} style={v && !v.keep ? { opacity: 0.55 } : undefined}
                   title={v && !v.keep ? `Excluded from Pick: ${v.reason}` : undefined}>
-                  <td><input type="checkbox" checked={selected.has(b.market_id)} onChange={() => toggle(b.market_id)} /></td>
+                  <td><input type="checkbox" aria-label={`Select ${b.event_title} ${outcomeLabel(b)}`} checked={selected.has(b.market_id)} onChange={() => toggle(b.market_id)} /></td>
                   <td>
                     {scanMids.has(b.market_id) && <span className="badge new">NEW</span>}
                     {b.status === 'in_progress' && <span className="badge warn" title="Game has started — awaiting resolution">LIVE</span>}
