@@ -1,8 +1,10 @@
+import { usePersistedState } from '../hooks/usePersistedState'
 import { useState, useMemo, useCallback } from 'react'
 import type { Bet, ScanGap } from '../lib/types'
 import { probToCents, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
+import { useRowKeyboard } from '../hooks/useRowKeyboard'
 import { pickBets } from '../lib/api'
 import { resizeStake } from '../lib/resizeStake'
 
@@ -21,7 +23,7 @@ const PAGE = 40
 type SortKey = 'event_date' | 'kalshi_yes_price' | 'ev_pct' | 'stake'
 
 export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
-  const [sector, setSector] = useState('')
+  const [sector, setSector] = usePersistedState('open.sector', '')
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const scanMids = useMemo(() => new Set(scanGaps.map(g => g.market_id)), [scanGaps])
@@ -48,7 +50,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
     })
   }, [bets, sector, sortKey, sortDir, stakeOf])
 
-  const visible = filtered.slice(0, limit)
+  const visible = useMemo(() => filtered.slice(0, limit), [filtered, limit])
   const allVisibleSelected = visible.length > 0 && visible.every(b => selected.has(b.market_id))
 
   const toggleAllVisible = () => {
@@ -119,6 +121,9 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
     }
   }, [selected, bets, stakeOf, toast, onPicked])
 
+  const kbIds = useMemo(() => visible.map(b => b.market_id), [visible])
+  const kb = useRowKeyboard({ ids: kbIds, onToggle: toggle, onPick: handlePick })
+
   return (
     <div className="panel">
       <div className="panel-header">
@@ -128,7 +133,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
           {bets.length > 0 && <button className="btn btn-sm success" onClick={handlePick}>Pick All</button>}
         </div>
       </div>
-      <div className="scroll-area">
+      <div {...kb.containerProps} className="scroll-area kb-table">
         <table>
           <thead>
             <tr>
@@ -143,8 +148,8 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
             {visible.map(b => {
               const stake = stakeOf(b)
               return (
-                <tr key={b.market_id}>
-                  <td><input type="checkbox" checked={selected.has(b.market_id)} onChange={() => toggle(b.market_id)} /></td>
+                <tr key={b.market_id} {...kb.rowProps(b.market_id)}>
+                  <td><input type="checkbox" aria-label={`Select ${b.event_title} ${outcomeLabel(b)}`} checked={selected.has(b.market_id)} onChange={() => toggle(b.market_id)} /></td>
                   <td>
                     {scanMids.has(b.market_id) && <span className="badge new">NEW</span>}
                     {b.status === 'in_progress' && <span className="badge warn" title="Game has started — awaiting resolution">LIVE</span>}
