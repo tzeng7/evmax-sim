@@ -82,17 +82,20 @@ def parse_schedule(text: str) -> dict:
     t = normalize_ws(text.replace("\\$", "$"))
 
     taker = re.search(r"\*\*Taker Fee\*\*\s*\|\s*(-?[0-9]*\.?[0-9]+)", t)
-    maker = re.search(r"\*\*Maker Rebate\*\*\s*\|\s*(-?[0-9]*\.?[0-9]+)", t)
+    # Maker rebate tiers: | Tier 2 | $10M - $49M | -0.0035 | about 5% |  (Tier 1: "No maker rebate")
+    tiers: dict[str, float] = {}
+    for n, coef in re.findall(r"\|\s*Tier (\d)\s*\|[^|]*\|\s*(No maker rebate|-?[0-9]*\.[0-9]+)\s*\|", t):
+        tiers[n] = 0.0 if coef.startswith("No") else float(coef)
     eff = re.search(r"Effective exchange-wide from (.+?)\.\s*(?:</Info>|\S)", t)
-    # Fee-by-price rows: | $0.50 | $50 | $1.74 | $0.31 |
+    # Fee-by-price rows: | $0.50 | $50 | $1.74 | $0.09 | $0.17 | $0.26 |  (taker, maker Tier 2/3/4)
     table: dict[str, list[float]] = {}
-    for p, taker_pays, maker_gets in re.findall(
-        r"\|\s*\$(0\.\d\d)\s*\|\s*\$[0-9.,]+\s*\|\s*\$([0-9.]+)\s*\|\s*\$([0-9.]+)\s*\|", t
+    for p, taker_pays, t2, t3, t4 in re.findall(
+        r"\|\s*\$(0\.\d\d?)\s*\|\s*\$[0-9.,]+\s*\|\s*\$([0-9.]+)\s*\|\s*\$([0-9.]+)\s*\|\s*\$([0-9.]+)\s*\|\s*\$([0-9.]+)\s*\|", t
     ):
-        table.setdefault(p, [float(taker_pays), float(maker_gets)])
+        table.setdefault(p.ljust(4, "0"), [float(taker_pays), float(t2), float(t3), float(t4)])
     return {
         "taker_theta": float(taker.group(1)) if taker else None,
-        "maker_theta": float(maker.group(1)) if maker else None,
+        "maker_tier_thetas": tiers,
         "effective": eff.group(1).strip() if eff else None,
         "bankers_rounding": "banker's rounding" in t.lower(),
         "fee_table": table,
@@ -111,29 +114,30 @@ def build_current(text: str, *, source_url: str = DEFAULT_URL) -> dict:
 def get_constants() -> dict:
     """What our trading math uses (single source: evmax.fees) + a table-check fn."""
     from evmax.fees import (
-        POLYMARKET_US_MAKER_THETA,
+        POLYMARKET_US_MAKER_TIER_THETAS,
         POLYMARKET_US_TAKER_THETA,
         polymarket_us_order_fee,
     )
 
     return {
         "taker_theta": POLYMARKET_US_TAKER_THETA,
-        "maker_theta": POLYMARKET_US_MAKER_THETA,
+        "maker_tier_thetas": {str(k): v for k, v in POLYMARKET_US_MAKER_TIER_THETAS.items()},
         "order_fee": polymarket_us_order_fee,
     }
 
 
 def check_fee_table(table: dict[str, list[float]], order_fee) -> list[str]:
-    """Compare every published 100-lot row with ``polymarket_us_order_fee``."""
+    """Compare every published 100-lot row (taker, maker Tier 2/3/4) with ``polymarket_us_order_fee``."""
     bad: list[str] = []
-    for p_str, (taker_pays, maker_gets) in sorted(table.items()):
+    for p_str, (taker_pays, *tier_gets) in sorted(table.items()):
         p = float(p_str)
         ours_t = order_fee(p, 100)
-        ours_m = -order_fee(p, 100, maker=True)
         if abs(ours_t - taker_pays) > _TABLE_TOL:
             bad.append(f"taker @ ${p_str}: docs ${taker_pays:.2f} vs fees.py ${ours_t:.2f}")
-        if abs(ours_m - maker_gets) > _TABLE_TOL:
-            bad.append(f"maker @ ${p_str}: docs ${maker_gets:.2f} vs fees.py ${ours_m:.2f}")
+        for tier, maker_gets in zip((2, 3, 4), tier_gets):
+            ours_m = -order_fee(p, 100, maker=True, maker_tier=tier)
+            if abs(ours_m - maker_gets) > _TABLE_TOL:
+                bad.append(f"maker T{tier} @ ${p_str}: docs ${maker_gets:.2f} vs fees.py ${ours_m:.2f}")
     return bad
 
 
@@ -166,23 +170,28 @@ def classify_market_coefficients(
 def classify(current: dict, snapshot: Optional[dict], constants: dict) -> tuple[str, list[str]]:
     """HARD (a traded number is wrong) beats SOFT (body changed); no theta ⇒ inconclusive."""
     cur = current["extracted"]
-    if cur["taker_theta"] is None or cur["maker_theta"] is None:
-        return "inconclusive", ["taker/maker theta not found in document (page format changed?)"]
+    if cur["taker_theta"] is None or not cur["maker_tier_thetas"]:
+        return "inconclusive", ["taker theta / maker tier thetas not found in document (page format changed?)"]
 
     hard: list[str] = []
     if not _approx(cur["taker_theta"], constants["taker_theta"]):
         hard.append(f"taker_theta {cur['taker_theta']} != evmax.fees.POLYMARKET_US_TAKER_THETA {constants['taker_theta']}")
-    if not _approx(cur["maker_theta"], constants["maker_theta"]):
-        hard.append(f"maker_theta {cur['maker_theta']} != evmax.fees.POLYMARKET_US_MAKER_THETA {constants['maker_theta']}")
+    if set(cur["maker_tier_thetas"]) != set(constants["maker_tier_thetas"]):
+        hard.append(f"maker tiers {sorted(cur['maker_tier_thetas'])} != fees.py {sorted(constants['maker_tier_thetas'])}")
+    for tier, theta in sorted(cur["maker_tier_thetas"].items()):
+        ours = constants["maker_tier_thetas"].get(tier)
+        if ours is not None and not _approx(theta, ours):
+            hard.append(f"maker tier {tier} theta {theta} != evmax.fees.POLYMARKET_US_MAKER_TIER_THETAS {ours}")
     if not cur["bankers_rounding"]:
         hard.append("rounding rule no longer mentions banker's rounding (fees.py assumes half-to-even)")
     if cur["fee_table"] and "order_fee" in constants:
         hard.extend(check_fee_table(cur["fee_table"], constants["order_fee"]))
     if snapshot is not None:
         snap = snapshot.get("extracted", {})
-        for key in ("taker_theta", "maker_theta"):
-            if not _approx(cur[key], snap.get(key)):
-                hard.append(f"{key} {snap.get(key)} -> {cur[key]} vs snapshot")
+        if not _approx(cur["taker_theta"], snap.get("taker_theta")):
+            hard.append(f"taker_theta {snap.get('taker_theta')} -> {cur['taker_theta']} vs snapshot")
+        if cur["maker_tier_thetas"] != snap.get("maker_tier_thetas"):
+            hard.append(f"maker_tier_thetas {snap.get('maker_tier_thetas')} -> {cur['maker_tier_thetas']} vs snapshot")
     if hard:
         return "hard_drift", hard
 
@@ -281,7 +290,7 @@ def _summary(verdict: str, reasons: list[str], current: dict) -> str:
         "hard_drift": "Polymarket US fee RATE changed — reconcile evmax/fees.py.",
         "inconclusive": "Polymarket US fee watch inconclusive (fetch/parse failed).",
     }[verdict]
-    tail = f" taker={ex['taker_theta']} maker={ex['maker_theta']} eff={ex['effective']!r}."
+    tail = f" taker={ex['taker_theta']} maker_tiers={ex['maker_tier_thetas']} eff={ex['effective']!r}."
     return head + tail + ((" " + "; ".join(reasons[:6])) if reasons else "")
 
 
