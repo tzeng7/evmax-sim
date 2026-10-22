@@ -1,5 +1,6 @@
 import { usePersistedState } from '../hooks/usePersistedState'
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { reconcileRowState } from '../lib/reconcileSelection'
 import type { ScanGap } from '../lib/types'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
@@ -72,7 +73,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
   // when the filtered venue is its actionable venue OR one of its line-shop
   // options, so a cross-venue play stays visible under either venue.
   const [venueFilter, setVenueFilter] = usePersistedState('scan.venue', '')
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(gaps.map(g => g.market_id)))
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const [fills, setFills] = useState<Record<string, { odds: string; stake: string }>>({})
   // Per-row chosen venue, keyed by the row's (winner) market_id. Absent = use
   // the best-execution winner. Lets the user line-shop / route pick+fill to the
@@ -90,18 +91,23 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     return legsOf(g).find(l => l.venue === sel) ?? g
   }, [venueSel])
 
-  // Reset selection when gaps change
-  useMemo(() => {
-    setSelected(new Set(gaps.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
-    setVenueSel({})
-    const f: Record<string, { odds: string; stake: string }> = {}
-    for (const g of gaps) {
-      // Seed a fill default for every venue leg so switching the dropdown shows
-      // that venue's own ask / maker bid / stake, not the winner's.
-      for (const leg of legsOf(g)) f[leg.market_id] = defaultFill(leg, bankroll, kelly, scanKelly)
-    }
-    setFills(f)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Reconcile per-row state by market_id when gaps change (rescan / poll):
+  // keep selection, venue choice and edited fills for rows still present, seed
+  // defaults only for new rows (live-only selection), drop vanished rows.
+  const seenIds = useRef<Set<string>>(new Set())
+  const latest = useRef({ selected, venueSel, fills })
+  latest.current = { selected, venueSel, fills }
+  const sizing = useRef({ bankroll, kelly, scanKelly })
+  sizing.current = { bankroll, kelly, scanKelly }
+  useEffect(() => {
+    const { bankroll: b, kelly: k, scanKelly: sk } = sizing.current
+    const { state, ids } = reconcileRowState(
+      latest.current, seenIds.current, gaps, legsOf, leg => defaultFill(leg, b, k, sk),
+    )
+    seenIds.current = ids
+    setSelected(state.selected)
+    setVenueSel(state.venueSel)
+    setFills(state.fills)
   }, [gaps])
 
   // When the user changes bankroll or Kelly after a scan, refresh the stake
