@@ -455,6 +455,69 @@ def api_promotion_board(
     return JSONResponse({"days": days, "rows": rows})
 
 
+_INTEGRITY_TTL_S = 60.0
+_integrity_cache: dict[tuple, tuple[float, dict]] = {}
+
+
+def _integrity_status(result: dict) -> str:
+    sevs = {i.get("severity") for i in result.get("issues", [])}
+    if "critical" in sevs:
+        return "critical"
+    if "warning" in sevs or result.get("failed"):
+        return "warning"
+    return "ok"
+
+
+def _integrity_sweep(only: frozenset | None, check_pinnacle: bool, weekly: bool) -> dict:
+    """Run the read-only sweep (never notifies) and add a per-check rollup."""
+    from evmax.agents.cleanup.integrity import run_integrity
+
+    result = run_integrity(
+        weekly=weekly,
+        check_pinnacle=check_pinnacle,
+        notify=False,
+        only=set(only) if only else None,
+    )
+    rank = {"info": 0, "warning": 1, "critical": 2}
+    per: dict[str, dict] = {}
+    for name in result["ran"]:
+        per[name] = {"check": name, "severity": "ok", "issues": []}
+    for name in result["failed"]:
+        per.setdefault(name, {"check": name, "severity": "ok", "issues": []})
+    for i in result["issues"]:
+        row = per.setdefault(i["check"], {"check": i["check"], "severity": "ok", "issues": []})
+        row["issues"].append({"severity": i["severity"], "detail": i["detail"]})
+        if row["severity"] == "ok" or rank.get(i["severity"], 1) > rank.get(row["severity"], -1):
+            row["severity"] = i["severity"]
+    result["checks"] = list(per.values())
+    result["status"] = _integrity_status(result)
+    result["generated_at"] = datetime.now(timezone.utc).isoformat()
+    return result
+
+
+@app.get("/api/integrity")
+async def api_integrity(
+    only: str = Query(None, description="Comma-separated subset of checks"),
+    check_pinnacle: bool = Query(False),
+    weekly: bool = Query(False),
+) -> JSONResponse:
+    """Read-only `evmax cleanup integrity` sweep (cached ~60s, never notifies)."""
+    import time
+
+    only_set = frozenset(s.strip() for s in only.split(",") if s.strip()) if only else None
+    key = (only_set, check_pinnacle, weekly)
+    now = time.monotonic()
+    hit = _integrity_cache.get(key)
+    if hit and now - hit[0] < _INTEGRITY_TTL_S:
+        return JSONResponse(hit[1])
+    try:
+        result = await asyncio.to_thread(_integrity_sweep, only_set, check_pinnacle, weekly)
+    except Exception as exc:  # noqa: BLE001 — the chip fails soft on any error
+        return JSONResponse({"error": str(exc)}, status_code=500)
+    _integrity_cache[key] = (now, result)
+    return JSONResponse(result)
+
+
 @app.get("/api/nfl-projections")
 def api_nfl_projections(
     season: int | None = Query(None, description="NFL season (default: latest stored week)"),
