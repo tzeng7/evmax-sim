@@ -1,5 +1,6 @@
 import { usePersistedState } from '../hooks/usePersistedState'
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { resizeStake } from '../lib/resizeStake'
 import { reconcileRowState } from '../lib/reconcileSelection'
 import type { ScanGap } from '../lib/types'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
@@ -30,15 +31,8 @@ function venueShort(v?: string | null): string {
   return v ?? ''
 }
 
-// Approximate re-sizing of a gap's stake when bankroll / Kelly multiplier
-// diverge from the scan-time snapshot. The stored kelly_fraction is
-// K_full × scan_kelly × liquidity_discount, capped at 5%, so scaling by
-// (current_kelly / scan_kelly) recovers the position size for the new knob
-// without a rescan. Re-applies the 5% per-bet cap. The 8% per-event exposure
-// guard isn't reproduced here — for canonical sizing, rescan.
 function recomputedStake(g: ScanGap, bankroll: number, kelly: number, scanKelly: number): number {
-  const scaled = scanKelly > 0 ? g.kelly_fraction * (kelly / scanKelly) : g.kelly_fraction
-  return bankroll * Math.min(scaled, 0.05)
+  return resizeStake(g.kelly_fraction, bankroll, kelly, scanKelly)
 }
 
 // Default Fill ¢ / Stake ($) for a row. Maker-only plays are not crossable at
@@ -66,6 +60,26 @@ function legsOf(g: ScanGap): ScanGap[] {
 function venueOptionLabel(l: ScanGap): string {
   const ev = `${l.ev_pct.toFixed(1)}%`
   return `${venueShort(l.venue)} · ${ev}${l.maker_only ? ' mkr' : ''}`
+}
+
+function DiagBadge({ g }: { g: ScanGap }) {
+  const d = g.model_diagnostics
+  const lines: string[] = []
+  for (const [m, v] of Object.entries(d?.fired ?? {})) lines.push(`✓ ${m} fired${v.conf != null ? ` (conf ${v.conf})` : ''}`)
+  for (const [m, v] of Object.entries(d?.gated ?? {})) lines.push(`⚠ ${m} gated${v.note ? `: ${v.note}` : ''}`)
+  for (const m of d?.missing ?? []) lines.push(`✗ ${m} missing`)
+  if (!g.sharp_only && lines.length === 0) return null
+  return (
+    <details style={{ display: 'inline-block', marginLeft: 4, position: 'relative' }}>
+      <summary className="badge" style={{ cursor: 'pointer', listStyle: 'none' }}>
+        {g.sharp_only ? 'sharp only' : 'models'}
+      </summary>
+      <div style={{ position: 'absolute', zIndex: 5, background: 'var(--panel, #1e2127)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 4, padding: 6, fontSize: 11, whiteSpace: 'nowrap' }}>
+        <div className="muted">{g.model_sources || 'no sources'}</div>
+        {lines.length ? lines.map((l, i) => <div key={i}>{l}</div>) : <div className="muted">no diagnostics</div>}
+      </div>
+    </details>
+  )
 }
 
 export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
@@ -330,6 +344,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
               title={`mode=${mode} — logged for tracking, not pickable`}
             >{mode}</span>
           )}
+          {(g.sharp_only || g.model_diagnostics) && <DiagBadge g={g} />}
           {isMaker && (
             <span
               className="badge"
@@ -478,7 +493,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <div className="muted" style={{ fontSize: 12, padding: '4px 0 8px' }}>No taker-EV plays.</div>
       ) : (
         <div {...kbTaker.containerProps}>
-          <table>
+          <table className="card-tbl st-scan">
             <thead>{headerRow}</thead>
             <tbody>{takerRows.map(renderRow)}</tbody>
           </table>
@@ -501,7 +516,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <div className="muted" style={{ fontSize: 12, padding: '4px 0 8px' }}>No maker-only plays.</div>
       ) : (
         <div {...kbMaker.containerProps}>
-          <table>
+          <table className="card-tbl st-scan">
             <thead>{headerRow}</thead>
             <tbody>{makerRows.map(renderRow)}</tbody>
           </table>

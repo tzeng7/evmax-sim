@@ -76,6 +76,13 @@ export interface ScanGap {
   kelly_fraction: number
   stake: number
   model_sources: string
+  // Why-not diagnostics: fired/gated(note)/missing per sector-configured model.
+  model_diagnostics?: {
+    fired?: Record<string, { conf?: number; n?: number }>
+    gated?: Record<string, { conf?: number; note?: string }>
+    missing?: string[]
+  } | null
+  sharp_only?: boolean
   market_id: string
   event_date: string
   volume: number
@@ -250,6 +257,7 @@ export interface BoardGate {
 
 export interface BoardClv {
   n: number
+  games?: number
   mean_clv_pp: number
   frac_positive: number
   clears: boolean
@@ -473,4 +481,22 @@ export interface ProjectionSizing {
   /** Hard cap on one stake, as a bankroll fraction. */
   cap: number
   note: string
+}
+
+// ── Modes panel (/api/modes, evmax.mode_report) ──
+export interface ModeRow {
+  category: string
+  display_name: string
+  market_type: string
+  venue: string
+  yaml_mode: string
+  mode: string
+  reason: string
+}
+
+export interface ModesReport {
+  today: string
+  rows: ModeRow[]
+  shadow_leagues: string[]
+  polymarket_us: { enabled: boolean; master_live: boolean; live_sectors: string[] }
 }

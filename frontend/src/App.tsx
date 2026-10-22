@@ -10,6 +10,7 @@ import { ScanResults } from './components/ScanResults'
 import { PlacedBets } from './components/PlacedBets'
 import { SectorPerformance } from './components/SectorPerformance'
 import { OpenPositions } from './components/OpenPositions'
+import { RestingOrders } from './components/RestingOrders'
 import { RecentSettled } from './components/RecentSettled'
 import { MetricsPage } from './components/MetricsPage'
 import { PromotionBoard } from './components/PromotionBoard'
@@ -171,11 +172,13 @@ export default function App() {
               onPicked={dash.refresh}
             />
 
+            <RestingOrders toast={toast} onChanged={dash.refresh} />
+
             <PlacedBets bets={dash.placedBets} toast={toast} onChanged={dash.refresh} />
 
             <div className="two-col">
               <SectorPerformance sectors={dash.sectors} />
-              <OpenPositions bets={dash.openBets} scanGaps={dash.scanGaps} bankroll={bankroll} kelly={kelly} toast={toast} onPicked={dash.refresh} />
+              <OpenPositions bets={dash.openBets} scanGaps={dash.scanGaps} bankroll={bankroll} kelly={kelly} scanKelly={dash.scanKelly} toast={toast} onPicked={dash.refresh} />
             </div>
 
             <RecentSettled bets={dash.recent} />
