@@ -16,6 +16,7 @@ import { ArbPage } from './components/ArbPage'
 import { PortfolioGrid } from './components/PortfolioGrid'
 import { PortfolioDetail } from './components/PortfolioDetail'
 import { Toast } from './components/Toast'
+import { ActivityLog } from './components/ActivityLog'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './App.css'
 
@@ -23,7 +24,7 @@ type Page = { kind: 'dashboard' } | { kind: 'metrics' } | { kind: 'board' } | { 
 
 export default function App() {
   const dash = useDashboard()
-  const { toast, ...toastProps } = useToast()
+  const { toast, activity, ...toastProps } = useToast()
   const [view, setView] = useState<'all' | 'placed'>('all')
   const [page, setPage] = useState<Page>({ kind: 'dashboard' })
   // Top-bar slot that ActionBar portals its Scan/Resolve verbs into, so the
@@ -91,6 +92,7 @@ export default function App() {
                 Portfolios
               </button>
             </nav>
+            <ActivityLog entries={activity} />
             {page.kind === 'dashboard' && (
               <>
                 <span className="topbar-div" aria-hidden="true" />

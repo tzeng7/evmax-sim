@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
+import { logActivity, useActivityLog } from './activityLog'
 
 export type ToastType = 'info' | 'ok' | 'err'
 
@@ -13,6 +14,8 @@ export interface ToastOptions {
    *  present so the user has time to reach for it. */
   ms?: number
   action?: ToastAction
+  /** Extra text kept only in the activity log (action name, API error body). */
+  detail?: string
 }
 
 export function useToast() {
@@ -20,9 +23,11 @@ export function useToast() {
   const [type, setType] = useState<ToastType>('info')
   const [visible, setVisible] = useState(false)
   const [action, setAction] = useState<ToastAction | undefined>(undefined)
+  const activity = useActivityLog()
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const toast = useCallback((message: string, toastType: ToastType = 'info', opts?: ToastOptions) => {
+    logActivity(toastType, message, opts?.detail)
     setMsg(message)
     setType(toastType)
     setAction(opts?.action)
@@ -37,5 +42,5 @@ export function useToast() {
     setVisible(false)
   }, [])
 
-  return { msg, type, visible, action, toast, dismiss }
+  return { msg, type, visible, action, toast, dismiss, activity }
 }
