@@ -3,6 +3,7 @@ import type { Bet, ScanGap } from '../lib/types'
 import { probToCents, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
+import { useRowKeyboard } from '../hooks/useRowKeyboard'
 import { pickBets } from '../lib/api'
 
 interface Props {
@@ -83,6 +84,9 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
     }
   }, [selected, bets, bankroll, kelly, toast, onPicked])
 
+  const kbIds = useMemo(() => filtered.slice(0, 40).map(b => b.market_id), [filtered])
+  const kb = useRowKeyboard({ ids: kbIds, onToggle: toggle, onPick: handlePick })
+
   return (
     <div className="panel">
       <div className="panel-header">
@@ -92,7 +96,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
           {bets.length > 0 && <button className="btn btn-sm success" onClick={handlePick}>Pick All</button>}
         </div>
       </div>
-      <div className="scroll-area">
+      <div {...kb.containerProps} className="scroll-area kb-table">
         <table>
           <thead>
             <tr>
@@ -105,8 +109,8 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, toast, onPicked
             {filtered.slice(0, 40).map(b => {
               const stake = previewStake(b, bankroll, kelly)
               return (
-                <tr key={b.market_id}>
-                  <td><input type="checkbox" checked={selected.has(b.market_id)} onChange={() => toggle(b.market_id)} /></td>
+                <tr key={b.market_id} {...kb.rowProps(b.market_id)}>
+                  <td><input type="checkbox" aria-label={`Select ${b.event_title} ${outcomeLabel(b)}`} checked={selected.has(b.market_id)} onChange={() => toggle(b.market_id)} /></td>
                   <td>
                     {scanMids.has(b.market_id) && <span className="badge new">NEW</span>}
                     {b.status === 'in_progress' && <span className="badge warn" title="Game has started — awaiting resolution">LIVE</span>}
