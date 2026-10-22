@@ -1,3 +1,4 @@
+import { resizeStake } from '../lib/resizeStake'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import type { ScanGap } from '../lib/types'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
@@ -25,15 +26,8 @@ function venueShort(v?: string | null): string {
   return v ?? ''
 }
 
-// Approximate re-sizing of a gap's stake when bankroll / Kelly multiplier
-// diverge from the scan-time snapshot. The stored kelly_fraction is
-// K_full × scan_kelly × liquidity_discount, capped at 5%, so scaling by
-// (current_kelly / scan_kelly) recovers the position size for the new knob
-// without a rescan. Re-applies the 5% per-bet cap. The 8% per-event exposure
-// guard isn't reproduced here — for canonical sizing, rescan.
 function recomputedStake(g: ScanGap, bankroll: number, kelly: number, scanKelly: number): number {
-  const scaled = scanKelly > 0 ? g.kelly_fraction * (kelly / scanKelly) : g.kelly_fraction
-  return bankroll * Math.min(scaled, 0.05)
+  return resizeStake(g.kelly_fraction, bankroll, kelly, scanKelly)
 }
 
 // Default Fill ¢ / Stake ($) for a row. Maker-only plays are not crossable at
