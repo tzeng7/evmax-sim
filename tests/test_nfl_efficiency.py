@@ -320,6 +320,54 @@ class TestSuccessRateMarginTerm:
         assert asyncio.run(agent.predict_pair(m, s)) is not None
 
 
+# ── Ridge rating path (default-inert) ───────────────────────────────────────
+
+class TestRidgeRatingPath:
+    def _teams(self, ridge_a=0.05, ridge_b=-0.02):
+        a = _team_stats(0.0, 0.0)
+        b = _team_stats(0.0, 0.0)
+        if ridge_a is not None:
+            a["ridge_net"] = ridge_a
+        if ridge_b is not None:
+            b["ridge_net"] = ridge_b
+        return {"a": a, "b": b}
+
+    def test_default_is_inert(self):
+        # RIDGE_ENABLED ships False: ridge_net in state must NOT move live pricing.
+        m, s = _pair("a", "b")
+        with_ridge = asyncio.run(_agent_with(self._teams()).predict_pair(m, s)).true_prob_a
+        without = asyncio.run(_agent_with(self._teams(None, None)).predict_pair(m, s)).true_prob_a
+        assert with_ridge == pytest.approx(without)
+
+    def test_enabled_uses_ridge_margin(self, monkeypatch):
+        import evmax.agents.models.nfl_efficiency_agent as mod
+        monkeypatch.setattr(mod, "RIDGE_ENABLED", True)
+        m, s = _pair("a", "b")
+        pred = asyncio.run(_agent_with(self._teams(0.05, -0.02)).predict_pair(m, s))
+        margin = mod.RIDGE_MARGIN_PTS * 0.07 + mod.RIDGE_HOME_EDGE_PTS
+        assert pred.true_prob_a == pytest.approx(_normal_cdf(margin / SCORE_STDEV))
+        assert "ridge" in pred.notes
+
+    def test_enabled_but_missing_ridge_falls_back_to_legacy(self, monkeypatch):
+        import evmax.agents.models.nfl_efficiency_agent as mod
+        m, s = _pair("a", "b")
+        legacy = asyncio.run(_agent_with(self._teams(None, None)).predict_pair(m, s)).true_prob_a
+        monkeypatch.setattr(mod, "RIDGE_ENABLED", True)
+        # Old-shape state (no ridge_net) and a half-populated pair both fall back.
+        for ra, rb in ((None, None), (0.05, None)):
+            p = asyncio.run(_agent_with(self._teams(ra, rb)).predict_pair(m, s))
+            assert p.true_prob_a == pytest.approx(legacy)
+            assert "ridge" not in p.notes
+
+    def test_better_ridge_team_is_favored(self, monkeypatch):
+        import evmax.agents.models.nfl_efficiency_agent as mod
+        monkeypatch.setattr(mod, "RIDGE_ENABLED", True)
+        m, s = _pair("a", "b")
+        hi = asyncio.run(_agent_with(self._teams(0.10, -0.10)).predict_pair(m, s)).true_prob_a
+        lo = asyncio.run(_agent_with(self._teams(-0.10, 0.10)).predict_pair(m, s)).true_prob_a
+        assert hi > 0.5 > lo
+
+
 # ── Preseason-prior ramp (inert by default) ─────────────────────────────────
 
 class TestPreseasonPriorRamp:

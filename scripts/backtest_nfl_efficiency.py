@@ -439,6 +439,11 @@ def _state_cutoff(espn_game_date: date) -> date:
     return espn_game_date - timedelta(days=1)
 
 
+# (k, h) probit fits of margin = k*delta_ridge_net + h, each using only seasons
+# BEFORE the one it prices (scripts/exp_nfl_eff_ridge.py --fit-margin).
+RIDGE_FIT_BY_SEASON = {"2324": (105.5, 1.58), "2425": (100.2, 1.64), "2526": (103.9, 1.58)}
+
+
 def _parse_epa_margin_pts(spec: Optional[str], seasons: list[str]) -> dict[str, float]:
     """'38' → that value for every season; '2324=38.8,2526=37.5' → per season."""
     if not spec:
@@ -477,6 +482,12 @@ def main() -> int:
                     help="Override nfl_efficiency's EPA_MARGIN_PTS: one value for every "
                          "season, or per season ('2324=38.8,2425=37.1,2526=37.5') so each "
                          "season is priced with a scale fitted only on earlier seasons.")
+    ap.add_argument("--ridge", action="store_true",
+                    help="Price nfl_efficiency off the ridge rating (RIDGE_ENABLED) with margin "
+                         "constants fitted ONLY on earlier seasons "
+                         "(scripts/exp_nfl_eff_ridge.py --fit-margin).")
+    ap.add_argument("--dump", type=str, default=None,
+                    help="Write every per-game prediction row to this JSON file (offline blend-weight sweeps).")
     args = ap.parse_args()
     epa_pts_by_season = _parse_epa_margin_pts(args.epa_margin_pts, args.seasons.split(","))
     if args.form_shrink is not None:
@@ -590,6 +601,9 @@ def main() -> int:
 
                 if s in epa_pts_by_season:
                     nfl_eff_mod.EPA_MARGIN_PTS = epa_pts_by_season[s]
+                if args.ridge:
+                    nfl_eff_mod.RIDGE_ENABLED = True
+                    nfl_eff_mod.RIDGE_MARGIN_PTS, nfl_eff_mod.RIDGE_HOME_EDGE_PTS = RIDGE_FIT_BY_SEASON[s]
 
                 if need_reseed:
                     cutoff = _state_cutoff(game_date)
@@ -653,6 +667,9 @@ def main() -> int:
         print(f"\n[reseed] performed {n_reseeds} re-seeds across the walk-forward")
 
         print(f"\n[predict] {len(all_preds)} games predicted across {len(seasons)} seasons")
+        if args.dump:
+            from dataclasses import asdict
+            Path(args.dump).write_text(json.dumps([asdict(p) for p in all_preds], default=str))
 
         # Per-season + combined metrics
         for s in seasons:
