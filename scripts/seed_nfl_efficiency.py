@@ -49,6 +49,7 @@ sys.path.insert(0, str(_REPO_ROOT))
 import polars as pl
 import nflreadpy as nfl
 
+from evmax.agents.models._nfl_ridge import RIDGE_LAMBDA, WEEK_HALF_LIFE, ridge_ratings
 from evmax.agents.models.nfl_efficiency_agent import NFL_ABBREV_TO_NAME, STATE_PATH
 
 # Recency decay applied per-season. 0.45 picks ~half-life of 1 season —
@@ -198,6 +199,14 @@ def compute_team_stats(df: pl.DataFrame, current_season: int) -> dict[str, dict]
     )
     merged = merged.join(rz, on="team", how="left").join(rz_def, on="team", how="left")
 
+    # Ridge opponent-adjusted rating (additive EPA, joint home-field, 26-week
+    # half-life recency). Written ALONGSIDE the legacy fields; the agent reads
+    # it only when RIDGE_ENABLED. Skipped when the frame lacks the columns
+    # (hand-built test frames).
+    ridge: dict[str, dict[str, float]] = {}
+    if {"home_team", "game_date"} <= set(df.columns):
+        ridge = ridge_ratings(df)
+
     out: dict[str, dict] = {}
     for row in merged.iter_rows(named=True):
         abbrev = row["team"]
@@ -228,6 +237,11 @@ def compute_team_stats(df: pl.DataFrame, current_season: int) -> dict[str, dict]
             "rz_td_rate_def": round(row["rz_td_rate_def"] or 0.0, 4),
             "gp": int(row["gp"] or 0),
         }
+        r = ridge.get(abbrev)
+        if r is not None:
+            out[full_name]["ridge_net"] = round(r["net"], 4)
+            out[full_name]["ridge_off"] = round(r["off"], 4)
+            out[full_name]["ridge_def"] = round(r["def"], 4)
     return out
 
 
@@ -284,6 +298,7 @@ def main() -> int:
             "seasons_used": seasons_used,
             "season_decay": SEASON_DECAY,
             "wp_window": [WP_LOWER, WP_UPPER],
+            "ridge_params": {"lambda": RIDGE_LAMBDA, "week_half_life": WEEK_HALF_LIFE},
         }
     }
 

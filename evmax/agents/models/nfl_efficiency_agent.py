@@ -83,6 +83,22 @@ PLAYS_PER_TEAM_GAME = 64.0   # offensive plays per team per game (league avg)
 EPA_MARGIN_PTS = PLAYS_PER_TEAM_GAME
 SR_MARGIN_PTS = 0.0
 
+# Ridge rating path (INERT by default). The seed also writes `ridge_net` per team
+# (evmax/agents/models/_nfl_ridge.py: additive EPA ridge + joint home field,
+# 26-week half-life recency). With RIDGE_ENABLED False the agent prices exactly
+# as before and live NFL pricing is UNCHANGED (NFL ML is LIVE). Standalone
+# walk-forward (scripts/exp_nfl_eff_ridge.py, calibrated through the same
+# logistic map, game set identical): Brier -3.0/1000 vs the legacy rating on
+# 2020-24 (z -2.45) and -5.6/1000 on the untouched 2025 holdout. The constants
+# below are the probit fit of margin = k*delta + h (sigma fixed at SCORE_STDEV)
+# on 2017-2024 games only; ridge nets are shrunk, so k is ~2.4x the legacy 42.
+# Enable ONLY after the blend backtest (backtest_nfl_efficiency.py --ridge) and
+# `cleanup shadow clv nfl` - the sharp anchor absorbed the NCAAF v2 gain and the
+# legacy margin-scale refit passed standalone but failed in the blend.
+RIDGE_ENABLED = False
+RIDGE_MARGIN_PTS = 103.9
+RIDGE_HOME_EDGE_PTS = 1.58
+
 # Preseason-prior ramp (INERT by default). Weeks 1-N of a season the seed still
 # maxes at last season (`seasons_used` behind the active season, no current PBP),
 # so `nfl_state_is_stale_for_today` BLANKS the model and the blend runs on
@@ -304,6 +320,11 @@ class NflEfficiencyModelAgent(ModelAgent):
             + SR_MARGIN_PTS * sr_diff
             + HOME_EDGE_PTS
         )
+        ridge_a = stats_a.get("ridge_net")
+        ridge_b = stats_b.get("ridge_net")
+        ridge_used = RIDGE_ENABLED and ridge_a is not None and ridge_b is not None
+        if ridge_used:
+            margin = RIDGE_MARGIN_PTS * (ridge_a - ridge_b) + RIDGE_HOME_EDGE_PTS
 
         prob_a = _normal_cdf(margin / SCORE_STDEV)
         prob_a = max(0.02, min(0.98, prob_a))
@@ -332,6 +353,7 @@ class NflEfficiencyModelAgent(ModelAgent):
             sample_size=min_gp,
             notes=(
                 f"{'preseason-prior ' if preseason_mode else ''}"
+                f"{'ridge ' if ridge_used else ''}"
                 f"net_epa={net_a:+.3f}/{net_b:+.3f} "
                 f"net_sr={net_sr_a:+.3f}/{net_sr_b:+.3f} "
                 f"margin={margin:+.1f} gp={gp_a}/{gp_b}"
