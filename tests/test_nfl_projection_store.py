@@ -272,6 +272,9 @@ def test_run_week_feeds_its_game_projection_to_the_player_model(monkeypatch, tmp
     seen = {}
     monkeypatch.setattr(live, "project_week", lambda *a, **k: games)
     monkeypatch.setattr(live, "fetch_espn_injury_reports", lambda: {})
+    # Pin the clock before the fixture's first kickoff (2026-10-15 20:15 ET): run_week reads the wall
+    # clock, and log_* skips games that already kicked off, so an unpinned run fails once real time passes.
+    monkeypatch.setattr(store, "_now_utc", lambda now=None: "2026-10-14T12:00+00:00")
 
     def players(season, week, **kw):
         seen.update(kw)

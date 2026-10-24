@@ -422,3 +422,53 @@ def test_disabled_market_type_still_beats_venue_rule(monkeypatch):
     )
     monkeypatch.setattr("evmax.modes.get_category", lambda k: fake)
     assert get_mode("venuecat", "spread", venue="kalshi") == "disabled"
+
+
+# -------------------------------------------------------------------------
+# Default-path skip of disabled sectors + prop-fetch gate (2026-10-18 scope cut)
+# -------------------------------------------------------------------------
+
+
+def test_split_disabled_sectors_drops_shipped_disabled_sectors():
+    kept, dropped = modes.split_disabled_sectors(["nfl", "worldcup", "cs2", "tennis"])
+    assert kept == ["nfl", "tennis"]
+    assert dropped == ["worldcup", "cs2"]
+
+
+def test_split_disabled_sectors_honours_runtime_override_both_ways():
+    set_runtime_overrides({"worldcup": "shadow", "nhl": "disabled"})
+    kept, dropped = modes.split_disabled_sectors(["worldcup", "nhl", "ufc"])
+    assert kept == ["worldcup", "ufc"]
+    assert dropped == ["nhl"]
+
+
+def test_split_disabled_sectors_keeps_unknown_sector():
+    # Latent sectors (e.g. valorant) have no category entry: keep, never raise.
+    kept, dropped = modes.split_disabled_sectors(["valorant", "nfl"])
+    assert kept == ["valorant", "nfl"]
+    assert dropped == []
+
+
+def test_split_disabled_sectors_empty():
+    assert modes.split_disabled_sectors([]) == ([], [])
+
+
+@pytest.mark.parametrize("sector", ["nba", "nfl", "baseball"])
+def test_props_fetch_is_skipped_while_the_props_category_is_disabled(sector):
+    from evmax.agents.coordinator import AgentCoordinator
+
+    # All three prop categories ship disabled after the 2026-10-18 scope cut.
+    assert AgentCoordinator._props_enabled(sector) is False
+
+
+def test_props_fetch_runs_when_the_props_category_is_overridden_on():
+    from evmax.agents.coordinator import AgentCoordinator
+
+    set_runtime_overrides({"nfl_props": "shadow"})
+    assert AgentCoordinator._props_enabled("nfl") is True
+
+
+def test_props_enabled_defaults_true_for_unknown_category():
+    from evmax.agents.coordinator import AgentCoordinator
+
+    assert AgentCoordinator._props_enabled("tennis") is True

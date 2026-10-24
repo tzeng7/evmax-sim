@@ -143,7 +143,7 @@ def test_price_presets_follow_the_fee_schedule():
     by = {p["key"]: picks.breakeven(p["odds"]) for p in picks.price_presets()}
     assert by["book"] == pytest.approx(110 / 210)
     assert by["kalshi_maker"] < by["kalshi_taker"] < by["book"]
-    assert by["polymarket_us_maker"] < 0.5                                  # the maker rebate
+    assert by["polymarket_us_maker"] <= 0.5                                 # Tier 1: no rebate, no fee
     spec = picks.sizing_spec()
     assert spec["cap"] == picks.KELLY_CAP and spec["presets"] == picks.price_presets()
 

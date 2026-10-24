@@ -1,9 +1,19 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { usePersistedState } from '../hooks/usePersistedState'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { resizeStake } from '../lib/resizeStake'
+import { reconcileRowState } from '../lib/reconcileSelection'
 import type { ScanGap } from '../lib/types'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
-import { pickBets, recordMakerFills } from '../lib/api'
+import { useRowKeyboard } from '../hooks/useRowKeyboard'
+import { pickBets, recordMakerFills, verifyBets, verifySummary } from '../lib/api'
+import type { VerifyRow } from '../lib/api'
+import { VerifyHeaderCells, VerifyCells } from './VerifyCells'
+import {
+  BUCKET_LABEL, BUCKET_ORDER, bucketStyle, formatTimeToTip, minutesToTip, tipBucket, useNow,
+  type TipBucket,
+} from '../lib/tipTime'
 
 interface Props {
   gaps: ScanGap[]
@@ -25,15 +35,8 @@ function venueShort(v?: string | null): string {
   return v ?? ''
 }
 
-// Approximate re-sizing of a gap's stake when bankroll / Kelly multiplier
-// diverge from the scan-time snapshot. The stored kelly_fraction is
-// K_full × scan_kelly × liquidity_discount, capped at 5%, so scaling by
-// (current_kelly / scan_kelly) recovers the position size for the new knob
-// without a rescan. Re-applies the 5% per-bet cap. The 8% per-event exposure
-// guard isn't reproduced here — for canonical sizing, rescan.
 function recomputedStake(g: ScanGap, bankroll: number, kelly: number, scanKelly: number): number {
-  const scaled = scanKelly > 0 ? g.kelly_fraction * (kelly / scanKelly) : g.kelly_fraction
-  return bankroll * Math.min(scaled, 0.05)
+  return resizeStake(g.kelly_fraction, bankroll, kelly, scanKelly)
 }
 
 // Default Fill ¢ / Stake ($) for a row. Maker-only plays are not crossable at
@@ -63,22 +66,46 @@ function venueOptionLabel(l: ScanGap): string {
   return `${venueShort(l.venue)} · ${ev}${l.maker_only ? ' mkr' : ''}`
 }
 
+function DiagBadge({ g }: { g: ScanGap }) {
+  const d = g.model_diagnostics
+  const lines: string[] = []
+  for (const [m, v] of Object.entries(d?.fired ?? {})) lines.push(`✓ ${m} fired${v.conf != null ? ` (conf ${v.conf})` : ''}`)
+  for (const [m, v] of Object.entries(d?.gated ?? {})) lines.push(`⚠ ${m} gated${v.note ? `: ${v.note}` : ''}`)
+  for (const m of d?.missing ?? []) lines.push(`✗ ${m} missing`)
+  if (!g.sharp_only && lines.length === 0) return null
+  return (
+    <details style={{ display: 'inline-block', marginLeft: 4, position: 'relative' }}>
+      <summary className="badge" style={{ cursor: 'pointer', listStyle: 'none' }}>
+        {g.sharp_only ? 'sharp only' : 'models'}
+      </summary>
+      <div style={{ position: 'absolute', zIndex: 5, background: 'var(--panel, #1e2127)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 4, padding: 6, fontSize: 11, whiteSpace: 'nowrap' }}>
+        <div className="muted">{g.model_sources || 'no sources'}</div>
+        {lines.length ? lines.map((l, i) => <div key={i}>{l}</div>) : <div className="muted">no diagnostics</div>}
+      </div>
+    </details>
+  )
+}
+
 export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
-  const [sector, setSector] = useState('')
-  const [dateFilter, setDateFilter] = useState('')
+  const [sector, setSector] = usePersistedState('scan.sector', '')
+  const [dateFilter, setDateFilter] = usePersistedState('scan.date', '')
   // DISPLAY-only venue filter (decoupled from bankroll sizing): narrows which
   // rows are shown, never how they are sized. '' = all venues. A row matches
   // when the filtered venue is its actionable venue OR one of its line-shop
   // options, so a cross-venue play stays visible under either venue.
-  const [venueFilter, setVenueFilter] = useState('')
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(gaps.map(g => g.market_id)))
+  const [venueFilter, setVenueFilter] = usePersistedState('scan.venue', '')
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const [fills, setFills] = useState<Record<string, { odds: string; stake: string }>>({})
   // Per-row chosen venue, keyed by the row's (winner) market_id. Absent = use
   // the best-execution winner. Lets the user line-shop / route pick+fill to the
   // other venue without a rescan.
   const [venueSel, setVenueSel] = useState<Record<string, string>>({})
   const [picking, setPicking] = useState(false)
+  const [showLate, setShowLate] = useState(false)
+  const now = useNow()
   const [filling, setFilling] = useState(false)
+  const [verified, setVerified] = useState<Record<string, VerifyRow>>({})
+  const [verifying, setVerifying] = useState(false)
 
   // The venue leg a row is currently acting on: the winner (g itself, which
   // carries the cash-cap-adjusted stake) when its own venue is selected or no
@@ -89,18 +116,25 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     return legsOf(g).find(l => l.venue === sel) ?? g
   }, [venueSel])
 
-  // Reset selection when gaps change
-  useMemo(() => {
-    setSelected(new Set(gaps.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
-    setVenueSel({})
-    const f: Record<string, { odds: string; stake: string }> = {}
-    for (const g of gaps) {
-      // Seed a fill default for every venue leg so switching the dropdown shows
-      // that venue's own ask / maker bid / stake, not the winner's.
-      for (const leg of legsOf(g)) f[leg.market_id] = defaultFill(leg, bankroll, kelly, scanKelly)
-    }
-    setFills(f)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Reconcile per-row state by market_id when gaps change (rescan / poll):
+  // keep selection, venue choice and edited fills for rows still present, seed
+  // defaults only for new rows (live-only selection), drop vanished rows.
+  const seenIds = useRef<Set<string>>(new Set())
+  const latest = useRef({ selected, venueSel, fills })
+  latest.current = { selected, venueSel, fills }
+  const sizing = useRef({ bankroll, kelly, scanKelly })
+  sizing.current = { bankroll, kelly, scanKelly }
+  useEffect(() => {
+    const { bankroll: b, kelly: k, scanKelly: sk } = sizing.current
+    const { state, ids } = reconcileRowState(
+      latest.current, seenIds.current, gaps, legsOf, leg => defaultFill(leg, b, k, sk),
+    )
+    seenIds.current = ids
+    setSelected(state.selected)
+    setVenueSel(state.venueSel)
+    setFills(state.fills)
+    // Keep verify results across polls; drop rows that vanished.
+    setVerified(prev => Object.fromEntries(Object.entries(prev).filter(([id]) => ids.has(id))))
   }, [gaps])
 
   // When the user changes bankroll or Kelly after a scan, refresh the stake
@@ -150,18 +184,64 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     })
   }
 
-  const selectAll = () => setSelected(new Set(filtered.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
+  // Time-to-tip bucket per row, recomputed on every clock tick (no rescan needed).
+  const bucketOf = useCallback(
+    (g: ScanGap): TipBucket => tipBucket(minutesToTip(g.tip_time, now)),
+    [now],
+  )
+  // Late / in-play rows are hidden unless toggled on; hidden rows are never picked.
+  const isHidden = useCallback((g: ScanGap) => !showLate && bucketOf(g) === 'late', [showLate, bucketOf])
+  const visible = useMemo(() => filtered.filter(g => !isHidden(g)), [filtered, isHidden])
+  const lateCount = filtered.length - visible.length
+
+  const selectAll = () => setSelected(new Set(visible.filter(g => (g.mode || 'live') === 'live').map(g => g.market_id)))
   const deselectAll = () => setSelected(new Set())
 
   const updateFill = (mid: string, field: 'odds' | 'stake', value: string) => {
     setFills(prev => ({ ...prev, [mid]: { ...prev[mid], [field]: value } }))
   }
 
+  // Re-price the taker rows at the LIVE ask (read-only). Rows that survive get
+  // Fill ¢ / Stake seeded to the live ask and live-sized stake; rows below the
+  // EV floor (or in-play / no quote) are flagged and unchecked.
+  const handleVerify = useCallback(async () => {
+    const legs = gaps.map(g => activeLeg(g)).filter(l => !l.maker_only && (l.mode || 'live') === 'live')
+    const ids = legs.map(l => l.market_id).slice(0, 200)
+    if (!ids.length) return
+    setVerifying(true)
+    try {
+      const res = await verifyBets(ids, { bankroll, kelly })
+      const byId = Object.fromEntries(res.results.map(r => [r.market_id, r]))
+      setVerified(byId)
+      setFills(prev => {
+        const next = { ...prev }
+        for (const r of res.results) {
+          if (r.live_ask == null) continue
+          next[r.market_id] = {
+            odds: probToCents(r.live_ask),
+            stake: r.keep && r.stake > 0 ? r.stake.toFixed(2) : prev[r.market_id]?.stake ?? '',
+          }
+        }
+        return next
+      })
+      setSelected(prev => {
+        const s = new Set(prev)
+        for (const g of gaps) if (byId[activeLeg(g).market_id]?.keep === false) s.delete(g.market_id)
+        return s
+      })
+      toast(`Verified live: ${verifySummary(res.results)}${res.warnings.length ? ' · ' + res.warnings[0] : ''}`, res.live ? 'ok' : 'err')
+    } catch (e) {
+      toast('Verify failed: ' + (e as Error).message, 'err')
+    } finally {
+      setVerifying(false)
+    }
+  }, [gaps, activeLeg, bankroll, kelly, toast])
+
   const handlePick = useCallback(async () => {
     // Maker-only rows are excluded: they are not crossable at the ask, so
     // /api/pick rejects them. They go through handleFill instead.
     const bets = gaps
-      .filter(g => selected.has(g.market_id))
+      .filter(g => selected.has(g.market_id) && !isHidden(g))
       .map(g => activeLeg(g))
       .filter(leg => !leg.maker_only)
       .map(leg => ({
@@ -189,11 +269,11 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     } finally {
       setPicking(false)
     }
-  }, [gaps, selected, fills, activeLeg, toast, onPicked])
+  }, [gaps, selected, fills, activeLeg, isHidden, toast, onPicked])
 
   const handleFill = useCallback(async () => {
     const rows = gaps
-      .filter(g => selected.has(g.market_id))
+      .filter(g => selected.has(g.market_id) && !isHidden(g))
       .map(g => activeLeg(g))
       .filter(leg => leg.maker_only)
       .map(leg => ({
@@ -220,7 +300,23 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     } finally {
       setFilling(false)
     }
-  }, [gaps, selected, fills, activeLeg, toast, onPicked])
+  }, [gaps, selected, fills, activeLeg, isHidden, toast, onPicked])
+
+  // Keyboard navigation per table (j/k, space, p). Only pickable rows toggle.
+  const toggleIfSelectable = (mid: string) => {
+    const g = filtered.find(x => x.market_id === mid)
+    if (!g) return
+    const l = activeLeg(g)
+    if ((l.mode || 'live') === 'live' || l.maker_only) toggle(mid)
+  }
+  // Visible rows only, in on-screen (bucket) order so j/k follows what is drawn.
+  const orderedIds = useCallback((maker: boolean) => BUCKET_ORDER.flatMap(b =>
+    visible.filter(g => !!g.maker_only === maker && bucketOf(g) === b).map(g => g.market_id)),
+  [visible, bucketOf])
+  const takerIds = useMemo(() => orderedIds(false), [orderedIds])
+  const makerIds = useMemo(() => orderedIds(true), [orderedIds])
+  const kbTaker = useRowKeyboard({ ids: takerIds, onToggle: toggleIfSelectable, onPick: handlePick })
+  const kbMaker = useRowKeyboard({ ids: makerIds, onToggle: toggleIfSelectable, onPick: handleFill })
 
   // One rendered table row. Shared by the taker and maker tables so the two
   // never drift on columns or behaviour — only the partition differs.
@@ -237,10 +333,12 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     // taker pick, which the ask price would make -EV.
     const isMaker = !!leg.maker_only
     const selectable = isLive || isMaker
+    const v = verified[leg.market_id]
     return (
-      <tr key={g.market_id} style={isLive ? undefined : { opacity: 0.55 }}>
+      <tr key={g.market_id} {...(isMaker ? kbMaker : kbTaker).rowProps(g.market_id)} style={isLive && !(v && !v.keep) ? undefined : { opacity: 0.55 }}
+        title={v && !v.keep ? `Excluded from Pick: ${v.reason}` : undefined}>
         <td>
-          <input type="checkbox" checked={selected.has(g.market_id)}
+          <input type="checkbox" aria-label={`Select ${g.event_title} ${outcome}`} checked={selected.has(g.market_id)}
             disabled={!selectable}
             title={
               isMaker
@@ -250,6 +348,10 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
             onChange={() => toggle(g.market_id)} />
         </td>
         <td className="muted">{g.event_date}</td>
+        <td className="num" style={bucketStyle(bucketOf(g))}
+          title={g.tip_time ? new Date(g.tip_time).toLocaleString() : 'Tip time unknown'}>
+          {formatTimeToTip(minutesToTip(g.tip_time, now))}
+        </td>
         <td>
           <span className="badge">{g.sector}</span>
           {g.league_display && (
@@ -266,6 +368,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
               title={`mode=${mode} — logged for tracking, not pickable`}
             >{mode}</span>
           )}
+          {(g.sharp_only || g.model_diagnostics) && <DiagBadge g={g} />}
           {isMaker && (
             <span
               className="badge"
@@ -277,6 +380,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <td>
           {hasDropdown ? (
             <select
+              aria-label={`Venue for ${g.event_title}`}
               value={leg.venue ?? ''}
               onChange={e => setVenueSel(prev => ({ ...prev, [g.market_id]: e.target.value }))}
               title="Same bet on multiple venues — pick which book to bet. Ask, EV, maker fields and stake below follow your choice. 'mkr' = that venue clears only as a maker."
@@ -310,6 +414,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
           )}
         </td>
         <td className="num">{askOdds}</td>
+        <VerifyCells v={v} />
         <td className="num">{probToCents(leg.true_prob)}</td>
         <td className="num">{(leg.true_prob * 100).toFixed(1)}%</td>
         <td className="num green">{leg.ev_pct.toFixed(1)}%</td>
@@ -324,12 +429,12 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
           {leg.maker_bid_price != null ? probToCents(leg.maker_bid_price) : '—'}
         </td>
         <td className="num">
-          <input type="text" value={fills[leg.market_id]?.odds || askOdds}
+          <input type="text" aria-label={`Fill cents for ${g.event_title}`} value={fills[leg.market_id]?.odds || askOdds}
             onChange={e => updateFill(leg.market_id, 'odds', e.target.value)}
             style={{ width: 64 }} />
         </td>
         <td className="num">
-          <input type="number" value={fills[leg.market_id]?.stake || ''}
+          <input type="number" aria-label={`Stake for ${g.event_title}`} value={fills[leg.market_id]?.stake || ''}
             onChange={e => updateFill(leg.market_id, 'stake', e.target.value)}
             style={{ width: 70 }} min="0.01" step="0.01" />
           {g.cash_capped && leg.venue === g.venue && (
@@ -342,7 +447,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <td className="muted" style={{ fontSize: 10 }}>{leg.model_sources}</td>
       </tr>
     )
-  }, [activeLeg, selected, fills])
+  }, [activeLeg, selected, fills, verified, kbTaker, kbMaker, bucketOf, now])
 
   if (!gaps.length) return null
 
@@ -354,18 +459,34 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
   // the action handlers still gate on activeLeg(g).maker_only, so switching a
   // row to a maker-only venue routes it to the right button regardless of
   // which table it visually sits in.
-  const takerRows = filtered.filter(g => !g.maker_only)
-  const makerRows = filtered.filter(g => g.maker_only)
+  const takerRows = visible.filter(g => !g.maker_only)
+  const makerRows = visible.filter(g => g.maker_only)
 
-  const checkedRows = filtered.filter(g => selected.has(g.market_id)).map(activeLeg)
+  // One <tbody> per time bucket, with a header row; rows move buckets as `now` ticks.
+  const renderBucketed = (rows: ScanGap[]) => BUCKET_ORDER.map(b => {
+    const inBucket = rows.filter(g => bucketOf(g) === b)
+    if (!inBucket.length) return null
+    return (
+      <tbody key={b}>
+        <tr>
+          <td colSpan={99} style={{ fontSize: 11, fontWeight: 600, paddingTop: 8 }}>
+            {BUCKET_LABEL[b]} <span className="muted">({inBucket.length})</span>
+          </td>
+        </tr>
+        {inBucket.map(renderRow)}
+      </tbody>
+    )
+  })
+
+  const checkedRows = visible.filter(g => selected.has(g.market_id)).map(activeLeg)
   const pickCount = checkedRows.filter(leg => !leg.maker_only).length
   const fillCount = checkedRows.filter(leg => leg.maker_only).length
 
   const headerRow = (
     <tr>
       <th style={{ width: 30 }}></th>
-      <th>Date</th><th>Sector</th><th style={{ minWidth: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
-      <th className="num">Ask</th><th className="num">Fair Value</th><th className="num">Model</th><th className="num">EV</th>
+      <th>Date</th><th className="num" title="Time until the game starts. Only the under-1h-before-tip entry window has carried positive CLV.">To tip</th><th>Sector</th><th style={{ minWidth: 34 }}>Venue</th><th>Event</th><th>Outcome</th>
+      <th className="num">Ask</th><VerifyHeaderCells /><th className="num">Fair Value</th><th className="num">Model</th><th className="num">EV</th>
       <th className="num" title="EV if opened as a resting limit order (maker fee)">Maker EV</th>
       <th className="num" title="Ceiling — rest at or below this and you stay ≥ the EV floor as a maker. Can sit ABOVE the ask; it is not a place-order price. Use Bid ¢.">Limit ¢</th>
       <th className="num" title="The bid to SET: rest your maker buy here (one tick above the current best bid, still below the ask). Fills as a maker, not a taker. Record the fill with `evmax agents fill`.">Bid ¢</th>
@@ -378,11 +499,11 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
       <div className="panel-header">
         <h2>Scan Results — {gaps.length} plays ({meta?.markets_fetched} markets, {meta?.markets_matched} matched)</h2>
         <div className="actions" style={{ gap: 4 }}>
-          <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
+          <input type="date" aria-label="Filter by date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
             style={{ fontSize: 11 }} />
           <SectorFilter value={sector} onChange={setSector} />
           {venuesPresent.length > 1 && (
-            <select value={venueFilter} onChange={e => setVenueFilter(e.target.value)}
+            <select aria-label="Filter by venue" value={venueFilter} onChange={e => setVenueFilter(e.target.value)}
               style={{ fontSize: 11 }}
               title="Display filter — narrows which venues' plays are shown. Does NOT change sizing (that's the bankroll dropdown).">
               <option value="">All venues</option>
@@ -391,7 +512,16 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
               ))}
             </select>
           )}
+          <label className="muted" style={{ fontSize: 11 }}
+            title="Games within 15 min of tip or already started. Hidden rows are excluded from Pick / Record Fill.">
+            <input type="checkbox" checked={showLate} onChange={e => setShowLate(e.target.checked)} />
+            {' '}Late/in-play{lateCount > 0 && !showLate ? ` (${lateCount} hidden)` : ''}
+          </label>
           <button className="btn btn-sm" onClick={() => { setSector(''); setDateFilter(''); setVenueFilter('') }}>Clear</button>
+          <button className="btn btn-sm" disabled={verifying} onClick={handleVerify}
+            title="Re-fetch live asks + the Pinnacle line and re-gate each taker row at the current price (read-only). Rows below the EV floor are unchecked.">
+            {verifying ? 'Verifying...' : 'Verify live'}
+          </button>
           <button className="btn btn-sm" onClick={selectAll}>Select All</button>
           <button className="btn btn-sm" onClick={deselectAll}>Deselect All</button>
         </div>
@@ -407,10 +537,10 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
       {takerRows.length === 0 ? (
         <div className="muted" style={{ fontSize: 12, padding: '4px 0 8px' }}>No taker-EV plays.</div>
       ) : (
-        <div className="table-scroll">
-          <table>
+        <div {...kbTaker.containerProps}>
+          <table className="card-tbl st-scan">
             <thead>{headerRow}</thead>
-            <tbody>{takerRows.map(renderRow)}</tbody>
+            {renderBucketed(takerRows)}
           </table>
         </div>
       )}
@@ -430,10 +560,10 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
       {makerRows.length === 0 ? (
         <div className="muted" style={{ fontSize: 12, padding: '4px 0 8px' }}>No maker-only plays.</div>
       ) : (
-        <div className="table-scroll">
-          <table>
+        <div {...kbMaker.containerProps}>
+          <table className="card-tbl st-scan">
             <thead>{headerRow}</thead>
-            <tbody>{makerRows.map(renderRow)}</tbody>
+            {renderBucketed(makerRows)}
           </table>
         </div>
       )}

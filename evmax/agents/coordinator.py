@@ -1094,6 +1094,19 @@ class AgentCoordinator:
     # baseball scans — the whole pipeline was dead in production.
     _PROP_SECTORS = {"nba", "nfl", "baseball"}
 
+    @staticmethod
+    def _props_enabled(sector: str) -> bool:
+        """False when the sector's ``{sector}_props`` category resolves to
+        ``disabled``: its props are dropped before persistence, so the extra
+        Kalshi + Pinnacle prop fetch would be pure cost. Unknown category ->
+        True (old behaviour)."""
+        from evmax.modes import get_mode
+
+        try:
+            return get_mode(f"{sector.lower()}_props") != "disabled"
+        except KeyError:
+            return True
+
     async def _run_sector(self, sector: str, correlation_id: str) -> dict:
         req = AgentRequest(sector=sector, correlation_id=correlation_id)
 
@@ -1112,7 +1125,7 @@ class AgentCoordinator:
             fetch_tasks.append(self.polymarket_us_agent(req))
 
         prop_task = None
-        if sector.lower() in self._PROP_SECTORS:
+        if sector.lower() in self._PROP_SECTORS and self._props_enabled(sector):
             prop_task = asyncio.create_task(self._fetch_props(sector))
 
         fetch_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)

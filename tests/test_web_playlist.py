@@ -125,6 +125,29 @@ class TestDashboardPlayDicts:
         assert row["league"] == "epl"
         assert row["league_display"] == "Premier League"
 
+    def test_diagnostics_and_sharp_only_appended_last(self):
+        import json
+        g = _gap("D")
+        g.model_sources = "sharp"
+        g.model_diagnostics = json.dumps(
+            {"fired": {}, "gated": {"elo": {"conf": 0.3, "note": "thin"}}, "missing": ["form"]}
+        )
+        row = playlist.gap_to_dict(g, 500.0)
+        assert row["sharp_only"] is True
+        assert row["model_diagnostics"]["missing"] == ["form"]
+        assert row["model_diagnostics"]["gated"]["elo"]["note"] == "thin"
+        keys = list(row)
+        assert keys[-3:] == ["venue_options", "model_diagnostics", "sharp_only"]
+        assert keys.index("model_sources") < keys.index("venue_options")
+
+    def test_model_row_not_sharp_only_and_bad_json_is_none(self):
+        g = _gap("E")
+        g.model_sources = "elo+form+sharp"
+        g.model_diagnostics = "{not json"
+        row = playlist.gap_to_dict(g, 500.0)
+        assert row["sharp_only"] is False
+        assert row["model_diagnostics"] is None
+
     def test_non_soccer_gap_has_null_league(self):
         row = playlist.gap_to_dict(_gap("N"), 500.0)
         assert row["league"] is None
@@ -286,3 +309,37 @@ class TestVenueShadowMarketTypes:
     def test_polyus_total_stays_live(self, monkeypatch):
         row = self._row(monkeypatch, "polymarket_us")
         assert row["mode"] == "live" and row["stake"] > 0
+
+
+# ── tip_time (time-to-tip column) ──────────────────────────────────────────
+
+def test_tip_time_iso_real_start_is_utc_iso():
+    from datetime import timezone
+    dt = datetime(2026, 10, 21, 23, 30, tzinfo=timezone.utc)
+    assert playlist.tip_time_iso(dt) == "2026-10-21T23:30:00Z"
+
+
+def test_tip_time_iso_none_and_noon_utc_anchor_are_unknown():
+    from datetime import timezone
+    assert playlist.tip_time_iso(None) is None
+    # Kalshi-ticker date anchor (noon UTC) is a date, not a start time.
+    assert playlist.tip_time_iso(datetime(2026, 10, 21, 12, 0, tzinfo=timezone.utc)) is None
+
+
+def test_tip_time_iso_naive_treated_as_utc():
+    assert playlist.tip_time_iso(datetime(2026, 10, 21, 19, 5)) == "2026-10-21T19:05:00Z"
+
+
+def test_gap_to_dict_exposes_tip_time():
+    from datetime import timezone
+    g = _gap("m1")
+    g.event_date = datetime(2026, 10, 21, 23, 30, tzinfo=timezone.utc)
+    assert playlist.gap_to_dict(g, 500.0)["tip_time"] == "2026-10-21T23:30:00Z"
+
+
+def test_open_bets_tip_time_from_row():
+    from evmax.web.app import _tip_time_from_row
+    assert _tip_time_from_row("2026-10-21 20:00:00", 90) == "2026-10-21T21:30:00Z"
+    assert _tip_time_from_row("2026-10-21 20:00:00", 0) is None   # clamped = unknown
+    assert _tip_time_from_row(None, 90) is None
+    assert _tip_time_from_row("garbage", 90) is None

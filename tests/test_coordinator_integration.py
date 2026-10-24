@@ -44,6 +44,21 @@ def _no_live_playoff_context(monkeypatch):
     monkeypatch.setattr(PlayoffAgent, "_fetch_playoff_data", _no_series)
 
 
+@pytest.fixture(autouse=True)
+def _props_categories_on():
+    """The prop PIPELINE is under test here, not the shipped modes: all three
+    `*_props` categories ship `disabled` (2026-10-18 scope cut), and the
+    coordinator now skips the prop fetch for a disabled category. Turn them on
+    for this module; the skip itself is pinned in tests/test_modes.py."""
+    from evmax.modes import clear_runtime_overrides, set_runtime_overrides
+
+    set_runtime_overrides(
+        {"nba_props": "shadow", "nfl_props": "shadow", "baseball_props": "shadow"}
+    )
+    yield
+    clear_runtime_overrides()
+
+
 def _run(coro):
     loop = asyncio.new_event_loop()
     try:

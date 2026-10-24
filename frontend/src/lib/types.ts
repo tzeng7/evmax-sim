@@ -34,6 +34,7 @@ export interface Bet {
   id: number
   scan_date: string
   event_date: string
+  tip_time?: string | null  // UTC ISO start time; null/absent = unknown
   sector: string
   event_title: string
   yes_team: string
@@ -76,8 +77,16 @@ export interface ScanGap {
   kelly_fraction: number
   stake: number
   model_sources: string
+  // Why-not diagnostics: fired/gated(note)/missing per sector-configured model.
+  model_diagnostics?: {
+    fired?: Record<string, { conf?: number; n?: number }>
+    gated?: Record<string, { conf?: number; note?: string }>
+    missing?: string[]
+  } | null
+  sharp_only?: boolean
   market_id: string
   event_date: string
+  tip_time?: string | null  // UTC ISO start time; null = unknown
   volume: number
   mode?: string
   venue?: string
@@ -250,6 +259,7 @@ export interface BoardGate {
 
 export interface BoardClv {
   n: number
+  games?: number
   mean_clv_pp: number
   frac_positive: number
   clears: boolean
@@ -473,4 +483,42 @@ export interface ProjectionSizing {
   /** Hard cap on one stake, as a bankroll fraction. */
   cap: number
   note: string
+}
+
+// ── Eval tab (/api/eval = `evmax cleanup eval`, passed through unchanged) ──
+export type EvalBlock = Record<string, unknown>
+
+export interface EvalGroup {
+  group: Record<string, string>
+  funnel: { stage: string; n_rows: number; dropped: number | null }[]
+  roi_population: EvalBlock
+  clv_population: EvalBlock & { uncapped?: EvalBlock | null; empty_reason?: string | null }
+  realized: EvalBlock
+  roi_empty_reason: string | null
+  sector_rules: EvalBlock[]
+}
+
+export interface EvalResult {
+  spec: Record<string, unknown>
+  db: Record<string, unknown>
+  definitions: Record<string, string>
+  groups: EvalGroup[]
+}
+
+// ── Modes panel (/api/modes, evmax.mode_report) ──
+export interface ModeRow {
+  category: string
+  display_name: string
+  market_type: string
+  venue: string
+  yaml_mode: string
+  mode: string
+  reason: string
+}
+
+export interface ModesReport {
+  today: string
+  rows: ModeRow[]
+  shadow_leagues: string[]
+  polymarket_us: { enabled: boolean; master_live: boolean; live_sectors: string[] }
 }

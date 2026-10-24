@@ -10,7 +10,7 @@ from typing import Any
 
 from fastapi import FastAPI, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from evmax.formatting import format_outcome_label_for_row
@@ -108,6 +108,21 @@ def _placed_bets() -> list[dict[str, Any]]:
 OPEN_STARTED_LOOKBACK_DAYS = 7
 
 
+def _tip_time_from_row(logged_at: str | None, minutes_to_tipoff: int | None) -> str | None:
+    """Reconstruct a row's start time as logged_at (UTC) + minutes_to_tipoff.
+
+    Rows store only a game DAY plus the scan-time minutes to tip. A stored 0 is
+    clamped (start unknown or already past), so it yields None, not a tip time.
+    """
+    if not logged_at or not minutes_to_tipoff or minutes_to_tipoff <= 0:
+        return None
+    try:
+        t = datetime.fromisoformat(str(logged_at).replace("Z", "")).replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+    return (t + timedelta(minutes=minutes_to_tipoff)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def _open_bets() -> list[dict[str, Any]]:
     """Return open (unresolved, unplaced) bets, deduplicated by market_id.
 
@@ -134,7 +149,7 @@ def _open_bets() -> list[dict[str, Any]]:
                    p.blended_true_prob, p.ev_pct, p.kelly_fraction,
                    p.bankroll_used, p.volume_usd, p.model_sources,
                    p.placed, p.placed_stake, p.market_id, p.line, p.venue,
-                   p.maker_fill
+                   p.maker_fill, p.logged_at, p.minutes_to_tipoff
             FROM ev_predictions p
             INNER JOIN (
                 SELECT market_id, MAX(id) AS max_id
@@ -157,6 +172,7 @@ def _open_bets() -> list[dict[str, Any]]:
         b["display_label"] = _display_label_for_row(b)
         ev_date = b.get("event_date")
         b["status"] = "in_progress" if (ev_date and ev_date < today_str) else "upcoming"
+        b["tip_time"] = _tip_time_from_row(b.pop("logged_at", None), b.pop("minutes_to_tipoff", None))
     return out
 
 
@@ -384,6 +400,42 @@ def api_sectors(period: str = Query("all", alias="range")) -> JSONResponse:
     return JSONResponse(_sector_breakdown(bets))
 
 
+@app.get("/api/eval")
+def api_eval(
+    sector: str = Query(None),
+    market: str = Query(None),
+    venue: str = Query(None),
+    mode: str = Query(None),
+    league: str = Query(None),
+    side: str = Query(None),
+    sources_token: str = Query(None),
+    since: str = Query(None),
+    until: str = Query(None),
+    population: str = Query("gate"),
+    max_staleness_h: float = Query(3.0, ge=0.0),
+    group_by: str = Query(""),
+) -> Response:
+    """Read-only `evmax cleanup eval` (evaluation.run_eval), returned unchanged.
+
+    Params mirror EvalSpec (``market`` = ``market_type``). The body is exactly
+    ``evaluation.to_json(result)`` so it is byte-identical to ``--json`` for
+    the same DB + spec. Nothing is recomputed here.
+    """
+    from evmax.agents.cleanup import evaluation as ev
+
+    try:
+        spec = ev.EvalSpec(
+            sector=sector, market_type=market, venue=venue, mode=mode,
+            league=league, side=side, sources_token=sources_token,
+            since=since, until=until, population=population,
+            max_staleness_h=max_staleness_h,
+            group_by=tuple(g.strip() for g in group_by.split(",") if g.strip()),
+        )
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+    return Response(ev.to_json(ev.run_eval(spec)), media_type="application/json")
+
+
 @app.get("/api/promotion-board")
 def api_promotion_board(
     days: int = Query(30, ge=1, le=365),
@@ -417,6 +469,69 @@ def api_promotion_board(
         price_bucket=price_bucket,
     )
     return JSONResponse({"days": days, "rows": rows})
+
+
+_INTEGRITY_TTL_S = 60.0
+_integrity_cache: dict[tuple, tuple[float, dict]] = {}
+
+
+def _integrity_status(result: dict) -> str:
+    sevs = {i.get("severity") for i in result.get("issues", [])}
+    if "critical" in sevs:
+        return "critical"
+    if "warning" in sevs or result.get("failed"):
+        return "warning"
+    return "ok"
+
+
+def _integrity_sweep(only: frozenset | None, check_pinnacle: bool, weekly: bool) -> dict:
+    """Run the read-only sweep (never notifies) and add a per-check rollup."""
+    from evmax.agents.cleanup.integrity import run_integrity
+
+    result = run_integrity(
+        weekly=weekly,
+        check_pinnacle=check_pinnacle,
+        notify=False,
+        only=set(only) if only else None,
+    )
+    rank = {"info": 0, "warning": 1, "critical": 2}
+    per: dict[str, dict] = {}
+    for name in result["ran"]:
+        per[name] = {"check": name, "severity": "ok", "issues": []}
+    for name in result["failed"]:
+        per.setdefault(name, {"check": name, "severity": "ok", "issues": []})
+    for i in result["issues"]:
+        row = per.setdefault(i["check"], {"check": i["check"], "severity": "ok", "issues": []})
+        row["issues"].append({"severity": i["severity"], "detail": i["detail"]})
+        if row["severity"] == "ok" or rank.get(i["severity"], 1) > rank.get(row["severity"], -1):
+            row["severity"] = i["severity"]
+    result["checks"] = list(per.values())
+    result["status"] = _integrity_status(result)
+    result["generated_at"] = datetime.now(timezone.utc).isoformat()
+    return result
+
+
+@app.get("/api/integrity")
+async def api_integrity(
+    only: str = Query(None, description="Comma-separated subset of checks"),
+    check_pinnacle: bool = Query(False),
+    weekly: bool = Query(False),
+) -> JSONResponse:
+    """Read-only `evmax cleanup integrity` sweep (cached ~60s, never notifies)."""
+    import time
+
+    only_set = frozenset(s.strip() for s in only.split(",") if s.strip()) if only else None
+    key = (only_set, check_pinnacle, weekly)
+    now = time.monotonic()
+    hit = _integrity_cache.get(key)
+    if hit and now - hit[0] < _INTEGRITY_TTL_S:
+        return JSONResponse(hit[1])
+    try:
+        result = await asyncio.to_thread(_integrity_sweep, only_set, check_pinnacle, weekly)
+    except Exception as exc:  # noqa: BLE001 — the chip fails soft on any error
+        return JSONResponse({"error": str(exc)}, status_code=500)
+    _integrity_cache[key] = (now, result)
+    return JSONResponse(result)
 
 
 @app.get("/api/nfl-projections")
@@ -868,6 +983,14 @@ async def api_categories() -> JSONResponse:
     return JSONResponse({"categories": cats})
 
 
+@app.get("/api/modes")
+def api_modes() -> JSONResponse:
+    """Read-only effective mode + reason per (category, market type, venue)."""
+    from evmax.mode_report import mode_report
+
+    return JSONResponse(mode_report())
+
+
 @app.get("/api/balance")
 async def api_balance(venue: str = Query("", alias="venue")) -> JSONResponse:
     """Live TOTAL account wealth per venue (cash + open positions), for the
@@ -968,6 +1091,39 @@ async def api_scan(request: Request) -> JSONResponse:
         fan_out_portfolios=body.get("fan_out_portfolios", True),
         portfolio_ids=body.get("portfolio_ids", []) or [],
     )
+    return JSONResponse(payload)
+
+
+@app.post("/api/verify")
+async def api_verify(request: Request) -> JSONResponse:
+    """Re-price open candidates at the LIVE ask (read-only; places nothing).
+
+    Body: ``{"market_ids": [...], "bankroll"?, "kelly"?, "min_ev"?, "min_prob"?}``.
+    Runs the same engine as ``agents verify`` / ``pick --live``; each result
+    carries scan/live ask, delta, scan/live EV, live stake and keep/drop.
+    """
+    from evmax.web.verify import DEFAULT_MIN_EV, DEFAULT_MIN_PROB, verify_market_ids
+
+    body = await request.json()
+    market_ids = [m for m in (body.get("market_ids") or []) if isinstance(m, str) and m]
+    if not market_ids:
+        return JSONResponse({"error": "No market_ids provided"}, status_code=400)
+    if len(market_ids) > 200:
+        return JSONResponse({"error": "Too many market_ids (max 200)"}, status_code=400)
+
+    bankroll = body.get("bankroll")
+    conn = _conn()
+    try:
+        payload = await verify_market_ids(
+            conn,
+            market_ids,
+            bankroll=float(bankroll) if bankroll else None,
+            kelly=float(body.get("kelly", 0.5)),
+            min_ev=float(body.get("min_ev", DEFAULT_MIN_EV)),
+            min_prob=float(body.get("min_prob", DEFAULT_MIN_PROB)),
+        )
+    finally:
+        conn.close()
     return JSONResponse(payload)
 
 
@@ -1080,6 +1236,29 @@ async def api_fill(request: Request) -> JSONResponse:
     conn.commit()
     conn.close()
     return JSONResponse({"filled": len(recorded), "fills": recorded, "skipped": skipped})
+
+
+@app.get("/api/resting-orders")
+def api_resting_orders(sector: str = Query("nfl")) -> JSONResponse:
+    """Maker rows that should be resting on the exchange, plus the pilot readout.
+
+    RECORD-ONLY: nothing here places or cancels an order. Each row carries a
+    kickoff time and a status (``resting`` / ``filled`` / ``past_kickoff``);
+    ``past_kickoff`` means the user should cancel the order on the exchange.
+    Fills are recorded through ``POST /api/fill``.
+    """
+    from datetime import datetime, timezone
+
+    from evmax.agents.cleanup.resting_orders import list_resting_orders, pilot_readout
+
+    now = datetime.now(timezone.utc)
+    conn = _conn()
+    try:
+        orders = list_resting_orders(conn, now=now)
+        readout = pilot_readout(conn, sector)
+    finally:
+        conn.close()
+    return JSONResponse({"now": now.isoformat(), "orders": orders, "readout": readout})
 
 
 @app.post("/api/update-placed")

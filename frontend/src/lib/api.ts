@@ -1,4 +1,4 @@
-import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult, PromotionBoardResult, VenueBalances, ProjectionSector, ProjectionSlate, ProjectionGame, ProjectionGameDetail, ProjectionOptionValues } from './types'
+import type { Summary, ProfitPoint, ScanResult, MetricsResult, Bet, SectorRow, Category, Portfolio, PortfolioDetail, PortfolioScanResult, ArbScanResult, PromotionBoardResult, EvalResult, VenueBalances, ProjectionSector, ProjectionSlate, ProjectionGame, ProjectionGameDetail, ProjectionOptionValues, ModesReport } from './types'
 
 const json = (r: Response) => r.json()
 
@@ -62,6 +62,43 @@ export async function pickBets(bets: { market_id: string; fill_price: number | n
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ bets }),
   }).then(json)
+}
+
+export interface VerifyRow {
+  market_id: string
+  keep: boolean
+  reason: string
+  scan_ask: number | null
+  live_ask: number | null
+  delta: number | null
+  scan_ev: number | null
+  live_ev: number | null
+  delta_ev: number | null
+  live_fair: number | null
+  threshold: number | null
+  stake: number
+  in_play: boolean
+  price_is_live: boolean
+  pin_is_live: boolean
+  start_unknown: boolean
+}
+export interface VerifyResult { verified_at: string; live: boolean; kept: number; results: VerifyRow[]; warnings: string[] }
+
+// Re-price open candidates at the LIVE ask (read-only — same engine as
+// `evmax agents verify`). Rows below the EV floor come back keep=false.
+export async function verifyBets(
+  market_ids: string[],
+  opts: { bankroll?: number; kelly?: number } = {},
+): Promise<VerifyResult> {
+  return fetch('/api/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ market_ids, ...opts }),
+  }).then(json)
+}
+
+export function verifySummary(rows: VerifyRow[]): string {
+  return `${rows.filter(r => r.keep).length} of ${rows.length} still +EV at live asks`
 }
 
 export interface MakerFillRow {
@@ -194,6 +231,25 @@ export async function fetchPromotionBoard(
   return fetch(`/api/promotion-board?${params}`).then(json)
 }
 
+// ── Eval tab ──
+export interface EvalParams {
+  sector?: string
+  market?: string
+  venue?: string
+  mode?: string
+  since?: string
+  population?: string
+}
+
+export async function fetchEval(p: EvalParams): Promise<EvalResult> {
+  const params = new URLSearchParams()
+  for (const [k, v] of Object.entries(p)) if (v) params.set(k, v)
+  const r = await fetch(`/api/eval?${params}`)
+  const body = await r.json()
+  if (!r.ok) throw new Error(body.error ?? `HTTP ${r.status}`)
+  return body
+}
+
 // ── Projections tab ──
 // Runs can fail for user-fixable reasons (bad option, no games that week,
 // sector not runnable). Those come back as {error} with a 4xx — surface the
@@ -237,4 +293,8 @@ export async function runProjectionGame(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ game, options }),
   }).then(r => projectionJson<ProjectionGameDetail>(r))
+}
+
+export async function fetchModes(): Promise<ModesReport> {
+  return fetch('/api/modes').then(json)
 }

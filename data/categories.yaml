@@ -48,12 +48,12 @@
 nba:
   display_name: "NBA"
   market_types: [moneyline, spread, total]
-  shadow_market_types: [moneyline, spread, total]
+  shadow_market_types: [moneyline]
   models: [elo, form, efficiency, shot_quality, matchup, possession_sim, sharp]
   mode: live
   resolver: espn_scoreboard
   status: shipped
-  notes: "2026-10-18: moneyline in shadow_market_types for the 2026-27 opening weeks. The stat stack (efficiency/possession_sim/shot_quality/matchup) abstains until each team has 20 games (~Nov 20-25), so the ML blend is elo+sharp+injury, and NBA Elo is results-only with no roster input (Giannis to MIA, LeBron + Brown to PHI, George to BOS were invisible to it): opener rows showed blend 4.5-6pp above a Pinnacle line the venue already matched. Remove once efficiency/possession_sim fire and `cleanup shadow clv nba -m moneyline` clears. Spread added to shadow 2026-10-18: Kalshi NBA spread CLV -1.49pp, 28% positive over 66 games (fails the gate; blend divergence ~0, i.e. stale-line Kalshi-vs-Pinnacle selection, not model edge). Total shadowed too (same sharp-passthrough shape; only n=4 resolved games, no evidence either way): re-read `cleanup shadow clv nba -m total` and lift once it clears n>=30 games, CLV>=0, %pos>=55."
+  notes: "2026-10-18: moneyline in shadow_market_types for the 2026-27 opening weeks. The stat stack (efficiency/possession_sim/shot_quality/matchup) abstains until each team has 20 games (~Nov 20-25), so the ML blend is elo+sharp+injury, and NBA Elo is results-only with no roster input (Giannis to MIA, LeBron + Brown to PHI, George to BOS were invisible to it): opener rows showed blend 4.5-6pp above a Pinnacle line the venue already matched. Remove once efficiency/possession_sim fire and `cleanup shadow clv nba -m moneyline` clears. Spread/total stay live (sharp + spread_dist, no model share)."
 
 nfl:
   display_name: "NFL"

@@ -19,10 +19,47 @@ scheduled scan process without loading the web app.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable, Optional
 
 from evmax.formatting import format_outcome_label_for_row
+
+
+def tip_time_iso(dt: Optional[datetime]) -> Optional[str]:
+    """UTC ISO-8601 start time for the dashboard's time-to-tip column, or None.
+
+    ``None`` when unknown. A Kalshi-ticker-derived ``event_date`` is anchored at
+    exactly 12:00:00 UTC (a date, not a start time), so that value is treated as
+    unknown rather than shown as a fake tip time.
+    """
+    if dt is None:
+        return None
+    utc = (dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)).astimezone(timezone.utc)
+    if (utc.hour, utc.minute, utc.second, utc.microsecond) == (12, 0, 0, 0):
+        return None
+    return utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _parse_diagnostics(raw: Any) -> Optional[dict[str, Any]]:
+    """Decode EVGap.model_diagnostics (JSON string) into a compact dict."""
+    if not raw:
+        return None
+    if isinstance(raw, dict):
+        return raw
+    try:
+        import json
+        val = json.loads(raw)
+    except (TypeError, ValueError):
+        return None
+    return val if isinstance(val, dict) else None
+
+
+def _is_sharp_only(model_sources: Optional[str]) -> bool:
+    """True when no genuine model token contributed (sharp passthrough)."""
+    from evmax.agents.odds.ev_gap_agent import _NON_MODEL_TOKENS
+
+    toks = {t.strip() for t in (model_sources or "").split("+")}
+    return not (toks - _NON_MODEL_TOKENS)
 
 
 def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
@@ -144,6 +181,7 @@ def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
         "model_sources": g.model_sources or "",
         "market_id": g.market_id or "",
         "event_date": str(g.event_date.astimezone().strftime("%Y-%m-%d") if g.event_date else ""),
+        "tip_time": tip_time_iso(g.event_date),
         "volume": g.volume_usd or 0,
         "volume_usd": g.volume_usd or 0,
         "mode": gap_mode,
@@ -170,6 +208,11 @@ def gap_to_dict(g, bankroll: float) -> dict[str, Any]:
             [gap_to_dict(leg, bankroll) for leg in g.venue_options]
             if getattr(g, "venue_options", None) else None
         ),
+        # Appended last so the existing key order stays stable. Why-not
+        # diagnostics (fired / gated+note / missing per configured model) and a
+        # sharp-only flag for the "Sharp only" badge.
+        "model_diagnostics": _parse_diagnostics(getattr(g, "model_diagnostics", None)),
+        "sharp_only": _is_sharp_only(g.model_sources),
     }
 
 

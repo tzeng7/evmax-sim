@@ -187,8 +187,10 @@ def real_db(tmp_path, monkeypatch):
 def test_logger_demotes_shadow_league_rows(tiers, real_db, monkeypatch):
     from evmax.agents.cleanup import logger as logger_module
     from evmax.agents.cleanup.logger import log_gaps
-    # soccer's live/shadow base comes from the registry; pin it live here.
-    monkeypatch.setattr(logger_module, "get_mode", lambda *a, **k: "live", raising=False)
+    # soccer ML ships shadow since 2026-10-18; pin the sector live here so the
+    # test isolates the league-level shadow (logger imports get_mode lazily).
+    import evmax.modes
+    monkeypatch.setattr(evmax.modes, "get_mode", lambda *a, **k: "live")
     gaps = [
         _gap("kalshi:KXEPLGAME-1", league="epl"),
         _gap("kalshi:KXLIGAMXGAME-1", league="ligamx"),
