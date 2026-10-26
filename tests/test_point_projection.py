@@ -50,7 +50,7 @@ def _stub_efficiency_state() -> dict:
                 "rookies": {  # insufficient-GP team for the gp-gate test
                     "ortg": 110.0, "drtg": 115.0, "pace": 99.0,
                     "tov_pct": 0.14, "oreb_pct": 0.28,
-                    "gp": 10, "full_name": "rookie team",
+                    "gp": 9, "full_name": "rookie team",
                 },
             },
         }
@@ -124,7 +124,7 @@ def test_project_nba_returns_none_when_team_missing(stub_model):
 
 
 def test_project_nba_returns_none_when_gp_insufficient(stub_model):
-    # "rookies" has gp=10 < 20 → simulate_matchup must reject
+    # "rookies" has gp=9 < 10 → simulate_matchup must reject
     assert stub_model.project("celtics", "rookies", "nba") is None
 
 

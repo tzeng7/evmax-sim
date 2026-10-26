@@ -436,7 +436,7 @@ class TestPossessionSim:
         low_gp_state = {
             **MOCK_EFF_STATE,
             "teams": {
-                "thunder": {**MOCK_EFF_STATE["teams"]["thunder"], "gp": 10},
+                "thunder": {**MOCK_EFF_STATE["teams"]["thunder"], "gp": 9},
                 "suns": MOCK_EFF_STATE["teams"]["suns"],
             },
         }

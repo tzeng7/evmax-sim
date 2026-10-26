@@ -54,7 +54,7 @@ CACHE_TTL_HOURS = 12
 # NBA-specific constants
 HOME_EDGE_PTS = 3.2
 SCORE_STDEV = 12.0
-MIN_GAMES = 20
+MIN_GAMES = 10
 
 
 # Shared Abramowitz & Stegun normal CDF (single source in models_ml).

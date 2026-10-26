@@ -36,6 +36,7 @@ import structlog
 
 from evmax.agents.models._team_lookup import resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
+from evmax.agents.models.efficiency_agent import MIN_GAMES
 from evmax.clients.nba_season import DateLike, season_matches
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -252,7 +253,7 @@ class PossessionSimAgent(ModelAgent):
         None). Returns a dict with keys: scores_a/b, margin, total, prob_a,
         stats_a/b, confidence, event_id. Returns None when efficiency state is
         missing, is stamped for a season other than ``game_date``'s (today when
-        None), or either team has <20 games played. Every consumer — the ML
+        None), or either team has <MIN_GAMES games played. Every consumer — the ML
         blend, the spread/total sim blend in ev_gap_agent (reads the cache this
         fills) and the point projections — goes through this check.
 
@@ -275,7 +276,7 @@ class PossessionSimAgent(ModelAgent):
         stats_b = self._resolve_team(teams, team_b)
         if not stats_a or not stats_b:
             return None
-        if stats_a.get("gp", 0) < 20 or stats_b.get("gp", 0) < 20:
+        if stats_a.get("gp", 0) < MIN_GAMES or stats_b.get("gp", 0) < MIN_GAMES:
             return None
 
         league_ortg = eff_data.get("league_avg_ortg", LEAGUE_AVG_ORTG)
