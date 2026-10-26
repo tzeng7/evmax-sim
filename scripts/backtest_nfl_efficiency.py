@@ -488,7 +488,13 @@ def main() -> int:
                          "(scripts/exp_nfl_eff_ridge.py --fit-margin).")
     ap.add_argument("--dump", type=str, default=None,
                     help="Write every per-game prediction row to this JSON file (offline blend-weight sweeps).")
+    ap.add_argument("--preseason-prior", action="store_true",
+                    help="Set nfl_efficiency PRESEASON_PRIOR_ENABLED=True (fire the decayed prior-season rating in weeks 1-N instead of blanking)")
+    ap.add_argument("--dump-preds", type=str, default=None,
+                    help="Write per-game model probs (+ NFL week) to this JSON for paired comparisons")
     args = ap.parse_args()
+    if args.preseason_prior:
+        nfl_eff_mod.PRESEASON_PRIOR_ENABLED = True
     epa_pts_by_season = _parse_epa_margin_pts(args.epa_margin_pts, args.seasons.split(","))
     if args.form_shrink is not None:
         form_mod.MARGIN_FORM_PARAMS.setdefault("nfl", {})["shrink"] = args.form_shrink
@@ -665,6 +671,17 @@ def main() -> int:
                 _poisson_update(poisson, "nfl", home, away, g["home_score"], g["away_score"])
 
         print(f"\n[reseed] performed {n_reseeds} re-seeds across the walk-forward")
+
+        if args.dump_preds:
+            import dataclasses
+            def _wk(d):
+                for off in (0, -1, 1):
+                    w = week_by_date.get(d + timedelta(days=off))
+                    if w is not None:
+                        return w
+                return None
+            Path(args.dump_preds).write_text(json.dumps(
+                [{**dataclasses.asdict(p), "game_date": p.game_date.isoformat(), "week": _wk(p.game_date)} for p in all_preds]))
 
         print(f"\n[predict] {len(all_preds)} games predicted across {len(seasons)} seasons")
         if args.dump:
