@@ -52,7 +52,7 @@ def _prior_seed(prior_seasons: list[int]):
             print(f"  ! skip prior season {s}: {e}", file=sys.stderr)
     if not frames:
         return {}
-    pbp = pl.concat(frames, how="diagonal")
+    pbp = pl.concat(frames, how="diagonal_relaxed")
     # current_season = the season we will PREDICT (one after the newest prior),
     # so SEASON_DECAY weights the newest prior at 0.45 exactly as a real week-1
     # seed would.
