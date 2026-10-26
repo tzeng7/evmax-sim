@@ -89,3 +89,30 @@ Known gap: NO per-fight strike/takedown counts, so per-minute volume stats (SLpM
 can't be built from this source. All fetches disk-cache under `data/cache/ufc_espn/` (gitignored).
 Used by `scripts/fetch_ufc_history.py` → committed dataset `data/backtest/ufc/*.csv`; **not**
 called by any live agent.
+
+## Other clients and data layers
+
+### `polymarket_us.py` — `PolymarketUSClient`
+Polymarket US gateway (`gateway.polymarket.us`, public market data, no key). `POLYMARKET_US_LEAGUE_MAP`
+maps sectors to league slugs; also serves the settlement endpoint used by venue-aware resolution.
+Used by `PolymarketUSOddsAgent`, the arb scanner and `agents pick`/`verify` live re-pricing.
+
+### `balances.py`
+Live account-balance fetch (Kalshi + Polymarket US): total wealth (the Kelly base) and deployable
+cash. Fail-soft: returns `None` on missing credentials or errors so the scan falls back to `--bankroll`.
+
+### `time_util.py`
+Date helpers shared by the market clients: maps UTC commence times onto the ET game day for
+US sectors (`_US_SECTORS`, `uses_et_game_day`) so Pinnacle and Kalshi event keys agree.
+
+### Player-prop data layers
+- `nba_props_cache.py` — daily NBA player-log cache; the scan reads only sample-size/minutes diagnostics
+  (prices come from `ev/prop_pricing.py`).
+- `nba_stats.py` — older stats.nba.com L15 prop model (`nba_api`).
+- `nfl_props_cache.py` — NFL prop compute layer over `data/backtest/nfl_props/*.parquet` (diagnostics only).
+- `baseball_props_cache.py` — MLB Stats API season/team rates, box scores and game logs for `baseball_props`.
+
+### Seed-time model sources
+- `cfb_espn.py` — ESPN college-football play-by-play for NCAAF EPA (disk-cached).
+- `cfb_fpi.py` — ESPN FPI, the preseason prior for `ncaaf_efficiency_v2` (frozen per season).
+- `savant.py` — Baseball Savant expected stats (pitcher xERA) for `pitcher_v2`.
