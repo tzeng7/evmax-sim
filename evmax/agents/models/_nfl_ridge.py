@@ -48,7 +48,7 @@ def ridge_ratings(
     # nflverse ships game_date as a STRING; the weekly seed passes the frame
     # straight from load_pbp. Date arithmetic below needs pl.Date.
     if df.schema["game_date"] != pl.Date:
-        df = df.with_columns(pl.col("game_date").cast(pl.Date))
+        df = df.with_columns(pl.col("game_date").str.to_date())
     newest = df["game_date"].max()
     w = pl.lit(1.0)
     if week_half_life:
