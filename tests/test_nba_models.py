@@ -892,3 +892,209 @@ class TestSeasonRollover:
         assert asyncio.run(agent.predict_pair(market, sharp)) is not None
         market.event_date = _PRIOR_SEASON_GAME
         assert asyncio.run(agent.predict_pair(market, sharp)) is None
+
+
+# ── Efficiency → possession_sim state sharing (first-scan race) ─────────────
+
+
+def _sim_state(fetched_at: str) -> dict:
+    return {
+        **MOCK_EFF_STATE,
+        "league_avg_drtg": 114.5,
+        "league_avg_pace": 100.0,
+        "season": _SEASON,
+        "fetched_at": fetched_at,
+    }
+
+
+async def _fresh_from_nov1(fetched_at: str) -> bool:
+    """Freshness stub: a game finished on 2026-11-01."""
+    return fetched_at >= "2026-11-01"
+
+
+class TestNbaEfficiencyPriming:
+    @pytest.fixture(autouse=True)
+    def _guards(self, monkeypatch, tmp_path):
+        monkeypatch.setattr("evmax.agents.models._nba_freshness.state_is_fresh", _fresh_from_nov1)
+        stale_file = tmp_path / "efficiency_state.json"
+        stale_file.write_text(json.dumps({"nba": _sim_state("2026-10-31")}))
+        monkeypatch.setattr(
+            "evmax.agents.models.possession_sim_agent.EFFICIENCY_STATE_PATH", stale_file,
+        )
+
+    def _slow_efficiency_agent(self, fresh: dict) -> EfficiencyModelAgent:
+        """Efficiency agent whose refetch takes a moment, like a real nba_api call."""
+        eff = EfficiencyModelAgent()
+        eff.save_state = lambda *a, **k: None
+
+        async def _ensure(sector):
+            await asyncio.sleep(0.01)
+            eff._state["nba"] = fresh
+            return fresh
+
+        eff._ensure_stats = _ensure
+        return eff
+
+    def test_concurrent_run_without_priming_drops_the_sim(self):
+        """The bug: run concurrently, the sim reads the stale file first."""
+        eff = self._slow_efficiency_agent(_sim_state("2026-11-01"))
+        sim = PossessionSimAgent()
+        market, sharp = _make_pair("thunder", "suns")
+
+        async def _both():
+            return await asyncio.gather(eff.predict_pair(market, sharp), sim.predict_pair(market, sharp))
+
+        p_eff, p_sim = asyncio.run(_both())
+        assert p_eff is not None
+        assert p_sim is None
+
+    def test_primed_sim_fires_alongside_efficiency(self):
+        from evmax.agents.coordinator import AgentCoordinator
+
+        coord = AgentCoordinator.__new__(AgentCoordinator)
+        coord.log = MagicMock()
+        coord.efficiency_agent = self._slow_efficiency_agent(_sim_state("2026-11-01"))
+        coord.possession_sim_agent = PossessionSimAgent()
+        market, sharp = _make_pair("thunder", "suns")
+
+        async def _run():
+            await coord._prime_nba_efficiency_state()
+            return await asyncio.gather(
+                coord.efficiency_agent.predict_pair(market, sharp),
+                coord.possession_sim_agent.predict_pair(market, sharp),
+            )
+
+        p_eff, p_sim = asyncio.run(_run())
+        assert p_eff is not None
+        assert p_sim is not None
+        assert p_sim.model_name == "possession_sim"
+
+    def test_prime_failure_is_fail_soft(self):
+        from evmax.agents.coordinator import AgentCoordinator
+
+        coord = AgentCoordinator.__new__(AgentCoordinator)
+        coord.log = MagicMock()
+        coord.efficiency_agent = EfficiencyModelAgent()
+
+        async def _boom(sector):
+            raise RuntimeError("nba_api down")
+
+        coord.efficiency_agent._ensure_stats = _boom
+        coord.possession_sim_agent = PossessionSimAgent()
+        asyncio.run(coord._prime_nba_efficiency_state())  # must not raise
+        assert coord.possession_sim_agent._primed is False
+        coord.log.warning.assert_called_once()
+
+    def test_empty_state_does_not_prime(self):
+        sim = PossessionSimAgent()
+        sim.prime_efficiency_state({})
+        assert sim._primed is False
+        assert sim._load_efficiency_state()["fetched_at"] == "2026-10-31"  # falls back to the file
+
+    def test_primed_state_wins_over_file_and_date(self):
+        sim = PossessionSimAgent()
+        fresh = _sim_state("2026-11-01")
+        sim.prime_efficiency_state(fresh)
+        assert sim._load_efficiency_state() is fresh
+
+
+class TestNbaPrimeTaskLifecycle:
+    def _coord(self, enable_models: bool):
+        from evmax.agents.coordinator import AgentCoordinator
+
+        coord = AgentCoordinator.__new__(AgentCoordinator)
+        coord._enable_models = enable_models
+        coord.started = asyncio.Event()
+        coord.cancelled = False
+
+        async def _prime():
+            coord.started.set()
+            try:
+                await asyncio.sleep(10)
+            except asyncio.CancelledError:
+                coord.cancelled = True
+                raise
+
+        async def _body(sector, correlation_id, req, task):
+            await asyncio.sleep(0)  # let the task start, then return early
+            coord.task_seen = task
+            return {"markets_fetched": 0}
+
+        coord._prime_nba_efficiency_state = _prime
+        coord._run_sector_body = _body
+        return coord
+
+    def test_early_return_cancels_the_refresh(self):
+        coord = self._coord(enable_models=True)
+        out = asyncio.run(coord._run_sector("nba", "cid"))
+        assert out == {"markets_fetched": 0}
+        assert coord.task_seen is not None
+        assert coord.started.is_set()
+        assert coord.cancelled is True
+
+    def test_no_refresh_without_models_or_outside_nba(self):
+        coord = self._coord(enable_models=False)
+        asyncio.run(coord._run_sector("nba", "cid"))
+        assert coord.task_seen is None
+        coord = self._coord(enable_models=True)
+        asyncio.run(coord._run_sector("nfl", "cid"))
+        assert coord.task_seen is None
+
+
+class TestNbaPropsCacheRefreshGate:
+    """The L15 props-cache refresh (~150 stats.nba.com requests) must not run
+    while nba_props is disabled: it was cancelled by the 20s prop timeout before
+    saving, repeated every scan and throttled the stat stack's fetches."""
+
+    def _run(self, monkeypatch, mode: str) -> list:
+        from datetime import datetime
+
+        from evmax.agents.coordinator import AgentCoordinator
+        from evmax.clients import esports_pinnacle as pinn_mod
+        from evmax.clients import kalshi as kalshi_mod
+        from evmax.clients import nba_props_cache
+        from evmax.models.market import MarketType
+
+        market = PredictionMarket(
+            id="KXNBAPTS-26NOV02BOSHOU-JT29.5", source=MarketSource.kalshi, sector="nba",
+            market_type=MarketType.player_prop, title="Jayson Tatum 29.5 Points",
+            event_id="nba::2026-11-02::prop::jaysontatum::points::29.5",
+            team_home="HOU", team_away="BOS", yes_team="Jayson Tatum",
+            yes_price=0.5, no_price=0.5, event_date=datetime(2026, 11, 2, 20),
+            player_name="Jayson Tatum", stat_type="points", threshold=29.5,
+        )
+
+        class _FakeKalshi:
+            async def __aenter__(self): return self
+            async def __aexit__(self, *a): return None
+            async def get_markets(self, sector):
+                return [market] if sector == "nba_props" else []
+
+        class _FakePinn:
+            async def __aenter__(self): return self
+            async def __aexit__(self, *a): return None
+            async def get_prop_odds(self, sector):
+                return []
+
+        refreshed: list = []
+
+        async def _refresh(force=False, player_names=None):
+            refreshed.append(player_names)
+            return 0
+
+        monkeypatch.setattr(kalshi_mod, "KalshiClient", _FakeKalshi)
+        monkeypatch.setattr(pinn_mod, "PinnacleGuestClient", _FakePinn)
+        monkeypatch.setattr(nba_props_cache, "is_cache_fresh", lambda: False)
+        monkeypatch.setattr(nba_props_cache, "refresh_props_cache", _refresh)
+        monkeypatch.setattr(
+            "evmax.modes.get_mode", lambda cat, *a, **k: mode if cat == "nba_props" else "live",
+        )
+        coord = AgentCoordinator(sectors=["nba"], enable_models=False)
+        asyncio.run(coord._fetch_props("nba"))
+        return refreshed
+
+    def test_disabled_props_skip_the_refresh(self, monkeypatch):
+        assert self._run(monkeypatch, "disabled") == []
+
+    def test_shadow_props_still_refresh(self, monkeypatch):
+        assert self._run(monkeypatch, "shadow") == [["Jayson Tatum"]]

@@ -33,7 +33,20 @@ _CACHE_TTL_S = 600  # 10 minutes — long enough for one scan, short enough to f
 
 _cache_value: Optional[str] = None
 _cache_time: float = 0.0
-_lock = asyncio.Lock()
+# One lock per event loop. A module-level asyncio.Lock binds to the first loop
+# that contends it and then raises in any other loop (separate asyncio.run
+# calls: dashboard/Discord scans, tests).
+_lock: Optional[asyncio.Lock] = None
+_lock_loop: Optional[asyncio.AbstractEventLoop] = None
+
+
+def _loop_lock() -> asyncio.Lock:
+    global _lock, _lock_loop
+    loop = asyncio.get_running_loop()
+    if _lock is None or _lock_loop is not loop:
+        _lock = asyncio.Lock()
+        _lock_loop = loop
+    return _lock
 
 # Circuit breaker for stats.nba.com. When the underlying API is down (or
 # rate-limited), nba_api retries internally — 3 retries × 15s timeout
@@ -97,7 +110,7 @@ async def last_completed_nba_game_date() -> Optional[str]:
     pre-season, or ESPN is unreachable).
     """
     global _cache_value, _cache_time
-    async with _lock:
+    async with _loop_lock():
         if _cache_value is not None and (time.time() - _cache_time) < _CACHE_TTL_S:
             return _cache_value or None
 

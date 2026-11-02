@@ -788,6 +788,27 @@ class AgentCoordinator:
             teams=n, qb_out={t: sorted(v) for t, v in out_players.items()} or None,
         )
 
+    async def _prime_nba_efficiency_state(self) -> None:
+        """Refresh the NBA efficiency state before the ensemble fans out.
+
+        possession_sim prices off the efficiency agent's state. The ensemble
+        runs every model concurrently, so on the first scan after new games the
+        sim read the file before efficiency had saved its refetch, failed the
+        freshness guard and abstained. Refreshing here and handing the sim the
+        same in-memory state removes the race. Fail-soft: on error both agents
+        keep their own fallback behaviour.
+        """
+        try:
+            state = await self.efficiency_agent._ensure_stats("nba")
+        except Exception as e:  # noqa: BLE001 — never let a data hiccup kill the cycle
+            self.log.warning("nba_efficiency_prime_failed", error=str(e))
+            return
+        self.possession_sim_agent.prime_efficiency_state(state)
+        self.log.info(
+            "nba_efficiency_primed",
+            fetched_at=state.get("fetched_at"), teams=len(state.get("teams") or {}),
+        )
+
     def _all_agents(self) -> list[Agent]:
         return [
             self.kalshi_agent, self.polymarket_us_agent,
@@ -1110,6 +1131,29 @@ class AgentCoordinator:
     async def _run_sector(self, sector: str, correlation_id: str) -> dict:
         req = AgentRequest(sector=sector, correlation_id=correlation_id)
 
+        # NBA: refresh the efficiency state first. The props-cache refresh below
+        # sends ~150 stats.nba.com player requests, and a team-stats request
+        # behind that burst was throttled (2026-11-01 scan: efficiency fetch
+        # failed, the stack priced off the previous day's state).
+        nba_prime_task = (
+            asyncio.create_task(self._prime_nba_efficiency_state())
+            if sector.lower() == "nba" and self._enable_models else None
+        )
+        try:
+            return await self._run_sector_body(sector, correlation_id, req, nba_prime_task)
+        finally:
+            # An early return (no markets / no sharp lines) never awaits the
+            # refresh; do not let it outlive the sector.
+            if nba_prime_task is not None and not nba_prime_task.done():
+                nba_prime_task.cancel()
+
+    async def _run_sector_body(
+        self,
+        sector: str,
+        correlation_id: str,
+        req: AgentRequest,
+        nba_prime_task: Optional[asyncio.Task],
+    ) -> dict:
         # Steps 1-3: Fetch Kalshi + sharp + injuries concurrently
         # Also fetch player props for supported sectors
         fetch_tasks = [self.kalshi_agent(req), self.sharp_agent(req)]
@@ -1303,6 +1347,9 @@ class AgentCoordinator:
             # injury report rules out) instead of last week's passer.
             if sector.lower() == "nfl":
                 await self._prime_nfl_pregame_starters(injuries)
+            # NBA: possession_sim must see efficiency's refreshed state.
+            if nba_prime_task is not None:
+                await nba_prime_task
             ensemble_req = AgentRequest(
                 sector=sector,
                 params={
@@ -1456,8 +1503,13 @@ class AgentCoordinator:
                     seen.add(key)
                     unique.append(m)
 
-        # Auto-refresh L15 cache (used now only for diagnostic metadata)
-        if sector == "nba" and not is_cache_fresh():
+        # Auto-refresh L15 cache (used now only for diagnostic metadata).
+        # Skipped while nba_props is disabled: nothing is persisted, and the
+        # ~150-player stats.nba.com burst was cancelled by the 20s prop timeout
+        # before it could save, so every scan repeated it and throttled the
+        # team-stats fetches the NBA stat stack needs (2026-11-01).
+        from evmax.modes import get_mode
+        if sector == "nba" and get_mode("nba_props") != "disabled" and not is_cache_fresh():
             player_names = list({m.player_name for m in unique if m.player_name})
             self.log.info("props_cache_refreshing", players=len(player_names))
             await refresh_props_cache(force=True, player_names=player_names)

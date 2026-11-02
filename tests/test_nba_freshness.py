@@ -141,3 +141,29 @@ def test_cache_avoids_repeat_calls_within_ttl():
         asyncio.run(freshness.last_completed_nba_game_date())
     # Only one network probe even though we asked three times
     assert call_count["n"] == 1
+
+
+def test_lock_survives_a_new_event_loop():
+    """A contended lock binds to its loop; the next asyncio.run must get a new
+    one instead of raising 'bound to a different event loop' (2026-11-01)."""
+
+    async def _contend():
+        lock = freshness._loop_lock()
+        async with lock:
+            waiter = asyncio.create_task(lock.acquire())
+            await asyncio.sleep(0)  # waiter now blocks on the lock -> binds it
+        await waiter
+        lock.release()
+        return lock
+
+    first = asyncio.run(_contend())
+    second = asyncio.run(_contend())  # must not raise
+    assert first is not second
+
+
+def test_lock_is_reused_within_one_loop():
+    async def _two():
+        return freshness._loop_lock(), freshness._loop_lock()
+
+    a, b = asyncio.run(_two())
+    assert a is b
