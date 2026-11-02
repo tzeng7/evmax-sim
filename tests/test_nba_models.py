@@ -111,6 +111,28 @@ class TestEfficiencyModel:
         assert result is not None
         assert result.true_prob_a > 0.85
 
+    def test_games_floor_boundary(self):
+        """Both teams need MIN_GAMES (4) games; one short of it abstains."""
+        from evmax.agents.models.efficiency_agent import MIN_GAMES
+
+        def _state(gp_a: int) -> dict:
+            return {"nba": {
+                "league_avg_ortg": 114.0, "league_avg_drtg": 114.0, "league_avg_pace": 100.0,
+                "teams": {
+                    "thunder": {"ortg": 118.0, "drtg": 107.0, "pace": 100.0, "net": 11.0, "gp": gp_a},
+                    "suns": {"ortg": 114.0, "drtg": 113.0, "pace": 98.0, "net": 1.0, "gp": MIN_GAMES},
+                },
+                "fetched_at": "2026-11-01", "season": _SEASON,
+            }}
+
+        market, sharp = _make_pair("thunder", "suns")
+        agent = EfficiencyModelAgent()
+        with patch("evmax.agents.models._nba_freshness.state_is_fresh", new=_async_true):
+            agent._state = _state(MIN_GAMES)
+            assert asyncio.run(agent.predict_pair(market, sharp)) is not None
+            agent._state = _state(MIN_GAMES - 1)
+            assert asyncio.run(agent.predict_pair(market, sharp)) is None
+
     def test_update_is_noop(self):
         agent = EfficiencyModelAgent()
         agent.update("a", "b", 100, 90, "nba")  # should not raise
@@ -433,10 +455,11 @@ class TestPossessionSim:
         agent.update("a", "b", 100, 90, "nba")
 
     def test_insufficient_games_returns_none(self):
+        from evmax.agents.models.efficiency_agent import MIN_GAMES
         low_gp_state = {
             **MOCK_EFF_STATE,
             "teams": {
-                "thunder": {**MOCK_EFF_STATE["teams"]["thunder"], "gp": 9},
+                "thunder": {**MOCK_EFF_STATE["teams"]["thunder"], "gp": MIN_GAMES - 1},
                 "suns": MOCK_EFF_STATE["teams"]["suns"],
             },
         }
@@ -444,6 +467,20 @@ class TestPossessionSim:
         market, sharp = _make_pair("thunder", "suns")
         result = asyncio.run(agent.predict_pair(market, sharp))
         assert result is None
+
+    def test_fires_at_the_games_floor(self):
+        from evmax.agents.models.efficiency_agent import MIN_GAMES
+        assert MIN_GAMES == 4
+        state = {
+            **MOCK_EFF_STATE,
+            "teams": {
+                "thunder": {**MOCK_EFF_STATE["teams"]["thunder"], "gp": MIN_GAMES},
+                "suns": {**MOCK_EFF_STATE["teams"]["suns"], "gp": MIN_GAMES},
+            },
+        }
+        agent = self._make_agent(state=state)
+        market, sharp = _make_pair("thunder", "suns")
+        assert asyncio.run(agent.predict_pair(market, sharp)) is not None
 
     def test_cover_probability_favorite(self):
         agent = self._make_agent()

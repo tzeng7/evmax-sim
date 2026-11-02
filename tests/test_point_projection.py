@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from evmax.agents.intelligence.injury_agent import InjuredPlayer, InjuryReport
+from evmax.agents.models.efficiency_agent import MIN_GAMES
 from evmax.agents.models.possession_sim_agent import PossessionSimAgent
 from evmax.clients.nba_season import nba_season_label, nba_season_start_year
 from evmax.models_ml.point_projection import (
@@ -50,7 +51,7 @@ def _stub_efficiency_state() -> dict:
                 "rookies": {  # insufficient-GP team for the gp-gate test
                     "ortg": 110.0, "drtg": 115.0, "pace": 99.0,
                     "tov_pct": 0.14, "oreb_pct": 0.28,
-                    "gp": 9, "full_name": "rookie team",
+                    "gp": MIN_GAMES - 1, "full_name": "rookie team",
                 },
             },
         }
@@ -124,7 +125,7 @@ def test_project_nba_returns_none_when_team_missing(stub_model):
 
 
 def test_project_nba_returns_none_when_gp_insufficient(stub_model):
-    # "rookies" has gp=9 < 10 → simulate_matchup must reject
+    # "rookies" has gp = MIN_GAMES - 1 → simulate_matchup must reject
     assert stub_model.project("celtics", "rookies", "nba") is None
 
 

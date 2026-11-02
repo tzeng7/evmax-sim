@@ -54,7 +54,14 @@ CACHE_TTL_HOURS = 12
 # NBA-specific constants
 HOME_EDGE_PTS = 3.2
 SCORE_STDEV = 12.0
-MIN_GAMES = 10
+# Games-played floor for both teams; possession_sim imports it. 4 from
+# 2026-11-01: point-in-time walk-forward 2024-25 + 2025-26 (live blend vs
+# floor 10, pooled n=2284) floor 4 -1.35/1000 z -2.2, negative in both seasons
+# (floor 2 -2.25, 6 -0.57, 8 -0.75). Below 3 games the model is worse than a
+# coin flip standalone (Brier 0.272, n=52). Empirical-Bayes shrinkage toward
+# the league average (the WNBA pattern) was REJECTED the same day: it made
+# the blend worse in both seasons at every k swept (4/8/12/20/30).
+MIN_GAMES = 4
 
 
 # Shared Abramowitz & Stegun normal CDF (single source in models_ml).
