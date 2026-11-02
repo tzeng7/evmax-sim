@@ -398,3 +398,28 @@ aliases:
   "sam houston state": "sam houston"
   "middle tennessee state": "middle tennessee"
   "central connecticut state": "central connecticut"
+  # --- Pinnacle spellings + ESPN mascot keys (2026-11-02, opening day) ---
+  # Elo was seeded from the full D1 scoreboard, so its keys are ESPN
+  # displayNames ("little rock trojans"). Each Pinnacle spelling and ESPN key
+  # below maps to one canonical, so both land on the same rating. Without the
+  # first two, the word-boundary fallback priced "Arkansas Little Rock" off
+  # Arkansas and "Texas San Antonio" off Texas.
+  "arkansas little rock": "little rock"
+  "little rock trojans": "little rock"
+  "texas san antonio": "utsa"
+  "east tenn state": "east tennessee state"
+  "east tennessee state buccaneers": "east tennessee state"
+  "miami oh redhawks": "miami ohio"
+  "san josé state spartans": "san jose state"
+  "st. peters": "saint peters"
+  "saint peters peacocks": "saint peters"
+  "tennessee martin": "ut martin"
+  "ut martin skyhawks": "ut martin"
+  "ul - lafayette": "louisiana"
+  "louisiana ragin cajuns": "louisiana"
+  "ul - monroe": "louisiana monroe"
+  "ul monroe warhawks": "louisiana monroe"
+  "umkc": "kansas city"
+  "kansas city roos": "kansas city"
+  "wisc milwaukee": "milwaukee"
+  "milwaukee panthers": "milwaukee"
