@@ -1098,3 +1098,23 @@ class TestNbaPropsCacheRefreshGate:
 
     def test_shadow_props_still_refresh(self, monkeypatch):
         assert self._run(monkeypatch, "shadow") == [["Jayson Tatum"]]
+
+
+class TestNbaEloHomeAdvantage:
+    def test_home_advantage_is_the_walk_forward_value(self):
+        from evmax.agents.models.elo_agent import HOME_ADVANTAGE_ELO
+        # 100 (~64% at equal ratings) overstated home teams: 0.63 predicted vs
+        # 0.55 realized. 50 won RANK/CONFIRM/HOLDOUT (backtest_nba_elo_regression
+        # --hfa-grid, 2026-11-01).
+        assert HOME_ADVANTAGE_ELO["nba"] == 50.0
+
+    def test_equal_ratings_price_the_home_team_near_57pct(self):
+        from datetime import date
+        from evmax.agents.models.elo_agent import EloModelAgent
+
+        agent = EloModelAgent()
+        agent._state = {"nba": {"ratings": {"celtics": 1500.0, "knicks": 1500.0},
+                                "game_counts": {"celtics": 40, "knicks": 40}}}
+        p_home, _, _ = agent._win_probs("nba", "celtics", "knicks", date(2026, 12, 1))
+        assert p_home == pytest.approx(1 / (1 + 10 ** (-50 / 400)), abs=0.01)
+        assert p_home < 0.60

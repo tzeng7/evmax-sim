@@ -135,7 +135,11 @@ def early_season_multiplier(sector: str, season_games_min: int) -> float:
 # Home Elo advantage in Elo points (added to home team effective rating)
 HOME_ADVANTAGE_ELO: dict[str, float] = {
     "nfl": 48.0,      # ~3 pts / ~55% win rate
-    "nba": 100.0,     # ~6 pts / ~60% win rate
+    "nba": 50.0,      # ~57% at equal ratings. Was 100 (~64%) until 2026-11-01:
+                      # Elo averaged P(home) 0.63 vs a 0.55 realized rate.
+                      # `backtest_nba_elo_regression.py --hfa-grid` (keep 0.50):
+                      # 50 wins RANK 2018-23 -3.67/1000 (z -5.3), CONFIRM 2024
+                      # -5.42 (z -3.4), HOLDOUT 2025 -3.59 (z -2.3).
     "ncaab": 70.0,
     "ncaaw": 80.0,    # MODEL-2 (2026-07-11): bracketed by the {0,40,60,80,100} sweep —
                       # 80 won on train AND holdout at every K. Similar to ncaab's 70.
