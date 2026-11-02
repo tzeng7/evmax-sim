@@ -244,9 +244,9 @@ async def test_snapshot_from_another_season_abstains():
 
 @pytest.mark.asyncio
 async def test_min_games_floor_still_applies():
-    from evmax.agents.models.efficiency_agent import EfficiencyModelAgent
+    from evmax.agents.models.efficiency_agent import MIN_GAMES, EfficiencyModelAgent
 
-    state = _eff_state(gp=5)
+    state = _eff_state(gp=MIN_GAMES - 1)
     eff = EfficiencyModelAgent()
     eff._ensure_stats = lambda sector, _s=state: nsw._return(_s)
     snap = nsw.StackSnapshot(as_of=date(2024, 11, 1), efficiency=eff)

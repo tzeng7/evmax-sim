@@ -164,6 +164,19 @@ SECTOR_CONFIGS: dict[str, dict] = {
 }
 
 
+def espn_scoreboard_params(sector: str) -> dict:
+    """The resolver's per-league scoreboard filter (e.g. college ``groups``).
+
+    One source with ``resolver.ESPN_SPORT_MAP`` so the seed walks exactly the
+    games the daily model feed applies. NCAAB/NCAAW Elo was seeded without
+    ``groups=50`` and held ~150 of ~360 D1 teams (fixed 2026-11-02).
+    """
+    from evmax.agents.cleanup.resolver import ESPN_SPORT_MAP
+
+    entry = ESPN_SPORT_MAP.get(sector)
+    return dict(entry[2]) if entry else {}
+
+
 async def fetch_espn_games(
     client: httpx.AsyncClient,
     sport: str,
@@ -171,6 +184,7 @@ async def fetch_espn_games(
     month: str,
     *,
     regular_season_only: bool = False,
+    extra_params: dict | None = None,
 ) -> list[dict]:
     """Fetch all completed games for a sport/league in a given YYYYMM month.
 
@@ -183,7 +197,13 @@ async def fetch_espn_games(
     page = 1
     while True:
         try:
-            r = await client.get(url, params={"dates": month, "limit": 100, "page": page})
+            # limit 1000: ESPN ignores `page`, so a capped response silently
+            # truncates (100 games/day was hit by college slates, 100/month by
+            # NBA/NFL). extra_params carries the resolver's per-league filter
+            # (college `groups`); without it ESPN returns only its featured
+            # games (17 of 132 NCAAB games on 2026-02-14).
+            params = {"dates": month, "limit": 1000, "page": page, **(extra_params or {})}
+            r = await client.get(url, params=params)
             r.raise_for_status()
             data = r.json()
         except Exception as e:
@@ -377,7 +397,10 @@ async def seed_standard_sector(sector: str, cfg: dict, client: httpx.AsyncClient
     all_games: list[dict] = []
     batch_count = 0
     for period in periods:
-        games = await fetch_espn_games(client, sport, league, period, regular_season_only=reg_only)
+        games = await fetch_espn_games(
+            client, sport, league, period, regular_season_only=reg_only,
+            extra_params=espn_scoreboard_params(sector),
+        )
         all_games.extend(games)
         if games:
             batch_count += 1

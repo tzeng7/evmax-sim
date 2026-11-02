@@ -15,6 +15,10 @@ from __future__ import annotations
 import asyncio
 from typing import Callable, Iterable, Optional
 
+import structlog
+
+logger = structlog.get_logger(__name__)
+
 
 def parse_team_dash_rows(data: Optional[dict]) -> dict[str, dict]:
     """Parse a LeagueDashTeamStats payload into {team_key: row_dict}.
@@ -96,6 +100,12 @@ async def fetch_rs_and_po(factory: Callable[[str], object]) -> tuple[Optional[di
     rs_future = loop.run_in_executor(None, lambda: factory("Regular Season").get_dict())
     po_future = loop.run_in_executor(None, lambda: factory("Playoffs").get_dict())
     results = await asyncio.gather(rs_future, po_future, return_exceptions=True)
+    for season_type, r in zip(("Regular Season", "Playoffs"), results):
+        if isinstance(r, BaseException):
+            logger.warning(
+                "nba_api_fetch_exception", season_type=season_type,
+                error_type=type(r).__name__, error=str(r)[:300],
+            )
     rs = results[0] if not isinstance(results[0], BaseException) else None
     po = results[1] if not isinstance(results[1], BaseException) else None
     return rs, po

@@ -38,7 +38,7 @@ MAX_TOTAL_NUDGE = 4.0
 # Games-played floor per team — the same floor as efficiency / possession_sim.
 # Inert on every game this agent was evaluated on (built 2026-04-19, gp >= 60);
 # it keeps the first weeks of a season from pricing off 1-19-game style stats.
-MIN_GAMES = 20
+MIN_GAMES = 10
 
 TEAM_ABBREV: dict[str, str] = {
     "ATL": "hawks", "BOS": "celtics", "BKN": "nets", "CHA": "hornets",

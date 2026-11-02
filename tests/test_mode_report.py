@@ -78,9 +78,10 @@ def test_venue_firewall_demotes_live_polyus(monkeypatch):
     cfg = get_settings()
     monkeypatch.setattr(cfg, "polymarket_us_live", False)
     monkeypatch.setattr(cfg, "polymarket_us_live_sectors", "")
-    r = _row("nba", "total", "polymarket_us")
-    # nba moneyline is shadow-typed; total is live on kalshi, firewalled on polyus
-    k = _row("nba", "total", "kalshi")
+    # nba moneyline/spread/total are all shadow-typed (2026-10-18); tennis
+    # moneyline is live on kalshi and firewalled on polyus
+    r = _row("tennis", "moneyline", "polymarket_us")
+    k = _row("tennis", "moneyline", "kalshi")
     assert k["mode"] == "live"
     assert (r["mode"], r["reason"]) == ("shadow", mr.VENUE_FIREWALL)
 
@@ -88,8 +89,8 @@ def test_venue_firewall_demotes_live_polyus(monkeypatch):
 def test_firewall_cleared_by_allowlist(monkeypatch):
     cfg = get_settings()
     monkeypatch.setattr(cfg, "polymarket_us_live", False)
-    monkeypatch.setattr(cfg, "polymarket_us_live_sectors", "nba")
-    assert _row("nba", "total", "polymarket_us")["mode"] == "live"
+    monkeypatch.setattr(cfg, "polymarket_us_live_sectors", "tennis")
+    assert _row("tennis", "moneyline", "polymarket_us")["mode"] == "live"
 
 
 def test_report_shape_and_route():

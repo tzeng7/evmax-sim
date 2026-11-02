@@ -36,6 +36,7 @@ import structlog
 
 from evmax.agents.models._team_lookup import resolve_team_key
 from evmax.agents.models.base import ModelAgent, ModelAgentPrediction
+from evmax.agents.models.efficiency_agent import MIN_GAMES
 from evmax.clients.nba_season import DateLike, season_matches
 from evmax.models.market import PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -74,6 +75,7 @@ class PossessionSimAgent(ModelAgent):
     def __init__(self) -> None:
         super().__init__()
         self._efficiency_data: Optional[dict] = None
+        self._primed = False
         self._rng = np.random.default_rng(seed=42)
         self._margin_cache: dict[str, np.ndarray] = {}
         self._total_cache: dict[str, np.ndarray] = {}
@@ -126,9 +128,23 @@ class PossessionSimAgent(ModelAgent):
         z = (line - sim_mean) / sigma
         return float(norm.cdf(z))
 
+    def prime_efficiency_state(self, state: dict) -> None:
+        """Price off ``state`` (the efficiency agent's in-memory NBA state).
+
+        The coordinator calls this after refreshing the efficiency agent and
+        before the ensemble runs the models concurrently. Without it the sim
+        reads the file while efficiency is still refetching, sees the previous
+        day's ``fetched_at`` and abstains on the first scan after new games.
+        """
+        if state.get("teams"):
+            self._efficiency_data = state
+            self._primed = True
+
     def _load_efficiency_state(self) -> dict:
-        """Load efficiency data from the shared state file."""
+        """Load efficiency data: the primed state, else the shared state file."""
         if self._efficiency_data is not None:
+            if self._primed:
+                return self._efficiency_data
             cached_date = self._efficiency_data.get("fetched_at", "")
             if cached_date == date.today().isoformat():
                 return self._efficiency_data
@@ -204,9 +220,6 @@ class PossessionSimAgent(ModelAgent):
         # Per-possession scoring variance
         # NBA scoring per possession is ~1.14 pts with std ~1.1
         # (mix of 0s, 2s, 3s, and-1s, FTs)
-        scores_a = np.zeros(N_SIMS)
-        scores_b = np.zeros(N_SIMS)
-
         # Per-possession scoring std. NBA possessions are {0, 2, 3} mostly;
         # empirical variance ≈ 1.2 (std ≈ 1.1). Do NOT clip the per-poss
         # samples at 0 — that turns the negative tail of the Normal into mass
@@ -214,26 +227,25 @@ class PossessionSimAgent(ModelAgent):
         # possessions is always safely positive; no clipping needed.
         pts_std = 1.10
 
-        for i in range(N_SIMS):
-            n_poss = possessions[i]
+        # ORTG already folds in offensive rebounds (it's points per team
+        # possession, where a possession ends on made FG, FTs, defensive
+        # rebound, or turnover — NOT on an OREB). So we DO NOT add extra OREB
+        # "bonus" possessions here; doing so double-counts and was the source
+        # of a ~30-pt totals bias.
+        #
+        # Vectorized over all sims. Per sim, turnovers ~ Binomial(n_poss, tov),
+        # and the sum of the remaining possessions' Normal(ppp/(1−tov), pts_std)
+        # draws is exactly Normal(k·ppp/(1−tov), pts_std·√k) for k scoring
+        # possessions — the same distribution as the old per-possession loop,
+        # which took ~1.6s per matchup on the event loop and timed out the NBA
+        # sector once the sim fired for every game (2026-11-01).
+        def _side_scores(ppp: float, tov: float) -> np.ndarray:
+            n_tov = self._rng.binomial(possessions, tov)
+            scoring = possessions - n_tov
+            return self._rng.normal(scoring * (ppp / (1 - tov)), pts_std * np.sqrt(scoring))
 
-            tov_mask_a = self._rng.random(n_poss) < tov_a
-            scoring_poss_a = n_poss - tov_mask_a.sum()
-            if scoring_poss_a > 0:
-                # ORTG already folds in offensive rebounds (it's points per
-                # team possession, where a possession ends on made FG, FTs,
-                # defensive rebound, or turnover — NOT on an OREB). So we
-                # DO NOT add extra OREB "bonus" possessions here; doing so
-                # double-counts and was the source of a ~30-pt totals bias.
-                pts_per = self._rng.normal(ppp_a / (1 - tov_a), pts_std, size=scoring_poss_a)
-                scores_a[i] = pts_per.sum()
-
-            tov_mask_b = self._rng.random(n_poss) < tov_b
-            scoring_poss_b = n_poss - tov_mask_b.sum()
-            if scoring_poss_b > 0:
-                pts_per = self._rng.normal(ppp_b / (1 - tov_b), pts_std, size=scoring_poss_b)
-                scores_b[i] = pts_per.sum()
-
+        scores_a = _side_scores(ppp_a, tov_a)
+        scores_b = _side_scores(ppp_b, tov_b)
         return scores_a, scores_b
 
     def simulate_matchup(
@@ -252,7 +264,7 @@ class PossessionSimAgent(ModelAgent):
         None). Returns a dict with keys: scores_a/b, margin, total, prob_a,
         stats_a/b, confidence, event_id. Returns None when efficiency state is
         missing, is stamped for a season other than ``game_date``'s (today when
-        None), or either team has <20 games played. Every consumer — the ML
+        None), or either team has <MIN_GAMES games played. Every consumer — the ML
         blend, the spread/total sim blend in ev_gap_agent (reads the cache this
         fills) and the point projections — goes through this check.
 
@@ -275,7 +287,7 @@ class PossessionSimAgent(ModelAgent):
         stats_b = self._resolve_team(teams, team_b)
         if not stats_a or not stats_b:
             return None
-        if stats_a.get("gp", 0) < 20 or stats_b.get("gp", 0) < 20:
+        if stats_a.get("gp", 0) < MIN_GAMES or stats_b.get("gp", 0) < MIN_GAMES:
             return None
 
         league_ortg = eff_data.get("league_avg_ortg", LEAGUE_AVG_ORTG)

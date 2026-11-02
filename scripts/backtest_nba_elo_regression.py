@@ -87,9 +87,13 @@ def load_games(first_month: str) -> list:
 
 
 def walk_forward(games: list, keep: float, boost: float, decay: int,
-                 score_seasons: set[int]) -> dict[int, dict[str, list[float]]]:
+                 score_seasons: set[int], hfa: Optional[float] = None) -> dict[int, dict[str, list[float]]]:
     """Replay every game; return {season: {'open': [...], 'full': [...]}} Brier
-    lists in game order (identical game sets across variants → paired)."""
+    lists in game order (identical game sets across variants → paired).
+    ``hfa`` overrides HOME_ADVANTAGE_ELO['nba'] for this replay (None = shipped);
+    it changes both the prediction and the rating updates."""
+    if hfa is not None:
+        elo_mod.HOME_ADVANTAGE_ELO[SECTOR] = hfa
     if boost > 1.0:
         elo_mod.EARLY_K_BOOST[SECTOR] = boost
         elo_mod.EARLY_K_DECAY_GAMES[SECTOR] = decay
@@ -151,7 +155,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--keep-grid", default=",".join(str(k) for k in DEFAULT_KEEP_GRID))
     ap.add_argument("--boost-grid", default="1.0")
     ap.add_argument("--decay-grid", default="10,20,30")
+    ap.add_argument("--hfa-grid", default="",
+                    help="Sweep HOME_ADVANTAGE_ELO['nba'] instead of keep, at --keep. "
+                         "Winner on RANK full-season Brier; must not lose CONFIRM full or opening.")
+    ap.add_argument("--keep", type=float, default=0.5, help="Offseason keep for --hfa-grid (shipped 0.50)")
     args = ap.parse_args(argv)
+    if args.hfa_grid:
+        return hfa_sweep(args)
 
     rank = [int(s) for s in args.rank_seasons.split(",") if s]
     confirm, holdout = args.confirm_season, args.holdout_season
@@ -231,6 +241,57 @@ def main(argv: Optional[list[str]] = None) -> int:
         elo_mod.date = saved_date  # type: ignore[assignment]
         elo_mod.EARLY_K_BOOST.clear(); elo_mod.EARLY_K_BOOST.update(saved_boost)
         elo_mod.EARLY_K_DECAY_GAMES.clear(); elo_mod.EARLY_K_DECAY_GAMES.update(saved_decay)
+    return 0
+
+
+def hfa_sweep(args) -> int:
+    """Sweep NBA Elo home advantage at a fixed offseason keep (same RANK /
+    CONFIRM / HOLDOUT protocol; full-season Brier is primary because home
+    advantage applies to every game, not just the opening window)."""
+    rank = [int(s) for s in args.rank_seasons.split(",") if s]
+    confirm, holdout = args.confirm_season, args.holdout_season
+    shipped = elo_mod.HOME_ADVANTAGE_ELO[SECTOR]
+    grid = [float(h) for h in args.hfa_grid.split(",") if h]
+    if shipped not in grid:
+        grid.insert(0, shipped)
+    score = set(rank) | {confirm, holdout}
+    games = load_games(args.first_month)
+    print(f"Loaded {len(games)} games; keep={args.keep}; shipped HFA={shipped:g}")
+
+    saved_date = elo_mod.date
+    elo_mod.date = h2h._ReplayClock  # type: ignore[assignment]
+    try:
+        results = {h: walk_forward(games, args.keep, 1.0, 0, score, hfa=h) for h in grid}
+        base = results[shipped]
+        print(f"\n{'hfa':>5} {'rank full':>10} {'rank open':>10} {'conf full':>10} {'conf open':>10}   rank full Δ vs shipped")
+        for h in grid:
+            r = results[h]
+            print(f"{h:5g} {_mean(_pool(r, rank, 'full')):10.4f} {_mean(_pool(r, rank, 'open')):10.4f} "
+                  f"{_mean(_pool(r, [confirm], 'full')):10.4f} {_mean(_pool(r, [confirm], 'open')):10.4f}   "
+                  + ("—" if h == shipped else _delta(r, base, rank, "full")))
+        winner = min(grid, key=lambda h: _mean(_pool(results[h], rank, "full")))
+        w = results[winner]
+        conf_ok = all(_mean(_pool(w, [confirm], k)) <= _mean(_pool(base, [confirm], k)) + 1e-12
+                      for k in ("full", "open"))
+        print(f"\nWinner on RANK full Brier: hfa={winner:g}")
+        if winner != shipped:
+            print(f"  RANK    full {_delta(w, base, rank, 'full')}   open {_delta(w, base, rank, 'open')}")
+            print(f"  CONFIRM full {_delta(w, base, [confirm], 'full')}   open {_delta(w, base, [confirm], 'open')}"
+                  f"  → {'holds' if conf_ok else 'FAILS'}")
+            print("  per-season full Δ: " + ", ".join(
+                f"{s}: {1000 * (_mean(w[s]['full']) - _mean(base[s]['full'])):+.2f}" for s in rank + [confirm]))
+        chosen = winner if (winner != shipped and conf_ok) else shipped
+        print(f"\nHOLDOUT {holdout} (choice fixed before this line; reported once)")
+        for label, r in ((f"shipped hfa={shipped:g}", base), (f"chosen hfa={chosen:g}", results[chosen])):
+            print(f"  {label:20} full {_mean(_pool(r, [holdout], 'full')):.4f} (n {len(_pool(r, [holdout], 'full'))})"
+                  f"  open {_mean(_pool(r, [holdout], 'open')):.4f} (n {len(_pool(r, [holdout], 'open'))})")
+        if chosen != shipped:
+            print(f"  Δ full {_delta(results[chosen], base, [holdout], 'full')}   "
+                  f"Δ open {_delta(results[chosen], base, [holdout], 'open')}")
+        print(f"\nVERDICT: hfa={chosen:g}")
+    finally:
+        elo_mod.date = saved_date  # type: ignore[assignment]
+        elo_mod.HOME_ADVANTAGE_ELO[SECTOR] = shipped
     return 0
 
 
