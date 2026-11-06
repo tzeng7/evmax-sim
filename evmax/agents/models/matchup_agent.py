@@ -36,9 +36,11 @@ SCORE_STDEV = 12.0
 MAX_DIM_NUDGE = 1.5  # max points per dimension
 MAX_TOTAL_NUDGE = 4.0
 # Games-played floor per team — the same floor as efficiency / possession_sim.
-# Inert on every game this agent was evaluated on (built 2026-04-19, gp >= 60);
-# it keeps the first weeks of a season from pricing off 1-19-game style stats.
-MIN_GAMES = 10
+# 10 -> 4 on 2026-11-06: point-in-time walk-forward (nba_stack_walkforward,
+# score 2024-25 + 2025-26) on the 185 games this floor newly prices (both teams
+# 4-9 games): live blend -1.05 Brier/1000 (z -0.85), better in both seasons;
+# all games -0.06. Not significant, but no sign of harm (floor 8 alone: +2.0).
+MIN_GAMES = 4
 
 TEAM_ABBREV: dict[str, str] = {
     "ATL": "hawks", "BOS": "celtics", "BKN": "nets", "CHA": "hornets",
