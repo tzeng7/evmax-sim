@@ -868,6 +868,29 @@ class TestSeasonRollover:
         market, sharp = _make_pair("thunder", "suns", 0.70)
         assert asyncio.run(agent.predict_pair(market, sharp)) is None
 
+    def test_shot_quality_fires_at_the_games_floor(self, nba_api_reachable):
+        from evmax.agents.models.shot_quality_agent import MIN_GAMES
+        agent = ShotQualityAgent()
+        agent._state = {"nba": _shot_state(_SEASON, gp=MIN_GAMES)}
+        market, sharp = _make_pair("thunder", "suns", 0.70)
+        assert asyncio.run(agent.predict_pair(market, sharp)) is not None
+
+    def test_matchup_fires_at_the_games_floor(self, nba_api_reachable):
+        from evmax.agents.models.matchup_agent import MIN_GAMES
+        agent = MatchupAgent()
+        agent._state = {"nba": _matchup_state(_SEASON, gp=MIN_GAMES)}
+        market, sharp = _make_pair("thunder", "suns", 0.70)
+        assert asyncio.run(agent.predict_pair(market, sharp)) is not None
+
+    def test_all_four_stack_models_share_one_games_floor(self):
+        # 2026-11-06 walk-forward: shot_quality/matchup at 4 were no worse than
+        # at 10 on the newly-priced games, so the whole stack enters together.
+        from evmax.agents.models import efficiency_agent, matchup_agent, shot_quality_agent
+        from evmax.agents.models import possession_sim_agent
+        floors = {efficiency_agent.MIN_GAMES, possession_sim_agent.MIN_GAMES,
+                  shot_quality_agent.MIN_GAMES, matchup_agent.MIN_GAMES}
+        assert floors == {4}
+
     # ── possession_sim (also feeds NBA spread/total pricing + projections) ──
     @pytest.mark.parametrize("season", [_PRIOR_SEASON, None], ids=["prior-season", "unstamped"])
     def test_possession_sim_other_season_state_never_prices(self, season, nba_api_reachable):
