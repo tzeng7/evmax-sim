@@ -702,6 +702,9 @@ class TestBaseballPropFlow:
             sectors=["baseball"],
             enable_models=False,
             enable_injuries=False,
+            # Explicit sector, like the CLI's --sectors: without this the test
+            # failed every day outside baseball's season window (from 11-06).
+            respect_season_window=False,
         )
 
         # Non-empty game pool so the dead-sector prop guard doesn't cancel
