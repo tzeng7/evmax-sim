@@ -1148,6 +1148,63 @@ def nfl_resolve(
     console.print(f"Graded {n['games']} games, {n['players']} player rows and {n.get('picks', 0)} model picks.")
 
 
+@app.command("nfl-inactives-probe")
+def nfl_inactives_probe(
+    lookahead_min: int = typer.Option(150, "--lookahead-min", help="Probe games kicking off within this many minutes."),
+    lookback_min: int = typer.Option(30, "--lookback-min", help="...and games that kicked off up to this many minutes ago."),
+    report: bool = typer.Option(False, "--report", help="Print the lead-time readout instead of taking a snapshot."),
+    season: Optional[int] = typer.Option(None, "--season", help="--report: NFL season filter."),
+    week: Optional[int] = typer.Option(None, "--week", "-w", help="--report: week filter (needs --season)."),
+) -> None:
+    """Record-only probe: when do the nflverse roster and ESPN feed show a game's inactives?
+
+    Run every ~10 minutes (launchd); it does nothing unless a game is inside the
+    window. Writes only `nfl_inactives_probe*` tables; no projection changes.
+    `--report` shows, per player, the minutes before kickoff at which each source
+    first listed him and first showed him out.
+    """
+    from evmax.nfl_projections import inactives_probe as probe
+
+    with probe.connect() as conn:
+        if not report:
+            r = probe.probe_once(conn, lookahead_min=lookahead_min, lookback_min=lookback_min)
+            if r["games"]:
+                console.print(f"Probed {r['games']} game(s): {r['run_rows']} coverage rows, {r['player_rows']} player rows.")
+            else:
+                console.print("[dim]No game inside the probe window.[/dim]")
+            return
+        lead = probe.lead_times(conn, season, week)
+        if lead.empty:
+            console.print("[yellow]No probe data yet.[/yellow]")
+            return
+        t = Table(box=box.SIMPLE, title="Inactives probe — minutes before kickoff (positive = before)")
+        t.add_column("Event", no_wrap=False, min_width=24)
+        t.add_column("Outcome", no_wrap=False, min_width=24)
+        t.add_column("Source")
+        t.add_column("First listed", justify="right")
+        t.add_column("First out", justify="right")
+        for r in lead.itertuples(index=False):
+            parts = r.game_id.split("_")
+            event = f"{parts[2]} @ {parts[3]}" if len(parts) >= 4 else r.game_id
+            t.add_row(event, f"{r.player_name} ({r.team})", r.source,
+                      f"{r.first_listed_min:.0f}", "—" if pd.isna(r.first_out_min) else f"{r.first_out_min:.0f}")
+        console.print(t)
+        lag = probe.source_lag(conn, season, week)
+        s = Table(box=box.SIMPLE, title="Source coverage per game")
+        s.add_column("Event", no_wrap=False, min_width=24)
+        s.add_column("Outcome", no_wrap=False, min_width=24)
+        s.add_column("Snapshots", justify="right")
+        s.add_column("Failed", justify="right")
+        s.add_column("File updated (HTTP)")
+        s.add_column("Week roster first seen", justify="right")
+        for r in lag.itertuples(index=False):
+            parts = r.game_id.split("_")
+            first = r.week_roster_first_min
+            s.add_row(f"{parts[2]} @ {parts[3]}" if len(parts) >= 4 else r.game_id, r.source, str(r.snapshots),
+                      str(r.failed), "—" if pd.isna(r.last_modified) else r.last_modified, "—" if pd.isna(first) else f"{first:.0f} min")
+        console.print(s)
+
+
 @app.command("nfl-track")
 def nfl_track(
     season: Optional[int] = typer.Option(None, "--season", help="Only this season."),
