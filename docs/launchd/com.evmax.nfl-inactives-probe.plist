@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.evmax.nfl-inactives-probe</string>
+
+    <!-- Phase 0 of the pre-kickoff inactives refresh: a RECORD-ONLY probe.
+         Every 10 minutes it checks the nflverse schedule and does nothing
+         (no network) unless an NFL game kicks off within the next 150
+         minutes or kicked off within the last 30. Inside that window it
+         snapshots the nflverse weekly-roster INA rows and the ESPN injury
+         feed into projections.db tables nfl_inactives_probe and
+         nfl_inactives_probe_runs. It changes no projection.
+         Read the lead times after a few game weeks with:
+           evmax project nfl-inactives-probe --report --season 2026 --week N
+         StartInterval coalesces firings missed during sleep into one run.
+         Install:
+           cp docs/launchd/com.evmax.nfl-inactives-probe.plist ~/Library/LaunchAgents/
+           launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.evmax.nfl-inactives-probe.plist
+         Remove:
+           launchctl bootout gui/$(id -u)/com.evmax.nfl-inactives-probe -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/ktzeng/Projects/evmax/.venv/bin/evmax</string>
+        <string>project</string>
+        <string>nfl-inactives-probe</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/ktzeng/Projects/evmax</string>
+
+    <key>StartInterval</key>
+    <integer>600</integer>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>ProcessType</key>
+    <string>Background</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/ktzeng/Projects/evmax/logs/launchd.nfl-inactives-probe.out</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/ktzeng/Projects/evmax/logs/launchd.nfl-inactives-probe.err</string>
+</dict>
+</plist>
