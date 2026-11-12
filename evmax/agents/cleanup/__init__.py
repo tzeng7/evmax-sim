@@ -15,6 +15,9 @@ Key modules:
 - metrics.py     — computes Brier scores; auto-tunes sharp_weight in data/model_config.json
 - value_audit.py — per-sector model-blend VALUE audit (Brier vs sharp & close + CLV) with
                    paired significance + actionability verdict; read-only (`evmax cleanup value-audit`)
+- improve_triggers.py — model-improve triggers beyond the value-audit rule (LIVE
+                   passthrough, model coverage, close capture, price-bucket calibration);
+                   read-only (`evmax cleanup improve-triggers`), shadow-only in the graph by default
 - listings_eval.py — offline first-anchored-sweep entry evaluator over archive.db
                    watch-listings captures (or candlestick-backfill sessions via
                    session_prefixes); promotion lens for laddered markets;

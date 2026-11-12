@@ -457,6 +457,19 @@ evmax cleanup recalibrate [--sector S] [--min-n 50] [--dry-run]
 # timing issue, not a model fix). Reports land in docs/value-audits/. See value_audit.py.
 evmax cleanup value-audit --weeks 12          # add --json for agents, --sector S to focus
 
+# Model-improve triggers beyond the value-audit rule (read-only). With sharp_weight 0.85 + the FLB
+# re-blend the model share is ~(1-sw)^2 ≈ 2%, so a blend is almost never SIGNIFICANTLY worse than
+# sharp and the value-audit trigger almost never fires (every model-improve run 2026-10-23→11-09
+# stopped at no_actionable_gap). These four measurements name a judge metric each: passthrough +
+# model_coverage → rows priced, close_capture → CLV coverage, calibration_bucket → bucket calibration
+# error (blend must be worse than sharp in the bucket — EV-selection bias alone never fires). The
+# model-improve graph keeps them shadow-only unless a run passes args.triggers; it re-checks every
+# threshold in JS (TRIGGER_RULES, pinned to evmax/agents/cleanup/improve_triggers.py by
+# tests/test_model_improve_workflow.py), allows only coverage_fix/data_fix/recalibrate kinds for them
+# (never sharp_weight, modes or gate loosening), and refuses commits to categories.yaml /
+# model_config.json / soccer_league_tiers.yaml / settings.py.
+evmax cleanup improve-triggers [--json] [-t model_coverage]
+
 # Shadow-mode validation (MODEL-9 pattern)
 evmax categories list --mode shadow               # see what's in shadow today
 evmax cleanup shadow show --days 7                # recent shadow predictions

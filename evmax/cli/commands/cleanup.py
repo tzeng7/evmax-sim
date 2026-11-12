@@ -1809,6 +1809,65 @@ def devig_clear(
     console.print(f"[green]{sector.lower()} reverted to power[/green].")
 
 
+@app.command("improve-triggers")
+def improve_triggers_cmd(
+    trigger: Optional[list[str]] = typer.Option(
+        None, "--trigger", "-t",
+        help="Run only these triggers (repeatable): passthrough, model_coverage, "
+             "close_capture, calibration_bucket. Default: all.",
+    ),
+    board_days: int = typer.Option(30, "--board-days", help="Promotion-board window (passthrough)."),
+    as_json: bool = typer.Option(False, "--json", help="Emit raw JSON (for the model-improve graph)."),
+) -> None:
+    """Read-only triggers for the model-improve graph beyond the value-audit rule.
+
+    Lists LIVE sharp-passthrough lanes, configured models missing/gated on most
+    recent rows, resolved Kalshi rows without a captured close, and entry-price
+    buckets where the blend is miscalibrated beyond the sharp line. Each finding
+    names the metric that judges a fix (rows priced, CLV coverage, bucket
+    calibration). The graph keeps these triggers shadow-only unless a run enables
+    them; see evmax/agents/cleanup/improve_triggers.py.
+    """
+    import json as _json
+
+    from evmax.agents.cleanup.improve_triggers import compute_improve_triggers
+
+    try:
+        out = compute_improve_triggers(trigger or None, board_days=board_days)
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(2)
+
+    if as_json:
+        # Plain stdout, not console.print_json: Rich would re-wrap long strings.
+        sys.stdout.write(_json.dumps(out) + "\n")
+        return
+
+    if not out["findings"]:
+        console.print(f"[green]No improve-trigger findings[/green] (ran: {', '.join(out['ran'])}).")
+    else:
+        table = Table(title="Model-improve triggers (read-only)", box=box.SIMPLE)
+        table.add_column("Trigger", style="bold")
+        table.add_column("Sector")
+        table.add_column("Lane", no_wrap=False)
+        table.add_column("n", justify="right")
+        table.add_column("Value", justify="right")
+        table.add_column("Judge on")
+        table.add_column("Evidence", no_wrap=False)
+        for f in out["findings"]:
+            lane = " ".join(str(x) for x in (
+                f.get("market_type"), f.get("venue") and f"[{f['venue']}]",
+                f.get("model"), f.get("bucket") and f"{f['bucket']}c",
+            ) if x)
+            table.add_row(
+                f["trigger"], f["sector"], lane or "—", str(f["n"]),
+                f"{f['value']}", f["judge_metric"], f["evidence"],
+            )
+        console.print(table)
+    for t, err in out["failed"].items():
+        console.print(f"[red]trigger {t} failed: {err}[/red]")
+
+
 @app.command("value-audit")
 def value_audit(
     weeks: int = typer.Option(12, "--weeks", "-w", help="Look-back window in weeks."),
