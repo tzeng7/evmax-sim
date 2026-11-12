@@ -119,6 +119,32 @@ def filter_d1_games(
     return kept, d1_ids
 
 
+def filter_games_to_teams(
+    games: list[dict],
+    team_ids: set[str],
+) -> tuple[list[dict], set[str]]:
+    """Keep only games where BOTH teams are in an explicit D1 allow-list.
+
+    The in-season seed uses ESPN's D1 team list (groups=50) as `team_ids`.
+    Returns (filtered_games, ids_that_appear_in_kept_games).
+    """
+    kept = [g for g in games if g["home_id"] in team_ids and g["away_id"] in team_ids]
+    seen = {g["home_id"] for g in kept} | {g["away_id"] for g in kept}
+    return kept, seen
+
+
+def early_season_min_appearances(today: date) -> int:
+    """Appearance threshold scaled to the weeks elapsed since Nov 1.
+
+    Fallback only, for an in-season seed when ESPN's D1 team list is
+    unavailable: min(MIN_D1_APPEARANCES, max(2, weeks elapsed)). It mirrors
+    the walk-forward backtest's early-slice scaling.
+    """
+    start = date(college_season_start_year(today), 11, 1)
+    weeks = max(0, (today - start).days) // 7
+    return min(MIN_D1_APPEARANCES, max(2, weeks))
+
+
 # ---------------------------------------------------------------------------
 # Iterative opponent adjustment (KenPom-style core)
 # ---------------------------------------------------------------------------
