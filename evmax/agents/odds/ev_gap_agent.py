@@ -273,6 +273,13 @@ MIN_NONSHARP_MODELS: dict[str, dict] = {
     # missing (unresolved team name, blanked state) — thin Kalshi-vs-Pinnacle
     # arb, not model edge. nhl ships shadow, so this bites at promotion.
     "nhl":      {"min_count": 1, "market_types": frozenset({"moneyline"})},
+    # College basketball (2026-11-11): both sectors are LIVE, and the
+    # efficiency stack stays dark each November until the current-season
+    # reseed reaches MIN_GAMES. Unseeded teams then blend to sharp-only:
+    # 3 of 21 NCAAB moneyline games from 2026-11-03 to 11-11 logged
+    # model_sources='sharp' as live plays (divergence 0.00pp).
+    "ncaab":    {"min_count": 1, "market_types": frozenset({"moneyline"})},
+    "ncaaw":    {"min_count": 1, "market_types": frozenset({"moneyline"})},
 }
 
 # Tokens in model_sources that are NOT independent model signal: the sharp
