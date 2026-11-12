@@ -36,6 +36,7 @@ import asyncio
 import json
 import shutil
 import sys
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -48,7 +49,9 @@ sys.path.insert(0, str(REPO_ROOT))
 from evmax.agents.models._college_efficiency import (
     MIN_D1_APPEARANCES,
     dean_oliver_possessions,
+    early_season_min_appearances,
     filter_d1_games,
+    filter_games_to_teams,
     opponent_adjust,
 )
 
@@ -75,6 +78,13 @@ ESPN_D1_GROUP = "50"
 
 MAX_CONCURRENT_SUMMARIES = 8
 RETRIES = 3
+
+# A day fetched this many days (or more) after it happened is trusted even
+# with a postponed game or an unparsed box score (see day_is_complete).
+SETTLE_GRACE_DAYS = 7
+# Legacy day files (no `complete` flag) are trusted only when written this
+# many days after the day itself (see cached_day_is_complete).
+LEGACY_TRUST_DAYS = 3
 
 
 def season_days(season: int, today: Optional[date] = None) -> list[date]:
@@ -143,12 +153,63 @@ async def _get_json(client: httpx.AsyncClient, url: str, params: dict) -> Option
     return None
 
 
+@dataclass
+class DayFetch:
+    """One scoreboard day's fetch result plus what the cache needs to judge it."""
+
+    games: list[dict]
+    scoreboard_ok: bool
+    n_pending: int       # events still scheduled / in progress at fetch time
+    n_missing_box: int   # final games whose summary/box score did not parse
+
+
+def day_is_complete(day: date, fetched_on: date, fetch: DayFetch) -> bool:
+    """True when a cached day file can be trusted without a refetch.
+
+    A day is complete only when ALL hold:
+      * the scoreboard fetch succeeded;
+      * the fetch happened on a LATER calendar day (a same-day fetch runs
+        before tip-off — the 2026-11-02 08:17 run froze opening night, 182
+        D1 finals, as a 2-game file);
+      * no event was still scheduled / in progress and every final game's box
+        score parsed.
+    The last condition is waived once the day is more than
+    `SETTLE_GRACE_DAYS` older than the fetch: a postponed game or a box score
+    ESPN never publishes must not trigger a refetch on every run forever.
+    """
+    if not fetch.scoreboard_ok or fetched_on <= day:
+        return False
+    if (fetched_on - day).days > SETTLE_GRACE_DAYS:
+        return True
+    return fetch.n_pending == 0 and fetch.n_missing_box == 0
+
+
+def cached_day_is_complete(path: Path, day: date) -> bool:
+    """Read a day file's completeness. Missing / corrupt → refetch.
+
+    Files written before the `complete` flag existed carry no fetch metadata.
+    For those, the file's mtime stands in for the fetch date, and the file is
+    trusted only when it was written at least `LEGACY_TRUST_DAYS` after the day
+    (late finals and box scores had time to settle).
+    """
+    if not path.exists():
+        return False
+    try:
+        payload = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return False
+    if "complete" in payload:
+        return bool(payload["complete"])
+    written_on = date.fromtimestamp(path.stat().st_mtime)
+    return (written_on - day).days >= LEGACY_TRUST_DAYS
+
+
 async def _fetch_day(
     client: httpx.AsyncClient,
     espn_league: str,
     day: date,
     sem: asyncio.Semaphore,
-) -> list[dict]:
+) -> DayFetch:
     """Fetch one day's completed D1 games with extracted box stats."""
     sb = await _get_json(
         client,
@@ -157,15 +218,20 @@ async def _fetch_day(
     )
     if sb is None:
         print(f"    ! scoreboard fetch failed for {day}", file=sys.stderr)
-        return []
+        return DayFetch(games=[], scoreboard_ok=False, n_pending=0, n_missing_box=0)
 
     shells: list[dict] = []
+    n_pending = 0
     for e in sb.get("events", []):
         try:
             comp = e["competitions"][0]
         except (KeyError, IndexError):
             continue
-        if comp.get("status", {}).get("type", {}).get("name") != "STATUS_FINAL":
+        status_type = comp.get("status", {}).get("type", {})
+        if status_type.get("state") in ("pre", "in"):
+            # Scheduled or in progress: the day is not settled yet.
+            n_pending += 1
+        if status_type.get("name") != "STATUS_FINAL":
             continue
         home = next((t for t in comp.get("competitors", []) if t.get("homeAway") == "home"), None)
         away = next((t for t in comp.get("competitors", []) if t.get("homeAway") == "away"), None)
@@ -215,21 +281,69 @@ async def _fetch_day(
         return shell
 
     filled = await asyncio.gather(*(_fill(s) for s in shells))
-    return [g for g in filled if g is not None]
+    games = [g for g in filled if g is not None]
+    return DayFetch(
+        games=games,
+        scoreboard_ok=True,
+        n_pending=n_pending,
+        n_missing_box=len(shells) - len(games),
+    )
+
+
+# ESPN lists ~362-365 D1 teams per league. Fewer than this means a partial or
+# broken response, and the seed falls back to the appearance filter.
+MIN_D1_TEAM_LIST = 300
+
+
+def fetch_d1_team_ids(espn_league: str) -> Optional[set[str]]:
+    """ESPN's current Division I team list (groups=50) as a set of team ids.
+
+    This is the D1 universe for an IN-SEASON seed. The appearance filter
+    (`filter_d1_games`) needs MIN_D1_APPEARANCES=8 completed games per team,
+    which no team has until about mid-December, so an early-season seed built
+    on it found no D1 games at all (the 2026-11-05 abort). Returns None on any
+    fetch/parse failure or an implausibly short list.
+    """
+    url = f"{ESPN_BASE}/{espn_league}/teams"
+    for attempt in range(RETRIES):
+        try:
+            r = httpx.get(url, params={"groups": ESPN_D1_GROUP, "limit": 1000}, timeout=25)
+            r.raise_for_status()
+            leagues = r.json()["sports"][0]["leagues"]
+            ids = {
+                str(t["team"]["id"])
+                for lg in leagues
+                for t in lg.get("teams", [])
+                if t.get("team", {}).get("id") is not None
+            }
+            if len(ids) < MIN_D1_TEAM_LIST:
+                print(f"    ! D1 team list has only {len(ids)} teams — ignoring it",
+                      file=sys.stderr)
+                return None
+            return ids
+        except Exception as exc:  # noqa: BLE001 — fail-soft to the appearance filter
+            if attempt == RETRIES - 1:
+                print(f"    ! D1 team list fetch failed ({exc!r})", file=sys.stderr)
+                return None
+    return None
 
 
 def _cache_dir(league: str, season: int) -> Path:
     return CACHE_ROOT / league / str(season)
 
 
-async def _fetch_season(league: str, season: int) -> None:
+async def _fetch_season(league: str, season: int, today: Optional[date] = None) -> None:
     """Populate the day-file cache for one league-season (skips cached days)."""
     cfg = LEAGUE_CONFIG[league]
     cdir = _cache_dir(league, season)
     cdir.mkdir(parents=True, exist_ok=True)
 
-    days = season_days(season)
-    todo = [d for d in days if not (cdir / f"{d.strftime('%Y%m%d')}.json").exists()]
+    today = today or date.today()
+    days = season_days(season, today)
+    todo = [
+        d for d in days
+        if not cached_day_is_complete(cdir / f"{d.strftime('%Y%m%d')}.json", d)
+    ]
     print(f"[{league} {season}] {len(days)} days, {len(todo)} to fetch")
     if not todo:
         return
@@ -237,12 +351,21 @@ async def _fetch_season(league: str, season: int) -> None:
     sem = asyncio.Semaphore(MAX_CONCURRENT_SUMMARIES)
     async with httpx.AsyncClient() as client:
         for i, day in enumerate(todo):
-            games = await _fetch_day(client, cfg["espn_league"], day, sem)
+            fetch = await _fetch_day(client, cfg["espn_league"], day, sem)
+            complete = day_is_complete(day, today, fetch)
             (cdir / f"{day.strftime('%Y%m%d')}.json").write_text(
-                json.dumps({"date": day.isoformat(), "games": games})
+                json.dumps({
+                    "date": day.isoformat(),
+                    "games": fetch.games,
+                    "complete": complete,
+                    "fetched_on": today.isoformat(),
+                    "n_pending": fetch.n_pending,
+                    "n_missing_box": fetch.n_missing_box,
+                })
             )
             if (i + 1) % 20 == 0 or i == len(todo) - 1:
-                print(f"  [{league} {season}] {i + 1}/{len(todo)} days ({day}, {len(games)} games)")
+                print(f"  [{league} {season}] {i + 1}/{len(todo)} days "
+                      f"({day}, {len(fetch.games)} games)")
 
 
 def load_season_games(league: str, season: int, fetch_missing: bool = True) -> list[dict]:
@@ -293,17 +416,25 @@ def build_state(
     season: int,
     sector: str,
     min_appearances: int = MIN_D1_APPEARANCES,
+    d1_team_ids: Optional[set[str]] = None,
 ) -> dict:
     """Aggregate + opponent-adjust one season of cached games into agent state.
 
     Team keys are NameNormalizer-normalized ESPN `location` strings ("duke",
     "michigan state") — the shape Pinnacle labels arrive in — with the full
     display name stored per team for the resolver's fallback matching.
+
+    D1 universe: when `d1_team_ids` (ESPN's D1 list) is given, a game is kept
+    only when both teams are on it. Otherwise the appearance filter runs with
+    `min_appearances`.
     """
     from evmax.matching.normalizer import NameNormalizer
 
     solver_rows = to_solver_rows(games)
-    d1_rows, d1_ids = filter_d1_games(solver_rows, min_appearances)
+    if d1_team_ids is not None:
+        d1_rows, d1_ids = filter_games_to_teams(solver_rows, d1_team_ids)
+    else:
+        d1_rows, d1_ids = filter_d1_games(solver_rows, min_appearances)
     if not d1_rows:
         raise RuntimeError("no D1 games after filtering — aborting")
 
@@ -418,7 +549,19 @@ def main() -> int:
     if args.fetch_only:
         return 0
 
-    state = build_state(games, season, cfg["sector"])
+    d1_team_ids: Optional[set[str]] = None
+    min_appearances = MIN_D1_APPEARANCES
+    if season == default_season():
+        # In-season: ESPN's D1 list is the universe. The appearance filter
+        # cannot work before teams have played ~8 games (mid-December).
+        d1_team_ids = fetch_d1_team_ids(cfg["espn_league"])
+        if d1_team_ids is None:
+            min_appearances = early_season_min_appearances(date.today())
+            print(f"D1 universe: appearance filter fallback (>= {min_appearances} games)")
+        else:
+            print(f"D1 universe: ESPN D1 team list ({len(d1_team_ids)} teams)")
+    state = build_state(games, season, cfg["sector"],
+                        min_appearances=min_appearances, d1_team_ids=d1_team_ids)
     print_summary(state)
 
     if args.dry_run:

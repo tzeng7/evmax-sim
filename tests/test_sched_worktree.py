@@ -370,3 +370,60 @@ def test_ship_no_pr_never_merges(repos, tmp_path, monkeypatch):
                      "--merge-when-green", "--title", "t",
                      "--", "data/models/elo_state.json"])
     assert rc == 0
+
+
+# --------------------------------------------------------------------------- #
+# concurrent rolling runs (2026-11-09: four state tasks started at once)
+# --------------------------------------------------------------------------- #
+def _open_default(work: Path, capsys) -> Path:
+    rc = sched.main(["open", "--repo", str(work), "--branch", "bot/model-state",
+                     "--rolling", "--print-path"])
+    assert rc == 0
+    return Path(capsys.readouterr().out.strip())
+
+
+def test_default_worktree_paths_are_unique_per_run(repos, tmp_path, monkeypatch, capsys):
+    work, _ = repos
+    monkeypatch.setattr(sched, "SCHED_BASE", tmp_path / "sched")
+    wt1 = _open_default(work, capsys)
+    wt2 = _open_default(work, capsys)
+    # The second open must not remove or reuse the first run's tree.
+    assert wt1 != wt2
+    assert wt1.exists() and wt2.exists()
+    assert wt1.parent == tmp_path / "sched"
+
+
+def test_concurrent_rolling_runs_both_ship(repos, tmp_path, monkeypatch, capsys):
+    work, origin = repos
+    monkeypatch.setattr(sched, "SCHED_BASE", tmp_path / "sched")
+    # Both tasks open BEFORE either ships — the overlap that broke 2026-11-09.
+    wtA = _open_default(work, capsys)
+    wtB = _open_default(work, capsys)
+    # Rolling worktrees are detached, so neither holds the local branch.
+    assert _git(wtA, "rev-parse", "--abbrev-ref", "HEAD") == "HEAD"
+    _write(wtA, "data/models/elo_state.json", '{"v": 7}\n')
+    _write(wtB, "data/models/form_state.json", '{"v": 6}\n')
+    for wt, owned in ((wtA, "data/models/elo_state.json"),
+                      (wtB, "data/models/form_state.json")):
+        rc = sched.main(
+            ["ship", "--repo", str(work), "--branch", "bot/model-state",
+             "--rolling", "--worktree", str(wt), "--no-pr",
+             "--title", "chore(models): rolling refresh", "--", owned]
+        )
+        assert rc == 0
+        assert not wt.exists()
+    # The second shipper rebased onto the first: both owners' files are there.
+    assert _file_on_ref(origin, "bot/model-state", "data/models/elo_state.json") == '{"v": 7}\n'
+    assert _file_on_ref(origin, "bot/model-state", "data/models/form_state.json") == '{"v": 6}\n'
+
+
+def test_open_reports_git_error_instead_of_raising(repos, tmp_path, capsys):
+    work, _ = repos
+    # A non-empty, non-worktree directory makes `git worktree add` fail.
+    wt = tmp_path / "occupied"
+    _write(wt, "junk.txt", "x\n")
+    rc = sched.main(["open", "--repo", str(work), "--branch", "topic/occ",
+                     "--worktree", str(wt)])
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "FATAL" in err and "already exists" in err

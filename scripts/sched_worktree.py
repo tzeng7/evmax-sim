@@ -46,6 +46,14 @@ task's owned files are added on top. Regenerated state is idempotent, so on any
 rebase trouble the safe fallback is simply to re-anchor to ``origin/main`` and
 let the seed script reproduce the current-truth file.
 
+Concurrent runs: several state tasks can fire at once (after a delayed wake
+on 2026-11-09, four Monday tasks started within minutes). So the default
+worktree path is unique per run (``/tmp/evmax-sched/<branch>-<ts>-<pid>``) and a
+rolling worktree is checked out on a DETACHED HEAD: a branch can be checked out
+in only one worktree, so ``ship`` pushes ``HEAD:refs/heads/<branch>`` instead of
+a local branch. The second shipper's lease is rejected, and it rebases its
+disjoint-file commit onto the first shipper's push and retries.
+
 Code tasks (drift-audit, model-improve) omit ``--rolling`` and get a fresh dated
 branch off ``origin/main`` each run — their diffs are real code that must pass
 review + CI on its own, so they should not share a branch.
@@ -75,9 +83,12 @@ only inside the throwaway worktree it created.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
+import time
+from datetime import datetime
 from pathlib import Path
 
 DEFAULT_REPO = Path("/Users/ktzeng/Projects/evmax")
@@ -126,9 +137,61 @@ def _sanitize_branch(branch: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "-", branch).strip("-") or "branch"
 
 
+# Parent directory of the default per-run worktree paths (tests override it).
+SCHED_BASE = Path("/tmp") / "evmax-sched"
+
+# `git fetch` in the shared checkout can lose a ref-lock race when several
+# scheduled tasks start at once; retry it this many times.
+FETCH_ATTEMPTS = 3
+
+
 def _default_worktree_path(branch: str) -> Path:
-    base = Path("/tmp") / "evmax-sched"
-    return base / _sanitize_branch(branch)
+    """A worktree path UNIQUE to this invocation.
+
+    Every state task used to share /tmp/evmax-sched/bot-model-state. On
+    2026-11-09 four Monday tasks (seasonal, tennis, NCAAF, college basketball)
+    started within minutes of each other after a delayed wake. Each `open`
+    force-removed the path the previous one had just created, and the college
+    run's `git worktree add` exited 128 on the half-registered path. A
+    per-run path (timestamp + pid) means one run can never touch another's tree.
+    """
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    stem = f"{_sanitize_branch(branch)}-{stamp}-{os.getpid()}"
+    candidate = SCHED_BASE / stem
+    n = 1
+    while candidate.exists():
+        candidate = SCHED_BASE / f"{stem}-{n}"
+        n += 1
+    return candidate
+
+
+LEASE_FILE = "evmax-sched-lease"
+
+
+def _lease_path(worktree: Path) -> Path | None:
+    """Per-worktree file (inside its private git dir) holding the push lease."""
+    cp = _git(worktree, "rev-parse", "--absolute-git-dir", check=False)
+    if cp.returncode != 0:
+        return None
+    return Path(cp.stdout.strip()) / LEASE_FILE
+
+
+def _remote_sha(repo: Path, ref: str) -> str:
+    """SHA of ``ref``, or "" when it does not exist (lease = "must not exist")."""
+    cp = _git(repo, "rev-parse", "--verify", "--quiet", ref, check=False)
+    return cp.stdout.strip() if cp.returncode == 0 else ""
+
+
+def _fetch_with_retry(repo: Path) -> None:
+    for attempt in range(FETCH_ATTEMPTS):
+        cp = _git(repo, "fetch", "origin", "--prune", "--quiet", check=False)
+        if cp.returncode == 0:
+            return
+        _log(f"[open] fetch failed (attempt {attempt + 1}/{FETCH_ATTEMPTS}): "
+             f"{(cp.stderr or '').strip()}")
+        if attempt < FETCH_ATTEMPTS - 1:
+            time.sleep(2 + 3 * attempt)
+    raise subprocess.CalledProcessError(cp.returncode, cp.args, cp.stdout, cp.stderr)
 
 
 def _remote_ref_exists(repo: Path, ref: str) -> bool:
@@ -162,7 +225,7 @@ def cmd_open(args: argparse.Namespace) -> int:
     worktree = args.worktree or _default_worktree_path(branch)
 
     _log(f"[open] fetch origin (repo={repo})")
-    _git(repo, "fetch", "origin", "--prune", "--quiet")
+    _fetch_with_retry(repo)
 
     if not _remote_ref_exists(repo, base_remote):
         _log(f"[open] FATAL: {base_remote} does not exist after fetch")
@@ -191,11 +254,28 @@ def cmd_open(args: argparse.Namespace) -> int:
     else:
         _log(f"[open] basing branch {branch} on {start_point}")
 
-    _remove_worktree_if_present(repo, worktree)
+    if args.worktree:
+        # A caller-chosen path: make `open` idempotent on it. The default path
+        # is unique per run, so it never needs (or risks) a removal.
+        _remove_worktree_if_present(repo, worktree)
+    else:
+        _git(repo, "worktree", "prune", check=False)
     worktree.parent.mkdir(parents=True, exist_ok=True)
 
-    # -B force-creates/resets the LOCAL branch to start_point in the new tree.
-    _git(repo, "worktree", "add", "--quiet", "-B", branch, str(worktree), start_point)
+    if args.rolling:
+        # DETACHED HEAD: a branch can be checked out in only one worktree, so
+        # two state tasks running at once cannot both own a local
+        # `bot/model-state`. `ship` pushes HEAD to the remote branch instead.
+        add_args = ["worktree", "add", "--quiet", "--detach", str(worktree), start_point]
+    else:
+        # -B force-creates/resets the LOCAL branch to start_point in the new tree.
+        add_args = ["worktree", "add", "--quiet", "-B", branch, str(worktree), start_point]
+    cp = _git(repo, *add_args, check=False)
+    if cp.returncode != 0:
+        # Surface git's own message (the 2026-11-09 failure logged only "128").
+        _log(f"[open] FATAL: git {' '.join(add_args)} exited {cp.returncode}:\n"
+             f"{(cp.stderr or '').strip()}")
+        return 2
 
     if rebase_after:
         cp = _git(worktree, "rebase", base_remote, check=False)
@@ -208,6 +288,15 @@ def cmd_open(args: argparse.Namespace) -> int:
             )
             _git(worktree, "rebase", "--abort", check=False)
             _git(worktree, "reset", "--hard", base_remote)
+
+    if args.rolling:
+        # Record the remote branch as THIS run saw it. Worktrees share one ref
+        # store, so another run's push moves refs/remotes/origin/<branch> for
+        # everyone; a bare --force-with-lease would then let a concurrent
+        # shipper silently overwrite that push. `ship` leases against this.
+        lease_file = _lease_path(worktree)
+        if lease_file is not None:
+            lease_file.write_text(_remote_sha(repo, branch_remote) + "\n")
 
     head = _git(worktree, "rev-parse", "--short", "HEAD").stdout.strip()
     _log(f"[open] worktree ready at {worktree} on {branch} @ {head}")
@@ -318,10 +407,16 @@ def _push(
             _log(cp.stderr.strip())
         return cp.returncode
 
-    cp = _git(
-        worktree, "push", "--force-with-lease", "origin", branch,
-        check=False, capture=True,
-    )
+    # Rolling worktrees are on a detached HEAD (see cmd_open): push HEAD to the
+    # remote branch, leasing against the value recorded at `open`.
+    refspec = f"HEAD:refs/heads/{branch}"
+    lease_file = _lease_path(worktree)
+    if lease_file is not None and lease_file.exists():
+        lease = f"--force-with-lease=refs/heads/{branch}:{lease_file.read_text().strip()}"
+    else:
+        # Worktree opened by an older helper: lease on the shared tracking ref.
+        lease = f"--force-with-lease=refs/heads/{branch}"
+    cp = _git(worktree, "push", lease, "origin", refspec, check=False, capture=True)
     if cp.returncode == 0:
         return 0
 
@@ -342,10 +437,9 @@ def _push(
             _git(worktree, "commit", "--no-verify", "-m",
                  "chore(models): re-applied rolling state after concurrent push",
                  check=False)
-    cp2 = _git(
-        worktree, "push", "--force-with-lease", "origin", branch,
-        check=False, capture=True,
-    )
+    # Lease against the remote value we just fetched and rebased onto.
+    lease = f"--force-with-lease=refs/heads/{branch}:{_remote_sha(repo, branch_remote)}"
+    cp2 = _git(worktree, "push", lease, "origin", refspec, check=False, capture=True)
     if cp2.returncode != 0:
         _log(cp2.stderr.strip())
     return cp2.returncode
@@ -373,7 +467,6 @@ def _watch_ci(
     Uses ``gh pr checks --json`` (never ``--watch``) so the timeout is ours and
     a hung runner cannot block the scheduled run forever.
     """
-    import time
 
     slug = _repo_slug(repo)
     deadline = time.monotonic() + timeout_s
@@ -536,7 +629,8 @@ def _build_parser() -> argparse.ArgumentParser:
     po = sub.add_parser("open", parents=[common],
                         help="Fetch origin and open an isolated worktree off the live remote tip")
     po.add_argument("--worktree", type=Path, default=None,
-                    help="Worktree path (default: /tmp/evmax-sched/<branch>)")
+                    help="Worktree path (default: a per-run "
+                         "/tmp/evmax-sched/<branch>-<timestamp>-<pid>)")
     po.add_argument("--print-path", action="store_true",
                     help="Print the worktree path (and nothing else) on stdout")
     po.set_defaults(func=cmd_open)
