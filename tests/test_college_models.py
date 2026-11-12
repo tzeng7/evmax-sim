@@ -512,7 +512,11 @@ class TestCollegeWiring:
             assert path.exists(), f"{fname} must ship seeded"
             state = json.loads(path.read_text())
             assert len(state["teams"]) > 300          # full D1 universe
-            assert state["source_season"] == "2025"   # the completed 2025-26 season
+            # The state's season is the college season of its own fetch date.
+            # A hard-coded year broke on the first in-season reseed (2026-11-11).
+            fetched = date.fromisoformat(state["fetched_at"])
+            assert state["source_season"] == str(college_season_start_year(fetched))
+            assert int(state["source_season"]) >= 2025
             assert state["solver_converged"] is True
             assert state["hca_eff"] > 0               # home edge estimated
 
