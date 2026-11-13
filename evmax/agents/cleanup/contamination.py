@@ -86,6 +86,19 @@ NHL (see ``_POSTED_RUNG_ONLY_SECTORS`` in ``models_ml/spread_distribution.py``):
     the change was that mirror rung, so a ``spread_dist`` NHL spread row was
     selected by a phantom edge. The NFL ``spread_dist`` precedent.
 
+NBA (see the nba notes in data/categories.yaml):
+  - ``moneyline`` missing ANY of the four stat-stack tokens (``efficiency``,
+    ``possession_sim``, ``shot_quality``, ``matchup``): the 2026-27 opening
+    weeks priced NBA moneylines on elo+form+sharp only, because the stat
+    models abstain until both teams have ``MIN_GAMES`` games. NBA Elo is
+    results-only and roster-blind, so those rows sat 3-6pp off a Pinnacle
+    line the venue already matched (blend Brier worse than sharp in every
+    bucket). The full six-model blend fires on every row from 2026-11-08.
+    The promotion sample for lifting moneyline out of
+    ``shadow_market_types`` is the full-blend rows only. The rule also dates
+    out a later row where a stat model went missing (nba_api outage): that
+    row is a degraded blend, not the product being promoted.
+
 To add a sector rule later, append to ``CONTAMINATION_RULES`` — the metrics
 command and any SQL caller pick it up automatically.
 """
@@ -129,7 +142,27 @@ def _nonsharp_count(model_sources: Optional[str]) -> int:
     return len(tokens - _NON_MODEL_TOKENS)
 
 
+# The four NBA stat-stack models. Local literal (this file never imports
+# model-layer internals); the tokens are the agents' canonical names in
+# evmax.categories.KNOWN_MODELS.
+_NBA_STAT_STACK = ("efficiency", "possession_sim", "shot_quality", "matchup")
+
+
+def _tokens(model_sources: Optional[str]) -> set[str]:
+    return {tok.strip() for tok in (model_sources or "").split("+")}
+
+
 CONTAMINATION_RULES: dict[str, list[RowRule]] = {
+    "nba": [
+        # Full stat stack fires on every NBA ML row from 2026-11-08. A row
+        # missing any of the four stat models is an opening-weeks
+        # elo+form+sharp blend (roster-blind Elo) or a degraded blend.
+        # Exact token match: a substring test would let `efficiency` match
+        # inside another model's name.
+        lambda mt, src, line: (
+            mt == "moneyline" and not set(_NBA_STAT_STACK) <= _tokens(src)
+        ),
+    ],
     "baseball": [
         # Poisson removed from baseball 2026-06-01 — its presence dates the row.
         lambda mt, src, line: _has(src, "poisson"),

@@ -79,7 +79,7 @@ def test_baseball_standard_runline_spread_is_clean():
 
 def test_ruleless_sectors_are_never_flagged():
     # No rules for these sectors → always clean, even with "poisson" present.
-    assert not is_contaminated("nba", "moneyline", "elo+poisson+sharp")
+    assert not is_contaminated("ncaab", "moneyline", "elo+poisson+sharp")
     assert not is_contaminated("nfl", "moneyline", "elo+sharp")
     assert not is_contaminated(None, "moneyline", None)
 
@@ -143,6 +143,49 @@ def test_soccer_total_sharp_only_is_clean():
 def test_soccer_empty_sources_ml_is_contaminated():
     assert is_contaminated("soccer", "moneyline", None)
     assert is_contaminated("soccer", "moneyline", "")
+
+
+# -------------------------------------------------------------------------
+# NBA — a moneyline row missing any of the four stat-stack models is an
+# opening-weeks elo+form+sharp blend (roster-blind Elo) or a degraded blend.
+# -------------------------------------------------------------------------
+
+_NBA_FULL = "efficiency+elo+form+matchup+possession_sim+shot_quality+sharp"
+
+
+def test_nba_full_blend_ml_is_clean():
+    assert not is_contaminated("nba", "moneyline", _NBA_FULL)
+    assert not is_contaminated("nba", "moneyline", _NBA_FULL + "+injury+late_news")
+
+
+def test_nba_elo_form_only_ml_is_contaminated():
+    assert is_contaminated("nba", "moneyline", "elo+form+sharp+injury")
+    assert is_contaminated("nba", "moneyline", "elo+sharp")
+    assert is_contaminated("nba", "moneyline", None)
+
+
+def test_nba_partial_stack_ml_is_contaminated():
+    # 2026-11-03 shape: efficiency + possession_sim fired, shot_quality and
+    # matchup were still below their games-played floor.
+    assert is_contaminated(
+        "nba", "moneyline", "efficiency+elo+form+possession_sim+sharp"
+    )
+    for missing in ("efficiency", "possession_sim", "shot_quality", "matchup"):
+        src = "+".join(t for t in _NBA_FULL.split("+") if t != missing)
+        assert is_contaminated("nba", "moneyline", src), missing
+
+
+def test_nba_stack_tokens_match_exactly_not_by_substring():
+    # `efficiency` must not be satisfied by another model's name.
+    src = _NBA_FULL.replace("efficiency", "wnba_efficiency")
+    assert is_contaminated("nba", "moneyline", src)
+
+
+def test_nba_spread_and_total_are_not_flagged():
+    # The rule is moneyline-scoped: spread/total rows are sharp-priced and
+    # never carry the stat stack.
+    assert not is_contaminated("nba", "spread", "possession_sim+sharp+spread_dist", -4.5)
+    assert not is_contaminated("nba", "total", "sharp+total_dist", 224.5)
 
 
 # -------------------------------------------------------------------------
