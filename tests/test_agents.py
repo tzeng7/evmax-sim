@@ -22,6 +22,17 @@ from evmax.models.odds import SharpOdds, SharpBook
 # Fixtures
 # ---------------------------------------------------------------------------
 
+@pytest.fixture(autouse=True)
+def _freeze_prestart_gate_clock(monkeypatch):
+    """Fixtures here use fixed 2026-03-15 game dates; pin the EV agent's pre-start
+    gate clock before them so the games count as upcoming."""
+    import evmax.agents.odds.ev_gap_agent as ev_gap_agent
+
+    monkeypatch.setattr(
+        ev_gap_agent, "_scan_now", lambda: datetime(2026, 3, 15, 12, 0, tzinfo=timezone.utc)
+    )
+
+
 def make_market(
     yes_price: float = 0.45,
     team_home: str = "lakers",
