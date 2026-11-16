@@ -394,6 +394,34 @@ python scripts/eval_wnba_anchored_backfill.py [--detail]
 # last pre-tip snapshot per market/side (lay/take, over/under). Read-only.
 evmax cleanup listings-eval -s wnba [--detail] [--ev-min 2] [--depth-min 50] [--since D]
 
+# Polymarket US maker-fill replay + entry timing, on the venue's OWN price history
+# (2026-11-15). `GET gateway.polymarket.us/v1/price-history` is public, ~1 point/min,
+# and still serves settled markets (verified back to 2026-07-08): longPrice = long ask,
+# shortPrice = 1 − long bid, so one point gives ask AND bid of either side (no sizes).
+# The first script fetches + caches it per slug (data/backtest/polyus_history/,
+# gitignored; ~10.6k requests / 25 min for 2.6k slugs at 8 rps, then --offline) with
+# /v1/market/slug metadata (gameStartTime = tip, tick, long/short sides), and replays a
+# resting bid (bid + 1 tick) from logged_at to tip on the LOWEST ask per 5-min bucket:
+# touch (optimistic, ignores queue) vs thru (ask strictly below the limit). The second
+# reads the same cache: edge decay after the signal, what a k-minute point sample
+# misses, value per candidate of each placement policy, split by lead. Logic:
+# agents/cleanup/polyus_maker_replay.py + polyus_entry_timing.py. Stats are per GAME.
+# First read (2,765 resolved clean rows / 894 games since 09-01, CLV pp net of fees):
+#   - cross now −0.47 [−0.67, −0.26]; waiting 1h −0.68; rest-then-cross is worse.
+#   - rest to tip: touch +0.05 [−0.04, +0.13], thru −0.15 [−0.23, −0.08]. ADVERSE
+#     SELECTION: filled orders +0.12pp to the close, unfilled would-be takers +2.08pp.
+#   - the move to close is only ~+1pp gross (< the ~1.45pp taker fee) and decays
+#     slowly (4% in 15 min, 22% in 1h, 56% in 6h): scan cadence is not the constraint.
+#   - hourly point sampling sees 33% fills (vs 40%) worth −0.06pp (vs +0.12pp): the
+#     Kalshi hourly-snapshot replay overstates adverse selection by ~0.2pp.
+#   - the lever is the GAP TO SHARP in price points (sharp_true_prob − ask): under 2pp
+#     taker net is −0.5 to −1.0pp on BOTH venues (75% of PolyUS candidates). PolyUS
+#     4–6pp gaps: +1.23 [+0.52, +1.91] in the replay (85 rows; stored CLV +0.79
+#     [−0.12, +1.88]; realized ROI −19%) — tentative, buckets chosen in-sample. Kalshi
+#     3pp+ gaps do NOT converge (CLV ≈ 0 gross): treat as a stale/mismatched line.
+python scripts/eval_polyus_maker_replay.py --pred-db data/predictions.db [--since D] [--offline] [--json F]
+python scripts/eval_polyus_entry_timing.py --pred-db data/predictions.db [--group nfl/spread] [--fetch]
+
 # Line-movement lens — how Pinnacle's devigged fair price and a venue's moneyline
 # mid move toward tip-off, read from archive.db (read-only; agents/cleanup/line_moves.py).
 # Four readouts: venue-vs-Pinnacle gap and distance-to-close per time-to-tip bucket,
