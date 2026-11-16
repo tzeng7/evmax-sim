@@ -46,6 +46,11 @@ from evmax.models_ml.spread_distribution import SpreadDistributionModel
 # Helpers / Fixtures
 # ---------------------------------------------------------------------------
 
+# NBA moneyline rows need the full stat stack to count as clean
+# (contamination.py NBA rule); these fixtures use nba as a generic sector.
+_NBA_FULL_BLEND = "efficiency+elo+form+matchup+possession_sim+shot_quality+sharp"
+
+
 def _sharp_spread(spread_line: float, true_prob_a: float) -> SharpOdds:
     true_prob_b = round(1.0 - true_prob_a, 4)
     return SharpOdds(
@@ -512,7 +517,7 @@ def _seed_outcomes(conn: sqlite3.Connection, rows: list[dict]) -> None:
             "kelly_fraction, volume_usd, model_sources, sharp_weight_used) "
             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (scan_date, mid, f"ev::{i}", "nba", "team", "moneyline",
-             0.50, r["sharp_prob"], r["blend_prob"], 0.05, 0.025, 1000.0, "sharp", 0.85),
+             0.50, r["sharp_prob"], r["blend_prob"], 0.05, 0.025, 1000.0, _NBA_FULL_BLEND, 0.85),
         )
         conn.execute(
             "INSERT INTO ev_outcomes (market_id, event_id, sector, yes_team, outcome, "
@@ -616,7 +621,7 @@ class TestBrierBySector:
                 "kelly_fraction, volume_usd, model_sources, sharp_weight_used) "
                 "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (scan_date, mid, f"ev::nba::{i}", "nba", "team", "moneyline",
-                 0.50, 0.5, 0.9, 0.05, 0.025, 1000.0, "sharp", 0.85),
+                 0.50, 0.5, 0.9, 0.05, 0.025, 1000.0, _NBA_FULL_BLEND, 0.85),
             )
             conn.execute(
                 "INSERT INTO ev_outcomes (market_id, event_id, sector, yes_team, outcome, "
@@ -675,7 +680,7 @@ class TestBrierDedupRegression:
                 "blended_true_prob, ev_pct, kelly_fraction, volume_usd, model_sources, "
                 "sharp_weight_used) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (sd, market_id, f"ev::{market_id}", sector, "team", "moneyline",
-                 0.5, 0.6, blend, 0.05, 0.025, 1000.0, "sharp", 0.85),
+                 0.5, 0.6, blend, 0.05, 0.025, 1000.0, _NBA_FULL_BLEND, 0.85),
             )
         conn.execute(
             "INSERT INTO ev_outcomes (market_id, event_id, sector, yes_team, outcome, "
