@@ -50,7 +50,12 @@ export function PortfolioDetail({ portfolioId, onBack, toast }: Props) {
     }
   }
 
-  if (!data) return <div style={{ color: '#767b85', padding: 20 }}>Loading...</div>
+  if (!data) return (
+    <div aria-busy="true" aria-label="Loading portfolio">
+      <div className="skeleton" style={{ height: 90, marginBottom: 18 }} />
+      <div className="skeleton" style={{ height: 320 }} />
+    </div>
+  )
 
   const filteredBets = data.bets.filter(b => {
     if (tab === 'open') return b.outcome === null

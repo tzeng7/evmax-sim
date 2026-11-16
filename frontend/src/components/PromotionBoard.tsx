@@ -17,7 +17,7 @@ type VerdictKind =
 const VERDICT_STYLE: Record<VerdictKind, { color: string; legend: string }> = {
   'SHARP-PASSTHROUGH': { color: 'var(--red)', legend: 'Moneyline blend within 0.5pp of sharp: no independent model signal' },
   'LIVE-DEGRADING': { color: 'var(--red)', legend: 'Live lane with negative CLV over enough games' },
-  'FAILING-CLV': { color: 'var(--amber)', legend: 'Shadow lane with enough games but CLV gate not met' },
+  'FAILING-CLV': { color: 'var(--yellow)', legend: 'Shadow lane with enough games but CLV gate not met' },
   'COLLECTING': { color: 'var(--muted)', legend: 'Not enough clean resolved rows / CLV games yet (n/30)' },
   'PROMOTE-READY': { color: 'var(--green)', legend: 'Shadow lane clears every gate: promote by hand (CLI/YAML)' },
   'LIVE-HEALTHY': { color: 'var(--green)', legend: 'Live lane, no degradation signal' },
@@ -129,7 +129,14 @@ export function PromotionBoard({ toast }: Props) {
         </select>
       </div>
 
-      {loading && <p className="muted">Loading…</p>}
+      {loading && (
+        <div className="panel" aria-busy="true" aria-label="Loading promotion board">
+          <p className="muted" style={{ marginBottom: 12 }}>
+            <span className="spinner" aria-hidden="true" /> Computing gates for every sector · market · venue — this can take 10–20 seconds.
+          </p>
+          {Array.from({ length: 8 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 34, marginBottom: 8 }} />)}
+        </div>
+      )}
       {!loading && rows && shown.length === 0 && (
         <p className="muted">No prediction rows match these filters.</p>
       )}

@@ -16,18 +16,27 @@ export function centsToProb(s: string): number | null {
   return n / 100
 }
 
+// Calendar days in the user's LOCAL time zone. `toISOString()` is UTC, so in
+// the US evening it already reads tomorrow: the default scan range then
+// skipped tonight's games.
+function localDay(offsetDays = 0): string {
+  const d = new Date()
+  d.setDate(d.getDate() + offsetDays)
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
 export function fmtDate(): string {
-  return new Date().toISOString().slice(0, 10)
+  return localDay(0)
 }
 
 export function fmtTomorrow(): string {
-  const d = new Date()
-  d.setDate(d.getDate() + 1)
-  return d.toISOString().slice(0, 10)
+  return localDay(1)
 }
 
 export function yesterday(): string {
-  return new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  return localDay(-1)
 }
 
 // Fallback only — the server sends a pre-formatted `display_label` for every

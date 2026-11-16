@@ -140,8 +140,14 @@ export default function App() {
             )}
           </div>
         </div>
+      </header>
+
+      <div className="content">
+      <ErrorBoundary>
+        {/* The scan controls stay mounted while the dashboard data loads so the
+            Scan / Resolve verbs in the top bar never flicker out. */}
         {page.kind === 'dashboard' && (
-          <div className="topbar-tools">
+          <div className="scanbar">
             <ActionBar
               bankrollStr={bankrollStr}
               setBankrollStr={setBankrollStr}
@@ -154,24 +160,14 @@ export default function App() {
             />
           </div>
         )}
-      </header>
-
-      <div className="content">
-      <ErrorBoundary>
         {loadingDash && <DashboardSkeleton />}
         {!loadingDash && page.kind === 'dashboard' && (
           <>
-            <div className="segmented" style={{ marginBottom: 16 }}>
-              <button aria-pressed={view === 'all'} className={`seg ${view === 'all' ? 'active' : ''}`} onClick={() => setView('all')}>All Scanned</button>
-              <button aria-pressed={view === 'placed'} className={`seg ${view === 'placed' ? 'active' : ''}`} onClick={() => setView('placed')}>Placed Only</button>
-            </div>
-
-            <KpiCards summary={summary} onOpenEval={() => setPage({ kind: 'eval' })} />
-            <ProfitChart seriesAll={dash.seriesAll} seriesPlaced={dash.seriesPlaced} view={view} />
-
+            {/* Workflow order: what to bet now -> what is on -> how it has gone. */}
             <ScanResults
               gaps={dash.scanGaps}
               meta={dash.scanMeta}
+              scanAt={dash.scanAt}
               bankroll={bankroll}
               kelly={kelly}
               scanKelly={dash.scanKelly}
@@ -183,12 +179,24 @@ export default function App() {
 
             <PlacedBets bets={dash.placedBets} toast={toast} onChanged={dash.refresh} />
 
+            <OpenPositions bets={dash.openBets} scanGaps={dash.scanGaps} bankroll={bankroll} kelly={kelly} scanKelly={dash.scanKelly} toast={toast} onPicked={dash.refresh} />
+
+            <div className="section-head">
+              <h2>Performance</h2>
+              <div className="segmented" role="group" aria-label="Performance scope">
+                <button aria-pressed={view === 'all'} className={`seg ${view === 'all' ? 'active' : ''}`} onClick={() => setView('all')}
+                  title="Every logged live play, sized at its scan-time Kelly stake">All Scanned</button>
+                <button aria-pressed={view === 'placed'} className={`seg ${view === 'placed' ? 'active' : ''}`} onClick={() => setView('placed')}
+                  title="Only plays you confirmed with Pick, at your recorded fill">Placed Only</button>
+              </div>
+            </div>
+            <KpiCards summary={summary} onOpenEval={() => setPage({ kind: 'eval' })} />
+            <ProfitChart seriesAll={dash.seriesAll} seriesPlaced={dash.seriesPlaced} view={view} />
+
             <div className="two-col">
               <SectorPerformance sectors={dash.sectors} />
-              <OpenPositions bets={dash.openBets} scanGaps={dash.scanGaps} bankroll={bankroll} kelly={kelly} scanKelly={dash.scanKelly} toast={toast} onPicked={dash.refresh} />
+              <RecentSettled bets={dash.recent} />
             </div>
-
-            <RecentSettled bets={dash.recent} />
           </>
         )}
 
@@ -227,13 +235,14 @@ export default function App() {
 function DashboardSkeleton() {
   return (
     <>
+      <div className="skeleton" style={{ height: 150, marginBottom: 18 }} />
+      <div className="skeleton" style={{ height: 200, marginBottom: 18 }} />
       <div className="grid-kpi">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="skeleton" style={{ height: 74 }} />
         ))}
       </div>
-      <div className="skeleton" style={{ height: 320, marginBottom: 18 }} />
-      <div className="skeleton" style={{ height: 200 }} />
+      <div className="skeleton" style={{ height: 320 }} />
     </>
   )
 }

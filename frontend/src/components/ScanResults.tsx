@@ -4,6 +4,7 @@ import { resizeStake } from '../lib/resizeStake'
 import { reconcileRowState } from '../lib/reconcileSelection'
 import type { ScanGap } from '../lib/types'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
+import { fmtAgo, fmtDay, fmtUsd, prettyOutcome } from '../lib/format'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
 import { useRowKeyboard } from '../hooks/useRowKeyboard'
@@ -18,6 +19,8 @@ import {
 interface Props {
   gaps: ScanGap[]
   meta: { markets_fetched: number; markets_matched: number } | null
+  // Epoch ms of the scan that produced `gaps`; null when no scan has run.
+  scanAt: number | null
   bankroll: number
   kelly: number
   scanKelly: number
@@ -25,8 +28,17 @@ interface Props {
   onPicked: () => void
 }
 
-const fmtUsd = (n: number) =>
-  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
+// A scan older than this is flagged: the venue asks it priced have likely moved.
+const STALE_AFTER_MS = 15 * 60 * 1000
+
+// EV pill strength. The EV% gate mechanically favours cheap contracts, so the
+// tiers are deliberately coarse: they rank rows, they do not grade them.
+function evTier(ev: number): string {
+  if (ev < 0) return 'ev-pill ev-neg'
+  if (ev >= 10) return 'ev-pill ev-hi'
+  if (ev >= 5) return 'ev-pill ev-mid'
+  return 'ev-pill'
+}
 
 // Short venue label for the best-execution "· also {venue}" annotation.
 function venueShort(v?: string | null): string {
@@ -86,7 +98,7 @@ function DiagBadge({ g }: { g: ScanGap }) {
   )
 }
 
-export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
+export function ScanResults({ gaps, meta, scanAt, bankroll, kelly, scanKelly, toast, onPicked }: Props) {
   const [sector, setSector] = usePersistedState('scan.sector', '')
   const [dateFilter, setDateFilter] = usePersistedState('scan.date', '')
   // DISPLAY-only venue filter (decoupled from bankroll sizing): narrows which
@@ -325,7 +337,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     const legs = legsOf(g)
     const hasDropdown = legs.length > 1
     const askOdds = probToCents(leg.kalshi_price)
-    const outcome = outcomeLabel(leg)
+    const outcome = prettyOutcome(outcomeLabel(leg), g.event_title)
     const mode = leg.mode || 'live'
     const isLive = mode === 'live'
     // A maker-only leg logs as shadow (fill-contingent) but is still
@@ -347,7 +359,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
             }
             onChange={() => toggle(g.market_id)} />
         </td>
-        <td className="muted">{g.event_date}</td>
+        <td className="muted nowrap" title={g.event_date}>{fmtDay(g.event_date)}</td>
         <td className="num" style={bucketStyle(bucketOf(g))}
           title={g.tip_time ? new Date(g.tip_time).toLocaleString() : 'Tip time unknown'}>
           {formatTimeToTip(minutesToTip(g.tip_time, now))}
@@ -417,7 +429,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         <VerifyCells v={v} />
         <td className="num">{probToCents(leg.true_prob)}</td>
         <td className="num">{(leg.true_prob * 100).toFixed(1)}%</td>
-        <td className="num green">{leg.ev_pct.toFixed(1)}%</td>
+        <td className="num"><span className={evTier(leg.ev_pct)}>{leg.ev_pct >= 0 ? '+' : ''}{leg.ev_pct.toFixed(1)}%</span></td>
         <td className="num" style={{ color: '#c678dd' }}>
           {leg.maker_ev_pct != null ? `${leg.maker_ev_pct.toFixed(1)}%` : '—'}
         </td>
@@ -449,7 +461,29 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
     )
   }, [activeLeg, selected, fills, verified, kbTaker, kbMaker, bucketOf, now])
 
-  if (!gaps.length) return null
+  if (!gaps.length) {
+    return (
+      <div className="panel">
+        <div className="panel-header"><h2>Scan Results</h2></div>
+        <div className="empty-state empty-compact">
+          {scanAt != null ? (
+            <>
+              <div className="empty-title">No +EV plays in the last scan</div>
+              <div>
+                {meta ? `${meta.markets_fetched.toLocaleString()} markets fetched, ${meta.markets_matched.toLocaleString()} matched to a Pinnacle line` : 'Scan finished'}
+                {' · '}{fmtAgo(scanAt, now)}. Widen the sectors or the game dates, or scan again closer to tip-off.
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="empty-title">No scan yet</div>
+              <div>Set the sectors, bankroll and game dates above, then press <strong>Scan</strong>. Plays appear here, sized to your bankroll.</div>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   // Split the filtered plays into the two execution styles the user acts on
   // differently. A maker-only row (its best-execution winner clears the EV
@@ -479,8 +513,20 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
   })
 
   const checkedRows = visible.filter(g => selected.has(g.market_id)).map(activeLeg)
-  const pickCount = checkedRows.filter(leg => !leg.maker_only).length
-  const fillCount = checkedRows.filter(leg => leg.maker_only).length
+  const stakeOf = (leg: ScanGap): number => parseFloat(fills[leg.market_id]?.stake || '0') || 0
+  const pickLegs = checkedRows.filter(leg => !leg.maker_only)
+  const fillLegs = checkedRows.filter(leg => leg.maker_only)
+  const pickCount = pickLegs.length
+  const fillCount = fillLegs.length
+  // Money at risk and profit if every selected taker play wins, both at the
+  // Fill ¢ / Stake currently typed in each row.
+  const pickStake = pickLegs.reduce((a, l) => a + stakeOf(l), 0)
+  const pickToWin = pickLegs.reduce((a, l) => {
+    const pr = centsToProb(fills[l.market_id]?.odds || '') ?? l.kalshi_price
+    return pr > 0 && pr < 1 ? a + stakeOf(l) * (1 / pr - 1) : a
+  }, 0)
+  const fillStake = fillLegs.reduce((a, l) => a + stakeOf(l), 0)
+  const stale = scanAt != null && now - scanAt > STALE_AFTER_MS
 
   const headerRow = (
     <tr>
@@ -497,7 +543,14 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
   return (
     <div className="panel">
       <div className="panel-header">
-        <h2>Scan Results — {gaps.length} plays ({meta?.markets_fetched} markets, {meta?.markets_matched} matched)</h2>
+        <div className="panel-title">
+          <h2>Scan Results</h2>
+          <span className="panel-sub">
+            {gaps.length} {gaps.length === 1 ? 'play' : 'plays'}
+            {meta && <> · {meta.markets_matched.toLocaleString()} of {meta.markets_fetched.toLocaleString()} markets matched</>}
+            {scanAt != null && <> · <span className={stale ? 'yellow' : ''} title={new Date(scanAt).toLocaleString()}>scanned {fmtAgo(scanAt, now)}</span></>}
+          </span>
+        </div>
         <div className="actions" style={{ gap: 4 }}>
           <input type="date" aria-label="Filter by date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
             style={{ fontSize: 11 }} />
@@ -527,6 +580,12 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
         </div>
       </div>
 
+      {stale && (
+        <div className="notice warn">
+          This scan is {fmtAgo(scanAt!, now).replace(' ago', '')} old. Venue asks move toward the sharp line as tip-off nears, so these edges may be gone — press Verify live or scan again before you bet.
+        </div>
+      )}
+
       {/* Taker EV plays — crossable at the ask, placed with Pick Selected */}
       <div className="subhead" style={{ margin: '4px 0 6px', fontSize: 12, fontWeight: 600 }}>
         Taker EV Plays <span className="muted">({takerRows.length})</span>
@@ -544,11 +603,7 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
           </table>
         </div>
       )}
-      <div style={{ marginTop: 8, marginBottom: 18, display: 'flex', gap: 6, alignItems: 'center' }}>
-        <button className="btn success" disabled={pickCount === 0 || picking} onClick={handlePick}>
-          {picking ? 'Placing...' : `Pick Selected (${pickCount})`}
-        </button>
-      </div>
+      <div style={{ height: 18 }} />
 
       {/* Maker EV plays — clear only as a resting limit order, recorded with Record Maker Fill */}
       <div className="subhead" style={{ margin: '4px 0 6px', fontSize: 12, fontWeight: 600, color: '#c678dd' }}>
@@ -567,16 +622,34 @@ export function ScanResults({ gaps, meta, bankroll, kelly, scanKelly, toast, onP
           </table>
         </div>
       )}
-      <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center' }}>
-        <button
-          className="btn"
-          style={{ borderColor: 'rgba(198,120,221,0.45)', color: '#c678dd' }}
-          disabled={fillCount === 0 || filling}
-          onClick={handleFill}
-          title="Record selected MAKER rows as filled limit orders — placed at the Fill ¢ / Stake shown, charged the maker fee."
-        >
-          {filling ? 'Recording...' : `Record Maker Fill (${fillCount})`}
-        </button>
+      {/* Bet slip — totals + the commit actions, pinned to the bottom of the
+          viewport for as long as the scan panel is on screen. */}
+      <div className="slip">
+        <div className="slip-stats">
+          <div><span className="slip-label">Selected</span><span className="slip-val">{pickCount}</span></div>
+          <div><span className="slip-label">Total stake</span><span className="slip-val">{fmtUsd(pickStake)}</span></div>
+          <div><span className="slip-label">To win</span><span className="slip-val green">{fmtUsd(pickToWin)}</span></div>
+          {bankroll > 0 && (
+            <div title="Total selected stake as a share of the bankroll">
+              <span className="slip-label">Of bankroll</span>
+              <span className="slip-val">{((pickStake / bankroll) * 100).toFixed(1)}%</span>
+            </div>
+          )}
+        </div>
+        <div className="slip-actions">
+          <button
+            className="btn btn-maker"
+            disabled={fillCount === 0 || filling}
+            onClick={handleFill}
+            title="Record selected MAKER rows as filled limit orders — placed at the Fill ¢ / Stake shown, charged the maker fee."
+          >
+            {filling ? 'Recording...' : `Record Maker Fill (${fillCount}${fillCount ? ` · ${fmtUsd(fillStake)}` : ''})`}
+          </button>
+          <button className="btn primary" disabled={pickCount === 0 || picking} onClick={handlePick}
+            title="Record the selected taker plays as placed, at the Fill ¢ and Stake shown in each row">
+            {picking ? 'Placing...' : `Pick Selected (${pickCount})`}
+          </button>
+        </div>
       </div>
     </div>
   )
