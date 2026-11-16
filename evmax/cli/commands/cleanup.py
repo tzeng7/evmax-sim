@@ -777,6 +777,111 @@ def listing_window_markets(
     return out
 
 
+async def capture_polymarket_us_listings(
+    session_id: str,
+    sector: str,
+    market_types: set[str],
+    window_hours: int,
+    book_budget: int = 40,
+) -> tuple[int, int, int]:
+    """Archive Polymarket US prices + best bid/ask + depth for one sector's window.
+
+    The Polymarket US half of a ``watch-listings`` sweep. Markets come from
+    the same league-events fetch the scanner uses (cache bypassed), filtered
+    by ``listing_window_markets``. Every market in the window gets:
+
+      * a price row in ``archived_kalshi_markets`` (YES ask + NO ask), and
+      * a depth row in ``archived_orderbook_depth`` with ``yes_ask`` and
+        ``yes_bid``. The feed quotes an ask per side, so the YES bid is
+        1 − the NO ask. These rows have NULL sizes and
+        ``source='polymarket_us_feed'``.
+
+    Sizes need the per-slug order book, and that endpoint allows only about 5
+    requests per 10 s. So at most ``book_budget`` distinct slugs per call
+    (soonest event first) are fetched; their rows carry the book's own prices
+    and resting dollars with ``source='polymarket_us_rest'``. A slug without a
+    book, with a non-open book, or without a known long side keeps its feed
+    row. ``book_budget=0`` skips the book requests entirely.
+
+    Both tables are keyed by the full venue-prefixed market id
+    (``polymarket_us:slug[:side]``) — the id ``ev_predictions`` stores and the
+    key ``watch-closes`` already uses for PolyUS closes.
+
+    Returns ``(price_rows, depth_rows, sized_rows)``. All zero when the venue
+    kill-switch is off, the sector has no PolyUS league, or nothing is in the
+    window. Raises nothing: a failure is printed and reported as zeros so the
+    Kalshi half of the sweep is unaffected.
+    """
+    from evmax.settings import get_settings
+
+    if not get_settings().polymarket_us_enabled:
+        return (0, 0, 0)
+
+    from evmax.archiver import DataArchiver
+    from evmax.clients.polymarket_us import (
+        POLYMARKET_US_LEAGUE_MAP,
+        PolymarketUSClient,
+        polymarket_book_depth_metrics,
+    )
+
+    if not POLYMARKET_US_LEAGUE_MAP.get(sector):
+        return (0, 0, 0)
+    try:
+        async with PolymarketUSClient() as client:
+            markets = await client.get_markets(sector, fresh=True)
+            wanted = [
+                m for m in listing_window_markets(markets, market_types, window_hours)
+                if m.yes_price is not None and m.no_price is not None
+                and 0.0 < m.yes_price < 0.99
+            ]
+            if not wanted:
+                return (0, 0, 0)
+            wanted.sort(key=lambda m: m.event_date)
+            slugs = list(dict.fromkeys(m.ticker for m in wanted if m.ticker))
+            books = (
+                await client.get_market_books_batch(slugs[:book_budget])
+                if book_budget > 0 else {}
+            )
+    except Exception as perr:  # noqa: BLE001 — never abort the sweep
+        console.print(f"[yellow]  \\[{sector}] polymarket_us sweep failed: {perr}[/yellow]")
+        return (0, 0, 0)
+
+    snapshots, depth_rows, n_sized = [], [], 0
+    for m in wanted:
+        mt = m.market_type.value if hasattr(m.market_type, "value") else str(m.market_type)
+        snapshots.append({
+            "ticker": m.id,  # venue-prefixed on purpose — see docstring
+            "yes_price": m.yes_price,
+            "no_price": m.no_price,
+            "event_id": m.event_id,
+            "event_date": m.event_date.isoformat() if m.event_date else None,
+            "market_type": mt,
+            "yes_team": m.yes_team,
+            "line": m.line,
+        })
+        book = books.get(m.ticker)
+        metrics = (
+            polymarket_book_depth_metrics(book, long=m.venue_long)
+            if book is not None and m.venue_long is not None else None
+        )
+        if metrics is not None and metrics["yes_ask"] is not None:
+            depth_rows.append({"ticker": m.id, **metrics, "source": "polymarket_us_rest"})
+            n_sized += 1
+            continue
+        yes_bid = round(1.0 - m.no_price, 6)
+        depth_rows.append({
+            "ticker": m.id,
+            "yes_ask": m.yes_price,
+            "yes_bid": yes_bid if 0.0 < yes_bid < m.yes_price else None,
+            "source": "polymarket_us_feed",
+        })
+
+    archiver = DataArchiver()
+    n_prices = archiver.archive_kalshi_snapshot(session_id, sector, snapshots)
+    n_depth = archiver.archive_orderbook_depth(session_id, sector, depth_rows)
+    return (n_prices, n_depth, n_sized)
+
+
 def capture_types_for_sector(
     type_set: set[str], sector: str, moneyline_sectors: set[str]
 ) -> set[str]:
@@ -868,6 +973,22 @@ def watch_listings(
              "archive holds only the main line and the ladder replay is n/a. "
              "Inert unless 'spread' is in --market-types.",
     ),
+    polymarket: bool = typer.Option(
+        True, "--polymarket/--no-polymarket",
+        help="Also archive Polymarket US prices + best bid/ask for the same sectors "
+             "(one league-events call per league; depth source 'polymarket_us_feed'). "
+             "Rows are keyed by the full 'polymarket_us:slug[:side]' market id. "
+             "Archive-only: it never feeds --log-entries. Moneyline is always "
+             "included for this venue. Honors the polymarket_us_enabled kill-switch.",
+    ),
+    polymarket_book_budget: int = typer.Option(
+        25, "--polymarket-book-budget",
+        help="Per sector per sweep, fetch the full order book (resting sizes) for "
+             "at most this many Polymarket US slugs, soonest event first (depth "
+             "source 'polymarket_us_rest'). The book endpoint allows ~5 requests "
+             "per 10 s, so 25 slugs take about a minute. The Polymarket US half "
+             "runs concurrently with the Kalshi half. 0 = bid/ask only.",
+    ),
 ) -> None:
     """Capture the listing→scan window: prices + order-book DEPTH + sharp anchor.
 
@@ -914,6 +1035,39 @@ def watch_listings(
         session_id = "watchlist-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
         archiver = DataArchiver()
         stats: dict[str, tuple[int, int, int]] = {}
+
+        async def _polymarket_half() -> None:
+            # Moneyline is Polymarket US's main product (its feed often lists
+            # nothing else), so it is always captured there, whatever
+            # --moneyline-sectors says for Kalshi. Empty set = all types.
+            pm_types = (type_set | {"moneyline"}) if type_set else type_set
+            for pm_sector in sector_list:
+                pm_prices, pm_depth, pm_sized = await capture_polymarket_us_listings(
+                    session_id, pm_sector, pm_types, window,
+                    book_budget=polymarket_book_budget,
+                )
+                if pm_prices or pm_depth:
+                    console.print(
+                        f"[dim]  \\[{pm_sector}] polymarket_us markets {pm_prices}  "
+                        f"bid/ask {pm_depth}  with sizes {pm_sized}[/dim]"
+                    )
+
+        # The Polymarket US half runs CONCURRENTLY with the Kalshi loop: its
+        # book requests are throttled to ~0.4/s, and running them inline would
+        # delay every later sector's Kalshi snapshot by minutes. It shares no
+        # rate limiter or endpoint with the Kalshi/Pinnacle half.
+        pm_task = asyncio.create_task(_polymarket_half()) if polymarket else None
+        try:
+            await _kalshi_half(session_id, archiver, stats)
+        finally:
+            if pm_task is not None:
+                try:
+                    await pm_task
+                except Exception as pm_err:  # noqa: BLE001 — never abort the sweep
+                    console.print(f"[yellow]  polymarket_us half failed: {pm_err}[/yellow]")
+        return stats
+
+    async def _kalshi_half(session_id, archiver, stats) -> None:
         for sector in sector_list:
             # 1. Kalshi markets in the listing window → price snapshot
             try:
@@ -985,7 +1139,6 @@ def watch_listings(
                     )
 
             stats[sector] = (n_mkts, n_depth, n_sharp)
-        return stats
 
     def _print_stats(stats: dict[str, tuple[int, int, int]]) -> None:
         ts = datetime.now().strftime("%H:%M:%S")

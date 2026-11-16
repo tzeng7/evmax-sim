@@ -355,6 +355,27 @@ evmax cleanup watch-closes            # always-up; or `--once` per sweep
 # so the anchored-entry rows are the measurable NFL spread stream). Runs unattended via launchd
 # `com.evmax.watch-listings` (hourly; add --log-entries to its plist post-merge).
 evmax cleanup watch-listings --log-entries   # always-up; or `--once` per sweep
+# POLYMARKET US half (2026-11-15, on by default; `--no-polymarket` to skip): the same
+# sweep also archives PolyUS prices + best bid/ask for every sector in
+# POLYMARKET_US_LEAGUE_MAP, so the maker-fill replay and `cleanup line-moves --venue
+# polymarket_us` have a PolyUS trail (before this, PolyUS was archived only near tip
+# for already-logged bets). Rows are keyed by the full `polymarket_us:slug[:side]`
+# market id in BOTH archived_kalshi_markets and archived_orderbook_depth. Every market
+# in the window gets yes_ask + yes_bid from the league-events feed (bid = 1 − NO ask;
+# source 'polymarket_us_feed', sizes NULL) at ZERO extra requests. Resting SIZES need
+# `GET /v1/markets/{slug}/book`, and the book + bbo endpoints share a hard limit of
+# ~5 requests per 10 s (6th → 429, retry-after 10; measured 2026-11-15 — the docs'
+# "25 req/s" does not apply to them; the events feed and /v1/market/slug are NOT
+# throttled by it, so book capture cannot starve a scan). So only
+# `--polymarket-book-budget` slugs per sector per sweep (default 25, soonest event
+# first, `_POLYMARKET_US_BOOK_LIMITER` = 4 per 10 s) get a sized row (source
+# 'polymarket_us_rest'). The book is quoted for the LONG instrument;
+# `PredictionMarket.venue_long` (stamped by the PolyUS parsers) orients it onto each
+# market's YES side via `polymarket_book_depth_metrics` (dollar convention = Kalshi's
+# `book_depth_metrics`: $ RESTING at the level). Moneyline is always captured for
+# PolyUS (its feed often lists nothing else). The PolyUS half runs CONCURRENTLY with
+# the Kalshi loop. Archive-only: never feeds --log-entries; `listings-eval` excludes
+# `polymarket_us:%` tickers (it prices with Kalshi fee/book conventions).
 evmax cleanup watch-listings -s wnba -m spread --once   # narrow one-off sweep
 # `--moneyline-sectors nfl,ncaaf` (default) ALSO archives moneyline price + depth for those sectors (archive-only; never enters anchored-entry) so `python scripts/eval_maker_fill_replay.py --pred-db … --archive-db …` can replay resting-bid fills on moneyline series.
 

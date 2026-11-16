@@ -245,6 +245,7 @@ def evaluate_sector(
             FROM archived_kalshi_markets
             WHERE sector = ? AND market_type IN ({placeholders})
               AND ({prefix_clause}) AND line IS NOT NULL{since_clause}
+              AND ticker NOT LIKE 'polymarket_us:%' 
             ORDER BY ticker, fetched_at""",
         params,
     ).fetchall()

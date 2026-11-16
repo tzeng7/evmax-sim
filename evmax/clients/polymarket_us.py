@@ -59,6 +59,12 @@ logger = structlog.get_logger(__name__)
 # Module-level token bucket shared across all client instances. Documented
 # limit is 20 req/s per IP (public) / per key (authed); stay under it.
 _POLYMARKET_US_RATE_LIMITER = AsyncLimiter(15, 1.0)
+# The order-book endpoints (/v1/markets/{slug}/book and /bbo) share a far
+# stricter limit than the rest of the gateway: measured 2026-11-15, the 6th
+# request inside ~10 s returns 429 with ``retry-after: 10``. The league-events
+# feed and /v1/market/slug are NOT throttled by it, so book capture cannot
+# starve a scan. 4 per 10 s stays under the limit.
+_POLYMARKET_US_BOOK_LIMITER = AsyncLimiter(4, 10.0)
 
 # Map evmax sector names → Polymarket US league slugs. Only sectors with a
 # live Polymarket US product are listed; everything else (worldcup, lol,
@@ -196,6 +202,68 @@ def _parse_quote(side: dict[str, Any]) -> Optional[float]:
     if price <= 0.0 or price >= 1.0:
         return None
     return price
+
+
+def polymarket_book_depth_metrics(book: dict[str, Any], long: bool = True) -> Optional[dict]:
+    """Summarize a ``/v1/markets/{slug}/book`` payload for ONE side of a market.
+
+    The book is quoted for the market's LONG instrument: ``bids`` buy long,
+    ``offers`` sell long, each level ``{"px": {"value": "0.2975"}, "qty": "7038"}``.
+    ``long=True`` reads the long side as YES. ``long=False`` reads the short
+    side: its ask is 1 − best long bid and its bid is 1 − best long offer.
+
+    Output keys and dollar convention match Kalshi's ``book_depth_metrics`` so
+    one ``archived_orderbook_depth`` table serves both venues: a depth figure
+    is the dollars RESTING at that level, counted at the resting side's own
+    price. Selling long at px is buying short at 1 − px, so:
+      - yes_ask / yes_ask_depth_usd — price a YES taker pays; $ resting there
+      - yes_bid / yes_bid_depth_usd — best resting YES bid; $ at it
+      - yes_book_usd / no_book_usd  — total $ on the YES-bid / NO-bid ladders
+
+    Returns None when the market is not open (suspended, halted, expired): a
+    stale ladder is not a fillable quote. Malformed levels are skipped. An
+    empty side gives None for its price and depth and 0.0 for its ladder.
+    """
+    state = book.get("state")
+    if state not in (None, "MARKET_STATE_OPEN"):
+        return None
+
+    def _levels(key: str) -> list[tuple[float, float]]:
+        out: list[tuple[float, float]] = []
+        for entry in book.get(key) or []:
+            try:
+                px = float((entry.get("px") or {}).get("value"))
+                qty = float(entry.get("qty"))
+            except (TypeError, ValueError, AttributeError):
+                continue
+            if 0.0 < px < 1.0 and qty > 0.0:
+                out.append((px, qty))
+        return out
+
+    bids, offers = _levels("bids"), _levels("offers")
+    best_bid = max(bids) if bids else None      # highest price buying long
+    best_offer = min(offers) if offers else None  # lowest price selling long
+    long_bid_usd = sum(px * q for px, q in bids)
+    short_bid_usd = sum((1.0 - px) * q for px, q in offers)
+
+    if long:
+        ask, bid = best_offer, best_bid
+        return {
+            "yes_ask": ask[0] if ask else None,
+            "yes_ask_depth_usd": (1.0 - ask[0]) * ask[1] if ask else None,
+            "yes_bid": bid[0] if bid else None,
+            "yes_bid_depth_usd": bid[0] * bid[1] if bid else None,
+            "yes_book_usd": long_bid_usd,
+            "no_book_usd": short_bid_usd,
+        }
+    return {
+        "yes_ask": round(1.0 - best_bid[0], 6) if best_bid else None,
+        "yes_ask_depth_usd": best_bid[0] * best_bid[1] if best_bid else None,
+        "yes_bid": round(1.0 - best_offer[0], 6) if best_offer else None,
+        "yes_bid_depth_usd": (1.0 - best_offer[0]) * best_offer[1] if best_offer else None,
+        "yes_book_usd": short_bid_usd,
+        "no_book_usd": long_bid_usd,
+    }
 
 
 def _parse_start(raw: Optional[str]) -> Optional[datetime]:
@@ -445,6 +513,35 @@ class PolymarketUSClient(BaseAPIClient):
                     return None
         return None
 
+    async def get_market_book(self, market_slug: str) -> Optional[dict[str, Any]]:
+        """Raw order book (``marketData``) for one market slug, or None.
+
+        ``GET /v1/markets/{slug}/book`` is public (no signature). The book is
+        quoted for the LONG instrument; see ``polymarket_book_depth_metrics``.
+        Any failure returns None: a missing book must not abort a sweep.
+        """
+        try:
+            await _POLYMARKET_US_BOOK_LIMITER.acquire()
+            data = await self._get(f"/v1/markets/{market_slug}/book")
+        except Exception as e:  # noqa: BLE001
+            logger.debug("polymarket_us_book_failed", slug=market_slug,
+                         error=str(e) or type(e).__name__)
+            return None
+        book = data.get("marketData") if isinstance(data, dict) else None
+        return book if isinstance(book, dict) else None
+
+    async def get_market_books_batch(
+        self, market_slugs: list[str]
+    ) -> dict[str, Optional[dict[str, Any]]]:
+        """Order books for several slugs, keyed by slug (None = no book).
+
+        Requests go through ``_POLYMARKET_US_BOOK_LIMITER`` (4 per 10 s), so
+        40 slugs take about 100 s. Callers must budget the slug count.
+        """
+        slugs = list(dict.fromkeys(s for s in market_slugs if s))
+        books = await asyncio.gather(*(self.get_market_book(s) for s in slugs))
+        return dict(zip(slugs, books))
+
     async def get_market_sides(self, market_slug: str) -> list[dict[str, Any]]:
         """Raw ``marketSides`` for a market slug (works after close/settle).
 
@@ -643,6 +740,7 @@ class PolymarketUSClient(BaseAPIClient):
                     no_price=no_price,
                     yes_team=yes_team,
                     line=None,
+                    venue_long=bool(side.get("long")),
                     **self._base_kwargs(
                         m, sector, event_date, event_title, team_home, team_away
                     ),
@@ -685,6 +783,7 @@ class PolymarketUSClient(BaseAPIClient):
             no_price=no_price,
             yes_team=yes_team,
             line=None,
+            venue_long=True,  # yes_side is the long side by construction
             **self._base_kwargs(
                 m, sector, event_date, event_title, team_home, team_away
             ),
@@ -732,6 +831,7 @@ class PolymarketUSClient(BaseAPIClient):
             no_price=no_price,
             yes_team=yes_team,
             line=float(line),
+            venue_long=True,  # YES = long_side
             **self._base_kwargs(
                 m, sector, event_date, event_title, team_home, team_away
             ),
@@ -781,6 +881,8 @@ class PolymarketUSClient(BaseAPIClient):
             no_price=no_price,
             yes_team="over",
             line=float(line),
+            # Sides are picked by description, so read which one is long.
+            venue_long=bool(over_side.get("long")),
             **self._base_kwargs(
                 m, sector, event_date, event_title, team_home, team_away
             ),

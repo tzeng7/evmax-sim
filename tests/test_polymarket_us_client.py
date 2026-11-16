@@ -536,3 +536,147 @@ class TestLeaguesOverride:
         assert seen_keys[1] == "polymarket_us_soccer_open_lal-uefa"
         written = [c.args[0] for c in mset.call_args_list]
         assert written == seen_keys
+
+
+# ---------------------------------------------------------------------------
+# venue_long — which side of the venue's book a market's YES contract is
+# ---------------------------------------------------------------------------
+class TestVenueLong:
+
+    def test_moneyline_stamps_each_side(self):
+        markets = _client()._parse_event(_event([_moneyline_market()]), "wnba", "wnba")
+        by_team = {m.yes_team: m for m in markets}
+        assert by_team["valkyries"].venue_long is True   # long=True side
+        assert by_team["tempo"].venue_long is False
+
+    def test_spread_yes_is_the_long_side(self):
+        (m,) = _client()._parse_event(_event([_spread_market()]), "baseball", "mlb")
+        assert m.venue_long is True
+
+    def test_total_reads_the_over_sides_flag(self):
+        (m,) = _client()._parse_event(_event([_total_market()]), "baseball", "mlb")
+        assert m.venue_long is True
+        flipped = _total_market()
+        flipped["marketSides"] = [_side("Over", "0.3400", False), _side("Under", "0.67", True)]
+        (m,) = _client()._parse_event(_event([flipped]), "baseball", "mlb")
+        assert m.venue_long is False     # the book is quoted for Under
+
+    def test_drawable_outcome_yes_is_long(self):
+        markets = _client()._parse_event(
+            _event(_drawable_markets(), slug="ucl-kai-sut-2026-07-08"), "soccer", "ucl"
+        )
+        assert markets and all(m.venue_long is True for m in markets)
+
+
+# ---------------------------------------------------------------------------
+# Order book → depth metrics
+# ---------------------------------------------------------------------------
+def _lvl(px, qty):
+    return {"px": {"value": px, "currency": "USD"}, "qty": qty}
+
+
+def _book(bids=None, offers=None, state="MARKET_STATE_OPEN"):
+    return {"marketSlug": "s", "bids": bids or [], "offers": offers or [], "state": state}
+
+
+class TestBookDepthMetrics:
+    BOOK = _book(
+        bids=[_lvl("0.2975", "1000"), _lvl("0.2950", "2000")],
+        offers=[_lvl("0.3000", "100"), _lvl("0.3050", "400")],
+    )
+
+    def test_long_side(self):
+        from evmax.clients.polymarket_us import polymarket_book_depth_metrics
+
+        d = polymarket_book_depth_metrics(self.BOOK, long=True)
+        assert d["yes_ask"] == pytest.approx(0.30)
+        # $ resting at the best offer: sellers of long = short buyers at 0.70
+        assert d["yes_ask_depth_usd"] == pytest.approx(0.70 * 100)
+        assert d["yes_bid"] == pytest.approx(0.2975)
+        assert d["yes_bid_depth_usd"] == pytest.approx(0.2975 * 1000)
+        assert d["yes_book_usd"] == pytest.approx(0.2975 * 1000 + 0.295 * 2000)
+        assert d["no_book_usd"] == pytest.approx(0.70 * 100 + 0.695 * 400)
+
+    def test_short_side_mirrors_the_book(self):
+        from evmax.clients.polymarket_us import polymarket_book_depth_metrics
+
+        lg = polymarket_book_depth_metrics(self.BOOK, long=True)
+        sh = polymarket_book_depth_metrics(self.BOOK, long=False)
+        assert sh["yes_ask"] == pytest.approx(1 - 0.2975)   # 1 − best long bid
+        assert sh["yes_bid"] == pytest.approx(1 - 0.30)     # 1 − best long offer
+        assert sh["yes_ask_depth_usd"] == pytest.approx(lg["yes_bid_depth_usd"])
+        assert sh["yes_bid_depth_usd"] == pytest.approx(lg["yes_ask_depth_usd"])
+        assert sh["yes_book_usd"] == pytest.approx(lg["no_book_usd"])
+        assert sh["no_book_usd"] == pytest.approx(lg["yes_book_usd"])
+        # the two sides' asks bracket 1 by exactly the spread
+        assert lg["yes_ask"] + sh["yes_ask"] == pytest.approx(1 + (0.30 - 0.2975))
+
+    def test_best_level_is_found_whatever_the_order(self):
+        from evmax.clients.polymarket_us import polymarket_book_depth_metrics
+
+        book = _book(bids=[_lvl("0.20", "5"), _lvl("0.29", "7")],
+                     offers=[_lvl("0.40", "3"), _lvl("0.31", "9")])
+        d = polymarket_book_depth_metrics(book, long=True)
+        assert (d["yes_bid"], d["yes_ask"]) == (pytest.approx(0.29), pytest.approx(0.31))
+
+    @pytest.mark.parametrize("state", [
+        "MARKET_STATE_SUSPENDED", "MARKET_STATE_HALTED", "MARKET_STATE_EXPIRED",
+    ])
+    def test_non_open_market_is_not_a_quote(self, state):
+        from evmax.clients.polymarket_us import polymarket_book_depth_metrics
+
+        book = dict(self.BOOK, state=state)
+        assert polymarket_book_depth_metrics(book, long=True) is None
+
+    def test_empty_side_and_malformed_levels(self):
+        from evmax.clients.polymarket_us import polymarket_book_depth_metrics
+
+        book = _book(
+            bids=[_lvl("0.30", "10"), {"px": None, "qty": "5"}, _lvl("abc", "5"),
+                  _lvl("1.20", "5"), _lvl("0.25", "0")],
+            offers=[],
+        )
+        d = polymarket_book_depth_metrics(book, long=True)
+        assert d["yes_bid"] == pytest.approx(0.30)
+        assert d["yes_book_usd"] == pytest.approx(3.0)      # only the valid level
+        assert d["yes_ask"] is None and d["yes_ask_depth_usd"] is None
+        assert d["no_book_usd"] == 0.0
+
+
+class TestGetMarketBook:
+
+    @pytest.mark.asyncio
+    async def test_returns_market_data_from_the_book_endpoint(self):
+        client = _client()
+        with patch.object(client, "_get", new=AsyncMock(return_value={"marketData": _book()})) as mget:
+            book = await client.get_market_book("aec-nfl-tb-det-2026-11-22")
+        assert book["state"] == "MARKET_STATE_OPEN"
+        assert mget.await_args.args[0] == "/v1/markets/aec-nfl-tb-det-2026-11-22/book"
+
+    @pytest.mark.asyncio
+    async def test_failure_and_bad_payload_return_none(self):
+        client = _client()
+        with patch.object(client, "_get", new=AsyncMock(side_effect=RuntimeError("429"))):
+            assert await client.get_market_book("s") is None
+        with patch.object(client, "_get", new=AsyncMock(return_value={"marketData": None})):
+            assert await client.get_market_book("s") is None
+
+    @pytest.mark.asyncio
+    async def test_batch_dedups_slugs_and_keeps_failures_as_none(self):
+        client = _client()
+
+        async def fake(slug):
+            return None if slug == "bad" else {"marketSlug": slug}
+
+        with patch.object(client, "get_market_book", new=AsyncMock(side_effect=fake)) as one:
+            out = await client.get_market_books_batch(["a", "a", "bad", "", "b"])
+        assert list(out) == ["a", "bad", "b"]
+        assert out["bad"] is None and out["b"] == {"marketSlug": "b"}
+        assert one.await_count == 3
+
+    def test_book_limiter_stays_under_the_measured_limit(self):
+        # Measured 2026-11-15: the 6th book/bbo request inside ~10 s gets a 429.
+        from evmax.clients.polymarket_us import _POLYMARKET_US_BOOK_LIMITER as lim
+
+        assert lim.max_rate / lim.time_period <= 0.5
+        assert lim.max_rate <= 5
