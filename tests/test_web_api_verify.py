@@ -77,7 +77,7 @@ class _FakePinnacle:
     async def __aexit__(self, *a):
         return False
 
-    async def get_odds(self, sector):
+    async def get_odds(self, sector, **kwargs):
         return list(self.odds)
 
 

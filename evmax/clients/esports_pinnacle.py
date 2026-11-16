@@ -613,7 +613,10 @@ class PinnacleGuestClient(BaseAPIClient):
         )
 
     async def get_odds(
-        self, sector: str, include_alternate_spreads: bool = False
+        self,
+        sector: str,
+        include_alternate_spreads: bool = False,
+        fresh: bool = False,
     ) -> list[SharpOdds]:
         """Fetch devigged Pinnacle moneyline odds for a sector.
 
@@ -627,6 +630,13 @@ class PinnacleGuestClient(BaseAPIClient):
         cache key so they can never leak into a live scan that reads the shared
         ``pinnacle_{sector}`` cache. Default False → pricing is byte-for-byte the
         old path.
+
+        ``fresh`` bypasses the cache READ so a live re-price (``agents pick`` /
+        ``cleanup prune-stale``, via ``reprice_rows``) re-blends against the
+        current Pinnacle line, not one up to ``cache_ttl_secs`` (120 s) old.
+        The result is still written to the cache. Ignored in offline_mode,
+        which has no live source to be fresh against. Mirrors
+        ``PolymarketUSClient.get_markets(fresh=True)``.
         """
         sector = sector.lower()
         if sector not in ALL_SECTORS:
@@ -644,7 +654,7 @@ class PinnacleGuestClient(BaseAPIClient):
             return [SharpOdds.model_validate(r) for r in raw]
 
         # Dev cache: skip API if fresh cached data exists
-        if cfg.cache_ttl_secs > 0:
+        if cfg.cache_ttl_secs > 0 and not fresh:
             raw = cache_get(cache_key, cfg.cache_ttl_secs)
             if raw is not None:
                 return [SharpOdds.model_validate(r) for r in raw]
