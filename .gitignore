@@ -96,3 +96,8 @@ kalshi-fee-result.json
 polymarket-us-fee-result.json
 # Polymarket US price-history cache (scripts/eval_polyus_maker_replay.py)
 data/backtest/polyus_history/
+
+# Backtest caches (raw API responses + generated outputs; regenerate via the scripts that write them)
+data/backtest/line_history/
+data/backtest/nba_stack_cache/
+data/backtest/nba_stack/
