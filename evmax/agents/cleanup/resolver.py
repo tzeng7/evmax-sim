@@ -1982,6 +1982,72 @@ def _resolve_nfl_prop_observations(
     return resolved
 
 
+def _props_resolution_enabled(sector: Optional[str]) -> bool:
+    """False when the sector's ``{sector}_props`` category is ``disabled``.
+
+    A disabled prop category logs no new rows, so its pending backlog can only
+    be old rows that already failed to grade. Fetching box scores for them on
+    every run costs minutes and resolves nothing. A sector with no prop
+    category (or no sector at all) stays enabled.
+    """
+    if not sector:
+        return True
+    try:
+        from evmax.modes import get_mode
+
+        return get_mode(f"{sector}_props") != "disabled"
+    except Exception:
+        return True
+
+
+# Prop sectors the basketball lookups (ESPN NBA boxscore, then nba_api) can
+# grade. Every other prop sector is graded in prop_observations.
+_NBA_PROP_SECTORS = frozenset({"nba"})
+
+
+def _copy_prop_observation_outcomes(
+    conn: sqlite3.Connection, preds: list[dict]
+) -> tuple[int, list[str]]:
+    """Grade non-NBA prop predictions from their ``prop_observations`` rows.
+
+    A portfolio scan writes NFL / baseball prop bets to ``portfolio_bets`` only.
+    The outcome resolver then saw them as pending predictions and sent each one
+    through the NBA lookups: an ESPN basketball boxscore that never lists the
+    player, then a stats.nba.com game log whenever the surname matched an
+    active NBA player. No row could resolve, so every run repeated the work
+    (11.7k NFL prop markets by 2026-11-15, zero ever graded).
+
+    The same market is logged in ``prop_observations`` and graded there by the
+    sector's own resolver (ESPN NFL boxscore + Kalshi settlement, MLB Stats
+    API). This copies that verdict into ``ev_outcomes`` and makes NO network
+    call. A market with no graded observation, or with observations that
+    disagree, stays pending.
+
+    Returns ``(resolved, unresolved_event_ids)``.
+    """
+    resolved = 0
+    unresolved: list[str] = []
+    for pred in preds:
+        outcomes = {
+            row[0]
+            for row in conn.execute(
+                "SELECT DISTINCT outcome FROM prop_observations "
+                "WHERE market_id = ? AND outcome IS NOT NULL",
+                (pred["market_id"],),
+            ).fetchall()
+        }
+        if len(outcomes) != 1:
+            if len(outcomes) > 1:
+                logger.warning(
+                    "prop_observation_outcomes_disagree", market_id=pred["market_id"]
+                )
+            unresolved.append(pred["event_id"])
+            continue
+        _write_outcome(conn, pred, int(outcomes.pop()), "prop_observations")
+        resolved += 1
+    return resolved, unresolved
+
+
 def _resolve_prop_observations(
     conn: sqlite3.Connection,
     target_date: date,
@@ -2035,6 +2101,8 @@ def _resolve_prop_observations(
             continue
         if gd < window_lo:
             skipped_stale += 1
+            continue
+        if not _props_resolution_enabled(r.get("sector")):
             continue
         if r.get("sector") == "baseball":
             baseball_by_date.setdefault(game_date, []).append(r)
@@ -2301,6 +2369,20 @@ async def resolve_outcomes_for_date(
     # extraction since those don't drift the same way.
     espn_stats_cache: dict[date, dict[str, dict[str, float]]] = {}
 
+    # Only NBA props use the basketball lookups below. NFL / baseball prop rows
+    # (portfolio-only bets) are graded from prop_observations after that table
+    # resolves — see _copy_prop_observation_outcomes.
+    deferred_props = [
+        p for p in prop_preds if (p.get("sector") or "nba") not in _NBA_PROP_SECTORS
+    ]
+    deferred_ids = {p["market_id"] for p in deferred_props}
+    # A disabled prop category never fetches (see _props_resolution_enabled).
+    prop_preds = [
+        p for p in prop_preds
+        if p["market_id"] not in deferred_ids
+        and _props_resolution_enabled(p.get("sector") or "nba")
+    ]
+
     for pred in prop_preds:
         parts = pred["event_id"].split("::")
         if len(parts) < 6:
@@ -2499,6 +2581,17 @@ async def resolve_outcomes_for_date(
     # ------------------------------------------------------------------
     prop_obs_resolved = _resolve_prop_observations(conn, target_date)
     resolved += prop_obs_resolved
+
+    if deferred_props:
+        copied, still_open = _copy_prop_observation_outcomes(conn, deferred_props)
+        resolved += copied
+        # Ungraded rows of a disabled prop category are expected: not a failure.
+        still_open = [
+            eid for eid in still_open
+            if _props_resolution_enabled(eid.split("::")[0])
+        ]
+        failed += len(still_open)
+        unmatched.extend(still_open)
 
     conn.commit()
     conn.close()

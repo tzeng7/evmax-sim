@@ -1336,6 +1336,13 @@ class TestResolvePropFromEspn:
 
 
 class TestPropResolutionEspnFirst:
+    @pytest.fixture(autouse=True)
+    def _props_enabled(self, monkeypatch):
+        # The shipped YAML disables every prop category, which gates prop
+        # resolution off; these tests exercise the resolution path itself.
+        from evmax.agents.cleanup import resolver
+        monkeypatch.setattr(resolver, "_props_resolution_enabled", lambda sector: True)
+
     """End-to-end: when ESPN has the data, nba_api is never called.
 
     Regression for the 2026-05-11 timeout flood — per-bet PlayerGameLogs
@@ -2263,6 +2270,13 @@ class TestFetchJsonConcurrent:
 
 
 class TestResolvePropObservationsWindow:
+    @pytest.fixture(autouse=True)
+    def _props_enabled(self, monkeypatch):
+        # The shipped YAML disables every prop category, which gates prop
+        # resolution off; these tests exercise the resolution path itself.
+        from evmax.agents.cleanup import resolver
+        monkeypatch.setattr(resolver, "_props_resolution_enabled", lambda sector: True)
+
     """_resolve_prop_observations only touches games within the lookback window.
 
     A prop still pending long after its game finished is permanently

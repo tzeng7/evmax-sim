@@ -97,6 +97,13 @@ def test_parse_absent_player_not_returned():
     assert _nfl_player_key("Nobody Here") not in _parse_nfl_box_player_stats(_box())
 
 
+@pytest.fixture(autouse=True)
+def _props_enabled(monkeypatch):
+    """These tests exercise the NFL prop path itself; the shipped YAML disables
+    nfl_props, which gates resolution off (tests/test_prop_resolution_gate.py)."""
+    monkeypatch.setattr(resolver, "_props_resolution_enabled", lambda sector: True)
+
+
 class _Resp:
     def __init__(self, payload):
         self._p = payload
@@ -317,3 +324,128 @@ def test_kalshi_429_is_retried(monkeypatch):
     _add_k(conn, "zero_catch_te", "receptions", 2.0, _PAST, "KXNFLREC-26OCT04X-TE-2")
     assert resolver._resolve_prop_observations(conn, date(2026, 10, 4)) == 1
     assert _rows(conn)["kalshi:KXNFLREC-26OCT04X-TE-2"] == (0, None)
+
+
+# ---------------------------------------------------------------------------
+# NFL prop PREDICTIONS (ev_predictions / portfolio_bets) are graded from
+# prop_observations, never through the NBA lookups.
+# ---------------------------------------------------------------------------
+
+_MID = "kalshi:KXNFLRSHYDS-26NOV08LACBAL-BALDHENRY22-60"
+_EID = "nfl::2026-11-08::prop::derrick_henry::rushing_yards::60.0"
+
+
+class _NoCloseConn:
+    def __init__(self, conn):
+        self._c = conn
+
+    def __getattr__(self, name):
+        return getattr(self._c, name)
+
+    def close(self):
+        pass
+
+
+def _pred_db(tmp_path, monkeypatch):
+    import evmax.agents.cleanup.db as dbmod
+
+    monkeypatch.setattr(dbmod, "DB_PATH", tmp_path / "predictions.db")
+    return dbmod.get_connection()
+
+
+def _add_pred(conn, market_id=_MID, event_id=_EID, sector="nfl"):
+    conn.execute(
+        """INSERT INTO ev_predictions
+           (scan_date, market_id, event_id, sector, yes_team, market_type,
+            event_date, kalshi_yes_price, sharp_true_prob, blended_true_prob,
+            ev_pct, kelly_fraction, line)
+           VALUES ('2026-11-08', ?, ?, ?, 'derrick_henry', 'player_prop',
+                   '2026-11-08', 0.5, 0.55, 0.55, 0.05, 0.0, 60.0)""",
+        (market_id, event_id, sector),
+    )
+
+
+def _add_obs(conn, outcome, scan_date="2026-11-08", market_id=_MID):
+    conn.execute(
+        """INSERT INTO prop_observations
+           (scan_date, sector, player_name, stat_type, line, market_id, event_id, outcome)
+           VALUES (?, 'nfl', 'derrick_henry', 'rushing_yards', 60.0, ?, ?, ?)""",
+        (scan_date, market_id, _EID, outcome),
+    )
+
+
+def _pred(market_id=_MID):
+    return {"market_id": market_id, "event_id": _EID, "sector": "nfl",
+            "yes_team": "derrick_henry", "event_date": "2026-11-08"}
+
+
+def test_copy_takes_the_graded_observation(tmp_path, monkeypatch):
+    conn = _pred_db(tmp_path, monkeypatch)
+    _add_obs(conn, 1)
+    _add_obs(conn, None, scan_date="2026-11-07")  # an ungraded rescan is ignored
+    resolved, unresolved = resolver._copy_prop_observation_outcomes(conn, [_pred()])
+    assert (resolved, unresolved) == (1, [])
+    row = conn.execute(
+        "SELECT outcome, result_source FROM ev_outcomes WHERE market_id = ?", (_MID,)
+    ).fetchone()
+    assert (row["outcome"], row["result_source"]) == (1, "prop_observations")
+
+
+def test_copy_leaves_ungraded_and_conflicting_markets_pending(tmp_path, monkeypatch):
+    conn = _pred_db(tmp_path, monkeypatch)
+    _add_obs(conn, None)                                    # not graded yet
+    _add_obs(conn, 1, market_id="kalshi:CONFLICT")
+    _add_obs(conn, 0, scan_date="2026-11-07", market_id="kalshi:CONFLICT")
+    preds = [_pred(), _pred("kalshi:CONFLICT"), _pred("kalshi:NO-OBS-ROW")]
+    resolved, unresolved = resolver._copy_prop_observation_outcomes(conn, preds)
+    assert resolved == 0
+    assert unresolved == [_EID, _EID, _EID]
+    assert conn.execute("SELECT COUNT(*) FROM ev_outcomes").fetchone()[0] == 0
+
+
+def test_nfl_prop_prediction_never_reaches_the_nba_lookups(tmp_path, monkeypatch):
+    """Regression: NFL prop bets used to hit the ESPN NBA boxscore, then a
+    stats.nba.com game log per row, on every resolve run and never resolved."""
+    import asyncio
+
+    conn = _pred_db(tmp_path, monkeypatch)
+    _add_pred(conn)
+    _add_obs(conn, 0)
+    conn.commit()
+
+    def _boom(*a, **k):
+        raise AssertionError("NBA lookup called for an NFL prop")
+
+    monkeypatch.setattr(resolver, "_fetch_espn_nba_player_stats", _boom)
+    monkeypatch.setattr(resolver, "_resolve_prop_outcome", _boom)
+    monkeypatch.setattr(resolver, "_resolve_prop_observations", lambda *a, **k: 0)
+    monkeypatch.setattr(resolver, "get_connection", lambda: _NoCloseConn(conn))
+
+    out = asyncio.run(resolver.resolve_outcomes_for_date(date(2026, 11, 8)))
+    assert out["resolved"] == 1 and out["failed"] == 0
+    assert out["unmatched"] == []
+    row = conn.execute(
+        "SELECT outcome FROM ev_outcomes WHERE market_id = ?", (_MID,)
+    ).fetchone()
+    assert row["outcome"] == 0
+
+
+def test_disabled_nba_props_skip_the_nba_lookups(tmp_path, monkeypatch):
+    import asyncio
+
+    conn = _pred_db(tmp_path, monkeypatch)
+    _add_pred(conn, market_id="kalshi:KXNBAPTS-X",
+              event_id="nba::2026-11-08::prop::some_player::points::20.0", sector="nba")
+    conn.commit()
+
+    def _boom(*a, **k):
+        raise AssertionError("fetched for a disabled prop category")
+
+    monkeypatch.setattr(resolver, "_props_resolution_enabled", lambda sector: False)
+    monkeypatch.setattr(resolver, "_fetch_espn_nba_player_stats", _boom)
+    monkeypatch.setattr(resolver, "_resolve_prop_outcome", _boom)
+    monkeypatch.setattr(resolver.httpx, "Client", _boom)
+    monkeypatch.setattr(resolver, "get_connection", lambda: _NoCloseConn(conn))
+
+    out = asyncio.run(resolver.resolve_outcomes_for_date(date(2026, 11, 8)))
+    assert out["resolved"] == 0 and out["failed"] == 0
