@@ -1209,6 +1209,42 @@ class AgentCoordinator:
             sharp_resp.data if not isinstance(sharp_resp, Exception) else []
         ) or []
 
+        # Model anchor: a sector the sharp book does not post (women's college
+        # basketball outside March) would otherwise match nothing. When the
+        # sharp fetch returned NOTHING for such a sector, the sector's own
+        # model blend stands in as the anchor. Those rows are tagged
+        # `model_anchor`, which has_full_blend rejects: shadow only, never sized.
+        # Soft anchor comes first: another book's line for the game
+        # (evmax/clients/soft_anchor.py; tag `soft_anchor`). Games it does not
+        # cover fall back to the model anchor. Both are shadow-only.
+        anchored_tokens: dict[str, str] = {}
+        if not sharp_odds and markets and not isinstance(sharp_resp, Exception):
+            from evmax.agents.models.model_anchor import (
+                MODEL_ANCHOR_TOKEN, base_event_id, model_anchor_enabled, model_anchor_odds,
+            )
+            from evmax.clients.soft_anchor import (
+                SOFT_ANCHOR_TOKEN, soft_anchor_enabled, soft_anchor_odds,
+            )
+            anchors: list[SharpOdds] = []
+            if soft_anchor_enabled(sector):
+                try:
+                    anchors = await soft_anchor_odds(sector, markets)
+                except Exception as e:  # noqa: BLE001
+                    self.log.warning("soft_anchor_failed", sector=sector, error=str(e))
+                    anchors = []
+                for a in anchors:
+                    anchored_tokens[base_event_id(a.event_id)] = SOFT_ANCHOR_TOKEN
+            if model_anchor_enabled(sector):
+                n_soft = len(anchored_tokens)
+                for a in await model_anchor_odds(self.ensemble_agent, sector, markets):
+                    if base_event_id(a.event_id) not in anchored_tokens:
+                        anchors.append(a)
+                        anchored_tokens[base_event_id(a.event_id)] = MODEL_ANCHOR_TOKEN
+                self.log.info("anchor_used", sector=sector, soft_games=n_soft,
+                              model_games=len(anchored_tokens) - n_soft)
+            if anchors:
+                sharp_odds = anchors
+
         # Merge prop markets and prop odds if available. Props run concurrently
         # with the main fetch (create_task above), so this timeout only gates
         # how long we wait *after* Kalshi/Pinnacle/injuries finish. 20s is
@@ -1367,6 +1403,12 @@ class AgentCoordinator:
             for event_id, blend in blended.items():
                 # Store full objects; EVGapAgent will pick correct side per YES alignment
                 model_sources[event_id] = blend.model_sources
+            if anchored_tokens:
+                from evmax.agents.models.model_anchor import base_event_id, retag_sources
+                for event_id in list(model_sources):
+                    token = anchored_tokens.get(base_event_id(event_id))
+                    if token:
+                        model_sources[event_id] = retag_sources(model_sources[event_id], token)
 
         # Step 7: EV gap analysis — pass full blended predictions for correct side alignment
         ev_req = AgentRequest(
@@ -1388,6 +1430,9 @@ class AgentCoordinator:
         )
         ev_resp = await self.ev_gap_agent(ev_req)
         ev_gaps: list[EVGap] = ev_resp.data or []
+        if anchored_tokens:
+            from evmax.agents.models.model_anchor import demote_anchored_gaps
+            demote_anchored_gaps(ev_gaps, anchored_tokens)
 
         return {
             "markets_fetched": len(markets),

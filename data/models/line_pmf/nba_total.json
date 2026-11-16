@@ -1,0 +1,88 @@
+{
+ "schema_version": 1,
+ "sector": "nba",
+ "market": "total",
+ "k_min": 0,
+ "k_max": 476,
+ "family": "t",
+ "nu": 200.0,
+ "s0": 16.55745708978114,
+ "s1": 0.0817271701958173,
+ "line_ref": 227.6196605110987,
+ "s2": 0.0,
+ "total_ref": 0.0,
+ "c0": -1.2506766220481471,
+ "p_ot": 0.07610278768376182,
+ "d_ot": 24.400575888996634,
+ "exclude_zero": false,
+ "beta": {},
+ "meta": {
+  "n_games": 5361,
+  "nll": 4.298121,
+  "resid_sd": 17.8744,
+  "created": "2026-11-16",
+  "source": "ESPN closing lines + scores",
+  "seasons": [
+   2023,
+   2026
+  ],
+  "fit_seasons": [
+   2023,
+   2024
+  ],
+  "holdout_seasons": [
+   2025,
+   2026
+  ],
+  "lam": null,
+  "sigma_fit": 17.8,
+  "sigma_production": 22.0,
+  "validation": {
+   "n_games": 2687,
+   "rungs_per_game": 41,
+   "brier_model": 0.195002,
+   "brier_production_normal": 0.196429,
+   "brier_refit_normal": 0.195078,
+   "vs_production_normal": {
+    "delta_per_1000": -1.427,
+    "z": -4.88
+   },
+   "vs_refit_normal": {
+    "delta_per_1000": -0.076,
+    "z": -0.98
+   },
+   "by_distance": {
+    "0-3": {
+     "vs_production_normal": {
+      "delta_per_1000": -0.043,
+      "z": -0.76
+     },
+     "vs_refit_normal": {
+      "delta_per_1000": -0.013,
+      "z": -0.4
+     }
+    },
+    "3-7": {
+     "vs_production_normal": {
+      "delta_per_1000": -0.581,
+      "z": -2.61
+     },
+     "vs_refit_normal": {
+      "delta_per_1000": -0.087,
+      "z": -0.98
+     }
+    },
+    "7+": {
+     "vs_production_normal": {
+      "delta_per_1000": -2.06,
+      "z": -5.02
+     },
+     "vs_refit_normal": {
+      "delta_per_1000": -0.09,
+      "z": -0.88
+     }
+    }
+   }
+  }
+ }
+}

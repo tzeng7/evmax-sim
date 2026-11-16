@@ -1,0 +1,87 @@
+{
+ "schema_version": 1,
+ "sector": "ncaab",
+ "market": "total",
+ "k_min": 0,
+ "k_max": 347,
+ "family": "t",
+ "nu": 200.0,
+ "s0": 15.324026134873678,
+ "s1": 0.0655555938161739,
+ "line_ref": 146.06607751400682,
+ "s2": 0.0,
+ "total_ref": 0.0,
+ "c0": -0.32430616012636726,
+ "p_ot": 0.031407791521049076,
+ "d_ot": 34.593714984552676,
+ "exclude_zero": false,
+ "beta": {},
+ "meta": {
+  "n_games": 17313,
+  "nll": 4.216429,
+  "resid_sd": 16.5519,
+  "created": "2026-11-16",
+  "source": "ESPN closing lines + scores",
+  "seasons": [
+   2024,
+   2026
+  ],
+  "fit_seasons": [
+   2024,
+   2025
+  ],
+  "holdout_seasons": [
+   2026
+  ],
+  "lam": null,
+  "sigma_fit": 16.38,
+  "sigma_production": 14.0,
+  "validation": {
+   "n_games": 5734,
+   "rungs_per_game": 41,
+   "brier_model": 0.188937,
+   "brier_production_normal": 0.18997,
+   "brier_refit_normal": 0.188893,
+   "vs_production_normal": {
+    "delta_per_1000": -1.034,
+    "z": -8.05
+   },
+   "vs_refit_normal": {
+    "delta_per_1000": 0.043,
+    "z": 0.93
+   },
+   "by_distance": {
+    "0-3": {
+     "vs_production_normal": {
+      "delta_per_1000": -0.083,
+      "z": -3.66
+     },
+     "vs_refit_normal": {
+      "delta_per_1000": 0.011,
+      "z": 1.19
+     }
+    },
+    "3-7": {
+     "vs_production_normal": {
+      "delta_per_1000": -0.593,
+      "z": -5.96
+     },
+     "vs_refit_normal": {
+      "delta_per_1000": 0.048,
+      "z": 1.22
+     }
+    },
+    "7+": {
+     "vs_production_normal": {
+      "delta_per_1000": -1.425,
+      "z": -7.96
+     },
+     "vs_refit_normal": {
+      "delta_per_1000": 0.05,
+      "z": 0.79
+     }
+    }
+   }
+  }
+ }
+}

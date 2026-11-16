@@ -548,10 +548,15 @@ class TestSpreadDistributionModel:
         if result is not None:
             assert result.true_prob <= 0.99
 
-    def test_nba_sigma_is_12_5(self):
-        """SpreadPrediction.sigma for NBA sector is 12.5 (bumped 11.5→12.5
-        on 2026-05-07; backtest_nba_score_stdev showed Brier −0.00077 on
-        82 resolved spread bets, fixing tail over-confidence)."""
+    def test_nba_sigma_is_12_5(self, monkeypatch):
+        """SpreadPrediction.sigma for NBA sector is 12.5 on the normal-CDF path
+        (bumped 11.5→12.5 on 2026-05-07; backtest_nba_score_stdev showed Brier
+        −0.00077 on 82 resolved spread bets, fixing tail over-confidence).
+
+        NBA model-priced rungs use the fitted LinePMF when its artifact exists
+        (_LINE_PMF_SECTORS); disable it to pin the normal curve's table."""
+        from evmax.models_ml import spread_distribution as sd
+        monkeypatch.setattr(sd, "_LINE_PMF_SECTORS", set())
         sharp = _make_spread_sharp(spread_line=-7.5, true_prob_a=0.60)
         result = self.model.predict(sharp, target_line=-7.5, sector="nba")
         assert result is not None
@@ -726,15 +731,52 @@ class TestTotalDistributionModel:
         assert result_lower is not None and result_higher is not None
         assert result_lower.true_prob > result_higher.true_prob
 
-    def test_sigma_is_correct_for_nba(self):
-        """NBA sigma should be 22.0."""
+    def test_sigma_is_correct_for_nba(self, monkeypatch):
+        """NBA sigma is 22.0 on the normal path (the fitted LinePMF, which
+        replaces it when an artifact exists, measured 17.8)."""
+        from evmax.models_ml import total_distribution as td
+        monkeypatch.setattr(td, "TOTAL_LADDER_SECTORS", set())
         sharp = _make_total_sharp(total_line=225.5, prob_over=0.50)
         result = self.model.predict(sharp, target_line=225.5, sector="nba")
         assert result is not None
         assert result.sigma == 22.0
 
-    def test_sigma_is_correct_for_nfl(self):
-        """NFL sigma should be 14.0."""
+    @pytest.mark.parametrize("sector,line", [("nba", 225.5), ("nfl", 44.5), ("ncaab", 145.5)])
+    def test_layered_sector_prices_with_fitted_pmf(self, sector, line):
+        """With a fitted artifact, a layered sector's model-priced total rung
+        carries the `total_pmf` method, reproduces the anchor at the main line,
+        and is monotone across rungs."""
+        from evmax.models_ml import line_pmf as lp
+        from evmax.models_ml import total_distribution as td
+        if lp.load_line_pmf(sector, "total") is None:
+            pytest.skip(f"no fitted {sector} total artifact")
+        sharp = _make_total_sharp(total_line=line, prob_over=0.52)
+        main = self.model.predict(sharp, target_line=line, sector=sector)
+        lower = self.model.predict(sharp, target_line=line - 4.0, sector=sector)
+        higher = self.model.predict(sharp, target_line=line + 4.0, sector=sector)
+        assert main is not None and lower is not None and higher is not None
+        assert main.method == td.TOTAL_PMF_TOKEN
+        assert main.true_prob == pytest.approx(0.52, abs=1e-3)
+        assert lower.true_prob > main.true_prob > higher.true_prob
+        under = self.model.predict(sharp, target_line=line + 4.0, sector=sector,
+                                   yes_is_under=True)
+        assert under.true_prob == pytest.approx(1.0 - higher.true_prob, abs=1e-9)
+
+    def test_total_rung_is_exact_requires_the_same_line(self):
+        from evmax.models_ml import total_distribution as td
+        assert td.total_rung_is_exact("nba", 225.5, 225.5)
+        assert not td.total_rung_is_exact("nba", 225.5, 226.5)
+        assert not td.total_rung_is_exact("nba", None, 225.5)
+        assert not td.total_rung_is_exact("nhl", 225.5, 225.5)   # not layered
+
+    def test_sigma_is_correct_for_nfl(self, monkeypatch):
+        """NFL sigma should be 14.0 on the normal path.
+
+        NFL totals use the fitted LinePMF when its artifact exists
+        (TOTAL_LADDER_SECTORS); disable it to pin the normal curve's table.
+        """
+        from evmax.models_ml import total_distribution as td
+        monkeypatch.setattr(td, "TOTAL_LADDER_SECTORS", set())
         sharp = _make_total_sharp(total_line=47.5, prob_over=0.50, sector="nfl")
         result = self.model.predict(sharp, target_line=47.5, sector="nfl")
         assert result is not None

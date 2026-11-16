@@ -49,7 +49,14 @@ from evmax.models_ml.spread_distribution import (
     spread_ladder_required,
     spread_ladder_tolerance,
 )
-from evmax.models_ml.total_distribution import TotalDistributionModel, is_game_total
+from evmax.models_ml.total_distribution import (
+    TOTAL_DIST_TOKEN,
+    TOTAL_LADDER_TOKEN,
+    TotalDistributionModel,
+    is_game_total,
+    total_ladder_enabled,
+    total_rung_is_exact,
+)
 from evmax.ev.devig import derive_advance_prob
 from evmax.settings import get_settings
 
@@ -298,6 +305,14 @@ _NON_MODEL_TOKENS = frozenset({
     # puck_line = NHL spread priced at Pinnacle's own posted puck-line rung
     # (models_ml/spread_distribution.py). The sharp price, not a model.
     "puck_line",
+    # total_pmf = total priced by the fitted LinePMF off the matched Pinnacle
+    # total (a pricing derivation of the sharp line, not an independent model)
+    "total_pmf",
+    # model_anchor stands where `sharp` would: the anchor was our own blend
+    "model_anchor",
+    # soft_anchor: the anchor was another (retail) book's line
+    # (evmax/clients/soft_anchor.py). Not a model, and not a sharp price.
+    "soft_anchor",
     # maker_pilot = sized by the maker-only pilot lane (evmax/ev/maker_pilot.py).
     # An execution/sizing tag, not a model.
     "maker_pilot",
@@ -375,6 +390,11 @@ def has_full_blend(
     """
     sec = (sector or "").lower()
     contributing = {tok.strip() for tok in (model_sources or "").split("+")}
+
+    # A row anchored on our own model (no sharp line existed) is a measurement,
+    # never a play: see evmax/agents/models/model_anchor.py.
+    if "model_anchor" in contributing or "soft_anchor" in contributing:
+        return False
 
     required = REQUIRED_BLEND_MODELS.get(sec)
     if required and not (required <= contributing):
@@ -994,7 +1014,16 @@ class EVGapAgent(Agent):
         # Step 2b: Total markets — use TotalDistributionModel (line-adjusted)
         # ------------------------------------------------------------------
         used_total_model = False
-        if is_total and market.line is not None:
+        total_method = TOTAL_DIST_TOKEN
+        if is_total and market.line is not None and total_rung_is_exact(
+            sector, sharp.total_line, market.line,
+        ):
+            # Layered stack, step 1: the matched Pinnacle total IS this line, so
+            # `sharp_true_prob` (the book's devigged over / under, already on the
+            # YES side) is the fair. No curve, no sim overlay.
+            used_total_model = True
+            total_method = TOTAL_LADDER_TOKEN
+        elif is_total and market.line is not None:
             total_result = self._total_model.predict(
                 sharp_odds=sharp,
                 target_line=market.line,
@@ -1004,8 +1033,10 @@ class EVGapAgent(Agent):
             if total_result is not None:
                 sharp_true_prob = total_result.true_prob
                 used_total_model = True
+                total_method = total_result.method
 
-                sim = self._sim_for_sector(sector)
+                # Layered sectors price off the sharp book's distribution only.
+                sim = None if total_ladder_enabled(sector) else self._sim_for_sector(sector)
                 if sim is not None:
                     sim_prob = sim.total_probability(
                         sharp.event_id, market.line, is_over=not yes_is_under,
@@ -1067,7 +1098,7 @@ class EVGapAgent(Agent):
                     else f"sharp+{spread_method}"
                 )
             elif used_total_model:
-                src = "sharp+total_dist"
+                src = f"sharp+{total_method}"
             elif used_advance_model and advance_model_prob is not None:
                 # Model advance prob derived from the base 3-way blend, with
                 # the same sanity cap step 3b applies to direct blends.

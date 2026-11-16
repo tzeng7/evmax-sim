@@ -185,8 +185,8 @@ def check_inplay(days: int = 1, absurd_ev: float = 0.25) -> list[dict]:
 
 _NON_MODEL_SOURCE_TOKENS = {
     "sharp", "sharp(capped)", "injury", "late_news", "rest", "playoff",
-    "advance_derived", "spread_dist", "total_dist", "no_side", "anchored_entry",
-    "sharp_ladder", "spread_pmf", "maker_pilot", "puck_line",
+    "advance_derived", "spread_dist", "total_dist", "no_side", "anchored_entry", "early_total",
+    "sharp_ladder", "spread_pmf", "maker_pilot", "puck_line", "total_pmf", "model_anchor", "soft_anchor",
 }
 
 

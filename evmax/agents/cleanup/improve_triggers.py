@@ -102,8 +102,8 @@ CALIB_BUCKET_DAYS = 60
 
 _NON_MODEL_TOKENS = frozenset({
     "sharp", "sharp(capped)", "injury", "late_news", "rest", "playoff",
-    "advance_derived", "spread_dist", "total_dist", "no_side", "anchored_entry",
-    "sharp_ladder", "spread_pmf", "maker_pilot", "puck_line", "contested", "near_tip",
+    "advance_derived", "spread_dist", "total_dist", "no_side", "anchored_entry", "early_total",
+    "sharp_ladder", "spread_pmf", "maker_pilot", "puck_line", "total_pmf", "model_anchor", "soft_anchor", "contested", "near_tip",
 })
 
 
