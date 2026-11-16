@@ -400,3 +400,20 @@ class TestBidFromNoPrice:
             session_prefixes=("candlebf",),
         )
         assert not [e for e in stats.entries if e.side == "take"]
+
+
+def test_polymarket_rows_never_enter_the_kalshi_replay(archive_conn):
+    """watch-listings also archives Polymarket US rows under 'watchlist-*'
+    sessions, keyed 'polymarket_us:slug'. The anchored-entry replay prices
+    Kalshi tickers with Kalshi's fee and book conventions, so a PolyUS rung
+    with full team context must still be ignored."""
+    pm = "polymarket_us:asc-wnba-sea-phx-2026-07-02-neg-6pt5"
+    for (session, fetched), ask in zip((S1, S2, S3), (0.30, 0.30, 0.40)):
+        insert_kalshi(archive_conn, session, fetched, pm, "spread", ask, -6.5, "sea")
+        insert_depth(archive_conn, session, fetched, pm, ask, 500.0, ask - 0.02, 500.0)
+    insert_sharp_spread(archive_conn, *S2)
+    archive_conn.commit()
+
+    stats = evaluate_sector(archive_conn, "wnba")
+    assert stats.tickers == 0
+    assert stats.entries == []

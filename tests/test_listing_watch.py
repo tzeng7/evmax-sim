@@ -463,3 +463,148 @@ class TestCaptureTypesForSector:
         now = datetime(2026, 10, 1, 18, 0, tzinfo=timezone.utc)
         ml = _mkt("KXNFLGAME-X-A", MarketType.moneyline, now + timedelta(hours=20))
         assert build_anchored_entries([ml], {}, [], "nfl", now=now) == []
+
+
+# ---------------------------------------------------------------------------
+# capture_polymarket_us_listings (PolyUS prices + bid/ask + budgeted depth)
+# ---------------------------------------------------------------------------
+class TestCapturePolymarketUsListings:
+    NOW = datetime.now(timezone.utc)
+
+    def _market(self, slug, side, yes, no, hours, long, mt=MarketType.moneyline):
+        from evmax.models.market import MarketSource, PredictionMarket
+
+        return PredictionMarket(
+            id=f"polymarket_us:{slug}:{side}" if side else f"polymarket_us:{slug}",
+            source=MarketSource.polymarket_us, sector="nba", market_type=mt,
+            ticker=slug, yes_price=yes, no_price=no, yes_team=side or "over",
+            event_date=self.NOW + timedelta(hours=hours), venue_long=long,
+        )
+
+    def _book(self, bid, offer, state="MARKET_STATE_OPEN"):
+        lvl = lambda px, q: {"px": {"value": str(px)}, "qty": str(q)}  # noqa: E731
+        return {"bids": [lvl(bid, 1000)], "offers": [lvl(offer, 200)], "state": state}
+
+    class _FakeClient:
+        def __init__(self, markets, books, fail=False):
+            self.markets, self.books, self.fail = markets, books, fail
+            self.book_calls: list[list[str]] = []
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            return None
+        async def get_markets(self, sector, fresh=False):
+            if self.fail:
+                raise RuntimeError("gateway down")
+            assert fresh is True          # never the scanner's cached quotes
+            return self.markets
+        async def get_market_books_batch(self, slugs):
+            self.book_calls.append(list(slugs))
+            return {s: self.books.get(s) for s in slugs}
+
+    def _run(self, tmp_path, monkeypatch, fake, *, enabled=True, sector="nba",
+             types=frozenset({"moneyline"}), budget=40):
+        import asyncio
+        from types import SimpleNamespace
+        import evmax.archiver as archiver_mod
+        from evmax.cli.commands.cleanup import capture_polymarket_us_listings
+
+        monkeypatch.setattr(archiver_mod, "DB_PATH", tmp_path / "archive.db")
+        monkeypatch.setattr("evmax.settings.get_settings",
+                            lambda: SimpleNamespace(polymarket_us_enabled=enabled))
+        monkeypatch.setattr("evmax.clients.polymarket_us.PolymarketUSClient", lambda: fake)
+        out = asyncio.run(capture_polymarket_us_listings(
+            "watchlist-t", sector, set(types), 72, book_budget=budget))
+        with archiver_mod._get_connection() as conn:
+            depth = {r["ticker"]: dict(r) for r in conn.execute(
+                "SELECT * FROM archived_orderbook_depth")}
+            prices = {r["ticker"]: dict(r) for r in conn.execute(
+                "SELECT * FROM archived_kalshi_markets")}
+        return out, prices, depth
+
+    def test_every_market_gets_bid_ask_and_budgeted_slugs_get_sizes(self, tmp_path, monkeypatch):
+        soon = "aec-nba-chi-cle-2026-11-16"
+        later = "aec-nba-okc-sac-2026-11-17"
+        markets = [
+            self._market(later, "okc", 0.62, 0.40, 30, True),
+            self._market(later, "sac", 0.40, 0.62, 30, False),
+            self._market(soon, "chi", 0.31, 0.71, 5, True),
+            self._market(soon, "cle", 0.71, 0.31, 5, False),
+        ]
+        fake = self._FakeClient(markets, {soon: self._book(0.2975, 0.30)})
+        (n_prices, n_depth, n_sized), prices, depth = self._run(
+            tmp_path, monkeypatch, fake, budget=1)
+
+        assert (n_prices, n_depth, n_sized) == (4, 4, 2)
+        assert fake.book_calls == [[soon]]          # soonest event first, budget 1
+        assert set(prices) == set(depth) == {m.id for m in markets}
+
+        chi = depth[f"polymarket_us:{soon}:chi"]    # long side, from the book
+        assert chi["source"] == "polymarket_us_rest"
+        assert chi["yes_ask"] == pytest.approx(0.30)
+        assert chi["yes_bid"] == pytest.approx(0.2975)
+        assert chi["yes_ask_depth_usd"] == pytest.approx(0.70 * 200)
+        cle = depth[f"polymarket_us:{soon}:cle"]    # short side of the same book
+        assert cle["yes_ask"] == pytest.approx(1 - 0.2975)
+        assert cle["yes_bid"] == pytest.approx(0.70)
+
+        okc = depth[f"polymarket_us:{later}:okc"]   # over budget: feed bid/ask
+        assert okc["source"] == "polymarket_us_feed"
+        assert okc["yes_ask"] == pytest.approx(0.62)
+        assert okc["yes_bid"] == pytest.approx(0.60)   # 1 − NO ask
+        assert okc["yes_ask_depth_usd"] is None and okc["yes_book_usd"] is None
+
+        p = prices[f"polymarket_us:{soon}:chi"]
+        assert (p["yes_price"], p["no_price"]) == (pytest.approx(0.31), pytest.approx(0.71))
+        assert p["market_type"] == "moneyline" and p["sector"] == "nba"
+
+    def test_missing_or_closed_book_and_unknown_long_fall_back_to_feed(self, tmp_path, monkeypatch):
+        markets = [
+            self._market("s-nobook", "aaa", 0.50, 0.52, 5, True),
+            self._market("s-halted", "bbb", 0.50, 0.52, 6, True),
+            self._market("s-nolong", "ccc", 0.50, 0.52, 7, None),
+        ]
+        books = {"s-halted": self._book(0.49, 0.50, state="MARKET_STATE_HALTED"),
+                 "s-nolong": self._book(0.49, 0.50)}
+        (_, n_depth, n_sized), _, depth = self._run(
+            tmp_path, monkeypatch, self._FakeClient(markets, books))
+        assert (n_depth, n_sized) == (3, 0)
+        assert {d["source"] for d in depth.values()} == {"polymarket_us_feed"}
+        assert all(d["yes_bid"] == pytest.approx(0.48) for d in depth.values())
+
+    def test_window_type_and_empty_quote_filters(self, tmp_path, monkeypatch):
+        markets = [
+            self._market("s-in", "aaa", 0.50, 0.52, 5, True),
+            self._market("s-far", "bbb", 0.50, 0.52, 200, True),          # past 72h
+            self._market("s-empty", "ccc", 0.99, 0.02, 5, True),          # empty book
+            self._market("s-total", "", 0.50, 0.52, 5, True, MarketType.total),
+        ]
+        fake = self._FakeClient(markets, {})
+        (n_prices, _, _), prices, _ = self._run(tmp_path, monkeypatch, fake)
+        assert n_prices == 1 and set(prices) == {"polymarket_us:s-in:aaa"}
+        assert fake.book_calls == [["s-in"]]
+
+    def test_crossed_feed_quote_stores_no_bid(self, tmp_path, monkeypatch):
+        # YES ask 0.40 with NO ask 0.55 implies a YES bid of 0.45 above the ask:
+        # not a real two-sided quote, so the bid is left NULL.
+        m = self._market("s-x", "aaa", 0.40, 0.55, 5, True)
+        _, _, depth = self._run(tmp_path, monkeypatch, self._FakeClient([m], {}), budget=0)
+        assert depth[m.id]["yes_ask"] == pytest.approx(0.40)
+        assert depth[m.id]["yes_bid"] is None
+
+    def test_zero_budget_makes_no_book_requests(self, tmp_path, monkeypatch):
+        fake = self._FakeClient([self._market("s", "aaa", 0.50, 0.52, 5, True)], {})
+        out, _, _ = self._run(tmp_path, monkeypatch, fake, budget=0)
+        assert out == (1, 1, 0) and fake.book_calls == []
+
+    def test_kill_switch_unmapped_sector_and_failure_return_zeros(self, tmp_path, monkeypatch):
+        def _boom():
+            raise AssertionError("client must not be constructed")
+
+        m = self._market("s", "aaa", 0.50, 0.52, 5, True)
+        out, prices, _ = self._run(tmp_path, monkeypatch, self._FakeClient([m], {}), enabled=False)
+        assert out == (0, 0, 0) and prices == {}
+        out, _, _ = self._run(tmp_path, monkeypatch, self._FakeClient([m], {}), sector="ufc")
+        assert out == (0, 0, 0)
+        out, prices, _ = self._run(tmp_path, monkeypatch, self._FakeClient([m], {}, fail=True))
+        assert out == (0, 0, 0) and prices == {}

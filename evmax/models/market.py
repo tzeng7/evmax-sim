@@ -122,6 +122,11 @@ class PredictionMarket(BaseModel):
     # "not measured" and the sizing layer falls back to the spread proxy. Used
     # by the depth-keyed liquidity discount (evmax/ev/sizing.py, Phase 3).
     yes_ask_depth_usd: Optional[float] = None
+    # Polymarket US only: True when this market's YES side is the venue's LONG
+    # instrument (the side /v1/markets/{slug}/book quotes), False when it is the
+    # short side. None for Kalshi and for rows cached before the field existed.
+    # The order-book capture needs it to orient a book onto the YES side.
+    venue_long: Optional[bool] = None
 
     team_home: Optional[str] = None
     team_away: Optional[str] = None
