@@ -338,6 +338,8 @@ async def test_reprice_rows_reblend_is_moneyline_only(monkeypatch):
         true_prob_a=0.70, true_prob_b=0.30,
     )
 
+    pinnacle_calls: list[dict] = []
+
     class _FakePinnacle:
         async def __aenter__(self):
             return self
@@ -345,7 +347,8 @@ async def test_reprice_rows_reblend_is_moneyline_only(monkeypatch):
         async def __aexit__(self, *a):
             return False
 
-        async def get_odds(self, sector):
+        async def get_odds(self, sector, **kwargs):
+            pinnacle_calls.append(kwargs)
             return [fresh]
 
     monkeypatch.setattr("evmax.clients.kalshi.KalshiClient", _FakeKalshi)
@@ -361,6 +364,10 @@ async def test_reprice_rows_reblend_is_moneyline_only(monkeypatch):
     )
     ml = next(b for b in bets if b["market_id"] == "kalshi:ml")
     spread = next(b for b in bets if b["market_id"] == "kalshi:spread")
+
+    # The re-price must bypass the 120 s Pinnacle response cache: a cached line
+    # is not a live re-price (2026-11-15 latency audit).
+    assert pinnacle_calls == [{"fresh": True}]
 
     # Moneyline row re-blends: 0.60 + 1.0*(0.70 - 0.60) = 0.70.
     assert ml["pin_is_live"] is True

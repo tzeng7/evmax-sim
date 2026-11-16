@@ -118,3 +118,44 @@ class TestProbe:
         r = asyncio.run(_run())
         assert r["ok"] is False
         assert r["reason"] == "error"
+
+
+class TestGetOddsFreshBypass:
+    """``fresh=True`` skips the response-cache READ (the pick / prune-stale
+    re-price path); the default call still serves a fresh-enough cache hit."""
+
+    def _run(self, monkeypatch, **kwargs):
+        from evmax.clients import esports_pinnacle as mod
+
+        cfg = mod.get_settings()
+        monkeypatch.setattr(cfg, "cache_ttl_secs", 120)
+        monkeypatch.setattr(cfg, "offline_mode", False)
+        cache_reads: list[str] = []
+        network_calls: list[str] = []
+
+        def _cache_get(key, ttl):
+            cache_reads.append(key)
+            return []  # a cache hit (empty payload is still a hit)
+
+        monkeypatch.setattr(mod, "cache_get", _cache_get)
+
+        async def _go():
+            async with PinnacleGuestClient() as client:
+                async def _net(path, *a, **k):
+                    network_calls.append(path)
+                    return []
+                monkeypatch.setattr(client, "_logged_get", _net)
+                return await client.get_odds("nba", **kwargs)
+
+        asyncio.run(_go())
+        return cache_reads, network_calls
+
+    def test_default_serves_cache_without_network(self, monkeypatch):
+        cache_reads, network_calls = self._run(monkeypatch)
+        assert cache_reads == ["pinnacle_nba"]
+        assert network_calls == []
+
+    def test_fresh_skips_cache_read_and_hits_network(self, monkeypatch):
+        cache_reads, network_calls = self._run(monkeypatch, fresh=True)
+        assert cache_reads == []
+        assert network_calls  # went to Pinnacle

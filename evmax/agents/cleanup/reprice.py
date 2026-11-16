@@ -315,7 +315,9 @@ async def reprice_rows(
             try:
                 async with PinnacleGuestClient() as client:
                     odds_lists = await asyncio.gather(
-                        *(client.get_odds(s) for s in ml_sectors),
+                        # fresh=True: bypass the 120 s response cache — a re-price
+                        # against a cached line is not a live re-price.
+                        *(client.get_odds(s, fresh=True) for s in ml_sectors),
                         return_exceptions=True,
                     )
                 for odds in odds_lists:
