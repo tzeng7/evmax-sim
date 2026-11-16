@@ -262,10 +262,84 @@ def _series_market_type(ticker: str) -> Optional[MarketType]:
 # Esports sectors whose teams come from the per-event join (_esports_event_teams).
 _ESPORTS_TITLE_SECTORS = frozenset({"lol", "cs2"})
 
+# College basketball: teams are read from the EVENT title, by name.
+# Kalshi's per-team titles are the short "{Team} wins" (the tennis / UFC /
+# esports break), so the only team identity left on a market is its ticker
+# code ("UNCG", "LBSU", "MTST"). ~360 schools per league, new codes every
+# season: a code resolves only when someone has hand-added it to the alias
+# map. In live scans 2026-11-09..15 men's college basketball matched 81-254 of
+# 1,800-3,000 fetched markets a day. The event title ("UNC Greensboro vs
+# Cornell") and sub_title ("UNCG vs COR (Nov 14)") carry both names and both
+# codes in the same order, so every code can be named without an alias.
+_COLLEGE_NAME_SECTORS: frozenset[str] = frozenset({"ncaab", "ncaaw"})
+
 # Sectors whose /events rows are joined onto markets at parse time.
 _EVENT_TITLE_SECTORS: frozenset[str] = frozenset(
-    {"tennis", "soccer", "ufc"} | _ESPORTS_TITLE_SECTORS
+    {"tennis", "soccer", "ufc"} | _ESPORTS_TITLE_SECTORS | _COLLEGE_NAME_SECTORS
 )
+
+# "UNC Greensboro vs Cornell: Spread" / "...: Point Total" → the matchup part.
+_EVENT_TITLE_SUFFIX_RE = re.compile(r"\s*:\s*[^:]*$")
+
+
+def _event_code_names(
+    ev_title: Optional[str],
+    ev_codes: Optional[tuple[str, str]],
+    normalize,
+) -> Optional[dict[str, str]]:
+    """{ticker code: normalized team name} for the two teams of one event.
+
+    ``ev_title`` is the event title ("UNC Greensboro vs Cornell", optionally
+    with a ": Spread" / ": Point Total" suffix) and ``ev_codes`` the code pair
+    from its sub_title ("UNCG vs COR (Nov 14)" → ("uncg", "cor")). Both list
+    the teams in the same order. Returns None unless both names and both codes
+    are present and distinct — a partial join must never name the wrong team.
+    """
+    if not ev_title or not ev_codes:
+        return None
+    title = ev_title.strip()
+    if ":" in title:
+        head = _EVENT_TITLE_SUFFIX_RE.sub("", title)
+        if _MATCHUP_SPLIT_RE.search(head):
+            title = head
+    parts = _MATCHUP_SPLIT_RE.split(title, maxsplit=1)
+    if len(parts) != 2:
+        return None
+    n1 = normalize(_expand_trailing_state(parts[0].strip().rstrip("?")))
+    n2 = normalize(_expand_trailing_state(parts[1].strip().rstrip("?")))
+    c1, c2 = (ev_codes[0] or "").lower(), (ev_codes[1] or "").lower()
+    if not n1 or not n2 or not c1 or not c2 or c1 == c2 or n1 == n2:
+        return None
+    return {c1: n1, c2: n2}
+
+
+_TRAILING_ST_RE = re.compile(r"\s+St\.?$")
+
+
+def _expand_trailing_state(name: str) -> str:
+    """"Missouri St." → "Missouri State". Only a TRAILING "St." is expanded.
+
+    Kalshi abbreviates State at the end of a school name; the sharp book
+    spells it out. A leading "St." is Saint ("St. Thomas", "St. John's") and
+    is left alone, as is "St." in the middle of a name.
+    """
+    return _TRAILING_ST_RE.sub(" State", name)
+
+
+def _name_for_code(code: Optional[str], names: dict[str, str], normalize) -> Optional[str]:
+    """Team name for a ticker code: a curated alias first, else the event title.
+
+    A code the alias map already resolves keeps that canonical — those entries
+    were confirmed against the sharp book's spelling. Every other code takes
+    the name Kalshi itself printed for it on the event.
+    """
+    if not code:
+        return None
+    code = code.lower()
+    aliased = normalize(code)
+    if aliased and aliased != code:
+        return aliased
+    return names.get(code) or aliased
 
 
 # --- UFC (KXUFCFIGHT) fighter recovery -------------------------------------
@@ -1888,6 +1962,25 @@ class KalshiClient(BaseAPIClient):
                 # so there's no team-side YES for totals — set "over" so the
                 # EV gap agent's yes_team_norm == "under" check resolves to False.
                 yes_team = "over" if is_total else self._extract_yes_team(ticker, sector)
+                # College basketball: name every ticker code from the event
+                # title (see _COLLEGE_NAME_SECTORS). The event's code pair is
+                # AWAY then HOME, the ticker's own order, so the totals series
+                # (no outcome code to anchor a variable-width split on) gets
+                # its teams the same way.
+                if sector in _COLLEGE_NAME_SECTORS and event_titles:
+                    ev_key = raw.get("event_ticker")
+                    codes = (event_codes or {}).get(ev_key) if ev_key else None
+                    from evmax.matching.normalizer import NameNormalizer
+                    _cn = NameNormalizer(sector).normalize
+                    names = _event_code_names(
+                        event_titles.get(ev_key) if ev_key else None, codes, _cn)
+                    if names and codes:
+                        team_away = _name_for_code(codes[0], names, _cn)
+                        team_home = _name_for_code(codes[1], names, _cn)
+                        if not is_total:
+                            out_code = re.sub(r"\d+$", "", ticker.rsplit("-", 1)[-1]).lower()
+                            if out_code in names:
+                                yes_team = _name_for_code(out_code, names, _cn)
                 # Soccer: prefer the event title's full club names over the
                 # ticker codes. Kalshi soccer event titles are "Home vs Away"
                 # (verified against Pinnacle's home/away on 2026-09-04) and

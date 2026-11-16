@@ -1,4 +1,7 @@
 aliases:
+  # Pinnacle abbreviates this one school's "State" itself ("Tarleton St");
+  # Kalshi's "Tarleton St." is expanded to State at parse time.
+  "tarleton st": "tarleton state"
   # --- Short Kalshi ticker codes (outcome suffix → normalized team name) ---
   # These must match what NameNormalizer produces for Pinnacle full team names
   # so that yes_team alignment swaps fire correctly.
