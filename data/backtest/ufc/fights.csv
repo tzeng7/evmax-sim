@@ -8168,3 +8168,74 @@ event_id,comp_id,event_name,date,weight_class,fighter_a_id,fighter_a,fighter_b_i
 600061541,401927415,UFC Fight Night: Allen vs. Duncan,2026-10-11,Lightweight,5170144,Matheus Camilo,4078246,Jai Herbert,b,True,3,5:00,decision,
 600061541,401927416,UFC Fight Night: Allen vs. Duncan,2026-10-11,Featherweight,3074464,Andre Fili,4688447,Kai Kamaka III,a,True,2,0:22,ko_tko,Kick
 600061541,401927421,UFC Fight Night: Allen vs. Duncan,2026-10-11,Bantamweight,5212854,Malcolm Wellmaker,5212853,Otari Tanzilovi,b,True,2,2:39,ko_tko,Kick
+600060741,401891665,"Dana White's Contender Series: Season 10, Week 10",2026-10-13,Featherweight,4886803,Ilias Bulaid,5077314,Erick Visconde,b,True,3,5:00,decision,
+600060741,401928737,"Dana White's Contender Series: Season 10, Week 10",2026-10-13,W Bantamweight,5402155,Smilla Sundell,5110864,Aline Pereira,a,True,3,5:00,decision,
+600060741,401928738,"Dana White's Contender Series: Season 10, Week 10",2026-10-13,Welterweight,5310099,Will Rentz,5401060,Luis Francischinelli,b,True,1,2:18,ko_tko,Punches
+600060741,401928739,"Dana White's Contender Series: Season 10, Week 10",2026-10-13,Middleweight,5401598,Douglas da Lapa,5367388,Davi Cabral,a,True,3,0:19,ko_tko,Punch
+600060741,401928740,"Dana White's Contender Series: Season 10, Week 10",2026-10-13,Lightweight,5454992,Jason Asher,5455116,Greg Foster,b,True,3,5:00,decision,
+600060773,401908371,UFC Fight Night: Buckley vs. Malott,2026-10-17,Heavyweight,4232775,Tanner Boser,5145497,Jhonata Diniz,a,True,3,4:26,ko_tko,Punches
+600060773,401908373,UFC Fight Night: Buckley vs. Malott,2026-10-17,W Bantamweight,4947922,Melissa Croden,4319785,Chelsea Chandler,b,True,1,4:52,submission,Kimura
+600060773,401911807,UFC Fight Night: Buckley vs. Malott,2026-10-17,Middleweight,4807973,Julien LeBlanc,5296770,Nick Galanti,b,True,1,1:26,submission,Neck Crank
+600060773,401914039,UFC Fight Night: Buckley vs. Malott,2026-10-17,Bantamweight,4816062,Chad Anheliger,5119740,Steven Koslow,b,True,3,4:31,submission,Rear Naked Choke
+600060773,401919643,UFC Fight Night: Buckley vs. Malott,2026-10-17,Bantamweight,5282412,Cody Chovancek,5044361,SuYoung You,b,True,3,4:19,submission,Kimura
+600060773,401929675,UFC Fight Night: Buckley vs. Malott,2026-10-17,W Flyweight,4026490,Katlyn Cerminara,5130806,Mackenzie Stiller,a,True,1,4:46,ko_tko,Punches
+600060773,401929676,UFC Fight Night: Buckley vs. Malott,2026-10-17,Heavyweight,5405986,Javad Mahjoub,5454260,Joel Faglier,b,True,2,2:11,ko_tko,Punches
+600060773,401897388,UFC Fight Night: Buckley vs. Malott,2026-10-18,Welterweight,4024714,Joaquin Buckley,3165120,Mike Malott,b,True,2,2:32,ko_tko,Knee
+600060773,401897729,UFC Fight Night: Buckley vs. Malott,2026-10-18,W Flyweight,4350796,Erin Blanchfield,4835135,Jasmine Jasudavicius,b,True,3,5:00,decision,
+600060773,401905374,UFC Fight Night: Buckley vs. Malott,2026-10-18,Lightweight,4063786,Mandel Nallo,3821549,Nate Landwehr,a,True,2,0:47,ko_tko,Punches
+600060773,401908372,UFC Fight Night: Buckley vs. Malott,2026-10-18,Middleweight,4415883,Marc-Andre Barriault,4329444,Kyle Daukaus,a,True,1,4:28,ko_tko,Elbows
+600060773,401909783,UFC Fight Night: Buckley vs. Malott,2026-10-18,Bantamweight,4877916,Louis Jourdain,5123311,Timmy Cuamba,b,True,2,2:48,submission,Neck Crank
+600060773,401923630,UFC Fight Night: Buckley vs. Malott,2026-10-18,Lightweight,4408436,Kyle Nelson,5180489,Cristian Pérez,b,True,1,0:27,ko_tko,Punches
+600061267,401911632,UFC 333: Volkanovski vs. Evloev,2026-10-24,Featherweight,3949584,Alexander Volkanovski,4029275,Movsar Evloev,a,True,2,4:54,ko_tko,Punches
+600061267,401911633,UFC 333: Volkanovski vs. Evloev,2026-10-24,Bantamweight,4293517,Petr Yan,3948572,Merab Dvalishvili,a,True,5,5:00,decision,
+600061267,401911634,UFC 333: Volkanovski vs. Evloev,2026-10-24,Flyweight,5147737,Lone'er Kavanagh,4895691,Ramazan Temirov,a,True,1,4:28,ko_tko,Punches
+600061267,401911635,UFC 333: Volkanovski vs. Evloev,2026-10-24,Heavyweight,2993650,Alexander Volkov,4001837,Rizvan Kuniev,a,True,3,5:00,decision,
+600061267,401911637,UFC 333: Volkanovski vs. Evloev,2026-10-24,Light Heavyweight,4227265,Azamat Murzakanov,4233039,Dominick Reyes,b,True,1,2:40,ko_tko,Punch
+600061267,401911638,UFC 333: Volkanovski vs. Evloev,2026-10-24,Middleweight,3077822,Abus Magomedov,4694832,Cam Rowston,a,True,1,1:44,submission,Guillotine Choke
+600061267,401911639,UFC 333: Volkanovski vs. Evloev,2026-10-24,Light Heavyweight,3026263,Nikita Krylov,5291025,Abdul-Rakhman Yakhyaev,b,True,1,2:38,ko_tko,Knee
+600061267,401911640,UFC 333: Volkanovski vs. Evloev,2026-10-24,Lightweight,3931156,Grant Dawson,5092398,Nurullo Aliev,a,True,3,5:00,decision,
+600061267,401928047,UFC 333: Volkanovski vs. Evloev,2026-10-24,Bantamweight,5264462,Colby Thicknesse,5454811,Asaf Chopurov,a,True,3,5:00,decision,
+600061267,401929495,UFC 333: Volkanovski vs. Evloev,2026-10-24,Featherweight,4199009,Aaron Pico,5192314,Losene Keita,a,True,1,1:14,ko_tko,Punches
+600061267,401930357,UFC 333: Volkanovski vs. Evloev,2026-10-24,Middleweight,3960340,Abubakar Vagaev,4687434,Jacob Malkoun,a,True,3,5:00,decision,
+600061267,401930915,UFC 333: Volkanovski vs. Evloev,2026-10-24,Featherweight,5145682,Bolaji Oki,4881997,Daniel Santos,b,True,3,5:00,decision,
+600061267,401930916,UFC 333: Volkanovski vs. Evloev,2026-10-24,Lightweight,5212351,Kody Steele,5145777,Noah Gugnon,a,True,1,3:54,ko_tko,Punches
+600061267,401930917,UFC 333: Volkanovski vs. Evloev,2026-10-24,W Strawweight,5080935,Iasmin Lucindo,4239113,Nicolle Caliari,a,True,3,5:00,decision,
+600061420,401914105,UFC Fight Night: Moicano vs. Nolan,2026-10-31,W Flyweight,5130185,Lucia Szabová,4418809,Tainara Lisboa,a,True,3,3:20,ko_tko,Punches
+600061420,401914106,UFC Fight Night: Moicano vs. Nolan,2026-10-31,Middleweight,5134399,Nick Klein,4687604,Joe Kropschot,b,True,2,1:25,submission,Triangle Choke With Armbar
+600061420,401928105,UFC Fight Night: Moicano vs. Nolan,2026-10-31,W Strawweight,5139556,Talita Alencar,4816066,Piera Rodriguez,b,True,3,5:00,decision,
+600061420,401928106,UFC Fight Night: Moicano vs. Nolan,2026-10-31,Welterweight,5289853,Rodrigo Sezinando,5085010,Theodor Berggren,a,True,2,5:00,ko_tko,
+600061420,401928109,UFC Fight Night: Moicano vs. Nolan,2026-10-31,Featherweight,3955577,Julian Erosa,5068724,JeongYeong Lee,a,True,1,1:31,ko_tko,Punch
+600061420,401931615,UFC Fight Night: Moicano vs. Nolan,2026-10-31,Featherweight,5060394,Francis Marshall,4898914,Dakota Hope,b,True,3,5:00,decision,
+600061420,401931617,UFC Fight Night: Moicano vs. Nolan,2026-10-31,Middleweight,5143223,Zach Reese,3960470,Mickey Gall,a,True,3,5:00,decision,
+600061420,401921310,UFC Fight Night: Moicano vs. Nolan,2026-11-01,Lightweight,3028863,Renato Moicano,5144007,Tom Nolan,b,True,3,1:28,ko_tko,Elbows
+600061420,401928104,UFC Fight Night: Moicano vs. Nolan,2026-11-01,W Bantamweight,3154898,Yana Santos,5110469,Luana Santos,b,True,3,5:00,decision,
+600061420,401928107,UFC Fight Night: Moicano vs. Nolan,2026-11-01,Welterweight,4629138,Jean-Paul Lebosnoyani,5350562,Farman Hasanov,a,True,3,2:11,ko_tko,
+600061420,401931555,UFC Fight Night: Moicano vs. Nolan,2026-11-01,Flyweight,4424224,Ode' Osbourne,4686725,Cody Durden,b,True,3,5:00,decision,
+600061420,401931616,UFC Fight Night: Moicano vs. Nolan,2026-11-01,Welterweight,3960071,Randy Brown,5149961,Jacobe Smith,b,True,3,5:00,decision,
+600061268,401911642,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-07,Featherweight,5327937,Keiichiro Nakamura,5346907,Ollie Schmid,b,True,3,5:00,decision,
+600061268,401928115,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-07,W Flyweight,3309918,Karine Silva,4871203,Gabriella Fernandes,a,True,3,5:00,decision,
+600061268,401928117,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-07,Welterweight,4701954,Seokhyeon Ko,4426282,Wellington Turman,a,True,3,5:00,decision,
+600061268,401928118,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-07,Welterweight,4880114,Jonny Parsons,5080485,José Souza,b,True,1,4:16,ko_tko,Punches
+600061268,401928120,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-07,Featherweight,4969974,Jose Delano,5308768,Murtazali Magomedov,b,True,3,5:00,decision,
+600061268,401932011,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-07,Middleweight,5264925,Mantas Kondratavičius,4697476,Andre Petroski,b,True,2,4:39,ko_tko,Punches
+600061268,401932716,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-07,Heavyweight,5215710,Gabriel Lorenço,4869702,Thomas Petersen,b,True,3,4:47,ko_tko,Punches
+600061268,401933235,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-07,Featherweight,5120304,Austin Bashi,5125484,Carlos Calderon,a,True,1,1:07,submission,Rear Naked Choke
+600061268,401928111,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-08,W Strawweight,4020435,Tatiana Suarez,4289516,Virna Jandiroba,a,True,3,5:00,decision,
+600061268,401928113,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-08,Light Heavyweight,5078114,Billy Elekana,5119021,Lucas Fernando,b,True,3,5:00,decision,
+600061268,401928116,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-08,W Bantamweight,4277049,Priscila Cachoeira,5361791,Nina Milošević,b,True,2,3:40,ko_tko,Elbows
+600061268,401928119,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-08,Bantamweight,3070984,Davey Grant,5144797,Elijah Smith,b,True,1,1:00,ko_tko,Punches
+600061268,401932012,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-08,Flyweight,4815978,Mitch Raposo,5143890,Marcos Degli,a,True,3,5:00,decision,
+600061268,401932715,UFC Fight Night: Cortes Acosta vs. Walker,2026-11-08,Heavyweight,4903365,Waldo Cortes Acosta,3146944,Johnny Walker,b,True,3,2:27,ko_tko,Punch
+600061400,401922645,UFC 334: Gane vs. Hokit,2026-11-14,W Bantamweight,4334306,Macy Chiasson,5310274,Bia Mesquita,b,True,1,3:23,submission,Rear Naked Choke
+600061400,401931774,UFC 334: Gane vs. Hokit,2026-11-14,Lightweight,3894823,Jared Gordon,4425763,Melquizael Costa,b,True,3,5:00,decision,
+600061400,401932013,UFC 334: Gane vs. Hokit,2026-11-14,Lightweight,5037883,Evan Elder,5293557,Samuel Sanches,a,True,3,5:00,decision,
+600061400,401933936,UFC 334: Gane vs. Hokit,2026-11-14,Bantamweight,3154389,Alatengheili,5310574,Juan Diaz,b,True,3,5:00,decision,
+600061400,401913646,UFC 334: Gane vs. Hokit,2026-11-15,Heavyweight,4426000,Ciryl Gane,4049391,Josh Hokit,a,True,5,5:00,decision,
+600061400,401913647,UFC 334: Gane vs. Hokit,2026-11-15,Welterweight,2615077,Stephen Thompson,4416297,Charles Radtke,a,True,3,2:54,ko_tko,Kick
+600061400,401922638,UFC 334: Gane vs. Hokit,2026-11-15,W Bantamweight,4332765,Kayla Harrison,2516131,Amanda Nunes,a,True,4,1:29,submission,Rear Naked Choke
+600061400,401922639,UFC 334: Gane vs. Hokit,2026-11-15,Middleweight,4835137,Caio Borralho,5149815,Yousri Belgaroui,a,True,3,5:00,decision,
+600061400,401922640,UFC 334: Gane vs. Hokit,2026-11-15,Welterweight,4685870,Uroš Medić,3943695,Kevin Holland,none,True,3,5:00,draw,
+600061400,401922641,UFC 334: Gane vs. Hokit,2026-11-15,Flyweight,5264405,Bilal Hasan,5218137,Luis Gurule,b,True,3,5:00,decision,
+600061400,401922642,UFC 334: Gane vs. Hokit,2026-11-15,Lightweight,2951202,Drew Dober,4867356,Chris Duncan,b,True,3,5:00,decision,
+600061400,401922643,UFC 334: Gane vs. Hokit,2026-11-15,Lightweight,2335718,Jim Miller,4425604,Terrance McKinney,b,True,1,1:53,ko_tko,Punch
+600061400,401931773,UFC 334: Gane vs. Hokit,2026-11-15,Catch Weight,5302831,Donte Johnson,5144068,Cesar Almeida,b,True,1,3:20,ko_tko,Punch
