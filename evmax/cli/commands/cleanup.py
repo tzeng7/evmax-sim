@@ -1135,6 +1135,134 @@ def listings_eval(
     console.print(st)
 
 
+@app.command("line-moves")
+def line_moves_cmd(
+    sector: str = typer.Option("nba", "--sector", "-s", help="Sector to read (one at a time)."),
+    venue: str = typer.Option("kalshi", "--venue", help="kalshi or polymarket_us."),
+    days: int = typer.Option(30, "--days", help="Look back this many days (ignored when --since is set)."),
+    since: Optional[str] = typer.Option(None, "--since", help="Only snapshots fetched on/after this ISO date."),
+    until: Optional[str] = typer.Option(None, "--until", help="Only snapshots fetched before this ISO date."),
+    pair_tol_min: float = typer.Option(
+        20.0, "--pair-tol-min",
+        help="A venue snapshot pairs with the nearest Pinnacle snapshot within this many minutes.",
+    ),
+    top: int = typer.Option(6, "--top", help="Largest Pinnacle moves to list."),
+    as_json: bool = typer.Option(False, "--json", help="Emit the raw report as JSON."),
+) -> None:
+    """How Pinnacle and a venue's moneyline prices move toward tip-off.
+
+    Read-only on archive.db. Four lenses: the venue-vs-Pinnacle gap per
+    time-to-tip bucket, which side closes a gap, lead-lag between the two
+    books, and the first-snapshot-to-close drift. Moneyline only; resolution
+    is the archive's snapshot cadence (see agents/cleanup/line_moves.py).
+    """
+    import json as _json
+
+    from evmax.agents.cleanup.line_moves import analyze
+    from evmax.archiver import _get_connection
+
+    if venue not in ("kalshi", "polymarket_us"):
+        console.print(f"[red]unknown venue {venue!r}[/red] (kalshi | polymarket_us)")
+        raise typer.Exit(2)
+    if since is None:
+        since = (date.today() - timedelta(days=days)).isoformat()
+    conn = _get_connection()
+    try:
+        rep = analyze(conn, sector, venue=venue, since=since, until=until,
+                      pair_tol_min=pair_tol_min, top=top)
+    finally:
+        conn.close()
+
+    if as_json:
+        print(_json.dumps(rep, indent=2, default=str))
+        return
+
+    vlabel = venue_label(venue)
+    console.print(
+        f"[bold]{sector}[/bold] moneyline, {vlabel} vs Pinnacle, since {since}: "
+        f"{rep['games']} games, {rep['snapshots']} paired pre-tip snapshots "
+        f"(median {rep['median_snapshots_per_game']}/game)"
+    )
+    if not rep["games"]:
+        console.print("[yellow]No paired series.[/yellow] Check the sector, venue and date range.")
+        return
+
+    def _f(v, spec="+.2f", suffix=""):
+        return "—" if v is None else f"{v:{spec}}{suffix}"
+
+    bt = Table(title="Gap and distance to close, by time to tip", box=box.SIMPLE)
+    bt.add_column("To tip")
+    bt.add_column("Games", justify="right")
+    bt.add_column(f"|{vlabel} − Pin|", justify="right")
+    bt.add_column(f"{vlabel} − Pin", justify="right")
+    bt.add_column(f"{vlabel} spread", justify="right")
+    bt.add_column("Pin → close", justify="right")
+    bt.add_column(f"{vlabel} → close", justify="right")
+    for b in rep["buckets"]:
+        bt.add_row(
+            b["bucket"], str(b["games"]), f"{b['abs_gap_pp']:.2f}pp",
+            f"{b['signed_gap_pp']:+.2f}pp", f"{b['venue_spread_pp']:.2f}pp",
+            f"{b['pinnacle_to_close_pp']:.2f}pp", f"{b['venue_to_close_pp']:.2f}pp",
+        )
+    console.print(bt)
+
+    ct = Table(title="Share of a gap closed by the next snapshot (game-clustered t)", box=box.SIMPLE)
+    ct.add_column("Window")
+    ct.add_column("Intervals", justify="right")
+    ct.add_column("Games", justify="right")
+    ct.add_column(f"{vlabel} → Pin", justify="right")
+    ct.add_column("t", justify="right")
+    ct.add_column(f"Pin → {vlabel}", justify="right")
+    ct.add_column("t", justify="right")
+    for key, label in (("all", "all"), ("over_6h", "6h+ to tip"), ("under_6h", "under 6h")):
+        c = rep["closure"][key]
+        if c is None:
+            continue
+        ct.add_row(
+            label, str(c["n"]), str(c["games"]),
+            f"{c['venue_toward_pinnacle']:+.3f}", _f(c["venue_t"], "+.1f"),
+            f"{c['pinnacle_toward_venue']:+.3f}", _f(c["pinnacle_t"], "+.1f"),
+        )
+    console.print(ct)
+
+    ll = rep["lead_lag"]
+    if ll:
+        pv, vp = ll["pinnacle_leads_venue"], ll["venue_leads_pinnacle"]
+        console.print(
+            f"Lead-lag (n={pv['n']}, {pv['games']} games): Pinnacle move → next {vlabel} move "
+            f"slope {pv['slope']:+.3f} (t {_f(pv['t'], '+.1f')}); {vlabel} move → next Pinnacle move "
+            f"slope {vp['slope']:+.3f} (t {_f(vp['t'], '+.1f')})"
+        )
+
+    d = rep["drift"]
+    if d:
+        console.print(
+            f"Drift, first snapshot (6h+ out) to close, {d['games']} games: mean |Pinnacle move| "
+            f"{d['mean_abs_move_pp']:.2f}pp, median {d['median_abs_move_pp']:.2f}pp, "
+            f"{d['moves_ge_3pp']} moved 3pp+; favorite drift {d['favorite_drift_pp']:+.2f}pp "
+            f"(z {_f(d['favorite_drift_z'], '+.1f')}), favorite shortened in "
+            f"{d['favorite_shortened_pct']:.0f}%"
+        )
+        lt = Table(title="Largest Pinnacle moves", box=box.SIMPLE)
+        lt.add_column("Event", no_wrap=False, min_width=24)
+        lt.add_column("Outcome", no_wrap=False)
+        lt.add_column("Game date")
+        lt.add_column("Pin first → close", justify="right")
+        lt.add_column(f"{vlabel} first → close", justify="right")
+        lt.add_column("First seen", justify="right")
+        for r in d["largest"]:
+            parts = r["event_id"].split("::")
+            lt.add_row(
+                f"{r['team'].title()} vs {r['opponent'].title()}",
+                f"{r['team'].title()} ML",
+                parts[1] if len(parts) > 1 else "",
+                f"{r['pinnacle_first']:.3f} → {r['pinnacle_close']:.3f}",
+                f"{r['venue_first']:.3f} → {r['venue_close']:.3f}",
+                f"{r['first_lead_h']:.0f}h out",
+            )
+        console.print(lt)
+
+
 def _stale_unmatched_candidates(conn, cutoff_str: str):
     """Live, unresolved, not-yet-voided predictions before the cutoff.
 
