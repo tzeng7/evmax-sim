@@ -94,3 +94,5 @@ data/golf_captures/
 # Kalshi fee-watch canary artifact (scripts/check_kalshi_fees.py)
 kalshi-fee-result.json
 polymarket-us-fee-result.json
+# Polymarket US price-history cache (scripts/eval_polyus_maker_replay.py)
+data/backtest/polyus_history/
