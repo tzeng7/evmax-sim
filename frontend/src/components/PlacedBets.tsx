@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import type { Bet } from '../lib/types'
 import type { ToastOptions } from '../hooks/useToast'
 import { probToCents, centsToProb, outcomeLabel } from '../lib/odds'
+import { fmtDay, fmtUsd, prettyOutcome } from '../lib/format'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
 import { updatePlaced, unplaceBets, pickBets } from '../lib/api'
@@ -124,7 +125,7 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
           {filtered.map(b => (
             <tr key={b.market_id}>
               <td><button className="btn-del" aria-label={`Remove ${b.event_title}`} title="Remove" onClick={() => handleRemove(b)}>&times;</button></td>
-              <td className="muted">{b.event_date}</td>
+              <td className="muted nowrap" title={b.event_date}>{fmtDay(b.event_date)}</td>
               <td>
                 <span className="badge">{b.sector}</span>
                 {b.maker_fill === 1 && (
@@ -137,7 +138,7 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
               </td>
               <td><VenueLogo venue={b.venue} /></td>
               <td>{b.event_title}</td>
-              <td>{outcomeLabel(b)}</td>
+              <td>{prettyOutcome(outcomeLabel(b), b.event_title)}</td>
               <td className="num">{Math.round((b.blended_true_prob || 0) * 100)}%</td>
               <td className="num green">{((b.ev_pct || 0) * 100).toFixed(1)}%</td>
               <td className="num">
@@ -150,13 +151,13 @@ export function PlacedBets({ bets, toast, onChanged }: Props) {
                   onChange={e => updateField(b.market_id, 'stake', e.target.value)}
                   style={{ width: 70 }} min="0.01" step="0.01" />
               </td>
-              <td className="num green">${toWin(b).toFixed(2)}</td>
+              <td className="num green">{fmtUsd(toWin(b))}</td>
             </tr>
           ))}
         </tbody>
       </table>
       <div style={{ marginTop: 8, fontSize: 11, color: 'var(--muted)' }}>
-        Total exposure: ${totalExposure.toFixed(2)}
+        Total exposure: {fmtUsd(totalExposure)} · to win {fmtUsd(filtered.reduce((sum, b) => sum + toWin(b), 0))}
       </div>
     </div>
   )

@@ -70,7 +70,11 @@ export function PortfolioGrid({ onSelect, toast }: Props) {
     }
   }
 
-  if (loading) return <div style={{ color: '#767b85', padding: 20 }}>Loading portfolios...</div>
+  if (loading) return (
+    <div className="grid-skel" aria-busy="true" aria-label="Loading portfolios">
+      {Array.from({ length: 6 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 132 }} />)}
+    </div>
+  )
 
   const grouped = new Map<string, Portfolio[]>()
   for (const p of portfolios) {

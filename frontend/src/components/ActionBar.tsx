@@ -4,6 +4,7 @@ import { runScan, resolve, fetchBalances } from '../lib/api'
 import { useCategories } from '../lib/useCategories'
 import { SectorMultiSelect } from './SectorMultiSelect'
 import { fmtDate, fmtTomorrow, yesterday } from '../lib/odds'
+import { fmtUsd } from '../lib/format'
 import type { ScanGap } from '../lib/types'
 
 // Bankroll BASE selector. Decoupled from play scope (2026-09-18): the choice
@@ -16,15 +17,13 @@ import type { ScanGap } from '../lib/types'
 const BANKROLL_VENUES: { value: string; label: string }[] = [
   { value: 'auto', label: 'Auto (combined live)' },
   { value: '', label: 'Manual' },
-  { value: 'kalshi', label: 'Kalshi wealth' },
-  { value: 'polymarket_us', label: 'Polymarket US wealth' },
+  { value: 'kalshi', label: 'Kalshi (live)' },
+  { value: 'polymarket_us', label: 'Polymarket US (live)' },
 ]
 
 const venueLabel = (v: string) =>
   BANKROLL_VENUES.find(o => o.value === v)?.label ?? v
 
-const fmtUsd = (n: number) =>
-  n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 })
 
 interface Props {
   bankrollStr: string
@@ -37,7 +36,7 @@ interface Props {
     snapshot: { bankroll: number; kelly: number },
   ) => void
   onResolve: () => void
-  toast: (msg: string, type?: 'info' | 'ok' | 'err') => void
+  toast: (msg: string, type?: 'info' | 'ok' | 'err', opts?: { ms?: number }) => void
   // The primary Scan/Resolve verbs render into this top-bar slot (a portal),
   // so they sit with navigation as top-level actions instead of trailing the
   // parameter row. Until the slot mounts they simply don't render.
@@ -64,6 +63,15 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
   const [dateTo, setDateTo] = useState(fmtTomorrow)
   const [scanning, setScanning] = useState(false)
   const [resolving, setResolving] = useState(false)
+  // Seconds since the scan started. A scan takes several seconds, so the
+  // button counts up instead of showing a static label.
+  const [elapsed, setElapsed] = useState(0)
+  useEffect(() => {
+    if (!scanning) return
+    const t0 = Date.now()
+    const id = setInterval(() => setElapsed(Math.round((Date.now() - t0) / 1000)), 500)
+    return () => { clearInterval(id); setElapsed(0) }
+  }, [scanning])
   // Bankroll source: '' = manual (type it), or a venue whose LIVE total-wealth
   // balance seeds the bankroll. When a venue is selected the server re-resolves
   // the balance at scan time (bankroll_venue), so it is authoritative; the
@@ -125,7 +133,6 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
 
   const handleScan = async () => {
     setScanning(true)
-    toast('Scanning markets...', 'info')
     try {
       const data = await runScan({
         sectors, bankroll, kelly, date_from: dateFrom, date_to: dateTo,
@@ -155,7 +162,7 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
       } else if (data.bankroll_source === 'manual_fallback') {
         bankrollSuffix = ` · ${venueLabel(bankrollVenue)} balance unavailable, used manual ${fmtUsd(usedBankroll)}`
       }
-      toast(`Found ${data.gaps.length} +EV plays across ${data.markets_fetched} markets${portfolioSuffix}${bankrollSuffix}`, 'ok')
+      toast(`Found ${data.gaps.length} +EV plays across ${data.markets_fetched} markets${portfolioSuffix}${bankrollSuffix}`, 'ok', { ms: 6000 })
     } catch (e) {
       toast('Scan failed: ' + (e as Error).message, 'err')
     } finally {
@@ -165,7 +172,6 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
 
   const handleResolve = async () => {
     setResolving(true)
-    toast('Resolving outcomes...', 'info')
     try {
       // Resolve yesterday + today, then sync portfolios once on the second
       // call (after both dates' ev_outcomes are populated). One click now
@@ -186,11 +192,15 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
 
   const actions = (
     <>
-      <button className="btn primary" onClick={handleScan} disabled={scanning}>
-        {scanning ? 'Scanning...' : 'Scan'}
+      <button className="btn primary" onClick={handleScan} disabled={scanning} aria-busy={scanning}
+        title="Fetch both venues and Pinnacle, then list every +EV play for the sectors and dates below">
+        {scanning
+          ? <><span className="spinner" aria-hidden="true" />Scanning <span className="btn-count">{elapsed}s</span></>
+          : 'Scan'}
       </button>
-      <button className="btn" onClick={handleResolve} disabled={resolving}>
-        {resolving ? 'Resolving...' : 'Resolve'}
+      <button className="btn" onClick={handleResolve} disabled={resolving} aria-busy={resolving}
+        title="Grade yesterday's and today's finished games and sync portfolio outcomes">
+        {resolving ? <><span className="spinner" aria-hidden="true" />Resolving</> : 'Resolve'}
       </button>
     </>
   )
@@ -214,7 +224,7 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
         >
           {BANKROLL_VENUES.map(o => (
             <option key={o.value || 'manual'} value={o.value}>
-              {o.value ? `${o.label} (live)` : o.label}
+              {o.label}
             </option>
           ))}
         </select>
@@ -266,7 +276,11 @@ export function ActionBar({ bankrollStr, setBankrollStr, kelly, setKelly, onScan
       <span className="tool-sep" aria-hidden="true" />
 
       <div className="tool-group">
-        <span className="tool-label">Range</span>
+        <span className="tool-label">Games</span>
+        <button type="button" className="btn btn-sm tool-preset"
+          onClick={() => { setDateFrom(fmtDate()); setDateTo(fmtDate()) }}>Today</button>
+        <button type="button" className="btn btn-sm tool-preset"
+          onClick={() => { setDateFrom(fmtDate()); setDateTo(fmtTomorrow()) }}>+1 day</button>
         <input type="date" className="tool-date" value={dateFrom}
           onChange={e => setDateFrom(e.target.value)} title="From date" />
         <span className="tool-dash" aria-hidden="true">–</span>

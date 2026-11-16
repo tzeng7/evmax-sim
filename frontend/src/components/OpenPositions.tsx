@@ -2,6 +2,7 @@ import { usePersistedState } from '../hooks/usePersistedState'
 import { useState, useMemo, useCallback } from 'react'
 import type { Bet, ScanGap } from '../lib/types'
 import { probToCents, outcomeLabel } from '../lib/odds'
+import { fmtDay, fmtUsd, prettyOutcome } from '../lib/format'
 import { SectorFilter } from './SectorFilter'
 import { VenueLogo } from './VenueLogo'
 import { useRowKeyboard } from '../hooks/useRowKeyboard'
@@ -183,7 +184,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
           {bets.length > 0 && <button className="btn btn-sm success" onClick={handlePick}>Pick All</button>}
         </div>
       </div>
-      <div {...kb.containerProps} className="scroll-area kb-table">
+      <div {...kb.containerProps} className="scroll-area table-scroll kb-table">
         <table className="card-tbl st-open">
           <thead>
             <tr>
@@ -213,7 +214,7 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
                     {scanMids.has(b.market_id) && <span className="badge new">NEW</span>}
                     {b.status === 'in_progress' && <span className="badge warn" title="Game has started — awaiting resolution">LIVE</span>}
                   </td>
-                  <td className="muted">{b.event_date}</td>
+                  <td className="muted nowrap" title={b.event_date}>{fmtDay(b.event_date)}</td>
                   <td className="num" style={bucketStyle(bucketOf(b))}
                     title={b.tip_time ? new Date(b.tip_time).toLocaleString() : 'Tip time unknown'}>
                     {formatTimeToTip(minutesToTip(b.tip_time, now))}
@@ -221,12 +222,12 @@ export function OpenPositions({ bets, scanGaps, bankroll, kelly, scanKelly, toas
                   <td><span className="badge">{b.sector}</span></td>
                   <td><VenueLogo venue={b.venue} /></td>
                   <td>{b.event_title}</td>
-                  <td>{outcomeLabel(b)}</td>
+                  <td>{prettyOutcome(outcomeLabel(b), b.event_title)}</td>
                   <td className="num">{probToCents(b.kalshi_yes_price)}</td>
                   <VerifyCells v={v} />
                   <td className="num">{probToCents(b.blended_true_prob)}</td>
                   <td className="num green">{((b.ev_pct || 0) * 100).toFixed(1)}%</td>
-                  <td className="num">${(v?.keep && v.stake > 0 ? v.stake : stake).toFixed(2)}</td>
+                  <td className="num">{fmtUsd(v?.keep && v.stake > 0 ? v.stake : stake)}</td>
                 </tr>
               )
             })}

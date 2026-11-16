@@ -33,7 +33,8 @@ export function useToast() {
     setAction(opts?.action)
     setVisible(true)
     clearTimeout(timer.current)
-    const ms = opts?.ms ?? (opts?.action ? 6000 : 3000)
+    // Errors stay up longer: they usually carry a reason worth reading.
+    const ms = opts?.ms ?? (opts?.action ? 6000 : toastType === 'err' ? 8000 : 3000)
     timer.current = setTimeout(() => setVisible(false), ms)
   }, [])
 

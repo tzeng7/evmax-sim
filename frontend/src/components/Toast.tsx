@@ -10,7 +10,7 @@ interface Props {
 
 export function Toast({ msg, type, visible, action, dismiss }: Props) {
   return (
-    <div className={`toast ${visible ? 'show' : ''} ${type}`}>
+    <div className={`toast ${visible ? 'show' : ''} ${type}`} role={type === 'err' ? 'alert' : 'status'} aria-live="polite">
       <span>{msg}</span>
       {action && (
         <button
@@ -20,6 +20,9 @@ export function Toast({ msg, type, visible, action, dismiss }: Props) {
         >
           {action.label}
         </button>
+      )}
+      {dismiss && (
+        <button type="button" className="toast-close" aria-label="Dismiss" onClick={dismiss}>&times;</button>
       )}
     </div>
   )
