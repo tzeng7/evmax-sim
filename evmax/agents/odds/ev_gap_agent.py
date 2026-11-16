@@ -413,6 +413,31 @@ def _minutes_to_tipoff(event_date: Optional[datetime]) -> Optional[int]:
     return max(0, int(delta))
 
 
+def _scan_now() -> datetime:
+    """Clock for the pre-start gate. Tests with fixed-date fixtures freeze it."""
+    return datetime.now(timezone.utc)
+
+
+def _event_started(sharp, now: Optional[datetime] = None) -> bool:
+    """True when the sharp record's start time is at or before ``now``.
+
+    Pinnacle's guest API keeps serving a matchup's FROZEN pre-game line for
+    40+ minutes after the start (2026-11-14 Le Moyne vs Manhattan: start
+    23:00Z, same 0.551/0.449 line still served at 23:39Z). The venue ask is
+    in-play by then, so pricing it against the frozen line produces phantom
+    edges (+135% EV logged live). Only the sharp start time is used: a venue
+    ``event_date`` is a noon-UTC ticker-date anchor, not a start time. A
+    record with no start time is NOT treated as started (fail-open, the
+    pre-existing behaviour).
+    """
+    start = getattr(sharp, "event_date", None)
+    if start is None:
+        return False
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    return start <= (now or _scan_now())
+
+
 def _maker_bid_plan(
     true_prob: float,
     ask: float,
@@ -576,6 +601,16 @@ class EVGapAgent(Agent):
         matched = self._matching.match_all(regular_markets, sharp_regular)
         prop_matched = self._prop_matcher.match_all(prop_markets, sharp_props)
         gaps: list[EVGap] = []
+
+        # Pre-start gate: never price a market whose game has already started
+        # (see _event_started). Applies to every sector and market type.
+        now = _scan_now()
+        n_before = len(matched) + len(prop_matched)
+        matched = [t for t in matched if not _event_started(t[1], now)]
+        prop_matched = [t for t in prop_matched if not _event_started(t[1], now)]
+        n_started = n_before - len(matched) - len(prop_matched)
+        if n_started:
+            self.log.info("ev_gap_started_events_skipped", sector=sector, count=n_started)
 
         for market, sharp, confidence in matched:
             yes_gap, blend_payload = self._evaluate_pair(
