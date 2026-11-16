@@ -270,3 +270,138 @@ class TestOverSide:
         assert over[0].sharp_true_prob == pytest.approx(0.60)
         assert over[0].yes_team == "over"
         assert "anchored_entry" in over[0].model_sources
+
+
+# ---------------------------------------------------------------------------
+# Early-totals stream (NFL, shadow): unposted rungs priced by the fitted model
+# ---------------------------------------------------------------------------
+
+NFL_GAME = "nfl::2026-11-22::seahawks_vs_patriots"
+NFL_NOW = datetime(2026, 11, 19, 12, 0, tzinfo=timezone.utc)
+NFL_TIP = datetime(2026, 11, 22, 18, 0, tzinfo=timezone.utc)      # 78h out
+
+
+def _nfl_total_market(line=47.5, yes_price=0.40) -> PredictionMarket:
+    ticker = f"KXNFLTOTAL-26NOV22SEANE-{int(line)}"
+    return PredictionMarket(
+        id=f"kalshi:{ticker}", source=MarketSource.kalshi, sector="nfl",
+        market_type=MarketType.total, ticker=ticker,
+        yes_price=yes_price, no_price=1 - yes_price + 0.03,
+        team_home="patriots", team_away="seahawks", yes_team="over", line=line,
+        event_date=datetime(2026, 11, 22, 12, 0, tzinfo=timezone.utc), volume_usd=100.0,
+    )
+
+
+def _nfl_total_sharp(total_line=44.5, p_over=0.50, tip=NFL_TIP) -> SharpOdds:
+    return SharpOdds(
+        event_id=f"{NFL_GAME}::total::{total_line}", book=SharpBook.pinnacle, sector="nfl",
+        outcome_a_label="Over", outcome_b_label="Under",
+        outcome_a_decimal=2.0, outcome_b_decimal=2.0,
+        true_prob_a=p_over, true_prob_b=1 - p_over, margin=0.03, total_line=total_line,
+        true_prob_over=p_over, true_prob_under=1 - p_over, event_date=tip,
+    )
+
+
+class TestEarlyTotals:
+    @pytest.fixture(autouse=True)
+    def _needs_artifact(self):
+        from evmax.models_ml.line_pmf import load_line_pmf
+        if load_line_pmf("nfl", "total") is None:
+            pytest.skip("no fitted NFL total artifact")
+
+    def _model_fair(self, line=47.5):
+        from evmax.agents.cleanup.anchored_entry import _model_total_fair
+        return _model_total_fair({44.5: (0.50, 0.50)}, "over", line, "nfl")
+
+    def test_unposted_rung_is_model_priced_and_tagged(self):
+        fair = self._model_fair()
+        assert fair is not None and 0.30 < fair < 0.49      # 3 points above a 44.5 main
+        m = _nfl_total_market()
+        ask = round(fair - 0.04, 2)                           # ~2.5pp edge after the fee
+        gaps = build_anchored_entries(
+            [m], {m.ticker: book(ask=ask, bid=ask - 0.02)}, [_nfl_total_sharp()],
+            "nfl", now=NFL_NOW)
+        over = [g for g in gaps if g.market_id == m.id]
+        assert len(over) == 1
+        g = over[0]
+        assert g.model_sources == "sharp+total_pmf+early_total"
+        assert "anchored_entry" not in g.model_sources      # never pools into the 2pp gate
+        assert g.sharp_true_prob == pytest.approx(fair)
+        assert g.kalshi_yes_price == pytest.approx(ask)
+        assert g.kelly_fraction == 0.0 and g.venue == "kalshi"
+
+    def test_one_point_edge_threshold_not_two(self):
+        fair = self._model_fair()
+        m = _nfl_total_market()
+        # ~1.3pp net edge: passes this stream's 1pp gate (the 2pp gate would block).
+        from evmax.ev.calculator import effective_price
+        ask = next(a / 100 for a in range(int(fair * 100), 0, -1)
+                   if 1.0 <= (fair - effective_price(a / 100, "kalshi")) * 100 < 2.0)
+        gaps = build_anchored_entries(
+            [m], {m.ticker: book(ask=ask, bid=ask - 0.02)}, [_nfl_total_sharp()],
+            "nfl", now=NFL_NOW)
+        assert [g.market_id for g in gaps if g.market_id == m.id] == [m.id]
+        # under 1pp: nothing
+        thin = next(a / 100 for a in range(int(fair * 100) + 1, 0, -1)
+                    if 0.0 < (fair - effective_price(a / 100, "kalshi")) * 100 < 1.0)
+        gaps = build_anchored_entries(
+            [m], {m.ticker: book(ask=thin, bid=thin - 0.02)}, [_nfl_total_sharp()],
+            "nfl", now=NFL_NOW)
+        assert [g for g in gaps if g.market_id == m.id] == []
+
+    def test_inside_24h_the_stream_is_off(self):
+        fair = self._model_fair()
+        m = _nfl_total_market()
+        late = NFL_TIP - timedelta(hours=23)
+        gaps = build_anchored_entries(
+            [m], {m.ticker: book(ask=round(fair - 0.06, 2), bid=0.20)},
+            [_nfl_total_sharp()], "nfl", now=late)
+        assert gaps == []                                    # 3 pts from the ladder: unpriced
+
+    def test_posted_rung_stays_on_the_anchored_stream(self):
+        m = _nfl_total_market(line=44.5)
+        gaps = build_anchored_entries(
+            [m], {m.ticker: book(ask=0.50, bid=0.45)}, [_nfl_total_sharp(44.5, 0.60)],
+            "nfl", now=NFL_NOW)
+        over = [g for g in gaps if g.market_id == m.id]
+        assert len(over) == 1
+        assert over[0].sharp_true_prob == pytest.approx(0.60)
+        assert over[0].model_sources == "sharp+anchored_entry"
+
+    def test_under_side_is_the_complement_with_no_side_token(self):
+        fair = self._model_fair()
+        m = _nfl_total_market()
+        bid = round(fair + 0.05, 2)                           # NO costs 1-bid, fair NO = 1-fair
+        gaps = build_anchored_entries(
+            [m], {m.ticker: book(ask=0.99, bid=bid)}, [_nfl_total_sharp()],
+            "nfl", now=NFL_NOW)
+        no = [g for g in gaps if g.market_id == f"{m.id}:no"]
+        assert len(no) == 1
+        assert no[0].yes_team == "under" and no[0].line == 47.5
+        assert no[0].sharp_true_prob == pytest.approx(1 - fair)
+        assert no[0].model_sources == "sharp+total_pmf+no_side+early_total"
+
+    def test_depth_gate_still_applies(self):
+        fair = self._model_fair()
+        m = _nfl_total_market()
+        gaps = build_anchored_entries(
+            [m], {m.ticker: book(ask=round(fair - 0.05, 2), ask_usd=10.0, bid=0.10)},
+            [_nfl_total_sharp()], "nfl", now=NFL_NOW)
+        assert [g for g in gaps if g.market_id == m.id] == []
+
+    def test_other_sectors_and_missing_model_do_not_use_the_stream(self, monkeypatch):
+        # wnba: an unposted rung far from the ladder stays unpriced (existing test
+        # test_total_far_from_ladder_line_skipped); nfl without the fitted model too.
+        import evmax.models_ml.total_distribution as td
+        monkeypatch.setattr(td, "TOTAL_LADDER_SECTORS", set())      # normal-curve fallback
+        m = _nfl_total_market()
+        gaps = build_anchored_entries(
+            [m], {m.ticker: book(ask=0.20, bid=0.10)}, [_nfl_total_sharp()],
+            "nfl", now=NFL_NOW)
+        assert gaps == []
+
+    def test_token_is_registered_as_non_model(self):
+        from evmax.agents.cleanup import improve_triggers, integrity
+        assert "early_total" in integrity._NON_MODEL_SOURCE_TOKENS
+        assert any("early_total" in v for v in vars(improve_triggers).values()
+                   if isinstance(v, (set, frozenset, tuple, list)))

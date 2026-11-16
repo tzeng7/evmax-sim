@@ -15,6 +15,10 @@ from evmax.db import Base
 
 class SharpBook(str, enum.Enum):
     pinnacle = "pinnacle"
+    # Not a book: the sector's own model blend used as the anchor where no
+    # sharp line exists (evmax/agents/models/model_anchor.py). Archived under
+    # this name, so a query for book = 'pinnacle' never returns it.
+    evmax_model = "evmax_model"
     fanduel = "fanduel"
     draftkings = "draftkings"
     betmgm = "betmgm"
@@ -22,6 +26,8 @@ class SharpBook(str, enum.Enum):
     betonlineag = "betonlineag"
     bovada = "bovada"
     lowvig = "lowvig"
+    betrivers = "betrivers"
+    williamhill = "williamhill"   # Caesars
     consensus = "consensus"  # multi-book weighted average
 
 

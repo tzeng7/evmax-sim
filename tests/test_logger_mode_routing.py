@@ -452,8 +452,19 @@ class TestHasFullBlend:
         assert has_full_blend("tennis", "sharp") is False
 
     def test_unlisted_sector_always_passes(self):
-        assert has_full_blend("nba", "sharp") is True
+        assert has_full_blend("baseball", "sharp") is True
         assert has_full_blend(None, None) is True
+
+    def test_ladder_sector_spread_needs_the_books_own_rung(self):
+        # NBA joined the layered spread stack 2026-11-16: a spread rung priced by
+        # a model is backend-only; one priced off Pinnacle's own rung is eligible.
+        # Other market types are untouched, and no market type fails closed.
+        assert has_full_blend("nba", "sharp+spread_pmf", "spread") is False
+        assert has_full_blend("nba", "sharp+spread_dist", "spread") is False
+        assert has_full_blend("nba", "sharp+sharp_ladder", "spread") is True
+        assert has_full_blend("nba", "sharp", "moneyline") is True
+        assert has_full_blend("nba", "sharp+total_pmf", "total") is True
+        assert has_full_blend("nba", "sharp") is False
 
 
 class TestMinNonsharpFloor:

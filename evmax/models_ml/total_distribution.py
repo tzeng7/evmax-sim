@@ -66,11 +66,41 @@ _GAME_TOTAL_FLOOR: dict[str, float] = {
 }
 
 
+TOTAL_DIST_TOKEN = "total_dist"    # normal curve off the matched Pinnacle total
+TOTAL_PMF_TOKEN = "total_pmf"      # fitted LinePMF off the matched Pinnacle total
+TOTAL_LADDER_TOKEN = "sharp_ladder"  # Pinnacle's own price for this exact rung
+
+# Layered totals (2026-11-16). For these sectors a total is priced, in order:
+#   1. Pinnacle's own price when the matched Pinnacle total is this EXACT line
+#      (TOTAL_LADDER_TOKEN): the book's ladder, no curve at all;
+#   2. the fitted LinePMF anchored on the matched Pinnacle total (TOTAL_PMF_TOKEN),
+#      when data/models/line_pmf/{sector}_total.json exists;
+#   3. the normal curve (TOTAL_DIST_TOKEN), as before.
+# The possession-sim overlay is not applied in these sectors: the fair value is
+# the sharp book's distribution, read or reconstructed.
+TOTAL_LADDER_SECTORS: set[str] = {"nfl", "nba", "ncaab", "ncaaw"}
+TOTAL_LADDER_EXACT_TOLERANCE: float = 0.01
+
+
+def total_ladder_enabled(sector: Optional[str]) -> bool:
+    """True when ``sector`` prices totals with the layered stack."""
+    return (sector or "").lower() in TOTAL_LADDER_SECTORS
+
+
+def total_rung_is_exact(sector: Optional[str], pinnacle_line: Optional[float],
+                        target_line: Optional[float]) -> bool:
+    """True when the matched Pinnacle total IS the venue's line (layered sectors only)."""
+    if not total_ladder_enabled(sector) or pinnacle_line is None or target_line is None:
+        return False
+    return abs(float(pinnacle_line) - float(target_line)) <= TOTAL_LADDER_EXACT_TOLERANCE
+
+
 @dataclass
 class TotalPrediction:
     true_prob: float       # P(YES side is correct: over or under)
     implied_mean: float    # inferred mean total score
     sigma: float           # standard deviation used
+    method: str = TOTAL_DIST_TOKEN   # model_sources token for the pricing path
 
 
 class TotalDistributionModel:
@@ -128,6 +158,25 @@ class TotalDistributionModel:
                 max_distance=max_distance,
             )
             return None
+
+        # Layered sectors: the fitted LinePMF replaces the normal curve when an
+        # artifact exists. Same gate (applied above), same anchor: the matched
+        # Pinnacle total and its devigged over probability.
+        if total_ladder_enabled(sector):
+            from evmax.models_ml.line_pmf import load_line_pmf
+
+            pmf = load_line_pmf(sector, "total")
+            p_over_target = (
+                pmf.over_probability(pinnacle_line, prob_over, target_line) if pmf else None
+            )
+            if p_over_target is not None:
+                true_prob = (1.0 - p_over_target) if yes_is_under else p_over_target
+                return TotalPrediction(
+                    true_prob=max(0.01, min(0.99, true_prob)),
+                    implied_mean=pmf.anchor(pinnacle_line, prob_over) or pinnacle_line,
+                    sigma=pmf.scale(pinnacle_line),
+                    method=TOTAL_PMF_TOKEN,
+                )
 
         # Infer implied mean total score:
         #   P(total > pinnacle_line) = prob_over

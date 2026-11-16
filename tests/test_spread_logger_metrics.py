@@ -242,7 +242,10 @@ class TestSpreadDistributionModel:
         result_nba = self.model.predict(sharp_nba, target_line=-12.5, sector="nba")
         assert result_nba is not None
 
-    def test_result_contains_implied_mean_and_sigma(self):
+    def test_result_contains_implied_mean_and_sigma(self, monkeypatch):
+        # Pin the normal-CDF path: NBA uses the fitted LinePMF when it exists.
+        from evmax.models_ml import spread_distribution as sd
+        monkeypatch.setattr(sd, "_LINE_PMF_SECTORS", set())
         sharp = _sharp_spread(spread_line=-7.5, true_prob_a=0.55)
         result = self.model.predict(sharp, target_line=-7.5, sector="nba")
         assert result is not None

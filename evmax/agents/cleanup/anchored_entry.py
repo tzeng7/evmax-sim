@@ -54,6 +54,67 @@ DEFAULT_MIN_LEAD_MINUTES = 20.0
 
 SOURCES_TOKEN = "anchored_entry"
 
+# ---------------------------------------------------------------------------
+# Early-totals stream (2026-11-16, shadow only)
+#
+# A total rung Pinnacle does NOT post at exactly that line has no anchor price
+# (the stream above borrows a neighbour within half a point, or skips it). For
+# the sectors below such a rung is priced by the fitted LinePMF
+# (models_ml/line_pmf.py, token `total_pmf`) off Pinnacle's most balanced rung,
+# and logged when the net-of-fee edge is >= EARLY_TOTAL_EDGE_MIN_PP and kickoff
+# is >= EARLY_TOTAL_MIN_LEAD_H away.
+#
+# Evidence (market-tape replay 2026-11-16, Kalshi NFL totals, CLV to the venue
+# close net of the taker fee, game-clustered 95% CI): edge >= 1pp and lead
+# >= 24h -> fit +2.80pp [+1.51, +4.12] (105 bets / 38 games), holdout from
+# 2026-10-20 +1.11pp [+0.06, +2.16] (71 / 33). Inside 24h the same rule is flat
+# (-0.60 / +0.49). On rungs Pinnacle posts, the holdout is +0.30 [-2.56, +1.98].
+# One season, CLV not realized profit, and the replay had no depth gate.
+#
+# WARNING (same day): re-scored on the archived order book, the replay does NOT
+# hold. The book's crossable price was above the archived market-list price in
+# 58% of the triggered entries (mean +2.6pp); entries that keep a 1pp edge at
+# the book price have book-to-book CLV of +0.56 [-0.74, +1.72] (fit) and
+# -0.18 [-0.80, +0.45] (holdout). This stream prices at the book, so it is the
+# honest forward check; expect few rows and a result near zero.
+#
+# Rows carry `early_total` INSTEAD of `anchored_entry`, so the 1pp stream never
+# pools into the 2pp anchored-entry gate: read it with
+# `cleanup shadow clv nfl -m total --venue kalshi --sources-token early_total`.
+# ---------------------------------------------------------------------------
+EARLY_TOTAL_SECTORS: frozenset[str] = frozenset({"nfl"})
+EARLY_TOTAL_TOKEN = "early_total"
+EARLY_TOTAL_EDGE_MIN_PP = 1.0
+EARLY_TOTAL_MIN_LEAD_H = 24.0
+
+
+def _model_total_fair(ladder: dict, yes_side: str, line: float, sector: str) -> Optional[float]:
+    """P(YES) for a total rung Pinnacle does not post, from the fitted LinePMF.
+
+    Anchored on the most balanced rung of Pinnacle's ladder (its main total).
+    Returns None unless the fitted model priced it: the normal-curve fallback
+    is not the pricing the replay validated.
+    """
+    if not ladder:
+        return None
+    from evmax.models.odds import SharpBook
+    from evmax.models_ml.total_distribution import TOTAL_PMF_TOKEN, TotalDistributionModel
+
+    main_line, (p_over, p_under) = min(ladder.items(), key=lambda kv: abs(kv[1][0] - 0.5))
+    if p_over is None or p_under is None:
+        return None
+    so = SharpOdds(
+        event_id="early_total::total", book=SharpBook.pinnacle, sector=sector,
+        outcome_a_label="over", outcome_b_label="under",
+        outcome_a_decimal=2.0, outcome_b_decimal=2.0,
+        true_prob_over=p_over, true_prob_under=p_under, total_line=main_line,
+    )
+    pred = TotalDistributionModel().predict(
+        so, target_line=line, sector=sector, yes_is_under=(yes_side == "under"))
+    if pred is None or pred.method != TOTAL_PMF_TOKEN:
+        return None
+    return pred.true_prob
+
 
 def _group_sharp(sharp_odds: list[SharpOdds]) -> dict:
     """{game_key: {"tip": dt, "spread": SharpOdds|None, "totals": {line: (p_o, p_u)}}}.
@@ -140,6 +201,7 @@ def build_anchored_entries(
             continue
 
         yes_team = (m.yes_team or "").strip().lower()
+        stream_token, edge_min = SOURCES_TOKEN, ev_min_pp
         if mt == "spread":
             if g["spread"] is None:
                 continue
@@ -149,8 +211,26 @@ def build_anchored_entries(
             # token tells the CLV gate which pricing selected the entry.
             sources = f"sharp+{pred.method}" if pred else "sharp+spread_dist"
         else:
-            fair = _fair_yes_total(g["totals"], yes_team, m.line)
-            sources = "sharp"
+            # Early-totals stream: a rung Pinnacle does not post at EXACTLY this
+            # line, far enough from kickoff, is priced by the fitted model. It
+            # takes precedence over the half-point-neighbour price below (a
+            # neighbour is a different bet across an NFL key total).
+            posted = any(abs(k - m.line) < 0.01 for k in g["totals"])
+            early = (
+                sector.lower() in EARLY_TOTAL_SECTORS and not posted
+                and _minutes_to_tip(tip, now) >= EARLY_TOTAL_MIN_LEAD_H * 60
+            )
+            model_fair = (
+                _model_total_fair(g["totals"], yes_team, m.line, sector) if early else None
+            )
+            if model_fair is not None:
+                fair = model_fair
+                sources = "sharp+total_pmf"
+                stream_token = EARLY_TOTAL_TOKEN
+                edge_min = EARLY_TOTAL_EDGE_MIN_PP
+            else:
+                fair = _fair_yes_total(g["totals"], yes_team, m.line)
+                sources = "sharp"
         if fair is None or not (0 < fair < 1):
             continue
 
@@ -185,7 +265,7 @@ def build_anchored_entries(
             eff_ask = effective_price(ask, fee_venue)
             edge = (fair - eff_ask) * 100
             depth_usd = (d.get("yes_ask_depth_usd") if d else None) or 0.0
-            if edge >= ev_min_pp and depth_usd >= depth_min_usd:
+            if edge >= edge_min and depth_usd >= depth_min_usd:
                 ev, _ = calculate_ev(eff_ask, fair)
                 gaps.append(EVGap(
                     market_id=m.id,
@@ -195,7 +275,7 @@ def build_anchored_entries(
                     blended_true_prob=fair,  # pure anchor — no sim, by design
                     ev_pct=ev,
                     line=m.line,
-                    model_sources=f"{sources}+{SOURCES_TOKEN}",
+                    model_sources=f"{sources}+{stream_token}",
                     **common,
                 ))
 
@@ -205,7 +285,7 @@ def build_anchored_entries(
             eff_no_price = effective_price(no_price, fee_venue)
             edge = ((1.0 - fair) - eff_no_price) * 100  # fair_no - net no cost
             depth_usd = (d.get("yes_bid_depth_usd") if d else None) or 0.0
-            if edge >= ev_min_pp and depth_usd >= depth_min_usd and 0 < no_price < 1:
+            if edge >= edge_min and depth_usd >= depth_min_usd and 0 < no_price < 1:
                 ev, _ = calculate_ev(eff_no_price, 1.0 - fair)
                 if mt == "spread":
                     no_team = next(iter(frozenset((home, away)) - {yes_team}), "?")
@@ -221,7 +301,7 @@ def build_anchored_entries(
                     blended_true_prob=1.0 - fair,
                     ev_pct=ev,
                     line=no_line,
-                    model_sources=f"{sources}+no_side+{SOURCES_TOKEN}",
+                    model_sources=f"{sources}+no_side+{stream_token}",
                     **common,
                 ))
 

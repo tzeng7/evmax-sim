@@ -133,7 +133,7 @@ def _has(model_sources: Optional[str], token: str) -> bool:
 _NON_MODEL_TOKENS = frozenset({
     "", "sharp", "sharp(capped)", "injury", "late_news", "rest", "playoff",
     "advance_derived", "spread_dist", "total_dist", "no_side",
-    "sharp_ladder", "spread_pmf", "maker_pilot", "puck_line",
+    "sharp_ladder", "spread_pmf", "maker_pilot", "puck_line", "total_pmf", "model_anchor", "soft_anchor",
 })
 
 
@@ -152,6 +152,23 @@ def _tokens(model_sources: Optional[str]) -> set[str]:
     return {tok.strip() for tok in (model_sources or "").split("+")}
 
 
+
+def _superseded_line_curve(mt: Optional[str], src: Optional[str], line) -> bool:
+    """Layered alt-line stack (2026-11-16; ``SPREAD_LADDER_SECTORS`` /
+    ``_LINE_PMF_SECTORS`` in ``models_ml/spread_distribution.py`` and
+    ``TOTAL_LADDER_SECTORS`` in ``models_ml/total_distribution.py``).
+
+    Current rows are priced by Pinnacle's own rung (``sharp_ladder``) or the
+    fitted LinePMF (``spread_pmf`` / ``total_pmf``). A spread row carrying
+    ``spread_dist`` or a total row carrying ``total_dist`` was priced, and
+    EV-selected, by the superseded normal curve (or its missing-artifact
+    fallback). The NFL ``spread_dist`` precedent.
+    """
+    return (mt == "spread" and _has(src, "spread_dist")) or (
+        mt == "total" and _has(src, "total_dist")
+    )
+
+
 CONTAMINATION_RULES: dict[str, list[RowRule]] = {
     "nba": [
         # Full stat stack fires on every NBA ML row from 2026-11-08. A row
@@ -162,7 +179,10 @@ CONTAMINATION_RULES: dict[str, list[RowRule]] = {
         lambda mt, src, line: (
             mt == "moneyline" and not set(_NBA_STAT_STACK) <= _tokens(src)
         ),
+        _superseded_line_curve,
     ],
+    "ncaab": [_superseded_line_curve],
+    "ncaaw": [_superseded_line_curve],
     "baseball": [
         # Poisson removed from baseball 2026-06-01 — its presence dates the row.
         lambda mt, src, line: _has(src, "poisson"),
@@ -210,6 +230,10 @@ CONTAMINATION_RULES: dict[str, list[RowRule]] = {
         # superseded normal (or its missing-artifact fallback); PMF rows carry
         # `spread_pmf`. Moneyline/total rows are untouched.
         lambda mt, src, line: mt == "spread" and _has(src, "spread_dist"),
+        # NFL totals joined the layered stack 2026-11-16: `total_dist` rows
+        # were priced by the normal curve (sigma 13.5), now `sharp_ladder` /
+        # `total_pmf`.
+        lambda mt, src, line: mt == "total" and _has(src, "total_dist"),
     ],
     "nhl": [
         # Posted-rung-only NHL spreads shipped 2026-10-07

@@ -181,11 +181,31 @@ def test_nba_stack_tokens_match_exactly_not_by_substring():
     assert is_contaminated("nba", "moneyline", src)
 
 
-def test_nba_spread_and_total_are_not_flagged():
-    # The rule is moneyline-scoped: spread/total rows are sharp-priced and
-    # never carry the stat stack.
-    assert not is_contaminated("nba", "spread", "possession_sim+sharp+spread_dist", -4.5)
-    assert not is_contaminated("nba", "total", "sharp+total_dist", 224.5)
+def test_nba_stat_stack_rule_is_moneyline_scoped():
+    # Spread/total rows never carry the stat stack; the stat-stack rule must
+    # not flag rows priced the current way (Pinnacle rung / fitted LinePMF).
+    assert not is_contaminated("nba", "spread", "sharp+sharp_ladder", -4.5)
+    assert not is_contaminated("nba", "spread", "sharp+spread_pmf+no_side", -4.5)
+    assert not is_contaminated("nba", "total", "sharp+sharp_ladder", 224.5)
+    assert not is_contaminated("nba", "total", "sharp+total_pmf", 224.5)
+
+
+@pytest.mark.parametrize("sector", ["nba", "ncaab", "ncaaw"])
+def test_layered_sectors_date_out_normal_curve_rows(sector):
+    # Layered alt-line stack (2026-11-16): rows priced by the superseded
+    # normal curve are outside the clean sample; the market types do not cross.
+    assert is_contaminated(sector, "spread", "possession_sim+sharp+spread_dist", -4.5)
+    assert is_contaminated(sector, "total", "sharp+total_dist", 150.5)
+    assert not is_contaminated(sector, "spread", "sharp+spread_pmf", -4.5)
+    assert not is_contaminated(sector, "total", "sharp+total_pmf", 150.5)
+    assert not is_contaminated(sector, "total", "sharp+spread_dist", 150.5)
+
+
+def test_nfl_total_normal_curve_rows_are_dated_out():
+    assert is_contaminated("nfl", "total", "sharp+total_dist", 44.5)
+    assert not is_contaminated("nfl", "total", "sharp+sharp_ladder", 44.5)
+    assert not is_contaminated("nfl", "total", "sharp+total_pmf", 44.5)
+    assert not is_contaminated("nfl", "moneyline", "elo+form+sharp", None)
 
 
 # -------------------------------------------------------------------------

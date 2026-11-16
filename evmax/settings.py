@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Optional
 
-from pydantic import Field, field_validator
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -340,6 +340,16 @@ class Settings(BaseSettings):
     # Default 120s covers back-to-back scans. Set EVMAX_CACHE_TTL_SECS=3600 for dev.
     # Set EVMAX_OFFLINE=true to never hit live APIs (fails if no cache exists)
     cache_ttl_secs: int = Field(default=120, ge=0)  # 0 = disabled
+
+    # Soft-book anchor (evmax/clients/soft_anchor.py) for sectors Pinnacle does
+    # not post (ncaaw). ODDS_API_KEY empty = ESPN's free inline line only. Each
+    # Odds API request costs markets x regions = 6 credits, hence the long TTL.
+    # Accepts the legacy THE_ODDS_API_KEY name (the client retired 2026-06-19
+    # left that line in existing .env files).
+    odds_api_key: str = Field(
+        default="", validation_alias=AliasChoices("ODDS_API_KEY", "THE_ODDS_API_KEY"),
+    )
+    soft_anchor_cache_ttl_secs: int = Field(default=3600, ge=0)
     offline_mode: bool = False
 
 

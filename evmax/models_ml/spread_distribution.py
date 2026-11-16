@@ -93,21 +93,24 @@ SPREAD_LADDER_ENABLED: bool = False
 # even while the global flag is off, so one sector can move without touching the
 # live NBA/NCAAB/NCAAW spreads. NFL (2026-10-03): price every rung off the
 # book's own price where Pinnacle posts one.
-SPREAD_LADDER_SECTORS: set[str] = {"nfl"}
+# Basketball (2026-11-16): the same layered stack. The book's own rung price
+# first; a rung Pinnacle does not post falls to the fitted LinePMF
+# (_LINE_PMF_SECTORS below).
+SPREAD_LADDER_SECTORS: set[str] = {"nfl", "nba", "ncaab", "ncaaw"}
 # A venue rung "hits" a Pinnacle rung when their lines agree within this many
 # points (half a point = same line up to Kalshi/Pinnacle half-point convention).
 SPREAD_LADDER_LINE_TOLERANCE: float = 0.5
 # Sectors that require the SAME line instead of the half-point tolerance. NFL has
 # key numbers (3, 7): pricing Kalshi -3.5 off Pinnacle's -3.0 rung (a push line)
 # or -4.0 ignores the mass on 3 and is wrong by several points of probability.
-SPREAD_LADDER_EXACT_SECTORS: set[str] = {"nfl"}
+SPREAD_LADDER_EXACT_SECTORS: set[str] = {"nfl", "nba", "ncaab", "ncaaw"}
 SPREAD_LADDER_EXACT_TOLERANCE: float = 0.01
 # Sectors where a spread rung is shown / sized only when it was priced off a
 # Pinnacle rung (`sharp_ladder`). A rung with no Pinnacle price at that line
 # still prices through the model (`spread_pmf`) but is flagged full_blend=False:
 # logged shadow for backend evaluation, hidden from the dashboard, the Discord
 # feed and the CLI play table, never sized.
-SPREAD_LADDER_ONLY_SECTORS: set[str] = {"nfl"}
+SPREAD_LADDER_ONLY_SECTORS: set[str] = {"nfl", "nba", "ncaab", "ncaaw"}
 
 
 def spread_ladder_enabled(sector: Optional[str]) -> bool:
@@ -151,6 +154,13 @@ _SPREAD_MAX_ABS_LINE: dict[str, float] = {}
 # the normal CDF. A missing/invalid artifact falls back to the normal (logged
 # once). Only NFL ships an artifact; NFL spreads are shadow_market_types.
 _PMF_SECTORS: set[str] = {"nfl"}
+
+# Sectors whose MODEL-priced rungs (no Pinnacle price at that line) use a fitted
+# LinePMF artifact (models_ml/line_pmf.py, data/models/line_pmf/{sector}_spread.json)
+# in place of the normal CDF. NFL keeps its own MarginPMF (_PMF_SECTORS). A
+# missing or invalid artifact falls back to the normal CDF, so a sector listed
+# here without an artifact prices exactly as before.
+_LINE_PMF_SECTORS: set[str] = {"nba", "ncaab", "ncaaw"}
 
 SPREAD_DIST_TOKEN = "spread_dist"   # normal-CDF pricing (this module)
 SPREAD_PMF_TOKEN = "spread_pmf"     # key-number margin PMF (spread_pmf.py)
@@ -295,6 +305,12 @@ class SpreadDistributionModel:
             )
             if handled:
                 return pmf_pred
+        if sector in _LINE_PMF_SECTORS:
+            handled, pmf_pred = self._predict_line_pmf(
+                sharp_odds, target_line, sector, yes_is_underdog, sigma,
+            )
+            if handled:
+                return pmf_pred
 
         # Reject Kalshi lines more than SPREAD_MAX_SIGMA·σ from Pinnacle's line,
         # measured on the TRUE favorite-margin axis (the PMF path's rule too).
@@ -365,6 +381,44 @@ class SpreadDistributionModel:
             implied_mean=implied_mean,
             sigma=sigma,
             method=posted_rung_token or SPREAD_DIST_TOKEN,
+        )
+
+    def _predict_line_pmf(
+        self,
+        sharp_odds: SharpOdds,
+        target_line: float,
+        sector: str,
+        yes_is_underdog: bool,
+        sigma: float,
+    ) -> tuple[bool, Optional[SpreadPrediction]]:
+        """Price one rung with the sector's fitted ``LinePMF``.
+
+        Same contract and the same true-distance gate as ``_predict_pmf``:
+        (True, pred) priced, (True, None) outside the gate, (False, None) no
+        artifact or no anchor root (the caller then uses the normal CDF).
+        """
+        from evmax.models_ml.line_pmf import load_line_pmf
+
+        if getattr(sharp_odds, "is_alternate", False):
+            return False, None
+        pmf = load_line_pmf(sector, "spread")
+        if pmf is None:
+            return False, None
+        a = abs(sharp_odds.spread_line)
+        t_fav = _spread_pmf.favorite_threshold(target_line, yes_is_underdog)
+        if abs(t_fav - a) > SPREAD_MAX_SIGMA * sigma:
+            return True, None
+        true_prob = pmf.cover_probability(
+            sharp_odds.spread_line, sharp_odds.true_prob_a, target_line, yes_is_underdog,
+        )
+        mu = pmf.anchor(a, sharp_odds.true_prob_a)
+        if mu is None or true_prob is None:
+            return False, None
+        return True, SpreadPrediction(
+            true_prob=max(0.01, min(0.99, true_prob)),
+            implied_mean=mu,
+            sigma=pmf.scale(a),
+            method=SPREAD_PMF_TOKEN,
         )
 
     def _predict_pmf(

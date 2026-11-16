@@ -400,6 +400,10 @@ class TestOtherSectorsUnchanged:
             raise AssertionError("PMF consulted for a non-PMF sector")
 
         monkeypatch.setattr(sp, "load_margin_pmf", _boom)
+        # nba / ncaab / ncaaw price model rungs with a fitted LinePMF when its
+        # artifact exists (2026-11-16). This test pins the normal-CDF fallback
+        # they use without one; the NFL MarginPMF must still never be consulted.
+        monkeypatch.setattr(sd, "_LINE_PMF_SECTORS", set())
         m = SpreadDistributionModel()
         for main, p in [(-3.5, 0.52), (-7.0, 0.47), (-10.5, 0.55)]:
             s = _sharp(main, p, sector=sector)
@@ -450,7 +454,19 @@ class TestPipelineWiring:
         assert "spread_dist" not in gap.model_sources
         assert gap.sharp_true_prob == pytest.approx(0.3169, abs=0.002)
 
-    def test_nba_gap_keeps_spread_dist_token(self):
+    def test_nba_gap_uses_fitted_line_pmf_token(self):
+        # The shipped data/models/line_pmf/nba_spread.json prices NBA rungs
+        # that Pinnacle does not post.
+        import evmax.models_ml.line_pmf as lp
+        if lp.load_line_pmf("nba", "spread") is None:
+            pytest.skip("no fitted NBA spread artifact")
+        gap = self._gap("nba")
+        assert gap is not None
+        assert "spread_pmf" in gap.model_sources
+        assert "spread_dist" not in gap.model_sources
+
+    def test_nba_gap_keeps_spread_dist_token_without_a_fitted_model(self, monkeypatch):
+        monkeypatch.setattr(sd, "_LINE_PMF_SECTORS", set())
         gap = self._gap("nba")
         assert gap is not None
         assert "spread_dist" in gap.model_sources
@@ -470,13 +486,16 @@ class TestPipelineWiring:
         ("sharp+spread_pmf+no_side+anchored_entry", "spread", False),
         ("sharp+sharp_ladder", "spread", False),
         ("sharp+elo+form+nfl_efficiency", "moneyline", False),
-        ("sharp+total_dist", "total", False),
+        ("sharp+total_dist", "total", True),
+        ("sharp+total_pmf", "total", False),
     ])
     def test_nfl_contamination_rule(self, src, mt, expected):
         assert is_contaminated("nfl", mt, src, -7.5) is expected
 
     def test_other_sectors_spread_dist_not_contaminated(self):
-        for sector in ("nba", "wnba", "ncaab", "ncaaw"):
+        # nba / ncaab / ncaaw joined the layered stack 2026-11-16 and date
+        # their own spread_dist rows out (test_contamination_filter.py).
+        for sector in ("wnba", "ncaaf"):
             assert not is_contaminated(sector, "spread", "sharp+spread_dist", -5.5)
 
 
