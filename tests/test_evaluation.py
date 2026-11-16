@@ -126,8 +126,11 @@ def test_roi_gross_own_side_math(db):
 
 
 def test_no_side_row_uses_same_formula(db):
+    # NBA spreads are layered since 2026-11-16: only a rung priced off Pinnacle's
+    # own rung (`sharp_ladder`) is live-eligible, so the row must carry it to be
+    # in the ROI population.
     _ins(db, "kalshi:KXNBASPREAD-X-A:no", outcome=1, price=0.8, mt="spread", sector="nba",
-         line=-5.5)
+         line=-5.5, sources="sharp+sharp_ladder+no_side")
     r = _group(_spec())["roi_population"]
     assert r["roi_gross_pct"] == pytest.approx(25.0)  # 1/0.8 - 1
 
