@@ -266,6 +266,14 @@
     ],
     "chargers": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "ravens",
+        "home": false,
+        "drew": false,
+        "margin": 3.0
+      },
+      {
         "date": "2026-10-11",
         "won": false,
         "opp": "broncos",
@@ -388,12 +396,6 @@
         "won": false,
         "opp": "commanders",
         "home": true
-      },
-      {
-        "date": "2025-09-28",
-        "won": false,
-        "opp": "giants",
-        "home": false
       }
     ],
     "chiefs": [
@@ -3830,6 +3832,14 @@
     ],
     "ravens": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "chargers",
+        "home": true,
+        "drew": false,
+        "margin": -3.0
+      },
+      {
         "date": "2026-10-11",
         "won": true,
         "opp": "falcons",
@@ -3952,12 +3962,6 @@
         "won": false,
         "opp": "chiefs",
         "home": false
-      },
-      {
-        "date": "2025-09-23",
-        "won": false,
-        "opp": "lions",
-        "home": true
       }
     ],
     "bears": [
@@ -40680,6 +40684,14 @@
     ],
     "rockets": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "heat",
+        "home": false,
+        "drew": false,
+        "margin": -18.0
+      },
+      {
         "date": "2026-04-29",
         "won": true,
         "opp": "lakers",
@@ -40793,12 +40805,6 @@
       },
       {
         "date": "2026-03-19",
-        "won": false,
-        "opp": "lakers",
-        "home": true
-      },
-      {
-        "date": "2026-03-17",
         "won": false,
         "opp": "lakers",
         "home": true
@@ -40932,6 +40938,14 @@
     ],
     "warriors": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "pelicans",
+        "home": false,
+        "drew": false,
+        "margin": -21.0
+      },
+      {
         "date": "2026-04-13",
         "won": false,
         "opp": "la clippers",
@@ -41043,12 +41057,6 @@
         "date": "2026-03-10",
         "won": false,
         "opp": "jazz",
-        "home": false
-      },
-      {
-        "date": "2026-03-08",
-        "won": false,
-        "opp": "thunder",
         "home": false
       }
     ],
@@ -41182,6 +41190,14 @@
     ],
     "cavaliers": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "bulls",
+        "home": true,
+        "drew": false,
+        "margin": 11.0
+      },
+      {
         "date": "2026-05-25",
         "won": false,
         "opp": "knicks",
@@ -41299,12 +41315,6 @@
         "won": true,
         "opp": "bucks",
         "home": false
-      },
-      {
-        "date": "2026-03-15",
-        "won": false,
-        "opp": "mavericks",
-        "home": true
       }
     ],
     "hornets": [
@@ -41431,6 +41441,14 @@
     ],
     "nets": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "76ers",
+        "home": true,
+        "drew": false,
+        "margin": -12.0
+      },
+      {
         "date": "2026-04-12",
         "won": false,
         "opp": "raptors",
@@ -41543,15 +41561,17 @@
         "won": true,
         "opp": "grizzlies",
         "home": true
-      },
-      {
-        "date": "2026-03-07",
-        "won": true,
-        "opp": "pistons",
-        "home": false
       }
     ],
     "magic": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "celtics",
+        "home": false,
+        "drew": false,
+        "margin": 10.0
+      },
       {
         "date": "2026-04-29",
         "won": false,
@@ -41670,15 +41690,17 @@
         "won": false,
         "opp": "hornets",
         "home": false
-      },
-      {
-        "date": "2026-03-17",
-        "won": false,
-        "opp": "thunder",
-        "home": true
       }
     ],
     "heat": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "rockets",
+        "home": true,
+        "drew": false,
+        "margin": 18.0
+      },
       {
         "date": "2026-04-12",
         "won": true,
@@ -41792,12 +41814,6 @@
         "won": true,
         "opp": "hornets",
         "home": false
-      },
-      {
-        "date": "2026-03-06",
-        "won": true,
-        "opp": "nets",
-        "home": true
       }
     ],
     "hawks": [
@@ -42055,6 +42071,14 @@
     ],
     "celtics": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "magic",
+        "home": true,
+        "drew": false,
+        "margin": -10.0
+      },
+      {
         "date": "2026-04-30",
         "won": false,
         "opp": "76ers",
@@ -42172,15 +42196,17 @@
         "won": true,
         "opp": "warriors",
         "home": true
-      },
-      {
-        "date": "2026-03-16",
-        "won": true,
-        "opp": "suns",
-        "home": true
       }
     ],
     "76ers": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "nets",
+        "home": false,
+        "drew": false,
+        "margin": 12.0
+      },
       {
         "date": "2026-04-30",
         "won": true,
@@ -42299,15 +42325,17 @@
         "won": false,
         "opp": "nuggets",
         "home": false
-      },
-      {
-        "date": "2026-03-15",
-        "won": true,
-        "opp": "trail blazers",
-        "home": true
       }
     ],
     "bulls": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "cavaliers",
+        "home": false,
+        "drew": false,
+        "margin": -11.0
+      },
       {
         "date": "2026-04-13",
         "won": false,
@@ -42420,12 +42448,6 @@
         "date": "2026-03-09",
         "won": false,
         "opp": "kings",
-        "home": false
-      },
-      {
-        "date": "2026-03-06",
-        "won": true,
-        "opp": "suns",
         "home": false
       }
     ],
@@ -42558,6 +42580,14 @@
     ],
     "grizzlies": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "wizards",
+        "home": false,
+        "drew": false,
+        "margin": 16.0
+      },
+      {
         "date": "2026-04-13",
         "won": false,
         "opp": "rockets",
@@ -42670,15 +42700,17 @@
         "won": false,
         "opp": "76ers",
         "home": false
-      },
-      {
-        "date": "2026-03-09",
-        "won": false,
-        "opp": "nets",
-        "home": false
       }
     ],
     "pelicans": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "warriors",
+        "home": true,
+        "drew": false,
+        "margin": 21.0
+      },
       {
         "date": "2026-04-13",
         "won": false,
@@ -42791,12 +42823,6 @@
         "date": "2026-03-06",
         "won": true,
         "opp": "kings",
-        "home": false
-      },
-      {
-        "date": "2026-03-04",
-        "won": false,
-        "opp": "lakers",
         "home": false
       }
     ],
@@ -42924,6 +42950,14 @@
     ],
     "wizards": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "grizzlies",
+        "home": true,
+        "drew": false,
+        "margin": -16.0
+      },
+      {
         "date": "2026-04-12",
         "won": false,
         "opp": "cavaliers",
@@ -43035,12 +43069,6 @@
         "date": "2026-03-10",
         "won": false,
         "opp": "heat",
-        "home": false
-      },
-      {
-        "date": "2026-03-08",
-        "won": false,
-        "opp": "pelicans",
         "home": false
       }
     ],
@@ -43541,6 +43569,14 @@
     ],
     "suns": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "nuggets",
+        "home": false,
+        "drew": false,
+        "margin": 12.0
+      },
+      {
         "date": "2026-04-27",
         "won": false,
         "opp": "thunder",
@@ -43655,12 +43691,6 @@
         "date": "2026-03-13",
         "won": false,
         "opp": "raptors",
-        "home": false
-      },
-      {
-        "date": "2026-03-12",
-        "won": true,
-        "opp": "pacers",
         "home": false
       }
     ],
@@ -43788,6 +43818,14 @@
     ],
     "trail blazers": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "timberwolves",
+        "home": false,
+        "drew": false,
+        "margin": -8.0
+      },
+      {
         "date": "2026-04-28",
         "won": false,
         "opp": "spurs",
@@ -43904,15 +43942,17 @@
         "won": false,
         "opp": "76ers",
         "home": false
-      },
-      {
-        "date": "2026-03-14",
-        "won": true,
-        "opp": "jazz",
-        "home": true
       }
     ],
     "timberwolves": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "trail blazers",
+        "home": true,
+        "drew": false,
+        "margin": 8.0
+      },
       {
         "date": "2026-04-30",
         "won": true,
@@ -44031,12 +44071,6 @@
         "won": true,
         "opp": "suns",
         "home": true
-      },
-      {
-        "date": "2026-03-15",
-        "won": false,
-        "opp": "thunder",
-        "home": false
       }
     ],
     "pacers": [
@@ -44163,6 +44197,14 @@
     ],
     "nuggets": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "suns",
+        "home": true,
+        "drew": false,
+        "margin": -12.0
+      },
+      {
         "date": "2026-04-30",
         "won": false,
         "opp": "timberwolves",
@@ -44280,12 +44322,6 @@
         "won": true,
         "opp": "76ers",
         "home": true
-      },
-      {
-        "date": "2026-03-15",
-        "won": false,
-        "opp": "lakers",
-        "home": false
       }
     ]
   },
@@ -71210,6 +71246,14 @@
     ],
     "montreal canadiens": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "new york rangers",
+        "home": false,
+        "drew": false,
+        "margin": -2.0
+      },
+      {
         "date": "2026-10-17",
         "won": true,
         "opp": "buffalo sabres",
@@ -71348,13 +71392,6 @@
         "won": true,
         "opp": "nashville predators",
         "home": false,
-        "drew": false
-      },
-      {
-        "date": "2026-03-26",
-        "won": true,
-        "opp": "columbus blue jackets",
-        "home": true,
         "drew": false
       }
     ],
@@ -72112,6 +72149,14 @@
     ],
     "vancouver canucks": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "utah mammoth",
+        "home": false,
+        "drew": false,
+        "margin": 1.0
+      },
+      {
         "date": "2026-10-17",
         "won": false,
         "opp": "tampa bay lightning",
@@ -72251,13 +72296,6 @@
         "date": "2026-04-02",
         "won": true,
         "opp": "colorado avalanche",
-        "home": false,
-        "drew": false
-      },
-      {
-        "date": "2026-03-31",
-        "won": false,
-        "opp": "vegas golden knights",
         "home": false,
         "drew": false
       }
@@ -72863,6 +72901,14 @@
     ],
     "new york rangers": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "montreal canadiens",
+        "home": true,
+        "drew": false,
+        "margin": 2.0
+      },
+      {
         "date": "2026-10-17",
         "won": false,
         "opp": "columbus blue jackets",
@@ -73002,13 +73048,6 @@
         "date": "2026-03-29",
         "won": true,
         "opp": "florida panthers",
-        "home": true,
-        "drew": false
-      },
-      {
-        "date": "2026-03-27",
-        "won": true,
-        "opp": "chicago blackhawks",
         "home": true,
         "drew": false
       }
@@ -74815,6 +74854,14 @@
     ],
     "utah mammoth": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "vancouver canucks",
+        "home": true,
+        "drew": false,
+        "margin": -1.0
+      },
+      {
         "date": "2026-10-17",
         "won": false,
         "opp": "edmonton oilers",
@@ -74953,13 +75000,6 @@
         "date": "2026-03-27",
         "won": false,
         "opp": "washington capitals",
-        "home": true,
-        "drew": false
-      },
-      {
-        "date": "2026-03-25",
-        "won": false,
-        "opp": "edmonton oilers",
         "home": true,
         "drew": false
       }
@@ -127630,6 +127670,14 @@
     ],
     "prairie view a m panthers": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "ohio state",
+        "home": false,
+        "drew": false,
+        "margin": -27.0
+      },
+      {
         "date": "2026-03-21",
         "won": false,
         "opp": "florida",
@@ -127780,14 +127828,6 @@
         "home": false,
         "drew": false,
         "margin": -1.0
-      },
-      {
-        "date": "2026-01-17",
-        "won": false,
-        "opp": "jackson state tigers",
-        "home": false,
-        "drew": false,
-        "margin": -4.0
       }
     ],
     "kansas christian falcons": [
@@ -127980,6 +128020,14 @@
     ],
     "georgia": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "jacksonville dolphins",
+        "home": true,
+        "drew": false,
+        "margin": 45.0
+      },
+      {
         "date": "2026-03-20",
         "won": false,
         "opp": "saint louis billikens",
@@ -128130,17 +128178,17 @@
         "home": false,
         "drew": false,
         "margin": -15.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": true,
-        "opp": "auburn",
-        "home": true,
-        "drew": false,
-        "margin": 4.0
       }
     ],
     "oregon state": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "east texas a m",
+        "home": true,
+        "drew": false,
+        "margin": 38.0
+      },
       {
         "date": "2026-03-10",
         "won": false,
@@ -128292,14 +128340,6 @@
         "home": true,
         "drew": false,
         "margin": 8.0
-      },
-      {
-        "date": "2025-12-28",
-        "won": false,
-        "opp": "santa clara",
-        "home": true,
-        "drew": false,
-        "margin": -38.0
       }
     ],
     "linfield wildcats": [
@@ -128321,6 +128361,14 @@
       }
     ],
     "pennsylvania quakers": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "desales bulldogs",
+        "home": true,
+        "drew": false,
+        "margin": 22.0
+      },
       {
         "date": "2026-03-20",
         "won": false,
@@ -128472,14 +128520,6 @@
         "home": false,
         "drew": false,
         "margin": -4.0
-      },
-      {
-        "date": "2025-12-21",
-        "won": false,
-        "opp": "rutgers",
-        "home": false,
-        "drew": false,
-        "margin": -1.0
       }
     ],
     "john jay bloodhounds": [
@@ -128860,6 +128900,14 @@
     ],
     "north carolina central eagles": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "virginia lynchburg dragons",
+        "home": true,
+        "drew": false,
+        "margin": 46.0
+      },
+      {
         "date": "2026-03-14",
         "won": true,
         "opp": "delaware state hornets",
@@ -129010,14 +129058,6 @@
         "home": true,
         "drew": false,
         "margin": -2.0
-      },
-      {
-        "date": "2025-12-18",
-        "won": true,
-        "opp": "mid atlantic christian mustangs",
-        "home": true,
-        "drew": false,
-        "margin": 34.0
       }
     ],
     "duke": [
@@ -130156,6 +130196,14 @@
     ],
     "ul monroe warhawks": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "dallas christian crusaders",
+        "home": true,
+        "drew": false,
+        "margin": 37.0
+      },
+      {
         "date": "2026-03-04",
         "won": false,
         "opp": "old dominion",
@@ -130306,14 +130354,6 @@
         "home": false,
         "drew": false,
         "margin": -9.0
-      },
-      {
-        "date": "2025-12-20",
-        "won": false,
-        "opp": "louisiana ragin cajuns",
-        "home": true,
-        "drew": false,
-        "margin": -14.0
       }
     ],
     "arizona": [
@@ -131128,6 +131168,14 @@
     ],
     "alcorn state braves": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "maryland",
+        "home": false,
+        "drew": false,
+        "margin": -60.0
+      },
+      {
         "date": "2026-03-10",
         "won": false,
         "opp": "prairie view a m panthers",
@@ -131278,17 +131326,17 @@
         "home": false,
         "drew": false,
         "margin": 2.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": false,
-        "opp": "jackson state tigers",
-        "home": false,
-        "drew": false,
-        "margin": -3.0
       }
     ],
     "texas a m aggies": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "se louisiana lions",
+        "home": true,
+        "drew": false,
+        "margin": 32.0
+      },
       {
         "date": "2026-03-21",
         "won": false,
@@ -131440,14 +131488,6 @@
         "home": true,
         "drew": false,
         "margin": 7.0
-      },
-      {
-        "date": "2026-01-07",
-        "won": true,
-        "opp": "auburn",
-        "home": false,
-        "drew": false,
-        "margin": 2.0
       }
     ],
     "east texas a m lions": [
@@ -131614,6 +131654,14 @@
     ],
     "kentucky": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "grambling tigers",
+        "home": true,
+        "drew": false,
+        "margin": 29.0
+      },
+      {
         "date": "2026-03-22",
         "won": false,
         "opp": "iowa state",
@@ -131764,14 +131812,6 @@
         "home": false,
         "drew": false,
         "margin": 2.0
-      },
-      {
-        "date": "2026-01-15",
-        "won": true,
-        "opp": "lsu",
-        "home": false,
-        "drew": false,
-        "margin": 1.0
       }
     ],
     "new mexico state aggies": [
@@ -133072,6 +133112,14 @@
     ],
     "kansas state": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "montana",
+        "home": true,
+        "drew": false,
+        "margin": 41.0
+      },
+      {
         "date": "2026-03-10",
         "won": false,
         "opp": "byu",
@@ -133222,14 +133270,6 @@
         "home": true,
         "drew": false,
         "margin": -10.0
-      },
-      {
-        "date": "2025-12-28",
-        "won": true,
-        "opp": "ul monroe warhawks",
-        "home": true,
-        "drew": false,
-        "margin": 9.0
       }
     ],
     "villanova": [
@@ -133558,6 +133598,14 @@
     ],
     "saint marys": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "portland state vikings",
+        "home": true,
+        "drew": false,
+        "margin": 16.0
+      },
+      {
         "date": "2026-03-19",
         "won": false,
         "opp": "texas a m aggies",
@@ -133708,14 +133756,6 @@
         "home": false,
         "drew": false,
         "margin": 27.0
-      },
-      {
-        "date": "2025-12-29",
-        "won": true,
-        "opp": "loyola marymount",
-        "home": false,
-        "drew": false,
-        "margin": 5.0
       }
     ],
     "stanislaus state warriors": [
@@ -133924,6 +133964,14 @@
     ],
     "morehead state eagles": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "miami oh hamilton harriers",
+        "home": true,
+        "drew": false,
+        "margin": 35.0
+      },
+      {
         "date": "2026-03-08",
         "won": false,
         "opp": "tennessee state tigers",
@@ -134074,14 +134122,6 @@
         "home": false,
         "drew": false,
         "margin": 1.0
-      },
-      {
-        "date": "2026-01-01",
-        "won": false,
-        "opp": "lindenwood lions",
-        "home": false,
-        "drew": false,
-        "margin": -13.0
       }
     ],
     "illinois": [
@@ -136046,6 +136086,14 @@
     ],
     "stetson hatters": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "florida memorial lions",
+        "home": true,
+        "drew": false,
+        "margin": 35.0
+      },
+      {
         "date": "2026-03-06",
         "won": false,
         "opp": "austin peay governors",
@@ -136196,14 +136244,6 @@
         "home": false,
         "drew": false,
         "margin": -20.0
-      },
-      {
-        "date": "2026-01-01",
-        "won": true,
-        "opp": "north alabama lions",
-        "home": false,
-        "drew": false,
-        "margin": 3.0
       }
     ],
     "trinity college of jacksonville eagles": [
@@ -136289,6 +136329,14 @@
       }
     ],
     "jacksonville dolphins": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "georgia",
+        "home": false,
+        "drew": false,
+        "margin": -45.0
+      },
       {
         "date": "2026-03-04",
         "won": false,
@@ -136440,14 +136488,6 @@
         "home": false,
         "drew": false,
         "margin": -19.0
-      },
-      {
-        "date": "2025-12-23",
-        "won": false,
-        "opp": "florida state",
-        "home": false,
-        "drew": false,
-        "margin": -24.0
       }
     ],
     "johnson university florida suns": [
@@ -136862,6 +136902,14 @@
     ],
     "kent state": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "eastern kentucky",
+        "home": true,
+        "drew": false,
+        "margin": -16.0
+      },
+      {
         "date": "2026-03-19",
         "won": false,
         "opp": "illinois state",
@@ -137012,14 +137060,6 @@
         "home": false,
         "drew": false,
         "margin": -2.0
-      },
-      {
-        "date": "2026-01-07",
-        "won": true,
-        "opp": "bowling green",
-        "home": true,
-        "drew": false,
-        "margin": 3.0
       }
     ],
     "malone pioneers": [
@@ -137702,6 +137742,14 @@
     ],
     "se louisiana lions": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "texas a m aggies",
+        "home": false,
+        "drew": false,
+        "margin": -32.0
+      },
+      {
         "date": "2026-03-03",
         "won": true,
         "opp": "lsu new orleans privateers",
@@ -137852,14 +137900,6 @@
         "home": false,
         "drew": false,
         "margin": -9.0
-      },
-      {
-        "date": "2025-12-20",
-        "won": false,
-        "opp": "lsu",
-        "home": false,
-        "drew": false,
-        "margin": -13.0
       }
     ],
     "delta state statesmen": [
@@ -142262,6 +142302,14 @@
     ],
     "clemson": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "the citadel bulldogs",
+        "home": true,
+        "drew": false,
+        "margin": 36.0
+      },
+      {
         "date": "2026-03-20",
         "won": false,
         "opp": "iowa",
@@ -142412,14 +142460,6 @@
         "home": false,
         "drew": false,
         "margin": 15.0
-      },
-      {
-        "date": "2026-01-08",
-        "won": true,
-        "opp": "smu",
-        "home": true,
-        "drew": false,
-        "margin": 4.0
       }
     ],
     "winthrop eagles": [
@@ -143072,6 +143112,14 @@
     ],
     "ferrum panthers": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "george washington revolutionaries",
+        "home": false,
+        "drew": false,
+        "margin": -37.0
+      },
+      {
         "date": "2024-11-23",
         "won": false,
         "opp": "george mason",
@@ -143252,6 +143300,14 @@
     ],
     "the citadel bulldogs": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "clemson",
+        "home": false,
+        "drew": false,
+        "margin": -36.0
+      },
+      {
         "date": "2026-03-07",
         "won": false,
         "opp": "east tennessee state buccaneers",
@@ -143402,14 +143458,6 @@
         "home": true,
         "drew": false,
         "margin": -9.0
-      },
-      {
-        "date": "2025-12-30",
-        "won": false,
-        "opp": "east tennessee state buccaneers",
-        "home": true,
-        "drew": false,
-        "margin": -25.0
       }
     ],
     "louisville": [
@@ -143576,6 +143624,14 @@
     ],
     "umbc retrievers": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "iona",
+        "home": true,
+        "drew": false,
+        "margin": 8.0
+      },
+      {
         "date": "2026-03-17",
         "won": false,
         "opp": "howard bison",
@@ -143726,14 +143782,6 @@
         "home": true,
         "drew": false,
         "margin": 1.0
-      },
-      {
-        "date": "2026-01-08",
-        "won": true,
-        "opp": "maine black bears",
-        "home": true,
-        "drew": false,
-        "margin": 7.0
       }
     ],
     "notre dame": [
@@ -146408,6 +146456,14 @@
     ],
     "iona": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "umbc retrievers",
+        "home": false,
+        "drew": false,
+        "margin": -8.0
+      },
+      {
         "date": "2026-03-05",
         "won": false,
         "opp": "sacred heart pioneers",
@@ -146558,17 +146614,17 @@
         "home": false,
         "drew": false,
         "margin": -7.0
-      },
-      {
-        "date": "2025-12-20",
-        "won": true,
-        "opp": "vermont catamounts",
-        "home": false,
-        "drew": false,
-        "margin": 5.0
       }
     ],
     "ohio state": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "prairie view a m panthers",
+        "home": true,
+        "drew": false,
+        "margin": 27.0
+      },
       {
         "date": "2026-03-19",
         "won": false,
@@ -146720,14 +146776,6 @@
         "home": false,
         "drew": false,
         "margin": -7.0
-      },
-      {
-        "date": "2026-01-09",
-        "won": true,
-        "opp": "oregon",
-        "home": false,
-        "drew": false,
-        "margin": 10.0
       }
     ],
     "oakland golden grizzlies": [
@@ -149486,6 +149534,14 @@
     ],
     "richmond": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "virginia tech",
+        "home": false,
+        "drew": false,
+        "margin": -17.0
+      },
+      {
         "date": "2026-03-11",
         "won": false,
         "opp": "loyola chicago ramblers",
@@ -149636,14 +149692,6 @@
         "home": true,
         "drew": false,
         "margin": -14.0
-      },
-      {
-        "date": "2025-12-28",
-        "won": false,
-        "opp": "charleston southern buccaneers",
-        "home": true,
-        "drew": false,
-        "margin": -5.0
       }
     ],
     "vmi keydets": [
@@ -150523,6 +150571,14 @@
       }
     ],
     "dallas christian crusaders": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "louisiana monroe",
+        "home": false,
+        "drew": false,
+        "margin": -37.0
+      },
       {
         "date": "2025-12-22",
         "won": false,
@@ -154750,6 +154806,14 @@
     ],
     "grambling tigers": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "kentucky",
+        "home": false,
+        "drew": false,
+        "margin": -29.0
+      },
+      {
         "date": "2026-03-11",
         "won": false,
         "opp": "jackson state tigers",
@@ -154900,14 +154964,6 @@
         "home": true,
         "drew": false,
         "margin": 17.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": true,
-        "opp": "prairie view a m panthers",
-        "home": true,
-        "drew": false,
-        "margin": 4.0
       }
     ],
     "unt dallas trailblazers": [
@@ -157698,6 +157754,14 @@
     ],
     "valparaiso": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "calumet st. joseph crimson wave",
+        "home": true,
+        "drew": false,
+        "margin": 71.0
+      },
+      {
         "date": "2026-03-07",
         "won": false,
         "opp": "bradley",
@@ -157848,14 +157912,6 @@
         "home": true,
         "drew": false,
         "margin": 7.0
-      },
-      {
-        "date": "2026-01-01",
-        "won": false,
-        "opp": "southern illinois",
-        "home": false,
-        "drew": false,
-        "margin": -5.0
       }
     ],
     "trinity christian trolls": [
@@ -158055,6 +158111,14 @@
       }
     ],
     "midway eagles": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "southeast missouri state redhawks",
+        "home": false,
+        "drew": false,
+        "margin": -70.0
+      },
       {
         "date": "2025-12-16",
         "won": false,
@@ -158828,6 +158892,14 @@
     ],
     "western illinois leathernecks": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "minnesota",
+        "home": false,
+        "drew": false,
+        "margin": -36.0
+      },
+      {
         "date": "2026-02-28",
         "won": false,
         "opp": "lindenwood lions",
@@ -158978,14 +159050,6 @@
         "home": true,
         "drew": false,
         "margin": -5.0
-      },
-      {
-        "date": "2025-12-19",
-        "won": false,
-        "opp": "lindenwood lions",
-        "home": false,
-        "drew": false,
-        "margin": -16.0
       }
     ],
     "evansville": [
@@ -160934,6 +160998,14 @@
     ],
     "virginia tech": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "richmond",
+        "home": true,
+        "drew": false,
+        "margin": 17.0
+      },
+      {
         "date": "2026-03-10",
         "won": false,
         "opp": "wake forest",
@@ -161084,14 +161156,6 @@
         "home": true,
         "drew": false,
         "margin": 10.0
-      },
-      {
-        "date": "2025-12-20",
-        "won": true,
-        "opp": "elon phoenix",
-        "home": true,
-        "drew": false,
-        "margin": 1.0
       }
     ],
     "coppin state eagles": [
@@ -162622,6 +162686,14 @@
     ],
     "george washington revolutionaries": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "ferrum panthers",
+        "home": true,
+        "drew": false,
+        "margin": 37.0
+      },
+      {
         "date": "2026-03-23",
         "won": false,
         "opp": "new mexico",
@@ -162772,14 +162844,6 @@
         "home": true,
         "drew": false,
         "margin": 35.0
-      },
-      {
-        "date": "2026-01-07",
-        "won": false,
-        "opp": "dayton",
-        "home": false,
-        "drew": false,
-        "margin": -7.0
       }
     ],
     "stonehill skyhawks": [
@@ -165070,6 +165134,14 @@
     ],
     "minnesota": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "western illinois leathernecks",
+        "home": true,
+        "drew": false,
+        "margin": 36.0
+      },
+      {
         "date": "2026-04-02",
         "won": false,
         "opp": "baylor",
@@ -165220,14 +165292,6 @@
         "home": true,
         "drew": false,
         "margin": 3.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": true,
-        "opp": "northwestern",
-        "home": false,
-        "drew": false,
-        "margin": 6.0
       }
     ],
     "bethune-cookman wildcats": [
@@ -165394,6 +165458,14 @@
     ],
     "northwestern": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "columbia",
+        "home": true,
+        "drew": false,
+        "margin": -22.0
+      },
+      {
         "date": "2026-03-12",
         "won": false,
         "opp": "purdue",
@@ -165544,14 +165616,6 @@
         "home": false,
         "drew": false,
         "margin": -2.0
-      },
-      {
-        "date": "2026-01-08",
-        "won": false,
-        "opp": "michigan state",
-        "home": false,
-        "drew": false,
-        "margin": -10.0
       }
     ],
     "binghamton bearcats": [
@@ -165718,6 +165782,14 @@
     ],
     "tulsa": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "western kentucky",
+        "home": true,
+        "drew": false,
+        "margin": 3.0
+      },
+      {
         "date": "2026-04-06",
         "won": false,
         "opp": "auburn",
@@ -165868,14 +165940,6 @@
         "home": false,
         "drew": false,
         "margin": 6.0
-      },
-      {
-        "date": "2026-01-22",
-        "won": true,
-        "opp": "memphis",
-        "home": true,
-        "drew": false,
-        "margin": 17.0
       }
     ],
     "central arkansas bears": [
@@ -166214,6 +166278,14 @@
     ],
     "western kentucky": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "tulsa",
+        "home": false,
+        "drew": false,
+        "margin": -3.0
+      },
+      {
         "date": "2026-03-13",
         "won": false,
         "opp": "kennesaw state owls",
@@ -166364,14 +166436,6 @@
         "home": true,
         "drew": false,
         "margin": 5.0
-      },
-      {
-        "date": "2026-01-02",
-        "won": true,
-        "opp": "sam houston bearkats",
-        "home": true,
-        "drew": false,
-        "margin": 11.0
       }
     ],
     "kentucky wesleyan panthers": [
@@ -166555,6 +166619,14 @@
       }
     ],
     "fisk bulldogs": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "north alabama lions",
+        "home": false,
+        "drew": false,
+        "margin": -38.0
+      },
       {
         "date": "2025-12-30",
         "won": false,
@@ -167622,6 +167694,14 @@
     ],
     "north alabama lions": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "fisk bulldogs",
+        "home": true,
+        "drew": false,
+        "margin": 38.0
+      },
+      {
         "date": "2026-03-04",
         "won": false,
         "opp": "florida gulf coast eagles",
@@ -167772,14 +167852,6 @@
         "home": true,
         "drew": false,
         "margin": -3.0
-      },
-      {
-        "date": "2025-12-20",
-        "won": false,
-        "opp": "loyola marymount",
-        "home": false,
-        "drew": false,
-        "margin": -34.0
       }
     ],
     "blue mountain christian toppers": [
@@ -168006,6 +168078,14 @@
     ],
     "utep miners": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "florida a m rattlers",
+        "home": true,
+        "drew": false,
+        "margin": 33.0
+      },
+      {
         "date": "2026-03-07",
         "won": false,
         "opp": "jacksonville state gamecocks",
@@ -168156,14 +168236,6 @@
         "home": false,
         "drew": false,
         "margin": -24.0
-      },
-      {
-        "date": "2025-12-30",
-        "won": false,
-        "opp": "louisiana tech bulldogs",
-        "home": false,
-        "drew": false,
-        "margin": -12.0
       }
     ],
     "mcmurry war hawks": [
@@ -168201,6 +168273,14 @@
       }
     ],
     "oklahoma state": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "central arkansas",
+        "home": true,
+        "drew": false,
+        "margin": 33.0
+      },
       {
         "date": "2026-03-23",
         "won": false,
@@ -168352,14 +168432,6 @@
         "home": true,
         "drew": false,
         "margin": -15.0
-      },
-      {
-        "date": "2026-01-10",
-        "won": false,
-        "opp": "iowa state",
-        "home": false,
-        "drew": false,
-        "margin": -12.0
       }
     ],
     "abilene christian wildcats": [
@@ -169240,6 +169312,14 @@
     ],
     "southeast missouri state redhawks": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "midway eagles",
+        "home": true,
+        "drew": false,
+        "margin": 70.0
+      },
+      {
         "date": "2026-03-07",
         "won": false,
         "opp": "morehead state eagles",
@@ -169390,14 +169470,6 @@
         "home": true,
         "drew": false,
         "margin": 23.0
-      },
-      {
-        "date": "2026-01-02",
-        "won": true,
-        "opp": "eastern illinois panthers",
-        "home": true,
-        "drew": false,
-        "margin": 9.0
       }
     ],
     "tulane": [
@@ -169888,6 +169960,14 @@
     ],
     "st. thomas tommies": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "long island university sharks",
+        "home": false,
+        "drew": false,
+        "margin": 9.0
+      },
+      {
         "date": "2026-03-18",
         "won": false,
         "opp": "seattle u redhawks",
@@ -170038,14 +170118,6 @@
         "home": true,
         "drew": false,
         "margin": 4.0
-      },
-      {
-        "date": "2025-12-28",
-        "won": true,
-        "opp": "north central rams",
-        "home": true,
-        "drew": false,
-        "margin": 46.0
       }
     ],
     "montana state bobcats": [
@@ -170934,6 +171006,14 @@
     ],
     "south dakota state jackrabbits": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "mayville state comets",
+        "home": true,
+        "drew": false,
+        "margin": 40.0
+      },
+      {
         "date": "2026-03-06",
         "won": false,
         "opp": "st. thomas tommies",
@@ -171084,14 +171164,6 @@
         "home": false,
         "drew": false,
         "margin": -1.0
-      },
-      {
-        "date": "2025-12-16",
-        "won": false,
-        "opp": "wyoming",
-        "home": true,
-        "drew": false,
-        "margin": -15.0
       }
     ],
     "akron": [
@@ -171608,6 +171680,14 @@
     ],
     "portland state vikings": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "saint marys",
+        "home": false,
+        "drew": false,
+        "margin": -16.0
+      },
+      {
         "date": "2026-03-11",
         "won": false,
         "opp": "montana grizzlies",
@@ -171758,14 +171838,6 @@
         "home": false,
         "drew": false,
         "margin": 6.0
-      },
-      {
-        "date": "2026-01-01",
-        "won": true,
-        "opp": "weber state wildcats",
-        "home": false,
-        "drew": false,
-        "margin": 5.0
       }
     ],
     "northern colorado bears": [
@@ -172452,6 +172524,14 @@
     ],
     "texas southern tigers": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "uc san diego tritons",
+        "home": false,
+        "drew": false,
+        "margin": -5.0
+      },
+      {
         "date": "2026-03-12",
         "won": false,
         "opp": "alabama a m bulldogs",
@@ -172602,14 +172682,6 @@
         "home": false,
         "drew": false,
         "margin": -11.0
-      },
-      {
-        "date": "2025-12-31",
-        "won": true,
-        "opp": "huston tillotson rams",
-        "home": true,
-        "drew": false,
-        "margin": 24.0
       }
     ],
     "cal poly mustangs": [
@@ -174670,6 +174742,14 @@
     ],
     "uc san diego tritons": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "texas southern tigers",
+        "home": true,
+        "drew": false,
+        "margin": 5.0
+      },
+      {
         "date": "2026-03-13",
         "won": false,
         "opp": "cal state northridge matadors",
@@ -174820,17 +174900,17 @@
         "home": true,
         "drew": false,
         "margin": -17.0
-      },
-      {
-        "date": "2026-01-04",
-        "won": true,
-        "opp": "hawaii rainbow warriors",
-        "home": true,
-        "drew": false,
-        "margin": 10.0
       }
     ],
     "denver pioneers": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "colorado colorado springs mountain lions",
+        "home": true,
+        "drew": false,
+        "margin": 38.0
+      },
       {
         "date": "2026-03-07",
         "won": false,
@@ -174982,14 +175062,6 @@
         "home": false,
         "drew": false,
         "margin": 7.0
-      },
-      {
-        "date": "2025-12-17",
-        "won": true,
-        "opp": "colorado colorado springs mountain lions",
-        "home": true,
-        "drew": false,
-        "margin": 36.0
       }
     ],
     "portland": [
@@ -175156,6 +175228,14 @@
     ],
     "long beach state beach": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "ucla",
+        "home": false,
+        "drew": false,
+        "margin": -39.0
+      },
+      {
         "date": "2026-03-08",
         "won": true,
         "opp": "hawaii rainbow warriors",
@@ -175306,14 +175386,6 @@
         "home": true,
         "drew": false,
         "margin": 47.0
-      },
-      {
-        "date": "2025-12-21",
-        "won": false,
-        "opp": "iowa state",
-        "home": false,
-        "drew": false,
-        "margin": -31.0
       }
     ],
     "san diego": [
@@ -176462,6 +176534,14 @@
     ],
     "ucla": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "long beach state beach",
+        "home": true,
+        "drew": false,
+        "margin": 39.0
+      },
+      {
         "date": "2026-03-23",
         "won": false,
         "opp": "uconn",
@@ -176612,14 +176692,6 @@
         "home": false,
         "drew": false,
         "margin": -12.0
-      },
-      {
-        "date": "2026-01-15",
-        "won": true,
-        "opp": "penn state",
-        "home": false,
-        "drew": false,
-        "margin": 11.0
       }
     ],
     "saint francis red wolves": [
@@ -178036,6 +178108,14 @@
     ],
     "florida a m rattlers": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "utep miners",
+        "home": false,
+        "drew": false,
+        "margin": -33.0
+      },
+      {
         "date": "2026-03-14",
         "won": false,
         "opp": "southern jaguars",
@@ -178186,14 +178266,6 @@
         "home": true,
         "drew": false,
         "margin": 8.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": false,
-        "opp": "bethune-cookman wildcats",
-        "home": false,
-        "drew": false,
-        "margin": -4.0
       }
     ],
     "baylor": [
@@ -179718,6 +179790,14 @@
     ],
     "maryland": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "alcorn state braves",
+        "home": true,
+        "drew": false,
+        "margin": 60.0
+      },
+      {
         "date": "2026-03-11",
         "won": false,
         "opp": "iowa",
@@ -179868,14 +179948,6 @@
         "home": true,
         "drew": false,
         "margin": -18.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": false,
-        "opp": "oregon",
-        "home": true,
-        "drew": false,
-        "margin": -10.0
       }
     ],
     "mount st. marys mountaineers": [
@@ -185408,6 +185480,14 @@
     ],
     "drake": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "tarleton state",
+        "home": true,
+        "drew": false,
+        "margin": -4.0
+      },
+      {
         "date": "2026-03-07",
         "won": false,
         "opp": "uic flames",
@@ -185558,14 +185638,6 @@
         "home": false,
         "drew": false,
         "margin": -27.0
-      },
-      {
-        "date": "2026-01-04",
-        "won": true,
-        "opp": "indiana state",
-        "home": true,
-        "drew": false,
-        "margin": 2.0
       }
     ],
     "dakota wesleyan tigers": [
@@ -186882,6 +186954,14 @@
     ],
     "virginia lynchburg dragons": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "north carolina central eagles",
+        "home": false,
+        "drew": false,
+        "margin": -46.0
+      },
+      {
         "date": "2026-01-20",
         "won": false,
         "opp": "morgan state bears",
@@ -187032,14 +187112,6 @@
         "home": false,
         "drew": false,
         "margin": -62.0
-      },
-      {
-        "date": "2024-11-30",
-        "won": false,
-        "opp": "north carolina central eagles",
-        "home": false,
-        "drew": false,
-        "margin": -80.0
       }
     ],
     "molloy lions": [
@@ -187778,6 +187850,14 @@
     ],
     "long island university sharks": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "st. thomas tommies",
+        "home": true,
+        "drew": false,
+        "margin": -9.0
+      },
+      {
         "date": "2026-03-20",
         "won": false,
         "opp": "arizona",
@@ -187928,14 +188008,6 @@
         "home": true,
         "drew": false,
         "margin": 4.0
-      },
-      {
-        "date": "2026-01-09",
-        "won": true,
-        "opp": "mercyhurst lakers",
-        "home": true,
-        "drew": false,
-        "margin": 2.0
       }
     ],
     "college of biblical studies ambassadors": [
@@ -193376,6 +193448,14 @@
     ],
     "mayville state comets": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "south dakota state jackrabbits",
+        "home": false,
+        "drew": false,
+        "margin": -40.0
+      },
+      {
         "date": "2025-11-12",
         "won": false,
         "opp": "north dakota fighting hawks",
@@ -193569,6 +193649,14 @@
       }
     ],
     "miami oh hamilton harriers": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "morehead state eagles",
+        "home": false,
+        "drew": false,
+        "margin": -35.0
+      },
       {
         "date": "2025-12-22",
         "won": false,
@@ -193983,6 +194071,14 @@
       }
     ],
     "calumet st. joseph crimson wave": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "valparaiso",
+        "home": false,
+        "drew": false,
+        "margin": -71.0
+      },
       {
         "date": "2025-12-06",
         "won": false,
@@ -197262,6 +197358,14 @@
     ],
     "colorado colorado springs mountain lions": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "denver pioneers",
+        "home": false,
+        "drew": false,
+        "margin": -38.0
+      },
+      {
         "date": "2025-12-17",
         "won": false,
         "opp": "denver pioneers",
@@ -197733,6 +197837,14 @@
       }
     ],
     "desales bulldogs": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "pennsylvania quakers",
+        "home": false,
+        "drew": false,
+        "margin": -22.0
+      },
       {
         "date": "2025-11-04",
         "won": false,
@@ -198833,10 +198945,108 @@
         "drew": false,
         "margin": -38.0
       }
+    ],
+    "eastern kentucky": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "kent state",
+        "home": false,
+        "drew": false,
+        "margin": 16.0
+      }
+    ],
+    "florida memorial lions": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "stetson hatters",
+        "home": false,
+        "drew": false,
+        "margin": -35.0
+      }
+    ],
+    "tarleton state": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "drake",
+        "home": false,
+        "drew": false,
+        "margin": 4.0
+      }
+    ],
+    "columbia": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "northwestern",
+        "home": false,
+        "drew": false,
+        "margin": 22.0
+      }
+    ],
+    "missouri state": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "abilene christian",
+        "home": true,
+        "drew": false,
+        "margin": 9.0
+      }
+    ],
+    "abilene christian": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "missouri state",
+        "home": false,
+        "drew": false,
+        "margin": -9.0
+      }
+    ],
+    "central arkansas": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "oklahoma state",
+        "home": false,
+        "drew": false,
+        "margin": -33.0
+      }
+    ],
+    "montana": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "kansas state",
+        "home": false,
+        "drew": false,
+        "margin": -41.0
+      }
+    ],
+    "east texas a m": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "oregon state",
+        "home": false,
+        "drew": false,
+        "margin": -38.0
+      }
     ]
   },
   "ncaaw": {
     "utah": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "houston christian huskies",
+        "home": true,
+        "drew": false,
+        "margin": 49.0
+      },
       {
         "date": "2026-03-19",
         "won": false,
@@ -198988,14 +199198,6 @@
         "home": true,
         "drew": false,
         "margin": -1.0
-      },
-      {
-        "date": "2025-12-22",
-        "won": true,
-        "opp": "arizona",
-        "home": false,
-        "drew": false,
-        "margin": 1.0
       }
     ],
     "mississippi valley state devilettes": [
@@ -199972,6 +200174,14 @@
     ],
     "high point panthers": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "hampton lady pirates",
+        "home": true,
+        "drew": false,
+        "margin": 60.0
+      },
+      {
         "date": "2026-03-21",
         "won": false,
         "opp": "vanderbilt",
@@ -200122,14 +200332,6 @@
         "home": false,
         "drew": false,
         "margin": 14.0
-      },
-      {
-        "date": "2025-12-31",
-        "won": true,
-        "opp": "unc asheville bulldogs",
-        "home": true,
-        "drew": false,
-        "margin": 27.0
       }
     ],
     "ole miss": [
@@ -202624,6 +202826,14 @@
     ],
     "tennessee tech golden eagles": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "middle tennessee blue raiders",
+        "home": false,
+        "drew": false,
+        "margin": -10.0
+      },
+      {
         "date": "2026-02-28",
         "won": false,
         "opp": "southeast missouri state redhawks",
@@ -202774,14 +202984,6 @@
         "home": true,
         "drew": false,
         "margin": 12.0
-      },
-      {
-        "date": "2025-12-18",
-        "won": true,
-        "opp": "southeast missouri state redhawks",
-        "home": true,
-        "drew": false,
-        "margin": 13.0
       }
     ],
     "charleston cougars": [
@@ -203810,6 +204012,14 @@
     ],
     "kansas city roos": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "new mexico state aggies",
+        "home": false,
+        "drew": false,
+        "margin": -29.0
+      },
+      {
         "date": "2026-03-05",
         "won": false,
         "opp": "south dakota state jackrabbits",
@@ -203960,14 +204170,6 @@
         "home": true,
         "drew": false,
         "margin": 50.0
-      },
-      {
-        "date": "2025-12-18",
-        "won": false,
-        "opp": "arkansas",
-        "home": false,
-        "drew": false,
-        "margin": -15.0
       }
     ],
     "bradley braves": [
@@ -204134,6 +204336,14 @@
     ],
     "southern miss lady eagles": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "jacksonville state gamecocks",
+        "home": true,
+        "drew": false,
+        "margin": 16.0
+      },
+      {
         "date": "2026-03-05",
         "won": false,
         "opp": "ul monroe warhawks",
@@ -204284,14 +204494,6 @@
         "home": true,
         "drew": false,
         "margin": 18.0
-      },
-      {
-        "date": "2025-12-18",
-        "won": true,
-        "opp": "south alabama jaguars",
-        "home": true,
-        "drew": false,
-        "margin": 19.0
       }
     ],
     "william carey crusaders": [
@@ -204502,6 +204704,14 @@
     ],
     "mcneese cowgirls": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "tulane green wave",
+        "home": false,
+        "drew": false,
+        "margin": -22.0
+      },
+      {
         "date": "2026-03-22",
         "won": false,
         "opp": "san diego state aztecs",
@@ -204652,14 +204862,6 @@
         "home": false,
         "drew": false,
         "margin": 17.0
-      },
-      {
-        "date": "2026-01-10",
-        "won": true,
-        "opp": "se louisiana lady lions",
-        "home": true,
-        "drew": false,
-        "margin": 22.0
       }
     ],
     "dillard blue devils": [
@@ -205840,6 +206042,14 @@
     ],
     "northwestern state lady demons": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "lsu shreveport pilots",
+        "home": true,
+        "drew": false,
+        "margin": 3.0
+      },
+      {
         "date": "2026-03-10",
         "won": false,
         "opp": "ut rio grande valley vaqueros",
@@ -205990,14 +206200,6 @@
         "home": true,
         "drew": false,
         "margin": -6.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": true,
-        "opp": "nicholls colonels",
-        "home": false,
-        "drew": false,
-        "margin": 4.0
       }
     ],
     "utah tech trailblazers": [
@@ -206174,6 +206376,14 @@
     ],
     "uc davis aggies": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "northern colorado bears",
+        "home": false,
+        "drew": false,
+        "margin": -29.0
+      },
+      {
         "date": "2026-03-20",
         "won": false,
         "opp": "pepperdine waves",
@@ -206324,14 +206534,6 @@
         "home": true,
         "drew": false,
         "margin": 26.0
-      },
-      {
-        "date": "2026-01-09",
-        "won": false,
-        "opp": "uc santa barbara gauchos",
-        "home": true,
-        "drew": false,
-        "margin": -8.0
       }
     ],
     "academy of art urban knights": [
@@ -208068,6 +208270,14 @@
     ],
     "holy cross crusaders": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "bryant bulldogs",
+        "home": true,
+        "drew": false,
+        "margin": -13.0
+      },
+      {
         "date": "2026-03-20",
         "won": false,
         "opp": "michigan",
@@ -208218,17 +208428,17 @@
         "home": true,
         "drew": false,
         "margin": 17.0
-      },
-      {
-        "date": "2026-01-07",
-        "won": false,
-        "opp": "lehigh mountain hawks",
-        "home": true,
-        "drew": false,
-        "margin": -3.0
       }
     ],
     "bryant bulldogs": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "holy cross crusaders",
+        "home": false,
+        "drew": false,
+        "margin": 13.0
+      },
       {
         "date": "2026-03-05",
         "won": false,
@@ -208380,17 +208590,17 @@
         "home": true,
         "drew": false,
         "margin": 68.0
-      },
-      {
-        "date": "2025-12-09",
-        "won": true,
-        "opp": "boston college",
-        "home": false,
-        "drew": false,
-        "margin": 9.0
       }
     ],
     "dartmouth big green": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "colby sawyer chargers",
+        "home": true,
+        "drew": false,
+        "margin": 51.0
+      },
       {
         "date": "2026-03-07",
         "won": false,
@@ -208542,14 +208752,6 @@
         "home": false,
         "drew": false,
         "margin": 8.0
-      },
-      {
-        "date": "2025-12-11",
-        "won": true,
-        "opp": "njit highlanders",
-        "home": false,
-        "drew": false,
-        "margin": 1.0
       }
     ],
     "smu mustangs": [
@@ -212230,6 +212432,14 @@
     ],
     "quinnipiac bobcats": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "yale bulldogs",
+        "home": true,
+        "drew": false,
+        "margin": 6.0
+      },
+      {
         "date": "2026-03-22",
         "won": false,
         "opp": "stanford",
@@ -212380,14 +212590,6 @@
         "home": true,
         "drew": false,
         "margin": 16.0
-      },
-      {
-        "date": "2026-01-08",
-        "won": true,
-        "opp": "mount st. marys mountaineers",
-        "home": false,
-        "drew": false,
-        "margin": 26.0
       }
     ],
     "maine black bears": [
@@ -213098,6 +213300,14 @@
     ],
     "louisiana ragin cajuns": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "utsa roadrunners",
+        "home": false,
+        "drew": false,
+        "margin": -1.0
+      },
+      {
         "date": "2026-03-04",
         "won": false,
         "opp": "ul monroe warhawks",
@@ -213248,14 +213458,6 @@
         "home": true,
         "drew": false,
         "margin": -26.0
-      },
-      {
-        "date": "2025-12-30",
-        "won": true,
-        "opp": "dillard blue devils",
-        "home": true,
-        "drew": false,
-        "margin": 41.0
       }
     ],
     "spring hill badgers": [
@@ -214106,6 +214308,14 @@
     ],
     "tulane green wave": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "mcneese cowgirls",
+        "home": true,
+        "drew": false,
+        "margin": 22.0
+      },
+      {
         "date": "2026-03-10",
         "won": false,
         "opp": "temple owls",
@@ -214256,14 +214466,6 @@
         "home": false,
         "drew": false,
         "margin": -2.0
-      },
-      {
-        "date": "2025-12-21",
-        "won": false,
-        "opp": "mercer bears",
-        "home": true,
-        "drew": false,
-        "margin": -3.0
       }
     ],
     "stetson hatters": [
@@ -214754,6 +214956,14 @@
     ],
     "little rock trojans": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "arkansas",
+        "home": true,
+        "drew": false,
+        "margin": -12.0
+      },
+      {
         "date": "2026-03-04",
         "won": false,
         "opp": "southeast missouri state redhawks",
@@ -214904,14 +215114,6 @@
         "home": true,
         "drew": false,
         "margin": 7.0
-      },
-      {
-        "date": "2025-12-22",
-        "won": true,
-        "opp": "hendrix warriors",
-        "home": true,
-        "drew": false,
-        "margin": 21.0
       }
     ],
     "missouri state lady bears": [
@@ -215930,6 +216132,14 @@
     ],
     "western kentucky lady toppers": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "kentucky state thorobreds",
+        "home": true,
+        "drew": false,
+        "margin": 36.0
+      },
+      {
         "date": "2026-03-07",
         "won": false,
         "opp": "florida international panthers",
@@ -216080,14 +216290,6 @@
         "home": false,
         "drew": false,
         "margin": -1.0
-      },
-      {
-        "date": "2025-12-14",
-        "won": true,
-        "opp": "north dakota fighting hawks",
-        "home": false,
-        "drew": false,
-        "margin": 30.0
       }
     ],
     "mercer bears": [
@@ -216766,6 +216968,14 @@
     ],
     "middle tennessee blue raiders": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "tennessee tech golden eagles",
+        "home": true,
+        "drew": false,
+        "margin": 10.0
+      },
+      {
         "date": "2026-03-26",
         "won": false,
         "opp": "cleveland state vikings",
@@ -216916,14 +217126,6 @@
         "home": true,
         "drew": false,
         "margin": 43.0
-      },
-      {
-        "date": "2026-01-04",
-        "won": true,
-        "opp": "jacksonville state gamecocks",
-        "home": false,
-        "drew": false,
-        "margin": 17.0
       }
     ],
     "memphis tigers": [
@@ -219030,6 +219232,14 @@
     ],
     "lsu": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "troy trojans",
+        "home": true,
+        "drew": false,
+        "margin": 46.0
+      },
+      {
         "date": "2026-03-28",
         "won": false,
         "opp": "duke",
@@ -219180,14 +219390,6 @@
         "home": false,
         "drew": false,
         "margin": 21.0
-      },
-      {
-        "date": "2026-01-04",
-        "won": false,
-        "opp": "vanderbilt",
-        "home": false,
-        "drew": false,
-        "margin": -4.0
       }
     ],
     "colorado": [
@@ -222876,6 +223078,14 @@
     ],
     "duquesne dukes": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "robert morris colonials",
+        "home": true,
+        "drew": false,
+        "margin": 5.0
+      },
+      {
         "date": "2026-03-05",
         "won": false,
         "opp": "saint josephs hawks",
@@ -223026,14 +223236,6 @@
         "home": true,
         "drew": false,
         "margin": -10.0
-      },
-      {
-        "date": "2025-12-21",
-        "won": true,
-        "opp": "pittsburgh",
-        "home": true,
-        "drew": false,
-        "margin": 15.0
       }
     ],
     "louisiana tech lady techsters": [
@@ -224044,6 +224246,14 @@
     ],
     "longwood lancers": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "emory henry wasps",
+        "home": true,
+        "drew": false,
+        "margin": -8.0
+      },
+      {
         "date": "2026-03-08",
         "won": false,
         "opp": "radford highlanders",
@@ -224194,17 +224404,17 @@
         "home": true,
         "drew": false,
         "margin": 26.0
-      },
-      {
-        "date": "2025-12-14",
-        "won": true,
-        "opp": "elon phoenix",
-        "home": false,
-        "drew": false,
-        "margin": 1.0
       }
     ],
     "michigan": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "central michigan chippewas",
+        "home": false,
+        "drew": false,
+        "margin": 71.0
+      },
       {
         "date": "2026-03-30",
         "won": false,
@@ -224356,14 +224566,6 @@
         "home": true,
         "drew": false,
         "margin": 16.0
-      },
-      {
-        "date": "2026-01-11",
-        "won": true,
-        "opp": "wisconsin",
-        "home": true,
-        "drew": false,
-        "margin": 26.0
       }
     ],
     "purdue fort wayne mastodons": [
@@ -225988,6 +226190,14 @@
     ],
     "central connecticut blue devils": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "colgate raiders",
+        "home": true,
+        "drew": false,
+        "margin": 7.0
+      },
+      {
         "date": "2026-03-06",
         "won": true,
         "opp": "new haven chargers",
@@ -226138,14 +226348,6 @@
         "home": false,
         "drew": false,
         "margin": -68.0
-      },
-      {
-        "date": "2025-12-17",
-        "won": false,
-        "opp": "new hampshire wildcats",
-        "home": true,
-        "drew": false,
-        "margin": -3.0
       }
     ],
     "air force falcons": [
@@ -226312,6 +226514,14 @@
     ],
     "denver pioneers": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "regis university regis university",
+        "home": true,
+        "drew": false,
+        "margin": 21.0
+      },
+      {
         "date": "2026-03-06",
         "won": false,
         "opp": "south dakota coyotes",
@@ -226462,14 +226672,6 @@
         "home": true,
         "drew": false,
         "margin": 27.0
-      },
-      {
-        "date": "2025-12-14",
-        "won": false,
-        "opp": "kansas",
-        "home": false,
-        "drew": false,
-        "margin": -39.0
       }
     ],
     "south dakota state jackrabbits": [
@@ -226960,6 +227162,14 @@
     ],
     "robert morris colonials": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "duquesne dukes",
+        "home": false,
+        "drew": false,
+        "margin": -5.0
+      },
+      {
         "date": "2026-03-05",
         "won": false,
         "opp": "purdue fort wayne mastodons",
@@ -227110,14 +227320,6 @@
         "home": true,
         "drew": false,
         "margin": -3.0
-      },
-      {
-        "date": "2025-12-19",
-        "won": true,
-        "opp": "point park pioneers",
-        "home": true,
-        "drew": false,
-        "margin": 50.0
       }
     ],
     "akron zips": [
@@ -227950,6 +228152,14 @@
     ],
     "radford highlanders": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "ferrum panthers",
+        "home": true,
+        "drew": false,
+        "margin": 57.0
+      },
+      {
         "date": "2026-03-24",
         "won": false,
         "opp": "arkansas state red wolves",
@@ -228100,14 +228310,6 @@
         "home": false,
         "drew": false,
         "margin": -38.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": false,
-        "opp": "charleston southern buccaneers",
-        "home": true,
-        "drew": false,
-        "margin": -4.0
       }
     ],
     "concord mountain lions": [
@@ -229768,6 +229970,14 @@
     ],
     "ualbany great danes": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "rutgers",
+        "home": false,
+        "drew": false,
+        "margin": -39.0
+      },
+      {
         "date": "2026-03-05",
         "won": false,
         "opp": "vermont catamounts",
@@ -229918,14 +230128,6 @@
         "home": false,
         "drew": false,
         "margin": -29.0
-      },
-      {
-        "date": "2025-12-13",
-        "won": true,
-        "opp": "boston university terriers",
-        "home": true,
-        "drew": false,
-        "margin": 16.0
       }
     ],
     "james madison dukes": [
@@ -230750,6 +230952,14 @@
     ],
     "rutgers": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "ualbany great danes",
+        "home": true,
+        "drew": false,
+        "margin": 39.0
+      },
+      {
         "date": "2026-02-28",
         "won": false,
         "opp": "nebraska",
@@ -230900,14 +231110,6 @@
         "home": false,
         "drew": false,
         "margin": -18.0
-      },
-      {
-        "date": "2025-12-06",
-        "won": false,
-        "opp": "iowa",
-        "home": true,
-        "drew": false,
-        "margin": -43.0
       }
     ],
     "monmouth hawks": [
@@ -231950,6 +232152,14 @@
     ],
     "northern colorado bears": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "uc davis aggies",
+        "home": true,
+        "drew": false,
+        "margin": 29.0
+      },
+      {
         "date": "2026-03-22",
         "won": false,
         "opp": "south dakota coyotes",
@@ -232100,14 +232310,6 @@
         "home": false,
         "drew": false,
         "margin": 11.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": true,
-        "opp": "montana lady griz",
-        "home": true,
-        "drew": false,
-        "margin": 19.0
       }
     ],
     "hastings broncos": [
@@ -232284,6 +232486,14 @@
     ],
     "le moyne dolphins": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "miami",
+        "home": false,
+        "drew": false,
+        "margin": -47.0
+      },
+      {
         "date": "2026-03-12",
         "won": false,
         "opp": "fairleigh dickinson knights",
@@ -232434,14 +232644,6 @@
         "home": true,
         "drew": false,
         "margin": -17.0
-      },
-      {
-        "date": "2026-01-02",
-        "won": true,
-        "opp": "saint francis red wolves",
-        "home": true,
-        "drew": false,
-        "margin": 4.0
       }
     ],
     "kansas state": [
@@ -232608,6 +232810,14 @@
     ],
     "presbyterian blue hose": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "unc wilmington seahawks",
+        "home": true,
+        "drew": false,
+        "margin": -26.0
+      },
+      {
         "date": "2026-03-04",
         "won": false,
         "opp": "south carolina upstate spartans",
@@ -232758,14 +232968,6 @@
         "home": true,
         "drew": false,
         "margin": -20.0
-      },
-      {
-        "date": "2025-12-10",
-        "won": false,
-        "opp": "virginia tech",
-        "home": false,
-        "drew": false,
-        "margin": -56.0
       }
     ],
     "central arkansas sugar bears": [
@@ -233136,6 +233338,14 @@
     ],
     "jacksonville state gamecocks": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "southern miss lady eagles",
+        "home": false,
+        "drew": false,
+        "margin": -16.0
+      },
+      {
         "date": "2026-03-11",
         "won": false,
         "opp": "florida international panthers",
@@ -233286,14 +233496,6 @@
         "home": true,
         "drew": false,
         "margin": -17.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": true,
-        "opp": "western kentucky lady toppers",
-        "home": true,
-        "drew": false,
-        "margin": 27.0
       }
     ],
     "southern indiana screaming eagles": [
@@ -233990,6 +234192,14 @@
     ],
     "arizona state": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "penn state lady lions",
+        "home": true,
+        "drew": false,
+        "margin": 44.0
+      },
+      {
         "date": "2026-03-20",
         "won": false,
         "opp": "virginia",
@@ -234140,17 +234350,17 @@
         "home": true,
         "drew": false,
         "margin": 23.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": false,
-        "opp": "byu",
-        "home": false,
-        "drew": false,
-        "margin": -9.0
       }
     ],
     "utsa roadrunners": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "louisiana ragin cajuns",
+        "home": true,
+        "drew": false,
+        "margin": 1.0
+      },
       {
         "date": "2026-03-21",
         "won": false,
@@ -234302,17 +234512,17 @@
         "home": false,
         "drew": false,
         "margin": 37.0
-      },
-      {
-        "date": "2026-01-14",
-        "won": false,
-        "opp": "south florida bulls",
-        "home": false,
-        "drew": false,
-        "margin": -17.0
       }
     ],
     "new mexico state aggies": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "kansas city roos",
+        "home": true,
+        "drew": false,
+        "margin": 29.0
+      },
       {
         "date": "2026-03-07",
         "won": false,
@@ -234464,14 +234674,6 @@
         "home": true,
         "drew": false,
         "margin": 4.0
-      },
-      {
-        "date": "2025-12-20",
-        "won": false,
-        "opp": "saint marys gaels",
-        "home": false,
-        "drew": false,
-        "margin": -11.0
       }
     ],
     "arizona": [
@@ -236164,6 +236366,14 @@
     ],
     "houston christian huskies": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "utah",
+        "home": false,
+        "drew": false,
+        "margin": -49.0
+      },
+      {
         "date": "2026-03-02",
         "won": false,
         "opp": "texas a m-corpus christi islanders",
@@ -236312,14 +236522,6 @@
         "won": false,
         "opp": "mcneese cowgirls",
         "home": true,
-        "drew": false,
-        "margin": -20.0
-      },
-      {
-        "date": "2025-12-20",
-        "won": false,
-        "opp": "rice owls",
-        "home": false,
         "drew": false,
         "margin": -20.0
       }
@@ -236872,6 +237074,14 @@
     ],
     "arkansas-pine bluff golden lions": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "ul monroe warhawks",
+        "home": false,
+        "drew": false,
+        "margin": 2.0
+      },
+      {
         "date": "2026-03-13",
         "won": false,
         "opp": "alabama state lady hornets",
@@ -237022,14 +237232,6 @@
         "home": false,
         "drew": false,
         "margin": 4.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": false,
-        "opp": "alabama a m bulldogs",
-        "home": true,
-        "drew": false,
-        "margin": -23.0
       }
     ],
     "washington": [
@@ -239020,6 +239222,14 @@
     ],
     "weber state wildcats": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "northern new mexico eagles",
+        "home": true,
+        "drew": false,
+        "margin": 77.0
+      },
+      {
         "date": "2026-03-08",
         "won": false,
         "opp": "idaho vandals",
@@ -239170,14 +239380,6 @@
         "home": false,
         "drew": false,
         "margin": -21.0
-      },
-      {
-        "date": "2026-01-02",
-        "won": false,
-        "opp": "portland state vikings",
-        "home": false,
-        "drew": false,
-        "margin": -10.0
       }
     ],
     "san jos\u00e9 state spartans": [
@@ -241226,6 +241428,14 @@
     ],
     "vcu rams": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "north carolina central eagles",
+        "home": true,
+        "drew": false,
+        "margin": 51.0
+      },
+      {
         "date": "2026-03-04",
         "won": false,
         "opp": "duquesne dukes",
@@ -241376,14 +241586,6 @@
         "home": false,
         "drew": false,
         "margin": -19.0
-      },
-      {
-        "date": "2025-12-20",
-        "won": false,
-        "opp": "penn state lady lions",
-        "home": false,
-        "drew": false,
-        "margin": -12.0
       }
     ],
     "hofstra pride": [
@@ -241550,6 +241752,14 @@
     ],
     "unc wilmington seahawks": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "presbyterian blue hose",
+        "home": false,
+        "drew": false,
+        "margin": 26.0
+      },
+      {
         "date": "2026-03-12",
         "won": false,
         "opp": "monmouth hawks",
@@ -241700,14 +241910,6 @@
         "home": true,
         "drew": false,
         "margin": -8.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": true,
-        "opp": "northeastern huskies",
-        "home": true,
-        "drew": false,
-        "margin": 2.0
       }
     ],
     "apprentice school builders": [
@@ -241737,6 +241939,14 @@
       }
     ],
     "penn state lady lions": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "arizona state",
+        "home": false,
+        "drew": false,
+        "margin": -44.0
+      },
       {
         "date": "2026-02-28",
         "won": false,
@@ -241888,14 +242098,6 @@
         "home": true,
         "drew": false,
         "margin": 12.0
-      },
-      {
-        "date": "2025-12-14",
-        "won": false,
-        "opp": "south carolina",
-        "home": false,
-        "drew": false,
-        "margin": -40.0
       }
     ],
     "bucknell bison": [
@@ -242386,6 +242588,14 @@
     ],
     "bowling green falcons": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "lawrence tech blue devils",
+        "home": true,
+        "drew": false,
+        "margin": 82.0
+      },
+      {
         "date": "2026-03-11",
         "won": false,
         "opp": "ball state cardinals",
@@ -242536,17 +242746,17 @@
         "home": false,
         "drew": false,
         "margin": -10.0
-      },
-      {
-        "date": "2025-12-20",
-        "won": true,
-        "opp": "kent state golden flashes",
-        "home": true,
-        "drew": false,
-        "margin": 4.0
       }
     ],
     "cleveland state vikings": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "xavier",
+        "home": false,
+        "drew": false,
+        "margin": -27.0
+      },
       {
         "date": "2026-03-31",
         "won": false,
@@ -242698,14 +242908,6 @@
         "home": true,
         "drew": false,
         "margin": 12.0
-      },
-      {
-        "date": "2026-01-04",
-        "won": false,
-        "opp": "milwaukee panthers",
-        "home": false,
-        "drew": false,
-        "margin": -8.0
       }
     ],
     "jacksonville dolphins": [
@@ -244364,6 +244566,14 @@
     ],
     "yale bulldogs": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "quinnipiac bobcats",
+        "home": false,
+        "drew": false,
+        "margin": -6.0
+      },
+      {
         "date": "2026-03-07",
         "won": false,
         "opp": "princeton tigers",
@@ -244514,14 +244724,6 @@
         "home": true,
         "drew": false,
         "margin": 13.0
-      },
-      {
-        "date": "2025-11-30",
-        "won": false,
-        "opp": "penn state lady lions",
-        "home": false,
-        "drew": false,
-        "margin": -18.0
       }
     ],
     "providence": [
@@ -244688,6 +244890,14 @@
     ],
     "hampton lady pirates": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "high point panthers",
+        "home": false,
+        "drew": false,
+        "margin": -60.0
+      },
+      {
         "date": "2026-03-13",
         "won": false,
         "opp": "elon phoenix",
@@ -244838,17 +245048,17 @@
         "home": true,
         "drew": false,
         "margin": 9.0
-      },
-      {
-        "date": "2025-12-29",
-        "won": false,
-        "opp": "eastern kentucky colonels",
-        "home": false,
-        "drew": false,
-        "margin": -18.0
       }
     ],
     "colgate raiders": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "central connecticut blue devils",
+        "home": false,
+        "drew": false,
+        "margin": -7.0
+      },
       {
         "date": "2026-03-09",
         "won": false,
@@ -245000,14 +245210,6 @@
         "home": true,
         "drew": false,
         "margin": -32.0
-      },
-      {
-        "date": "2025-12-31",
-        "won": true,
-        "opp": "lafayette leopards",
-        "home": true,
-        "drew": false,
-        "margin": 6.0
       }
     ],
     "cornell big red": [
@@ -248090,6 +248292,14 @@
     ],
     "arkansas": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "little rock trojans",
+        "home": false,
+        "drew": false,
+        "margin": 12.0
+      },
+      {
         "date": "2026-03-04",
         "won": false,
         "opp": "kentucky",
@@ -248240,17 +248450,17 @@
         "home": true,
         "drew": false,
         "margin": 9.0
-      },
-      {
-        "date": "2025-12-18",
-        "won": true,
-        "opp": "kansas city roos",
-        "home": true,
-        "drew": false,
-        "margin": 15.0
       }
     ],
     "ul monroe warhawks": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "arkansas-pine bluff golden lions",
+        "home": true,
+        "drew": false,
+        "margin": -2.0
+      },
       {
         "date": "2026-03-07",
         "won": false,
@@ -248402,14 +248612,6 @@
         "home": false,
         "drew": false,
         "margin": 10.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": false,
-        "opp": "arkansas state red wolves",
-        "home": true,
-        "drew": false,
-        "margin": -18.0
       }
     ],
     "pepperdine waves": [
@@ -250264,6 +250466,14 @@
     ],
     "xavier": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "cleveland state vikings",
+        "home": true,
+        "drew": false,
+        "margin": 27.0
+      },
+      {
         "date": "2026-03-06",
         "won": false,
         "opp": "st. johns red storm",
@@ -250414,14 +250624,6 @@
         "home": false,
         "drew": false,
         "margin": -6.0
-      },
-      {
-        "date": "2025-12-14",
-        "won": true,
-        "opp": "saint francis red wolves",
-        "home": true,
-        "drew": false,
-        "margin": 12.0
       }
     ],
     "uconn": [
@@ -251732,6 +251934,14 @@
     ],
     "navy midshipmen": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "dickinson red devils",
+        "home": true,
+        "drew": false,
+        "margin": 39.0
+      },
+      {
         "date": "2026-03-19",
         "won": false,
         "opp": "harvard crimson",
@@ -251882,14 +252092,6 @@
         "home": false,
         "drew": false,
         "margin": 26.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": false,
-        "opp": "holy cross crusaders",
-        "home": true,
-        "drew": false,
-        "margin": -11.0
       }
     ],
     "susquehanna river hawks": [
@@ -251903,6 +252105,14 @@
       }
     ],
     "lamar cardinals": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "texas a m aggies",
+        "home": false,
+        "drew": false,
+        "margin": -8.0
+      },
       {
         "date": "2026-03-22",
         "won": false,
@@ -252054,14 +252264,6 @@
         "home": true,
         "drew": false,
         "margin": 12.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": false,
-        "opp": "mcneese cowgirls",
-        "home": false,
-        "drew": false,
-        "margin": -8.0
       }
     ],
     "texas college steers": [
@@ -253550,6 +253752,14 @@
     ],
     "miami": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "le moyne dolphins",
+        "home": true,
+        "drew": false,
+        "margin": 47.0
+      },
+      {
         "date": "2026-03-22",
         "won": false,
         "opp": "wisconsin",
@@ -253700,14 +253910,6 @@
         "home": true,
         "drew": false,
         "margin": -15.0
-      },
-      {
-        "date": "2026-01-01",
-        "won": true,
-        "opp": "virginia tech",
-        "home": false,
-        "drew": false,
-        "margin": 8.0
       }
     ],
     "trinity college of jacksonville eagles": [
@@ -255204,6 +255406,14 @@
     ],
     "texas a m aggies": [
       {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "lamar cardinals",
+        "home": true,
+        "drew": false,
+        "margin": 8.0
+      },
+      {
         "date": "2026-03-20",
         "won": false,
         "opp": "mcneese cowgirls",
@@ -255354,14 +255564,6 @@
         "home": true,
         "drew": false,
         "margin": 33.0
-      },
-      {
-        "date": "2025-12-14",
-        "won": false,
-        "opp": "west virginia",
-        "home": true,
-        "drew": false,
-        "margin": -18.0
       }
     ],
     "erskine flying fleet": [
@@ -256080,6 +256282,14 @@
     ],
     "north carolina central eagles": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "vcu rams",
+        "home": false,
+        "drew": false,
+        "margin": -51.0
+      },
+      {
         "date": "2026-03-12",
         "won": false,
         "opp": "coppin state eagles",
@@ -256230,14 +256440,6 @@
         "home": false,
         "drew": false,
         "margin": 10.0
-      },
-      {
-        "date": "2025-12-14",
-        "won": false,
-        "opp": "high point panthers",
-        "home": false,
-        "drew": false,
-        "margin": -22.0
       }
     ],
     "bellarmine knights": [
@@ -256890,6 +257092,14 @@
     ],
     "central michigan chippewas": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "michigan",
+        "home": true,
+        "drew": false,
+        "margin": -71.0
+      },
+      {
         "date": "2026-03-11",
         "won": false,
         "opp": "ohio bobcats",
@@ -257040,14 +257250,6 @@
         "home": true,
         "drew": false,
         "margin": -2.0
-      },
-      {
-        "date": "2025-12-20",
-        "won": true,
-        "opp": "northern illinois huskies",
-        "home": true,
-        "drew": false,
-        "margin": 38.0
       }
     ],
     "seattle u redhawks": [
@@ -258962,6 +259164,14 @@
     ],
     "troy trojans": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "lsu",
+        "home": false,
+        "drew": false,
+        "margin": -46.0
+      },
+      {
         "date": "2026-03-19",
         "won": false,
         "opp": "kansas",
@@ -259112,14 +259322,6 @@
         "home": true,
         "drew": false,
         "margin": 35.0
-      },
-      {
-        "date": "2026-01-03",
-        "won": false,
-        "opp": "southern miss lady eagles",
-        "home": false,
-        "drew": false,
-        "margin": -3.0
       }
     ],
     "slippery rock the rock": [
@@ -259771,6 +259973,14 @@
       }
     ],
     "regis university regis university": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "denver pioneers",
+        "home": false,
+        "drew": false,
+        "margin": -21.0
+      },
       {
         "date": "2025-11-22",
         "won": false,
@@ -261560,6 +261770,14 @@
     ],
     "northern new mexico eagles": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "weber state wildcats",
+        "home": false,
+        "drew": false,
+        "margin": -77.0
+      },
+      {
         "date": "2025-11-05",
         "won": false,
         "opp": "northern colorado bears",
@@ -261645,6 +261863,14 @@
       }
     ],
     "emory henry wasps": [
+      {
+        "date": "2026-11-16",
+        "won": true,
+        "opp": "longwood lancers",
+        "home": false,
+        "drew": false,
+        "margin": 8.0
+      },
       {
         "date": "2025-11-08",
         "won": false,
@@ -262089,6 +262315,14 @@
       }
     ],
     "kentucky state thorobreds": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "western kentucky lady toppers",
+        "home": false,
+        "drew": false,
+        "margin": -36.0
+      },
       {
         "date": "2025-12-04",
         "won": false,
@@ -262925,6 +263159,14 @@
       }
     ],
     "lsu shreveport pilots": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "northwestern state lady demons",
+        "home": false,
+        "drew": false,
+        "margin": -3.0
+      },
       {
         "date": "2023-12-19",
         "won": false,
@@ -266290,6 +266532,14 @@
     ],
     "colby sawyer chargers": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "dartmouth big green",
+        "home": false,
+        "drew": false,
+        "margin": -51.0
+      },
+      {
         "date": "2025-11-12",
         "won": false,
         "opp": "dartmouth big green",
@@ -267400,6 +267650,14 @@
     ],
     "ferrum panthers": [
       {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "radford highlanders",
+        "home": false,
+        "drew": false,
+        "margin": -57.0
+      },
+      {
         "date": "2025-12-20",
         "won": false,
         "opp": "north carolina a t aggies",
@@ -267574,6 +267832,26 @@
         "home": false,
         "drew": false,
         "margin": -52.0
+      }
+    ],
+    "lawrence tech blue devils": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "bowling green falcons",
+        "home": false,
+        "drew": false,
+        "margin": -82.0
+      }
+    ],
+    "dickinson red devils": [
+      {
+        "date": "2026-11-16",
+        "won": false,
+        "opp": "navy midshipmen",
+        "home": false,
+        "drew": false,
+        "margin": -39.0
       }
     ]
   }
