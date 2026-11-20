@@ -111,9 +111,13 @@ def test_person_name_sectors_do_not_fuzzy_on_the_surname():
 
 
 def test_identity_resolution_never_uses_the_fuzzy_tier():
+    # "georgia state panthers" (ESPN's full name) is an alias since the
+    # generated full-name block, so it now resolves at the identity tier; an
+    # unregistered suffix still needs the fuzzy tier.
     store = {"georgia state": 1}
-    assert resolve_team_key("ncaab", "georgia state panthers", store) == "georgia state"
-    assert identity_team_key("ncaab", "georgia state panthers", store) is None
+    assert identity_team_key("ncaab", "georgia state panthers", store) == "georgia state"
+    assert resolve_team_key("ncaab", "georgia state hounds", store) == "georgia state"
+    assert identity_team_key("ncaab", "georgia state hounds", store) is None
 
 
 def test_canonical_equality_index_sees_keys_added_later():
