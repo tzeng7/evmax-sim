@@ -53,9 +53,9 @@ jobs:
         run: uv run pytest tests/ -q
 
   frontend:
-    name: Frontend typecheck + build
+    name: Frontend typecheck + build + tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
@@ -78,3 +78,21 @@ jobs:
 
       - name: Typecheck + build
         run: npm run build
+
+      # Unit + browser layout tests (playwright.config.ts): the real app in
+      # Chromium at phone/tablet/laptop/desktop sizes, with /api mocked.
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Frontend tests
+        run: npm test
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7

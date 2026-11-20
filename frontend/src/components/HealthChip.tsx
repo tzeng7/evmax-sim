@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import './HealthChip.css'
+import { useAnchoredPanel } from '../lib/anchoredPanel'
 
 type Sev = 'ok' | 'info' | 'warning' | 'critical'
 interface CheckIssue { severity: Sev; detail: string }
@@ -33,6 +35,10 @@ export function HealthChip() {
   const [now, setNow] = useState(() => Date.now())
   const [withPinnacle, setWithPinnacle] = useState(false)
   const root = useRef<HTMLDivElement>(null)
+  // Right-aligned under the chip, clamped inside the viewport: the chip wraps to
+  // the LEFT of the header on narrow windows, where a plain `right: 0` panel
+  // ran ~320px off-screen.
+  const { anchorRef, panelRef, style: panelStyle } = useAnchoredPanel<HTMLButtonElement, HTMLDivElement>(open, { align: 'end' })
 
   const load = useCallback(async (pinnacle: boolean) => {
     try {
@@ -55,7 +61,10 @@ export function HealthChip() {
   useEffect(() => {
     if (!open) return
     const onDown = (e: MouseEvent) => {
-      if (root.current && !root.current.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      // The panel is portalled to <body>, so it is not inside `root`.
+      if (root.current?.contains(t) || panelRef.current?.contains(t)) return
+      setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('mousedown', onDown)
@@ -64,7 +73,7 @@ export function HealthChip() {
       document.removeEventListener('mousedown', onDown)
       document.removeEventListener('keydown', onKey)
     }
-  }, [open])
+  }, [open, panelRef])
 
   const level = failed || !data ? 'unknown' : data.status === 'critical' ? 'red' : data.status === 'warning' ? 'amber' : 'green'
   const label = level === 'unknown' ? 'unknown' : level === 'red' ? 'critical' : level === 'amber' ? 'warning' : 'healthy'
@@ -72,6 +81,7 @@ export function HealthChip() {
   return (
     <div className="health-chip" ref={root}>
       <button
+        ref={anchorRef}
         type="button"
         className={`health-btn ${level}`}
         aria-haspopup="dialog"
@@ -82,8 +92,8 @@ export function HealthChip() {
         <span className="health-dot" aria-hidden="true" />
         {label}
       </button>
-      {open && (
-        <div className="health-panel" role="dialog" aria-label="Integrity checks">
+      {open && createPortal(
+        <div ref={panelRef} style={panelStyle} className="health-panel" role="dialog" aria-label="Integrity checks">
           <div className="health-head">
             <strong>Integrity</strong>
             <span className="health-age">
@@ -112,7 +122,9 @@ export function HealthChip() {
           {data && data.failed.length > 0 && (
             <div className="health-err">Crashed checks: {data.failed.join(', ')}</div>
           )}
-        </div>
+        </div>,
+        // Portal: an ancestor with a transform/overflow would otherwise offset or clip the panel.
+        document.body,
       )}
     </div>
   )

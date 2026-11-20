@@ -12,8 +12,9 @@
 .health-btn.amber .health-dot { background: var(--yellow); }
 .health-btn.red .health-dot { background: var(--red); }
 .health-panel {
-  position: absolute; right: 0; top: calc(100% + 8px); z-index: 50;
-  width: min(440px, calc(100vw - 32px)); max-height: 70vh; overflow: auto;
+  /* Placed by useAnchoredPanel (position: fixed, clamped to the viewport). */
+  z-index: 50;
+  width: 440px; max-width: calc(100vw - 32px); overflow: auto;
   background: var(--panel); border: 1px solid var(--border);
   border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 12px;
   font-size: 12px;
