@@ -20,7 +20,7 @@ import structlog
 
 from evmax.clients.time_util import kalshi_game_day
 from evmax.matching.alignment import align_yes_side, spread_rung_prices_yes
-from evmax.matching.fuzzy import fuzzy_match_event_keys
+from evmax.matching.fuzzy import FuzzyKeyIndex, fuzzy_match_event_keys_indexed
 from evmax.matching.normalizer import NameNormalizer
 from evmax.models.market import MarketType, PredictionMarket
 from evmax.models.odds import SharpOdds
@@ -65,6 +65,13 @@ class MatchingEngine:
 
     def build_market_key(self, market: PredictionMarket) -> Optional[str]:
         """Build canonical event key from a prediction market."""
+        base_key = self._base_key(market)
+        if base_key is None:
+            return None
+        return self._typed_key(market, base_key)
+
+    def _base_key(self, market: PredictionMarket) -> Optional[str]:
+        """``sector::game-day::teams`` for a market, or None without teams/date."""
         if not market.team_home or not market.team_away:
             return None
         if not market.event_date:
@@ -72,13 +79,16 @@ class MatchingEngine:
 
         normalizer = self._get_normalizer(market.sector)
         date_str = kalshi_game_day(market.event_date, market.sector)
-        base_key = normalizer.normalize_event_key(
+        return normalizer.normalize_event_key(
             market.team_home,
             market.team_away,
             date_str,
             market.sector,
         )
 
+    @staticmethod
+    def _typed_key(market: PredictionMarket, base_key: str) -> str:
+        """The market's key: the base key plus its market-type suffix."""
         # Spread markets: line handled by SpreadDistributionModel downstream
         if market.market_type == MarketType.spread:
             return f"{base_key}::spread"
@@ -113,35 +123,43 @@ class MatchingEngine:
         """
         if not sharp_odds_list:
             return None
+        return self._match_indexed(market, _SharpIndex(sharp_odds_list))
 
+    def _match_indexed(
+        self,
+        market: PredictionMarket,
+        index: "_SharpIndex",
+    ) -> Optional[tuple[SharpOdds, float]]:
+        """``match`` against a prebuilt index of the sharp records.
+
+        ``match_all`` builds the index ONCE per batch. Each lookup below is the
+        index form of a scan the per-market path used to do over the whole
+        sharp list, and returns the same record: the first one in list order.
+        """
         # Advance markets may only match advance sharp records and vice versa.
         # Advance and regulation-ML probs differ materially (P(advance) >
         # P(win in 90') whenever a draw is possible), and the fuzzy fallback
         # below scores the ::advance suffix close enough to the bare key that
         # cross-type matches would otherwise slip through.
         is_advance = market.market_type == MarketType.advance
-        sharp_odds_list = [
-            so for so in sharp_odds_list
-            if so.event_id.endswith("::advance") == is_advance
-        ]
-        if not sharp_odds_list:
+        part = index.partition(advance=is_advance)
+        if not part.odds:
             return None
 
         # Check manual override first
         override_event_id = self._overrides.get(market.id)
         if override_event_id:
-            for so in sharp_odds_list:
-                if so.event_id == override_event_id:
-                    logger.info("match_override", market_id=market.id, event_id=override_event_id)
-                    return so, 100.0
+            so = part.first_by_id.get(override_event_id)
+            if so is not None:
+                logger.info("match_override", market_id=market.id, event_id=override_event_id)
+                return so, 100.0
 
         # Build canonical key for the market
-        market_key = self.build_market_key(market)
+        base_key = self._base_key(market)
+        market_key = self._typed_key(market, base_key) if base_key else None
         if not market_key:
             logger.debug("match_no_key", market_id=market.id, reason="missing teams/date")
             return None
-
-        sharp_keys = [so.event_id for so in sharp_odds_list]
 
         # 0. Alt-spread ladder: prefer the Pinnacle spread rung whose line matches
         # this market's line (main OR alternate) over the bare main-line exact
@@ -157,7 +175,9 @@ class MatchingEngine:
             and market.market_type == MarketType.spread
             and market.line is not None
         ):
-            nearest = self._find_nearest_spread(market, sharp_odds_list)
+            nearest = self._find_nearest_spread(
+                market, part.spreads_by_base.get(base_key, []), base_key=base_key,
+            )
             if nearest:
                 so, score = nearest
                 logger.debug(
@@ -168,33 +188,35 @@ class MatchingEngine:
                 return so, score
 
         # 1. Exact match
-        for so in sharp_odds_list:
-            if so.event_id == market_key:
-                logger.debug("match_exact", market_id=market.id, event_id=so.event_id)
-                return so, 100.0
+        so = part.first_by_id.get(market_key)
+        if so is not None:
+            logger.debug("match_exact", market_id=market.id, event_id=so.event_id)
+            return so, 100.0
 
         # 2. Fuzzy match — disabled for spread/total markets (line must match exactly)
         if market.market_type not in (MarketType.spread, MarketType.total):
-            fuzzy_result = fuzzy_match_event_keys(
+            fuzzy_result = fuzzy_match_event_keys_indexed(
                 market_key,
-                sharp_keys,
+                part.fuzzy_index(),
                 threshold=self._settings.fuzzy_threshold,
             )
             if fuzzy_result:
                 matched_key, score = fuzzy_result
-                for so in sharp_odds_list:
-                    if so.event_id == matched_key:
-                        logger.debug(
-                            "match_fuzzy",
-                            market_id=market.id,
-                            event_id=matched_key,
-                            score=score,
-                        )
-                        return so, score
+                so = part.first_by_id.get(matched_key)
+                if so is not None:
+                    logger.debug(
+                        "match_fuzzy",
+                        market_id=market.id,
+                        event_id=matched_key,
+                        score=score,
+                    )
+                    return so, score
 
         # 3. Nearest-line fallback for totals — find closest Pinnacle line within 2 pts
         if market.market_type == MarketType.total and market.line is not None:
-            nearest = self._find_nearest_total(market, sharp_odds_list)
+            nearest = self._find_nearest_total(
+                market, part.totals_by_base.get(base_key, []), base_key=base_key,
+            )
             if nearest:
                 so, score = nearest
                 logger.debug(
@@ -214,16 +236,17 @@ class MatchingEngine:
         market: PredictionMarket,
         sharp_odds_list: list[SharpOdds],
         tolerance: float = 2.0,
+        base_key: Optional[str] = None,
     ) -> Optional[tuple[SharpOdds, float]]:
-        """Find the Pinnacle total line closest to the Kalshi line within tolerance."""
-        if not market.team_home or not market.team_away or not market.event_date:
-            return None
+        """Find the Pinnacle total line closest to the Kalshi line within tolerance.
 
-        normalizer = self._get_normalizer(market.sector)
-        date_str = kalshi_game_day(market.event_date, market.sector)
-        base_key = normalizer.normalize_event_key(
-            market.team_home, market.team_away, date_str, market.sector
-        )
+        ``base_key`` (the market's ``_base_key``) skips recomputing it; the
+        indexed path passes it together with only this game's total records.
+        """
+        if base_key is None:
+            base_key = self._base_key(market)
+        if base_key is None:
+            return None
         prefix = f"{base_key}::total::"
 
         best_so: Optional[SharpOdds] = None
@@ -252,6 +275,7 @@ class MatchingEngine:
         self,
         market: PredictionMarket,
         sharp_odds_list: list[SharpOdds],
+        base_key: Optional[str] = None,
     ) -> Optional[tuple[SharpOdds, float]]:
         """Find the Pinnacle spread rung whose |line| is nearest the market's
         |line|, within SPREAD_LADDER_LINE_TOLERANCE. Compares absolute lines so
@@ -263,13 +287,11 @@ class MatchingEngine:
 
         tolerance = spread_ladder_tolerance(market.sector)
 
-        if not market.team_home or not market.team_away or not market.event_date:
+        if base_key is None:
+            base_key = self._base_key(market)
+        if base_key is None:
             return None
         normalizer = self._get_normalizer(market.sector)
-        date_str = kalshi_game_day(market.event_date, market.sector)
-        base_key = normalizer.normalize_event_key(
-            market.team_home, market.team_away, date_str, market.sector
-        )
         main_id = f"{base_key}::spread"
         alt_prefix = f"{base_key}::spread::"
         target = abs(market.line or 0.0)
@@ -314,8 +336,13 @@ class MatchingEngine:
             List of (market, sharp_odds, confidence) tuples.
         """
         raw: list[tuple[PredictionMarket, SharpOdds, float]] = []
+        if not sharp_odds_list:
+            return []
+        # One index for the whole batch: the per-market path rescanned every
+        # sharp record 5-6 times per market (O(markets x records)).
+        index = _SharpIndex(sharp_odds_list)
         for market in markets:
-            result = self.match(market, sharp_odds_list)
+            result = self._match_indexed(market, index)
             if result:
                 so, confidence = result
                 raw.append((market, so, confidence))
@@ -384,3 +411,54 @@ def _date_rank(market: PredictionMarket, sharp: SharpOdds) -> tuple[int, float]:
     s_day = date.fromisoformat(kalshi_game_day(sharp.event_date, sharp.sector))
     seconds = abs((market.event_date - sharp.event_date).total_seconds())
     return abs((m_day - s_day).days), seconds
+
+
+class _SharpPartition:
+    """Lookups over one partition (advance or non-advance) of the sharp records.
+
+    Every list keeps the original record order, and ``first_by_id`` keeps the
+    FIRST record per event_id, which is what the old linear scans returned.
+    """
+
+    def __init__(self, odds: list[SharpOdds]) -> None:
+        self.odds = odds
+        self.first_by_id: dict[str, SharpOdds] = {}
+        # base game key -> records whose id starts with f"{base}::total::"
+        self.totals_by_base: dict[str, list[SharpOdds]] = {}
+        # base game key -> records whose id is f"{base}::spread" or starts with
+        # f"{base}::spread::" (main line + alternate rungs, interleaved in order)
+        self.spreads_by_base: dict[str, list[SharpOdds]] = {}
+        for so in odds:
+            eid = so.event_id
+            self.first_by_id.setdefault(eid, so)
+            if "::total::" in eid:
+                self.totals_by_base.setdefault(eid.split("::total::", 1)[0], []).append(so)
+            if eid.endswith("::spread"):
+                self.spreads_by_base.setdefault(eid[: -len("::spread")], []).append(so)
+            elif "::spread::" in eid:
+                self.spreads_by_base.setdefault(eid.split("::spread::", 1)[0], []).append(so)
+        self._fuzzy: Optional[FuzzyKeyIndex] = None
+
+    def fuzzy_index(self) -> FuzzyKeyIndex:
+        """Built on first use: most batches match exactly and never need it."""
+        if self._fuzzy is None:
+            self._fuzzy = FuzzyKeyIndex([so.event_id for so in self.odds])
+        return self._fuzzy
+
+
+class _SharpIndex:
+    """Sharp records split by the advance rule, each half indexed lazily."""
+
+    def __init__(self, odds: list[SharpOdds]) -> None:
+        self._odds = odds
+        self._parts: dict[bool, _SharpPartition] = {}
+
+    def partition(self, advance: bool) -> _SharpPartition:
+        part = self._parts.get(advance)
+        if part is None:
+            part = _SharpPartition([
+                so for so in self._odds
+                if so.event_id.endswith("::advance") == advance
+            ])
+            self._parts[advance] = part
+        return part

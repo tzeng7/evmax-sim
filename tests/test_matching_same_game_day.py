@@ -200,7 +200,9 @@ class TestMatchAllDedupRanksGameDayFirst:
         # Tomorrow's noon anchor is nearer the 00:40Z start (11h20m vs 12h40m).
         assert abs((nxt.event_date - LATE_START).total_seconds()) < abs(
             (today.event_date - LATE_START).total_seconds())
-        monkeypatch.setattr(engine, "match", lambda market, sharp_list: (sharp, 100.0))
+        # Force both markets onto the record so the DEDUP ranking is what's
+        # tested (match_all matches through _match_indexed, not match()).
+        monkeypatch.setattr(engine, "_match_indexed", lambda market, index: (sharp, 100.0))
         for order in ([nxt, today], [today, nxt]):
             results = engine.match_all(order, [sharp])
             assert [m.id for m, _, _ in results] == ["kalshi:KXMLBGAME-26SEP232040AZCOL-COL"]
@@ -213,7 +215,8 @@ class TestMatchAllDedupRanksGameDayFirst:
         b = kalshi_market("KXMLBGAME-26SEP232040AZCOL-COL", "baseball", "COL", "AZ",
                           2026, 9, 23, yes_team="rockies")
         conf = {a.id: 90.0, b.id: 100.0}
-        monkeypatch.setattr(engine, "match", lambda market, sharp_list: (sharp, conf[market.id]))
+        # match_all matches through the batch index (_match_indexed), not match().
+        monkeypatch.setattr(engine, "_match_indexed", lambda market, index: (sharp, conf[market.id]))
         results = engine.match_all([a, b], [sharp])
         assert [m.id for m, _, _ in results] == [b.id]
 
