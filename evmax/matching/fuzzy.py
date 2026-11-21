@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import date, timedelta
 from typing import Optional
 
 from rapidfuzz import fuzz, process
@@ -76,19 +77,8 @@ def fuzzy_match_event_keys(
     Returns:
         (best_key, score) or None.
     """
-    def extract_teams(key: str) -> str:
-        parts = key.split("::")
-        raw = parts[2] if len(parts) >= 3 else key
-        # Replace underscores with spaces so token_sort_ratio can sort team tokens.
-        # Without this, "brugge_vs_atletico" is a single token and can't be
-        # sorted/compared against "atletico_vs_brugge".
-        return raw.replace("_", " ")
-
-    # Filter candidates to same sector and within date window
-    query_parts = query_key.split("::")
-    query_sector = query_parts[0] if query_parts else ""
-    query_date = query_parts[1] if len(query_parts) > 1 else ""
-    query_teams = extract_teams(query_key)
+    query_sector, query_date, query_teams = _split_query(query_key)
+    prefix = f"{query_sector}::"
 
     if uses_et_game_day(query_sector):
         # Same ET game day only — no window, no any-date fallback. An unknown
@@ -97,7 +87,7 @@ def fuzzy_match_event_keys(
             return None
         filtered = [
             k for k in candidate_keys
-            if k.startswith(f"{query_sector}::") and _key_date(k) == query_date
+            if k.startswith(prefix) and _key_date(k) == query_date
         ]
         if not filtered:
             return None
@@ -105,28 +95,155 @@ def fuzzy_match_event_keys(
         # Only match events in same sector and within ±1 day
         filtered = [
             k for k in candidate_keys
-            if k.startswith(f"{query_sector}::") and _date_close(query_date, _key_date(k))
+            if k.startswith(prefix) and _date_close(query_date, _key_date(k))
         ]
 
     if not filtered:
         # Try same-sector candidates regardless of date before falling back to all
-        same_sector = [k for k in candidate_keys if k.startswith(f"{query_sector}::")]
-        if same_sector:
-            _log.debug(
-                "fuzzy_date_filter_empty: falling back to %d same-sector candidates for %s",
-                len(same_sector),
-                query_key,
-            )
-            filtered = same_sector
-        else:
+        filtered = [k for k in candidate_keys if k.startswith(prefix)]
+        if not filtered:
             # No same-sector candidates at all — cross-sector match is always wrong
             _log.debug(
                 "fuzzy_date_filter_empty: no same-sector candidates for %s — no match",
                 query_key,
             )
             return None
+        _log.debug(
+            "fuzzy_date_filter_empty: falling back to %d same-sector candidates for %s",
+            len(filtered),
+            query_key,
+        )
 
-    best = fuzzy_match(query_teams, [extract_teams(k) for k in filtered], threshold)
+    return _score_candidates(
+        query_teams, query_date, filtered, [_extract_teams(k) for k in filtered], threshold,
+    )
+
+
+_Entry = tuple[int, str, str]  # (position in the candidate list, key, team string)
+
+
+class FuzzyKeyIndex:
+    """Sharp event keys grouped by sector and game day, built once per batch.
+
+    ``fuzzy_match_event_keys`` re-filters the WHOLE candidate list for every
+    query (sector prefix + date parse per key): O(markets x keys) per batch,
+    0.84 s for one soccer scan (1,039 markets x 1,718 Pinnacle records), run
+    twice per scan. This index answers the same filter with dictionary
+    lookups. Every candidate list keeps the ORIGINAL key order, because
+    rapidfuzz's extractOne and the nearest-date tie-break both pick the first
+    candidate among equals: same order, same answer.
+    """
+
+    def __init__(self, keys: list[str]) -> None:
+        # Entries are (position, key, team string). The team string is computed
+        # once here instead of once per query per candidate.
+        # sector -> entries for every key whose first segment is the sector
+        self._by_sector: dict[str, list[_Entry]] = {}
+        # sector -> raw date segment -> entries  (ET exact-day filter)
+        self._by_date_str: dict[str, dict[str, list[_Entry]]] = {}
+        # sector -> parsed date -> entries       (±1-day window)
+        self._by_day: dict[str, dict[date, list[_Entry]]] = {}
+        # sector -> entries whose date is missing/unknown/unparseable; the ±1-day
+        # filter (_date_close) always lets these through.
+        self._undated: dict[str, list[_Entry]] = {}
+        for pos, key in enumerate(keys):
+            if "::" not in key:
+                continue  # can never satisfy key.startswith(f"{sector}::")
+            sector = key.split("::", 1)[0]
+            entry = (pos, key, _extract_teams(key))
+            self._by_sector.setdefault(sector, []).append(entry)
+            raw_date = _key_date(key)
+            self._by_date_str.setdefault(sector, {}).setdefault(raw_date, []).append(entry)
+            day = _parse_day(raw_date)
+            if day is None:
+                self._undated.setdefault(sector, []).append(entry)
+            else:
+                self._by_day.setdefault(sector, {}).setdefault(day, []).append(entry)
+
+    def same_day(self, sector: str, raw_date: str) -> list[_Entry]:
+        """Entries of ``sector`` whose date segment equals ``raw_date`` exactly."""
+        return list(self._by_date_str.get(sector, {}).get(raw_date, ()))
+
+    def within_one_day(self, sector: str, raw_date: str) -> list[_Entry]:
+        """Entries of ``sector`` that ``_date_close(raw_date, key_date)`` accepts, in order."""
+        day = _parse_day(raw_date)
+        if day is None:  # unknown query date: _date_close accepts every key
+            return self.same_sector(sector)
+        by_day = self._by_day.get(sector, {})
+        entries = list(self._undated.get(sector, ()))
+        for offset in (-1, 0, 1):
+            entries.extend(by_day.get(day + timedelta(days=offset), ()))
+        entries.sort()
+        return entries
+
+    def same_sector(self, sector: str) -> list[_Entry]:
+        return list(self._by_sector.get(sector, ()))
+
+
+def fuzzy_match_event_keys_indexed(
+    query_key: str,
+    index: FuzzyKeyIndex,
+    threshold: int = DEFAULT_THRESHOLD,
+) -> Optional[tuple[str, float]]:
+    """``fuzzy_match_event_keys`` over a prebuilt ``FuzzyKeyIndex``.
+
+    Same filter rules, same candidate order, same scoring — only the
+    candidate filter is a lookup instead of a scan of every key.
+    """
+    query_sector, query_date, query_teams = _split_query(query_key)
+
+    if uses_et_game_day(query_sector):
+        if query_date in ("", "unknown"):
+            return None
+        filtered = index.same_day(query_sector, query_date)
+        if not filtered:
+            return None
+    else:
+        filtered = index.within_one_day(query_sector, query_date)
+
+    if not filtered:
+        filtered = index.same_sector(query_sector)
+        if not filtered:
+            return None
+
+    return _score_candidates(
+        query_teams, query_date,
+        [k for _, k, _ in filtered], [t for _, _, t in filtered], threshold,
+    )
+
+
+def _extract_teams(key: str) -> str:
+    parts = key.split("::")
+    raw = parts[2] if len(parts) >= 3 else key
+    # Replace underscores with spaces so token_sort_ratio can sort team tokens.
+    # Without this, "brugge_vs_atletico" is a single token and can't be
+    # sorted/compared against "atletico_vs_brugge".
+    return raw.replace("_", " ")
+
+
+def _split_query(query_key: str) -> tuple[str, str, str]:
+    """(sector, date segment, team string) of a canonical event key."""
+    query_parts = query_key.split("::")
+    query_sector = query_parts[0] if query_parts else ""
+    query_date = query_parts[1] if len(query_parts) > 1 else ""
+    return query_sector, query_date, _extract_teams(query_key)
+
+
+def _score_candidates(
+    query_teams: str,
+    query_date: str,
+    filtered: list[str],
+    filtered_teams: list[str],
+    threshold: int,
+) -> Optional[tuple[str, float]]:
+    """Fuzzy-score the team part of the date-filtered candidates.
+
+    ``filtered_teams[i]`` is ``_extract_teams(filtered[i])``. Each distinct
+    team string is scored once (a game's spread and total records repeat its
+    moneyline's teams). The score depends only on the string, and extractOne
+    keeps the first of equal scores, so the winner is unchanged.
+    """
+    best = fuzzy_match(query_teams, list(dict.fromkeys(filtered_teams)), threshold)
     if best is None:
         return None
 
@@ -141,11 +258,21 @@ def fuzzy_match_event_keys(
     # Recover the full key from the matched teams string. Several dates can
     # carry the same teams (a rematch inside the ±1-day window); take the one
     # nearest the query date, not the first one listed.
-    same_teams = [k for k in filtered if extract_teams(k) == match_teams]
+    same_teams = [k for k, t in zip(filtered, filtered_teams) if t == match_teams]
     if same_teams:
         return min(same_teams, key=lambda k: _day_gap(query_date, _key_date(k))), score
 
     return None
+
+
+def _parse_day(raw: str) -> Optional[date]:
+    """Parsed YYYY-MM-DD, or None where ``_date_close`` treats the date as unknown."""
+    if not raw or raw == "unknown":
+        return None
+    try:
+        return date.fromisoformat(raw)
+    except ValueError:
+        return None
 
 
 def _key_date(key: str) -> str:
