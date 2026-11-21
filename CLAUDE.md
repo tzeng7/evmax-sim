@@ -299,6 +299,8 @@ every shadow→live promotion decision.
 
 Run `pytest tests/ -q` before declaring any task complete.
 
+**Frontend (`frontend/`):** run `cd frontend && npm test` (Playwright, also in CI). The `unit` project covers pure logic in `tests/unit`. The `layout-*` projects run the real app in Chromium at phone/tablet/laptop/desktop sizes with every `/api` call answered by `tests/e2e/mockApi.ts`, so no backend is needed; a call with no fixture fails the test. Typecheck and build cannot catch a popup that opens off-screen or under a clipping parent; these tests can. A new popup/menu/dialog gets a case in `tests/e2e/popovers.spec.ts` (`expectFullyVisible`). Anchor popups with `useAnchoredPanel` (`src/lib/anchoredPanel.ts`) and render them through `createPortal(…, document.body)`: transformed ancestors (entrance animations) offset `position: fixed`, and scroll containers clip `position: absolute`.
+
 ### CLI Output Requirements
 
 Every table produced by any CLI command (scan, verify, pick, show, etc.) MUST include both of these columns:
