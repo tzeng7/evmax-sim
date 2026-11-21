@@ -96,7 +96,7 @@ ncaaf:
   market_types: [moneyline, spread, total]
   disabled_market_types: [spread, total]
   models: [elo, form, ncaaf_efficiency_v2, sharp]
-  mode: shadow
+  mode: live
   resolver: espn_scoreboard
   status: wip
   season_window: {start: "08-23", end: "01-21"}
