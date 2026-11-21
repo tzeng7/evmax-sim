@@ -408,14 +408,15 @@ def _fetch_close_rows(days: int) -> list[dict]:
 
 
 def _fetch_calibration_rows(days: int) -> list[dict]:
-    from evmax.agents.cleanup.contamination import is_contaminated
+    from evmax.agents.cleanup.contamination import is_contaminated_row
     from evmax.agents.cleanup.db import get_connection
 
     with get_connection() as conn:
         rows = [dict(r) for r in conn.execute(
             """SELECT p.sector, p.market_type, p.model_sources, p.line,
                       p.placed, p.placed_price, p.kalshi_yes_price,
-                      p.blended_true_prob, p.sharp_true_prob, o.outcome
+                      p.blended_true_prob, p.sharp_true_prob, o.outcome,
+                      p.logged_at, p.venue, p.league
                FROM ev_predictions p
                JOIN ev_outcomes o ON o.market_id = p.market_id
                WHERE o.outcome IS NOT NULL AND COALESCE(p.voided, 0) = 0
@@ -423,10 +424,7 @@ def _fetch_calibration_rows(days: int) -> list[dict]:
                  AND p.event_date >= ?""",
             (_since(days),),
         )]
-    return [
-        r for r in rows
-        if not is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"])
-    ]
+    return [r for r in rows if not is_contaminated_row(r)]
 
 
 def compute_improve_triggers(

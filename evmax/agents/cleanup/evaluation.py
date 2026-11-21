@@ -153,7 +153,7 @@ def entry_price(r: dict) -> Optional[float]:
 
 def _roi_stages(rows: list[dict], spec: EvalSpec) -> tuple[list[dict], list[tuple[str, int]]]:
     """Ordered stages up to the ROI/Brier population. Returns (rows, funnel)."""
-    from evmax.agents.cleanup.contamination import is_contaminated
+    from evmax.agents.cleanup.contamination import is_contaminated_row
     from evmax.agents.odds.ev_gap_agent import has_full_blend
 
     funnel: list[tuple[str, int]] = [("scope", len(rows))]
@@ -175,10 +175,7 @@ def _roi_stages(rows: list[dict], spec: EvalSpec) -> tuple[list[dict], list[tupl
     funnel.append(("valid_entry_price", len(rows)))
 
     if spec.population in ("clean", "gate"):
-        rows = [
-            r for r in rows
-            if not is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"])
-        ]
+        rows = [r for r in rows if not is_contaminated_row(r)]
         funnel.append(("current_code", len(rows)))
     if spec.population == "gate":
         rows = [r for r in rows if has_full_blend(r["sector"], r["model_sources"], r["market_type"])]

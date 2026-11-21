@@ -106,6 +106,7 @@ def _make_in_memory_db():
     conn.executescript("""
         CREATE TABLE ev_predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            logged_at TEXT NOT NULL DEFAULT (datetime('now')),
             scan_date TEXT NOT NULL,
             market_id TEXT NOT NULL,
             event_id TEXT,
@@ -977,3 +978,31 @@ class TestComputeBrierContamination:
         with patch("evmax.agents.cleanup.metrics.get_connection", return_value=conn):
             result = compute_brier_scores(weeks=52)
         assert result is None              # no clean rows → no tuning signal
+
+    def test_pre_315_sharp_weight_rows_excluded_from_brier(self):
+        """A moneyline row logged before PR #315 may have blended at
+        sharp_weight 0.40 (dashboard scans); the tuner must not learn from it."""
+        from evmax.agents.cleanup.metrics import compute_brier_scores
+        conn = _make_in_memory_db()
+        scan_date = (date.today() - timedelta(days=7)).isoformat()
+        for mid, logged in (("kalshi:OLD", "2026-09-21 18:00:00"),
+                            ("kalshi:NEW", "2026-09-24 18:00:00")):
+            conn.execute(
+                "INSERT INTO ev_predictions (logged_at, scan_date, market_id, event_id, "
+                "sector, yes_team, market_type, kalshi_yes_price, sharp_true_prob, "
+                "blended_true_prob, ev_pct, kelly_fraction, volume_usd, model_sources, "
+                "sharp_weight_used) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (logged, scan_date, mid, f"ev::{mid}", "ncaaf", "team", "moneyline",
+                 0.50, 0.55, 0.60, 0.05, 0.025, 1000.0,
+                 "elo+ncaaf_efficiency_v2+sharp", 0.85),
+            )
+            conn.execute(
+                "INSERT INTO ev_outcomes (market_id, event_id, sector, yes_team, outcome, "
+                "sharp_true_prob, blended_true_prob, result_source) VALUES (?,?,?,?,?,?,?,?)",
+                (mid, f"ev::{mid}", "ncaaf", "team", 1, 0.55, 0.60, "espn"),
+            )
+        conn.commit()
+        with patch("evmax.agents.cleanup.metrics.get_connection", return_value=conn):
+            result = compute_brier_scores(weeks=52)
+        assert result is not None
+        assert result["n"] == 1

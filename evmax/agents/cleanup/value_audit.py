@@ -192,7 +192,8 @@ def _fetch_rows(weeks: int) -> list:
     since = (date.today() - timedelta(weeks=weeks)).isoformat()
     conn = get_connection()
     rows = conn.execute(
-        """SELECT p.sector, p.market_type,
+        """SELECT p.sector, p.market_type, p.model_sources, p.line,
+                  p.logged_at, p.venue, p.league,
                   o.outcome, o.sharp_true_prob, o.blended_true_prob,
                   o.pinnacle_close_prob, p.kalshi_clv_pct
            FROM ev_outcomes o
@@ -226,10 +227,20 @@ def compute_value_audit(weeks: int = 12) -> list[dict]:
         verdict: {tag, actionable, reason},
       }
     """
+    from evmax.agents.cleanup.contamination import is_contaminated_row
+
     rows = _fetch_rows(weeks)
     by_sector: dict[str, list] = {}
+    excluded: dict[str, int] = {}
     for r in rows:
-        by_sector.setdefault((r["sector"] or "").lower(), []).append(r)
+        sec = (r["sector"] or "").lower()
+        # Rows from a superseded code state (incl. the pre-#315 0.40 sharp-weight
+        # blends) measure a blend we no longer run; scoring them reported
+        # NCAAF/soccer "worse than sharp" long after the fix.
+        if is_contaminated_row(r):
+            excluded[sec] = excluded.get(sec, 0) + 1
+            continue
+        by_sector.setdefault(sec, []).append(r)
 
     out: list[dict] = []
     for sector, srows in by_sector.items():
@@ -253,6 +264,7 @@ def compute_value_audit(weeks: int = 12) -> list[dict]:
         out.append({
             "sector": sector or "(unknown)",
             "n": n,
+            "n_excluded_contaminated": excluded.get(sector, 0),
             "brier_model": _brier(srows, "blended_true_prob"),
             "brier_sharp": _brier(srows, "sharp_true_prob"),
             "brier_close": _brier(srows, "pinnacle_close_prob"),

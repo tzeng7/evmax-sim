@@ -39,7 +39,7 @@ from typing import Callable, Iterable, Optional
 
 import numpy as np
 
-from evmax.agents.cleanup.contamination import is_contaminated
+from evmax.agents.cleanup.contamination import is_contaminated_row
 from evmax.db_location import connect_readonly, readonly_enabled, resolve_db_path
 from evmax.ev.calculator import effective_price
 
@@ -110,7 +110,8 @@ def load_resolved_rows(
             f"""
             SELECT p.market_id, p.sector, p.market_type, p.event_id, p.event_date,
                    p.blended_true_prob AS blended, p.kalshi_yes_price AS price,
-                   o.outcome AS outcome, p.venue, p.line, p.model_sources, p.ev_pct
+                   o.outcome AS outcome, p.venue, p.line, p.model_sources, p.ev_pct,
+                   p.logged_at, p.league
             FROM ev_predictions p
             JOIN ev_outcomes o ON o.market_id = p.market_id
             WHERE p.mode IN ({placeholders})
@@ -130,9 +131,7 @@ def load_resolved_rows(
 
     out: list[ResolvedRow] = []
     for r in rows:
-        if exclude_contaminated and is_contaminated(
-            r["sector"], r["market_type"], r["model_sources"], r["line"]
-        ):
+        if exclude_contaminated and is_contaminated_row(r):
             continue
         out.append(
             ResolvedRow(

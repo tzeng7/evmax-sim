@@ -334,7 +334,8 @@ def _make_harness_db(tmp_path: Path) -> Path:
             sector TEXT, market_type TEXT, line REAL, model_sources TEXT,
             mode TEXT, venue TEXT DEFAULT 'kalshi', voided INTEGER DEFAULT 0,
             kelly_fraction REAL DEFAULT 0, kalshi_yes_price REAL,
-            blended_true_prob REAL, ev_pct REAL
+            blended_true_prob REAL, ev_pct REAL,
+            logged_at TEXT NOT NULL DEFAULT (datetime('now')), league TEXT
         );
         CREATE TABLE ev_outcomes (
             id INTEGER PRIMARY KEY AUTOINCREMENT, market_id TEXT UNIQUE, outcome INTEGER

@@ -2223,6 +2223,16 @@ def value_audit(
         )
     console.print(table)
 
+    excl = {a["sector"]: a.get("n_excluded_contaminated", 0) for a in audit}
+    excl = {s: n for s, n in excl.items() if n}
+    if excl:
+        console.print(
+            "[dim]Excluded superseded-code rows (contamination.py, incl. the pre-#315 "
+            "0.40 sharp-weight blends): "
+            + ", ".join(f"{s} {n}" for s, n in sorted(excl.items()))
+            + "[/dim]"
+        )
+
     actionable = [a for a in audit if a["verdict"]["actionable"]]
     console.print(
         f"\n[bold]{len(actionable)}[/bold] sector(s) with a model-actionable value gap "
