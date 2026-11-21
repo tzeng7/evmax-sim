@@ -57,6 +57,29 @@ from evmax.agents.models.nfl_efficiency_agent import NFL_ABBREV_TO_NAME, STATE_P
 # turn over fast (free agency + draft + coaching changes).
 SEASON_DECAY = 0.45
 DEFAULT_NUM_SEASONS = 6
+
+# Games-played ramp (INERT by default: None = the per-play SEASON_DECAY pooling
+# above, unchanged). When set, the current season and the prior seasons are
+# rated SEPARATELY (each opponent-adjusted on its own) and mixed per team with
+# w = gp_current / (gp_current + RAMP_K) — the NCAAF v2 pattern. Note the decay
+# pooling is itself an implicit ramp: with six seasons the prior carries
+# ~17 x (0.45 + 0.45^2 + ...) ~= 13.7 games of weight, so RAMP_K ~= 13.7
+# reproduces today's mix. Smaller K lets the current season take over sooner.
+# Gate: scripts/backtest_nfl_efficiency.py --ramp-k K (blend, walk-forward).
+# REJECTED 2026-11-20: K=8 (picked on 2023-24) moved the live blend −0.15/1000
+# on 2025 and +0.42/1000 on 2026 wk 1-11, both noise. Small K helps weeks 9+
+# and hurts weeks 1-8 by about the same; form + elo already carry the season.
+RAMP_K: float | None = None
+
+# Fields mixed linearly by the ramp. gp is NOT mixed: it stays the pooled
+# all-season count so the agent's MIN_GAMES / confidence tiers are unchanged
+# and only the rating moves.
+RAMP_MIX_FIELDS = (
+    "off_epa_adj", "def_epa_adj", "off_success_adj", "def_success_adj",
+    "off_success_rate", "def_success_rate", "off_explosive_rate",
+    "def_explosive_rate", "rz_td_rate_off", "rz_td_rate_def",
+    "ridge_net", "ridge_off", "ridge_def",
+)
 WP_LOWER, WP_UPPER = 0.10, 0.90
 EXPLOSIVE_YARDS = 15  # plays gaining 15+ yards
 
@@ -245,6 +268,61 @@ def compute_team_stats(df: pl.DataFrame, current_season: int) -> dict[str, dict]
     return out
 
 
+def ramp_weight(gp_current: int, ramp_k: float) -> float:
+    """Current-season share of the rating after gp_current games."""
+    if gp_current <= 0:
+        return 0.0
+    if ramp_k <= 0:
+        return 1.0
+    return gp_current / (gp_current + ramp_k)
+
+
+def mix_team_stats(
+    current: dict[str, dict],
+    prior: dict[str, dict],
+    current_gp: dict[str, int],
+    pooled_gp: dict[str, int],
+    ramp_k: float,
+) -> dict[str, dict]:
+    """Mix current-season and prior-season team ratings by the gp ramp.
+
+    `current` / `prior` are compute_team_stats outputs on the current season
+    alone and on the earlier seasons alone. A team with no current rating uses
+    its prior; a team with no prior uses its current rating at full weight.
+    """
+    out: dict[str, dict] = {}
+    for name in set(current) | set(prior):
+        cur, pri = current.get(name), prior.get(name)
+        if cur is None or pri is None:
+            row = dict(cur if cur is not None else pri)
+        else:
+            w = ramp_weight(current_gp.get(name, 0), ramp_k)
+            row = dict(cur)
+            for f in RAMP_MIX_FIELDS:
+                if f in cur and f in pri:
+                    row[f] = round(w * cur[f] + (1.0 - w) * pri[f], 4)
+                elif f not in cur and f in pri:
+                    row[f] = pri[f]
+            row["ramp_w"] = round(w, 4)
+        row["gp"] = pooled_gp.get(name, row.get("gp", 0))
+        out[name] = row
+    return out
+
+
+def compute_team_stats_ramped(
+    df: pl.DataFrame, current_season: int, ramp_k: float
+) -> dict[str, dict]:
+    """compute_team_stats with the games-played ramp (see RAMP_K)."""
+    pooled = compute_team_stats(df, current_season)
+    cur_df = df.filter(pl.col("season") == current_season)
+    pri_df = df.filter(pl.col("season") < current_season)
+    current = compute_team_stats(cur_df, current_season) if len(cur_df) else {}
+    prior = compute_team_stats(pri_df, current_season - 1) if len(pri_df) else {}
+    current_gp = {n: int(r.get("gp", 0)) for n, r in current.items()}
+    pooled_gp = {n: int(r.get("gp", 0)) for n, r in pooled.items()}
+    return mix_team_stats(current, prior, current_gp, pooled_gp, ramp_k)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Seed NFL efficiency state from nflreadpy PBP")
     ap.add_argument(
@@ -285,7 +363,10 @@ def main() -> int:
         return 1
 
     current_season = max(seasons_used)
-    teams = compute_team_stats(df, current_season)
+    if RAMP_K is None:
+        teams = compute_team_stats(df, current_season)
+    else:
+        teams = compute_team_stats_ramped(df, current_season, RAMP_K)
 
     if not teams:
         print("ERROR: no team rows produced — abort", file=sys.stderr)

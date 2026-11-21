@@ -436,3 +436,17 @@
   date: 2026-10-07
   evidence: CLAUDE.md devig bullet; PR #369. The recommendation was an artifact of the old join (one row per hourly snapshot, alt rungs scored against other rungs' outcomes).
   revisit_if: The fixed one-close-per-game sample clearing the devig gate on its own.
+
+- id: nfl-efficiency-gp-ramp
+  idea: Rate NFL efficiency with a games-played ramp (current season vs prior seasons mixed by gp/(gp+K))
+    instead of per-play season decay, so the current season takes over faster.
+  lever: model
+  sectors:
+  - nfl
+  verdict: REJECTED
+  date: '2026-11-20'
+  evidence: 'CLAUDE.md NFL Efficiency row; seed_nfl_efficiency.RAMP_K (inert). backtest_nfl_efficiency.py
+    --ramp-k: K=8 picked on 2023-24 (fit -0.19/1000), holdout blend 2025 -0.15 (z -0.3), 2026 wk1-11 +0.42
+    (z +0.6). Weeks 9+ gain ~1/1000 offset by weeks 1-8 loss.'
+  revisit_if: A pre-registered week-conditional ramp clearing the blend on seasons after 2026, or the
+    efficiency weight rising enough that standalone gains reach the blend.
