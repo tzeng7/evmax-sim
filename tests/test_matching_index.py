@@ -242,3 +242,56 @@ class TestEngineIndex:
         ref_by_market = {mid: (eid, c) for mid, eid, c in ref}
         for mid, eid, c in got:
             assert ref_by_market[mid] == (eid, c)
+
+
+class TestMoneylineNeverFuzzyMatchesLineRecords:
+    """A moneyline is priced off the game's moneyline record or nothing.
+
+    2026-11-20: Pinnacle posted no moneyline for Duke -25.5 vs Washington
+    State, only spread and total rungs. The exact key missed, and the fuzzy
+    step matched the moneyline markets (2 Kalshi, 2 Polymarket US) to the
+    `::spread` record at confidence 100 (identical team string). That record's
+    probabilities are spread-cover odds (~0.5), not win odds: Washington
+    State's 2c moneyline would read as ~+2,400% EV. EVGapAgent rejected the
+    pair downstream, so nothing was logged, but the coordinator counted it as
+    matched and ran the ensemble on it.
+    """
+
+    BASE = "ncaab::2026-11-21::duke_vs_washington_state"
+
+    def _line_records(self):
+        return [
+            _sharp(f"{self.BASE}::spread", "ncaab", "Duke", "Washington State", 21,
+                   spread_line=-25.5),
+            _sharp(f"{self.BASE}::spread::-24.5", "ncaab", "Duke", "Washington State", 21,
+                   spread_line=-24.5),
+            _sharp(f"{self.BASE}::total::149.0", "ncaab", "Duke", "Washington State", 21,
+                   total_line=149.0),
+        ]
+
+    def test_no_moneyline_record_means_no_match(self) -> None:
+        # Kalshi lists home/away the other way round: the exact key misses and
+        # only the fuzzy step could have matched.
+        m = _market("wsu", "ncaab", "Washington State", "Duke", 21,
+                    yes_team="Washington State")
+        assert MatchingEngine().match_all([m], self._line_records()) == []
+        assert MatchingEngine().match(m, self._line_records()) is None
+
+    def test_moneyline_record_still_matches_by_fuzzy(self) -> None:
+        ml = _sharp(self.BASE, "ncaab", "Duke", "Washington State", 21)
+        m = _market("wsu", "ncaab", "Washington State", "Duke", 21,
+                    yes_team="Washington State")
+        # The line records come FIRST, so the old candidate order would have
+        # picked the spread record.
+        [(_, so, _)] = MatchingEngine().match_all([m], self._line_records() + [ml])
+        assert so.event_id == self.BASE
+
+    def test_spread_and_total_markets_unaffected(self) -> None:
+        recs = self._line_records()
+        sp = _market("sp", "ncaab", "Duke", "Washington State", 21,
+                     mtype=MarketType.spread, line=-25.5, yes_team="Duke")
+        tot = _market("tot", "ncaab", "Duke", "Washington State", 21,
+                      mtype=MarketType.total, line=149.0, yes_team="over")
+        got = {m.id: s.event_id for m, s, _ in MatchingEngine().match_all([sp, tot], recs)}
+        assert got["tot"] == f"{self.BASE}::total::149.0"
+        assert got["sp"].startswith(f"{self.BASE}::spread")

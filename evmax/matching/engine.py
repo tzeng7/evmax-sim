@@ -195,9 +195,14 @@ class MatchingEngine:
 
         # 2. Fuzzy match — disabled for spread/total markets (line must match exactly)
         if market.market_type not in (MarketType.spread, MarketType.total):
+            # A moneyline is priced off the game's moneyline record or not at
+            # all: its fuzzy candidates exclude spread/total line records, which
+            # carry the same team string but cover/over probabilities.
             fuzzy_result = fuzzy_match_event_keys_indexed(
                 market_key,
-                part.fuzzy_index(),
+                part.fuzzy_index(
+                    game_records_only=market.market_type == MarketType.moneyline,
+                ),
                 threshold=self._settings.fuzzy_threshold,
             )
             if fuzzy_result:
@@ -413,6 +418,13 @@ def _date_rank(market: PredictionMarket, sharp: SharpOdds) -> tuple[int, float]:
     return abs((m_day - s_day).days), seconds
 
 
+def _is_line_record(event_id: str) -> bool:
+    """True for a spread or total record: the segment after the team segment
+    (``sector::date::teams::<type>…``) is ``spread`` or ``total``."""
+    parts = event_id.split("::")
+    return len(parts) >= 4 and parts[3] in ("spread", "total")
+
+
 class _SharpPartition:
     """Lookups over one partition (advance or non-advance) of the sharp records.
 
@@ -437,13 +449,25 @@ class _SharpPartition:
                 self.spreads_by_base.setdefault(eid[: -len("::spread")], []).append(so)
             elif "::spread::" in eid:
                 self.spreads_by_base.setdefault(eid.split("::spread::", 1)[0], []).append(so)
-        self._fuzzy: Optional[FuzzyKeyIndex] = None
+        self._fuzzy: dict[bool, FuzzyKeyIndex] = {}
 
-    def fuzzy_index(self) -> FuzzyKeyIndex:
-        """Built on first use: most batches match exactly and never need it."""
-        if self._fuzzy is None:
-            self._fuzzy = FuzzyKeyIndex([so.event_id for so in self.odds])
-        return self._fuzzy
+    def fuzzy_index(self, game_records_only: bool = False) -> FuzzyKeyIndex:
+        """Fuzzy candidates, built on first use (most batches match exactly).
+
+        ``game_records_only`` drops spread/total line records (``…::spread``,
+        ``…::spread::<line>``, ``…::total::<line>``). Moneylines use it: when
+        Pinnacle posts no moneyline for a game (huge spreads), its spread
+        record has the identical team string and used to win the fuzzy step
+        at confidence 100 (Duke vs Washington State, 2026-11-20).
+        """
+        idx = self._fuzzy.get(game_records_only)
+        if idx is None:
+            keys = [so.event_id for so in self.odds]
+            if game_records_only:
+                keys = [k for k in keys if not _is_line_record(k)]
+            idx = FuzzyKeyIndex(keys)
+            self._fuzzy[game_records_only] = idx
+        return idx
 
 
 class _SharpIndex:
