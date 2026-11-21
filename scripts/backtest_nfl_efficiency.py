@@ -45,7 +45,11 @@ sys.path.insert(0, str(_REPO_ROOT))
 import polars as pl
 import nflreadpy as nfl
 
-from scripts.seed_nfl_efficiency import filter_valid_pbp, compute_team_stats
+from scripts.seed_nfl_efficiency import (
+    filter_valid_pbp,
+    compute_team_stats,
+    compute_team_stats_ramped,
+)
 import evmax.agents.models.nfl_efficiency_agent as nfl_eff_mod
 from evmax.agents.models.nfl_efficiency_agent import (
     NflEfficiencyModelAgent,
@@ -84,6 +88,8 @@ SEASON_MONTHS: dict[str, list[str]] = {
     "2324": [f"2023{m:02d}" for m in range(9, 13)] + [f"2024{m:02d}" for m in range(1, 3)],
     "2425": [f"2024{m:02d}" for m in range(9, 13)] + [f"2025{m:02d}" for m in range(1, 3)],
     "2526": [f"2025{m:02d}" for m in range(9, 13)] + [f"2026{m:02d}" for m in range(1, 3)],
+    # In-progress season (completed games only).
+    "2627": [f"2026{m:02d}" for m in range(9, 13)] + [f"2027{m:02d}" for m in range(1, 3)],
 }
 
 # Old NFL blend (class defaults — what was running pre-Phase-0):
@@ -332,6 +338,7 @@ def _reseed_from_pbp(
     pbp_filtered: pl.DataFrame,
     cutoff: date,
     current_season: int,
+    ramp_k: Optional[float] = None,
 ) -> int:
     """Re-derive nfl_eff state in-place from PBP rows strictly before cutoff.
 
@@ -341,7 +348,10 @@ def _reseed_from_pbp(
     slice_df = pbp_filtered.filter(pl.col("game_date") < pl.lit(cutoff))
     if len(slice_df) == 0:
         return 0
-    teams = compute_team_stats(slice_df, current_season)
+    if ramp_k is None:
+        teams = compute_team_stats(slice_df, current_season)
+    else:
+        teams = compute_team_stats_ramped(slice_df, current_season, ramp_k)
     nfl_eff._state["nfl"] = {
         "teams": teams,
         "fetched_at": cutoff.isoformat(),
@@ -490,6 +500,10 @@ def main() -> int:
                     help="Write every per-game prediction row to this JSON file (offline blend-weight sweeps).")
     ap.add_argument("--preseason-prior", action="store_true",
                     help="Set nfl_efficiency PRESEASON_PRIOR_ENABLED=True (fire the decayed prior-season rating in weeks 1-N instead of blanking)")
+    ap.add_argument("--ramp-k", type=float, default=None,
+                    help="Rate nfl_efficiency with the games-played ramp "
+                         "(seed_nfl_efficiency.RAMP_K): current season and prior "
+                         "seasons mixed by gp/(gp+K). Default: per-play season decay.")
     ap.add_argument("--dump-preds", type=str, default=None,
                     help="Write per-game model probs (+ NFL week) to this JSON for paired comparisons")
     args = ap.parse_args()
@@ -522,7 +536,8 @@ def main() -> int:
         # filter-and-aggregate over this frame, no network round-trips per cutoff.
         # nflreadpy indexes by NFL season (2025 = Sep 2025-Feb 2026), so
         # season=2025 covers the entire 2526 evaluation period.
-        pbp_seasons = list(range(2020, 2026))
+        last_season = max(int(f"20{s[:2]}") for s in args.seasons.split(","))
+        pbp_seasons = list(range(2020, max(2026, last_season + 1)))
         print(f"[pbp] loading PBP for seasons {pbp_seasons[0]}-{pbp_seasons[-1]}...")
         pbp_raw = nfl.load_pbp(seasons=pbp_seasons)
         print(f"  raw rows: {len(pbp_raw):,}")
@@ -616,6 +631,7 @@ def main() -> int:
                     _reseed_from_pbp(
                         nfl_eff, pbp, cutoff=cutoff,
                         current_season=_season_of(game_date),
+                        ramp_k=args.ramp_k,
                     )
                     _reseed_qb_elo(qb_elo, games_with_starters, cutoff=cutoff)
                     last_seed_date = game_date
