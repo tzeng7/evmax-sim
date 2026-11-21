@@ -57,7 +57,8 @@ class TestNcaafWiring:
         cats = {c.key: c for c in all_categories()}
         assert "ncaaf" in cats
         n = cats["ncaaf"]
-        assert n.mode == "shadow"
+        # Moneyline promoted to live 2026-11-20 (owner decision; see CLAUDE.md).
+        assert n.mode == "live"
         assert n.resolver == "espn_scoreboard"
         # spread/total ship disabled (capture machinery not accrued yet)
         assert set(n.disabled_market_types) == {"spread", "total"}
