@@ -292,7 +292,7 @@ def metrics(
     a wrong promote decision. The count of excluded rows is reported; pass
     --include-contaminated to score the raw sample instead.
     """
-    from evmax.agents.cleanup.contamination import is_contaminated
+    from evmax.agents.cleanup.contamination import is_contaminated_row
     from evmax.agents.cleanup.db import get_connection
 
     since = (date.today() - timedelta(days=days)).isoformat()
@@ -311,6 +311,7 @@ def metrics(
 
     sql = f"""
         SELECT p.sector, p.event_id, p.market_type, p.model_sources, p.line,
+               p.logged_at, p.venue, p.league,
                p.captured_yes_price, p.blended_true_prob,
                p.ev_pct, p.kelly_fraction, p.volume_usd, o.outcome
         FROM ev_predictions p
@@ -331,7 +332,7 @@ def metrics(
     if not include_contaminated:
         kept = []
         for r in rows:
-            if is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"]):
+            if is_contaminated_row(r):
                 key = r["sector"] or "unknown"
                 if is_prop_event(r["event_id"]):
                     key = f"{key}_props"
@@ -472,7 +473,7 @@ MIN_CLEAN_RESOLVED = 30
 def _clean_resolved_count(category: str) -> int:
     """Count resolved shadow rows for a category that survive the contamination
     filter — i.e. were produced by the current code state."""
-    from evmax.agents.cleanup.contamination import is_contaminated
+    from evmax.agents.cleanup.contamination import is_contaminated_row
     from evmax.agents.cleanup.db import get_connection
 
     where = ["p.mode = 'shadow'", "o.outcome IS NOT NULL"]
@@ -484,17 +485,15 @@ def _clean_resolved_count(category: str) -> int:
         where.append("p.sector = ?")
         params.append(category)
     sql = f"""
-        SELECT p.sector, p.market_type, p.model_sources, p.line
+        SELECT p.sector, p.market_type, p.model_sources, p.line,
+               p.logged_at, p.venue, p.league
         FROM ev_predictions p
         INNER JOIN ev_outcomes o ON p.market_id = o.market_id
         WHERE {' AND '.join(where)}
     """
     with get_connection() as conn:
         rows = conn.execute(sql, params).fetchall()
-    return sum(
-        1 for r in rows
-        if not is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"])
-    )
+    return sum(1 for r in rows if not is_contaminated_row(r))
 
 
 # ---------------------------------------------------------------------------
@@ -565,7 +564,7 @@ def _fetch_clv_rows(
     ``clv_stats`` for the per-parameter semantics. Returns
     ``(kept_rows, excluded_stale)``.
     """
-    from evmax.agents.cleanup.contamination import is_contaminated
+    from evmax.agents.cleanup.contamination import is_contaminated_row
     from evmax.agents.cleanup.db import get_connection
     from evmax.agents.cleanup.price_buckets import bucket_for_row, validate_bucket
 
@@ -632,10 +631,7 @@ def _fetch_clv_rows(
     with get_connection() as conn:
         rows = conn.execute(sql, params).fetchall()
 
-    kept = [
-        r for r in rows
-        if not is_contaminated(r["sector"], r["market_type"], r["model_sources"], r["line"])
-    ]
+    kept = [r for r in rows if not is_contaminated_row(r)]
     if live_eligible_only:
         # Same rule the scanner applies before a row may log live (ev_gap_agent
         # sets full_blend from it; logger/coordinator demote the rest). Runs

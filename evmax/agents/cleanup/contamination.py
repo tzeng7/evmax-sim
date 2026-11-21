@@ -101,11 +101,32 @@ NBA (see the nba notes in data/categories.yaml):
 
 To add a sector rule later, append to ``CONTAMINATION_RULES`` — the metrics
 command and any SQL caller pick it up automatically.
+
+Blend-weight regime (time-based; see ``blend_weight_regime_contaminated``):
+  - Before PR #315 (merged 2026-09-23 07:26:33 UTC) the coordinator defaulted
+    to sharp_weight 0.40 and the dashboard never passed a weight, so dashboard
+    (and Discord / portfolio) scans blended every sector WITHOUT a
+    ``sharp_weight_by_sector`` entry — nfl, ncaaf, wnba, ncaab, ncaaw, nhl,
+    worldcup — at 0.40, while CLI scans used 0.85. ``log_gaps`` stamped 0.85 on
+    every row, so the stored ``sharp_weight_used`` cannot tell the two apart.
+    Dashboard moneyline rows sit 2.8-3.1pp from sharp against 0.3-0.6pp for
+    CLI rows. Every moneyline/advance row in those sectors logged before the
+    merge is dated out: its blend weight is unknowable from the row.
+  - Soccer had its own 0.40 paths: MLS and unmapped leagues (tier default)
+    until PR #318 (2026-09-23 07:44:00 UTC), and every Polymarket US soccer
+    market, which ignored ``league`` and fell to the 0.40 default, until
+    PR #253 (2026-09-06 05:19:48 UTC). Kalshi top-tier leagues were at 0.85
+    throughout and stay clean.
+  These rows made the 90-day board read NCAAF ML −2.47/1000 (z −2.0) and
+  PolyUS soccer ML −1.16/1000 (z −3.0) worse than sharp. Rows scored after the
+  fixes read +0.21/1000 (NCAAF) and −0.04/1000 (PolyUS soccer).
+  Callers must pass ``logged_at`` (plus ``venue`` / ``league`` for soccer);
+  ``is_contaminated_row`` reads them off a fetched row.
 """
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import Any, Callable, Mapping, Optional
 
 # A rule inspects (market_type, model_sources, line) for a single row in its
 # sector and returns True when the row is contaminated. ``market_type`` is the
@@ -245,17 +266,107 @@ CONTAMINATION_RULES: dict[str, list[RowRule]] = {
 }
 
 
+# --- Blend-weight regime (time-based) --------------------------------------
+# Cutoffs are UTC in the ``ev_predictions.logged_at`` format (SQLite
+# ``datetime('now')``: "YYYY-MM-DD HH:MM:SS"), each the merge time of its fix.
+DASHBOARD_WEIGHT_FIX_UTC = "2026-09-23 07:26:33"      # PR #315
+SOCCER_TIER_WEIGHT_FIX_UTC = "2026-09-23 07:44:00"    # PR #318 (MLS + unmapped)
+POLYUS_SOCCER_LEAGUE_FIX_UTC = "2026-09-06 05:19:48"  # PR #253 (PolyUS league lookup)
+
+# Sectors without a sharp_weight_by_sector entry when #315 merged: the
+# dashboard blended them at the coordinator's 0.40 default.
+_DASHBOARD_WEIGHT_SECTORS = frozenset(
+    {"nfl", "ncaaf", "wnba", "ncaab", "ncaaw", "nhl", "worldcup"}
+)
+# Market types whose fair value is the model blend. Spread / total fairs are
+# sharp-derived (blended == sharp), so the sharp weight never touched them.
+_BLENDED_MARKET_TYPES = frozenset({"moneyline", "advance"})
+# Soccer leagues that sat on the 0.40 tier before #318. None = unmapped.
+_SOCCER_LOW_TIER_LEAGUES = frozenset({"mls", None})
+
+
+def _norm_ts(logged_at: Any) -> Optional[str]:
+    if logged_at is None:
+        return None
+    s = str(logged_at).strip().replace("T", " ")[:19]
+    return s or None
+
+
+def blend_weight_regime_contaminated(
+    sector: Optional[str],
+    market_type: Optional[str],
+    logged_at: Any,
+    venue: Optional[str] = None,
+    league: Optional[str] = None,
+) -> bool:
+    """True if the row's model blend ran at the buggy 0.40 sharp weight (or
+    may have, with no way to tell from the row). See the module docstring.
+
+    A row without ``logged_at`` cannot be dated and is never flagged.
+    """
+    mt = (market_type or "").lower()
+    if mt not in _BLENDED_MARKET_TYPES:
+        return False
+    ts = _norm_ts(logged_at)
+    if ts is None:
+        return False
+    sec = (sector or "").lower()
+    if sec in _DASHBOARD_WEIGHT_SECTORS:
+        return ts < DASHBOARD_WEIGHT_FIX_UTC
+    if sec == "soccer":
+        lg = (league or "").lower() or None
+        if lg in _SOCCER_LOW_TIER_LEAGUES and ts < SOCCER_TIER_WEIGHT_FIX_UTC:
+            return True
+        ven = (venue or "kalshi").lower()
+        return ven == "polymarket_us" and ts < POLYUS_SOCCER_LEAGUE_FIX_UTC
+    return False
+
+
 def is_contaminated(
     sector: Optional[str],
     market_type: Optional[str],
     model_sources: Optional[str],
     line: Optional[float] = None,
+    *,
+    logged_at: Any = None,
+    venue: Optional[str] = None,
+    league: Optional[str] = None,
 ) -> bool:
     """True if this row was produced by a superseded code state.
 
+    The time-based blend-weight regime rule applies only when ``logged_at``
+    is passed; prefer ``is_contaminated_row`` so it is never forgotten.
     Rows for sectors without rules are never flagged (returns False).
     """
+    if blend_weight_regime_contaminated(sector, market_type, logged_at, venue, league):
+        return True
     rules = CONTAMINATION_RULES.get((sector or "").lower())
     if not rules:
         return False
     return any(rule(market_type, model_sources, line) for rule in rules)
+
+
+def _get(row: Mapping, key: str) -> Any:
+    try:
+        return row[key]
+    except (KeyError, IndexError):
+        return None
+
+
+def is_contaminated_row(row: Mapping) -> bool:
+    """``is_contaminated`` over a fetched row (dict or sqlite3.Row).
+
+    Reads ``sector``, ``market_type``, ``model_sources``, ``line``,
+    ``logged_at``, ``venue`` and ``league``; a missing column reads as None.
+    SELECT ``logged_at`` (and ``venue`` / ``league``) or the blend-weight
+    regime rule cannot fire.
+    """
+    return is_contaminated(
+        _get(row, "sector"),
+        _get(row, "market_type"),
+        _get(row, "model_sources"),
+        _get(row, "line"),
+        logged_at=_get(row, "logged_at"),
+        venue=_get(row, "venue"),
+        league=_get(row, "league"),
+    )

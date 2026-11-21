@@ -106,6 +106,7 @@ def _make_in_memory_db():
     conn.executescript("""
         CREATE TABLE ev_predictions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            logged_at TEXT NOT NULL DEFAULT (datetime('now')),
             scan_date TEXT NOT NULL,
             market_id TEXT NOT NULL,
             event_id TEXT,

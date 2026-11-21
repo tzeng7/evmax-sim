@@ -48,6 +48,7 @@ def _make_db(path: Path) -> sqlite3.Connection:
             venue TEXT NOT NULL DEFAULT 'kalshi',
             kalshi_clv_pct REAL,
             model_diagnostics TEXT,
+            logged_at TEXT NOT NULL DEFAULT (datetime('now')),
             UNIQUE(market_id)
         );
         CREATE TABLE ev_outcomes (
@@ -333,6 +334,22 @@ class TestGroupingAndFilters:
         _insert(patched, "c2", sector="soccer", sources="elo+sharp", outcome=0)
         patched.commit()
         row = _board(sector="soccer")[0]
+        assert row["n_resolved"] == 2
+        assert row["n_clean_resolved"] == 1
+
+    def test_pre_fix_sharp_weight_rows_excluded_from_clean(self, patched):
+        # NCAAF ML logged before PR #315 may have blended at sharp_weight 0.40
+        # (dashboard scans) — dated out. A row logged after the merge is clean.
+        _insert(patched, "old", sector="ncaaf", sources="elo+ncaaf_efficiency_v2+sharp")
+        _insert(patched, "new", sector="ncaaf", sources="elo+ncaaf_efficiency_v2+sharp")
+        patched.execute(
+            "UPDATE ev_predictions SET logged_at = '2026-09-21 18:00:00' WHERE market_id = 'old'"
+        )
+        patched.execute(
+            "UPDATE ev_predictions SET logged_at = '2026-09-24 18:00:00' WHERE market_id = 'new'"
+        )
+        patched.commit()
+        row = _board(sector="ncaaf")[0]
         assert row["n_resolved"] == 2
         assert row["n_clean_resolved"] == 1
 

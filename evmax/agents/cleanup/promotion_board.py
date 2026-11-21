@@ -228,7 +228,7 @@ def compute_promotion_board(
     sector. Rows are sorted worst-first within sector (passthrough and
     degrading groups float up).
     """
-    from evmax.agents.cleanup.contamination import is_contaminated
+    from evmax.agents.cleanup.contamination import is_contaminated_row
     from evmax.agents.cleanup.db import get_connection
     from evmax.agents.cleanup.price_buckets import bucket_for_row, validate_bucket
     from evmax.agents.cleanup.value_audit import _brier, _calibration, _paired_diff_stats
@@ -255,7 +255,7 @@ def compute_promotion_board(
 
     sql = f"""
         SELECT p.sector, p.market_type, p.venue, p.mode, p.line,
-               p.model_sources, p.model_diagnostics,
+               p.model_sources, p.model_diagnostics, p.logged_at, p.league,
                p.blended_true_prob, p.sharp_true_prob,
                p.placed, p.placed_price, p.kalshi_yes_price,
                o.outcome
@@ -282,7 +282,7 @@ def compute_promotion_board(
         resolved = [r for r in grp if r["outcome"] is not None]
         clean_all = [
             r for r in resolved
-            if not is_contaminated(sec, mt, r["model_sources"], r["line"])
+            if not is_contaminated_row(r)
         ]
         # Gate population: rows that could log live if this lane were promoted.
         clean = [
