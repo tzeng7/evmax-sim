@@ -6,7 +6,7 @@
     },
     "frances tiafoe|lorenzo musetti": {
       "wins_a": 2,
-      "wins_b": 1
+      "wins_b": 2
     },
     "hubert hurkacz|taylor fritz": {
       "wins_a": 2,
@@ -1065,7 +1065,7 @@
       "wins_b": 1
     },
     "jenson brooksby|tommy paul": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 2
     },
     "karen khachanov|yoshihito nishioka": {
@@ -1113,7 +1113,7 @@
       "wins_b": 3
     },
     "ben shelton|tommy paul": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "karen khachanov|stefanos tsitsipas": {
@@ -1201,7 +1201,7 @@
       "wins_b": 0
     },
     "hugo gaston|luciano darderi": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "daniel elahi galan|tomas barrios vera": {
@@ -1673,7 +1673,7 @@
       "wins_b": 0
     },
     "alexander zverev|tallon griekspoor": {
-      "wins_a": 8,
+      "wins_a": 9,
       "wins_b": 2
     },
     "botic van de zandschulp|daniil medvedev": {
@@ -2049,7 +2049,7 @@
       "wins_b": 2
     },
     "taylor fritz|tommy paul": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "alex de minaur|holger rune": {
@@ -2078,7 +2078,7 @@
     },
     "denis shapovalov|taylor fritz": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 2
     },
     "feliciano lopez|frances tiafoe": {
       "wins_a": 0,
@@ -2173,7 +2173,7 @@
       "wins_b": 0
     },
     "hubert hurkacz|novak djokovic": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "borna coric|daniil medvedev": {
@@ -2198,7 +2198,7 @@
     },
     "alexander bublik|daniil medvedev": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 2
     },
     "borna coric|thanasi kokkinakis": {
       "wins_a": 1,
@@ -2309,7 +2309,7 @@
       "wins_b": 1
     },
     "marco cecchinato|thiago monteiro": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "diego schwartzman|nicolas jarry": {
@@ -2377,7 +2377,7 @@
       "wins_b": 1
     },
     "carlos alcaraz|daniil medvedev": {
-      "wins_a": 3,
+      "wins_a": 4,
       "wins_b": 1
     },
     "carlos alcaraz|jannik sinner": {
@@ -2733,7 +2733,7 @@
       "wins_b": 0
     },
     "carlos alcaraz|taylor fritz": {
-      "wins_a": 4,
+      "wins_a": 5,
       "wins_b": 1
     },
     "emil ruusuvuori|jannik sinner": {
@@ -2749,7 +2749,7 @@
       "wins_b": 5
     },
     "carlos alcaraz|tommy paul": {
-      "wins_a": 5,
+      "wins_a": 6,
       "wins_b": 0
     },
     "holger rune|taylor fritz": {
@@ -3397,7 +3397,7 @@
       "wins_b": 0
     },
     "stefanos tsitsipas|taylor fritz": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "lorenzo musetti|novak djokovic": {
@@ -3414,7 +3414,7 @@
     },
     "casper ruud|jan lennard struff": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "nicolas jarry|stefanos tsitsipas": {
       "wins_a": 1,
@@ -3501,7 +3501,7 @@
       "wins_b": 1
     },
     "lorenzo sonego|ugo humbert": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 4
     },
     "filip krajinovic|roberto bautista agut": {
@@ -3509,12 +3509,12 @@
       "wins_b": 1
     },
     "alexander bublik|alexander zverev": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "cameron norrie|francisco cerundolo": {
-      "wins_a": 0,
-      "wins_b": 2
+      "wins_a": 1,
+      "wins_b": 0
     },
     "matteo berrettini|maxime cressy": {
       "wins_a": 1,
@@ -3949,7 +3949,7 @@
       "wins_b": 1
     },
     "carlos alcaraz|karen khachanov": {
-      "wins_a": 3,
+      "wins_a": 4,
       "wins_b": 0
     },
     "borna coric|daniel altmaier": {
@@ -4126,7 +4126,7 @@
     },
     "marcos giron|sebastian baez": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "dominic thiem|stefanos tsitsipas": {
       "wins_a": 0,
@@ -4293,7 +4293,7 @@
       "wins_b": 0
     },
     "daniil medvedev|stefanos tsitsipas": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "holger rune|novak djokovic": {
@@ -4465,7 +4465,7 @@
       "wins_b": 0
     },
     "lorenzo musetti|matteo arnaldi": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 0
     },
     "borna coric|thiago monteiro": {
@@ -4945,8 +4945,8 @@
       "wins_b": 1
     },
     "hugo dellien|nicolas jarry": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 1,
+      "wins_b": 0
     },
     "hamad medjedovic|marcos giron": {
       "wins_a": 0,
@@ -4954,7 +4954,7 @@
     },
     "jan lennard struff|jiri lehecka": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "botic van de zandschulp|thiago agustin tirante": {
       "wins_a": 0,
@@ -5142,7 +5142,7 @@
     },
     "alex de minaur|tomas martin etcheverry": {
       "wins_a": 2,
-      "wins_b": 0
+      "wins_b": 1
     },
     "max purcell|yoshihito nishioka": {
       "wins_a": 0,
@@ -5282,7 +5282,7 @@
     },
     "adrian mannarino|daniil medvedev": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "jordan thompson|milos raonic": {
       "wins_a": 0,
@@ -5506,11 +5506,11 @@
     },
     "alex de minaur|carlos alcaraz": {
       "wins_a": 0,
-      "wins_b": 4
+      "wins_b": 5
     },
     "carlos alcaraz|sebastian korda": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "cameron norrie|sebastian korda": {
       "wins_a": 1,
@@ -5530,7 +5530,7 @@
     },
     "frances tiafoe|sebastian korda": {
       "wins_a": 1,
-      "wins_b": 2
+      "wins_b": 0
     },
     "cameron norrie|jordan thompson": {
       "wins_a": 1,
@@ -6021,7 +6021,7 @@
       "wins_b": 0
     },
     "alex de minaur|matteo berrettini": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "dominic stricker|frances tiafoe": {
@@ -6085,7 +6085,7 @@
       "wins_b": 0
     },
     "corentin moutet|roman safiullin": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "denis shapovalov|gregoire barrere": {
@@ -6170,7 +6170,7 @@
     },
     "hubert hurkacz|lorenzo musetti": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "novak djokovic|stan wawrinka": {
       "wins_a": 1,
@@ -6818,7 +6818,7 @@
     },
     "laslo djere|thiago seyboth wild": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "dominic thiem|zhizhen zhang": {
       "wins_a": 1,
@@ -7154,7 +7154,7 @@
     },
     "ben shelton|carlos alcaraz": {
       "wins_a": 1,
-      "wins_b": 2
+      "wins_b": 3
     },
     "hubert hurkacz|miomir kecmanovic": {
       "wins_a": 0,
@@ -7189,7 +7189,7 @@
       "wins_b": 0
     },
     "alejandro davidovich fokina|alexander zverev": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 2
     },
     "casper ruud|jiri lehecka": {
@@ -7446,7 +7446,7 @@
     },
     "jiri lehecka|sebastian korda": {
       "wins_a": 2,
-      "wins_b": 1
+      "wins_b": 0
     },
     "borna coric|juan manuel cerundolo": {
       "wins_a": 1,
@@ -7721,7 +7721,7 @@
       "wins_b": 0
     },
     "matteo berrettini|ugo humbert": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "arthur rinderknech|diego schwartzman": {
@@ -7949,8 +7949,8 @@
       "wins_b": 1
     },
     "cameron norrie|matteo arnaldi": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 1,
+      "wins_b": 0
     },
     "daniil medvedev|sebastian baez": {
       "wins_a": 1,
@@ -8313,7 +8313,7 @@
       "wins_b": 1
     },
     "carlos alcaraz|casper ruud": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 1
     },
     "daniil medvedev|ugo humbert": {
@@ -8365,7 +8365,7 @@
       "wins_b": 1
     },
     "daniil medvedev|tommy paul": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 1
     },
     "andrey rublev|hubert hurkacz": {
@@ -8389,8 +8389,8 @@
       "wins_b": 1
     },
     "andrey rublev|tommy paul": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 0,
+      "wins_b": 1
     },
     "casper ruud|fabian marozsan": {
       "wins_a": 0,
@@ -8429,7 +8429,7 @@
       "wins_b": 0
     },
     "adrian mannarino|andrey rublev": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "casper ruud|christopher eubanks": {
@@ -8490,7 +8490,7 @@
     },
     "botic van de zandschulp|ugo humbert": {
       "wins_a": 0,
-      "wins_b": 4
+      "wins_b": 5
     },
     "jan lennard struff|matteo arnaldi": {
       "wins_a": 1,
@@ -8981,7 +8981,7 @@
       "wins_b": 1
     },
     "casper ruud|dominic stricker": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "christopher oconnell|sebastian baez": {
@@ -9113,8 +9113,8 @@
       "wins_b": 1
     },
     "daniel altmaier|holger rune": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 1,
+      "wins_b": 0
     },
     "francisco cerundolo|hubert hurkacz": {
       "wins_a": 0,
@@ -9130,7 +9130,7 @@
     },
     "daniel altmaier|taylor fritz": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "jannik sinner|mackenzie mcdonald": {
       "wins_a": 1,
@@ -10405,15 +10405,15 @@
       "wins_b": 2
     },
     "alex de minaur|alexander zverev": {
-      "wins_a": 2,
-      "wins_b": 2
+      "wins_a": 3,
+      "wins_b": 3
     },
     "adrian mannarino|casper ruud": {
       "wins_a": 0,
       "wins_b": 1
     },
     "alejandro davidovich fokina|hubert hurkacz": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 0
     },
     "hubert hurkacz|thiago seyboth wild": {
@@ -10438,7 +10438,7 @@
     },
     "adrian mannarino|lorenzo sonego": {
       "wins_a": 2,
-      "wins_b": 1
+      "wins_b": 0
     },
     "jiri lehecka|zhizhen zhang": {
       "wins_a": 0,
@@ -10629,7 +10629,7 @@
       "wins_b": 0
     },
     "lorenzo sonego|yannick hanfmann": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "adam walton|jiri lehecka": {
@@ -10885,7 +10885,7 @@
       "wins_b": 0
     },
     "daniil medvedev|terence atmane": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 0
     },
     "alexander zverev|dominik koepfer": {
@@ -10961,8 +10961,8 @@
       "wins_b": 1
     },
     "lorenzo musetti|luca van assche": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 1,
+      "wins_b": 2
     },
     "jannik sinner|jesper de jong": {
       "wins_a": 2,
@@ -11017,7 +11017,7 @@
       "wins_b": 0
     },
     "alex michelsen|jiri lehecka": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "cameron norrie|giulio zeppieri": {
@@ -11045,7 +11045,7 @@
       "wins_b": 1
     },
     "karen khachanov|tomas machac": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "alex de minaur|flavio cobolli": {
@@ -11202,7 +11202,7 @@
     },
     "denis shapovalov|hugo gaston": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "facundo bagnis|luciano darderi": {
       "wins_a": 0,
@@ -11241,7 +11241,7 @@
       "wins_b": 0
     },
     "facundo diaz acosta|thiago agustin tirante": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "daniel elahi galan|jaume munar": {
@@ -11278,11 +11278,11 @@
     },
     "facundo diaz acosta|federico agustin gomez": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "hugo dellien|thiago seyboth wild": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 0,
+      "wins_b": 1
     },
     "adrian mannarino|marcos giron": {
       "wins_a": 1,
@@ -11434,7 +11434,7 @@
     },
     "rinky hijikata|taylor fritz": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "marcos giron|patrick kypson": {
       "wins_a": 1,
@@ -11761,12 +11761,12 @@
       "wins_b": 1
     },
     "casper ruud|nuno borges": {
-      "wins_a": 2,
-      "wins_b": 1
+      "wins_a": 3,
+      "wins_b": 2
     },
     "aleksandar kovacevic|stefanos tsitsipas": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 2
     },
     "alex de minaur|alex michelsen": {
       "wins_a": 2,
@@ -11866,7 +11866,7 @@
     },
     "jaume munar|thiago seyboth wild": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "cameron norrie|tomas barrios vera": {
       "wins_a": 1,
@@ -11990,7 +11990,7 @@
     },
     "matteo arnaldi|taylor fritz": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 2
     },
     "frances tiafoe|max purcell": {
       "wins_a": 1,
@@ -12041,7 +12041,7 @@
       "wins_b": 0
     },
     "alexander bublik|tomas machac": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 0
     },
     "abedallah shelbayh|tallon griekspoor": {
@@ -12270,7 +12270,7 @@
     },
     "karen khachanov|thiago seyboth wild": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "fabian marozsan|nicolas jarry": {
       "wins_a": 1,
@@ -12301,7 +12301,7 @@
       "wins_b": 0
     },
     "lorenzo sonego|miomir kecmanovic": {
-      "wins_a": 3,
+      "wins_a": 0,
       "wins_b": 1
     },
     "gael monfils|max purcell": {
@@ -12434,7 +12434,7 @@
     },
     "cameron norrie|daniil medvedev": {
       "wins_a": 1,
-      "wins_b": 3
+      "wins_b": 4
     },
     "christopher oconnell|martin damm": {
       "wins_a": 1,
@@ -12494,7 +12494,7 @@
     },
     "taylor fritz|thiago seyboth wild": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "dominik koepfer|sebastian baez": {
       "wins_a": 0,
@@ -12598,7 +12598,7 @@
     },
     "nuno borges|thiago seyboth wild": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "botic van de zandschulp|rinky hijikata": {
       "wins_a": 1,
@@ -12937,7 +12937,7 @@
       "wins_b": 0
     },
     "lorenzo musetti|taylor fritz": {
-      "wins_a": 4,
+      "wins_a": 5,
       "wins_b": 1
     },
     "alex de minaur|stan wawrinka": {
@@ -13294,7 +13294,7 @@
     },
     "joao fonseca|lorenzo sonego": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "aleksandar kovacevic|radu albot": {
       "wins_a": 0,
@@ -13317,7 +13317,7 @@
       "wins_b": 5
     },
     "casper ruud|felix auger aliassime": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 4
     },
     "jiri lehecka|rafael nadal": {
@@ -13585,7 +13585,7 @@
       "wins_b": 1
     },
     "sebastian korda|taylor fritz": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 3
     },
     "grigor dimitrov|terence atmane": {
@@ -13902,7 +13902,7 @@
     },
     "francisco cerundolo|hugo gaston": {
       "wins_a": 2,
-      "wins_b": 1
+      "wins_b": 0
     },
     "aleksandar vukic|alexander bublik": {
       "wins_a": 0,
@@ -13914,7 +13914,7 @@
     },
     "pedro martinez|thiago seyboth wild": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "nikolas sanchez izquierdo|tomas martin etcheverry": {
       "wins_a": 0,
@@ -14186,7 +14186,7 @@
     },
     "mariano navone|pablo carreno busta": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "daniel altmaier|laslo djere": {
       "wins_a": 1,
@@ -14202,7 +14202,7 @@
     },
     "luciano darderi|rinky hijikata": {
       "wins_a": 2,
-      "wins_b": 2
+      "wins_b": 3
     },
     "alejandro davidovich fokina|valentin vacherot": {
       "wins_a": 2,
@@ -14313,7 +14313,7 @@
       "wins_b": 1
     },
     "sebastian korda|tommy paul": {
-      "wins_a": 2,
+      "wins_a": 0,
       "wins_b": 1
     },
     "alex de minaur|zizou bergs": {
@@ -14409,7 +14409,7 @@
       "wins_b": 1
     },
     "frances tiafoe|yannick hanfmann": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "dominik koepfer|lorenzo musetti": {
@@ -14497,7 +14497,7 @@
       "wins_b": 1
     },
     "hubert hurkacz|james duckworth": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "marcos giron|matteo berrettini": {
@@ -14549,7 +14549,7 @@
       "wins_b": 0
     },
     "arthur fils|tomas machac": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "alexander zverev|oscar otte": {
@@ -14957,7 +14957,7 @@
       "wins_b": 2
     },
     "francisco cerundolo|roman safiullin": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "felix auger aliassime|thanasi kokkinakis": {
@@ -15105,7 +15105,7 @@
       "wins_b": 1
     },
     "daniil medvedev|jan lennard struff": {
-      "wins_a": 4,
+      "wins_a": 5,
       "wins_b": 1
     },
     "carlos alcaraz|frances tiafoe": {
@@ -15278,7 +15278,7 @@
     },
     "facundo diaz acosta|hugo gaston": {
       "wins_a": 1,
-      "wins_b": 2
+      "wins_b": 0
     },
     "daniel altmaier|flavio cobolli": {
       "wins_a": 0,
@@ -15313,7 +15313,7 @@
       "wins_b": 0
     },
     "arthur fils|jaume munar": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 0
     },
     "marco trungelliti|sebastian ofner": {
@@ -15521,7 +15521,7 @@
       "wins_b": 1
     },
     "arthur rinderknech|mattia bellucci": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "david goffin|max purcell": {
@@ -15630,7 +15630,7 @@
     },
     "daniel altmaier|hugo gaston": {
       "wins_a": 2,
-      "wins_b": 1
+      "wins_b": 0
     },
     "marton fucsovics|roberto carballes baena": {
       "wins_a": 0,
@@ -15921,7 +15921,7 @@
       "wins_b": 0
     },
     "tomas machac|zhizhen zhang": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "mariano navone|nuno borges": {
@@ -15966,7 +15966,7 @@
     },
     "luciano darderi|tommy paul": {
       "wins_a": 1,
-      "wins_b": 2
+      "wins_b": 3
     },
     "alejandro tabilo|roman safiullin": {
       "wins_a": 0,
@@ -16017,7 +16017,7 @@
       "wins_b": 0
     },
     "corentin moutet|jan lennard struff": {
-      "wins_a": 2,
+      "wins_a": 0,
       "wins_b": 1
     },
     "jakub mensik|tommy paul": {
@@ -16038,11 +16038,11 @@
     },
     "corentin moutet|tommy paul": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "alexander zverev|lorenzo musetti": {
       "wins_a": 1,
-      "wins_b": 3
+      "wins_b": 4
     },
     "felix auger aliassime|lorenzo musetti": {
       "wins_a": 1,
@@ -16078,7 +16078,7 @@
     },
     "casper ruud|sebastian korda": {
       "wins_a": 2,
-      "wins_b": 2
+      "wins_b": 0
     },
     "borna coric|jannik sinner": {
       "wins_a": 0,
@@ -16090,7 +16090,7 @@
     },
     "andrey rublev|tomas martin etcheverry": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 2
     },
     "karen khachanov|matteo arnaldi": {
       "wins_a": 0,
@@ -16113,7 +16113,7 @@
       "wins_b": 0
     },
     "lorenzo sonego|tallon griekspoor": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "alejandro davidovich fokina|roman safiullin": {
@@ -16253,7 +16253,7 @@
       "wins_b": 0
     },
     "alejandro davidovich fokina|frances tiafoe": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 2
     },
     "jiri lehecka|mariano navone": {
@@ -16278,7 +16278,7 @@
     },
     "alex michelsen|lorenzo sonego": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "david goffin|lorenzo sonego": {
       "wins_a": 0,
@@ -16345,8 +16345,8 @@
       "wins_b": 2
     },
     "adrian mannarino|aleksandar vukic": {
-      "wins_a": 0,
-      "wins_b": 2
+      "wins_a": 1,
+      "wins_b": 0
     },
     "tomas martin etcheverry|zizou bergs": {
       "wins_a": 1,
@@ -16526,7 +16526,7 @@
     },
     "bu yunchaokete|casper ruud": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "diego schwartzman|gael monfils": {
       "wins_a": 0,
@@ -16850,7 +16850,7 @@
     },
     "brandon nakashima|coleman wong": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "mattia bellucci|zhizhen zhang": {
       "wins_a": 0,
@@ -16954,7 +16954,7 @@
     },
     "arthur fils|taylor fritz": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 2
     },
     "alex michelsen|stefanos tsitsipas": {
       "wins_a": 3,
@@ -17038,7 +17038,7 @@
     },
     "francisco cerundolo|jakub mensik": {
       "wins_a": 3,
-      "wins_b": 0
+      "wins_b": 1
     },
     "alejandro davidovich fokina|zhizhen zhang": {
       "wins_a": 1,
@@ -17129,7 +17129,7 @@
       "wins_b": 1
     },
     "flavio cobolli|stan wawrinka": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 0
     },
     "alex michelsen|novak djokovic": {
@@ -17366,7 +17366,7 @@
     },
     "daniel altmaier|jiri lehecka": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "stefanos tsitsipas|thiago seyboth wild": {
       "wins_a": 3,
@@ -17553,7 +17553,7 @@
       "wins_b": 0
     },
     "alex de minaur|karen khachanov": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "karen khachanov|matteo berrettini": {
@@ -17581,7 +17581,7 @@
       "wins_b": 1
     },
     "jakub mensik|miomir kecmanovic": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 0
     },
     "alexander zverev|joel schwaerzler": {
@@ -17594,7 +17594,7 @@
     },
     "lorenzo musetti|lorenzo sonego": {
       "wins_a": 2,
-      "wins_b": 1
+      "wins_b": 0
     },
     "grigor dimitrov|zhizhen zhang": {
       "wins_a": 1,
@@ -17626,7 +17626,7 @@
     },
     "arthur fils|jan lennard struff": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "alejandro tabilo|stefanos tsitsipas": {
       "wins_a": 0,
@@ -17769,7 +17769,7 @@
       "wins_b": 0
     },
     "brandon nakashima|hamad medjedovic": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "james duckworth|lukas klein": {
@@ -17785,7 +17785,7 @@
       "wins_b": 1
     },
     "benjamin bonzi|cameron norrie": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "cameron norrie|corentin moutet": {
@@ -18066,7 +18066,7 @@
     },
     "jan lennard struff|tallon griekspoor": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "matteo berrettini|thanasi kokkinakis": {
       "wins_a": 1,
@@ -18221,7 +18221,7 @@
       "wins_b": 0
     },
     "chun hsin tseng|quentin halys": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "oleksii krutykh|sebastian korda": {
@@ -18602,7 +18602,7 @@
     },
     "andres andrade|coleman wong": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "gonzalo escobar|ki lung ng": {
       "wins_a": 1,
@@ -18993,8 +18993,8 @@
       "wins_b": 1
     },
     "harriet dart|paula badosa": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 1,
+      "wins_b": 0
     },
     "katie swan|nuria parrizas diaz": {
       "wins_a": 1,
@@ -20398,7 +20398,7 @@
     },
     "donna vekic|maria sakkari": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 2
     },
     "clara tauson|petra martic": {
       "wins_a": 0,
@@ -20557,7 +20557,7 @@
       "wins_b": 1
     },
     "jelena ostapenko|jessica pegula": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "danielle collins|elise mertens": {
@@ -20737,7 +20737,7 @@
       "wins_b": 1
     },
     "bianca andreescu|elena rybakina": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "marie bouzkova|sofia kenin": {
@@ -21549,8 +21549,8 @@
       "wins_b": 0
     },
     "bianca andreescu|sofia kenin": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 1,
+      "wins_b": 0
     },
     "belinda bencic|ekaterina alexandrova": {
       "wins_a": 1,
@@ -21973,7 +21973,7 @@
       "wins_b": 1
     },
     "anna blinkova|jessica pegula": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 3
     },
     "irina camelia begu|sofia kenin": {
@@ -22542,7 +22542,7 @@
     },
     "daria kasatkina|jelena ostapenko": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "marie bouzkova|veronika kudermetova": {
       "wins_a": 2,
@@ -22722,7 +22722,7 @@
     },
     "aliaksandra sasnovich|leylah fernandez": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "alycia parks|anett kontaveit": {
       "wins_a": 0,
@@ -23205,8 +23205,8 @@
       "wins_b": 0
     },
     "aliaksandra sasnovich|clara tauson": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 1,
+      "wins_b": 0
     },
     "kimberly birrell|leolia jeanjean": {
       "wins_a": 0,
@@ -23265,7 +23265,7 @@
       "wins_b": 0
     },
     "katerina siniakova|peyton stearns": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "alycia parks|marketa vondrousova": {
@@ -23545,7 +23545,7 @@
       "wins_b": 0
     },
     "harriet dart|katie boulter": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "alize cornet|maria sakkari": {
@@ -23649,7 +23649,7 @@
       "wins_b": 0
     },
     "aliaksandra sasnovich|ekaterina alexandrova": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 2
     },
     "celine naef|veronika kudermetova": {
@@ -23698,7 +23698,7 @@
     },
     "liudmila samsonova|polina kudermetova": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "alison riske amritraj|veronika kudermetova": {
       "wins_a": 0,
@@ -23978,7 +23978,7 @@
     },
     "katerina siniakova|liudmila samsonova": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 2
     },
     "iga swiatek|jil teichmann": {
       "wins_a": 1,
@@ -24321,7 +24321,7 @@
       "wins_b": 0
     },
     "maria sakkari|marta kostyuk": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "alison riske amritraj|paula badosa": {
@@ -25589,7 +25589,7 @@
       "wins_b": 0
     },
     "ann li|aryna sabalenka": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "anastasia pavlyuchenkova|danielle collins": {
@@ -25890,7 +25890,7 @@
     },
     "ekaterina alexandrova|leylah fernandez": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 2
     },
     "elsa jacquemot|lesia tsurenko": {
       "wins_a": 0,
@@ -26269,7 +26269,7 @@
       "wins_b": 1
     },
     "diana shnaider|yulia putintseva": {
-      "wins_a": 0,
+      "wins_a": 2,
       "wins_b": 1
     },
     "ashlyn krueger|kateryna baindl": {
@@ -26450,7 +26450,7 @@
     },
     "elise mertens|leylah fernandez": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 2
     },
     "jelena ostapenko|marta kostyuk": {
       "wins_a": 1,
@@ -28982,7 +28982,7 @@
     },
     "xin yu wang|xiyu wang": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "diane parry|lesia tsurenko": {
       "wins_a": 1,
@@ -29221,8 +29221,8 @@
       "wins_b": 1
     },
     "fiona ferro|mccartney kessler": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 1,
+      "wins_b": 0
     },
     "linda noskova|marie bouzkova": {
       "wins_a": 1,
@@ -29418,7 +29418,7 @@
     },
     "linda noskova|mccartney kessler": {
       "wins_a": 2,
-      "wins_b": 1
+      "wins_b": 0
     },
     "elina svitolina|viktoriya tomova": {
       "wins_a": 1,
@@ -30005,8 +30005,8 @@
       "wins_b": 0
     },
     "elena rybakina|leylah fernandez": {
-      "wins_a": 3,
-      "wins_b": 2
+      "wins_a": 4,
+      "wins_b": 3
     },
     "lesia tsurenko|naomi osaka": {
       "wins_a": 0,
@@ -30517,7 +30517,7 @@
       "wins_b": 0
     },
     "anna blinkova|diane parry": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "elina svitolina|emma navarro": {
@@ -31014,7 +31014,7 @@
     },
     "kamilla rakhimova|marie bouzkova": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "camila osorio|sara errani": {
       "wins_a": 1,
@@ -31413,7 +31413,7 @@
       "wins_b": 0
     },
     "elena rybakina|yulia putintseva": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 0
     },
     "beatriz haddad maia|maria sakkari": {
@@ -31657,7 +31657,7 @@
       "wins_b": 0
     },
     "anna blinkova|sara bejlek": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 2
     },
     "lauren davis|mayar sherif": {
@@ -32262,7 +32262,7 @@
     },
     "madison keys|renata zarazua": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "anna karolina schmiedlova|sara errani": {
       "wins_a": 0,
@@ -32441,7 +32441,7 @@
       "wins_b": 1
     },
     "bianca andreescu|dalma galfi": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "aleksandra krunic|dalma galfi": {
@@ -32609,7 +32609,7 @@
       "wins_b": 1
     },
     "cristina bucsa|diane parry": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "emily appleton|kimberly birrell": {
@@ -32897,7 +32897,7 @@
       "wins_b": 2
     },
     "harriet dart|marie bouzkova": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "ashlyn krueger|viktorija golubic": {
@@ -33302,7 +33302,7 @@
     },
     "aliaksandra sasnovich|diana shnaider": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "diana shnaider|eva lys": {
       "wins_a": 2,
@@ -33353,7 +33353,7 @@
       "wins_b": 1
     },
     "aliaksandra sasnovich|maria timofeeva": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "diana shnaider|fanny stollar": {
@@ -33861,7 +33861,7 @@
       "wins_b": 1
     },
     "bianca andreescu|donna vekic": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "coco gauff|maria lourdes carle": {
@@ -33950,7 +33950,7 @@
     },
     "marie bouzkova|mccartney kessler": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "clervie ngounoue|peyton stearns": {
       "wins_a": 0,
@@ -34133,7 +34133,7 @@
       "wins_b": 3
     },
     "diana shnaider|leylah fernandez": {
-      "wins_a": 3,
+      "wins_a": 4,
       "wins_b": 2
     },
     "anastasia pavlyuchenkova|qinwen zheng": {
@@ -34433,7 +34433,7 @@
       "wins_b": 1
     },
     "ashlyn krueger|shuai zhang": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "liudmila samsonova|qiang wang": {
@@ -34641,7 +34641,7 @@
       "wins_b": 1
     },
     "jessica bouzas maneiro|katie boulter": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "jessica pegula|sofia kenin": {
@@ -35217,7 +35217,7 @@
       "wins_b": 2
     },
     "magda linette|moyuka uchijima": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "irina camelia begu|mirra andreeva": {
@@ -35426,7 +35426,7 @@
     },
     "kamilla rakhimova|leylah fernandez": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 2
     },
     "erika andreeva|mirra andreeva": {
       "wins_a": 0,
@@ -35537,7 +35537,7 @@
       "wins_b": 1
     },
     "katerina siniakova|magda linette": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 0
     },
     "ella seidel|kathinka von deichmann": {
@@ -35822,7 +35822,7 @@
     },
     "daria kasatkina|mccartney kessler": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "katie boulter|kyoka okamura": {
       "wins_a": 1,
@@ -35973,7 +35973,7 @@
       "wins_b": 1
     },
     "diana shnaider|katie boulter": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 0
     },
     "rebecca sramkova|viktorija golubic": {
@@ -36073,7 +36073,7 @@
       "wins_b": 0
     },
     "ann li|zeynep sonmez": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 3
     },
     "alina korneeva|zeynep sonmez": {
@@ -36502,7 +36502,7 @@
     },
     "clara tauson|renata zarazua": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "arantxa rus|veronika erjavec": {
       "wins_a": 0,
@@ -36614,7 +36614,7 @@
     },
     "novak djokovic|rinky hijikata": {
       "wins_a": 2,
-      "wins_b": 0
+      "wins_b": 1
     },
     "arthur fils|zizou bergs": {
       "wins_a": 1,
@@ -36770,14 +36770,14 @@
     },
     "adrian mannarino|karen khachanov": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "camilo ugo carabelli|learner tien": {
       "wins_a": 0,
       "wins_b": 2
     },
     "corentin moutet|learner tien": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 2
     },
     "daniil medvedev|learner tien": {
@@ -37117,7 +37117,7 @@
       "wins_b": 1
     },
     "corentin moutet|tomas martin etcheverry": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 2
     },
     "alejandro davidovich fokina|rodrigo pacheco mendez": {
@@ -37461,7 +37461,7 @@
       "wins_b": 0
     },
     "alex de minaur|tomas machac": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "arthur fils|carlos alcaraz": {
@@ -37574,7 +37574,7 @@
     },
     "brandon nakashima|flavio cobolli": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "brandon nakashima|sebastian ofner": {
       "wins_a": 1,
@@ -37645,7 +37645,7 @@
       "wins_b": 1
     },
     "damir dzumhur|matteo arnaldi": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "matteo arnaldi|novak djokovic": {
@@ -37658,7 +37658,7 @@
     },
     "benjamin bonzi|taylor fritz": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "hamad medjedovic|tomas martin etcheverry": {
       "wins_a": 0,
@@ -38049,7 +38049,7 @@
       "wins_b": 0
     },
     "alexander bublik|karen khachanov": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "andrey rublev|sebastian ofner": {
@@ -38090,7 +38090,7 @@
     },
     "arthur rinderknech|ben shelton": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "brandon nakashima|giovanni mpetshi perricard": {
       "wins_a": 1,
@@ -38142,7 +38142,7 @@
     },
     "alex michelsen|corentin moutet": {
       "wins_a": 1,
-      "wins_b": 2
+      "wins_b": 0
     },
     "arthur rinderknech|felix auger aliassime": {
       "wins_a": 1,
@@ -38157,7 +38157,7 @@
       "wins_b": 1
     },
     "corentin moutet|tallon griekspoor": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "felix auger aliassime|tallon griekspoor": {
@@ -38306,7 +38306,7 @@
     },
     "karen khachanov|nuno borges": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "karen khachanov|shintaro mochizuki": {
       "wins_a": 2,
@@ -38401,7 +38401,7 @@
       "wins_b": 0
     },
     "casper ruud|juan manuel cerundolo": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 2
     },
     "david goffin|juan manuel cerundolo": {
@@ -38497,7 +38497,7 @@
       "wins_b": 1
     },
     "corentin moutet|daniil medvedev": {
-      "wins_a": 2,
+      "wins_a": 0,
       "wins_b": 1
     },
     "corentin moutet|daniel evans": {
@@ -38581,12 +38581,12 @@
       "wins_b": 0
     },
     "corentin moutet|jenson brooksby": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 0,
+      "wins_b": 1
     },
     "dalibor svrcina|daniil medvedev": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "alexis galarneau|flavio cobolli": {
       "wins_a": 0,
@@ -38705,7 +38705,7 @@
       "wins_b": 2
     },
     "jenson brooksby|karen khachanov": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "karen khachanov|valentin royer": {
@@ -38885,7 +38885,7 @@
       "wins_b": 1
     },
     "jiri lehecka|raphael collignon": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "joao fonseca|miomir kecmanovic": {
@@ -38902,7 +38902,7 @@
     },
     "flavio cobolli|lorenzo musetti": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "eliot spizzirri|luciano darderi": {
       "wins_a": 0,
@@ -38913,7 +38913,7 @@
       "wins_b": 1
     },
     "jan lennard struff|novak djokovic": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "novak djokovic|zachary svajda": {
@@ -38982,7 +38982,7 @@
     },
     "ignacio buse|nuno borges": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "ignacio buse|jaime faria": {
       "wins_a": 1,
@@ -39038,7 +39038,7 @@
     },
     "lorenzo musetti|nikoloz basilashvili": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "dino prizmic|lorenzo musetti": {
       "wins_a": 0,
@@ -39065,7 +39065,7 @@
       "wins_b": 1
     },
     "rinky hijikata|tomas martin etcheverry": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "damir dzumhur|tomas martin etcheverry": {
@@ -39086,7 +39086,7 @@
     },
     "carlos alcaraz|zizou bergs": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "carlos alcaraz|sebastian baez": {
       "wins_a": 2,
@@ -39221,7 +39221,7 @@
       "wins_b": 1
     },
     "jenson brooksby|tallon griekspoor": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "mattia bellucci|tomas machac": {
@@ -39234,7 +39234,7 @@
     },
     "holger rune|valentin vacherot": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "laslo djere|valentin vacherot": {
       "wins_a": 0,
@@ -39253,7 +39253,7 @@
       "wins_b": 2
     },
     "novak djokovic|valentin vacherot": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "sebastian korda|zizou bergs": {
@@ -39353,7 +39353,7 @@
       "wins_b": 1
     },
     "alejandro davidovich fokina|jenson brooksby": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "alejandro davidovich fokina|lorenzo sonego": {
@@ -39398,7 +39398,7 @@
     },
     "taylor fritz|valentin vacherot": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "reilly opelka|ugo humbert": {
       "wins_a": 0,
@@ -39421,8 +39421,8 @@
       "wins_b": 1
     },
     "corentin moutet|damir dzumhur": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 0,
+      "wins_b": 1
     },
     "flavio cobolli|jannik sinner": {
       "wins_a": 0,
@@ -39434,7 +39434,7 @@
     },
     "brandon nakashima|tallon griekspoor": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "karen khachanov|tallon griekspoor": {
       "wins_a": 0,
@@ -39490,7 +39490,7 @@
     },
     "jiri lehecka|valentin vacherot": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 2
     },
     "adam walton|alejandro tabilo": {
       "wins_a": 0,
@@ -39602,7 +39602,7 @@
     },
     "alex michelsen|sebastian korda": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "brandon nakashima|quentin halys": {
       "wins_a": 1,
@@ -39961,7 +39961,7 @@
       "wins_b": 1
     },
     "daniel altmaier|juan manuel cerundolo": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 2
     },
     "emilio nava|mariano navone": {
@@ -40025,7 +40025,7 @@
       "wins_b": 0
     },
     "jesper de jong|karen khachanov": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "guy den ouden|ugo humbert": {
@@ -40254,7 +40254,7 @@
     },
     "alejandro tabilo|rafael jodar": {
       "wins_a": 1,
-      "wins_b": 2
+      "wins_b": 4
     },
     "alex michelsen|daniel merida aguilar": {
       "wins_a": 2,
@@ -40298,7 +40298,7 @@
     },
     "frances tiafoe|jenson brooksby": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "benjamin bonzi|francisco cerundolo": {
       "wins_a": 0,
@@ -40329,11 +40329,11 @@
       "wins_b": 1
     },
     "tommy paul|zizou bergs": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "jan lennard struff|zizou bergs": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "alejandro tabilo|francisco comesana": {
@@ -40345,7 +40345,7 @@
       "wins_b": 1
     },
     "alexander zverev|quentin halys": {
-      "wins_a": 3,
+      "wins_a": 4,
       "wins_b": 0
     },
     "alexander zverev|marin cilic": {
@@ -40486,10 +40486,10 @@
     },
     "mariano navone|valentin vacherot": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 2
     },
     "jenson brooksby|zizou bergs": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "daniel merida aguilar|mariano navone": {
@@ -40534,7 +40534,7 @@
     },
     "adolfo daniel vallejo|tommy paul": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "corentin moutet|taha baadi": {
       "wins_a": 1,
@@ -40837,7 +40837,7 @@
       "wins_b": 1
     },
     "adrian mannarino|ignacio buse": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "jakub mensik|martin damm": {
@@ -40898,7 +40898,7 @@
     },
     "alejandro tabilo|pablo carreno busta": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "alexander blockx|federico cina": {
       "wins_a": 1,
@@ -41357,7 +41357,7 @@
       "wins_b": 1
     },
     "adrian mannarino|jakub mensik": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "alejandro davidovich fokina|cameron norrie": {
@@ -41805,7 +41805,7 @@
       "wins_b": 1
     },
     "damir dzumhur|sebastian baez": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 2
     },
     "francisco comesana|sebastian baez": {
@@ -41858,7 +41858,7 @@
     },
     "adam walton|coleman wong": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "adam walton|luciano darderi": {
       "wins_a": 1,
@@ -41893,7 +41893,7 @@
       "wins_b": 1
     },
     "sebastian korda|stefanos tsitsipas": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "eliot spizzirri|sebastian korda": {
@@ -42158,7 +42158,7 @@
     },
     "jaime faria|jenson brooksby": {
       "wins_a": 2,
-      "wins_b": 0
+      "wins_b": 1
     },
     "francesco passaro|jesper de jong": {
       "wins_a": 0,
@@ -42218,7 +42218,7 @@
     },
     "luciano darderi|stefanos tsitsipas": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "aleksandar vukic|alexei popyrin": {
       "wins_a": 0,
@@ -42257,7 +42257,7 @@
       "wins_b": 1
     },
     "jenson brooksby|ugo humbert": {
-      "wins_a": 0,
+      "wins_a": 2,
       "wins_b": 1
     },
     "jacob fearnley|marcos giron": {
@@ -42950,7 +42950,7 @@
     },
     "marin cilic|nikoloz basilashvili": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "adam walton|mattia bellucci": {
       "wins_a": 0,
@@ -43193,7 +43193,7 @@
       "wins_b": 1
     },
     "damir dzumhur|nuno borges": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "fabian marozsan|yibing wu": {
@@ -43253,7 +43253,7 @@
       "wins_b": 0
     },
     "jenson brooksby|sebastian baez": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 2
     },
     "emilio nava|sebastian baez": {
@@ -43297,7 +43297,7 @@
       "wins_b": 0
     },
     "hubert hurkacz|zizou bergs": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "alexander blockx|jaime faria": {
@@ -43441,12 +43441,12 @@
       "wins_b": 1
     },
     "miomir kecmanovic|sho shimabukuro": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 0
     },
     "michael zheng|sebastian korda": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "botic van de zandschulp|luka pavlovic": {
       "wins_a": 1,
@@ -43726,7 +43726,7 @@
     },
     "daniel merida aguilar|titouan droguet": {
       "wins_a": 2,
-      "wins_b": 1
+      "wins_b": 0
     },
     "adrian mannarino|daniel merida aguilar": {
       "wins_a": 0,
@@ -43894,7 +43894,7 @@
     },
     "adolfo daniel vallejo|learner tien": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "benjamin bonzi|titouan droguet": {
       "wins_a": 1,
@@ -44021,7 +44021,7 @@
       "wins_b": 0
     },
     "mattia bellucci|tomas martin etcheverry": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "dalibor svrcina|miomir kecmanovic": {
@@ -44065,7 +44065,7 @@
       "wins_b": 0
     },
     "ben shelton|daniel altmaier": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "daniel altmaier|rinky hijikata": {
@@ -44289,7 +44289,7 @@
       "wins_b": 1
     },
     "lorenzo giustino|michael vrbensky": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 0
     },
     "dmitry popko|gonzalo bueno": {
@@ -44306,7 +44306,7 @@
     },
     "alex barrena|gonzalo bueno": {
       "wins_a": 1,
-      "wins_b": 2
+      "wins_b": 3
     },
     "gonzalo bueno|joao lucas reis da silva": {
       "wins_a": 2,
@@ -44617,8 +44617,8 @@
       "wins_b": 2
     },
     "daniel rincon|henrique rocha": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 1,
+      "wins_b": 0
     },
     "jozef kovalik|stefano travaglia": {
       "wins_a": 0,
@@ -44917,8 +44917,8 @@
       "wins_b": 0
     },
     "adolfo daniel vallejo|genaro alberto olivieri": {
-      "wins_a": 2,
-      "wins_b": 0
+      "wins_a": 0,
+      "wins_b": 1
     },
     "adolfo daniel vallejo|liam draxl": {
       "wins_a": 1,
@@ -44933,7 +44933,7 @@
       "wins_b": 1
     },
     "genaro alberto olivieri|juan bautista torres": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "bogdan bobrov|juan carlos prado angelo": {
@@ -45017,7 +45017,7 @@
       "wins_b": 1
     },
     "joao lucas reis da silva|juan carlos prado angelo": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "daniel dutra da silva|joao lucas reis da silva": {
@@ -45026,7 +45026,7 @@
     },
     "camilo ugo carabelli|joao lucas reis da silva": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "genaro alberto olivieri|juan carlos prado angelo": {
       "wins_a": 0,
@@ -45034,7 +45034,7 @@
     },
     "eduardo ribeiro|juan carlos prado angelo": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "alexis galarneau|beibit zhukayev": {
       "wins_a": 2,
@@ -45142,7 +45142,7 @@
     },
     "elmer moller|matej dodig": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "maks kasnikowski|matej dodig": {
       "wins_a": 0,
@@ -45269,8 +45269,8 @@
       "wins_b": 0
     },
     "genaro alberto olivieri|valerio aboian": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 2,
+      "wins_b": 1
     },
     "genaro alberto olivieri|lautaro agustin falabella": {
       "wins_a": 1,
@@ -45301,7 +45301,7 @@
       "wins_b": 0
     },
     "franco roncadelli|juan carlos prado angelo": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "juan carlos prado angelo|nicolas alvarez": {
@@ -45417,7 +45417,7 @@
       "wins_b": 4
     },
     "alvaro guillen meza|gonzalo bueno": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "guido ivan justo|roberto cid": {
@@ -45446,7 +45446,7 @@
     },
     "pedro boscardin dias|valerio aboian": {
       "wins_a": 3,
-      "wins_b": 0
+      "wins_b": 1
     },
     "alexis galarneau|daniel rincon": {
       "wins_a": 1,
@@ -45461,8 +45461,8 @@
       "wins_b": 0
     },
     "dimitar kuzmanov|lukas neumayer": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 0,
+      "wins_b": 1
     },
     "dimitar kuzmanov|mohamed safwat": {
       "wins_a": 1,
@@ -45521,12 +45521,12 @@
       "wins_b": 2
     },
     "alvaro guillen meza|juan bautista torres": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "juan bautista torres|pedro boscardin dias": {
       "wins_a": 2,
-      "wins_b": 1
+      "wins_b": 2
     },
     "harold mayot|sumit nagal": {
       "wins_a": 2,
@@ -45821,8 +45821,8 @@
       "wins_b": 1
     },
     "genaro alberto olivieri|henrique rocha": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 2,
+      "wins_b": 0
     },
     "henrique rocha|jozef kovalik": {
       "wins_a": 1,
@@ -45958,7 +45958,7 @@
     },
     "francisco comesana|marco cecchinato": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "guido andreozzi|stefano travaglia": {
       "wins_a": 0,
@@ -46541,7 +46541,7 @@
       "wins_b": 1
     },
     "bernard tomic|jay clarke": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "bernard tomic|nick hardt": {
@@ -46993,7 +46993,7 @@
       "wins_b": 0
     },
     "adolfo daniel vallejo|hugo dellien": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "adolfo daniel vallejo|gonzalo villanueva": {
@@ -47178,7 +47178,7 @@
     },
     "alexis galarneau|bernard tomic": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "bernard tomic|max basing": {
       "wins_a": 1,
@@ -47250,7 +47250,7 @@
     },
     "andre ilagan|bernard tomic": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "bernard tomic|patrick maloney": {
       "wins_a": 1,
@@ -47261,7 +47261,7 @@
       "wins_b": 1
     },
     "alvaro guillen meza|juan pablo varillas": {
-      "wins_a": 2,
+      "wins_a": 0,
       "wins_b": 1
     },
     "alvaro guillen meza|hugo dellien": {
@@ -47273,7 +47273,7 @@
       "wins_b": 0
     },
     "henrique rocha|juan carlos prado angelo": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "gastao elias|juan carlos prado angelo": {
@@ -47290,15 +47290,15 @@
     },
     "matheus pucinelli de almeida|tomas barrios vera": {
       "wins_a": 1,
-      "wins_b": 2
+      "wins_b": 0
     },
     "felipe meligeni alves|tomas barrios vera": {
       "wins_a": 0,
       "wins_b": 1
     },
     "daniel merida aguilar|enrico dalla valle": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 0,
+      "wins_b": 1
     },
     "dennis novak|hynek barton": {
       "wins_a": 0,
@@ -47473,7 +47473,7 @@
       "wins_b": 0
     },
     "adolfo daniel vallejo|franco roncadelli": {
-      "wins_a": 2,
+      "wins_a": 0,
       "wins_b": 1
     },
     "federico coria|henrique rocha": {
@@ -47597,7 +47597,7 @@
       "wins_b": 1
     },
     "lukas neumayer|pol martin tiffon": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "nicolai budkov kjaer|pablo carreno busta": {
@@ -47677,7 +47677,7 @@
       "wins_b": 1
     },
     "alvaro guillen meza|juan carlos prado angelo": {
-      "wins_a": 2,
+      "wins_a": 0,
       "wins_b": 2
     },
     "jay clarke|nicolas kicker": {
@@ -47749,7 +47749,7 @@
       "wins_b": 1
     },
     "diego dedura palomero|joao lucas reis da silva": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "francisco comesana|joao lucas reis da silva": {
@@ -47917,7 +47917,7 @@
       "wins_b": 1
     },
     "adolfo daniel vallejo|juan pablo varillas": {
-      "wins_a": 2,
+      "wins_a": 0,
       "wins_b": 1
     },
     "emilio nava|juan pablo varillas": {
@@ -47997,8 +47997,8 @@
       "wins_b": 0
     },
     "daniel rincon|jurij rodionov": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 1,
+      "wins_b": 0
     },
     "beibit zhukayev|mark lajal": {
       "wins_a": 0,
@@ -48049,8 +48049,8 @@
       "wins_b": 2
     },
     "lautaro midon|tomas barrios vera": {
-      "wins_a": 0,
-      "wins_b": 2
+      "wins_a": 1,
+      "wins_b": 0
     },
     "alvaro guillen meza|tomas barrios vera": {
       "wins_a": 0,
@@ -48477,12 +48477,12 @@
       "wins_b": 0
     },
     "genaro alberto olivieri|guido ivan justo": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "joao lucas reis da silva|tomas barrios vera": {
       "wins_a": 2,
-      "wins_b": 3
+      "wins_b": 0
     },
     "joao lucas reis da silva|matias soto": {
       "wins_a": 3,
@@ -48589,7 +48589,7 @@
       "wins_b": 2
     },
     "genaro alberto olivieri|gonzalo villanueva": {
-      "wins_a": 0,
+      "wins_a": 2,
       "wins_b": 1
     },
     "diego dedura palomero|gonzalo bueno": {
@@ -48617,7 +48617,7 @@
       "wins_b": 1
     },
     "matias soto|nicolas kicker": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "enzo couacaud|pedro boscardin dias": {
@@ -48674,7 +48674,7 @@
     },
     "marco cecchinato|matej dodig": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "matej dodig|maxim mrva": {
       "wins_a": 0,
@@ -48778,7 +48778,7 @@
     },
     "elmer moller|lukas neumayer": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "lukas neumayer|pedro cachin": {
       "wins_a": 1,
@@ -48842,7 +48842,7 @@
     },
     "michael mmoh|tomas barrios vera": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "genaro alberto olivieri|tomas barrios vera": {
       "wins_a": 0,
@@ -49021,7 +49021,7 @@
       "wins_b": 0
     },
     "bernard tomic|michael mmoh": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "andres martin|genaro alberto olivieri": {
@@ -49241,7 +49241,7 @@
       "wins_b": 1
     },
     "alvaro guillen meza|matheus pucinelli de almeida": {
-      "wins_a": 3,
+      "wins_a": 0,
       "wins_b": 3
     },
     "alvaro guillen meza|renzo olivo": {
@@ -49257,11 +49257,11 @@
       "wins_b": 0
     },
     "alvaro guillen meza|franco roncadelli": {
-      "wins_a": 2,
+      "wins_a": 0,
       "wins_b": 1
     },
     "genaro alberto olivieri|joao lucas reis da silva": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "bruno malacarne|juan bautista torres": {
@@ -49502,7 +49502,7 @@
     },
     "rio noguchi|yi zhou": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "adolfo daniel vallejo|viktor durasovic": {
       "wins_a": 1,
@@ -49793,7 +49793,7 @@
       "wins_b": 0
     },
     "alex barrena|juan bautista torres": {
-      "wins_a": 3,
+      "wins_a": 4,
       "wins_b": 1
     },
     "alex barrena|federico zeballos": {
@@ -49845,7 +49845,7 @@
       "wins_b": 0
     },
     "lukas neumayer|stefano travaglia": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "alex barrena|luciano emanuel ambrogi": {
@@ -49861,7 +49861,7 @@
       "wins_b": 1
     },
     "gonzalo bueno|hernan casanova": {
-      "wins_a": 2,
+      "wins_a": 3,
       "wins_b": 0
     },
     "gonzalo bueno|guido ivan justo": {
@@ -49881,7 +49881,7 @@
       "wins_b": 1
     },
     "juan carlos prado angelo|pedro boscardin dias": {
-      "wins_a": 2,
+      "wins_a": 5,
       "wins_b": 1
     },
     "lautaro midon|nicolas baena": {
@@ -50165,8 +50165,8 @@
       "wins_b": 2
     },
     "federico agustin gomez|lukas neumayer": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 0,
+      "wins_b": 1
     },
     "facundo mena|marco cecchinato": {
       "wins_a": 0,
@@ -50178,7 +50178,7 @@
     },
     "lukas neumayer|matej dodig": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 3
     },
     "jurij rodionov|matej dodig": {
       "wins_a": 0,
@@ -50289,7 +50289,7 @@
       "wins_b": 0
     },
     "dimitar kuzmanov|kimmer coppejans": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "alex barrena|kimmer coppejans": {
@@ -50569,7 +50569,7 @@
       "wins_b": 0
     },
     "adolfo daniel vallejo|facundo diaz acosta": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "facundo diaz acosta|marat sharipov": {
@@ -50698,7 +50698,7 @@
     },
     "alex barrena|genaro alberto olivieri": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "genaro alberto olivieri|milos karol": {
       "wins_a": 1,
@@ -51193,7 +51193,7 @@
       "wins_b": 1
     },
     "daniel rincon|marco cecchinato": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "andrej nedic|matej dodig": {
@@ -51730,7 +51730,7 @@
     },
     "alex barrena|federico agustin gomez": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "francesco maestrelli|matias soto": {
       "wins_a": 1,
@@ -51797,7 +51797,7 @@
       "wins_b": 1
     },
     "federico agustin gomez|gonzalo bueno": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "guido ivan justo|lorenzo joaquin rodriguez": {
@@ -52030,7 +52030,7 @@
     },
     "clement chidekh|matteo martineau": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 2
     },
     "clement chidekh|hugo gaston": {
       "wins_a": 1,
@@ -52110,7 +52110,7 @@
     },
     "juan carlos prado angelo|matias soto": {
       "wins_a": 2,
-      "wins_b": 1
+      "wins_b": 0
     },
     "juan carlos prado angelo|rodrigo pacheco mendez": {
       "wins_a": 2,
@@ -52274,7 +52274,7 @@
     },
     "gustavo heide|juan carlos prado angelo": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 2
     },
     "miguel tobon|murkel alejandro dellien velasco": {
       "wins_a": 0,
@@ -52285,7 +52285,7 @@
       "wins_b": 0
     },
     "eduardo ribeiro|pedro boscardin dias": {
-      "wins_a": 0,
+      "wins_a": 3,
       "wins_b": 2
     },
     "pedro boscardin dias|roman andres burruchaga": {
@@ -52401,8 +52401,8 @@
       "wins_b": 0
     },
     "harold mayot|sho shimabukuro": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 1,
+      "wins_b": 0
     },
     "sergey fomin|sho shimabukuro": {
       "wins_a": 0,
@@ -52461,7 +52461,7 @@
       "wins_b": 2
     },
     "adolfo daniel vallejo|matheus pucinelli de almeida": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "adolfo daniel vallejo|igor gimenez": {
@@ -52673,7 +52673,7 @@
       "wins_b": 0
     },
     "federico agustin gomez|lautaro midon": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "arklon huertas del pino|marco cecchinato": {
@@ -53037,7 +53037,7 @@
       "wins_b": 0
     },
     "facundo diaz acosta|marco cecchinato": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "mariano navone|roman andres burruchaga": {
@@ -53102,7 +53102,7 @@
     },
     "guido ivan justo|joao lucas reis da silva": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "guido ivan justo|joao eduardo schiessl": {
       "wins_a": 1,
@@ -53297,7 +53297,7 @@
       "wins_b": 1
     },
     "eduardo ribeiro|facundo diaz acosta": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 2
     },
     "benjamin torrealba|facundo diaz acosta": {
@@ -53337,7 +53337,7 @@
       "wins_b": 1
     },
     "harold mayot|petr bar biryukov": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "mitsuki wei kang leong|timofey skatov": {
@@ -53389,7 +53389,7 @@
       "wins_b": 1
     },
     "fajing sun|hayato matsuoka": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "joel schwaerzler|lorenzo giustino": {
@@ -53621,7 +53621,7 @@
       "wins_b": 0
     },
     "genaro alberto olivieri|pedro boscardin dias": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 2
     },
     "nikolas sanchez izquierdo|stefan palosi": {
@@ -53645,7 +53645,7 @@
       "wins_b": 0
     },
     "daniil glinka|gauthier onclin": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "jurij rodionov|maks kasnikowski": {
@@ -53778,7 +53778,7 @@
     },
     "alex barrena|matheus pucinelli de almeida": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "benjamin torrealba|guido ivan justo": {
       "wins_a": 0,
@@ -53818,7 +53818,7 @@
     },
     "guido ivan justo|tomas barrios vera": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "thiago monteiro|tomas barrios vera": {
       "wins_a": 0,
@@ -54393,7 +54393,7 @@
       "wins_b": 1
     },
     "dimitar kuzmanov|lorenzo giustino": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "dimitar kuzmanov|robin bertrand": {
@@ -54570,7 +54570,7 @@
     },
     "filip cristian jianu|zdenek kolar": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "corentin denolly|zdenek kolar": {
       "wins_a": 0,
@@ -54661,12 +54661,12 @@
       "wins_b": 1
     },
     "gonzalo bueno|lautaro midon": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "gonzalo villanueva|lautaro midon": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "alex santino nunez vera|murkel alejandro dellien velasco": {
       "wins_a": 0,
@@ -54777,8 +54777,8 @@
       "wins_b": 0
     },
     "andres martin|stefan kozlov": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 0,
+      "wins_b": 1
     },
     "coleman wong|nicolas mejia": {
       "wins_a": 0,
@@ -54990,7 +54990,7 @@
     },
     "guido ivan justo|juan manuel la serna": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 2
     },
     "guido ivan justo|victor hugo remondy pagotto": {
       "wins_a": 1,
@@ -55002,7 +55002,7 @@
     },
     "jose pereira|lautaro midon": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "murkel alejandro dellien velasco|paulo andre saraiva dos santos": {
       "wins_a": 1,
@@ -55137,7 +55137,7 @@
       "wins_b": 0
     },
     "chun hsin tseng|joel schwaerzler": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "gastao elias|joel schwaerzler": {
@@ -55261,7 +55261,7 @@
       "wins_b": 1
     },
     "enrico dalla valle|nikolas sanchez izquierdo": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "andrea vavassori|pol martin tiffon": {
@@ -55341,8 +55341,8 @@
       "wins_b": 0
     },
     "chun hsin tseng|lukas neumayer": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 0,
+      "wins_b": 2
     },
     "sebastian sorger|tomas barrios vera": {
       "wins_a": 0,
@@ -55381,7 +55381,7 @@
       "wins_b": 1
     },
     "raul brancaccio|zdenek kolar": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "edas butvilas|max hans rehberg": {
@@ -56353,7 +56353,7 @@
       "wins_b": 0
     },
     "belinda bencic|jelena ostapenko": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "belinda bencic|naomi osaka": {
@@ -56505,7 +56505,7 @@
       "wins_b": 0
     },
     "anna blinkova|magdalena frech": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "jule niemeier|marta kostyuk": {
@@ -56602,7 +56602,7 @@
     },
     "hailey baptiste|renata zarazua": {
       "wins_a": 1,
-      "wins_b": 2
+      "wins_b": 0
     },
     "ashlyn krueger|belinda bencic": {
       "wins_a": 0,
@@ -56822,7 +56822,7 @@
     },
     "anastasia potapova|jessica bouzas maneiro": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "aryna sabalenka|sonay kartal": {
       "wins_a": 1,
@@ -56885,7 +56885,7 @@
       "wins_b": 1
     },
     "iva jovic|jasmine paolini": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 2
     },
     "karolina muchova|katerina siniakova": {
@@ -56929,7 +56929,7 @@
       "wins_b": 1
     },
     "maya joint|sorana cirstea": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 1
     },
     "alexandra eala|iga swiatek": {
@@ -57006,7 +57006,7 @@
     },
     "jasmine paolini|naomi osaka": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "alexandra eala|jessica pegula": {
       "wins_a": 1,
@@ -57082,7 +57082,7 @@
     },
     "ann li|ekaterina alexandrova": {
       "wins_a": 1,
-      "wins_b": 3
+      "wins_b": 4
     },
     "ashlyn krueger|emma navarro": {
       "wins_a": 0,
@@ -57137,7 +57137,7 @@
       "wins_b": 3
     },
     "jessica bouzas maneiro|linda noskova": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "beatriz haddad maia|linda noskova": {
@@ -57254,7 +57254,7 @@
     },
     "elina svitolina|sonay kartal": {
       "wins_a": 2,
-      "wins_b": 0
+      "wins_b": 1
     },
     "emma navarro|maya joint": {
       "wins_a": 1,
@@ -57598,7 +57598,7 @@
     },
     "emma navarro|jessica bouzas maneiro": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "jessica bouzas maneiro|robin montgomery": {
       "wins_a": 1,
@@ -57758,7 +57758,7 @@
     },
     "maria sakkari|yulia putintseva": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "naomi osaka|olga danilovic": {
       "wins_a": 1,
@@ -57786,7 +57786,7 @@
     },
     "jelena ostapenko|sonay kartal": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 2
     },
     "amanda anisimova|dalma galfi": {
       "wins_a": 1,
@@ -58086,7 +58086,7 @@
     },
     "alycia parks|sara bejlek": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "moyuka uchijima|sara bejlek": {
       "wins_a": 0,
@@ -58754,7 +58754,7 @@
     },
     "emma navarro|sonay kartal": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "emma navarro|yulia putintseva": {
       "wins_a": 2,
@@ -58842,7 +58842,7 @@
     },
     "jaqueline cristian|jessica bouzas maneiro": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "ashlyn krueger|maria sakkari": {
       "wins_a": 1,
@@ -58953,7 +58953,7 @@
       "wins_b": 0
     },
     "diana shnaider|karolina muchova": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "ekaterina alexandrova|mccartney kessler": {
@@ -59021,7 +59021,7 @@
       "wins_b": 2
     },
     "ann li|camila osorio": {
-      "wins_a": 3,
+      "wins_a": 4,
       "wins_b": 1
     },
     "ann li|victoria jimenez kasintseva": {
@@ -59138,7 +59138,7 @@
     },
     "cristina bucsa|maya joint": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "eva lys|leylah fernandez": {
       "wins_a": 0,
@@ -59442,7 +59442,7 @@
     },
     "clara tauson|polina kudermetova": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "coco gauff|olga danilovic": {
       "wins_a": 1,
@@ -59477,7 +59477,7 @@
       "wins_b": 1
     },
     "elise mertens|moyuka uchijima": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "emma raducanu|mananchaya sawangkaew": {
@@ -59857,7 +59857,7 @@
       "wins_b": 1
     },
     "diana shnaider|iva jovic": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "iva jovic|kamilla rakhimova": {
@@ -60165,7 +60165,7 @@
       "wins_b": 1
     },
     "mccartney kessler|mirra andreeva": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "shuai zhang|sorana cirstea": {
@@ -60290,7 +60290,7 @@
     },
     "elise mertens|mccartney kessler": {
       "wins_a": 1,
-      "wins_b": 2
+      "wins_b": 0
     },
     "himeno sakatsume|jasmine paolini": {
       "wins_a": 0,
@@ -60358,7 +60358,7 @@
     },
     "diana shnaider|elena rybakina": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "elina svitolina|eva lys": {
       "wins_a": 2,
@@ -60398,7 +60398,7 @@
     },
     "ann li|iga swiatek": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "alycia parks|ann li": {
       "wins_a": 0,
@@ -60445,7 +60445,7 @@
       "wins_b": 1
     },
     "anna blinkova|katerina siniakova": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 1
     },
     "iva jovic|leylah fernandez": {
@@ -60805,7 +60805,7 @@
       "wins_b": 1
     },
     "maja chwalinska|maria sakkari": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "elise mertens|maja chwalinska": {
@@ -61086,7 +61086,7 @@
     },
     "maddison inglis|maya joint": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "magda linette|mccartney kessler": {
       "wins_a": 0,
@@ -61290,7 +61290,7 @@
     },
     "daria kasatkina|polina kudermetova": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "magda linette|veronika kudermetova": {
       "wins_a": 1,
@@ -61305,7 +61305,7 @@
       "wins_b": 1
     },
     "alycia parks|xin yu wang": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "eva lys|irina camelia begu": {
@@ -61537,7 +61537,7 @@
       "wins_b": 0
     },
     "katerina siniakova|katie boulter": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "katie volynets|petra kvitova": {
@@ -62006,7 +62006,7 @@
     },
     "caty mcnally|mccartney kessler": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "renata zarazua|yulia putintseva": {
       "wins_a": 1,
@@ -62073,7 +62073,7 @@
       "wins_b": 1
     },
     "katie boulter|viktorija golubic": {
-      "wins_a": 1,
+      "wins_a": 3,
       "wins_b": 1
     },
     "lucia bronzetti|viktorija golubic": {
@@ -62345,7 +62345,7 @@
       "wins_b": 1
     },
     "alexandra eala|tereza valentova": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 2
     },
     "jaqueline cristian|tereza valentova": {
@@ -62677,7 +62677,7 @@
       "wins_b": 1
     },
     "yulia putintseva|zeynep sonmez": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "anna bondar|zeynep sonmez": {
@@ -62874,7 +62874,7 @@
     },
     "kamilla rakhimova|oksana selekhmeteva": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "alycia parks|oksana selekhmeteva": {
       "wins_a": 0,
@@ -63177,7 +63177,7 @@
       "wins_b": 1
     },
     "lilli tagger|liudmila samsonova": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "lilli tagger|paula badosa": {
@@ -63525,7 +63525,7 @@
       "wins_b": 1
     },
     "anna blinkova|yuliia starodubtseva": {
-      "wins_a": 2,
+      "wins_a": 0,
       "wins_b": 1
     },
     "elena rybakina|yuliia starodubtseva": {
@@ -63653,7 +63653,7 @@
       "wins_b": 1
     },
     "jan lennard struff|nuno borges": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "arthur fery|juan manuel cerundolo": {
@@ -63682,7 +63682,7 @@
     },
     "toby samuel|zizou bergs": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "luca nardi|quentin halys": {
       "wins_a": 0,
@@ -63733,7 +63733,7 @@
       "wins_b": 1
     },
     "jan lennard struff|martin landaluce": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "ignacio buse|vit kopriva": {
@@ -63885,7 +63885,7 @@
       "wins_b": 1
     },
     "matteo martineau|sascha gueymard wayenburg": {
-      "wins_a": 0,
+      "wins_a": 2,
       "wins_b": 1
     },
     "duje ajdukovic|filip cristian jianu": {
@@ -64078,7 +64078,7 @@
     },
     "bruno fernandez|nicolas kicker": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "alvaro guillen meza|radu mihai papoe": {
       "wins_a": 1,
@@ -64105,7 +64105,7 @@
       "wins_b": 0
     },
     "elina svitolina|liudmila samsonova": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "emma navarro|eva lys": {
@@ -64457,7 +64457,7 @@
       "wins_b": 0
     },
     "alexander zverev|arthur fery": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "arthur fery|damir dzumhur": {
@@ -64494,7 +64494,7 @@
     },
     "daniel merida aguilar|daniil medvedev": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "ethan quinn|luciano darderi": {
       "wins_a": 1,
@@ -64614,7 +64614,7 @@
     },
     "moise kouame|nuno borges": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "arthur rinderknech|clement tabur": {
       "wins_a": 1,
@@ -64977,8 +64977,8 @@
       "wins_b": 0
     },
     "damir dzumhur|hugo gaston": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 1,
+      "wins_b": 0
     },
     "gonzalo bueno|jaime faria": {
       "wins_a": 0,
@@ -65233,7 +65233,7 @@
       "wins_b": 1
     },
     "daniel rincon|zsombor piros": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 4
     },
     "daniel rincon|matheus pucinelli de almeida": {
@@ -65445,8 +65445,8 @@
       "wins_b": 0
     },
     "matias soto|valerio aboian": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 0,
+      "wins_b": 1
     },
     "matias soto|petr nesterov": {
       "wins_a": 1,
@@ -65458,7 +65458,7 @@
     },
     "gonzalo villanueva|matias soto": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "daniel rincon|kimmer coppejans": {
       "wins_a": 1,
@@ -65653,7 +65653,7 @@
       "wins_b": 0
     },
     "daniel rincon|hamish stewart": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "abedallah shelbayh|daniel rincon": {
@@ -66221,7 +66221,7 @@
       "wins_b": 1
     },
     "max alcala gurri|sascha gueymard wayenburg": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "aidan mayo|daniil glinka": {
@@ -66258,7 +66258,7 @@
     },
     "marco cecchinato|raul brancaccio": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "filippo romano|marco cecchinato": {
       "wins_a": 0,
@@ -66321,7 +66321,7 @@
       "wins_b": 0
     },
     "daniel rincon|laslo djere": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "daniel rincon|sebastian ofner": {
@@ -66633,7 +66633,7 @@
       "wins_b": 0
     },
     "alejandro moro canas|massimo giunta": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "gonzalo villanueva|ilya ivashka": {
@@ -66877,7 +66877,7 @@
       "wins_b": 1
     },
     "sara bejlek|sorana cirstea": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "barbora krejcikova|maria sakkari": {
@@ -67053,7 +67053,7 @@
       "wins_b": 1
     },
     "antonia ruzic|paula badosa": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "paula badosa|zarina diyas": {
@@ -67065,7 +67065,7 @@
       "wins_b": 1
     },
     "aliaksandra sasnovich|paula badosa": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "kayla day|paula badosa": {
@@ -67446,7 +67446,7 @@
     },
     "jiri lehecka|rafael jodar": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "corentin moutet|rafael jodar": {
       "wins_a": 0,
@@ -67633,7 +67633,7 @@
       "wins_b": 0
     },
     "coleman wong|daniel altmaier": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "ben shelton|coleman wong": {
@@ -67966,7 +67966,7 @@
     },
     "james duckworth|lorenzo sonego": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "james duckworth|mariano navone": {
       "wins_a": 1,
@@ -68089,7 +68089,7 @@
       "wins_b": 0
     },
     "gustavo heide|juan pablo varillas": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "hugo dellien|joao lucas reis da silva": {
@@ -68130,7 +68130,7 @@
     },
     "lukas neumayer|zsombor piros": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "nerman fatic|zsombor piros": {
       "wins_a": 0,
@@ -68150,7 +68150,7 @@
     },
     "andres andrade|federico agustin gomez": {
       "wins_a": 2,
-      "wins_b": 2
+      "wins_b": 0
     },
     "billy harris|hugo dellien": {
       "wins_a": 0,
@@ -68501,7 +68501,7 @@
       "wins_b": 0
     },
     "titouan droguet|zsombor piros": {
-      "wins_a": 1,
+      "wins_a": 0,
       "wins_b": 3
     },
     "gustavo heide|mateus alves": {
@@ -68574,7 +68574,7 @@
     },
     "pol martin tiffon|zsombor piros": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "clement chidekh|zsombor piros": {
       "wins_a": 0,
@@ -68969,7 +68969,7 @@
       "wins_b": 0
     },
     "joao lucas reis da silva|matheus pucinelli de almeida": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 2
     },
     "emilio nava|federico agustin gomez": {
@@ -69094,7 +69094,7 @@
     },
     "juan bautista torres|juan manuel la serna": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 3
     },
     "mateus alves|matheus pucinelli de almeida": {
       "wins_a": 0,
@@ -69133,8 +69133,8 @@
       "wins_b": 1
     },
     "hugo dellien|juan manuel la serna": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 2,
+      "wins_b": 1
     },
     "franco agamenone|hugo dellien": {
       "wins_a": 0,
@@ -69253,7 +69253,7 @@
       "wins_b": 1
     },
     "diego dedura palomero|miguel damas": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "gustavo heide|igor ribeiro marcondes": {
@@ -69310,7 +69310,7 @@
     },
     "carlos maria zarate|juan manuel la serna": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "felix corwin|juan manuel la serna": {
       "wins_a": 0,
@@ -69366,7 +69366,7 @@
     },
     "guido ivan justo|gustavo heide": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 2
     },
     "gustavo heide|johan nikles": {
       "wins_a": 1,
@@ -69429,7 +69429,7 @@
       "wins_b": 0
     },
     "hugo dellien|valerio aboian": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "hynek barton|michael mmoh": {
@@ -69505,8 +69505,8 @@
       "wins_b": 0
     },
     "matheus pucinelli de almeida|valerio aboian": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 2,
+      "wins_b": 1
     },
     "matheus pucinelli de almeida|rafael tosetto": {
       "wins_a": 1,
@@ -69514,7 +69514,7 @@
     },
     "franco roncadelli|juan manuel la serna": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "gonzalo villanueva|juan manuel la serna": {
       "wins_a": 0,
@@ -70918,7 +70918,7 @@
     },
     "cristina bucsa|polina kudermetova": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "alina korneeva|polina kudermetova": {
       "wins_a": 1,
@@ -71017,7 +71017,7 @@
       "wins_b": 0
     },
     "harriet dart|peyton stearns": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "kayla day|shuai zhang": {
@@ -71134,7 +71134,7 @@
     },
     "aleksandar kovacevic|titouan droguet": {
       "wins_a": 0,
-      "wins_b": 2
+      "wins_b": 1
     },
     "jan choinski|titouan droguet": {
       "wins_a": 0,
@@ -71145,7 +71145,7 @@
       "wins_b": 0
     },
     "damir dzumhur|jacob fearnley": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "sebastian baez|titouan droguet": {
@@ -71289,8 +71289,8 @@
       "wins_b": 0
     },
     "chun hsin tseng|enrico dalla valle": {
-      "wins_a": 1,
-      "wins_b": 0
+      "wins_a": 0,
+      "wins_b": 2
     },
     "chun hsin tseng|ugo blanchet": {
       "wins_a": 1,
@@ -71706,7 +71706,7 @@
     },
     "liam draxl|maks kasnikowski": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "maks kasnikowski|michael mmoh": {
       "wins_a": 1,
@@ -71901,7 +71901,7 @@
       "wins_b": 1
     },
     "andres andrade|maks kasnikowski": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "facundo mena|tristan mccormick": {
@@ -72014,7 +72014,7 @@
     },
     "juan pablo varillas|thiago seyboth wild": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "federico arnaboldi|juan pablo varillas": {
       "wins_a": 0,
@@ -72497,7 +72497,7 @@
       "wins_b": 1
     },
     "arthur fery|lorenzo musetti": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "harry wendelken|luciano darderi": {
@@ -72701,7 +72701,7 @@
       "wins_b": 0
     },
     "ekaterina alexandrova|marta kostyuk": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "mirra andreeva|nikola bartunkova": {
@@ -72837,7 +72837,7 @@
       "wins_b": 1
     },
     "alexandra eala|claire liu": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "sofia kenin|wakana sonobe": {
@@ -72873,7 +72873,7 @@
       "wins_b": 0
     },
     "claire liu|zeynep sonmez": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "petra marcinko|sofia kenin": {
@@ -73209,7 +73209,7 @@
       "wins_b": 1
     },
     "darwin blanch|mitchell krueger": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "darwin blanch|michele ribecai": {
@@ -73446,7 +73446,7 @@
     },
     "darwin blanch|stefan kozlov": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "darwin blanch|michael zheng": {
       "wins_a": 1,
@@ -74173,8 +74173,8 @@
       "wins_b": 1
     },
     "alex molcan|titouan droguet": {
-      "wins_a": 0,
-      "wins_b": 1
+      "wins_a": 1,
+      "wins_b": 0
     },
     "darwin blanch|keegan smith": {
       "wins_a": 0,
@@ -74218,7 +74218,7 @@
     },
     "calvin hemery|raul brancaccio": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "filippo romano|raul brancaccio": {
       "wins_a": 0,
@@ -74369,7 +74369,7 @@
       "wins_b": 1
     },
     "raul brancaccio|toby samuel": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "keegan smith|philip sekulic": {
@@ -74593,7 +74593,7 @@
       "wins_b": 0
     },
     "matteo martineau|max schoenhaus": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "borna gojo|titouan droguet": {
@@ -74630,14 +74630,14 @@
     },
     "facundo mena|nicolas kicker": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "facundo mena|renzo olivo": {
       "wins_a": 1,
       "wins_b": 0
     },
     "facundo mena|pedro boscardin dias": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "bruno fernandez|franco roncadelli": {
@@ -74825,7 +74825,7 @@
       "wins_b": 0
     },
     "katie volynets|kimberly birrell": {
-      "wins_a": 0,
+      "wins_a": 1,
       "wins_b": 1
     },
     "kimberly birrell|ye xin ma": {
@@ -74966,7 +74966,7 @@
     },
     "anna bondar|renata zarazua": {
       "wins_a": 1,
-      "wins_b": 1
+      "wins_b": 0
     },
     "elena gabriela ruse|yeon woo ku": {
       "wins_a": 1,
@@ -75054,7 +75054,7 @@
     },
     "alex michelsen|carlos alcaraz": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "alejandro tabilo|denis shapovalov": {
       "wins_a": 0,
@@ -75157,7 +75157,7 @@
       "wins_b": 0
     },
     "jan lennard struff|thiago agustin tirante": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "flavio cobolli|roman safiullin": {
@@ -75318,7 +75318,7 @@
     },
     "martin krumich|sandro kopp": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "stefan kozlov|toby samuel": {
       "wins_a": 0,
@@ -75457,7 +75457,7 @@
       "wins_b": 1
     },
     "martin krumich|samuele pieri": {
-      "wins_a": 1,
+      "wins_a": 2,
       "wins_b": 0
     },
     "liam draxl|toby samuel": {
@@ -75546,7 +75546,7 @@
     },
     "benjamin hassan|zsombor piros": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "andres andrade|mees rottgering": {
       "wins_a": 1,
@@ -75562,7 +75562,7 @@
     },
     "daniel milavsky|darwin blanch": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "darwin blanch|patrick maloney": {
       "wins_a": 1,
@@ -75638,7 +75638,7 @@
     },
     "clement tabur|sascha gueymard wayenburg": {
       "wins_a": 0,
-      "wins_b": 1
+      "wins_b": 2
     },
     "gauthier onclin|sascha gueymard wayenburg": {
       "wins_a": 0,
@@ -75694,7 +75694,7 @@
     },
     "ann li|ashlyn krueger": {
       "wins_a": 1,
-      "wins_b": 0
+      "wins_b": 1
     },
     "anastasia zakharova|belinda bencic": {
       "wins_a": 0,
@@ -75929,6 +75929,3170 @@
       "wins_b": 1
     },
     "elvina kalieva|viktorija golubic": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alejandro davidovich fokina|rafael jodar": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alejandro davidovich fokina|arthur gea": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alex de minaur|rei sakamoto": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alex de minaur|alex molcan": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alexander bublik|brandon nakashima": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "arthur fery|marin cilic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "arthur gea|jaime faria": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "arthur gea|jakub mensik": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "arthur gea|ben shelton": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "arthur gea|ugo humbert": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "botic van de zandschulp|daniel merida aguilar": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "arthur fils|botic van de zandschulp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alex michelsen|botic van de zandschulp": {
+      "wins_a": 1,
+      "wins_b": 1
+    },
+    "brandon nakashima|matteo berrettini": {
+      "wins_a": 1,
+      "wins_b": 1
+    },
+    "carlos alcaraz|juan manuel cerundolo": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "casper ruud|learner tien": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "felix auger aliassime|pablo carreno busta": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "camilo ugo carabelli|felix auger aliassime": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "hubert hurkacz|yi zhou": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "arthur fery|karen khachanov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "learner tien|zachary svajda": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "bernard tomic|matteo arnaldi": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "aleksandar kovacevic|matteo berrettini": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "facundo diaz acosta|nuno borges": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "coleman wong|quentin halys": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alexander blockx|quentin halys": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "casper ruud|rafael jodar": {
+      "wins_a": 1,
+      "wins_b": 1
+    },
+    "botic van de zandschulp|rafael jodar": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "rafael jodar|thiago agustin tirante": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniil medvedev|rafael jodar": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "kimmer coppejans|stefanos tsitsipas": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "tommy paul|valentin vacherot": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "sebastian baez|valentin vacherot": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "vit kopriva|zizou bergs": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "ignacio buse|zizou bergs": {
+      "wins_a": 1,
+      "wins_b": 1
+    },
+    "alexander bublik|fabian marozsan": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniil medvedev|nikoloz basilashvili": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniil medvedev|sho shimabukuro": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "karen khachanov|rei sakamoto": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "james duckworth|stefanos tsitsipas": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "mikhail kukushkin|stefanos tsitsipas": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alex michelsen|david goffin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alex michelsen|andrea guerrieri": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alex michelsen|arthur fils": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "clement chidekh|francisco cerundolo": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "francisco cerundolo|martin damm": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "gauthier onclin|jan lennard struff": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "jan lennard struff|marcos giron": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "juan manuel cerundolo|mariano navone": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "jiri lehecka|tallon griekspoor": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "mariano navone|tallon griekspoor": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "max schoenhaus|tallon griekspoor": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "francisco cerundolo|tallon griekspoor": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "damir dzumhur|zizou bergs": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "brandon nakashima|kyrian jacquet": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "lorenzo musetti|moise kouame": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "luca van assche|valentin vacherot": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "clement tabur|luca van assche": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "pierre hugues herbert|taylor fritz": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "arthur fils|giovanni mpetshi perricard": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aleksandar kovacevic|ben shelton": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "denis shapovalov|remy bertola": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "jan lennard struff|yannick hanfmann": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "jerome kym|jiri lehecka": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "jiri lehecka|stan wawrinka": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "novak djokovic|ugo humbert": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "mika brunold|nuno borges": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "rafael jodar|valentin vacherot": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alex de minaur|learner tien": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alexander zverev|martin landaluce": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "arthur fery|jacob fearnley": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "carlos alcaraz|nikoloz basilashvili": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "flavio cobolli|grigor dimitrov": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "jakub mensik|lukas neumayer": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "learner tien|luca van assche": {
+      "wins_a": 1,
+      "wins_b": 1
+    },
+    "luciano darderi|matteo arnaldi": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "flavio cobolli|matteo berrettini": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "matteo berrettini|tomas martin etcheverry": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "ben shelton|cameron norrie": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "ben shelton|luca van assche": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniel merida aguilar|sebastian baez": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniil medvedev|ignacio buse": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "arthur gea|jan lennard struff": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "denis shapovalov|karen khachanov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "luca van assche|rinky hijikata": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "luca van assche|mariano navone": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "frances tiafoe|quentin halys": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "arthur fery|quentin halys": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alex molcan|taylor fritz": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "quentin halys|tommy paul": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daniel merida aguilar|tommy paul": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "holger rune|tommy paul": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "arthur rinderknech|nikoloz basilashvili": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "mikhail kukushkin|nikoloz basilashvili": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "sebastian baez|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "facundo diaz acosta|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "alexandre muller|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "nikoloz basilashvili|roberto carballes baena": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "roberto bautista agut|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "justin engel|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "mackenzie mcdonald|nikoloz basilashvili": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "billy harris|nikoloz basilashvili": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "nikoloz basilashvili|quentin halys": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniel merida aguilar|nikoloz basilashvili": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "brandon nakashima|nikoloz basilashvili": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "ben shelton|nikoloz basilashvili": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "jan choinski|nikoloz basilashvili": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alex knaff|zsombor piros": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "jenson brooksby|lorenzo sonego": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "jenson brooksby|nikoloz basilashvili": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "botic van de zandschulp|nikoloz basilashvili": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "miomir kecmanovic|nikoloz basilashvili": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "adolfo daniel vallejo|valentin royer": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "adrian mannarino|nikoloz basilashvili": {
+      "wins_a": 1,
+      "wins_b": 1
+    },
+    "adrian mannarino|flavio cobolli": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alex molcan|federico cina": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "bu yunchaokete|luca van assche": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "camilo ugo carabelli|ilia simakin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "jaume munar|jenson brooksby": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "juan manuel cerundolo|nicolas mejia": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "rinky hijikata|roman safiullin": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "hamad medjedovic|thiago agustin tirante": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "kamil majchrzak|yannick hanfmann": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "fabian marozsan|zachary svajda": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "fabian marozsan|timofey skatov": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "james duckworth|luciano darderi": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "james duckworth|miomir kecmanovic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "facundo diaz acosta|nikoloz basilashvili": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "nikoloz basilashvili|stefanos tsitsipas": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "mattia bellucci|terence atmane": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "rinky hijikata|terence atmane": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "tomas machac|zangar nurlanuly": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "damir dzumhur|dino prizmic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "hugo gaston|jacob fearnley": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "federico cina|jaume munar": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "nishesh basavareddy|raphael collignon": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "borna gojo|daniel altmaier": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daniel altmaier|titouan droguet": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "kyrian jacquet|matteo berrettini": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "jurij rodionov|nikoloz basilashvili": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "lorenzo sonego|mattia bellucci": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "kyrian jacquet|tomas machac": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "dan added|enrico dalla valle": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "gabriel debru|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "stefan kozlov|strong kirchheimer": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|oriol roca batalla": {
+      "wins_a": 3,
+      "wins_b": 0
+    },
+    "alexey zakharov|enrico dalla valle": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|evgeny donskoy": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "stefan kozlov|yshai oliel": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniel cukierman|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "clement tabur|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|federico gaio": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|fitriadi m rifqi": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "benjamin lock|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "noah schachter|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "paul jubb|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "elmar ejupovic|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "federico gaio|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|stefano travaglia": {
+      "wins_a": 4,
+      "wins_b": 0
+    },
+    "arthur gea|enrico dalla valle": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "dimitar kuzmanov|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "francesco maestrelli|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|steven diez": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "ethan quinn|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "denis kudla|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "renzo olivo|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "guido ivan justo|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "oliver crawford|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "stefan kozlov|tennys sandgren": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "gerard campana lee|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "kaichi uchida|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|jan jermar": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniel dutra da silva|diego dedura palomero": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "blaise bicknell|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|francesco maestrelli": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "enrico dalla valle|rio noguchi": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "juan alejandro hernandez serrano|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|giovanni fonio": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|ignacio buse": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "j j wolf|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "stefan kozlov|tung lin wu": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "michael zheng|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "adrian oetzbach|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|vilius gaubas": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|francesco passaro": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "enrico dalla valle|filip jeff planinsek": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "nicolas moreno de alboran|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "nikolay nedelchev|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrew paulson|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "federico arnaboldi|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|jaime faria": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|hady habib": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "dinko dinev|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "sandro kopp|vit kopriva": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "carlos taberner|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "michael vrbensky|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "dmitry popko|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "charles broom|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|lorenzo giustino": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "enrico dalla valle|michael geerts": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "dmitry popko|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "diego dedura palomero|pedro sakamoto": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|marco trungelliti": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|thanapet chanta": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|hikaru shiraishi": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aidan mayo|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "kaylan bigun|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "micah braswell|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|jozef kovalik": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|max hans rehberg": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "facundo mena|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 4
+    },
+    "enrico dalla valle|maxime janvier": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|gauthier onclin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|enzo couacaud": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "stefan kozlov|thiago agustin tirante": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|mika brunold": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "federico arnaboldi|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "hady habib|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "denis yevseyev|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "valerio aboian|vladyslav orlov": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "geoffrey blancaneaux|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "max wiskandt|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alejandro moro canas|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "eduardo ribeiro|leonardo aboian": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alejo lorenzo lingua lavallen|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "corentin denolly|enrico dalla valle": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "aziz dougaz|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "diego dedura palomero|henri squire": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "stefanos sakellaridis|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "thiago seyboth wild|toby alex kodat": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "max alcala gurri|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "jerome kym|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "diego dedura palomero|elias ymer": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "hugo grenier|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "diego dedura palomero|jacopo berrettini": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "lorenzo giustino|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "milos karol|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrej nedic|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrej martin|diego dedura palomero": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrej nedic|sumit nagal": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "andrej nedic|nino serdarusic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|geoffrey blancaneaux": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diego dedura palomero|jelle sels": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "sandro kopp|vitaliy sachko": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "corentin denolly|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "diego dedura palomero|luka pavlovic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "imanol lopez morillo|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "elias ymer|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "dominique rolland|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "murphy cassone|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 3
+    },
+    "stefan kozlov|tyler zink": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "leo borg|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "cedrik marcel stebe|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "liam broady|matej dodig": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "liam broady|yannick hanfmann": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "francesco passaro|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "liam broady|tom paris": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|andres santamarta roig": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|pol martin tiffon": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "edas butvilas|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "dimitris sakellaridis|enrico dalla valle": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "diego dedura palomero|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "philip henning|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "oleg prihodko|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "luca preda|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "david jorda sanchis|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "juan bautista torres|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daniel milavsky|eduardo ribeiro": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daniel masur|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "mathys erhard|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "dimitar kuzmanov|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "liam broady|miguel damas": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|juan estevez": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "igor ribeiro marcondes|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "genaro alberto olivieri|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "lautaro midon|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "alex barrena|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alexis galarneau|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "michele ribecai|stefanos sakellaridis": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "calvin hemery|diego dedura palomero": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "cyril vandermeersch|enrico dalla valle": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|remy bertola": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "raphael perot|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "nikolas sanchez izquierdo|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "thiago seyboth wild|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "karl poling|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "stefan kozlov|tristan mccormick": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diego dedura palomero|juan pablo varillas": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diego dedura palomero|juan manuel la serna": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diego dedura palomero|guy den ouden": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|gustavo heide": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|jaime faria": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|franco roncadelli": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "roberto carballes baena|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "ivan marrero curbelo|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daniel elahi galan|diego dedura palomero": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "joao eduardo schiessl|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alan magadan|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrej nedic|emanuel ivanisevic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|zsombor piros": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "matyas cerny|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|mikhail kukushkin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "matteo martineau|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "michele ribecai|saba purtseladze": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|gianluca cadenasso": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|dimitar kuzmanov": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|jelle sels": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "ergi kirkin|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "liam broady|naoya honda": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "james trotter|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "harry wendelken|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andre ilagan|liam broady": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "hayato matsuoka|liam broady": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "kaichi uchida|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "blake ellis|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "august holmgren|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "ilya ivashka|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "liam broady|murphy cassone": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "luis guto miguel|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "samuel alejandro linde palacios|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "thiago cigarran|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "beibit zhukayev|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daniil glinka|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrej nedic|dali blanch": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|bekkhan atlangeriev": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|oleksii krutykh": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "damir zhalgasbay|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "liam broady|matthew dellavedova": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "billy harris|diego dedura palomero": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "nikoloz basilashvili|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "norbert gombos|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "andrej nedic|mathys erhard": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|svyatoslav gulin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "pedro sakamoto|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "eduardo ribeiro|murkel alejandro dellien velasco": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|fernando cavallo": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "arklon huertas del pino|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "carlos maria zarate|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "diego dedura palomero|emanuel ivanisevic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|jacopo vasami": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|filippo romano": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "buvaysar gadamauri|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "juan cruz martin manzano|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "max alcala gurri|stefan dostanic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "max alcala gurri|sandro kopp": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrea guerrieri|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "ioannis xilas|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrej nedic|mili poljicak": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|mert alkaya": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|sergey fomin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|franco agamenone": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniil glinka|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daniel dutra da silva|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "sandro kopp|tomasz berkieta": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diego dedura palomero|samuele pieri": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diego dedura palomero|raul brancaccio": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diego dedura palomero|marco trungelliti": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diego dedura palomero|max wiskandt": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "david jorda sanchis|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "carlos sanchez jover|enrico dalla valle": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|maks kasnikowski": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "ioannis xilas|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "eduardo ribeiro|santiago de la fuente": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|lorenzo joaquin rodriguez": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alex santino nunez vera|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alexander weis|enrico dalla valle": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "joao lucas reis da silva|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "genaro alberto olivieri|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "henri squire|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "cosme rolland de ravel|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "carlos sanchez jover|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "max alcala gurri|ryo tabata": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andres santamarta roig|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "kilian feldbausch|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "gonzalo villanueva|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "nicolas kicker|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "lucas andrade da silva|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "luis felipe miguel|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "juan manuel la serna|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "hernan casanova|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "valentin basel|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|nikita bilozertsev": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "dali blanch|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alexander vasilev|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "sandro kopp|viktor durasovic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "petr nesterov|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrej nedic|max alcala gurri": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|sebastian gima": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alan fernando rubio fierros|andrej nedic": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "max alcala gurri|sergey fomin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|franco roncadelli": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|harold mayot": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|tomas martinez": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|juan sebastian gomez": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "dalibor svrcina|diego dedura palomero": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "clement tabur|diego dedura palomero": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "hynek barton|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "aleksandar vukic|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "stefan kozlov|yibing wu": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "franco roncadelli|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrej nedic|enrico dalla valle": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "federico bondioli|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "franco roncadelli|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "lorenzo angelini|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "giorgio tabacco|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "gonzalo villanueva|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "peter makk|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "diego dedura palomero|otto virtanen": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diego dedura palomero|igor ribeiro marcondes": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diego dedura palomero|guido ivan justo": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diego dedura palomero|nicolas kicker": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "diego dedura palomero|gauthier onclin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "martin krumich|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "marc andrea huesler|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "philip henning|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daniel rincon|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "thiago seyboth wild|zdenek kolar": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "dylan dietrich|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrej martin|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "michele ribecai|tomasz berkieta": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "iliyan radulov|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "diego dedura palomero|dominik recek": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aidan mayo|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "andrej nedic|ergi kirkin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|max alcala gurri": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "luca wiedenmann|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "mika brunold|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "eduardo ribeiro|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "johannus monday|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "anton matusevich|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "mark ceban|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrej nedic|kilian feldbausch": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej nedic|stefanos sakellaridis": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "martin krumich|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "federico iannaccone|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "sebastian sorger|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "marko topo|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|niels mcdonald": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "max alcala gurri|sean cuenin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniel rincon|daniil glinka": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "michele ribecai|sascha gueymard wayenburg": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniel rincon|manas dhamne": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|gabriele crivellaro": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "massimo giunta|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "gianmarco ferrari|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "matej dodig|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrea pellegrino|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "juan cruz martin manzano|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "genaro alberto olivieri|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "max alcala gurri|pavel lagutin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "gerard campana lee|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "diego dedura palomero|lukas pokorny": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diego dedura palomero|kilian feldbausch": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diego dedura palomero|dusan lajovic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|federico coria": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|pedro martinez": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "jonas forejtek|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "max alcala gurri|pol martin tiffon": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eliakim coulibaly|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "carlos taberner|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "buvaysar gadamauri|enrico dalla valle": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "james trotter|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "genaro alberto olivieri|lucas andrade da silva": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniel rincon|fausto tabacco": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|samuel heredia": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "francisco comesana|guido ivan justo": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "gustavo heide|maximo zeitune": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "joao lucas reis da silva|thiago seyboth wild": {
+      "wins_a": 1,
+      "wins_b": 1
+    },
+    "bernardo munk mesa|joao lucas reis da silva": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "juan carlos prado angelo|miguel tobon": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "joao eduardo schiessl|juan carlos prado angelo": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "eduardo ribeiro|lautaro midon": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "joaquin aguilar cardozo|lautaro midon": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "genaro alberto olivieri|matheus pucinelli de almeida": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "felipe meligeni alves|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "murkel alejandro dellien velasco|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "matias soto|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "lukas neumayer|max alcala gurri": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "lukas neumayer|olle wallin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "florian broska|lukas neumayer": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "marvin moeller|matej dodig": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "matej dodig|miguel damas": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrea pellegrino|matej dodig": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "max alcala gurri|patrick schoen": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "dali blanch|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "johan nikles|miguel damas": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "goncalo marques|nikolas sanchez izquierdo": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "tristan boyer|zsombor piros": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alejandro moro canas|andrej martin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alejandro moro canas|kalin ivanovski": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|gabriele piraino": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "enrico dalla valle|luca potenza": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "christian langmo|lorenzo giustino": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "michele ribecai|zdenek kolar": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "benito sanchez martinez|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "dimitris sakellaridis|zdenek kolar": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alejo sanchez quilez|daniel rincon": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "abedallah shelbayh|daniil glinka": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daniil glinka|moez echargui": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniil glinka|jack pinnington jones": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "hynek barton|max hans rehberg": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "hynek barton|toby samuel": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "felix balshaw|joel schwaerzler": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "fajing sun|kasidit samrej": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aoran wang|fajing sun": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrej nedic|filippo romano": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrea pellegrino|lorenzo giustino": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "matej dodig|tristan boyer": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "matej dodig|pedro martinez": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrej martin|nikolas sanchez izquierdo": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "francisco rocha|pol martin tiffon": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "lorenzo giustino|zsombor piros": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alejo sanchez quilez|zsombor piros": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daniel rincon|samuele pieri": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "maks kasnikowski|stefano travaglia": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrea guerrieri|maks kasnikowski": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "cezar cretu|maks kasnikowski": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "francesco maestrelli|maxim mrva": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "hynek barton|maxim mrva": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daniel rincon|michael mmoh": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "laslo djere|michael mmoh": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "stefano travaglia|valentin royer": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "stefano travaglia|viktor durasovic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "georgii kravchenko|tom gentzsch": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "niels visker|tom gentzsch": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "etienne donnet|matteo martineau": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "matteo martineau|nicolai budkov kjaer": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "liam broady|sascha gueymard wayenburg": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "enrico dalla valle|federico bondioli": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "francesco forti|zdenek kolar": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "franco roncadelli|valerio aboian": {
+      "wins_a": 1,
+      "wins_b": 1
+    },
+    "genaro alberto olivieri|lucio ratti": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "arklon huertas del pino|guido ivan justo": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "hugo dellien|luis guto miguel": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "hugo dellien|rodrigo pacheco mendez": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "bernardo munk mesa|hugo dellien": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "hernan casanova|juan manuel la serna": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "nicolas kicker|thiago cigarran": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "juan estevez|rodrigo pacheco mendez": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "carlos maria zarate|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "mateus alves|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "francisco comesana|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "gustavo heide|santiago fa rodriguez taverna": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "gustavo heide|juan alejandro hernandez serrano": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniel salazar martinez|juan bautista torres": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daniel elahi galan|juan pablo varillas": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "juan manuel la serna|matheus pucinelli de almeida": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "matheus pucinelli de almeida|nicolas jarry": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "jose pereira|matheus pucinelli de almeida": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "gustavo heide|matheus pucinelli de almeida": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "miguel tobon|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "felipe meligeni alves|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrej nedic|gabriele piraino": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "filip misolic|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "max houkes|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "jacopo vasami|michele ribecai": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "michele ribecai|oriol roca batalla": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alex marti pujolras|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "samuele pieri|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "gianluca cadenasso|sandro kopp": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "darwin blanch|mees rottgering": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "albert pedrico kravtsov|darwin blanch": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "darwin blanch|sander jong": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andre ilagan|khumoyun sultanov": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andre ilagan|mert alkaya": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "fajing sun|qian sun": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "fajing sun|keegan smith": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "keegan smith|max purcell": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "dominik palan|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "marco cecchinato|vilius gaubas": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "joao domingues|matej dodig": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andres andrade|max alcala gurri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "laslo djere|stefano travaglia": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "pierre hugues herbert|stefano travaglia": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "inaki montes de la torre|toby samuel": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "diego dedura palomero|genaro alberto olivieri": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "hugo dellien|joaquin aguilar cardozo": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "carlos maria zarate|hugo dellien": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "emilio camacho|joao lucas reis da silva": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "joao lucas reis da silva|lorenzo claverie": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daniel elahi galan|lautaro midon": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "juan pablo varillas|rodrigo pacheco mendez": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "nick hardt|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "diego dedura palomero|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "harold mayot|kaichi uchida": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "harold mayot|tianhui zhang": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "jake delaney|liam broady": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "liam broady|sergey fomin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "stefanos sakellaridis|timofey skatov": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "darwin blanch|sebastian gorzny": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "james trotter|maks kasnikowski": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "kimmer coppejans|nicolai budkov kjaer": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "jonas forejtek|kimmer coppejans": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "laslo djere|matej dodig": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "matej dodig|tom gentzsch": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "matej dodig|michal krajci": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eero vasa|sascha gueymard wayenburg": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "lukas pokorny|toby samuel": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "martin damm|tom gentzsch": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "sascha gueymard wayenburg|zsombor piros": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "matthew william donald|zsombor piros": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andres andrade|james trotter": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andres andrade|harry wendelken": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "clement chidekh|marcos giron": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "clement chidekh|jack kennedy": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andres santamarta roig|clement chidekh": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "andrew fenty|darwin blanch": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "maks kasnikowski|michael antonius": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "braden shick|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "clement chidekh|stefan kozlov": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "eduardo ribeiro|luis guto miguel": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "facundo diaz acosta|filip misolic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "facundo diaz acosta|matheus pucinelli de almeida": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "franco roncadelli|rafael tosetto": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "eduardo ribeiro|gonzalo bueno": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daniel elahi galan|gonzalo bueno": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "elmer moller|joao lucas reis da silva": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "joao lucas reis da silva|santiago fa rodriguez taverna": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "lautaro midon|lucas andrade da silva": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "franco roncadelli|thiago seyboth wild": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "august holmgren|daniel michalski": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "gianluca cadenasso|jay clarke": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "federico bondioli|jay clarke": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "kilian feldbausch|matteo martineau": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "matteo martineau|maxim mrva": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "adrian andreev|matteo martineau": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "inaki montes de la torre|matteo martineau": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "felix gill|matteo martineau": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "maxim mrva|thomas faurel": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "maxim mrva|michele ribecai": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "genaro alberto olivieri|ignacio monzon": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "genaro alberto olivieri|valentino grippo": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "federico coria|genaro alberto olivieri": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "juan bautista torres|ryan nijboer": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "juan bautista torres|nicolas bruna": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "genaro alberto olivieri|juan manuel la serna": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "juan manuel la serna|mateo del pino": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "juan manuel la serna|nicolas kicker": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "nicolas kicker|oriol roca batalla": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "federico aguilar cardozo|nicolas kicker": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alan magadan|valerio aboian": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "ann li|janice tjen": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "ashlyn krueger|lanlana tararudee": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "daria snigur|elise mertens": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "elina svitolina|hanyu guo": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "ashlyn krueger|iga swiatek": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "iga swiatek|magdalena frech": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "dayana yastremska|iva jovic": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "jasmine paolini|nikola bartunkova": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "jasmine paolini|sara bejlek": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diana shnaider|jelena ostapenko": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "jelena ostapenko|leylah fernandez": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "caty mcnally|karolina muchova": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "han shi|leylah fernandez": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "maja chwalinska|sonay kartal": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "iva jovic|maja chwalinska": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "maja chwalinska|marie bouzkova": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "maja chwalinska|mayar sherif": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "iga swiatek|maja chwalinska": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "maria sakkari|mia pohankova": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "clara tauson|marie bouzkova": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "lilli tagger|nikola bartunkova": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alexandra eala|diane parry": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alexandra eala|diana shnaider": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "ekaterina alexandrova|hanyu guo": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "elena rybakina|katarzyna kawa": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "anhelina kalinina|jasmine paolini": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "leylah fernandez|marie bouzkova": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "marie bouzkova|sara bejlek": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "anastasia zakharova|marie bouzkova": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "han shi|sorana cirstea": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "ann li|lilli tagger": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "ann li|emerson jones": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "ashlyn krueger|talia gibson": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "ashlyn krueger|janice tjen": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "ashlyn krueger|katerina siniakova": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "katerina siniakova|mary stoiana": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "antonia ruzic|katie boulter": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "himeno sakatsume|katie boulter": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "claire liu|magda linette": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "sinja kraus|talia gibson": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "harriet dart|talia gibson": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "katerina siniakova|lanlana tararudee": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "anastasia zakharova|magda linette": {
+      "wins_a": 0,
+      "wins_b": 2
+    },
+    "alexandra eala|talia gibson": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alexandra eala|mika stojsavljevic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "diana shnaider|mia pohankova": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "kamilla rakhimova|maya joint": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "ekaterina alexandrova|kamilla rakhimova": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "himeno sakatsume|leylah fernandez": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "daria kasatkina|talia gibson": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "janice tjen|magda linette": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "magda linette|mai hontama": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aliona falei|magda linette": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "alexandra eala|antonia ruzic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alexandra eala|emerson jones": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alexandra eala|maria sakkari": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "maria sakkari|maya joint": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "carol young suh lee|maria sakkari": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "mary stoiana|sorana cirstea": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "maria timofeeva|sorana cirstea": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "oleksandra oliynykova|talia gibson": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "adithya karunaratne|xin yu wang": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "harriet dart|jana fett": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aliaksandra sasnovich|anastasia zakharova": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aliaksandra sasnovich|anhelina kalinina": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aliaksandra sasnovich|marina stakusic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aliaksandra sasnovich|jessica bouzas maneiro": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "francesca jones|mayar sherif": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "bianca andreescu|mccartney kessler": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "bianca andreescu|federica urgesi": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "bianca andreescu|lulu sun": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "bianca andreescu|joanna garland": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "francesca jones|harriet dart": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "francesca jones|greet minnen": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aliaksandra sasnovich|varvara gracheva": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alicia herrero linana|francesca jones": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "barbora krejcikova|bianca andreescu": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "francesca jones|solana sierra": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "francesca jones|whitney osuigwe": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "francesca jones|lina glushko": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aliaksandra sasnovich|janice tjen": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aliaksandra sasnovich|naomi osaka": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aliaksandra sasnovich|anna blinkova": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "francesca jones|sinja kraus": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "emma navarro|francesca jones": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "brenda fruhvirtova|fiona ferro": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "francesca jones|venus williams": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "bianca andreescu|sonja zhiyenbayeva": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "harriet dart|kimberly birrell": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "danka kovinic|fiona ferro": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "beatriz haddad maia|francesca jones": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "harriet dart|liudmila samsonova": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "harriet dart|mina hodzic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "francesca jones|magda linette": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aliaksandra sasnovich|daria kasatkina": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "aliaksandra sasnovich|talia gibson": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "harriet dart|yihan qu": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "polina kudermetova|ye xin ma": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "andrea lazaro garcia|sonay kartal": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "sonay kartal|xin yu wang": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "caty mcnally|yuliia starodubtseva": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "daria snigur|janice tjen": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "aoi ito|janice tjen": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "diane parry|lanlana tararudee": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "magdalena frech|mananchaya sawangkaew": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "jasmine paolini|sonay kartal": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "belinda bencic|sonay kartal": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "anhelina kalinina|sonay kartal": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "antonia ruzic|kayla day": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "kaitlin quevedo|lanlana tararudee": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "lilli tagger|tereza valentova": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "caty mcnally|sinja kraus": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "shuai zhang|tereza valentova": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "mai hontama|viktorija golubic": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "maya joint|zeynep sonmez": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "anna bondar|daria snigur": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "antonia ruzic|claire liu": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "harriet dart|lilli tagger": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "harriet dart|janice tjen": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "harriet dart|tatiana prozorova": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "harriet dart|xinran sun": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "janice tjen|polina kudermetova": {
+      "wins_a": 2,
+      "wins_b": 0
+    },
+    "jil teichmann|kaitlin quevedo": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "anna bondar|kaitlin quevedo": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "kaitlin quevedo|sofia kenin": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "han shi|lilli tagger": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "lilli tagger|magda linette": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "lilli tagger|venus williams": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "kaitlin quevedo|lilli tagger": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "maria timofeeva|teodora kostovic": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "paula badosa|sinja kraus": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "carol young suh lee|paula badosa": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "panna udvardy|sinja kraus": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "sara sorribes tormo|zeynep sonmez": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "aliaksandra sasnovich|nikola bartunkova": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alycia parks|kimberly birrell": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "janice tjen|joanna garland": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "janice tjen|katherine hui": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "janice tjen|robin montgomery": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "oksana selekhmeteva|polina kudermetova": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "polina kudermetova|viktoria morvayova": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "aliaksandra sasnovich|katie volynets": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "antonia ruzic|xin yu wang": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alina charaeva|antonia ruzic": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "claire liu|katie boulter": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "claire liu|tatiana prozorova": {
+      "wins_a": 1,
+      "wins_b": 0
+    },
+    "alexandra shubladze|claire liu": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "himeno sakatsume|tereza valentova": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "mika stojsavljevic|zeynep sonmez": {
+      "wins_a": 0,
+      "wins_b": 1
+    },
+    "dayana yastremska|zeynep sonmez": {
       "wins_a": 0,
       "wins_b": 1
     }
