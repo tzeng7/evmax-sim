@@ -130,8 +130,10 @@ CREATE TABLE IF NOT EXISTS scan_sector_stats (
     markets_matched     INTEGER NOT NULL DEFAULT 0,
     ev_gaps             INTEGER NOT NULL DEFAULT 0,
     error               TEXT,                       -- sector exception text, NULL on success
-    sharp_events        INTEGER                     -- non-prop Pinnacle records the cycle fetched
+    sharp_events        INTEGER,                    -- non-prop Pinnacle records the cycle fetched
                                                     -- (NULL on pre-2026-09-22 rows / errored cycles)
+    fetch_errors        TEXT                        -- partial fetch: failed Kalshi series prefixes
+                                                    -- (sector still ran; NULL = clean / pre-2026-11-20)
 );
 CREATE INDEX IF NOT EXISTS idx_scan_sector_stats_date ON scan_sector_stats(scan_date, sector);
 """
@@ -342,6 +344,10 @@ def get_connection() -> sqlite3.Connection:
         # incident) from "Pinnacle posted nothing yet" (pre-season / stale
         # league id). NULL on older rows.
         "ALTER TABLE scan_sector_stats ADD COLUMN sharp_events INTEGER",
+        # 2026-11-20 — Kalshi series whose fetch failed (429 storm etc.). The
+        # sector ran on the rest, so `error` stays NULL; this column lets the
+        # integrity sweep see markets that were silently missing.
+        "ALTER TABLE scan_sector_stats ADD COLUMN fetch_errors TEXT",
     ]:
         try:
             conn.execute(migration)

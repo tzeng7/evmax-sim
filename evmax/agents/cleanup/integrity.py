@@ -33,6 +33,11 @@ Cadence groups (``run_integrity(weekly=...)``):
                    that fetched anything — no baseline needed, the UFC
                    short-title break). Reads the ``scan_sector_stats`` ledger
                    written by ``logger.log_scan_stats``
+  fetch_errors   — scans today that ran on a PARTIAL Kalshi fetch: whole
+                   series dropped by a fetch error (the 2026-11-20 429 storm
+                   silently dropped the live NCAAB moneyline series), or an
+                   /events join that failed (names degrade to ticker codes).
+                   Reads ``scan_sector_stats.fetch_errors``
   resolution     — unresolved, unvoided rows older than N days (resolver broke)
   close_capture  — resolved Kalshi rows missing a Kalshi close, and archive
                    snapshot freshness (a dead watch-closes / watch-listings
@@ -481,6 +486,64 @@ def check_match_rate(today: Optional[date] = None, baseline_days: int = 14) -> l
 
 
 # ---------------------------------------------------------------------------
+# fetch_errors — scans that ran on a partial Kalshi fetch
+# ---------------------------------------------------------------------------
+
+def _fetch_error_issues(rows: list[dict]) -> list[dict]:
+    """``rows``: today's scan_sector_stats rows (sector, fetch_errors).
+
+    One warning per sector that had at least one partial scan today, naming
+    how many scans were partial and every series that failed. ``fetch_errors``
+    is the KalshiOddsAgent string ``kalshi series failed markets:A,B events:C``.
+    """
+    per: dict[str, dict] = {}
+    for r in rows:
+        d = per.setdefault(r["sector"], {"scans": 0, "partial": 0, "markets": set(), "events": set()})
+        d["scans"] += 1
+        text = r.get("fetch_errors")
+        if not text:
+            continue
+        d["partial"] += 1
+        for token in str(text).split():
+            kind, _, names = token.partition(":")
+            if kind in ("markets", "events") and names:
+                d[kind].update(n for n in names.split(",") if n)
+    issues = []
+    for sector, d in sorted(per.items()):
+        if not d["partial"]:
+            continue
+        parts = []
+        if d["markets"]:
+            parts.append("markets DROPPED for " + ", ".join(sorted(d["markets"])))
+        if d["events"]:
+            parts.append("event-title join failed for " + ", ".join(sorted(d["events"])))
+        issues.append(_issue(
+            "fetch_errors", "warning",
+            f"{sector}: {d['partial']}/{d['scans']} scans today ran on a partial Kalshi "
+            f"fetch — {'; '.join(parts) or 'series failed'} (rate limit / API errors; "
+            "see `kalshi_partial_fetch` in the scan log)",
+        ))
+    return issues
+
+
+def check_fetch_errors(today: Optional[date] = None) -> list[dict]:
+    from evmax.agents.cleanup.db import get_connection
+
+    today = today or date.today()
+    try:
+        with get_connection() as conn:
+            rows = conn.execute(
+                "SELECT sector, fetch_errors FROM scan_sector_stats "
+                "WHERE scan_date = ? AND error IS NULL",
+                (today.isoformat(),),
+            ).fetchall()
+    except Exception as e:  # noqa: BLE001 — column may predate this check
+        logger.info("integrity_fetch_errors_unavailable", error=str(e))
+        return []
+    return _fetch_error_issues([dict(r) for r in rows])
+
+
+# ---------------------------------------------------------------------------
 # resolution — unresolved rows past the resolver window
 # ---------------------------------------------------------------------------
 
@@ -810,7 +873,8 @@ def check_calibration(weeks: int = 8) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 DAILY_CHECKS = (
-    "cadence", "states", "inplay", "model_missing", "match_rate", "resolution",
+    "cadence", "states", "inplay", "model_missing", "match_rate", "fetch_errors",
+    "resolution",
     "close_capture", "board", "drawdown", "launchd",
 )
 WEEKLY_CHECKS = ("calibration", "gates", "devig")
@@ -843,6 +907,7 @@ def run_integrity(
         "inplay": check_inplay,
         "model_missing": check_model_missing,
         "match_rate": check_match_rate,
+        "fetch_errors": check_fetch_errors,
         "resolution": check_resolution,
         "close_capture": check_close_capture,
         "board": lambda: check_board(days=board_days, include_gates=weekly),

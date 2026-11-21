@@ -890,6 +890,10 @@ class AgentCoordinator:
                 "markets_matched": int(sr.get("markets_matched", 0)),
                 "ev_gaps": len(sr.get("ev_gaps", [])),
                 "error": None,
+                # Partial fetch (some Kalshi series failed): the sector ran on
+                # what it got. Kept out of `error` so the match-rate check,
+                # which skips errored rows, still sees this sector.
+                "fetch_errors": sr.get("fetch_errors"),
                 # Game-level Pinnacle records this cycle could match against
                 # (props excluded, like the match step) — lets the integrity
                 # zero-match streak tell a parser break from "nothing posted".
@@ -1297,6 +1301,15 @@ class AgentCoordinator:
 
         if isinstance(kalshi_resp, Exception):
             self.log.error("kalshi_failed", sector=sector, error=str(kalshi_resp))
+        # Partial Kalshi fetch: some series failed and their markets are missing.
+        # The sector still prices what it got; the failed prefixes ride into
+        # scan_sector_stats.fetch_errors so the integrity sweep can see them.
+        fetch_errors: Optional[str] = (
+            getattr(kalshi_resp, "error", None)
+            if not isinstance(kalshi_resp, Exception)
+            and getattr(kalshi_resp, "status", "ok") == "partial"
+            else None
+        )
         if isinstance(polymarket_resp, Exception):
             self.log.error(
                 "polymarket_us_failed", sector=sector, error=str(polymarket_resp)
@@ -1321,6 +1334,7 @@ class AgentCoordinator:
                 "sharp_odds": sharp_odds,
                 "prop_sharp_pairs": prop_sharp_pairs,
                 "prop_anchor_odds": prop_anchor_odds,
+                "fetch_errors": fetch_errors,
             }
 
         # Step 4: Match non-prop markets → sharp events (for model ensemble)
@@ -1444,6 +1458,7 @@ class AgentCoordinator:
             "sharp_odds": sharp_odds,
             "prop_sharp_pairs": prop_sharp_pairs,
             "prop_anchor_odds": prop_anchor_odds,
+            "fetch_errors": fetch_errors,
         }
 
     async def _fetch_props(

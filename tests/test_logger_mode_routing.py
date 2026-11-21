@@ -828,7 +828,7 @@ def test_log_scan_stats_writes_one_row_per_sector(patched_db):
             markets_fetched INTEGER NOT NULL DEFAULT 0,
             markets_matched INTEGER NOT NULL DEFAULT 0,
             ev_gaps INTEGER NOT NULL DEFAULT 0, error TEXT,
-            sharp_events INTEGER
+            sharp_events INTEGER, fetch_errors TEXT
         );
         """
     )
@@ -836,7 +836,8 @@ def test_log_scan_stats_writes_one_row_per_sector(patched_db):
 
     stats = {
         "ncaaf": {"markets_fetched": 500, "markets_matched": 0, "ev_gaps": 0, "error": None,
-                  "sharp_events": 64},
+                  "sharp_events": 64,
+                  "fetch_errors": "kalshi series failed markets:KXNCAAFSPREAD"},
         "soccer": {"markets_fetched": 190, "markets_matched": 130, "ev_gaps": 7, "error": None,
                    "sharp_events": 0},
         # Errored cycle: no Pinnacle count reported → NULL, never a fake 0.
@@ -845,12 +846,13 @@ def test_log_scan_stats_writes_one_row_per_sector(patched_db):
     assert log_scan_stats(stats, source="cli", scan_date=date(2026, 9, 5)) == 3
     rows = patched_db.execute(
         "SELECT sector, markets_fetched, markets_matched, ev_gaps, error, source, scan_date, "
-        "sharp_events FROM scan_sector_stats ORDER BY sector"
+        "sharp_events, fetch_errors FROM scan_sector_stats ORDER BY sector"
     ).fetchall()
     assert [tuple(r) for r in rows] == [
-        ("ncaaf", 500, 0, 0, None, "cli", "2026-09-05", 64),
-        ("nfl", 0, 0, 0, "timed out", "cli", "2026-09-05", None),
-        ("soccer", 190, 130, 7, None, "cli", "2026-09-05", 0),
+        ("ncaaf", 500, 0, 0, None, "cli", "2026-09-05", 64,
+         "kalshi series failed markets:KXNCAAFSPREAD"),
+        ("nfl", 0, 0, 0, "timed out", "cli", "2026-09-05", None, None),
+        ("soccer", 190, 130, 7, None, "cli", "2026-09-05", 0, None),
     ]
     assert log_scan_stats({}, source="cli") == 0
 
