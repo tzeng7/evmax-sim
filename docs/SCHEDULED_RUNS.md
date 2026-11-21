@@ -127,6 +127,7 @@ caveat no longer applies — any task may call it today. What actually shipped, 
 | `november-thursday-college-basketball-efficiency-reseed` | ✅ `--rolling` | via `ship --merge-when-green` |
 | `weekly-seasonal-model-reseed` | ❌ still to convert | ✅ |
 | `weekly-tennis-surface-elo-refresh` | ❌ still to convert | ✅ |
+| `weekly-opportunity-scout` | Wed 09:00 | Runs `/opportunities` Discovery with no arguments (`.claude/commands/opportunities.md`): context snapshot → git baseline → `opportunity-scout` Workflow graph → `scripts/opportunity_ledger.py ingest`. Discovery only: never builds, never flips a mode, never edits live state; ledger output under `docs/opportunities/` is left uncommitted in the shared checkout. Building a brief stays a manual `/opportunities build <id>` |
 | `weekly-model-calibration` | ❌ still to convert | ✅ |
 | `daily-resolve-and-model-update` | ❌ still to convert | ✅ |
 | `daily-evening-resolve` | ❌ still to convert | ✅ |
@@ -173,7 +174,7 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 
 | Task | Local time | What it does |
 |---|---|---|
-| `weekly-seasonal-model-reseed` | Mon 07:04 | Season-aware reseed of the manual-seed states: WNBA efficiency (May–Oct), NFL efficiency + QB Elo (Sep–Feb), MLB pitcher_v2 (xERA+bullpen+FIP, Mar–Nov), UFC Glicko-2 ratings (weekly, no offseason). NCAAF was carved out into its own task on 2026-09-03 (next row) so each state file has exactly one owner |
+| `weekly-seasonal-model-reseed` | Mon 07:04 | Season-aware reseed of the manual-seed states: WNBA efficiency (May–Oct), NFL efficiency + QB Elo (Sep–Feb), MLB pitcher_v2 (xERA+bullpen+FIP, Mar–Nov), UFC Glicko-2 ratings (weekly, no offseason), NHL xG (Sep–Jun). NCAAF was carved out into its own task on 2026-09-03 (next row) so each state file has exactly one owner |
 | `weekly-ncaaf-efficiency-reseed` | Mon 07:10 (Aug–Jan; self-skips otherwise) | `python scripts/seed_ncaaf_efficiency.py` — opponent-adjusted EPA/play + regressed preseason prior from ESPN play-by-play, refreshed after each Saturday slate (Sunday's late games are final by then). **First task on the `sched_worktree.py` pattern:** `open --rolling` an isolated worktree off `origin/main`, symlink the shared checkout's gitignored `data/cache/cfb_espn` into it (per-worktree cache path; ~900 prior-season summaries would otherwise refetch), run the seed, then `ship --rolling` ONLY `data/models/ncaaf_efficiency_state.json` onto the single `bot/model-state` PR. Ship gate: `fetched_at` == run date, `seasons_used` == current season, and — once games have been played — `gp>0` for the teams that played; a state failing the gate is reported, never shipped (the 2026-09-03 Week-1 bug produced a "fresh" state with `gp==0` for all 138 teams) |
 | `weekly-college-basketball-efficiency-reseed` | Mon 07:20 (Nov–Apr; self-skips otherwise) | `python scripts/seed_ncaab_efficiency.py --league mens` then `--league womens` — opponent-adjusted ORTG/DRTG from the ESPN D1 scoreboard+summary day cache (`data/backtest/college_efficiency`, symlinked into the worktree). Same `sched_worktree.py open/ship --rolling` shape as the NCAAF task, owning ONLY `ncaab_efficiency_state.json` + `ncaaw_efficiency_state.json`. Per-league ship gate: `fetched_at` == run date, `source_season` == current start-year season, solver converged, `gp>0` for teams that played, team count ~360–370; a failing league is not shipped. The seed aborts without writing on empty data. **In-season D1 universe = ESPN's D1 team list** (`groups=50` teams endpoint), not the 8-appearance filter, which is empty until ~mid-December (the 2026-11-05 abort); the appearance filter (week-scaled) is the fallback. **Day files carry a `complete` flag** — a day fetched on or before itself, with a pending game, or with an unparsed box score is refetched next run (the 2026-11-02 08:17 run had frozen opening night, 182 men's finals, as a 2-game file). Gate (c) compares against HEAD only when HEAD is the same season. Added 2026-10-18 (previously NCAAB/W had NO reseed task: the guard would have darkened the efficiency stack all season) |
 | `november-thursday-college-basketball-efficiency-reseed` | Thu 07:20 (November only; cron `20 7 * 11 4`, self-skips otherwise) | Mid-week companion of the Monday task: identical seed commands, owned files and per-league ship gate. Most D1 teams reach the efficiency agents' `MIN_GAMES=4` in the second week of November, so a Thursday reseed starts efficiency + possession-sim pricing ~4 days before the next Monday run. One reseed a week is enough after November. Added 2026-11-02 |
@@ -190,17 +191,13 @@ that guard would have logged sharp-passthrough MLS rows as live plays 3×/day. `
 | `nfl-projections-friday-refresh` | Fri 14:30 (NFL season) | `evmax project nfl-run --no-resolve` after the final injury reports; rows freeze at kickoff, ruled-out players are removed. No post. Same spec |
 | `nfl-projections-sunday-refresh` | Sun 08:45 (NFL season) | `evmax project nfl-run --no-resolve --post` with game-day ESPN injury downgrades before the 1pm ET kickoffs. Same spec |
 
-**Recommended, NOT yet scheduled — NHL `nhl_xg` reseed (2026-09-22).** Nothing
-reseeds `data/models/nhl_xg_state.json` on a schedule. The committed state is
-the opening-night PRIOR-ONLY seed (regressed 2025-26 rates), so without a weekly
-reseed the model never sees 2026-27 xG — it keeps pricing every team off last
-season, silently, all year. Proposed: an NHL block in `weekly-seasonal-model-reseed`
-(or its own task, NCAAF-style, so the state file has one owner), Mondays, Sep–Jun:
-`python scripts/seed_nhl_xg.py`. Ship gate: `fetched_at` == run date; once
-MoneyPuck publishes 2026-27 (after the 2026-09-29 opener), `mode` == `in_season`,
-32 `teams` with `gp>0`, and a 32-team `prior` block with `season_start_year` 2025.
-The seed aborts WITHOUT writing on any fetch failure other than the pre-opener
-404, so a failed run never regresses the state.
+**NHL `nhl_xg` reseed — scheduled (owner: `weekly-seasonal-model-reseed`).** The task's NHL block
+(Sep–Jun) runs `python scripts/seed_nhl_xg.py` and stages `data/models/nhl_xg_state.json` only when its
+ship gate passes: `fetched_at` == run date, a 32-team `prior` block, and — once MoneyPuck publishes the
+new season (`mode` == `in_season`) — 32 `teams` with `gp>0`. Before the opener MoneyPuck 404s and the
+seed writes a PRIOR-ONLY state (expected); any other fetch failure aborts WITHOUT writing, so a failed run
+never regresses the state. First in-season ship: 2026-11-16 (#458). Without this reseed the model would
+price every team off last season all year.
 
 ### One-time (fires once, then self-expires)
 
