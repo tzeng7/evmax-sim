@@ -166,8 +166,10 @@ class CategorySpec:
     shadow_market_types: tuple[str, ...] = field(default_factory=tuple)
     # Market types within this category that are dropped before persistence
     # regardless of the sector mode (live OR shadow). Stronger than
-    # shadow_market_types: the gap still prints in the CLI table for the
-    # session, but nothing lands in ev_predictions / prop_observations.
+    # shadow_market_types: nothing lands in ev_predictions / prop_observations,
+    # and since 2026-11-20 the scanner does not even fetch a Kalshi series whose
+    # ticker suffix names a disabled type (KalshiOddsAgent), so those gaps no
+    # longer print in the CLI table either. `--shadow <sector>` re-enables them.
     # Used when a market type is measured net-negative and we want to stop
     # accumulating rows without disabling the whole category (e.g. baseball
     # totals). Validated against market_types and must be disjoint from

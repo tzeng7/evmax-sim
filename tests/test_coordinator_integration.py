@@ -264,6 +264,34 @@ class TestNbaGameCycle:
         assert result.bankroll == 500.0
         assert result.kelly_fraction == 0.5
 
+    @patch("evmax.agents.coordinator._load_steam_cache", return_value={})
+    @patch("evmax.agents.coordinator._save_steam_cache")
+    def test_partial_kalshi_fetch_lands_in_sector_stats(self, _save, _load):
+        """A partial Kalshi fetch (some series failed) still prices what it got,
+        keeps `error` NULL (so the match-rate check still reads the sector) and
+        records the failed series in `fetch_errors` for the integrity sweep."""
+        coord = self._build_coord()
+        markets = self.NBA_MARKETS
+
+        async def _partial(req):
+            return AgentResponse(
+                agent_name="kalshi_odds", sector=req.sector, data=markets,
+                status="partial", error="kalshi series failed markets:KXNBATOTAL",
+            )
+
+        coord.kalshi_agent = _partial
+        result = _run(coord.run_cycle())
+        st = result.sector_stats["nba"]
+        assert st["error"] is None
+        assert st["fetch_errors"] == "kalshi series failed markets:KXNBATOTAL"
+        assert st["markets_fetched"] == 1 and len(result.ev_gaps) >= 1
+
+    @patch("evmax.agents.coordinator._load_steam_cache", return_value={})
+    @patch("evmax.agents.coordinator._save_steam_cache")
+    def test_clean_kalshi_fetch_has_no_fetch_errors(self, _save, _load):
+        result = _run(self._build_coord().run_cycle())
+        assert result.sector_stats["nba"]["fetch_errors"] is None
+
 
 # ---------------------------------------------------------------------------
 # No-edge scenario — Kalshi and Pinnacle agree

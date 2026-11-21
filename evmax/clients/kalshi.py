@@ -30,19 +30,59 @@ from evmax.settings import get_settings
 
 logger = structlog.get_logger(__name__)
 
-# Module-level token bucket: 8 requests/second across all KalshiClient instances.
-# Kalshi's documented limit is 10/s; we stay slightly under to absorb bursts.
-# Previous value (3/s) was overly conservative and caused 13s+ scan times.
-_KALSHI_RATE_LIMITER = AsyncLimiter(10, 1.0)
+# Module-level token bucket shared by every KalshiClient in the process.
+# KalshiClient._get takes one token per ATTEMPT (retries included), so this is
+# the real request rate. Measured 2026-11-20: SIGNED reads held 30 req/s for
+# 4 s with zero 429s; UNSIGNED reads get an anonymous bucket of about 8 req/s
+# (x-ratelimit-cost 50, ~24 successes per 3 s at any rate). Reads are signed
+# whenever key material is configured (see _get), so 20/s leaves headroom for
+# the watch-closes / watch-listings services that share the same key.
+_KALSHI_RATE_LIMITER = AsyncLimiter(20, 1.0)
 
-# Kalshi's /markets and /events collection endpoints are cursor-paginated and
-# cap each page well below large `limit` values, so a single GET returns only
-# the first page. High-volume series overflow one page (NCAAF lists 500+ open
-# KXNCAAFGAME markets across FBS + FCS + lower divisions), and the first page is
-# dominated by early-sorting FCS tickers — which silently dropped the FBS games
-# the scanner actually prices (e.g. 26AUG29 SJSU-USC lived on page 2 and never
-# reached matching). Follow the cursor up to this many pages per series.
+# Attempts per Kalshi GET (first try + retries) and the cap on one 429 wait.
+_KALSHI_MAX_ATTEMPTS = 4
+_KALSHI_429_MAX_WAIT_S = 10.0
+
+# Page size for /markets. Kalshi accepts up to 1000 (verified 2026-11-20: a
+# limit=1000 request returned 1000 markets plus a cursor). This is a PAGE size,
+# not a cap: _get_all_pages follows the cursor, so a larger page only means
+# fewer requests (KXNCAAFSPREAD: 13 pages at 200 -> 3 at 1000).
+# /events caps `limit` at 200 (201+ -> 400), so events stay at 200.
+_KALSHI_MARKETS_PAGE_LIMIT = 1000
+_KALSHI_EVENTS_PAGE_LIMIT = 200
+
+# Kalshi's /markets and /events collection endpoints are cursor-paginated, so a
+# single GET returns only the first page. High-volume series overflow one page
+# (NCAAF lists 500+ open KXNCAAFGAME markets across FBS + FCS + lower
+# divisions), and the first page is dominated by early-sorting FCS tickers —
+# which silently dropped the FBS games the scanner actually prices (e.g.
+# 26AUG29 SJSU-USC lived on page 2 and never reached matching). Follow the
+# cursor up to this many pages per series (a runaway guard: 30 x 1000 markets).
 _MAX_KALSHI_PAGES = 30
+
+# Parsed RSA private keys, keyed by (path, mtime_ns). Parsing a PEM key costs
+# ~70 ms of synchronous CPU; signing every read makes that a per-request cost
+# on the event loop unless the parsed key is reused.
+_PRIVATE_KEY_CACHE: dict[tuple[str, int], Any] = {}
+
+
+def _ratelimit_reset_seconds(headers: Any) -> float:
+    """Seconds to wait after a Kalshi 429.
+
+    Kalshi sends ``x-ratelimit-reset`` as seconds until the bucket refills
+    (observed values ~2.8). Falls back to ``retry-after``, then 1 s. Clamped to
+    [0.25, _KALSHI_429_MAX_WAIT_S] so a bad header can neither spin nor stall.
+    """
+    for name in ("x-ratelimit-reset", "retry-after"):
+        raw = headers.get(name) if headers is not None else None
+        if raw is None:
+            continue
+        try:
+            value = float(raw)
+        except (TypeError, ValueError):
+            continue
+        return max(0.25, min(value, _KALSHI_429_MAX_WAIT_S))
+    return 1.0
 
 # YYMONDD date format used in Kalshi game tickers (e.g. "26FEB24" → 2026-02-24)
 _MONTH_MAP = {
@@ -977,32 +1017,102 @@ class KalshiClient(BaseAPIClient):
             base_url=settings.kalshi_base_url,
             concurrency=50,     # _KALSHI_RATE_LIMITER is the real throttle; inner semaphore must not block
             timeout=20.0,
-            max_retries=4,      # up to 3 retries for 429s
-            retry_max_wait=30.0,  # wait up to 30s between retries (Kalshi quota window)
+            # Retries for Kalshi GETs live in KalshiClient._get (limiter-aware,
+            # honors x-ratelimit-reset); these only govern BaseAPIClient._post.
+            max_retries=_KALSHI_MAX_ATTEMPTS,
+            retry_max_wait=30.0,
         )
         self._key_id = settings.kalshi_api_key_id
         self._private_key_path = settings.kalshi_private_key_path
+        # Series prefixes whose /markets fetch failed in the last get_markets
+        # call (markets dropped), and prefixes whose /events join failed
+        # (markets kept, parsed without the event titles). Read by
+        # KalshiOddsAgent so a partial fetch is visible in scan_sector_stats.
+        self.last_failed_series: list[str] = []
+        self.last_failed_events: list[str] = []
 
     def _load_private_key(self):
-        """Load RSA private key for request signing."""
+        """Load the RSA private key for request signing (parsed once per file).
+
+        Cached by (path, mtime) at module level: parsing costs ~70 ms of CPU,
+        and every Kalshi read is signed. A missing file is not cached, so a key
+        added later is picked up.
+        """
         try:
             from cryptography.hazmat.primitives import serialization
-            from cryptography.hazmat.primitives.asymmetric import padding
-            from cryptography.hazmat.primitives import hashes
 
             key_path = Path(self._private_key_path)
             if not key_path.exists():
                 return None
+            cache_key = (str(key_path), key_path.stat().st_mtime_ns)
+            cached = _PRIVATE_KEY_CACHE.get(cache_key)
+            if cached is not None:
+                return cached
             with open(key_path, "rb") as f:
-                return serialization.load_pem_private_key(f.read(), password=None)
+                key = serialization.load_pem_private_key(f.read(), password=None)
+            _PRIVATE_KEY_CACHE[cache_key] = key
+            return key
         except Exception as e:
             logger.warning("kalshi_key_load_failed", error=str(e))
             return None
 
+    async def _get(
+        self,
+        path: str,
+        params: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        """Signed, rate-limited GET with Kalshi-aware retries.
+
+        - Every attempt (retries included) takes a _KALSHI_RATE_LIMITER token.
+          The base client's tenacity retries did not, so a 429 burst turned
+          into a retry storm well above the limiter rate (16-23 req/s observed).
+        - The request is signed when key material is configured. Signed reads
+          get the account's rate limit instead of the anonymous per-IP bucket
+          (2026-11-20: 59% of unsigned scan reads were 429s). Without key
+          material the request goes out unsigned, as before.
+        - A 429 waits for Kalshi's ``x-ratelimit-reset`` (seconds, capped at
+          _KALSHI_429_MAX_WAIT_S). 5xx and transport errors back off
+          exponentially. Other HTTP errors raise immediately.
+        """
+        from urllib.parse import urlsplit
+
+        if self._client is None:
+            raise RuntimeError("Client not initialised — use async context manager")
+        # The signature covers the full URL path, never the query string.
+        signed_path = urlsplit(self.base_url).path + path
+        last_exc: Optional[BaseException] = None
+        for attempt in range(_KALSHI_MAX_ATTEMPTS):
+            await _KALSHI_RATE_LIMITER.acquire()
+            headers = self._sign_request("GET", signed_path)
+            try:
+                logger.debug("http_get", path=path, params=params, signed=bool(headers))
+                response = await self._client.get(path, params=params, headers=headers or None)
+                response.raise_for_status()
+                self._last_response_headers = dict(response.headers)
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                last_exc = e
+                status = e.response.status_code
+                if status == 429:
+                    wait = _ratelimit_reset_seconds(e.response.headers)
+                elif status in (500, 502, 503, 504):
+                    wait = min(2.0 ** attempt, 8.0)
+                else:
+                    raise
+            except (httpx.TransportError, httpx.TimeoutException) as e:
+                last_exc = e
+                wait = min(2.0 ** attempt, 8.0)
+            if attempt + 1 < _KALSHI_MAX_ATTEMPTS:
+                await asyncio.sleep(wait)
+        assert last_exc is not None
+        raise last_exc
+
     def _sign_request(self, method: str, path: str) -> dict[str, str]:
-        """Generate Kalshi RSA signature headers."""
+        """Generate Kalshi RSA signature headers ({} without key material)."""
+        if not self._key_id:
+            return {}
         private_key = self._load_private_key()
-        if not private_key or not self._key_id:
+        if not private_key:
             return {}
 
         try:
@@ -1173,12 +1283,11 @@ class KalshiClient(BaseAPIClient):
         the page. A single GET therefore silently truncates any series with
         more than one page of results. Follow the cursor until it is empty
         (or a page is empty), capped at _MAX_KALSHI_PAGES as a runaway guard.
-        Each page independently acquires a rate-limiter token.
+        Each page takes its own rate-limiter token inside ``_get``.
         """
         items: list[dict[str, Any]] = []
         cursor: Optional[str] = None
         for _ in range(_MAX_KALSHI_PAGES):
-            await _KALSHI_RATE_LIMITER.acquire()
             page_params = dict(params)
             if cursor:
                 page_params["cursor"] = cursor
@@ -1194,16 +1303,47 @@ class KalshiClient(BaseAPIClient):
         self,
         sector: str,
         status: str = "open",
-        limit: int = 200,
+        limit: int = _KALSHI_MARKETS_PAGE_LIMIT,
+        skip_market_types: Optional[frozenset[MarketType]] = None,
     ) -> list[PredictionMarket]:
-        """Fetch active markets for a given sector."""
-        cfg = get_settings()
-        cache_key = f"kalshi_{sector}_{status}"
+        """Fetch active markets for a given sector.
 
-        # Offline mode: always use cache (stale is fine)
+        ``limit`` is the /markets PAGE size; every page is fetched (see
+        _get_all_pages). ``skip_market_types`` drops whole series whose ticker
+        suffix names one of those types (``*SPREAD`` -> spread, ``*TOTAL`` ->
+        total, ``*GAME`` -> moneyline) BEFORE any request is sent. The scanner
+        passes a sector's ``disabled`` market types here: those rows are dropped
+        before persistence anyway (NCAAF spread+total ladders were 93% of its
+        4,808 markets on 2026-11-20). Series with no known suffix are always
+        fetched. Callers that archive ladders (watch-listings) pass nothing.
+
+        After the call, ``last_failed_series`` lists prefixes whose markets
+        were dropped by a fetch error, and ``last_failed_events`` lists
+        prefixes whose /events join failed (markets kept).
+        """
+        cfg = get_settings()
+        skip = frozenset(skip_market_types or ())
+        cache_key = f"kalshi_{sector}_{status}"
+        if skip:
+            cache_key += "_skip-" + "-".join(sorted(mt.value for mt in skip))
+        self.last_failed_series = []
+        self.last_failed_events = []
+
+        def _not_skipped(markets: list[PredictionMarket]) -> list[PredictionMarket]:
+            if not skip:
+                return markets
+            return [
+                m for m in markets
+                if _series_market_type(m.ticker or "") not in skip
+            ]
+
+        # Offline mode: always use cache (stale is fine). A skip-filtered scan
+        # falls back to the unfiltered entry, filtered the same way.
         if cfg.offline_mode:
             raw = cache_get_offline(cache_key)
-            return [PredictionMarket.model_validate(r) for r in raw]
+            if not raw and skip:
+                raw = cache_get_offline(f"kalshi_{sector}_{status}")
+            return _not_skipped([PredictionMarket.model_validate(r) for r in raw])
 
         # Dev cache: skip API if fresh cached data exists
         if cfg.cache_ttl_secs > 0:
@@ -1211,7 +1351,10 @@ class KalshiClient(BaseAPIClient):
             if raw is not None:
                 return [PredictionMarket.model_validate(r) for r in raw]
 
-        series_prefixes = SECTOR_SERIES_MAP.get(sector.lower(), [])
+        series_prefixes = [
+            p for p in SECTOR_SERIES_MAP.get(sector.lower(), [])
+            if _series_market_type(p) not in skip
+        ] if skip else SECTOR_SERIES_MAP.get(sector.lower(), [])
         is_prop_sector = sector.lower().endswith("_props")
 
         # Tennis only: also fetch parent events to get product_metadata.competition,
@@ -1250,7 +1393,7 @@ class KalshiClient(BaseAPIClient):
                     event_params = {
                         "status": status,
                         "series_ticker": prefix,
-                        "limit": min(limit, 200),
+                        "limit": min(limit, _KALSHI_EVENTS_PAGE_LIMIT),
                     }
                     events_task = self._get_all_pages("/events", event_params, "events")
                     market_rows, event_rows = await asyncio.gather(
@@ -1263,6 +1406,7 @@ class KalshiClient(BaseAPIClient):
                             "kalshi_events_fetch_failed",
                             prefix=prefix, error=str(event_rows),
                         )
+                        self.last_failed_events.append(prefix)
                         event_rows = None
                 else:
                     market_rows = await markets_task
@@ -1330,6 +1474,7 @@ class KalshiClient(BaseAPIClient):
             except Exception as e:
                 err = str(e) or repr(e) or type(e).__name__
                 logger.warning("kalshi_fetch_failed", prefix=prefix, error=err)
+                self.last_failed_series.append(prefix)
                 return []
 
         results = await asyncio.gather(*(_fetch_prefix(p) for p in series_prefixes))
@@ -1529,7 +1674,6 @@ class KalshiClient(BaseAPIClient):
         """
         api_ticker = ticker.split(":", 1)[-1] if ":" in ticker else ticker
         try:
-            await _KALSHI_RATE_LIMITER.acquire()
             ob_data = await self._get(f"/markets/{api_ticker}/orderbook")
         except Exception as e:
             logger.debug("kalshi_orderbook_depth_failed", ticker=api_ticker, error=str(e))
@@ -1740,7 +1884,6 @@ class KalshiClient(BaseAPIClient):
         if include_latest_before_start:
             params["include_latest_before_start"] = "true"
         try:
-            await _KALSHI_RATE_LIMITER.acquire()
             data = await self._get(
                 f"/series/{series_ticker}/markets/{api_ticker}/candlesticks",
                 params=params,

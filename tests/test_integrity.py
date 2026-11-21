@@ -395,7 +395,8 @@ class _FakeNotifier:
 def _mock_all_checks(monkeypatch, overrides: dict):
     """Make every runner return [] except those in ``overrides``."""
     names = {
-        "check_inplay", "check_model_missing", "check_match_rate", "check_resolution",
+        "check_inplay", "check_model_missing", "check_match_rate", "check_fetch_errors",
+        "check_resolution",
         "check_close_capture", "check_board", "check_drawdown", "check_launchd",
         "check_calibration", "check_gate_watches",
     }
@@ -470,3 +471,44 @@ class TestRunIntegrity:
         monkeypatch.setattr(Notifier, "from_settings", staticmethod(lambda: fake))
         res = ig.run_integrity()
         assert not res["ok"] and not res["notified"] and fake.calls == []
+
+
+class TestFetchErrors:
+    """fetch_errors — scans that ran on a partial Kalshi fetch (2026-11-20)."""
+
+    def test_pure_rules(self):
+        rows = [
+            {"sector": "ncaab", "fetch_errors": "kalshi series failed markets:KXNCAAMBGAME events:KXNCAABGAME"},
+            {"sector": "ncaab", "fetch_errors": None},
+            {"sector": "ncaab", "fetch_errors": "kalshi series failed markets:KXNCAAMBSPREAD,KXNCAAMBGAME"},
+            {"sector": "nba", "fetch_errors": None},
+        ]
+        issues = ig._fetch_error_issues(rows)
+        assert len(issues) == 1  # clean nba raises nothing
+        i = issues[0]
+        assert i["check"] == "fetch_errors" and i["severity"] == "warning"
+        assert i["detail"].startswith("ncaab: 2/3 scans")
+        assert "markets DROPPED for KXNCAAMBGAME, KXNCAAMBSPREAD" in i["detail"]
+        assert "event-title join failed for KXNCAABGAME" in i["detail"]
+
+    def test_no_rows_no_issue(self):
+        assert ig._fetch_error_issues([]) == []
+
+    def test_reads_ledger_written_by_log_scan_stats(self, tmp_path, monkeypatch):
+        from evmax.agents.cleanup import db as db_module
+        from evmax.agents.cleanup.logger import log_scan_stats
+
+        monkeypatch.setattr(db_module, "DB_PATH", tmp_path / "predictions.db")
+        log_scan_stats({
+            "soccer": {"markets_fetched": 900, "markets_matched": 500, "ev_gaps": 3,
+                       "error": None, "sharp_events": 1700,
+                       "fetch_errors": "kalshi series failed markets:KXUCLGAME"},
+            "nfl": {"markets_fetched": 800, "markets_matched": 400, "ev_gaps": 2,
+                    "error": None, "sharp_events": 300},
+        }, scan_date=TODAY)
+        issues = ig.check_fetch_errors(today=TODAY)
+        assert [i["detail"].split(":", 1)[0] for i in issues] == ["soccer"]
+        assert "KXUCLGAME" in issues[0]["detail"]
+
+    def test_is_a_daily_check(self):
+        assert "fetch_errors" in ig.DAILY_CHECKS
