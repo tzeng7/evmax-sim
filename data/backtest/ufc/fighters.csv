@@ -2075,6 +2075,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 4711407,Irina Alekseeva,1990-06-27,68.0,67.0,Orthodox
 4711604,Marcus Buchecha,1990-01-08,74.0,77.0,Orthodox
 4712353,Jordan Vucenic,1996-03-02,70.0,73.0,Orthodox
+4712356,Shoaib Yousaf,1995-08-07,70.0,72.5,Orthodox
 4712980,Rinat Fakhretdinov,1991-09-28,72.0,74.0,Orthodox
 4713086,Denys Bondar,1992-06-27,66.0,69.0,Orthodox
 4713584,Victor Altamirano,1991-01-23,68.0,70.0,Switch
@@ -2321,6 +2322,7 @@ athlete_id,name,dob,height_in,reach_in,stance
 5080485,Jose Henrique,2002-05-23,75.0,79.0,Orthodox
 5080560,Francesco Nuzzi,1996-08-28,63.0,71.0,Southpaw
 5080572,Louie Sutherland,1994-02-08,75.0,76.0,Orthodox
+5080723,John Mitchell,1995-07-21,71.0,74.5,Orthodox
 5080883,Bernardo Sopaj,2000-09-25,66.0,66.0,Orthodox
 5080935,Iasmin Lucindo,2002-01-08,63.0,66.0,Orthodox
 5080936,Blake Bilder,1990-07-12,68.0,68.5,Switch
