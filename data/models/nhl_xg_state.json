@@ -2,263 +2,263 @@
   "nhl": {
     "schema_version": 2,
     "mode": "in_season",
-    "league_avg_xg_per_60": 2.5148,
+    "league_avg_xg_per_60": 2.5155,
     "teams": {
-      "winnipeg jets": {
-        "abbrev": "WPG",
-        "xgf_per_60": 2.3613,
-        "xga_per_60": 2.5156,
-        "gf_per_60": 2.4759,
-        "ga_per_60": 2.591,
-        "gp": 21
-      },
       "toronto maple leafs": {
         "abbrev": "TOR",
-        "xgf_per_60": 2.1678,
-        "xga_per_60": 2.5366,
-        "gf_per_60": 2.4514,
-        "ga_per_60": 3.0643,
-        "gp": 22
+        "xgf_per_60": 2.1568,
+        "xga_per_60": 2.5267,
+        "gf_per_60": 2.4925,
+        "ga_per_60": 3.1279,
+        "gp": 25
       },
-      "washington capitals": {
-        "abbrev": "WSH",
-        "xgf_per_60": 3.1035,
-        "xga_per_60": 2.6759,
-        "gf_per_60": 3.2401,
-        "ga_per_60": 2.9584,
-        "gp": 18
+      "tampa bay lightning": {
+        "abbrev": "TBL",
+        "xgf_per_60": 2.9498,
+        "xga_per_60": 2.2622,
+        "gf_per_60": 3.2692,
+        "ga_per_60": 2.3045,
+        "gp": 23
       },
-      "utah mammoth": {
-        "abbrev": "UTA",
-        "xgf_per_60": 2.8278,
-        "xga_per_60": 2.1485,
-        "gf_per_60": 2.3265,
-        "ga_per_60": 2.5591,
-        "gp": 21
+      "buffalo sabres": {
+        "abbrev": "BUF",
+        "xgf_per_60": 2.5411,
+        "xga_per_60": 2.5809,
+        "gf_per_60": 2.5871,
+        "ga_per_60": 2.5871,
+        "gp": 24
       },
-      "montreal canadiens": {
-        "abbrev": "MTL",
-        "xgf_per_60": 2.6845,
-        "xga_per_60": 2.5851,
-        "gf_per_60": 2.9977,
-        "ga_per_60": 2.1048,
-        "gp": 20
-      },
-      "dallas stars": {
-        "abbrev": "DAL",
-        "xgf_per_60": 2.3554,
-        "xga_per_60": 2.1968,
-        "gf_per_60": 2.134,
-        "ga_per_60": 2.134,
-        "gp": 20
-      },
-      "vancouver canucks": {
-        "abbrev": "VAN",
-        "xgf_per_60": 2.015,
-        "xga_per_60": 3.0272,
-        "gf_per_60": 2.1263,
-        "ga_per_60": 3.4133,
-        "gp": 22
-      },
-      "los angeles kings": {
-        "abbrev": "LAK",
-        "xgf_per_60": 2.4263,
-        "xga_per_60": 2.365,
-        "gf_per_60": 1.8579,
-        "ga_per_60": 2.2708,
-        "gp": 18
-      },
-      "boston bruins": {
-        "abbrev": "BOS",
-        "xgf_per_60": 2.8266,
-        "xga_per_60": 2.4298,
-        "gf_per_60": 3.0757,
-        "ga_per_60": 1.9069,
-        "gp": 20
-      },
-      "detroit red wings": {
-        "abbrev": "DET",
-        "xgf_per_60": 2.4644,
-        "xga_per_60": 2.3908,
-        "gf_per_60": 2.0865,
-        "ga_per_60": 2.2604,
-        "gp": 21
-      },
-      "florida panthers": {
-        "abbrev": "FLA",
-        "xgf_per_60": 2.2931,
-        "xga_per_60": 2.2504,
-        "gf_per_60": 2.1347,
-        "ga_per_60": 2.4905,
-        "gp": 22
-      },
-      "calgary flames": {
-        "abbrev": "CGY",
-        "xgf_per_60": 2.3783,
-        "xga_per_60": 2.7519,
-        "gf_per_60": 1.7762,
-        "ga_per_60": 3.0367,
-        "gp": 21
-      },
-      "st louis blues": {
-        "abbrev": "STL",
-        "xgf_per_60": 2.5686,
-        "xga_per_60": 2.527,
-        "gf_per_60": 2.0758,
-        "ga_per_60": 2.6253,
+      "seattle kraken": {
+        "abbrev": "SEA",
+        "xgf_per_60": 2.3126,
+        "xga_per_60": 2.8007,
+        "gf_per_60": 2.8151,
+        "ga_per_60": 2.5156,
         "gp": 20
       },
       "new york rangers": {
         "abbrev": "NYR",
-        "xgf_per_60": 2.6774,
-        "xga_per_60": 2.3959,
-        "gf_per_60": 2.3506,
-        "ga_per_60": 2.2919,
-        "gp": 21
-      },
-      "minnesota wild": {
-        "abbrev": "MIN",
-        "xgf_per_60": 2.6186,
-        "xga_per_60": 2.3859,
-        "gf_per_60": 2.6738,
-        "ga_per_60": 1.536,
-        "gp": 22
-      },
-      "philadelphia flyers": {
-        "abbrev": "PHI",
-        "xgf_per_60": 2.1591,
-        "xga_per_60": 2.7346,
-        "gf_per_60": 1.7243,
-        "ga_per_60": 2.6403,
+        "xgf_per_60": 2.6385,
+        "xga_per_60": 2.3952,
+        "gf_per_60": 2.2657,
+        "ga_per_60": 2.3197,
         "gp": 23
       },
-      "tampa bay lightning": {
-        "abbrev": "TBL",
-        "xgf_per_60": 2.9272,
-        "xga_per_60": 2.2713,
-        "gf_per_60": 3.3475,
-        "ga_per_60": 2.2316,
-        "gp": 20
+      "st louis blues": {
+        "abbrev": "STL",
+        "xgf_per_60": 2.6655,
+        "xga_per_60": 2.6131,
+        "gf_per_60": 2.7241,
+        "ga_per_60": 2.825,
+        "gp": 24
       },
       "vegas golden knights": {
         "abbrev": "VGK",
-        "xgf_per_60": 2.6303,
-        "xga_per_60": 2.3422,
-        "gf_per_60": 2.4141,
-        "ga_per_60": 2.2532,
-        "gp": 22
-      },
-      "ottawa senators": {
-        "abbrev": "OTT",
-        "xgf_per_60": 2.4632,
-        "xga_per_60": 2.1799,
-        "gf_per_60": 2.6695,
-        "ga_per_60": 1.8808,
-        "gp": 21
-      },
-      "colorado avalanche": {
-        "abbrev": "COL",
-        "xgf_per_60": 2.6854,
-        "xga_per_60": 2.3863,
-        "gf_per_60": 3.5188,
-        "ga_per_60": 2.5218,
-        "gp": 21
+        "xgf_per_60": 2.6218,
+        "xga_per_60": 2.2987,
+        "gf_per_60": 2.4925,
+        "ga_per_60": 2.3514,
+        "gp": 25
       },
       "carolina hurricanes": {
         "abbrev": "CAR",
-        "xgf_per_60": 3.2863,
-        "xga_per_60": 2.1201,
-        "gf_per_60": 3.5695,
-        "ga_per_60": 1.8725,
-        "gp": 21
-      },
-      "new jersey devils": {
-        "abbrev": "NJD",
-        "xgf_per_60": 2.7596,
-        "xga_per_60": 2.2088,
-        "gf_per_60": 2.887,
-        "ga_per_60": 2.2643,
-        "gp": 21
-      },
-      "seattle kraken": {
-        "abbrev": "SEA",
-        "xgf_per_60": 2.1883,
-        "xga_per_60": 2.8692,
-        "gf_per_60": 2.8593,
-        "ga_per_60": 2.6598,
-        "gp": 18
-      },
-      "chicago blackhawks": {
-        "abbrev": "CHI",
-        "xgf_per_60": 2.0106,
-        "xga_per_60": 2.9058,
-        "gf_per_60": 1.8184,
-        "ga_per_60": 3.3944,
-        "gp": 20
-      },
-      "buffalo sabres": {
-        "abbrev": "BUF",
-        "xgf_per_60": 2.5784,
-        "xga_per_60": 2.5716,
-        "gf_per_60": 2.3587,
-        "ga_per_60": 2.5449,
-        "gp": 20
-      },
-      "san jose sharks": {
-        "abbrev": "SJS",
-        "xgf_per_60": 2.2378,
-        "xga_per_60": 2.916,
-        "gf_per_60": 1.8476,
-        "ga_per_60": 2.5541,
-        "gp": 23
-      },
-      "new york islanders": {
-        "abbrev": "NYI",
-        "xgf_per_60": 2.5626,
-        "xga_per_60": 2.6984,
-        "gf_per_60": 2.6386,
-        "ga_per_60": 2.2525,
-        "gp": 19
-      },
-      "anaheim ducks": {
-        "abbrev": "ANA",
-        "xgf_per_60": 2.4918,
-        "xga_per_60": 2.89,
-        "gf_per_60": 2.6102,
-        "ga_per_60": 2.853,
-        "gp": 21
+        "xgf_per_60": 3.2731,
+        "xga_per_60": 2.1295,
+        "gf_per_60": 3.4951,
+        "ga_per_60": 1.7476,
+        "gp": 24
       },
       "columbus blue jackets": {
         "abbrev": "CBJ",
-        "xgf_per_60": 2.4694,
-        "xga_per_60": 2.6473,
-        "gf_per_60": 1.9112,
-        "ga_per_60": 2.3066,
-        "gp": 18
+        "xgf_per_60": 2.4905,
+        "xga_per_60": 2.6768,
+        "gf_per_60": 1.9766,
+        "ga_per_60": 2.3154,
+        "gp": 21
+      },
+      "washington capitals": {
+        "abbrev": "WSH",
+        "xgf_per_60": 3.0422,
+        "xga_per_60": 2.6394,
+        "gf_per_60": 3.1123,
+        "ga_per_60": 3.1721,
+        "gp": 21
+      },
+      "winnipeg jets": {
+        "abbrev": "WPG",
+        "xgf_per_60": 2.3588,
+        "xga_per_60": 2.5686,
+        "gf_per_60": 2.4855,
+        "ga_per_60": 2.5352,
+        "gp": 24
+      },
+      "philadelphia flyers": {
+        "abbrev": "PHI",
+        "xgf_per_60": 2.1175,
+        "xga_per_60": 2.6994,
+        "gf_per_60": 1.9523,
+        "ga_per_60": 2.7142,
+        "gp": 26
+      },
+      "chicago blackhawks": {
+        "abbrev": "CHI",
+        "xgf_per_60": 2.1161,
+        "xga_per_60": 2.8607,
+        "gf_per_60": 1.9753,
+        "ga_per_60": 3.2922,
+        "gp": 24
+      },
+      "anaheim ducks": {
+        "abbrev": "ANA",
+        "xgf_per_60": 2.472,
+        "xga_per_60": 2.9724,
+        "gf_per_60": 2.5257,
+        "ga_per_60": 3.1045,
+        "gp": 24
+      },
+      "new york islanders": {
+        "abbrev": "NYI",
+        "xgf_per_60": 2.6633,
+        "xga_per_60": 2.6693,
+        "gf_per_60": 2.688,
+        "ga_per_60": 2.1943,
+        "gp": 22
+      },
+      "florida panthers": {
+        "abbrev": "FLA",
+        "xgf_per_60": 2.2551,
+        "xga_per_60": 2.241,
+        "gf_per_60": 2.2167,
+        "ga_per_60": 2.5411,
+        "gp": 24
+      },
+      "montreal canadiens": {
+        "abbrev": "MTL",
+        "xgf_per_60": 2.648,
+        "xga_per_60": 2.5794,
+        "gf_per_60": 2.7951,
+        "ga_per_60": 2.215,
+        "gp": 24
+      },
+      "minnesota wild": {
+        "abbrev": "MIN",
+        "xgf_per_60": 2.6138,
+        "xga_per_60": 2.351,
+        "gf_per_60": 2.8712,
+        "ga_per_60": 1.5841,
+        "gp": 25
+      },
+      "calgary flames": {
+        "abbrev": "CGY",
+        "xgf_per_60": 2.398,
+        "xga_per_60": 2.6664,
+        "gf_per_60": 1.8667,
+        "ga_per_60": 2.8758,
+        "gp": 24
       },
       "edmonton oilers": {
         "abbrev": "EDM",
-        "xgf_per_60": 2.0181,
-        "xga_per_60": 2.2468,
-        "gf_per_60": 2.5226,
-        "ga_per_60": 1.9059,
-        "gp": 22
+        "xgf_per_60": 1.9818,
+        "xga_per_60": 2.2812,
+        "gf_per_60": 2.511,
+        "ga_per_60": 2.0846,
+        "gp": 26
       },
-      "pittsburgh penguins": {
-        "abbrev": "PIT",
-        "xgf_per_60": 2.873,
-        "xga_per_60": 2.6135,
-        "gf_per_60": 2.4311,
-        "ga_per_60": 2.9781,
-        "gp": 20
+      "colorado avalanche": {
+        "abbrev": "COL",
+        "xgf_per_60": 2.6826,
+        "xga_per_60": 2.373,
+        "gf_per_60": 3.4399,
+        "ga_per_60": 2.3649,
+        "gp": 23
+      },
+      "utah mammoth": {
+        "abbrev": "UTA",
+        "xgf_per_60": 2.8298,
+        "xga_per_60": 2.1502,
+        "gf_per_60": 2.2516,
+        "ga_per_60": 2.4563,
+        "gp": 24
+      },
+      "ottawa senators": {
+        "abbrev": "OTT",
+        "xgf_per_60": 2.5532,
+        "xga_per_60": 2.0827,
+        "gf_per_60": 2.7082,
+        "ga_per_60": 1.9117,
+        "gp": 24
+      },
+      "vancouver canucks": {
+        "abbrev": "VAN",
+        "xgf_per_60": 2.0046,
+        "xga_per_60": 3.1057,
+        "gf_per_60": 1.9848,
+        "ga_per_60": 3.308,
+        "gp": 26
+      },
+      "los angeles kings": {
+        "abbrev": "LAK",
+        "xgf_per_60": 2.3749,
+        "xga_per_60": 2.3326,
+        "gf_per_60": 1.9409,
+        "ga_per_60": 2.2349,
+        "gp": 21
+      },
+      "san jose sharks": {
+        "abbrev": "SJS",
+        "xgf_per_60": 2.2608,
+        "xga_per_60": 2.9071,
+        "gf_per_60": 1.8523,
+        "ga_per_60": 2.6032,
+        "gp": 25
       },
       "nashville predators": {
         "abbrev": "NSH",
-        "xgf_per_60": 2.5476,
-        "xga_per_60": 2.7212,
-        "gf_per_60": 2.1201,
-        "ga_per_60": 2.4066,
-        "gp": 21
+        "xgf_per_60": 2.5648,
+        "xga_per_60": 2.7173,
+        "gf_per_60": 2.2984,
+        "ga_per_60": 2.664,
+        "gp": 23
+      },
+      "pittsburgh penguins": {
+        "abbrev": "PIT",
+        "xgf_per_60": 2.843,
+        "xga_per_60": 2.6118,
+        "gf_per_60": 2.3226,
+        "ga_per_60": 3.0616,
+        "gp": 23
+      },
+      "new jersey devils": {
+        "abbrev": "NJD",
+        "xgf_per_60": 2.806,
+        "xga_per_60": 2.2505,
+        "gf_per_60": 3.0055,
+        "ga_per_60": 2.4873,
+        "gp": 23
+      },
+      "boston bruins": {
+        "abbrev": "BOS",
+        "xgf_per_60": 2.7932,
+        "xga_per_60": 2.4339,
+        "gf_per_60": 3.0344,
+        "ga_per_60": 1.9165,
+        "gp": 23
+      },
+      "detroit red wings": {
+        "abbrev": "DET",
+        "xgf_per_60": 2.4014,
+        "xga_per_60": 2.423,
+        "gf_per_60": 2.0476,
+        "ga_per_60": 2.3101,
+        "gp": 23
+      },
+      "dallas stars": {
+        "abbrev": "DAL",
+        "xgf_per_60": 2.2774,
+        "xga_per_60": 2.2674,
+        "gf_per_60": 2.1235,
+        "ga_per_60": 2.1235,
+        "gp": 23
       }
     },
     "prior": {
@@ -524,7 +524,7 @@
         }
       }
     },
-    "fetched_at": "2026-11-16",
+    "fetched_at": "2026-11-23",
     "season_start_year": 2026,
     "situation": "5on5",
     "source": "moneypuck"
