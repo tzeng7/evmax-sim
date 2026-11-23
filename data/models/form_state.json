@@ -182882,6 +182882,14 @@
     ],
     "uc san diego tritons": [
       {
+        "date": "2026-11-22",
+        "won": false,
+        "opp": "seattle u",
+        "home": false,
+        "drew": false,
+        "margin": -26.0
+      },
+      {
         "date": "2026-11-16",
         "won": true,
         "opp": "texas southern tigers",
@@ -183032,14 +183040,6 @@
         "home": false,
         "drew": false,
         "margin": 6.0
-      },
-      {
-        "date": "2026-01-17",
-        "won": true,
-        "opp": "cal state bakersfield roadrunners",
-        "home": false,
-        "drew": false,
-        "margin": 21.0
       }
     ],
     "denver pioneers": [
@@ -194290,6 +194290,14 @@
     ],
     "seattle u redhawks": [
       {
+        "date": "2026-11-22",
+        "won": true,
+        "opp": "uc san diego",
+        "home": true,
+        "drew": false,
+        "margin": 26.0
+      },
+      {
         "date": "2026-11-17",
         "won": true,
         "opp": "california baptist lancers",
@@ -194440,14 +194448,6 @@
         "home": false,
         "drew": false,
         "margin": -2.0
-      },
-      {
-        "date": "2026-01-22",
-        "won": true,
-        "opp": "loyola marymount",
-        "home": true,
-        "drew": false,
-        "margin": 10.0
       }
     ],
     "unlv rebels": [
