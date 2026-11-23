@@ -191754,6 +191754,14 @@
     ],
     "san jos\u00e9 state spartans": [
       {
+        "date": "2026-11-22",
+        "won": false,
+        "opp": "loyola chicago",
+        "home": true,
+        "drew": false,
+        "margin": -9.0
+      },
+      {
         "date": "2026-11-18",
         "won": true,
         "opp": "fresno state",
@@ -191904,14 +191912,6 @@
         "home": false,
         "drew": false,
         "margin": -4.0
-      },
-      {
-        "date": "2026-01-21",
-        "won": false,
-        "opp": "nevada",
-        "home": false,
-        "drew": false,
-        "margin": -33.0
       }
     ],
     "uc irvine anteaters": [
@@ -192642,6 +192642,14 @@
     ],
     "loyola chicago ramblers": [
       {
+        "date": "2026-11-22",
+        "won": true,
+        "opp": "san jose state",
+        "home": false,
+        "drew": false,
+        "margin": 9.0
+      },
+      {
         "date": "2026-11-18",
         "won": false,
         "opp": "wichita state",
@@ -192792,14 +192800,6 @@
         "home": false,
         "drew": false,
         "margin": -14.0
-      },
-      {
-        "date": "2026-01-17",
-        "won": false,
-        "opp": "dayton",
-        "home": false,
-        "drew": false,
-        "margin": -27.0
       }
     ],
     "florida atlantic": [
