@@ -502,14 +502,14 @@
     },
     "teams": {
       "mavericks": {
-        "attack": 0.986988116177537,
-        "defense": 1.0265106315627017,
-        "games": 99
+        "attack": 0.9874874015580017,
+        "defense": 1.0245570681961995,
+        "games": 100
       },
       "celtics": {
-        "attack": 0.9864054631757848,
-        "defense": 0.9223186881428787,
-        "games": 104
+        "attack": 0.9872192900408086,
+        "defense": 0.9232689333306274,
+        "games": 105
       },
       "lakers": {
         "attack": 1.0062030073721369,
@@ -527,14 +527,14 @@
         "games": 98
       },
       "pistons": {
-        "attack": 1.0084922720192315,
-        "defense": 0.9453914280519486,
-        "games": 103
+        "attack": 1.007609114626324,
+        "defense": 0.9434955288092576,
+        "games": 104
       },
       "magic": {
-        "attack": 0.9889419476033148,
-        "defense": 0.9908853453868524,
-        "games": 103
+        "attack": 0.9869587116294176,
+        "defense": 0.990017606741171,
+        "games": 104
       },
       "jazz": {
         "attack": 1.0038644717642826,
@@ -567,9 +567,9 @@
         "games": 99
       },
       "nuggets": {
-        "attack": 1.0455388274109818,
-        "defense": 1.010713616340289,
-        "games": 102
+        "attack": 1.043607005925913,
+        "defense": 1.0112100118198961,
+        "games": 103
       },
       "knicks": {
         "attack": 1.0016301266866503,
@@ -632,9 +632,9 @@
         "games": 100
       },
       "wizards": {
-        "attack": 0.9764891263687554,
-        "defense": 1.0673947254675173,
-        "games": 100
+        "attack": 0.9775350259938865,
+        "defense": 1.0683102490402305,
+        "games": 101
       },
       "bulls": {
         "attack": 1.0110212689782507,
@@ -682,7 +682,7 @@
         "games": 1
       }
     },
-    "last_updated": "2026-11-23"
+    "last_updated": "2026-11-24"
   },
   "worldcup": {
     "league_avg": {
@@ -1794,9 +1794,9 @@
         "games": 272
       },
       "edmonton oilers": {
-        "attack": 1.113244099629748,
-        "defense": 0.9748173634870573,
-        "games": 272
+        "attack": 1.1128047206894398,
+        "defense": 0.9770256677482412,
+        "games": 273
       },
       "san jose sharks": {
         "attack": 0.8502916651789131,
@@ -1809,9 +1809,9 @@
         "games": 107
       },
       "vegas golden knights": {
-        "attack": 1.0627771944551296,
-        "defense": 0.9417695321558378,
-        "games": 271
+        "attack": 1.0651936100160664,
+        "defense": 0.941396464829853,
+        "games": 272
       },
       "detroit red wings": {
         "attack": 0.9838469522822199,
@@ -1959,7 +1959,7 @@
         "games": 271
       }
     },
-    "last_updated": "2026-11-23"
+    "last_updated": "2026-11-24"
   },
   "soccer": {
     "league_avg": {
@@ -2003,9 +2003,9 @@
         "games": 51
       },
       "lens": {
-        "attack": 1.2577703135434883,
-        "defense": 0.9080784295258209,
-        "games": 49
+        "attack": 1.2491568276219593,
+        "defense": 0.9154499710139942,
+        "games": 50
       },
       "atletico mineiro": {
         "attack": 0.8728162071465722,
@@ -2058,9 +2058,9 @@
         "games": 34
       },
       "wrexham": {
-        "attack": 1.0090278407399667,
-        "defense": 0.9889867676846633,
-        "games": 62
+        "attack": 1.0059292144939154,
+        "defense": 0.9848482433570391,
+        "games": 63
       },
       "sunderland": {
         "attack": 0.7777844092824255,
@@ -2103,9 +2103,9 @@
         "games": 61
       },
       "porto": {
-        "attack": 1.1263461089996198,
-        "defense": 0.690759688008461,
-        "games": 16
+        "attack": 1.105814193618083,
+        "defense": 0.6618914710667868,
+        "games": 17
       },
       "nagoya grampus": {
         "attack": 0.9357811358031163,
@@ -2128,9 +2128,9 @@
         "games": 10
       },
       "southampton": {
-        "attack": 1.2777408461467288,
-        "defense": 0.8141050543650054,
-        "games": 64
+        "attack": 1.2702192425309045,
+        "defense": 0.8108273971995688,
+        "games": 65
       },
       "toulouse": {
         "attack": 1.0219182072242927,
@@ -2158,9 +2158,9 @@
         "games": 73
       },
       "chapecoense": {
-        "attack": 0.7273133423371039,
-        "defense": 1.4996238985060915,
-        "games": 36
+        "attack": 0.7887373060577227,
+        "defense": 1.464498928276197,
+        "games": 37
       },
       "atletico": {
         "attack": 1.2921900571957092,
@@ -2168,14 +2168,14 @@
         "games": 71
       },
       "middlesbrough": {
-        "attack": 1.1479473026052918,
-        "defense": 0.7718464420772784,
-        "games": 65
+        "attack": 1.1516167353582354,
+        "defense": 0.7729705253829506,
+        "games": 66
       },
       "napoli": {
-        "attack": 1.0602949358854912,
-        "defense": 0.8538562519415754,
-        "games": 62
+        "attack": 1.076049538027601,
+        "defense": 0.8541273152742612,
+        "games": 63
       },
       "pec zwolle": {
         "attack": 0.8863735906402689,
@@ -2203,14 +2203,14 @@
         "games": 46
       },
       "san jose": {
-        "attack": 1.2212530035513944,
-        "defense": 1.1758153735186272,
-        "games": 68
+        "attack": 1.221556562879899,
+        "defense": 1.1716713002805565,
+        "games": 69
       },
       "dortmund": {
-        "attack": 1.4128536647252905,
-        "defense": 0.8396764176716252,
-        "games": 58
+        "attack": 1.4183214787328102,
+        "defense": 0.8335248559571609,
+        "games": 59
       },
       "go ahead eagles": {
         "attack": 1.0625303873394694,
@@ -2223,9 +2223,9 @@
         "games": 45
       },
       "galatasaray": {
-        "attack": 1.128647515120743,
-        "defense": 1.1744516050301177,
-        "games": 16
+        "attack": 1.1084512715299553,
+        "defense": 1.1171309223812873,
+        "games": 17
       },
       "juventus": {
         "attack": 1.2207234860817004,
@@ -2353,9 +2353,9 @@
         "games": 51
       },
       "lincoln city": {
-        "attack": 0.7011502635773006,
-        "defense": 1.1942713136937304,
-        "games": 16
+        "attack": 0.6716708363080476,
+        "defense": 1.3004906481823344,
+        "games": 17
       },
       "vitoria": {
         "attack": 0.7343755336189219,
@@ -2373,9 +2373,9 @@
         "games": 17
       },
       "arsenal": {
-        "attack": 1.3343540560321043,
-        "defense": 0.46282559578930943,
-        "games": 68
+        "attack": 1.3259951887427137,
+        "defense": 0.4643571657528274,
+        "games": 69
       },
       "lecce": {
         "attack": 0.573175474685394,
@@ -2433,9 +2433,9 @@
         "games": 53
       },
       "man city": {
-        "attack": 1.4608061442994054,
-        "defense": 0.7825401475936326,
-        "games": 63
+        "attack": 1.4612626426085802,
+        "defense": 0.7939859951254029,
+        "games": 64
       },
       "montr\u00e9al": {
         "attack": 0.7541519322937621,
@@ -2443,9 +2443,9 @@
         "games": 68
       },
       "preston north end": {
-        "attack": 0.8053799948947592,
-        "defense": 1.0846139335775224,
-        "games": 62
+        "attack": 0.8281873528677299,
+        "defense": 1.0705724425683554,
+        "games": 63
       },
       "colorado": {
         "attack": 0.9352942436958173,
@@ -2483,9 +2483,9 @@
         "games": 48
       },
       "sheffield utd": {
-        "attack": 1.0583554590499236,
-        "defense": 1.0182246108824733,
-        "games": 62
+        "attack": 1.053959157883507,
+        "defense": 1.0120404032648107,
+        "games": 63
       },
       "corinthians": {
         "attack": 0.8185295429480787,
@@ -2493,9 +2493,9 @@
         "games": 73
       },
       "swansea city": {
-        "attack": 0.9493838419756797,
-        "defense": 0.9152127896225666,
-        "games": 62
+        "attack": 0.9508323230109742,
+        "defense": 0.9182775918021038,
+        "games": 63
       },
       "salt lake": {
         "attack": 0.9211663675827,
@@ -2523,14 +2523,14 @@
         "games": 16
       },
       "houston": {
-        "attack": 0.9026138110410948,
-        "defense": 1.0242038864738436,
-        "games": 68
+        "attack": 0.899432616252448,
+        "defense": 1.0244584665183762,
+        "games": 69
       },
       "west ham": {
-        "attack": 1.0630581633863383,
-        "defense": 1.2112297320906198,
-        "games": 54
+        "attack": 1.047366196779314,
+        "defense": 1.2035263865942496,
+        "games": 55
       },
       "excelsior": {
         "attack": 0.9584286029753082,
@@ -2628,9 +2628,9 @@
         "games": 70
       },
       "real madrid": {
-        "attack": 1.59484695816912,
-        "defense": 0.736338080848003,
-        "games": 69
+        "attack": 1.6149205730524183,
+        "defense": 0.7318597382088639,
+        "games": 70
       },
       "club america": {
         "attack": 1.2801237389244895,
@@ -2663,9 +2663,9 @@
         "games": 57
       },
       "queens park rangers": {
-        "attack": 0.9749979828102889,
-        "defense": 1.0583602114317885,
-        "games": 62
+        "attack": 0.972963437954321,
+        "defense": 1.0506468640510755,
+        "games": 63
       },
       "rb salzburg": {
         "attack": 0.7594781249553265,
@@ -2853,9 +2853,9 @@
         "games": 48
       },
       "portsmouth": {
-        "attack": 0.8077401622011856,
-        "defense": 0.9869346526279905,
-        "games": 62
+        "attack": 0.8032553251237698,
+        "defense": 0.9744436263958003,
+        "games": 63
       },
       "espanyol": {
         "attack": 0.800115237841815,
@@ -2883,9 +2883,9 @@
         "games": 47
       },
       "bristol city": {
-        "attack": 0.8734964805968545,
-        "defense": 0.9869730297235368,
-        "games": 62
+        "attack": 0.8698412381273244,
+        "defense": 0.9839421316545567,
+        "games": 63
       },
       "cear\u00e1": {
         "attack": 0.6351,
@@ -2918,9 +2918,9 @@
         "games": 59
       },
       "psv": {
-        "attack": 1.8995035375038374,
-        "defense": 0.96187126282419,
-        "games": 59
+        "attack": 1.8860254909051384,
+        "defense": 0.9790790175819779,
+        "games": 60
       },
       "brugge": {
         "attack": 1.5714820871984985,
@@ -2978,9 +2978,9 @@
         "games": 38
       },
       "charlton athletic": {
-        "attack": 0.6708652942124526,
-        "defense": 0.9788763259213309,
-        "games": 62
+        "attack": 0.6940358830890908,
+        "defense": 0.9665132096368654,
+        "games": 63
       },
       "metz": {
         "attack": 0.6681,
@@ -2988,9 +2988,9 @@
         "games": 34
       },
       "aston villa": {
-        "attack": 1.1577145565351001,
-        "defense": 0.8100383319533725,
-        "games": 68
+        "attack": 1.143834635425896,
+        "defense": 0.8064671031825492,
+        "games": 69
       },
       "heracles almelo": {
         "attack": 0.7307,
@@ -3008,9 +3008,9 @@
         "games": 72
       },
       "leipzig": {
-        "attack": 1.4948409658544974,
-        "defense": 0.9711240707764978,
-        "games": 48
+        "attack": 1.5072233385026976,
+        "defense": 0.9643378770818265,
+        "games": 49
       },
       "lafc": {
         "attack": 1.2383951855146984,
@@ -3068,9 +3068,9 @@
         "games": 49
       },
       "cardiff city": {
-        "attack": 1.180244265568406,
-        "defense": 1.4328735206512773,
-        "games": 16
+        "attack": 1.122582838182029,
+        "defense": 1.5250574312012022,
+        "games": 17
       },
       "club leon": {
         "attack": 0.8582920433929925,
@@ -3093,9 +3093,9 @@
         "games": 60
       },
       "betis": {
-        "attack": 1.1713586829997258,
-        "defense": 0.8772237589840914,
-        "games": 67
+        "attack": 1.166503699701928,
+        "defense": 0.8672645860578548,
+        "games": 68
       },
       "gladbach": {
         "attack": 0.8767802936702614,
@@ -3103,14 +3103,14 @@
         "games": 44
       },
       "bodo glimt": {
-        "attack": 1.2334731527435492,
-        "defense": 1.239738315894204,
-        "games": 16
+        "attack": 1.1923227558317577,
+        "defense": 1.1785772384886624,
+        "games": 17
       },
       "feyenoord": {
-        "attack": 1.4506960546109045,
-        "defense": 1.0333322856624172,
-        "games": 59
+        "attack": 1.4298511203673894,
+        "defense": 1.027995309384698,
+        "games": 60
       },
       "fortuna sittard": {
         "attack": 1.0185281095353231,
@@ -3193,9 +3193,9 @@
         "games": 8
       },
       "como": {
-        "attack": 1.3080200562811266,
-        "defense": 0.5819360352938701,
-        "games": 54
+        "attack": 1.291611939444591,
+        "defense": 0.5749917437430724,
+        "games": 55
       },
       "burnley": {
         "attack": 0.8139483259031501,
@@ -3203,14 +3203,14 @@
         "games": 54
       },
       "norwich city": {
-        "attack": 1.1113047483393574,
-        "defense": 0.9485029638482045,
-        "games": 62
+        "attack": 1.1032055402652172,
+        "defense": 0.9465237065984559,
+        "games": 63
       },
       "derby county": {
-        "attack": 0.9291921214538611,
-        "defense": 1.0509131146781197,
-        "games": 62
+        "attack": 0.9176176433355459,
+        "defense": 1.0762566959605728,
+        "games": 63
       },
       "gremio": {
         "attack": 0.8610247383720935,
@@ -3248,9 +3248,9 @@
         "games": 73
       },
       "palmeiras": {
-        "attack": 1.2554764427700538,
-        "defense": 0.5879266942473169,
-        "games": 74
+        "attack": 1.2414034235331197,
+        "defense": 0.6150729952306846,
+        "games": 75
       },
       "strasbourg": {
         "attack": 1.170765276542848,
@@ -3273,9 +3273,9 @@
         "games": 35
       },
       "wolves": {
-        "attack": 0.720813827846649,
-        "defense": 1.180868617053995,
-        "games": 54
+        "attack": 0.7407252436787926,
+        "defense": 1.1630346421984679,
+        "games": 55
       },
       "villarreal": {
         "attack": 1.2104531474165696,
@@ -3378,14 +3378,14 @@
         "games": 9
       },
       "aek athens": {
-        "attack": 1.4981133003126292,
-        "defense": 1.5684755320396602,
-        "games": 4
+        "attack": 1.2384906402501035,
+        "defense": 1.3520468723451273,
+        "games": 5
       },
       "lask linz": {
-        "attack": 1.6028325296522292,
-        "defense": 1.1914455320622654,
-        "games": 4
+        "attack": 1.3222660237217834,
+        "defense": 1.0563013241191002,
+        "games": 5
       },
       "viking": {
         "attack": 1.6355368566417412,
@@ -3393,9 +3393,9 @@
         "games": 4
       },
       "slovan bratislava": {
-        "attack": 0.41338301790583104,
-        "defense": 1.9096384405199613,
-        "games": 4
+        "attack": 0.37070641432466483,
+        "defense": 1.8019949193625713,
+        "games": 5
       },
       "shakhtar donetsk": {
         "attack": 1.0484417559555348,
@@ -3488,7 +3488,7 @@
         "games": 4
       }
     },
-    "last_updated": "2026-11-23"
+    "last_updated": "2026-11-24"
   },
   "ncaaf": {
     "league_avg": {
@@ -3537,9 +3537,9 @@
         "games": 11
       },
       "eastern michigan": {
-        "attack": 2.753698813864789,
-        "defense": 2.8030303030303028,
-        "games": 11
+        "attack": 2.77422391270939,
+        "defense": 2.819444444444444,
+        "games": 12
       },
       "sacramento state": {
         "attack": 2.4227918795440635,
@@ -3852,9 +3852,9 @@
         "games": 11
       },
       "western michigan": {
-        "attack": 2.868686868686869,
+        "attack": 2.8796296296296298,
         "defense": 3.0,
-        "games": 11
+        "games": 12
       },
       "penn state": {
         "attack": 3.0,
@@ -3973,8 +3973,8 @@
       },
       "miami oh": {
         "attack": 3.0,
-        "defense": 2.832566565338666,
-        "games": 11
+        "defense": 2.846519351560444,
+        "games": 12
       },
       "south carolina": {
         "attack": 2.747240169569368,
@@ -3982,9 +3982,9 @@
         "games": 11
       },
       "kent state": {
-        "attack": 1.9776411589426572,
+        "attack": 2.062837729030769,
         "defense": 3.0,
-        "games": 11
+        "games": 12
       },
       "kentucky": {
         "attack": 2.88348882620959,
@@ -4692,7 +4692,7 @@
         "games": 1
       }
     },
-    "last_updated": "2026-11-21"
+    "last_updated": "2026-11-24"
   },
   "ncaab": {
     "league_avg": {
@@ -4711,9 +4711,9 @@
         "games": 117
       },
       "clemson": {
-        "attack": 1.0277567466597193,
-        "defense": 0.9290457604888086,
-        "games": 111
+        "attack": 1.026479579329131,
+        "defense": 0.9278105690066827,
+        "games": 112
       },
       "nc state": {
         "attack": 1.0401524288178097,
@@ -4721,14 +4721,14 @@
         "games": 112
       },
       "hampton pirates": {
-        "attack": 0.9637610384297491,
-        "defense": 0.9773218875117674,
-        "games": 102
+        "attack": 0.9624959800129701,
+        "defense": 0.9769013927936421,
+        "games": 103
       },
       "florida": {
-        "attack": 1.163091295647439,
-        "defense": 0.9935016263185342,
-        "games": 118
+        "attack": 1.1612176771121858,
+        "defense": 0.9927894852319962,
+        "games": 119
       },
       "unt dallas trailblazers": {
         "attack": 0.7382998998865523,
@@ -4741,9 +4741,9 @@
         "games": 102
       },
       "ul monroe warhawks": {
-        "attack": 0.9575408367756157,
-        "defense": 1.06824855355211,
-        "games": 102
+        "attack": 0.9553882969374522,
+        "defense": 1.0704613128397225,
+        "games": 103
       },
       "eastern kentucky colonels": {
         "attack": 1.0798,
@@ -4761,19 +4761,19 @@
         "games": 104
       },
       "air force": {
-        "attack": 0.8705772344184267,
-        "defense": 1.0340257040506082,
-        "games": 101
+        "attack": 0.8734043631775962,
+        "defense": 1.0357868519992606,
+        "games": 102
       },
       "tennessee tech golden eagles": {
-        "attack": 0.9837646731057786,
-        "defense": 1.0062528104314346,
-        "games": 101
+        "attack": 0.9888580294534605,
+        "defense": 1.0085016491689196,
+        "games": 102
       },
       "pennsylvania quakers": {
-        "attack": 1.0018231984710957,
-        "defense": 1.0205746799601272,
-        "games": 92
+        "attack": 1.0045300801684829,
+        "defense": 1.0215142006435374,
+        "games": 93
       },
       "portland state vikings": {
         "attack": 1.0238773788145785,
@@ -4781,9 +4781,9 @@
         "games": 102
       },
       "drexel dragons": {
-        "attack": 0.9586073909893275,
-        "defense": 0.9128004273689293,
-        "games": 103
+        "attack": 0.9593965271388061,
+        "defense": 0.9150059099674827,
+        "games": 104
       },
       "utah": {
         "attack": 1.0269446218201594,
@@ -4806,9 +4806,9 @@
         "games": 109
       },
       "unc greensboro spartans": {
-        "attack": 1.0263072626615253,
-        "defense": 0.9780345552308807,
-        "games": 105
+        "attack": 1.025733631888481,
+        "defense": 0.9787869889814762,
+        "games": 106
       },
       "rhode island": {
         "attack": 1.001786190997454,
@@ -4831,9 +4831,9 @@
         "games": 106
       },
       "evansville": {
-        "attack": 0.926655801481762,
-        "defense": 0.9980620229459307,
-        "games": 105
+        "attack": 0.9268976881075842,
+        "defense": 0.9974718984259323,
+        "games": 106
       },
       "champion christian tigers": {
         "attack": 0.8438746316163362,
@@ -4856,19 +4856,19 @@
         "games": 109
       },
       "boston university": {
-        "attack": 0.9514520903783866,
-        "defense": 0.9543225556301834,
-        "games": 106
+        "attack": 0.9540499952778507,
+        "defense": 0.9545593154331753,
+        "games": 107
       },
       "tulsa": {
-        "attack": 1.0496240745001861,
-        "defense": 0.9951387253823994,
-        "games": 108
+        "attack": 1.048360868325191,
+        "defense": 0.9964561609305919,
+        "games": 109
       },
       "uc santa barbara gauchos": {
-        "attack": 1.0331193361451645,
-        "defense": 0.9662494382946626,
-        "games": 102
+        "attack": 1.0339372982786112,
+        "defense": 0.9656936454717823,
+        "games": 103
       },
       "utah valley wolverines": {
         "attack": 1.0253546025362246,
@@ -4876,9 +4876,9 @@
         "games": 106
       },
       "rutgers": {
-        "attack": 0.9788760259975309,
-        "defense": 0.993629701696033,
-        "games": 104
+        "attack": 0.9823637415545535,
+        "defense": 0.9939204891475542,
+        "games": 105
       },
       "ut martin skyhawks": {
         "attack": 1.0253057879973961,
@@ -4921,19 +4921,19 @@
         "games": 102
       },
       "campbell fighting camels": {
-        "attack": 0.9992454201279597,
-        "defense": 0.9864823038507452,
-        "games": 104
-      },
-      "quinnipiac": {
-        "attack": 1.0231270697533832,
-        "defense": 0.9731405828424283,
+        "attack": 0.9992425501043125,
+        "defense": 0.9854939690773311,
         "games": 105
       },
-      "alabama a m bulldogs": {
-        "attack": 0.967436393251045,
-        "defense": 1.0249902726847822,
+      "quinnipiac": {
+        "attack": 1.0237846060694782,
+        "defense": 0.9716778952952796,
         "games": 106
+      },
+      "alabama a m bulldogs": {
+        "attack": 0.9681974370722309,
+        "defense": 1.0245419058515188,
+        "games": 107
       },
       "bethel tn wildcats": {
         "attack": 0.8355,
@@ -4946,9 +4946,9 @@
         "games": 103
       },
       "seton hall": {
-        "attack": 0.9389523427609986,
-        "defense": 0.9248125748974189,
-        "games": 108
+        "attack": 0.9388805733482082,
+        "defense": 0.9200594256891129,
+        "games": 109
       },
       "vermont state johnson badgers": {
         "attack": 0.7925,
@@ -4956,9 +4956,9 @@
         "games": 7
       },
       "wyoming": {
-        "attack": 0.9882872340930676,
-        "defense": 0.979519096768758,
-        "games": 103
+        "attack": 0.9881786078821393,
+        "defense": 0.9803478155227984,
+        "games": 104
       },
       "south carolina": {
         "attack": 0.9820620016276923,
@@ -4966,9 +4966,9 @@
         "games": 103
       },
       "iowa state": {
-        "attack": 1.0714948431976472,
-        "defense": 0.8807567553321614,
-        "games": 113
+        "attack": 1.0720655275395803,
+        "defense": 0.8814599672338881,
+        "games": 114
       },
       "kentucky christian knights": {
         "attack": 0.8549451167097146,
@@ -4986,14 +4986,14 @@
         "games": 108
       },
       "illinois state": {
-        "attack": 0.9957081822559127,
-        "defense": 0.9445896213830937,
-        "games": 111
+        "attack": 0.9969910630460869,
+        "defense": 0.9434832725006738,
+        "games": 112
       },
       "loyola maryland": {
-        "attack": 0.9400512601201891,
-        "defense": 1.0041231478302304,
-        "games": 101
+        "attack": 0.9398053088925502,
+        "defense": 1.0025839092908868,
+        "games": 102
       },
       "pepperdine": {
         "attack": 0.9945291133287849,
@@ -5001,14 +5001,14 @@
         "games": 107
       },
       "se louisiana lions": {
-        "attack": 0.9346670543230648,
-        "defense": 0.9625519082985039,
-        "games": 100
+        "attack": 0.9351487262958582,
+        "defense": 0.9600249664910454,
+        "games": 101
       },
       "high point panthers": {
-        "attack": 1.145635435648623,
-        "defense": 0.9631021842501558,
-        "games": 114
+        "attack": 1.1445319694428697,
+        "defense": 0.9636511388386142,
+        "games": 115
       },
       "uconn": {
         "attack": 1.0669563722365643,
@@ -5021,9 +5021,9 @@
         "games": 107
       },
       "ohio state": {
-        "attack": 1.060195514209907,
-        "defense": 0.9755238008331417,
-        "games": 108
+        "attack": 1.0581847473449675,
+        "defense": 0.9755141496949674,
+        "games": 109
       },
       "mid atlantic christian mustangs": {
         "attack": 0.7227,
@@ -5031,19 +5031,19 @@
         "games": 14
       },
       "little rock trojans": {
-        "attack": 0.9890662486250806,
-        "defense": 0.9761019869013416,
-        "games": 105
+        "attack": 0.9884058276693607,
+        "defense": 0.9745672618115844,
+        "games": 106
       },
       "north alabama lions": {
-        "attack": 1.013261509068728,
-        "defense": 1.0126050894164105,
-        "games": 103
+        "attack": 1.0128054871482979,
+        "defense": 1.013424643819335,
+        "games": 104
       },
       "purdue": {
-        "attack": 1.092266372774687,
-        "defense": 0.9472527538380048,
-        "games": 120
+        "attack": 1.0891402704127553,
+        "defense": 0.9476026475243313,
+        "games": 121
       },
       "pfeiffer falcons": {
         "attack": 0.7932521763655621,
@@ -5076,39 +5076,39 @@
         "games": 105
       },
       "harvard crimson": {
-        "attack": 0.9449112493848821,
-        "defense": 0.9456081463460165,
-        "games": 90
+        "attack": 0.9451868918886245,
+        "defense": 0.9486440634902423,
+        "games": 91
       },
       "sacred heart pioneers": {
-        "attack": 1.0230180468926595,
-        "defense": 1.0131828326268844,
-        "games": 103
+        "attack": 1.0233203136250388,
+        "defense": 1.0168274937025346,
+        "games": 104
       },
       "northern colorado bears": {
-        "attack": 1.0905880908735788,
-        "defense": 1.0217254792998307,
-        "games": 106
+        "attack": 1.0878855676889754,
+        "defense": 1.0222224905984933,
+        "games": 107
       },
       "vmi keydets": {
-        "attack": 0.9642266638896521,
-        "defense": 1.0638088610494794,
-        "games": 105
+        "attack": 0.9657368285683685,
+        "defense": 1.0656400913784878,
+        "games": 106
       },
       "navy": {
-        "attack": 0.9512187298660959,
-        "defense": 0.9157357214104791,
-        "games": 106
+        "attack": 0.9539840429094768,
+        "defense": 0.9133477014417068,
+        "games": 107
       },
       "notre dame": {
-        "attack": 0.9714867138511352,
-        "defense": 0.9730929790721782,
-        "games": 105
+        "attack": 0.9730971470520109,
+        "defense": 0.973569805774091,
+        "games": 106
       },
       "san diego state": {
-        "attack": 1.015662972147423,
-        "defense": 0.9162783848400038,
-        "games": 106
+        "attack": 1.0165269466443012,
+        "defense": 0.9167983262251636,
+        "games": 107
       },
       "brewton parker wildcats": {
         "attack": 0.8816,
@@ -5136,9 +5136,9 @@
         "games": 106
       },
       "georgia tech": {
-        "attack": 0.9913735287225176,
-        "defense": 1.0192604765164255,
-        "games": 103
+        "attack": 0.9916832332749159,
+        "defense": 1.0208222428607452,
+        "games": 104
       },
       "trinity college of jacksonville eagles": {
         "attack": 0.8266492314306724,
@@ -5146,9 +5146,9 @@
         "games": 11
       },
       "chattanooga mocs": {
-        "attack": 1.0656599004573906,
-        "defense": 0.9936086298170127,
-        "games": 109
+        "attack": 1.0653760395329637,
+        "defense": 0.9936045340178172,
+        "games": 110
       },
       "kansas state": {
         "attack": 1.0073976925434958,
@@ -5156,9 +5156,9 @@
         "games": 104
       },
       "ole miss": {
-        "attack": 1.038040887457088,
-        "defense": 0.9923529179248163,
-        "games": 108
+        "attack": 1.0382705120530302,
+        "defense": 0.989893823757392,
+        "games": 109
       },
       "mount olive trojans": {
         "attack": 1.0080124093137257,
@@ -5176,19 +5176,19 @@
         "games": 105
       },
       "coastal carolina chanticleers": {
-        "attack": 0.9613009046388112,
-        "defense": 1.0057409277043228,
-        "games": 101
+        "attack": 0.9603094719019718,
+        "defense": 1.0057379540631615,
+        "games": 102
       },
       "florida international panthers": {
-        "attack": 1.0168110475589935,
-        "defense": 1.0224653553871224,
-        "games": 103
+        "attack": 1.0166194451997346,
+        "defense": 1.0216581151441786,
+        "games": 104
       },
       "depaul": {
-        "attack": 0.9427300762708286,
-        "defense": 1.0083632708416452,
-        "games": 103
+        "attack": 0.9431352204682049,
+        "defense": 1.005005557003655,
+        "games": 104
       },
       "colgate": {
         "attack": 0.9985669820714593,
@@ -5236,9 +5236,9 @@
         "games": 101
       },
       "missouri": {
-        "attack": 1.071960482973453,
-        "defense": 1.0097926307002243,
-        "games": 105
+        "attack": 1.0713266644822887,
+        "defense": 1.010056218681684,
+        "games": 106
       },
       "dayton": {
         "attack": 1.0119601402196965,
@@ -5246,14 +5246,14 @@
         "games": 111
       },
       "tcu": {
-        "attack": 1.0236882989675267,
-        "defense": 0.9660410662925788,
-        "games": 106
+        "attack": 1.0241739129069463,
+        "defense": 0.9660482253300533,
+        "games": 107
       },
       "jacksonville dolphins": {
-        "attack": 0.9769701291794097,
-        "defense": 0.9890071237773772,
-        "games": 104
+        "attack": 0.9765217186874159,
+        "defense": 0.9894069413091475,
+        "games": 105
       },
       "erskine flying fleet": {
         "attack": 0.8196612107387976,
@@ -5261,14 +5261,14 @@
         "games": 9
       },
       "louisville": {
-        "attack": 1.0676072473079157,
-        "defense": 0.996803099340289,
-        "games": 106
+        "attack": 1.0667840880800443,
+        "defense": 0.9955307129294736,
+        "games": 107
       },
       "unc asheville bulldogs": {
-        "attack": 1.0584099178262671,
-        "defense": 1.0164870670948107,
-        "games": 105
+        "attack": 1.0565146090411521,
+        "defense": 1.0180501030784666,
+        "games": 106
       },
       "hawaii rainbow warriors": {
         "attack": 1.000046646100518,
@@ -5281,9 +5281,9 @@
         "games": 106
       },
       "james madison": {
-        "attack": 1.0515727836914932,
-        "defense": 0.9645394611342386,
-        "games": 107
+        "attack": 1.0511622421378761,
+        "defense": 0.9632528389548081,
+        "games": 108
       },
       "western kentucky": {
         "attack": 1.0638693414934217,
@@ -5306,9 +5306,9 @@
         "games": 9
       },
       "purdue fort wayne mastodons": {
-        "attack": 1.081513770723498,
-        "defense": 1.0089645885730372,
-        "games": 106
+        "attack": 1.0826211083336121,
+        "defense": 1.008716398533029,
+        "games": 107
       },
       "marshall": {
         "attack": 1.0411540323909727,
@@ -5326,24 +5326,24 @@
         "games": 109
       },
       "san francisco": {
-        "attack": 1.0287183502295547,
-        "defense": 0.9428557372885443,
-        "games": 108
+        "attack": 1.0291131061008891,
+        "defense": 0.9445530015694202,
+        "games": 109
       },
       "presbyterian blue hose": {
-        "attack": 1.002118000602515,
-        "defense": 0.9868155912261849,
-        "games": 104
+        "attack": 1.0076348138257865,
+        "defense": 0.9837051340216674,
+        "games": 105
       },
       "akron": {
-        "attack": 1.1081321359083696,
-        "defense": 0.9669314375715449,
-        "games": 111
+        "attack": 1.1081549615803656,
+        "defense": 0.9658650079512269,
+        "games": 112
       },
       "louisiana tech bulldogs": {
-        "attack": 0.9844858093013188,
-        "defense": 0.8923995379275792,
-        "games": 104
+        "attack": 0.984800985663354,
+        "defense": 0.8900055467594645,
+        "games": 105
       },
       "central arkansas bears": {
         "attack": 1.0106,
@@ -5361,14 +5361,14 @@
         "games": 106
       },
       "yale bulldogs": {
-        "attack": 1.068019222844923,
-        "defense": 0.9439880050069492,
-        "games": 101
+        "attack": 1.0656299872347317,
+        "defense": 0.9418331296087334,
+        "games": 102
       },
       "ut arlington mavericks": {
-        "attack": 1.005507006705624,
-        "defense": 0.9742800796494288,
-        "games": 104
+        "attack": 1.005388995697313,
+        "defense": 0.976530737607282,
+        "games": 105
       },
       "idaho vandals": {
         "attack": 0.9975584692783795,
@@ -5376,9 +5376,9 @@
         "games": 108
       },
       "ohio": {
-        "attack": 1.064490947021943,
-        "defense": 1.0173707163811159,
-        "games": 101
+        "attack": 1.0641843199579484,
+        "defense": 1.0163406068953895,
+        "games": 102
       },
       "notre dame md gators": {
         "attack": 0.8098757012070904,
@@ -5406,9 +5406,9 @@
         "games": 105
       },
       "santa clara": {
-        "attack": 1.1026572033693547,
-        "defense": 0.9938150204970254,
-        "games": 109
+        "attack": 1.1018132836014716,
+        "defense": 0.9945218344464508,
+        "games": 110
       },
       "cheyney pa wolves": {
         "attack": 0.8174427730969948,
@@ -5426,9 +5426,9 @@
         "games": 106
       },
       "coppin state eagles": {
-        "attack": 0.840317577156618,
-        "defense": 1.0354582837300992,
-        "games": 97
+        "attack": 0.8399217467138754,
+        "defense": 1.0340392444954358,
+        "games": 98
       },
       "florida tech panthers": {
         "attack": 0.8057,
@@ -5441,9 +5441,9 @@
         "games": 6
       },
       "samford bulldogs": {
-        "attack": 1.117418000475775,
-        "defense": 1.0174055435152927,
-        "games": 105
+        "attack": 1.1190978640488256,
+        "defense": 1.0177173835315954,
+        "games": 106
       },
       "drake": {
         "attack": 1.0189619298683485,
@@ -5451,9 +5451,9 @@
         "games": 110
       },
       "bowling green": {
-        "attack": 1.0330949755084777,
-        "defense": 0.9837553880170757,
-        "games": 103
+        "attack": 1.033667830447309,
+        "defense": 0.9835763364877241,
+        "games": 104
       },
       "texas": {
         "attack": 1.0776418052237093,
@@ -5481,9 +5481,9 @@
         "games": 7
       },
       "oregon": {
-        "attack": 1.0124917783285816,
-        "defense": 0.9901078755052083,
-        "games": 107
+        "attack": 1.0143225801784372,
+        "defense": 0.9908162457475744,
+        "games": 108
       },
       "canisius": {
         "attack": 0.9006075656099864,
@@ -5506,9 +5506,9 @@
         "games": 6
       },
       "indiana": {
-        "attack": 1.0225682829312306,
-        "defense": 0.9878227881361215,
-        "games": 103
+        "attack": 1.0229856428044413,
+        "defense": 0.9873650369473448,
+        "games": 104
       },
       "toccoa falls eagles": {
         "attack": 0.852,
@@ -5516,9 +5516,9 @@
         "games": 11
       },
       "kent state": {
-        "attack": 1.0504769076692524,
-        "defense": 0.9869681954834844,
-        "games": 109
+        "attack": 1.0513171826327719,
+        "defense": 0.9868656314108774,
+        "games": 110
       },
       "omaha mavericks": {
         "attack": 1.0231260720029032,
@@ -5526,9 +5526,9 @@
         "games": 107
       },
       "arkansas baptist buffaloes": {
-        "attack": 0.8293,
-        "defense": 1.1471,
-        "games": 7
+        "attack": 0.8120232145557531,
+        "defense": 1.1369512484360744,
+        "games": 8
       },
       "manhattan": {
         "attack": 0.9726861536888142,
@@ -5536,9 +5536,9 @@
         "games": 99
       },
       "auburn": {
-        "attack": 1.1221040849930166,
-        "defense": 0.9812072746489283,
-        "games": 117
+        "attack": 1.1236398457361207,
+        "defense": 0.9803102559988532,
+        "games": 118
       },
       "nobel knights": {
         "attack": 0.7656,
@@ -5546,9 +5546,9 @@
         "games": 9
       },
       "bryant bulldogs": {
-        "attack": 1.0155309104755708,
-        "defense": 1.0018419511710686,
-        "games": 106
+        "attack": 1.0148823696818152,
+        "defense": 1.0001557835246633,
+        "games": 107
       },
       "stony brook seawolves": {
         "attack": 0.9656082189726211,
@@ -5556,14 +5556,14 @@
         "games": 104
       },
       "washington": {
-        "attack": 1.0406337972934199,
-        "defense": 1.0220376689283013,
-        "games": 101
+        "attack": 1.0391146042613546,
+        "defense": 1.0206430928277894,
+        "games": 102
       },
       "old dominion": {
-        "attack": 0.9773237455153021,
-        "defense": 1.0160065190645249,
-        "games": 106
+        "attack": 0.9769189694563665,
+        "defense": 1.0147227374351326,
+        "games": 107
       },
       "san jos\u00e9 state spartans": {
         "attack": 0.9757786918998479,
@@ -5576,9 +5576,9 @@
         "games": 106
       },
       "south florida": {
-        "attack": 1.0785347021156038,
-        "defense": 0.9953050374707709,
-        "games": 105
+        "attack": 1.0798441185810668,
+        "defense": 0.9949604197973975,
+        "games": 106
       },
       "saint peters peacocks": {
         "attack": 0.8967056633692848,
@@ -5596,9 +5596,9 @@
         "games": 39
       },
       "iowa": {
-        "attack": 1.0837556618126938,
-        "defense": 1.0098519761430704,
-        "games": 109
+        "attack": 1.0838240684822322,
+        "defense": 1.0065864572779724,
+        "games": 110
       },
       "texas southern tigers": {
         "attack": 0.985442062668485,
@@ -5606,9 +5606,9 @@
         "games": 102
       },
       "wofford terriers": {
-        "attack": 1.0371621099409751,
-        "defense": 1.0000436958032872,
-        "games": 106
+        "attack": 1.0369128911844698,
+        "defense": 1.0001166035212044,
+        "games": 107
       },
       "calumet st. joseph crimson wave": {
         "attack": 0.7166097726662712,
@@ -5621,14 +5621,14 @@
         "games": 109
       },
       "utep miners": {
-        "attack": 0.9733138438364086,
-        "defense": 0.9548313806646774,
-        "games": 103
+        "attack": 0.9750195407842516,
+        "defense": 0.9536637952850016,
+        "games": 104
       },
       "delaware state hornets": {
-        "attack": 0.9537944827489853,
-        "defense": 0.9818742317958005,
-        "games": 101
+        "attack": 0.953790242702472,
+        "defense": 0.9815921757814872,
+        "games": 102
       },
       "la sierra golden eagles": {
         "attack": 0.7134960182672845,
@@ -5641,9 +5641,9 @@
         "games": 107
       },
       "rice": {
-        "attack": 0.9836824609969252,
-        "defense": 1.0012125588868488,
-        "games": 101
+        "attack": 0.9828514166304504,
+        "defense": 1.0008248174878185,
+        "games": 102
       },
       "penn state shenango nittany lions": {
         "attack": 0.7337520201129007,
@@ -5656,14 +5656,14 @@
         "games": 103
       },
       "north dakota fighting hawks": {
-        "attack": 1.0372087032600876,
-        "defense": 1.038760224351871,
-        "games": 106
+        "attack": 1.0372373160450392,
+        "defense": 1.0375771401118923,
+        "games": 107
       },
       "georgia southern": {
-        "attack": 1.0389030624755244,
-        "defense": 1.0651538564988656,
-        "games": 110
+        "attack": 1.0376423554547751,
+        "defense": 1.065025300177717,
+        "games": 111
       },
       "south carolina state bulldogs": {
         "attack": 0.9816602893506148,
@@ -5676,9 +5676,9 @@
         "games": 6
       },
       "maryland": {
-        "attack": 1.0053075162831404,
-        "defense": 0.9498764445277913,
-        "games": 107
+        "attack": 1.004474235993223,
+        "defense": 0.9502412862658455,
+        "games": 108
       },
       "uc irvine anteaters": {
         "attack": 1.0374107857441994,
@@ -5686,9 +5686,9 @@
         "games": 114
       },
       "vanderbilt": {
-        "attack": 1.0604555383828143,
-        "defense": 1.0089477553469737,
-        "games": 107
+        "attack": 1.0604449498479556,
+        "defense": 1.007016466739939,
+        "games": 108
       },
       "memphis": {
         "attack": 1.0723422980169188,
@@ -5701,9 +5701,9 @@
         "games": 110
       },
       "st. bonaventure": {
-        "attack": 0.9923930036622254,
-        "defense": 0.9390407152044615,
-        "games": 107
+        "attack": 0.991479234285791,
+        "defense": 0.9387706115120967,
+        "games": 108
       },
       "lsu": {
         "attack": 1.055297990842032,
@@ -5711,9 +5711,9 @@
         "games": 103
       },
       "south alabama jaguars": {
-        "attack": 1.0069532341597407,
-        "defense": 0.9560312468162243,
-        "games": 105
+        "attack": 1.0060991503558978,
+        "defense": 0.9540387103142192,
+        "games": 106
       },
       "eastern illinois panthers": {
         "attack": 0.9154303447312971,
@@ -5736,19 +5736,19 @@
         "games": 100
       },
       "sam houston bearkats": {
-        "attack": 1.0423160846629007,
-        "defense": 0.9973103237512293,
-        "games": 105
+        "attack": 1.0422759545459488,
+        "defense": 0.9972552836210129,
+        "games": 106
       },
       "marist": {
-        "attack": 0.9078073978952247,
-        "defense": 0.8646693485873784,
-        "games": 97
+        "attack": 0.9061391792990102,
+        "defense": 0.8640664393777002,
+        "games": 98
       },
       "pittsburgh": {
-        "attack": 1.011698438002767,
-        "defense": 0.949580532507171,
-        "games": 104
+        "attack": 1.011728764238032,
+        "defense": 0.949259847198858,
+        "games": 105
       },
       "george mason": {
         "attack": 0.9737526738088591,
@@ -5761,14 +5761,14 @@
         "games": 6
       },
       "florida a m rattlers": {
-        "attack": 0.9442187486166357,
-        "defense": 1.0381713888643007,
-        "games": 97
+        "attack": 0.9420901851280027,
+        "defense": 1.0372189435913766,
+        "games": 98
       },
       "st. johns red storm": {
-        "attack": 1.084846173602088,
-        "defense": 0.9368986288229149,
-        "games": 111
+        "attack": 1.085594604465037,
+        "defense": 0.9385322380335993,
+        "games": 112
       },
       "grambling tigers": {
         "attack": 0.9303998305380515,
@@ -5786,14 +5786,14 @@
         "games": 104
       },
       "new haven chargers": {
-        "attack": 0.873494499571522,
-        "defense": 0.8975449659486341,
-        "games": 37
+        "attack": 0.8747583441600951,
+        "defense": 0.8947704314436549,
+        "games": 38
       },
       "furman paladins": {
-        "attack": 1.0604220634435426,
-        "defense": 0.9776849330741154,
-        "games": 110
+        "attack": 1.0603235986373287,
+        "defense": 0.9764730362143881,
+        "games": 111
       },
       "st. francis il fighting saints": {
         "attack": 0.6942157476899607,
@@ -5806,19 +5806,19 @@
         "games": 5
       },
       "milwaukee panthers": {
-        "attack": 1.0581722475949311,
-        "defense": 1.0393394769643358,
-        "games": 105
+        "attack": 1.0573207274558183,
+        "defense": 1.037459875009711,
+        "games": 106
       },
       "umbc retrievers": {
-        "attack": 1.0588305481104818,
-        "defense": 1.0249789833596412,
-        "games": 105
+        "attack": 1.055277445417245,
+        "defense": 1.0250461214289128,
+        "games": 106
       },
       "kansas city roos": {
-        "attack": 0.9700876532573329,
-        "defense": 0.9939163324786632,
-        "games": 103
+        "attack": 0.9695866109728859,
+        "defense": 0.9952937473843767,
+        "games": 104
       },
       "defiance yellow jackets": {
         "attack": 0.7120263719999763,
@@ -5846,9 +5846,9 @@
         "games": 16
       },
       "alcorn state braves": {
-        "attack": 0.9179825853481475,
-        "defense": 1.0486773262520375,
-        "games": 102
+        "attack": 0.915472146054194,
+        "defense": 1.0490195720544773,
+        "games": 103
       },
       "incarnate word cardinals": {
         "attack": 0.9941520724521745,
@@ -5871,9 +5871,9 @@
         "games": 7
       },
       "mercyhurst lakers": {
-        "attack": 0.9234246929694562,
-        "defense": 0.9350947650117777,
-        "games": 73
+        "attack": 0.9274513008275236,
+        "defense": 0.9333197431420835,
+        "games": 74
       },
       "north texas": {
         "attack": 0.9460264773518868,
@@ -5881,24 +5881,24 @@
         "games": 108
       },
       "new mexico state aggies": {
-        "attack": 0.9583044697567243,
-        "defense": 0.9584901400702336,
-        "games": 102
-      },
-      "southeast missouri state redhawks": {
-        "attack": 0.981524900508121,
-        "defense": 0.9568379604342353,
+        "attack": 0.9573435865256412,
+        "defense": 0.9582167271024555,
         "games": 103
       },
+      "southeast missouri state redhawks": {
+        "attack": 0.9812764955928807,
+        "defense": 0.9578459054280676,
+        "games": 104
+      },
       "providence": {
-        "attack": 1.033294729534372,
-        "defense": 1.0073816767242112,
-        "games": 106
+        "attack": 1.0327365473681662,
+        "defense": 1.006674144895694,
+        "games": 107
       },
       "vermont catamounts": {
-        "attack": 0.9652254779374081,
-        "defense": 0.8853109652054694,
-        "games": 108
+        "attack": 0.9683343671310053,
+        "defense": 0.8895496757051157,
+        "games": 109
       },
       "saint francis red wolves": {
         "attack": 0.9403,
@@ -5921,9 +5921,9 @@
         "games": 101
       },
       "lindenwood lions": {
-        "attack": 0.973859622879339,
-        "defense": 0.981216313487775,
-        "games": 103
+        "attack": 0.9727596536608534,
+        "defense": 0.9817350520286403,
+        "games": 104
       },
       "portland": {
         "attack": 1.0027293212939945,
@@ -5941,9 +5941,9 @@
         "games": 99
       },
       "arizona": {
-        "attack": 1.1591684331289405,
-        "defense": 0.9729854558119154,
-        "games": 118
+        "attack": 1.1584363923131173,
+        "defense": 0.9725128545169235,
+        "games": 119
       },
       "southern new orleans knights": {
         "attack": 0.8498918105178968,
@@ -5966,9 +5966,9 @@
         "games": 105
       },
       "army": {
-        "attack": 0.9342396783324871,
-        "defense": 0.9762299875677638,
-        "games": 103
+        "attack": 0.9358002713067494,
+        "defense": 0.9793392491362648,
+        "games": 104
       },
       "michigan state": {
         "attack": 1.0442793904345802,
@@ -5986,14 +5986,14 @@
         "games": 12
       },
       "vcu rams": {
-        "attack": 1.0365594824520807,
-        "defense": 0.9120019375187074,
-        "games": 114
+        "attack": 1.0387819725351197,
+        "defense": 0.9129251640926803,
+        "games": 115
       },
       "louisiana ragin cajuns": {
-        "attack": 0.9188376688267953,
-        "defense": 0.9706106514462944,
-        "games": 104
+        "attack": 0.918153109042822,
+        "defense": 0.9657662134567304,
+        "games": 105
       },
       "fisk bulldogs": {
         "attack": 0.8286437025645772,
@@ -6036,14 +6036,14 @@
         "games": 6
       },
       "mercer bears": {
-        "attack": 1.0420428148814955,
-        "defense": 1.009223860973959,
-        "games": 105
+        "attack": 1.0434245293327746,
+        "defense": 1.0103796003615344,
+        "games": 106
       },
       "duquesne": {
-        "attack": 0.9789978977418896,
-        "defense": 0.9465233250052704,
-        "games": 108
+        "attack": 0.9795866290792417,
+        "defense": 0.945561457480685,
+        "games": 109
       },
       "east texas a m lions": {
         "attack": 0.9309680753295866,
@@ -6051,9 +6051,9 @@
         "games": 97
       },
       "detroit mercy titans": {
-        "attack": 0.9443456383542881,
-        "defense": 1.0623650960648576,
-        "games": 101
+        "attack": 0.9432173634139517,
+        "defense": 1.062395839428209,
+        "games": 102
       },
       "george washington revolutionaries": {
         "attack": 1.0490155622860005,
@@ -6076,9 +6076,9 @@
         "games": 103
       },
       "washington state": {
-        "attack": 1.0373846357276175,
-        "defense": 1.0093195848600545,
-        "games": 107
+        "attack": 1.0373284441714856,
+        "defense": 1.009281444762822,
+        "games": 108
       },
       "northern kentucky norse": {
         "attack": 1.038953009216441,
@@ -6086,14 +6086,14 @@
         "games": 107
       },
       "alabama": {
-        "attack": 1.2317551393375916,
-        "defense": 1.1078641557491358,
-        "games": 114
+        "attack": 1.2282603720061591,
+        "defense": 1.1060709409415843,
+        "games": 115
       },
       "elon phoenix": {
-        "attack": 1.0213350921394269,
-        "defense": 1.004538501113547,
-        "games": 103
+        "attack": 1.0199838765993228,
+        "defense": 1.004438947162338,
+        "games": 104
       },
       "lafayette": {
         "attack": 0.9164830948344822,
@@ -6106,9 +6106,9 @@
         "games": 6
       },
       "miami": {
-        "attack": 1.05401740130776,
-        "defense": 1.004016322509975,
-        "games": 104
+        "attack": 1.0540253610921997,
+        "defense": 1.0045016765592263,
+        "games": 105
       },
       "wichita state": {
         "attack": 1.0275021156581121,
@@ -6116,9 +6116,9 @@
         "games": 111
       },
       "central michigan": {
-        "attack": 0.9814800721452958,
-        "defense": 0.9905476650705581,
-        "games": 100
+        "attack": 0.9819848173551632,
+        "defense": 0.9922709842441646,
+        "games": 101
       },
       "georgetown": {
         "attack": 0.9880648625489228,
@@ -6131,24 +6131,24 @@
         "games": 110
       },
       "arlington baptist patriots": {
-        "attack": 0.7618,
-        "defense": 1.5688,
-        "games": 6
+        "attack": 0.7491773966683876,
+        "defense": 1.4820737081024282,
+        "games": 7
       },
       "villanova": {
-        "attack": 1.00399584775719,
-        "defense": 0.9311397777095665,
-        "games": 110
+        "attack": 1.0027810700593618,
+        "defense": 0.930752534580296,
+        "games": 111
       },
       "stetson hatters": {
-        "attack": 1.0029680571352082,
-        "defense": 1.0561429889599643,
-        "games": 106
+        "attack": 1.0026240317156545,
+        "defense": 1.0574132368508962,
+        "games": 107
       },
       "weber state wildcats": {
-        "attack": 1.0286905112031097,
-        "defense": 0.989740662109529,
-        "games": 103
+        "attack": 1.0297654682927824,
+        "defense": 0.9911618649559498,
+        "games": 104
       },
       "brown bears": {
         "attack": 0.9688929183496408,
@@ -6161,9 +6161,9 @@
         "games": 105
       },
       "idaho state bengals": {
-        "attack": 0.9928145331149364,
-        "defense": 0.9855475591344651,
-        "games": 102
+        "attack": 0.9936552936769014,
+        "defense": 0.9865428183107441,
+        "games": 103
       },
       "bethune-cookman wildcats": {
         "attack": 0.9845407463994532,
@@ -6171,9 +6171,9 @@
         "games": 105
       },
       "uic flames": {
-        "attack": 0.9999566673135171,
-        "defense": 0.9725722959933633,
-        "games": 105
+        "attack": 0.9995840256831576,
+        "defense": 0.9717816437951621,
+        "games": 106
       },
       "nebraska": {
         "attack": 1.0474208810339296,
@@ -6181,9 +6181,9 @@
         "games": 110
       },
       "kennesaw state owls": {
-        "attack": 1.0945113235411994,
-        "defense": 1.035881330538633,
-        "games": 105
+        "attack": 1.0909764419325325,
+        "defense": 1.0346102108315176,
+        "games": 106
       },
       "winthrop eagles": {
         "attack": 1.112274467509257,
@@ -6216,9 +6216,9 @@
         "games": 5
       },
       "southern utah thunderbirds": {
-        "attack": 1.0093300192035906,
-        "defense": 1.0446535374437942,
-        "games": 101
+        "attack": 1.0085175244590237,
+        "defense": 1.0444528288154267,
+        "games": 102
       },
       "northern new mexico eagles": {
         "attack": 0.7755455332466398,
@@ -6231,14 +6231,14 @@
         "games": 103
       },
       "charleston southern buccaneers": {
-        "attack": 1.008314103797629,
-        "defense": 1.046683574008418,
-        "games": 100
+        "attack": 1.0068758707716305,
+        "defense": 1.0462466201541667,
+        "games": 101
       },
       "nevada": {
-        "attack": 1.0198414218049034,
-        "defense": 0.9380513885018208,
-        "games": 110
+        "attack": 1.0205602116109287,
+        "defense": 0.9373399178699995,
+        "games": 111
       },
       "liberty flames": {
         "attack": 1.02694503378077,
@@ -6251,14 +6251,14 @@
         "games": 88
       },
       "app state mountaineers": {
-        "attack": 0.9909376014554355,
-        "defense": 0.8890221058493902,
-        "games": 103
+        "attack": 0.9887190534644391,
+        "defense": 0.8870715459027882,
+        "games": 104
       },
       "wright state raiders": {
-        "attack": 1.1042011136509566,
-        "defense": 1.0357857390100391,
-        "games": 106
+        "attack": 1.1038805352511287,
+        "defense": 1.034823101433291,
+        "games": 107
       },
       "southern jaguars": {
         "attack": 1.0182887297128587,
@@ -6266,19 +6266,19 @@
         "games": 104
       },
       "oregon state": {
-        "attack": 0.9917382530679295,
-        "defense": 0.9775971902544649,
-        "games": 105
+        "attack": 0.9935740385083952,
+        "defense": 0.9779829462534982,
+        "games": 106
       },
       "green bay phoenix": {
-        "attack": 0.9718417414224956,
-        "defense": 1.0083973377043909,
-        "games": 104
+        "attack": 0.9731757374610164,
+        "defense": 1.0078814690588367,
+        "games": 105
       },
       "florida state": {
-        "attack": 1.0549315289628214,
-        "defense": 1.0209896095132553,
-        "games": 104
+        "attack": 1.0565691294447217,
+        "defense": 1.0191438973958793,
+        "games": 105
       },
       "florida gulf coast eagles": {
         "attack": 0.99908058645362,
@@ -6306,9 +6306,9 @@
         "games": 106
       },
       "stonehill skyhawks": {
-        "attack": 0.8983358813668169,
-        "defense": 0.9758491688051144,
-        "games": 102
+        "attack": 0.9035943568712005,
+        "defense": 0.9752929981970694,
+        "games": 103
       },
       "dallas christian crusaders": {
         "attack": 0.7068743963873352,
@@ -6321,9 +6321,9 @@
         "games": 106
       },
       "texas tech": {
-        "attack": 1.067280916910138,
-        "defense": 0.9450334182077015,
-        "games": 110
+        "attack": 1.0659676615391556,
+        "defense": 0.9443310250002773,
+        "games": 111
       },
       "colorado": {
         "attack": 1.0331684917080117,
@@ -6366,9 +6366,9 @@
         "games": 110
       },
       "lipscomb bisons": {
-        "attack": 1.0821487281707636,
-        "defense": 0.9963251458347886,
-        "games": 107
+        "attack": 1.0810678271712948,
+        "defense": 0.9978150205914976,
+        "games": 108
       },
       "kentucky state thorobreds": {
         "attack": 0.8401946037602699,
@@ -6396,9 +6396,9 @@
         "games": 7
       },
       "grand canyon lopes": {
-        "attack": 1.0598797599259446,
-        "defense": 0.9310159533931192,
-        "games": 105
+        "attack": 1.0609447709894726,
+        "defense": 0.933279440835656,
+        "games": 106
       },
       "towson tigers": {
         "attack": 0.9345282960274268,
@@ -6421,14 +6421,14 @@
         "games": 8
       },
       "arkansas state red wolves": {
-        "attack": 1.0892252406937355,
-        "defense": 1.0174305795073695,
-        "games": 111
+        "attack": 1.0926815531412257,
+        "defense": 1.017709078932386,
+        "games": 112
       },
       "creighton": {
-        "attack": 1.045797384439349,
-        "defense": 0.9696293074455771,
-        "games": 110
+        "attack": 1.0492894404381123,
+        "defense": 0.9686586401580194,
+        "games": 111
       },
       "uc san diego tritons": {
         "attack": 1.052259813984132,
@@ -6441,14 +6441,14 @@
         "games": 111
       },
       "oklahoma": {
-        "attack": 1.0655799579061602,
-        "defense": 1.0007908041347475,
-        "games": 108
+        "attack": 1.0652333039938942,
+        "defense": 1.0008197025167493,
+        "games": 109
       },
       "belmont": {
-        "attack": 1.083861951615628,
-        "defense": 1.0070684609979343,
-        "games": 104
+        "attack": 1.0825868663914495,
+        "defense": 1.007090587855552,
+        "games": 105
       },
       "stanford": {
         "attack": 1.0191207973616696,
@@ -6491,19 +6491,19 @@
         "games": 109
       },
       "michigan": {
-        "attack": 1.088943830405322,
-        "defense": 0.9912708237136963,
-        "games": 114
+        "attack": 1.0878916377230163,
+        "defense": 0.994465678404537,
+        "games": 115
       },
       "lamar cardinals": {
-        "attack": 0.9986484373866894,
-        "defense": 0.946166702068828,
-        "games": 102
+        "attack": 0.9999648439628318,
+        "defense": 0.9454172982319671,
+        "games": 103
       },
       "florida atlantic": {
-        "attack": 1.079224957594089,
-        "defense": 1.01439638856394,
-        "games": 106
+        "attack": 1.0804493100929673,
+        "defense": 1.015728874145802,
+        "games": 107
       },
       "virginia tech": {
         "attack": 1.0180567802732543,
@@ -6511,9 +6511,9 @@
         "games": 105
       },
       "baylor": {
-        "attack": 1.08243755930546,
-        "defense": 0.9760440161318555,
-        "games": 109
+        "attack": 1.0806058615480703,
+        "defense": 0.97314888364416,
+        "games": 110
       },
       "texas state bobcats": {
         "attack": 1.0012844327568267,
@@ -6521,9 +6521,9 @@
         "games": 106
       },
       "colorado state": {
-        "attack": 1.0228112745071207,
-        "defense": 0.9330330066411785,
-        "games": 112
+        "attack": 1.0238649998836922,
+        "defense": 0.9350689327283334,
+        "games": 113
       },
       "fairfield": {
         "attack": 0.9830755464079728,
@@ -6561,9 +6561,9 @@
         "games": 100
       },
       "siena": {
-        "attack": 0.9351559142349017,
-        "defense": 0.9685072987848146,
-        "games": 105
+        "attack": 0.9397599911452638,
+        "defense": 0.9717150449685269,
+        "games": 106
       },
       "siu edwardsville cougars": {
         "attack": 0.966305014942747,
@@ -6591,9 +6591,9 @@
         "games": 103
       },
       "bucknell bison": {
-        "attack": 0.9323282955517881,
-        "defense": 0.9886465456738317,
-        "games": 105
+        "attack": 0.9325955977543715,
+        "defense": 0.9890191226958429,
+        "games": 106
       },
       "william carey crusaders": {
         "attack": 0.7297,
@@ -6621,14 +6621,14 @@
         "games": 112
       },
       "lehigh": {
-        "attack": 0.9777134864494794,
-        "defense": 0.9722611289964841,
-        "games": 103
+        "attack": 0.9787451610862214,
+        "defense": 0.9759911671961308,
+        "games": 104
       },
       "long beach state beach": {
-        "attack": 0.9931112503989932,
-        "defense": 1.0305071719580539,
-        "games": 105
+        "attack": 0.9933984802517541,
+        "defense": 1.0339622548788192,
+        "games": 106
       },
       "uc davis aggies": {
         "attack": 0.9797736182781055,
@@ -6656,14 +6656,14 @@
         "games": 104
       },
       "charleston cougars": {
-        "attack": 1.064452662037758,
-        "defense": 0.9978258299845483,
-        "games": 105
+        "attack": 1.063175588838348,
+        "defense": 0.9995414898338432,
+        "games": 106
       },
       "eastern michigan": {
-        "attack": 0.9556238176692439,
-        "defense": 1.0002299985355325,
-        "games": 99
+        "attack": 0.9543808229696558,
+        "defense": 0.9968057888236495,
+        "games": 100
       },
       "milligan buffaloes": {
         "attack": 0.8831913236054968,
@@ -6676,9 +6676,9 @@
         "games": 114
       },
       "southern indiana screaming eagles": {
-        "attack": 0.9470100240859984,
-        "defense": 0.9948726955358006,
-        "games": 99
+        "attack": 0.9487380084579716,
+        "defense": 0.9965243475389408,
+        "games": 100
       },
       "fairleigh dickinson knights": {
         "attack": 0.9761421948226346,
@@ -6686,9 +6686,9 @@
         "games": 104
       },
       "new hampshire wildcats": {
-        "attack": 0.9527922733768309,
-        "defense": 1.0079635930654494,
-        "games": 100
+        "attack": 0.9475074427635161,
+        "defense": 1.0078804462130675,
+        "games": 101
       },
       "troy trojans": {
         "attack": 1.0435136770284983,
@@ -6696,14 +6696,14 @@
         "games": 107
       },
       "oral roberts golden eagles": {
-        "attack": 0.9958826625809918,
-        "defense": 1.035671760543602,
-        "games": 100
+        "attack": 0.9982743354255712,
+        "defense": 1.0355453953463256,
+        "games": 101
       },
       "morgan state bears": {
-        "attack": 1.0230768063097804,
-        "defense": 1.0638665473045035,
-        "games": 100
+        "attack": 1.0226786155758638,
+        "defense": 1.06457602090358,
+        "games": 101
       },
       "stanislaus state warriors": {
         "attack": 0.5724,
@@ -6716,9 +6716,9 @@
         "games": 107
       },
       "mount st. marys mountaineers": {
-        "attack": 0.9479696609155507,
-        "defense": 0.967993235755202,
-        "games": 105
+        "attack": 0.9485720249494091,
+        "defense": 0.9676342553515946,
+        "games": 106
       },
       "middle tennessee blue raiders": {
         "attack": 0.9883231897446514,
@@ -6731,9 +6731,9 @@
         "games": 105
       },
       "bellarmine knights": {
-        "attack": 1.0032082394532589,
-        "defense": 1.0696987208926456,
-        "games": 101
+        "attack": 1.0030764759936626,
+        "defense": 1.068286107145332,
+        "games": 102
       },
       "northern illinois": {
         "attack": 0.9776792268090891,
@@ -6741,9 +6741,9 @@
         "games": 99
       },
       "saint louis billikens": {
-        "attack": 1.0786367194914017,
-        "defense": 0.9976087740596404,
-        "games": 107
+        "attack": 1.0812105401181067,
+        "defense": 0.9985926489806937,
+        "games": 108
       },
       "montana grizzlies": {
         "attack": 1.0432,
@@ -6756,9 +6756,9 @@
         "games": 101
       },
       "cornell big red": {
-        "attack": 1.1504500180196904,
-        "defense": 1.0607592894184172,
-        "games": 93
+        "attack": 1.1509389188566164,
+        "defense": 1.0611022376184382,
+        "games": 94
       },
       "the citadel bulldogs": {
         "attack": 0.9392540638733634,
@@ -6776,9 +6776,9 @@
         "games": 6
       },
       "rider": {
-        "attack": 0.9149084981595389,
-        "defense": 0.9976685723332258,
-        "games": 101
+        "attack": 0.9135060183706972,
+        "defense": 0.9974075463439508,
+        "games": 102
       },
       "alice lloyd eagles": {
         "attack": 0.921658700443665,
@@ -6811,9 +6811,9 @@
         "games": 107
       },
       "queens university royals": {
-        "attack": 1.0965446296315364,
-        "defense": 1.0941983142561886,
-        "games": 109
+        "attack": 1.096622392439263,
+        "defense": 1.093942560973895,
+        "games": 110
       },
       "college of biblical studies ambassadors": {
         "attack": 0.8346072752607451,
@@ -6821,14 +6821,14 @@
         "games": 22
       },
       "binghamton bearcats": {
-        "attack": 0.9496722581742668,
-        "defense": 0.9835067702292081,
-        "games": 100
+        "attack": 0.9534238542557514,
+        "defense": 0.9845753832638329,
+        "games": 101
       },
       "tennessee": {
-        "attack": 1.0445826483299556,
-        "defense": 0.8989639752780668,
-        "games": 116
+        "attack": 1.0449530032335483,
+        "defense": 0.8982761591393199,
+        "games": 117
       },
       "le moyne dolphins": {
         "attack": 0.9915273923632247,
@@ -6836,9 +6836,9 @@
         "games": 103
       },
       "houston christian huskies": {
-        "attack": 0.9301414583286992,
-        "defense": 1.0134049400424527,
-        "games": 98
+        "attack": 0.9321459898557055,
+        "defense": 1.0110347730791112,
+        "games": 99
       },
       "houston": {
         "attack": 1.0227247331473068,
@@ -6866,9 +6866,9 @@
         "games": 119
       },
       "byu": {
-        "attack": 1.1182711940278542,
-        "defense": 0.9855763336548244,
-        "games": 111
+        "attack": 1.1155742954028927,
+        "defense": 0.985788512795625,
+        "games": 112
       },
       "minnesota": {
         "attack": 0.9697386325196021,
@@ -6876,9 +6876,9 @@
         "games": 106
       },
       "robert morris colonials": {
-        "attack": 1.024028657061302,
-        "defense": 0.986159130559564,
-        "games": 106
+        "attack": 1.0232479037953228,
+        "defense": 0.9874104778670059,
+        "games": 107
       },
       "suny oneonta red dragons": {
         "attack": 0.8382,
@@ -6911,9 +6911,9 @@
         "games": 108
       },
       "wagner seahawks": {
-        "attack": 0.8928102974179443,
-        "defense": 0.8867596114049329,
-        "games": 100
+        "attack": 0.8961908929879363,
+        "defense": 0.8842324120085605,
+        "games": 101
       },
       "jackson state tigers": {
         "attack": 0.9625,
@@ -6931,14 +6931,14 @@
         "games": 6
       },
       "west georgia wolves": {
-        "attack": 0.9873206136303538,
-        "defense": 1.060502846597426,
-        "games": 69
+        "attack": 0.9905358399143267,
+        "defense": 1.0685035249161063,
+        "games": 70
       },
       "gardner-webb runnin bulldogs": {
-        "attack": 0.9666182357777399,
-        "defense": 1.070739152351633,
-        "games": 103
+        "attack": 0.9664423033503058,
+        "defense": 1.0713328811240752,
+        "games": 104
       },
       "san diego": {
         "attack": 0.9875103710343531,
@@ -6951,9 +6951,9 @@
         "games": 105
       },
       "boise state": {
-        "attack": 1.0398296244983325,
-        "defense": 0.9440609028190857,
-        "games": 107
+        "attack": 1.0408310860011243,
+        "defense": 0.9448233639121311,
+        "games": 108
       },
       "southwestern christian u eagles": {
         "attack": 0.8685251773123728,
@@ -6986,9 +6986,9 @@
         "games": 1
       },
       "tarleton state": {
-        "attack": 1.0976898112626945,
-        "defense": 1.0033029538748282,
-        "games": 5
+        "attack": 1.1250107978223742,
+        "defense": 1.0214757006189674,
+        "games": 6
       },
       "mayville state comets": {
         "attack": 0.9464499349729799,
@@ -7021,9 +7021,9 @@
         "games": 6
       },
       "east texas a m": {
-        "attack": 1.0561177227447605,
-        "defense": 1.0869244989717148,
-        "games": 5
+        "attack": 0.9880027922982698,
+        "defense": 1.065913140431958,
+        "games": 6
       },
       "colorado colorado springs mountain lions": {
         "attack": 0.8301607050920138,
@@ -7036,9 +7036,9 @@
         "games": 1
       },
       "louisiana christian wildcats": {
-        "attack": 0.7456766502520449,
-        "defense": 1.3813735047970546,
-        "games": 2
+        "attack": 0.6154148917951195,
+        "defense": 1.3453528372690033,
+        "games": 3
       },
       "suny potsdam suny-potsdam": {
         "attack": 0.6857478305805649,
@@ -7899,9 +7899,39 @@
         "attack": 0.8713151214230895,
         "defense": 1.0562017619360307,
         "games": 1
+      },
+      "vermont state randolph knights": {
+        "attack": 0.9412966937310823,
+        "defense": 1.6029181158025638,
+        "games": 1
+      },
+      "penn state berks nittany lions": {
+        "attack": 0.720969565034475,
+        "defense": 1.3110625204819077,
+        "games": 1
+      },
+      "bloomsburg huskies": {
+        "attack": 0.7121574598676138,
+        "defense": 1.3824330359502601,
+        "games": 1
+      },
+      "emerson lions": {
+        "attack": 0.8406757638810171,
+        "defense": 1.06812335590228,
+        "games": 1
+      },
+      "carolina christian centurions": {
+        "attack": 0.6690384613111751,
+        "defense": 1.5780410970516783,
+        "games": 1
+      },
+      "suny fredonia blue devils": {
+        "attack": 0.8595312226395533,
+        "defense": 1.3226781607266846,
+        "games": 1
       }
     },
-    "last_updated": "2026-11-23"
+    "last_updated": "2026-11-24"
   },
   "ncaaw": {
     "league_avg": {
@@ -7930,9 +7960,9 @@
         "games": 112
       },
       "florida": {
-        "attack": 1.13678878808177,
-        "defense": 1.0621669058583405,
-        "games": 108
+        "attack": 1.13683164451955,
+        "defense": 1.0605041323214965,
+        "games": 109
       },
       "unt dallas trailblazers": {
         "attack": 0.679,
@@ -7945,19 +7975,19 @@
         "games": 109
       },
       "lsu new orleans privateers": {
-        "attack": 0.934804655445416,
-        "defense": 1.146504405753939,
-        "games": 95
+        "attack": 0.9371195979600347,
+        "defense": 1.146914099004052,
+        "games": 96
       },
       "ul monroe warhawks": {
-        "attack": 1.0744938081037831,
-        "defense": 1.040096042116763,
-        "games": 103
+        "attack": 1.0697247666684222,
+        "defense": 1.0407866084667878,
+        "games": 104
       },
       "eastern kentucky colonels": {
-        "attack": 1.098836049267622,
-        "defense": 0.9600290237226404,
-        "games": 108
+        "attack": 1.0978122085257724,
+        "defense": 0.9593531620596971,
+        "games": 109
       },
       "lees mcrae bobcats": {
         "attack": 0.7477466981143832,
@@ -7965,14 +7995,14 @@
         "games": 8
       },
       "longwood lancers": {
-        "attack": 1.0532252837088822,
-        "defense": 0.97806261061093,
-        "games": 101
+        "attack": 1.0531074689641284,
+        "defense": 0.9773498257554831,
+        "games": 102
       },
       "denver pioneers": {
-        "attack": 0.9541832424688922,
-        "defense": 1.0375476176559653,
-        "games": 96
+        "attack": 0.9521024743836757,
+        "defense": 1.0389716989075992,
+        "games": 97
       },
       "tennessee tech golden eagles": {
         "attack": 1.06356457613396,
@@ -7980,9 +8010,9 @@
         "games": 98
       },
       "pennsylvania quakers": {
-        "attack": 1.0179318299644406,
-        "defense": 0.9250121802155096,
-        "games": 90
+        "attack": 1.017906693070623,
+        "defense": 0.924514960677447,
+        "games": 91
       },
       "boise state broncos": {
         "attack": 1.0359412122261917,
@@ -7990,9 +8020,9 @@
         "games": 108
       },
       "portland state vikings": {
-        "attack": 0.9042821199329736,
-        "defense": 1.0770267887658835,
-        "games": 96
+        "attack": 0.9067706426565438,
+        "defense": 1.0801231624505145,
+        "games": 97
       },
       "drexel dragons": {
         "attack": 0.9182961432500535,
@@ -8005,9 +8035,9 @@
         "games": 104
       },
       "east tennessee state buccaneers": {
-        "attack": 0.9031532757541222,
-        "defense": 0.8585003781614816,
-        "games": 98
+        "attack": 0.9047491884278339,
+        "defense": 0.856400661264971,
+        "games": 99
       },
       "portland pilots": {
         "attack": 1.0880143433461067,
@@ -8030,9 +8060,9 @@
         "games": 98
       },
       "hofstra pride": {
-        "attack": 0.867825618781529,
-        "defense": 0.9256136537812077,
-        "games": 99
+        "attack": 0.8674011218128491,
+        "defense": 0.925592853746455,
+        "games": 100
       },
       "cal poly mustangs": {
         "attack": 0.8802268917120177,
@@ -8040,24 +8070,24 @@
         "games": 100
       },
       "davis elkins senators": {
-        "attack": 0.5937,
-        "defense": 1.3741,
-        "games": 5
+        "attack": 0.6162149356355687,
+        "defense": 1.3142351213205066,
+        "games": 6
       },
       "alabama state lady hornets": {
-        "attack": 0.8190827708722317,
-        "defense": 1.0699043898146,
-        "games": 96
-      },
-      "ucf": {
-        "attack": 0.9972348983018559,
-        "defense": 1.0392809268129957,
+        "attack": 0.8198857859053253,
+        "defense": 1.0694183130038522,
         "games": 97
       },
+      "ucf": {
+        "attack": 1.0011484906991435,
+        "defense": 1.0445054223889843,
+        "games": 98
+      },
       "pepperdine waves": {
-        "attack": 0.933952793580309,
-        "defense": 1.0258144662732784,
-        "games": 100
+        "attack": 0.932836484990373,
+        "defense": 1.0251766765113535,
+        "games": 101
       },
       "nevada wolf pack": {
         "attack": 0.9355761173532942,
@@ -8070,9 +8100,9 @@
         "games": 98
       },
       "utah valley wolverines": {
-        "attack": 0.9628827403039822,
-        "defense": 0.9577166568993093,
-        "games": 96
+        "attack": 0.9600543693142971,
+        "defense": 0.9601126443395344,
+        "games": 97
       },
       "rutgers": {
         "attack": 0.9994249446701059,
@@ -8085,9 +8115,9 @@
         "games": 102
       },
       "ut martin skyhawks": {
-        "attack": 0.9861303474647284,
-        "defense": 1.0118967859504975,
-        "games": 102
+        "attack": 0.9882013602468793,
+        "defense": 1.011689531931301,
+        "games": 103
       },
       "central arkansas sugar bears": {
         "attack": 1.0376430864384842,
@@ -8110,9 +8140,9 @@
         "games": 107
       },
       "la salle explorers": {
-        "attack": 0.9201541284138912,
-        "defense": 1.0251218370965545,
-        "games": 102
+        "attack": 0.9223149637088663,
+        "defense": 1.0240463125734225,
+        "games": 103
       },
       "western new mexico mustangs": {
         "attack": 0.8039801115413018,
@@ -8135,9 +8165,9 @@
         "games": 103
       },
       "western illinois leathernecks": {
-        "attack": 1.1154655990692988,
-        "defense": 0.9959163350046827,
-        "games": 102
+        "attack": 1.1143765379967245,
+        "defense": 0.993088641567344,
+        "games": 103
       },
       "seton hall": {
         "attack": 0.9873664121097292,
@@ -8150,9 +8180,9 @@
         "games": 6
       },
       "south carolina": {
-        "attack": 1.2818114214164615,
-        "defense": 0.8787789615080989,
-        "games": 123
+        "attack": 1.281923160967808,
+        "defense": 0.8768553077705548,
+        "games": 124
       },
       "south carolina state lady bulldogs": {
         "attack": 0.7798720579693526,
@@ -8165,9 +8195,9 @@
         "games": 108
       },
       "high point panthers": {
-        "attack": 1.0474107077240322,
-        "defense": 0.9230393725998766,
-        "games": 106
+        "attack": 1.046288445074723,
+        "defense": 0.9234409297554927,
+        "games": 107
       },
       "memphis tigers": {
         "attack": 1.0296107816895006,
@@ -8175,9 +8205,9 @@
         "games": 97
       },
       "stephen f. austin ladyjacks": {
-        "attack": 1.16971436055678,
-        "defense": 1.0090066010004124,
-        "games": 108
+        "attack": 1.1692954951788619,
+        "defense": 1.0102370753698247,
+        "games": 109
       },
       "florida atlantic owls": {
         "attack": 0.9336495179860187,
@@ -8185,9 +8215,9 @@
         "games": 100
       },
       "uconn": {
-        "attack": 1.2650255132561299,
-        "defense": 0.8149318762771967,
-        "games": 124
+        "attack": 1.2622785161226668,
+        "defense": 0.8150023481420482,
+        "games": 125
       },
       "chapman panthers": {
         "attack": 0.5539,
@@ -8205,9 +8235,9 @@
         "games": 97
       },
       "evansville purple aces": {
-        "attack": 0.9730379622497308,
-        "defense": 1.1698536724849067,
-        "games": 105
+        "attack": 0.9694017008294145,
+        "defense": 1.1698891811351038,
+        "games": 106
       },
       "north alabama lions": {
         "attack": 1.008003384306897,
@@ -8250,14 +8280,14 @@
         "games": 97
       },
       "sacred heart pioneers": {
-        "attack": 0.9216825528834272,
-        "defense": 0.9241127957017552,
-        "games": 100
+        "attack": 0.9221699325019342,
+        "defense": 0.9244902640420495,
+        "games": 101
       },
       "northern colorado bears": {
-        "attack": 1.0086345166096,
-        "defense": 0.9419653883021275,
-        "games": 102
+        "attack": 1.0099382688478826,
+        "defense": 0.9400309212029294,
+        "games": 103
       },
       "dayton flyers": {
         "attack": 0.9808241528614038,
@@ -8270,9 +8300,9 @@
         "games": 5
       },
       "notre dame": {
-        "attack": 1.241696716244552,
-        "defense": 0.9633023355369594,
-        "games": 111
+        "attack": 1.2403273866827227,
+        "defense": 0.9625722415625155,
+        "games": 112
       },
       "south dakota state jackrabbits": {
         "attack": 1.1475868839256083,
@@ -8350,9 +8380,9 @@
         "games": 102
       },
       "western kentucky lady toppers": {
-        "attack": 0.9932553250545341,
-        "defense": 0.980986824427786,
-        "games": 97
+        "attack": 0.9926337280834412,
+        "defense": 0.98441395329442,
+        "games": 98
       },
       "smu mustangs": {
         "attack": 1.003781249057266,
@@ -8375,9 +8405,9 @@
         "games": 100
       },
       "depaul": {
-        "attack": 1.0321981060482057,
-        "defense": 1.0934988997914818,
-        "games": 103
+        "attack": 1.0366562989510582,
+        "defense": 1.0956989986397863,
+        "games": 104
       },
       "loyola maryland greyhounds": {
         "attack": 0.8734687664734695,
@@ -8430,14 +8460,14 @@
         "games": 101
       },
       "missouri": {
-        "attack": 1.0901807532192356,
-        "defense": 1.095072856945297,
-        "games": 102
+        "attack": 1.091111894860578,
+        "defense": 1.0933015989077755,
+        "games": 103
       },
       "st. marys tx rattlers": {
-        "attack": 0.6029,
-        "defense": 1.0008,
-        "games": 5
+        "attack": 0.6357757959685338,
+        "defense": 0.9698303347055267,
+        "games": 6
       },
       "tcu": {
         "attack": 1.134215945444239,
@@ -8445,9 +8475,9 @@
         "games": 119
       },
       "jacksonville dolphins": {
-        "attack": 1.0576260792198655,
-        "defense": 1.0684097675026292,
-        "games": 100
+        "attack": 1.0627848741199954,
+        "defense": 1.072478139674758,
+        "games": 101
       },
       "erskine flying fleet": {
         "attack": 0.6763520000265404,
@@ -8465,9 +8495,9 @@
         "games": 101
       },
       "unc asheville bulldogs": {
-        "attack": 0.9113997370959184,
-        "defense": 0.9644189169145772,
-        "games": 97
+        "attack": 0.9091478932550335,
+        "defense": 0.9661404782547901,
+        "games": 98
       },
       "california baptist lancers": {
         "attack": 1.122298788598888,
@@ -8500,9 +8530,9 @@
         "games": 105
       },
       "virginia": {
-        "attack": 1.1190649335938494,
-        "defense": 1.0168595609446218,
-        "games": 105
+        "attack": 1.118646425098791,
+        "defense": 1.015291415433033,
+        "games": 106
       },
       "presbyterian blue hose": {
         "attack": 0.8505651832466948,
@@ -8530,9 +8560,9 @@
         "games": 98
       },
       "yale bulldogs": {
-        "attack": 0.898386773601492,
-        "defense": 1.0391726919877322,
-        "games": 87
+        "attack": 0.8974804221050413,
+        "defense": 1.040480455789293,
+        "games": 88
       },
       "ut arlington mavericks": {
         "attack": 1.041528210133148,
@@ -8560,14 +8590,14 @@
         "games": 6
       },
       "west virginia": {
-        "attack": 1.1492575594345058,
-        "defense": 0.8823326047567533,
-        "games": 106
+        "attack": 1.1474248212535119,
+        "defense": 0.8823664900568617,
+        "games": 107
       },
       "coppin state eagles": {
-        "attack": 0.9022735619376904,
-        "defense": 0.9839321514981754,
-        "games": 102
+        "attack": 0.9008323222364585,
+        "defense": 0.9849329175542357,
+        "games": 103
       },
       "toledo rockets": {
         "attack": 1.0523142500011513,
@@ -8600,14 +8630,14 @@
         "games": 97
       },
       "new mexico lobos": {
-        "attack": 1.02798887014173,
-        "defense": 0.9708045367255833,
-        "games": 102
+        "attack": 1.0272230070589317,
+        "defense": 0.969847297296343,
+        "games": 103
       },
       "texas a m-corpus christi islanders": {
-        "attack": 0.9405587122397331,
-        "defense": 0.9338674080638412,
-        "games": 98
+        "attack": 0.9387947422940008,
+        "defense": 0.9369536663376561,
+        "games": 99
       },
       "coastal georgia mariner": {
         "attack": 0.811,
@@ -8620,9 +8650,9 @@
         "games": 100
       },
       "duquesne dukes": {
-        "attack": 1.0522160138784495,
-        "defense": 1.0124536784305445,
-        "games": 106
+        "attack": 1.0520871963462117,
+        "defense": 1.0131362359583715,
+        "games": 107
       },
       "oregon": {
         "attack": 1.0567461632259296,
@@ -8630,9 +8660,9 @@
         "games": 107
       },
       "boston college": {
-        "attack": 1.0638469851539694,
-        "defense": 1.1069222489319357,
-        "games": 104
+        "attack": 1.065217569371851,
+        "defense": 1.1063600972763588,
+        "games": 105
       },
       "montreat cavaliers": {
         "attack": 0.6735486739915263,
@@ -8675,14 +8705,14 @@
         "games": 100
       },
       "monmouth hawks": {
-        "attack": 0.9908097048186582,
-        "defense": 0.9185542916803293,
-        "games": 102
+        "attack": 0.9891675396760844,
+        "defense": 0.9193952333444684,
+        "games": 103
       },
       "bryant bulldogs": {
-        "attack": 0.9324053477284737,
-        "defense": 0.8877797353477717,
-        "games": 98
+        "attack": 0.9302157949206634,
+        "defense": 0.8900026164642001,
+        "games": 99
       },
       "san francisco dons": {
         "attack": 1.0324775683037664,
@@ -8690,9 +8720,9 @@
         "games": 101
       },
       "stony brook seawolves": {
-        "attack": 0.960558472389171,
-        "defense": 0.8851739588266777,
-        "games": 102
+        "attack": 0.9597706836490681,
+        "defense": 0.8833125778377114,
+        "games": 103
       },
       "washington": {
         "attack": 1.0738984166978731,
@@ -8705,14 +8735,14 @@
         "games": 93
       },
       "san jos\u00e9 state spartans": {
-        "attack": 0.9218718821931831,
-        "defense": 1.075127676300617,
-        "games": 100
+        "attack": 0.9204932529076835,
+        "defense": 1.0750564012865835,
+        "games": 101
       },
       "georgia southern eagles": {
-        "attack": 1.0916498838547786,
-        "defense": 1.0294690768861934,
-        "games": 104
+        "attack": 1.0914980538556125,
+        "defense": 1.0282328119678057,
+        "games": 105
       },
       "cal state northridge matadors": {
         "attack": 0.9003534724272823,
@@ -8730,9 +8760,9 @@
         "games": 96
       },
       "st. bonaventure bonnies": {
-        "attack": 0.8759544965755822,
-        "defense": 1.0032613072372714,
-        "games": 98
+        "attack": 0.8764298328237934,
+        "defense": 1.0014382680293503,
+        "games": 99
       },
       "virginia lynchburg dragons": {
         "attack": 0.5958283379056312,
@@ -8800,9 +8830,9 @@
         "games": 103
       },
       "georgia state panthers": {
-        "attack": 1.0371131067546757,
-        "defense": 1.073553042633346,
-        "games": 99
+        "attack": 1.0352474005178325,
+        "defense": 1.0741297799989975,
+        "games": 100
       },
       "hendrix warriors": {
         "attack": 0.511274055962413,
@@ -8820,9 +8850,9 @@
         "games": 100
       },
       "northwestern state lady demons": {
-        "attack": 0.9474608628097342,
-        "defense": 0.9417253967431108,
-        "games": 100
+        "attack": 0.947047461761828,
+        "defense": 0.9426120841248551,
+        "games": 101
       },
       "southern wesleyan warriors": {
         "attack": 0.6784060531564126,
@@ -8835,9 +8865,9 @@
         "games": 104
       },
       "maryland": {
-        "attack": 1.2374180331664304,
-        "defense": 1.0478076731907389,
-        "games": 104
+        "attack": 1.2385293180473165,
+        "defense": 1.04610411851167,
+        "games": 105
       },
       "uc irvine anteaters": {
         "attack": 0.9793378998699744,
@@ -8885,14 +8915,14 @@
         "games": 94
       },
       "arkansas-pine bluff golden lions": {
-        "attack": 0.9654373608998863,
-        "defense": 1.0366058922974297,
-        "games": 98
+        "attack": 0.9615973800601242,
+        "defense": 1.0356307390480997,
+        "games": 99
       },
       "sam houston bearkats": {
-        "attack": 0.9928849294976195,
-        "defense": 0.9890528008871988,
-        "games": 95
+        "attack": 0.9922354614587877,
+        "defense": 0.987809062728256,
+        "games": 96
       },
       "pittsburgh": {
         "attack": 0.9634545354107271,
@@ -8905,9 +8935,9 @@
         "games": 96
       },
       "st. johns red storm": {
-        "attack": 0.9454037521817797,
-        "defense": 0.8932710192366768,
-        "games": 103
+        "attack": 0.9451605909932204,
+        "defense": 0.8935885275034637,
+        "games": 104
       },
       "butler bulldogs": {
         "attack": 0.9738871399232509,
@@ -8920,9 +8950,9 @@
         "games": 110
       },
       "new haven chargers": {
-        "attack": 0.9018352694734204,
-        "defense": 0.9536702001411759,
-        "games": 34
+        "attack": 0.9028982763970337,
+        "defense": 0.9551254499093957,
+        "games": 35
       },
       "furman paladins": {
         "attack": 1.0288277872585498,
@@ -8935,9 +8965,9 @@
         "games": 104
       },
       "southern illinois salukis": {
-        "attack": 0.974526541009015,
-        "defense": 1.1013938386417381,
-        "games": 96
+        "attack": 0.9779661990888965,
+        "defense": 1.1006974607553393,
+        "games": 97
       },
       "marist red foxes": {
         "attack": 0.8864225565594439,
@@ -8950,14 +8980,14 @@
         "games": 97
       },
       "kansas city roos": {
-        "attack": 1.01313720169997,
-        "defense": 1.0554568459117772,
-        "games": 102
+        "attack": 1.0121264217325805,
+        "defense": 1.0572614423657662,
+        "games": 103
       },
       "alcorn state lady braves": {
-        "attack": 0.8691625829416956,
-        "defense": 0.964645699422999,
-        "games": 100
+        "attack": 0.8689810382237031,
+        "defense": 0.9667117080878544,
+        "games": 101
       },
       "north carolina a t aggies": {
         "attack": 0.9679602723870705,
@@ -8975,14 +9005,14 @@
         "games": 99
       },
       "north carolina": {
-        "attack": 1.0834968571546246,
-        "defense": 0.9091090859046318,
-        "games": 112
+        "attack": 1.0851042165507099,
+        "defense": 0.9061672140631478,
+        "games": 113
       },
       "youngstown state penguins": {
-        "attack": 0.9658963782450878,
-        "defense": 0.9244447267080047,
-        "games": 103
+        "attack": 0.9647019488579203,
+        "defense": 0.926082725230831,
+        "games": 104
       },
       "mercyhurst lakers": {
         "attack": 0.9811343756473287,
@@ -9000,19 +9030,19 @@
         "games": 101
       },
       "ball state cardinals": {
-        "attack": 1.1347969748340399,
-        "defense": 0.9663542296776464,
-        "games": 107
+        "attack": 1.1346606576929947,
+        "defense": 0.9671321513318742,
+        "games": 108
       },
       "southeast missouri state redhawks": {
-        "attack": 0.9688863089302406,
-        "defense": 1.058397923841135,
-        "games": 98
+        "attack": 0.9689177970051971,
+        "defense": 1.0541630062471627,
+        "games": 99
       },
       "providence": {
-        "attack": 0.8868187215941413,
-        "defense": 0.947825675973522,
-        "games": 105
+        "attack": 0.8901011324222541,
+        "defense": 0.9495679574960131,
+        "games": 106
       },
       "vermont catamounts": {
         "attack": 0.9555348739908334,
@@ -9030,14 +9060,14 @@
         "games": 98
       },
       "lindenwood lions": {
-        "attack": 1.0414428030014007,
-        "defense": 0.9945386287734167,
-        "games": 103
+        "attack": 1.0364648047555491,
+        "defense": 0.9963152856380098,
+        "games": 104
       },
       "chicago state cougars": {
-        "attack": 0.923609829247378,
-        "defense": 1.1981346432717137,
-        "games": 100
+        "attack": 0.920935506211566,
+        "defense": 1.1969417062127143,
+        "games": 101
       },
       "western carolina catamounts": {
         "attack": 0.9329,
@@ -9085,14 +9115,14 @@
         "games": 98
       },
       "michigan state": {
-        "attack": 1.2415703984424986,
-        "defense": 0.9946687708337658,
-        "games": 101
+        "attack": 1.2405403493575036,
+        "defense": 0.9934990553770234,
+        "games": 102
       },
       "william mary tribe": {
-        "attack": 0.9414732333233138,
-        "defense": 0.9593057053481272,
-        "games": 101
+        "attack": 0.9424402020860339,
+        "defense": 0.9577583428565618,
+        "games": 102
       },
       "old dominion monarchs": {
         "attack": 1.019813185209691,
@@ -9100,9 +9130,9 @@
         "games": 105
       },
       "davidson wildcats": {
-        "attack": 0.9582233375035318,
-        "defense": 0.8505046943906555,
-        "games": 101
+        "attack": 0.9574258924918406,
+        "defense": 0.8494748134585378,
+        "games": 102
       },
       "vcu rams": {
         "attack": 0.9179548890451764,
@@ -9110,14 +9140,14 @@
         "games": 99
       },
       "montana lady griz": {
-        "attack": 1.0319386473378451,
-        "defense": 1.040041685420047,
-        "games": 102
+        "attack": 1.0304852851486157,
+        "defense": 1.0379874946779724,
+        "games": 103
       },
       "louisiana ragin cajuns": {
-        "attack": 0.9243133662686865,
-        "defense": 0.9970343819337775,
-        "games": 97
+        "attack": 0.9256225563151796,
+        "defense": 0.9967035563075282,
+        "games": 98
       },
       "indiana state sycamores": {
         "attack": 1.044476083204191,
@@ -9140,9 +9170,9 @@
         "games": 99
       },
       "northeastern huskies": {
-        "attack": 0.837099015854915,
-        "defense": 0.9819556510141902,
-        "games": 92
+        "attack": 0.8366190398140109,
+        "defense": 0.9833839686013707,
+        "games": 93
       },
       "morehead state eagles": {
         "attack": 1.0070118360819824,
@@ -9155,9 +9185,9 @@
         "games": 100
       },
       "arizona state": {
-        "attack": 1.0157269748148534,
-        "defense": 1.037802522107712,
-        "games": 104
+        "attack": 1.0156622029604963,
+        "defense": 1.0363096461380463,
+        "games": 105
       },
       "columbia lions": {
         "attack": 1.118847197749225,
@@ -9165,9 +9195,9 @@
         "games": 100
       },
       "lehigh mountain hawks": {
-        "attack": 1.0307131990197962,
-        "defense": 0.9538752453503896,
-        "games": 102
+        "attack": 1.0285457720020885,
+        "defense": 0.9530929377664684,
+        "games": 103
       },
       "mercer bears": {
         "attack": 0.9190521295861074,
@@ -9175,9 +9205,9 @@
         "games": 98
       },
       "east texas a m lions": {
-        "attack": 1.0022386943337593,
-        "defense": 1.0625842754666912,
-        "games": 96
+        "attack": 1.0012764312489042,
+        "defense": 1.0582707556142645,
+        "games": 97
       },
       "detroit mercy titans": {
         "attack": 0.9579083046583091,
@@ -9190,9 +9220,9 @@
         "games": 105
       },
       "eastern washington eagles": {
-        "attack": 1.0392768002160238,
-        "defense": 0.9682395517311169,
-        "games": 104
+        "attack": 1.0408115745423534,
+        "defense": 0.9669083182764048,
+        "games": 105
       },
       "northern kentucky norse": {
         "attack": 1.0219644177643692,
@@ -9200,9 +9230,9 @@
         "games": 101
       },
       "alabama": {
-        "attack": 1.1446406571800853,
-        "defense": 0.9546997499248434,
-        "games": 110
+        "attack": 1.145352708829458,
+        "defense": 0.9507296233970657,
+        "games": 111
       },
       "elon phoenix": {
         "attack": 0.9115597927852604,
@@ -9240,9 +9270,9 @@
         "games": 7
       },
       "villanova": {
-        "attack": 1.0281639305956964,
-        "defense": 0.9524370929182214,
-        "games": 110
+        "attack": 1.0271629597178127,
+        "defense": 0.9545125398478029,
+        "games": 111
       },
       "boston university terriers": {
         "attack": 0.9169988590695946,
@@ -9275,9 +9305,9 @@
         "games": 99
       },
       "bethune-cookman wildcats": {
-        "attack": 0.9319063470491842,
-        "defense": 0.9713776130727021,
-        "games": 101
+        "attack": 0.9304070390735436,
+        "defense": 0.968760064758284,
+        "games": 102
       },
       "uic flames": {
         "attack": 1.0229228114151943,
@@ -9285,9 +9315,9 @@
         "games": 106
       },
       "nebraska": {
-        "attack": 1.1651201485854983,
-        "defense": 1.0007202717568864,
-        "games": 106
+        "attack": 1.1670377740058642,
+        "defense": 0.9997592028920727,
+        "games": 107
       },
       "st. thomas tx celts": {
         "attack": 0.7135,
@@ -9300,9 +9330,9 @@
         "games": 97
       },
       "winthrop eagles": {
-        "attack": 0.9355641866122443,
-        "defense": 0.959188380545525,
-        "games": 99
+        "attack": 0.9317586482270452,
+        "defense": 0.9589755181209921,
+        "games": 100
       },
       "dillard blue devils": {
         "attack": 0.7665911559409174,
@@ -9310,9 +9340,9 @@
         "games": 6
       },
       "southern utah thunderbirds": {
-        "attack": 1.014405313558376,
-        "defense": 1.0577903948801122,
-        "games": 98
+        "attack": 1.014664161017974,
+        "defense": 1.0531105176436895,
+        "games": 99
       },
       "north carolina central eagles": {
         "attack": 0.9491788481360868,
@@ -9340,9 +9370,9 @@
         "games": 98
       },
       "wright state raiders": {
-        "attack": 1.0147108655864197,
-        "defense": 1.0768654861318119,
-        "games": 103
+        "attack": 1.0120291312068381,
+        "defense": 1.0751662768489498,
+        "games": 104
       },
       "texas tech lady raiders": {
         "attack": 1.0163524855376729,
@@ -9380,9 +9410,9 @@
         "games": 105
       },
       "florida gulf coast eagles": {
-        "attack": 1.0798638564028342,
-        "defense": 0.8613085383579769,
-        "games": 106
+        "attack": 1.0792115914078946,
+        "defense": 0.8652507683220224,
+        "games": 107
       },
       "oakland golden grizzlies": {
         "attack": 0.9881384705669372,
@@ -9405,9 +9435,9 @@
         "games": 98
       },
       "stonehill skyhawks": {
-        "attack": 0.8944421055375025,
-        "defense": 1.030703763988608,
-        "games": 99
+        "attack": 0.8966592727053309,
+        "defense": 1.0283075824108208,
+        "games": 100
       },
       "tulane green wave": {
         "attack": 1.014230096779067,
@@ -9435,14 +9465,14 @@
         "games": 107
       },
       "central michigan chippewas": {
-        "attack": 0.9705393779311898,
-        "defense": 1.0413075491405674,
-        "games": 95
+        "attack": 0.9671053558889188,
+        "defense": 1.0403493864120212,
+        "games": 96
       },
       "fresno state bulldogs": {
-        "attack": 0.974815489700624,
-        "defense": 0.9593581001400501,
-        "games": 104
+        "attack": 0.9793622295108121,
+        "defense": 0.9587675860128633,
+        "games": 105
       },
       "central connecticut blue devils": {
         "attack": 0.8829052041214704,
@@ -9450,14 +9480,14 @@
         "games": 97
       },
       "cleveland state vikings": {
-        "attack": 1.1092466680479698,
-        "defense": 0.9362649970773093,
-        "games": 113
+        "attack": 1.1080197633762283,
+        "defense": 0.9361450588980263,
+        "games": 114
       },
       "james madison dukes": {
-        "attack": 1.1102813192025491,
-        "defense": 0.9658601501939139,
-        "games": 113
+        "attack": 1.1100651851101129,
+        "defense": 0.9624138594386497,
+        "games": 114
       },
       "south florida bulls": {
         "attack": 1.0255893504429445,
@@ -9465,9 +9495,9 @@
         "games": 106
       },
       "colgate raiders": {
-        "attack": 0.936453738202723,
-        "defense": 0.9140534092482945,
-        "games": 103
+        "attack": 0.9355022918348729,
+        "defense": 0.9163204090770803,
+        "games": 104
       },
       "marquette": {
         "attack": 1.0444685259512771,
@@ -9475,14 +9505,14 @@
         "games": 101
       },
       "montana state bobcats": {
-        "attack": 1.0454329943847134,
-        "defense": 0.8903682407901694,
-        "games": 105
+        "attack": 1.0439741784880425,
+        "defense": 0.8917096722910273,
+        "games": 106
       },
       "loyola chicago ramblers": {
-        "attack": 0.9078270971898378,
-        "defense": 0.9665032104050584,
-        "games": 101
+        "attack": 0.9096894422546806,
+        "defense": 0.9707595107551507,
+        "games": 102
       },
       "lipscomb bisons": {
         "attack": 1.0369726164008006,
@@ -9505,9 +9535,9 @@
         "games": 9
       },
       "nicholls colonels": {
-        "attack": 0.959893215452506,
-        "defense": 0.948064783700939,
-        "games": 101
+        "attack": 0.9595872038913941,
+        "defense": 0.9493549550113053,
+        "games": 102
       },
       "grand canyon lopes": {
         "attack": 1.0802739612463268,
@@ -9535,9 +9565,9 @@
         "games": 6
       },
       "arkansas state red wolves": {
-        "attack": 1.1007338837860758,
-        "defense": 1.0116043651951252,
-        "games": 104
+        "attack": 1.102127355312018,
+        "defense": 1.0112283178419212,
+        "games": 105
       },
       "creighton": {
         "attack": 1.07867644045599,
@@ -9545,24 +9575,24 @@
         "games": 102
       },
       "uc san diego tritons": {
-        "attack": 0.985665567818253,
-        "defense": 0.926050986195051,
-        "games": 104
+        "attack": 0.9910388114856107,
+        "defense": 0.924808448250882,
+        "games": 105
       },
       "uab blazers": {
-        "attack": 1.0541585201393537,
-        "defense": 1.0580616033029189,
-        "games": 99
+        "attack": 1.0524353142451757,
+        "defense": 1.0576421671993084,
+        "games": 100
       },
       "siena saints": {
-        "attack": 1.0171933240936204,
-        "defense": 1.0016120034910485,
-        "games": 98
+        "attack": 1.0198435418560894,
+        "defense": 1.0005429593193031,
+        "games": 99
       },
       "oklahoma": {
-        "attack": 1.2742983452019194,
-        "defense": 1.0391028945112832,
-        "games": 109
+        "attack": 1.2761483938112674,
+        "defense": 1.0377056383950765,
+        "games": 110
       },
       "stanford": {
         "attack": 1.1218558812979686,
@@ -9570,19 +9600,19 @@
         "games": 109
       },
       "northern illinois huskies": {
-        "attack": 0.9603483679276684,
-        "defense": 1.048796274444676,
-        "games": 96
+        "attack": 0.9622270048319006,
+        "defense": 1.0450175624254214,
+        "games": 97
       },
       "cal state fullerton titans": {
-        "attack": 0.9670814071620849,
-        "defense": 0.9973005493245746,
-        "games": 99
+        "attack": 0.9697782872097576,
+        "defense": 0.9999627173292067,
+        "games": 100
       },
       "niagara purple eagles": {
-        "attack": 0.9128648054493006,
-        "defense": 1.15600008728031,
-        "games": 99
+        "attack": 0.9135233032662284,
+        "defense": 1.1558486573534659,
+        "games": 100
       },
       "santa clara broncos": {
         "attack": 1.0900424826622273,
@@ -9605,9 +9635,9 @@
         "games": 98
       },
       "akron zips": {
-        "attack": 0.9941290442309013,
-        "defense": 1.0825645750186554,
-        "games": 97
+        "attack": 0.9959983596235991,
+        "defense": 1.0811439121896855,
+        "games": 98
       },
       "charlotte 49ers": {
         "attack": 0.9543953810832094,
@@ -9615,9 +9645,9 @@
         "games": 100
       },
       "virginia tech": {
-        "attack": 1.1400438336093641,
-        "defense": 0.9719385348378251,
-        "games": 104
+        "attack": 1.1387414642547256,
+        "defense": 0.9711552201953125,
+        "games": 105
       },
       "baylor": {
         "attack": 1.1542649643877483,
@@ -9630,9 +9660,9 @@
         "games": 97
       },
       "north texas mean green": {
-        "attack": 1.105669020234839,
-        "defense": 0.9561062524159025,
-        "games": 105
+        "attack": 1.1038141441405094,
+        "defense": 0.9559009712056487,
+        "games": 106
       },
       "austin peay governors": {
         "attack": 0.9639997810098222,
@@ -9650,9 +9680,9 @@
         "games": 110
       },
       "siu edwardsville cougars": {
-        "attack": 0.9967657681214928,
-        "defense": 1.0608653811628843,
-        "games": 99
+        "attack": 0.9951051523477319,
+        "defense": 1.0617986671406663,
+        "games": 100
       },
       "southern miss lady eagles": {
         "attack": 1.0364483362068402,
@@ -9685,9 +9715,9 @@
         "games": 104
       },
       "bucknell bison": {
-        "attack": 0.8751947395861763,
-        "defense": 0.9118552692877478,
-        "games": 98
+        "attack": 0.875523819270717,
+        "defense": 0.9096838382466192,
+        "games": 99
       },
       "saint josephs hawks": {
         "attack": 1.0279139091345657,
@@ -9700,9 +9730,9 @@
         "games": 97
       },
       "temple owls": {
-        "attack": 1.0602458322682673,
-        "defense": 1.0006990392581918,
-        "games": 100
+        "attack": 1.0611584911077294,
+        "defense": 1.0005704992970457,
+        "games": 101
       },
       "uc davis aggies": {
         "attack": 1.0104858682681674,
@@ -9735,14 +9765,14 @@
         "games": 107
       },
       "marshall thundering herd": {
-        "attack": 1.140040306024377,
-        "defense": 1.0253143738242454,
-        "games": 112
+        "attack": 1.137403083477685,
+        "defense": 1.027378962369714,
+        "games": 113
       },
       "new hampshire wildcats": {
-        "attack": 0.8462765502360653,
-        "defense": 0.9019204847791213,
-        "games": 96
+        "attack": 0.8479765008299829,
+        "defense": 0.9055685321205552,
+        "games": 97
       },
       "colorado state rams": {
         "attack": 1.0345244541656018,
@@ -9805,9 +9835,9 @@
         "games": 114
       },
       "western michigan broncos": {
-        "attack": 0.895336762869267,
-        "defense": 0.9941508638287911,
-        "games": 93
+        "attack": 0.8971063575530849,
+        "defense": 0.9888933902835708,
+        "games": 94
       },
       "maryland eastern shore hawks": {
         "attack": 0.9405312483500794,
@@ -9815,14 +9845,14 @@
         "games": 102
       },
       "cornell big red": {
-        "attack": 0.8397232952955845,
-        "defense": 0.96185835112878,
-        "games": 86
+        "attack": 0.8423274550121624,
+        "defense": 0.9618061068847666,
+        "games": 87
       },
       "ucla": {
-        "attack": 1.2100480693367108,
-        "defense": 0.880245845197558,
-        "games": 116
+        "attack": 1.210430384826088,
+        "defense": 0.880044598669161,
+        "games": 117
       },
       "johnson c. smith golden bulls": {
         "attack": 0.8043342048024537,
@@ -9885,9 +9915,9 @@
         "games": 102
       },
       "le moyne dolphins": {
-        "attack": 0.8509061783844961,
-        "defense": 1.019996502435428,
-        "games": 103
+        "attack": 0.8489773052592723,
+        "defense": 1.020361589891606,
+        "games": 104
       },
       "houston christian huskies": {
         "attack": 0.8271231321916624,
@@ -9915,9 +9945,9 @@
         "games": 96
       },
       "byu": {
-        "attack": 1.0509901504285013,
-        "defense": 1.0082679354105417,
-        "games": 108
+        "attack": 1.0533300185390522,
+        "defense": 1.005632307096179,
+        "games": 109
       },
       "minnesota": {
         "attack": 1.1154004199531449,
@@ -9930,14 +9960,14 @@
         "games": 96
       },
       "george mason patriots": {
-        "attack": 1.0765446061457586,
-        "defense": 0.9028879305585014,
-        "games": 104
+        "attack": 1.0757824662281863,
+        "defense": 0.9027898183411966,
+        "games": 105
       },
       "st. thomas tommies": {
-        "attack": 1.0359828064400456,
-        "defense": 1.0138862365672072,
-        "games": 98
+        "attack": 1.0350584300539054,
+        "defense": 1.0104075509331971,
+        "games": 99
       },
       "life university running eagles": {
         "attack": 0.7468726330490895,
@@ -9955,14 +9985,14 @@
         "games": 96
       },
       "wagner seahawks": {
-        "attack": 0.8654013377048991,
-        "defense": 1.0037288438235685,
-        "games": 92
+        "attack": 0.8653573652010643,
+        "defense": 1.0066407952326468,
+        "games": 93
       },
       "arkansas": {
-        "attack": 1.0779800910442803,
-        "defense": 1.138625981133916,
-        "games": 102
+        "attack": 1.0784672654184202,
+        "defense": 1.1373586061164915,
+        "games": 103
       },
       "uva wise cavaliers": {
         "attack": 0.8137422938573674,
@@ -9975,9 +10005,9 @@
         "games": 67
       },
       "gardner-webb runnin bulldogs": {
-        "attack": 0.929570366672921,
-        "defense": 1.0631789811379297,
-        "games": 95
+        "attack": 0.9260296006252228,
+        "defense": 1.0650354981359544,
+        "games": 96
       },
       "rhode island rams": {
         "attack": 0.9946387415931802,
@@ -10435,9 +10465,9 @@
         "games": 1
       },
       "dallas crusaders": {
-        "attack": 0.6606585324918992,
-        "defense": 1.6864564361692431,
-        "games": 1
+        "attack": 0.6531406426267243,
+        "defense": 1.5365084078465845,
+        "games": 2
       },
       "clinton golden bears": {
         "attack": 0.7511880242705605,
@@ -10525,9 +10555,9 @@
         "games": 1
       },
       "whittier poets": {
-        "attack": 0.551288379919294,
-        "defense": 0.9985054694584331,
-        "games": 1
+        "attack": 0.5124543104424139,
+        "defense": 1.2842755132770751,
+        "games": 2
       },
       "ohio christian trailblazers": {
         "attack": 0.3754302053355349,
@@ -10740,9 +10770,9 @@
         "games": 1
       },
       "nelson american indian warriors": {
-        "attack": 0.7104534486707911,
-        "defense": 1.8912572140499964,
-        "games": 1
+        "attack": 0.554865603069027,
+        "defense": 1.9151456759681578,
+        "games": 2
       },
       "albany state golden rams": {
         "attack": 1.0267091225782325,
@@ -10810,9 +10840,9 @@
         "games": 1
       },
       "american": {
-        "attack": 0.7458906323105805,
-        "defense": 1.0777086933479543,
-        "games": 1
+        "attack": 0.787192473824237,
+        "defense": 1.0298691121242973,
+        "games": 2
       },
       "coker cobras": {
         "attack": 0.7824119003364135,
@@ -10838,8 +10868,28 @@
         "attack": 0.8584052062674651,
         "defense": 1.027666327552916,
         "games": 1
+      },
+      "roosevelt lakers": {
+        "attack": 0.6505183372607293,
+        "defense": 1.189751746133285,
+        "games": 1
+      },
+      "west alabama tigers": {
+        "attack": 1.0343047543589503,
+        "defense": 1.2377336057419372,
+        "games": 1
+      },
+      "carroll mt fighting saints": {
+        "attack": 0.7965642633369645,
+        "defense": 0.8549368163729376,
+        "games": 1
+      },
+      "whitworth pirates": {
+        "attack": 0.8556354029384049,
+        "defense": 1.1550610041820557,
+        "games": 1
       }
     },
-    "last_updated": "2026-11-23"
+    "last_updated": "2026-11-24"
   }
 }
