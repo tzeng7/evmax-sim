@@ -140583,6 +140583,14 @@
     ],
     "incarnate word cardinals": [
       {
+        "date": "2026-11-25",
+        "won": false,
+        "opp": "hawaii",
+        "home": false,
+        "drew": false,
+        "margin": -2.0
+      },
+      {
         "date": "2026-11-20",
         "won": true,
         "opp": "central baptist mustangs",
@@ -140733,14 +140741,6 @@
         "home": true,
         "drew": false,
         "margin": -22.0
-      },
-      {
-        "date": "2026-01-17",
-        "won": true,
-        "opp": "northwestern state demons",
-        "home": true,
-        "drew": false,
-        "margin": 2.0
       }
     ],
     "north carolina": [
@@ -150517,6 +150517,14 @@
     ],
     "clemson": [
       {
+        "date": "2026-11-25",
+        "won": false,
+        "opp": "colorado state",
+        "home": false,
+        "drew": false,
+        "margin": -2.0
+      },
+      {
         "date": "2026-11-24",
         "won": false,
         "opp": "washington",
@@ -150667,14 +150675,6 @@
         "home": false,
         "drew": false,
         "margin": 22.0
-      },
-      {
-        "date": "2026-02-05",
-        "won": true,
-        "opp": "stanford",
-        "home": false,
-        "drew": false,
-        "margin": 2.0
       }
     ],
     "winthrop eagles": [
@@ -163673,6 +163673,14 @@
     ],
     "saint louis billikens": [
       {
+        "date": "2026-11-25",
+        "won": true,
+        "opp": "stanford",
+        "home": true,
+        "drew": false,
+        "margin": 2.0
+      },
+      {
         "date": "2026-11-24",
         "won": false,
         "opp": "grand canyon",
@@ -163823,14 +163831,6 @@
         "home": false,
         "drew": false,
         "margin": 9.0
-      },
-      {
-        "date": "2026-01-31",
-        "won": true,
-        "opp": "dayton",
-        "home": true,
-        "drew": false,
-        "margin": 31.0
       }
     ],
     "southern indiana screaming eagles": [
@@ -181945,6 +181945,14 @@
     ],
     "colorado state": [
       {
+        "date": "2026-11-25",
+        "won": true,
+        "opp": "clemson",
+        "home": true,
+        "drew": false,
+        "margin": 2.0
+      },
+      {
         "date": "2026-11-24",
         "won": false,
         "opp": "vcu",
@@ -182095,14 +182103,6 @@
         "home": true,
         "drew": false,
         "margin": 8.0
-      },
-      {
-        "date": "2026-02-01",
-        "won": false,
-        "opp": "wyoming",
-        "home": false,
-        "drew": false,
-        "margin": -11.0
       }
     ],
     "louisiana tech bulldogs": [
@@ -183985,6 +183985,14 @@
     ],
     "stanford": [
       {
+        "date": "2026-11-25",
+        "won": false,
+        "opp": "saint louis",
+        "home": false,
+        "drew": false,
+        "margin": -2.0
+      },
+      {
         "date": "2026-11-24",
         "won": false,
         "opp": "colorado",
@@ -184135,14 +184143,6 @@
         "home": false,
         "drew": false,
         "margin": -8.0
-      },
-      {
-        "date": "2026-01-29",
-        "won": false,
-        "opp": "miami",
-        "home": false,
-        "drew": false,
-        "margin": -9.0
       }
     ],
     "cal state northridge matadors": [
@@ -198791,6 +198791,14 @@
     ],
     "hawaii rainbow warriors": [
       {
+        "date": "2026-11-25",
+        "won": true,
+        "opp": "incarnate word",
+        "home": true,
+        "drew": false,
+        "margin": 2.0
+      },
+      {
         "date": "2026-11-18",
         "won": false,
         "opp": "washington state",
@@ -198941,14 +198949,6 @@
         "home": false,
         "drew": false,
         "margin": -11.0
-      },
-      {
-        "date": "2026-01-25",
-        "won": true,
-        "opp": "cal state northridge matadors",
-        "home": true,
-        "drew": false,
-        "margin": 21.0
       }
     ],
     "hawai\u02bbi hilo vulcans": [
