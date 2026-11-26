@@ -141135,6 +141135,14 @@
     ],
     "kansas state": [
       {
+        "date": "2026-11-24",
+        "won": false,
+        "opp": "gonzaga",
+        "home": true,
+        "drew": false,
+        "margin": -40.0
+      },
+      {
         "date": "2026-11-20",
         "won": false,
         "opp": "campbell",
@@ -141285,14 +141293,6 @@
         "home": true,
         "drew": false,
         "margin": 3.0
-      },
-      {
-        "date": "2026-01-18",
-        "won": false,
-        "opp": "oklahoma state",
-        "home": false,
-        "drew": false,
-        "margin": -1.0
       }
     ],
     "villanova": [
@@ -160653,6 +160653,14 @@
     ],
     "colorado": [
       {
+        "date": "2026-11-24",
+        "won": true,
+        "opp": "stanford",
+        "home": false,
+        "drew": false,
+        "margin": 5.0
+      },
+      {
         "date": "2026-11-18",
         "won": false,
         "opp": "portland",
@@ -160803,14 +160811,6 @@
         "home": true,
         "drew": false,
         "margin": -9.0
-      },
-      {
-        "date": "2026-01-21",
-        "won": false,
-        "opp": "kansas",
-        "home": true,
-        "drew": false,
-        "margin": -6.0
       }
     ],
     "towson tigers": [
@@ -183881,6 +183881,14 @@
     ],
     "stanford": [
       {
+        "date": "2026-11-24",
+        "won": false,
+        "opp": "colorado",
+        "home": true,
+        "drew": false,
+        "margin": -5.0
+      },
+      {
         "date": "2026-11-19",
         "won": true,
         "opp": "sacramento state hornets",
@@ -184031,14 +184039,6 @@
         "home": false,
         "drew": false,
         "margin": -9.0
-      },
-      {
-        "date": "2026-01-25",
-        "won": false,
-        "opp": "california",
-        "home": true,
-        "drew": false,
-        "margin": -12.0
       }
     ],
     "cal state northridge matadors": [
@@ -196831,6 +196831,14 @@
     ],
     "gonzaga": [
       {
+        "date": "2026-11-24",
+        "won": true,
+        "opp": "kansas state",
+        "home": false,
+        "drew": false,
+        "margin": 40.0
+      },
+      {
         "date": "2026-11-17",
         "won": true,
         "opp": "montana state bobcats",
@@ -196981,14 +196989,6 @@
         "home": true,
         "drew": false,
         "margin": 24.0
-      },
-      {
-        "date": "2026-01-18",
-        "won": true,
-        "opp": "seattle u redhawks",
-        "home": false,
-        "drew": false,
-        "margin": 21.0
       }
     ],
     "wilberforce bulldogs": [
