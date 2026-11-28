@@ -501,7 +501,7 @@ prob_a = normal_cdf(margin / SCORE_STDEV)           # σ = 12.5
 
 **Confidence ramp:** smooth instead of stepped — `smooth_confidence(min_gp)` returns 0.40 (gp=0) → 0.80 (gp≥40). Clears the ensemble's 0.45 confidence gate at gp ≥ 6.
 
-**Tunable constants vs NBA:** `HOME_EDGE_PTS 2.6` (NBA 3.2), `SCORE_STDEV 12.5` (NBA 12.5), `MIN_GAMES 4` (NBA 20), `SHRINK_K 8`. WNBA's 40-game season warrants a lower games-played gate and shrinkage; the weaker home-court edge reflects the 2025 56.7% home win rate (NBA ~59%).
+**Tunable constants vs NBA:** `HOME_EDGE_PTS 2.6` (NBA 3.2), `SCORE_STDEV 12.5` (NBA 12.0), `MIN_GAMES 4` (NBA 4 since 2026-11-01), `SHRINK_K 8`. WNBA's 40-game season warrants a lower games-played gate and shrinkage; the weaker home-court edge reflects the 2025 56.7% home win rate (NBA ~59%).
 
 **Seeding:** `scripts/seed_wnba_efficiency.py` walks ESPN's WNBA scoreboard for a season (e.g. 2025 or 2026 May-October), pulls per-game box scores, and computes ORtg/DRtg/Pace/eFG%/TOV%/OREB%/FTr via Dean Oliver formulas:
 
@@ -1628,7 +1628,7 @@ All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api
 
 | Category | Models | Market Types | Resolver | Mode |
 |----------|--------|--------------|----------|------|
-| `nba` | Efficiency + PossessionSim + ShotQuality + Matchup + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
+| `nba` | Efficiency + PossessionSim + ShotQuality + Matchup + Elo + Form | moneyline, spread, total (all three **shadow** via `shadow_market_types` for the 2026-27 opening weeks) | espn_scoreboard | `live` |
 | `nfl` | NFL Efficiency + NFL QB Elo + Elo + Form | moneyline + `total` live (`spread` **shadow**; Kalshi `total` **shadow** via `shadow_venue_market_types` — models price ML only) | espn_scoreboard | `live` |
 | `ncaab` | NCAAB Efficiency + PossessionSim + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
 | `ncaaw` | NCAAW Efficiency + PossessionSim + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
@@ -1638,12 +1638,12 @@ All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api
 | `tennis` | Surface Elo + Serve/Return + Form + Advanced + H2H + Ranking Trend | moneyline | kalshi_settlement | `live` |
 | `baseball` | Pitcher + Elo + Form (probables via MLB Stats API) | moneyline, spread (`total` disabled) | espn_scoreboard | `shadow` |
 | `wnba` | WNBA Efficiency + WNBA PossessionSim + Elo | moneyline (`spread` + `total` **disabled** — owned by the anchored-entry trigger since 2026-07-19) | espn_scoreboard | `live` |
-| `nhl` | NHL xG (MoneyPuck) + Form | moneyline, spread, total | espn_scoreboard | `shadow` |
+| `nhl` | NHL xG (MoneyPuck) + Elo | moneyline, spread, total | espn_scoreboard | `shadow` |
 | `lol` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
-| `cs2` | sharp-only | moneyline, map_handicap | bo3gg | `shadow` |
+| `cs2` | sharp-only | moneyline, map_handicap | bo3gg | `disabled` |
 | `ufc` | UFC Rating (Glicko-2 + feature layer) | moneyline | kalshi_settlement | `shadow` |
 | `nba_props` | NBA Props Cache | player_prop | espn_boxscore | `disabled` |
-| `nfl_props` | NFL Props Cache (QB only v1) | player_prop | espn_boxscore | `shadow` (blocked) |
+| `nfl_props` | NFL Props Cache (QB only v1) | player_prop | espn_boxscore | `disabled` |
 | `baseball_props` | Baseball Props Model (K/Outs/TB/HR anchored; Hits/H+R+RBI/RBI model-priced) | player_prop | mlb_statsapi | `disabled` (wip) |
 
 > Injury data (ESPN) is applied to NBA / NFL / NCAAB / NCAAW / soccer / WNBA (`SECTOR_INJURY_URLS` in `injury_agent.py`). `valorant` is registered in `evmax/sectors/registry.py` as a **latent** sector (no Kalshi product, absent from `SECTOR_SERIES_MAP`, cannot be bet today); `f1` has a handler file at `evmax/sectors/f1.py` but is NOT in `_REGISTRY`, so `get_handler("f1")` raises — activating it needs the registry entry plus a Kalshi series; `ufc` graduated from that latent list to a live `shadow` sector on 2026-07-11 (`KXUFCFIGHT`).
