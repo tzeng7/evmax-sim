@@ -1631,8 +1631,8 @@ All sectors draw sharp lines from the keyless **Pinnacle guest API** (`guest.api
 | `nba` | Efficiency + PossessionSim + ShotQuality + Matchup + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
 | `nfl` | NFL Efficiency + NFL QB Elo + Elo + Form | moneyline + `total` live (`spread` **shadow**; Kalshi `total` **shadow** via `shadow_venue_market_types` — models price ML only) | espn_scoreboard | `live` |
 | `ncaab` | NCAAB Efficiency + PossessionSim + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
-| `ncaaw` | NCAAW Efficiency + PossessionSim + Elo + Form | moneyline, spread, total | espn_scoreboard | `live` |
-| `ncaaf` | NCAAF Efficiency (opponent-adjusted EPA + preseason-prior ramp) + Elo + Form | moneyline (`spread` + `total` disabled) | espn_scoreboard | `shadow` (wip) |
+| `ncaaw` | NCAAW Efficiency + PossessionSim + Elo + Form (soft-book / model anchor; Pinnacle posts no NCAAW) | moneyline, spread, total | espn_scoreboard | `shadow` |
+| `ncaaf` | NCAAF Efficiency (opponent-adjusted EPA + preseason-prior ramp) + Elo + Form | moneyline (`spread` + `total` disabled) | espn_scoreboard | `live` (wip; moneyline promoted 2026-11-20) |
 | `soccer` | Poisson + xG + Elo + Form | moneyline, total | espn_scoreboard | `live` |
 | `worldcup` | Poisson + xG + Elo + Form (national-team namespaces) | moneyline, advance | espn_scoreboard (`fifa.world`) | `disabled` (wip) |
 | `tennis` | Surface Elo + Serve/Return + Form + Advanced + H2H + Ranking Trend | moneyline | kalshi_settlement | `live` |

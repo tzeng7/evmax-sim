@@ -8,7 +8,7 @@ API clients for external data sources.
 - RSA-signed authentication against the Kalshi REST API
 - `get_markets(series_tickers)` — fetches open markets for a list of series tickers
 - `get_orderbook(market_ticker)` — WebSocket orderbook snapshot for live price verification
-- Rate limiting: `AsyncLimiter(10, 1.0)` from `aiolimiter` (token bucket, 10 req/s)
+- Rate limiting: `AsyncLimiter(20, 1.0)` from `aiolimiter` (token bucket, 20 req/s, one token per attempt incl. retries); every read is RSA-signed when key material is configured (unsigned reads get Kalshi's ~8 req/s anonymous bucket)
 - Used by: `KalshiOddsAgent`
 
 ### `esports_pinnacle.py` — `PinnacleGuestClient`

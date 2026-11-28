@@ -1,7 +1,7 @@
 """API clients for Kalshi and Pinnacle.
 
 Active clients (used in live pipeline):
-- kalshi.py          — KalshiClient: RSA-auth REST + WebSocket orderbook, AsyncLimiter(10/s)
+- kalshi.py          — KalshiClient: RSA-auth REST + WebSocket orderbook, AsyncLimiter(20/s), RSA-signed reads
 - esports_pinnacle.py — PinnacleGuestClient: Pinnacle guest API for ALL sectors (name is
 nfl_depth_charts  — nflverse depth charts → pre-game QB starters for nfl_qb_elo
                        historical — it covers every sector, not just esports). The single
